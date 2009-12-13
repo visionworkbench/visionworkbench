@@ -35,21 +35,18 @@
 #define boost_sparse_matrix boost::numeric::ublas::mapped_matrix
 #define boost_sparse_vector boost::numeric::ublas::mapped_vector
 #endif
+
 namespace vw {
 namespace camera {
 
   template <class BundleAdjustModelT, class RobustCostT>
-    class BundleAdjustmentRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
-
+  class BundleAdjustmentRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
 
     // Need to save S for covariance calculations
     boost::shared_ptr<math::Matrix<double> > m_S;
 
   public:
-    Matrix<double> S() { return *m_S; }
-    void set_S(math::Matrix<double> S) {
-      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
-    }
+
     BundleAdjustmentRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
                          bool use_camera_constraint=true,
@@ -58,7 +55,16 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
-    virtual void covCalc(){
+    Matrix<double> S() { return *m_S; }
+    void set_S(math::Matrix<double> S) {
+      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
+    }
+
+    // Covariance Calculator
+    // __________________________________________________
+    // This routine inverts a sparse matrix S, and prints the individual
+    // covariance matrices for each camera
+    void covCalc(){
 
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -71,45 +77,31 @@ namespace camera {
       // final vector of camera covariance matrices
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
-
       // Get the S matrix from the model
       Matrix<double> S = this->S();
-
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
-
       Matrix<double> Cov = multi_solve_symmetric(S, Id);
 
       //pick out covariances of individual cameras
-      for(unsigned i = 0; i < num_cameras; i++){
-         sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
-      }
+      for ( unsigned i = 0; i < num_cameras; i++ )
+         sparse_cov(i) = submatrix(Cov, i*num_cam_params,
+                                   i*num_cam_params,
+                                   num_cam_params,
+                                   num_cam_params);
 
-
-      //std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      std::cout << "Covariance matrices for cameras are:"
+                << sparse_cov << "\n\n";
 
       return;
     }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- // PROBABLY DELETE?
-    //-----------------------------------------------------------
+    // PROBABLY DELETE?
+    // ______________________________________________
     // I'm not sure what this does
-    void debug_impl(Matrix<double> &J, Matrix<double> &sigma, Vector<double> &epsilon) {
+    void debug_impl(Matrix<double> &J, Matrix<double> &sigma,
+                    Vector<double> &epsilon) {
 
       // Here are some useful variable declarations that make the code
       // below more readable.
@@ -226,7 +218,7 @@ namespace camera {
     // Each entry in the outer vector corresponds to a distinct 3D
     // point.  The inner vector contains a list of image IDs and
     // pixel coordinates where that point was imaged.
-    virtual double update(double &abs_tol, double &rel_tol) {
+    double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
 
       // Here are some useful variable declarations that make the code
@@ -282,9 +274,7 @@ namespace camera {
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
 
-           //       std::cout << "pixel sigma is: " << pixel_sigma << "\n\n";
-
-           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
+          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
 
@@ -295,23 +285,14 @@ namespace camera {
       double max = 0.0;
       if (this->m_iterations == 1 && this->m_lambda == 1e-3){
         Matrix<double> hessian = transpose(J) * sigma * J;
-         for (unsigned i = 0; i < hessian.rows(); ++i){
+        for (unsigned i = 0; i < hessian.rows(); ++i)
           if (fabs(hessian(i,i)) > max)
             max = fabs(hessian(i,i));
-        }
         this->m_lambda = 1e-10 * max;
-
-         //std::cout << "lambda: " << 1e-10 * max << "\n\n";
       }
 
-
-      // std::cout << "epsilon: " << epsilon << "\n";
-      //WARNING: debugging only
-
-
-
       // Add rows to J and epsilon for a priori camera parameters...
-      if (this->m_use_camera_constraint)
+      if ( this->m_use_camera_constraint )
         for (unsigned j=0; j < num_cameras; ++j) {
           Matrix<double> id(num_cam_params, num_cam_params);
           id.set_identity();
@@ -332,7 +313,7 @@ namespace camera {
         }
 
       // ... and the position of the 3D points to J and epsilon ...
-      if (this->m_use_gcp_constraint) {
+      if ( this->m_use_gcp_constraint ) {
         idx = 0;
         for (unsigned i=0; i < this->m_model.num_points(); ++i) {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
@@ -359,36 +340,21 @@ namespace camera {
         }
       }
 
-      //std::cout << "Past the setup step in Ref implementation \n";
 
-      // --- UPDATE STEP ----
-
-
+      // --- SOLVE UPDATE STEP -----------------------------------
       Matrix<double> JTS = transpose(J) * sigma;
-
 
       // Build up the right side of the normal equation...
       Vector<double> del_J = -1.0 * (JTS * epsilon);
 
-      // std::cout << "del_J: " << del_J << "\n\n";
-
-
-      // std::cout << "del_J" << del_J << "\n";
-
-      // std::cout << "Past the right side in Ref implementation \n";
-
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
-       Matrix<double> hessian = JTS * J;
-
-       // std::cout << "Past the left side in Ref Implementation \n";
+      Matrix<double> hessian = JTS * J;
 
       // initialize m_lambda on first iteration, ignore if user has
       // changed it.
-
       unsigned num_cam_entries = num_cam_params * num_cameras;
       unsigned num_pt_entries = num_pt_params * num_points;
-
 
       //WARNING: debugging only (uncomment two lines below)
       for ( unsigned i=0; i < hessian.rows(); ++i )
@@ -399,12 +365,10 @@ namespace camera {
 
       // Here we want to make sure that if we apply Schur methods as
       // on p. 604, we can get the same answer as in the general delta.
-
-      Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
-
-      //std::cout << "U after lambda: " << U << "\n\n";
-
-      Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
+      Matrix<double> U = submatrix( hessian, 0, 0,
+                                    num_cam_entries, num_cam_entries);
+      Matrix<double> W = submatrix( hessian, 0, num_cam_entries,
+                                    num_cam_entries, num_pt_entries);
       Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries,
                                       num_pt_entries, num_pt_entries);
       chol_inverse(Vinv);
@@ -415,39 +379,17 @@ namespace camera {
 
       // set S
       this->set_S(S);
-
-      //std::cout << "S: " << S << "\n\n";
-
-
-      // std::cout << "Past U, W setup in Ref Implementation \n";
-
       solve(e, S); // using cholesky
-
-      //std::cout << "Past solve(e,S) step in Ref Implementation \n";
-
       solve(delta, hessian);
 
-
-      //std::cout<< "delta: " << delta << "\n\n";
-
-      //std:: cout << "Past backward solve in Ref Implementation \n";
-
       double nsq_x = 0;
-      for (unsigned j=0; j<this->m_model.num_cameras(); ++j){
-        Vector<double> vec = this->m_model.A_parameters(j);
-        nsq_x += norm_2(vec);
-      }
-      for (unsigned i=0; i<this->m_model.num_points(); ++i){
-        Vector<double> vec =  this->m_model.B_parameters(i);
-        nsq_x += norm_2(vec);
-      }
+      for ( unsigned j=0; j<this->m_model.num_cameras(); ++j )
+        nsq_x += norm_2( this->m_model.A_parameters(j) );
+      for ( unsigned i=0; i<this->m_model.num_points(); ++i )
+        nsq_x += norm_2( this->m_model.B_parameters(i) );
 
-
-      // Solve for update
-
-      // --- EVALUATE UPDATE STEP ---
+      // --- EVALUATE POTENTIAL UPDATE STEP ---
       Vector<double> new_epsilon(num_observations);                  // Error vector
-
       idx = 0;
       for (unsigned i = 0; i < this->m_control_net->size(); ++i) {
         for (unsigned m = 0; m < (*this->m_control_net)[i].size(); ++m) {
@@ -497,20 +439,10 @@ namespace camera {
         }
       }
 
-      //std::cout << "Past new error calc in Ref \n";
-
-
       //Fletcher modification
       double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
       double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
       double dS = .5 * transpose(delta) *(this->m_lambda * delta + del_J);
-
-      /*
-      std::cout << "Old Objective: " << SS << "\n";
-      std::cout << "New Objective : " << Splus << "\n";
-      std::cout << "Lambda: " << this->m_lambda << "\n";
-      */
-
 
       // WARNING: will want to replace dS later
 
@@ -527,20 +459,8 @@ namespace camera {
                                          subvector(delta, num_cam_params*num_cameras + num_pt_params*i,
                                                    num_pt_params));
 
-        // Summarize the stats from this step in the iteration
-         // double overall_norm = sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
-
-        //double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) -
-         //sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon) ;
-
-         // Note: del_J is the current gradient, already computed.
-
-
         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
-
-         //std::cout << "abs_tol (inf norm of grad): " << abs_tol << "\n\n";
-         //std::cout << "rel_tol (2 norm of delta: " << abs_tol << "\n\n";
 
         if (this->m_control==0){
           double temp = 1 - pow((2*R - 1),3);
@@ -555,15 +475,14 @@ namespace camera {
         return rel_tol;
 
       } else { // R <= 0
-         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
-         rel_tol = transpose(delta)*delta;
+
+        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+        rel_tol = transpose(delta)*delta;
         if (this->m_control == 0){
           this->m_lambda *= this->m_nu;
           this->m_nu*=2;
         } else if (this->m_control == 1)
           this->m_lambda *= 10;
-
-        // double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
 
         return ScalarTypeLimits<double>::highest();
       }

@@ -6,7 +6,7 @@
 
 
 /// \file BundleAdjustModelBase.h
-/// 
+///
 /// Classes used to define the bundle adjustment problem. Every
 /// program implementing BA, must implement one of these.
 
@@ -29,10 +29,10 @@ namespace vw {
 namespace camera {
 
   // CRTP Base class for Bundle Adjustment functors.
-  //--------------------------------------------------------- 
+  //---------------------------------------------------------
   template <class ImplT, unsigned CameraParamsN, unsigned PointParamsN>
-  struct BundleAdjustmentModelBase {
-
+  class BundleAdjustmentModelBase {
+  public:
     static const unsigned camera_params_n = CameraParamsN;
     static const unsigned point_params_n = PointParamsN;
 
@@ -42,19 +42,18 @@ namespace camera {
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
 
-    virtual ~BundleAdjustmentModelBase() {}
-    
     // Required access to camera
-    virtual Vector2 operator() ( unsigned i, unsigned j, 
-                                 Vector<double,camera_params_n> const& a_j,
-                                 Vector<double,point_params_n> const& b_j ) const = 0;
+    Vector2 operator() ( unsigned i, unsigned j,
+                         Vector<double,camera_params_n> const& a_j,
+                         Vector<double,point_params_n> const& b_i ) {
+      return impl()(i,j,a_j,b_i);
+    }
 
     // Approximate the jacobian for small variations in the a_j
-    // parameters (camera parameters). 
+    // parameters (camera parameters).
     inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
-                                                         Vector<double, CameraParamsN> const& a_j, 
+                                                         Vector<double, CameraParamsN> const& a_j,
                                                          Vector<double, PointParamsN> const& b_i ) {
-
       // Get nominal function value
       Vector2 h0 = impl()(i,j,a_j,b_i);
 
@@ -80,9 +79,9 @@ namespace camera {
     }
 
     // Approximate the jacobian for small variations in the b_i
-    // parameters (3d point locations). 
+    // parameters (3d point locations).
     inline Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
-                                                        Vector<double, CameraParamsN> const& a_j, 
+                                                        Vector<double, CameraParamsN> const& a_j,
                                                         Vector<double, PointParamsN> const& b_i ) {
       // Get nominal function value
       Vector2 h0 = impl()(i,j,a_j, b_i);
@@ -107,18 +106,24 @@ namespace camera {
       return J;
     }
 
-    // Report functions
-    virtual std::string image_unit( void ) { return "pixels"; }
-    virtual std::string camera_position_unit( void ) { return "meters"; }
-    virtual std::string camera_pose_unit( void ) { return "radians"; }
-    virtual std::string gcp_unit( void ) { return "meters"; }
-    
+    // -- Report Functions -------------------------------------------
+
+    std::string image_unit( void ) { return "pixels"; }
+    std::string camera_position_unit( void ) { return "meters"; }
+    std::string camera_pose_unit( void ) { return "radians"; }
+    std::string gcp_unit( void ) { return "meters"; }
     // Forced on the user to define
-    virtual void image_errors(std::vector<double>&) = 0;
-    virtual void camera_position_errors(std::vector<double>&) = 0;
-    virtual void camera_pose_errors(std::vector<double>&) = 0;
-    virtual void gcp_errors(std::vector<double>&) = 0;
-    virtual boost::shared_ptr<ControlNetwork> control_network(void) = 0;
+    void image_errors( std::vector<double>& x ) {
+      impl().image_errors(x); }
+    void camera_position_errors( std::vector<double>& x ) {
+      impl().camera_position_errors(x); }
+    void camera_pose_errors( std::vector<double>& x) {
+      impl().camera_pose_errors(x); }
+    void gcp_errors( std::vector<double>& x ) {
+      impl().gcp_errors(x); }
+    boost::shared_ptr<ControlNetwork> control_network(void) {
+      vw_throw( vw::NoImplErr() << "Programmer needs to implement BundleAdjustmentModelBase::control_network()\n" );
+    }
   };
 
 }} // namespace vw::camera

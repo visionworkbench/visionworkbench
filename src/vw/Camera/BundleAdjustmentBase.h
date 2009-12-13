@@ -6,7 +6,7 @@
 
 
 /// \file BundleAdjustmentBase.h
-/// 
+///
 /// This is the generic outline for code that performs bundle
 /// adjustment. This provides a template for the interface with the
 /// developer. Other bundleadjustment ideas can be built on top of
@@ -25,7 +25,7 @@ namespace camera {
   //----------------------------------------------------------------
   // Robust cost functions.  These cost function can help to reduce
   // the impact of outliers in the bundle adjustment.
-  struct PseudoHuberError { 
+  struct PseudoHuberError {
     double m_b;
     double m_b_2;
     PseudoHuberError(double b) : m_b(b) {
@@ -40,7 +40,7 @@ namespace camera {
     double threshold(void) const { return m_b; }
   };
 
-  struct HuberError { 
+  struct HuberError {
     double m_b;
     HuberError(double b) : m_b(b) {}
 
@@ -57,13 +57,13 @@ namespace camera {
 
   struct L1Error {
     double operator() (double delta_norm) { return fabs(delta_norm); }
-    
+
     std::string name_tag (void) const { return "L1Error"; }
     double threshold(void) const { return 0.0; }
   };
 
 
-  struct L2Error { 
+  struct L2Error {
     double operator() (double delta_norm) { return delta_norm*delta_norm; }
 
     std::string name_tag (void) const { return "L2Error"; }
@@ -73,14 +73,14 @@ namespace camera {
   // Our Cauchy Error is missing a sigma^2 at the front of the log,
   // this is okay. Now when increasing sigma the weighting on higher error
   // is relaxed, increasing sigma increases the tail thickness of our PDF.
-  struct CauchyError { 
+  struct CauchyError {
     double m_sigma;
     double m_sigma_2;
     CauchyError(double sigma) : m_sigma(sigma) {
       m_sigma_2 = m_sigma*m_sigma;
     }
 
-    double operator() (double delta_norm) { 
+    double operator() (double delta_norm) {
       return log(1+delta_norm*delta_norm/m_sigma_2);
     }
 
@@ -93,7 +93,7 @@ namespace camera {
   //--------------------------------------------------------
   // DEVELOPER NOTE TO SELF:
   // Can we rely on LAPACK for these functions?
-  
+
   // Returns cholesky factor L, D in lower left hand corner and
   // diagonal modifies in place returns 1 if original matrix was
   // positive definite, 0 otherwise has verbose output if not positive
@@ -106,7 +106,7 @@ namespace camera {
         T sum = M(i,j);
         for(int k = i-1; k >= 0; k--)
           sum -= M(i,k) * M(j,k);
-        
+
         if (i == j){
           if (sum <= 0.0){
             vw_out(0) << " Not positive definite! " << "\n";
@@ -119,7 +119,7 @@ namespace camera {
     }
     return 1;
   };
-  
+
   // returns cholesky factor L, D in lower left hand corner and
   // diagonal modifies in place Assumes M is positive definite
   // DEVELOPER NOTE TO SELF:
@@ -128,10 +128,10 @@ namespace camera {
   inline void cholesky(Matrix<T>& M){
     unsigned n = M.rows();
     for (unsigned j = 0; j < n; j++){
-      
+
       if(j > 0)
         submatrix(M, j, j, n-j, 1) -= submatrix(M, j, 0, n-j, j) * transpose(submatrix(M, j, 0, 1, j));
-      
+
       submatrix(M, j, j, n-j, 1)/= sqrt(M(j,j));
     }
   };
@@ -139,7 +139,7 @@ namespace camera {
   // Replaces lower triangle of A with that of L^{-1} Replaces upper
   // triangle of A with zeros Returns 0 if A is not positive definite
   template<class T>
-    inline unsigned chol_inverse(Matrix<T>& A){
+  inline unsigned chol_inverse(Matrix<T>& A){
     unsigned n = A.rows();
     unsigned ret = mod_cholesky(A);
     if (ret == 0)
@@ -157,54 +157,54 @@ namespace camera {
     }
     return ret;
   };
-  
+
   // solves Lx = b
-  // modifies in place 
+  // modifies in place
   template<class T>
   inline void fsolve(Vector<T>& b, Matrix<T>& L){
-      
+
     unsigned n = L.rows();
-    
+
     b(0) /= L(0,0);
     for(unsigned i = 1; i < n; i++){
       Vector<double, 1> temp = submatrix(L, i, 0, 1, i) * subvector(b, 0, i);
       b(i) = (b(i) - temp(0))/L(i,i);
     }
-    
+
   };
-  
+
   // solves L^T y = x
   template<class T>
   inline void bsolve(Vector<T>& b, Matrix<T>& U){
-    
+
     unsigned n = U.rows();
-    
+
     b(n-1) /= U(n-1, n-1);
     for(unsigned i = b.size()-1; i>=1; i--){
       Vector<double, 1> temp = submatrix(U, i-1, i, 1, b.size()-i) * subvector(b, i, b.size()-i);
       b(i-1) = (b(i-1) - temp(0))/U(i-1,i-1);
     }
-    
+
   };
-  
+
   // solves Ax = b for positive definite A returns solution in b, and
   // cholesky decomp. of A in L returns 0 if A is not positive
   // definite
   template<class T>
   inline unsigned solve(Vector<T>&b, Matrix<T>& A){
-     
+
     unsigned ret = mod_cholesky(A);
-    
+
     if (ret == 0)
       return ret;
-    
+
     fsolve(b, A);
     Matrix<T> U = transpose(A);
     bsolve(b, U);
-    
+
     return ret;
   };
-  
+
   // BUNDLE ADJUSTMENT BASE
   //--------------------------------------------------------
   // This is a base class for the item which actually performs the
@@ -270,7 +270,7 @@ namespace camera {
 
           // Apply robust cost function weighting and populate error
           // vector
-          Vector2 unweighted_error = cmeasure->dominant() - 
+          Vector2 unweighted_error = cmeasure->dominant() -
             m_model(i, camera_idx,m_model.A_parameters(camera_idx),
                     m_model.B_parameters(i));
           double mag = norm_2(unweighted_error);
@@ -302,7 +302,7 @@ namespace camera {
           }
       }
     }
-    
+
     // Access to inner templates
     typedef BundleAdjustModelT model_type;
     typedef RobustCostT cost_type;
@@ -319,10 +319,13 @@ namespace camera {
     int iterations() const { return m_iterations; }
     RobustCostT costfunction() const { return m_robust_cost_func; }
     BundleAdjustModelT& bundle_adjust_model() { return m_model; }
-    
+
     // This is called repeatedly
-    virtual double update( double &abs_tol,
-                           double &rel_tol ) = 0;
+    double update( double &abs_tol,
+                   double &rel_tol ) {
+      vw_throw( vw::NoImplErr() << "Programmer needs to implement BundleAdjustmentBase::update()" );
+      return 0;
+    }
 
   };
 

@@ -43,16 +43,11 @@ namespace camera {
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentRobustRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
 
-
     // Need to save S for covariance calculations
     boost::shared_ptr<math::Matrix<double> > m_S;
 
   public:
 
-    Matrix<double> S() { return *m_S; }
-    void set_S(math::Matrix<double> S) {
-      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
-    }
     BundleAdjustmentRobustRef( BundleAdjustModelT & model,
                          RobustCostT const& robust_cost_func,
                          bool use_camera_constraint=true,
@@ -61,8 +56,17 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
+    Matrix<double> S() { return *m_S; }
+    void set_S(math::Matrix<double> S) {
+      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
+    }
 
-    virtual void covCalc(){
+    // Covariance Calculator
+    // __________________________________________________
+    // This routine inverts a sparse matrix S, and prints the individual
+    // covariance matrices for each camera
+    void covCalc(){
+
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_cameras = this->m_model.num_cameras();
@@ -74,23 +78,19 @@ namespace camera {
       // final vector of camera covariance matrices
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
-
       // Get the S matrix from the model
       Matrix<double> S = this->S();
-
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
-
       Matrix<double> Cov = multi_solve_symmetric(S, Id);
-
 
       //pick out covariances of individual cameras
       for(unsigned i = 0; i < num_cameras; i++){
          sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
       }
 
-
-      std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
+      std::cout << "Covariance matrices for cameras are:"
+                << sparse_cov << "\n\n";
       return;
     }
 
@@ -103,9 +103,8 @@ namespace camera {
     // Each entry in the outer vector corresponds to a distinct 3D
     // point.  The inner vector contains a list of image IDs and
     // pixel coordinates where that point was imaged.
-    virtual double update(double &abs_tol, double &rel_tol) {
+    double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
-
 
       // Here are some useful variable declarations that make the code
       // below more readable.
@@ -118,8 +117,8 @@ namespace camera {
       unsigned num_ground_control_points = this->m_control_net->num_ground_control_points();
 
       // Need to keep pixel obs separate from 'initials' for robust code
-      //unsigned num_pixel_observations = 2*this->m_model.num_pixel_observations(); // delete?
-      //unsigned num_pixels = this->m_model.num_pixel_observations(); // delete ?
+      // unsigned num_pixel_observations = 2*this->m_model.num_pixel_observations();
+      // unsigned num_pixels = this->m_model.num_pixel_observations(); // delete ?
 
       unsigned num_observations = 2*this->m_model.num_pixel_observations();
       if (this->m_use_camera_constraint)
@@ -127,37 +126,39 @@ namespace camera {
       if (this->m_use_gcp_constraint)
         num_observations += num_ground_control_points*num_pt_params;
 
-      // The core LM matrices and vectors
-      Matrix<double> J(num_observations, num_model_parameters); // Jacobian Matrix for Robust algorithm
-
-      Vector<double> epsilon(num_observations);            // Modified error vector for Robust algorithm
-
-      double t_df = 4;                                            // Degrees of freedom for data (can be modified later)
-      double t_dim_pixel = 2;                                           // dimension of pixels
-      double t_dim_cam = 6;                                       // dimension of camera params
-      double t_dim_pt = 3;                                        // dimension of world point
-
-      Matrix<double> sigma(num_observations, num_observations);   // Sigma (uncertainty) matrix
-
-      double robust_objective = 0.0;                               // robust objective
-
-
+      // Jacobian Matrix for Robust algorithm
+      Matrix<double> J(num_observations, num_model_parameters);
+      // Modified error vector for Robust algorithm
+      Vector<double> epsilon(num_observations);
+      // Degrees of freedom for data (can be modified later)
+      double t_df = 4;
+      // dimension of pixels
+      double t_dim_pixel = 2;
+      // dimension of camera params
+      double t_dim_cam = 6;
+      // dimension of world point
+      double t_dim_pt = 3;
+      // Sigma (uncertainty) matrix
+      Matrix<double> sigma(num_observations, num_observations);
+      // robust objective
+      double robust_objective = 0.0;
 
       // --- SETUP STEP ----
       // Add rows to J and epsilon for the imaged pixel observations
 
-
       int idx = 0;
-      for (unsigned i = 0; i < this->m_control_net->size(); ++i) {       // Iterate over control points
-        for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); ++m) {  // Iterate over control measures
+      // Iterate over control points
+      for (unsigned i = 0; i < this->m_control_net->size(); ++i) {
+        // Iterate over control measures
+        for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); ++m) {
           int camera_idx = (*(this->m_control_net))[i][m].image_id();
 
           Matrix<double> J_a = this->m_model.A_jacobian(i,camera_idx,
-                                                  this->m_model.A_parameters(camera_idx),
-                                                 this-> m_model.B_parameters(i));
+                                                        this->m_model.A_parameters(camera_idx),
+                                                        this-> m_model.B_parameters(i));
           Matrix<double> J_b = this->m_model.B_jacobian(i,camera_idx,
-                                                  this->m_model.A_parameters(camera_idx),
-                                                  this->m_model.B_parameters(i));
+                                                        this->m_model.A_parameters(camera_idx),
+                                                        this->m_model.B_parameters(i));
 
           // Apply robust cost function weighting and populate the error vector
           Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - this->m_model(i, camera_idx,
@@ -189,24 +190,21 @@ namespace camera {
         }
       }
 
-
- // initialize m_lambda on first iteration, ignore if user has
+      // initialize m_lambda on first iteration, ignore if user has
       // changed it.
       double max = 0.0;
-      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
-         Matrix<double> hessian = transpose(J)*sigma*J;
-        for (unsigned i = 0; i < hessian.rows(); ++i){
-          if (fabs(hessian(i,i)) > max)
+      if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
+        Matrix<double> hessian = transpose(J)*sigma*J;
+        for ( unsigned i = 0; i < hessian.rows(); ++i )
+          if ( fabs(hessian(i,i)) > max )
             max = fabs(hessian(i,i));
-        }
         this->m_lambda = 1e-10 * max;
       }
 
-
       // Add rows to J and epsilon for a priori camera parameters...
       if (this->m_use_camera_constraint)
-        for (unsigned j=0; j < num_cameras; ++j) {
-          Matrix<double> id(num_cam_params, num_cam_params);
+        for ( unsigned j=0; j < num_cameras; ++j ) {
+          Matrix<double> id( num_cam_params, num_cam_params );
           id.set_identity();
 
           Vector<double> unweighted_error = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
@@ -222,7 +220,6 @@ namespace camera {
                     j*num_cam_params,
                     num_cam_params,
                     num_cam_params) = id*sqrt(mu_weight);
-
 
           // Here epsilon is modified exactly as epsilon was
           subvector(epsilon,
@@ -245,23 +242,17 @@ namespace camera {
             Matrix<double> id(num_pt_params,num_pt_params);
             id.set_identity();
 
-
             Vector<double> unweighted_error = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
             // Here the J is modified exactly as J was
-
             double S_weight = transpose(unweighted_error) * this->m_model.B_inverse_covariance(i) * unweighted_error;
             double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
 
             robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
-
             submatrix(J, 2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
                       num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params,
                       num_pt_params) = id*sqrt(mu_weight);
-
-
-
 
             // Here epsilon is modified exactly as epsilon was
             subvector(epsilon,
@@ -278,98 +269,71 @@ namespace camera {
         }
       }
 
-      //   std::cout << "epsilon is : " << epsilon << "\n\n";
+      // --- SOLVE UPDATE STEP ----------------------------------------
 
-      // --- UPDATE STEP ----
-
-
-// Build up the right side of the normal equation for robust algorithm
-
+      // Build up the right side of the normal equation for robust algorithm
       Vector<double> del_J = -1.0 * transpose(J) * sigma * epsilon;
-
-      // std::cout << "del_J is: " << del_J << "\n\n";
 
       // also build up left side for robust
       Matrix<double> hessian = transpose(J) * sigma * J;
 
-
-
       for ( unsigned i=0; i < hessian.rows(); ++i )
         hessian(i,i) +=  this->m_lambda;
 
-      //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
+      // Cholesky decomposition. Returns Cholesky matrix in lower left
+      // hand corner.
       Vector<double> delta = del_J;
-
-      //std::cout << "delta is: " << delta << "\n\n";
-
 
       // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.
       unsigned num_cam_entries = num_cam_params * num_cameras;
       unsigned num_pt_entries = num_pt_params * num_points;
 
-      Matrix<double> U = submatrix(hessian, 0, 0, num_cam_entries, num_cam_entries);
-
-      // std::cout << "U after adding in all params and lambda: " << U << "\n\n";
-
-      Matrix<double> W = submatrix(hessian, 0, num_cam_entries,  num_cam_entries, num_pt_entries);
-      Matrix<double> Vinv = submatrix(hessian, num_cam_entries, num_cam_entries, num_pt_entries, num_pt_entries);
+      Matrix<double> U = submatrix( hessian, 0, 0,
+                                    num_cam_entries, num_cam_entries);
+      Matrix<double> W = submatrix( hessian, 0, num_cam_entries,
+                                    num_cam_entries, num_pt_entries);
+      Matrix<double> Vinv = submatrix( hessian, num_cam_entries, num_cam_entries,
+                                       num_pt_entries, num_pt_entries);
       chol_inverse(Vinv);
-
       Matrix<double> Y = W * transpose(Vinv) * Vinv;
-
       Vector<double> e = subvector(delta, 0, num_cam_entries) -
         W * transpose(Vinv) * Vinv * subvector(delta, num_cam_entries, num_pt_entries);
 
       Matrix<double> S = U - Y * transpose(W);
 
-      // std::cout << "S is: " << S << "\n\n";
-
       // Set S
       this->set_S(S);
-
-
       solve(e, S); // using cholesky
-
       solve(delta, hessian);
 
-
-      //std::cout << "delta is: " << delta << "\n\n";
-
       // Solve for update
-
-
-
       double new_objective = 0.0;
 
       idx = 0;
-      for (unsigned i = 0; i < this->m_control_net->size(); ++i) {         // Iterate over control points
-        for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); ++m) {  // Iterate over control measures
+      // Iterate over control points
+      for (unsigned i = 0; i < this->m_control_net->size(); ++i) {
+        // Iterate over control measures
+        for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); ++m) {
           int camera_idx = (*(this->m_control_net))[i][m].image_id();
 
           Vector<double> cam_delta = subvector(delta, num_cam_params*camera_idx, num_cam_params);
 
           Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
-
           // Apply robust cost function weighting and populate the error vector
           Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - this->m_model(i, camera_idx,
-                                                                              this->m_model.A_parameters(camera_idx)-cam_delta,
-                                                                             this-> m_model.B_parameters(i)-pt_delta);
+                                                                                               this->m_model.A_parameters(camera_idx)-cam_delta,
+                                                                                               this-> m_model.B_parameters(i)-pt_delta);
           Matrix2x2 inverse_cov = submatrix(sigma, 2*idx, 2*idx, 2, 2);
 
           // Populate the S_weights, mu_weights vectors
           double S_weight = transpose(unweighted_error) * inverse_cov * unweighted_error;
-          //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
-
-
 
           new_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
           ++idx;
         }
       }
-
-      //std::cout << "new objective after pixels: " << new_objective << "\n\n";
 
       // Add rows to J and epsilon for a priori position/pose constraints...
       if (this->m_use_camera_constraint)
@@ -378,16 +342,10 @@ namespace camera {
 
           Vector<double> unweighted_error = this->m_model.A_initial(j)- (this->m_model.A_parameters(j) - cam_delta);
 
-           //       std::cout << "unweighted error is: " << unweighted_error << "\n\n";
-
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
-          //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
 
            new_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
-
         }
-
-      // std::cout << "new objective after initials: " << new_objective << "\n\n";
 
       // ... and the position of the 3D points to J and epsilon ...
       if (this->m_use_gcp_constraint) {
@@ -399,8 +357,6 @@ namespace camera {
             Vector<double> unweighted_error = this->m_model.B_initial(i)-(this->m_model.B_parameters(i) - pt_delta);
 
             double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
-            //double mu_weight = (t_df + t_dim)/(t_df + S_weight);
-
 
             new_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
@@ -409,21 +365,11 @@ namespace camera {
         }
       }
 
-
-
-
       //Fletcher modification for robust case
       double dS = .5 * transpose(delta)*(this->m_lambda*delta + del_J);
-      // std::cout << "dS is: " << dS << "\n\n";
-
 
       double R = (robust_objective - new_objective)/dS;
-
       unsigned ret = 0;
-
-    /*   std::cout << " Old robust objective: " << robust_objective << "\n"; */
-/*       std::cout << " New robust objective: " << new_objective << "\n"; */
-/*       std::cout << " Lambda " << this->m_lambda << "\n"; */
 
       if (R > 0){
         ret = 1;
@@ -433,7 +379,7 @@ namespace camera {
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
 
 
-         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
 
         if (this->m_control==0){
@@ -450,24 +396,18 @@ namespace camera {
 
       } else { // R <= 0
 
-         abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
         rel_tol = transpose(delta)*delta;
 
-         if (this->m_control == 0){
+        if (this->m_control == 0){
           this->m_lambda *= this->m_nu;
           this->m_nu*=2;
         } else if (this->m_control == 1)
           this->m_lambda *= 10;
 
-        // double overall_delta = sqrt(.5 * transpose(epsilon) * sigma * epsilon) - sqrt(.5 * transpose(new_epsilon) * sigma * new_epsilon);
-
         return ScalarTypeLimits<double>::highest();
       }
     }
-
-
-
-
 
   };
 

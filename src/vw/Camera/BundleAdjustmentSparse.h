@@ -43,10 +43,6 @@ namespace camera {
     boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S;
 
   public:
-    math::SparseSkylineMatrix<double> S() { return *m_S; }
-    void set_S(math::SparseSkylineMatrix<double> S) {
-      m_S = boost::shared_ptr<math::SparseSkylineMatrix<double> >(new math::SparseSkylineMatrix<double>(S));
-    }
 
     BundleAdjustmentSparse( BundleAdjustModelT & model,
                             RobustCostT const& robust_cost_func,
@@ -56,17 +52,16 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
+    math::SparseSkylineMatrix<double> S() { return *m_S; }
+    void set_S(math::SparseSkylineMatrix<double> S) {
+      m_S = boost::shared_ptr<math::SparseSkylineMatrix<double> >(new math::SparseSkylineMatrix<double>(S));
+    }
 
-
-
-
-
-     // Covariance Calculator
+    // Covariance Calculator
     // ___________________________________________________________
     // This routine inverts a sparse matrix S, and prints the individual
     // covariance matrices for each camera
-
-      virtual void covCalc(){
+    void covCalc(){
 
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
@@ -79,37 +74,27 @@ namespace camera {
       // final vector of camera covariance matrices
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
-
-
       // Get the S matrix from the model
       math::SparseSkylineMatrix<double> S = this->S();
+      Matrix<double> Id(inverse_size, inverse_size);
+      Id.set_identity();
+      Matrix<double> Cov = multi_sparse_solve(S, Id);
 
+      //pick out covariances of individual cameras
+      for ( unsigned i = 0; i < num_cameras; i++ )
+        sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
 
-       Matrix<double> Id(inverse_size, inverse_size);
-       Id.set_identity();
+      std::cout << "Covariance matrices for cameras are:"
+                << sparse_cov << "\n\n";
 
-       Matrix<double> Cov = multi_sparse_solve(S, Id);
-
-
-       //pick out covariances of individual cameras
-       for(unsigned i = 0; i < num_cameras; i++){
-          sparse_cov(i) = submatrix(Cov, i*num_cam_params, i*num_cam_params, num_cam_params, num_cam_params);
-       }
-
-       std::cout << "Covariance matrices for cameras are:" << sparse_cov << "\n\n";
-
-       return;
-       }
-
-
-
-
+      return;
+    }
 
     // UPDATE IMPLEMENTATION
     //-------------------------------------------------------------
     // This is the sparse levenberg marquardt update step.  Returns
     // the average improvement in the cost function.
-    virtual double update(double &abs_tol, double &rel_tol) {
+    double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
 
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
@@ -121,9 +106,6 @@ namespace camera {
       boost_sparse_matrix< matrix_2_point > B(this->m_model.num_points(), this->m_model.num_cameras());
       boost_sparse_matrix<Vector2> epsilon(this->m_model.num_points(), this->m_model.num_cameras());
       boost_sparse_matrix<Vector2> new_epsilon(this->m_model.num_points(), this->m_model.num_cameras());
-
-      // Data structures necessary for Fletcher modification
-      // boost::numeric::ublas::mapped_matrix<Vector2> Jp(m_model.num_points(), m_model.num_cameras());
 
       // Intermediate Matrices and vectors
       typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> matrix_camera_camera;
@@ -161,57 +143,32 @@ namespace camera {
       unsigned i = 0;
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
 
-
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-            iter != this->m_control_net->end(); ++iter) {
-         for (typename ControlPoint::const_iterator measure_iter = (*iter).begin();
-              measure_iter != (*iter).end(); ++measure_iter) {
-
-
-
-      //for (unsigned i = 0; i < this->m_control_net->size(); ++i) {       // Iterate over control points
-      //for (unsigned m = 0; m < (*(this->m_control_net))[i].size();
-      //     ++m) {  // Iterate over control measures
-
-
-
+           iter != this->m_control_net->end(); ++iter) {
+        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin();
+             measure_iter != (*iter).end(); ++measure_iter) {
 
           unsigned j = (*measure_iter).image_id();
-           //unsigned j = (*(this->m_control_net))[i][m].image_id();
 
-            VW_DEBUG_ASSERT(j >=0 && j < this->m_model.num_cameras(),
-                         ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
+          VW_DEBUG_ASSERT( j >=0 && j < this->m_model.num_cameras(),
+                           ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
 
           // Store jacobian values
-            if ( i == 106144 ) std::cout << "A Jacobian!\n";
           A(i,j) = this->m_model.A_jacobian(i,j,this->m_model.A_parameters(j),
                                             this->m_model.B_parameters(i));
-            if ( i == 106144 ) std::cout << "B Jacobian!\n";
           B(i,j) = this->m_model.B_jacobian(i,j,this->m_model.A_parameters(j),
                                             this->m_model.B_parameters(i));
 
           // Apply robust cost function weighting
-           Vector2 unweighted_error = measure_iter->dominant() -
-             this->m_model(i,j,this->m_model.A_parameters(j),this->m_model.B_parameters(i));
-
-           //Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() -
-           //this->m_model(i, j,
-           //              this->m_model.A_parameters(j),
-           //              this->m_model.B_parameters(i));
+          Vector2 unweighted_error = measure_iter->dominant() -
+            this->m_model(i,j,this->m_model.A_parameters(j),this->m_model.B_parameters(i));
 
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-
           epsilon(i,j) = unweighted_error * weight;
 
-           //  std::cout << "i: " << i << "j: " << j << "epsilon(i,j): " << unweighted_error * weight << "\n";
-
           Matrix2x2 inverse_cov;
-
-           Vector2 pixel_sigma = measure_iter->sigma();
-           //Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
-
-
+          Vector2 pixel_sigma = measure_iter->sigma();
           Vector2 epsilon_inst = epsilon(i,j);
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
@@ -232,11 +189,11 @@ namespace camera {
             inverse_cov * epsilon_inst;
 
         }
-          ++i;
+        ++i;
       }
 
- // set initial lambda, and ignore if the user has touched it
-      if (this->m_iterations == 1 && this->m_lambda == 1e-3){
+      // set initial lambda, and ignore if the user has touched it
+      if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
         double max = 0.0;
         for (unsigned i = 0; i < U.size(); ++i)
           for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
@@ -249,68 +206,42 @@ namespace camera {
               max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
           }
         this->m_lambda = max * 1e-10;
-
-         //       std::cout << "Computed lambda is: " << max*1e-10 << "\n";
-         //std::cout << "other order: " << 1e-10*max << "\n";
       }
-      // std::cout << "\n (new) U Matrix array prior to camera positions is: " << U << "\n";
-
 
       // Add in the camera position and pose constraint terms and covariances.
-      if (this->m_use_camera_constraint) {
-        for (unsigned j = 0; j < U.size(); ++j) {
-
+      if ( this->m_use_camera_constraint )
+        for ( unsigned j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
-
           matrix_camera_camera C;
-           C.set_identity();
-
+          C.set_identity();
           U(j) += transpose(C) * inverse_cov * C;
-
           vector_camera eps_a = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
-
           error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
-
           epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
-
         }
-      }
-
-
-      //  std::cout << "\n U Matrix array after camera positions is: " << U << "\n";
-
 
       // Add in the 3D point position constraint terms and
       // covariances. We only add constraints for Ground Control
       // Points (GCPs), not for 3D tie points.
-      if (this->m_use_gcp_constraint) {
-        for (unsigned i = 0; i < V.size(); ++i) {
+      if (this->m_use_gcp_constraint)
+        for ( unsigned i = 0; i < V.size(); ++i )
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
-
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
-
             matrix_point_point D;
             D.set_identity();
             V(i) +=  transpose(D) * inverse_cov * D;
-
             vector_point eps_b = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
-
             error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
-
             epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
-
           }
-        }
-      }
 
       // flatten both epsilon_b and epsilon_a into a vector
       for (unsigned j = 0; j < U.size(); j++){
         subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
         current_g_length += num_cam_params;
       }
-
       for (unsigned i = 0; i < V.size(); i++){
         subvector(g, current_g_length, num_pt_params) = static_cast<vector_point>(epsilon_b(i));
         current_g_length += num_pt_params;
@@ -318,30 +249,22 @@ namespace camera {
 
       //e at this point should be -g_a
 
-      //std::cout << "\n (new) U Matrix array before lambda adjustment " << U << "\n";
-
       // "Augment" the diagonal entries of the U and V matrices with
       // the parameter lambda.
       {
         matrix_camera_camera u_lambda;
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
-
-        for ( i = 0; i < U.size(); ++i ){
-           // static_cast<matrix_camera_camera>(U(i)) += u_lambda;
-           U(i) += u_lambda;
-         }
+        for ( i = 0; i < U.size(); ++i )
+          U(i) += u_lambda;
       }
-      //  std::cout << "\n (new) U Matrix array after lambda adjustment " << U << "\n";
 
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
-        for ( i = 0; i < V.size(); ++i ){
-          //static_cast<matrix_point_point>(V(i)) += v_lambda;
-           V(i) += v_lambda;
-         }
+        for ( i = 0; i < V.size(); ++i )
+          V(i) += v_lambda;
       }
 
       // Create the 'e' vector in S * delta_a = e.  The first step is
@@ -372,6 +295,8 @@ namespace camera {
         }
         ++i;
       }
+
+      // --- BUILD SPARSE, SOLVE A'S UPDATE STEP -------------------------
 
       // The S matrix is a m x m block matrix with blocks that are
       // camera_params_n x camera_params_n in size.  It has a sparse
@@ -440,18 +365,17 @@ namespace camera {
         }
       }
 
-
       this->set_S(S);
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
 
-      //std::cout << "delta_a: " << delta_a << "\n\n";
-
       // Save S; used for covariance calculations
-
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
 
+      // --- SOLVE B'S UPDATE STEP ---------------------------------
+
+      // Back Solving for Delta B
       boost_sparse_vector<vector_point > delta_b(this->m_model.num_points());
 
       i = 0;
@@ -459,7 +383,6 @@ namespace camera {
            iter != this->m_control_net->end(); ++iter) {
 
         vector_point temp;
-
         for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin();
              j_measure_iter != (*iter).end(); ++j_measure_iter) {
           unsigned j = j_measure_iter->image_id();
@@ -471,7 +394,6 @@ namespace camera {
         Vector<double> delta_temp = static_cast<vector_point>(epsilon_b(i)) - temp;
 
         Matrix<double> hessian = static_cast<matrix_point_point>(V(i));
-
         solve(delta_temp, hessian);
         delta_b(i) = delta_temp;
 
@@ -503,7 +425,6 @@ namespace camera {
           vector_point new_b = this->m_model.B_parameters(i) +
             static_cast<vector_point>(delta_b(i));
 
-
           // Apply robust cost function weighting
           Vector2 unweighted_error = measure_iter->dominant() -
             this->m_model(i,j,new_a,new_b);
@@ -524,7 +445,7 @@ namespace camera {
       }
 
       // Camera Constraints
-      if (this->m_use_camera_constraint)
+      if ( this->m_use_camera_constraint )
         for (unsigned j = 0; j < U.size(); ++j) {
 
           vector_camera new_a = this->m_model.A_parameters(j) +
@@ -533,39 +454,29 @@ namespace camera {
 
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
-
           new_error_total += .5 * transpose(eps_a) * inverse_cov * eps_a;
         }
 
       // GCP Error
-      if (this->m_use_gcp_constraint)
-        for (unsigned i = 0; i < V.size(); ++i) {
-          if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
+      if ( this->m_use_gcp_constraint )
+        for ( unsigned i = 0; i < V.size(); ++i )
+          if ( (*this->m_control_net)[i].type() ==
+               ControlPoint::GroundControlPoint) {
 
             vector_point new_b = this->m_model.B_parameters(i) +
               static_cast<vector_point>(delta_b(i));
             vector_point eps_b = this->m_model.B_initial(i)-new_b;
-
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
-
             new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
           }
-        }
 
       //Fletcher modification
       double Splus = new_error_total;     //Compute new objective
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
-
-  /*     std::cout << "New Objective: " << new_error_total << "\n";  */
-/*       std::cout << "Old Objective: " << error_total << "\n";  */
-/*       std::cout << "Lambda: " << this->m_lambda << "\n";  */
-
-
-
-      if (R>0){
+      if ( R > 0 ) {
 
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
@@ -575,21 +486,17 @@ namespace camera {
                                          static_cast<vector_point>(delta_b(i)));
 
         // Summarize the stats from this step in the iteration
-        //double overall_norm = sqrt(new_error_total);
-        //double overall_delta = sqrt(error_total) - sqrt(new_error_total);
-
         abs_tol = vw::math::max(g) + vw::math::max(-g);
         rel_tol = transpose(delta)*delta;
 
-        if(this->m_control == 0){
+        if ( this->m_control == 0 ) {
           double temp = 1 - pow((2*R - 1),3);
           if (temp < 1.0/3.0)
             temp = 1.0/3.0;
 
           this->m_lambda *= temp;
           this->m_nu = 2;
-
-        } else if (this->m_control == 1){
+        } else if (this->m_control == 1) {
           this->m_lambda /= 10;
         }
 
@@ -600,17 +507,12 @@ namespace camera {
         abs_tol = vw::math::max(g) + vw::math::max(-g);
         rel_tol = transpose(delta)*delta;
 
-        if (this->m_control == 0){
+        if ( this->m_control == 0 ) {
           this->m_lambda *= this->m_nu;
           this->m_nu*=2;
-        } else if (this->m_control == 1){
+        } else if ( this->m_control == 1 ) {
           this->m_lambda *= 10;
         }
-        // double overall_delta = sqrt(error_total) - sqrt(new_error_total);
-
-        /* // Taken over mostly by Bundle Adjust Report
-        std::cout <<"\n" << "Sparse LM Iteration " << m_iterations << "  delta  "<< overall_delta << "  lambda: " << m_lambda << "   Ratio:  " << R <<"\n";
-        */
 
         return ScalarTypeLimits<double>::highest();
       }
