@@ -174,7 +174,7 @@ namespace vw {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=1e6*milliseconds;
+      xt.nsec+=int_fast32_t(1e6*milliseconds);
       return boost::condition::timed_wait(lock, xt);
     }
 
@@ -186,7 +186,7 @@ namespace vw {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=1e6*milliseconds;
+      xt.nsec+=int_fast32_t(1e6*milliseconds);
       return boost::condition::timed_wait(lock, xt, pred);
     }
   };
