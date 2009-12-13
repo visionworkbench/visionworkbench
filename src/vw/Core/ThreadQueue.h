@@ -12,6 +12,8 @@
 #ifndef __VW_CORE_QUEUE_H__
 #define __VW_CORE_QUEUE_H__
 
+#include <boost/bind.hpp>
+
 #include <queue>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Thread.h>
