@@ -88,7 +88,6 @@ namespace mosaic {
     if ( root_node) { 
       std::ostringstream json;
       fs::path file_path( info.filepath, fs::native );
-      int base_len = file_path.branch_path().native_file_string().size() + 1;
       fs::path json_path = change_extension( file_path, ".json" );
 
       json << "{" << std::endl

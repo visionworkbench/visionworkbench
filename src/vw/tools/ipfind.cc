@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
   float harris_threshold, log_threshold;
-  int max_points;
+  uint max_points;
   int tile_size;
   int num_threads;
   ImageView<double> integral;
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
-    ("max-points", po::value<int>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
+    ("max-points", po::value<uint>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
@@ -202,7 +202,7 @@ int main(int argc, char** argv) {
     // tiles).
     int number_tiles = (image.cols()/vw_settings().default_tile_size()+1) *
       (image.rows()/vw_settings().default_tile_size()+1);
-    int tile_max_points = (float(max_points)/float(number_tiles))*2; // A little over shoot
+    uint tile_max_points = uint(float(max_points)/float(number_tiles))*2; // A little over shoot
                                                                      // incase the tile is empty
     if ( max_points == 0 ) tile_max_points = 0; // No culling
     else if ( tile_max_points < 50 ) tile_max_points = 50;

@@ -53,11 +53,9 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
   double semi_major_axis = georef.datum().semi_major_axis();
   double semi_minor_axis = georef.datum().semi_minor_axis();
   double z_scale = semi_major_axis / semi_minor_axis;
-  double radius = semi_major_axis;
-  double radius_sqr = radius*radius;
 
   BBox2 georeference_space_bbox;
-  bool first_sign=false, pole=true, last_valid=false;
+  bool last_valid=false;
   Vector3 last_intersection;
   Vector2 last_geospatial_point;
   scale = -1;
