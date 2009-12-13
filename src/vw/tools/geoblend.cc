@@ -83,7 +83,8 @@ public:
 
 template <class ViewT>
 vw::UnaryPerPixelView<ViewT, NodataToMaskFunctor<typename ViewT::pixel_type> > 
-nodata_to_mask(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
+nodata_to_mask(vw::ImageViewBase<ViewT> const& view, 
+	       typename PixelChannelType<typename ViewT::pixel_type>::type const& nodata_value = 0 ) {
   return vw::per_pixel_filter(view.impl(), NodataToMaskFunctor<typename ViewT::pixel_type>(nodata_value));
 }
 
@@ -203,7 +204,7 @@ void do_blend() {
     // strategy for intepolating and filtering in the presence of
     // missing pixels in DEMs. -mbroxton 
     if (has_nodata_value) {
-      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( nodata_to_mask(source_disk_image, nodata_value), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
+      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( nodata_to_mask(source_disk_image, (typename PixelChannelType<PixelT>::type)(nodata_value) ), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( channel_cast_rescale<float32>(masked_source), (int)output_bbox.min().x(), (int)output_bbox.min().y() );
     } else {
      ImageViewRef<alpha_pixel_type> masked_source = crop( transform( pixel_cast<alpha_pixel_type>(source_disk_image), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
