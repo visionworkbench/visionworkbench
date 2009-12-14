@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -177,9 +177,10 @@ int main(int argc, char** argv) {
   }
   // Determine if descriptor_generator is legitimate
   if ( !( descriptor_generator == "patch" ||
-          descriptor_generator == "pca" ) ) {
+          descriptor_generator == "pca"   ||
+          descriptor_generator == "sgrad" ) ) {
     vw_out(0) << "Unkown descriptor generator: " << descriptor_generator
-              << ". Options are : [ Patch, PCA ]\n";
+              << ". Options are : [ Patch, PCA, SGrad ]\n";
     exit(0);
   }
 
@@ -287,6 +288,9 @@ int main(int argc, char** argv) {
     } else if (descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
       descriptor(image, ip);
+    } else if (descriptor_generator == "sgrad") {
+      SGradDescriptorGenerator descriptor;
+      descriptor(image, ip);
     }
 
     // If ASCII output was requested, write it out.  Otherwise stick
@@ -299,7 +303,7 @@ int main(int argc, char** argv) {
     // Write Debug image
     if (vm.count("debug-image")) {
       std::string output_file_name =
-        prefix_from_filename(input_file_names[i]) + "_debug.png";
+        prefix_from_filename(input_file_names[i]) + "_debug.tif";
       write_debug_image( output_file_name,
                          input_file_names[i],
                          ip );

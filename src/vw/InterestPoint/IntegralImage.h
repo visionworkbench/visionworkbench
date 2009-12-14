@@ -21,12 +21,15 @@ namespace ip {
 
   /// Creates Integral Image
   template <class ViewT>
-  inline ImageView<double> IntegralImage( ImageViewBase<ViewT> const& source ) {
+  inline ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type>
+  IntegralImage( ImageViewBase<ViewT> const& source ) {
+
+    typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
 
     // Allocating space
-    vw::ImageView<double> integral( source.impl().cols()+1, source.impl().rows()+1 );
+    ImageView<channel_type> integral( source.impl().cols()+1, source.impl().rows()+1 );
 
-    typedef ImageView<double>::pixel_accessor dst_accessor;
+    typedef typename ImageView<channel_type>::pixel_accessor dst_accessor;
     typedef typename ViewT::pixel_accessor src_accessor;
 
     // Zero-ing the first row and col
@@ -44,7 +47,7 @@ namespace ip {
 
     // Pointer and pointer offset
     int offset = integral.cols();
-    double* p;
+    channel_type* p;
 
     // Now filling in integral image
     dest_row = integral.origin();
@@ -57,7 +60,7 @@ namespace ip {
         p = &(*dest_col);
 
         // Summing
-        *dest_col = pixel_cast<PixelGray<double> >(*src_col).v() + *(p-1) + *(p-offset) - *(p-offset-1);
+        *dest_col = pixel_cast<PixelGray<channel_type> >(*src_col).v() + *(p-1) + *(p-offset) - *(p-offset-1);
 
         dest_col.next_col();
       src_col.next_col();
@@ -72,9 +75,11 @@ namespace ip {
   /// Integral Block Evaluation
   ///
   /// This is for summing an area of pixels described by integral
-  inline double IntegralBlock( ImageView<double> const& integral,
-                               Vector2i const& top_left,
-                               Vector2i const& bottom_right ) {
+  template <class PixelT>
+  inline PixelT
+  IntegralBlock( ImageView<PixelT> const& integral,
+                 Vector2i const& top_left,
+                 Vector2i const& bottom_right ) {
     VW_DEBUG_ASSERT(top_left.x() > bottom_right.x() && top_left.y() > bottom_right.y(),
                     vw::ArgumentErr() << "Incorrect input for IntegralBlock.\n");
     VW_DEBUG_ASSERT(top_left.x() < (unsigned)integral.cols(),
@@ -90,13 +95,11 @@ namespace ip {
                     vw::ArgumentErr() << "y1 out of bounds. "<< integral.rows() <<" : "
                     << top_left << bottom_right << "\n");
 
-    double result;
+    PixelT result;
     result = integral( top_left.x(), top_left.y() );
     result += integral( bottom_right.x(), bottom_right.y() );
     result -= integral( top_left.x(), bottom_right.y() );
     result -= integral( bottom_right.x(), top_left.y() );
-
-    //result /= (top_left.x() - bottom_right.x())*(top_left.y() - bottom_right.y());
 
     return result;
   }
@@ -104,23 +107,27 @@ namespace ip {
   /// X First Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  inline float XFirstDerivative( ImageView<double> const& integral,
-                                 int const& x, int const& y,
-                                 unsigned const& filter_size ) {
+  template <class PixelT>
+  inline PixelT
+  XFirstDerivative( ImageView<PixelT> const& integral,
+                    int const& x, int const& y,
+                    unsigned const& filter_size ) {
     vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
-    float derivative = 0;
+    PixelT derivative = 0;
     return derivative;
   }
 
   /// X Second Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  inline float XSecondDerivative( ImageView<double> const& integral,
-                                  int const& x, int const& y,
-                                  unsigned const& filter_size ) {
+  template <class PixelT>
+  inline PixelT
+  XSecondDerivative( ImageView<PixelT> const& integral,
+                     int const& x, int const& y,
+                     unsigned const& filter_size ) {
     unsigned lobe = filter_size / 3;
     unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
-    float derivative;
+    PixelT derivative;
 
     // Adding positive left;
     derivative = IntegralBlock( integral,
@@ -145,23 +152,27 @@ namespace ip {
   /// Y First Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  inline float YFirstDerivative( ImageView<double> const& integral,
-                                 int const& x, int const& y,
-                                 unsigned const& filter_size ) {
+  template <class PixelT>
+  inline PixelT
+  YFirstDerivative( ImageView<PixelT> const& integral,
+                    int const& x, int const& y,
+                    unsigned const& filter_size ) {
     vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
-    float derivative = 0;
+    PixelT derivative = 0;
     return derivative;
   }
 
   /// Y Second Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  inline float YSecondDerivative( ImageView<double> const& integral,
-                                  int const& x, int const& y,
-                                  unsigned const& filter_size ) {
+  template <class PixelT>
+  inline PixelT
+  YSecondDerivative( ImageView<PixelT> const& integral,
+                     int const& x, int const& y,
+                     unsigned const& filter_size ) {
     unsigned lobe = filter_size / 3;
     unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
-    float derivative;
+    PixelT derivative;
 
     // Adding positive top;
     derivative = IntegralBlock( integral,
@@ -186,12 +197,14 @@ namespace ip {
   /// XY Derivative
   /// - x,y         = location to center the calculation on
   /// - filter_size = size of window for calculation
-  inline float XYDerivative( ImageView<double> const& integral,
-                             int const& x, int const& y,
-                             unsigned const& filter_size ) {
+  template <class PixelT>
+  inline PixelT
+  XYDerivative( ImageView<PixelT> const& integral,
+                int const& x, int const& y,
+                unsigned const& filter_size ) {
 
     unsigned lobe = filter_size / 3;
-    float derivative;
+    PixelT derivative;
 
     // Adding positive top left
     derivative = IntegralBlock( integral,
@@ -228,8 +241,8 @@ namespace ip {
   template <class ViewT, class NumberT>
   typename boost::enable_if<boost::is_integral<NumberT>, float>::type
   inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+                       NumberT const& x, NumberT const& y,
+                       float const& size ) {
 
     float response;
     int half_size = int(round( size / 2.0));
@@ -267,8 +280,8 @@ namespace ip {
   template <class ViewT, class NumberT>
   typename boost::enable_if<boost::is_integral<NumberT>, float>::type
   inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+                       NumberT const& x, NumberT const& y,
+                       float const& size ) {
 
     float response;
     int half_size = int(round( size / 2.0));
@@ -344,8 +357,8 @@ namespace ip {
   template <class ViewT, class NumberT>
   typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
   inline VHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+                       NumberT const& x, NumberT const& y,
+                       float const& size ) {
 
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
                (integral.impl()(10,10) == integral.impl()(11,10) ),

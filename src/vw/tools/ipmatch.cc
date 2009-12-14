@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-/// \file ipfind.cc
+/// \file ipmatch.cc
 ///
 /// Finds the interest points in an image and outputs them an Binary
 /// (default) or ASCII format.  The ASCII format is compatible with
