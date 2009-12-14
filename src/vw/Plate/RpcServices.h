@@ -196,7 +196,7 @@ namespace platefile {
       AmqpRpcEndpoint(conn, exchange, queue, exchange_count), 
       m_request_routing_key(request_routing_key),
       m_sequence_number(0), 
-      m_max_tries(5) {}  // Retry timed out AMQP tests 3 times...
+      m_max_tries(10) {}  // Retry timed out AMQP tests 3 times...
 
     virtual ~AmqpRpcClient() {}
 

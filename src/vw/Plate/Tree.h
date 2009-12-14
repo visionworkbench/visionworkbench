@@ -300,11 +300,17 @@ namespace platefile {
     // the root node where we begin.
     void erase_transaction_helper(int col, int row, int level, int transaction_id) {
 
-      // Call the function for the current level.
+      // Only pursue paths in the quad tree that contain records for
+      // the given transaction_id.
       if (m_records.find(transaction_id) != m_records.end()) {
 
+        /// XXX: We really should delete rather than invalidate
+        /// records, but deleting may be too slow??  Maybe we should
+        /// store these data in something other than an std::map. :)
+        ///
         // Delete this transaction id.
-        m_records.erase(transaction_id);
+        m_records[transaction_id].set_status(INDEX_RECORD_EMPTY);
+        //        m_records.erase(transaction_id);  // too slow??
 
         // Call the function for future levels.
         if ( this->child(0) ) 

@@ -18,6 +18,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/VarArray.h>
+#include <vw/Plate/Exception.h>
 
 #include <set>
 
@@ -29,13 +30,13 @@ namespace platefile {
   typedef vw::VarArray<uint8> ByteArray;
   typedef boost::shared_ptr<ByteArray> SharedByteArray;
 
-  VW_DEFINE_EXCEPTION(AMQPErr,     IOErr);
-  VW_DEFINE_EXCEPTION(AMQPTimeout, AMQPErr);
-  VW_DEFINE_EXCEPTION(AMQPEof,     AMQPErr);
+  VW_DEFINE_EXCEPTION(AmqpErr,     PlatefileErr);
+  VW_DEFINE_EXCEPTION(AMQPTimeout, AmqpErr);
+  VW_DEFINE_EXCEPTION(AMQPEof,     AmqpErr);
 
   // This exception denotes a potentially desynchronizing AMQP error. Safest
   // recovery mechanism is to recreate the connection.
-  VW_DEFINE_EXCEPTION(AMQPAssertion, AMQPErr);
+  VW_DEFINE_EXCEPTION(AMQPAssertion, PlatefileErr);
 
   // Forward declaration because amqp.h is gross
   class AmqpChannel;

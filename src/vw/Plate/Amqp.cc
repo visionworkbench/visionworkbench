@@ -218,33 +218,42 @@ class AmqpConsumeTask {
       }
 
       while (go) {
-        // Waiting for frames. We don't want to hold the lock while we do that, so select here.
-        // Small timeout so it shuts down fast.
-        if (!select_helper(fd, 100, "select() for a method frame"))
-          continue;
+        try {
+          // Waiting for frames. We don't want to hold the lock while we do that, so select here.
+          // Small timeout so it shuts down fast.
+          if (!select_helper(fd, 100, "select() for a method frame"))
+            continue;
 
-        SharedByteArray msg;
-        {
-          // Okay, we should have some data. Lock!
-          Mutex::Lock(m_conn->m_state_mutex);
+          SharedByteArray msg;
+          {
+            // Okay, we should have some data. Lock!
+            Mutex::Lock(m_conn->m_state_mutex);
 
-          // XXX: Calling maybe_release a lot keeps our memory usage down, but
-          // perhaps we don't need to call it so often. Not clear on tradeoff.
-          amqp_maybe_release_buffers(m_conn->m_state.get());
+            // XXX: Calling maybe_release a lot keeps our memory usage down, but
+            // perhaps we don't need to call it so often. Not clear on tradeoff.
+            amqp_maybe_release_buffers(m_conn->m_state.get());
 
-          amqp_frame_t method;
-          vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
+            amqp_frame_t method;
+            vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
 
-          // Make sure we aren't confused somehow
-          VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD, AMQPAssertion() << "Expected a method frame");
-          VW_ASSERT(method.payload.method.id == AMQP_BASIC_DELIVER_METHOD, AMQPAssertion() << "Expected a deliver method");
+            // Make sure we aren't confused somehow
+            VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD, AMQPAssertion() 
+                      << "Expected a method frame");
+            VW_ASSERT(method.payload.method.id == AMQP_BASIC_DELIVER_METHOD, AMQPAssertion() 
+                      << "Expected a deliver method");
 
-          // Grab the rest of the message
-          msg = pump_queue(m_conn->m_state.get());
+	    // For debugging:
+            // vw_throw(AMQPAssertion() << "Test assertion");
+
+            // Grab the rest of the message
+            msg = pump_queue(m_conn->m_state.get());
+          }
+
+          // We got some data. Release the lock and call the callback.
+          m_callback(msg);
+        } catch (AmqpErr &e) {
+          vw_out(0) << "WARNING -- an AMQP error occurred: " << e.what() << "\n";
         }
-
-        // We got some data. Release the lock and call the callback.
-        m_callback(msg);
       }
     }
 };
@@ -457,7 +466,7 @@ void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
 
       die_on_error(result, "Processing Read Frame");
       if (result == 0)
-        vw_throw(AMQPErr() << "AMQP Error: EOF on socket");
+        vw_throw(AmqpErr() << "AMQP Error: EOF on socket");
 
       state->sock_inbound_offset += result;
 

@@ -213,8 +213,8 @@ namespace platefile {
                 << "\t    Transaction ID: " << transaction_id << "\n";
 
 
-      // For debugging: 
-      // 
+      // // For debugging: 
+      // // 
       // // Test: terminate clients half the time
       // srandom(time(0));
       // float r = float(random()) / (powf(2.0,31)-1.0);

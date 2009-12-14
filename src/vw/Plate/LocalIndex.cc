@@ -297,9 +297,12 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
 
   // Is this the next transaction we're waiting for?
   if (transaction_id == m_header.transaction_read_cursor() + 1) {
+
     // It is! Update the transaction read cursor
     m_header.set_transaction_read_cursor(transaction_id);
+
   } else {
+
     // It isn't. Remember it, reheapify, check queue depth, and bail out.
     m_header.add_complete_transaction_ids(transaction_id);
     std::push_heap(m_header.mutable_complete_transaction_ids()->begin(),
@@ -311,10 +314,14 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
                                  << m_header.complete_transaction_ids_size()
                                  << " are waiting" << std::endl;
     }
+    this->log() << "Transaction " << transaction_id << " complete.  "
+                << "[ read_cursor = " << m_header.transaction_read_cursor() << " / " 
+                << m_header.complete_transaction_ids_size() << " ]\n";
+    this->save_index_file();
     return;
   }
 
-  // Okay. We completed one- perhaps more are ready?
+  // Okay. We completed one-perhaps more are ready?
   while (m_header.complete_transaction_ids_size() > 0 &&
          m_header.complete_transaction_ids(0) == m_header.transaction_read_cursor() + 1) {
     m_header.set_transaction_read_cursor(m_header.complete_transaction_ids(0));
@@ -328,7 +335,8 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
   this->save_index_file();
 
   this->log() << "Transaction " << transaction_id << " complete.  "
-              << "[ read_cursor = " << m_header.transaction_read_cursor() << " ]\n";
+              << "[ read_cursor = " << m_header.transaction_read_cursor() << " / "
+              << m_header.complete_transaction_ids_size() << " ]\n";
 }
 
 // Once a chunk of work is complete, clients can "commit" their
@@ -342,7 +350,7 @@ void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
   // Erase all index entries related to this transaction_id in the
   // live (in memory) index.
   m_root->erase_transaction(transaction_id);
-  this->log() << "ERROR: Transaction " << transaction_id << " failed.\n";
+  this->log() << "Transaction " << transaction_id << " FAILED.\n";
 
   // Now that we have cleaned things up, we mark the transaction as
   // complete, which moves the transaction_cursor forward.

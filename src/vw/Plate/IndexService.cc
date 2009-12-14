@@ -288,8 +288,8 @@ void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* con
   int transaction_id = rec.index->transaction_request(request->description(), tile_headers);
   response->set_transaction_id(transaction_id);
 
-  std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
-            << transaction_id << " started.\n";
+  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
+  //           << transaction_id << " started.\n";
 
   done->Run();
 }   
@@ -319,8 +319,8 @@ void IndexServiceImpl::TransactionComplete(::google::protobuf::RpcController* co
                                            RpcNullMessage* response,
                                            ::google::protobuf::Closure* done) {
 
-  std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
-            << request->transaction_id() << " complete.\n";
+  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
+  //           << request->transaction_id() << " complete.\n";
 
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
@@ -338,8 +338,8 @@ void IndexServiceImpl::TransactionFailed(::google::protobuf::RpcController* cont
                                          RpcNullMessage* response,
                                          ::google::protobuf::Closure* done) {
 
-  std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
-            << request->transaction_id() << " failed.\n";
+  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
+  //           << request->transaction_id() << " failed.\n";
 
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
