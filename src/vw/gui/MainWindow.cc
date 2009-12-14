@@ -41,7 +41,6 @@ MainWindow::MainWindow(std::string input_filename,
   // Set up OpenGL context parameters
   QGLFormat gl_frmt = QGLFormat::defaultFormat();
   gl_frmt.setSampleBuffers(true);
-  gl_frmt.setSamples(16);
   gl_frmt.setDoubleBuffer(true);
   gl_frmt.setSwapInterval(1);
 
