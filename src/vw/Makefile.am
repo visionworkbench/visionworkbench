@@ -89,7 +89,7 @@ include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 	$(fileio_headers) $(camera_headers) $(mosaic_headers)		\
 	$(stereo_headers) $(cartography_headers) $(gpu_headers)		\
 	$(interestpoint_headers) $(hdr_headers) $(geometry_headers)	\
-	$(plate_headers) vw.h config.h
+	vw.h config.h
 
 SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)		\

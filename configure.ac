@@ -23,12 +23,13 @@ m4_pattern_allow([^PKG_ARBITRARY_QT_NEEDED_HEADERS$])
 # A few starting bits
 ##################################################
 
+AC_PREREQ([2.59])
 dnl TODO BEFORE/AFTER RELEASE: update package version
 AC_INIT([NASA Vision Workbench], [2.0_beta5_pre], [vision-workbench@lists.nasa.gov], [VisionWorkbench])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_HOST
-AM_INIT_AUTOMAKE([nostdinc])
+AM_INIT_AUTOMAKE([nostdinc 1.8.5])
 AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
