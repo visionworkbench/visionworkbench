@@ -40,7 +40,7 @@ namespace {
   std::string amqp_bytes(const amqp_bytes_t& s);
   void die_on_amqp_error(amqp_rpc_reply_t x, const std::string& context);
   void die_on_error(int x, const std::string& context);
-  SharedByteArray pump_queue(amqp_connection_state_t conn);
+  SharedByteArray read_content(amqp_connection_state_t conn);
   bool select_helper(int fd, vw::int32 timeout, const std::string& context);
   void vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             vw::int32 timeout, const std::string& context);
@@ -176,10 +176,11 @@ bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) 
     if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD)
       break;
 
-    vw_throw(AMQPAssertion() << "Illegal AMQP response");
+    vw_throw(AMQPAssertion() << "Illegal AMQP response. Expected GET_OK or GET_EMPTY, got: "
+                             << amqp_method_name(reply.reply.id));
   }
 
-  message = pump_queue(m_conn->m_state.get());
+  message = read_content(m_conn->m_state.get());
   return true;
 }
 
@@ -218,42 +219,42 @@ class AmqpConsumeTask {
       }
 
       while (go) {
-        try {
-          // Waiting for frames. We don't want to hold the lock while we do that, so select here.
-          // Small timeout so it shuts down fast.
-          if (!select_helper(fd, 100, "select() for a method frame"))
-            continue;
+        // Waiting for frames. We don't want to hold the lock while we do that, so select here.
+        // Small timeout so it shuts down fast.
+        if (!select_helper(fd, 100, "select() for a method frame"))
+          continue;
 
-          SharedByteArray msg;
-          {
-            // Okay, we should have some data. Lock!
-            Mutex::Lock(m_conn->m_state_mutex);
+        amqp_frame_t method;
 
-            // XXX: Calling maybe_release a lot keeps our memory usage down, but
-            // perhaps we don't need to call it so often. Not clear on tradeoff.
-            amqp_maybe_release_buffers(m_conn->m_state.get());
+        SharedByteArray msg;
+        {
+          // Okay, we should have some data. Lock!
+          Mutex::Lock(m_conn->m_state_mutex);
 
-            amqp_frame_t method;
-            vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
+          // XXX: Calling maybe_release a lot keeps our memory usage down, but
+          // perhaps we don't need to call it so often. Not clear on tradeoff.
+          amqp_maybe_release_buffers(m_conn->m_state.get());
 
-            // Make sure we aren't confused somehow
-            VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD, AMQPAssertion() 
-                      << "Expected a method frame");
-            VW_ASSERT(method.payload.method.id == AMQP_BASIC_DELIVER_METHOD, AMQPAssertion() 
-                      << "Expected a deliver method");
+          vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
 
-	    // For debugging:
-            // vw_throw(AMQPAssertion() << "Test assertion");
+          // Make sure we aren't confused somehow
+          VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD,
+              AMQPAssertion() << "Expected a method frame, got: " << method.frame_type);
 
-            // Grab the rest of the message
-            msg = pump_queue(m_conn->m_state.get());
-          }
-
-          // We got some data. Release the lock and call the callback.
-          m_callback(msg);
-        } catch (AmqpErr &e) {
-          vw_out(0) << "WARNING -- an AMQP error occurred: " << e.what() << "\n";
+          // Grab the rest of the message (if there is any)
+          if (amqp_method_has_content(method.payload.method.id))
+            msg = read_content(m_conn->m_state.get());
         }
+
+        // We got some data. Release the lock and call the callback if it was a delivery.
+        if (method.payload.method.id == AMQP_BASIC_DELIVER_METHOD)
+          m_callback(msg);
+        else {
+          vw_out(WarningMessage, "plate.amqp") << "Dropped "
+            << amqp_method_name(method.payload.method.id) << "on the floor."
+            << std::endl;
+        }
+
       }
     }
 };
@@ -342,12 +343,13 @@ void die_on_amqp_error(amqp_rpc_reply_t x, const std::string& context) {
 }
 
 // Called with the m_state_mutex lock already held
-SharedByteArray pump_queue(amqp_connection_state_t conn) {
+SharedByteArray read_content(amqp_connection_state_t conn) {
 
   amqp_frame_t header;
   vw_simple_wait_frame(conn, &header, 1000, "Waiting for a header frame");
 
-  VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER, AMQPAssertion() << "Expected AMQP header!");
+  VW_ASSERT(header.frame_type == AMQP_FRAME_HEADER,
+      AMQPAssertion() << "Expected AMQP header, got: " << header.frame_type);
 
   size_t body_size = header.payload.properties.body_size;
   SharedByteArray payload( new ByteArray(body_size) );
@@ -359,9 +361,9 @@ SharedByteArray pump_queue(amqp_connection_state_t conn) {
     vw_simple_wait_frame(conn, &frame, 1000, "Waiting for a body frame");
 
     VW_ASSERT(frame.frame_type == AMQP_FRAME_BODY,
-        AMQPAssertion() << "Expected AMQP message body!");
+        AMQPAssertion() << "Expected AMQP message body, got: " << frame.frame_type);
     VW_ASSERT(body_read + frame.payload.body_fragment.len <= body_size,
-        AMQPAssertion() << "AMQP packet body size does not match header\'s body target.");
+        AMQPAssertion() << "AMQP packet body size does not match header's body target.");
 
     // Copy the bytes out of the payload...
     memcpy(payload->begin() + body_read,
@@ -466,7 +468,7 @@ void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
 
       die_on_error(result, "Processing Read Frame");
       if (result == 0)
-        vw_throw(AmqpErr() << "AMQP Error: EOF on socket");
+        vw_throw(AMQPErr() << "AMQP Error: EOF on socket");
 
       state->sock_inbound_offset += result;
 

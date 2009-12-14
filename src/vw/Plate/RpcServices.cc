@@ -102,9 +102,9 @@ void vw::platefile::AmqpRpcServer::run() {
 
         this->send_message(response_wrapper, request_wrapper.requestor());
       }
-    } catch (AMQPErr &e) {
+    } catch (const AMQPErr &e) {
       vw_out(0) << "WARNING!! Uncaught AMQP error:\n\t" << e.what() << "\n";
-    } catch (vw::Exception &e) {
+    } catch (const vw::Exception &e) {
       vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
     }
 
