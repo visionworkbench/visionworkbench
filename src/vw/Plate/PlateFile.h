@@ -106,6 +106,7 @@
 #include <fstream>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/scoped_array.hpp>
 
 // Protocol Buffer
 #include <vw/Plate/ProtoBuffers.pb.h>
@@ -137,16 +138,15 @@ namespace platefile {
     static std::string unique_tempfile_name(std::string file_extension) {
       std::string base_name = vw_settings().tmp_directory() + "/vw_plate_tile_XXXXXXX";
 
-      // Workaround for the fact that mktemp does not take a const string
-      char* base_name_cstr = new char[base_name.size()+1];  // +1 for null terminator
-      strncpy(base_name_cstr, base_name.c_str(), base_name.size()+1);
+      boost::scoped_array<char> c_str(new char[base_name.size()+1]);
+      strncpy(c_str.get(), base_name.c_str(), base_name.size()+1);
 
-      // Create temporary filename
-      std::string name = mktemp(base_name_cstr);
-
-      // Clean up
-      delete [] base_name_cstr;
-      return name + "." + file_extension;
+      int fd = mkstemp(c_str.get());
+      if (fd == -1)
+        vw_throw(IOErr() << "Failed to create unique filename");
+      close(fd);
+      std::string ret(c_str.get());
+      return ret + "." + file_extension;
     }
 
     /// This constructor assumes control over an existing file on disk,
