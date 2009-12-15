@@ -17,7 +17,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h	\
                   InterestTraits.h MatrixIO.h VectorIO.h LearnPCA.h	\
 		  IntegralImage.h
 
-libvwInterestPoint_la_SOURCES = InterestData.cc
+libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la
