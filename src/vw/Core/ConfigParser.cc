@@ -70,7 +70,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
   } catch (const po::invalid_syntax& e) {
     std::cerr << "Could not parse config file. Ignoring. (" 
 	      << e.msg << " near \"" << e.tokens << "\")" << std::endl;
-  } catch (const boost::program_options::unknown_option& e) {
+  } catch (const boost::program_options::unknown_option& /*e*/) {
       // Swallow this one. We don't care about unknown options.
       vw_throw(LogicErr() << "We should be accepting all options. This shouldn't happen.");
   }
@@ -129,7 +129,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
         //cerr  << "Skipping " << o.string_key << endl;
         continue;
       }
-    } catch (const boost::bad_lexical_cast& e) {
+    } catch (const boost::bad_lexical_cast& /*e*/) {
       std::cerr << "Could not parse line in config file near " 
 		<< o.string_key << ". skipping." << std::endl;
     }

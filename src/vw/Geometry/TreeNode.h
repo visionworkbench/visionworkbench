@@ -227,9 +227,9 @@ namespace geometry
     /**
      * This method is linear in the depth of the tree.
      */
-    TreeNode const * root() const throw()
+    TreeNode * root() const throw()
     {
-      TreeNode const * node = this;
+      TreeNode * node = const_cast<TreeNode *>(this);
       while (node->m_parent)
 	node = node->m_parent;
       return node;

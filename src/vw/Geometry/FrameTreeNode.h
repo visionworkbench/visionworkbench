@@ -10,6 +10,18 @@ namespace vw
 namespace geometry
 {
   //! A tree node with a Frame as payload.
+  /**
+   * A frame-tree is expected to adhere to the following requirements:
+   *  * Frame names of children of a node are unique.
+   *  * Frame names do not contain the character '/'.
+   *  * Frames are not named ".", "..", nor "...".
+   *  * The affinte transform has an invertable matrix.
+   *
+   * These requirements are not checked explicitly in the FrameTreeNode interface.
+   * Only the FrameStore interface explicitily checks these requirements and
+   * flags errors if frames are added to the frame-store, that do not meet
+   * these assumptions.
+   */
   typedef TreeNode<Frame> FrameTreeNode;
 
   //! Get location of the source frame relative to the wrt_frame (wrt = with respect to). 
@@ -25,6 +37,21 @@ namespace geometry
   //! Set location of the frame to the location specified realtive to the source frame.
   void set_location(FrameTreeNode * frame, FrameTreeNode const * source,
 		    Frame::Location const& location);
+
+  //! Lookup frame by name
+  /**
+   * See the FrameTreeNode typedef for the requirements on Frame naming.
+   * @paraam start_frame The node relative to which the search starts.
+   * @param path An expression describing the path to the searched frame.
+   *  * '/' is the frame-name delimiter.
+   *  Frame names can not contain this character.
+   *  * A leading "/" starts the lookup from the start_frame.root().
+   *  * ".", "..", and "..." are treated as following
+   *    * ".": this frame - being ignored in practice
+   *    * "..": parent frame
+   *    * "...": 0 to n frames down in breadth-first order
+   */
+  FrameTreeNode * lookup(FrameTreeNode * start_frame, std::string const& path);
 
   inline
   Frame::Location 

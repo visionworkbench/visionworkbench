@@ -170,14 +170,14 @@ int main(int argc, char** argv) {
         // of points.  Points that don't meet this geometric
         // contstraint are rejected as outliers.
         if (ransac_constraint == "similarity") {
-          vw::math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
+          vw::math::RandomSampleConsensus<vw::math::SimilarityFittingFunctor, vw::math::InterestPointErrorMetric> ransac( vw::math::SimilarityFittingFunctor(),
                                                                                                                   vw::math::InterestPointErrorMetric(),
                                                                                                                   inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
-          vw::math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
+          vw::math::RandomSampleConsensus<vw::math::HomographyFittingFunctor, vw::math::InterestPointErrorMetric> ransac( vw::math::HomographyFittingFunctor(),
                                                                                                                   vw::math::InterestPointErrorMetric(),
                                                                                                                   inlier_threshold ); // inlier_threshold
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));

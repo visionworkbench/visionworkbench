@@ -24,11 +24,12 @@
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
+#include <vw/config.h>
 
 // The math.h header in FreeBSD (and possibly other platforms) does
 // include routines for manipulating long doubles.  We disable long
 // double VW math routines here for certain platforms.
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(_WIN32)
 #define __VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC 
 #endif
 
