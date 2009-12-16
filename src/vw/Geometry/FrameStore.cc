@@ -62,7 +62,7 @@ namespace geometry
   }
 
   std::string const& 
-  FrameStore::name(FrameHandle frame) const throw()
+  FrameStore::name(FrameHandle frame) const
   {
     RecursiveMutex::Lock lock(m_mutex);
 
@@ -91,7 +91,7 @@ namespace geometry
   }
 
   FrameHandle 
-  FrameStore::lookup(std::string const& name, FrameHandle scope)
+  FrameStore::lookup(std::string const& name, FrameHandle scope) const
   {
     string searchName = name;
     
@@ -166,7 +166,7 @@ namespace geometry
 
 
   FrameHandle
-  FrameStore::parent(FrameHandle frame) const throw()
+  FrameStore::parent(FrameHandle frame) const
   {
     RecursiveMutex::Lock lock(m_mutex);
 
@@ -176,12 +176,23 @@ namespace geometry
     return frame.node->parent();
   }
 
+  FrameHandle
+  FrameStore::root(FrameHandle frame) const
+  {
+    RecursiveMutex::Lock lock(m_mutex);
+
+    VW_ASSERT (frame.node != NULL,
+	       vw::LogicErr("NULL handle not allowed as parameter."));
+
+    return frame.node->root();
+  }
+
   /** Get the list of direct children of a frame.
    * 
    * @param frame
    */
   FrameStore::FrameHandleVector
-  FrameStore::children(FrameHandle frame) const throw()
+  FrameStore::children(FrameHandle frame) const
   {
     RecursiveMutex::Lock lock(m_mutex);
 
@@ -277,7 +288,7 @@ namespace geometry
   }
   
   bool
-  FrameStore::is_root(FrameHandle frame)
+  FrameStore::is_root(FrameHandle frame) const
   {
     RecursiveMutex::Lock lock(m_mutex);
 
@@ -288,7 +299,7 @@ namespace geometry
   }
   
   bool
-  FrameStore::is_ancestor_of(FrameHandle frame, FrameHandle pop)
+  FrameStore::is_ancestor_of(FrameHandle frame, FrameHandle pop) const
   {
     RecursiveMutex::Lock lock(m_mutex);
 

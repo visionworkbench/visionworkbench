@@ -43,8 +43,8 @@ namespace geometry
    * See the FrameTreeNode typedef for the requirements on Frame naming.
    * @paraam start_frame The node relative to which the search starts.
    * @param path An expression describing the path to the searched frame.
-   *  * '/' is the frame-name delimiter.
-   *  Frame names can not contain this character.
+   *  * '/' is the frame-name delimiter. '.' is used for directory wildcards.
+   *  Frame names can not contain these characters.
    *  * A leading "/" starts the lookup from the start_frame.root().
    *  * ".", "..", and "..." are treated as following
    *    * ".": this frame - being ignored in practice
