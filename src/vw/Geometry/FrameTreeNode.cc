@@ -105,5 +105,119 @@ namespace geometry
 
     }
   }
+
+  namespace
+  {
+    vector<string> splitPath(string const& path)
+    {
+      vector<string> elements;
+
+      string::const_iterator first, last = path.end();
+      for (first = path.begin(); first < last; ++first) {
+
+	// skip /
+	if (*first == '/')
+	  continue;
+
+	// search next /
+	string::const_iterator start;
+	for (start = first; first != last; ++first) {
+	  if (*first == '/')
+	    break;
+	}
+
+	string element(start, first);
+	if (element != ".")
+	  elements.push_back(element);
+      }
+
+      return elements;
+    }
+
+    FrameTreeNode * matchNode(FrameTreeNode * node,
+			      vector<string>::const_iterator first,
+			      vector<string>::const_iterator last)
+    {
+      for (; first != last; ++first) {
+
+	// single dot is skipped in splitPath already
+	assert (*first != ".");
+
+	// double dot is "one up"
+	if (*first == "..") {
+	  node = node->parent();
+	  if (node == NULL)
+	    break;
+	}
+
+	// triple dot is breadth-first search
+	else if (*first == "...") {
+
+	  vector<string>::const_iterator next = first;
+	  ++next;
+
+	  // breadth first search for next element
+	  deque<FrameTreeNode *> nodes;
+	  back_insert_iterator<deque<FrameTreeNode *> > iter(nodes);
+	  nodes.push_back(node);
+	  //node->copy_children(iter);
+	  while (!nodes.empty()) {
+
+	    FrameTreeNode * n = matchNode(nodes.front(), next, last);
+	    if (n != NULL)
+	      return n;
+
+	    nodes.front()->copy_children(iter);
+	    nodes.pop_front();
+	  }
+
+	  return NULL;
+	}
+
+	// regular elements just need to match one by one
+	else {
+	  FrameTreeNode::NodeVector c = node->children();
+	  FrameTreeNode::NodeVector::const_iterator f, l = c.end();
+	  for (f = c.begin(); f != l; ++f) {
+	    if ((*f)->data().name() == *first) {
+	      node = (*f);
+	      break;
+	    }
+	  }
+
+	  // return NULL if no child node matches
+	  if (f == l)
+	    return NULL;
+	}
+      }
+
+      return node;
+    }
+  }
+
+  FrameTreeNode *
+  lookup(FrameTreeNode * start_frame, std::string const& path)
+  {
+    if (start_frame == NULL)
+      return NULL;
+
+    vector<string> elements = splitPath(path);
+    vector<string>::const_iterator first = elements.begin();
+    vector<string>::const_iterator last = elements.end();
+
+    if (!path.empty() && path[0] == '/') {
+
+      start_frame = start_frame->root();
+      if (!elements.empty() && elements[0] != "...") {
+	if (start_frame->data().name() != elements.front())
+	  return NULL;
+
+	++first;
+      }
+    }
+
+    // walk elements
+    return matchNode(start_frame, first, last);
+  }
 }
 }
