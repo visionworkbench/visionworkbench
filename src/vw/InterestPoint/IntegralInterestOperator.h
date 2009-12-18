@@ -113,7 +113,7 @@ namespace ip {
         return false;
 
       // Threshold secretly also applies the harris operation;
-      int step = round(scale);
+      int step = int(scale);
       int offset = 4*step;
       float sum_Lx_2 = 0;
       float sum_Ly_2 = 0;

@@ -13,6 +13,7 @@
 #ifndef __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 #define __VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__
 
+#include <vw/Image/Interpolation.h>
 #include <vw/InterestPoint/Detector.h>
 #include <deque>
 
@@ -46,18 +47,21 @@ namespace ip {
 
       Timer total("\t\tTotal elapsed time", DebugMessage, "interest_point");
 
+      // Rendering own standard copy of the image as the passed in view is just a cropview
+      ImageT original_image = image.impl();
+
       // Producing Integral Image
       ImageT integral_image;
       {
         vw_out(DebugMessage, "interest_point") << "\tCreating Integral Image ...";
         Timer t("done, elapsed time", DebugMessage, "interest_point");
-        integral_image= IntegralImage( image );
+        integral_image= IntegralImage( original_image );
       }
 
       // Creating Scales
       std::deque<DataT> interest_data;
-      interest_data.push_back( DataT(image.impl(), integral_image) );
-      interest_data.push_back( DataT(image.impl(), integral_image) );
+      interest_data.push_back( DataT(original_image, integral_image) );
+      interest_data.push_back( DataT(original_image, integral_image) );
 
       // Priming scales
       InterestPointList new_points;
@@ -74,7 +78,7 @@ namespace ip {
       // Finally processing scales
       for ( int scale = 2; scale < m_scales; scale++ ) {
 
-        interest_data.push_back( DataT(image.impl(), integral_image) );
+        interest_data.push_back( DataT(original_image, integral_image) );
         {
           vw_out(DebugMessage, "interest_point") << "\tScale " << scale << " ... ";
           Timer t("done, elapsed time", DebugMessage, "interest_point");
@@ -84,8 +88,8 @@ namespace ip {
         InterestPointList scale_points;
 
         // Detecting interest points in middle
-        int32 cols = image.impl().cols() - 2;
-        int32 rows = image.impl().rows() - 2;
+        int32 cols = original_image.cols() - 2;
+        int32 rows = original_image.rows() - 2;
         typedef typename DataT::interest_type::pixel_accessor AccessT;
 
         AccessT l_row = interest_data[0].interest().origin();
@@ -214,7 +218,8 @@ namespace ip {
     Measures angle(169);
     int m = 0;
 
-    ImageViewRef<typename IntegralT::pixel_type> wrapped_integral = interpolate(integral.impl());
+    typedef InterpolationView<EdgeExtensionView< IntegralT, ConstantEdgeExtension>, BilinearInterpolation> WrappedType;
+    WrappedType wrapped_integral = interpolate(integral.impl());
 
     for ( int i = -6; i <= 6; i++ ) {
       for ( int j = -6; j <= 6; j++ ) {

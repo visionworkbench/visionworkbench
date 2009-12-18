@@ -42,7 +42,7 @@ namespace ip {
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
 
       // Timing
-      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+      Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
@@ -56,8 +56,6 @@ namespace ip {
         i->descriptor = impl().compute_descriptor(support);
       }
 
-      // End Timing
-      delete total;
     }
 
     // Default suport size ( i.e. descriptor window)

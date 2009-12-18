@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("help,h", "Display this help message")
     ("num-threads", po::value<int>(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
-    ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for processing interest points. (Useful when working with large images)")
+    ("tile-size,t", po::value<int>(&tile_size), "Specify the tile size for processing interest points. (Useful when working with large images). VW usually picks 1024 px.")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("debug-image,d", "Write out debug images.")
 
