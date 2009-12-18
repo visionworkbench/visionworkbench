@@ -107,11 +107,15 @@ static void write_debug_image( std::string out_file_name,
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
-  float harris_threshold, log_threshold;
+  float ip_gain;
   uint32 max_points;
   int tile_size;
   int num_threads;
   ImageView<double> integral;
+
+  const float IDEAL_LOG_THRESHOLD = .03;
+  const float IDEAL_OBALOG_THRESHOLD = .07;
+  const float IDEAL_HARRIS_THRESHOLD = 1.2e-5;
 
   po::options_description general_options("Options");
   general_options.add_options()
@@ -123,8 +127,7 @@ int main(int argc, char** argv) {
 
     // Interest point detector options
     ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
-    ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
-    ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
+    ("gain,g", po::value<float>(&ip_gain)->default_value(1.0), "Increasing this number will increase that gain at which interest points are detected.")
     ("max-points", po::value<uint32>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
@@ -212,7 +215,8 @@ int main(int argc, char** argv) {
     // Detecting Interest Points
     InterestPointList ip;
     if ( interest_operator == "harris" ) {
-      HarrisInterestOperator interest_operator(harris_threshold);
+      // Harris threshold is inversely proportional to gain.
+      HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator,
                                                                      tile_max_points);
@@ -225,7 +229,8 @@ int main(int argc, char** argv) {
     } else if ( interest_operator == "log") {
       // Use a scale-space Laplacian of Gaussian feature detector. The
       // associated threshold is abs(interest) > interest_threshold.
-      LogInterestOperator interest_operator(log_threshold);
+      // LoG threshold is inversely proportional to gain..
+      LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
         ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator,
                                                                   tile_max_points);
@@ -236,7 +241,8 @@ int main(int argc, char** argv) {
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "obalog") {
-      OBALoGInterestOperator interest_operator(log_threshold);
+      // OBALoG threshold is inversely proportional to gain ..
+      OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
       IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator,
                                                                       tile_max_points );
       ip = detect_interest_points(image, detector);
