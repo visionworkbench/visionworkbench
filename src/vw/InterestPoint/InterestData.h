@@ -148,10 +148,13 @@ namespace ip {
     typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type mag_type;
     typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type ori_type;
     typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type interest_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::integral_type integral_type;
 
     static const int peak_type = InterestPeakType<InterestT>::peak_type;
 
     /// Constructor which sets the source image and creates the processed views.
+    /// This is a generic constructor that assumes the requires grad
+    /// x/y.
     template <class ViewT>
     ImageInterestData(ImageViewBase<ViewT> const& img) :
       m_src(img.impl()),
@@ -159,9 +162,19 @@ namespace ip {
       m_grad_y(derivative_filter(m_src, 0, 1).impl()),
       m_mag(hypot(m_grad_x, m_grad_y).impl()),
       m_ori(atan2(m_grad_y, m_grad_x).impl()),
-      m_interest(NULL) {}
+      m_interest(NULL),
+      m_integral(NULL) {}
 
-    ~ImageInterestData() { if (m_interest) delete m_interest; }
+    template <class ViewT>
+    ImageInterestData(ImageViewBase<ViewT> const& img,
+                      ImageViewBase<integral_type> const& integral ) :
+      m_src(img.impl()),
+      m_interest(NULL),
+      m_integral(&integral.impl()) {}
+
+    ~ImageInterestData() {
+      if (m_interest) delete m_interest;
+    }
 
     /// Accessors to immutable processed views.
     inline source_type const& source() const { return m_src; }
@@ -182,6 +195,18 @@ namespace ip {
       m_interest = new interest_type(interest.impl());
     }
 
+    /// Accessors to mutable integral image.
+    inline integral_type const& integral() const {
+      if (!m_integral) vw_throw(LogicErr() << "ImageInterestData::integral() Integral image  has not yet been computed.");
+      return *m_integral;
+    }
+
+    template <class ViewT>
+    inline void set_integral(ImageViewBase<ViewT> const& integral) {
+      // I don't really recommend using this -ZMM
+      m_integral = &integral;
+    }
+
   protected:
     /// Cached processed data
     source_type m_src;
@@ -189,6 +214,7 @@ namespace ip {
     mag_type m_mag;
     ori_type m_ori;
     interest_type *m_interest;
+    const integral_type *m_integral;
   };
 
 

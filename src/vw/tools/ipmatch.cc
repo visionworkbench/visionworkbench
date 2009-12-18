@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.8), "Threshold for the interest point matcher.")
+    ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.6), "Threshold for the interest point matcher.")
     ("non-kdtree", "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("ransac-constraint,r", po::value<std::string>(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, or none].")
     ("inlier-threshold,i", po::value<int>(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")

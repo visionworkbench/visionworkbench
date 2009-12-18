@@ -102,7 +102,7 @@ namespace vw {
     /// We compute the result, so we return by value.
     typedef pixel_type result_type;
 
-    /// The view's %pixel_accessor type.
+    /// The view's pixel_accessor type.
     typedef ProceduralPixelAccessor<ConvolutionView<ImageT, KernelT, EdgeT> > pixel_accessor;
 
     /// Constructs a ConvolutionView with the given image and kernel and with the origin of the kernel located at the point (ci,cj).
@@ -129,14 +129,14 @@ namespace vw {
     inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
       int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
       if( (x >= ci) && (y >= cj) &&
-	  (x <= int(m_image.cols())-int(m_kernel.cols())+ci) &&
-	  (y <= int(m_image.rows())-int(m_kernel.rows())+cj) ) {
+          (x <= int(m_image.cols())-int(m_kernel.cols())+ci) &&
+          (y <= int(m_image.rows())-int(m_kernel.rows())+cj) ) {
         return (result_type) correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
-						    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
+                                                    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
       else {
-	return (result_type) correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
-						    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
+        return (result_type) correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
+                                                    m_kernel.origin(), m_kernel.cols(), m_kernel.rows() );
       }
     }
 

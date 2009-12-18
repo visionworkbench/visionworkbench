@@ -6,15 +6,15 @@
 
 
 /// \file InterestTraits.h
-/// 
+///
 /// Base type trait definitions for interest views.
-/// 
+///
 #ifndef _INTEREST_POINT_INTEREST_TRAITS_H_
 #define _INTEREST_POINT_INTEREST_TRAITS_H_
 
 #include <vw/Image/ImageView.h>
 
-namespace vw { 
+namespace vw {
 namespace ip {
 
   /// This template function decides whether to use the memory-optimized
@@ -32,20 +32,21 @@ namespace ip {
     typedef ImageView<typename SrcT::pixel_type>                mag_type;
     typedef ImageView<typename SrcT::pixel_type>                ori_type;
     typedef ImageView<typename SrcT::pixel_type>                interest_type;
+    typedef ImageView<typename SrcT::pixel_type>             integral_type;
   };
 
   // This should speed things up by delaying the rasterization of some
   // of these views, but instead it slows things down.  Why??
 //   struct InterestOperatorTraits {
 //     typedef ImageView<typename SrcT::pixel_type>                                                          rasterize_type;
-//     typedef SeparableConvolutionView<SrcT, 
-//                                      typename DefaultKernelT<typename SrcT::pixel_type>::type, 
+//     typedef SeparableConvolutionView<SrcT,
+//                                      typename DefaultKernelT<typename SrcT::pixel_type>::type,
 //                                      ConstantEdgeExtension>                                               gradient_type;
 //     typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgHypotFunctor>                mag_type;
 //     typedef BinaryPerPixelView<gradient_type, gradient_type, vw::math::ArgArgAtan2Functor>                ori_type;
 //     typedef ImageView<typename SrcT::pixel_type>                                                          interest_type;
 //   };
-  
+
   /// Type(s) of peak in the interest image that indicate a feature.
   enum { IP_MAX, IP_MIN, IP_MINMAX };
 

@@ -5,10 +5,10 @@
 // __END_LICENSE__
 
 
-/// \file Interest.h
-/// 
+/// \file InterestOperator.h
+///
 /// Basic classes and functions for calculating interest images.
-/// 
+///
 #ifndef __VW_INTERESTPOINT_INTERESTVIEW_H__
 #define __VW_INTERESTPOINT_INTERESTVIEW_H__
 
@@ -16,10 +16,11 @@
 #include <vector>
 
 // Vision Workbench Headers
+#include <vw/Image/ImageViewRef.h>
 #include <vw/InterestPoint/InterestTraits.h>
 #include <vw/InterestPoint/InterestData.h>
 
-namespace vw { 
+namespace vw {
 namespace ip {
 
   // --------------------------- ------------------------ ----------------------------
@@ -36,13 +37,13 @@ namespace ip {
 #  endif
 #endif
     double m_k, m_threshold;
-    
+
   public:
-    template <class ViewT> struct ViewType { 
-      typedef ImageViewRef<typename ViewT::pixel_type> type; 
+    template <class ViewT> struct ViewType {
+      typedef ImageViewRef<typename ViewT::pixel_type> type;
     };
 
-    HarrisInterestOperator(float threshold = 1e-5, float k = -1.0) : m_k(k), m_threshold(threshold) {}
+    HarrisInterestOperator(double threshold = 1e-5, double k = -1.0) : m_k(k), m_threshold(threshold) {}
 
     /// Returns "cornerness" image, where the local maxima correspond to corners.
     /// By default uses Noble measure of corner strength (requires no tuning).
@@ -61,7 +62,7 @@ namespace ip {
                                                                kernel, kernel);
       ImageView<pixel_type> Ixy = separable_convolution_filter(data.gradient_x() * data.gradient_y(),
                                                                kernel, kernel);
-      
+
       // Estimate "cornerness"
       ImageView<pixel_type> trace = Ix2 + Iy2;
       ImageView<pixel_type> det = Ix2 * Iy2 - Ixy * Ixy;
@@ -79,7 +80,7 @@ namespace ip {
     operator() (ImageViewBase<ViewT> const& source, float scale = 1.0) const {
       ImageInterestData<ViewT, HarrisInterestOperator> data(source.impl());
       this->operator()(data, scale);
-      return data.interest;      
+      return data.interest;
     }
 
     template <class DataT>
@@ -90,10 +91,10 @@ namespace ip {
 
   /// Type traits for Harris interest
   template <> struct InterestPeakType <HarrisInterestOperator> { static const int peak_type = IP_MAX; };
-  
+
 
 //   /// Harris interest measure uses the image gradients.
-//   template <class SrcT> 
+//   template <class SrcT>
 //   struct InterestOperatorTraits<SrcT, HarrisInterestOperator> {
 //     typedef typename DefaultRasterizeT<SrcT>::type          rasterize_type;
 //     typedef ImageView<typename SrcT::pixel_type>            gradient_type;
@@ -108,15 +109,15 @@ namespace ip {
 
   /// Log interest functor
   class LogInterestOperator {
-    
+
 #ifndef WIN32 // FIXME: this is illegal w/ MSVC and gcc -pedantic
     static const float DEFAULT_INTEREST_THRESHOLD = 0.03;
 #endif
     double m_threshold;
-    
+
   public:
-    template <class ViewT> struct ViewType { 
-      typedef ImageViewRef<typename ViewT::pixel_type> type; 
+    template <class ViewT> struct ViewType {
+      typedef ImageViewRef<typename ViewT::pixel_type> type;
     };
 
     LogInterestOperator(float threshold = 0.03) : m_threshold(threshold) {}

@@ -250,6 +250,7 @@ namespace ip {
     int top = int(round( int(y) - size/2));
     int left = int(round( int(x) - size/2));
 
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     VW_ASSERT(left+i_size < integral.impl().cols(),
               vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
               << left+i_size << " [top left] " << top << " " << left << "\n");
@@ -257,9 +258,10 @@ namespace ip {
               vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
               << top+i_size << "\n");
     VW_ASSERT(left >= 0,
-              vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
+              vw::ArgumentErr() << "left is too low. " << 0 << " : " << left << "\n");
     VW_ASSERT(top >= 0,
-              vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
+              vw::ArgumentErr() << "top is too low. " << 0 << " : " << top << "\n");
+#endif
 
     response = -integral.impl()(left, top);
     response += 2*integral.impl()(left+half_size, top);
@@ -289,6 +291,7 @@ namespace ip {
     int top = int(round( int(y) - size/2));
     int left = int(round( int(x) - size/2));
 
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     VW_ASSERT(left+i_size < integral.impl().cols(),
               vw::ArgumentErr() << "left out of bounds. "<< integral.impl().cols() <<" : "
               << left+i_size << " [top left] " << top << " " << left << "\n");
@@ -296,9 +299,10 @@ namespace ip {
               vw::ArgumentErr() << "top out of bounds. " << integral.impl().rows() <<" : "
               << top+i_size << "\n");
     VW_ASSERT(left >= 0,
-              vw::ArgumentErr() << "left is to low. " << 0 << " : " << left << "\n");
+              vw::ArgumentErr() << "left is too low. " << 0 << " : " << left << "\n");
     VW_ASSERT(top >= 0,
-              vw::ArgumentErr() << "top is to low. " << 0 << " : " << top << "\n");
+              vw::ArgumentErr() << "top is too low. " << 0 << " : " << top << "\n");
+#endif
 
     response = -integral.impl()(left, top);
     response += integral.impl()(left+i_size, top);
@@ -321,15 +325,17 @@ namespace ip {
   template <class ViewT, class NumberT>
   typename boost::enable_if<boost::is_floating_point<NumberT>, float>::type
   inline HHaarWavelet( ImageViewBase<ViewT> const& integral,
-                             NumberT const& x, NumberT const& y,
-                             float const& size ) {
+                       NumberT const& x, NumberT const& y,
+                       float const& size ) {
 
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
                (integral.impl()(10,10) == integral.impl()(11,10) ),
                vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
                (integral.impl()(10,10) == integral.impl()(10,11) ),
                vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+#endif
 
     float response;
     float half_size = size / 2.0;
@@ -360,12 +366,14 @@ namespace ip {
                        NumberT const& x, NumberT const& y,
                        float const& size ) {
 
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10.4,10)) ||
                (integral.impl()(10,10) == integral.impl()(11,10) ),
                vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
     VW_ASSERT( (integral.impl()(10,10) != integral.impl()(10,10.4)) ||
                (integral.impl()(10,10) == integral.impl()(10,11) ),
                vw::ArgumentErr() << "Input Integral doesn't seem to be interpolated" );
+#endif
 
     float response;
     float half_size = size / 2.0;

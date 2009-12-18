@@ -1,0 +1,82 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2009 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+#include <cxxtest/TestSuite.h>
+#include <vw/InterestPoint/IntegralImage.h>
+#include <vw/InterestPoint/BoxFilter.h>
+#include <vw/Image.h>
+
+using namespace vw;
+using namespace vw::ip;
+
+class TestBoxFilter : public CxxTest::TestSuite {
+
+public:
+
+  void test_apply_box_filter() {
+    ImageView<float> image(3,3);
+    float count = 0;
+    for ( uint i = 0; i < 3; i++ ) {
+      for ( uint j = 0; j < 3; j++ ) {
+        image(i,j) = count;
+        count++;
+      }
+    }
+    ImageView<float> integral = IntegralImage( image );
+    TS_ASSERT_EQUALS( 4, integral.cols() );
+    TS_ASSERT_EQUALS( 4, integral.rows() );
+
+    BoxFilter filter;
+    filter.resize(2);
+    filter[0].start = Vector2i(0,0);
+    filter[0].size = Vector2i(1,1);
+    filter[0].weight = -9;
+    filter[1].start = Vector2i(-1,-1);
+    filter[1].size = Vector2i(3,3);
+    filter[1].weight = 1;
+
+    float response = apply_box_filter_at_point( integral.origin().advance(1,1),
+                                                filter );
+    TS_ASSERT_DELTA( 0, response, .00001 );
+  }
+
+  void test_box_filter_view() {
+    ImageView<float> image(4,4);
+    float count = 0;
+    for ( uint i = 0; i < 4; i++ ) {
+      for ( uint j = 0; j < 4; j++ ) {
+        image(i,j) = count;
+        count++;
+      }
+    }
+    image(3,3) = 20;
+    ImageView<float> integral = IntegralImage( image );
+    TS_ASSERT_EQUALS( 5, integral.cols() );
+    TS_ASSERT_EQUALS( 5, integral.rows() );
+
+    BoxFilter filter;
+    filter.resize(2);
+    filter[0].start = Vector2i(0,0);
+    filter[0].size = Vector2i(1,1);
+    filter[0].weight = -9;
+    filter[1].start = Vector2i(-1,-1);
+    filter[1].size = Vector2i(3,3);
+    filter[1].weight = 1;
+
+    ImageView<float> applied = box_filter( integral, filter );
+    TS_ASSERT_EQUALS( 4, applied.cols() );
+    TS_ASSERT_EQUALS( 4, applied.rows() );
+
+    TS_ASSERT_DELTA( 0, applied(1,1), .00001 );
+    TS_ASSERT_DELTA( 5, applied(2,2), .00001 );
+    TS_ASSERT_DELTA( 0, applied(1,2), .00001 );
+    TS_ASSERT_DELTA( 0, applied(2,1), .00001 );
+    TS_ASSERT_DELTA( 0, applied(0,0), .00001 );
+    TS_ASSERT_DELTA( 0, applied(3,3), .00001 );
+  }
+
+};

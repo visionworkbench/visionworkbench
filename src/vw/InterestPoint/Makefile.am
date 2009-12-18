@@ -15,9 +15,11 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h	\
                   Localize.h InterestOperator.h WeightedHistogram.h	\
                   ImageOctave.h InterestData.h ImageOctaveHistory.h	\
                   InterestTraits.h MatrixIO.h VectorIO.h LearnPCA.h	\
-		  IntegralImage.h
+		  IntegralImage.h IntegralInterestOperator.h    \
+		  IntegralDetector.h BoxFilter.h
 
-libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc
+libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc   \
+	          IntegralDetector.cc IntegralInterestOperator.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la

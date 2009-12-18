@@ -13,8 +13,9 @@ if MAKE_MODULE_INTERESTPOINT
 
 TestMatcher_SOURCES  = TestMatcher.oldtest
 TestIntegral_SOURCES = TestIntegral.oldtest
+TestBoxFilter_SOURCES = TestBoxFilter.oldtest
 
-TESTS = TestMatcher TestIntegral
+TESTS = TestMatcher TestIntegral TestBoxFilter
 
 include $(top_srcdir)/config/instantiate.am
 

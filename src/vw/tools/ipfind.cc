@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
-    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris]")
+    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
     ("log-threshold", po::value<float>(&log_threshold)->default_value(0.03), "Sets the threshold for the Laplacian of Gaussian interest operator")
     ("harris-threshold", po::value<float>(&harris_threshold)->default_value(1e-5), "Sets the threshold for the Harris interest operator")
     ("max-points", po::value<uint32>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
@@ -170,9 +170,10 @@ int main(int argc, char** argv) {
   boost::to_lower( descriptor_generator );
   // Determine if interest_operator is legitimate
   if ( !( interest_operator == "harris" ||
-          interest_operator == "log" ) ) {
+          interest_operator == "log" ||
+          interest_operator == "obalog" ) ) {
     vw_out(0) << "Unknown interest operator: " << interest_operator
-              << ". Options are : [ Harris, LoG ]\n";
+              << ". Options are : [ Harris, LoG, OBALoG ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -234,6 +235,11 @@ int main(int argc, char** argv) {
                                                             tile_max_points);
         ip = detect_interest_points(image, detector);
       }
+    } else if ( interest_operator == "obalog") {
+      OBALoGInterestOperator interest_operator(log_threshold);
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator,
+                                                                      tile_max_points );
+      ip = detect_interest_points(image, detector);
     }
 
     // Removing Interest Points on nodata or within 1/px
@@ -303,7 +309,7 @@ int main(int argc, char** argv) {
     // Write Debug image
     if (vm.count("debug-image")) {
       std::string output_file_name =
-        prefix_from_filename(input_file_names[i]) + "_debug.tif";
+        prefix_from_filename(input_file_names[i]) + "_debug.jpg";
       write_debug_image( output_file_name,
                          input_file_names[i],
                          ip );
