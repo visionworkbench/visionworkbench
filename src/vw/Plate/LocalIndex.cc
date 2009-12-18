@@ -286,7 +286,7 @@ void vw::platefile::LocalIndex::root_complete(int transaction_id,
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
-  static const int MAX_OUTSTANDING_TRANSACTION_IDS = 256;
+  static const int MAX_OUTSTANDING_TRANSACTION_IDS = 1024;
   Mutex::Lock lock(m_mutex);
 
   VW_ASSERT( transaction_id > m_header.transaction_read_cursor(),
@@ -323,8 +323,9 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
 
   // Okay. We completed one-perhaps more are ready?
   while (m_header.complete_transaction_ids_size() > 0 &&
-         m_header.complete_transaction_ids(0) == m_header.transaction_read_cursor() + 1) {
-    m_header.set_transaction_read_cursor(m_header.complete_transaction_ids(0));
+         m_header.complete_transaction_ids(0) <= m_header.transaction_read_cursor() + 1) {
+    if (m_header.complete_transaction_ids(0) == m_header.transaction_read_cursor() + 1)
+      m_header.set_transaction_read_cursor(m_header.complete_transaction_ids(0));
     std::pop_heap(m_header.mutable_complete_transaction_ids()->begin(),
                   m_header.mutable_complete_transaction_ids()->end(),
                   transaction_sort);
