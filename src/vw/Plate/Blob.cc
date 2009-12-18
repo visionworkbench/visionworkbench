@@ -31,41 +31,37 @@ using namespace vw;
 // Constructor stores the blob filename for reading & writing
 vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename(filename) {
 
-  // This is an ugly hack, but it appears that with some versions of
-  // glibc, it is not possible to CREATE a file at the same time as
-  // you open it for reading and writing.  Instead, we open it for
-  // writing here, creating it if necessary, then close and reopen it.
-  // Blech.
-  if (!readonly) {
-    std::fstream temporary_stream(m_blob_filename.c_str(),
-                                  std::ios::out | std::ios::app);  
-    if (!temporary_stream.is_open()) {
-      std::cout << "Blob file could not be created!\n";
-      vw_throw(BlobIoErr() << "Blob::Blob(): could not create blob file \"" 
-               << m_blob_filename << "\".");
-    }
-    temporary_stream.close();
-  }
-
-  // Now we open the file for real.
   if (readonly) {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::binary));
   } else {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::out | std::ios::binary));
+
+    // If the file is not open, then that means that we need to create
+    // it.  (Note: the C++ standard does not let you create a file
+    // when you specify std::ios::in., hence the gymnastics here.)
+    if (!m_fstream->is_open()) {
+      m_fstream->clear();                                   // Clear error status
+      m_fstream->open(filename.c_str(),                     // Create new file
+                      std::ios::out|std::ios::binary);  
+      if (!m_fstream->is_open())                            // Check for errors
+        vw_throw(BlobIoErr() << "Could not create blob file \"" << m_blob_filename << "\".");
+      this->write_end_of_file_ptr(3 * sizeof(uint64));      // Initialize EOF pointer
+      m_fstream->close();                                   // Close output-only file
+      m_fstream->open(filename.c_str(),                     // Reopen as read/write
+                      std::ios::out|std::ios::in|std::ios::binary); 
+    }
   }
 
-  if (!m_fstream->is_open()) {
-    std::cout << "Blob file is not open!\n";
-    vw_throw(BlobIoErr() << "Blob::Blob(): could not open blob file \"" 
-             << m_blob_filename << "\".");
-  }
+  if (!m_fstream->is_open()) 
+    vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");
 }
 
 vw::platefile::Blob::~Blob() {}
 
-void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size) {
+void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename, 
+                                        vw::uint64& offset, vw::uint64& size) {
   // Seek to the requested offset and read the header and data offset
   m_fstream->seekg(base_offset, std::ios_base::beg);
 
@@ -83,6 +79,55 @@ void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& fil
   offset   = base_offset + blob_offset_metadata + blob_record.data_offset();
   filename = m_blob_filename;
 
+}
+
+void vw::platefile::Blob::write_end_of_file_ptr(uint64 ptr) {
+  
+  // We write the end of file pointer three times, because that
+  // pretty much gurantees that at least two versions of the
+  // pointer will agree if the program terminates for some reason
+  // during this write opreration.  (Lazy man's checksum....)
+  uint64 data[3];
+  data[0] = ptr;
+  data[1] = ptr;
+  data[2] = ptr;
+  
+  // The end of file ptr is stored at the beginning of the blob
+  // file.
+  m_fstream->seekg(0, std::ios_base::beg);
+  m_fstream->write((char*)(&data), 3*sizeof(ptr));
+}
+
+uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
+  uint64 data[3];
+  
+  // The end of file ptr is stored at the beginning of the blob
+  // file.
+  m_fstream->seekg(0, std::ios_base::beg);
+  m_fstream->read((char*)(data), 3*sizeof(uint64));
+
+  // Make sure the read ptr is valid by comparing the three
+  // entries.  
+  //
+  // If all three agree, then return that value.  If
+  // only two agree, then return that entry that two agree on.  
+  // 
+  // If none agree, return the end of file but print an error,
+  // because this blob file might be corrupt.
+  if (data[0] == data[1] == data[2]) 
+    return data[0];
+  else if (data[0] == data[1])
+    return data[0];
+  else if (data[1] == data[2])
+    return data[1];
+  else if (data[0] == data[2])
+    return data[0];
+  else {
+    vw_out(0) << "\nWARNING: end of file ptr in blobfile " << m_blob_filename 
+              << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
+    m_fstream->seekg(0, std::ios_base::end);
+    return m_fstream->tellg();
+  }
 }
 
 /// read_data()

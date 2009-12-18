@@ -29,6 +29,20 @@ static std::string prefix_from_filename(std::string const& filename) {
   return result;
 }
 
+template <class T> 
+class SignalHandler {
+  boost::shared_ptr<T> m_process;
+
+public:
+
+  SignalHandler(boost::shared_ptr<T> process) : m_process(process) {}
+
+  void kill() {
+    m_process->kill();
+  }
+  
+};
+
 // --------------------------------------------------------------------------
 //                                DO_MOSAIC
 // --------------------------------------------------------------------------
@@ -45,7 +59,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
   if (output_mode == "toast") {
 
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
-                                                                         new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
+      new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
     
     pm->insert(view.impl(), filename, georef,
                TerminalProgressCallback(InfoMessage, status_str.str()) );

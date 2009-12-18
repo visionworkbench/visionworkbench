@@ -60,6 +60,7 @@ namespace platefile {
     boost::shared_ptr<std::fstream> m_fstream;
 
     BlobRecord read_blob_record(uint16 &blob_record_size) const {
+
       // Read the blob record
       m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
       boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
@@ -67,15 +68,19 @@ namespace platefile {
       BlobRecord blob_record;
       bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
       if (!worked)
-        vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while deserializing the header "
-                 << "from the blob file.\n");
+        vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while "
+                 << "deserializing the BlobRecord.");
       return blob_record;
+
     }
+
+    // End-of-file point manipulation.
+    void write_end_of_file_ptr(uint64 ptr);
+    uint64 read_end_of_file_ptr() const;
 
     // Enforce uncopyable semantics
     Blob( Blob const& );
-    Blob& operator=( Blob const& );
-    
+    Blob& operator=( Blob const& );    
 
   public:
 
@@ -142,19 +147,20 @@ namespace platefile {
     /// closes the blob and journal files.
     ~Blob();
 
-    uint64 size() const { 
-      
-      // Seek to the requested offset and read the header and data offset
-      m_fstream->seekg(0, std::ios_base::end);
-      uint64 size = m_fstream->tellg();
-      return size;
-    }
+    /// Returns the size of the blob in bytes.  Note: only counts
+    /// valid entries.  (Invalid data may exist beyond the end of the
+    /// end_of_file_ptr)
+    uint64 size() const { return this->read_end_of_file_ptr(); }
 
     /// Returns an iterator pointing to the first TileHeader in the blob.
-    iterator begin() { return iterator(*this, uint64(0) ); } // uint64(0) is the very first byte in the file.
+    ///
+    /// 3*sizeof(uint64) is the very first byte in the file after the
+    /// end-of-file pointer.  (See the *_end_of_file_ptr() routines
+    /// above for more info...)
+    iterator begin() { return iterator(*this, 3*sizeof(uint64) ); } 
 
     /// Returns an iterator pointing one past the last TileHeader in the blob.
-    iterator end() { return iterator(*this, this->size() ); }
+    iterator end() { return iterator(*this, this->read_end_of_file_ptr() ); }
 
     uint64 next_base_offset(uint64 current_base_offset) {
 
@@ -245,8 +251,8 @@ namespace platefile {
 
       // Store the current offset of the end of the file.  We'll
       // return that at the end of this function.
-      m_fstream->seekp(0, std::ios_base::end);
-      vw::int64 base_offset = m_fstream->tellp();
+      vw::uint64 base_offset = this->read_end_of_file_ptr();
+      m_fstream->seekp(base_offset, std::ios_base::beg);
 
       // Create the blob record and write it to the blob file.
       BlobRecord blob_record;
@@ -269,8 +275,15 @@ namespace platefile {
   
       // Write the data at the end of the file and return the offset
       // of the beginning of this data file.
-      vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::write() -- writing " << data_size
-                                                         << " bytes to " << m_blob_filename << "\n";
+      vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::write() -- writing " 
+                                                         << data_size
+                                                         << " bytes to "
+                                                         << m_blob_filename << "\n";
+
+      // Update the end-of-file pointer
+      this->write_end_of_file_ptr(m_fstream->tellg());
+
+      // Return the base_offset
       return base_offset;
     }
 
@@ -288,7 +301,6 @@ namespace platefile {
       
       if (!istr.is_open())
         vw_throw(IOErr() << "Blob::write_from_file() -- could not open source file for reading.");
-      
 
       // Seek to the end and allocate the proper number of bytes of
       // memory, and then seek back to the beginning.

@@ -73,13 +73,16 @@ namespace vw {
       WorkQueue &m_queue;
       boost::shared_ptr<Task> m_task;
       int m_thread_id;
+      bool &m_should_die;
     public:
-      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task, int thread_id) :
-        m_queue(queue), m_task(initial_task), m_thread_id(thread_id) {}
+      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task, 
+                   int thread_id, bool &should_die) :
+        m_queue(queue), m_task(initial_task), m_thread_id(thread_id), m_should_die(should_die) {}
       ~WorkerThread() {}
       void operator()() { 
         do {
-          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread " << m_thread_id << "\n";
+          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread " 
+                                         << m_thread_id << "\n";
           (*m_task)();
           m_task->signal_finished();
           
@@ -93,7 +96,7 @@ namespace vw {
             if (!m_task)
               m_queue.worker_thread_complete(m_thread_id); 
           }
-        } while (m_task);
+        } while ( m_task && !m_should_die );
       }
     };
 
@@ -102,6 +105,7 @@ namespace vw {
     std::vector<boost::shared_ptr<Thread> > m_running_threads;
     std::list<int> m_available_thread_ids;
     Condition m_joined_event;
+    bool m_should_die;
 
     // This is called whenever a worker thread finishes its task. If
     // there are more tasks available, the worker is given more work.
@@ -132,7 +136,8 @@ namespace vw {
     }
 
   public:
-    WorkQueue(int num_threads = vw_settings().default_num_threads() ) : m_active_workers(0), m_max_workers(num_threads) {
+    WorkQueue(int num_threads = vw_settings().default_num_threads() ) 
+      : m_active_workers(0), m_max_workers(num_threads), m_should_die(false) {
       m_running_threads.resize(num_threads);
       for (int i = 0; i < num_threads; ++i)
         m_available_thread_ids.push_back(i);
@@ -158,7 +163,9 @@ namespace vw {
         int next_available_thread_id = m_available_thread_ids.front();
         m_available_thread_ids.pop_front();
 
-        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task, next_available_thread_id) );
+        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task, 
+                                                                      next_available_thread_id,
+                                                                      m_should_die) );
         boost::shared_ptr<Thread> thread(new Thread(next_worker));
         m_running_threads[next_available_thread_id] = thread;
         m_active_workers++;
@@ -193,6 +200,11 @@ namespace vw {
           finished = true;
         }
       }
+    }
+
+    void kill_and_join() { 
+      m_should_die = true;
+      this->join_all();
     }
 
   };
