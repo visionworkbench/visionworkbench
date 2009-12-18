@@ -72,7 +72,9 @@ namespace platefile {
     // all possible bounding boxes before selecting down to the
     // possible handful that overlap with the image_bbox.  It could
     // be made to go MUCH faster by being smart about its search.
-    std::vector<TileInfo> wwt_image_tiles( BBox2i const& image_bbox, 
+    std::vector<TileInfo> wwt_image_tiles( BBox2i const& input_bbox,
+                                           cartography::ToastTransform const& toast_tx,
+                                           BBox2i const& image_bbox, 
                                            int32 const resolution,
                                            int32 const tile_size) {
       std::vector<TileInfo> result;
@@ -93,9 +95,22 @@ namespace platefile {
           TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
       
           // ...but only add bounding boxes that overlap with the image.
-          if (image_bbox.intersects(be.bbox))
-            result.push_back(be);
-      
+          if (image_bbox.intersects(be.bbox)) {
+
+            // Images that cross the edges of the TOAST space have
+            // very, very large image_bbox's (sometimes containing the
+            // whole space!)  We take each individual tile under
+            // consideration, and transform it the OTHER way to make
+            // sure it actually does still intersect with the source
+            // imagery.
+            //
+            // approximate == true for reverse_bbox() to speed things
+            // up.
+            if (input_bbox.intersects(toast_tx.reverse_bbox(be.bbox, true))) {
+              result.push_back(be);
+            } 
+          }
+
           curx += (tile_size-1);
           ++x;
         }
@@ -132,7 +147,7 @@ namespace platefile {
     /// Add an image to the plate file.
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description,
-                cartography::GeoReference const& georef,
+                cartography::GeoReference const& georef, bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // Compute the pyramid level at which to store this image.  The
@@ -187,7 +202,8 @@ namespace platefile {
       } 
 
       // chop up the image into small chunks
-      std::vector<TileInfo> tiles = wwt_image_tiles( output_bbox, resolution,
+      std::vector<TileInfo> tiles = wwt_image_tiles( input_bbox, toast_tx, output_bbox, 
+                                                     resolution, 
                                                      m_platefile->default_tile_size());
 
       // Obtain a transaction ID for this image.  To do so, we must
@@ -235,7 +251,7 @@ namespace platefile {
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             toast_view, 
-                                                                            false, // verbose
+                                                                            verbose, // verbose
                                                                             tiles.size(),
                                                                             progress)));
       }

@@ -290,10 +290,19 @@ vw::BBox2i vw::cartography::ToastTransform::forward_bbox( vw::BBox2i const& bbox
 
 
 // We override reverse_bbox so it understands to check if the image
-// crosses the poles or not.
-vw::BBox2i vw::cartography::ToastTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
+// crosses the poles or not.  The 
+vw::BBox2i vw::cartography::ToastTransform::reverse_bbox( vw::BBox2i const& bbox, bool approximate ) const {
 
-  BBox2 src_bbox = TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
+  BBox2 src_bbox;
+  if (approximate) {
+    src_bbox.grow( reverse( Vector2(bbox.min().x(),bbox.min().y()) ) ); // Top left
+    src_bbox.grow( reverse( Vector2(bbox.max().x()-1,bbox.min().y()) ) ); // Top right
+    src_bbox.grow( reverse( Vector2(bbox.min().x(),bbox.max().y()-1) ) ); // Bottom left
+    src_bbox.grow( reverse( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) ); // Bottom right
+    grow_bbox_to_int( src_bbox );
+  } else {
+    src_bbox = TransformHelper<ToastTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
+  }
   reverse_bbox_poles( bbox, src_bbox );
   return grow_bbox_to_int(src_bbox);
 }

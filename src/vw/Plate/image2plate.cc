@@ -20,6 +20,9 @@ using namespace vw::cartography;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+// Global variables
+bool g_debug;
+
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
@@ -28,20 +31,6 @@ static std::string prefix_from_filename(std::string const& filename) {
     result.erase(index, result.size());
   return result;
 }
-
-template <class T> 
-class SignalHandler {
-  boost::shared_ptr<T> m_process;
-
-public:
-
-  SignalHandler(boost::shared_ptr<T> process) : m_process(process) {}
-
-  void kill() {
-    m_process->kill();
-  }
-  
-};
 
 // --------------------------------------------------------------------------
 //                                DO_MOSAIC
@@ -60,8 +49,8 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
       new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
-    
-    pm->insert(view.impl(), filename, georef,
+
+    pm->insert(view.impl(), filename, georef, g_debug,
                TerminalProgressCallback(InfoMessage, status_str.str()) );
 
   }  else if (output_mode == "kml")  {
@@ -104,6 +93,7 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
     ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
+    ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -172,6 +162,13 @@ int main( int argc, char *argv[] ) {
   if (pixel_format == VW_PIXEL_RGB)
     pixel_format = VW_PIXEL_RGBA;
   delete rsrc;
+
+  // Set the debug level
+  if (vm.count("debug")) {
+    g_debug = true;
+  } else {
+    g_debug = false;
+  }
 
   // Choose an appropriate default file type
   if (!vm.count("file-type")) {
