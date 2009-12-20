@@ -16,7 +16,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h	\
                   ImageOctave.h InterestData.h ImageOctaveHistory.h	\
                   InterestTraits.h MatrixIO.h VectorIO.h LearnPCA.h	\
 		  IntegralImage.h IntegralInterestOperator.h    \
-		  IntegralDetector.h BoxFilter.h
+		  IntegralDetector.h BoxFilter.h IntegralDescriptor.h
 
 libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc   \
 	          IntegralDetector.cc IntegralInterestOperator.cc

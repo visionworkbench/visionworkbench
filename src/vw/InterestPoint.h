@@ -34,6 +34,7 @@
 #include <vw/InterestPoint/LearnPCA.h>
 #include <vw/InterestPoint/WeightedHistogram.h>
 #include <vw/InterestPoint/Descriptor.h>
+#include <vw/InterestPoint/IntegralDescriptor.h>
 
 // Matching
 #include <vw/InterestPoint/Matcher.h>

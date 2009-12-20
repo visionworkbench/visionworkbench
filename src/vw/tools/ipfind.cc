@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad]");
+    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -182,9 +182,10 @@ int main(int argc, char** argv) {
   // Determine if descriptor_generator is legitimate
   if ( !( descriptor_generator == "patch" ||
           descriptor_generator == "pca"   ||
-          descriptor_generator == "sgrad" ) ) {
+          descriptor_generator == "sgrad" ||
+          descriptor_generator == "sgrad2" ) ) {
     vw_out(0) << "Unkown descriptor generator: " << descriptor_generator
-              << ". Options are : [ Patch, PCA, SGrad ]\n";
+              << ". Options are : [ Patch, PCA, SGrad, SGrad2 ]\n";
     exit(0);
   }
 
@@ -302,6 +303,9 @@ int main(int argc, char** argv) {
       descriptor(image, ip);
     } else if (descriptor_generator == "sgrad") {
       SGradDescriptorGenerator descriptor;
+      descriptor(image, ip);
+    } else if (descriptor_generator == "sgrad2") {
+      SGrad2DescriptorGenerator descriptor;
       descriptor(image, ip);
     }
 
