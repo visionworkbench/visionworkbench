@@ -9,12 +9,30 @@
 #include <vw/InterestPoint/Matcher.h>
 #include <vw/InterestPoint/InterestData.h>
 
+#include <algorithm>
+
 using namespace vw;
 using namespace vw::ip;
 
 class TestMatcher : public CxxTest::TestSuite
 {
   public:
+
+  void test_ip_comparison() {
+    std::list<InterestPoint> ip_list;
+    ip_list.push_back( InterestPoint(0,0,0,3) );
+    ip_list.push_back( InterestPoint(0,0,0,5) );
+    ip_list.push_back( InterestPoint(0,0,0,1) );
+    ip_list.push_back( InterestPoint(0,0,0,7) );
+    ip_list.push_back( InterestPoint(0,0,0,9) );
+    ip_list.push_back( InterestPoint(0,0,0,5.3) );
+
+    ip_list.sort();
+
+    //std::sort( ip_list.begin(), ip_list.end() );
+    TS_ASSERT_EQUALS( ip_list.front().interest, 9 );
+    TS_ASSERT_EQUALS( ip_list.back().interest, 1 );
+  }
 
   void test_distance_metric() {
     InterestPoint ip1(0,0);

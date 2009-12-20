@@ -21,6 +21,7 @@ TestNelderMead_SOURCES                = TestNelderMead.cxx
 TestKDTree_SOURCES                    = TestKDTree.cxx
 TestEuler_SOURCES                     = TestEuler.cxx
 TestParticleSwarmOptimization_SOURCES = TestParticleSwarmOptimization.cxx
+TestAccumulators_SOURCES              = TestAccumulators.cxx
 
 if HAVE_PKG_LAPACK
 
@@ -34,7 +35,7 @@ endif
 
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
         TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)	\
-        TestEuler TestParticleSwarmOptimization
+        TestEuler TestParticleSwarmOptimization TestAccumulators
 
 #include $(top_srcdir)/config/instantiate.am
 

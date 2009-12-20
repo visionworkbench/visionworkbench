@@ -6,10 +6,10 @@
 
 
 /// \file Math/Functors.h
-/// 
+///
 /// Mathematical functors.
-/// 
-/// This file provides polymorphic functor versions of the standard 
+///
+/// This file provides polymorphic functor versions of the standard
 /// mathematical functions defined in e.g. math.h.
 ///
 #ifndef __VW_MATH_FUNCTORS_H__
@@ -30,7 +30,7 @@
 // include routines for manipulating long doubles.  We disable long
 // double VW math routines here for certain platforms.
 #if defined(__FreeBSD__) || defined(_WIN32)
-#define __VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC 
+#define __VW_MATH_DISABLE_LONG_DOUBLE_ARITHMETIC
 #endif
 
 namespace vw {
@@ -94,15 +94,15 @@ namespace math {
   #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)                         \
       long double operator()( long double arg ) const {                  \
         return func##l(arg);                                             \
-      }                                                                   
+      }
   #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)                        \
     long double operator()( long double arg1, long double arg2 ) const { \
       return func##l(arg1,arg2);                                         \
-    }                                                                    
-#else 
+    }
+#else
   // This is basically a no-op
-  #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func) 
-  #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func) 
+  #define __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)
+  #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)
 #endif
 
 #define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
@@ -177,7 +177,7 @@ namespace math {
   __VW_BINARY_MATH_FUNCTOR( Atan2, atan2 )
   __VW_BINARY_MATH_FUNCTOR( Pow, pow )
   __VW_BINARY_MATH_FUNCTOR( Hypot, hypot )
-  
+
 #ifndef WIN32
   __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
   __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
@@ -233,7 +233,7 @@ namespace math {
 
 
   // Absolute value functor
-  // This one's tricky because we have a bunch of distinct cases 
+  // This one's tricky because we have a bunch of distinct cases
   // for integer types, floating-point types, and complex types.
   /// \cond INTERNAL
   // This is outside ArgAbsFunctor because explicit template
@@ -243,7 +243,7 @@ namespace math {
   /// \endcond
   struct ArgAbsFunctor {
     template <class Args> struct result;
-      
+
     template <class FuncT, class ValT>
     struct result<FuncT(ValT)> {
       typedef typename boost::mpl::if_c<std::numeric_limits<ValT>::is_integer, int, double>::type type;
@@ -319,7 +319,7 @@ namespace math {
       m_accum = accum;
     }
   };
-    
+
 
   // Computes minimum and maximum values
   template <class ValT>
@@ -424,6 +424,128 @@ namespace math {
     }
   };
 
+
+  // CDF (Cumulative Distribution Function) Accumulator
+  // Actually it's an approximation. It allows for a more memory efficient
+  // calculation of any quantile. Probably most importantly the median.
+  //
+  // Taken from Numerical Recipes (3rd E) pg 435
+  template <class ValT>
+  class CDFAccumulator : public ReturnFixedType<void> {
+    const int m_buffersize;
+    int m_num_quantiles, m_buffer_idx;
+    long m_num_samples; // nq, nd, nt
+    std::vector<double> m_cdf, m_sample_buf, m_quantile;
+    double m_q0, m_qm;  // quantile min and max;
+
+    // Merge in Bundles
+    void update (void ) {
+      int jd=0, jq=1;
+      double target, told=0, tnew=0, qold, qnew;
+      std::vector<double> m_new_quantile(m_num_quantiles);
+      std::sort( m_sample_buf.begin(),
+                 m_sample_buf.begin()+m_buffer_idx ); // For partial updates
+      // Setting to global min and max;
+      qold = qnew = m_quantile[0] = m_new_quantile[0] = m_q0;
+      m_quantile.back() = m_new_quantile.back() = m_qm;
+      // .. then setting comparable probabilities
+      m_cdf[0] = std::min(0.5/(m_buffer_idx+m_num_samples),
+                          0.5*m_cdf[1]);
+      m_cdf.back() = std::max(1-0.5/(m_buffer_idx+m_num_samples),
+                              0.5*(1+m_cdf[m_num_quantiles-2]));
+      // Looping over target probability values for interpolation
+      for ( int iq = 1; iq < m_num_quantiles-1; iq++ ) {
+        target = (m_num_samples+m_buffer_idx)*m_cdf[iq];
+        if ( tnew < target )
+          while (1) {
+            // Locating a succession of abscissa-ordinate pairs
+            // (qnew,tnew) that are the discontinuities of value or
+            // slope, breaking to perform an interpolation as we cross
+            // each target.
+            if ( jq < m_num_quantiles &&
+                 ( jd >= m_buffer_idx ||
+                   m_quantile[jq] < m_sample_buf[jd] ) ) {
+              // Found slope discontinuity from old CDF.
+              qnew = m_quantile[jq];
+              tnew = jd + m_num_samples*m_cdf[jq++];
+              if ( tnew >= target ) break;
+            } else {
+              // Found value discontinuity from batch data CDF.
+              qnew = m_sample_buf[jd];
+              tnew = told;
+              if ( m_quantile[jq] > m_quantile[jq-1] )
+                tnew += m_num_samples*(m_cdf[jq]-m_cdf[jq-1])*
+                  (qnew-qold)/(m_quantile[jq]-m_quantile[jq-1]);
+              jd++;
+              if ( tnew >= target ) break;
+              told = tnew++;
+              qold = qnew;
+              if ( tnew >= target ) break;
+            }
+            told = tnew;
+            qold = qnew;
+          }
+        // Performing new interpolation
+        if ( tnew == told )
+          m_new_quantile[iq] = 0.5*(qold+qnew);
+        else
+          m_new_quantile[iq] = qold + (qnew-qold)*(target-told)/(tnew-told);
+        told = tnew;
+        qold = qnew;
+      }
+      // Reset'n
+      m_quantile = m_new_quantile;
+      m_num_samples += m_buffer_idx;
+      m_buffer_idx = 0;
+    }
+
+  public:
+    CDFAccumulator( int const& buffersize = 1000,
+                    int const& quantiles = 251) :
+    m_buffersize(buffersize), m_num_quantiles(quantiles), m_buffer_idx(0), m_num_samples(0), m_cdf(quantiles), m_sample_buf(buffersize), m_quantile(quantiles), m_q0(1e99), m_qm(-1e99) {
+
+      // Setting a general purpose cdf
+      // TODO: HANDLE DIFFERENT SIZED QUANTILES
+      for ( int j = 85; j <= 165; j++)
+        m_cdf[j] = float((j-75))/100.0;
+      for ( int j = 84; j >= 0; j-- ) {
+        m_cdf[j] = 0.87191909*m_cdf[j+1];
+        m_cdf[m_num_quantiles-j-1] = 1.0 - m_cdf[j];
+      }
+    }
+
+    // User update function. (Bundles Data)
+    void operator()( ValT const& arg ) {
+      // Assimilate, We are the Borg, your data is my data!
+      m_sample_buf[m_buffer_idx++] = arg;
+      if ( arg < m_q0 ) { m_q0 = arg; } // stretch cdf?
+      if ( arg > m_qm ) { m_qm = arg; }
+      if ( m_buffer_idx == m_buffersize ) update(); // merge cdf?
+    }
+
+    // Extract a percentile
+    ValT quantile( double const& arg ) {
+      double q;
+
+      // if ( m_buffer_idx > 0 ) update();
+      int jl=0,jh=m_num_quantiles-1,j;
+      while ( jh - jl > 1 ) {
+        j = (jh+jl)>>1;
+        if ( arg > m_cdf[j] ) jl=j;
+        else jh=j;
+      }
+      j = jl;
+      q = m_quantile[j]+(m_quantile[j+1]-m_quantile[j])*(arg-m_cdf[j])/(m_cdf[j+1]-m_cdf[j]);
+
+      // Keeping estimate in CDF
+      return std::max(m_quantile[0],std::min(m_quantile.back(),q));
+    }
+
+    // Predefine functions
+    ValT median( void ) { return quantile(0.5); }
+    ValT first_quartile( void ) { return quantile(0.25); }
+    ValT third_quartile( void ) { return quantile(0.75); }
+  };
 
 } // namespace math
 
