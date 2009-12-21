@@ -756,10 +756,14 @@ void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent * /*event*/) {
 void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   int num_degrees = event->delta();
   float num_ticks = float(num_degrees) / 360;
-  
-  // 100.0 chosen arbitrarily here as a reasonable scale factor giving
-  // good sensitivy of the mousewheel.
-  float mag = fabs(num_ticks/100.0);  
+
+  // 100.0 chosen arbitrarily here as a reasonable scale factor giving good
+  // sensitivy of the mousewheel. Shift zooms 10 times faster.
+  double scale_factor = 100;
+  if (event->modifiers() & Qt::ShiftModifier)
+    scale_factor /= 10;
+
+  float mag = fabs(num_ticks/scale_factor);
   float scale = 1;
   if (num_ticks > 0) 
     scale = 1+mag;
