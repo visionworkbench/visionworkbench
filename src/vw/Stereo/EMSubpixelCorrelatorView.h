@@ -64,9 +64,9 @@ namespace vw {
 
       struct SpectralRadiusUncertaintyFunctor : public vw::ReturnFixedType<float> {
 	float operator()(Vector<float, 3> const & in) const {
-	  // assume a covariance matric of the form
-	  // / a  b \
-	  // \ b  c /
+	  // assume a covariance matrix of the form
+	  // | a  b |
+	  // | b  c |
 	  
 	  double a = in[0];
 	  double b = in[1];
