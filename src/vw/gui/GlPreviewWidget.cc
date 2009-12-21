@@ -802,7 +802,7 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
   case Qt::Key_F:  // Size to fit
     size_to_fit();
     break;
-  case Qt::Key_N:  // Toggle bilinear/nearest neighbor interp
+  case Qt::Key_I:  // Toggle bilinear/nearest neighbor interp
     m_bilinear_filter = !m_bilinear_filter;
     update();
     break;
@@ -814,7 +814,11 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     m_show_tile_boundaries = !m_show_tile_boundaries;
     update();
     break;
-  case Qt::Key_R:  // Normalize the image
+  case Qt::Key_R: // Reload the image
+    m_gl_texture_cache->clear();
+    update();
+    break;
+  case Qt::Key_N:  // Normalize the image
     this->normalize();
     update();
     break;
