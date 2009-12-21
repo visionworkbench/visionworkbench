@@ -209,22 +209,24 @@ void GlPreviewWidget::size_to_fit() {
   update();
 }
 
+namespace {
+vw::Vector2i makeVector(const QPoint& qpt) {
+  return vw::Vector2i(qpt.x(), qpt.y());
+}
+}
+
 void GlPreviewWidget::zoom(float scale) {
-  float mid_x = currentImagePos.x();
-  float mid_y = currentImagePos.y();
-  
+  m_show_legend = false;
+
   // Check to make sure we haven't hit our zoom limits...
-  if (m_current_viewport.width()/scale > 1.0 && 
+  if (m_current_viewport.width()/scale > 1.0 &&
       m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 4*m_tile_generator->cols() && 
+      m_current_viewport.width()/scale < 4*m_tile_generator->cols() &&
       m_current_viewport.height()/scale < 4*m_tile_generator->rows()) {
-    m_current_viewport.min().x() = (m_current_viewport.min().x() - mid_x) / scale + mid_x;
-    m_current_viewport.max().x() = (m_current_viewport.max().x() - mid_x) / scale + mid_x;
-    m_current_viewport.min().y() = (m_current_viewport.min().y() - mid_y) / scale + mid_y;
-    m_current_viewport.max().y() = (m_current_viewport.max().y() - mid_y) / scale + mid_y;
+
+    m_current_viewport = (m_current_viewport - makeVector(currentImagePos)) / scale + makeVector(currentImagePos);
     update();
   }
-  m_show_legend = false;
 }
 
 // --------------------------------------------------------------
