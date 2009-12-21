@@ -92,9 +92,13 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
 std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
     if (m_prepend_infostamp)
-      return m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
-    else
-      return m_log_stream;
+      m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
+    switch (log_level) {
+      case ErrorMessage:   m_log_stream << "Error: ";   break;
+      case WarningMessage: m_log_stream << "Warning: "; break;
+      default: break;
+    }
+    return m_log_stream;
   } else {
     return g_null_ostream;
   }
