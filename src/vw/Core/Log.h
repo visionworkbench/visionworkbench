@@ -49,6 +49,7 @@ namespace vw {
   // Debugging output types and functions
   // ----------------------------------------------------------------
 
+  // Lower number -> higher priority
   enum MessageLevel {
     InfoMessage = 0,
     ErrorMessage = 10,
@@ -332,9 +333,9 @@ namespace vw {
 
 
     // by default, the LogRuleSet is set up to pass "console" messages
-    // at level vw::InfoMessage or higher.
+    // at level vw::WarningMessage or higher priority.
     LogRuleSet() {
-      m_rules.push_back(rule_type(vw::InfoMessage, "console"));
+      m_rules.push_back(rule_type(vw::WarningMessage, "console"));
     }
 
     virtual ~LogRuleSet() {}

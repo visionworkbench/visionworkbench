@@ -87,6 +87,9 @@ TEST(Log, MultiStream) {
 
 TEST(Log, RuleSet) {
   LogRuleSet rs;
+  // LogRuleSet comes with a default rule for "console"
+  rs.clear();
+
   rs.add_rule(vw::InfoMessage, "console");
   rs.add_rule(vw::VerboseDebugMessage, "foo");
   rs.add_rule(vw::EveryMessage, "Bar");
