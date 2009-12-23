@@ -125,7 +125,6 @@ namespace platefile {
   class TemporaryTileFile {
 
     std::string m_filename;
-    bool m_delete_afterwards;
 
     // Define these as private methods to enforce TemporaryTileFile'
     // non-copyable semantics.
@@ -151,8 +150,8 @@ namespace platefile {
 
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
-    TemporaryTileFile(std::string filename, bool delete_afterwards = true) : 
-      m_filename(filename), m_delete_afterwards(delete_afterwards) {
+    TemporaryTileFile(std::string filename) : 
+      m_filename(filename) {
       vw_out(DebugMessage, "plate::tempfile") << "Assumed control of temporary file: " 
                                               << m_filename << "\n";
 
@@ -162,22 +161,20 @@ namespace platefile {
     /// and deletes it when the TemporaryTileFile object is de-allocated.
     template <class ViewT>
     TemporaryTileFile(ImageViewBase<ViewT> const& view, std::string file_extension) : 
-      m_filename(unique_tempfile_name(file_extension)), m_delete_afterwards(true) {
+      m_filename(unique_tempfile_name(file_extension)) {
       write_image(m_filename, view);
       vw_out(DebugMessage, "plate::tempfile") << "Created temporary file: " 
                                               << m_filename << "\n";
     }
 
     ~TemporaryTileFile() {
-      if (m_delete_afterwards) {
-        int result = unlink(m_filename.c_str());
-        if (result)
-          vw_out(ErrorMessage, "plate::tempfile") 
-            << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
-            << m_filename << "\"\n";
-        vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: " 
-                                                << m_filename << "\n";
-      }
+      int result = unlink(m_filename.c_str());
+      if (result)
+        vw_out(ErrorMessage, "plate::tempfile") 
+          << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
+          << m_filename << "\"\n";
+      vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: " 
+                                              << m_filename << "\n";
     }
 
     std::string file_name() const { return m_filename; }

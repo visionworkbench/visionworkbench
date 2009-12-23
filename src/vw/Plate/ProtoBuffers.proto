@@ -87,6 +87,19 @@ message IndexRecord {
   optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
 }
 
+// ----------------------------------------------------------------------
+//             XXX : New Index Structures (work in progress)
+// ----------------------------------------------------------------------
+
+message IndexPageRecord {
+  required int32 transaction_id = 1;
+  required sint32 blob_id = 2 [default = -1];
+  required uint64 blob_offset = 3 [default = 0];
+}
+
+message IndexPageEntries {
+  repeated IndexPageRecord records = 1;
+}
 
 // ----------------------------------------------------------------------
 //             Remote Procedure Calls (RPC) for Index Server
