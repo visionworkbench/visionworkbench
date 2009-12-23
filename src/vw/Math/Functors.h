@@ -19,6 +19,7 @@
 #include <limits>
 #include <complex>
 #include <vector>
+#include <algorithm>
 
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/TypeDeduction.h>
