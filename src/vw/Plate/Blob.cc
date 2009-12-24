@@ -18,9 +18,6 @@
 #include <string>
 #include <boost/shared_array.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-namespace fs = boost::filesystem;
 
 using namespace vw;
     
