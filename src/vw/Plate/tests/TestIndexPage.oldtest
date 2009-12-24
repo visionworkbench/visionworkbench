@@ -1,0 +1,121 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2009 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+#include <cxxtest/TestSuite.h>
+
+#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/Exception.h>
+using namespace std;
+using namespace vw;
+using namespace vw::platefile;
+
+class TestIndexPage : public CxxTest::TestSuite {
+
+public:
+
+  void test_basic_access() {
+    
+    IndexPage page(1024,1024);
+    TS_ASSERT_EQUALS(page.sparse_size(), 0);
+
+    // Try accessing an empty entry.
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,0,0), TileNotFoundErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(1024,0,0), ArgumentErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,1024,0), ArgumentErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(-1,0,0), ArgumentErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,-1,0), ArgumentErr );
+    TS_ASSERT_EQUALS(page.sparse_size(), 0);
+    
+    // Try setting and then fetching an entry.
+    IndexRecord rec;
+    rec.set_blob_id(1001);
+    rec.set_blob_offset(1002);
+    page.set(rec, 3, 5, 1003);
+    IndexRecord rec2 = page.get(3,5,1003);
+    TS_ASSERT_EQUALS(rec.blob_id(), rec2.blob_id());
+    TS_ASSERT_EQUALS(rec.blob_offset(), rec2.blob_offset());
+
+    // Try setting that entry to a different value
+    rec.set_blob_id(1101);
+    rec.set_blob_offset(1102);
+    page.set(rec, 3, 5, 1003);
+    rec2 = page.get(3,5,1003);
+    TS_ASSERT_EQUALS(rec.blob_id(), rec2.blob_id());
+    TS_ASSERT_EQUALS(rec.blob_offset(), rec2.blob_offset());
+
+    // Try different transaction id's
+    rec.set_blob_id(1201);
+    rec.set_blob_offset(1202);
+    page.set(rec, 3, 5, 1001);
+    rec2 = page.get(3,5,1001);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 1201);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 1202);
+    rec2 = page.get(3,5,2000);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 1101);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 1102);
+    rec2 = page.get(3,5,-1);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 1101);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 1102);
+
+    // Try and one that occurs later in the list
+    rec.set_blob_id(1301);
+    rec.set_blob_offset(1302);
+    page.set(rec, 3, 5, 2001);
+    rec2 = page.get(3,5,-1);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 1301);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 1302);
+
+    // Make sure we still only have one entry at this point.
+    TS_ASSERT_EQUALS(page.sparse_size(), 1);
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,0,0), TileNotFoundErr );
+  }
+
+  void test_serialization() {
+    IndexPage page(1024,1024);
+    TS_ASSERT_EQUALS(page.sparse_size(), 0);
+    
+    // Try accessing an empty entry.
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,0,0), TileNotFoundErr );
+    TS_ASSERT_EQUALS(page.sparse_size(), 0);
+    
+    // Set a few different index records
+    IndexRecord rec;
+    rec.set_blob_id(1001);
+    rec.set_blob_offset(1002);
+    page.set(rec, 3, 5, 1);
+
+    rec.set_blob_id(2001);
+    rec.set_blob_offset(2002);
+    page.set(rec, 3, 5, 2);
+
+    rec.set_blob_id(3001);
+    rec.set_blob_offset(3002);
+    page.set(rec, 1023, 5, 2);
+
+    TS_ASSERT_EQUALS(page.sparse_size(), 2);
+    
+    // Now, save the file to disk.
+    std::string page_filename = "/tmp/indexpage.temp";
+    unlink(page_filename.c_str());
+    page.serialize(page_filename);
+
+    IndexPage page2(page_filename);
+    unlink(page_filename.c_str());
+
+    IndexRecord rec2 = page2.get(3,5,1);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 1001);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 1002);
+
+    IndexRecord rec2 = page2.get(3,5,2);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 2001);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 2002);
+
+    IndexRecord rec2 = page2.get(1023,5,2);
+    TS_ASSERT_EQUALS(rec2.blob_id(), 3001);
+    TS_ASSERT_EQUALS(rec2.blob_offset(), 3002);
+  }
+
+}; // class TestIndexPage
