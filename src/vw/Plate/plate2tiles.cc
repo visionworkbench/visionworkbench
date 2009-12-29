@@ -180,7 +180,7 @@ int main( int argc, char *argv[] ) {
 
   // Open the plate file
   boost::shared_ptr<PlateFile> platefile(new PlateFile(plate_file_name));
-  std::cout << "Writing " << platefile->depth() << " levels of tiles to " 
+  std::cout << "Writing " << platefile->num_levels() << " levels of tiles to " 
             << output_file_name << "\n";
 
   // Create the output directory

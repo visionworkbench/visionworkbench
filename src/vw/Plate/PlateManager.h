@@ -90,7 +90,7 @@ namespace platefile {
     ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                                             ImageView<PixelT> tile,
                                             int col, int row, int level,
-                                            int max_depth, int transaction_id,
+                                            int max_level, int transaction_id,
                                             const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
 
   };
@@ -104,7 +104,7 @@ namespace platefile {
     boost::shared_ptr<PlateFile> m_platefile;
     int m_transaction_id;
     TileInfo m_tile_info;
-    int m_depth;
+    int m_level;
     ViewT const& m_view;
     bool m_verbose;
     SubProgressCallback m_progress;
@@ -114,18 +114,18 @@ namespace platefile {
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
                        int transaction_id,
                        TileInfo const& tile_info, 
-                       int depth, ImageViewBase<ViewT> const& view,
+                       int level, ImageViewBase<ViewT> const& view,
                        bool verbose, int total_num_blocks, 
                        const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) :
       m_platefile(platefile), m_transaction_id(transaction_id),
-      m_tile_info(tile_info), m_depth(depth), m_view(view.impl()), 
+      m_tile_info(tile_info), m_level(level), m_view(view.impl()), 
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
       if (m_verbose) 
         std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
-                  << " @ level " <<  m_depth << "]    BBox: " << m_tile_info.bbox << "\n";
+                  << " @ level " <<  m_level << "]    BBox: " << m_tile_info.bbox << "\n";
 
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);
@@ -135,7 +135,7 @@ namespace platefile {
       // and composites this tile on top of those tiles, supersampling the
       // low-res tile if necessary.
       m_compositor.composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, 
-                                         m_depth, m_depth, m_transaction_id, m_progress);
+                                         m_level, m_level, m_transaction_id, m_progress);
     }
   };
 

@@ -9,7 +9,7 @@
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/IndexPage.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/BlobManager.h>
 #include <vector>
 #include <string>
@@ -45,72 +45,60 @@ namespace platefile {
   //                             PAGED INDEX
   // --------------------------------------------------------------------
 
-  class PagedIndex : public Index {
-    std::string m_base_path;
+  class PagedIndex : public LocalIndex {
     int m_page_width, m_page_height;
     int m_default_cache_size;
-    boost::shared_ptr<BlobManager> m_blob_manager;
     std::vector<boost::shared_ptr<IndexLevel> > m_levels;
-    Mutex m_mutex;
+
+    virtual void load_index(std::string plate_filename,
+                            std::vector<std::string> const& blob_files);
+
+    void commit_record(IndexRecord const& record, int col, int row, int level, int transaction_id);
     
   public:
 
-    PagedIndex(std::string base_path, int page_width, int page_height, int default_cache_size);
+    /// Create a new, empty index.
+    PagedIndex(std::string plate_filename, IndexHeader new_index_info, 
+               int page_width = 256, int page_height = 256, 
+               int default_cache_size = 10000);
+
+    /// Open an existing index from a file on disk.
+    PagedIndex(std::string plate_filename,
+               int page_width = 256, int page_height = 256, 
+               int default_cache_size = 10000);
+
     virtual ~PagedIndex() {}
 
     // ----------------------- READ/WRITE REQUESTS  ----------------------
 
-    virtual IndexRecord read_request(int col, int row, int depth, 
+    /// Attempt to access a tile in the index.  Throws an
+    /// TileNotFoundErr if the tile cannot be found.
+    /// 
+    /// By default, this call to read will return a tile with the MOST
+    /// RECENT transaction_id <= to the transaction_id you specify
+    /// here in the function arguments (if a tile exists).  However,
+    /// setting exact_transaction_match = true will force the
+    /// PlateFile to search for a tile that has the EXACT SAME
+    /// transaction_id as the one that you specify.
+    ///
+    /// A transaction ID of -1 indicates that we should return the
+    /// most recent tile, regardless of its transaction id.
+    virtual IndexRecord read_request(int col, int row, int level, 
                                      int transaction_id, bool exact_transaction_match = false);
 
+    // Writing, pt. 1: Locks a blob and returns the blob id that can
+    // be used to write a tile.
     virtual int write_request(int size);
 
+    // Writing, pt. 2: Supply information to update the index and
+    // unlock the blob id.
     virtual void write_complete(TileHeader const& header, IndexRecord const& record);
-
   
     // ----------------------- PROPERTIES  ----------------------
 
-    virtual IndexHeader index_header() const;
-  
-    virtual int32 version() const;
-    virtual int32 max_depth() const;
-  
-    virtual std::string platefile_name() const;
-  
-    virtual int32 tile_size() const;
-    virtual std::string tile_filetype() const;
-  
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
+    virtual int32 num_levels() const;
 
-    // --------------------- TRANSACTIONS ------------------------
-  
-    /// Clients are expected to make a transaction request whenever
-    /// they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description,
-                                      std::vector<TileHeader> const& tile_headers);
-  
-    /// Called right before the beginning of the mipmapping pass
-    virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers);
-  
-    /// Once a chunk of work is complete, clients can "commit" their
-    /// work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id);
-  
-    // If a transaction fails, we may need to clean up the mosaic.  
-    virtual void transaction_failed(int32 transaction_id);
-  
-    virtual int32 transaction_cursor();
-
-    // --------------------- UTILITIES ------------------------
-  
-    /// Iterate over all nodes in a tree, calling func for each
-    /// location.  Note: this will only be implemented for local
-    /// indexes.  This function will throw an error if called on a
-    /// remote index.
-    virtual void map(boost::shared_ptr<TreeMapFunc> func);
-
+    void map(boost::shared_ptr<TreeMapFunc> func);
   };
 
 }} // namespace vw::platefile

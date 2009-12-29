@@ -26,7 +26,7 @@ namespace platefile {
   // using the TreeNode::map() function below.
   struct TreeMapFunc {
     virtual ~TreeMapFunc() {}
-    virtual void operator()(int32 col, int32 row, int32 depth) = 0;
+    virtual void operator()(int32 col, int32 row, int32 level) = 0;
   };
 
   template <class ElementT>
@@ -36,7 +36,7 @@ namespace platefile {
     TreeNode<ElementT> *m_parent;
     std::vector<boost::shared_ptr<TreeNode<ElementT> > > m_children;
     record_type m_records;
-    int m_max_depth;
+    int m_num_levels;
 
     // ------------------------ Private Methods -----------------------------
 
@@ -99,7 +99,7 @@ namespace platefile {
     // the tree structure to keep the barrier intact?
     bool invalidate_records_helper(int col, int row, int level, 
                                    int transaction_id, int current_level) {
-      // If we have reached the requested depth, then we must be at
+      // If we have reached the requested level, then we must be at
       // the node we want!  
       if (current_level == level) {
 
@@ -145,7 +145,7 @@ namespace platefile {
       // std::cout << "Call to search_helper(" << col << " " << row << " " << level << " " 
       //           << transaction_id << " " << current_level << ")\n";
 
-      // If we have reached the requested depth, then we must be at
+      // If we have reached the requested level, then we must be at
       // the node we want!  Return the ElementT!
       if (current_level == level) {
 
@@ -171,12 +171,12 @@ namespace platefile {
         } else {
           // If not, we throw an exception.
           vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
-                   << current_level << "] failed at depth " << current_level << "\n");
+                   << current_level << "] failed at level " << current_level << "\n");
         }
       }
       // If not, we throw an exception.
       vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
-               << current_level << "] failed at depth " << current_level << "\n");
+               << current_level << "] failed at level " << current_level << "\n");
     }
 
     // Recursively call a function with valid [col, row, level] entries.
@@ -211,7 +211,7 @@ namespace platefile {
                        int transaction_id, int current_level,
                        bool insert_at_all_levels) {
 
-      // If we have reached the requested depth, then we must be at
+      // If we have reached the requested level, then we must be at
       // the node we want!  Return the ElementT!
       if (current_level == level) {
 
@@ -251,7 +251,7 @@ namespace platefile {
     /// XXX : This is an abstraction violation!!
     void clean_branch_helper(int col, int row, int level, int transaction_id, int current_level) {
 
-      // If we have reached the requested depth, then we must be at
+      // If we have reached the requested level, then we must be at
       // the node we want!  Return the ElementT!
       if (current_level == level) {
 
@@ -345,20 +345,20 @@ namespace platefile {
     // ------------------------ Public Methods -----------------------------
 
     /// Use this constructor for the root of the tree....
-    TreeNode() : m_parent(0), m_max_depth(0) {
+    TreeNode() : m_parent(0), m_num_levels(0) {
       m_records[0] = ElementT();
       m_children.resize(4);
     }
 
     /// ... or use this contructor for the root of the tree.
-    TreeNode(ElementT const& record, int transaction_id) : m_parent(0), m_max_depth(0) {
+    TreeNode(ElementT const& record, int transaction_id) : m_parent(0), m_num_levels(0) {
       m_records[transaction_id] = record;
       m_children.resize(4);
     }
 
     /// Use this contstructor to add record data immediately.
     TreeNode(TreeNode *parent, ElementT const& record, int transaction_id) :
-      m_parent(parent), m_max_depth(0) {
+      m_parent(parent), m_num_levels(0) {
       m_records[transaction_id] = record;
       m_children.resize(4);
     }
@@ -419,8 +419,8 @@ namespace platefile {
       return value_helper(transaction_id, exact_transaction_match);
     }
 
-    /// Query max depth of tree.
-    int max_depth() const { return m_max_depth; }
+    /// Query max level of tree.
+    int num_levels() const { return m_num_levels; }
 
 
     // Search for a node at a given col, row, and level.  Note: a
@@ -449,8 +449,8 @@ namespace platefile {
                 int level, int transaction_id,
                 bool insert_at_all_levels = false) {
       this->insert_helper(record, col, row, level, transaction_id, 0, insert_at_all_levels);
-      if (level > m_max_depth)
-        m_max_depth = level;
+      if (level >= m_num_levels)
+        m_num_levels = level+1;
     }
 
     /// Print the tree.  (Use only for debugging small trees....)

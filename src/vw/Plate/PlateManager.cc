@@ -5,7 +5,7 @@ vw::ImageView<PixelT>
 vw::platefile::PlateCompositor<PixelT>::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                                                            ImageView<PixelT> tile,
                                                            int col, int row, int level,
-                                                           int max_depth, int transaction_id,
+                                                           int max_level, int transaction_id,
                                                            const ProgressCallback &progress_callback) {
   
   // If this tile contains no data at all, then we bail early without
@@ -62,7 +62,7 @@ vw::platefile::PlateCompositor<PixelT>::composite_mosaic_tile(boost::shared_ptr<
         // session running on a different instance of image2plate.
         // If that's the case, we sleep for a short time and then
         // try again to obtain the lock.
-        while (search_level + 10 > max_depth &&
+        while (search_level + 10 > max_level &&
                (closest_record.status() == INDEX_RECORD_LOCKED || 
                 closest_record.status() == INDEX_RECORD_STALE)) {
           vw_out(0) << "\nWAITING for tile [ " << search_col << " " << search_row 
@@ -176,14 +176,14 @@ namespace platefile {
   PlateCompositor<PixelGrayA<uint8> >::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                         ImageView<PixelGrayA<uint8> > tile,
                         int col, int row, int level,
-                        int max_depth, int transaction_id,
+                        int max_level, int transaction_id,
                         const ProgressCallback &progress_callback);
 
   template ImageView<PixelRGBA<uint8> > 
   PlateCompositor<PixelRGBA<uint8> >::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
                         ImageView<PixelRGBA<uint8> > tile,
                         int col, int row, int level,
-                        int max_depth, int transaction_id,
+                        int max_level, int transaction_id,
                         const ProgressCallback &progress_callback);
 
 }}

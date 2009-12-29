@@ -103,10 +103,10 @@ namespace platefile {
                                    ::vw::platefile::IndexTransactionCursorReply* response,
                                    ::google::protobuf::Closure* done);      
     
-    virtual void DepthRequest(::google::protobuf::RpcController* controller,
-                              const ::vw::platefile::IndexDepthRequest* request,
-                              ::vw::platefile::IndexDepthReply* response,
-                              ::google::protobuf::Closure* done);      
+    virtual void NumLevelsRequest(::google::protobuf::RpcController* controller,
+                                  const ::vw::platefile::IndexNumLevelsRequest* request,
+                                  ::vw::platefile::IndexNumLevelsReply* response,
+                                  ::google::protobuf::Closure* done);      
 
     // A simple message that echos back the value that was sent.
     virtual void TestRequest(::google::protobuf::RpcController* controller,

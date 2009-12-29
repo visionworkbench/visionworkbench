@@ -415,7 +415,7 @@ void GlPreviewWidget::drawImage() {
   Vector2i tile_size = m_tile_generator->tile_size();
   BBox2i image_bbox(0,0,m_tile_generator->cols(),m_tile_generator->rows());
 
-  int max_level = m_tile_generator->num_levels();
+  int max_level = m_tile_generator->num_levels()-1;
   int level = max_level - log(float(m_current_viewport.width()) / m_viewport_width) / log(2.0)+1;
   if (level < 0) level = 0;
   if (level > max_level) level = max_level;

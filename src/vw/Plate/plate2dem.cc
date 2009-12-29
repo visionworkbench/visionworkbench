@@ -142,7 +142,7 @@ int main( int argc, char *argv[] ) {
     KmlPlateManager pm(platefile, 1);
 
     std::cout << "Opened " << plate_file_name << ".     Depth: " 
-              << platefile->depth() << " levels.\n";
+              << platefile->num_levels() << " levels.\n";
 
     PixelFormatEnum pixel_format = platefile->pixel_format();
     ChannelTypeEnum channel_type = platefile->channel_type();
@@ -151,10 +151,10 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAY:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        do_tiles<PixelGray<uint8> >(pm.georeference(platefile->depth()));
+        do_tiles<PixelGray<uint8> >(pm.georeference(platefile->num_levels()-1));
         break;
       case VW_CHANNEL_INT16:  
-        do_tiles<PixelGray<int16> >(pm.georeference(platefile->depth()));
+        do_tiles<PixelGray<int16> >(pm.georeference(platefile->num_levels()-1));
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -163,7 +163,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        do_tiles<PixelGrayA<uint8> >(pm.georeference(platefile->depth()));
+        do_tiles<PixelGrayA<uint8> >(pm.georeference(platefile->num_levels()-1));
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -174,7 +174,7 @@ int main( int argc, char *argv[] ) {
     default:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        do_tiles<PixelRGBA<uint8> >(pm.georeference(platefile->depth()));
+        do_tiles<PixelRGBA<uint8> >(pm.georeference(platefile->num_levels()-1));
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");

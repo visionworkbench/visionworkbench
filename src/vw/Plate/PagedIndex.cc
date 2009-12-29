@@ -5,13 +5,17 @@
 // __END_LICENSE__
 
 #include <vw/Plate/PagedIndex.h>
+#include <vw/Core/ProgressCallback.h>
+
+#include <boost/regex.hpp>
+
 using namespace vw;
 
 // --------------------------------------------------------------------
 //                             INDEX LEVEL
 // --------------------------------------------------------------------
 
-vw::platefile::IndexLevel::IndexLevel(std::string base_path, int level, 
+vw::platefile::IndexLevel::IndexLevel(std::string plate_filename, int level, 
                                       int page_width, int page_height, int cache_size) : 
   m_level(level), m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
   int tiles_per_side = pow(2,level);
@@ -27,11 +31,14 @@ vw::platefile::IndexLevel::IndexLevel(std::string base_path, int level,
       
       // Generate a filename.
       std::ostringstream filename;
-      filename << base_path 
+      filename << plate_filename 
+               << "/index"
                << "/" << level 
                << "/" << (j * page_height) 
                << "/" << (i * page_width);
-      boost::shared_ptr<IndexPageGenerator> generator( new IndexPageGenerator(filename.str(), page_width, page_height) );
+      boost::shared_ptr<IndexPageGenerator> generator( new IndexPageGenerator(filename.str(), 
+                                                                              page_width, 
+                                                                              page_height) );
       m_cache_generators[j*m_horizontal_pages + i] = generator;
       m_cache_handles[j*m_horizontal_pages + i] = m_cache.insert( *generator );
     }
@@ -55,7 +62,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
                                                           bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             ArgumentErr() << "IndexLevel::get() failed.  Invalid index [ " 
+             TileNotFoundErr() << "IndexLevel::get() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -73,7 +80,7 @@ void vw::platefile::IndexLevel::set(vw::platefile::IndexRecord const& rec,
                                     int32 col, int32 row, int32 transaction_id) {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             ArgumentErr() << "IndexLevel::set() failed.  Invalid index [ " 
+             TileNotFoundErr() << "IndexLevel::set() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -87,28 +94,98 @@ void vw::platefile::IndexLevel::set(vw::platefile::IndexRecord const& rec,
 
 }
 
-
-
 // --------------------------------------------------------------------
 //                             PAGED INDEX
 // --------------------------------------------------------------------
 
-vw::platefile::PagedIndex::PagedIndex(std::string base_path, int page_width, 
-                                      int page_height, int default_cache_size) :
-  m_base_path(base_path), m_page_width(page_width), 
-  m_page_height(page_height), m_default_cache_size(default_cache_size),
-  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {}
+/// Create a new, empty index.
+vw::platefile::PagedIndex::PagedIndex(std::string plate_filename, IndexHeader new_index_info,
+                                      int page_width, int page_height, int default_cache_size) :
+  LocalIndex(plate_filename, new_index_info),       // superclass constructor
+  m_page_width(page_width), m_page_height(page_height), 
+  m_default_cache_size(default_cache_size) {
+  
+  std::string base_index_path = plate_filename + "/index";
+  if (!fs::exists(base_index_path))
+    fs::create_directory(base_index_path);
+}
+
+/// Open an existing index from a file on disk.
+vw::platefile::PagedIndex::PagedIndex(std::string plate_filename, 
+                                      int page_width, int page_height, int default_cache_size) :
+  LocalIndex(plate_filename),
+  m_page_width(page_width), m_page_height(page_height), 
+  m_default_cache_size(default_cache_size) {}
+
+// Load index entries by iterating through TileHeaders saved in the
+// blob file.  This function essentially rebuilds an index in memory
+// using entries that had been previously saved to disk.
+void vw::platefile::PagedIndex::load_index(std::string plate_filename,
+                                           std::vector<std::string> const& blob_files) {
+
+  std::cout << "\tLoading index: " << plate_filename <<"\n";
+
+  for (unsigned int i = 0; i < blob_files.size(); ++i) {
+    // this->log() << "Loading index entries from blob file: "
+    //             << m_plate_filename << "/" << blob_files[i] << "\n";
+
+    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
+    tpc.report_progress(0);
+
+    // Extract the current blob id as an integer.
+    boost::regex re;
+    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
+    boost::cmatch matches;
+    boost::regex_match(blob_files[i].c_str(), matches, re);
+    if (matches.size() != 4)
+      vw_throw(IOErr() << "LocalIndex::load_index() -- could not parse blob number from blob filename.");
+    std::string blob_id_str(matches[2].first, matches[2].second);
+    int current_blob_id = atoi(blob_id_str.c_str());
+
+    Blob blob(m_plate_filename + "/" + blob_files[i], true);
+    Blob::iterator iter = blob.begin();
+    while (iter != blob.end()) {
+      TileHeader hdr = *iter;
+      IndexRecord rec;
+      rec.set_blob_id(current_blob_id);
+      rec.set_blob_offset(iter.current_base_offset());
+      rec.set_status(INDEX_RECORD_VALID);
+      this->commit_record(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
+      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
+      ++iter;
+    }
+    tpc.report_finished();
+  }
+}
+
+
+void vw::platefile::PagedIndex::commit_record(IndexRecord const& record, 
+                                              int col, int row, 
+                                              int level, int transaction_id) {
+  std::cout << "\nCall to commit_record() " << m_levels.size() << "\n";
+
+  // First, we check to make sure we have a sufficient number of
+  // levels to save the requested data.  If not, we grow the levels
+  // vector to the correct size.
+  while (m_levels.size() <= level) {
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_plate_filename,
+                                                            m_levels.size(), 
+                                                            m_page_width, m_page_height, 
+                                                            m_default_cache_size) );
+    m_levels.push_back(new_level);
+  }
+  m_levels[level]->set(record, col, row, transaction_id);
+}
 
 // ----------------------- READ/WRITE REQUESTS  ----------------------
 
-vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int row, int depth, 
+vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int row, int level, 
                                  int transaction_id, bool exact_transaction_match) {
-  Mutex::Lock lock(m_mutex);
-  if (depth < 0 || depth >= m_levels.size())
-    vw_throw(TileNotFoundErr() << "Requested tile at level " << depth 
+  if (level < 0 || level >= m_levels.size())
+    vw_throw(TileNotFoundErr() << "Requested tile at level " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   
-  IndexRecord rec = m_levels[depth]->get(col, row,  transaction_id, exact_transaction_match);
+  IndexRecord rec = m_levels[level]->get(col, row,  transaction_id, exact_transaction_match);
   return rec;
 }
 
@@ -116,57 +193,17 @@ int vw::platefile::PagedIndex::write_request(int size) {
   return m_blob_manager->request_lock(size);
 }
 
-void vw::platefile::PagedIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
+void vw::platefile::PagedIndex::write_complete(TileHeader const& header, 
+                                               IndexRecord const& record) {
   m_blob_manager->release_lock(record.blob_id(), record.blob_offset());
-
-  Mutex::Lock lock(m_mutex);
-  
-  // First, we check to make sure we have a sufficient number of
-  // levels to save the requested data.  If not, we grow the levels
-  // vector to the correct size.
-  while (m_levels.size() <= header.depth()) {
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_base_path, m_levels.size(), 
-                                                            m_page_width, m_page_height, 
-                                                            m_default_cache_size) );
-    m_levels.push_back(new_level);
-  }
-
-  m_levels[header.depth()]->set(record, header.col(), header.row(), header.transaction_id());
+  this->commit_record(record, header.col(), header.row(), header.level(), header.transaction_id());
 }
   
 // ----------------------- PROPERTIES  ----------------------
 
-vw::platefile::IndexHeader vw::platefile::PagedIndex::index_header() const {}
-int32 vw::platefile::PagedIndex::version() const {}
-int32 vw::platefile::PagedIndex::max_depth() const {}
-  
-std::string vw::platefile::PagedIndex::platefile_name() const {}
-  
-int32 vw::platefile::PagedIndex::tile_size() const {}
-std::string vw::platefile::PagedIndex::tile_filetype() const {}
-  
-PixelFormatEnum vw::platefile::PagedIndex::pixel_format() const {}
-ChannelTypeEnum vw::platefile::PagedIndex::channel_type() const {}
-
-// --------------------- TRANSACTIONS ------------------------
-
-/// Clients are expected to make a transaction request whenever
-/// they start a self-contained chunk of mosaicking work.  .
-int32 vw::platefile::PagedIndex::transaction_request(std::string transaction_description,
-                                  std::vector<TileHeader> const& tile_headers) {}
-  
-/// Called right before the beginning of the mipmapping pass
-void vw::platefile::PagedIndex::root_complete(int32 transaction_id,
-                           std::vector<TileHeader> const& tile_headers) {}
-  
-/// Once a chunk of work is complete, clients can "commit" their
-/// work to the mosaic by issuding a transaction_complete method.
-void vw::platefile::PagedIndex::transaction_complete(int32 transaction_id) {}
-
-// If a transaction fails, we may need to clean up the mosaic.  
-void vw::platefile::PagedIndex::transaction_failed(int32 transaction_id) {}
-
-int32 vw::platefile::PagedIndex::transaction_cursor() {}
+int32 vw::platefile::PagedIndex::num_levels() const {
+  return m_levels.size();
+}
 
 // --------------------- UTILITIES ------------------------
 

@@ -126,8 +126,8 @@ namespace platefile {
     // recently accessed tiles, since each will be used roughly four
     // times.
     void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int transaction_id, int max_depth ) {
-      tile = this->load_tile_impl(level, x, y, transaction_id, max_depth);
+                    int transaction_id, int max_level ) {
+      tile = this->load_tile_impl(level, x, y, transaction_id, max_level);
     }
 
     // Ok. This is one of those really annoying and esoteric c++
@@ -137,7 +137,7 @@ namespace platefile {
     // indirection (load_tile<>, above), which has the return value in
     // the function arguments.  
     ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int transaction_id, int max_depth );
+                                      int transaction_id, int max_level );
 
  public:
   
@@ -219,7 +219,7 @@ namespace platefile {
         TileHeader hdr;
         hdr.set_col(tiles[i].i);
         hdr.set_row(tiles[i].j);
-        hdr.set_depth(pyramid_level);
+        hdr.set_level(pyramid_level);
         tile_headers.push_back(hdr);
       }
       int platefile_id = m_platefile->index_header().platefile_id();
@@ -270,9 +270,9 @@ namespace platefile {
     }
 
 
-    void mipmap(int transaction_id, int max_depth) {
+    void mipmap(int transaction_id, int max_level) {
       ImageView<PixelT> tile;
-      this->load_tile(tile, 0, 0, 0, transaction_id, max_depth); 
+      this->load_tile(tile, 0, 0, 0, transaction_id, max_level); 
       if (tile && !is_transparent(tile))
         m_platefile->write(tile, 0, 0, 0, transaction_id);
     }

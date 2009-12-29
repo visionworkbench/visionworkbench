@@ -48,7 +48,7 @@ namespace platefile {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false);
+    virtual IndexRecord read_request(int col, int row, int level, int transaction_id, bool exact_transaction_match = false);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -62,7 +62,7 @@ namespace platefile {
     virtual IndexHeader index_header() const;
   
     virtual int32 version() const;
-    virtual int32 max_depth() const;
+    virtual int32 num_levels() const;
 
     virtual std::string platefile_name() const;
 

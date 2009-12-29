@@ -253,7 +253,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
 
       (*this)["Name"]         = layer.description;
       (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
-      (*this)["TileLevels"]   = boost::lexical_cast<std::string>(layer.index->max_depth());
+      (*this)["TileLevels"]   = boost::lexical_cast<std::string>(layer.index->num_levels());
 
       const std::string url2 = url_prefix + "p/" + vw::stringify(hdr.platefile_id());
 

@@ -23,12 +23,12 @@ message BlobRecord {
 
 // The TileRecord store metadata about the tile itself as well as the
 // information needed to place the tile back into the index tree.  The
-// [col, row, depth, transaction_id] info can be used to reconstruct the index
+// [col, row, level, transaction_id] info can be used to reconstruct the index
 // by reading TileRecords in the blob files.
 message TileHeader {
   required int32 col = 5;
   required int32 row = 6;
-  required int32 depth = 7;
+  required int32 level = 7;
   optional uint64 transaction_id = 8 [ default = 0 ];
   optional string filetype = 10 [ default = 'jpg' ];
 }
@@ -120,7 +120,7 @@ message IndexReadRequest {
   required int32 platefile_id = 1;
   required int32 col = 3;
   required int32 row = 4;
-  required int32 depth = 5;
+  required int32 level = 5;
   required int32 transaction_id = 6;
   required bool exact_transaction_match = 7;
 }
@@ -162,7 +162,7 @@ message IndexTransactionCursorRequest {
   required int32 platefile_id = 1;
 }
 
-message IndexDepthRequest {
+message IndexNumLevelsRequest {
   required int32 platefile_id = 1;
 }
 
@@ -215,8 +215,8 @@ message IndexTransactionCursorReply {
   required int32 transaction_id = 1;
 }
 
-message IndexDepthReply {
-  required int32 depth = 1;
+message IndexNumLevelsReply {
+  required int32 num_levels = 1;
 }
 
 message IndexTestReply {
@@ -262,7 +262,7 @@ service IndexService {
   rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
   rpc TransactionFailed (IndexTransactionFailed) returns (RpcNullMessage);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
-  rpc DepthRequest (IndexDepthRequest) returns (IndexDepthReply);
+  rpc NumLevelsRequest (IndexNumLevelsRequest) returns (IndexNumLevelsReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
   rpc TestRequest (IndexTestRequest) returns (IndexTestReply);
 }

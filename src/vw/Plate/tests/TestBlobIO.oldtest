@@ -34,7 +34,7 @@ public:
     hdr.set_filetype("tif");
     hdr.set_col(0);
     hdr.set_row(0);
-    hdr.set_depth(0);
+    hdr.set_level(0);
     unlink("/tmp/foo.blob");
 
     // First test, creates a new blob file.
@@ -55,7 +55,7 @@ public:
       TS_ASSERT_EQUALS(hdr.filetype(), hdr2.filetype());
       TS_ASSERT_EQUALS(hdr.col(), hdr2.col());
       TS_ASSERT_EQUALS(hdr.row(), hdr2.row());
-      TS_ASSERT_EQUALS(hdr.depth(), hdr2.depth());
+      TS_ASSERT_EQUALS(hdr.level(), hdr2.level());
     }
 
     // Second test, appends to a blob file.
@@ -79,7 +79,7 @@ public:
     hdr.set_filetype("tif");
     hdr.set_col(0);
     hdr.set_row(0);
-    hdr.set_depth(0);
+    hdr.set_level(0);
 
     const char* f1 = "/tmp/foo.blob";
     const char* f2 = "/tmp/foo3.blob";

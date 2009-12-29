@@ -67,49 +67,6 @@ std::vector<std::string> vw::platefile::LocalIndex::blob_filenames() const {
   return result;
 }
 
-// Load index entries by iterating through TileHeaders saved in the
-// blob file.  This function essentially rebuilds an index in memory
-// using entries that had been previously saved to disk.
-void vw::platefile::LocalIndex::load_index(std::string plate_filename,
-                                           std::vector<std::string> const& blob_files) {
-
-  std::cout << "\tLoading index: " << plate_filename <<"\n";
-
-  for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    // this->log() << "Loading index entries from blob file: "
-    //             << m_plate_filename << "/" << blob_files[i] << "\n";
-
-
-    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
-    tpc.report_progress(0);
-
-    // Extract the current blob id as an integer.
-    boost::regex re;
-    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
-    boost::cmatch matches;
-    boost::regex_match(blob_files[i].c_str(), matches, re);
-    if (matches.size() != 4)
-      vw_throw(IOErr() << "LocalIndex::load_index() -- could not parse blob number from blob filename.");
-    std::string blob_id_str(matches[2].first, matches[2].second);
-    int current_blob_id = atoi(blob_id_str.c_str());
-
-    Blob blob(m_plate_filename + "/" + blob_files[i], true);
-    Blob::iterator iter = blob.begin();
-    while (iter != blob.end()) {
-      TileHeader hdr = *iter;
-      IndexRecord rec;
-      rec.set_blob_id(current_blob_id);
-      rec.set_blob_offset(iter.current_base_offset());
-      rec.set_status(INDEX_RECORD_VALID);
-      //      rec.set_tile_size(iter.current_data_size());  // ?? do we still need this?
-      m_root->insert(rec, hdr.col(), hdr.row(), hdr.depth(), hdr.transaction_id());
-      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
-      ++iter;
-    }
-    tpc.report_finished();
-  }
-}
-
 void vw::platefile::LocalIndex::save_index_file() const {
 
   // First, check to make sure the platefile directory exists.
@@ -130,8 +87,7 @@ void vw::platefile::LocalIndex::save_index_file() const {
 /// Create a new index.  User supplies a pre-configure blob manager.
 vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
   m_plate_filename(plate_filename),
-  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )),
-  m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
+  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
   // Start with the new_index_info, which provides the tile size, file
   // type, pixel and channel types, etc.  Then we augment it with a
@@ -162,8 +118,7 @@ vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader n
 /// Open an existing index from a file on disk.
 vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
   m_plate_filename(plate_filename),
-  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )),
-  m_root(boost::shared_ptr<TreeNode<IndexRecord> >( new TreeNode<IndexRecord>() )) {
+  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
   // First, check to make sure the platefile directory exists.
   if ( !fs::exists( plate_filename ) )
@@ -197,10 +152,6 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
     vw_out(WarningMessage, "plate") << "\nWARNING: could not open index log file. "
                                     << "Proceed with caution.";
   }
-
-  // Load the actual index data
-  std::vector<std::string> blob_files = this->blob_filenames();
-  this->load_index(plate_filename, blob_files);
 }
 
 /// Use this to send data to the index's logfile like this:
@@ -213,37 +164,10 @@ std::ostream& vw::platefile::LocalIndex::log () {
   return (*m_log)(InfoMessage, "console");
 }
 
-
-/// Attempt to access a tile in the index.  Throws an
-/// TileNotFoundErr if the tile cannot be found.
-IndexRecord vw::platefile::LocalIndex::read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match) {
-  Mutex::Lock lock(m_mutex);
-  IndexRecord rec = m_root->search(col, row, depth, transaction_id, exact_transaction_match);
-  return rec;
-}
-
-// Writing, pt. 1: Locks a blob and returns the blob id that can
-// be used to write a tile.
-int vw::platefile::LocalIndex::write_request(int size) {
-  return m_blob_manager->request_lock(size);
-}
-
-// Writing, pt. 2: Supply information to update the index and
-// unlock the blob id.
-void vw::platefile::LocalIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
-  m_blob_manager->release_lock(record.blob_id(), record.blob_offset());
-
-  Mutex::Lock lock(m_mutex);
-  m_root->insert(record, header.col(), header.row(), header.depth(), header.transaction_id());
-  m_root->invalidate_records(header.col(), header.row(), header.depth(), header.transaction_id());
-}
-
-
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
 int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
                                                      std::vector<TileHeader> const& tile_headers) {
-  Mutex::Lock lock(m_mutex);
 
   // Pick the next transaction ID, increment the cursor, and then save
   // the cursor to a file.  (Saving to a file gurantees that we won't
@@ -254,40 +178,13 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
   this->save_index_file();
   this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
 
-  // Using the list of requested tile_headers, we go to the index and
-  // create empty index entries (that will be filled in during the
-  // course of this transaction).  These empty entries help us to keep
-  // track of which tiles are "pending" in the mosaic, which is useful
-  // information to know when multiple clients are adding images to
-  // the mosaic at the same time.
-  for (size_t i = 0; i < tile_headers.size(); ++i) {
-    IndexRecord empty_record;
-    empty_record.set_status(INDEX_RECORD_LOCKED);
-    m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(),
-                   tile_headers[i].depth(), transaction_id,
-                   true );  // insert_at_all_levels = true
-  }
-
   return transaction_id;
-}
-
-// Clients are expected to make a transaction request whenever
-// they start a self-contained chunk of mosaicking work.  .
-void vw::platefile::LocalIndex::root_complete(int transaction_id,
-                                              std::vector<TileHeader> const& tile_headers) {
-  Mutex::Lock lock(m_mutex);
-
-  for (size_t i = 0; i < tile_headers.size(); ++i) {
-    m_root->clean_branch(tile_headers[i].col(), tile_headers[i].row(),
-                         tile_headers[i].depth(), transaction_id);
-  }
 }
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
   static const int MAX_OUTSTANDING_TRANSACTION_IDS = 1024;
-  Mutex::Lock lock(m_mutex);
 
   VW_ASSERT( transaction_id > m_header.transaction_read_cursor(),
              LogicErr() << "We got a transaction_complete() with an id less than the read_cursor(). Ack!");
@@ -303,7 +200,7 @@ void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
 
   } else {
 
-    // It isn't. Remember it, reheapify, check queue depth, and bail out.
+    // It isn't. Remember it, reheapify, check queue level, and bail out.
     m_header.add_complete_transaction_ids(transaction_id);
     std::push_heap(m_header.mutable_complete_transaction_ids()->begin(),
                    m_header.mutable_complete_transaction_ids()->end(),
@@ -346,23 +243,151 @@ void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
 
   // Update the list of failed transactions in the index header
   m_header.mutable_failed_transaction_ids()->Add(transaction_id);
-    this->save_index_file();
-
-  // Erase all index entries related to this transaction_id in the
-  // live (in memory) index.
-  m_root->erase_transaction(transaction_id);
-  this->log() << "Transaction " << transaction_id << " FAILED.\n";
+  this->save_index_file();
 
   // Now that we have cleaned things up, we mark the transaction as
   // complete, which moves the transaction_cursor forward.
   this->transaction_complete(transaction_id);
+  this->log() << "Transaction " << transaction_id << " FAILED.\n";
 }
 
 // Return the current location of the transaction cursor.  This
 // will be the last transaction id that refers to a coherent
 // version of the mosaic.
 int32 vw::platefile::LocalIndex::transaction_cursor() {
-  Mutex::Lock lock(m_mutex);
   return m_header.transaction_read_cursor();
 }
 
+
+// -------------------------------------------------------------------
+//                            LOCAL TREE INDEX
+// -------------------------------------------------------------------
+
+/// Create a new index.  User supplies a pre-configure blob manager.
+vw::platefile::LocalTreeIndex::LocalTreeIndex( std::string plate_filename, 
+                                               IndexHeader new_index_info) :
+  LocalIndex::LocalIndex(plate_filename, new_index_info) { // parent constructor
+  m_root.reset( new TreeNode<IndexRecord>() );
+}
+
+/// Open an existing index from a file on disk.
+vw::platefile::LocalTreeIndex::LocalTreeIndex(std::string plate_filename) :
+  LocalIndex::LocalIndex(plate_filename) {                // parent constructor
+
+  m_root.reset( new TreeNode<IndexRecord>() );
+
+  // Load the actual index data
+  std::vector<std::string> blob_files = this->blob_filenames();
+  this->load_index(plate_filename, blob_files);
+}
+
+// Load index entries by iterating through TileHeaders saved in the
+// blob file.  This function essentially rebuilds an index in memory
+// using entries that had been previously saved to disk.
+void vw::platefile::LocalTreeIndex::load_index(std::string plate_filename,
+                                               std::vector<std::string> const& blob_files) {
+
+  std::cout << "\tLoading index: " << plate_filename <<"\n";
+
+  for (unsigned int i = 0; i < blob_files.size(); ++i) {
+    // this->log() << "Loading index entries from blob file: "
+    //             << m_plate_filename << "/" << blob_files[i] << "\n";
+
+
+    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
+    tpc.report_progress(0);
+
+    // Extract the current blob id as an integer.
+    boost::regex re;
+    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
+    boost::cmatch matches;
+    boost::regex_match(blob_files[i].c_str(), matches, re);
+    if (matches.size() != 4)
+      vw_throw(IOErr() << "LocalIndex::load_index() -- could not parse blob number from blob filename.");
+    std::string blob_id_str(matches[2].first, matches[2].second);
+    int current_blob_id = atoi(blob_id_str.c_str());
+
+    Blob blob(m_plate_filename + "/" + blob_files[i], true);
+    Blob::iterator iter = blob.begin();
+    while (iter != blob.end()) {
+      TileHeader hdr = *iter;
+      IndexRecord rec;
+      rec.set_blob_id(current_blob_id);
+      rec.set_blob_offset(iter.current_base_offset());
+      rec.set_status(INDEX_RECORD_VALID);
+      //      rec.set_tile_size(iter.current_data_size());  // ?? do we still need this?
+      m_root->insert(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
+      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
+      ++iter;
+    }
+    tpc.report_finished();
+  }
+}
+
+/// Attempt to access a tile in the index.  Throws an
+/// TileNotFoundErr if the tile cannot be found.
+IndexRecord vw::platefile::LocalTreeIndex::read_request(int col, int row, int level, int transaction_id, bool exact_transaction_match) {
+  IndexRecord rec = m_root->search(col, row, level, transaction_id, exact_transaction_match);
+  return rec;
+}
+
+// Writing, pt. 1: Locks a blob and returns the blob id that can
+// be used to write a tile.
+int vw::platefile::LocalTreeIndex::write_request(int size) {
+  return m_blob_manager->request_lock(size);
+}
+
+// Writing, pt. 2: Supply information to update the index and
+// unlock the blob id.
+void vw::platefile::LocalTreeIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
+  m_blob_manager->release_lock(record.blob_id(), record.blob_offset());
+
+  m_root->insert(record, header.col(), header.row(), header.level(), header.transaction_id());
+  m_root->invalidate_records(header.col(), header.row(), header.level(), header.transaction_id());
+}
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+int32 vw::platefile::LocalTreeIndex::transaction_request(std::string transaction_description,
+                                                     std::vector<TileHeader> const& tile_headers) {
+  int transaction_id = LocalIndex::transaction_request(transaction_description, tile_headers);
+
+  // Using the list of requested tile_headers, we go to the index and
+  // create empty index entries (that will be filled in during the
+  // course of this transaction).  These empty entries help us to keep
+  // track of which tiles are "pending" in the mosaic, which is useful
+  // information to know when multiple clients are adding images to
+  // the mosaic at the same time.
+  for (size_t i = 0; i < tile_headers.size(); ++i) {
+    IndexRecord empty_record;
+    empty_record.set_status(INDEX_RECORD_LOCKED);
+    m_root->insert(empty_record, tile_headers[i].col(), tile_headers[i].row(),
+                   tile_headers[i].level(), transaction_id,
+                   true );  // insert_at_all_levels = true
+  }
+
+  return transaction_id;
+}
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+void vw::platefile::LocalTreeIndex::root_complete(int transaction_id,
+                                                  std::vector<TileHeader> const& tile_headers) {
+  for (size_t i = 0; i < tile_headers.size(); ++i) {
+    m_root->clean_branch(tile_headers[i].col(), tile_headers[i].row(),
+                         tile_headers[i].level(), transaction_id);
+  }
+}
+
+// Once a chunk of work is complete, clients can "commit" their
+// work to the mosaic by issuing a transaction_complete method.
+void vw::platefile::LocalTreeIndex::transaction_failed(int32 transaction_id) {
+
+  // Erase all index entries related to this transaction_id in the
+  // live (in memory) index.
+  m_root->erase_transaction(transaction_id);
+
+  // Call up to the implementation in LocalIndex to continue cleaning
+  // things up.
+  LocalIndex::transaction_failed(transaction_id);
+}

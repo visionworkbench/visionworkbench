@@ -150,6 +150,15 @@ void vw::platefile::IndexPage::sync() {
 }
 
 void vw::platefile::IndexPage::serialize() {
+  
+  // Create the necessary directories if they do not yet exist.
+  try {
+    fs::path page_path(m_filename);
+    fs::create_directories(page_path.parent_path());
+  } catch ( fs::basic_filesystem_error<fs::path> &e ) { 
+    vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
+  }
+
   FILE *f = fopen(m_filename.c_str(), "w");
   if (!f)
     vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " 

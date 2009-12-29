@@ -232,7 +232,7 @@ void IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* controller
   // notify the remote client of our failure if we did not succeed.
   IndexRecord record = rec.index->read_request(request->col(), 
                                                request->row(), 
-                                               request->depth(), 
+                                               request->level(), 
                                                request->transaction_id(),
                                                request->exact_transaction_match());
   *(response->mutable_index_record()) = record;
@@ -367,17 +367,17 @@ void IndexServiceImpl::TransactionCursor(::google::protobuf::RpcController* cont
   done->Run();
 }
 
-void IndexServiceImpl::DepthRequest(::google::protobuf::RpcController* controller,
-                                    const IndexDepthRequest* request,
-                                    IndexDepthReply* response,
-                                    ::google::protobuf::Closure* done) {
+void IndexServiceImpl::NumLevelsRequest(::google::protobuf::RpcController* controller,
+                                        const IndexNumLevelsRequest* request,
+                                        IndexNumLevelsReply* response,
+                                        ::google::protobuf::Closure* done) {
 
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
 
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  response->set_depth(rec.index->max_depth());
+  response->set_num_levels(rec.index->num_levels());
   done->Run();
 }
 

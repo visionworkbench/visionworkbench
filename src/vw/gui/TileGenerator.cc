@@ -138,9 +138,9 @@ int32 TestPatternTileGenerator::num_levels() const {
 
 PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
   m_platefile(new vw::platefile::PlateFile(platefile_name)) {
-  m_depth = m_platefile->depth();
+  m_num_levels = m_platefile->num_levels();
   std::cout << "\t--> Loading platefile \"" << platefile_name << "\" with " 
-            << m_depth << " levels.\n";
+            << m_num_levels << " levels.\n";
 }
 
 
@@ -290,11 +290,11 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
 }
 
 int PlatefileTileGenerator::cols() const {
-  return this->tile_size()[0] * pow(2, m_depth);
+  return this->tile_size()[0] * pow(2, m_num_levels-1);
 }
 
 int PlatefileTileGenerator::rows() const {
-  return this->tile_size()[1] * pow(2, m_depth);
+  return this->tile_size()[1] * pow(2, m_num_levels-1);
 }
 
 PixelFormatEnum PlatefileTileGenerator::pixel_format() const {
@@ -311,7 +311,7 @@ Vector2i PlatefileTileGenerator::tile_size() const {
 }
 
 int32 PlatefileTileGenerator::num_levels() const {
-  return m_depth;
+  return m_num_levels;
 }
 
 
@@ -329,10 +329,10 @@ ImageTileGenerator::ImageTileGenerator(std::string filename) :
 template <class PixelT>
 boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<ImageResource> rsrc,
                                                       BBox2i tile_bbox, 
-                                                      int level, int max_levels) {
+                                                      int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
   rsrc->read(tile.buffer(), tile_bbox);
-  ImageView<PixelT> reduced_tile = subsample(tile, pow(2,max_levels - level));
+  ImageView<PixelT> reduced_tile = subsample(tile, pow(2,(num_levels-1) - level));
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource(reduced_tile) );
 }
 

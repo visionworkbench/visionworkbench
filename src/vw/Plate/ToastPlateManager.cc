@@ -17,44 +17,44 @@ using namespace vw;
 template <class PixelT>
 ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 x, int32 y, 
                                                              int transaction_id, 
-                                                             int max_depth ) {
+                                                             int max_level ) {
   int32 num_tiles = 1 << level;
   if( x==-1 ) {
     if( y==-1 ) {
       return load_tile_impl(level, num_tiles-1, num_tiles-1, 
-                                    transaction_id, max_depth);
+                                    transaction_id, max_level);
     }
     if( y==num_tiles ) {
       return load_tile_impl(level, num_tiles-1, 0, 
-                                    transaction_id, max_depth);
+                                    transaction_id, max_level);
     }
     ImageView<PixelT> tile = load_tile_impl(level, 0, num_tiles-1-y, 
-                                                    transaction_id, max_depth);
+                                                    transaction_id, max_level);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( x==num_tiles ) {
     if( y==-1 ) {
       return load_tile_impl(level, 0, num_tiles-1, 
-                                    transaction_id, max_depth);
+                                    transaction_id, max_level);
     }
     if( y==num_tiles ) {
-      return load_tile_impl(level, 0, 0, transaction_id, max_depth);
+      return load_tile_impl(level, 0, 0, transaction_id, max_level);
     }
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1, num_tiles-1-y, 
-                                                    transaction_id, max_depth);
+                                                    transaction_id, max_level);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==-1 ) {
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1-x, 0, 
-                                                    transaction_id, max_depth);
+                                                    transaction_id, max_level);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==num_tiles ) {
     ImageView<PixelT> tile = load_tile_impl(level, num_tiles-1-x, num_tiles-1, 
-                                                    transaction_id, max_depth);
+                                                    transaction_id, max_level);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
@@ -108,7 +108,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // regenerating them if necessary.
     for( int j=-1; j<3; ++j ) {
       for( int i=-1; i<3; ++i ) {
-        ImageView<PixelT> child = load_tile_impl(level+1,2*x+i,2*y+j,transaction_id, max_depth);
+        ImageView<PixelT> child = load_tile_impl(level+1,2*x+i,2*y+j,transaction_id, max_level);
         if( child ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;	    
       }
     }
@@ -138,7 +138,7 @@ ImageView<PixelT> ToastPlateManager<PixelT>::load_tile_impl( int32 level, int32 
     // necessary.
     vw_out(0) << "\t    [ " << x << " " << y << " @ " << level << " ] -- Mipmapping tile.\n";
     tile = m_compositor.composite_mosaic_tile(m_platefile, new_tile, x, y, 
-                                              level, max_depth, transaction_id);
+                                              level, max_level, transaction_id);
   }
 
   // Save the tile in the cache.  The cache size of 1024 tiles was chosen
@@ -163,11 +163,11 @@ namespace platefile {
   template 
   ImageView<PixelGrayA<uint8> > ToastPlateManager<PixelGrayA<uint8> >::load_tile_impl( int32 level, int32 x, int32 y, 
                                                                                        int transaction_id, 
-                                                                                       int max_depth);
+                                                                                       int max_level);
 
   template
   ImageView<PixelRGBA<uint8> > ToastPlateManager<PixelRGBA<uint8> >::load_tile_impl( int32 level, int32 x, int32 y, 
                                                                                      int transaction_id,
-                                                                                     int max_depth );
+                                                                                     int max_level );
   
 }}

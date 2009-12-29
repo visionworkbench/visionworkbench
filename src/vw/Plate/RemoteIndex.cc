@@ -148,13 +148,13 @@ vw::platefile::RemoteIndex::~RemoteIndex() {}
 
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
-vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, int depth, 
+vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, int level, 
                                                                     int transaction_id, bool exact_transaction_match) {
   IndexReadRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_col(col);
   request.set_row(row);
-  request.set_depth(depth);
+  request.set_level(level);
   request.set_transaction_id(transaction_id);
   request.set_exact_transaction_match(exact_transaction_match);
 
@@ -190,14 +190,14 @@ void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexR
                                  google::protobuf::NewCallback(&null_closure));
 }
   
-vw::int32 vw::platefile::RemoteIndex::max_depth() const { 
-  IndexDepthRequest request;
+vw::int32 vw::platefile::RemoteIndex::num_levels() const { 
+  IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);
   
-  IndexDepthReply response;
-  m_index_service->DepthRequest(m_rpc_controller.get(), &request, &response, 
-                               google::protobuf::NewCallback(&null_closure));
-  return response.depth();
+  IndexNumLevelsReply response;
+  m_index_service->NumLevelsRequest(m_rpc_controller.get(), &request, &response, 
+                                    google::protobuf::NewCallback(&null_closure));
+  return response.num_levels();
 }
 
 vw::int32 vw::platefile::RemoteIndex::version() const { 

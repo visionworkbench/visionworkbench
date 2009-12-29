@@ -33,20 +33,19 @@ namespace platefile {
   // -------------------------------------------------------------------
 
   class LocalIndex : public Index { 
-    
+  
+  protected:
     std::string m_plate_filename;
     IndexHeader m_header;
     boost::shared_ptr<BlobManager> m_blob_manager;
-    boost::shared_ptr<TreeNode<IndexRecord> > m_root;
     boost::shared_ptr<vw::LogInstance> m_log;
-    Mutex m_mutex;
 
     void save_index_file() const;
     std::string index_filename() const;
     std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
-    void load_index(std::string plate_filename,
-                    std::vector<std::string> const& blob_files);
+    virtual void load_index(std::string plate_filename,
+                            std::vector<std::string> const& blob_files) = 0;
 
   public:
 
@@ -72,7 +71,6 @@ namespace platefile {
     // virtual void save(std::string const& filename);
 
     virtual int version() const { return m_header.version(); }
-    virtual int32 max_depth() const { return m_root->max_depth(); }
     
     virtual std::string platefile_name() const { return m_plate_filename; }
 
@@ -87,6 +85,46 @@ namespace platefile {
       return ChannelTypeEnum(m_header.channel_type());
     }
 
+    // Clients are expected to make a transaction request whenever
+    // they start a self-contained chunk of mosaicking work.  .
+    virtual int32 transaction_request(std::string transaction_description,
+                                      std::vector<TileHeader> const& tile_headers);
+
+    // Once a chunk of work is complete, clients can "commit" their
+    // work to the mosaic by issuding a transaction_complete method.
+    virtual void transaction_complete(int32 transaction_id);
+
+    /// Called right before the beginning of the mipmapping pass
+    virtual void root_complete(int32 transaction_id,
+                               std::vector<TileHeader> const& tile_headers) {}
+
+    // If a transaction fails, we may need to clean up the mosaic.  
+    virtual void transaction_failed(int32 transaction_id);
+
+    // Return the current location of the transaction cursor.  This
+    // will be the last transaction id that refers to a coherent
+    // version of the mosaic.
+    virtual int32 transaction_cursor();
+  };
+
+  class LocalTreeIndex : public LocalIndex { 
+    boost::shared_ptr<TreeNode<IndexRecord> > m_root;
+
+    virtual void load_index(std::string plate_filename,
+                            std::vector<std::string> const& blob_files);
+  public:
+
+    /// Create a new, empty index.
+    LocalTreeIndex( std::string plate_filename, IndexHeader new_index_info);
+
+    /// Open an existing index from a file on disk.
+    LocalTreeIndex(std::string plate_filename);
+
+    /// Destructor
+    virtual ~LocalTreeIndex() {}
+
+    // ----------------------- READ/WRITE REQUESTS  ----------------------
+
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
     /// 
@@ -100,7 +138,7 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     virtual IndexRecord read_request(vw::int32 col, vw::int32 row, 
-                                     vw::int32 depth, vw::int32 transaction_id,
+                                     vw::int32 level, vw::int32 transaction_id,
                                      bool exact_transaction_match = false);
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -111,32 +149,29 @@ namespace platefile {
     // unlock the blob id.
     virtual void write_complete(TileHeader const& header, IndexRecord const& record);
 
+    // ---------------------- TRANSACTIONS  ---------------------
+
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
     virtual int32 transaction_request(std::string transaction_description,
                                       std::vector<TileHeader> const& tile_headers);
 
+
     /// Called right before the beginning of the mipmapping pass
     virtual void root_complete(int32 transaction_id,
                                std::vector<TileHeader> const& tile_headers);
 
-    // Once a chunk of work is complete, clients can "commit" their
-    // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id);
-
     // If a transaction fails, we may need to clean up the mosaic.  
     virtual void transaction_failed(int32 transaction_id);
 
-    // Return the current location of the transaction cursor.  This
-    // will be the last transaction id that refers to a coherent
-    // version of the mosaic.
-    virtual int32 transaction_cursor();
+    // ----------------------- PROPERTIES  ----------------------
+
+    virtual int32 num_levels() const { return m_root->num_levels(); }
 
     /// Use only for debugging small trees.
     void print() { m_root->print(); }
 
     virtual void map(boost::shared_ptr<TreeMapFunc> func) { m_root->map(func); }
-
   };
 
 

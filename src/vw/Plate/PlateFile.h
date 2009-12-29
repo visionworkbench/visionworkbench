@@ -233,19 +233,19 @@ namespace platefile {
 
     ChannelTypeEnum channel_type() const { return m_index->channel_type(); }
 
-    int depth() const { return m_index->max_depth(); }
+    int num_levels() const { return m_index->num_levels(); }
 
     /// Read the tile header. You supply a base name (without the
     /// file's image extension).  The image extension will be appended
     /// automatically for you based on the filetype in the TileHeader.
     std::string read_to_file(std::string const& base_name, 
-                             int col, int row, int depth, int transaction_id) {
+                             int col, int row, int level, int transaction_id) {
 
       TileHeader result;
       std::string filename = base_name;
 
-      // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth, transaction_id);
+      // 1. Call index read_request(col,row,level).  Returns IndexRecord.
+      IndexRecord record = m_index->read_request(col, row, level, transaction_id);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
@@ -282,12 +282,12 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) {
+    TileHeader read(ViewT &view, int col, int row, int level, int transaction_id, bool exact_transaction_match = false) {
 
       TileHeader result;
       
-      // 1. Call index read_request(col,row,depth).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, depth, transaction_id, exact_transaction_match);
+      // 1. Call index read_request(col,row,level).  Returns IndexRecord.
+      IndexRecord record = m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
       if (record.status() != INDEX_RECORD_EMPTY) {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
@@ -318,14 +318,14 @@ namespace platefile {
     /// Write an image to the specified tile location in the plate file.
     template <class ViewT>
     void write(ImageViewBase<ViewT> const& view, 
-               int col, int row, int depth, int transaction_id) {      
+               int col, int row, int level, int transaction_id) {      
 
       // 0. Create a write_header
 
       TileHeader write_header;
       write_header.set_col(col);
       write_header.set_row(row);
-      write_header.set_depth(depth);
+      write_header.set_level(level);
       write_header.set_transaction_id(transaction_id);
       write_header.set_filetype(this->default_file_type());
 
@@ -348,7 +348,7 @@ namespace platefile {
         int64 blob_offset;
         blob.write_from_file(tile_filename, write_header, blob_offset);
 
-        // 4. Call write_complete(col, row, depth, record)
+        // 4. Call write_complete(col, row, level, record)
         IndexRecord write_record;
         write_record.set_blob_id(blob_id);
         write_record.set_blob_offset(blob_offset);
@@ -376,8 +376,8 @@ namespace platefile {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    IndexRecord read_record(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) {
-      return m_index->read_request(col, row, depth, transaction_id, exact_transaction_match);
+    IndexRecord read_record(int col, int row, int level, int transaction_id, bool exact_transaction_match = false) {
+      return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
     }
 
     // --------------------- TRANSACTIONS ------------------------

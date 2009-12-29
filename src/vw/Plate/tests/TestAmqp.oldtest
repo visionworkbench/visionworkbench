@@ -44,7 +44,7 @@ public:
 
     request.set_col(1);
     request.set_row(2);
-    request.set_depth(3);
+    request.set_level(3);
     request.set_transaction_id(32);
     request.set_exact_transaction_match(true);
 
@@ -63,7 +63,7 @@ public:
     TS_ASSERT_EQUALS(request.platefile_id(), response.platefile_id());
     TS_ASSERT_EQUALS(request.col(), response.col());
     TS_ASSERT_EQUALS(request.row(), response.row());
-    TS_ASSERT_EQUALS(request.depth(), response.depth());
+    TS_ASSERT_EQUALS(request.level(), response.level());
   }
 
   void test_rpc_serialization() {
