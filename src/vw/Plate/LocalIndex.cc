@@ -106,6 +106,7 @@ vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader n
   m_header.set_version(VW_PLATE_INDEX_VERSION);
   m_header.set_transaction_read_cursor(0);   // Transaction 0 is the empty mosaic
   m_header.set_transaction_write_cursor(1);  // Transaction 1 is the first valid transaction
+  m_header.set_num_levels(0);                // Index initially contains zero levels
 
   this->save_index_file();
 
@@ -277,18 +278,17 @@ vw::platefile::LocalTreeIndex::LocalTreeIndex(std::string plate_filename) :
   m_root.reset( new TreeNode<IndexRecord>() );
 
   // Load the actual index data
-  std::vector<std::string> blob_files = this->blob_filenames();
-  this->load_index(plate_filename, blob_files);
+  this->rebuild_index(plate_filename);
 }
 
 // Load index entries by iterating through TileHeaders saved in the
 // blob file.  This function essentially rebuilds an index in memory
 // using entries that had been previously saved to disk.
-void vw::platefile::LocalTreeIndex::load_index(std::string plate_filename,
-                                               std::vector<std::string> const& blob_files) {
+void vw::platefile::LocalTreeIndex::rebuild_index(std::string plate_filename) {
 
   std::cout << "\tLoading index: " << plate_filename <<"\n";
 
+  std::vector<std::string> blob_files = this->blob_filenames();
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
     // this->log() << "Loading index entries from blob file: "
     //             << m_plate_filename << "/" << blob_files[i] << "\n";

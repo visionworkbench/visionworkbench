@@ -53,8 +53,7 @@ namespace platefile {
     int m_default_cache_size;
     std::vector<boost::shared_ptr<IndexLevel> > m_levels;
 
-    virtual void load_index(std::string plate_filename,
-                            std::vector<std::string> const& blob_files);
+    virtual void rebuild_index(std::string plate_filename);
 
     void commit_record(IndexRecord const& record, int col, int row, int level, int transaction_id);
     

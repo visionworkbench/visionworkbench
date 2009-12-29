@@ -60,6 +60,7 @@ message IndexHeader {
   optional int32 channel_type = 5;   // see vw/Image/PixelTypeInfo.h
   optional string type = 6;          // platefile type [ toast, kml, or gigapan ]
   optional string description = 7;   // textual description
+  optional int32 num_levels = 8;     // number of pyramid levels
 
   // Privately Managed Metadata
   //

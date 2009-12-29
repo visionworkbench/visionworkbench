@@ -44,8 +44,7 @@ namespace platefile {
     std::string index_filename() const;
     std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
-    virtual void load_index(std::string plate_filename,
-                            std::vector<std::string> const& blob_files) = 0;
+    virtual void rebuild_index(std::string plate_filename) = 0;
 
   public:
 
@@ -110,8 +109,8 @@ namespace platefile {
   class LocalTreeIndex : public LocalIndex { 
     boost::shared_ptr<TreeNode<IndexRecord> > m_root;
 
-    virtual void load_index(std::string plate_filename,
-                            std::vector<std::string> const& blob_files);
+    virtual void rebuild_index(std::string plate_filename);
+
   public:
 
     /// Create a new, empty index.

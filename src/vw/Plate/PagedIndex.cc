@@ -146,26 +146,30 @@ vw::platefile::PagedIndex::PagedIndex(std::string plate_filename,
   LocalIndex(plate_filename),
   m_page_width(page_width), m_page_height(page_height), 
   m_default_cache_size(default_cache_size) {
-  // Load the actual index data
-  std::vector<std::string> blob_files = this->blob_filenames();
-  this->load_index(plate_filename, blob_files);
+
+  for (int level = 0; level < m_header.num_levels(); ++level) { 
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_plate_filename, level, 
+                                                            m_page_width, m_page_height, 
+                                                            m_default_cache_size) );
+    m_levels.push_back(new_level);
+  }
 }
 
 // Load index entries by iterating through TileHeaders saved in the
 // blob file.  This function essentially rebuilds an index in memory
 // using entries that had been previously saved to disk.
-void vw::platefile::PagedIndex::load_index(std::string plate_filename,
-                                           std::vector<std::string> const& blob_files) {
+void vw::platefile::PagedIndex::rebuild_index(std::string plate_filename) {
 
-  //  std::cout << "\tLoading index: " << plate_filename <<"\n";
+  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
 
+  std::vector<std::string> blob_files = this->blob_filenames();
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
     // this->log() << "Loading index entries from blob file: "
     //             << m_plate_filename << "/" << blob_files[i] << "\n";
-
+    
     TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
     tpc.report_progress(0);
-
+    
     // Extract the current blob id as an integer.
     boost::regex re;
     re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
@@ -175,7 +179,7 @@ void vw::platefile::PagedIndex::load_index(std::string plate_filename,
       vw_throw(IOErr() << "LocalIndex::load_index() -- could not parse blob number from blob filename.");
     std::string blob_id_str(matches[2].first, matches[2].second);
     int current_blob_id = atoi(blob_id_str.c_str());
-
+      
     Blob blob(m_plate_filename + "/" + blob_files[i], true);
     Blob::iterator iter = blob.begin();
     while (iter != blob.end()) {
@@ -200,6 +204,7 @@ void vw::platefile::PagedIndex::commit_record(IndexRecord const& record,
   // First, we check to make sure we have a sufficient number of
   // levels to save the requested data.  If not, we grow the levels
   // vector to the correct size.
+  int starting_size = m_levels.size();
   while (m_levels.size() <= level) {
     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_plate_filename,
                                                             m_levels.size(), 
@@ -207,6 +212,12 @@ void vw::platefile::PagedIndex::commit_record(IndexRecord const& record,
                                                             m_default_cache_size) );
     m_levels.push_back(new_level);
   }
+  
+  if (m_levels.size() != starting_size) {
+    m_header.set_num_levels(m_levels.size());
+    this->save_index_file();
+  }
+
   m_levels[level]->set(record, col, row, transaction_id);
 }
 
