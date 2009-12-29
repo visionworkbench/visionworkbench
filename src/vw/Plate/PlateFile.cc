@@ -9,7 +9,6 @@ using namespace vw::platefile;
 using namespace vw;
 
 PlateFile::PlateFile(std::string url) {
-  //    m_index = boost::shared_ptr<Index>( new LocalIndex(url) );
   m_index = Index::construct_open(url);
   vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
 }

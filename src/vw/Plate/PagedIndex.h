@@ -10,6 +10,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/IndexPage.h>
 #include <vw/Plate/Index.h>
+#include <vw/Plate/BlobManager.h>
 #include <vector>
 #include <string>
 
@@ -21,6 +22,8 @@ namespace platefile {
   // --------------------------------------------------------------------
   class IndexLevel {
     int m_level;
+    int m_page_width, m_page_height;
+    int m_horizontal_pages, m_vertical_pages;
     std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
     std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
     vw::Cache m_cache;
@@ -30,6 +33,12 @@ namespace platefile {
                int page_width, int page_height, int cache_size);
 
     ~IndexLevel();
+
+    /// Fetch the value of an index node at this level.
+    IndexRecord get(int32 col, int32 row, int32 transaction_id, bool exact_match = false) const;
+
+    /// Set the value of an index node at this level.
+    void set(IndexRecord const& rec, int32 col, int32 row, int32 transaction_id);
   };
 
   // --------------------------------------------------------------------
@@ -37,7 +46,16 @@ namespace platefile {
   // --------------------------------------------------------------------
 
   class PagedIndex : public Index {
+    std::string m_base_path;
+    int m_page_width, m_page_height;
+    int m_default_cache_size;
+    boost::shared_ptr<BlobManager> m_blob_manager;
+    std::vector<boost::shared_ptr<IndexLevel> > m_levels;
+    Mutex m_mutex;
+    
   public:
+
+    PagedIndex(std::string base_path, int page_width, int page_height, int default_cache_size);
     virtual ~PagedIndex() {}
 
     // ----------------------- READ/WRITE REQUESTS  ----------------------

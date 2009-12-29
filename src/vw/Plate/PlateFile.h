@@ -99,7 +99,6 @@
 
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/Index.h>
-#include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/Blob.h>
 
 #include <vector>
