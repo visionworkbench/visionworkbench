@@ -1,5 +1,75 @@
 #include <vw/Plate/PlateManager.h>
 
+// Given a bbox, returns a list of smaller bboxes that perfectly
+// tile the space of the larger bbox.
+static std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int height) {
+  std::list<vw::BBox2i> bboxes;
+  
+  vw::int32 j_offset = bbox.min().y();
+  while ( j_offset < bbox.max().y() ) {
+    vw::int32 j_dim = (bbox.max().y() - j_offset) < height ? (bbox.max().y() - j_offset) : height;
+    vw::int32 i_offset = bbox.min().x();
+    while ( i_offset < bbox.max().x() ) {
+      vw::int32 i_dim = (bbox.max().x() - i_offset) < width ? (bbox.max().x() - i_offset) : width;
+      bboxes.push_back(vw::BBox2i(i_offset,j_offset,i_dim,j_dim));
+      i_offset += i_dim;
+    }
+    j_offset += j_dim;
+  }
+  return bboxes;
+}
+
+
+// mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
+//
+//   starting_level -- select the pyramid level on which to carry out mipmapping
+//   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
+//   transaction_id -- select a transaction_id to use when accessing tiles.
+//   this_transaction_only -- select whether to read tiles for mipmapping using ONLY this t_id (true), or 
+//                            mipmap all tiles >= to transaction_id (false).
+//   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
+//                          to be mipmapped at starting_level.  Use to specify effected tiles.
+//
+void vw::platefile::PlateManager::mipmap(int starting_level, bool ascend_pyramid, 
+                                         int transaction_id, bool this_transaction_only, 
+                                         vw::BBox2i const& bbox) const {
+      
+      
+      // Set the ending level depending on whether or not the user has
+      // chosen to build tiles at all pyramid levels, or just this
+      // one.
+      int ending_level = starting_level;
+      if (ascend_pyramid) 
+        ending_level = 0;
+
+      BBox2i level_bbox = bbox;
+      for ( int level = starting_level; level >= ending_level; --level) {
+        std::cout << "\t--> Mipmapping @ level " << level << "\n";
+
+        // Subdivide the bbox into smaller workunits if necessary.
+        // This helps to keep operations efficient.
+        std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 1024, 1024);
+        for ( std::list<BBox2i>::iterator iter = tile_workunits.begin();
+              iter != tile_workunits.end(); ++iter) {
+          std::cout << "\t    Workunit: " << *iter << "\n";
+
+          for (int j = iter->min().y(); j < iter->max().y(); ++j) {
+            for (int i = iter->min().x(); i < iter->max().x(); ++i) {
+              this->regenerate_tile(i,j,level,transaction_id,transaction_id,true);
+            }
+          }
+        }
+
+        // Adjust the size of the bbox for this level
+        level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
+        level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );
+        level_bbox.max().x() = ceil( float(level_bbox.max().x()) / 2 );
+        level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );        
+      }
+    }
+
+
+
 template <class PixelT>
 vw::ImageView<PixelT> 
 vw::platefile::PlateCompositor<PixelT>::composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
@@ -166,6 +236,7 @@ vw::platefile::PlateCompositor<PixelT>::composite_mosaic_tile(boost::shared_ptr<
   progress_callback.report_incremental_progress(1.0);
   return result_tile;
 }
+
 
 
 // Explicit template instatiation

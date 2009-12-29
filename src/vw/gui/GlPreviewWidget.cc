@@ -221,8 +221,8 @@ void GlPreviewWidget::zoom(float scale) {
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 &&
       m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 4*m_tile_generator->cols() &&
-      m_current_viewport.height()/scale < 4*m_tile_generator->rows()) {
+      m_current_viewport.width()/scale < 20*m_tile_generator->cols() &&
+      m_current_viewport.height()/scale < 20*m_tile_generator->rows()) {
 
     m_current_viewport = (m_current_viewport - makeVector(currentImagePos)) / scale + makeVector(currentImagePos);
     update();
@@ -763,7 +763,7 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   // sensitivy of the mousewheel. Shift zooms 10 times faster.
   double scale_factor = 100;
   if (event->modifiers() & Qt::ShiftModifier)
-    scale_factor /= 10;
+    scale_factor /= 50;
 
   float mag = fabs(num_ticks/scale_factor);
   float scale = 1;

@@ -8,7 +8,7 @@
 #define __VW_PLATEFILE_INDEX_PAGE_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Plate/Protobuffers.pb.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 #include <google/sparsetable>

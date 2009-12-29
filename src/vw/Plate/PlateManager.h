@@ -32,7 +32,6 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace platefile {
 
-
   // The Tile Entry is used to keep track of the bounding box of
   // tiles and their location in the grid.
   struct TileInfo {
@@ -42,9 +41,39 @@ namespace platefile {
   };
 
   // -------------------------------------------------------------------------
-  //                              TILE COMPOSITING
+  //                              PLATE MANAGER
   // -------------------------------------------------------------------------
 
+  class PlateManager {
+
+  protected:
+    boost::shared_ptr<PlateFile> m_platefile;
+
+  public:
+
+    PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
+    
+    // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
+    //
+    //   starting_level -- select the pyramid level on which to carry out mipmapping
+    //   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
+    //   transaction_id -- select a transaction_id to use when accessing tiles.
+    //   this_transaction_only -- select whether to read tiles for mipmapping using ONLY this t_id (true), or 
+    //                            mipmap all tiles >= to transaction_id (false).
+    //   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
+    //                          to be mipmapped at starting_level.  Use to specify effected tiles.
+    void mipmap(int starting_level, bool ascend_pyramid, int transaction_id, 
+                bool this_transaction_only, BBox2i const& bbox) const;
+
+    virtual void regenerate_tile(int col, int row, 
+                                 int level, int read_transaction_id, 
+                                 int write_transaction_id, 
+                                 bool this_transaction_only) const = 0;
+  };    
+
+  // -------------------------------------------------------------------------
+  //                              TILE COMPOSITING
+  // -------------------------------------------------------------------------
   template <class PixelT>
   class PlateCompositor {
     
@@ -54,6 +83,7 @@ namespace platefile {
     };
     typedef std::list<RecordCacheEntry> record_cache_t;
     record_cache_t m_record_cache;
+    boost::shared_ptr<PlateFile> m_platefile;
 
     // Save the tile in the cache.  The cache size of 10000 records was chosen
     // somewhat arbitrarily.
@@ -83,6 +113,8 @@ namespace platefile {
 
   public:
 
+    PlateCompositor(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
+
     // Composite into the mosaic. The composite_mosaic_tile() function
     // looks for any tiles at equal or lower resolution in the mosaic,
     // and composites this tile on top of those tiles, supersampling the
@@ -92,6 +124,7 @@ namespace platefile {
                                             int col, int row, int level,
                                             int max_level, int transaction_id,
                                             const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
+
 
   };
 
@@ -108,7 +141,6 @@ namespace platefile {
     ViewT const& m_view;
     bool m_verbose;
     SubProgressCallback m_progress;
-    PlateCompositor<typename ViewT::pixel_type> m_compositor;
       
   public:
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
@@ -130,14 +162,24 @@ namespace platefile {
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);
       
-      // Composite into the mosaic. The composite_mosaic_tile() function
-      // looks for any tiles at equal or lower resolution in the mosaic,
-      // and composites this tile on top of those tiles, supersampling the
-      // low-res tile if necessary.
-      m_compositor.composite_mosaic_tile(m_platefile, tile, m_tile_info.i, m_tile_info.j, 
-                                         m_level, m_level, m_transaction_id, m_progress);
+      // If this tile contains no data at all, then we bail early without
+      // doing anything.
+      if (is_transparent(tile)) {
+        m_progress.report_incremental_progress(1.0);
+        return;
+      }
+      
+      // If the data is valid, we write it to the platefile.
+      //
+      // TODO: This is where we could strip the tile of its alpha
+      // channel to save space in the placefile.  This will require a
+      // view that strips off the alpha channel.
+      m_platefile->write(tile, m_tile_info.i, m_tile_info.j, m_level, m_transaction_id);
+      m_progress.report_incremental_progress(1.0);
     }
   };
+
+  
 
 }} // namespace vw::plate
 

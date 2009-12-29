@@ -9,6 +9,7 @@
 #include <vw/Plate/Index.h>
 #include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/RemoteIndex.h>
+#include <vw/Plate/PagedIndex.h>
 using namespace vw::platefile;
 using namespace vw;
 
@@ -24,7 +25,8 @@ boost::shared_ptr<Index> Index::construct_create(std::string url, IndexHeader ne
 
   // All other URLs are passed along to the local index structure
   } else {
-    return boost::shared_ptr<Index>(new LocalTreeIndex(url, new_index_info));
+    //return boost::shared_ptr<Index>(new LocalTreeIndex(url, new_index_info));
+    return boost::shared_ptr<Index>(new PagedIndex(url, new_index_info));
   }
 
 }
@@ -37,7 +39,8 @@ boost::shared_ptr<Index> Index::construct_open(std::string url) {
 
   // All other URLs are passed along to the local index structure
   } else {
-    return boost::shared_ptr<Index>(new LocalTreeIndex(url));
+    //return boost::shared_ptr<Index>(new LocalTreeIndex(url));
+    return boost::shared_ptr<Index>(new PagedIndex(url));
   }
 
 }

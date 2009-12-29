@@ -520,6 +520,7 @@ namespace math {
       VW_ASSERT(this->min().size() >= 3, LogicErr() << "BBox must be of dimension >= 3 to get depth.");
       return this->max()[2] - this->min()[2];
     }
+
   };
 
 } // namespace math

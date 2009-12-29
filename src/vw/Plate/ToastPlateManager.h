@@ -37,11 +37,9 @@ namespace platefile {
   // -------------------------------------------------------------------------
 
   template <class PixelT>
-  class ToastPlateManager {
+  class ToastPlateManager : public PlateManager {
 
     // Private variables
-
-    boost::shared_ptr<PlateFile> m_platefile;
     FifoWorkQueue m_queue;
 
     struct CacheEntry {
@@ -50,8 +48,6 @@ namespace platefile {
     };
     typedef std::list<CacheEntry> cache_t;
     cache_t m_cache;
-
-    PlateCompositor<PixelT> m_compositor;
 
     // Private methods
     
@@ -142,7 +138,7 @@ namespace platefile {
  public:
   
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      m_platefile(platefile), m_queue(num_threads)  {}
+      PlateManager(platefile), m_queue(num_threads) {}
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -215,18 +211,21 @@ namespace platefile {
       // other by informing the index which tiles will be (eventually)
       // modified under this transaction id.
       std::vector<TileHeader> tile_headers;
+      BBox2i effected_tiles_bbox;
       for (size_t i = 0; i < tiles.size(); ++i) {
         TileHeader hdr;
         hdr.set_col(tiles[i].i);
         hdr.set_row(tiles[i].j);
         hdr.set_level(pyramid_level);
         tile_headers.push_back(hdr);
+        effected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
       }
       int platefile_id = m_platefile->index_header().platefile_id();
       int transaction_id = m_platefile->transaction_request(description, tile_headers);
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
                 << "\t    Platefile ID: " << platefile_id << "\n"
-                << "\t    Transaction ID: " << transaction_id << "\n";
+                << "\t    Transaction ID: " << transaction_id << "\n"
+                << "\t    Effected tiles @ root: " << effected_tiles_bbox << "\n";
 
 
       // // For debugging: 
@@ -242,7 +241,7 @@ namespace platefile {
       //   vw_throw( IOErr() << "terminating randomly....");
       // }
 
-      // Add each tile.W
+      // Add each tile.
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
@@ -258,24 +257,34 @@ namespace platefile {
       m_queue.join_all();
       progress.report_finished();
 
-      // Signal the end of root tile generation and the beginning of
-      // mipmapping.  This allows the index to sweep up any remaining
-      // "LOCKED" tiles that may still be sitting around.
-      m_platefile->root_complete(transaction_id, tile_headers);
-
       // Mipmap the tiles.
-      std::cout << "\t--> Generating mipmap tiles\n";
-      this->mipmap(transaction_id, pyramid_level);
+      if (m_platefile->num_levels() > 1) {
+        std::cout << "\t--> Generating mipmap tiles for transaction_id " << transaction_id << "\n";
+      
+        // Adjust the size of the bbox for this level
+        effected_tiles_bbox.min().x() = floor( float(effected_tiles_bbox.min().x()) / 2.0 );
+        effected_tiles_bbox.min().y() = floor( float(effected_tiles_bbox.min().y()) / 2.0 );
+        effected_tiles_bbox.max().x() = ceil( float(effected_tiles_bbox.max().x()+1) / 2.0 );
+        effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );        
+        
+        this->mipmap(m_platefile->num_levels()-2, true, transaction_id, false, effected_tiles_bbox);
+      }
+
+      // Notify the index that this transaction is complete.
       m_platefile->transaction_complete(transaction_id);
     }
 
+    virtual void regenerate_tile(int col, int row, 
+                                 int level, int read_transaction_id, 
+                                 int write_transaction_id, 
+                                 bool this_transaction_only) const;
 
-    void mipmap(int transaction_id, int max_level) {
-      ImageView<PixelT> tile;
-      this->load_tile(tile, 0, 0, 0, transaction_id, max_level); 
-      if (tile && !is_transparent(tile))
-        m_platefile->write(tile, 0, 0, 0, transaction_id);
-    }
+    ImageView<PixelT> composite_child_tile(int &num_composited, 
+                                           int col, int row, 
+                                           int level, 
+                                           int read_transaction_id,
+                                           int write_transaction_id,
+                                           bool this_transaction_only) const;
 
   };
 

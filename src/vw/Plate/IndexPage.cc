@@ -24,6 +24,10 @@ vw::platefile::IndexPage::IndexPage(std::string filename,
   m_filename(filename), m_level(level), m_base_col(base_col), m_base_row(base_row),
   m_page_width(page_width), m_page_height(page_height), m_needs_saving(false) {
 
+  vw_out(VerboseDebugMessage, "platefile::index") << "Opening index page [ " 
+                                                  << m_base_col << " " << m_base_row 
+                                                  << " @ " << m_level << " ]\n";
+
   if (fs::exists(filename)) {
     this->deserialize();
   } else {
@@ -32,6 +36,9 @@ vw::platefile::IndexPage::IndexPage(std::string filename,
 }
 
 vw::platefile::IndexPage::~IndexPage() {
+  vw_out(VerboseDebugMessage, "platefile::index") << "Closing index page [ " 
+                                                  << m_base_col << " " << m_base_row 
+                                                  << " @ " << m_level << " ]\n";
   this->sync();
 }
 
