@@ -20,7 +20,7 @@ public:
     std::string page_filename = "/tmp/indexpage.temp";
     unlink(page_filename.c_str());
 
-    IndexPage page(page_filename,1024,1024);
+    IndexPage page(page_filename,0,0,0,1024,1024);
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
 
     // Try accessing an empty entry.
@@ -87,7 +87,7 @@ public:
     std::string page_filename = "/tmp/indexpage.temp";
     unlink(page_filename.c_str());
 
-    IndexPage page(page_filename, 1024, 1024);
+    IndexPage page(page_filename,0,0,0, 1024, 1024);
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
     
     // Try accessing an empty entry.
@@ -113,7 +113,7 @@ public:
     // Now, save the file to disk.
     page.sync();
 
-    IndexPage page2(page_filename, 1024, 1024);
+    IndexPage page2(page_filename,0,0,0, 1024, 1024);
     unlink(page_filename.c_str());
 
     IndexRecord rec2 = page2.get(3,5,1);

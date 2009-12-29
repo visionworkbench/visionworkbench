@@ -39,6 +39,9 @@ namespace platefile {
 
     /// Set the value of an index node at this level.
     void set(IndexRecord const& rec, int32 col, int32 row, int32 transaction_id);
+
+    /// Returns a list of valid tiles at this level.
+    std::list<TileHeader> valid_tiles(int transaction_id, BBox2i const& region) const;
   };
 
   // --------------------------------------------------------------------
@@ -96,8 +99,15 @@ namespace platefile {
   
     // ----------------------- PROPERTIES  ----------------------
 
-    virtual int32 num_levels() const;
+    /// Returns a list of tile headers for any valid tiles that exist
+    /// at a the specified level and transaction_id.  The
+    /// transaction_id is treated the same as it would be for
+    /// read_request() above.  The region specifies a tile range of
+    /// interest.
+    virtual std::list<TileHeader> valid_tiles(int level, int transaction_id, 
+                                              BBox2i const& region) const;
 
+    virtual int32 num_levels() const;
     void map(boost::shared_ptr<TreeMapFunc> func);
   };
 

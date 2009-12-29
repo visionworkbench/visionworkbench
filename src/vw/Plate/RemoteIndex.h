@@ -59,6 +59,20 @@ namespace platefile {
     virtual void write_complete(TileHeader const& header, 
                                 IndexRecord const& record);
 
+
+    // ----------------------- PROPERTIES  ----------------------
+
+    /// Returns a list of tile headers for any valid tiles that exist
+    /// at a the specified level and transaction_id.  The
+    /// transaction_id is treated the same as it would be for
+    /// read_request() above.  The region specifies a tile range of
+    /// interest.
+    virtual std::list<TileHeader> valid_tiles(int level, 
+                                              int transaction_id, 
+                                              BBox2i const& region) const {
+      vw_throw(NoImplErr() << "valid_tiles() is not yet implemented for RemoteIndex");
+    }
+
     virtual IndexHeader index_header() const;
   
     virtual int32 version() const;

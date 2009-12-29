@@ -18,9 +18,11 @@ namespace fs = boost::filesystem;
 //                            INDEX PAGE
 // ----------------------------------------------------------------------
 
-vw::platefile::IndexPage::IndexPage(std::string filename, int page_width, int page_height) : 
-  m_filename(filename), m_page_width(page_width), 
-  m_page_height(page_height), m_needs_saving(false) {
+vw::platefile::IndexPage::IndexPage(std::string filename, 
+                                    int level, int base_col, int base_row, 
+                                    int page_width, int page_height) : 
+  m_filename(filename), m_level(level), m_base_col(base_col), m_base_row(base_row),
+  m_page_width(page_width), m_page_height(page_height), m_needs_saving(false) {
 
   if (fs::exists(filename)) {
     this->deserialize();
@@ -105,7 +107,6 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
             << col << " " << row << "]");
 
   // Interate over entries.
-  typedef google::protobuf::internal::RepeatedPtrIterator<const vw::platefile::IndexRecord> iter_type;
   element_type const& entries = m_sparse_table[row*m_page_width + col];
   element_type::const_iterator it = entries.begin();
   
@@ -138,6 +139,73 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
   vw_throw(TileNotFoundErr() << "Tiles exist at this location, " 
            << "but none before transaction_id = "  << transaction_id << "\n");
   return IndexRecord(); // never reached
+}
+
+void vw::platefile::IndexPage::append_record( std::list<vw::platefile::TileHeader> &results, 
+                                              int transaction_id, IndexRecord const& rec, 
+                                              int col, int row,
+                                              BBox2i const& region) const {
+
+  std::cout << "Appending record for level " << m_level << "  at " << col << " " << row << "\n";
+        
+
+  // Check to see if the region contains a col/row.
+  Vector2i loc( m_base_col + col, m_base_row + row);
+  if ( region.contains( loc ) ) {
+    TileHeader hdr;
+    hdr.set_col( m_base_col + col );
+    hdr.set_row( m_base_row + row );
+    hdr.set_level(m_level);
+    hdr.set_transaction_id(transaction_id);
+    results.push_back(hdr);
+  }
+}
+
+/// Returns a list of valid tiles in this IndexPage. 
+std::list<vw::platefile::TileHeader> vw::platefile::IndexPage::valid_tiles(int transaction_id, 
+                                                                           vw::BBox2i const& region,
+                                                                           bool exact_match) const {
+
+  std::list<TileHeader> results;
+
+  for (int row = 0; row < m_page_height; ++row) {
+    for (int col = 0; col < m_page_width; ++col) {
+      if (m_sparse_table.test(row*m_page_width + col)) {
+
+        // Interate over entries.
+        element_type const& entries = m_sparse_table[row*m_page_width + col];
+        element_type::const_iterator it = entries.begin();
+
+        
+        // A transaction ID of -1 indicates that we should return the most
+        // recent tile (which is the first entry in the list, since it is
+        // sorted from most recent to least recent), regardless of its
+        // transaction id.
+        if (transaction_id == -1 && it != entries.end())
+          append_record( results, (*it).first, (*it).second, col, row, region );
+
+        // Otherwise, we search through the entries in the list, looking for
+        // the requested t_id.  Note: this search is O(n), so it can be slow
+        // if there are a lot of entries and the entry you are looking for
+        // is near the end.  However, most pages will contain very few
+        // entries, and for those with many entries (i.e. tiles near the
+        // root of the mosaic), you will rarely search for old tiles.
+        while (it != entries.end()) {
+          if (exact_match) {
+            if ((*it).first == transaction_id)
+              append_record( results, (*it).first, (*it).second, col, row, region );
+          } else {
+            if ((*it).first <= transaction_id)
+              append_record( results, (*it).first, (*it).second, col, row, region );
+          }
+          ++it;
+        }
+
+      }
+    }
+  }
+
+  return results;
 }
 
 // ----------------------------------------------------------------------
@@ -254,14 +322,17 @@ void vw::platefile::IndexPage::deserialize() {
 // ----------------------------------------------------------------------
 
 vw::platefile::IndexPageGenerator::IndexPageGenerator( std::string filename, 
+                                                       int level, int base_col, int base_row, 
                                                        int page_width, int page_height) : 
-  m_filename( filename ), m_page_width(page_width), m_page_height(page_height) {}  
+  m_filename( filename ), m_level(level), m_base_col(base_col), m_base_row(base_row),
+  m_page_width(page_width), m_page_height(page_height) {}  
 
 size_t vw::platefile::IndexPageGenerator::size() const {
   return 1;
 }
 
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexPageGenerator::generate() const {
-  vw_out(0) << "Generating cache line for " << m_filename << "\n";
-  return boost::shared_ptr<IndexPage>(new IndexPage(m_filename, m_page_width, m_page_height) );
+  //  vw_out(0) << "Generating cache line for " << m_filename << "\n";
+  return boost::shared_ptr<IndexPage>(new IndexPage(m_filename, m_level, m_base_col, m_base_row,
+                                                    m_page_width, m_page_height) );
 }

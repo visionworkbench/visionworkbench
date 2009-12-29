@@ -199,17 +199,13 @@ public:
     hdr.set_tile_filetype("tif");
     hdr.set_pixel_format(VW_PIXEL_RGB);
     hdr.set_channel_type(VW_CHANNEL_UINT8);
-    std::cout <<"\nCreating PagedIndex.\n";
     PagedIndex idx(plate_filename, hdr);
     Blob blob(blob_filename);
 
     IndexRecord rec;
-    std::cout <<"Write request.\n";
     rec.set_blob_id( idx.write_request(1024) );
     rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
-    std::cout <<"Write complete.\n";
     idx.write_complete(dummy_header0, rec);
-    std::cout <<"done.\n";
 
     IndexRecord result = idx.read_request(0, 0, 0, 1);
     TS_ASSERT_EQUALS(result.blob_id(), rec.blob_id());
@@ -435,6 +431,83 @@ public:
 
     unlink(index_filename.c_str());
     unlink(blob_filename.c_str());
+  }
+
+
+  void test_valid_tiles() {
+    std::string plate_filename = "/tmp/foo.plate";
+    std::string index_filename = plate_filename + "/plate.index";
+    std::string blob_filename = plate_filename + "/plate_0.blob";
+    
+    unlink(index_filename.c_str());
+    unlink(blob_filename.c_str());
+
+    TileHeader dummy_header0;
+    dummy_header0.set_filetype("tif");
+    dummy_header0.set_col(0);
+    dummy_header0.set_row(0);
+    dummy_header0.set_level(0);
+
+    TileHeader dummy_header1;
+    dummy_header1.set_filetype("tif");
+    dummy_header1.set_col(0);
+    dummy_header1.set_row(0);
+    dummy_header1.set_level(1);
+
+    TileHeader dummy_header2;
+    dummy_header2.set_filetype("tif");
+    dummy_header2.set_col(1);
+    dummy_header2.set_row(0);
+    dummy_header2.set_level(1);
+
+    TileHeader dummy_header3;
+    dummy_header3.set_filetype("tif");
+    dummy_header3.set_col(0);
+    dummy_header3.set_row(1);
+    dummy_header3.set_level(1);
+
+    TileHeader dummy_header4;
+    dummy_header4.set_filetype("tif");
+    dummy_header4.set_col(1);
+    dummy_header4.set_row(1);
+    dummy_header4.set_level(1);
+
+    // Write some data to the Index.
+    IndexHeader hdr;
+    hdr.set_tile_size(256);
+    hdr.set_tile_filetype("tif");
+    hdr.set_pixel_format(VW_PIXEL_RGB);
+    hdr.set_channel_type(VW_CHANNEL_UINT8);
+    PagedIndex idx(plate_filename, hdr);
+    Blob blob(blob_filename);
+
+    IndexRecord rec;
+    rec.set_blob_id( idx.write_request(1024) );
+    rec.set_blob_offset(blob.write(dummy_header0, m_test_data, 20));
+    idx.write_complete(dummy_header0, rec);
+
+    rec.set_blob_id( idx.write_request(1024) );
+    rec.set_blob_offset(blob.write(dummy_header1, m_test_data, 20));
+    idx.write_complete(dummy_header1, rec);
+
+    rec.set_blob_id( idx.write_request(1024) );
+    rec.set_blob_offset(blob.write(dummy_header2, m_test_data, 20));
+    idx.write_complete(dummy_header2, rec);
+
+    rec.set_blob_id( idx.write_request(1024) );
+    rec.set_blob_offset(blob.write(dummy_header3, m_test_data, 20));
+    idx.write_complete(dummy_header3, rec);
+
+    rec.set_blob_id( idx.write_request(1024) );
+    rec.set_blob_offset(blob.write(dummy_header4, m_test_data, 20));
+    idx.write_complete(dummy_header4, rec);
+    
+    // Test valid_tiles() call at level 0;
+    std::list<TileHeader> tiles = idx.valid_tiles(0, -1, BBox2i(0,0,1,1));
+    TS_ASSERT_EQUALS(tiles.size(), 1);
+
+    tiles = idx.valid_tiles(1, -1, BBox2i(0,0,2,2));
+    TS_ASSERT_EQUALS(tiles.size(), 4);
   }
 
 

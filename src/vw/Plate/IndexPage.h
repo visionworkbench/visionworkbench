@@ -9,6 +9,8 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/Protobuffers.pb.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/BBox.h>
 #include <google/sparsetable>
 #include <list>
 
@@ -25,6 +27,7 @@ namespace platefile {
     typedef std::list<std::pair<int32,IndexRecord> > element_type;
 
     std::string m_filename;
+    int m_level, m_base_col, m_base_row;
     int m_page_width, m_page_height;
     bool m_needs_saving;
     google::sparsetable<element_type> m_sparse_table;
@@ -32,12 +35,28 @@ namespace platefile {
     void serialize();
     void deserialize();
 
+    void append_record( std::list<vw::platefile::TileHeader> &results, 
+                        int transaction_id, 
+                        IndexRecord const& rec, int col, int row,
+                        BBox2i const& region) const;
+
   public:
+    
+    typedef google::sparsetable<element_type>::nonempty_iterator nonempty_iterator;
   
     /// Create or open a page file.
-    IndexPage(std::string filename, int page_width, int page_height);
+    IndexPage(std::string filename, 
+              int level, int base_col, int base_row, 
+              int page_width, int page_height);
 
     ~IndexPage();
+
+    // ----------------------------------------------------------------------
+    //                          Iterators
+    // ----------------------------------------------------------------------
+
+    nonempty_iterator begin() { return m_sparse_table.nonempty_begin(); }
+    nonempty_iterator end() { return m_sparse_table.nonempty_end(); }
 
     // ----------------------------------------------------------------------
     //                          Accessors
@@ -64,6 +83,11 @@ namespace platefile {
     /// that this is a sparse store of IndexRecords.)
     int sparse_size() { return m_sparse_table.num_nonempty(); }
 
+    /// Returns a list of valid tiles in this IndexPage. 
+    std::list<TileHeader> valid_tiles(int transaction_id, 
+                                      vw::BBox2i const& region,
+                                      bool exact_match) const;
+
     // ----------------------------------------------------------------------
     //                            Disk I/O
     // ----------------------------------------------------------------------
@@ -80,12 +104,13 @@ namespace platefile {
   // IndexPageGenerator loads a index page from disk.
   class IndexPageGenerator {
     std::string m_filename;
-    int m_page_width;
-    int m_page_height;
+    int m_level, m_base_col, m_base_row;
+    int m_page_width, m_page_height;
 
   public:
     typedef IndexPage value_type;
-    IndexPageGenerator( std::string filename, int page_width, int page_height );
+    IndexPageGenerator( std::string filename, int level, int base_col, int base_row, 
+                        int page_width, int page_height );
     size_t size() const;
 
     /// Generate an IndexPage.  If no file exists with the name

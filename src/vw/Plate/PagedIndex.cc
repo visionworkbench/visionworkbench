@@ -37,6 +37,9 @@ vw::platefile::IndexLevel::IndexLevel(std::string plate_filename, int level,
                << "/" << (j * page_height) 
                << "/" << (i * page_width);
       boost::shared_ptr<IndexPageGenerator> generator( new IndexPageGenerator(filename.str(), 
+                                                                              level, 
+                                                                              i * m_page_width,
+                                                                              j * m_page_height,
                                                                               page_width, 
                                                                               page_height) );
       m_cache_generators[j*m_horizontal_pages + i] = generator;
@@ -94,6 +97,33 @@ void vw::platefile::IndexLevel::set(vw::platefile::IndexRecord const& rec,
 
 }
 
+/// Returns a list of valid tiles at this level.
+std::list<vw::platefile::TileHeader> vw::platefile::IndexLevel::valid_tiles(int transaction_id, 
+                                                                            BBox2i const& region) const {
+  
+  // Start by computing the search range in pages based on the requested region. 
+  int32 min_level_col = region.min().x() / m_page_width;
+  int32 min_level_row = region.min().y() / m_page_height;
+
+  int32 max_level_col = ceilf(float(region.max().x()) / m_page_width);
+  int32 max_level_row = ceilf(float(region.max().y()) / m_page_height);
+
+  // Iterate over the pages that overlap with the region of interest.
+  std::list<TileHeader> result;
+  for (int32 level_row = min_level_row; level_row < max_level_row; ++level_row) {
+    for (int32 level_col = min_level_col; level_col < max_level_col; ++level_col) {
+      boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
+
+      // Accumulate valid tiles that overlap with region from this IndexPage.
+      std::list<TileHeader> sub_result = page->valid_tiles(transaction_id, region, false);
+      result.splice(result.end(), sub_result);
+    }
+  }
+
+  return result;
+}
+
+
 // --------------------------------------------------------------------
 //                             PAGED INDEX
 // --------------------------------------------------------------------
@@ -115,7 +145,11 @@ vw::platefile::PagedIndex::PagedIndex(std::string plate_filename,
                                       int page_width, int page_height, int default_cache_size) :
   LocalIndex(plate_filename),
   m_page_width(page_width), m_page_height(page_height), 
-  m_default_cache_size(default_cache_size) {}
+  m_default_cache_size(default_cache_size) {
+  // Load the actual index data
+  std::vector<std::string> blob_files = this->blob_filenames();
+  this->load_index(plate_filename, blob_files);
+}
 
 // Load index entries by iterating through TileHeaders saved in the
 // blob file.  This function essentially rebuilds an index in memory
@@ -123,7 +157,7 @@ vw::platefile::PagedIndex::PagedIndex(std::string plate_filename,
 void vw::platefile::PagedIndex::load_index(std::string plate_filename,
                                            std::vector<std::string> const& blob_files) {
 
-  std::cout << "\tLoading index: " << plate_filename <<"\n";
+  //  std::cout << "\tLoading index: " << plate_filename <<"\n";
 
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
     // this->log() << "Loading index entries from blob file: "
@@ -162,7 +196,6 @@ void vw::platefile::PagedIndex::load_index(std::string plate_filename,
 void vw::platefile::PagedIndex::commit_record(IndexRecord const& record, 
                                               int col, int row, 
                                               int level, int transaction_id) {
-  std::cout << "\nCall to commit_record() " << m_levels.size() << "\n";
 
   // First, we check to make sure we have a sufficient number of
   // levels to save the requested data.  If not, we grow the levels
@@ -196,10 +229,25 @@ int vw::platefile::PagedIndex::write_request(int size) {
 void vw::platefile::PagedIndex::write_complete(TileHeader const& header, 
                                                IndexRecord const& record) {
   m_blob_manager->release_lock(record.blob_id(), record.blob_offset());
-  this->commit_record(record, header.col(), header.row(), header.level(), header.transaction_id());
+  this->commit_record(record, header.col(), header.row(), 
+                      header.level(), header.transaction_id());
 }
   
 // ----------------------- PROPERTIES  ----------------------
+
+/// Returns a list of tile headers for any valid tiles that exist
+/// at a the specified level and transaction_id.  The
+/// transaction_id is treated the same as it would be for
+/// read_request() above.  The region specifies a tile range of
+/// interest.
+std::list<vw::platefile::TileHeader> vw::platefile::PagedIndex::valid_tiles(int level, 
+                                                                            int transaction_id, 
+                                                                            BBox2i const& region) const {
+  VW_ASSERT(level >= 0 && level < m_levels.size(),
+            ArgumentErr() << "PagedIndex::valid_tiles() failed.  "
+            << "Requested tiles from a level that does not exist.");
+  return m_levels[level]->valid_tiles(transaction_id, region);
+}
 
 int32 vw::platefile::PagedIndex::num_levels() const {
   return m_levels.size();

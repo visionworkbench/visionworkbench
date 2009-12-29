@@ -11,6 +11,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
+#include <vw/Math/BBox.h>
 
 #include <vw/Image/PixelTypeInfo.h>
 
@@ -72,6 +73,15 @@ namespace platefile {
     virtual void write_complete(TileHeader const& header, IndexRecord const& record) = 0;
 
     // ----------------------- PROPERTIES  ----------------------
+
+    /// Returns a list of tile headers for any valid tiles that exist
+    /// at a the specified level and transaction_id.  The
+    /// transaction_id is treated the same as it would be for
+    /// read_request() above.  The region specifies a tile range of
+    /// interest.
+    virtual std::list<TileHeader> valid_tiles(int level, 
+                                              int transaction_id, 
+                                              vw::BBox2i const& region) const = 0;
 
     virtual IndexHeader index_header() const = 0;
 
