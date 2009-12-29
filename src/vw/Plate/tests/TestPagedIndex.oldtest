@@ -1,0 +1,31 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2009 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+#include <cxxtest/TestSuite.h>
+
+#include <vw/Plate/PagedIndex.h>
+#include <vw/Plate/Exception.h>
+using namespace std;
+using namespace vw;
+using namespace vw::platefile;
+
+class TestPagedIndex : public CxxTest::TestSuite {
+
+public:
+
+  void test_basic_access() {
+    std::cout << "\n";
+    std::vector<boost::shared_ptr<IndexLevel> > levels;
+    
+    for (int i = 0; i < 18; ++i) {
+      std::cout << "Building index level " << i << "... " << std::flush;
+      boost::shared_ptr<IndexLevel> level( new IndexLevel("/tmp/foo", i, 256, 256, 100) );
+      levels.push_back(level);
+      std::cout << "done.\n";
+    }
+  }
+
+}; // class TestIndexPage

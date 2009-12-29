@@ -16,12 +16,13 @@ TestBlobIO_SOURCES       = TestBlobIO.oldtest
 TestBlobIterator_SOURCES = TestBlobIterator.oldtest
 TestIndex_SOURCES        = TestIndex.oldtest
 TestIndexPage_SOURCES        = TestIndexPage.oldtest
+TestPagedIndex_SOURCES        = TestPagedIndex.oldtest
 TestAmqp_SOURCES        = TestAmqp.oldtest
 TestTree_SOURCES        = TestTree.oldtest
 TestPlateIndexServer_SOURCES        = TestPlateIndexServer.oldtest
 
 TESTS = TestBlobManager TestBlobIO TestBlobIterator TestIndex	\
-	TestIndexPage TestAmqp TestTree TestPlateIndexServer
+	TestPagedIndex TestIndexPage TestAmqp TestTree TestPlateIndexServer
 
 #include $(top_srcdir)/config/instantiate.am
 

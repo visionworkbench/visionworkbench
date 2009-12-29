@@ -7,6 +7,7 @@
 #include <vw/Plate/IndexPage.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
 
 #include <boost/shared_array.hpp>
 #include <boost/filesystem/path.hpp>
@@ -252,5 +253,6 @@ size_t vw::platefile::IndexPageGenerator::size() const {
 }
 
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexPageGenerator::generate() const {
+  vw_out(0) << "Generating cache line for " << m_filename << "\n";
   return boost::shared_ptr<IndexPage>(new IndexPage(m_filename, m_page_width, m_page_height) );
 }

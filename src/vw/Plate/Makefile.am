@@ -25,13 +25,15 @@ BUILT_SOURCES = $(protocol_sources)
 include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  LocalIndex.h RemoteIndex.h Tree.h PlateFile.h Amqp.h	\
 		  PlateManager.h ToastPlateManager.h KmlPlateManager.h	\
-		  PlateView.h RpcServices.h IndexService.h IndexPage.h
+		  PlateView.h RpcServices.h IndexService.h IndexPage.h	\
+		  PagedIndex.h
 nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
 			IndexService.cc Amqp.cc PlateManager.cc		\
-			ToastPlateManager.cc IndexPage.cc
+			ToastPlateManager.cc IndexPage.cc		\
+			PagedIndex.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@

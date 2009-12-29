@@ -3,10 +3,15 @@
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
-
-
 #ifndef __VW_PLATEFILE_PAGED_INDEX_H__
 #define __VW_PLATEFILE_PAGED_INDEX_H__
+
+#include <vw/Core/Cache.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/Index.h>
+#include <vector>
+#include <string>
 
 namespace vw {
 namespace platefile {
@@ -16,12 +21,15 @@ namespace platefile {
   // --------------------------------------------------------------------
   class IndexLevel {
     int m_level;
-    int m_cache_size;
+    std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
+    std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
+    vw::Cache m_cache;
 
   public:
-    IndexLevel(int level, int cache_size) : m_level(level), m_cache_size(cache_size) {
-      int num_pages = pow(2,level*2);
-    }
+    IndexLevel(std::string base_path, int level, 
+               int page_width, int page_height, int cache_size);
+
+    ~IndexLevel();
   };
 
   // --------------------------------------------------------------------
@@ -35,47 +43,47 @@ namespace platefile {
     // ----------------------- READ/WRITE REQUESTS  ----------------------
 
     virtual IndexRecord read_request(int col, int row, int depth, 
-                                     int transaction_id, bool exact_transaction_match = false) {}
+                                     int transaction_id, bool exact_transaction_match = false);
 
-    virtual int write_request(int size) {}
+    virtual int write_request(int size);
 
-    virtual void write_complete(TileHeader const& header, IndexRecord const& record) {}
+    virtual void write_complete(TileHeader const& header, IndexRecord const& record);
 
   
     // ----------------------- PROPERTIES  ----------------------
 
-    virtual IndexHeader index_header() const = 0;
+    virtual IndexHeader index_header() const;
   
-    virtual int32 version() const = 0;
-    virtual int32 max_depth() const = 0;
+    virtual int32 version() const;
+    virtual int32 max_depth() const;
   
-    virtual std::string platefile_name() const = 0;
+    virtual std::string platefile_name() const;
   
-    virtual int32 tile_size() const = 0;
-    virtual std::string tile_filetype() const = 0;
+    virtual int32 tile_size() const;
+    virtual std::string tile_filetype() const;
   
-    virtual PixelFormatEnum pixel_format() const = 0;
-    virtual ChannelTypeEnum channel_type() const = 0;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
 
     // --------------------- TRANSACTIONS ------------------------
   
     /// Clients are expected to make a transaction request whenever
     /// they start a self-contained chunk of mosaicking work.  .
     virtual int32 transaction_request(std::string transaction_description,
-                                      std::vector<TileHeader> const& tile_headers) = 0;
+                                      std::vector<TileHeader> const& tile_headers);
   
     /// Called right before the beginning of the mipmapping pass
     virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers) = 0;
+                               std::vector<TileHeader> const& tile_headers);
   
     /// Once a chunk of work is complete, clients can "commit" their
     /// work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id) = 0;
+    virtual void transaction_complete(int32 transaction_id);
   
     // If a transaction fails, we may need to clean up the mosaic.  
-    virtual void transaction_failed(int32 transaction_id) = 0;
+    virtual void transaction_failed(int32 transaction_id);
   
-    virtual int32 transaction_cursor() = 0;
+    virtual int32 transaction_cursor();
 
     // --------------------- UTILITIES ------------------------
   
@@ -83,9 +91,8 @@ namespace platefile {
     /// location.  Note: this will only be implemented for local
     /// indexes.  This function will throw an error if called on a
     /// remote index.
-    virtual void map(boost::shared_ptr<TreeMapFunc> func) { 
-      vw_throw(NoImplErr() << "Index::map() not implemented for this index type.");
-    }
+    virtual void map(boost::shared_ptr<TreeMapFunc> func);
+
   };
 
 }} // namespace vw::platefile

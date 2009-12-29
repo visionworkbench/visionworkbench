@@ -70,7 +70,6 @@ namespace platefile {
 
     /// Save any unsaved changes to disk.
     void sync();
-
   };
 
 
