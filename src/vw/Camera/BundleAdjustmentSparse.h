@@ -63,7 +63,6 @@ namespace camera {
     // This routine inverts a sparse matrix S, and prints the individual
     // covariance matrices for each camera
     void covCalc(){
-      /*
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_cameras = this->m_model.num_cameras();
@@ -87,7 +86,6 @@ namespace camera {
 
       std::cout << "Covariance matrices for cameras are:"
                 << sparse_cov << "\n\n";
-      */
     }
 
     // UPDATE IMPLEMENTATION

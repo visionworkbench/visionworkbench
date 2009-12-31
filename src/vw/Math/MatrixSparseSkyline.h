@@ -213,95 +213,6 @@ namespace math {
     return os;
   }
 
-  /*
-  template <class ElemT>
-  class SparseSkylineMatrix {
-    //typedef boost::numeric::ublas::compressed_matrix<ElemT> sparse_matrix_type;
-    //typedef boost::numeric::ublas::generalized_vector_of_vector<ElemT, row_major, vector<coordinate_vector<ElemT> > > sparse_matrix_type;
-    typedef boost::numeric::ublas::compressed_vector<ElemT> compressed_vec;
-    typedef boost::numeric::ublas::vector<compressed_vec> inner_type;
-    typedef boost::numeric::ublas::row_major order_type;
-    typedef boost::numeric::ublas::generalized_vector_of_vector<ElemT, order_type, inner_type > sparse_matrix_type;
-
-    sparse_matrix_type m_matrix;
-    std::vector<vw::uint32> m_skyline;
-
-  public:
-    SparseSkylineMatrix(unsigned cols, unsigned rows) :
-    m_matrix(cols,rows), m_skyline(cols) {
-      VW_ASSERT(cols == rows,
-                ArgumentErr() << "SparseSkylineMatrix must be square and symmetric.\n");
-      // Setting non-zero to the identity point;
-      for (unsigned i = 0; i < cols; ++i)
-        m_skyline[i] = i;
-    }
-
-
-    // Returns the "skyline" of the sparse, symmetric matrix.  That is,
-    // each index i in the returned vector contains the index of the
-    // first valid entry in row i (or equivelently, column i) of the
-    // skyline matrix.
-    const std::vector<vw::uint32>& skyline() const { return m_skyline; }
-
-    vw::uint32 rows() const { return m_matrix.size1(); }
-    vw::uint32 cols() const { return m_matrix.size2(); }
-
-    // Some boost sparse matrix types define this method...
-    void push_back (vw::uint32 i, vw::uint32 j, ElemT const& val) {
-      return m_matrix.push_back(i,j,val);
-    }
-
-    typename sparse_matrix_type::const_reference operator () (vw::uint32 i, vw::uint32 j) const {
-      VW_DEBUG_ASSERT(i < 0 || i >= this->rows() || j < 0 || j >= this->cols(),
-                      ArgumentErr() << "SparseSkylineMatrix: index " << i << " "
-                      << j << " out of bounds.");
-
-      // Force symmetry by reflecting all points to the lower left
-      // triangle.
-      if (j > i)
-        return m_matrix(j,i);
-      else
-        return m_matrix(i,j);
-    }
-
-    // REWRITE!
-    typename sparse_matrix_type::reference operator () (vw::uint32 i, vw::uint32 j) {
-      VW_DEBUG_ASSERT(i < 0 || i >= this->rows() || j < 0 || j >= this->cols(),
-                      ArgumentErr() << "SparseSkylineMatrix: index " << i << " "
-                      << j << " out of bounds.");
-
-      // Force symmetry by reflecting all points to the lower left
-      // triangle.
-      if (j > i)
-        std::swap(i,j);
-
-      if (j < m_skyline[i])
-        m_skyline[i] = j;
-      return m_matrix(i,j);
-    }
-
-    // Handy for debugging...
-    void print_sparse_structure(int sample_rate = 1) {
-      vw_out(0) << "SPARSE STRUCTURE: \n";
-      for (unsigned i = 0, ii=0; i < this->rows(); i += sample_rate, ii++) {
-        for (unsigned j = 0, jj=0; j < this->cols(); j += sample_rate, jj++) {
-          ElemT e = (*this)(i,j);
-          if (e)
-            vw_out(0) << "#";
-          else
-            if ( ii%2 == 0 &&
-                 jj%2 == 0 )
-              vw_out(0) << ".";
-            else
-              vw_out(0) << " ";
-        }
-        vw_out(0) << "\n";
-      }
-    }
-
-  };
-  */
-
   //--------------------------------------------------------------------
   //        L*D*L^T Decompostion for Symmetric, Spares, Skyline Matrices
   //--------------------------------------------------------------------
@@ -400,7 +311,7 @@ namespace math {
     return x;
   }
 
- //--------------------------------------------------------------
+  //--------------------------------------------------------------
   //            Solve Spare Skyline Linear System: AX=B, where
   //            X and B are matrices
   //--------------------------------------------------------------
@@ -409,11 +320,17 @@ namespace math {
   /// semi-definite matrix A (in place) and then call
   /// forward/backward solver
 
-  /*
   /// WARNING: Modifies the contents of the matrix A.
   template <class ElemT, class BMatrixT>
   Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
-    multi_sparse_solve(SparseSkylineMatrix<ElemT>& A, BMatrixT & B ) {
+  multi_sparse_solve(MatrixSparseSkyline<ElemT>& A, BMatrixT & B ) {
+    Vector<unsigned> skyline = A.skyline();
+    return multi_sparse_solve(A, B, skyline);
+  }
+
+  template <class AMatrixT, class BMatrixT, class VectorT>
+  Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
+    multi_sparse_solve(AMatrixT & A, BMatrixT & B, VectorT & skyline ) {
     VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "multi_sparse_solve: matrix must be square and symmetric.\n");
     VW_ASSERT(A.rows() == B.rows(), ArgumentErr() << "multi_sparse_solve: AX=B means A, B have same # of rows.\n");
 
@@ -423,16 +340,14 @@ namespace math {
 
 
     // Compute the L*D*L^T decomposition of A
-    ldl_decomposition(A);
+    sparse_ldl_decomposition(A, skyline);
 
     for(unsigned i = 0; i < B.cols(); i++){
       current_col = select_col(B, i);
-      select_col(X, i) = sparse_solve_ldl(A, current_col);
+      select_col(X, i) = sparse_solve_ldl(A, current_col, skyline);
     }
     return X;
   }
-  */
-
 
   //-------------------------------------------------------------------
   //            Solve Spare Skyline Linear System: Ax=b Given LDL^T
