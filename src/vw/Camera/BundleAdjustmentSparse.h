@@ -14,7 +14,8 @@
 
 // Vision Workbench
 #include <vw/Camera/BundleAdjustmentBase.h>
-#include <vw/Math/SparseSkylineMatrix.h>
+#include <vw/Math/MatrixSparseSkyline.h>
+#include <vw/Core/Debugging.h>
 
 // Boost
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -40,7 +41,7 @@ namespace camera {
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S;
+    boost::shared_ptr<math::MatrixSparseSkyline<double> > m_S;
 
   public:
 
@@ -52,9 +53,9 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
-    math::SparseSkylineMatrix<double> S() { return *m_S; }
-    void set_S(math::SparseSkylineMatrix<double> S) {
-      m_S = boost::shared_ptr<math::SparseSkylineMatrix<double> >(new math::SparseSkylineMatrix<double>(S));
+    math::MatrixSparseSkyline<double> S() { return *m_S; }
+    void set_S(math::MatrixSparseSkyline<double> S) {
+      m_S = boost::shared_ptr<math::MatrixSparseSkyline<double> >(new math::MatrixSparseSkyline<double>(S));
     }
 
     // Covariance Calculator
@@ -62,7 +63,7 @@ namespace camera {
     // This routine inverts a sparse matrix S, and prints the individual
     // covariance matrices for each camera
     void covCalc(){
-
+      /*
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_cameras = this->m_model.num_cameras();
@@ -75,7 +76,7 @@ namespace camera {
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
       // Get the S matrix from the model
-      math::SparseSkylineMatrix<double> S = this->S();
+      math::MatrixSparseSkyline<double> S = this->S();
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
       Matrix<double> Cov = multi_sparse_solve(S, Id);
@@ -86,8 +87,7 @@ namespace camera {
 
       std::cout << "Covariance matrices for cameras are:"
                 << sparse_cov << "\n\n";
-
-      return;
+      */
     }
 
     // UPDATE IMPLEMENTATION
@@ -96,6 +96,7 @@ namespace camera {
     // the average improvement in the cost function.
     double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
+      Timer* time;
 
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
@@ -139,16 +140,16 @@ namespace camera {
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W
       // matrix.
-      vw_out(DebugMessage, "bundle_adjustment") << "Image Error: " << std::endl;
+      time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "bundle_adjust");
       unsigned i = 0;
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
 
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
            iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin();
-             measure_iter != (*iter).end(); ++measure_iter) {
+        for (typename ControlPoint::const_iterator measure_iter = iter->begin();
+             measure_iter != iter->end(); ++measure_iter) {
 
-          unsigned j = (*measure_iter).image_id();
+          unsigned j = measure_iter->image_id();
 
           VW_DEBUG_ASSERT( j >=0 && j < this->m_model.num_cameras(),
                            ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
@@ -192,8 +193,11 @@ namespace camera {
         ++i;
       }
 
+      delete time;
+
       // set initial lambda, and ignore if the user has touched it
       if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
+        time = new Timer("Solving for Lambda:", DebugMessage, "bundle_adjust");
         double max = 0.0;
         for (unsigned i = 0; i < U.size(); ++i)
           for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
@@ -206,9 +210,11 @@ namespace camera {
               max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
           }
         this->m_lambda = max * 1e-10;
+        delete time;
       }
 
       // Add in the camera position and pose constraint terms and covariances.
+      time = new Timer("Solving for Camera and GCP error:",DebugMessage,"bundle_adjust");
       if ( this->m_use_camera_constraint )
         for ( unsigned j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov;
@@ -236,8 +242,10 @@ namespace camera {
             error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
             epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
           }
+      delete time;
 
       // flatten both epsilon_b and epsilon_a into a vector
+      time = new Timer("Flatten eps_a, eps_b, and augmenting with lambda",DebugMessage,"bundle_adjust");
       for (unsigned j = 0; j < U.size(); j++){
         subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
         current_g_length += num_cam_params;
@@ -266,10 +274,12 @@ namespace camera {
         for ( i = 0; i < V.size(); ++i )
           V(i) += v_lambda;
       }
+      delete time;
 
       // Create the 'e' vector in S * delta_a = e.  The first step is
       // to "flatten" our block structure to a vector that contains
       // scalar entries.
+      time = new Timer("Create special e vector", DebugMessage, "bundle_adjust");
       Vector<double> e(this->m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
       for (unsigned j = 0; j < epsilon_a.size(); ++j) {
         subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) =
@@ -295,17 +305,18 @@ namespace camera {
         }
         ++i;
       }
+      delete time;
 
       // --- BUILD SPARSE, SOLVE A'S UPDATE STEP -------------------------
+      time = new Timer("Build Sparse", DebugMessage, "bundle_adjust");
 
       // The S matrix is a m x m block matrix with blocks that are
       // camera_params_n x camera_params_n in size.  It has a sparse
       // skyline structure, which makes it more efficient to solve
       // through L*D*L^T decomposition and forward/back substitution
       // below.
-      math::SparseSkylineMatrix<double> S(this->m_model.num_cameras()*num_cam_params,
+      math::MatrixSparseSkyline<double> S(this->m_model.num_cameras()*num_cam_params,
                                           this->m_model.num_cameras()*num_cam_params);
-
       i = 0;
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
            iter != this->m_control_net->end(); ++iter) {
@@ -366,8 +377,12 @@ namespace camera {
       }
 
       this->set_S(S);
+      delete time;
+      time = new Timer("Solve Delta A", DebugMessage, "bundle_adjust");
+
       // Compute the LDL^T decomposition and solve using sparse methods.
       Vector<double> delta_a = sparse_solve(S, e);
+      delete time;
 
       // Save S; used for covariance calculations
       subvector(delta, current_delta_length, e.size()) = delta_a;
@@ -376,6 +391,7 @@ namespace camera {
       // --- SOLVE B'S UPDATE STEP ---------------------------------
 
       // Back Solving for Delta B
+      time = new Timer("Solve Delta B", DebugMessage, "bundle_adjust");
       boost_sparse_vector<vector_point > delta_b(this->m_model.num_points());
 
       i = 0;
@@ -402,12 +418,14 @@ namespace camera {
 
         ++i;
       }
+      delete time;
 
       dS = .5 * transpose(delta) *(this->m_lambda * delta + g);
 
       // -------------------------------
       // Compute the update error vector and predicted change
       // -------------------------------
+      time = new Timer("Solve for Updated Error", DebugMessage, "bundle_adjust");
       i = 0;
       double new_error_total = 0;
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
@@ -470,6 +488,7 @@ namespace camera {
             inverse_cov = this->m_model.B_inverse_covariance(i);
             new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
           }
+      delete time;
 
       //Fletcher modification
       double Splus = new_error_total;     //Compute new objective
@@ -478,12 +497,14 @@ namespace camera {
 
       if ( R > 0 ) {
 
+        time = new Timer("Setting Parameters",DebugMessage,"bundle_adjust");
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
         for (unsigned i=0; i<this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
                                          static_cast<vector_point>(delta_b(i)));
+        delete time;
 
         // Summarize the stats from this step in the iteration
         abs_tol = vw::math::max(g) + vw::math::max(-g);

@@ -14,7 +14,7 @@
 
 // Vision Workbench
 #include <vw/Camera/BundleAdjustmentBase.h>
-#include <vw/Math/SparseSkylineMatrix.h>
+#include <vw/Math/MatrixSparseSkyline.h>
 
 // Boost
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -40,21 +40,21 @@ namespace camera {
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::SparseSkylineMatrix<double> > m_S;
+    boost::shared_ptr<math::MatrixSparseSkyline<double> > m_S;
 
   public:
 
     BundleAdjustmentRobustSparse( BundleAdjustModelT & model,
-                            RobustCostT const& robust_cost_func,
-                            bool use_camera_constraint=true,
-                            bool use_gcp_constraint=true) :
+                                  RobustCostT const& robust_cost_func,
+                                  bool use_camera_constraint=true,
+                                  bool use_gcp_constraint=true) :
     BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
-    math::SparseSkylineMatrix<double> S() { return *m_S; }
-    void set_S(math::SparseSkylineMatrix<double> S) {
-      m_S = boost::shared_ptr<math::SparseSkylineMatrix<double> >(new math::SparseSkylineMatrix<double>(S));
+    math::MatrixSparseSkyline<double> S() { return *m_S; }
+    void set_S(math::MatrixSparseSkyline<double> S) {
+      m_S = boost::shared_ptr<math::MatrixSparseSkyline<double> >(new math::MatrixSparseSkyline<double>(S));
     }
 
     // Covariance Calculator
@@ -62,7 +62,7 @@ namespace camera {
     // This routine inverts a sparse matrix S, and prints the individual
     // covariance matrices for each camera
     void covCalc() {
-
+      /*
       // camera params
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_cameras = this->m_model.num_cameras();
@@ -75,7 +75,7 @@ namespace camera {
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
       // Get the S matrix from the model
-      math::SparseSkylineMatrix<double> S = this->S();
+      math::MatrixSparseSkyline<double> S = this->S();
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
       Matrix<double> Cov = multi_sparse_solve(S, Id);
@@ -89,8 +89,7 @@ namespace camera {
 
       std::cout << "Covariance matrices for cameras are:"
                 << sparse_cov << "\n\n";
-
-      return;
+      */
     }
 
     // UPDATE IMPLEMENTATION
@@ -329,7 +328,7 @@ namespace camera {
       // skyline structure, which makes it more efficient to solve
       // through L*D*L^T decomposition and forward/back substitution
       // below.
-      math::SparseSkylineMatrix<double> S(this->m_model.num_cameras()*num_cam_params,
+      math::MatrixSparseSkyline<double> S(this->m_model.num_cameras()*num_cam_params,
                                           this->m_model.num_cameras()*num_cam_params);
 
       i = 0;
