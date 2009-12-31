@@ -59,5 +59,5 @@ TEST(Accumulators, Median) {
   for ( uint i = 0; i < 50000; i++ )
     median( generator() );
 
-  EXPECT_NEAR( median.value(), 35.0, 1.0 );
+  EXPECT_NEAR( median.value(), 35.0, 1.5 );
 }

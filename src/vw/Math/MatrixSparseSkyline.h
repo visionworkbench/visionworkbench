@@ -18,6 +18,7 @@
 #include <vector>
 
 // Vision Workbench
+#include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
@@ -114,7 +115,7 @@ namespace math {
       VW_ASSERT( m.impl().rows() == m_matrix.size1() &&
                  m.impl().cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
-      vw_out(WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
+      vw_out(vw::WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
       for ( unsigned i = 0; i < m.rows(); i++ ) {
         for ( unsigned j = 0; j < m.cols(); j++ ) {
           (*this)(i,j) = m(i,j);
