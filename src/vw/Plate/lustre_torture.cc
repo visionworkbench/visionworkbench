@@ -113,8 +113,8 @@ void run(const Options& opt) {
 
   vw_out(InfoMessage) << "Ready to create "
                       << opt.clients * opt.block_size * opt.block_count / 1024. / 1024.
-                      << "MB file! Press enter." << std::endl;
-  getchar();
+                      << "MB file! Waiting 5 seconds for everyone to start." << std::endl;
+  sleep(5);
 
   uint32 blocks_written = 0;
   uint32 tick = opt.block_count / 100;
