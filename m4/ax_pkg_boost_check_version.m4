@@ -15,7 +15,9 @@ AC_DEFUN([AX_PKG_BOOST_CHECK_VERSION],
   CPPFLAGS="$PKG_BOOST_CPPFLAGS"
   LDFLAGS="$PKG_BOOST_LDFLAGS"
 
-  AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [BOOST_VERSION=$output], AC_MSG_ERROR([Failed to run Boost version check program]), [#include <boost/version.hpp>])
+
+  AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [#include <boost/version.hpp>], [BOOST_VERSION=$output],
+    [AC_MSG_ERROR([Failed to run Boost version check program])])
 
   if test -z "$BOOST_VERSION"; then
     AC_MSG_ERROR([Boost version check program did not define BOOST_VERSION])
