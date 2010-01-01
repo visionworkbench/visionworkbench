@@ -5,6 +5,9 @@
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <cerrno>
 
+#include <sys/types.h>
+#include <fcntl.h>
+
 using namespace vw;
 using namespace vw::platefile;
 
@@ -127,17 +130,22 @@ void run(const Options& opt) {
     }
     if (first_node) {
       first_node = false;
-      // truncate file (and close it implicitly)
-      io::file_descriptor file(opt.filename.c_str(), std::ios::binary|std::ios::trunc);
-      VW_ASSERT(file.is_open(), LogicErr() << "Could not truncate file: " << opt.filename);
+      // truncate file (and close it implicitly by giving io::file_descriptor a true second arg)
+      int fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+      VW_ASSERT(fd >= 0, IOErr() << "Could not truncate file " << opt.filename << ": " << strerror(errno));
+      io::file_descriptor file(fd, true);
+      VW_ASSERT(file.is_open(), LogicErr() << "Could not wrap in stream: " << opt.filename);
     } else {
       SharedByteArray msg;
       node.get_bytes(msg, opt.timeout);
       VW_ASSERT(msg->begin()[0] == 'G' && msg->begin()[1] == 'O', LogicErr() << "Buh?");
     }
 
-    io::file_descriptor file(opt.filename.c_str(), std::ios::binary|std::ios::app);
-    VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename << " (" << strerror(errno) << ")");
+    int fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
+    VW_ASSERT(fd >= 0, IOErr() << "Could not open file " << opt.filename << ": " << strerror(errno));
+    // close fd implicitly by giving io::file_descriptor a true second arg)
+    io::file_descriptor file(fd, true);
+    VW_ASSERT(file.is_open(), LogicErr() << "Could not wrap in stream: " << opt.filename);
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
     s_id.insert(0, opt.block_size-s_id.size(), '0');
