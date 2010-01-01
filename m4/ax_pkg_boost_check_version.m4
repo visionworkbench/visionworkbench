@@ -15,18 +15,7 @@ AC_DEFUN([AX_PKG_BOOST_CHECK_VERSION],
   CPPFLAGS="$PKG_BOOST_CPPFLAGS"
   LDFLAGS="$PKG_BOOST_LDFLAGS"
 
-  AC_RUN_IFELSE(
-    [AC_LANG_PROGRAM([[
-      #include <fstream>
-      #include <boost/version.hpp>
-    ]], [[
-      std::ofstream out("conftest.out");
-      if (!out.is_open())
-          return 1;
-      out << BOOST_VERSION;
-    ]])],
-    [BOOST_VERSION=`cat conftest.out`],
-    [AC_MSG_ERROR([Failed to run Boost version check program])])
+  AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [BOOST_VERSION=$output], AC_MSG_ERROR([Failed to run Boost version check program]), [#include <boost/version.hpp>])
 
   if test -z "$BOOST_VERSION"; then
     AC_MSG_ERROR([Boost version check program did not define BOOST_VERSION])
