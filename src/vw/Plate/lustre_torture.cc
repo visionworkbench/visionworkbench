@@ -2,6 +2,7 @@
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Core/ProgressCallback.h>
+#include <cerrno>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -12,14 +13,6 @@ using namespace vw::platefile;
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
 
-#if 0
-  SharedByteArray result;
-      client.get_bytes(result, 3000);
-      server.send_bytes(msg, client_queue);
-    return 0;
-}
-#endif
-
 struct Options {
   std::string filename;
   uint32 clients;
@@ -27,6 +20,7 @@ struct Options {
   uint32 timeout;
   uint32 block_size;
   uint32 block_count;
+  std::string server;
   bool verify;
 };
 
@@ -38,6 +32,7 @@ void handle_arguments(int argc, char *argv[], Options& opt)
 
   po::options_description options("Options");
   options.add_options()
+    ("rabbitmq,r",    po::value(&opt.server),   "rabbitmq server (host:port)")
     ("file,f",        po::value(&opt.filename), "File to append to")
     ("num-clients,n", po::value(&opt.clients),  "Number of clients.")
     ("id,i",          po::value(&opt.id),       "This client's id.")
@@ -60,10 +55,8 @@ void handle_arguments(int argc, char *argv[], Options& opt)
   }\
 } while (0)
 
-  if (vm.count("verify"))
-    opt.verify = 1;
-  if (vm.count("help"))
-    help = true;
+  opt.verify = vm.count("verify");
+  help = vm.count("help");
 
   if (!opt.verify)
     REQUIRE(id);
@@ -92,7 +85,21 @@ void run(const Options& opt) {
   // On first pass with client id 0, there's no message to read.
   bool first_node = (opt.id == 0);
 
-  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
+  std::string host = "localhost",
+              port = "5672";
+
+  if (!opt.server.empty()) {
+      size_t ret = opt.server.find_last_of(":");
+      if (ret == std::string::npos)
+          host = opt.server;
+      else {
+          host = opt.server.substr(0,ret);
+          port = opt.server.substr(ret+1);
+      }
+  }
+
+
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(host, boost::lexical_cast<int>(port)));
   AmqpRpcDumbClient node(conn, "lustre_torture", queue_name(opt));
   node.bind_service(queue_name(opt));
 
@@ -120,6 +127,7 @@ void run(const Options& opt) {
       first_node = false;
       // truncate file (and close it implicitly)
       std::ofstream file(opt.filename.c_str(), std::ios::binary|std::ios::trunc);
+      VW_ASSERT(file.is_open(), LogicErr() << "Could not truncate file: " << opt.filename);
     } else {
       SharedByteArray msg;
       node.get_bytes(msg, opt.timeout);
@@ -127,7 +135,7 @@ void run(const Options& opt) {
     }
 
     std::ofstream file(opt.filename.c_str(), std::ios::binary|std::ios::app);
-    VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename);
+    VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename << " (" << strerror(errno) << ")");
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
     s_id.insert(0, opt.block_size-s_id.size(), '0');
@@ -144,7 +152,7 @@ void run(const Options& opt) {
 
 void verify(const Options& opt) {
     std::ifstream file(opt.filename.c_str(), std::ios::binary);
-    VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename);
+    VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename << " (" << strerror(errno) << ")");
 
     uint32 id = 0, next;
     std::vector<char> bytes(opt.block_size+1, 0);
