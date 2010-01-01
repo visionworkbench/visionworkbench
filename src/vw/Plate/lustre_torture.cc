@@ -119,7 +119,7 @@ void run(const Options& opt) {
   uint32 blocks_written = 0;
   uint32 tick = opt.block_count / 100;
   while (blocks_written++ < opt.block_count) {
-    if (blocks_written % tick == 0) {
+    if (blocks_written % tick == 1) {
       pc.report_incremental_progress(.01);
       pc.print_progress();
     }
@@ -157,6 +157,7 @@ void verify(const Options& opt) {
     uint32 id = 0, next;
     std::vector<char> bytes(opt.block_size+1, 0);
     uint32 failed = 0;
+    int32 first_failure = -1;
 
     TerminalProgressCallback pc;
     uint32 tick = (opt.clients * opt.block_count) / 100;
@@ -172,13 +173,16 @@ void verify(const Options& opt) {
       } catch (const boost::bad_lexical_cast&) {
         next = -1;
       }
-      if (next != id)
+      if (next != id) {
         failed++;
+        if (first_failure == -1)
+            first_failure = blocks_read-1;
+      }
       id = (id + 1) % opt.clients;
     }
     pc.report_finished();
 
-    VW_ASSERT(failed == 0, LogicErr() << "Verification failed on " << failed << " blocks");
+    VW_ASSERT(failed == 0, LogicErr() << "Verification failed on " << failed << " blocks (first failure at block " << first_failure << ")");
 }
 
 int main(int argc, char *argv[]) {
