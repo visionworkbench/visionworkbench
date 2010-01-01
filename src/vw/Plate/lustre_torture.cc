@@ -2,6 +2,7 @@
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Core/ProgressCallback.h>
+#include <boost/iostreams/device/file_descriptor.hpp>
 #include <cerrno>
 
 using namespace vw;
@@ -12,6 +13,7 @@ using namespace vw::platefile;
 
 namespace fs = boost::filesystem;
 namespace po = boost::program_options;
+namespace io = boost::iostreams;
 
 struct Options {
   std::string filename;
@@ -126,7 +128,7 @@ void run(const Options& opt) {
     if (first_node) {
       first_node = false;
       // truncate file (and close it implicitly)
-      std::ofstream file(opt.filename.c_str(), std::ios::binary|std::ios::trunc);
+      io::file_descriptor file(opt.filename.c_str(), std::ios::binary|std::ios::trunc);
       VW_ASSERT(file.is_open(), LogicErr() << "Could not truncate file: " << opt.filename);
     } else {
       SharedByteArray msg;
@@ -134,7 +136,7 @@ void run(const Options& opt) {
       VW_ASSERT(msg->begin()[0] == 'G' && msg->begin()[1] == 'O', LogicErr() << "Buh?");
     }
 
-    std::ofstream file(opt.filename.c_str(), std::ios::binary|std::ios::app);
+    io::file_descriptor file(opt.filename.c_str(), std::ios::binary|std::ios::app);
     VW_ASSERT(file.is_open(), LogicErr() << "Could not open file: " << opt.filename << " (" << strerror(errno) << ")");
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
@@ -142,6 +144,9 @@ void run(const Options& opt) {
     VW_ASSERT(s_id.size() == opt.block_size, LogicErr() << "Must pad s_id to block size");
 
     file.write(s_id.c_str(), s_id.size());
+    // this should actually be fdatasync, but OSX and freebsd are too good to
+    // support posix.
+    VW_ASSERT(fsync(file.handle()) == 0, IOErr() << "Could not fsync: " << strerror(errno));
     file.close();
     // to exacerbate the problem, don't put anything, put the close and the
     // unlock-next-client as close as possible
