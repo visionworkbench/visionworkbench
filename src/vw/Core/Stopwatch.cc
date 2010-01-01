@@ -47,6 +47,8 @@ namespace vw {
     }
 #else
     if (use_cpu_time) {
+      // XXX: This provides no useful information. On any linux system after
+      // 2003 or so, the clock rate is not a constant.
       return ((long long)clock() * 1000000 / CLOCKS_PER_SEC); 
     } else {
       struct timeval tv;
