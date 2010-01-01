@@ -124,7 +124,7 @@ if test "$APXS" != "false"; then
    AC_SUBST(APXS_LDFLAGS)
    AC_SUBST(APXS_INSTALLDIR)
 fi
-AM_CONDITIONAL(MAKE_MODPLATE, [test "APXS" != "false"])
+AM_CONDITIONAL(MAKE_MODPLATE, [test "$APXS" != "false"])
 
 
 ##################################################
