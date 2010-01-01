@@ -7,7 +7,7 @@ dnl example: AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [BOOST_VERSION="$output"], [
 AC_DEFUN([AX_EXTRACT_CPP_SYMBOL],
 [
     AC_REQUIRE_CPP()dnl
-    AC_REQUIRE([AC_PROG_SED])dnl
+    AC_CHECK_PROGS([SED], [sed gsed])
 AC_LANG_CONFTEST(
     [AC_LANG_SOURCE([$2
 #define __ac_extract_cpp_symbol_delimiter "__ac_extract_cpp_symbol_delimiter"

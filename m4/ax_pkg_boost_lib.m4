@@ -47,6 +47,7 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
         if test -n "${PKG_BOOST_SAME_SUFFIX}"; then
           AX_LOG([Reusing suffix ${PKG_BOOST_SAME_SUFFIX}])
           libglob="${PKG_BOOST_LIBDIR}/lib${boost_name}${PKG_BOOST_SAME_SUFFIX}"
+          boost_want_suffix=
         else
           AX_LOG([No known suffix. Figuring one out.])
           libglob="${PKG_BOOST_LIBDIR}/lib${boost_name}*.so"
@@ -72,9 +73,10 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
         m4_ifval([$2], [
           dnl If the glob doesn't expand, we'll get the same path back. Check for that.
           AS_IF([test ! -f ${boost_libpath}], [continue])
-          stem="`basename $boost_libpath .so`"
-          PKG_BOOST_SAME_SUFFIX="${stem#lib${boost_name}}.so"
-          PKG_BOOST_$1_LIBS="-L${PKG_BOOST_LIBDIR} -l${stem#lib} $5"
+          boost_lib_stem="`basename $boost_libpath .so`"
+          PKG_BOOST_SAME_SUFFIX="${boost_lib_stem#lib${boost_name}}.so"
+          PKG_BOOST_$1_LIBS="-L${PKG_BOOST_LIBDIR} -l${boost_lib_stem#lib} $5"
+          AX_LOG([Trying to memorize suffix ${PKG_BOOST_SAME_SUFFIX}])
         ])
 
         PKG_BOOST_$1_CPPFLAGS="-I${PKG_BOOST_INCDIR}"

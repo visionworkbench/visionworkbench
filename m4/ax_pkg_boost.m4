@@ -5,6 +5,10 @@ dnl All Rights Reserved.
 dnl __END_LICENSE__
 
 
+m4_ifset([m4_argn], [],
+[m4_define([m4_argn],
+[m4_car(m4_shiftn($1, $@))])])
+
 # Usage: AX_PKG_BOOST(<required boost libs> [,boost_lib, how-to-detect-lib]*)
 AC_DEFUN([AX_PKG_BOOST],
 [
@@ -51,11 +55,12 @@ AC_DEFUN([AX_PKG_BOOST],
             PKG_BOOST_LIBDIR="${ax_boost_base_path}/${AX_OTHER_LIBDIR}"
           fi
 
-          m4_for([idx], 3, $#, 2, [m4_unquote(m4_argn(idx, $@))])
+          m4_for([idx], 3, $#, 2, [m4_do(m4_argn(idx, $@)) ])
 
           missing=
           AC_FOREACH([required], $1,
-          [AS_IF([test x"$HAVE_PKG_]required[" != "xyes"], [missing="${missing} required"]); ])
+          [AS_IF([test x"$HAVE_PKG_]required[" != "xyes"], [missing="${missing} required"])
+          ])
 
           AS_IF([test -n "$missing"], [AC_MSG_NOTICE([${ax_boost_inc_path}/boost is missing these required libraries: $missing]); continue;],
           [
