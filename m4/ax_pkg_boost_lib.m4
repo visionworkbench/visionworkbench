@@ -36,6 +36,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
 
     HAVE_PKG_BOOST_$1=no
 
+    module=no eval BOOST_LIB_SUFFIX=$shrext_cmds
+
     # Check for general Boost presence
     if test -n "$PKG_BOOST_INCDIR" -a -n "$PKG_BOOST_LIBDIR"; then
 
@@ -50,10 +52,10 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           boost_want_suffix=
         else
           AX_LOG([No known suffix. Figuring one out.])
-          libglob="${PKG_BOOST_LIBDIR}/lib${boost_name}*.so"
+          libglob="${PKG_BOOST_LIBDIR}/lib${boost_name}*${BOOST_LIB_SUFFIX:-.so}"
           # If they ask for a suffix, look for it first
           if test -n "${BOOST_LIBRARIES_SUFFIX}"; then
-            boost_want_suffix="${PKG_BOOST_LIBDIR}/lib${boost_name}${BOOST_LIBRARIES_SUFFIX}.so"
+            boost_want_suffix="${PKG_BOOST_LIBDIR}/lib${boost_name}${BOOST_LIBRARIES_SUFFIX}${BOOST_LIB_SUFFIX:-.so}"
           else
             boost_want_suffix=
           fi
@@ -73,8 +75,8 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
         m4_ifval([$2], [
           dnl If the glob doesn't expand, we'll get the same path back. Check for that.
           AS_IF([test ! -f ${boost_libpath}], [continue])
-          boost_lib_stem="`basename $boost_libpath .so`"
-          PKG_BOOST_SAME_SUFFIX="${boost_lib_stem#lib${boost_name}}.so"
+          boost_lib_stem="`basename $boost_libpath ${BOOST_LIB_SUFFIX:-.so}`"
+          PKG_BOOST_SAME_SUFFIX="${boost_lib_stem#lib${boost_name}}${BOOST_LIB_SUFFIX:-.so}"
           PKG_BOOST_$1_LIBS="-L${PKG_BOOST_LIBDIR} -l${boost_lib_stem#lib} $5"
           AX_LOG([Trying to memorize suffix ${PKG_BOOST_SAME_SUFFIX}])
         ])

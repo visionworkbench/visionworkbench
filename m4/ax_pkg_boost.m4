@@ -43,7 +43,8 @@ AC_DEFUN([AX_PKG_BOOST],
           AC_MSG_NOTICE([Checking if Boost at ${ax_boost_inc_path}/boost is OK])
 
           AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [#include <boost/version.hpp>], [BOOST_VERSION=$output],
-            [AX_LOG([Couldn't get boost version for $ax_boost_inc_path/boost]); continue;])
+            [AX_LOG([Couldn't get boost version for $ax_boost_inc_path/boost]); continue;],
+            ["-I${ax_boost_inc_path}"])
 
           AX_LOG([Found boost includes at ${ax_boost_inc_path}, version(${BOOST_VERSION})])
 

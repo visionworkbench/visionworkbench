@@ -1,9 +1,9 @@
 dnl __BEGIN_LICENSE__
 dnl __END_LICENSE__
 
-dnl Usage: AX_EXTRACT_CPP_SYMBOL([symbol], [headers], [ifyes], [ifno])
+dnl Usage: AX_EXTRACT_CPP_SYMBOL([symbol], [headers], [ifyes], [ifno], [cppflags])
 dnl         It the variable $output will contain the extracted value
-dnl example: AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [BOOST_VERSION="$output"], [BOOST_VERSION=nope], [#include <boost/version.hpp>])
+dnl example: AX_EXTRACT_CPP_SYMBOL([BOOST_VERSION], [#include <boost/version.hpp>], [BOOST_VERSION=$output])
 AC_DEFUN([AX_EXTRACT_CPP_SYMBOL],
 [
     AC_REQUIRE_CPP()dnl
@@ -13,6 +13,8 @@ AC_LANG_CONFTEST(
 #define __ac_extract_cpp_symbol_delimiter "__ac_extract_cpp_symbol_delimiter"
 __ac_extract_cpp_symbol_delimiter $1 __ac_extract_cpp_symbol_delimiter])])
 
+old_CPPFLAGS="$CPPFLAGS"
+CPPFLAGS="$5 $CPPFLAGS"
 AS_VAR_PUSHDEF([output], [ax_extract_cpp_symbol_$1])dnl
 if (eval "$ac_cpp conftest.$ac_ext") >conftest.out 2>&AC_FD_CC; then
     output="`${SED} -n -e 's/^.*"__ac_extract_cpp_symbol_delimiter" \(.*\) "__ac_extract_cpp_symbol_delimiter".*$/\1/p' conftest.out 2>/dev/null`"
@@ -26,6 +28,7 @@ if (eval "$ac_cpp conftest.$ac_ext") >conftest.out 2>&AC_FD_CC; then
     $4
 ])dnl
 fi
+CPPFLAGS="$old_CPPFLAGS"
 AS_VAR_POPDEF([output])
-rm -f conftest*
+rm -rf conftest*
 ])
