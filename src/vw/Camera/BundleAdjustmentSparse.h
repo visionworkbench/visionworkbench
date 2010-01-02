@@ -41,7 +41,7 @@ namespace camera {
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::MatrixSparseSkyline<double> > m_S;
+    math::MatrixSparseSkyline<double> m_S;
 
   public:
 
@@ -53,10 +53,8 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
-    math::MatrixSparseSkyline<double> S() { return *m_S; }
-    void set_S(math::MatrixSparseSkyline<double> S) {
-      m_S = boost::shared_ptr<math::MatrixSparseSkyline<double> >(new math::MatrixSparseSkyline<double>(S));
-    }
+    math::MatrixSparseSkyline<double> S() { return m_S; }
+    void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
 
     // Covariance Calculator
     // ___________________________________________________________
@@ -75,7 +73,7 @@ namespace camera {
       vw::Vector< matrix_camera_camera > sparse_cov(num_cameras);
 
       // Get the S matrix from the model
-      math::MatrixSparseSkyline<double> S = this->S();
+      math::MatrixSparseSkyline<double> S = this->S();  // Make copy as solve is destructive
       Matrix<double> Id(inverse_size, inverse_size);
       Id.set_identity();
       Matrix<double> Cov = multi_sparse_solve(S, Id);

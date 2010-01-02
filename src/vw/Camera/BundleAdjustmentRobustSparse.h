@@ -40,7 +40,7 @@ namespace camera {
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::MatrixSparseSkyline<double> > m_S;
+    math::MatrixSparseSkyline<double> m_S;
 
   public:
 
@@ -52,10 +52,8 @@ namespace camera {
                                                           use_camera_constraint,
                                                           use_gcp_constraint ) {}
 
-    math::MatrixSparseSkyline<double> S() { return *m_S; }
-    void set_S(math::MatrixSparseSkyline<double> S) {
-      m_S = boost::shared_ptr<math::MatrixSparseSkyline<double> >(new math::MatrixSparseSkyline<double>(S));
-    }
+    math::MatrixSparseSkyline<double> S() { return m_S; }
+    void set_S(math::MatrixSparseSkyline<double> S) { m_S = math::MatrixSparseSkyline<double>(S); }
 
     // Covariance Calculator
     // __________________________________________________
