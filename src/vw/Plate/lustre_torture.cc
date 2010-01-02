@@ -137,8 +137,8 @@ void run(const Options& opt) {
 
   uint32 blocks_written = 0;
   uint32 tick = opt.block_count / 100;
-  while (blocks_written++ < opt.block_count) {
-    if (blocks_written % tick == 1) {
+  while (blocks_written < opt.block_count) {
+    if (blocks_written++ % tick == 0) {
       pc.report_incremental_progress(.01);
       pc.print_progress();
     }
