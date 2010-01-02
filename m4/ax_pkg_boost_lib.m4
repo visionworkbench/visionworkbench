@@ -66,7 +66,12 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
       ax_pkg_old_libs="$LIBS"
 
       m4_ifval([$2], [
-        for boost_libpath in $boost_want_suffix `echo ${libglob} | xargs -n1 | sort -r`; do
+        dnl first try the requested suffix, then try in descending filename
+        dnl length, descending asciibetically.  For boost, longer filenames
+        dnl mean they probably have more information (maybe version?). In this
+        dnl scheme, we prefer longer filenames to shorter ones, and greater
+        dnl version numbers to lesser ones.
+        for boost_libpath in $boost_want_suffix `for i in ${libglob}; do echo "${#i} $i"; done | sort -nr | cut -d ' ' -f 2`; do
       ], [
         for boost_libpath in boost_header_only; do
       ])
