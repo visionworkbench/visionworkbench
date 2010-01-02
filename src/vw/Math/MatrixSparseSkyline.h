@@ -28,6 +28,10 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/vector_sparse.hpp>
 #include <boost/numeric/ublas/vector_of_vector.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/cuthill_mckee_ordering.hpp>
+#include <boost/graph/properties.hpp>
+#include <boost/graph/bandwidth.hpp>
 
 namespace vw {
 namespace math {
@@ -563,6 +567,76 @@ namespace math {
   inline MatrixReorganize<const MatrixT> reorganize( MatrixBase<MatrixT> const& m,
                                                      std::vector<uint> const& lookup ) {
     return MatrixReorganize<const MatrixT>(m.impl(), lookup);
+  }
+
+  //------------------------------------------------------------------
+  // Cuthill McKee Organization Solver
+  //
+  // Use to solve for a organization of the sparse matrix that best
+  // reduces the bandwidth of the matrix. Reducing the bandwidth
+  // can greatly increase the speed at which a sparse LDL can be solved
+  // for.
+  //------------------------------------------------------------------
+
+  template <class ElemT>
+  std::vector<uint> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A) {
+    // First Working out the Sampling Rate (cheat to save time in
+    // Bundle Adjustment where sampling rate is the number of camera
+    // parameters)
+    uint sampling_rate = A.cols();
+    uint curr_sampling = A.cols();
+    unsigned last_value = 10000;
+    Vector<unsigned> skyline = A.skyline();
+    for ( uint i = 0; i < skyline.size(); i++ ) {
+      if ( last_value != skyline(i) ) {
+        if ( sampling_rate > curr_sampling )
+          sampling_rate = curr_sampling;
+        curr_sampling = 0;
+      }
+      curr_sampling++;
+      last_value = skyline(i);
+    }
+
+    // Boost Graph Definitions
+    typedef boost::adjacency_list<boost::vecS,boost::vecS, boost::undirectedS,
+      boost::property<boost::vertex_color_t, boost::default_color_type,
+      boost::property<boost::vertex_degree_t, int> > > Graph;
+    typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
+    typedef boost::graph_traits<Graph>::vertices_size_type size_type;
+
+    // Finding Connections
+    Graph G( A.cols() );
+    for ( unsigned i = 0; i < A.rows(); i += sampling_rate )
+      for ( unsigned j = skyline[i]; j < i; j += sampling_rate )
+        if ( A(i,j) != 0 )
+          for ( unsigned ii = 0; ii < sampling_rate; ii++ )
+            for ( unsigned jj = 0; jj < sampling_rate; jj++ )
+              boost::add_edge( i+ii, j+jj, G);
+
+    boost::property_map<Graph,boost::vertex_index_t>::type
+      index_map = get(boost::vertex_index, G);
+
+    vw_out(DebugMessage,"math") << "-> CutHill McKee starting B: "
+                                << boost::bandwidth(G) << "\n";
+
+    // Solving for CutHill McKee
+    std::vector<Vertex> inv_perm(boost::num_vertices(G));
+    std::vector<size_type> perm(boost::num_vertices(G));
+    cuthill_mckee_ordering(G, inv_perm.rbegin(), get(boost::vertex_color,G),
+                           make_degree_map(G));
+
+    // Building new lookup chart
+    std::vector<uint> lookup_chart( A.cols() );
+    for ( unsigned i = 0; i < inv_perm.size(); i++ )
+      lookup_chart[i] = index_map[inv_perm[i]];
+
+    // Finding new bandwidth for debug purposes
+    for (size_type c = 0; c != inv_perm.size(); ++c )
+      perm[index_map[inv_perm[c]]] = c;
+    vw_out(DebugMessage,"math") << "-> CutHill McKee ending B: "
+                                << boost::bandwidth(G, make_iterator_property_map(&perm[0], index_map, perm[0])) << "\n";
+
+    return lookup_chart;
   }
 
 }} // namespace vw::math
