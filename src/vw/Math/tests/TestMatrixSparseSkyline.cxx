@@ -37,15 +37,6 @@ void fill_symmetric_matrix(MatrixT& A, Vector<uint> const& skyline ) {
     }
 }
 
-template <class SrcMatrixT, class DestMatrixT>
-void copy_symmetric_matrix(SrcMatrixT const& src, DestMatrixT& dest, Vector<uint> const& skyline ) {
-  for (unsigned i = 0; i < src.rows(); ++i )
-    for (unsigned j = skyline[i]; j < std::min(i+1,src.cols()); ++j) {
-      dest(i,j) = src(i,j);
-      dest(j,i) = dest(i,j);
-    }
-}
-
 // Unoptimized LDLT decomposition
 template <class MatrixT>
 void ldl_decomposition(MatrixT& A) {
@@ -71,24 +62,52 @@ void ldl_decomposition(MatrixT& A) {
   }
 }
 
+TEST(SparseSkyline, Creation ) {
+  MatrixSparseSkyline<double> sparse(4);
+  sparse(0,0) = 1;
+  sparse(0,1) = 2;
+  sparse(0,2) = 3;
+  sparse(0,3) = 4;
+  sparse(1,1) = 5;
+  EXPECT_EQ( sparse(1,0), sparse(0,1) );
+  EXPECT_EQ( sparse(2,0), sparse(0,2) );
+  EXPECT_EQ( sparse(3,0), 4 );
+
+  Vector<double> cv = select_col(sparse,0);
+  ASSERT_EQ( 4u, cv.size() );
+  EXPECT_EQ( 1, cv(0) );
+  EXPECT_EQ( 2, cv(1) );
+  EXPECT_EQ( 3, cv(2) );
+  EXPECT_EQ( 4, cv(3) );
+
+  cv = select_col(sparse,1);
+  ASSERT_EQ( 4u, cv.size() );
+  EXPECT_EQ( 2, cv(0) );
+  EXPECT_EQ( 5, cv(1) );
+  EXPECT_EQ( 0, cv(2) );
+  EXPECT_EQ( 0, cv(3) );
+
+  Vector<double> rv = select_row(sparse,2);
+  ASSERT_EQ( 4u, rv.size() );
+  EXPECT_EQ( 3, rv(0) );
+  EXPECT_EQ( 0, rv(1) );
+  EXPECT_EQ( 0, rv(2) );
+  EXPECT_EQ( 0, rv(3) );
+}
+
 TEST(SparseSkyline, LDL_decomp_correctness) {
   uint N = 50;
   uint S = 10;
 
   srandom((unsigned int) clock());
 
-  Matrix<double> nonsparse_mat(N,N);
-  MatrixSparseSkyline<double> sparse_mat(N,N);
-  MatrixSparseSkyline<double> original_sparse_mat(N,N);
+  MatrixSparseSkyline<double> sparse_mat(N);
 
   Vector<uint> test_skyline = create_test_skyline(N, S);
-  //std::cout << "TestSkyline:" << test_skyline << "\n";
 
   fill_symmetric_matrix(sparse_mat, test_skyline);
-  copy_symmetric_matrix(sparse_mat, nonsparse_mat, test_skyline);
-  original_sparse_mat = sparse_mat;
-
-  //std::cout << "SparseStructure: " << sparse_mat << "\n";
+  Matrix<double> nonsparse_mat = sparse_mat;
+  MatrixSparseSkyline<double> original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
   for ( uint i = 0; i < N; i++ )
@@ -124,7 +143,7 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
 }
 
 TEST(SparseSkyline, LDL_solve) {
-  uint N = 100;
+  uint N = 50;
   uint S = 10;
 
   srandom((unsigned int) clock());
@@ -134,7 +153,10 @@ TEST(SparseSkyline, LDL_solve) {
   Vector<uint> test_skyline = create_test_skyline(N,S);
 
   fill_symmetric_matrix(A_sparse, test_skyline);
-  copy_symmetric_matrix(A_sparse, A_nonsparse, test_skyline);
+  MatrixSparseSkyline<double> A_sparse_original = A_sparse;
+  EXPECT_EQ( A_sparse.cols(), A_sparse_original.cols() );
+  EXPECT_EQ( A_sparse.rows(), A_sparse_original.rows() );
+  A_nonsparse = A_sparse;
 
   // Create a vector to solve against
   Vector<double> b(N);
@@ -148,6 +170,11 @@ TEST(SparseSkyline, LDL_solve) {
 
   for ( uint i = 0; i < N; i++ )
     EXPECT_NEAR( x_nonsparse[i], x_sparse[i], DELTA );
+
+  // Back checking (also showing off that multiplication is possible)
+  Vector<double> b_prime = A_sparse_original*x_sparse;
+  for ( uint i = 0; i < N; i++ )
+    EXPECT_NEAR( b_prime[i], b[i], DELTA );
 }
 
 TEST(SparseSkyline, LDL_solve_scalability) {
@@ -166,10 +193,4 @@ TEST(SparseSkyline, LDL_solve_scalability) {
 
   // Solving for X
   Vector<double> x_result = sparse_solve(A_sparse, b);
-
-  // Double checking that x_result is correct
-  //  Vector<double> b_prime = A_sparse*x_result;
-
-  //for ( uint i = 0; i < b_prime.size(); i++ )
-  //  EXPECT_NEAR( b[i], b_prime[i], DELTA );
 }

@@ -72,8 +72,8 @@ namespace math {
     typedef ElemT value_type;
     typedef typename sparse_matrix_type::reference reference_type;
     typedef typename sparse_matrix_type::const_reference const_reference_type;
-    typedef ElemT* iterator;
-    typedef ElemT const* const_iterator;
+    typedef IndexingMatrixIterator<MatrixSparseSkyline<ElemT> > iterator;
+    typedef IndexingMatrixIterator<const MatrixSparseSkyline<ElemT> > const_iterator;
     typedef typename sparse_matrix_type::iterator1 sparse_iterator1;
     typedef typename sparse_matrix_type::iterator2 sparse_iterator2;
     typedef typename sparse_matrix_type::const_iterator1 const_sparse_iterator1;
@@ -84,12 +84,18 @@ namespace math {
     m_matrix(0,0), m_skyline(0) {
     }
 
-    MatrixSparseSkyline( unsigned cols, unsigned rows ) :
-    m_matrix(cols,rows), m_skyline(cols) {
+    MatrixSparseSkyline( unsigned size ) :
+    m_matrix(size,size), m_skyline(size) {
+      for ( unsigned i = 0; i < size; ++i )
+        m_skyline[i] = i;
+    }
+
+    MatrixSparseSkyline( unsigned rows, unsigned cols ) :
+    m_matrix(rows,cols), m_skyline(rows) {
       VW_ASSERT( cols == rows,
                  ArgumentErr() << "MatrixSparseSkyline must be square and symmetric.\n");
       // Setting non-zero to the identity point;
-      for (unsigned i = 0; i < cols; ++i)
+      for (unsigned i = 0; i < rows; ++i)
         m_skyline[i] = i;
     }
 
@@ -99,6 +105,8 @@ namespace math {
       VW_ASSERT( m.rows() == m_matrix.size1() &&
                  m.cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
+      m_matrix.clear();
+      VectorClearImpl<Vector<uint> >::clear(m_skyline);
       // Iterate through non-zero elements
       for ( typename MatrixSparseSkyline<ElemT>::const_sparse_iterator1 it1 = m.sparse_begin();
             it1 != m.sparse_end(); it1++ ) {
@@ -133,25 +141,25 @@ namespace math {
     }
 
     /// Element Access
-    reference_type operator()( unsigned i, unsigned j ) {
+    reference_type operator()( unsigned row, unsigned col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( i < rows() && j < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      if ( j > i )
-        std::swap(i,j);
-      if ( j < m_skyline[i] )
-        m_skyline(i) = j;
-      return m_matrix(i,j);
+      if ( col > row )
+        std::swap(row,col);
+      if ( col < m_skyline[row] )
+        m_skyline(row) = col;
+      return m_matrix(row,col);
     }
 
     /// Element Access
-    const_reference_type operator()( unsigned i, unsigned j ) const {
+    const_reference_type operator()( unsigned row, unsigned col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      VW_ASSERT( i < rows() && j < cols(), LogicErr() << "operator() ran off end of matrix" );
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      if ( j > i )
-        return m_matrix(j,i);
-      return m_matrix(i,j);
+      if ( col > row )
+        return m_matrix(col,row);
+      return m_matrix(row,col);
     }
 
     /// Pointer Access
@@ -159,14 +167,10 @@ namespace math {
       vw_throw( NoImplErr() << "MatrixSparseSkyline::data can not provide direct pointer access.");
       return &(operator()(0,0));
     }
-    iterator begin() {
-      vw_throw( NoImplErr() << "MatrixSparseSkyline::begin can not provide direct pointer access.");
-      return &(operator()(0,0));
-    }
-    iterator end() {
-      vw_throw( NoImplErr() << "MatrixSparseSkyline::end can not provide direct pointer access.");
-      return &(operator()(0,0));
-    }
+    iterator begin() { return iterator(*this,0,0); }
+    const_iterator begin() const { return const_iterator(*this,0,0); }
+    iterator end() { return iterator(*this,rows(),0); }
+    const_iterator end() const { return const_iterator(*this,rows(),0); }
     sparse_iterator1 sparse_begin() { return m_matrix.begin1(); }
     const_sparse_iterator1 sparse_begin() const { return m_matrix.begin1(); }
     sparse_iterator1 sparse_end() { return m_matrix.end1(); }
