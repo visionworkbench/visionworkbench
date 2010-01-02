@@ -79,11 +79,13 @@ void handle_arguments(int argc, char *argv[], Options& opt)
   VW_ASSERT( opt.clients < 10000,  Usage() << "Error: # of clients must be < 10000." );
 }
 
-std::string queue_name(const Options& opt) {
-  return std::string("client_") + vw::stringify(opt.id);
+const std::string& queue_name(const Options& opt) {
+  static std::string x = std::string("client_") + vw::stringify(opt.id);
+  return x;
 }
-std::string next_queue_name(const Options& opt) {
-  return std::string("client_") + vw::stringify((opt.id+1) % opt.clients );
+const std::string& next_queue_name(const Options& opt) {
+  static std::string x = std::string("client_") + vw::stringify((opt.id+1) % opt.clients );
+  return x;
 }
 
 void run(const Options& opt) {
@@ -108,17 +110,29 @@ void run(const Options& opt) {
   AmqpRpcDumbClient node(conn, "lustre_torture", queue_name(opt));
   node.bind_service(queue_name(opt));
 
-  std::string next = next_queue_name(opt);
+  const std::string& next = next_queue_name(opt);
   ByteArray send_msg(next.size() + 2);
   send_msg[0] = 'G';
   send_msg[1] = 'O';
   std::copy(next.begin(), next.end(), send_msg.begin()+2);
 
+  const std::string& me = queue_name(opt);
+  ByteArray want_msg(me.size() + 2);
+  want_msg[0] = 'G';
+  want_msg[1] = 'O';
+  std::copy(me.begin(), me.end(), want_msg.begin()+2);
+
   TerminalProgressCallback pc;
 
-  vw_out(InfoMessage) << "Ready to create "
-                      << opt.clients * opt.block_size * opt.block_count / 1024. / 1024.
-                      << "MB file! Waiting 5 seconds for everyone to start." << std::endl;
+  {
+      std::string sending(send_msg.begin(), send_msg.end()),
+                  recving(want_msg.begin(), want_msg.end());
+
+      vw_out(InfoMessage) << "I am [" << me << "] sending[" << sending << "] expecting[" << recving << "]" << std::endl
+                          << "Ready to create "
+                          << opt.clients * opt.block_size * opt.block_count / 1024. / 1024.
+                          << "MB file! Waiting 5 seconds for everyone to start." << std::endl;
+  }
   sleep(5);
 
   uint32 blocks_written = 0;
@@ -128,34 +142,34 @@ void run(const Options& opt) {
       pc.report_incremental_progress(.01);
       pc.print_progress();
     }
+    int fd;
     if (first_node) {
       first_node = false;
-      // truncate file (and close it implicitly by giving io::file_descriptor a true second arg)
-      int fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+      // truncate file and create it if necessary
+      fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
       VW_ASSERT(fd >= 0, IOErr() << "Could not truncate file " << opt.filename << ": " << strerror(errno));
-      io::file_descriptor file(fd, true);
-      VW_ASSERT(file.is_open(), LogicErr() << "Could not wrap in stream: " << opt.filename);
     } else {
       SharedByteArray msg;
       node.get_bytes(msg, opt.timeout);
-      VW_ASSERT(msg->begin()[0] == 'G' && msg->begin()[1] == 'O', LogicErr() << "Buh?");
-    }
+      VW_ASSERT(want_msg.size() == msg->size(),
+              IOErr() << "Received an incorrectly-sized message");
+      VW_ASSERT(std::equal(want_msg.begin(), want_msg.end(), msg->begin()),
+              LogicErr() << "Got the wrong message.");
 
-    int fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
-    VW_ASSERT(fd >= 0, IOErr() << "Could not open file " << opt.filename << ": " << strerror(errno));
-    // close fd implicitly by giving io::file_descriptor a true second arg)
-    io::file_descriptor file(fd, true);
-    VW_ASSERT(file.is_open(), LogicErr() << "Could not wrap in stream: " << opt.filename);
+      fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
+      VW_ASSERT(fd >= 0, IOErr() << "Could not open file " << opt.filename << ": " << strerror(errno));
+    }
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
     s_id.insert(0, opt.block_size-s_id.size(), '0');
     VW_ASSERT(s_id.size() == opt.block_size, LogicErr() << "Must pad s_id to block size");
 
-    file.write(s_id.c_str(), s_id.size());
+    VW_ASSERT(write(fd, s_id.c_str(), s_id.size()) == (ssize_t)s_id.size(),
+            IOErr() << "Failed to write all data to file");
     // this should actually be fdatasync, but OSX and freebsd are too good to
     // support posix.
-    VW_ASSERT(fsync(file.handle()) == 0, IOErr() << "Could not fsync: " << strerror(errno));
-    file.close();
+    VW_ASSERT(fsync(fd) == 0, IOErr() << "Could not fsync: " << strerror(errno));
+    close(fd);
     // to exacerbate the problem, don't put anything, put the close and the
     // unlock-next-client as close as possible
     node.send_bytes(send_msg, next);
