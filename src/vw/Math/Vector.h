@@ -157,6 +157,51 @@ namespace math {
   };
 
   // *******************************************************************
+  // class IndexingVectorIterator<VectorT>
+  // A general purpose vector iterator type.
+  // *******************************************************************
+
+  template <class VectorT>
+  class IndexingVectorIterator : public boost::iterator_facade<IndexingVectorIterator<VectorT>,
+    typename boost::mpl::if_<boost::is_const<VectorT>,
+    const typename VectorT::value_type,
+    typename VectorT::value_type>::type,
+    boost::random_access_traversal_tag,
+    typename boost::mpl::if_<boost::is_const<VectorT>,
+    typename VectorT::const_reference_type,
+    typename VectorT::reference_type>::type> {
+
+    friend class boost::iterator_core_access;
+
+    VectorT& m_vector;
+    unsigned m_index;
+
+    bool equal( IndexingVectorIterator const& iter ) const {
+      return m_index==iter.m_index;
+    }
+
+    ptrdiff_t distance_to( IndexingVectorIterator const& iter ) const {
+      return ptrdiff_t(m_index-iter.m_index);
+    }
+
+    void increment() { ++m_index; }
+    void decrement() { --m_index; }
+
+    void advance( ptrdiff_t n ) {
+      if ( m_vector.size() == 0 ) return;
+      m_index += n;
+    }
+
+    typename IndexingVectorIterator::reference dereference() const {
+      return m_vector(m_index);
+    }
+
+  public:
+    IndexingVectorIterator( VectorT& vector, ptrdiff_t index ) :
+      m_vector(vector), m_index(index) {}
+ };
+
+  // *******************************************************************
   // class Vector<ElemT,SizeN>
   // A statically-allocated fixed-dimension vector class.
   // *******************************************************************

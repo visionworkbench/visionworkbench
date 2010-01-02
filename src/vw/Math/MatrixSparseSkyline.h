@@ -416,6 +416,129 @@ namespace math {
     return x;
   }
 
+  //-------------------------------------------------------------------
+  // Reorganize Vector and Matrix Class
+  //
+  // Use to reorganize the order of the elements to reduce the bandwidth
+  // of a problem. This is good for sparse matrices in that a solve
+  // could be done immensely.
+  //-------------------------------------------------------------------
+
+  template <class VectorT>
+  class VectorReorganize : public VectorBase<VectorReorganize<VectorT> > {
+    VectorT & m_vector;
+    std::vector<uint> m_lookup;
+
+  public:
+    typedef typename VectorT::value_type value_type;
+
+    typedef typename VectorT::reference_type reference_type;
+    typedef typename VectorT::const_reference_type const_reference_type;
+
+    typedef IndexingVectorIterator<VectorReorganize<VectorT> > iterator;
+    typedef IndexingVectorIterator<const VectorReorganize<VectorT> > const_iterator;
+
+    // Constructor
+    VectorReorganize( VectorT& vector, std::vector<uint>& lookup ) : m_vector(vector), m_lookup(lookup) {
+      VW_ASSERT( vector.size()==lookup.size(),
+                 ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions" );
+    }
+
+    // Access to internal types
+    VectorT& child() { return m_vector; }
+    VectorT const& child() const { return m_vector; }
+    std::vector<uint>& lookup() { return m_lookup; }
+    std::vector<uint> const& lookup() const { return m_lookup; }
+    std::vector<uint> inverse() const {
+      std::vector<uint> ilookup;
+      ilookup.resize( m_lookup.size() );
+      for ( uint i = 0; i < m_lookup.size(); i++ )
+        ilookup[m_lookup[i]] = i;
+      return ilookup;
+    }
+
+    // Standard Properties
+    unsigned size() const { return m_vector.size(); }
+    void set_size( unsigned new_size, bool preserve=false ) {
+      VW_ASSERT( new_size==size(),
+                 ArgumentErr() << "Cannot resize vector reorganize." );
+    }
+
+    // Element Access
+    reference_type operator()( unsigned i ) { return m_vector(m_lookup[i]); }
+    const_reference_type operator()( unsigned i ) { return m_vector(m_lookup[i]); }
+    reference_type operator[]( unsigned i ) { return m_vector(m_lookup[i]); }
+    const_reference_type operator[]( unsigned i ) { return m_vector(m_lookup[i]); }
+
+    // Pointer Access
+    iterator begin() { return iterator(*this,0); }
+    const_iterator begin() const { return const_iterator(*this,0); }
+    iterator end() { return iterator(*this,size()); }
+    const_iterator end() const { return const_iterator(*this,size()); }
+  };
+
+  template <class MatrixT>
+  class MatrixReorganize : public MatrixBase<MatrixReorganize<MatrixT> > {
+    MatrixT & m_matrix;
+    std::vector<uint> m_lookup;
+
+  public:
+    typedef typename MatrixT::value_type value_type;
+
+    typedef typename MatrixT::reference_type reference_type;
+    typedef typename MatrixT::const_reference_type const_reference_type;
+
+    typedef IndexingMatrixIterator<MatrixReorganize<MatrixT> > iterator;
+    typedef IndexingMatrixIterator<const MatrixReorganize<MatrixT> > const_iterator;
+
+    // Constructor
+    MatrixReorganize( MatrixT& matrix, std::vector<uint>& lookup ) : m_matrix(matrix), m_lookup(lookup) {
+      VW_ASSERT( matrix.cols()==lookup.size() &&
+                 matrix.rows()==lookup.size(),
+                 ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions" );
+    }
+
+    // Access to internal types
+    MatrixT& child() { return m_matrix; }
+    MatrixT const& child() const { return m_matrix; }
+    std::vector<uint>& lookup() { return m_lookup; }
+    std::vector<uint> const& lookup() const { return m_lookup; }
+    std::vector<uint> inverse() const {
+      std::vector<uint> ilookup;
+      ilookup.resize( m_lookup.size() );
+      for ( uint i = 0; i < m_lookup.size(); i++ )
+        ilookup[m_lookup[i]] = i;
+      return ilookup;
+    }
+
+    // Standard properties
+    unsigned rows() const { return m_matrix.cols(); }
+    unsigned cols() const { return m_matrix.rows(); }
+    void set_size( unsigned new_rows, unsigned new_cols, bool preserve=false ) {
+      VW_ASSERT( new_rows==rows() && new_cols==cols(),
+                 ArgumentErr() << "Cannot resize matrix reorganize." );
+    }
+
+    // Element Access
+    reference_type operator()( unsigned row, unsigned col ) {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
+      return m_matrix(m_lookup[row],m_lookup[col]);
+    }
+    const_reference_type operator()( unsigned row, unsigned col ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
+#endif
+      return m_matrix(m_lookup[row],m_lookup[col]);
+    }
+
+    // Pointer Access
+    iterator begin() { return iterator(*this,0,0); }
+    const_iterator begin() const { return const_iterator(*this,0,0); }
+    iterator end() { return iterator(*this,rows(),0); }
+    const_iterator end() const { return const_iterator(*this,rows(),0); }
+  };
 
 }} // namespace vw::math
 

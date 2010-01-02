@@ -182,17 +182,17 @@ namespace math {
 
   /// An iterator for an arbitrary matrix type that iterates over the
   /// elements of the matrix in the standard (row-major) order.  It
-  /// keeps track of the element indices, dereferencing via the 
+  /// keeps track of the element indices, dereferencing via the
   /// function call operator.
   template <class MatrixT>
-  class IndexingMatrixIterator : public boost::iterator_facade<IndexingMatrixIterator<MatrixT>, 
-                                                               typename boost::mpl::if_<boost::is_const<MatrixT>,
-                                                                                        const typename MatrixT::value_type,
-                                                                                        typename MatrixT::value_type>::type,
-                                                               boost::random_access_traversal_tag,
-                                                               typename boost::mpl::if_<boost::is_const<MatrixT>,
-                                                                                        typename MatrixT::const_reference_type,
-                                                                                        typename MatrixT::reference_type>::type>
+  class IndexingMatrixIterator : public boost::iterator_facade<IndexingMatrixIterator<MatrixT>,
+    typename boost::mpl::if_<boost::is_const<MatrixT>,
+    const typename MatrixT::value_type,
+    typename MatrixT::value_type>::type,
+    boost::random_access_traversal_tag,
+    typename boost::mpl::if_<boost::is_const<MatrixT>,
+    typename MatrixT::const_reference_type,
+    typename MatrixT::reference_type>::type>
   {
     friend class boost::iterator_core_access;
       
