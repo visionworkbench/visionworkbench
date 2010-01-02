@@ -369,6 +369,19 @@ TEST(Matrix, Transpose) {
   EXPECT_EQ( 3, r(0,1) );
   EXPECT_EQ( 2, r(1,0) );
   EXPECT_EQ( 4, r(1,1) );
+
+  // Invoking the const iterator (in MatrixCol)
+  math::MatrixTranspose<Matrix2x2f > trans(m);
+  Vector<float> cv = select_col(trans,0);
+  ASSERT_EQ( 2u, cv.size() );
+  EXPECT_EQ( 1, cv(0) );
+  EXPECT_EQ( 2, cv(1) );
+
+  // Invoking the const iterator (in MatrixRow)
+  Vector<float> rv = select_row(trans,0);
+  ASSERT_EQ( 2u, rv.size() );
+  EXPECT_EQ( 1, rv(0) );
+  EXPECT_EQ( 3, rv(1) );
 }
 
 TEST(Matrix, Inverse) {

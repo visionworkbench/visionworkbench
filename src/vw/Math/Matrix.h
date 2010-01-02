@@ -946,7 +946,7 @@ namespace math {
     typedef typename MatrixT::const_iterator const_iterator;
 
     MatrixRow( MatrixT& m, unsigned row ) : m(m), row(row) {}
-    
+
     /// Standard copy assignment operator.
     MatrixRow& operator=( MatrixRow const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
@@ -998,7 +998,7 @@ namespace math {
     }
 
     const_iterator begin() const {
-      return m.begin() + row*m.cols();
+      return const_cast<MatrixT const&>(m).begin() + row*m.cols();
     }
 
     iterator end() {
@@ -1006,7 +1006,7 @@ namespace math {
     }
 
     const_iterator end() const {
-      return m.begin() + (row+1)*m.cols();
+      return const_cast<MatrixT const&>(m).begin() + (row+1)*m.cols();
     }
   };
 
@@ -1037,7 +1037,7 @@ namespace math {
   template <class MatrixT>
   class MatrixCol : public VectorBase<MatrixCol<MatrixT> >
   {
-    MatrixT& m;
+    MatrixT & m;
     unsigned col;
 
     template <class IterT>
@@ -1048,10 +1048,10 @@ namespace math {
                                                    typename std::iterator_traits<IterT>::difference_type>
     {
       friend class boost::iterator_core_access;
-      
+
       IterT i;
       typename Iterator::difference_type stride;
-      
+
       bool equal( Iterator const& iter ) const { return i==iter.i; }
       typename Iterator::difference_type distance_to( Iterator const &iter ) const { return (iter.i - i) / stride; }
       void increment() { i += stride; }
@@ -1076,7 +1076,7 @@ namespace math {
     typedef Iterator<typename MatrixT::const_iterator> const_iterator;
 
     MatrixCol( MatrixT& m, unsigned col ) : m(m), col(col) {}
-    
+
     /// Standard copy assignment operator.
     MatrixCol& operator=( MatrixCol const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
@@ -1128,7 +1128,7 @@ namespace math {
     }
 
     const_iterator begin() const {
-      return const_iterator( m.begin() + col, m.cols() );
+      return const_iterator( const_cast<MatrixT const&>(m).begin() + col, m.cols() );
     }
 
     iterator end() {
