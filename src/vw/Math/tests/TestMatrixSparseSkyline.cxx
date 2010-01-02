@@ -194,3 +194,47 @@ TEST(SparseSkyline, LDL_solve_scalability) {
   // Solving for X
   Vector<double> x_result = sparse_solve(A_sparse, b);
 }
+
+// Rearrangement data types
+TEST(SparseSkyline, VectorReorganize) {
+  std::vector<uint> lookup;
+  lookup.push_back(2);
+  lookup.push_back(0);
+  lookup.push_back(1);
+  Vector3f vec(1,2,3);
+
+  VectorReorganize<Vector3f> rvec(vec, lookup);
+  EXPECT_EQ(rvec(0),3);
+  EXPECT_EQ(rvec(1),1);
+  EXPECT_EQ(rvec(2),2);
+
+  // Testing a convenience function
+  Vector3f nrvec = reorganize(vec, lookup);
+  EXPECT_EQ(nrvec(0),3);
+  EXPECT_EQ(nrvec(1),1);
+  EXPECT_EQ(nrvec(2),2);
+}
+
+TEST(SparseSkyline, MatrixReorganize) {
+  std::vector<uint> lookup;
+  lookup.push_back(2);
+  lookup.push_back(0);
+  lookup.push_back(1);
+  Matrix3x3f mat;
+  mat(0,0) = 1;
+  mat(1,1) = 2;
+  mat(2,2) = 3;
+  mat(0,1) = 4;
+  mat(0,2) = 6;
+
+  MatrixReorganize<Matrix3x3f> rmat(mat, lookup);
+  EXPECT_EQ(rmat(0,0), 3);
+  EXPECT_EQ(rmat(1,2), 4);
+  EXPECT_EQ(rmat(1,0), 6);
+
+  // Testing convenience function
+  Matrix3x3f nrmat = reorganize(mat, lookup);
+  EXPECT_EQ(nrmat(0,0), 3);
+  EXPECT_EQ(nrmat(1,2), 4);
+  EXPECT_EQ(nrmat(1,0), 6);
+}

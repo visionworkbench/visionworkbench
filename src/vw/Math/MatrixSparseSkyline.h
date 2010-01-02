@@ -466,9 +466,9 @@ namespace math {
 
     // Element Access
     reference_type operator()( unsigned i ) { return m_vector(m_lookup[i]); }
-    const_reference_type operator()( unsigned i ) { return m_vector(m_lookup[i]); }
+    const_reference_type operator()( unsigned i ) const { return m_vector(m_lookup[i]); }
     reference_type operator[]( unsigned i ) { return m_vector(m_lookup[i]); }
-    const_reference_type operator[]( unsigned i ) { return m_vector(m_lookup[i]); }
+    const_reference_type operator[]( unsigned i ) const { return m_vector(m_lookup[i]); }
 
     // Pointer Access
     iterator begin() { return iterator(*this,0); }
@@ -539,6 +539,31 @@ namespace math {
     iterator end() { return iterator(*this,rows(),0); }
     const_iterator end() const { return const_iterator(*this,rows(),0); }
   };
+
+  // User ease functions
+  template <class VectorT>
+  inline VectorReorganize<VectorT> reorganize( VectorBase<VectorT>& v,
+                                               std::vector<uint>& lookup ) {
+    return VectorReorganize<VectorT>(v.impl(), lookup);
+  }
+
+  template <class VectorT>
+  inline VectorReorganize<const VectorT> reorganize( VectorBase<VectorT> const& v,
+                                                     std::vector<uint> const& lookup ) {
+    return VectorReorganize<const VectorT>(v.impl(), lookup);
+  }
+
+  template <class MatrixT>
+  inline MatrixReorganize<MatrixT> reorganize( MatrixBase<MatrixT>& m,
+                                               std::vector<uint>& lookup ) {
+    return MatrixReorganize<MatrixT>(m.impl(), lookup);
+  }
+
+  template <class MatrixT>
+  inline MatrixReorganize<const MatrixT> reorganize( MatrixBase<MatrixT> const& m,
+                                                     std::vector<uint> const& lookup ) {
+    return MatrixReorganize<const MatrixT>(m.impl(), lookup);
+  }
 
 }} // namespace vw::math
 
