@@ -62,6 +62,30 @@ void ldl_decomposition(MatrixT& A) {
   }
 }
 
+// Creating a Buckey Ball Sparse Skyline Matrix
+template <class ElemT>
+void fill_with_buckeyball(MatrixSparseSkyline<ElemT>& A) {
+  A(2,1) = 1; A(5,1) = 1; A(6,1) = 1; A(3,2) = 1; A(11,2) = 1;
+  A(2,3) = 1; A(4,3) = 1; A(16,3) = 1; A(5,4) = 1; A(21,4) = 1;
+  A(26,5) = 1; A(7,6) = 1; A(10,6) = 1; A(8,7) = 1; A(30,7) = 1;
+  A(9,8) = 1; A(42,8) = 1; A(10,9) = 1; A(38,9) = 1; A(12,10) = 1;
+  A(12,11) = 1; A(15,11) = 1; A(13,12) = 1; A(14,13) = 1; A(37,13) = 1;
+  A(15,14) = 1; A(33,14) = 1; A(17,15) = 1; A(17,16) = 1; A(20,16) = 1;
+  A(18,17) = 1; A(19,18) = 1; A(32,18) = 1; A(20,19) = 1; A(53,19) = 1;
+  A(22,20) = 1; A(22,21) = 1; A(25,21) = 1; A(23,22) = 1; A(24,23) = 1;
+  A(52,23) = 1; A(25,24) = 1; A(48,24) = 1; A(27,25) = 1; A(27,26) = 1;
+  A(30,26) = 1; A(28,27) = 1; A(29,28) = 1; A(47,28) = 1; A(30,29) = 1;
+  A(43,29) = 1; A(32,31) = 1; A(35,31) = 1; A(54,31) = 1; A(33,32) = 1;
+  A(34,33) = 1; A(35,34) = 1; A(36,34) = 1; A(56,35) = 1; A(37,36) = 1;
+  A(40,36) = 1; A(38,37) = 1; A(39,38) = 1; A(40,39) = 1; A(41,39) = 1;
+  A(57,40) = 1; A(42,41) = 1; A(45,41) = 1; A(43,42) = 1; A(44,43) = 1;
+  A(45,44) = 1; A(46,44) = 1; A(58,45) = 1; A(47,46) = 1; A(50,46) = 1;
+  A(48,47) = 1; A(49,48) = 1; A(50,49) = 1; A(51,49) = 1; A(59,50) = 1;
+  A(52,51) = 1; A(55,51) = 1; A(53,52) = 1; A(54,53) = 1; A(55,54) = 1;
+  A(60,55) = 1; A(57,56) = 1; A(60,56) = 1; A(58,57) = 1; A(59,58) = 1;
+  A(60,59) = 1;
+}
+
 TEST(SparseSkyline, Creation ) {
   MatrixSparseSkyline<double> sparse(4);
   sparse(0,0) = 1;
@@ -237,4 +261,18 @@ TEST(SparseSkyline, MatrixReorganize) {
   EXPECT_EQ(nrmat(0,0), 3);
   EXPECT_EQ(nrmat(1,2), 4);
   EXPECT_EQ(nrmat(1,0), 6);
+}
+
+TEST(SparseSkyline, CuthillMcKee) {
+  MatrixSparseSkyline<float> sparse(61);
+  fill_with_buckeyball(sparse);
+
+  // Solving for ordering
+  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse);
+
+  // This ordering comes from the MATLAB cuthill mckee example
+  uint ideal_order[61] = {1,6,2,5,7,26,30,10,11,12,3,4,8,27,29,9,15,13,16,17,21,25,42,28,43,38,37,14,20,18,22,24,41,47,44,39,36,33,19,32,23,48,45,46,40,34,53,31,52,49,58,50,57,35,54,51,59,56,55,60,0};
+
+  for ( uint i = 0; i < new_ordering.size(); i++ )
+    EXPECT_EQ(ideal_order[i], new_ordering[i]);
 }
