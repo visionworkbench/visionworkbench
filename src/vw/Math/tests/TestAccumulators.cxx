@@ -18,7 +18,7 @@ TEST(Accumulators, CDF_cauchy) {
   CDFAccumulator<double> cdf;
 
   boost::minstd_rand random_gen(42u);
-  random_gen.seed((unsigned int)(std::time(0)));
+  random_gen.seed((unsigned int)(::time(0)));
   boost::cauchy_distribution<double> cauchy(35,80);
   boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
@@ -36,7 +36,7 @@ TEST(Accumulators, CDF_triangular) {
   CDFAccumulator<double> cdf;
 
   boost::minstd_rand random_gen(42u);
-  random_gen.seed((unsigned int)(std::time(0)));
+  random_gen.seed((unsigned int)(::time(0)));
   boost::triangle_distribution<double> triangular(10,60,80);
   boost::variate_generator<boost::minstd_rand, boost::triangle_distribution<double> > generator(random_gen, triangular);
 
@@ -52,7 +52,7 @@ TEST(Accumulators, Median) {
   MedianAccumulator<double> median;
 
   boost::minstd_rand random_gen(42u);
-  random_gen.seed((unsigned int)(std::time(0)));
+  random_gen.seed((unsigned int)(::time(0)));
   boost::cauchy_distribution<double> cauchy(35,80);
   boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
