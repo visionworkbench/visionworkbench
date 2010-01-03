@@ -639,6 +639,23 @@ namespace math {
     return lookup_chart;
   }
 
+  // --------------------------------------------------------------
+  // Function to aid in solving for new skyline vector after a
+  // reordering has happened from CutHill Mckee
+  // --------------------------------------------------------------
+
+  template <class MatrixT>
+  Vector<uint> solve_for_skyline(MatrixBase<MatrixT>& A) {
+    Vector<uint> skyline(A.impl().rows());
+    for ( uint i = 0; i < A.impl().rows(); i++ )
+      for ( uint j = 0; j < i; j++ )
+        if ( A.impl()(i,j) != 0 ) {
+          skyline[i] = j;
+          break;
+        }
+    return skyline;
+  }
+
 }} // namespace vw::math
 
 #endif//__VW_MATH_SPARSE_SKYLINE_MATRIX_H__

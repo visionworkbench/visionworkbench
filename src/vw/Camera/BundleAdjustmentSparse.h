@@ -42,6 +42,7 @@ namespace camera {
 
     math::MatrixSparseSkyline<double> m_S;
     std::vector<uint> m_ideal_ordering;
+    Vector<uint> m_ideal_skyline;
     bool m_found_ideal_ordering;
 
   public:
@@ -382,26 +383,26 @@ namespace camera {
       if (!m_found_ideal_ordering) {
         time = new Timer("Solving Cuthill-Mckee", DebugMessage, "bundle_adjust");
         m_ideal_ordering = cuthill_mckee_ordering(S);
-        m_found_ideal_ordering = false;
+        math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
+        m_ideal_skyline = solve_for_skyline(mod_S);
+
+        m_found_ideal_ordering = true;
         delete time;
       }
 
       time = new Timer("Solve Delta A", DebugMessage, "bundle_adjust");
 
       // Compute the LDL^T decomposition and solve using sparse methods.
-      math::VectorReorganize<const Vector<uint> > skyline(S.skyline(), m_ideal_ordering);
       math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
       Vector<double> delta_a = sparse_solve(modified_S,
                                             reorganize(e, m_ideal_ordering),
-                                            skyline );
-      delta_a = reorganize(delta_a, skyline.inverse());
-      //Vector<double> delta_a = sparse_solve(S,e);
+                                            m_ideal_skyline );
+      delta_a = reorganize(delta_a, modified_S.inverse());
       delete time;
 
       // Save S; used for covariance calculations
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
-
       // --- SOLVE B'S UPDATE STEP ---------------------------------
 
       // Back Solving for Delta B
