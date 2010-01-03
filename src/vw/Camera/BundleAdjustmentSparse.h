@@ -40,8 +40,9 @@ namespace camera {
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
-    // Need to save S for covariance calculations
     math::MatrixSparseSkyline<double> m_S;
+    std::vector<uint> m_ideal_ordering;
+    bool m_found_ideal_ordering;
 
   public:
 
@@ -51,7 +52,9 @@ namespace camera {
                             bool use_gcp_constraint=true) :
     BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
                                                           use_camera_constraint,
-                                                          use_gcp_constraint ) {}
+                                                          use_gcp_constraint ) {
+      m_found_ideal_ordering = false;
+    }
 
     math::MatrixSparseSkyline<double> S() { return m_S; }
     void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
@@ -374,10 +377,25 @@ namespace camera {
 
       this->set_S(S);
       delete time;
+
+      // Computing ideal ordering
+      if (!m_found_ideal_ordering) {
+        time = new Timer("Solving Cuthill-Mckee", DebugMessage, "bundle_adjust");
+        m_ideal_ordering = cuthill_mckee_ordering(S);
+        m_found_ideal_ordering = false;
+        delete time;
+      }
+
       time = new Timer("Solve Delta A", DebugMessage, "bundle_adjust");
 
       // Compute the LDL^T decomposition and solve using sparse methods.
-      Vector<double> delta_a = sparse_solve(S, e);
+      math::VectorReorganize<const Vector<uint> > skyline(S.skyline(), m_ideal_ordering);
+      math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
+      Vector<double> delta_a = sparse_solve(modified_S,
+                                            reorganize(e, m_ideal_ordering),
+                                            skyline );
+      delta_a = reorganize(delta_a, skyline.inverse());
+      //Vector<double> delta_a = sparse_solve(S,e);
       delete time;
 
       // Save S; used for covariance calculations

@@ -443,7 +443,7 @@ namespace math {
     typedef IndexingVectorIterator<const VectorReorganize<VectorT> > const_iterator;
 
     // Constructor
-    VectorReorganize( VectorT& vector, std::vector<uint>& lookup ) : m_vector(vector), m_lookup(lookup) {
+    VectorReorganize( VectorT& vector, std::vector<uint> const& lookup ) : m_vector(vector), m_lookup(lookup) {
       VW_ASSERT( vector.size()==lookup.size(),
                  ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions" );
     }
@@ -496,7 +496,7 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixReorganize<MatrixT> > const_iterator;
 
     // Constructor
-    MatrixReorganize( MatrixT& matrix, std::vector<uint>& lookup ) : m_matrix(matrix), m_lookup(lookup) {
+    MatrixReorganize( MatrixT& matrix, std::vector<uint> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
       VW_ASSERT( matrix.cols()==lookup.size() &&
                  matrix.rows()==lookup.size(),
                  ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions" );
