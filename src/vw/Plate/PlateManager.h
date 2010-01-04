@@ -61,6 +61,7 @@ namespace platefile {
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
     //                          to be mipmapped at starting_level.  Use to specify effected tiles.
+    //
     void mipmap(int starting_level, bool ascend_pyramid, 
                 int start_transaction_id, int end_transaction_id, 
                 int write_transaction_id, BBox2i const& bbox) const;

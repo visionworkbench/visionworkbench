@@ -4,6 +4,14 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+/// \file image2plate.cc
+///
+/// This utility adds a georefernced image to a plate file.
+///
+/// By default, this tool will add an image to the mosaic, along with
+/// mipmapped tiles for that image, to its own layer.  Layers are
+/// indexed by transaction IDs.
+///
 
 #include <vw/Image.h>
 #include <vw/FileIO.h>
