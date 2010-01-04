@@ -264,10 +264,10 @@ namespace math {
 
     inline float operator()( float val ) const { return ::fabsf(val); }
     inline long operator()( long val ) const { return std::labs(val); }
-#ifdef HAVE_FABSL
+#ifdef VW_HAVE_FABSL
     inline long double operator()( long double val ) const { return ::fabsl(val); }
 #endif
-#ifdef HAVE_LLABS
+#ifdef VW_HAVE_LLABS
     inline long long operator()( long long val ) const { return ::llabs(val); }
 #endif
 
