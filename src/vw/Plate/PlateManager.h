@@ -53,24 +53,37 @@ namespace platefile {
 
     PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
     
+    // ---------------------------- MIPMAPPING --------------------------------
+
     // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
     //
-    //   starting_level -- select the pyramid level on which to carry out mipmapping
+    //   starting_level -- select the pyramid level from which to carry out mipmapping
+    //   bbox -- bounding box (in terms of tiles) containing the tiles that need 
+    //           to be mipmapped at starting_level.  Use to specify effected tiles.
+    //   transaction_id -- transaction id to use when reading/writing tiles
+    //
+    void mipmap(int num_levels, BBox2i const& bbox, int transaction_id) const;
+
+    /// This function generates a specific mipmap tile at the given
+    /// col, row, and level, and transaction_id.  It is left to a
+    /// subclass of PlateManager to implement.
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const = 0;
+
+    // ---------------------------- SNAPSHOTTING --------------------------------
+
+    // snapshot() creates a complete, composited view of the mosaic.
+    //
+    //   level -- select the pyramid level on which to carry out mipmapping
     //   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
     //   start_transaction_id -- select a transaction_id to use when accessing tiles.
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
     //                          to be mipmapped at starting_level.  Use to specify effected tiles.
     //
-    void mipmap(int starting_level, bool ascend_pyramid, 
-                int start_transaction_id, int end_transaction_id, 
-                int write_transaction_id, BBox2i const& bbox) const;
+    void snapshot(int level, BBox2i const& bbox, 
+                  int start_transaction_id, int end_transaction_id, 
+                  int write_transaction_id) const;
 
-    virtual void regenerate_tile(int col, int row, 
-                                 int level, 
-                                 int start_transaction_id, 
-                                 int end_transaction_id,
-                                 int write_transaction_id) const = 0;
   };    
 
   // -------------------------------------------------------------------------

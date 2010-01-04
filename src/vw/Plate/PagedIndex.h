@@ -84,11 +84,13 @@ namespace platefile {
 
     /// Return multiple index entries that match the specified
     /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
+    /// entry AND the last entry: [ begin_transaction_id, end_transaction_id ]
     ///
     /// Results are return as a std::pair<int32, IndexRecord>.  The
     /// first value in the pair is the transaction id for that
     /// IndexRecord.
+    ///
+    /// Note: this function is mostly used when creating snapshots.
     multi_value_type multi_get(int col, int row, 
                                int begin_transaction_id, int end_transaction_id) const;
 
@@ -96,7 +98,9 @@ namespace platefile {
     /// that this is a sparse store of IndexRecords.)
     int sparse_size() { return m_sparse_table.num_nonempty(); }
 
-    /// Returns a list of valid tiles in this IndexPage. 
+    /// Returns a list of valid tiles in this IndexPage.  
+    ///
+    /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> valid_tiles(int transaction_id, 
                                       vw::BBox2i const& region,
                                       bool exact_match) const;

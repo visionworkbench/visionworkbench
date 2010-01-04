@@ -21,57 +21,54 @@ static std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int h
 
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
-//
-//   starting_level -- select the pyramid level on which to carry out mipmapping
-//   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
-//   transaction_id -- select a transaction_id to use when accessing tiles.
-//   this_transaction_only -- select whether to read tiles for mipmapping using ONLY this t_id (true), or 
-//                            mipmap all tiles >= to transaction_id (false).
-//   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
-//                          to be mipmapped at starting_level.  Use to specify effected tiles.
-//
-void vw::platefile::PlateManager::mipmap(int starting_level, bool ascend_pyramid, 
-                                         int start_transaction_id, int end_transaction_id, 
-                                         int write_transaction_id, vw::BBox2i const& bbox) const {
+void vw::platefile::PlateManager::mipmap(int num_levels, vw::BBox2i const& bbox, int transaction_id) const {
+
       
+  BBox2i level_bbox = bbox;
+  for ( int level = num_levels-2; level >= 0; --level) {
+    std::cout << "\t--> Mipmapping @ level " << level << "\n";
+
+    // Subdivide the bbox into smaller workunits if necessary.
+    // This helps to keep operations efficient.
+    std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 1024, 1024);
+    for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
+      std::cout << "\t    Workunit: " << *iter << "\n";
       
-      // Set the ending level depending on whether or not the user has
-      // chosen to build tiles at all pyramid levels, or just this
-      // one.
-      int ending_level = starting_level;
-      if (ascend_pyramid) 
-        ending_level = 0;
-
-      BBox2i level_bbox = bbox;
-      for ( int level = starting_level; level >= ending_level; --level) {
-        std::cout << "\t--> Mipmapping @ level " << level << "\n";
-
-        // Subdivide the bbox into smaller workunits if necessary.
-        // This helps to keep operations efficient.
-        std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 1024, 1024);
-        for ( std::list<BBox2i>::iterator iter = tile_workunits.begin();
-              iter != tile_workunits.end(); ++iter) {
-          std::cout << "\t    Workunit: " << *iter << "\n";
-
-          for (int j = iter->min().y(); j < iter->max().y(); ++j) {
-            for (int i = iter->min().x(); i < iter->max().x(); ++i) {
-              this->regenerate_tile(i,j,level,
-                                    start_transaction_id,
-                                    end_transaction_id,
-                                    write_transaction_id);
-            }
-          }
+      for (int j = iter->min().y(); j < iter->max().y(); ++j) {
+        for (int i = iter->min().x(); i < iter->max().x(); ++i) {
+          this->generate_mipmap_tile(i,j,level,transaction_id);
         }
-
-        // Adjust the size of the bbox for this level
-        level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
-        level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );
-        level_bbox.max().x() = ceil( float(level_bbox.max().x()) / 2 );
-        level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );        
       }
     }
+    
+    // Adjust the size of the bbox for this level
+    level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
+    level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );
+    level_bbox.max().x() = ceil( float(level_bbox.max().x()) / 2 );
+    level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );        
+  }
+}
 
+// mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
+void vw::platefile::PlateManager::snapshot(int level, BBox2i const& bbox, 
+                                           int start_transaction_id, int end_transaction_id, 
+                                           int write_transaction_id) const {
+      
+  std::cout << "\t--> Snapshotting @ level " << level << "\n";
 
+  // Subdivide the bbox into smaller workunits if necessary.
+  // This helps to keep operations efficient.
+  std::list<BBox2i> tile_workunits = bbox_tiles(bbox, 1024, 1024);
+  for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
+    std::cout << "\t    Workunit: " << *iter << "\n";
+      
+    for (int j = iter->min().y(); j < iter->max().y(); ++j) {
+      for (int i = iter->min().x(); i < iter->max().x(); ++i) {
+        // Do snapshot...
+      }
+    }
+  }
+}
 
 template <class PixelT>
 vw::ImageView<PixelT> 

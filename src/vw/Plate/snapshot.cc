@@ -169,10 +169,10 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     if (snapshot_parameters.valid()) {
 
       Vector2i transaction_range = snapshot_parameters.transaction_range();
-      pm->mipmap(snapshot_parameters.level(), false, 
-                 transaction_range[0], transaction_range[1], 
-                 snapshot_parameters.write_transaction_id(),
-                 snapshot_parameters.region() );
+//       pm->mipmap(snapshot_parameters.level(), false, 
+//                  transaction_range[0], transaction_range[1], 
+//                  snapshot_parameters.write_transaction_id(),
+//                  snapshot_parameters.region() );
       
     } else {
 

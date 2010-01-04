@@ -46,8 +46,11 @@ namespace platefile {
       int32 level, x, y, transaction_id;
       ImageView<PixelT> tile;
     };
+
+    // The cache is declared mutable because it is modified by the
+    // otherwise const fetch_child_tile() method.
     typedef std::list<CacheEntry> cache_t;
-    cache_t m_cache;
+    mutable cache_t m_cache;  
 
     // Private methods
     
@@ -267,27 +270,18 @@ namespace platefile {
         effected_tiles_bbox.max().x() = ceil( float(effected_tiles_bbox.max().x()+1) / 2.0 );
         effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );
         
-        this->mipmap(m_platefile->num_levels()-2, true, 
-                     transaction_id, transaction_id, transaction_id, 
-                     effected_tiles_bbox);
+        this->mipmap(m_platefile->num_levels(), effected_tiles_bbox, transaction_id); 
       }
 
       // Notify the index that this transaction is complete.
       m_platefile->transaction_complete(transaction_id);
     }
 
-    virtual void regenerate_tile(int col, int row, 
-                                 int level, 
-                                 int start_transaction_id, 
-                                 int end_transaction_id, 
-                                 int write_transaction_id) const;
+    /// This function generates a specific mipmap tile at the given
+    /// col, row, and level, and transaction_id.  
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
 
-    ImageView<PixelT> composite_child_tile(int &num_composited, 
-                                           int col, int row, 
-                                           int level, 
-                                           int start_transaction_id,
-                                           int end_transaction_id) const;
-
+    ImageView<PixelT> fetch_child_tile(int x, int y, int level, int transaction_id) const;
   };
 
 
