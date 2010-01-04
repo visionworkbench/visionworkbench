@@ -31,8 +31,8 @@ static std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int h
 //                          to be mipmapped at starting_level.  Use to specify effected tiles.
 //
 void vw::platefile::PlateManager::mipmap(int starting_level, bool ascend_pyramid, 
-                                         int transaction_id, bool this_transaction_only, 
-                                         vw::BBox2i const& bbox) const {
+                                         int start_transaction_id, int end_transaction_id, 
+                                         int write_transaction_id, vw::BBox2i const& bbox) const {
       
       
       // Set the ending level depending on whether or not the user has
@@ -55,7 +55,10 @@ void vw::platefile::PlateManager::mipmap(int starting_level, bool ascend_pyramid
 
           for (int j = iter->min().y(); j < iter->max().y(); ++j) {
             for (int i = iter->min().x(); i < iter->max().x(); ++i) {
-              this->regenerate_tile(i,j,level,transaction_id,transaction_id,true);
+              this->regenerate_tile(i,j,level,
+                                    start_transaction_id,
+                                    end_transaction_id,
+                                    write_transaction_id);
             }
           }
         }

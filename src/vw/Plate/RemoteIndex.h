@@ -49,6 +49,19 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     virtual IndexRecord read_request(int col, int row, int level, int transaction_id, bool exact_transaction_match = false);
+
+    /// Return multiple index entries that match the specified
+    /// transaction id range.  This range is inclusive of the first
+    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
+    ///
+    /// Results are return as a std::pair<int32, IndexRecord>.  The
+    /// first value in the pair is the transaction id for that
+    /// IndexRecord.
+    virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
+                                                                         int begin_transaction_id, 
+                                                                         int end_transaction_id) {
+      vw_throw(NoImplErr() << "multi_read_request() is not yet implemented in RemoteIndex");
+    }
   
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.

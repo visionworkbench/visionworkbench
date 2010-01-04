@@ -315,6 +315,57 @@ namespace platefile {
       }
     }
 
+    /// Read one ore more images at a specified location in the
+    /// platefile by specifying a range of transaction ids of
+    /// interest.  This range is inclusive of the first entry, but not
+    /// the last entry: [ begin_transaction_id, end_transaction_id )
+    ///
+    /// This is mostly useful when compositing tiles during mipmapping.
+    ///
+    template <class ViewT>
+    std::list<TileHeader> multi_read(std::list<ViewT> &tiles, int col, int row, int level, 
+                                     int begin_transaction_id, int end_transaction_id) {
+
+      std::list<TileHeader> results;
+      
+      // 1. Call index read_request(col,row,level).  Returns IndexRecord.
+      std::list<std::pair<int32, IndexRecord> > records = m_index->multi_read_request(col, row, 
+                                                                                      level, 
+                                                                                      begin_transaction_id, 
+                                                                                      end_transaction_id);
+
+      std::list<std::pair<int32, IndexRecord> >::iterator iter = records.begin();
+      while (iter != records.end()) {
+        IndexRecord &record = iter->second;
+
+        if (record.status() != INDEX_RECORD_EMPTY) {
+          std::ostringstream blob_filename;
+          blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+          
+          // 2. Open the blob file and read the header
+          Blob blob(blob_filename.str());
+          TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+          
+          // 3. Choose a temporary filename and call BlobIO
+          // read_as_file(filename, offset, size) [ offset, size from
+          // IndexRecord ]
+          std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
+          blob.read_to_file(tempfile, record.blob_offset());
+          TemporaryTileFile tile_file(tempfile);
+          
+          // 4. Read data from temporary file.
+          ViewT tile = tile_file.read<typename ViewT::pixel_type>();
+          tiles.push_back(tile);
+
+          // 5. Access the tile header and return it.
+          results.push_back( blob.read_header<TileHeader>(record.blob_offset()) );
+
+        } 
+        ++iter;
+      }
+      return results;
+    }
+
     /// Write an image to the specified tile location in the plate file.
     template <class ViewT>
     void write(ImageViewBase<ViewT> const& view, 

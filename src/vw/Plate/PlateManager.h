@@ -57,18 +57,19 @@ namespace platefile {
     //
     //   starting_level -- select the pyramid level on which to carry out mipmapping
     //   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
-    //   transaction_id -- select a transaction_id to use when accessing tiles.
-    //   this_transaction_only -- select whether to read tiles for mipmapping using ONLY this t_id (true), or 
-    //                            mipmap all tiles >= to transaction_id (false).
+    //   start_transaction_id -- select a transaction_id to use when accessing tiles.
+    //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
     //                          to be mipmapped at starting_level.  Use to specify effected tiles.
-    void mipmap(int starting_level, bool ascend_pyramid, int transaction_id, 
-                bool this_transaction_only, BBox2i const& bbox) const;
+    void mipmap(int starting_level, bool ascend_pyramid, 
+                int start_transaction_id, int end_transaction_id, 
+                int write_transaction_id, BBox2i const& bbox) const;
 
     virtual void regenerate_tile(int col, int row, 
-                                 int level, int read_transaction_id, 
-                                 int write_transaction_id, 
-                                 bool this_transaction_only) const = 0;
+                                 int level, 
+                                 int start_transaction_id, 
+                                 int end_transaction_id,
+                                 int write_transaction_id) const = 0;
   };    
 
   // -------------------------------------------------------------------------

@@ -267,7 +267,7 @@ namespace platefile {
         effected_tiles_bbox.max().x() = ceil( float(effected_tiles_bbox.max().x()+1) / 2.0 );
         effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );        
         
-        this->mipmap(m_platefile->num_levels()-2, true, transaction_id, false, effected_tiles_bbox);
+        this->mipmap(m_platefile->num_levels()-2, true, 0, transaction_id+1, transaction_id, effected_tiles_bbox);
       }
 
       // Notify the index that this transaction is complete.
@@ -275,16 +275,16 @@ namespace platefile {
     }
 
     virtual void regenerate_tile(int col, int row, 
-                                 int level, int read_transaction_id, 
-                                 int write_transaction_id, 
-                                 bool this_transaction_only) const;
+                                 int level, 
+                                 int start_transaction_id, 
+                                 int end_transaction_id, 
+                                 int write_transaction_id) const;
 
     ImageView<PixelT> composite_child_tile(int &num_composited, 
                                            int col, int row, 
                                            int level, 
-                                           int read_transaction_id,
-                                           int write_transaction_id,
-                                           bool this_transaction_only) const;
+                                           int start_transaction_id,
+                                           int end_transaction_id) const;
 
   };
 

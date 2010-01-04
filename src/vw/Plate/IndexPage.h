@@ -51,16 +51,12 @@ namespace platefile {
 
     ~IndexPage();
 
-    // ----------------------------------------------------------------------
-    //                          Iterators
-    // ----------------------------------------------------------------------
+    // ----------------------- ITERATORS  ----------------------
 
     nonempty_iterator begin() { return m_sparse_table.nonempty_begin(); }
     nonempty_iterator end() { return m_sparse_table.nonempty_end(); }
 
-    // ----------------------------------------------------------------------
-    //                          Accessors
-    // ----------------------------------------------------------------------
+    // ----------------------- ACCESSORS  ----------------------
 
     void set(IndexRecord const& record, int col, int row, int transaction_id);
 
@@ -88,9 +84,7 @@ namespace platefile {
                                       vw::BBox2i const& region,
                                       bool exact_match) const;
 
-    // ----------------------------------------------------------------------
-    //                            Disk I/O
-    // ----------------------------------------------------------------------
+    // ----------------------- DISK I/O  ----------------------
 
     /// Save any unsaved changes to disk.
     void sync();
