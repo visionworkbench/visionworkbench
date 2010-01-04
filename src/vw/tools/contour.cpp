@@ -19,7 +19,7 @@
 #include <algorithm>
 #include <utility>
 #include <vw/Image.h>
-#include <math.h>
+#include <cmath>
 
 #include "contour.h"
 

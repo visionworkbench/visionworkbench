@@ -15,7 +15,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Math.h>
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 namespace vw {
   namespace stereo {

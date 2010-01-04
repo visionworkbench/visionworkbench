@@ -8,7 +8,7 @@
 #ifndef Transforms_H
 #define Transforms_H
 
-#include <math.h>
+#include <cmath>
 
 #include <vw/Image.h>
 #include <vw/Math.h>

@@ -9,7 +9,7 @@
 #include <vw/GPU/Algorithms.h>
 #include <vw/GPU/Manipulation.h>
 #include <vw/GPU/ImageMath.h>
-#include <math.h>
+#include <cmath>
 
 //#include <vw/Math.h>
 //#include <vw/Geometry/VectorFixed.h>

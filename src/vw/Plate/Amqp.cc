@@ -7,9 +7,9 @@
 
 #include <vw/Plate/Amqp.h>
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
+#include <cstdlib>
+#include <cstdio>
+#include <cerrno>
 
 #include <stdint.h>
 #include <amqp.h>

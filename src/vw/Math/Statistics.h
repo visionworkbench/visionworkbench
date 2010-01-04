@@ -12,7 +12,7 @@
 #ifndef __MATH_STATISTICS_H__
 #define __MATH_STATISTICS_H__
 
-#include <math.h>
+#include <cmath>
 #include <vector>
 
 namespace vw { 

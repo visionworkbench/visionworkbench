@@ -12,7 +12,7 @@
 #ifndef __VW_CORE_PROGRESSCALLBACK_H__
 #define __VW_CORE_PROGRESSCALLBACK_H__
 
-#include <math.h>
+#include <cmath>
 #include <string>
 
 #include <vw/Core/Log.h>

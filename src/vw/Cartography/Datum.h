@@ -10,7 +10,7 @@
 
 #include <string>
 #include <ostream>
-#include <math.h>
+#include <cmath>
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>

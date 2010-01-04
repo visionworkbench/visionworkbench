@@ -109,7 +109,7 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::camera;
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <iostream>
 #include <iomanip>
 

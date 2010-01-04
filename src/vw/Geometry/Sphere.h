@@ -12,7 +12,7 @@
 #define __VW_GEOMETRY_SPHERE_H__
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 #include <boost/static_assert.hpp>
 

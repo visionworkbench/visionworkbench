@@ -15,7 +15,7 @@
 #undef NDEBUG
 #endif
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;

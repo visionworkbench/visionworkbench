@@ -119,7 +119,7 @@
 // NB: the triple-bracket comments you'll see are Vim fold markers.
 // Type ':set foldmethod=marker' in command mode to use them
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 #include <sstream>
 #include <iostream>

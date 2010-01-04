@@ -15,7 +15,7 @@
 #include <fstream>
 #include <limits>
 #include <vector>
-#include <math.h>
+#include <cmath>
 
 #include <boost/static_assert.hpp>
 

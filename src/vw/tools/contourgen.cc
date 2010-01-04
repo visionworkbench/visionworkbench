@@ -9,7 +9,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
-#include <assert.h>
+#include <cassert>
 #include <list>
 #include <map>
 #include <algorithm>
@@ -27,7 +27,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 
-#include <math.h>
+#include <cmath>
 
 #include "contour.h"
 

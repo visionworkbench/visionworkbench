@@ -16,7 +16,7 @@
 #include <vw/Image/Filter.h>
 #include <vector>
 #include <algorithm>
-#include <math.h>
+#include <cmath>
 
 #define INTEREST_POINT_MODE_THRESHOLD (0.8)
 #define INTEREST_POINT_MODE_LIMIT (5)

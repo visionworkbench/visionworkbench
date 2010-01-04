@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 
 #include <vw/Core/Exception.h>

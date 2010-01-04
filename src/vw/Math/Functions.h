@@ -17,7 +17,7 @@
 #ifndef __VW_MATH_FUNCTIONS_H__
 #define __VW_MATH_FUNCTIONS_H__
 
-#include <math.h>
+#include <cmath>
 #include <cstdlib>
 #include <limits>
 #include <complex>

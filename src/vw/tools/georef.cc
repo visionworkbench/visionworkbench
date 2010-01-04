@@ -11,7 +11,7 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <stdlib.h>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <iostream> 

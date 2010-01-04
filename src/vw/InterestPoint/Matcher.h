@@ -18,8 +18,8 @@
 #include <vw/Math/KDTree.h>
 #include <vw/Core/Log.h>
 #include <vector>
-#include <math.h>
-#include <float.h>
+#include <cmath>
+#include <cfloat>
 
 namespace vw { 
 namespace ip {

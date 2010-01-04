@@ -22,7 +22,7 @@
 
 #include <vw/Camera/Exif.h>
 
-#include <math.h>
+#include <cmath>
 #include <iostream>
 #include <sstream>
 

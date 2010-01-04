@@ -9,8 +9,8 @@
 #define GPUProgram_H
 
 #include <map>
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 
 #include <vw/config.h>
 #include <vw/GPU/Setup.h>

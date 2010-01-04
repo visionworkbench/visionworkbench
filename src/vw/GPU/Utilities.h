@@ -10,10 +10,10 @@
 
 #include <vw/Math/Vector.h>
 
-#include <stdlib.h>
-#include <stdio.h>
+#include <cstdlib>
+#include <cstdio>
 #include <sys/time.h>
-#include <math.h>
+#include <cmath>
 #include <string>
 #include <map>
 #include <vector>

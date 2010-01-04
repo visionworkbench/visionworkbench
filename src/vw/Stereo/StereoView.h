@@ -13,7 +13,7 @@
 #include <vw/Camera/CameraModel.h>
 
 #ifdef __APPLE__
-#include <float.h>                         // for DBL_MAX
+#include <cfloat>                         // for DBL_MAX
 #else
 #include <values.h>                        // for DBL_MAX
 #endif

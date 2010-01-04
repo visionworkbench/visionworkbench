@@ -8,7 +8,7 @@
 #include <vw/Geometry/SpatialTree.h>
 #include <vw/Core/Log.h>
 
-#include <assert.h>
+#include <cassert>
 #include <iostream> // debugging
 #include <fstream>
 #include <stdexcept>

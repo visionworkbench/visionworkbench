@@ -12,7 +12,7 @@
 #ifndef __VW_IMAGE_IMAGEVIEW_H__
 #define __VW_IMAGE_IMAGEVIEW_H__
 
-#include <string.h> // For memset()
+#include <cstring> // For memset()
 
 #include <boost/smart_ptr.hpp>
 #include <boost/type_traits.hpp>
