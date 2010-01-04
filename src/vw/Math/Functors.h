@@ -262,13 +262,13 @@ namespace math {
       return DefaultAbsBehavior<std::numeric_limits<ValT>::is_integer>::apply(val);
     }
 
-    inline float operator()( float val ) const { return fabsf(val); }
-#ifndef __FreeBSD__
-    inline long double operator()( long double val ) const { return fabsl(val); }
-#endif
+    inline float operator()( float val ) const { return ::fabsf(val); }
     inline long operator()( long val ) const { return std::labs(val); }
-#ifndef WIN32
-    inline long long operator()( long long val ) const { return std::llabs(val); }
+#ifdef HAVE_FABSL
+    inline long double operator()( long double val ) const { return ::fabsl(val); }
+#endif
+#ifdef HAVE_LLABS
+    inline long long operator()( long long val ) const { return ::llabs(val); }
 #endif
 
     template <class ValT>

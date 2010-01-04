@@ -24,7 +24,8 @@
 #define __VW_CAMERA_EXIF_DATA_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <map> 
+#include <map>
+#include <cstdio>
 
 namespace vw {
 namespace camera {
