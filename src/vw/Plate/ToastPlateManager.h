@@ -137,8 +137,8 @@ namespace platefile {
 
  public:
   
-    ToastPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      PlateManager(platefile), m_queue(num_threads) {}
+    ToastPlateManager(boost::shared_ptr<PlateFile> platefile) : 
+      PlateManager(platefile), m_queue(1 ) {} // Use 1 thread for now...
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -265,9 +265,11 @@ namespace platefile {
         effected_tiles_bbox.min().x() = floor( float(effected_tiles_bbox.min().x()) / 2.0 );
         effected_tiles_bbox.min().y() = floor( float(effected_tiles_bbox.min().y()) / 2.0 );
         effected_tiles_bbox.max().x() = ceil( float(effected_tiles_bbox.max().x()+1) / 2.0 );
-        effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );        
+        effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );
         
-        this->mipmap(m_platefile->num_levels()-2, true, 0, transaction_id+1, transaction_id, effected_tiles_bbox);
+        this->mipmap(m_platefile->num_levels()-2, true, 
+                     transaction_id, transaction_id, transaction_id, 
+                     effected_tiles_bbox);
       }
 
       // Notify the index that this transaction is complete.

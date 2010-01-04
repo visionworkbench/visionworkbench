@@ -48,7 +48,7 @@ template <class ViewT>
 void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
                ImageViewBase<ViewT> const& view,
                std::string filename, GeoReference const& georef, 
-               std::string output_mode, int num_threads) {
+               std::string output_mode) {
 
   std::ostringstream status_str;
   status_str << "\t    " << filename << " : ";
@@ -56,7 +56,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
   if (output_mode == "toast") {
 
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
-      new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
+      new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
 
     pm->insert(view.impl(), filename, georef, g_debug,
                TerminalProgressCallback(InfoMessage, status_str.str()) );
@@ -64,7 +64,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
   }  else if (output_mode == "kml")  {
 
     // boost::shared_ptr<KmlPlateManager> pm = 
-    //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
+    //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile) );
 
     // pm->insert(view.impl(), filename, georef,
     //            TerminalProgressCallback(InfoMessage, status_str.str()) );
@@ -86,7 +86,6 @@ int main( int argc, char *argv[] ) {
   float jpeg_quality;
   int png_compression;
   unsigned cache_size;
-  unsigned num_threads;
   std::vector<std::string> image_files;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
@@ -100,7 +99,6 @@ int main( int argc, char *argv[] ) {
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
-    ("num-threads,t", po::value<unsigned>(&num_threads)->default_value(1), "Set number of threads (set to 0 to use system default")
     ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
@@ -241,10 +239,10 @@ int main( int argc, char *argv[] ) {
             do_mosaic(platefile, 
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
                                                 nodata_value)),
-                      image_files[i], georef, output_mode, num_threads);
+                      image_files[i], georef, output_mode);
           else
             do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-                      image_files[i], georef, output_mode, num_threads);
+                      image_files[i], georef, output_mode);
           break;
         default:
           vw_throw(ArgumentErr() << "Image contains a channel type not supported by image2plate.\n");
@@ -255,7 +253,7 @@ int main( int argc, char *argv[] ) {
         switch(platefile->channel_type()) {
         case VW_CHANNEL_UINT8:  
           do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                    image_files[i], georef, output_mode, num_threads);
+                    image_files[i], georef, output_mode);
           break;
         default:
           std::cout << "Platefile contains a channel type not supported by image2plate.\n";

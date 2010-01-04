@@ -9,18 +9,22 @@
 ///  <none> - If no options are supplied, this utility will create a
 ///          snapshot of the entire platefile starting with
 ///          read_cursor and going to the most recent transaction_id.
+///          In this mode, the snapshot tool starts and finishes a
+///          transaction ID automatically.
 ///
 ///  --start - Starts a new multi-part snapshot.  Returns the
 ///          transaction_id for this snapshot as a return value.
 ///
 ///  --finish <transaction_id> - Finish a multi-part snapshot. 
 ///
-///   --snapshot <level> <t_begin> <t_end> - Creates a snapshot of the
-///          mosaic by compositing together tiles from the
-///          transaction_id's in the range [t_begin, t_end] and the
-///          level specified (the range is inclusive).
+///   --snapshot <t_begin>:<t_end>:<t_write>@<level> - Creates a
+///          snapshot of the mosaic by compositing together tiles from
+///          the transaction_id's in the range [t_begin, t_end] and
+///          the level specified (the range is inclusive).  New tiles
+///          in the snapshot are written using the t_write
+///          transaction_id.
 ///
-///  --region <ul_x> <ul_y> <lr_x> <lr_y> - Limit the snapshot to the
+///  --region <ul_x>,<ul_y>:<lr_x>,<lr_y> - Limit the snapshot to the
 ///          region bounded by these upper left (ul) and lower right
 ///          (lr) coordinates.
 ///
@@ -46,6 +50,7 @@ class SnapshotParameters {
   int m_level;
   int m_min_transaction_id;
   int m_max_transaction_id;
+  int m_write_transaction_id;
   BBox2i m_region;
   bool m_valid;
 
@@ -86,6 +91,10 @@ public:
 
       if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
       m_max_transaction_id = boost::lexical_cast<int>(*tok_iter);
+      ++tok_iter;
+
+      if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
+      m_write_transaction_id = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
@@ -139,6 +148,7 @@ public:
   int level() const { return m_level; }
   Vector2i transaction_range() const { return Vector2i(m_min_transaction_id, 
                                                        m_max_transaction_id); }
+  int write_transaction_id() const { return m_write_transaction_id; }
   BBox2i region() const { return m_region; }
 };
 
@@ -148,42 +158,42 @@ public:
 
 template <class PixelT>
 void do_snapshot(boost::shared_ptr<PlateFile> platefile,
-                 SnapshotParameters snapshot_parameters) {
+                 SnapshotParameters snapshot_parameters,
+                 std::string output_mode) {
 
-  if (snapshot_parameters.valid()) {
+  if (output_mode == "toast") {
 
-    // XXX : Implement me!!
+    boost::shared_ptr<ToastPlateManager<PixelT> > pm( 
+      new ToastPlateManager<PixelT> (platefile) );
+
+    if (snapshot_parameters.valid()) {
+
+      Vector2i transaction_range = snapshot_parameters.transaction_range();
+      pm->mipmap(snapshot_parameters.level(), false, 
+                 transaction_range[0], transaction_range[1], 
+                 snapshot_parameters.write_transaction_id(),
+                 snapshot_parameters.region() );
+      
+    } else {
+
+      // If the snapshot parameters are not valid, then the user must
+      // have run this program without supplying any explicit
+      // instructions.  We build a snapshot of the entire platefile
+      // starting with read_cursor and going to the most recent
+      // transaction_id.
+      
+      // this->mipmap(m_platefile->num_levels()-2, true, 0, 
+      //              transaction_id+1, transaction_id, 
+      //              snapshot_parameters.region() );
+      
+    }
 
   } else {
 
-    // If the snapshot parameters are not valid, then the user must
-    // have run this program without supplying any explicit
-    // instructions.  We build a snapshot of the entire platefile
-    // starting with read_cursor and going to the most recent
-    // transaction_id.
-    
-    // XXX : Implement me!!
+    vw_out(0) << "Unkown output mode: " << output_mode << "\n";
 
   }
-  
-  // if (output_mode == "toast") {
-
-  //   boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
-  //     new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
-
-  //   pm->insert(view.impl(), filename, georef, g_debug,
-  //              TerminalProgressCallback(InfoMessage, status_str.str()) );
-
-  // }  else if (output_mode == "kml")  {
-
-  //   // boost::shared_ptr<KmlPlateManager> pm = 
-  //   //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-
-  //   // pm->insert(view.impl(), filename, georef,
-  //   //            TerminalProgressCallback(InfoMessage, status_str.str()) );
-
-  // }
-
+           
 }
 
 // --------------------------------------------------------------------------
@@ -194,6 +204,7 @@ int main( int argc, char *argv[] ) {
 
   std::string url;
   std::string start_description;
+  std::string output_mode;
   int finish_transaction_id;
   std::string snapshot_string;
   std::string region_string;
@@ -203,7 +214,9 @@ int main( int argc, char *argv[] ) {
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", po::value<int>(&finish_transaction_id), "where arg = <transaction_id> - Finish a multi-part snapshot.")
     ("snapshot", po::value<std::string>(&snapshot_string), "where arg = <t_begin>:<t_end>@<level> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_id's in the range [t_begin, t_end] at the level specified.") 
-    ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates.");
+    ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates.")
+    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), 
+     "Output mode [toast, kml]")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -277,7 +290,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAYA:
       switch(platefile->channel_type()) {
       case VW_CHANNEL_UINT8:  
-        do_snapshot<PixelGray<uint8> >(platefile, snapshot_params);
+        do_snapshot<PixelGrayA<uint8> >(platefile, snapshot_params, output_mode);
         break;
       default:
         vw_throw(ArgumentErr() << "Image contains a channel type not supported by image2plate.\n");
@@ -287,7 +300,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGBA:
       switch(platefile->channel_type()) {
       case VW_CHANNEL_UINT8:  
-        do_snapshot<PixelGray<uint8> >(platefile, snapshot_params);
+        do_snapshot<PixelRGBA<uint8> >(platefile, snapshot_params, output_mode);
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";

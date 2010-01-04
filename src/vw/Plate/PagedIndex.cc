@@ -166,15 +166,17 @@ vw::platefile::IndexPage::multi_get(int col, int row,
   multi_value_type results;
   multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
   multi_value_type::const_iterator it = entries.begin();
-  while (it != entries.end()) {
-    if (it->first >= begin_transaction_id && it->first < end_transaction_id) {
+  while (it != entries.end() && it->first >= begin_transaction_id) {
+    std::cout << "Comparing: " << (it->first) << " and " << begin_transaction_id << " <-> " << end_transaction_id << "\n";
+    if (it->first >= begin_transaction_id && it->first <= end_transaction_id) {
       results.push_back(*it);
     }
     ++it;
   }
   
   if (results.empty()) 
-    vw_throw(TileNotFoundErr() << "Tiles exist at this location, but none match the transaction_id range you specified..\n");
+    vw_throw(TileNotFoundErr() << entries.size() << " tiles exist at this location, "
+             << "but none match the transaction_id range you specified.\n");
 
   return results;
 }
@@ -249,8 +251,10 @@ std::list<vw::platefile::TileHeader> vw::platefile::IndexPage::valid_tiles(int t
 // ----------------------- DISK I/O  ----------------------
 
 void vw::platefile::IndexPage::sync() {
-  if (m_needs_saving)
+  if (m_needs_saving) {
     this->serialize();
+    m_needs_saving = false;
+  }
 }
 
 void vw::platefile::IndexPage::serialize() {
