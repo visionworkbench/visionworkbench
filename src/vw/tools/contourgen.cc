@@ -15,7 +15,6 @@
 #include <algorithm>
 #include <utility>
 
-#include <cairomm/cairommconfig.h>
 #include <cairomm/context.h>
 #include <cairomm/surface.h>
 
