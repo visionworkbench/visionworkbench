@@ -91,7 +91,7 @@ AC_CHECK_HEADERS([unistd.h pwd.h])
 AC_CHECK_FUNCS([getpwuid getpid])
 
 # Find some functions
-AC_CHECK_FUNCS([fabsl llabs])
+AC_CHECK_FUNCS([fabsl llabs exp2 log2 tgamma])
 
 # Look for the python stuff
 AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])

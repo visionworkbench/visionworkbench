@@ -12,6 +12,7 @@
 #ifndef __VW_IMAGE_PIXELMATH_H__
 #define __VW_IMAGE_PIXELMATH_H__
 
+#include <vw/config.h>
 #include <boost/utility/enable_if.hpp>
 
 #include <vw/Core/Functors.h>
@@ -170,9 +171,13 @@ namespace vw {
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(acosh, vw::math::ArgAcoshFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(asinh, vw::math::ArgAsinhFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
-#ifndef __FreeBSD__
+#ifdef VW_HAVE_EXP2
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
+#endif
+#ifdef VW_HAVE_LOG2
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+#endif
+#ifdef VW_HAVE_TGAMMA
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(tgamma,vw::math::ArgTgammaFunctor)
 #endif
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)

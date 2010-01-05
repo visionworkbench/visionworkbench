@@ -49,6 +49,7 @@
 #ifndef __VW_IMAGE_IMAGEMATH_H__
 #define __VW_IMAGE_IMAGEMATH_H__
 
+#include <vw/config.h>
 #include <vw/Core/Functors.h>
 #include <vw/Image/PerPixelViews.h>
 
@@ -266,16 +267,22 @@ namespace vw {
 
   /// Computes the hyperbolic arctangent, \f$\tanh^{-1} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(atanh, vw::math::ArgAtanhFunctor)
-#ifndef __FreeBSD__
+
+#ifdef VW_HAVE_EXP2
   /// Computes the base-2 exponential, \f$2^x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(exp2, vw::math::ArgExp2Functor)
+#endif
 
+#ifdef VW_HAVE_LOG2
   /// Computes the base-2 logarithm, \f$\log_{2} x\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(log2, vw::math::ArgLog2Functor)
+#endif
 
+#ifdef VW_HAVE_TGAMMA
   /// Computes the gamma function of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(tgamma, vw::math::ArgTgammaFunctor)
 #endif
+
   /// Computes the base-e exponential minus one, \f$e^x-1\f$, of each pixel in an image.
   VW_IMAGE_MATH_UNARY_FUNCTION(expm1, vw::math::ArgExpm1Functor)
 

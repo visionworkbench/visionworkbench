@@ -22,6 +22,7 @@
 #include <limits>
 #include <complex>
 
+#include <vw/config.h>
 #include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
@@ -158,9 +159,13 @@ namespace impl {
   using ::acosh;
   using ::asinh;
   using ::atanh;
-#ifndef __FreeBSD__
+#ifdef VW_HAVE_EXP2
   using ::exp2;
+#endif
+#ifdef VW_HAVE_LOG2
   using ::log2;
+#endif
+#ifdef VW_HAVE_TGAMMA
   using ::tgamma;
 #endif
   using ::expm1;
@@ -174,7 +179,7 @@ namespace impl {
   using ::hypot;
   using ::copysign;
   using ::fdim;
-#endif
+#endif // WIN32
 
 #if defined(__APPLE__) && defined(__POWERPC__)
   inline long double erfl( long double arg ) {

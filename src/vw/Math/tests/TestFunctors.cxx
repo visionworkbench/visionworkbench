@@ -6,6 +6,7 @@
 
 
 #include <gtest/gtest.h>
+#include <vw/config.h>
 #include <vw/Math/Functors.h>
 
 using namespace vw;
@@ -146,21 +147,24 @@ TEST(Functors, Pow)   { TEST_BINARY_MATH_FUNCTOR(Pow,3.0,2.0,9.0);  }
 TEST(Functors, Acosh) { TEST_UNARY_MATH_FUNCTOR(Acosh,1.5,0.962424); }
 TEST(Functors, Asinh) { TEST_UNARY_MATH_FUNCTOR(Asinh,1.0,0.881374); }
 TEST(Functors, Atanh) { TEST_UNARY_MATH_FUNCTOR(Atanh,0.5,0.549306); }
-TEST(Functors, Exp2)  {
-#ifndef __FreeBSD__
-                        TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0);
+
+#ifdef VW_HAVE_EXP2
+TEST(Functors, Exp2)  { TEST_UNARY_MATH_FUNCTOR(Exp2,1.0,2.0); }
+#else
+TEST(Functors, DISABLED_Exp2)  { }
 #endif
-}
-TEST(Functors, Log2) {
-#ifndef __FreeBSD__
-                        TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0);
+
+#ifdef VW_HAVE_LOG2
+TEST(Functors, Log2) { TEST_UNARY_MATH_FUNCTOR(Log2,2.0,1.0); }
+#else
+TEST(Functors, DISABLED_Log2) { }
 #endif
-}
-  TEST(Functors, Tgamma) {
-#ifndef __FreeBSD__
-                        TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227);
+
+#ifdef VW_HAVE_TGAMMA
+TEST(Functors, Tgamma) { TEST_UNARY_MATH_FUNCTOR(Tgamma,1.5,0.886227); }
+#else
+TEST(Functors, DISABLED_Tgamma) { }
 #endif
-}
 
 TEST(Functors, Expm1)    { TEST_UNARY_MATH_FUNCTOR(Expm1,1.0,1.718281);  }
 TEST(Functors, Log1p)    { TEST_UNARY_MATH_FUNCTOR(Log1p,1.0,0.693147);  }

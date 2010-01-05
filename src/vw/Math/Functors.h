@@ -21,13 +21,13 @@
 #include <vector>
 #include <algorithm>
 
+#include <vw/config.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
-#include <vw/config.h>
 
-// The math.h header in FreeBSD (and possibly other platforms) does
+// The math.h header in FreeBSD (and possibly other platforms) does not
 // include routines for manipulating long doubles.  We disable long
 // double VW math routines here for certain platforms.
 #if defined(__FreeBSD__) || defined(_WIN32)
@@ -183,9 +183,14 @@ namespace math {
   __VW_UNARY_MATH_FUNCTOR( Acosh, acosh )
   __VW_UNARY_MATH_FUNCTOR( Asinh, asinh )
   __VW_UNARY_MATH_FUNCTOR( Atanh, atanh )
-#ifndef __FreeBSD__
+
+#ifdef VW_HAVE_EXP2
   __VW_UNARY_MATH_FUNCTOR( Exp2, exp2 )
+#endif
+#ifdef VW_HAVE_LOG2
   __VW_UNARY_MATH_FUNCTOR( Log2, log2 )
+#endif
+#ifdef VW_HAVE_TGAMMA
   __VW_UNARY_MATH_FUNCTOR( Tgamma, tgamma )
 #endif
   __VW_UNARY_MATH_FUNCTOR( Lgamma, lgamma )

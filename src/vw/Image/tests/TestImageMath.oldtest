@@ -8,6 +8,7 @@
 // TestImageMath.h
 #include <cxxtest/TestSuite.h>
 
+#include <vw/config.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
@@ -422,14 +423,20 @@ public:
   void test_acosh() { TEST_UNARY_MATH_FUNCTION(acosh,1.5,0.962424); }
   void test_asinh() { TEST_UNARY_MATH_FUNCTION(asinh,1.0,0.881374); }
   void test_atanh() { TEST_UNARY_MATH_FUNCTION(atanh,0.5,0.549306); }
+#ifdef VW_HAVE_EXP2
   void test_exp2() { TEST_UNARY_MATH_FUNCTION(exp2,1.0,2.0); }
+#endif
   void test_expm1() { TEST_UNARY_MATH_FUNCTION(expm1,1.0,1.718281); }
+#ifdef VW_HAVE_LOG2
   void test_log2() { TEST_UNARY_MATH_FUNCTION(log2,2.0,1.0); }
+#endif
   void test_log1p() { TEST_UNARY_MATH_FUNCTION(log1p,1.0,0.693147); }
   void test_cbrt() { TEST_UNARY_MATH_FUNCTION(cbrt,2.0,1.25992); }
   void test_erf() { TEST_UNARY_MATH_FUNCTION(erf,1.0,0.842701); }
   void test_erfc() { TEST_UNARY_MATH_FUNCTION(erfc,1.0,0.157299); }
+#ifdef VW_HAVE_TGAMMA
   void test_tgamma() { TEST_UNARY_MATH_FUNCTION(tgamma,1.5,0.886227); }
+#endif
   void test_lgamma() { TEST_UNARY_MATH_FUNCTION(lgamma,2.5,0.284683); }
   void test_round() { TEST_UNARY_MATH_FUNCTION(round,1.4,1.0);
                       TEST_UNARY_MATH_FUNCTION(round,1.5,2.0); }
