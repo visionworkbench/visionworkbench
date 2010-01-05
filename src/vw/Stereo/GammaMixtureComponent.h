@@ -14,6 +14,7 @@
 #include <vw/Image.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math.h>
+#include <limits>
 
 namespace vw {
 namespace stereo {
@@ -111,7 +112,7 @@ namespace stereo {
         }
 
         // now use newton-raphson to get true MLE estimates
-        double delta = DBL_MAX;
+        double delta = std::numeric_limits<double>::max();
         int iter = 0;
         while(delta > 1e-7 && iter < 5) {
           double k_old = _k;
@@ -152,7 +153,7 @@ namespace stereo {
         }
 
         /*
-        if(l_likelihood > DBL_MAX || l_likelihood != l_likelihood) {
+        if(l_likelihood > std::numeric_limits<double>::max() || l_likelihood != l_likelihood) {
           std::cout << "l is bad: " << l_likelihood << std::endl;
           std::cout << "k: " << _k << std::endl;
           std::cout << "theta: " << _theta << std::endl;
