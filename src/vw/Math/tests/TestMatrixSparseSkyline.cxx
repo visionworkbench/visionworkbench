@@ -237,6 +237,30 @@ TEST(SparseSkyline, VectorReorganize) {
   EXPECT_EQ(nrvec(0),3);
   EXPECT_EQ(nrvec(1),1);
   EXPECT_EQ(nrvec(2),2);
+
+  // Reording back into self
+  nrvec = reorganize(nrvec, rvec.inverse());
+  for ( uint i = 0; i < nrvec.size(); i++ )
+    EXPECT_EQ(nrvec[i],vec[i]);
+}
+
+TEST(SparseSkyline, VectorLargeReorganize) {
+  // Different from above in that this will actually invoke the
+  // VectorAssignImpl that calls std::copy and uses the iterators.
+  std::vector<uint> lookup;
+  Vector<float> lvec(10);
+  for ( uint i = 0, j = 9; i < 10; i++, j-- ) {
+    lookup.push_back(j);
+    lvec[i] = (i+2)*0.5;
+  }
+
+  VectorReorganize<Vector<float> > rlvec2(lvec, lookup);
+  for ( uint i = 0; i < 10; i++ )
+    EXPECT_EQ( rlvec2[i], lvec[lookup[i]] );
+
+  Vector<float> rlvec3 = rlvec2;
+  for ( uint i = 0; i < 10; i++ )
+    EXPECT_EQ( rlvec3[i], lvec[lookup[i]] );
 }
 
 TEST(SparseSkyline, MatrixReorganize) {
@@ -261,6 +285,31 @@ TEST(SparseSkyline, MatrixReorganize) {
   EXPECT_EQ(nrmat(0,0), 3);
   EXPECT_EQ(nrmat(1,2), 4);
   EXPECT_EQ(nrmat(1,0), 6);
+
+  // Reordering back into self
+  nrmat = reorganize(nrmat, rmat.inverse());
+  for ( uint i = 0; i < nrmat.cols(); i++ )
+    EXPECT_EQ(nrmat(i,i),mat(i,i));
+}
+
+TEST(SparseSkyline, MatrixLargeReorganize) {
+  std::vector<uint> lookup;
+  Matrix<float> mat(10,10);
+  for ( uint i = 0, j = 9; i < 10; i++, j-- ) {
+    lookup.push_back(j);
+    for ( uint k = 0; k <= i; k++ ) {
+      mat(i,k) = i*k*0.5+2;
+      mat(k,i) = mat(i,k);
+    }
+  }
+
+  MatrixReorganize<Matrix<float> > rmat(mat, lookup);
+  for ( uint i = 0; i < 10; i++ )
+    EXPECT_EQ( rmat(i,i), mat(lookup[i],lookup[i]) );
+
+  Matrix<float> rmat_copy = rmat;
+  for ( uint i = 0; i < 10; i++ )
+    EXPECT_EQ( rmat_copy(i,i), mat(lookup[i],lookup[i]) );
 }
 
 TEST(SparseSkyline, CuthillMcKee) {
@@ -275,4 +324,54 @@ TEST(SparseSkyline, CuthillMcKee) {
 
   for ( uint i = 0; i < new_ordering.size(); i++ )
     EXPECT_EQ(ideal_order[i], new_ordering[i]);
+}
+
+TEST(SparseSkyline, ReorderOptimization) {
+  MatrixSparseSkyline<float> sparse(61);
+  fill_with_buckeyball(sparse);
+  sparse(1,0) = 2.0;
+  sparse(12,0) = 1.0;
+  sparse(33,0) = 5.0;
+  // Insuring positive definite
+  for ( uint i = 0; i < 61; i++ ) {
+    sparse(i,i) += 5;
+    if ( i > 0 )
+      sparse(i-1,i) += 1;
+  }
+  Matrix<float> common = sparse;
+  Vector<float> x_ideal(61);
+  for ( uint i = 0; i < 61; i++ )
+    x_ideal[i] = float((i+1)*0.5);
+
+  Vector<float> b = common*x_ideal;
+
+  // Standard unsparse unoptimized method
+  Vector<double> x_unsparse = inverse(common)*b;
+  EXPECT_EQ( 61u, x_unsparse.size() );
+
+  // Sparse Unoptimized method
+  MatrixSparseSkyline<float> sparse_copy = sparse;
+  Vector<double> x_sparse = sparse_solve(sparse,b);
+  EXPECT_EQ( 61u, x_sparse.size() );
+
+  // Optimized method;
+  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse);
+  math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse( sparse, new_ordering);
+
+  //  std::cout << "RSPARSE: " << rsparse << "\n";
+  //  std::cout << "rsparse(0,0): " << rsparse(0,0) << "\n";
+
+  Vector<uint> new_skyline = solve_for_skyline(rsparse);
+  Vector<double> x_reorder = sparse_solve( rsparse,
+                                           reorganize(b,new_ordering),
+                                           new_skyline );
+  x_reorder = reorganize(x_reorder, rsparse.inverse() );
+  EXPECT_EQ( 61u, x_reorder.size() );
+
+  //  std::cout << "Unsparse Result: " << x_unsparse << "\n";
+  //  std::cout << "StandardSparseR: " << x_sparse << "\n";
+  //  std::cout << "Reorder SparseR: " << x_reorder << "\n";
+
+  //for ( uint i = 0; i < 61; i++ )
+  //  EXPECT_EQ( x_unsparse[i], x_reorder[i] );
 }

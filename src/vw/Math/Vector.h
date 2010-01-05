@@ -7,7 +7,7 @@
 
 /// \file Vector.h
 ///
-/// Provides the core Vector<> mathematical vector template classes.  
+/// Provides the core Vector<> mathematical vector template classes.
 ///
 /// Currently I believe we support:
 ///   Dynamic (Vector<T>) and fixed (Vector<T,N>) vectors
@@ -58,7 +58,7 @@
 namespace vw {
 namespace math {
 
-  /// A type function to compute the dimension of a vector expression 
+  /// A type function to compute the dimension of a vector expression
   /// at compile time (or zero for dynamically-sized vectors).
   template <class VectorT>
   struct VectorSize {
@@ -71,9 +71,9 @@ namespace math {
   // A CRTP vector base class.
   // *******************************************************************
 
-  /// A CRTP base class for vectors and vector expressions.  
-  /// Provides a mechanism for restricting function arguments to 
-  /// vectors, and provides the various arithmetic assignment 
+  /// A CRTP base class for vectors and vector expressions.
+  /// Provides a mechanism for restricting function arguments to
+  /// vectors, and provides the various arithmetic assignment
   /// operators.
   template <class VectorT>
   struct VectorBase {
@@ -83,7 +83,7 @@ namespace math {
 
     /// Returns the derived implementation type.
     VectorT const& impl() const { return *static_cast<VectorT const*>(this); }
-    
+
     /// Sum-assignment operator
     template <class T>
     VectorT& operator+=( T const& v ) {
@@ -116,8 +116,8 @@ namespace math {
   // A vector wrapper class that disables temporaries on assignment.
   // *******************************************************************
 
-  /// A wrapper template class for vectors and vector expressions.  
-  /// Provides a mechanism for disabling the use of temporary objects 
+  /// A wrapper template class for vectors and vector expressions.
+  /// Provides a mechanism for disabling the use of temporary objects
   /// during vector assignment in cases where the user deems it safe.
   template <class VectorT>
   class VectorNoTmp {
@@ -127,8 +127,8 @@ namespace math {
     VectorT const& impl() const { return m_val; }
   };
 
-  /// A helper function that provides a mechanism for disabling the use 
-  /// of temporary objects during vector assignment in cases where the 
+  /// A helper function that provides a mechanism for disabling the use
+  /// of temporary objects during vector assignment in cases where the
   /// user deems it safe.  Use with care.
   template <class VectorT>
   VectorNoTmp<VectorT> no_tmp( VectorBase<VectorT> const& val ) {
@@ -136,8 +136,8 @@ namespace math {
   }
 
 
-  /// This helper class allows overriding the basic vector assignment 
-  /// operations in specific cases for efficiency, using template 
+  /// This helper class allows overriding the basic vector assignment
+  /// operations in specific cases for efficiency, using template
   /// specialization.
   template <class DstVecT, class SrcVecT>
   struct VectorAssignImpl {
@@ -146,8 +146,8 @@ namespace math {
     }
   };
 
-  /// This helper class allows overriding the basic vector clearing 
-  /// operation in specific cases for efficiency, using template 
+  /// This helper class allows overriding the basic vector clearing
+  /// operation in specific cases for efficiency, using template
   /// specialization.
   template <class VectorT>
   struct VectorClearImpl {
@@ -181,7 +181,7 @@ namespace math {
     }
 
     ptrdiff_t distance_to( IndexingVectorIterator const& iter ) const {
-      return ptrdiff_t(m_index-iter.m_index);
+      return ptrdiff_t(iter.m_index-m_index);
     }
 
     void increment() { ++m_index; }
@@ -199,7 +199,7 @@ namespace math {
   public:
     IndexingVectorIterator( VectorT& vector, ptrdiff_t index ) :
       m_vector(vector), m_index(index) {}
- };
+  };
 
   // *******************************************************************
   // class Vector<ElemT,SizeN>
@@ -273,13 +273,13 @@ namespace math {
 
     /// Generalized copy constructor, from arbitrary VW vector expressions.
     template <class T>
-    Vector( VectorBase<T> const& v ) { 
+    Vector( VectorBase<T> const& v ) {
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       VectorAssignImpl<Vector,T>::assign(*this,v.impl());
     }
 
     /// Standard copy assignment operator.
-    Vector& operator=( Vector const& v ) { 
+    Vector& operator=( Vector const& v ) {
       Vector tmp( v );
       core_ = tmp.core_;
       return *this;
@@ -287,7 +287,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    Vector& operator=( VectorBase<T> const& v ) { 
+    Vector& operator=( VectorBase<T> const& v ) {
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       Vector tmp( v );
       core_ = tmp.core_;
@@ -297,14 +297,14 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Vector& operator=( VectorNoTmp<T> const& v ) { 
+    Vector& operator=( VectorNoTmp<T> const& v ) {
       VW_ASSERT( v.impl().size()==SizeN, ArgumentErr() << "Vector must have dimension " << SizeN << "." );
       VectorAssignImpl<Vector,T>::assign(*this,v.impl());
       return *this;
     }
 
     /// Returns the size of the vector.
-    unsigned size() const { 
+    unsigned size() const {
       return SizeN;
     }
 
@@ -359,11 +359,11 @@ namespace math {
       return core_[2];
     }
 
-    iterator begin() { 
+    iterator begin() {
       return core_.begin();
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return core_.begin();
     }
 
@@ -499,14 +499,14 @@ namespace math {
     template <class T>
     Vector& operator=( VectorNoTmp<T> const& v ) {
       if( v.impl().size()==size() ) {
-	VectorAssignImpl<Vector,T>::assign(*this,v.impl());
+        VectorAssignImpl<Vector,T>::assign(*this,v.impl());
         return *this;
       }
       else return *this = v.impl();
     }
 
     /// Returns the size of the vector.
-    unsigned size() const { 
+    unsigned size() const {
       return core_.size();
     }
 
@@ -531,11 +531,11 @@ namespace math {
       return core_[i];
     }
 
-    iterator begin() { 
+    iterator begin() {
       return core_.begin();
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return core_.begin();
     }
 
@@ -552,7 +552,7 @@ namespace math {
 
   // *******************************************************************
   // class VectorProxy<ElemT,SizeN>
-  // A fixed-dimension vector proxy class, treating an arbitrary block 
+  // A fixed-dimension vector proxy class, treating an arbitrary block
   // of memory as a Vector.
   // *******************************************************************
 
@@ -583,7 +583,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    VectorProxy& operator=( VectorBase<T> const& v ) { 
+    VectorProxy& operator=( VectorBase<T> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
@@ -593,14 +593,14 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
+    VectorProxy& operator=( VectorNoTmp<T> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
 
     /// Returns the size of the vector.
-    unsigned size() const { 
+    unsigned size() const {
       return SizeN;
     }
 
@@ -655,11 +655,11 @@ namespace math {
       return m_ptr[2];
     }
 
-    iterator begin() { 
+    iterator begin() {
       return m_ptr;
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return m_ptr;
     }
 
@@ -681,7 +681,7 @@ namespace math {
 
   // *******************************************************************
   // class VectorProxy<ElemT>
-  // An arbitrary-dimension vector proxy class, treating an arbitrary 
+  // An arbitrary-dimension vector proxy class, treating an arbitrary
   // block of memory as a Vector.
   // *******************************************************************
 
@@ -712,7 +712,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW vector expressions.
     template <class T>
-    VectorProxy& operator=( VectorBase<T> const& v ) { 
+    VectorProxy& operator=( VectorBase<T> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       Vector<value_type> tmp( v );
       VectorAssignImpl<VectorProxy,Vector<value_type> >::assign(*this,tmp);
@@ -722,14 +722,14 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    VectorProxy& operator=( VectorNoTmp<T> const& v ) { 
+    VectorProxy& operator=( VectorNoTmp<T> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vector must have dimension " << size() << " in vector proxy assignment." );
       VectorAssignImpl<VectorProxy,T>::assign(*this,v.impl());
       return *this;
     }
 
     /// Returns the size of the vector.
-    unsigned size() const { 
+    unsigned size() const {
       return m_size;
     }
 
@@ -754,11 +754,11 @@ namespace math {
       return m_ptr[i];
     }
 
-    iterator begin() { 
+    iterator begin() {
       return m_ptr;
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return m_ptr;
     }
 
@@ -774,7 +774,7 @@ namespace math {
 
   /// Shallow proxy view of an block of memory as a vector.
   template <class DataT>
-  VectorProxy<DataT> 
+  VectorProxy<DataT>
   vector_proxy( DataT* data, int size) {
     return VectorProxy<DataT>( data, size );
   }
@@ -797,8 +797,8 @@ namespace math {
   /// mathematical operators.
   template <class VectorT>
   class VectorTranspose {
-    // We want to store Vector objects by reference so that we don't copy 
-    // them, but we want to store everything else by value so that we can 
+    // We want to store Vector objects by reference so that we don't copy
+    // them, but we want to store everything else by value so that we can
     // return transposed versions of various vector expressions.
     template <class T> struct VectorClosure { typedef T type; };
     template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN>& type; };
@@ -818,7 +818,7 @@ namespace math {
     typedef typename VectorT::const_iterator const_iterator;
 
     explicit VectorTranspose( VectorT& v ) : m_vector(v) {}
-    
+
     template <class OtherT>
     VectorTranspose& operator=( VectorTranspose<OtherT> const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in transposed vector assignment" );
@@ -921,7 +921,7 @@ namespace math {
     typedef typename VectorT::const_iterator const_iterator;
 
     SubVector( VectorT& v, unsigned pos, unsigned size ) : m_vector(v), m_pos(pos), m_size(size) {}
-    
+
     /// Standard copy assignment operator.
     SubVector& operator=( SubVector const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment" );
@@ -1010,7 +1010,7 @@ namespace math {
     FuncT func;
   public:
     typedef typename boost::result_of<FuncT(typename VectorT::value_type)>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -1077,7 +1077,7 @@ namespace math {
     FuncT func;
   public:
     typedef typename boost::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -1186,7 +1186,7 @@ namespace math {
   // *******************************************************************
   // Vector comparison operators and functions.
   // Note that only equality and inequality operators are provided,
-  // in keeping with standard mathematical notation.  Users who want 
+  // in keeping with standard mathematical notation.  Users who want
   // particular orderings can defined those operators appropriately.
   // *******************************************************************
 
@@ -1288,7 +1288,7 @@ namespace math {
 
   /// Elementwise sum of a vector and a scalar.
   template <class VectorT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>, 
+  typename boost::enable_if< IsScalar<ScalarT>,
                              VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> > >::type
   inline elem_sum( VectorBase<VectorT> const& v, ScalarT s ) {
     return VectorUnaryFunc<VectorT, ArgValSumFunctor<ScalarT> >( v.impl(), s );
@@ -1659,9 +1659,9 @@ namespace math {
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
     if( i == end ) return typename VectorT::value_type(0);
     typename VectorT::value_type result = *(i++);
-    for( ; i != end ; ++i ) 
+    for( ; i != end ; ++i )
       if ( *i > result )
-	result = *i;
+        result = *i;
     return result;
   }
 
@@ -1673,7 +1673,7 @@ namespace math {
     typename VectorT::value_type result = *(i++);
     for( ; i != end ; ++i )
       if ( *i < result )
-	result = *i;
+        result = *i;
     return result;
   }
 
@@ -1719,7 +1719,7 @@ namespace math {
   template <class Vector1T, class Vector2T>
   typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type
   inline dot_prod( VectorBase<Vector1T> const& v1, VectorBase<Vector2T> const& v2 ) {
-    typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type result = 
+    typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type result =
       typename ProductType<typename Vector1T::value_type, typename Vector2T::value_type>::type();
     typename Vector1T::const_iterator i1 = v1.impl().begin(), end1 = v1.impl().end();
     typename Vector2T::const_iterator i2 = v2.impl().begin();
@@ -1760,7 +1760,7 @@ namespace math {
 
 } // namespace math
 
-  // Typedefs for commonly-used static vector types and using 
+  // Typedefs for commonly-used static vector types and using
   // directives for backwards compatability.
   using math::Vector;
   using math::VectorBase;

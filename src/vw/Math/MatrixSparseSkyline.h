@@ -645,11 +645,13 @@ namespace math {
   // --------------------------------------------------------------
 
   template <class MatrixT>
-  Vector<uint> solve_for_skyline(MatrixBase<MatrixT>& A) {
-    Vector<uint> skyline(A.impl().rows());
-    for ( uint i = 0; i < A.impl().rows(); i++ )
+  inline Vector<uint> solve_for_skyline(MatrixBase<MatrixT> const& A) {
+    MatrixT const& ar = A.impl();
+    unsigned rows = ar.rows();
+    Vector<uint> skyline(rows);
+    for ( uint i = 0; i < rows; i++ )
       for ( uint j = 0; j < i; j++ )
-        if ( A.impl()(i,j) != 0 ) {
+        if ( ar(i,j) != 0 ) {
           skyline[i] = j;
           break;
         }
