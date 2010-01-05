@@ -244,7 +244,7 @@ TEST(SparseSkyline, VectorReorganize) {
     EXPECT_EQ(nrvec[i],vec[i]);
 }
 
-TEST(SparseSkyline, VectorLargeReorganize) {
+TEST(SparseSkyline, DISABLED_VectorLargeReorganize) {
   // Different from above in that this will actually invoke the
   // VectorAssignImpl that calls std::copy and uses the iterators.
   std::vector<uint> lookup;
