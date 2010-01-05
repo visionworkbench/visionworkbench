@@ -10,7 +10,7 @@
 using namespace vw;
 using namespace vw::math;
 
-static const double DELTA = 1e-5;
+static const double DELTA = 1e-4;
 
 Vector<uint> create_test_skyline(unsigned size, int max_offset ) {
   Vector<uint> result(size);
@@ -351,27 +351,29 @@ TEST(SparseSkyline, ReorderOptimization) {
 
   // Sparse Unoptimized method
   MatrixSparseSkyline<float> sparse_copy = sparse;
-  Vector<double> x_sparse = sparse_solve(sparse,b);
+  Vector<double> x_sparse = sparse_solve(sparse_copy,b);
   EXPECT_EQ( 61u, x_sparse.size() );
 
   // Optimized method;
   std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse);
   math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse( sparse, new_ordering);
 
-  //  std::cout << "RSPARSE: " << rsparse << "\n";
-  //  std::cout << "rsparse(0,0): " << rsparse(0,0) << "\n";
-
   Vector<uint> new_skyline = solve_for_skyline(rsparse);
   Vector<double> x_reorder = sparse_solve( rsparse,
                                            reorganize(b,new_ordering),
-                                           new_skyline );
+                                            new_skyline );
   x_reorder = reorganize(x_reorder, rsparse.inverse() );
   EXPECT_EQ( 61u, x_reorder.size() );
 
-  //  std::cout << "Unsparse Result: " << x_unsparse << "\n";
-  //  std::cout << "StandardSparseR: " << x_sparse << "\n";
-  //  std::cout << "Reorder SparseR: " << x_reorder << "\n";
+  //std::cout << "Unsparse Result: " << x_unsparse << "\n";
+  //std::cout << "StandardSparseR: " << x_sparse << "\n";
+  //std::cout << "Reorder SparseR: " << x_reorder << "\n";
 
-  //for ( uint i = 0; i < 61; i++ )
-  //  EXPECT_EQ( x_unsparse[i], x_reorder[i] );
+  // Make sure old methods still work
+  for ( uint i = 0; i < 61; i++ )
+    EXPECT_NEAR( x_unsparse[i], x_sparse[i], DELTA );
+
+  // Does reorganized method work?
+  for ( uint i = 0; i < 61; i++ )
+    EXPECT_NEAR( x_unsparse[i], x_reorder[i], DELTA );
 }

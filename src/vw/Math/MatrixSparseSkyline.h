@@ -314,8 +314,8 @@ namespace math {
     VW_ASSERT(A.impl().cols() == A.impl().rows(), ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
 
     // Compute the L*D*L^T decomposition of A
-    sparse_ldl_decomposition(A, sky);
-    Vector<typename MatrixT::value_type> x = sparse_solve_ldl(A, b, sky);
+    sparse_ldl_decomposition(A.impl(), sky);
+    Vector<typename MatrixT::value_type> x = sparse_solve_ldl(A.impl(), b, sky);
 
     return x;
   }
@@ -377,7 +377,11 @@ namespace math {
   /// Version that excepts an outside skyline vector
   template <class MatrixT, class VectorT, class VectorSkyT>
   Vector<typename MatrixT::value_type> sparse_solve_ldl(MatrixBase<MatrixT>& A, VectorT const& b, VectorSkyT const& sky) {
-    VW_ASSERT(A.impl().cols() == A.impl().rows(), ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
+
+    MatrixT const& ar = A.impl();
+
+    VW_ASSERT(ar.cols() == ar.rows(),
+	      ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
 
     //const std::vector<vw::uint32>& skyline = A.skyline();
     Vector<unsigned> inverse_sky(sky.size());
@@ -395,25 +399,25 @@ namespace math {
     }
 
     // Forward Substitution Step ( L*x'=b )
-    Vector<typename MatrixT::value_type> x_prime(A.impl().cols());
+    Vector<typename MatrixT::value_type> x_prime(ar.cols());
     for (unsigned i = 0; i < x_prime.size(); ++i) {
       typename MatrixT::value_type sum = 0;
       for (unsigned j = sky(i); j < i; ++j)
-        sum += A.impl()(i,j)*x_prime(j);
+        sum += ar(i,j)*x_prime(j);
       x_prime(i) = b(i)-sum;
     }
 
     // Divide by D ( D*x''=x' )
     Vector<typename MatrixT::value_type> x_doubleprime(A.impl().cols());
     for (unsigned i = 0; i < x_doubleprime.size(); ++i)
-      x_doubleprime(i) = x_prime(i)/A.impl()(i,i);
+      x_doubleprime(i) = x_prime(i)/ar(i,i);
 
     // Back Substitution step ( L^T*x=x'' )
-    Vector<typename MatrixT::value_type> x(A.impl().cols());
+    Vector<typename MatrixT::value_type> x(ar.cols());
     for (int32 i = x.size()-1; i >= 0; --i) {
       typename MatrixT::value_type sum = 0;
-      for (unsigned j = i+1; j < A.impl().cols()-inverse_sky[i]; ++j)
-        sum += A.impl()(j,i)*x(j);
+      for (unsigned j = i+1; j < ar.cols()-inverse_sky[i]; ++j)
+        sum += ar(j,i)*x(j);
       x(i) = x_doubleprime(i) - sum;
     }
 
@@ -649,12 +653,12 @@ namespace math {
     MatrixT const& ar = A.impl();
     unsigned rows = ar.rows();
     Vector<uint> skyline(rows);
-    for ( uint i = 0; i < rows; i++ )
-      for ( uint j = 0; j < i; j++ )
-        if ( ar(i,j) != 0 ) {
-          skyline[i] = j;
-          break;
-        }
+    for ( uint i = 0; i < rows; i++ ) {
+      uint j = 0;
+      while ( j < i && ar(i,j) == 0 )
+	j++;
+      skyline[i] = j;
+    }
     return skyline;
   }
 
