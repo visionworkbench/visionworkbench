@@ -181,7 +181,7 @@ namespace math {
     }
 
     ptrdiff_t distance_to( IndexingVectorIterator const& iter ) const {
-      return ptrdiff_t(iter.m_index-m_index);
+      return ptrdiff_t(iter.m_index)-ptrdiff_t(m_index);
     }
 
     void increment() { ++m_index; }
@@ -193,7 +193,7 @@ namespace math {
     }
 
     typename IndexingVectorIterator::reference dereference() const {
-      return m_vector(m_index);
+      return m_vector[m_index];
     }
 
   public:

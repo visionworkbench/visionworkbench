@@ -469,10 +469,10 @@ namespace math {
     }
 
     // Element Access
-    reference_type operator()( unsigned i ) { return m_vector(m_lookup[i]); }
-    const_reference_type operator()( unsigned i ) const { return m_vector(m_lookup[i]); }
-    reference_type operator[]( unsigned i ) { return m_vector(m_lookup[i]); }
-    const_reference_type operator[]( unsigned i ) const { return m_vector(m_lookup[i]); }
+    reference_type operator()( unsigned i ) { return m_vector[m_lookup[i]]; }
+    const_reference_type operator()( unsigned i ) const { return m_vector[m_lookup[i]]; }
+    reference_type operator[]( unsigned i ) { return m_vector[m_lookup[i]]; }
+    const_reference_type operator[]( unsigned i ) const { return m_vector[m_lookup[i]]; }
 
     // Pointer Access
     iterator begin() { return iterator(*this,0); }
