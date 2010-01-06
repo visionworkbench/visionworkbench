@@ -15,7 +15,7 @@ AC_DEFUN([AX_MODULE_PYTHON],
 
     m4_divert_once([INIT_PREPARE], [dnl
     AC_ARG_ENABLE([module-python],
-      AC_HELP_STRING([--enable-module-python], [enable the python bindings @<:@$2@:>@]),
+      AS_HELP_STRING([--enable-module-python], [enable the python bindings @<:@$2@:>@]),
       [ ENABLE_MODULE_PYTHON=$enableval ],
       [ if test x"$ENABLE_MODULE_PYTHON" = x""; then ENABLE_MODULE_PYTHON=`/bin/echo -n $2 | tr [A-Z] [a-z]` ; fi ]
     )])

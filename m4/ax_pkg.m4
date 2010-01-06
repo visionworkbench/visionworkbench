@@ -11,7 +11,7 @@ AC_DEFUN([AX_PKG],
 
   m4_divert_once([INIT_PREPARE], [dnl
   AC_ARG_WITH(m4_tolower([[$1]]),
-    AC_HELP_STRING([--with-]m4_tolower([[$1]]), [enable searching for the $1 package @<:@auto@:>@]),
+    AS_HELP_STRING([--with-]m4_tolower([[$1]]), [enable searching for the $1 package @<:@auto@:>@]),
     [ HAVE_PKG_$1=$withval ]
   )])
 

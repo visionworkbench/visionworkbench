@@ -28,13 +28,13 @@ AC_DEFUN([AX_ARG],
   m4_if(type, [WITH],
     dnl WITH case.
     [AC_ARG_WITH(lower,
-    AC_HELP_STRING([--with]-lower, [$5][ ]m4_ifval([$3],[@<:@$3@:>@])), dnl append default value to the desc
+    AS_HELP_STRING([--with]-lower, [$5][ ]m4_ifval([$3],[@<:@$3@:>@])), dnl append default value to the desc
     [ value=[$withval] ],                                dnl if passed in, set value
     [ AS_VAR_SET_IF([value], [], [value="[$3]"]) ])],    dnl else set to default if not already set
 
     dnl ENABLE case. same as above except if default is yes, change enable -> disable
     [AC_ARG_ENABLE(lower,
-    AC_HELP_STRING([--][]m4_if(yes, [$3], disable, enable)-lower, [$5][ ]m4_ifval([$3],[@<:@$3@:>@])),
+    AS_HELP_STRING([--][]m4_if(yes, [$3], disable, enable)-lower, [$5][ ]m4_ifval([$3],[@<:@$3@:>@])),
     [ value=[$enableval] ],
     [ AS_VAR_SET_IF([value], [], [value="[$3]"]) ])])])
 
