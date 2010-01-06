@@ -16,7 +16,7 @@ __ac_extract_cpp_symbol_delimiter $1 __ac_extract_cpp_symbol_delimiter])])
 old_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$5 $CPPFLAGS"
 AS_VAR_PUSHDEF([output], [ax_extract_cpp_symbol_$1])dnl
-if (eval "$ac_cpp conftest.$ac_ext") >conftest.out 2>&AC_FD_CC; then
+if (eval "$ac_cpp conftest.$ac_ext") >conftest.out 2>&AS_MESSAGE_LOG_FD; then
     output="`${SED} -n -e 's/^.*"__ac_extract_cpp_symbol_delimiter" \(.*\) "__ac_extract_cpp_symbol_delimiter".*$/\1/p' conftest.out 2>/dev/null`"
     if test x"${output}" != x"$1"; then
         ifelse([$3], , :, [$3])

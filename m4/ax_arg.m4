@@ -4,6 +4,7 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
 
 dnl AX_ARG_(ENABLE|WITH)(<arg>, <default>, <tags>, <description>)
 dnl possible tags are:
@@ -19,9 +20,10 @@ dnl variable in question is ether ENABLE_ARG or ARG (the "with" is dropped)
 dnl AX_ARG(<type>, <arg>, <default>, <tags>, <description>)
 AC_DEFUN([AX_ARG],
 [
-  m4_define([lower], [m4_tolower([[$2]])])dnl lower-case arg name
-  m4_define([type],  [m4_toupper([[$1]])])dnl WITH or ENABLE
-  AS_VAR_PUSHDEF([value], [m4_if(type, [WITH], [], type[_])[]m4_toupper([[$2]])])dnl
+  m4_pushdef([lower], my_tolower([$2]))dnl lower-case arg name
+  m4_pushdef([type],  my_toupper([$1]))dnl WITH or ENABLE
+  AS_VAR_PUSHDEF([value], m4_if(type, [WITH], [], type[_])[]m4_toupper([[$2]]))dnl
+
 
   m4_divert_once([INIT_PREPARE], [dnl
   dnl switch between AC_ARG_(WITH|ENABLE), since I don't think you can indirect
@@ -53,7 +55,7 @@ AC_DEFUN([AX_ARG],
 
     dnl check for cpp-bool tag.
     m4_bmatch([$4], [cpp-bool], [dnl
-      AS_VAR_PUSHDEF([int], m4_tolower(value))
+      AS_VAR_PUSHDEF([int], my_tolower(value))
       AS_IF([test x"$value" = x"yes"], int=1, int=0)
       AC_DEFINE_UNQUOTED(AS_TR_CPP(value), [$int], [$5])
       AS_VAR_POPDEF([int])dnl
@@ -61,7 +63,7 @@ AC_DEFUN([AX_ARG],
 
     dnl check for cpp-int tag.
     m4_bmatch([$4], [cpp-int], [dnl
-      AS_VAR_PUSHDEF([int], m4_tolower(value))dnl
+      AS_VAR_PUSHDEF([int], my_tolower(value))dnl
       int=$value dnl
       AC_DEFINE_UNQUOTED(AS_TR_CPP(value), [$int], [$5])dnl
       AS_VAR_POPDEF([int])dnl
@@ -75,8 +77,8 @@ AC_DEFUN([AX_ARG],
 
   dnl clean up after myself
   AS_VAR_POPDEF([value])dnl
-  m4_undefine([type])dnl
-  m4_undefine([lower])dnl
+  m4_popdef([type])dnl
+  m4_popdef([lower])dnl
 ])
 
 AC_DEFUN([AX_ARG_ENABLE], [AX_ARG([enable], [$1], [$2], [$3], [$4])])

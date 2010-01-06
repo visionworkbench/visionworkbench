@@ -4,10 +4,7 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
-
-m4_ifset([m4_argn], [],
-[m4_define([m4_argn],
-[m4_car(m4_shiftn($1, $@))])])
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
 
 # Usage: AX_PKG_BOOST(<required boost libs> [,boost_lib, how-to-detect-lib]*)
 AC_DEFUN([AX_PKG_BOOST],

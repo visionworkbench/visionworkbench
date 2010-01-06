@@ -4,6 +4,7 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
 
 # Usage: AX_MODULE(<name>, <directory>, <library>, <default>, <prerequisites>, <required dependencies>[, <optional dependencies>])
 AC_DEFUN([AX_MODULE],
@@ -48,8 +49,8 @@ AC_DEFUN([AX_MODULE],
         fi
       fi
 
-      AC_ARG_ENABLE([module-]m4_tolower([[$1]]),
-        AS_HELP_STRING([--enable-module-]m4_tolower([[$1]]), [enable the $1 module @<:@$4@:>@]),
+      AC_ARG_ENABLE([module-]my_tolower([$1]),
+        AS_HELP_STRING([--enable-module-]my_tolower([$1]), [enable the $1 module @<:@$4@:>@]),
         [ ENABLE_MODULE_$1=$enableval; WANT_MODULE_$1=$enableval; ],
         [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`/bin/echo -n $4 | tr [A-Z] [a-z]` ; fi ]
       )])

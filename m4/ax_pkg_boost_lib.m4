@@ -4,9 +4,7 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
-dnl this was introduced in autoconf 2.6, i think.
-m4_ifset([m4_foreach_w], [],
-[m4_define([m4_foreach_w],[m4_foreach([$1], m4_split(m4_normalize([$2])), [$3])])])
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
 
 m4_pattern_allow([^PKG_BOOST_SAME_SUFFIX])
 

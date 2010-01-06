@@ -4,14 +4,15 @@ dnl the Administrator of the National Aeronautics and Space Administration.
 dnl All Rights Reserved.
 dnl __END_LICENSE__
 
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
 
 dnl Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <relative lib path>, <required-functions>])
 AC_DEFUN([AX_PKG],
 [
 
   m4_divert_once([INIT_PREPARE], [dnl
-  AC_ARG_WITH(m4_tolower([[$1]]),
-    AS_HELP_STRING([--with-]m4_tolower([[$1]]), [enable searching for the $1 package @<:@auto@:>@]),
+  AC_ARG_WITH(my_tolower([$1]),
+    AS_HELP_STRING([--with-]my_tolower([$1]), [enable searching for the $1 package @<:@auto@:>@]),
     [ HAVE_PKG_$1=$withval ]
   )])
 
