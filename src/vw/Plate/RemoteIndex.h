@@ -52,17 +52,15 @@ namespace platefile {
 
     /// Return multiple index entries that match the specified
     /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
+    /// entry and the last entry: [ begin_transaction_id, end_transaction_id ]
     ///
     /// Results are return as a std::pair<int32, IndexRecord>.  The
     /// first value in the pair is the transaction id for that
     /// IndexRecord.
     virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
                                                                          int begin_transaction_id, 
-                                                                         int end_transaction_id) {
-      vw_throw(NoImplErr() << "multi_read_request() is not yet implemented in RemoteIndex");
-    }
-  
+                                                                         int end_transaction_id);
+
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
     virtual int write_request(int size);
@@ -81,10 +79,8 @@ namespace platefile {
     /// read_request() above.  The region specifies a tile range of
     /// interest.
     virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-                                              int start_transaction_id, 
-                                              int end_transaction_id) const {
-      vw_throw(NoImplErr() << "valid_tiles() is not yet implemented for RemoteIndex");
-    }
+                                              int begin_transaction_id, 
+                                              int end_transaction_id) const;
 
     virtual IndexHeader index_header() const;
   
@@ -105,10 +101,6 @@ namespace platefile {
     // they start a self-contained chunk of mosaicking work.  .
     virtual int32 transaction_request(std::string transaction_description,
                                       std::vector<TileHeader> const& tile_headers);
-
-    /// Called right before the beginning of the mipmapping pass
-    virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers);
 
     // If a transaction fails, we may need to clean up the mosaic.  
     virtual void transaction_failed(int32 transaction_id);

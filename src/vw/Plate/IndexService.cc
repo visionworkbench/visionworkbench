@@ -239,6 +239,30 @@ void IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* controller
   done->Run();
 }
 
+void IndexServiceImpl::MultiReadRequest(::google::protobuf::RpcController* controller,
+                                        const ::vw::platefile::IndexMultiReadRequest* request,
+                                        ::vw::platefile::IndexMultiReadReply* response,
+                                        ::google::protobuf::Closure* done) {
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+    
+  // Access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  typedef std::list<std::pair<int32, IndexRecord> > response_type;
+  response_type records = rec.index->multi_read_request(request->col(), 
+                                                        request->row(), 
+                                                        request->level(), 
+                                                        request->begin_transaction_id(),
+                                                        request->end_transaction_id());
+  response->mutable_transaction_ids()->Reserve(records.size());
+  response->mutable_index_records()->Reserve(records.size());
+  for (response_type::iterator iter = records.begin(); iter != records.end(); ++iter) {
+    response->mutable_transaction_ids()->Add(iter->first);
+    *(response->mutable_index_records()->Add()) = iter->second;
+  }
+  done->Run();
+}
+
 
 void IndexServiceImpl::WriteRequest(::google::protobuf::RpcController* controller,
                                     const IndexWriteRequest* request,
@@ -294,26 +318,6 @@ void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* con
   done->Run();
 }   
 
-void IndexServiceImpl::RootComplete(::google::protobuf::RpcController* controller,
-                                    const IndexRootComplete* request,
-                                    RpcNullMessage* response,
-                                    ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record 
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Parse out the list of root tiles that will be affected by this transaction_id.
-  std::vector<TileHeader> tile_headers;
-  for (int i = 0; i < request->tile_headers_size(); ++i) 
-    tile_headers.push_back(request->tile_headers(i));
-    
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
-  rec.index->root_complete(request->transaction_id(), tile_headers);
-  // This message has no response.
-  done->Run();
-}
-
 void IndexServiceImpl::TransactionComplete(::google::protobuf::RpcController* controller,
                                            const IndexTransactionComplete* request,
                                            RpcNullMessage* response,
@@ -364,6 +368,30 @@ void IndexServiceImpl::TransactionCursor(::google::protobuf::RpcController* cont
   // notify the remote client of our failure if we did not succeed.
   int transaction_id = rec.index->transaction_cursor();
   response->set_transaction_id(transaction_id);
+  done->Run();
+}
+
+void IndexServiceImpl::ValidTiles(::google::protobuf::RpcController* controller,
+                                  const ::vw::platefile::IndexValidTilesRequest* request,
+                                  ::vw::platefile::IndexValidTilesReply* response,
+                                  ::google::protobuf::Closure* done) {
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+
+  // Access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  typedef std::list<TileHeader> response_type;
+  BBox2i region(request->region_col(),
+                request->region_row(),
+                request->region_width(),
+                request->region_height());
+  response_type headers = rec.index->valid_tiles(request->level(), region,
+                                                 request->begin_transaction_id(),
+                                                 request->end_transaction_id());
+  response->mutable_tile_headers()->Reserve(headers.size());
+  for (response_type::iterator iter = headers.begin(); iter != headers.end(); ++iter) {
+    *(response->mutable_tile_headers()->Add()) = *iter;;
+  }
   done->Run();
 }
 

@@ -93,10 +93,6 @@ namespace platefile {
     // work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id);
 
-    /// Called right before the beginning of the mipmapping pass
-    virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers) {}
-
     // If a transaction fails, we may need to clean up the mosaic.  
     virtual void transaction_failed(int32 transaction_id);
 
@@ -168,11 +164,6 @@ namespace platefile {
     // they start a self-contained chunk of mosaicking work.  .
     virtual int32 transaction_request(std::string transaction_description,
                                       std::vector<TileHeader> const& tile_headers);
-
-
-    /// Called right before the beginning of the mipmapping pass
-    virtual void root_complete(int32 transaction_id,
-                               std::vector<TileHeader> const& tile_headers);
 
     // If a transaction fails, we may need to clean up the mosaic.  
     virtual void transaction_failed(int32 transaction_id);

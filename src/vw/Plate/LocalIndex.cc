@@ -369,16 +369,6 @@ int32 vw::platefile::LocalTreeIndex::transaction_request(std::string transaction
   return transaction_id;
 }
 
-// Clients are expected to make a transaction request whenever
-// they start a self-contained chunk of mosaicking work.  .
-void vw::platefile::LocalTreeIndex::root_complete(int transaction_id,
-                                                  std::vector<TileHeader> const& tile_headers) {
-  for (size_t i = 0; i < tile_headers.size(); ++i) {
-    m_root->clean_branch(tile_headers[i].col(), tile_headers[i].row(),
-                         tile_headers[i].level(), transaction_id);
-  }
-}
-
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalTreeIndex::transaction_failed(int32 transaction_id) {

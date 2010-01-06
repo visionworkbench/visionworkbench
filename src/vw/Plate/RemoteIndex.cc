@@ -146,6 +146,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
 vw::platefile::RemoteIndex::~RemoteIndex() {}
   
 
+
 /// Attempt to access a tile in the index.  Throws an
 /// TileNotFoundErr if the tile cannot be found.
 vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, int level, 
@@ -163,6 +164,33 @@ vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int
                                google::protobuf::NewCallback(&null_closure));
   return response.index_record();
 }
+
+std::list<std::pair<int32, IndexRecord> > vw::platefile::RemoteIndex::multi_read_request(int col, int row, int level, 
+                                                                                         int begin_transaction_id, 
+                                                                                         int end_transaction_id) {
+  IndexMultiReadRequest request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_col(col);
+  request.set_row(row);
+  request.set_level(level);
+  request.set_begin_transaction_id(begin_transaction_id);
+  request.set_end_transaction_id(end_transaction_id);
+
+  IndexMultiReadReply response;
+  m_index_service->MultiReadRequest(m_rpc_controller.get(), &request, &response, 
+                                    google::protobuf::NewCallback(&null_closure));
+  
+  std::list<std::pair<int32, IndexRecord> > results;
+  for (int i = 0; i < response.transaction_ids_size(); ++i) {
+    std::pair<int32, IndexRecord> elmnt;
+    elmnt.first = response.transaction_ids().Get(i);
+    elmnt.second = response.index_records().Get(i);    
+    results.push_back(elmnt);
+  }
+  
+  return results;
+}
+
   
 // Writing, pt. 1: Locks a blob and returns the blob id that can
 // be used to write a tile.
@@ -188,6 +216,30 @@ void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexR
   RpcNullMessage response;
   m_index_service->WriteComplete(m_rpc_controller.get(), &request, &response, 
                                  google::protobuf::NewCallback(&null_closure));
+}
+
+std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i const& region,
+                                                              int begin_transaction_id, 
+                                                              int end_transaction_id) const {
+  IndexValidTilesRequest request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_level(level);
+  request.set_region_col(region.min().x());
+  request.set_region_row(region.min().y());
+  request.set_region_width(region.width());
+  request.set_region_height(region.height());
+  request.set_begin_transaction_id(begin_transaction_id);
+  request.set_end_transaction_id(end_transaction_id);
+
+  IndexValidTilesReply response;
+  m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, 
+                              google::protobuf::NewCallback(&null_closure));
+
+  std::list<TileHeader> results;
+  for (int i = 0; i < response.tile_headers_size(); ++i) {
+    results.push_back(response.tile_headers().Get(i));    
+  }
+  return results;
 }
   
 vw::int32 vw::platefile::RemoteIndex::num_levels() const { 
@@ -244,20 +296,6 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
   m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, 
                                       google::protobuf::NewCallback(&null_closure));
   return response.transaction_id();
-}
-
-/// Called right before the beginning of the mipmapping pass
-void vw::platefile::RemoteIndex::root_complete(int32 transaction_id,
-                                               std::vector<TileHeader> const& tile_headers) {
-  IndexRootComplete request;
-  request.set_platefile_id(m_platefile_id);
-  request.set_transaction_id(transaction_id);
-  for (size_t i = 0; i < tile_headers.size(); ++i)
-    *(request.mutable_tile_headers()->Add()) = tile_headers[i];
-  
-  RpcNullMessage response;
-  m_index_service->RootComplete(m_rpc_controller.get(), &request, &response, 
-                                google::protobuf::NewCallback(&null_closure));
 }
 
 // Once a chunk of work is complete, clients can "commit" their
