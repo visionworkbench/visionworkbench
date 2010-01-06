@@ -276,7 +276,7 @@ AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
 AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 
 # GDAL requires tiff support, but it can be internal or external.
-PKG_CHECK_FUNCTION(GDAL, [TiffScanlineSize], [External_LibTIFF])
+PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
 
 if test x"$HAVE_PKG_GDAL" = "xyes"; then
   HAVE_PKG_TIFF="no:gdal has tiff support"
