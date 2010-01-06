@@ -5,6 +5,7 @@
 // __END_LICENSE__
 
 #include <vw/Plate/IndexService.h>
+#include <vw/Plate/Exception.h>
 using namespace vw::platefile;
 
 #include <boost/regex.hpp>

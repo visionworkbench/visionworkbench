@@ -9,16 +9,14 @@
 #define __VW_PLATEFILE_INDEX_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
-#include <vw/Math/BBox.h>
-
 #include <vw/Image/PixelTypeInfo.h>
-
-#include <vw/Plate/Tree.h>
+#include <vw/Math/BBox.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
-#define VW_PLATE_INDEX_VERSION 2
+#include <list>
+
+#define VW_PLATE_INDEX_VERSION 3
 
 namespace vw {
 namespace platefile {
@@ -124,15 +122,6 @@ namespace platefile {
 
     virtual int32 transaction_cursor() = 0;
 
-    // --------------------- UTILITIES ------------------------
-
-    /// Iterate over all nodes in a tree, calling func for each
-    /// location.  Note: this will only be implemented for local
-    /// indexes.  This function will throw an error if called on a
-    /// remote index.
-    virtual void map(boost::shared_ptr<TreeMapFunc> func) { 
-      vw_throw(NoImplErr() << "Index::map() not implemented for this index type.");
-    }
   };
 
 }} // namespace vw::plate

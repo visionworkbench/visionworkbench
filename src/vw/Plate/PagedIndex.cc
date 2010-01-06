@@ -4,10 +4,15 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#include <vw/Plate/PagedIndex.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Plate/PagedIndex.h>
+#include <vw/Plate/Exception.h>
+#include <vw/Plate/Blob.h>
 
 #include <boost/regex.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
 
 using namespace vw;
 
@@ -666,12 +671,4 @@ int32 vw::platefile::PagedIndex::num_levels() const {
   return m_levels.size();
 }
 
-// --------------------- UTILITIES ------------------------
 
-/// Iterate over all nodes in a tree, calling func for each
-/// location.  Note: this will only be implemented for local
-/// indexes.  This function will throw an error if called on a
-/// remote index.
-void vw::platefile::PagedIndex::map(boost::shared_ptr<TreeMapFunc> func) { 
-  vw_throw(NoImplErr() << "Index::map() not implemented for this index type.");
-}

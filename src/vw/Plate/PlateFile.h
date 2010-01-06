@@ -95,11 +95,11 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/Core/ThreadPool.h>
 
-#include <vw/Plate/Exception.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
+#include <vw/Plate/Exception.h>
 
 #include <vector>
 #include <fstream>
@@ -107,8 +107,6 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/scoped_array.hpp>
 
-// Protocol Buffer
-#include <vw/Plate/ProtoBuffers.pb.h>
 
 namespace fs = boost::filesystem;
 
@@ -456,10 +454,6 @@ namespace platefile {
     }
     
     // ----------------------- UTILITIES --------------------------
-
-    void map(boost::shared_ptr<TreeMapFunc> func) {
-      m_index->map(func);
-    }
 
     /// Returns a list of valid tiles that match this level, region, and
     /// range of transaction_id's.  Returns a list of TileHeaders with

@@ -28,6 +28,10 @@ using namespace vw::cartography;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
+
 // Global variables
 bool g_debug;
 
@@ -158,16 +162,26 @@ int main( int argc, char *argv[] ) {
   // first image.  If the platefile already exists, then this is
   // ignored and the native pixel and channel type of the platefile is
   // used instead.
-  DiskImageResource *rsrc = DiskImageResource::open(image_files[0]);
-  PixelFormatEnum pixel_format = rsrc->pixel_format();
-  ChannelTypeEnum channel_type = rsrc->channel_type();
+  PixelFormatEnum pixel_format;
+  ChannelTypeEnum channel_type;
+  try {
 
-  // Plate files should always have an alpha channel.
-  if (pixel_format == VW_PIXEL_GRAY)
-    pixel_format = VW_PIXEL_GRAYA;
-  if (pixel_format == VW_PIXEL_RGB)
-    pixel_format = VW_PIXEL_RGBA;
-  delete rsrc;
+    DiskImageResource *rsrc = DiskImageResource::open(image_files[0]);
+    pixel_format = rsrc->pixel_format();
+    channel_type = rsrc->channel_type();
+
+    // Plate files should always have an alpha channel.
+    if (pixel_format == VW_PIXEL_GRAY)
+      pixel_format = VW_PIXEL_GRAYA;
+    if (pixel_format == VW_PIXEL_RGB)
+      pixel_format = VW_PIXEL_RGBA;
+    delete rsrc;
+
+  } catch (vw::Exception &e) {
+    vw_out(1) << "An error occured: " << e.what() << "\n";
+    exit(1);
+  }
+
 
   // Set the debug level
   if (vm.count("debug")) {
@@ -187,7 +201,8 @@ int main( int argc, char *argv[] ) {
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
   if (output_mode != "toast" && output_mode != "kml") {
-    vw_throw(ArgumentErr() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n");
+    vw_out(0) << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
+    exit(1);
   }
   try {
 
@@ -200,6 +215,13 @@ int main( int argc, char *argv[] ) {
 
     // Process each image individually
     for ( unsigned i = 0; i < image_files.size(); ++i ) {
+
+      // Check to see if the image exists.
+      if ( !fs::exists(image_files[i]) ) {
+        vw_out(0) << "Error: could not image file named \"" << image_files[i] << "\"";
+        exit(1);
+      }
+
       std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
 
       // Load the pixel type, channel type, and nodata value, and
@@ -245,7 +267,8 @@ int main( int argc, char *argv[] ) {
                       image_files[i], georef, output_mode);
           break;
         default:
-          vw_throw(ArgumentErr() << "Image contains a channel type not supported by image2plate.\n");
+          vw_out(0) << "Image contains a channel type not supported by image2plate.\n";
+          exit(1);
         }
         break;
 
@@ -256,17 +279,18 @@ int main( int argc, char *argv[] ) {
                     image_files[i], georef, output_mode);
           break;
         default:
-          std::cout << "Platefile contains a channel type not supported by image2plate.\n";
-          exit(0);
+          vw_out(0) << "Platefile contains a channel type not supported by image2plate.\n";
+          exit(1);
         }
         break;
       default:
-        std::cout << "Image contains a pixel type not supported by image2plate.\n";
+        vw_out(0) << "Image contains a pixel type not supported by image2plate.\n";
+        exit(1);
       }
     }
 
   }  catch (vw::Exception &e) {
-    std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
+    vw_out(1) << "An error occured: " << e.what() << "\n";
     exit(1);
   }
   

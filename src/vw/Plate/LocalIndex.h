@@ -9,21 +9,12 @@
 #define __VW_PLATEFILE_LOCAL_INDEX_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Exception.h>
-#include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
-
 #include <vw/Image/PixelTypeInfo.h>
 
-#include <vw/Plate/Tree.h>
-#include <vw/Plate/Blob.h>
+#include <vw/Plate/Index.h>
 #include <vw/Plate/BlobManager.h>
-#include <vw/Plate/RemoteIndex.h>
-
-// Protocol Buffer
 #include <vw/Plate/ProtoBuffers.pb.h>
-
-#define VW_PLATE_INDEX_VERSION 2
 
 namespace vw {
 namespace platefile {
@@ -101,94 +92,6 @@ namespace platefile {
     // version of the mosaic.
     virtual int32 transaction_cursor();
   };
-
-  class LocalTreeIndex : public LocalIndex { 
-    boost::shared_ptr<TreeNode<IndexRecord> > m_root;
-
-    virtual void rebuild_index(std::string plate_filename);
-
-  public:
-
-    /// Create a new, empty index.
-    LocalTreeIndex( std::string plate_filename, IndexHeader new_index_info);
-
-    /// Open an existing index from a file on disk.
-    LocalTreeIndex(std::string plate_filename);
-
-    /// Destructor
-    virtual ~LocalTreeIndex() {}
-
-    // ----------------------- READ/WRITE REQUESTS  ----------------------
-
-    /// Attempt to access a tile in the index.  Throws an
-    /// TileNotFoundErr if the tile cannot be found.
-    /// 
-    /// By default, this call to read will return a tile with the MOST
-    /// RECENT transaction_id <= to the transaction_id you specify
-    /// here in the function arguments (if a tile exists).  However,
-    /// setting exact_transaction_match = true will force the
-    /// PlateFile to search for a tile that has the EXACT SAME
-    /// transaction_id as the one that you specify.
-    ///
-    /// A transaction ID of -1 indicates that we should return the
-    /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(vw::int32 col, vw::int32 row, 
-                                     vw::int32 level, vw::int32 transaction_id,
-                                     bool exact_transaction_match = false);
-
-
-    /// Return multiple index entries that match the specified
-    /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
-    ///
-    /// Results are return as a std::pair<int32, IndexRecord>.  The
-    /// first value in the pair is the transaction id for that
-    /// IndexRecord.
-    virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
-                                                                         int begin_transaction_id, 
-                                                                         int end_transaction_id) {
-      vw_throw(NoImplErr() << "multi_read_request() is not yet implemented in LocalTreeIndex");
-    }
-  
-    // Writing, pt. 1: Locks a blob and returns the blob id that can
-    // be used to write a tile.
-    virtual int write_request(vw::int32 size);
-
-    // Writing, pt. 2: Supply information to update the index and
-    // unlock the blob id.
-    virtual void write_complete(TileHeader const& header, IndexRecord const& record);
-
-    // ---------------------- TRANSACTIONS  ---------------------
-
-    // Clients are expected to make a transaction request whenever
-    // they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description,
-                                      std::vector<TileHeader> const& tile_headers);
-
-    // If a transaction fails, we may need to clean up the mosaic.  
-    virtual void transaction_failed(int32 transaction_id);
-
-    // ----------------------- PROPERTIES  ----------------------
-
-    /// Returns a list of tile headers for any valid tiles that exist
-    /// at a the specified level and transaction_id.  The
-    /// transaction_id is treated the same as it would be for
-    /// read_request() above.  The region specifies a tile range of
-    /// interest.
-    virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-                                              int start_transaction_id, 
-                                              int end_transaction_id) const {
-      vw_throw(NoImplErr() << "valid_tiles() is not yet implemented for LocalTreeIndex");
-    }
-
-    virtual int32 num_levels() const { return m_root->num_levels(); }
-
-    /// Use only for debugging small trees.
-    void print() { m_root->print(); }
-
-    virtual void map(boost::shared_ptr<TreeMapFunc> func) { m_root->map(func); }
-  };
-
 
 }} // namespace vw::plate
 

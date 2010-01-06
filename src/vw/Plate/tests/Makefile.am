@@ -14,15 +14,14 @@ if MAKE_MODULE_PLATE
 TestBlobManager_SOURCES  = TestBlobManager.oldtest
 TestBlobIO_SOURCES       = TestBlobIO.oldtest
 TestBlobIterator_SOURCES = TestBlobIterator.oldtest
-TestIndex_SOURCES        = TestIndex.oldtest
+#TestIndex_SOURCES        = TestIndex.oldtest
 TestIndexPage_SOURCES        = TestIndexPage.oldtest
 TestPagedIndex_SOURCES        = TestPagedIndex.oldtest
 TestAmqp_SOURCES        = TestAmqp.oldtest
-TestTree_SOURCES        = TestTree.oldtest
 #TestPlateIndexServer_SOURCES        = TestPlateIndexServer.oldtest
 
-TESTS = TestBlobManager TestBlobIO TestBlobIterator TestIndex	\
-	TestPagedIndex TestIndexPage TestAmqp TestTree 
+TESTS = TestBlobManager TestBlobIO TestBlobIterator TestPagedIndex	\
+	TestIndexPage TestAmqp
 
 #include $(top_srcdir)/config/instantiate.am
 

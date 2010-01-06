@@ -18,15 +18,13 @@
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/PlateManager.h>
+#include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <vector>
 #include <fstream>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
-
-// Protocol Buffer
-#include <vw/Plate/ProtoBuffers.pb.h>
-
 namespace fs = boost::filesystem;
 
 namespace vw {

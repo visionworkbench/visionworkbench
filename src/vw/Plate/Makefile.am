@@ -23,7 +23,7 @@ protocol_sources = ProtoBuffers.pb.cc
 BUILT_SOURCES = $(protocol_sources)
 
 include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
-		  LocalIndex.h RemoteIndex.h Tree.h PlateFile.h Amqp.h	\
+		  LocalIndex.h RemoteIndex.h PlateFile.h Amqp.h		\
 		  PlateManager.h SnapshotManager.h ToastPlateManager.h	\
 		  KmlPlateManager.h PlateView.h RpcServices.h		\
 		  IndexService.h PagedIndex.h
@@ -73,8 +73,8 @@ snapshot_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
 tiles2plate_SOURCES = tiles2plate.cc
 tiles2plate_LDADD = $(PLATE_LOCAL_LIBS)
 
-plate2tiles_SOURCES = plate2tiles.cc
-plate2tiles_LDADD    = $(PLATE_LOCAL_LIBS)
+#plate2tiles_SOURCES = plate2tiles.cc
+#plate2tiles_LDADD    = $(PLATE_LOCAL_LIBS)
 
 plate2dem_SOURCES = plate2dem.cc
 plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
@@ -94,8 +94,9 @@ rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
 lustre_torture_SOURCES = lustre_torture.cc
 lustre_torture_LDADD = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = plate2dem plate2tiles tiles2plate image2plate snapshot	\
-	       index_server index_client amqp_perftest index_perftest rpc_tool lustre_torture
+bin_PROGRAMS = plate2dem tiles2plate image2plate snapshot index_server	\
+	       index_client amqp_perftest index_perftest rpc_tool	\
+	       lustre_torture
 
 endif
 

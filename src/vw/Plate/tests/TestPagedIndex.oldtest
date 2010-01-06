@@ -8,9 +8,15 @@
 
 #include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Plate/Blob.h>
 using namespace std;
 using namespace vw;
 using namespace vw::platefile;
+
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
+
 
 class TestPagedIndex : public CxxTest::TestSuite {
   boost::shared_array<uint8> m_test_data;
@@ -69,8 +75,8 @@ public:
   }
   
   void test_index_write_read() {
-    unlink("/tmp/foo.plate/plate.index");
-    std::string plate_filename = "/tmp/foo.plate";
+    const std::string plate_filename = "/tmp/foo.plate";
+    fs::remove_all(plate_filename);
 
     // Write the basic data...
     IndexHeader rec;
@@ -89,8 +95,8 @@ public:
   }
 
   void test_index_transactions() {
-    unlink("/tmp/foo.plate/plate.index");
-    std::string plate_filename = "/tmp/foo.plate";
+    const std::string plate_filename = "/tmp/foo.plate";
+    fs::remove_all(plate_filename);
 
     // Write the basic data...
     IndexHeader rec;
@@ -179,12 +185,9 @@ public:
   // }
 
   void test_basic_read_write() {
-    std::string plate_filename = "/tmp/foo.plate";
-    std::string index_filename = plate_filename + "/plate.index";
+    const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
-
-    unlink(index_filename.c_str());
-    unlink(blob_filename.c_str());
+    fs::remove_all(plate_filename);
 
     TileHeader dummy_header0;
     dummy_header0.set_filetype("tif");
@@ -213,12 +216,9 @@ public:
   }
 
   void test_simple_index() {
-    std::string plate_filename = "/tmp/foo.plate";
-    std::string index_filename = plate_filename + "/plate.index";
+    const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
-    
-    unlink(index_filename.c_str());
-    unlink(blob_filename.c_str());
+    fs::remove_all(plate_filename);
 
     TileHeader dummy_header0;
     dummy_header0.set_filetype("tif");
@@ -308,12 +308,9 @@ public:
 
 
   void test_index_read_write() {
-    std::string plate_filename = "/tmp/foo.plate";
-    std::string index_filename = plate_filename + "/plate.index";
+    const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
-    
-    unlink(index_filename.c_str());
-    unlink(blob_filename.c_str());
+    fs::remove_all(plate_filename);
 
     TileHeader dummy_header0;
     dummy_header0.set_filetype("tif");
@@ -428,49 +425,48 @@ public:
       TS_ASSERT_EQUALS(hdr.level(), dummy_header4.level());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header4.filetype());
     }
-
-    unlink(index_filename.c_str());
-    unlink(blob_filename.c_str());
   }
 
 
   void test_valid_tiles() {
-    std::string plate_filename = "/tmp/foo.plate";
-    std::string index_filename = plate_filename + "/plate.index";
+    const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
-    
-    unlink(index_filename.c_str());
-    unlink(blob_filename.c_str());
+    fs::remove_all(plate_filename);
 
     TileHeader dummy_header0;
     dummy_header0.set_filetype("tif");
     dummy_header0.set_col(0);
     dummy_header0.set_row(0);
     dummy_header0.set_level(0);
+    dummy_header0.set_transaction_id(100);
 
     TileHeader dummy_header1;
     dummy_header1.set_filetype("tif");
     dummy_header1.set_col(0);
     dummy_header1.set_row(0);
     dummy_header1.set_level(1);
+    dummy_header1.set_transaction_id(100);
 
     TileHeader dummy_header2;
     dummy_header2.set_filetype("tif");
     dummy_header2.set_col(1);
     dummy_header2.set_row(0);
     dummy_header2.set_level(1);
+    dummy_header2.set_transaction_id(100);
 
     TileHeader dummy_header3;
     dummy_header3.set_filetype("tif");
     dummy_header3.set_col(0);
     dummy_header3.set_row(1);
     dummy_header3.set_level(1);
+    dummy_header3.set_transaction_id(100);
 
     TileHeader dummy_header4;
     dummy_header4.set_filetype("tif");
     dummy_header4.set_col(1);
     dummy_header4.set_row(1);
     dummy_header4.set_level(1);
+    dummy_header4.set_transaction_id(100);
 
     // Write some data to the Index.
     IndexHeader hdr;
@@ -503,10 +499,10 @@ public:
     idx.write_complete(dummy_header4, rec);
     
     // Test valid_tiles() call at level 0;
-    std::list<TileHeader> tiles = idx.valid_tiles(0, -1, BBox2i(0,0,1,1));
+    std::list<TileHeader> tiles = idx.valid_tiles(0, BBox2i(0,0,1,1), 100, 100);
     TS_ASSERT_EQUALS(tiles.size(), 1);
 
-    tiles = idx.valid_tiles(1, -1, BBox2i(0,0,2,2));
+    tiles = idx.valid_tiles(1, BBox2i(0,0,2,2), 100, 100);
     TS_ASSERT_EQUALS(tiles.size(), 4);
   }
 

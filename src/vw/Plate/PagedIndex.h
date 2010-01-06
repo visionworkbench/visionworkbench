@@ -19,7 +19,6 @@
 #include <string>
 #include <list>
 
-
 namespace vw {
 namespace platefile {
 
@@ -246,7 +245,6 @@ namespace platefile {
                                               int end_transaction_id) const;
 
     virtual int32 num_levels() const;
-    void map(boost::shared_ptr<TreeMapFunc> func);
   };
 
 }} // namespace vw::platefile
