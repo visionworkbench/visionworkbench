@@ -278,7 +278,7 @@ void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* con
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
 
-  // Parse out the list of root tiles that will be effected by this transaction_id.
+  // Parse out the list of root tiles that will be affected by this transaction_id.
   std::vector<TileHeader> tile_headers;
   for (int i = 0; i < request->tile_headers_size(); ++i) 
     tile_headers.push_back(request->tile_headers(i));
@@ -302,7 +302,7 @@ void IndexServiceImpl::RootComplete(::google::protobuf::RpcController* controlle
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
 
-  // Parse out the list of root tiles that will be effected by this transaction_id.
+  // Parse out the list of root tiles that will be affected by this transaction_id.
   std::vector<TileHeader> tile_headers;
   for (int i = 0; i < request->tile_headers_size(); ++i) 
     tile_headers.push_back(request->tile_headers(i));

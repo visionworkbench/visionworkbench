@@ -44,10 +44,10 @@ namespace platefile {
     void serialize();
     void deserialize();
 
-    void append_record( std::list<vw::platefile::TileHeader> &results, 
-                        int transaction_id, 
-                        IndexRecord const& rec, int col, int row,
-                        BBox2i const& region) const;
+    void append_if_in_region( std::list<vw::platefile::TileHeader> &results, 
+                              int transaction_id, 
+                              IndexRecord const& rec, int col, int row,
+                              BBox2i const& region) const;
 
   public:
   
@@ -101,9 +101,9 @@ namespace platefile {
     /// Returns a list of valid tiles in this IndexPage.  
     ///
     /// Note: this function is mostly used when creating snapshots.
-    std::list<TileHeader> valid_tiles(int transaction_id, 
-                                      vw::BBox2i const& region,
-                                      bool exact_match) const;
+    std::list<TileHeader> valid_tiles(vw::BBox2i const& region, 
+                                      int start_transaction_id, 
+                                      int end_transaction_id) const;
 
     // ----------------------- DISK I/O  ----------------------
 
@@ -164,7 +164,9 @@ namespace platefile {
     void set(IndexRecord const& rec, int32 col, int32 row, int32 transaction_id);
 
     /// Returns a list of valid tiles at this level.
-    std::list<TileHeader> valid_tiles(int transaction_id, BBox2i const& region) const;
+    std::list<TileHeader> valid_tiles(BBox2i const& region,
+                                      int start_transaction_id, 
+                                      int end_transaction_id) const;
   };
 
   // --------------------------------------------------------------------
@@ -233,13 +235,15 @@ namespace platefile {
   
     // ----------------------- PROPERTIES  ----------------------
 
-    /// Returns a list of tile headers for any valid tiles that exist
-    /// at a the specified level and transaction_id.  The
-    /// transaction_id is treated the same as it would be for
-    /// read_request() above.  The region specifies a tile range of
-    /// interest.
-    virtual std::list<TileHeader> valid_tiles(int level, int transaction_id, 
-                                              BBox2i const& region) const;
+    /// Returns a list of valid tiles that match this level, region, and
+    /// range of transaction_id's.  Returns a list of TileHeaders with
+    /// col/row/level and transaction_id of the most recent tile at each
+    /// valid location.  Note: there may be other tiles in the transaction
+    /// range at this col/row/level, but valid_tiles() only returns the
+    /// first one.
+    virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
+                                              int start_transaction_id,
+                                              int end_transaction_id) const;
 
     virtual int32 num_levels() const;
     void map(boost::shared_ptr<TreeMapFunc> func);

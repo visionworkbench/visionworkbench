@@ -150,7 +150,7 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
 
 vw::platefile::IndexPage::multi_value_type 
 vw::platefile::IndexPage::multi_get(int col, int row, 
-                                    int begin_transaction_id, 
+                                    int start_transaction_id, 
                                     int end_transaction_id) const {
 
   // Basic bounds checking
@@ -166,9 +166,9 @@ vw::platefile::IndexPage::multi_get(int col, int row,
   multi_value_type results;
   multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
   multi_value_type::const_iterator it = entries.begin();
-  while (it != entries.end() && it->first >= begin_transaction_id) {
-    std::cout << "Comparing: " << (it->first) << " and " << begin_transaction_id << " <-> " << end_transaction_id << "\n";
-    if (it->first >= begin_transaction_id && it->first <= end_transaction_id) {
+  while (it != entries.end() && it->first >= start_transaction_id) {
+    std::cout << "Comparing: " << (it->first) << " and " << start_transaction_id << " <-> " << end_transaction_id << "\n";
+    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
       results.push_back(*it);
     }
     ++it;
@@ -181,15 +181,15 @@ vw::platefile::IndexPage::multi_get(int col, int row,
   return results;
 }
 
-void vw::platefile::IndexPage::append_record( std::list<vw::platefile::TileHeader> &results, 
-                                              int transaction_id, IndexRecord const& rec, 
-                                              int col, int row,
-                                              BBox2i const& region) const {
+void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::TileHeader> &results, 
+                                                    int transaction_id, IndexRecord const& rec, 
+                                                    int col, int row,
+                                                    BBox2i const& region) const {
 
   std::cout << "Appending record for level " << m_level << "  at " << col << " " << row << "\n";
         
 
-  // Check to see if the region contains a col/row.
+  // Check to see if the tile is in the specified region.
   Vector2i loc( m_base_col + col, m_base_row + row);
   if ( region.contains( loc ) ) {
     TileHeader hdr;
@@ -201,42 +201,37 @@ void vw::platefile::IndexPage::append_record( std::list<vw::platefile::TileHeade
   }
 }
 
-/// Returns a list of valid tiles in this IndexPage. 
-std::list<vw::platefile::TileHeader> vw::platefile::IndexPage::valid_tiles(int transaction_id, 
-                                                                           vw::BBox2i const& region,
-                                                                           bool exact_match) const {
-
+/// Returns a list of valid tiles in this IndexPage.  Returns a list
+/// of TileHeaders with col/row/level and transaction_id of the most
+/// recent tile at each valid location.  Note: there may be other
+/// tiles in the transaction range at this col/row/level, but
+/// valid_tiles() only returns the first one.
+std::list<vw::platefile::TileHeader> 
+vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
+                                      int start_transaction_id,
+                                      int end_transaction_id) const {
   std::list<TileHeader> results;
 
   for (int row = 0; row < m_page_height; ++row) {
     for (int col = 0; col < m_page_width; ++col) {
       if (m_sparse_table.test(row*m_page_width + col)) {
 
-        // Interate over entries.
+        // Iterate over entries.
         multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
         multi_value_type::const_iterator it = entries.begin();
 
-        
-        // A transaction ID of -1 indicates that we should return the most
-        // recent tile (which is the first entry in the list, since it is
-        // sorted from most recent to least recent), regardless of its
-        // transaction id.
-        if (transaction_id == -1 && it != entries.end())
-          append_record( results, (*it).first, (*it).second, col, row, region );
-
-        // Otherwise, we search through the entries in the list, looking for
-        // the requested t_id.  Note: this search is O(n), so it can be slow
-        // if there are a lot of entries and the entry you are looking for
-        // is near the end.  However, most pages will contain very few
-        // entries, and for those with many entries (i.e. tiles near the
-        // root of the mosaic), you will rarely search for old tiles.
-        while (it != entries.end()) {
-          if (exact_match) {
-            if ((*it).first == transaction_id)
-              append_record( results, (*it).first, (*it).second, col, row, region );
-          } else {
-            if ((*it).first <= transaction_id)
-              append_record( results, (*it).first, (*it).second, col, row, region );
+        // Search through the entries in the list, looking entries
+        // that match the requested transaction_id range.  Note: this
+        // search is O(n), so it can be slow if there are a lot of
+        // entries and the entry you are looking for is near the end.
+        // However, most pages will contain very few entries, and for
+        // those with many entries (i.e. tiles near the root of the
+        // mosaic), you will most likely be searching for recently
+        // added tiles, which are sorted to the beginning.
+        while (it != entries.end() && it->first >= start_transaction_id) {
+          if ( it->first >= start_transaction_id && it->first <= end_transaction_id ) {
+            append_if_in_region( results, (*it).first, (*it).second, col, row, region );
+            break;
           }
           ++it;
         }
@@ -448,7 +443,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
 vw::platefile::IndexLevel::multi_value_type 
 vw::platefile::IndexLevel::multi_get(int32 col, 
                                      int32 row, 
-                                     int32 begin_transaction_id,
+                                     int32 start_transaction_id,
                                      int32 end_transaction_id) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
@@ -462,7 +457,7 @@ vw::platefile::IndexLevel::multi_get(int32 col,
   
   // Access the page.  This will load it into memory if necessary.
   boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
-  return page->multi_get(page_col, page_row, begin_transaction_id, end_transaction_id);
+  return page->multi_get(page_col, page_row, start_transaction_id, end_transaction_id);
 }
 
 /// Set the value of an index node at this level.
@@ -485,8 +480,10 @@ void vw::platefile::IndexLevel::set(vw::platefile::IndexRecord const& rec,
 }
 
 /// Returns a list of valid tiles at this level.
-std::list<vw::platefile::TileHeader> vw::platefile::IndexLevel::valid_tiles(int transaction_id, 
-                                                                            BBox2i const& region) const {
+std::list<vw::platefile::TileHeader> 
+vw::platefile::IndexLevel::valid_tiles(BBox2i const& region,
+                                       int start_transaction_id, 
+                                       int end_transaction_id) const {
   
   // Start by computing the search range in pages based on the requested region. 
   int32 min_level_col = region.min().x() / m_page_width;
@@ -502,7 +499,9 @@ std::list<vw::platefile::TileHeader> vw::platefile::IndexLevel::valid_tiles(int 
       boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
 
       // Accumulate valid tiles that overlap with region from this IndexPage.
-      std::list<TileHeader> sub_result = page->valid_tiles(transaction_id, region, false);
+      std::list<TileHeader> sub_result = page->valid_tiles(region,
+                                                           start_transaction_id, 
+                                                           end_transaction_id);
       result.splice(result.end(), sub_result);
     }
   }
@@ -622,13 +621,13 @@ vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int 
 
 vw::platefile::PagedIndex::multi_value_type
 vw::platefile::PagedIndex::multi_read_request(int col, int row, int level, 
-                                              int begin_transaction_id, 
+                                              int start_transaction_id, 
                                               int end_transaction_id) {
   if (level < 0 || level >= m_levels.size())
     vw_throw(TileNotFoundErr() << "Requested tile at level " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   
-  return m_levels[level]->multi_get(col, row,  begin_transaction_id, end_transaction_id);
+  return m_levels[level]->multi_get(col, row,  start_transaction_id, end_transaction_id);
 }
 
 int vw::platefile::PagedIndex::write_request(int size) {
@@ -644,18 +643,23 @@ void vw::platefile::PagedIndex::write_complete(TileHeader const& header,
   
 // ----------------------- PROPERTIES  ----------------------
 
-/// Returns a list of tile headers for any valid tiles that exist
-/// at a the specified level and transaction_id.  The
-/// transaction_id is treated the same as it would be for
-/// read_request() above.  The region specifies a tile range of
-/// interest.
-std::list<vw::platefile::TileHeader> vw::platefile::PagedIndex::valid_tiles(int level, 
-                                                                            int transaction_id, 
-                                                                            BBox2i const& region) const {
-  VW_ASSERT(level >= 0 && level < m_levels.size(),
-            ArgumentErr() << "PagedIndex::valid_tiles() failed.  "
-            << "Requested tiles from a level that does not exist.");
-  return m_levels[level]->valid_tiles(transaction_id, region);
+/// Returns a list of valid tiles that match this level, region, and
+/// range of transaction_id's.  Returns a list of TileHeaders with
+/// col/row/level and transaction_id of the most recent tile at each
+/// valid location.  Note: there may be other tiles in the transaction
+/// range at this col/row/level, but valid_tiles() only returns the
+/// first one.
+std::list<vw::platefile::TileHeader> 
+vw::platefile::PagedIndex::valid_tiles(int level, BBox2i const& region,
+                                       int start_transaction_id,
+                                       int end_transaction_id) const {
+  
+  // If the level does not exist, we return an empty list.
+  if (level < 0 && level >= m_levels.size())
+    return std::list<TileHeader>();
+
+  // Otherwise, we delegate to the valid_tiles() method for that level.
+  return m_levels[level]->valid_tiles(region, start_transaction_id, end_transaction_id);
 }
 
 int32 vw::platefile::PagedIndex::num_levels() const {

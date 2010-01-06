@@ -160,9 +160,8 @@ namespace platefile {
                                                   image.impl().rows()/2));
       Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.impl().cols()/2,
                                                   image.impl().rows()/2+1));
-      double delta = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-      int pyramid_level = (int)round(log(360/delta/(tile_size-1)) /
-                                     log(2));
+      double degrees_per_pixel = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
+      int pyramid_level = (int)ceil(log(360/degrees_per_pixel/(tile_size-1)) / log(2));
       
       // Compute the resolution of the TOAST output space at the given
       // pyramid_level.  The formula below was carefully chosen to
@@ -214,29 +213,30 @@ namespace platefile {
       // other by informing the index which tiles will be (eventually)
       // modified under this transaction id.
       std::vector<TileHeader> tile_headers;
-      BBox2i effected_tiles_bbox;
+      BBox2i affected_tiles_bbox;
       for (size_t i = 0; i < tiles.size(); ++i) {
         TileHeader hdr;
         hdr.set_col(tiles[i].i);
         hdr.set_row(tiles[i].j);
         hdr.set_level(pyramid_level);
         tile_headers.push_back(hdr);
-        effected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
+        affected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
       }
       int platefile_id = m_platefile->index_header().platefile_id();
       int transaction_id = m_platefile->transaction_request(description, tile_headers);
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
                 << "\t    Platefile ID: " << platefile_id << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n"
-                << "\t    Effected tiles @ root: " << effected_tiles_bbox << "\n";
+                << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
 
 
       // // For debugging: 
       // // 
       // // Test: terminate clients half the time
+      //
       // srandom(time(0));
       // float r = float(random()) / (powf(2.0,31)-1.0);
-      
+      //
       // if (r > 0.2) {
       //   vw_out(0) << "\n\n***********************************************************\n";
       //   vw_out(0) << "                          FAILING...\n";
@@ -262,15 +262,10 @@ namespace platefile {
 
       // Mipmap the tiles.
       if (m_platefile->num_levels() > 1) {
-        std::cout << "\t--> Generating mipmap tiles for transaction_id " << transaction_id << "\n";
-      
-        // Adjust the size of the bbox for this level
-        effected_tiles_bbox.min().x() = floor( float(effected_tiles_bbox.min().x()) / 2.0 );
-        effected_tiles_bbox.min().y() = floor( float(effected_tiles_bbox.min().y()) / 2.0 );
-        effected_tiles_bbox.max().x() = ceil( float(effected_tiles_bbox.max().x()+1) / 2.0 );
-        effected_tiles_bbox.max().y() = ceil( float(effected_tiles_bbox.max().y()+1) / 2.0 );
-        
-        this->mipmap(m_platefile->num_levels(), effected_tiles_bbox, transaction_id); 
+        std::ostringstream mipmap_str;
+        mipmap_str << "\t--> Mipmapping from level " << pyramid_level-1 << ": ";
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
+                     TerminalProgressCallback(InfoMessage, mipmap_str.str())); 
       }
 
       // Notify the index that this transaction is complete.

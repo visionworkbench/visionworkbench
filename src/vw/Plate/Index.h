@@ -85,14 +85,15 @@ namespace platefile {
 
     // ----------------------- PROPERTIES  ----------------------
 
-    /// Returns a list of tile headers for any valid tiles that exist
-    /// at a the specified level and transaction_id.  The
-    /// transaction_id is treated the same as it would be for
-    /// read_request() above.  The region specifies a tile range of
-    /// interest.
-    virtual std::list<TileHeader> valid_tiles(int level, 
-                                              int transaction_id, 
-                                              vw::BBox2i const& region) const = 0;
+    /// Returns a list of valid tiles that match this level, region, and
+    /// range of transaction_id's.  Returns a list of TileHeaders with
+    /// col/row/level and transaction_id of the most recent tile at each
+    /// valid location.  Note: there may be other tiles in the transaction
+    /// range at this col/row/level, but valid_tiles() only returns the
+    /// first one.
+    virtual std::list<TileHeader> valid_tiles(int level, vw::BBox2i const& region,
+                                              int start_transaction_id, 
+                                              int end_transaction_id) const = 0;
 
     virtual IndexHeader index_header() const = 0;
 

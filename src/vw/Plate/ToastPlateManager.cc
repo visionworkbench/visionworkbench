@@ -64,7 +64,7 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
       CacheEntry e = *i;
       m_cache.erase(i);
       m_cache.push_front(e);
-      std::cout << "Cached tile at " << x << " " << y << " " << level << "\n";
+      vw_out(VerboseDebugMessage, "platefile") << "Cached tile at " << x << " " << y << " " << level << "\n";
       return e.tile;
     }
   }
@@ -73,14 +73,11 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
   try {
     
     // If the tile is not in the cache, we attempt to access it in the index.
-    std::cout << "Reading tile at " << x << " " << y << " " << level << "\n";
+    vw_out(VerboseDebugMessage, "platefile") << "Reading tile at " << x << " " << y << " " << level << "\n";
     m_platefile->read(tile, x, y, level, transaction_id, true); // exact_transaction_match == true
 
   } catch (TileNotFoundErr &e) {
-
     // If that fails, then there is no tile.  We return an empty image.
-    std::cout << "Missing tile: " << e.what() << "\n";
-
   }
 
   // Save the tile in the cache.  The cache size of 1024 tiles was chosen
@@ -105,8 +102,6 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
 template <class PixelT>
 void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row, 
                                                                     int level, int transaction_id) const {
-
-  std::cout << "\t\tGenerating " << col << " " << row << "\n";
 
   // Create an image large enough to store all of the child nodes
   int tile_size = m_platefile->default_tile_size();
@@ -141,7 +136,6 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
                                                 tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 
   if (!is_transparent(new_tile)) {
-    std::cout << "\twriting tile\n";
     m_platefile->write(new_tile, col, row, level, transaction_id);
   }
 }

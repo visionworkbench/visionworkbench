@@ -184,9 +184,9 @@ namespace platefile {
     /// transaction_id is treated the same as it would be for
     /// read_request() above.  The region specifies a tile range of
     /// interest.
-    virtual std::list<TileHeader> valid_tiles(int level, 
-                                              int transaction_id, 
-                                              BBox2i const& region) const {
+    virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
+                                              int start_transaction_id, 
+                                              int end_transaction_id) const {
       vw_throw(NoImplErr() << "valid_tiles() is not yet implemented for LocalTreeIndex");
     }
 

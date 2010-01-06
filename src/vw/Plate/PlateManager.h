@@ -4,30 +4,13 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
 #ifndef __VW_PLATE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATEMANAGER_H__
 
-#include <vw/Image/ImageView.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Math/Vector.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/ToastTransform.h>
-#include <vw/Mosaic/ImageComposite.h>
-
-#include <vw/Plate/Index.h>
-#include <vw/Plate/Blob.h>
 #include <vw/Plate/PlateFile.h>
-
-#include <vector>
-#include <fstream>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-
-// Protocol Buffer
 #include <vw/Plate/ProtoBuffers.pb.h>
 
-namespace fs = boost::filesystem;
+#include <list>
 
 namespace vw {
 namespace platefile {
@@ -39,6 +22,10 @@ namespace platefile {
     BBox2i bbox;
     TileInfo(int i, int j, BBox2i const& bbox) : i(i), j(j), bbox(bbox) {}
   };
+
+  // Given a bbox, returns a list of smaller bboxes that perfectly
+  // tile the space of the larger bbox.
+  std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int height);
 
   // -------------------------------------------------------------------------
   //                              PLATE MANAGER
@@ -59,89 +46,18 @@ namespace platefile {
     //
     //   starting_level -- select the pyramid level from which to carry out mipmapping
     //   bbox -- bounding box (in terms of tiles) containing the tiles that need 
-    //           to be mipmapped at starting_level.  Use to specify effected tiles.
+    //           to be mipmapped at starting_level.  Use to specify affected tiles.
     //   transaction_id -- transaction id to use when reading/writing tiles
     //
-    void mipmap(int num_levels, BBox2i const& bbox, int transaction_id) const;
+    void mipmap(int starting_level, BBox2i const& bbox, int transaction_id,
+                const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  It is left to a
     /// subclass of PlateManager to implement.
     virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const = 0;
 
-    // ---------------------------- SNAPSHOTTING --------------------------------
-
-    // snapshot() creates a complete, composited view of the mosaic.
-    //
-    //   level -- select the pyramid level on which to carry out mipmapping
-    //   ascend_pyramid -- choose whether to build tiles at all pyramid levels (true), or just this one (false).
-    //   start_transaction_id -- select a transaction_id to use when accessing tiles.
-    //   end_transaction_id -- select a transaction_id to use when accessing tiles.
-    //   starting_level_bbox -- bounding box (in terms of tiles) containing the tiles that need 
-    //                          to be mipmapped at starting_level.  Use to specify effected tiles.
-    //
-    void snapshot(int level, BBox2i const& bbox, 
-                  int start_transaction_id, int end_transaction_id, 
-                  int write_transaction_id) const;
-
   };    
-
-  // -------------------------------------------------------------------------
-  //                              TILE COMPOSITING
-  // -------------------------------------------------------------------------
-  template <class PixelT>
-  class PlateCompositor {
-    
-    struct RecordCacheEntry {
-      int32 level, x, y, transaction_id;
-      IndexRecord record;
-    };
-    typedef std::list<RecordCacheEntry> record_cache_t;
-    record_cache_t m_record_cache;
-    boost::shared_ptr<PlateFile> m_platefile;
-
-    // Save the tile in the cache.  The cache size of 10000 records was chosen
-    // somewhat arbitrarily.
-    void save_record(IndexRecord record, int32 x, int32 y, int32 level, int32 transaction_id) {
-      if( m_record_cache.size() >= 10000 )
-        m_record_cache.pop_back();
-      RecordCacheEntry e;
-      e.level = level;
-      e.x = x;
-      e.y = y;
-      e.transaction_id = transaction_id;
-      e.record = record;
-      m_record_cache.push_front(e);
-    }
-
-    bool restore_record(IndexRecord &record, int32 x, int32 y, int32 level, int32 transaction_id) {
-      for( typename record_cache_t::iterator i=m_record_cache.begin(); i!=m_record_cache.end(); ++i ) {
-        if( i->level==level && i->x==x && i->y==y && i->transaction_id == transaction_id ) {
-          RecordCacheEntry e = *i;
-          m_record_cache.erase(i);
-          record = e.record;
-          return true;
-        }
-      }
-      return false;
-    }
-
-  public:
-
-    PlateCompositor(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
-
-    // Composite into the mosaic. The composite_mosaic_tile() function
-    // looks for any tiles at equal or lower resolution in the mosaic,
-    // and composites this tile on top of those tiles, supersampling the
-    // low-res tile if necessary.
-    ImageView<PixelT> composite_mosaic_tile(boost::shared_ptr<PlateFile> platefile, 
-                                            ImageView<PixelT> tile,
-                                            int col, int row, int level,
-                                            int max_level, int transaction_id,
-                                            const ProgressCallback &progress_callback = ProgressCallback::dummy_instance());
-
-
-  };
 
   // -------------------------------------------------------------------------
   //                            WRITE PLATEFILE TASK

@@ -29,17 +29,10 @@
 ///          (lr) coordinates.
 ///
 
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ToastPlateManager.h>
-//#include <vw/Plate/KmlPlateManager.h>
-
+#include <vw/Plate/SnapshotManager.h>
 using namespace vw;
 using namespace vw::platefile;
-using namespace vw::mosaic;
-using namespace vw::cartography;
 
 #include <boost/tokenizer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -47,12 +40,6 @@ using namespace vw::cartography;
 namespace po = boost::program_options;
 
 class SnapshotParameters {
-  int m_level;
-  int m_min_transaction_id;
-  int m_max_transaction_id;
-  int m_write_transaction_id;
-  BBox2i m_region;
-  bool m_valid;
 
   void error(std::string arg, std::string const& params) {
     vw_out(0) << "Error parsing arguments for --" << arg << " : " << params << "\n";
@@ -60,50 +47,45 @@ class SnapshotParameters {
   }
 
 public:
-  SnapshotParameters(std::string const& snapshot_string, std::string const& region_string) {
+
+  // Public variables.  You access these directly.
+  int level;
+  int begin_transaction_id;
+  int end_transaction_id;
+  int write_transaction_id;
+  BBox2i region;
+
+  // Constructor
+  SnapshotParameters(std::string const& range_string, 
+                     std::string const& region_string, 
+                     int write_transaction_id) : write_transaction_id(write_transaction_id) {
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep(",:@");
 
-    if (snapshot_string.size() == 0 && region_string.size() != 0) {
-      std::cout << "Error: You must use the --region option in conjunction " 
-                << "with the --snapshot option.";
+    // STEP 1 : PARSE RANGE STRING
+
+    if (range_string.size() == 0) {
+      std::cout << "Error: You must specify a transaction_id range "
+                << "with the --range option.";
       exit(1);
-    }
-    
-    // STEP 1 : PARSE SNAPSHOT STRING
-
-    if (snapshot_string.size() == 0) {
-
-      // If the argument string is empty, then the user did not specify
-      // any snapshot parameters.  We mark ourselves as invalid.
-      m_valid = false;
 
     } else {
 
-      // If the argument string is not empty, we attempt to parse the
-      // three parameters out from the snapshot string.
-      tokenizer tokens(snapshot_string, sep);
+      // If the range string is not empty, we attempt to parse the
+      // two parameters out from the range string.
+      tokenizer tokens(range_string, sep);
       tokenizer::iterator tok_iter = tokens.begin();
 
-      if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
-      m_min_transaction_id = boost::lexical_cast<int>(*tok_iter);
+      if (tok_iter == tokens.end()) this->error("snapshot", range_string);
+      begin_transaction_id = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
-      if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
-      m_max_transaction_id = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
-      m_write_transaction_id = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("snapshot", snapshot_string);
-      m_level = boost::lexical_cast<int>(*tok_iter);
+      if (tok_iter == tokens.end()) this->error("snapshot", range_string);
+      end_transaction_id = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
       
-      if (tok_iter != tokens.end()) this->error("snapshot", snapshot_string);
+      if (tok_iter != tokens.end()) this->error("snapshot", range_string);
 
-      m_valid = true;
     }
 
     // STEP 2 : PARSE REGION STRING
@@ -111,10 +93,9 @@ public:
     if (region_string.size() == 0) {
 
       // If the region string is empty, then the user has not
-      // specified the region.  We set the bounding box to the entire
-      // level.
-      int tiles_per_side = pow(2,m_level);
-      m_region = BBox2i(0,0,tiles_per_side,tiles_per_side);
+      // specified the region.  We record this by setting the level to
+      // -1;
+      level = -1;
 
     } else {
 
@@ -124,32 +105,29 @@ public:
       tokenizer::iterator tok_iter = tokens.begin();
 
       if (tok_iter == tokens.end()) this->error("region", region_string);
-      m_region.min()[0] = boost::lexical_cast<int>(*tok_iter);
+      region.min()[0] = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter == tokens.end()) this->error("region", region_string);
-      m_region.min()[1] = boost::lexical_cast<int>(*tok_iter);
+      region.min()[1] = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter == tokens.end()) this->error("region", region_string);
-      m_region.max()[0] = boost::lexical_cast<int>(*tok_iter);
+      region.max()[0] = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter == tokens.end()) this->error("region", region_string);
-      m_region.max()[1] = boost::lexical_cast<int>(*tok_iter);
+      region.max()[1] = boost::lexical_cast<int>(*tok_iter);
+      ++tok_iter;
+
+      if (tok_iter == tokens.end()) this->error("snapshot", region_string);
+      level = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter != tokens.end()) this->error("region", region_string);
     }
 
   }
-
-  bool valid() const { return m_valid; }
-  int level() const { return m_level; }
-  Vector2i transaction_range() const { return Vector2i(m_min_transaction_id, 
-                                                       m_max_transaction_id); }
-  int write_transaction_id() const { return m_write_transaction_id; }
-  BBox2i region() const { return m_region; }
 };
 
 // --------------------------------------------------------------------------
@@ -158,40 +136,45 @@ public:
 
 template <class PixelT>
 void do_snapshot(boost::shared_ptr<PlateFile> platefile,
-                 SnapshotParameters snapshot_parameters,
-                 std::string output_mode) {
+                 SnapshotParameters snapshot_parameters) {
 
-  if (output_mode == "toast") {
+  SnapshotManager<PixelT> sm( platefile );
+  if (snapshot_parameters.level != -1) {
 
-    boost::shared_ptr<ToastPlateManager<PixelT> > pm( 
-      new ToastPlateManager<PixelT> (platefile) );
-
-    if (snapshot_parameters.valid()) {
-
-      Vector2i transaction_range = snapshot_parameters.transaction_range();
-//       pm->mipmap(snapshot_parameters.level(), false, 
-//                  transaction_range[0], transaction_range[1], 
-//                  snapshot_parameters.write_transaction_id(),
-//                  snapshot_parameters.region() );
-      
-    } else {
-
-      // If the snapshot parameters are not valid, then the user must
-      // have run this program without supplying any explicit
-      // instructions.  We build a snapshot of the entire platefile
-      // starting with read_cursor and going to the most recent
-      // transaction_id.
-      
-      // this->mipmap(m_platefile->num_levels()-2, true, 0, 
-      //              transaction_id+1, transaction_id, 
-      //              snapshot_parameters.region() );
-      
+    if (snapshot_parameters.write_transaction_id == -1) {
+      vw_out(0) << "Error: you must specify a transaction_id for this snapshot "
+                << "using the --transaction_id flag.";
+      exit(1);
     }
-
+          
+    // If the user has specified a region, then we 
+    sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
+                snapshot_parameters.begin_transaction_id,
+                snapshot_parameters.end_transaction_id,
+                snapshot_parameters.write_transaction_id);
+    
   } else {
 
-    vw_out(0) << "Unkown output mode: " << output_mode << "\n";
+    // If no region was specified, then we build a snapshot of the
+    // entire platefile.
+    if (snapshot_parameters.write_transaction_id == -1) {
 
+      // User did not supply a t_id.  We must request and complete a
+      // transaction on our own.
+      std::vector<TileHeader> dummy;
+      int t_id = platefile->transaction_request("Full snapshot.", dummy);
+      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
+                       snapshot_parameters.end_transaction_id,
+                       t_id);
+      platefile->transaction_complete(t_id);
+
+    } else {
+
+      // User-supplied transaction_id
+      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
+                       snapshot_parameters.end_transaction_id,
+                       snapshot_parameters.write_transaction_id);
+    }
   }
            
 }
@@ -206,17 +189,17 @@ int main( int argc, char *argv[] ) {
   std::string start_description;
   std::string output_mode;
   int finish_transaction_id;
-  std::string snapshot_string;
+  std::string range_string;
   std::string region_string;
+  int transaction_id;
 
   po::options_description general_options("\nCreate a snapshot of a quadtree.  If no options are supplied, this utility will create a snapshot of the entire platefile starting with read_cursor and going to the max transaction_id.\n\nGeneral options");
   general_options.add_options()
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", po::value<int>(&finish_transaction_id), "where arg = <transaction_id> - Finish a multi-part snapshot.")
-    ("snapshot", po::value<std::string>(&snapshot_string), "where arg = <t_begin>:<t_end>@<level> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_id's in the range [t_begin, t_end] at the level specified.") 
-    ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates.")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), 
-     "Output mode [toast, kml]")
+    ("range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_id's in the range [t_begin, t_end].") 
+    ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
+    ("transaction_id,t", po::value<int>(&transaction_id)->default_value(-1), "Transaction ID to use for writing.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -255,7 +238,7 @@ int main( int argc, char *argv[] ) {
 
   // Parse out the rest of the command line options into a special
   // SnapshotParameters class.
-  SnapshotParameters snapshot_params(snapshot_string, region_string);
+  SnapshotParameters snapshot_params(range_string, region_string, transaction_id);
 
   try {
 
@@ -290,7 +273,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAYA:
       switch(platefile->channel_type()) {
       case VW_CHANNEL_UINT8:  
-        do_snapshot<PixelGrayA<uint8> >(platefile, snapshot_params, output_mode);
+        do_snapshot<PixelGrayA<uint8> >(platefile, snapshot_params);
         break;
       default:
         vw_throw(ArgumentErr() << "Image contains a channel type not supported by image2plate.\n");
@@ -300,7 +283,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGBA:
       switch(platefile->channel_type()) {
       case VW_CHANNEL_UINT8:  
-        do_snapshot<PixelRGBA<uint8> >(platefile, snapshot_params, output_mode);
+        do_snapshot<PixelRGBA<uint8> >(platefile, snapshot_params);
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by image2plate.\n";
