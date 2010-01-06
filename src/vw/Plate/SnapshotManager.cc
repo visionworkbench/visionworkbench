@@ -17,12 +17,15 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
   std::list<BBox2i> tile_workunits = bbox_tiles(tile_region, 1024, 1024);
   for ( std::list<BBox2i>::iterator region_iter = tile_workunits.begin(); 
         region_iter != tile_workunits.end(); ++region_iter) {
-    std::cout << "\t    Processing Workunit: " << *region_iter << "\n";
 
     // Fetch the list of valid tiles in this particular workunit.  
     std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
                                                                   start_transaction_id,
                                                                   end_transaction_id);
+
+    if (tile_records.size() != 0)
+      std::cout << "\t    Processing Workunit: " << *region_iter 
+                << "    Found " << tile_records.size() << " tile records.\n";    
 
     for ( std::list<TileHeader>::iterator header_iter = tile_records.begin(); 
           header_iter != tile_records.end(); ++header_iter) {
@@ -41,8 +44,12 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
       // need to be composited together.
       if (tiles.size() > 1) {
         vw::mosaic::ImageComposite<PixelT> composite;
-        for (typename std::list<ImageView<PixelT> >::iterator tile_iter = tiles.begin();
-             tile_iter != tiles.end();  ++tile_iter) {
+
+        // The list of tiles comes sorted from newest to oldest, but
+        // we actually want to composite the images in the opposite
+        // order.  We use reverse iterators here instead.
+        for (typename std::list<ImageView<PixelT> >::reverse_iterator tile_iter = tiles.rbegin();
+             tile_iter != tiles.rend();  ++tile_iter) {
           composite.insert(*tile_iter, 0, 0);
         }
         composite.set_draft_mode( true );

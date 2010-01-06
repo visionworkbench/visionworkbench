@@ -66,7 +66,7 @@ public:
 
     if (range_string.size() == 0) {
       std::cout << "Error: You must specify a transaction_id range "
-                << "with the --range option.";
+                << "with the --range option.\n";
       exit(1);
 
     } else {

@@ -167,7 +167,7 @@ vw::platefile::IndexPage::multi_get(int col, int row,
   multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
   multi_value_type::const_iterator it = entries.begin();
   while (it != entries.end() && it->first >= start_transaction_id) {
-    std::cout << "Comparing: " << (it->first) << " and " << start_transaction_id << " <-> " << end_transaction_id << "\n";
+    //    std::cout << "Comparing: " << (it->first) << " and " << start_transaction_id << " <-> " << end_transaction_id << "\n";
     if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
       results.push_back(*it);
     }
@@ -186,7 +186,7 @@ void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::Til
                                                     int col, int row,
                                                     BBox2i const& region) const {
 
-  std::cout << "Appending record for level " << m_level << "  at " << col << " " << row << "\n";
+  //  std::cout << "Appending record for level " << m_level << "  at " << col << " " << row << "\n";
         
 
   // Check to see if the tile is in the specified region.
@@ -546,7 +546,7 @@ vw::platefile::PagedIndex::PagedIndex(std::string plate_filename,
 // using entries that had been previously saved to disk.
 void vw::platefile::PagedIndex::rebuild_index(std::string plate_filename) {
 
-  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
+  //  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
 
   std::vector<std::string> blob_files = this->blob_filenames();
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
