@@ -11,7 +11,7 @@ AC_DEFUN([AX_PKG_BOOST],
 [
   m4_divert_once([INIT_PREPARE], [dnl
   AC_ARG_WITH(boost,
-    AS_HELP_STRING([--with-boost], [enable searching for the boost package @<:@auto@:>@]),
+    AS_HELP_STRING([--with-boost], [look for the boost package]),
     [ HAVE_PKG_BOOST=$withval ]
   )])
 

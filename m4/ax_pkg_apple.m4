@@ -18,7 +18,7 @@ AC_DEFUN([AX_PKG_APPLE],
 
   m4_divert_once([INIT_PREPARE], [dnl
   AC_ARG_WITH([apple_]my_tolower([$1]),
-    AS_HELP_STRING([--with-apple_]my_tolower([$1]), [enable searching for the APPLE_$1 package @<:@auto@:>@]),
+    AS_HELP_STRING([--with-apple_]my_tolower([$1]), [look for the APPLE_$1 package]),
     [ HAVE_PKG_pkg=$withval ]
   )])
 
