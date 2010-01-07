@@ -43,8 +43,24 @@ namespace vw {
       template <class ImageT, class DisparityT>
         EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
                                  ImageViewBase<DisparityT> const& course_disparity, int debug = -1);
-      
-      
+
+
+      struct TfmCovarianceDisparityTo3DFunctor : public vw::ReturnFixedType<float>  {
+	float operator()(Vector<float, 3> const & u_in, Matrix<float, 3, 2> const & j_in) const {
+	  Matrix2x2 temp_1;
+	  temp_1(0,0) = u_in(0);
+	  temp_1(0,1) = u_in(1);
+	  temp_1(1,0) = u_in(1);
+	  temp_1(1,1) = u_in(2);	  
+	  Matrix3x3 temp_2 = j_in*temp_1*transpose(j_in);
+	  Vector3f s;
+	  svd(temp_2, s);
+	  //std::cout << s(0) << " " << s(1) << " " << s(2) << std::endl;
+	  return pow(s(0),.25); // svd's are eigen-values squares for symmetric matrices; std deviation is sqrt of eigen values
+	}
+      };
+
+            
       struct ExtractDisparityFunctor : public vw::ReturnFixedType<PixelMask<Vector2f> >  {
 	PixelMask<Vector2f> operator()(PixelMask<Vector<float, 5> > const & in) const {
 	  PixelMask<Vector2f> temp(subvector(in.child(), 0, 2));
