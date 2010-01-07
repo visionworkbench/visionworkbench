@@ -285,12 +285,12 @@ vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
 vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transaction_description,
-                                                          std::vector<TileHeader> const& tile_headers) {
+                                                          int transaction_id_override) {
+
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_description(transaction_description);
-  for (size_t i = 0; i < tile_headers.size(); ++i)
-    *(request.mutable_tile_headers()->Add()) = tile_headers[i];
+  request.set_transaction_id_override(transaction_id_override);
   
   IndexTransactionReply response;
   m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, 
@@ -300,10 +300,11 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuding a transaction_complete method.
-void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id) {
+void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
   IndexTransactionComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
+  request.set_update_read_cursor(update_read_cursor);
   
   RpcNullMessage response;
   m_index_service->TransactionComplete(m_rpc_controller.get(), &request, &response, 

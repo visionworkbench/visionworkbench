@@ -161,12 +161,11 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // User did not supply a t_id.  We must request and complete a
       // transaction on our own.
-      std::vector<TileHeader> dummy;
-      int t_id = platefile->transaction_request("Full snapshot.", dummy);
+      int t_id = platefile->transaction_request("Full snapshot.", -1);
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
                        t_id);
-      platefile->transaction_complete(t_id);
+      platefile->transaction_complete(t_id, true);
 
     } else {
 
@@ -188,18 +187,17 @@ int main( int argc, char *argv[] ) {
   std::string url;
   std::string start_description;
   std::string output_mode;
-  int finish_transaction_id;
   std::string range_string;
   std::string region_string;
-  int transaction_id;
+  int transaction_id = -1;
 
   po::options_description general_options("\nCreate a snapshot of a quadtree.  If no options are supplied, this utility will create a snapshot of the entire platefile starting with read_cursor and going to the max transaction_id.\n\nGeneral options");
   general_options.add_options()
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
-    ("finish", po::value<int>(&finish_transaction_id), "where arg = <transaction_id> - Finish a multi-part snapshot.")
-    ("range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_id's in the range [t_begin, t_end].") 
+    ("finish", "Finish a multi-part snapshot.")
+    ("transaction_id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
+    ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).") 
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
-    ("transaction_id,t", po::value<int>(&transaction_id)->default_value(-1), "Transaction ID to use for writing.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -251,15 +249,24 @@ int main( int argc, char *argv[] ) {
     //------------------------ START/FINISH TRANSACTION ---------------------------
 
     if (vm.count("start")) {
-      std::vector<TileHeader> dummy;
-      int transaction_id = platefile->transaction_request(start_description, dummy);
+      if (!vm.count("transaction-id")) {
+        std::cout << "You must specify a transaction-id if you use --start.\n";
+        exit(1);
+      }
+      int transaction_id = platefile->transaction_request(start_description, transaction_id);
       vw_out(0) << "Transaction started with ID = " << transaction_id;
+      vw_out(0) << "Plate has " << platefile->num_levels() << " levels.\n";
       exit(transaction_id);
     }
 
     if (vm.count("finish")) {
-      platefile->transaction_complete(finish_transaction_id);
-      vw_out(0) << "Transaction " << finish_transaction_id << " complete.\n";
+      if (!vm.count("transaction-id")) {
+        std::cout << "You must specify a transaction-id if you use --finish.\n";
+        exit(1);
+      }
+      // Update the read cursor when the snapshot is complete!
+      platefile->transaction_complete(transaction_id, true);
+      vw_out(0) << "Transaction " << transaction_id << " complete.\n";
       exit(0);
     }
 

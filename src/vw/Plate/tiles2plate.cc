@@ -294,28 +294,9 @@ int main( int argc, char *argv[] ) {
                                                   tile_size, output_file_type,
                                                   pixel_format, channel_type) );
 
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-    // XXX NOTE TO TED:  
-    //
-    // In order to support multiple clients mosaicking into the
-    // platefile at once for WWT, I have had to change the API for
-    // transaction_request().  It now takes a list of ROOT level tiles
-    // that will be modified by the transaction.  This allows the
-    // index to "lock" those root tiles as well as any that would be
-    // regenerated via mipmapping.  
-    //
-    // I've thought about this a bit, and with gigapan tiles, I think
-    // you can get away without this type of tile locking.  I'm going
-    // to pass in an empty list of tiles to lock for now, and
-    // hopefully everything will be happy.  Let me know if you have
-    // any trouble. -mbroxton
-    //
-    // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
     std::vector<TileHeader> empty_tile_list;
     int32 write_transaction_id = 
-      platefile->transaction_request("Writing tiles from tile tree " + tile_directory_name,
-                                     empty_tile_list);
+      platefile->transaction_request("Writing tiles from tile tree " + tile_directory_name, -1);
 
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
@@ -375,7 +356,8 @@ int main( int argc, char *argv[] ) {
       vw_throw(ArgumentErr() << "Platefile contains a pixel type not supported by tiles2plate.\n");
     }
 
-    platefile->transaction_complete( write_transaction_id );
+    // update_read_cursor == true below.
+    platefile->transaction_complete( write_transaction_id, true );
   } catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting\n\n";
   }

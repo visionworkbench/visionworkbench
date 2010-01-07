@@ -51,8 +51,8 @@ static std::string prefix_from_filename(std::string const& filename) {
 template <class ViewT>
 void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
                ImageViewBase<ViewT> const& view,
-               std::string filename, GeoReference const& georef, 
-               std::string output_mode) {
+               std::string filename, int transaction_id_override, 
+               GeoReference const& georef, std::string output_mode) {
 
   std::ostringstream status_str;
   status_str << "\t    " << filename << " : ";
@@ -62,7 +62,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
       new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
 
-    pm->insert(view.impl(), filename, georef, g_debug,
+    pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
                TerminalProgressCallback(InfoMessage, status_str.str()) );
 
   }  else if (output_mode == "kml")  {
@@ -87,6 +87,7 @@ int main( int argc, char *argv[] ) {
   std::string tile_filetype;
   std::string output_mode;
   int tile_size;
+  int transaction_id_override = -1;
   float jpeg_quality;
   int png_compression;
   unsigned cache_size;
@@ -95,6 +96,7 @@ int main( int argc, char *argv[] ) {
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
     ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
+    ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
     ("file-type", po::value<std::string>(&tile_filetype), 
      "Output file type (png is used by default)")
     ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), 
@@ -197,6 +199,16 @@ int main( int argc, char *argv[] ) {
     else 
       tile_filetype = "png";
   }
+  
+  if (vm.count("transaction-id") && image_files.size() != 1) {
+    std::cout << "Error: you cannot override the transaction-id while processing multiple images with " << argv[0] << ".\n";
+    exit(1);
+  }
+
+  if (vm.count("transaction-id") && transaction_id_override < 1) {
+    vw_out(0) << "Error: you must specify a positive transaction-id.\n";
+    exit(1);
+  }
 
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
@@ -261,10 +273,10 @@ int main( int argc, char *argv[] ) {
             do_mosaic(platefile, 
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
                                                 nodata_value)),
-                      image_files[i], georef, output_mode);
+                      image_files[i], transaction_id_override, georef, output_mode);
           else
             do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-                      image_files[i], georef, output_mode);
+                      image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
           vw_out(0) << "Image contains a channel type not supported by image2plate.\n";
@@ -276,7 +288,7 @@ int main( int argc, char *argv[] ) {
         switch(platefile->channel_type()) {
         case VW_CHANNEL_UINT8:  
           do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                    image_files[i], georef, output_mode);
+                    image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
           vw_out(0) << "Platefile contains a channel type not supported by image2plate.\n";

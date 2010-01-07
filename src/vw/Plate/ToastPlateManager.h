@@ -143,8 +143,9 @@ namespace platefile {
 
     /// Add an image to the plate file.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, std::string const& description,
-                cartography::GeoReference const& georef, bool verbose = false,
+    void insert(ImageViewBase<ViewT> const& image, std::string const& description, 
+                int transaction_id_override, cartography::GeoReference const& georef, 
+                bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // Compute the pyramid level at which to store this image.  The
@@ -221,7 +222,13 @@ namespace platefile {
         affected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
       }
       int platefile_id = m_platefile->index_header().platefile_id();
-      int transaction_id = m_platefile->transaction_request(description, tile_headers);
+
+      // Note: the user may have specified a transaction_id to use,
+      // which was passed in with transaction_id_override.  If not,
+      // then transaction_id_override == -1, and we get an
+      // automatically assigned t_id.
+      int transaction_id = m_platefile->transaction_request(description, 
+                                                            transaction_id_override);
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
                 << "\t    Platefile ID: " << platefile_id << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n"
@@ -266,8 +273,9 @@ namespace platefile {
                      TerminalProgressCallback(InfoMessage, mipmap_str.str())); 
       }
 
-      // Notify the index that this transaction is complete.
-      m_platefile->transaction_complete(transaction_id);
+      // Notify the index that this transaction is complete.  Do not
+      // update the read cursor (false).
+      m_platefile->transaction_complete(transaction_id, false);
     }
 
     /// This function generates a specific mipmap tile at the given

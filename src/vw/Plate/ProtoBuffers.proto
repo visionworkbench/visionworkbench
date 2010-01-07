@@ -71,8 +71,6 @@ message IndexHeader {
   optional int32 version = 10 [default = 1];  
   optional int32 transaction_read_cursor = 11 [default = 0];
   optional int32 transaction_write_cursor = 12 [default = 1];
-  repeated int32 complete_transaction_ids = 13 [packed = true];
-  repeated int32 failed_transaction_ids = 14 [packed = true];
 
 }
 
@@ -149,12 +147,13 @@ message IndexWriteComplete {
 message IndexTransactionRequest {
   required int32 platefile_id = 1;
   required string description = 2;
-  repeated TileHeader tile_headers = 3;
+  required int32 transaction_id_override = 3; 
 }
 
 message IndexTransactionComplete {
   required int32 platefile_id = 1;
   required int32 transaction_id = 2;
+  required bool update_read_cursor = 3;
 }
 
 message IndexTransactionFailed {

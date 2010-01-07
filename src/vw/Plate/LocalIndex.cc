@@ -23,18 +23,6 @@ namespace fs = boost::filesystem;
 //                            LOCAL INDEX
 // -------------------------------------------------------------------
 
-namespace {
-  // The first element in an stl heap (created with std::make_heap) is the
-  // "greatest" value according to the comparison operator. We want that value
-  // to have the smallest transaction id. Thus, this comparison operator is a
-  // strict weak ordering, with the "greater" transaction id in the heap sense
-  // actually being the smallest numerically.
-  bool transaction_sort(const int32& a, const int32& b) {
-    return a > b;
-  }
-}
-
-
 // ------------------------ Private Methods --------------------------
 
 std::string vw::platefile::LocalIndex::index_filename() const {
@@ -138,10 +126,6 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
 
   ifstr.close();
 
-  std::make_heap(m_header.mutable_complete_transaction_ids()->begin(),
-                 m_header.mutable_complete_transaction_ids()->end(),
-                 transaction_sort);
-
   // Create the logging facility
   try {
     m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
@@ -169,88 +153,58 @@ std::ostream& vw::platefile::LocalIndex::log () {
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
 int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
-                                                     std::vector<TileHeader> const& tile_headers) {
+                                                     int transaction_id_override) {
 
-  // Pick the next transaction ID, increment the cursor, and then save
-  // the cursor to a file.  (Saving to a file gurantees that we won't
-  // accidentally assign two transactions the same ID if the index
-  // server crashes and has to be restarted.
-  int32 transaction_id = m_header.transaction_write_cursor();
-  m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
-  this->save_index_file();
-  this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
+  if (transaction_id_override != -1) {
 
-  return transaction_id;
+    // If the user has chosen to override the transaction ID's, then we
+    // use the transaction ID they specify.  We also increment the
+    // transaction_write_cursor if necessary so that we dole out a
+    // reasonable transaction ID if we are ever asked again without an
+    // override.
+    int max_trans_id = std::max(m_header.transaction_write_cursor(), transaction_id_override+1);
+    m_header.set_transaction_write_cursor(max_trans_id);
+    this->save_index_file();
+    this->log() << "Transaction " << transaction_id_override 
+                << " started: " << transaction_description << "\n";
+    return transaction_id_override;
+
+  } else {
+  
+    // Pick the next transaction ID, increment the cursor, and then save
+    // the cursor to a file.  (Saving to a file gurantees that we won't
+    // accidentally assign two transactions the same ID if the index
+    // server crashes and has to be restarted.
+    int32 transaction_id = m_header.transaction_write_cursor();
+    m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
+    this->save_index_file();
+    this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
+    return transaction_id;
+
+  }
 }
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
-void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id) {
-  static const int MAX_OUTSTANDING_TRANSACTION_IDS = 1024;
+void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
 
-  VW_ASSERT( transaction_id > m_header.transaction_read_cursor(),
-             LogicErr() << "We got a transaction_complete() with an id less than the read_cursor(). Ack!");
-
-  // We handle the incoming id without inserting it in the heap, if we can (in
-  // order to avoid a re-heapify)
-
-  // Is this the next transaction we're waiting for?
-  if (transaction_id == m_header.transaction_read_cursor() + 1) {
-
-    // It is! Update the transaction read cursor
-    m_header.set_transaction_read_cursor(transaction_id);
-
-  } else {
-
-    // It isn't. Remember it, reheapify, check queue level, and bail out.
-    m_header.add_complete_transaction_ids(transaction_id);
-    std::push_heap(m_header.mutable_complete_transaction_ids()->begin(),
-                   m_header.mutable_complete_transaction_ids()->end(),
-                   transaction_sort);
-
-    if (m_header.complete_transaction_ids_size() > MAX_OUTSTANDING_TRANSACTION_IDS) {
-      vw_out(vw::WarningMessage) << "Potential stall in transaction pipeline. "
-                                 << m_header.complete_transaction_ids_size()
-                                 << " are waiting" << std::endl;
-    }
-    this->log() << "Transaction " << transaction_id << " complete.  "
-                << "[ read_cursor = " << m_header.transaction_read_cursor() << " / " 
-                << m_header.complete_transaction_ids_size() << " ]\n";
+  if ( update_read_cursor ) {
+    int max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
+    m_header.set_transaction_read_cursor(max_trans_id);
     this->save_index_file();
-    return;
   }
-
-  // Okay. We completed one-perhaps more are ready?
-  while (m_header.complete_transaction_ids_size() > 0 &&
-         m_header.complete_transaction_ids(0) <= m_header.transaction_read_cursor() + 1) {
-    if (m_header.complete_transaction_ids(0) == m_header.transaction_read_cursor() + 1)
-      m_header.set_transaction_read_cursor(m_header.complete_transaction_ids(0));
-    std::pop_heap(m_header.mutable_complete_transaction_ids()->begin(),
-                  m_header.mutable_complete_transaction_ids()->end(),
-                  transaction_sort);
-    m_header.mutable_complete_transaction_ids()->RemoveLast();
-  }
-
-  // If we got this far. we updated the read cursor at least once, so save it.
-  this->save_index_file();
 
   this->log() << "Transaction " << transaction_id << " complete.  "
-              << "[ read_cursor = " << m_header.transaction_read_cursor() << " / "
-              << m_header.complete_transaction_ids_size() << " ]\n";
+              << "[ read_cursor = " << m_header.transaction_read_cursor() << " ]\n";
 }
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuing a transaction_complete method.
 void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
 
-  // Update the list of failed transactions in the index header
-  m_header.mutable_failed_transaction_ids()->Add(transaction_id);
-  this->save_index_file();
-
-  // Now that we have cleaned things up, we mark the transaction as
-  // complete, which moves the transaction_cursor forward.
-  this->transaction_complete(transaction_id);
+  // Log the failure.
   this->log() << "Transaction " << transaction_id << " FAILED.\n";
+
 }
 
 // Return the current location of the transaction cursor.  This

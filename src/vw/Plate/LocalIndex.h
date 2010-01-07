@@ -76,13 +76,16 @@ namespace platefile {
     }
 
     // Clients are expected to make a transaction request whenever
-    // they start a self-contained chunk of mosaicking work.  .
+    // they start a self-contained chunk of mosaicking work.  Use
+    // transaction_id_override to force the use of a transaction ID
+    // for an upcoming transaction.  Setting transaction_id_override
+    // to -1 lets the platefile choose its own transaction_id.
     virtual int32 transaction_request(std::string transaction_description,
-                                      std::vector<TileHeader> const& tile_headers);
+                                      int transaction_id_override);
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id);
+    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor);
 
     // If a transaction fails, we may need to clean up the mosaic.  
     virtual void transaction_failed(int32 transaction_id);

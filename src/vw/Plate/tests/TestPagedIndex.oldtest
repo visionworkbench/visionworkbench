@@ -109,17 +109,16 @@ public:
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // Test one tranaction request
-    std::vector<TileHeader> empty_tileheader_list; 
-    int tx1 = idx.transaction_request("Test transaction #1", empty_tileheader_list);
+    int tx1 = idx.transaction_request("Test transaction #1", -1);
     TS_ASSERT_EQUALS(tx1, 1);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // And now a few more
-    int tx2 = idx.transaction_request("Test transaction #2", empty_tileheader_list);
-    int tx3 = idx.transaction_request("Test transaction #3", empty_tileheader_list);
-    int tx4 = idx.transaction_request("Test transaction #4", empty_tileheader_list);
-    int tx5 = idx.transaction_request("Test transaction #5", empty_tileheader_list);
-    int tx6 = idx.transaction_request("Test transaction #6", empty_tileheader_list);
+    int tx2 = idx.transaction_request("Test transaction #2", -1);
+    int tx3 = idx.transaction_request("Test transaction #3", -1);
+    int tx4 = idx.transaction_request("Test transaction #4", -1);
+    int tx5 = idx.transaction_request("Test transaction #5", -1);
+    int tx6 = idx.transaction_request("Test transaction #6", -1);
     TS_ASSERT_EQUALS(tx2, 2);
     TS_ASSERT_EQUALS(tx3, 3);
     TS_ASSERT_EQUALS(tx4, 4);
@@ -128,24 +127,24 @@ public:
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // Now complet a transaction, but not the next one in the series.
-    idx.transaction_complete(tx6);
+    idx.transaction_complete(tx6, false);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 0);
 
     // Now we complete the next one. the cursor should move forward by one.
-    idx.transaction_complete(tx1);
+    idx.transaction_complete(tx1, true);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 1);
 
     // Complete more transactions in reverse order
-    idx.transaction_complete(tx3);
-    TS_ASSERT_EQUALS(idx.transaction_cursor(), 1);
-    idx.transaction_complete(tx2);
+    idx.transaction_complete(tx3, true);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 3);
+    idx.transaction_complete(tx2, true);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 3);
 
     // And the rest
-    idx.transaction_complete(tx4);
-    TS_ASSERT_EQUALS(idx.transaction_cursor(), 4);
-    idx.transaction_complete(tx5);
-    TS_ASSERT_EQUALS(idx.transaction_cursor(), 6);
+    idx.transaction_complete(tx4, false);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 3);
+    idx.transaction_complete(tx5, true);
+    TS_ASSERT_EQUALS(idx.transaction_cursor(), 5);
   }
   
   // void test_index_transactions_with_mipmap() {

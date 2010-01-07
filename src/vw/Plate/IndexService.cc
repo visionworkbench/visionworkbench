@@ -303,14 +303,10 @@ void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* con
   // Fetch the index service record 
   IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
 
-  // Parse out the list of root tiles that will be affected by this transaction_id.
-  std::vector<TileHeader> tile_headers;
-  for (int i = 0; i < request->tile_headers_size(); ++i) 
-    tile_headers.push_back(request->tile_headers(i));
-
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  int transaction_id = rec.index->transaction_request(request->description(), tile_headers);
+  int transaction_id = rec.index->transaction_request(request->description(), 
+                                                      request->transaction_id_override());
   response->set_transaction_id(transaction_id);
 
   // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction " 
@@ -332,7 +328,8 @@ void IndexServiceImpl::TransactionComplete(::google::protobuf::RpcController* co
     
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  rec.index->transaction_complete(request->transaction_id());
+  rec.index->transaction_complete(request->transaction_id(), 
+                                  request->update_read_cursor());
 
   // This message has no response.
   done->Run();

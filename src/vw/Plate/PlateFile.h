@@ -434,14 +434,14 @@ namespace platefile {
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
     virtual int32 transaction_request(std::string transaction_description,
-                                      std::vector<TileHeader> const& tile_headers) {
-      return m_index->transaction_request(transaction_description, tile_headers);
+                                      int transaction_id_override) {
+      return m_index->transaction_request(transaction_description, transaction_id_override);
     }
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id) {
-      m_index->transaction_complete(transaction_id);
+    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor) {
+      m_index->transaction_complete(transaction_id, update_read_cursor);
     }
 
     // If a transaction fails, we may need to clean up the mosaic.  
