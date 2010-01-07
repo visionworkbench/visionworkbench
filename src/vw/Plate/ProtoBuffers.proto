@@ -37,13 +37,6 @@ message TileHeader {
 //                      Index Data Structures
 // ----------------------------------------------------------------------
 
-enum IndexRecordStatusType {
-  INDEX_RECORD_EMPTY = 1;
-  INDEX_RECORD_STALE = 2;
-  INDEX_RECORD_VALID = 3;
-  INDEX_RECORD_LOCKED = 4;
-}
-
 // The IndexHeader store basic metadata for the platefile, such as the
 // default tile size, file type, and map projection information.
 // This is typically stored in the <platfile>/plate.index file.
@@ -83,7 +76,6 @@ message IndexHeader {
 message IndexRecord {
   optional int32 blob_id = 1 [default = -1];
   optional uint64 blob_offset = 2 [default = 0];
-  optional IndexRecordStatusType status = 3 [ default = INDEX_RECORD_EMPTY ];
 }
 
 // ----------------------------------------------------------------------

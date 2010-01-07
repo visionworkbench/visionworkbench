@@ -244,26 +244,22 @@ namespace platefile {
 
       // 1. Call index read_request(col,row,level).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, level, transaction_id);
-      if (record.status() != INDEX_RECORD_EMPTY) {
-        std::ostringstream blob_filename;
-        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
-        // 2. Open the blob file and read the header
-        Blob blob(blob_filename.str());
-        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+      std::ostringstream blob_filename;
+      blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
-        // 3. Choose a temporary filename and call BlobIO
-        // read_as_file(filename, offset, size) [ offset, size from
-        // IndexRecord ]
-        filename += "." + header.filetype();
-        blob.read_to_file(filename, record.blob_offset());
+      // 2. Open the blob file and read the header
+      Blob blob(blob_filename.str());
+      TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
 
-        // 4. Return the name of the file
-        return filename;
-      } else {
-        vw_throw(TileNotFoundErr() << "Index record was found, but was marked as empty.");
-        return filename; // never reached
-      }
+      // 3. Choose a temporary filename and call BlobIO
+      // read_as_file(filename, offset, size) [ offset, size from
+      // IndexRecord ]
+      filename += "." + header.filetype();
+      blob.read_to_file(filename, record.blob_offset());
+
+      // 4. Return the name of the file
+      return filename;
 
     }
 
@@ -286,31 +282,28 @@ namespace platefile {
       
       // 1. Call index read_request(col,row,level).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
-      if (record.status() != INDEX_RECORD_EMPTY) {
-        std::ostringstream blob_filename;
-        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
-        // 2. Open the blob file and read the header
-        Blob blob(blob_filename.str());
-        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
 
-        // 3. Choose a temporary filename and call BlobIO
-        // read_as_file(filename, offset, size) [ offset, size from
-        // IndexRecord ]
-        std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
-        blob.read_to_file(tempfile, record.blob_offset());
-        TemporaryTileFile tile(tempfile);
-
-        // 4. Read data from temporary file.
-        view = tile.read<typename ViewT::pixel_type>();
-
-        // 5. Access the tile header and return it.
-        result = blob.read_header<TileHeader>(record.blob_offset());
-        return result;
-      } else {
-        vw_throw(TileNotFoundErr() << "Index record was found, but was marked as empty.");
-        return result; // never reached
-      }
+      std::ostringstream blob_filename;
+      blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+      
+      // 2. Open the blob file and read the header
+      Blob blob(blob_filename.str());
+      TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+      
+      // 3. Choose a temporary filename and call BlobIO
+      // read_as_file(filename, offset, size) [ offset, size from
+      // IndexRecord ]
+      std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
+      blob.read_to_file(tempfile, record.blob_offset());
+      TemporaryTileFile tile(tempfile);
+      
+      // 4. Read data from temporary file.
+      view = tile.read<typename ViewT::pixel_type>();
+      
+      // 5. Access the tile header and return it.
+      result = blob.read_header<TileHeader>(record.blob_offset());
+      return result;
     }
 
     /// Read one ore more images at a specified location in the
@@ -336,29 +329,27 @@ namespace platefile {
       while (iter != records.end()) {
         IndexRecord &record = iter->second;
 
-        if (record.status() != INDEX_RECORD_EMPTY) {
-          std::ostringstream blob_filename;
-          blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+        std::ostringstream blob_filename;
+        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
           
-          // 2. Open the blob file and read the header
-          Blob blob(blob_filename.str());
-          TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+        // 2. Open the blob file and read the header
+        Blob blob(blob_filename.str());
+        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
           
-          // 3. Choose a temporary filename and call BlobIO
-          // read_as_file(filename, offset, size) [ offset, size from
-          // IndexRecord ]
-          std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
-          blob.read_to_file(tempfile, record.blob_offset());
-          TemporaryTileFile tile_file(tempfile);
-          
-          // 4. Read data from temporary file.
-          ViewT tile = tile_file.read<typename ViewT::pixel_type>();
-          tiles.push_back(tile);
-
-          // 5. Access the tile header and return it.
-          results.push_back( blob.read_header<TileHeader>(record.blob_offset()) );
-
-        } 
+        // 3. Choose a temporary filename and call BlobIO
+        // read_as_file(filename, offset, size) [ offset, size from
+        // IndexRecord ]
+        std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
+        blob.read_to_file(tempfile, record.blob_offset());
+        TemporaryTileFile tile_file(tempfile);
+        
+        // 4. Read data from temporary file.
+        ViewT tile = tile_file.read<typename ViewT::pixel_type>();
+        tiles.push_back(tile);
+        
+        // 5. Access the tile header and return it.
+        results.push_back( blob.read_header<TileHeader>(record.blob_offset()) );
+        
         ++iter;
       }
       return results;
@@ -401,7 +392,6 @@ namespace platefile {
         IndexRecord write_record;
         write_record.set_blob_id(blob_id);
         write_record.set_blob_offset(blob_offset);
-        write_record.set_status(INDEX_RECORD_VALID);
         
         m_index->write_complete(write_header, write_record);
 

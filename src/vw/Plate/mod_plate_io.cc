@@ -187,25 +187,14 @@ int handle_image(request_rec *r, const std::string& url) {
   std::string filename;
   vw::uint64 offset, size;
 
-  if (idx_record.status() != INDEX_RECORD_VALID && idx_record.status() != INDEX_RECORD_STALE) {
-      vw_out(DebugMessage, "plate.apache") << "Returning null tile [record=" << idx_record.DebugString() << "]" << std::endl;
-
-      filename = "/big/platefiles/null.png";
-      offset = 0;
-      apr_finfo_t info;
-      apr_stat(&info, filename.c_str(), APR_FINFO_SIZE, r->pool);
-      size = info.size;
-  } else {
-
-    try {
-      // Grab a blob from the blob cache by filename
-      boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
-      // And calculate the sendfile(2) parameters
-      blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
-
-    } catch (vw::Exception &e) {
-      vw_throw(ServerError() << "Could not load blob data: " << e.what());
-    }
+  try {
+    // Grab a blob from the blob cache by filename
+    boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
+    // And calculate the sendfile(2) parameters
+    blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
+    
+  } catch (vw::Exception &e) {
+    vw_throw(ServerError() << "Could not load blob data: " << e.what());
   }
 
   apr_file_t *fd = 0;

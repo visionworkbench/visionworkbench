@@ -578,7 +578,6 @@ void vw::platefile::PagedIndex::rebuild_index(std::string plate_filename) {
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
-      rec.set_status(INDEX_RECORD_VALID);
       this->commit_record(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
       tpc.report_progress(float(iter.current_base_offset()) / blob.size());
       ++iter;

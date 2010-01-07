@@ -12,7 +12,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Plate/PlateView.h>
-#include <vw/Plate/KmlPlateManager.h>
+//#include <vw/Plate/KmlPlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
