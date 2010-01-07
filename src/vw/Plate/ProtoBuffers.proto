@@ -166,6 +166,7 @@ message IndexValidTilesRequest {
   required int32 region_height = 6;
   required int32 begin_transaction_id = 7;
   required int32 end_transaction_id = 8;
+  required int32 min_num_matches = 9;
 }
 
 message IndexNumLevelsRequest {

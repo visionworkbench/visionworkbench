@@ -44,9 +44,8 @@ namespace platefile {
     void deserialize();
 
     void append_if_in_region( std::list<vw::platefile::TileHeader> &results, 
-                              int transaction_id, 
-                              IndexRecord const& rec, int col, int row,
-                              BBox2i const& region) const;
+                              multi_value_type const& candidates,
+                              int col, int row, BBox2i const& region, int min_num_matches) const;
 
   public:
   
@@ -102,7 +101,8 @@ namespace platefile {
     /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> valid_tiles(vw::BBox2i const& region, 
                                       int start_transaction_id, 
-                                      int end_transaction_id) const;
+                                      int end_transaction_id, 
+                                      int min_num_matches) const;
 
     // ----------------------- DISK I/O  ----------------------
 
@@ -165,7 +165,8 @@ namespace platefile {
     /// Returns a list of valid tiles at this level.
     std::list<TileHeader> valid_tiles(BBox2i const& region,
                                       int start_transaction_id, 
-                                      int end_transaction_id) const;
+                                      int end_transaction_id, 
+                                      int min_num_matches) const;
   };
 
   // --------------------------------------------------------------------
@@ -242,7 +243,8 @@ namespace platefile {
     /// first one.
     virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
                                               int start_transaction_id,
-                                              int end_transaction_id) const;
+                                              int end_transaction_id,
+                                              int min_num_matches) const;
 
     virtual int32 num_levels() const;
   };

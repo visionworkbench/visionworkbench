@@ -453,8 +453,11 @@ namespace platefile {
     /// first one.
     std::list<TileHeader> valid_tiles(int level, vw::BBox2i const& region,
                                       int start_transaction_id, 
-                                      int end_transaction_id) const {
-      return m_index->valid_tiles(level, region, start_transaction_id, end_transaction_id);
+                                      int end_transaction_id, 
+                                      int min_num_matches) const {
+      return m_index->valid_tiles(level, region, 
+                                  start_transaction_id, end_transaction_id,
+                                  min_num_matches);
     }
 
 

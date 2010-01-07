@@ -220,7 +220,8 @@ void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexR
 
 std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i const& region,
                                                               int begin_transaction_id, 
-                                                              int end_transaction_id) const {
+                                                              int end_transaction_id,
+                                                              int min_num_matches) const {
   IndexValidTilesRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_level(level);
@@ -230,6 +231,7 @@ std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i 
   request.set_region_height(region.height());
   request.set_begin_transaction_id(begin_transaction_id);
   request.set_end_transaction_id(end_transaction_id);
+  request.set_min_num_matches(min_num_matches);
 
   IndexValidTilesReply response;
   m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, 

@@ -385,7 +385,8 @@ void IndexServiceImpl::ValidTiles(::google::protobuf::RpcController* controller,
                 request->region_height());
   response_type headers = rec.index->valid_tiles(request->level(), region,
                                                  request->begin_transaction_id(),
-                                                 request->end_transaction_id());
+                                                 request->end_transaction_id(),
+                                                 request->min_num_matches());
   response->mutable_tile_headers()->Reserve(headers.size());
   for (response_type::iterator iter = headers.begin(); iter != headers.end(); ++iter) {
     *(response->mutable_tile_headers()->Add()) = *iter;;

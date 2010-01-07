@@ -21,7 +21,7 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
     // Fetch the list of valid tiles in this particular workunit.  
     std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
                                                                   start_transaction_id,
-                                                                  end_transaction_id);
+                                                                  end_transaction_id, 2);
 
     if (tile_records.size() != 0)
       std::cout << "\t    Processing Workunit: " << *region_iter 

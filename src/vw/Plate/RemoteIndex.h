@@ -80,7 +80,8 @@ namespace platefile {
     /// interest.
     virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
                                               int begin_transaction_id, 
-                                              int end_transaction_id) const;
+                                              int end_transaction_id, 
+                                              int min_num_matches) const;
 
     virtual IndexHeader index_header() const;
   
