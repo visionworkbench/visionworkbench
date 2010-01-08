@@ -43,6 +43,8 @@ namespace platefile {
 
     IndexServiceImpl(std::string root_directory);
 
+    void sync();
+
     virtual void OpenRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexOpenRequest* request,
                              ::vw::platefile::IndexOpenReply* response,

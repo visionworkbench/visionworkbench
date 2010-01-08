@@ -56,6 +56,9 @@ namespace platefile {
 
     ~IndexPage();
 
+    /// Save any unsaved changes to disk.
+    void sync();
+
     // ----------------------- ITERATORS  ----------------------
 
     nonempty_iterator begin() { return m_sparse_table.nonempty_begin(); }
@@ -105,9 +108,6 @@ namespace platefile {
                                       int min_num_matches) const;
 
     // ----------------------- DISK I/O  ----------------------
-
-    /// Save any unsaved changes to disk.
-    void sync();
   };
 
 
@@ -150,6 +150,9 @@ namespace platefile {
                int page_width, int page_height, int cache_size);
 
     ~IndexLevel();
+
+    /// Sync any unsaved data in the index to disk.
+    void sync();
 
     /// Fetch the value of an index node at this level.
     IndexRecord get(int32 col, int32 row, int32 transaction_id, bool exact_match = false) const;
@@ -196,6 +199,9 @@ namespace platefile {
                int default_cache_size = 10000);
 
     virtual ~PagedIndex() {}
+
+    /// Sync any unsaved data in the index to disk.
+    virtual void sync();
 
     // ----------------------- READ/WRITE REQUESTS  ----------------------
 

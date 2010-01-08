@@ -19,9 +19,19 @@ namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
 
-// -----------------------------------------------------------------------------
-//                                  MAIN LOOP
-// -----------------------------------------------------------------------------
+// Global variable.  (Makes signal handling a lot easier...)
+boost::shared_ptr<IndexServiceImpl> g_service;
+
+// ------------------------------ SIGNAL HANDLER -------------------------------
+
+void sig_unexpected_shutdown(int sig_num) {
+  std::cout << "\nShutting down the index service safely (signal " << sig_num << "):\n";
+  if (g_service)
+    g_service->sync();
+  exit(0);
+}
+
+// ------------------------------    MAIN LOOP   -------------------------------
 
 class ServerTask {
   boost::shared_ptr<AmqpRpcServer> m_server;
@@ -38,9 +48,7 @@ public:
   void kill() { m_server->shutdown(); }
 };
 
-// -----------------------------------------------------------------------------
-//                                  MAIN
-// -----------------------------------------------------------------------------
+// ------------------------------      MAIN      -------------------------------
 
 int main(int argc, char** argv) {
   std::string queue_name, root_directory;
@@ -91,16 +99,20 @@ int main(int argc, char** argv) {
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(hostname, port) );
   boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, INDEX_EXCHANGE, 
                                                              queue_name, vm.count("debug")) );
-  boost::shared_ptr<google::protobuf::Service> service( new IndexServiceImpl(root_directory) );
-  server->bind_service(service, "index");
+  g_service.reset( new IndexServiceImpl(root_directory) );
+  server->bind_service(g_service, "index");
 
   // Start the server task in another thread
   boost::shared_ptr<ServerTask> server_task( new ServerTask(server) );
   Thread server_thread( server_task );
 
-  long long t0 = Stopwatch::microtime();
+  // Install Unix Signal Handlers.  These will help us to gracefully
+  // recover and salvage the index under most unexpected error
+  // conditions.
+  signal(SIGINT, sig_unexpected_shutdown);
 
   std::cout << "\n\n";
+  long long t0 = Stopwatch::microtime();
   while(1) {
     int queries = server->queries_processed();
     size_t bytes = server->bytes_processed();
@@ -117,6 +129,7 @@ int main(int argc, char** argv) {
               << std::flush;
     sleep(1.0);
   }
+
 
   return 0;
 }

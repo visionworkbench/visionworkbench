@@ -424,6 +424,16 @@ vw::platefile::IndexLevel::~IndexLevel() {
 
 }
 
+void vw::platefile::IndexLevel::sync() {
+
+  // We need to free the cache handles first before the data gets
+  // saved.  
+  for (int i = 0; i < m_cache_handles.size(); ++i) {
+    m_cache_handles[i].reset();
+  }
+
+}
+
 /// Fetch the value of an index node at this level.
 vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col, 
                                                           int32 row, 
@@ -546,6 +556,16 @@ vw::platefile::PagedIndex::PagedIndex(std::string plate_filename,
                                                             m_default_cache_size) );
     m_levels.push_back(new_level);
   }
+}
+
+void vw::platefile::PagedIndex::sync() {
+
+  // We need to free the cache handles first before other things
+  // (especially the generators) get unallocated.
+  for (int i = 0; i < m_levels.size(); ++i) {
+    m_levels[i]->sync();
+  }
+
 }
 
 // Load index entries by iterating through TileHeaders saved in the

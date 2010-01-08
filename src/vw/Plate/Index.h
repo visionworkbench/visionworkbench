@@ -46,6 +46,9 @@ namespace platefile {
     /// Destructor
     virtual ~Index() {}
 
+    /// Sync any unsaved data in the index to disk.
+    virtual void sync() = 0;
+
     // -------------------------- I/O ---------------------------
 
     /// Attempt to access a tile in the index.  Throws an

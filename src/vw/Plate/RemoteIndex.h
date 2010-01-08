@@ -35,6 +35,11 @@ namespace platefile {
 
     /// destructor
     virtual ~RemoteIndex();
+
+    /// Sync any unsaved data in the index to disk.
+    virtual void sync() {
+      vw_throw(NoImplErr() << "Error: sync() is not implemented for remote indices.");
+    }
   
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

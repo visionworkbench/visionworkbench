@@ -88,7 +88,14 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
     boost::shared_ptr<Index> idx = Index::construct_open(m_root_directory + "/" + platefiles[i]);
     this->add_index(m_root_directory, platefiles[i], idx);
   }    
+}
 
+void IndexServiceImpl::sync() {
+  for (index_list_type::iterator iter = m_indices.begin(); iter != m_indices.end(); ++iter) {
+    vw_out(0) << "\t--> Syncing index for " << iter->second.short_plate_filename 
+              << " to disk.\n";
+    iter->second.index->sync();
+  }
 }
 
 void IndexServiceImpl::OpenRequest(::google::protobuf::RpcController* controller,
