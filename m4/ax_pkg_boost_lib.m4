@@ -86,7 +86,13 @@ AC_DEFUN([AX_PKG_BOOST_LIB],
           dnl and suffix is -blah-pants.so.4.3.5
           PKG_BOOST_SAME_SUFFIX="${boost_lib_stem#lib${boost_name}}${boost_lib_post}"
           PKG_BOOST_$1_LIBS="-L${PKG_BOOST_LIBDIR} -l${boost_lib_stem#lib} $5"
-          AX_LOG([Trying to memorize suffix ${PKG_BOOST_SAME_SUFFIX}])
+
+          if test ! -z "${PKG_BOOST_$1_MORE_LIBS}"; then
+            AX_LOG([APPEND: BOOST_]$1[ libs ($PKG_BOOST_]$1[_LIBS) with $PKG_BOOST_]$1[_MORE_LIBS])
+            PKG_BOOST_$1_LIBS="$PKG_BOOST_$1_LIBS $PKG_BOOST_$1_MORE_LIBS"
+          fi
+
+          AX_LOG([Using suffix ${PKG_BOOST_SAME_SUFFIX}])
         ])
 
         PKG_BOOST_$1_CPPFLAGS="-I${PKG_BOOST_INCDIR}"
