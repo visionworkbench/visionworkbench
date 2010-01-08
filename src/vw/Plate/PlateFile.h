@@ -355,10 +355,17 @@ namespace platefile {
       return results;
     }
 
-    /// Write an image to the specified tile location in the plate file.
+    
+    /// Writing, pt. 1: Locks a blob and returns the blob id that can
+    /// be used to write tiles.
+    int write_request(int size) { return m_index->write_request(size); }
+
+    /// Writing, pt. 2: Write an image to the specified tile location
+    /// in the plate file.  Returns the size (in bytes) written by
+    /// this write_update.
     template <class ViewT>
-    void write(ImageViewBase<ViewT> const& view, 
-               int col, int row, int level, int transaction_id) {      
+    void write_update(int blob_id, ImageViewBase<ViewT> const& view, 
+                      int col, int row, int level, int transaction_id) {      
 
       // 0. Create a write_header
 
@@ -375,34 +382,33 @@ namespace platefile {
       int64 file_size = tile.file_size();
 
       // 2. Make write_request(size) to index. Returns blob id.
-      int blob_id = m_index->write_request(file_size);
+      //      int blob_id = m_index->write_request(file_size);
       std::ostringstream blob_filename;
       blob_filename << this->name() << "/plate_" << blob_id << ".blob";
 
       // 3. Create a blob and call write_from_file(filename).  Returns
-      // offset, size.  If this fails, we need to catch the error,
-      // unlock the Blob using a write_complete, and then re-throw the
-      // exception.
-      try { 
-        Blob blob(blob_filename.str());
-        int64 blob_offset;
-        blob.write_from_file(tile_filename, write_header, blob_offset);
+      // offset, size.  
+      Blob blob(blob_filename.str());
+      int64 blob_offset;
+      blob.write_from_file(tile_filename, write_header, blob_offset);
 
-        // 4. Call write_complete(col, row, level, record)
-        IndexRecord write_record;
-        write_record.set_blob_id(blob_id);
-        write_record.set_blob_offset(blob_offset);
-        
-        m_index->write_complete(write_header, write_record);
-
-      } catch (BlobIoErr &e) {
-        IndexRecord null_record;
-        m_index->write_complete(write_header, null_record);
-        vw_throw(e);
-      }
-
+      // 4. Call write_update(col, row, level, record) to update the
+      // index with the new data.
+      IndexRecord write_record;
+      write_record.set_blob_id(blob_id);
+      write_record.set_blob_offset(blob_offset);
+      
+      m_index->write_update(write_header, write_record);
     }
 
+    /// Writing, pt. 3: Signal the completion of the write operation.
+    void write_complete(int blob_id) { 
+      std::ostringstream blob_filename;
+      blob_filename << this->name() << "/plate_" << blob_id << ".blob";
+      Blob blob(blob_filename.str());
+
+      return m_index->write_complete(blob_id, blob.size()); 
+    }
 
     /// Read a record out of the platefile.  
     ///

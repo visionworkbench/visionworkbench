@@ -660,12 +660,16 @@ int vw::platefile::PagedIndex::write_request(int size) {
   return m_blob_manager->request_lock(size);
 }
 
-void vw::platefile::PagedIndex::write_complete(TileHeader const& header, 
-                                               IndexRecord const& record) {
-  m_blob_manager->release_lock(record.blob_id(), record.blob_offset());
+void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
   this->commit_record(record, header.col(), header.row(), 
                       header.level(), header.transaction_id());
 }
+
+/// Writing, pt. 3: Signal the completion 
+void vw::platefile::PagedIndex::write_complete(int blob_id, uint64 blob_offset) {  
+  m_blob_manager->release_lock(blob_id, blob_offset);
+}
+
   
 // ----------------------- PROPERTIES  ----------------------
 

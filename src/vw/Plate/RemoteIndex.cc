@@ -207,11 +207,23 @@ int vw::platefile::RemoteIndex::write_request(int size) {
   
 // Writing, pt. 2: Supply information to update the index and
 // unlock the blob id.
-void vw::platefile::RemoteIndex::write_complete(TileHeader const& header, IndexRecord const& record) {
-  IndexWriteComplete request;
+void vw::platefile::RemoteIndex::write_update(TileHeader const& header, IndexRecord const& record) {
+  IndexWriteUpdate request;
   request.set_platefile_id(m_platefile_id);
   *(request.mutable_header()) = header;
   *(request.mutable_record()) = record;
+
+  RpcNullMessage response;
+  m_index_service->WriteUpdate(m_rpc_controller.get(), &request, &response, 
+                               google::protobuf::NewCallback(&null_closure));
+}
+
+/// Writing, pt. 3: Signal the completion 
+void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
+  IndexWriteComplete request;
+  request.set_platefile_id(m_platefile_id);
+  request.set_blob_id(blob_id);
+  request.set_blob_offset(blob_offset);
 
   RpcNullMessage response;
   m_index_service->WriteComplete(m_rpc_controller.get(), &request, &response, 

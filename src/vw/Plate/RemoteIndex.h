@@ -72,9 +72,10 @@ namespace platefile {
   
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
-    virtual void write_complete(TileHeader const& header, 
-                                IndexRecord const& record);
+    virtual void write_update(TileHeader const& header, IndexRecord const& record);
 
+    /// Writing, pt. 3: Signal the completion 
+    virtual void write_complete(int blob_id, uint64 blob_offset);
 
     // ----------------------- PROPERTIES  ----------------------
 

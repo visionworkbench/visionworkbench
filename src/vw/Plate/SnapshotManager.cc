@@ -5,7 +5,8 @@
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
-void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& tile_region, 
+void vw::platefile::SnapshotManager<PixelT>::snapshot(int blob_id, 
+                                                      int level, BBox2i const& tile_region, 
                                                       int start_transaction_id, 
                                                       int end_transaction_id, 
                                                       int write_transaction_id) const {
@@ -55,11 +56,12 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
         composite.set_draft_mode( true );
         composite.prepare();
         ImageView<PixelT> composited_tile = composite;
-        m_platefile->write(composited_tile, 
-                           header_iter->col(),
-                           header_iter->row(),
-                           header_iter->level(),
-                           write_transaction_id);
+        m_platefile->write_update(blob_id,
+                                  composited_tile, 
+                                  header_iter->col(),
+                                  header_iter->row(),
+                                  header_iter->level(),
+                                  write_transaction_id);
       }
     }
   }
@@ -67,7 +69,8 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
 
 // Create a full snapshot of every level and every region in the mosaic.
 template <class PixelT>
-void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction_id, 
+void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int blob_id, 
+                                                           int start_transaction_id, 
                                                            int end_transaction_id, 
                                                            int write_transaction_id) const {
   for (int level = 0; level < m_platefile->num_levels(); ++level) {
@@ -76,7 +79,7 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction
     // broken down into smaller work units in snapshot().
     BBox2i region(0,0,pow(2,level),pow(2,level));
     
-    snapshot(level, region, start_transaction_id, end_transaction_id, write_transaction_id);
+    snapshot(blob_id, level, region, start_transaction_id, end_transaction_id, write_transaction_id);
   }
 }
 
@@ -85,24 +88,26 @@ namespace vw {
 namespace platefile {
   
   template 
-  void vw::platefile::SnapshotManager<PixelGrayA<uint8> >::snapshot(int level, 
+  void vw::platefile::SnapshotManager<PixelGrayA<uint8> >::snapshot(int blob_id, int level, 
                                                                     BBox2i const& bbox, 
                                                                     int start_transaction_id, 
                                                                     int end_transaction_id, 
                                                                     int write_transaction_id) const;
   template
-  void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::snapshot(int level, 
+  void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::snapshot(int blob_id, int level, 
                                                                    BBox2i const& bbox, 
                                                                    int start_transaction_id, 
                                                                    int end_transaction_id, 
                                                                    int write_transaction_id) const;
 
   template
-  void vw::platefile::SnapshotManager<PixelGrayA<uint8> >::full_snapshot(int start_transaction_id, 
+  void vw::platefile::SnapshotManager<PixelGrayA<uint8> >::full_snapshot(int blob_id, 
+                                                                         int start_transaction_id, 
                                                                          int end_transaction_id, 
                                                                          int write_transaction_id) const;
   template
-  void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::full_snapshot(int start_transaction_id, 
+  void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::full_snapshot(int blob_id, 
+                                                                        int start_transaction_id, 
                                                                          int end_transaction_id, 
                                                                          int write_transaction_id) const;
 

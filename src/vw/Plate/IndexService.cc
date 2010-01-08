@@ -287,6 +287,22 @@ void IndexServiceImpl::WriteRequest(::google::protobuf::RpcController* controlle
   done->Run();
 }
 
+void IndexServiceImpl::WriteUpdate(::google::protobuf::RpcController* controller,
+                                   const ::vw::platefile::IndexWriteUpdate* request,
+                                   ::vw::platefile::RpcNullMessage* response,
+                                   ::google::protobuf::Closure* done) {
+
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+    
+  // Access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  rec.index->write_update(request->header(), request->record());
+
+  // This message has no response
+  done->Run();
+}
+
 void IndexServiceImpl::WriteComplete(::google::protobuf::RpcController* controller,
                                      const IndexWriteComplete* request,
                                      RpcNullMessage* response,
@@ -297,10 +313,12 @@ void IndexServiceImpl::WriteComplete(::google::protobuf::RpcController* controll
     
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  rec.index->write_complete(request->header(), request->record());
+  rec.index->write_complete(request->blob_id(), request->blob_offset());
+
   // This message has no response
   done->Run();
 }
+
 
 void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* controller,
                                           const IndexTransactionRequest* request,

@@ -82,8 +82,12 @@ namespace platefile {
 
     /// Writing, pt. 2: Supply information to update the index and
     /// unlock the blob id.
-    virtual void write_complete(TileHeader const& header, IndexRecord const& record) = 0;
+    virtual void write_update(TileHeader const& header, IndexRecord const& record) = 0;
 
+    /// Writing, pt. 3: Signal the completion of the write operation.
+    virtual void write_complete(int blob_id, uint64 blob_offset) = 0;
+    
+    
     // ----------------------- PROPERTIES  ----------------------
 
     /// Returns a list of valid tiles that match this level, region, and

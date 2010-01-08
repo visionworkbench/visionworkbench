@@ -130,10 +130,16 @@ message IndexWriteRequest {
   required int32 size = 3;
 }
 
-message IndexWriteComplete {
+message IndexWriteUpdate {
   required int32 platefile_id = 1;
   required TileHeader header = 3;
   required IndexRecord record = 4;
+}
+
+message IndexWriteComplete {
+  required int32 platefile_id = 1;
+  required int32 blob_id = 2;
+  required uint64 blob_offset = 3;
 }
 
 message IndexTransactionRequest {
@@ -277,6 +283,7 @@ service IndexService {
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
   rpc MultiReadRequest (IndexMultiReadRequest) returns (IndexMultiReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
+  rpc WriteUpdate (IndexWriteUpdate) returns (RpcNullMessage);
   rpc WriteComplete (IndexWriteComplete) returns (RpcNullMessage);
 
 

@@ -22,7 +22,7 @@ std::list<vw::BBox2i> vw::platefile::bbox_tiles(vw::BBox2i const& bbox, int widt
 
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
-void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox, 
+void vw::platefile::PlateManager::mipmap(int blob_id, int starting_level, vw::BBox2i const& bbox, 
                                          int transaction_id, const ProgressCallback &progress_callback) const {
 
 
@@ -65,7 +65,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
       for (int j = iter->min().y(); j < iter->max().y(); ++j) {
         for (int i = iter->min().x(); i < iter->max().x(); ++i) {
-          this->generate_mipmap_tile(i,j,level,transaction_id);
+          this->generate_mipmap_tile(blob_id,i,j,level,transaction_id);
           sub_progress.report_incremental_progress(1.0/(tile_workunits.size()*iter->width()*iter->height()));
         }
       }

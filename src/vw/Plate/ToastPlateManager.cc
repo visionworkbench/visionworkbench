@@ -100,7 +100,7 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
 
 
 template <class PixelT>
-void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row, 
+void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int blob_id, int col, int row, 
                                                                     int level, int transaction_id) const {
 
   // Create an image large enough to store all of the child nodes
@@ -136,7 +136,7 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
                                                 tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 
   if (!is_transparent(new_tile)) {
-    m_platefile->write(new_tile, col, row, level, transaction_id);
+    m_platefile->write_update(blob_id, new_tile, col, row, level, transaction_id);
   }
 }
 
@@ -146,11 +146,11 @@ namespace vw {
 namespace platefile {
 
   template 
-  void vw::platefile::ToastPlateManager<PixelGrayA<uint8> >::generate_mipmap_tile(int col, int row, 
+  void vw::platefile::ToastPlateManager<PixelGrayA<uint8> >::generate_mipmap_tile(int blob_id, int col, int row, 
                                                                                   int level, 
                                                                                   int transaction_id) const;
   template 
-  void vw::platefile::ToastPlateManager<PixelRGBA<uint8> >::generate_mipmap_tile(int col, int row, 
+  void vw::platefile::ToastPlateManager<PixelRGBA<uint8> >::generate_mipmap_tile(int blob_id, int col, int row, 
                                                                                  int level, 
                                                                                  int transaction_id) const;
 

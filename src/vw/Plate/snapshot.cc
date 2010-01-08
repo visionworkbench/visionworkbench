@@ -146,13 +146,21 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
                 << "using the --transaction_id flag.";
       exit(1);
     }
-          
+    
+    // Grab a lock on a blob file to use for writing tiles during
+    // the two operations below.
+    int blob_id = platefile->write_request(0);
+      
     // If the user has specified a region, then we 
-    sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
+    sm.snapshot(blob_id,
+                snapshot_parameters.level, snapshot_parameters.region,
                 snapshot_parameters.begin_transaction_id,
                 snapshot_parameters.end_transaction_id,
                 snapshot_parameters.write_transaction_id);
     
+    // Release the blob id lock.
+    platefile->write_complete(blob_id);
+
   } else {
 
     // If no region was specified, then we build a snapshot of the
@@ -162,17 +170,34 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // User did not supply a t_id.  We must request and complete a
       // transaction on our own.
       int t_id = platefile->transaction_request("Full snapshot.", -1);
-      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
+
+      // Grab a lock on a blob file to use for writing tiles during
+      // the two operations below.
+      int blob_id = platefile->write_request(0);
+
+      // Do a full snapshot
+      sm.full_snapshot(blob_id, 
+                       snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
                        t_id);
+
+      // Release the blob id lock and note that the transaction is finished.
+      platefile->write_complete(blob_id);
       platefile->transaction_complete(t_id, true);
 
     } else {
+      // Grab a lock on a blob file to use for writing tiles during
+      // the two operations below.
+      int blob_id = platefile->write_request(0);
 
       // User-supplied transaction_id
-      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
+      sm.full_snapshot(blob_id,
+                       snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
                        snapshot_parameters.write_transaction_id);
+
+      // Release the blob id lock and note that the transaction is finished.
+      platefile->write_complete(blob_id);
     }
   }
            

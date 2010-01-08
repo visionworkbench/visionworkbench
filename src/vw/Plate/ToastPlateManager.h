@@ -249,11 +249,16 @@ namespace platefile {
       //   vw_throw( IOErr() << "terminating randomly....");
       // }
 
+      // Grab a lock on a blob file to use for writing tiles during
+      // the two operations below.
+      int blob_id = m_platefile->write_request(0);
+
       // Add each tile.
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
-          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
+          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(blob_id,
+                                                                            m_platefile, 
                                                                             transaction_id,
                                                                             tiles[i], 
                                                                             pyramid_level, 
@@ -264,14 +269,17 @@ namespace platefile {
       }
       m_queue.join_all();
       progress.report_finished();
-
+      
       // Mipmap the tiles.
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level-1 << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
+        this->mipmap(blob_id, pyramid_level, affected_tiles_bbox, transaction_id,
                      TerminalProgressCallback(InfoMessage, mipmap_str.str())); 
       }
+
+      // Release the blob id lock.
+      m_platefile->write_complete(blob_id);
 
       // Notify the index that this transaction is complete.  Do not
       // update the read cursor (false).
@@ -280,7 +288,7 @@ namespace platefile {
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  
-    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
+    virtual void generate_mipmap_tile(int blob_id, int col, int row, int level, int transaction_id) const;
 
     ImageView<PixelT> fetch_child_tile(int x, int y, int level, int transaction_id) const;
   };
