@@ -238,31 +238,8 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
 
     IndexRecord rec = platefile->read_record(tile_info.col, tile_info.row, 
                                              tile_info.level, tile_info.transaction_id);
-     
-    if (rec.status() == INDEX_RECORD_EMPTY) {
-      
-      ImageView<PixelRGBA<uint8> > empty_tile(1,1);
-      empty_tile(0,0) = PixelRGBA<uint8>(0,0,255,255);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(empty_tile) );    
-
-    } else if (rec.status() == INDEX_RECORD_LOCKED) {
-
-      ImageView<PixelRGBA<uint8> > locked_tile(1,1);
-      locked_tile(0,0) = PixelRGBA<uint8>(255,0,0,255);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(locked_tile) );    
-
-    } else if (rec.status() == INDEX_RECORD_STALE) {
-
-      ImageView<PixelRGBA<uint8> > stale_tile(1,1);
-      stale_tile(0,0) = PixelRGBA<uint8>(0,255,0,255);
-      return boost::shared_ptr<ViewImageResource>( new ViewImageResource(stale_tile) );    
-
-    } else if (rec.status() == INDEX_RECORD_VALID) {    
-
-      platefile->read(tile, tile_info.col, tile_info.row, 
-                      tile_info.level, tile_info.transaction_id);
-
-    }
+    platefile->read(tile, tile_info.col, tile_info.row, 
+                    tile_info.level, tile_info.transaction_id);
 
   } catch (platefile::TileNotFoundErr &e) {
 

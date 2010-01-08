@@ -31,7 +31,7 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math/BBox.h>
 #include <vw/gui/TileGenerator.h>
-#include <vw/Plate/Tree.h>
+#include <vw/gui/Tree.h>
 
 namespace vw {
 namespace gui {
@@ -183,7 +183,7 @@ namespace gui {
     // going to use the tree structure provided by the plate module,
     // although that tree structure should maybe be moved to the core
     // module someday.
-    boost::shared_ptr<platefile::TreeNode<boost::shared_ptr<TextureRecord> > > m_texture_records;
+    boost::shared_ptr<gui::TreeNode<boost::shared_ptr<TextureRecord> > > m_texture_records;
     vw::Cache* m_gl_texture_cache_ptr;
     boost::shared_ptr<TextureFetchTask> m_texture_fetch_task;
     vw::Thread *m_texture_fetch_thread;

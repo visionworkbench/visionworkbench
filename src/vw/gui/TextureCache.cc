@@ -151,7 +151,7 @@ vw::gui::GlTextureCache::GlTextureCache(boost::shared_ptr<TileGenerator> tile_ge
 
   // Create the texture record tree for storing cache handles and
   // other useful texture-related metadata.
-  m_texture_records.reset( new platefile::TreeNode<boost::shared_ptr<TextureRecord> >() );
+  m_texture_records.reset( new gui::TreeNode<boost::shared_ptr<TextureRecord> >() );
   m_previous_level = 0;
 }
 
@@ -171,7 +171,7 @@ void vw::gui::GlTextureCache::clear() {
   m_requests.clear();
 
   // Delete all of the existing texture records
-  m_texture_records.reset( new platefile::TreeNode<boost::shared_ptr<TextureRecord> >() );
+  m_texture_records.reset( new gui::TreeNode<boost::shared_ptr<TextureRecord> >() );
   m_previous_level = 0;
 }
 
@@ -205,7 +205,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     // populate it with data, we throw an exception to run the code
     // below.
     if ( !rec )
-      vw_throw(platefile::TileNotFoundErr() << "invalid record. regenerating...");
+      vw_throw(gui::TileNotFoundErr() << "invalid record. regenerating...");
 
     // If the texture_id of this record is 0, then we need to send a
     // request to regenerate the texture.  It will get rendered in the
@@ -220,7 +220,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     // the texture_id to satisfy the request.
     return rec->texture_id;
 
-  } catch (platefile::TileNotFoundErr &e) {
+  } catch (gui::TileNotFoundErr &e) {
 
     // If the tile isn't found or hasn't been properly initialized
     // yet, we need to add an entry to the cache and then cause the

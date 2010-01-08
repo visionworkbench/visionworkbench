@@ -10,6 +10,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/BBox.h>
 #include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ViewImageResource.h>
 #include <vw/Plate/PlateFile.h>
