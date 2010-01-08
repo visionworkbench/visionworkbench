@@ -11,6 +11,7 @@
 #include <vw/Plate/common.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/IndexService.h>
+#include <signal.h>
 
 #include <google/protobuf/descriptor.h>
 
@@ -24,11 +25,12 @@ boost::shared_ptr<IndexServiceImpl> g_service;
 
 // ------------------------------ SIGNAL HANDLER -------------------------------
 
+volatile bool process_messages = true;
+
 void sig_unexpected_shutdown(int sig_num) {
-  std::cout << "\nShutting down the index service safely (signal " << sig_num << "):\n";
-  if (g_service)
-    g_service->sync();
-  exit(0);
+  signal(sig_num, SIG_IGN);
+  process_messages = false;
+  signal(sig_num, sig_unexpected_shutdown);
 }
 
 // ------------------------------    MAIN LOOP   -------------------------------
@@ -113,7 +115,8 @@ int main(int argc, char** argv) {
 
   std::cout << "\n\n";
   long long t0 = Stopwatch::microtime();
-  while(1) {
+
+  while(process_messages) {
     int queries = server->queries_processed();
     size_t bytes = server->bytes_processed();
     int n_outstanding_messages = server->incoming_message_queue_size();
@@ -130,6 +133,8 @@ int main(int argc, char** argv) {
     sleep(1.0);
   }
 
+  std::cout << "\nShutting down the index service safely.\n";
+  g_service->sync();
 
   return 0;
 }
