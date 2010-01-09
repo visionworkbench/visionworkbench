@@ -278,6 +278,9 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
       at_darwin="yes"
       QMAKE_ARGS="-spec macx-g++"
       ;;
+    freebsd*)
+      QMAKE_ARGS="-spec freebsd-g++"
+      ;;
   esac
   AC_MSG_RESULT([$at_darwin])
 
