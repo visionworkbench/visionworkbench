@@ -107,6 +107,7 @@
 #include <boost/filesystem/convenience.hpp>
 #include <boost/scoped_array.hpp>
 
+#include <stdlib.h>
 
 namespace fs = boost::filesystem;
 
@@ -136,11 +137,7 @@ namespace platefile {
 
       boost::scoped_array<char> c_str(new char[base_name.size()+1]);
       strncpy(c_str.get(), base_name.c_str(), base_name.size()+1);
-
-      int fd = mkstemp(c_str.get());
-      if (fd == -1)
-        vw_throw(IOErr() << "Failed to create unique filename");
-      close(fd);
+      char* dummy = mktemp(c_str.get());
       std::string ret(c_str.get());
       return ret + "." + file_extension;
     }
@@ -166,6 +163,7 @@ namespace platefile {
 
     ~TemporaryTileFile() {
       int result = unlink(m_filename.c_str());
+      std::cout << "Removed tmp file: " << m_filename << " with result " << result << "\n";
       if (result)
         vw_out(ErrorMessage, "plate::tempfile") 
           << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
