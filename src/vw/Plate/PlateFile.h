@@ -163,7 +163,6 @@ namespace platefile {
 
     ~TemporaryTileFile() {
       int result = unlink(m_filename.c_str());
-      std::cout << "Removed tmp file: " << m_filename << " with result " << result << "\n";
       if (result)
         vw_out(ErrorMessage, "plate::tempfile") 
           << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
