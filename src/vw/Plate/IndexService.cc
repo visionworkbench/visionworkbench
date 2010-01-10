@@ -303,6 +303,28 @@ void IndexServiceImpl::WriteUpdate(::google::protobuf::RpcController* controller
   done->Run();
 }
 
+void IndexServiceImpl::MultiWriteUpdate(::google::protobuf::RpcController* controller,
+                                        const ::vw::platefile::IndexMultiWriteUpdate* request,
+                                        ::vw::platefile::RpcNullMessage* response,
+                                        ::google::protobuf::Closure* done) {
+
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+  
+  
+  // Write updates are packetized.  We iterate over them here.
+  for (int i = 0; i < request->write_updates().size(); ++i) {
+    IndexWriteUpdate update = request->write_updates().Get(i);
+
+    // Access the data in the index.  Return the data on success, or
+    // notify the remote client of our failure if we did not succeed.
+    rec.index->write_update(update.header(), update.record());
+  }
+
+  // This message has no response
+  done->Run();
+}
+
 void IndexServiceImpl::WriteComplete(::google::protobuf::RpcController* controller,
                                      const IndexWriteComplete* request,
                                      RpcNullMessage* response,

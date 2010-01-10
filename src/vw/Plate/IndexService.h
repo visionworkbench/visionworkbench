@@ -85,6 +85,12 @@ namespace platefile {
                              ::vw::platefile::RpcNullMessage* response,
                              ::google::protobuf::Closure* done);      
 
+    // Like WriteUpdate, but packetizes updates.
+    virtual void MultiWriteUpdate(::google::protobuf::RpcController* controller,
+                             const ::vw::platefile::IndexMultiWriteUpdate* request,
+                             ::vw::platefile::RpcNullMessage* response,
+                             ::google::protobuf::Closure* done);      
+
     virtual void WriteComplete(::google::protobuf::RpcController* controller,
                                const ::vw::platefile::IndexWriteComplete* request,
                                ::vw::platefile::RpcNullMessage* response,

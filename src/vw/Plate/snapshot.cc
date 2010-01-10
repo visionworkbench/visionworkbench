@@ -58,7 +58,7 @@ public:
   // Constructor
   SnapshotParameters(std::string const& range_string, 
                      std::string const& region_string, 
-                     int write_transaction_id) : write_transaction_id(write_transaction_id) {
+                     int const& write_transaction_id) : write_transaction_id(write_transaction_id) {
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep(",:@");
 
@@ -220,7 +220,7 @@ int main( int argc, char *argv[] ) {
   general_options.add_options()
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", "Finish a multi-part snapshot.")
-    ("transaction_id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
+    ("transaction-id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
     ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).") 
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
     ("help", "Display this help message");
@@ -259,10 +259,6 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  // Parse out the rest of the command line options into a special
-  // SnapshotParameters class.
-  SnapshotParameters snapshot_params(range_string, region_string, transaction_id);
-
   try {
 
     //--------------------------- OPEN THE PLATE FILE -----------------------------
@@ -278,8 +274,8 @@ int main( int argc, char *argv[] ) {
         std::cout << "You must specify a transaction-id if you use --start.\n";
         exit(1);
       }
-      int transaction_id = platefile->transaction_request(start_description, transaction_id);
-      vw_out(0) << "Transaction started with ID = " << transaction_id;
+      int t = platefile->transaction_request(start_description, transaction_id);
+      vw_out(0) << "Transaction started with ID = " << t << "\n";
       vw_out(0) << "Plate has " << platefile->num_levels() << " levels.\n";
       exit(transaction_id);
     }
@@ -297,6 +293,9 @@ int main( int argc, char *argv[] ) {
 
     //---------------------------- SNAPSHOT REQUEST -------------------------------
     
+    // Parse out the rest of the command line options into a special
+    // SnapshotParameters class.
+    SnapshotParameters snapshot_params(range_string, region_string, transaction_id);
     PixelFormatEnum pixel_format = platefile->pixel_format();
     ChannelTypeEnum channel_type = platefile->channel_type();
     

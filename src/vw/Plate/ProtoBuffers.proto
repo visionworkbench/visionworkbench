@@ -136,6 +136,11 @@ message IndexWriteUpdate {
   required IndexRecord record = 4;
 }
 
+message IndexMultiWriteUpdate {
+  required int32 platefile_id = 1;
+  repeated IndexWriteUpdate write_updates = 2;
+}
+
 message IndexWriteComplete {
   required int32 platefile_id = 1;
   required int32 blob_id = 2;
@@ -284,6 +289,7 @@ service IndexService {
   rpc MultiReadRequest (IndexMultiReadRequest) returns (IndexMultiReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
   rpc WriteUpdate (IndexWriteUpdate) returns (RpcNullMessage);
+  rpc MultiWriteUpdate (IndexMultiWriteUpdate) returns (RpcNullMessage);
   rpc WriteComplete (IndexWriteComplete) returns (RpcNullMessage);
 
 
