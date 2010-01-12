@@ -6,7 +6,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/Exception.h>
 using namespace std;
 using namespace vw;
@@ -20,7 +20,7 @@ public:
     std::string page_filename = "/tmp/indexpage.temp";
     unlink(page_filename.c_str());
 
-    IndexPage page(page_filename,0,0,0,1024,1024);
+    LocalIndexPage page(page_filename,0,0,0,1024,1024);
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
 
     // Try accessing an empty entry.
@@ -30,18 +30,18 @@ public:
     TS_ASSERT_THROWS( IndexRecord r = page.get(-1,0,0), TileNotFoundErr );
     TS_ASSERT_THROWS( IndexRecord r = page.get(0,-1,0), TileNotFoundErr );
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
-    
+
     // Try setting and then fetching an entry.
     IndexRecord rec;
     rec.set_blob_id(1001);
     rec.set_blob_offset(1002);
 
-    TS_ASSERT_THROWS( page.set(rec, 1024,0,0), ArgumentErr );
-    TS_ASSERT_THROWS( page.set(rec, 0,1024,0), ArgumentErr );
-    TS_ASSERT_THROWS( page.set(rec, -1,0,0), ArgumentErr );
-    TS_ASSERT_THROWS( page.set(rec, 0,-1,0), ArgumentErr );
 
-    page.set(rec, 3, 5, 1003);
+    TileHeader hdr;
+    hdr.set_col(3);
+    hdr.set_row(5);
+    hdr.set_transaction_id(1003);
+    page.set(hdr, rec);
     IndexRecord rec2 = page.get(3,5,1003);
     TS_ASSERT_EQUALS(rec.blob_id(), rec2.blob_id());
     TS_ASSERT_EQUALS(rec.blob_offset(), rec2.blob_offset());
@@ -49,7 +49,7 @@ public:
     // Try setting that entry to a different value
     rec.set_blob_id(1101);
     rec.set_blob_offset(1102);
-    page.set(rec, 3, 5, 1003);
+    page.set(hdr, rec);
     rec2 = page.get(3,5,1003);
     TS_ASSERT_EQUALS(rec.blob_id(), rec2.blob_id());
     TS_ASSERT_EQUALS(rec.blob_offset(), rec2.blob_offset());
@@ -57,7 +57,8 @@ public:
     // Try different transaction id's
     rec.set_blob_id(1201);
     rec.set_blob_offset(1202);
-    page.set(rec, 3, 5, 1001);
+    hdr.set_transaction_id(1001);
+    page.set(hdr, rec);
     rec2 = page.get(3,5,1001);
     TS_ASSERT_EQUALS(rec2.blob_id(), 1201);
     TS_ASSERT_EQUALS(rec2.blob_offset(), 1202);
@@ -71,7 +72,8 @@ public:
     // Try and one that occurs later in the list
     rec.set_blob_id(1301);
     rec.set_blob_offset(1302);
-    page.set(rec, 3, 5, 2001);
+    hdr.set_transaction_id(2001);
+    page.set(hdr, rec);
     rec2 = page.get(3,5,-1);
     TS_ASSERT_EQUALS(rec2.blob_id(), 1301);
     TS_ASSERT_EQUALS(rec2.blob_offset(), 1302);
@@ -87,7 +89,7 @@ public:
     std::string page_filename = "/tmp/indexpage.temp";
     unlink(page_filename.c_str());
 
-    IndexPage page(page_filename,0,0,0, 1024, 1024);
+    LocalIndexPage page(page_filename,0,0,0, 1024, 1024);
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
     
     // Try accessing an empty entry.
@@ -98,22 +100,30 @@ public:
     IndexRecord rec;
     rec.set_blob_id(1001);
     rec.set_blob_offset(1002);
-    page.set(rec, 3, 5, 1);
+    TileHeader hdr;
+    hdr.set_col(3);
+    hdr.set_row(5);
+    hdr.set_transaction_id(1);
+    page.set(hdr,rec);
 
     rec.set_blob_id(2001);
     rec.set_blob_offset(2002);
-    page.set(rec, 3, 5, 2);
+    hdr.set_transaction_id(2);
+    page.set(hdr, rec);
 
     rec.set_blob_id(3001);
     rec.set_blob_offset(3002);
-    page.set(rec, 1023, 5, 2);
+    hdr.set_col(1023);
+    hdr.set_row(5);
+    hdr.set_transaction_id(2);
+    page.set(hdr, rec);
 
     TS_ASSERT_EQUALS(page.sparse_size(), 2);
     
     // Now, save the file to disk.
     page.sync();
 
-    IndexPage page2(page_filename,0,0,0, 1024, 1024);
+    LocalIndexPage page2(page_filename,0,0,0, 1024, 1024);
     unlink(page_filename.c_str());
 
     IndexRecord rec2 = page2.get(3,5,1);

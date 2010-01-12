@@ -112,6 +112,9 @@ void vw::platefile::IndexPage::deserialize(std::istream& istr) {
 
 void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
+  VW_ASSERT( header.col() >= 0 && header.row() >= 0,
+             TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
+
   int32 page_col = header.col() % m_page_width;
   int32 page_row = header.row() % m_page_height;
 
@@ -168,6 +171,9 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
 vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row, 
                                                          int transaction_id, 
                                                          bool exact_match) const {
+
+  VW_ASSERT( col >= 0 && row >= 0,
+             TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
 
   // Compute page_col and row
   int32 page_col = col % m_page_width;
