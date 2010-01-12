@@ -27,6 +27,8 @@ struct Options {
   uint32 block_count;
   std::string server;
   bool verify;
+  bool append;
+  bool fsync;
 };
 
 VW_DEFINE_EXCEPTION(Usage, Exception);
@@ -41,8 +43,10 @@ void handle_arguments(int argc, char *argv[], Options& opt)
     ("file,f",        po::value(&opt.filename), "File to append to")
     ("num-clients,n", po::value(&opt.clients),  "Number of clients.")
     ("id,i",          po::value(&opt.id),       "This client's id.")
-    ("timeout,t",     po::value(&opt.timeout)->default_value(5000), "timeout in ms.")
+    ("timeout,t",     po::value(&opt.timeout)->default_value(30000), "timeout in ms.")
     ("verify,v",      "Check the file instead of writing it")
+    ("append",        "Use O_APPEND rather than lseek (this will mess up lustre!)")
+    ("fsync",         "Call fsync before closing")
     ("block-size,b",  po::value(&opt.block_size)->default_value(4),  "How much should each client write?")
     ("block-count,c", po::value(&opt.block_count)->default_value(std::numeric_limits<uint32>().max()), "How many times should each client write?")
     ("help,h",        "Display this help message.");
@@ -62,6 +66,7 @@ void handle_arguments(int argc, char *argv[], Options& opt)
 
   opt.verify = vm.count("verify");
   help = vm.count("help");
+  opt.append = vm.count("append");
 
   if (!opt.verify)
     REQUIRE(id);
@@ -138,7 +143,7 @@ void run(const Options& opt) {
   uint32 blocks_written = 0;
   uint32 tick = opt.block_count / 100;
   while (blocks_written < opt.block_count) {
-    if (blocks_written++ % tick == 0) {
+    if (blocks_written % tick == 0) {
       pc.report_incremental_progress(.01);
       pc.print_progress();
     }
@@ -146,7 +151,7 @@ void run(const Options& opt) {
     if (first_node) {
       first_node = false;
       // truncate file and create it if necessary
-      fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+      fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, 0660);
       VW_ASSERT(fd >= 0, IOErr() << "Could not truncate file " << opt.filename << ": " << strerror(errno));
     } else {
       SharedByteArray msg;
@@ -156,22 +161,43 @@ void run(const Options& opt) {
       VW_ASSERT(std::equal(want_msg.begin(), want_msg.end(), msg->begin()),
               LogicErr() << "Got the wrong message.");
 
-      fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
+      if (opt.append)
+        fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
+      else
+        fd = open(opt.filename.c_str(), O_WRONLY);
+
       VW_ASSERT(fd >= 0, IOErr() << "Could not open file " << opt.filename << ": " << strerror(errno));
+
+      if (!opt.append) {
+        off_t offset = (opt.clients * blocks_written + opt.id) * opt.block_size;
+        VW_ASSERT(lseek(fd, offset, SEEK_SET) > 0,
+            IOErr() << "Could not seek in file");
+      }
     }
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
     s_id.insert(0, opt.block_size-s_id.size(), '0');
     VW_ASSERT(s_id.size() == opt.block_size, LogicErr() << "Must pad s_id to block size");
 
+    // struct flock lock;
+    // lock.l_type   = F_WRLCK;
+    // lock.l_whence = SEEK_END;
+    // lock.l_start  = 0;
+    // // len == 0 means "lock to end of file, even if file grows"
+    // lock.l_len    = 0;
+
+    // // Try to set the write lock, and wait until it's available. lock is released on close.
+    // VW_ASSERT(fcntl(fd, F_SETLKW, &lock) >= 0,
+    //         IOErr() << "Could not get write lock: " << strerror(errno));
+
     VW_ASSERT(write(fd, s_id.c_str(), s_id.size()) == (ssize_t)s_id.size(),
             IOErr() << "Failed to write all data to file");
-    // this should actually be fdatasync, but OSX and freebsd are too good to
-    // support posix.
-    VW_ASSERT(fsync(fd) == 0, IOErr() << "Could not fsync: " << strerror(errno));
+    blocks_written++;
+
+    if (opt.fsync)
+      VW_ASSERT(fsync(fd) == 0, IOErr() << "Could not fsync: " << strerror(errno));
+
     close(fd);
-    // to exacerbate the problem, don't put anything, put the close and the
-    // unlock-next-client as close as possible
     node.send_bytes(send_msg, next);
   }
   pc.report_finished();
