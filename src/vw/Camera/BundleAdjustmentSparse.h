@@ -57,7 +57,7 @@ namespace camera {
       m_found_ideal_ordering = false;
     }
 
-    math::MatrixSparseSkyline<double> S() { return m_S; }
+    math::MatrixSparseSkyline<double> S() const { return m_S; }
     void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
 
     // Covariance Calculator

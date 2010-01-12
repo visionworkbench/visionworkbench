@@ -7,7 +7,7 @@
 
 /// \file BundleAdjustmentSparse.h
 ///
-/// Sparse implementation of bundle adjustment. Fast yo!
+/// Robust Sparse implementation of bundle adjustment. Fast yo!
 
 #ifndef __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_SPARSE_H__
 #define __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_SPARSE_H__
@@ -39,8 +39,10 @@ namespace camera {
   template <class BundleAdjustModelT, class RobustCostT>
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
-    // Need to save S for covariance calculations
     math::MatrixSparseSkyline<double> m_S;
+    std::vector<uint> m_ideal_ordering;
+    Vector<uint> m_ideal_skyline;
+    bool m_found_ideal_ordering;
 
   public:
 
@@ -50,10 +52,12 @@ namespace camera {
                                   bool use_gcp_constraint=true) :
     BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
                                                           use_camera_constraint,
-                                                          use_gcp_constraint ) {}
+                                                          use_gcp_constraint ) {
+      m_found_ideal_ordering = false;
+    }
 
-    math::MatrixSparseSkyline<double> S() { return m_S; }
-    void set_S(math::MatrixSparseSkyline<double> S) { m_S = math::MatrixSparseSkyline<double>(S); }
+    math::MatrixSparseSkyline<double> S() const { return m_S; }
+    void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
 
     // Covariance Calculator
     // __________________________________________________
@@ -388,8 +392,21 @@ namespace camera {
 
       this->set_S(S);
 
+      // Computing ideal ordering of sparse matrix
+      if ( !m_found_ideal_ordering ) {
+        m_ideal_ordering = cuthill_mckee_ordering(S);
+        math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
+        m_ideal_skyline = solve_for_skyline( mod_S );
+
+        m_found_ideal_ordering = true;
+      }
+
       // Compute the LDL^T decomposition and solve using sparse methods.
-      Vector<double> delta_a = sparse_solve(S, e);
+      math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
+      Vector<double> delta_a = sparse_solve( modified_S,
+                                             reorganize(e, m_ideal_ordering),
+                                             m_ideal_skyline );
+      delta_a = reorganize( delta_a, modified_S.inverse() );
 
       subvector(delta, current_delta_length, e.size()) = delta_a;
       current_delta_length += e.size();
