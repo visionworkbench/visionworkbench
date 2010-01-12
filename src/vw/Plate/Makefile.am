@@ -55,7 +55,8 @@ mod_plate_la_LDFLAGS = @APXS_LDFLAGS@ -module -rpath $(APXS_INSTALLDIR) -avoid-v
 noinst_LTLIBRARIES = mod_plate.la
 
 apxs_install: mod_plate.la
-	$(APXS) -i mod_plate.la
+	$(LIBTOOL) --mode=install cp mod_plate.la $(APXS_INSTALLDIR)
+	rm -f $(APXS_INSTALLDIR)/mod_plate.la
 
 endif
 

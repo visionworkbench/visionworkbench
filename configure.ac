@@ -115,18 +115,23 @@ AC_CHECK_PROGS(GENHTML, genhtml, false)
 # Check for the Apache Extension Tool
 AC_CHECK_PROGS(APXS, apxs2 apxs, false)
 if test "$APXS" != "false"; then
-   APXS_CFLAGS="`$APXS -q CFLAGS` -I`$APXS -q INCLUDEDIR`"
-   APXS_LDFLAGS="`$APXS -q LDFLAGS`"
-   APXS_INSTALLDIR="`$APXS -q LIBEXECDIR`"
-   APR_CONFIG=`$APXS -q APR_CONFIG`
-   APU_CONFIG=`$APXS -q APU_CONFIG`
-   APXS_CFLAGS="$APXS_CFLAGS `$APR_CONFIG --cppflags --includes` `$APU_CONFIG --includes`"
-   APXS_LDFLAGS="$APXS_CFLAGS `$APR_CONFIG --ldflags --libs` `$APU_CONFIG --ldflags --libs`"
+  APXS_CFLAGS="`$APXS -q CFLAGS` -I`$APXS -q INCLUDEDIR`"
+  APXS_LDFLAGS="`$APXS -q LDFLAGS`"
+  APR_CONFIG=`$APXS -q APR_CONFIG`
+  APU_CONFIG=`$APXS -q APU_CONFIG`
+  APXS_CFLAGS="$APXS_CFLAGS `$APR_CONFIG --cppflags --includes` `$APU_CONFIG --includes`"
+  APXS_LDFLAGS="$APXS_CFLAGS `$APR_CONFIG --ldflags --libs` `$APU_CONFIG --ldflags --libs`"
+  APXS_DEFAULT_INSTALLDIR="`$APXS -q LIBEXECDIR`"
 
-   AC_SUBST(APXS_CFLAGS)
-   AC_SUBST(APXS_LDFLAGS)
-   AC_SUBST(APXS_INSTALLDIR)
-fi
+  AX_ARG_WITH(apxs_installdir, [], [mk], [Set apache module install dir])
+
+  if test -z "$APXS_INSTALLDIR"; then
+    APXS_INSTALLDIR="$APXS_DEFAULT_INSTALLDIR"
+  fi
+
+  AC_SUBST(APXS_CFLAGS)
+  AC_SUBST(APXS_LDFLAGS)
+  fi
 AM_CONDITIONAL(MAKE_MODPLATE, [test "$APXS" != "false"])
 
 
