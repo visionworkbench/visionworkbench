@@ -18,6 +18,69 @@
 
 namespace vw {
 namespace platefile {
+  // ----------------------------------------------------------------------
+  //                         LOCAL INDEX PAGE
+  // ----------------------------------------------------------------------
+
+  class LocalIndexPage : public IndexPage {
+    std::string m_filename;
+    bool m_needs_saving;
+
+    // For reading/writing to/from disk.
+    void serialize();
+    void deserialize();
+
+  public:
+    /// Create or open a page file.
+    LocalIndexPage(std::string filename, 
+                   int level, int base_col, int base_row, 
+                   int page_width, int page_height);
+
+    virtual ~LocalIndexPage();
+
+    /// Set the value of an entry in the IndexPage.
+    virtual void set(IndexRecord const& record, 
+                     int col, int row, int transaction_id);
+
+    /// Save any unsaved changes to disk.
+    virtual void sync();
+
+  };
+
+  // ----------------------------------------------------------------------
+  //                       LOCAL INDEX PAGE GENERATOR
+  // ----------------------------------------------------------------------
+
+  // IndexPageGenerator loads a index page from disk.
+  class LocalPageGenerator : public PageGeneratorBase {
+    std::string m_filename;
+    int m_level, m_base_col, m_base_row;
+    int m_page_width, m_page_height;
+
+  public:
+    typedef IndexPage value_type;
+    LocalPageGenerator( std::string filename, int level, int base_col, int base_row, 
+                        int page_width, int page_height );
+    virtual ~LocalPageGenerator() {}
+
+    /// Generate an IndexPage.  If no file exists with the name
+    /// m_filename, then an empty IndexPage is generated.
+    virtual boost::shared_ptr<IndexPage> generate() const;
+  };
+
+  /// The LocalPageGeneratorFactory creates a generator that can
+  /// produce pages from a file on disk.
+  class LocalPageGeneratorFactory : public PageGeneratorFactory {
+    std::string m_plate_filename;
+
+  public:
+    LocalPageGeneratorFactory(std::string plate_filename) : 
+      m_plate_filename(plate_filename) {}
+    virtual ~LocalPageGeneratorFactory() {}
+
+    virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
+                                                         int page_width, int page_height);
+  };
 
   // -------------------------------------------------------------------
   //                            LOCAL INDEX

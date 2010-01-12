@@ -18,6 +18,188 @@ using namespace vw::platefile;
 #include <boost/regex.hpp>
 #include <algorithm>
 namespace fs = boost::filesystem;
+// ----------------------------------------------------------------------
+//                         LOCAL INDEX PAGE
+// ----------------------------------------------------------------------
+
+vw::platefile::LocalIndexPage::LocalIndexPage(std::string filename, 
+                                              int level, int base_col, int base_row, 
+                                              int page_width, int page_height) : 
+  IndexPage(level, base_col, base_row, page_width, page_height),
+  m_filename(filename), m_needs_saving(false) {
+
+  if (fs::exists(filename)) {
+    this->deserialize();
+  } else {
+    m_sparse_table.resize(page_width*page_height);
+  }
+}
+
+vw::platefile::LocalIndexPage::~LocalIndexPage() {
+  this->sync();
+}
+
+// Hijack this method momentartarily to mark the page as "dirty" by
+// setting m_needs_saving to true.
+void vw::platefile::LocalIndexPage::set(IndexRecord const& record, 
+                                        int col, int row, int transaction_id) {
+  
+  // First call up to the parent class and let the original code run.
+  IndexPage::set(record, col, row, transaction_id);
+
+  // Then, mark this page is 'dirty' so that it gets saved to disk
+  // when destroyed.
+  m_needs_saving = true;
+
+}
+
+void vw::platefile::LocalIndexPage::sync() {
+  if (m_needs_saving) {
+    this->serialize();
+    m_needs_saving = false;
+  }
+}
+
+void vw::platefile::LocalIndexPage::serialize() {
+  
+  // Create the necessary directories if they do not yet exist.
+  try {
+    fs::path page_path(m_filename);
+    fs::create_directories(page_path.parent_path());
+  } catch ( fs::basic_filesystem_error<fs::path> &e ) { 
+    vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
+  }
+
+  FILE *f = fopen(m_filename.c_str(), "w");
+  if (!f)
+    vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " 
+             << m_filename << " for writing.\n");
+
+  // Part 1: Write out the page size
+  fwrite(&m_page_width, sizeof(m_page_width), 1, f);
+  fwrite(&m_page_height, sizeof(m_page_height), 1, f);
+
+  // Part 2: Write the sparsetable metadata
+  m_sparse_table.write_metadata(f);
+
+  // Part 3: Write sparse entries
+  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
+       it != m_sparse_table.nonempty_end(); ++it) {
+
+    // Iterate over transaction_id list.
+    int32 transaction_list_size = (*it).size();
+    fwrite(&transaction_list_size, sizeof(transaction_list_size), 1, f);
+    
+    multi_value_type::iterator transaction_iter = (*it).begin();
+    while (transaction_iter != (*it).end()) {
+      
+      // Save the transaction id
+      int32 t_id = (*transaction_iter).first;
+      fwrite(&t_id, sizeof(t_id), 1, f);
+      
+      // Save the size of each protobuf, and then serialize it to disk.
+      uint16 protobuf_size = (*transaction_iter).second.ByteSize();
+      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
+      (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
+      fwrite(&protobuf_size, sizeof(protobuf_size), 1, f);
+      fwrite(protobuf_bytes.get(), 1, protobuf_size, f);
+    
+      ++transaction_iter;
+    }
+  }
+
+  fclose(f);
+  m_needs_saving = false;
+}
+
+void vw::platefile::LocalIndexPage::deserialize() {
+
+  FILE *f = fopen(m_filename.c_str(), "r");
+  if (!f)
+    vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open " 
+             << m_filename << " for reading.\n");
+
+  // Part 1: Read the page size
+  fread(&m_page_width, sizeof(m_page_width), 1, f);
+  fread(&m_page_height, sizeof(m_page_height), 1, f);
+
+  // Part 2: Read the sparsetable metadata
+  m_sparse_table.read_metadata(f);
+
+  // Part 3: Read sparse entries
+  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
+       it != m_sparse_table.nonempty_end(); ++it) {
+
+    // Iterate over transaction_id list.
+    int32 transaction_list_size;
+    fread(&transaction_list_size, sizeof(transaction_list_size), 1, f);
+    
+    new (&(*it)) multi_value_type();
+    for (int tid = 0; tid < transaction_list_size; ++tid) {
+
+      // Read the transaction id
+      int32 t_id;
+      fread(&t_id, sizeof(t_id), 1, f);
+
+      // Read the size (in bytes) of this protobuffer and then read
+      // the protobuffer and deserialize it.
+      uint16 protobuf_size;
+      fread(&protobuf_size, sizeof(protobuf_size), 1, f);
+      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
+      fread(protobuf_bytes.get(), 1, protobuf_size, f);
+      IndexRecord rec;
+      if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
+        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in " 
+                 << m_filename << ".");
+      
+      (*it).push_back(std::pair<int32, IndexRecord>(t_id, rec));
+    }
+  }
+  fclose(f);    
+  m_needs_saving = false;
+} 
+
+// ----------------------------------------------------------------------
+//                    LOCAL INDEX PAGE GENERATOR
+// ----------------------------------------------------------------------
+
+vw::platefile::LocalPageGenerator::LocalPageGenerator( std::string filename, 
+                                                       int level, int base_col, int base_row, 
+                                                       int page_width, int page_height) : 
+  m_filename( filename ), m_level(level), 
+  m_base_col(base_col), m_base_row(base_row),
+  m_page_width(page_width), m_page_height(page_height) {}  
+
+boost::shared_ptr<vw::platefile::IndexPage> 
+
+vw::platefile::LocalPageGenerator::generate() const {
+  return boost::shared_ptr<IndexPage>(new LocalIndexPage(m_filename, m_level, 
+                                                         m_base_col, m_base_row,
+                                                         m_page_width, m_page_height) );
+}
+
+boost::shared_ptr<IndexPageGenerator> LocalPageGeneratorFactory::create(int level, 
+                                                                        int base_col, 
+                                                                        int base_row, 
+                                                                        int page_width, 
+                                                                        int page_height) {
+  // Generate a filename
+  std::ostringstream filename;
+  filename << m_plate_filename 
+           << "/index"
+           << "/" << level 
+           << "/" << base_row
+           << "/" << base_col;
+
+  // Create the proper type of page generator.
+  boost::shared_ptr<LocalPageGenerator> page_gen;
+  page_gen.reset( new LocalPageGenerator(filename.str(),
+                                         level, base_col, base_row,
+                                         page_width, page_height) );
+  
+  // Wrap it in tho IndexPageGenerator class and return it.
+  return boost::shared_ptr<IndexPageGenerator>( new IndexPageGenerator(page_gen) );
+}
 
 // -------------------------------------------------------------------
 //                            LOCAL INDEX
@@ -75,7 +257,8 @@ void vw::platefile::LocalIndex::save_index_file() const {
 
 /// Create a new index.  User supplies a pre-configure blob manager.
 vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
-  PagedIndex(plate_filename, new_index_info),  // superclass constructor
+  PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ), 
+             new_index_info),  // superclass constructor
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
@@ -112,7 +295,7 @@ vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader n
 
 /// Open an existing index from a file on disk.
 vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
-  PagedIndex(plate_filename),  // superclass constructor
+  PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ) ),  // superclass constructor
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
@@ -134,7 +317,9 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
 
   // Load Index Levels for PagedIndex
   for (int level = 0; level < this->num_levels(); ++level) { 
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(this->platefile_name(), level, 
+    boost::shared_ptr<PageGeneratorFactory> page_gen_factory;
+    page_gen_factory.reset(new LocalPageGeneratorFactory(this->platefile_name()));
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(page_gen_factory, level, 
                                                             m_page_width, m_page_height, 
                                                             m_default_cache_size) );
     m_levels.push_back(new_level);
@@ -277,7 +462,9 @@ void vw::platefile::LocalIndex::commit_record(IndexRecord const& record,
   // vector to the correct size.
   int starting_size = m_levels.size();
   while (m_levels.size() <= level) {
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(this->platefile_name(),
+    boost::shared_ptr<PageGeneratorFactory> page_gen_factory;
+    page_gen_factory.reset(new LocalPageGeneratorFactory(this->platefile_name()));
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(page_gen_factory,
                                                             m_levels.size(), 
                                                             m_page_width, m_page_height, 
                                                             m_default_cache_size) );
