@@ -4,11 +4,10 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/RemoteIndex.h>
-#include <vw/Plate/PagedIndex.h>
+#include <vw/Plate/LocalIndex.h>
 using namespace vw::platefile;
 using namespace vw;
 
@@ -24,7 +23,7 @@ boost::shared_ptr<Index> Index::construct_create(std::string url, IndexHeader ne
 
   // All other URLs are passed along to the local index structure
   } else {
-    return boost::shared_ptr<Index>(new PagedIndex(url, new_index_info));
+    return boost::shared_ptr<Index>(new LocalIndex(url, new_index_info));
   }
 
 }
@@ -37,7 +36,7 @@ boost::shared_ptr<Index> Index::construct_open(std::string url) {
 
   // All other URLs are passed along to the local index structure
   } else {
-    return boost::shared_ptr<Index>(new PagedIndex(url));
+    return boost::shared_ptr<Index>(new LocalIndex(url));
   }
 
 }

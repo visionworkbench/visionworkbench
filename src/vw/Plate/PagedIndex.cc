@@ -534,29 +534,14 @@ vw::platefile::IndexLevel::valid_tiles(BBox2i const& region,
 /// Create a new, empty index.
 vw::platefile::PagedIndex::PagedIndex(std::string plate_filename, IndexHeader new_index_info,
                                       int page_width, int page_height, int default_cache_size) :
-  LocalIndex(plate_filename, new_index_info),       // superclass constructor
   m_page_width(page_width), m_page_height(page_height), 
-  m_default_cache_size(default_cache_size) {
-  
-  std::string base_index_path = plate_filename + "/index";
-  if (!fs::exists(base_index_path))
-    fs::create_directory(base_index_path);
-}
+  m_default_cache_size(default_cache_size) {}
 
 /// Open an existing index from a file on disk.
 vw::platefile::PagedIndex::PagedIndex(std::string plate_filename, 
                                       int page_width, int page_height, int default_cache_size) :
-  LocalIndex(plate_filename),
   m_page_width(page_width), m_page_height(page_height), 
-  m_default_cache_size(default_cache_size) {
-
-  for (int level = 0; level < m_header.num_levels(); ++level) { 
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_plate_filename, level, 
-                                                            m_page_width, m_page_height, 
-                                                            m_default_cache_size) );
-    m_levels.push_back(new_level);
-  }
-}
+  m_default_cache_size(default_cache_size) {}
 
 void vw::platefile::PagedIndex::sync() {
 
@@ -566,71 +551,6 @@ void vw::platefile::PagedIndex::sync() {
     m_levels[i]->sync();
   }
 
-}
-
-// Load index entries by iterating through TileHeaders saved in the
-// blob file.  This function essentially rebuilds an index in memory
-// using entries that had been previously saved to disk.
-void vw::platefile::PagedIndex::rebuild_index(std::string plate_filename) {
-
-  //  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
-
-  std::vector<std::string> blob_files = this->blob_filenames();
-  for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    // this->log() << "Loading index entries from blob file: "
-    //             << m_plate_filename << "/" << blob_files[i] << "\n";
-    
-    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
-    tpc.report_progress(0);
-    
-    // Extract the current blob id as an integer.
-    boost::regex re;
-    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
-    boost::cmatch matches;
-    boost::regex_match(blob_files[i].c_str(), matches, re);
-    if (matches.size() != 4)
-      vw_throw(IOErr() << "LocalIndex::load_index() -- could not parse blob number from blob filename.");
-    std::string blob_id_str(matches[2].first, matches[2].second);
-    int current_blob_id = atoi(blob_id_str.c_str());
-      
-    Blob blob(m_plate_filename + "/" + blob_files[i], true);
-    Blob::iterator iter = blob.begin();
-    while (iter != blob.end()) {
-      TileHeader hdr = *iter;
-      IndexRecord rec;
-      rec.set_blob_id(current_blob_id);
-      rec.set_blob_offset(iter.current_base_offset());
-      this->commit_record(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
-      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
-      ++iter;
-    }
-    tpc.report_finished();
-  }
-}
-
-
-void vw::platefile::PagedIndex::commit_record(IndexRecord const& record, 
-                                              int col, int row, 
-                                              int level, int transaction_id) {
-
-  // First, we check to make sure we have a sufficient number of
-  // levels to save the requested data.  If not, we grow the levels
-  // vector to the correct size.
-  int starting_size = m_levels.size();
-  while (m_levels.size() <= level) {
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_plate_filename,
-                                                            m_levels.size(), 
-                                                            m_page_width, m_page_height, 
-                                                            m_default_cache_size) );
-    m_levels.push_back(new_level);
-  }
-  
-  if (m_levels.size() != starting_size) {
-    m_header.set_num_levels(m_levels.size());
-    this->save_index_file();
-  }
-
-  m_levels[level]->set(record, col, row, transaction_id);
 }
 
 // ----------------------- READ/WRITE REQUESTS  ----------------------
@@ -656,19 +576,12 @@ vw::platefile::PagedIndex::multi_read_request(int col, int row, int level,
   return m_levels[level]->multi_get(col, row,  start_transaction_id, end_transaction_id);
 }
 
-int vw::platefile::PagedIndex::write_request(int size) {
-  return m_blob_manager->request_lock(size);
-}
 
 void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
   this->commit_record(record, header.col(), header.row(), 
                       header.level(), header.transaction_id());
 }
 
-/// Writing, pt. 3: Signal the completion 
-void vw::platefile::PagedIndex::write_complete(int blob_id, uint64 blob_offset) {  
-  m_blob_manager->release_lock(blob_id, blob_offset);
-}
 
   
 // ----------------------- PROPERTIES  ----------------------
@@ -694,9 +607,4 @@ vw::platefile::PagedIndex::valid_tiles(int level, BBox2i const& region,
                                       start_transaction_id, end_transaction_id,
                                       min_num_matches);
 }
-
-int32 vw::platefile::PagedIndex::num_levels() const {
-  return m_levels.size();
-}
-
 

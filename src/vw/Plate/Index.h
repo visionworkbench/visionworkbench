@@ -10,8 +10,8 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
-#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Math/BBox.h>
+#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <list>

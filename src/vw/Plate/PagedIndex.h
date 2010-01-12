@@ -9,7 +9,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Cache.h>
 
-#include <vw/Plate/LocalIndex.h>
+#include <vw/Plate/Index.h>
 #include <vw/Plate/BlobManager.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
@@ -176,15 +176,20 @@ namespace platefile {
   //                             PAGED INDEX
   // --------------------------------------------------------------------
 
-  class PagedIndex : public LocalIndex {
+  class PagedIndex : public Index {
+    std::string m_plate_filename;
+    IndexHeader m_header;
+
+
+  protected:
+
+    std::vector<boost::shared_ptr<IndexLevel> > m_levels;
     int m_page_width, m_page_height;
     int m_default_cache_size;
-    std::vector<boost::shared_ptr<IndexLevel> > m_levels;
 
-    virtual void rebuild_index(std::string plate_filename);
+    virtual void commit_record(IndexRecord const& record, int col, int row, 
+                               int level, int transaction_id) = 0;
 
-    void commit_record(IndexRecord const& record, int col, int row, int level, int transaction_id);
-    
   public:
     typedef IndexLevel::multi_value_type multi_value_type;
 
@@ -233,14 +238,14 @@ namespace platefile {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(int size);
+    virtual int write_request(int size) = 0;
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
     virtual void write_update(TileHeader const& header, IndexRecord const& record);
   
     /// Writing, pt. 3: Signal the completion 
-    virtual void write_complete(int blob_id, uint64 blob_offset);
+    virtual void write_complete(int blob_id, uint64 blob_offset) = 0;
 
     // ----------------------- PROPERTIES  ----------------------
 
@@ -254,8 +259,6 @@ namespace platefile {
                                               int start_transaction_id,
                                               int end_transaction_id,
                                               int min_num_matches) const;
-
-    virtual int32 num_levels() const;
   };
 
 }} // namespace vw::platefile

@@ -12,7 +12,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Image/PixelTypeInfo.h>
 
-#include <vw/Plate/Index.h>
+#include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/BlobManager.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
@@ -23,9 +23,7 @@ namespace platefile {
   //                            LOCAL INDEX
   // -------------------------------------------------------------------
 
-  class LocalIndex : public Index { 
-  
-  protected:
+  class LocalIndex : public PagedIndex { 
     std::string m_plate_filename;
     IndexHeader m_header;
     boost::shared_ptr<BlobManager> m_blob_manager;
@@ -35,42 +33,53 @@ namespace platefile {
     std::string index_filename() const;
     std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
-    virtual void rebuild_index(std::string plate_filename) = 0;
+
+  protected:
+    virtual void commit_record(IndexRecord const& record, int col, int row, 
+                               int level, int transaction_id);
+    
 
   public:
 
     /// Create a new, empty index.
-    LocalIndex( std::string plate_filename, IndexHeader new_index_info);
+    LocalIndex( std::string plate_filename, IndexHeader new_index_info );
 
     /// Open an existing index from a file on disk.
-    LocalIndex(std::string plate_filename);
+    LocalIndex( std::string plate_filename );
 
     /// Destructor
     virtual ~LocalIndex() {}
+    
+    // Rebuild an index from blob file entries
+    virtual void rebuild_index(std::string plate_filename);
 
     /// Use this to send data to the index's logfile like this:
     ///
     ///   index_instance.log() << "some text for the log...\n";
     ///
-    std::ostream& log ();
+    std::ostream& log();
 
-    virtual IndexHeader index_header() const { return m_header; }
+    // -----------------------    I/O      ----------------------
 
-    // /// Save an index out to a file on disk.  This serializes the
-    // /// tree.
-    // virtual void save(std::string const& filename);
+    // Writing, pt. 1: Locks a blob and returns the blob id that can
+    // be used to write a tile.
+    virtual int write_request(int size);
+
+    /// Writing, pt. 3: Signal the completion 
+    virtual void write_complete(int blob_id, uint64 blob_offset);
+
+    // ----------------------- PROPERTIES  ----------------------
 
     virtual int version() const { return m_header.version(); }
-    
     virtual std::string platefile_name() const { return m_plate_filename; }
-
+    virtual IndexHeader index_header() const { return m_header; }
     virtual int32 tile_size() const { return m_header.tile_size(); }
     virtual std::string tile_filetype() const { return m_header.tile_filetype(); }
+    virtual int32 num_levels() const { return m_header.num_levels(); }
 
     virtual PixelFormatEnum pixel_format() const { 
       return PixelFormatEnum(m_header.pixel_format()); 
     }
-
     virtual ChannelTypeEnum channel_type() const {
       return ChannelTypeEnum(m_header.channel_type());
     }

@@ -75,6 +75,7 @@ void vw::platefile::LocalIndex::save_index_file() const {
 
 /// Create a new index.  User supplies a pre-configure blob manager.
 vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
+  PagedIndex(plate_filename, new_index_info),  // superclass constructor
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
@@ -96,8 +97,12 @@ vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader n
   m_header.set_transaction_read_cursor(0);   // Transaction 0 is the empty mosaic
   m_header.set_transaction_write_cursor(1);  // Transaction 1 is the first valid transaction
   m_header.set_num_levels(0);                // Index initially contains zero levels
-
   this->save_index_file();
+  
+  // Create subdirectory for storing hard copies of index pages.
+  std::string base_index_path = plate_filename + "/index";
+  if (!fs::exists(base_index_path))
+    fs::create_directory(base_index_path);
 
   // Create the logging facility
   m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
@@ -107,6 +112,7 @@ vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader n
 
 /// Open an existing index from a file on disk.
 vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
+  PagedIndex(plate_filename),  // superclass constructor
   m_plate_filename(plate_filename),
   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
 
@@ -125,6 +131,14 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
              << this->index_filename());
 
   ifstr.close();
+
+  // Load Index Levels for PagedIndex
+  for (int level = 0; level < this->num_levels(); ++level) { 
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(this->platefile_name(), level, 
+                                                            m_page_width, m_page_height, 
+                                                            m_default_cache_size) );
+    m_levels.push_back(new_level);
+  }
 
   // Create the logging facility
   try {
@@ -212,5 +226,81 @@ void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
 // version of the mosaic.
 int32 vw::platefile::LocalIndex::transaction_cursor() {
   return m_header.transaction_read_cursor();
+}
+
+// Load index entries by iterating through TileHeaders saved in the
+// blob file.  This function essentially rebuilds an index in memory
+// using entries that had been previously saved to disk.
+void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
+
+  //  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
+
+  std::vector<std::string> blob_files = this->blob_filenames();
+  for (unsigned int i = 0; i < blob_files.size(); ++i) {
+    // this->log() << "Loading index entries from blob file: "
+    //             << this->platefile_name() << "/" << blob_files[i] << "\n";
+    
+    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
+    tpc.report_progress(0);
+    
+    // Extract the current blob id as an integer.
+    boost::regex re;
+    re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
+    boost::cmatch matches;
+    boost::regex_match(blob_files[i].c_str(), matches, re);
+    if (matches.size() != 4)
+      vw_throw(IOErr() << "PagedIndex::rebuild_index() -- could not parse blob number from blob filename.");
+    std::string blob_id_str(matches[2].first, matches[2].second);
+    int current_blob_id = atoi(blob_id_str.c_str());
+      
+    Blob blob(this->platefile_name() + "/" + blob_files[i], true);
+    Blob::iterator iter = blob.begin();
+    while (iter != blob.end()) {
+      TileHeader hdr = *iter;
+      IndexRecord rec;
+      rec.set_blob_id(current_blob_id);
+      rec.set_blob_offset(iter.current_base_offset());
+      this->commit_record(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
+      tpc.report_progress(float(iter.current_base_offset()) / blob.size());
+      ++iter;
+    }
+    tpc.report_finished();
+  }
+}
+
+void vw::platefile::LocalIndex::commit_record(IndexRecord const& record, 
+                                              int col, int row, 
+                                              int level, int transaction_id) {
+
+  // First, we check to make sure we have a sufficient number of
+  // levels to save the requested data.  If not, we grow the levels
+  // vector to the correct size.
+  int starting_size = m_levels.size();
+  while (m_levels.size() <= level) {
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(this->platefile_name(),
+                                                            m_levels.size(), 
+                                                            m_page_width, m_page_height, 
+                                                            m_default_cache_size) );
+    m_levels.push_back(new_level);
+  }
+  
+  if (m_levels.size() != starting_size) {
+    m_header.set_num_levels(m_levels.size());
+    this->save_index_file();
+  }
+
+  m_levels[level]->set(record, col, row, transaction_id);
+}
+
+// -----------------------    I/O      ----------------------
+
+/// Writing, pt. 1: Reserve a blob lock
+int vw::platefile::LocalIndex::write_request(int size) {
+  return m_blob_manager->request_lock(size);
+}
+
+/// Writing, pt. 3: Signal the completion 
+void vw::platefile::LocalIndex::write_complete(int blob_id, uint64 blob_offset) {  
+  m_blob_manager->release_lock(blob_id, blob_offset);
 }
 
