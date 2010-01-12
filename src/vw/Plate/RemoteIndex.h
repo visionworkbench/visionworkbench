@@ -8,7 +8,7 @@
 #ifndef __VW_PLATE_REMOTE_INDEX_H__
 #define __VW_PLATE_REMOTE_INDEX_H__
 
-#include <vw/Plate/Index.h>
+#include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/IndexPage.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Plate/RpcServices.h>
@@ -24,8 +24,9 @@ namespace platefile {
     int m_platefile_id;
     boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
     boost::shared_ptr<IndexService> m_index_service;
-    std::queue<IndexWriteUpdate> m_write_queue;
 
+    // For packetizing write requests.
+    std::queue<IndexWriteUpdate> m_write_queue;
     void flush_write_queue();
 
   public:
@@ -79,13 +80,13 @@ namespace platefile {
     boost::shared_ptr<IndexService> m_index_service;
 
   public:
+    RemotePageGeneratorFactory() : m_platefile_id(-1) {}
     RemotePageGeneratorFactory(int platefile_id, 
                                boost::shared_ptr<AmqpRpcClient> rpc_controller,
                                boost::shared_ptr<IndexService> index_service) : 
       m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
       m_index_service(index_service) {}
     virtual ~RemotePageGeneratorFactory() {}
-
     virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
                                                          int page_width, int page_height);
   };
@@ -94,7 +95,7 @@ namespace platefile {
   //                            REMOTE INDEX
   // -------------------------------------------------------------------
 
-  class RemoteIndex : public Index {
+  class RemoteIndex : public PagedIndex {
   
     int m_platefile_id;
     IndexHeader m_index_header;
@@ -105,10 +106,6 @@ namespace platefile {
     boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
     boost::shared_ptr<IndexService> m_index_service;
   
-    // For packetizing write requests.
-    mutable std::queue<IndexWriteUpdate> m_write_queue;
-    void flush_write_queue() const;
-
   public:
     /// Constructor (for opening an existing index)
     RemoteIndex(std::string const& url);
@@ -119,64 +116,24 @@ namespace platefile {
     /// destructor
     virtual ~RemoteIndex();
 
-    /// Sync any unsaved data in the index to disk.
-    virtual void sync() {
-      vw_throw(NoImplErr() << "Error: sync() is not implemented for remote indices.");
-    }
-
-    /// Grab an IndexPage.  Useful if you want to serialize it by hand
-    /// to disk.  Only implemented for local index's.
-    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const {
-      vw_throw(NoImplErr() << "Error: page_request() is not implemented for the remote index.");
-    }
-  
-    /// Attempt to access a tile in the index.  Throws an
-    /// TileNotFoundErr if the tile cannot be found.
-    ///
-    /// By default, this call to read will return a tile with the MOST
-    /// RECENT transaction_id <= to the transaction_id you specify
-    /// here in the function arguments (if a tile exists).  However,
-    /// setting exact_transaction_match = true will force the
-    /// PlateFile to search for a tile that has the EXACT SAME
-    /// transaction_id as the one that you specify.
-    ///
-    /// A transaction ID of -1 indicates that we should return the
-    /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(int col, int row, int level, int transaction_id, bool exact_transaction_match = false);
-
-    /// Return multiple index entries that match the specified
-    /// transaction id range.  This range is inclusive of the first
-    /// entry and the last entry: [ begin_transaction_id, end_transaction_id ]
-    ///
-    /// Results are return as a std::pair<int32, IndexRecord>.  The
-    /// first value in the pair is the transaction id for that
-    /// IndexRecord.
-    virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
-                                                                         int begin_transaction_id, 
-                                                                         int end_transaction_id);
-
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
     virtual int write_request(int size);
   
-    // Writing, pt. 2: Supply information to update the index and
-    // unlock the blob id.
-    virtual void write_update(TileHeader const& header, IndexRecord const& record);
-
     /// Writing, pt. 3: Signal the completion 
     virtual void write_complete(int blob_id, uint64 blob_offset);
 
     // ----------------------- PROPERTIES  ----------------------
 
-    /// Returns a list of tile headers for any valid tiles that exist
-    /// at a the specified level and transaction_id.  The
-    /// transaction_id is treated the same as it would be for
-    /// read_request() above.  The region specifies a tile range of
-    /// interest.
-    virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-                                              int begin_transaction_id, 
-                                              int end_transaction_id, 
-                                              int min_num_matches) const;
+    // /// Returns a list of tile headers for any valid tiles that exist
+    // /// at a the specified level and transaction_id.  The
+    // /// transaction_id is treated the same as it would be for
+    // /// read_request() above.  The region specifies a tile range of
+    // /// interest.
+    // virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
+    //                                           int begin_transaction_id, 
+    //                                           int end_transaction_id, 
+    //                                           int min_num_matches) const;
 
     virtual IndexHeader index_header() const;
   

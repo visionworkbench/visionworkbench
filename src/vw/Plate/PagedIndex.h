@@ -70,15 +70,17 @@ namespace platefile {
   // --------------------------------------------------------------------
 
   class PagedIndex : public Index {
-    boost::shared_ptr<PageGeneratorFactory> m_page_gen_factory;
 
   protected:
 
-    std::vector<boost::shared_ptr<IndexLevel> > m_levels;
+    boost::shared_ptr<PageGeneratorFactory> m_page_gen_factory;
+    mutable std::vector<boost::shared_ptr<IndexLevel> > m_levels;
     int m_page_width, m_page_height;
     int m_default_cache_size;
 
-    virtual void commit_record(TileHeader const& header, IndexRecord const& record) = 0;
+    void set_page_generator_factory(boost::shared_ptr<PageGeneratorFactory> page_gen_factory) {
+      m_page_gen_factory = page_gen_factory;
+    }
 
   public:
     typedef IndexLevel::multi_value_type multi_value_type;
@@ -102,7 +104,7 @@ namespace platefile {
     // ----------------------- READ/WRITE REQUESTS  ----------------------
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
-    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const;
+    virtual boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const;
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

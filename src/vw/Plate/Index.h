@@ -54,7 +54,7 @@ namespace platefile {
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand
     /// to disk. 
-    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const;
+    virtual boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const = 0;
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

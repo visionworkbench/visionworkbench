@@ -295,7 +295,7 @@ service IndexService {
   rpc InfoRequest (IndexInfoRequest) returns (IndexInfoReply);
 
   // Platefile I/O
-  rpc FetchPage (IndexPageRequest) returns (IndexPageReply);
+  rpc PageRequest (IndexPageRequest) returns (IndexPageReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
   rpc MultiReadRequest (IndexMultiReadRequest) returns (IndexMultiReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);

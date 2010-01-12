@@ -228,7 +228,17 @@ vw::platefile::PagedIndex::multi_read_request(int col, int row, int level,
 
 
 void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
-  this->commit_record(header, record);
+  // First, we check to make sure we have a sufficient number of
+  // levels to save the requested data.  If not, we grow the levels
+  // vector to the correct size.
+  while (m_levels.size() <= header.level()) {
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory,
+                                                            m_levels.size(), 
+                                                            m_page_width, m_page_height, 
+                                                            m_default_cache_size) );
+    m_levels.push_back(new_level);
+  }
+  m_levels[header.level()]->set(header, record);
 }
 
 

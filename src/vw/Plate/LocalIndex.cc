@@ -255,9 +255,7 @@ vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
 
   // Load Index Levels for PagedIndex
   for (int level = 0; level < this->num_levels(); ++level) { 
-    boost::shared_ptr<PageGeneratorFactory> page_gen_factory;
-    page_gen_factory.reset(new LocalPageGeneratorFactory(this->platefile_name()));
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(page_gen_factory, level, 
+    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level, 
                                                             m_page_width, m_page_height, 
                                                             m_default_cache_size) );
     m_levels.push_back(new_level);
@@ -383,7 +381,7 @@ void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
-      this->commit_record(hdr, rec);
+      this->write_update(hdr, rec);
       tpc.report_progress(float(iter.current_base_offset()) / blob.size());
       ++iter;
     }
@@ -391,37 +389,28 @@ void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
   }
 }
 
-
-void vw::platefile::LocalIndex::commit_record(TileHeader const& header,
-                                              IndexRecord const& record) {
-
-  // First, we check to make sure we have a sufficient number of
-  // levels to save the requested data.  If not, we grow the levels
-  // vector to the correct size.
-  int starting_size = m_levels.size();
-  while (m_levels.size() <= header.level()) {
-    boost::shared_ptr<PageGeneratorFactory> page_gen_factory;
-    page_gen_factory.reset(new LocalPageGeneratorFactory(this->platefile_name()));
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(page_gen_factory,
-                                                            m_levels.size(), 
-                                                            m_page_width, m_page_height, 
-                                                            m_default_cache_size) );
-    m_levels.push_back(new_level);
-  }
-  
-  if (m_levels.size() != starting_size) {
-    m_header.set_num_levels(m_levels.size());
-    this->save_index_file();
-  }
-
-  m_levels[header.level()]->set(header, record);
-}
-
 // -----------------------    I/O      ----------------------
 
 /// Writing, pt. 1: Reserve a blob lock
 int vw::platefile::LocalIndex::write_request(int size) {
   return m_blob_manager->request_lock(size);
+}
+
+/// Writing, pt. 1: Reserve a blob lock
+void vw::platefile::LocalIndex::write_update(TileHeader const& header, IndexRecord const& record) {
+  
+  // Store the number of tiles that are contained in the mosaic.
+  int starting_size = m_levels.size();
+
+  // Write the update to the PagedIndex superclass.
+  PagedIndex::write_update(header, record);
+
+  // If adding the record resulted in more levels, we save that
+  // information to the index header.
+  if (m_levels.size() != starting_size) {
+    m_header.set_num_levels(m_levels.size());
+    this->save_index_file();
+  }
 }
 
 /// Writing, pt. 3: Signal the completion 

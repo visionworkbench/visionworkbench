@@ -11,7 +11,7 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int blob_id,
                                                       int end_transaction_id, 
                                                       int write_transaction_id) const {
   
-  std::cout << "\t--> Snapshotting @ level " << level << "\n";
+  std::cout << "\t--> Snapshotting " << tile_region << " @ level " << level << ".\n";
 
   // Subdivide the bbox into smaller workunits if necessary.
   // This helps to keep operations efficient.
@@ -24,9 +24,9 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int blob_id,
                                                                   start_transaction_id,
                                                                   end_transaction_id, 2);
 
-    if (tile_records.size() != 0)
-      std::cout << "\t    Processing Workunit: " << *region_iter 
-                << "    Found " << tile_records.size() << " tile records.\n";    
+    //    if (tile_records.size() != 0)
+      // std::cout << "\t    Processing Workunit: " << *region_iter 
+      //           << "    Found " << tile_records.size() << " tile records.\n";    
 
     for ( std::list<TileHeader>::iterator header_iter = tile_records.begin(); 
           header_iter != tile_records.end(); ++header_iter) {
@@ -77,9 +77,18 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int blob_id,
     
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().
-    BBox2i region(0,0,pow(2,level),pow(2,level));
-    
-    snapshot(blob_id, level, region, start_transaction_id, end_transaction_id, write_transaction_id);
+    int region_size = pow(2,level);
+    int subdivided_region_size = region_size / 16;
+    if (subdivided_region_size < 1024) subdivided_region_size = 1024;
+    BBox2i full_region(0,0,region_size,region_size);
+    std::list<BBox2i> workunits = bbox_tiles(full_region, 
+                                             subdivided_region_size, 
+                                             subdivided_region_size);
+    for ( std::list<BBox2i>::iterator region_iter = workunits.begin(); 
+          region_iter != workunits.end(); ++region_iter) {
+      snapshot(blob_id, level, *region_iter, start_transaction_id, 
+               end_transaction_id, write_transaction_id);
+    }
   }
 }
 

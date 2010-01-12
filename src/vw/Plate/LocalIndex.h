@@ -97,10 +97,6 @@ namespace platefile {
     std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
 
-  protected:
-    virtual void commit_record(TileHeader const& header,
-                               IndexRecord const& record);
-
   public:
 
     /// Create a new, empty index.
@@ -126,6 +122,10 @@ namespace platefile {
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
     virtual int write_request(int size);
+
+    // Writing, pt. 2: Supply information to update the index and
+    // unlock the blob id.
+    virtual void write_update(TileHeader const& header, IndexRecord const& record);
 
     /// Writing, pt. 3: Signal the completion 
     virtual void write_complete(int blob_id, uint64 blob_offset);
