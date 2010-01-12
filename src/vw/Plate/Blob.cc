@@ -26,15 +26,21 @@ using namespace vw;
 // -------------------------------------------------------------------
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename(filename) {
+vw::platefile::Blob::Blob(std::string filename, bool readonly) : 
+  m_blob_filename(filename), m_write_count(0) {
 
   if (readonly) {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::binary));
+    if (!m_fstream->is_open()) {
+        vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");      
+    } else {
+      m_end_of_file_ptr = read_end_of_file_ptr();
+    }
+    vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READONLY)\n";
   } else {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::out | std::ios::binary));
-
     // If the file is not open, then that means that we need to create
     // it.  (Note: the C++ standard does not let you create a file
     // when you specify std::ios::in., hence the gymnastics here.)
@@ -44,18 +50,27 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) : m_blob_filename
                       std::ios::out|std::ios::binary);  
       if (!m_fstream->is_open())                            // Check for errors
         vw_throw(BlobIoErr() << "Could not create blob file \"" << m_blob_filename << "\".");
-      this->write_end_of_file_ptr(3 * sizeof(uint64));      // Initialize EOF pointer
+      m_end_of_file_ptr = 3 * sizeof(uint64);
+      this->write_end_of_file_ptr(m_end_of_file_ptr);       // Initialize EOF pointer
       m_fstream->close();                                   // Close output-only file
       m_fstream->open(filename.c_str(),                     // Reopen as read/write
                       std::ios::out|std::ios::in|std::ios::binary); 
+    } else {
+      m_end_of_file_ptr = read_end_of_file_ptr();
     }
+
+    vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READ/WRITE)\n";
   }
 
   if (!m_fstream->is_open()) 
     vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");
 }
 
-vw::platefile::Blob::~Blob() {}
+/// Destructor: make sure that we have written the end of file ptr.
+vw::platefile::Blob::~Blob() {
+  this->write_end_of_file_ptr(m_end_of_file_ptr);
+  vw_out(DebugMessage, "platefile::blob") << "Closed blob file: " << m_blob_filename << "\n";
+}
 
 void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename, 
                                         vw::uint64& offset, vw::uint64& size) {

@@ -58,6 +58,8 @@ namespace platefile {
   
     std::string m_blob_filename;
     boost::shared_ptr<std::fstream> m_fstream;
+    uint64 m_end_of_file_ptr;
+    uint64 m_write_count;
 
     BlobRecord read_blob_record(uint16 &blob_record_size) const {
 
@@ -150,7 +152,7 @@ namespace platefile {
     /// Returns the size of the blob in bytes.  Note: only counts
     /// valid entries.  (Invalid data may exist beyond the end of the
     /// end_of_file_ptr)
-    uint64 size() const { return this->read_end_of_file_ptr(); }
+    uint64 size() const { return m_end_of_file_ptr; }
 
     /// Returns an iterator pointing to the first TileHeader in the blob.
     ///
@@ -160,7 +162,7 @@ namespace platefile {
     iterator begin() { return iterator(*this, 3*sizeof(uint64) ); } 
 
     /// Returns an iterator pointing one past the last TileHeader in the blob.
-    iterator end() { return iterator(*this, this->read_end_of_file_ptr() ); }
+    iterator end() { return iterator(*this, m_end_of_file_ptr ); }
 
     uint64 next_base_offset(uint64 current_base_offset) {
 
@@ -251,7 +253,7 @@ namespace platefile {
 
       // Store the current offset of the end of the file.  We'll
       // return that at the end of this function.
-      vw::uint64 base_offset = this->read_end_of_file_ptr();
+      vw::uint64 base_offset = m_end_of_file_ptr;
       m_fstream->seekp(base_offset, std::ios_base::beg);
 
       // Create the blob record and write it to the blob file.
@@ -280,8 +282,17 @@ namespace platefile {
                                                          << " bytes to "
                                                          << m_blob_filename << "\n";
 
-      // Update the end-of-file pointer
-      this->write_end_of_file_ptr(m_fstream->tellg());
+      // Update the in-memory copy of the end-of-file pointer
+      m_end_of_file_ptr = m_fstream->tellg();
+
+      // The write_count is used to keep track of when we last wrote
+      // the end_of_file_ptr to disk.  We don't want to write this too
+      // often since this will slow down IO, so we only write it every
+      // 10 writes (or when the blob is deconstructed...).
+      ++m_write_count;
+      if (m_write_count % 10 == 0) {
+        this->write_end_of_file_ptr(m_end_of_file_ptr); 
+      }
 
       // Return the base_offset
       return base_offset;

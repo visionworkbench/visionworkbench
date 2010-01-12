@@ -38,13 +38,12 @@ namespace platefile {
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //   write_transaction_id -- the t_id to use for writing the snapshotted tiles.
     //
-    void snapshot(int blob_id, int level, BBox2i const& bbox, 
+    void snapshot(int level, BBox2i const& bbox, 
                   int start_transaction_id, int end_transaction_id, 
                   int write_transaction_id) const;
 
     // Create a full snapshot of every level and every region in the mosaic.
-    void full_snapshot(int blob_id,
-                       int start_transaction_id, 
+    void full_snapshot(int start_transaction_id, 
                        int end_transaction_id, 
                        int write_transaction_id) const;
       

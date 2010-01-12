@@ -202,6 +202,8 @@ namespace platefile {
   class PlateFile {
     boost::shared_ptr<Index> m_index;
     FifoWorkQueue m_queue;
+    boost::shared_ptr<Blob> m_write_blob;
+    int m_write_blob_id;
 
   public:
     PlateFile(std::string url);
@@ -246,18 +248,24 @@ namespace platefile {
       blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
 
       // 2. Open the blob file and read the header
-      Blob blob(blob_filename.str());
-      TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+      boost::shared_ptr<Blob> read_blob;
+      if (m_write_blob && record.blob_id() == m_write_blob_id) {
+        read_blob = m_write_blob;
+      } else {
+        std::ostringstream blob_filename;
+        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+        read_blob.reset(new Blob(blob_filename.str(), true));
+      }
+      TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
 
       // 3. Choose a temporary filename and call BlobIO
       // read_as_file(filename, offset, size) [ offset, size from
       // IndexRecord ]
       filename += "." + header.filetype();
-      blob.read_to_file(filename, record.blob_offset());
+      read_blob->read_to_file(filename, record.blob_offset());
 
       // 4. Return the name of the file
       return filename;
-
     }
 
 
@@ -273,34 +281,41 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int level, int transaction_id, bool exact_transaction_match = false) {
+    TileHeader read(ViewT &view, int col, int row, int level, 
+                    int transaction_id, bool exact_transaction_match = false) {
 
       TileHeader result;
       
       // 1. Call index read_request(col,row,level).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
+      IndexRecord record = m_index->read_request(col, row, level, 
+                                                 transaction_id, exact_transaction_match);
 
-
-      std::ostringstream blob_filename;
-      blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
-      
-      // 2. Open the blob file and read the header
-      Blob blob(blob_filename.str());
-      TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+      // 2. Open the blob file and read the header.  If we are reading
+      // from the same blob as we already have open for writing, we go
+      // ahead and use that already-open file pointer.  Otherwise, we
+      // open the new blob for reading.
+      boost::shared_ptr<Blob> read_blob;
+      if (m_write_blob && record.blob_id() == m_write_blob_id) {
+        read_blob = m_write_blob;
+      } else {
+        std::ostringstream blob_filename;
+        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+        read_blob.reset(new Blob(blob_filename.str(), true));
+      }
+      TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
       
       // 3. Choose a temporary filename and call BlobIO
       // read_as_file(filename, offset, size) [ offset, size from
       // IndexRecord ]
       std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
-      blob.read_to_file(tempfile, record.blob_offset());
+      read_blob->read_to_file(tempfile, record.blob_offset());
       TemporaryTileFile tile(tempfile);
       
       // 4. Read data from temporary file.
       view = tile.read<typename ViewT::pixel_type>();
       
-      // 5. Access the tile header and return it.
-      result = blob.read_header<TileHeader>(record.blob_offset());
-      return result;
+      // 5. Return the tile header.
+      return header;
     }
 
     /// Read one ore more images at a specified location in the
@@ -325,19 +340,23 @@ namespace platefile {
       std::list<std::pair<int32, IndexRecord> >::iterator iter = records.begin();
       while (iter != records.end()) {
         IndexRecord &record = iter->second;
-
-        std::ostringstream blob_filename;
-        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
           
         // 2. Open the blob file and read the header
-        Blob blob(blob_filename.str());
-        TileHeader header = blob.read_header<TileHeader>(record.blob_offset());
+        boost::shared_ptr<Blob> read_blob;
+        if (m_write_blob && record.blob_id() == m_write_blob_id) {
+          read_blob = m_write_blob;
+        } else {
+          std::ostringstream blob_filename;
+          blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+          read_blob.reset(new Blob(blob_filename.str(), true));
+        }
+        TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
           
         // 3. Choose a temporary filename and call BlobIO
         // read_as_file(filename, offset, size) [ offset, size from
         // IndexRecord ]
         std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
-        blob.read_to_file(tempfile, record.blob_offset());
+        read_blob->read_to_file(tempfile, record.blob_offset());
         TemporaryTileFile tile_file(tempfile);
         
         // 4. Read data from temporary file.
@@ -345,7 +364,7 @@ namespace platefile {
         tiles.push_back(tile);
         
         // 5. Access the tile header and return it.
-        results.push_back( blob.read_header<TileHeader>(record.blob_offset()) );
+        results.push_back( header );
         
         ++iter;
       }
@@ -355,17 +374,31 @@ namespace platefile {
     
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write tiles.
-    int write_request(int size) { return m_index->write_request(size); }
+    void write_request(int size) { 
+
+      // Request a blob lock from the index
+      m_write_blob_id = m_index->write_request(size); 
+
+      // Compute blob filename for writing.
+      std::ostringstream blob_filename;
+      blob_filename << this->name() << "/plate_" << m_write_blob_id << ".blob";
+      
+      // Open the blob for writing.
+      m_write_blob.reset( new Blob(blob_filename.str()) );
+    }
 
     /// Writing, pt. 2: Write an image to the specified tile location
     /// in the plate file.  Returns the size (in bytes) written by
     /// this write_update.
     template <class ViewT>
-    void write_update(int blob_id, ImageViewBase<ViewT> const& view, 
+    void write_update(ImageViewBase<ViewT> const& view, 
                       int col, int row, int level, int transaction_id) {      
 
-      // 0. Create a write_header
+      if (!m_write_blob)
+        vw_throw(BlobIoErr() << "Error issueing write_update().  No blob file open.  "
+                 << "Are you sure your ran write_request()?");
 
+      // 0. Create a write_header
       TileHeader write_header;
       write_header.set_col(col);
       write_header.set_row(row);
@@ -378,33 +411,31 @@ namespace platefile {
       std::string tile_filename = tile.file_name();
       int64 file_size = tile.file_size();
 
-      // 2. Make write_request(size) to index. Returns blob id.
-      //      int blob_id = m_index->write_request(file_size);
-      std::ostringstream blob_filename;
-      blob_filename << this->name() << "/plate_" << blob_id << ".blob";
-
       // 3. Create a blob and call write_from_file(filename).  Returns
       // offset, size.  
-      Blob blob(blob_filename.str());
       int64 blob_offset;
-      blob.write_from_file(tile_filename, write_header, blob_offset);
+      m_write_blob->write_from_file(tile_filename, write_header, blob_offset);
 
       // 4. Call write_update(col, row, level, record) to update the
       // index with the new data.
       IndexRecord write_record;
-      write_record.set_blob_id(blob_id);
+      write_record.set_blob_id(m_write_blob_id);
       write_record.set_blob_offset(blob_offset);
       
       m_index->write_update(write_header, write_record);
     }
 
     /// Writing, pt. 3: Signal the completion of the write operation.
-    void write_complete(int blob_id) { 
-      std::ostringstream blob_filename;
-      blob_filename << this->name() << "/plate_" << blob_id << ".blob";
-      Blob blob(blob_filename.str());
+    void write_complete() { 
+      
+      // Fetch the size from the blob.
+      uint64 new_blob_size = m_write_blob->size();
 
-      return m_index->write_complete(blob_id, blob.size()); 
+      // Close the blob for writing.
+      m_write_blob.reset();
+
+      // Release the blob lock.
+      return m_index->write_complete(m_write_blob_id, new_blob_size); 
     }
 
     /// Read a record out of the platefile.  
@@ -418,7 +449,8 @@ namespace platefile {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    IndexRecord read_record(int col, int row, int level, int transaction_id, bool exact_transaction_match = false) {
+    IndexRecord read_record(int col, int row, int level, 
+                            int transaction_id, bool exact_transaction_match = false) {
       return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
     }
 

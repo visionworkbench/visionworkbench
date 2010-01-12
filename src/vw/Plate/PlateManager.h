@@ -49,13 +49,13 @@ namespace platefile {
     //           to be mipmapped at starting_level.  Use to specify affected tiles.
     //   transaction_id -- transaction id to use when reading/writing tiles
     //
-    void mipmap(int blob_id, int starting_level, BBox2i const& bbox, int transaction_id,
+    void mipmap(int starting_level, BBox2i const& bbox, int transaction_id,
                 const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  It is left to a
     /// subclass of PlateManager to implement.
-    virtual void generate_mipmap_tile(int blob_id, int col, int row, int level, int transaction_id) const = 0;
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const = 0;
 
   };    
 
@@ -65,7 +65,6 @@ namespace platefile {
 
   template <class ViewT>
   class WritePlateFileTask : public Task {
-    int m_blob_id;
     boost::shared_ptr<PlateFile> m_platefile;
     int m_transaction_id;
     TileInfo m_tile_info;
@@ -75,14 +74,12 @@ namespace platefile {
     SubProgressCallback m_progress;
       
   public:
-    WritePlateFileTask(int blob_id,
-                       boost::shared_ptr<PlateFile> platefile, 
+    WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
                        int transaction_id,
                        TileInfo const& tile_info, 
                        int level, ImageViewBase<ViewT> const& view,
                        bool verbose, int total_num_blocks, 
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_blob_id(blob_id),
-      m_platefile(platefile), m_transaction_id(transaction_id),
+                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_platefile(platefile), m_transaction_id(transaction_id),
       m_tile_info(tile_info), m_level(level), m_view(view.impl()), 
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
       
@@ -107,8 +104,9 @@ namespace platefile {
       // TODO: This is where we could strip the tile of its alpha
       // channel to save space in the placefile.  This will require a
       // view that strips off the alpha channel.
-      m_platefile->write_update(m_blob_id, tile, 
-                                m_tile_info.i, m_tile_info.j, m_level, m_transaction_id);
+      m_platefile->write_update(tile, 
+                                m_tile_info.i, m_tile_info.j, 
+                                m_level, m_transaction_id);
       m_progress.report_incremental_progress(1.0);
     }
   };
