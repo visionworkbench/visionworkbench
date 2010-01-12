@@ -84,6 +84,30 @@ namespace gui {
   };
 
   // --------------------------------------------------------------------------
+  //                            WEB TILE GENERATOR
+  // --------------------------------------------------------------------------
+
+  class WebTileGenerator : public TileGenerator {
+    int m_tile_size;
+    std::string m_url;
+
+  public:
+    WebTileGenerator(std::string url) : m_tile_size(256), m_url(url) {}
+    virtual ~WebTileGenerator() {}
+
+    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+    virtual Vector2 minmax();
+    virtual PixelRGBA<float> sample(int x, int y);
+
+    virtual int cols() const;
+    virtual int rows() const;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
+    virtual Vector2i tile_size() const;
+    virtual int32 num_levels() const;
+  };
+
+  // --------------------------------------------------------------------------
   //                         PLATE FILE TILE GENERATOR
   // --------------------------------------------------------------------------
 

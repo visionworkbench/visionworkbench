@@ -123,6 +123,12 @@ namespace platefile {
     virtual void sync() {
       vw_throw(NoImplErr() << "Error: sync() is not implemented for remote indices.");
     }
+
+    /// Grab an IndexPage.  Useful if you want to serialize it by hand
+    /// to disk.  Only implemented for local index's.
+    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const {
+      vw_throw(NoImplErr() << "Error: page_request() is not implemented for the remote index.");
+    }
   
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

@@ -12,7 +12,7 @@
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/Exception.h>
 
-#include <google/sparsetable>
+#include <vw/Plate/google/sparsetable>
 #include <string>
 #include <list>
 
@@ -38,6 +38,7 @@ namespace platefile {
                               multi_value_type const& candidates,
                               int col, int row, BBox2i const& region, int min_num_matches) const;
 
+
   public:
   
     /// Create or open a page file.
@@ -48,6 +49,10 @@ namespace platefile {
 
     /// Save any unsaved changes to disk.
     virtual void sync() = 0;
+
+    // For reading/writing to/from disk or a network byte stream.
+    void serialize(std::ostream& ostr);
+    void deserialize(std::istream& istr);
 
     // ----------------------- ITERATORS  ----------------------
 

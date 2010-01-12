@@ -35,6 +35,79 @@ vw::platefile::IndexPage::~IndexPage() {
                                                   << " @ " << m_level << " ]\n";
 }
 
+void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
+  // Part 1: Write out the page size
+  ostr.write((char*)(&m_page_width), sizeof(m_page_width));
+  ostr.write((char*)(&m_page_height), sizeof(m_page_height));
+
+  // Part 2: Write the sparsetable metadata
+  m_sparse_table.write_metadata(&ostr);
+
+  // Part 3: Write sparse entries
+  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
+       it != m_sparse_table.nonempty_end(); ++it) {
+
+    // Iterate over transaction_id list.
+    int32 transaction_list_size = (*it).size();
+    ostr.write((char*)(&transaction_list_size), sizeof(transaction_list_size));
+    
+    multi_value_type::iterator transaction_iter = (*it).begin();
+    while (transaction_iter != (*it).end()) {
+      
+      // Save the transaction id
+      int32 t_id = (*transaction_iter).first;
+      ostr.write((char*)(&t_id), sizeof(t_id));
+      
+      // Save the size of each protobuf, and then serialize it to disk.
+      uint16 protobuf_size = (*transaction_iter).second.ByteSize();
+      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
+      (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
+      ostr.write((char*)(&protobuf_size), sizeof(protobuf_size));
+      ostr.write((char*)(protobuf_bytes.get()), protobuf_size);
+    
+      ++transaction_iter;
+    }
+  }
+}
+
+void vw::platefile::IndexPage::deserialize(std::istream& istr) {
+  // Part 1: Read the page size
+  istr.read((char*)(&m_page_width), sizeof(m_page_width));
+  istr.read((char*)(&m_page_height), sizeof(m_page_height));
+
+  // Part 2: Read the sparsetable metadata
+  m_sparse_table.read_metadata(&istr);
+
+  // Part 3: Read sparse entries
+  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
+       it != m_sparse_table.nonempty_end(); ++it) {
+
+    // Iterate over transaction_id list.
+    int32 transaction_list_size;
+    istr.read((char*)(&transaction_list_size), sizeof(transaction_list_size));
+    
+    new (&(*it)) multi_value_type();
+    for (int tid = 0; tid < transaction_list_size; ++tid) {
+
+      // Read the transaction id
+      int32 t_id;
+      istr.read((char*)(&t_id), sizeof(t_id));
+
+      // Read the size (in bytes) of this protobuffer and then read
+      // the protobuffer and deserialize it.
+      uint16 protobuf_size;
+      istr.read((char*)(&protobuf_size), sizeof(protobuf_size));
+      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
+      istr.read((char*)(protobuf_bytes.get()), protobuf_size);
+      IndexRecord rec;
+      if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
+        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry."); 
+      
+      (*it).push_back(std::pair<int32, IndexRecord>(t_id, rec));
+    }
+  }
+}
+
 // ----------------------- ACCESSORS  ----------------------
 
 void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& record) {
@@ -95,14 +168,13 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
 vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row, 
                                                          int transaction_id, 
                                                          bool exact_match) const {
-  
-  // Basic bounds checking
-  VW_ASSERT(col >= 0 && col < m_page_width && row >= 0 && row < m_page_height, 
-            TileNotFoundErr() << "IndexPage::get() failed.  Invalid index [" 
-            << col << " " << row << "]");
+
+  // Compute page_col and row
+  int32 page_col = col % m_page_width;
+  int32 page_row = row % m_page_height;
 
   // Interate over entries.
-  multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
   
   // A transaction ID of -1 indicates that we should return the most
@@ -141,18 +213,21 @@ vw::platefile::IndexPage::multi_get(int col, int row,
                                     int start_transaction_id, 
                                     int end_transaction_id) const {
 
+  int32 page_col = col % m_page_width;
+  int32 page_row = row % m_page_height;
+
   // Basic bounds checking
-  VW_ASSERT(col >= 0 && col < m_page_width && row >= 0 && row < m_page_height, 
+  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height, 
             TileNotFoundErr() << "IndexPage::multi_get() failed.  Invalid index [" 
-            << col << " " << row << "]");
+            << page_col << " " << page_row << "]");
 
   // Check first to make sure that there are actually tiles at this location.
-  if (!m_sparse_table.test(row*m_page_width + col)) 
+  if (!m_sparse_table.test(page_row*m_page_width + page_col)) 
     vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
     
   // If there are, then we apply the transaction_id filters to select the requested ones.
   multi_value_type results;
-  multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
   while (it != entries.end() && it->first >= start_transaction_id) {
     //    std::cout << "Comparing: " << (it->first) << " and " << start_transaction_id << " <-> " << end_transaction_id << "\n";

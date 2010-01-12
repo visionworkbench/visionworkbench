@@ -14,8 +14,6 @@
 #include <vw/Plate/BlobManager.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
-#include <google/sparsetable>
-
 #include <vector>
 #include <string>
 #include <list>
@@ -45,6 +43,9 @@ namespace platefile {
 
     /// Sync any unsaved data in the index to disk.
     void sync();
+
+    /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
+    boost::shared_ptr<IndexPage> get_page(int col, int row) const;
 
     /// Fetch the value of an index node at this level.
     IndexRecord get(int32 col, int32 row, int32 transaction_id, bool exact_match = false) const;
@@ -99,6 +100,9 @@ namespace platefile {
     virtual void sync();
 
     // ----------------------- READ/WRITE REQUESTS  ----------------------
+
+    /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
+    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const;
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

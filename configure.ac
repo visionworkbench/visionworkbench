@@ -318,7 +318,7 @@ if test "$ENABLE_QT_QMAKE" = no; then
   AX_GROUP_PKG([QT_QMAKE])
 else
   # Qt with AutoTroll.
-  AT_WITH_QT([+gui +sql +opengl], [], [], [HAVE_PKG_QT_QMAKE="no:missing QT"], [])
+  AT_WITH_QT([+gui +sql +opengl +network], [], [], [HAVE_PKG_QT_QMAKE="no:missing QT"], [])
 
   if test x"$HAVE_PKG_QT_QMAKE" != x"no:missing QT"; then
       AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_QMAKE="no:wrong QT version"], [])
@@ -346,15 +346,17 @@ AX_PKG_ONE_OF(QT,
      [AX_PKG(QT_QMAKE_OPENGL, [QT_QMAKE], [], [QtOpenGL])
       AX_PKG(QT_QMAKE_GUI,    [QT_QMAKE], [], [QLabel])
       AX_PKG(QT_QMAKE_SQL,    [QT_QMAKE], [], [QtSql])
-      AX_GROUP_PKG(LINUX_QMAKE_QT, [QT_QMAKE QT_QMAKE_GUI QT_QMAKE_OPENGL QT_QMAKE_SQL])],
+      AX_PKG(QT_QMAKE_NETWORK,    [QT_QMAKE], [], [QtNetwork])
+      AX_GROUP_PKG(LINUX_QMAKE_QT, [QT_QMAKE QT_QMAKE_GUI QT_QMAKE_OPENGL QT_QMAKE_SQL QT_QMAKE_NETWORK])],
     GUESS_QT,
      [PKG_QT_GUESS_BASE_CPPFLAGS="$PKG_QT_GUESS_BASE_CPPFLAGS -DQT_SHARED"
       AX_PKG(QT_GUESS_BASE,   [],                           [],           [QtCore/qstring.h])
       AX_PKG(QT_GUESS_CORE,   [QT_GUESS_BASE],              [-lQtCore],   [QtCore],   [QtCore])
       AX_PKG(QT_GUESS_GUI,    [QT_GUESS_CORE],              [-lQtGui],    [QtGui],    [QtGui])
       AX_PKG(QT_GUESS_SQL,    [QT_GUESS_CORE],              [-lQtSql],    [QtSql],    [QtSql])
+      AX_PKG(QT_GUESS_NETWORK,[QT_GUESS_CORE],              [-lQtNetwork],[QtNetwork],[QtNetwork])
       AX_PKG(QT_GUESS_OPENGL, [QT_GUESS_CORE QT_GUESS_GUI], [-lQtOpenGL], [QtOpenGL], [QtOpenGL])
-      AX_GROUP_PKG(GUESS_QT,  [QT_GUESS_BASE QT_GUESS_CORE QT_GUESS_GUI QT_GUESS_SQL QT_GUESS_OPENGL])])
+      AX_GROUP_PKG(GUESS_QT,  [QT_GUESS_BASE QT_GUESS_CORE QT_GUESS_GUI QT_GUESS_SQL QT_GUESS_NETWORK QT_GUESS_OPENGL])])
 
 PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
   PKG_CAIROMM_CPPFLAGS="$PKG_CAIROMM_CPPFLAGS $CAIROMM_CFLAGS"
@@ -363,7 +365,6 @@ AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 
 AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
 AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
-AX_PKG(SPARSEHASHMAP, [], [], [google/sparsetable])
 AX_PKG(TCMALLOC, [], [-ltcmalloc], [])
 
 # These are here (instead of inside the PKG macro where they belong)
@@ -417,7 +418,7 @@ if test $host_vendor = apple; then
 else
   AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
 fi
-AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW], [RABBITMQ_C PROTOBUF SPARSEHASHMAP BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [TCMALLOC])
+AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [TCMALLOC])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE(GUI,   [src/vw/gui],   [], no, [PLATE VW], [QT BOOST_PROGRAM_OPTIONS GL])

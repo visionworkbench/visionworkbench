@@ -67,92 +67,34 @@ void vw::platefile::LocalIndexPage::serialize() {
     vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
   }
 
-  FILE *f = fopen(m_filename.c_str(), "w");
-  if (!f)
+  std::ofstream ostr(m_filename.c_str(), std::ios::trunc);
+  if (!ostr.good())
     vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " 
              << m_filename << " for writing.\n");
 
-  // Part 1: Write out the page size
-  fwrite(&m_page_width, sizeof(m_page_width), 1, f);
-  fwrite(&m_page_height, sizeof(m_page_height), 1, f);
+  // Call up to superclass to finish serializing.
+  IndexPage::serialize(ostr);
 
-  // Part 2: Write the sparsetable metadata
-  m_sparse_table.write_metadata(f);
-
-  // Part 3: Write sparse entries
-  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
-       it != m_sparse_table.nonempty_end(); ++it) {
-
-    // Iterate over transaction_id list.
-    int32 transaction_list_size = (*it).size();
-    fwrite(&transaction_list_size, sizeof(transaction_list_size), 1, f);
-    
-    multi_value_type::iterator transaction_iter = (*it).begin();
-    while (transaction_iter != (*it).end()) {
-      
-      // Save the transaction id
-      int32 t_id = (*transaction_iter).first;
-      fwrite(&t_id, sizeof(t_id), 1, f);
-      
-      // Save the size of each protobuf, and then serialize it to disk.
-      uint16 protobuf_size = (*transaction_iter).second.ByteSize();
-      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
-      (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
-      fwrite(&protobuf_size, sizeof(protobuf_size), 1, f);
-      fwrite(protobuf_bytes.get(), 1, protobuf_size, f);
-    
-      ++transaction_iter;
-    }
-  }
-
-  fclose(f);
+  ostr.close();
   m_needs_saving = false;
 }
 
 void vw::platefile::LocalIndexPage::deserialize() {
 
-  FILE *f = fopen(m_filename.c_str(), "r");
-  if (!f)
+  std::ifstream istr(m_filename.c_str());
+  if (!istr.good())
     vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open " 
              << m_filename << " for reading.\n");
-
-  // Part 1: Read the page size
-  fread(&m_page_width, sizeof(m_page_width), 1, f);
-  fread(&m_page_height, sizeof(m_page_height), 1, f);
-
-  // Part 2: Read the sparsetable metadata
-  m_sparse_table.read_metadata(f);
-
-  // Part 3: Read sparse entries
-  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
-       it != m_sparse_table.nonempty_end(); ++it) {
-
-    // Iterate over transaction_id list.
-    int32 transaction_list_size;
-    fread(&transaction_list_size, sizeof(transaction_list_size), 1, f);
-    
-    new (&(*it)) multi_value_type();
-    for (int tid = 0; tid < transaction_list_size; ++tid) {
-
-      // Read the transaction id
-      int32 t_id;
-      fread(&t_id, sizeof(t_id), 1, f);
-
-      // Read the size (in bytes) of this protobuffer and then read
-      // the protobuffer and deserialize it.
-      uint16 protobuf_size;
-      fread(&protobuf_size, sizeof(protobuf_size), 1, f);
-      boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
-      fread(protobuf_bytes.get(), 1, protobuf_size, f);
-      IndexRecord rec;
-      if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
-        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in " 
-                 << m_filename << ".");
-      
-      (*it).push_back(std::pair<int32, IndexRecord>(t_id, rec));
-    }
+  
+  // Call up to superclass to finish deserializing.
+  try {
+    IndexPage::deserialize(istr);
+  } catch (vw::IOErr &e) {
+    // Add more useful error reporting.
+    vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in " 
+             << m_filename << ".");
   }
-  fclose(f);    
+
   m_needs_saving = false;
 } 
 

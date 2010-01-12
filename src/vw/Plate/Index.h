@@ -13,6 +13,7 @@
 #include <vw/Math/BBox.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/IndexPage.h>
 
 #include <list>
 
@@ -50,6 +51,10 @@ namespace platefile {
     virtual void sync() = 0;
 
     // -------------------------- I/O ---------------------------
+
+    /// Grab an IndexPage.  Useful if you want to serialize it by hand
+    /// to disk. 
+    boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const;
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.

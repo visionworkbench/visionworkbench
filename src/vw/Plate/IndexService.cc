@@ -6,6 +6,7 @@
 
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Plate/IndexPage.h>
 using namespace vw::platefile;
 
 #include <boost/regex.hpp>
@@ -225,6 +226,26 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* controller
 
   //  std::cout << "SENDING ListRequest response : " << response->DebugString() << "\n";
 
+  done->Run();
+}
+
+void IndexServiceImpl::PageRequest(::google::protobuf::RpcController* controller,
+                                   const IndexPageRequest* request,
+                                   IndexPageReply* response,
+                                   ::google::protobuf::Closure* done) {
+
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+    
+  // Access the data in the index.  Return the data on success, or
+  // notify the remote client of our failure if we did not succeed.
+  boost::shared_ptr<IndexPage> page = rec.index->page_request(request->col(), 
+                                                              request->row(), 
+                                                              request->level());
+
+  std::ostringstream ostr;
+  page->serialize(ostr);
+  response->set_page_bytes(ostr.str().c_str(), ostr.str().size());
   done->Run();
 }
 

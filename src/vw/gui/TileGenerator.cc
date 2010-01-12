@@ -11,6 +11,11 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
+#include <QUrl>
+#include <QBuffer>
+#include <QImage>
+#include <QHttp>
+
 using namespace vw;
 using namespace vw::gui;
 using namespace vw::platefile;
@@ -83,6 +88,11 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 
     return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(filename) );
 
+  // If begins with http://, then assume web tiles.
+  } else if ( filename.find("http://") == 0) {
+
+    return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename) );
+
   // If testpattern, then we use the testpattern tile generator
   } else if (filename == "testpattern") {
 
@@ -101,13 +111,13 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 // --------------------------------------------------------------------------
 
 boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& tile_info) {
-  ImageView<PixelRGBA<float> > tile(m_tile_size, m_tile_size);
+  ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
   for (unsigned j = 0; j < m_tile_size; ++j){
     for (unsigned i = 0; i < m_tile_size; ++i){
       if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
-        tile(i,j) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
+        tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
       else 
-        tile(i,j) = PixelRGBA<float>(0.0,0.0,0.0,1.0);
+        tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
     }
   }
   boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
@@ -124,11 +134,74 @@ PixelRGBA<float32> TestPatternTileGenerator::sample(int x, int y) {
 int TestPatternTileGenerator::cols() const { return 2048; }
 int TestPatternTileGenerator::rows() const { return 2048; }
 PixelFormatEnum TestPatternTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
-ChannelTypeEnum TestPatternTileGenerator::channel_type() const { return VW_CHANNEL_FLOAT32; }
+ChannelTypeEnum TestPatternTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
 Vector2i TestPatternTileGenerator::tile_size() const { 
   return Vector2i(m_tile_size, m_tile_size); 
 }
 int32 TestPatternTileGenerator::num_levels() const {
+  return 4;
+}
+
+// --------------------------------------------------------------------------
+//                            WEB TILE GENERATOR
+// --------------------------------------------------------------------------
+
+boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
+  
+  // std::ostringstream full_url;
+  // full_url << m_url << "/" << tile_info.level 
+  //          << "/" << tile_info.row 
+  //          << "/" << tile_info.col << ".png";
+  // std::cout << "Fetching " << full_url.str() << "\n";
+  
+  // std::string test = "http://farm4.static.flickr.com/3265/2770466796_f50268e1a2_s.jpg";
+
+  // QUrl url(test.c_str());
+  // QHttp *http = new QHttp(NULL);
+  // QByteArray bytes;
+  // QBuffer *buffer = new QBuffer(&bytes);
+  // buffer->open(QIODevice::WriteOnly);
+  // http->setHost(url.host());
+  // int Request=http->get (url.path(),buffer);
+  // while (http->hasPendingRequests()) 
+  //   std::cout << "Waiting...\n";
+
+  // if (Request=requestId){
+  //   QImage img;
+  //   img.loadFromData(bytes);
+  // }
+
+  // std::cout << "\t [ " << image.width() << " x " << image.height() << "   " << 
+  //   (image.bytesPerLine() / image.width()) << " bytes per pixel.";
+
+  ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
+  for (unsigned j = 0; j < m_tile_size; ++j){
+    for (unsigned i = 0; i < m_tile_size; ++i){
+      if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
+        tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
+      else 
+        tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
+    }
+  }
+  boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
+  return result;
+}
+
+Vector2 WebTileGenerator::minmax() { return Vector2(0.0, 1.0); }
+
+PixelRGBA<float32> WebTileGenerator::sample(int x, int y) {
+  PixelRGBA<float32> result;
+  return result;
+}
+
+int WebTileGenerator::cols() const { return 2048; }
+int WebTileGenerator::rows() const { return 2048; }
+PixelFormatEnum WebTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
+ChannelTypeEnum WebTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
+Vector2i WebTileGenerator::tile_size() const { 
+  return Vector2i(m_tile_size, m_tile_size); 
+}
+int32 WebTileGenerator::num_levels() const {
   return 4;
 }
 
