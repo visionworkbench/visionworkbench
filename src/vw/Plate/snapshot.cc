@@ -277,7 +277,7 @@ int main( int argc, char *argv[] ) {
       int t = platefile->transaction_request(start_description, transaction_id);
       vw_out(0) << "Transaction started with ID = " << t << "\n";
       vw_out(0) << "Plate has " << platefile->num_levels() << " levels.\n";
-      exit(transaction_id);
+      exit(0);
     }
 
     if (vm.count("finish")) {
