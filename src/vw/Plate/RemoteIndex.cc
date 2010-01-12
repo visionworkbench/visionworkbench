@@ -227,14 +227,18 @@ void vw::platefile::RemoteIndex::write_update(TileHeader const& header, IndexRec
 }
 
 void vw::platefile::RemoteIndex::flush_write_queue() const { 
-  IndexMultiWriteUpdate request;
-  while (m_write_queue.size() > 0) {
-    *(request.mutable_write_updates()->Add()) = m_write_queue.front();
-    m_write_queue.pop();
+  if (m_write_queue.size() > 0) {
+
+    IndexMultiWriteUpdate request;
+    while (m_write_queue.size() > 0) {
+      *(request.mutable_write_updates()->Add()) = m_write_queue.front();
+      m_write_queue.pop();
+    }
+    RpcNullMessage response;
+    m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, 
+                                      google::protobuf::NewCallback(&null_closure));
+
   }
-  RpcNullMessage response;
-  m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, 
-                                    google::protobuf::NewCallback(&null_closure));
 }
 
 /// Writing, pt. 3: Signal the completion 

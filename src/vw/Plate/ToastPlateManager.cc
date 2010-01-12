@@ -16,41 +16,33 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
   int32 num_tiles = 1 << level;
   if( x==-1 ) {
     if( y==-1 ) {
-      return fetch_child_tile(num_tiles-1, num_tiles-1, level,
-                              transaction_id);
+      return fetch_child_tile(num_tiles-1, num_tiles-1, level, transaction_id);
     }
     if( y==num_tiles ) {
-      return fetch_child_tile(num_tiles-1, 0, level,
-                              transaction_id);
+      return fetch_child_tile(num_tiles-1, 0, level, transaction_id);
     }
-    ImageView<PixelT> tile = fetch_child_tile(0, num_tiles-1-y, level, 
-                                              transaction_id);
+    ImageView<PixelT> tile = fetch_child_tile(0, num_tiles-1-y, level, transaction_id);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( x==num_tiles ) {
     if( y==-1 ) {
-      return fetch_child_tile(0, num_tiles-1, level,
-                              transaction_id);
+      return fetch_child_tile(0, num_tiles-1, level, transaction_id);
     }
     if( y==num_tiles ) {
-      return fetch_child_tile(0, 0, level,
-                              transaction_id);
+      return fetch_child_tile(0, 0, level, transaction_id);
     }
-    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1, num_tiles-1-y, level,
-                                              transaction_id);
+    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1, num_tiles-1-y, level, transaction_id);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==-1 ) {
-    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1-x, 0, level,
-                                              transaction_id);
+    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1-x, 0, level, transaction_id);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
   if( y==num_tiles ) {
-    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1-x, num_tiles-1, level,
-                                              transaction_id);
+    ImageView<PixelT> tile = fetch_child_tile(num_tiles-1-x, num_tiles-1, level, transaction_id);
     if( tile ) return rotate_180(tile);
     else return tile;
   }
@@ -64,7 +56,7 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
       CacheEntry e = *i;
       m_cache.erase(i);
       m_cache.push_front(e);
-      vw_out(VerboseDebugMessage, "platefile") << "Cached tile at " << x << " " << y << " " << level << "\n";
+      vw_out(VerboseDebugMessage, "platefile") << "Found cached tile at " << x << " " << y << " " << level << "\n";
       return e.tile;
     }
   }

@@ -33,10 +33,9 @@ void vw::platefile::AmqpRpcServer::run() {
       RpcRequestWrapper request_wrapper;
       try {
         this->get_message(request_wrapper, -1);
-        if (m_debug)
-          vw_out(0) << "[RPC: " << request_wrapper.method() 
-                    << " from " << request_wrapper.requestor() 
-                    << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
+        vw_out(DebugMessage, "platefile::rpc") << "[RPC: " << request_wrapper.method() 
+                                               << " from " << request_wrapper.requestor() 
+                                               << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
       } catch (const vw::platefile::RpcErr&e) {
         vw_out(0) << "Invalid RPC, ignoring." << std::endl;
         continue;
@@ -126,7 +125,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
   AmqpRpcEndpoint* real_controller = dynamic_cast<AmqpRpcEndpoint*>(controller);
   if (!real_controller)
     vw_throw(LogicErr() << "AmqpRpcClient::CallMethod(): Unknown RpcController");
-
+  
   // For debugging:
   //  std::cout << "Request: " << request->DebugString() << "\n";
 
@@ -147,6 +146,13 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
     // Set the sequence number and send the message.
     request_seq = ++m_sequence_number;
     request_wrapper.set_sequence_number(request_seq);
+
+    // For debugging:
+    vw_out(DebugMessage, "platefile::rpc") << "[ RPC: " << request_wrapper.method() 
+                                           << " from " << request_wrapper.requestor() 
+                                           << "  SEQ: " << request_wrapper.sequence_number() << " ]\n";
+
+    // Send the message
     real_controller->send_message(request_wrapper, m_request_routing_key);
 
     // Try to get the message.  If we succed, check the sequence number.

@@ -50,6 +50,7 @@ void vw::platefile::PlateManager::mipmap(int blob_id, int starting_level, vw::BB
   sum_denom = 4.0;
   float prev_num_tiles = 0;
   for ( int level = starting_level-1; level >= 0; --level) {
+    std::cout << "Processing level " << level << "\n";
     
     // Do a little progress callback math.
     current_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
