@@ -137,7 +137,6 @@ message IndexWriteUpdate {
 }
 
 message IndexMultiWriteUpdate {
-  required int32 platefile_id = 1;
   repeated IndexWriteUpdate write_updates = 2;
 }
 

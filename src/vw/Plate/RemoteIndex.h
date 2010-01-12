@@ -26,6 +26,10 @@ namespace platefile {
     boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
     boost::shared_ptr<IndexService> m_index_service;
   
+    // For packetizing write requests.
+    mutable std::queue<IndexWriteUpdate> m_write_queue;
+    void flush_write_queue() const;
+
   public:
     /// Constructor (for opening an existing index)
     RemoteIndex(std::string const& url);

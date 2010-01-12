@@ -143,7 +143,9 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
 
 
 /// Destructor
-vw::platefile::RemoteIndex::~RemoteIndex() {}
+vw::platefile::RemoteIndex::~RemoteIndex() {
+  this->flush_write_queue();
+}
   
 
 
@@ -151,6 +153,8 @@ vw::platefile::RemoteIndex::~RemoteIndex() {}
 /// TileNotFoundErr if the tile cannot be found.
 vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int row, int level, 
                                                                     int transaction_id, bool exact_transaction_match) {
+  this->flush_write_queue();
+
   IndexReadRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_col(col);
@@ -168,6 +172,8 @@ vw::platefile::IndexRecord vw::platefile::RemoteIndex::read_request(int col, int
 std::list<std::pair<int32, IndexRecord> > vw::platefile::RemoteIndex::multi_read_request(int col, int row, int level, 
                                                                                          int begin_transaction_id, 
                                                                                          int end_transaction_id) {
+  this->flush_write_queue();
+
   IndexMultiReadRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_col(col);
@@ -212,14 +218,29 @@ void vw::platefile::RemoteIndex::write_update(TileHeader const& header, IndexRec
   request.set_platefile_id(m_platefile_id);
   *(request.mutable_header()) = header;
   *(request.mutable_record()) = record;
+  m_write_queue.push(request);
 
+  const int max_pending_write_updates = 10;
+  if (m_write_queue.size() >= max_pending_write_updates) { 
+    this->flush_write_queue();
+  }
+}
+
+void vw::platefile::RemoteIndex::flush_write_queue() const { 
+  IndexMultiWriteUpdate request;
+  while (m_write_queue.size() > 0) {
+    *(request.mutable_write_updates()->Add()) = m_write_queue.front();
+    m_write_queue.pop();
+  }
   RpcNullMessage response;
-  m_index_service->WriteUpdate(m_rpc_controller.get(), &request, &response, 
-                               google::protobuf::NewCallback(&null_closure));
+  m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, 
+                                    google::protobuf::NewCallback(&null_closure));
 }
 
 /// Writing, pt. 3: Signal the completion 
 void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
+  this->flush_write_queue();
+
   IndexWriteComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_blob_id(blob_id);
@@ -234,6 +255,8 @@ std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i 
                                                               int begin_transaction_id, 
                                                               int end_transaction_id,
                                                               int min_num_matches) const {
+  this->flush_write_queue();
+
   IndexValidTilesRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_level(level);
@@ -257,9 +280,10 @@ std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i 
 }
   
 vw::int32 vw::platefile::RemoteIndex::num_levels() const { 
+  this->flush_write_queue();
+
   IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);
-  
   IndexNumLevelsReply response;
   m_index_service->NumLevelsRequest(m_rpc_controller.get(), &request, &response, 
                                     google::protobuf::NewCallback(&null_closure));
@@ -315,6 +339,8 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuding a transaction_complete method.
 void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
+  this->flush_write_queue();
+
   IndexTransactionComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
@@ -327,6 +353,8 @@ void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id, bool
 
 // If a transaction fails, we may need to clean up the mosaic.  
 void vw::platefile::RemoteIndex::transaction_failed(int32 transaction_id) {
+  this->flush_write_queue();
+
   IndexTransactionFailed request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
