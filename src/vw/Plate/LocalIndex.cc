@@ -18,6 +18,7 @@ using namespace vw::platefile;
 #include <boost/regex.hpp>
 #include <algorithm>
 namespace fs = boost::filesystem;
+
 // ----------------------------------------------------------------------
 //                         LOCAL INDEX PAGE
 // ----------------------------------------------------------------------
@@ -30,9 +31,7 @@ vw::platefile::LocalIndexPage::LocalIndexPage(std::string filename,
 
   if (fs::exists(filename)) {
     this->deserialize();
-  } else {
-    m_sparse_table.resize(page_width*page_height);
-  }
+  } 
 }
 
 vw::platefile::LocalIndexPage::~LocalIndexPage() {
@@ -41,16 +40,14 @@ vw::platefile::LocalIndexPage::~LocalIndexPage() {
 
 // Hijack this method momentartarily to mark the page as "dirty" by
 // setting m_needs_saving to true.
-void vw::platefile::LocalIndexPage::set(IndexRecord const& record, 
-                                        int col, int row, int transaction_id) {
+void vw::platefile::LocalIndexPage::set(TileHeader const& header, IndexRecord const& record) { 
   
   // First call up to the parent class and let the original code run.
-  IndexPage::set(record, col, row, transaction_id);
+  IndexPage::set(header, record);
 
   // Then, mark this page is 'dirty' so that it gets saved to disk
   // when destroyed.
   m_needs_saving = true;
-
 }
 
 void vw::platefile::LocalIndexPage::sync() {
@@ -171,7 +168,6 @@ vw::platefile::LocalPageGenerator::LocalPageGenerator( std::string filename,
   m_page_width(page_width), m_page_height(page_height) {}  
 
 boost::shared_ptr<vw::platefile::IndexPage> 
-
 vw::platefile::LocalPageGenerator::generate() const {
   return boost::shared_ptr<IndexPage>(new LocalIndexPage(m_filename, m_level, 
                                                          m_base_col, m_base_row,
@@ -445,7 +441,7 @@ void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
       IndexRecord rec;
       rec.set_blob_id(current_blob_id);
       rec.set_blob_offset(iter.current_base_offset());
-      this->commit_record(rec, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
+      this->commit_record(hdr, rec);
       tpc.report_progress(float(iter.current_base_offset()) / blob.size());
       ++iter;
     }
@@ -453,15 +449,15 @@ void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
   }
 }
 
-void vw::platefile::LocalIndex::commit_record(IndexRecord const& record, 
-                                              int col, int row, 
-                                              int level, int transaction_id) {
+
+void vw::platefile::LocalIndex::commit_record(TileHeader const& header,
+                                              IndexRecord const& record) {
 
   // First, we check to make sure we have a sufficient number of
   // levels to save the requested data.  If not, we grow the levels
   // vector to the correct size.
   int starting_size = m_levels.size();
-  while (m_levels.size() <= level) {
+  while (m_levels.size() <= header.level()) {
     boost::shared_ptr<PageGeneratorFactory> page_gen_factory;
     page_gen_factory.reset(new LocalPageGeneratorFactory(this->platefile_name()));
     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(page_gen_factory,
@@ -476,7 +472,7 @@ void vw::platefile::LocalIndex::commit_record(IndexRecord const& record,
     this->save_index_file();
   }
 
-  m_levels[level]->set(record, col, row, transaction_id);
+  m_levels[header.level()]->set(header, record);
 }
 
 // -----------------------    I/O      ----------------------

@@ -106,22 +106,20 @@ vw::platefile::IndexLevel::multi_get(int32 col,
 }
 
 /// Set the value of an index node at this level.
-void vw::platefile::IndexLevel::set(vw::platefile::IndexRecord const& rec, 
-                                    int32 col, int32 row, int32 transaction_id) {
+void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header, 
+                                    vw::platefile::IndexRecord const& rec) {
 
-  VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
+  VW_ASSERT( header.col() >= 0 && header.row() >= 0 && 
+             header.col() < pow(2,m_level) && header.row() < pow(2,m_level), 
              TileNotFoundErr() << "IndexLevel::set() failed.  Invalid index [ " 
-             << col << " " << row << " @ level " << m_level << "]" );
+             << header.col() << " " << header.row() << " @ level " << m_level << "]" );
   
-  int32 level_col = col / m_page_width;
-  int32 level_row = row / m_page_height;
-  int32 page_col = col % m_page_width;
-  int32 page_row = row % m_page_height;
+  int32 level_col = header.col() / m_page_width;
+  int32 level_row = header.row() / m_page_height;
   
   // Access the page.  This will load it into memory if necessary.
   boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
-  page->set(rec, page_col, page_row, transaction_id);
-
+  page->set(header, rec);
 }
 
 /// Returns a list of valid tiles at this level.
@@ -211,8 +209,7 @@ vw::platefile::PagedIndex::multi_read_request(int col, int row, int level,
 
 
 void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
-  this->commit_record(record, header.col(), header.row(), 
-                      header.level(), header.transaction_id());
+  this->commit_record(header, record);
 }
 
 

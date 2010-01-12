@@ -9,11 +9,90 @@
 #define __VW_PLATE_REMOTE_INDEX_H__
 
 #include <vw/Plate/Index.h>
+#include <vw/Plate/IndexPage.h>
 #include <vw/Plate/Amqp.h>
 #include <vw/Plate/RpcServices.h>
 
 namespace vw {
 namespace platefile {
+
+  // ----------------------------------------------------------------------
+  //                         LOCAL INDEX PAGE
+  // ----------------------------------------------------------------------
+
+  class RemoteIndexPage : public IndexPage {
+    int m_platefile_id;
+    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
+    boost::shared_ptr<IndexService> m_index_service;
+    std::queue<IndexWriteUpdate> m_write_queue;
+
+    void flush_write_queue();
+
+  public:
+    
+    RemoteIndexPage(int platefile_id, 
+                    boost::shared_ptr<AmqpRpcClient> rpc_controller,
+                    boost::shared_ptr<IndexService> index_service,
+                    int level, int base_col, int base_row, 
+                    int page_width, int page_height);
+
+    virtual ~RemoteIndexPage();
+
+    /// Set the value of an entry in the RemoteIndexPage.
+    virtual void set(TileHeader const& header, IndexRecord const& record);
+
+    /// Save any unsaved changes to disk.
+    virtual void sync();
+  };
+
+  // ----------------------------------------------------------------------
+  //                       REMOTE INDEX PAGE GENERATOR
+  // ----------------------------------------------------------------------
+
+  // IndexPageGenerator loads a index page from disk.
+  class RemotePageGenerator : public PageGeneratorBase {
+    int m_platefile_id;
+    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
+    boost::shared_ptr<IndexService> m_index_service;
+    int m_level, m_base_col, m_base_row;
+    int m_page_width, m_page_height;
+
+  public:
+    typedef IndexPage value_type;
+    RemotePageGenerator( int platefile_id, 
+                         boost::shared_ptr<AmqpRpcClient> rpc_controller,
+                         boost::shared_ptr<IndexService> index_service,
+                         int level, int base_col, int base_row, 
+                         int page_width, int page_height );
+    virtual ~RemotePageGenerator() {}
+
+    /// Generate an IndexPage.  If no IndexPage exists on the Remote
+    /// Server by this name, an empty IndexPage is generated.
+    virtual boost::shared_ptr<IndexPage> generate() const;
+  };
+
+  /// The RemotePageGeneratorFactory creates a generator that can
+  /// produce pages from a file on disk.
+  class RemotePageGeneratorFactory : public PageGeneratorFactory {
+    int m_platefile_id;
+    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
+    boost::shared_ptr<IndexService> m_index_service;
+
+  public:
+    RemotePageGeneratorFactory(int platefile_id, 
+                               boost::shared_ptr<AmqpRpcClient> rpc_controller,
+                               boost::shared_ptr<IndexService> index_service) : 
+      m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
+      m_index_service(index_service) {}
+    virtual ~RemotePageGeneratorFactory() {}
+
+    virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
+                                                         int page_width, int page_height);
+  };
+
+  // -------------------------------------------------------------------
+  //                            REMOTE INDEX
+  // -------------------------------------------------------------------
 
   class RemoteIndex : public Index {
   

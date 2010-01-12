@@ -69,6 +69,103 @@ void parse_url(std::string const& url, std::string &hostname, int &port,
 
 }
 
+// ----------------------------------------------------------------------
+//                         REMOTE INDEX PAGE
+// ----------------------------------------------------------------------
+
+vw::platefile::RemoteIndexPage::RemoteIndexPage(int platefile_id, 
+                                                boost::shared_ptr<AmqpRpcClient> rpc_controller,
+                                                boost::shared_ptr<IndexService> index_service,
+                                                int level, int base_col, int base_row, 
+                                                int page_width, int page_height) :
+  IndexPage(level, base_col, base_row, page_width, page_height),
+  m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
+  m_index_service(index_service) {
+
+}
+
+vw::platefile::RemoteIndexPage::~RemoteIndexPage() {
+  this->sync();
+}
+
+// Hijack this method momentartarily to mark the page as "dirty" by
+// setting m_needs_saving to true.
+void vw::platefile::RemoteIndexPage::set(TileHeader const& header, IndexRecord const& record) {
+  
+  // First call up to the parent class and let the original code run.
+  IndexPage::set(header, record);
+
+  // Save this write request to the queue, and flush the queue if it has gotten too full.
+  IndexWriteUpdate request;
+  request.set_platefile_id(m_platefile_id);
+  *(request.mutable_header()) = header;
+  *(request.mutable_record()) = record;
+  m_write_queue.push(request);
+  this->flush_write_queue();
+}
+
+void vw::platefile::RemoteIndexPage::flush_write_queue() {
+  if (m_write_queue.size() > 0) {
+
+    IndexMultiWriteUpdate request;
+    while (m_write_queue.size() > 0) {
+      *(request.mutable_write_updates()->Add()) = m_write_queue.front();
+      m_write_queue.pop();
+    }
+    RpcNullMessage response;
+    m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, 
+                                      google::protobuf::NewCallback(&null_closure));
+
+  }
+}
+
+void vw::platefile::RemoteIndexPage::sync() {
+  this->flush_write_queue();
+}
+
+// ----------------------------------------------------------------------
+//                    REMOTE INDEX PAGE GENERATOR
+// ----------------------------------------------------------------------
+
+vw::platefile::RemotePageGenerator::RemotePageGenerator( int platefile_id, 
+                                                         boost::shared_ptr<AmqpRpcClient> rpc_controller,
+                                                         boost::shared_ptr<IndexService> index_service,
+                                                         int level, int base_col, int base_row, 
+                                                         int page_width, int page_height) : 
+  m_platefile_id(platefile_id), m_rpc_controller(rpc_controller), 
+  m_index_service(index_service), m_level(level), 
+  m_base_col(base_col), m_base_row(base_row),
+  m_page_width(page_width), m_page_height(page_height) {}  
+
+boost::shared_ptr<vw::platefile::IndexPage> 
+vw::platefile::RemotePageGenerator::generate() const {
+  return boost::shared_ptr<IndexPage>(new RemoteIndexPage(m_platefile_id, m_rpc_controller,
+                                                          m_index_service, 
+                                                          m_level, m_base_col, m_base_row,
+                                                          m_page_width, m_page_height) );
+}
+
+boost::shared_ptr<IndexPageGenerator> RemotePageGeneratorFactory::create(int level, 
+                                                                         int base_col, 
+                                                                         int base_row, 
+                                                                         int page_width, 
+                                                                         int page_height) {
+  // Create the proper type of page generator.
+  boost::shared_ptr<RemotePageGenerator> page_gen;
+  page_gen.reset( new RemotePageGenerator(m_platefile_id, m_rpc_controller,
+                                          m_index_service,
+                                          level, base_col, base_row,
+                                          page_width, page_height) );
+  
+  // Wrap it in tho IndexPageGenerator class and return it.
+  return boost::shared_ptr<IndexPageGenerator>( new IndexPageGenerator(page_gen) );
+}
+
+// ----------------------------------------------------------------------
+//                             REMOTE INDEX
+// ----------------------------------------------------------------------
+
+
 /// Constructor (for opening an existing Index)
 vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) {
 

@@ -57,7 +57,7 @@ namespace platefile {
     // ----------------------- ACCESSORS  ----------------------
 
     /// Set the value of an entry in the IndexPage.
-    virtual void set(IndexRecord const& record, int col, int row, int transaction_id);
+    virtual void set(TileHeader const& header, IndexRecord const& record);
 
     /// Return the IndexRecord for a the given transaction_id at
     /// this location.  By default this routine returns the record with

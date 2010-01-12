@@ -21,6 +21,9 @@ vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row,
   m_level(level), m_base_col(base_col), m_base_row(base_row),
   m_page_width(page_width), m_page_height(page_height) {
 
+  // Set the size of the sparse table.
+  m_sparse_table.resize(page_width*page_height);
+
   vw_out(VerboseDebugMessage, "platefile::index") << "Opening index page [ " 
                                                   << m_base_col << " " << m_base_row 
                                                   << " @ " << m_level << " ]\n";
@@ -34,28 +37,25 @@ vw::platefile::IndexPage::~IndexPage() {
 
 // ----------------------- ACCESSORS  ----------------------
 
-void vw::platefile::IndexPage::set(IndexRecord const& record, 
-                                   int col, int row, int transaction_id) {
+void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
-  // Basic bounds checking
-  VW_ASSERT(col >= 0 && col < m_page_width && row >= 0 && row < m_page_height, 
-            ArgumentErr() << "IndexPage::set() failed.  Invalid index [" 
-            << col << " " << row << "]");
+  int32 page_col = header.col() % m_page_width;
+  int32 page_row = header.row() % m_page_height;
 
-  std::pair<int32, IndexRecord> p(transaction_id, record);
-  int elmnt = row*m_page_width + col;
+  std::pair<int32, IndexRecord> p(header.transaction_id(), record);
+  int elmnt = page_row*m_page_width + page_col;
   if (m_sparse_table.test(elmnt)) {
 
     // Add to existing entry.
-    multi_value_type *entries = m_sparse_table[row*m_page_width + col].operator&();
+    multi_value_type *entries = m_sparse_table[page_row*m_page_width + page_col].operator&();
 
     // We need to keep this list sorted in decreasing order of
     // transaction ID, do a simple insertion sort here.
     multi_value_type::iterator it = entries->begin();
-    while (it != entries->end() && (*it).first >= transaction_id ) {
+    while (it != entries->end() && (*it).first >= header.transaction_id() ) {
 
       // Handle the case where we replace an entry
-      if ( (*it).first == transaction_id ) {
+      if ( (*it).first == header.transaction_id() ) {
         (*it).second = record;
         return;
       }
@@ -93,8 +93,8 @@ void vw::platefile::IndexPage::set(IndexRecord const& record,
 ///   match.
 ///
 vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row, 
-                                                             int transaction_id, 
-                                                             bool exact_match) const {
+                                                         int transaction_id, 
+                                                         bool exact_match) const {
   
   // Basic bounds checking
   VW_ASSERT(col >= 0 && col < m_page_width && row >= 0 && row < m_page_height, 

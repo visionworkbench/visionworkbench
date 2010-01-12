@@ -18,6 +18,7 @@
 
 namespace vw {
 namespace platefile {
+
   // ----------------------------------------------------------------------
   //                         LOCAL INDEX PAGE
   // ----------------------------------------------------------------------
@@ -39,8 +40,7 @@ namespace platefile {
     virtual ~LocalIndexPage();
 
     /// Set the value of an entry in the IndexPage.
-    virtual void set(IndexRecord const& record, 
-                     int col, int row, int transaction_id);
+    virtual void set(TileHeader const& header, IndexRecord const& record);
 
     /// Save any unsaved changes to disk.
     virtual void sync();
@@ -98,9 +98,8 @@ namespace platefile {
     std::vector<std::string> blob_filenames() const;
 
   protected:
-    virtual void commit_record(IndexRecord const& record, int col, int row, 
-                               int level, int transaction_id);
-    
+    virtual void commit_record(TileHeader const& header,
+                               IndexRecord const& record);
 
   public:
 

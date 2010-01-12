@@ -55,7 +55,7 @@ namespace platefile {
                                int32 end_transaction_id) const; 
 
     /// Set the value of an index node at this level.
-    void set(IndexRecord const& rec, int32 col, int32 row, int32 transaction_id);
+    void set(TileHeader const& hdr, IndexRecord const& rec);
 
     /// Returns a list of valid tiles at this level.
     std::list<TileHeader> valid_tiles(BBox2i const& region,
@@ -77,8 +77,7 @@ namespace platefile {
     int m_page_width, m_page_height;
     int m_default_cache_size;
 
-    virtual void commit_record(IndexRecord const& record, int col, int row, 
-                               int level, int transaction_id) = 0;
+    virtual void commit_record(TileHeader const& header, IndexRecord const& record) = 0;
 
   public:
     typedef IndexLevel::multi_value_type multi_value_type;
