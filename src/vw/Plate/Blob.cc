@@ -90,7 +90,6 @@ void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& fil
   size     = blob_record.data_size();
   offset   = base_offset + blob_offset_metadata + blob_record.data_offset();
   filename = m_blob_filename;
-
 }
 
 void vw::platefile::Blob::write_end_of_file_ptr(uint64 ptr) {

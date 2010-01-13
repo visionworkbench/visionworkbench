@@ -269,6 +269,7 @@ int main( int argc, char *argv[] ) {
       case VW_PIXEL_GRAYA:
         switch(platefile->channel_type()) {
         case VW_CHANNEL_UINT8:  
+        case VW_CHANNEL_UINT16:  
           if (has_nodata_value)
             do_mosaic(platefile, 
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
