@@ -138,7 +138,7 @@ namespace platefile {
  public:
   
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile) : 
-      PlateManager(platefile), m_queue(1 ) {} // Use 1 thread for now...
+      PlateManager(platefile), m_queue(1) {} // Use 1 thread for now...
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -232,21 +232,6 @@ namespace platefile {
                 << "\t    Platefile ID: " << platefile_id << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n"
                 << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
-
-
-      // // For debugging: 
-      // // 
-      // // Test: terminate clients half the time
-      //
-      // srandom(time(0));
-      // float r = float(random()) / (powf(2.0,31)-1.0);
-      //
-      // if (r > 0.2) {
-      //   vw_out(0) << "\n\n***********************************************************\n";
-      //   vw_out(0) << "                          FAILING...\n";
-      //   vw_out(0) << "***********************************************************\n";
-      //   vw_throw( IOErr() << "terminating randomly....");
-      // }
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.

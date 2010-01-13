@@ -13,6 +13,8 @@ template <class PixelT>
 ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level, 
                                                                              int transaction_id) const {
 
+  //  std::cout << "Fetching child tile " << x << " " << y << "\n";
+
   int32 num_tiles = 1 << level;
   if( x==-1 ) {
     if( y==-1 ) {
