@@ -230,11 +230,11 @@ namespace vw {
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
       if ( buffer.size() > 0 ) {
-	int last_char_position = buffer.size()-1;
+        int last_char_position = buffer.size()-1;
 
-	if ( buffer[last_char_position] == '\n' ||
-	     buffer[last_char_position] == '\r' )
-	  sync();
+        if ( buffer[last_char_position] == '\n' ||
+             buffer[last_char_position] == '\r' )
+          sync();
       }
       return num;
     }
@@ -319,6 +319,21 @@ namespace vw {
     rules_type m_rules;
     Mutex m_mutex;
 
+    // Help functions
+    inline bool has_leading_wildcard( std::string const& exp ) {
+      int index = exp.rfind("*");
+      return exp.size()-1 > index;
+    }
+
+    inline std::string after_wildcard( std::string const& exp ) {
+      int index = exp.rfind("*");
+      if ( index != -1 ) {
+        index++;
+        return exp.substr(index,exp.size()-index);
+      }
+      return "";
+    }
+
   public:
 
     // Ensure Copyable semantics
@@ -355,19 +370,29 @@ namespace vw {
     virtual bool operator() (int log_level, std::string log_namespace) {
       Mutex::Lock lock(m_mutex);
 
+      std::string lower_namespace = boost::to_lower_copy(log_namespace);
+
       for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
 
         // Pass through rule for complete wildcard
         if ( vw::EveryMessage == (*it).first && (*it).second == "*" )
           return true;
 
-        // Pass through if the level matches and the namespace is a wildcard
-        if ( log_level <= (*it).first && (*it).second == "*" )
-          return true;
+        if ( log_level <= (*it).first ) {
 
-        // Pass through if the level and namepace match
-        if ( log_level <= (*it).first && (*it).second == boost::to_lower_copy(log_namespace) )
-           return true;
+          // Pass through if the level matches and the namespace is a wildcard
+          if ( (*it).second == "*" )
+            return true;
+
+          // Pass through if the level and namepace match
+          if ( (*it).second == lower_namespace )
+            return true;
+
+          // Evaluation of wildcard up front
+          if ( has_leading_wildcard( (*it).second ) &&
+               boost::iends_with(after_wildcard((*it).second),lower_namespace) )
+            return true;
+        }
       }
 
       // We reach this line if all of the rules have failed, in
