@@ -168,7 +168,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // User did not supply a t_id.  We must request and complete a
       // transaction on our own.
-      int t_id = platefile->transaction_request("Full snapshot.", -1);
+      int t_id = platefile->transaction_request("Full snapshot (auto-generated t_id).", -1);
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
@@ -184,6 +184,11 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       platefile->transaction_complete(t_id, true);
 
     } else {
+
+      // Use the user-supplied t_id.
+      int t_id = platefile->transaction_request("Full snapshot (user-supplied t_id).", 
+                                                snapshot_parameters.write_transaction_id);
+
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
       platefile->write_request(0);
@@ -195,6 +200,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // Release the blob id lock and note that the transaction is finished.
       platefile->write_complete();
+      platefile->transaction_complete(t_id, true);
     }
   }
            
