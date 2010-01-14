@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
   std::vector<GeoReference> georefs;
   int max_level = 0;
 
-  std::cout << "Scanning input files...." << std::endl;
+  vw_out() << "Scanning input files...." << std::endl;
   for( unsigned i=0; i<image_files.size(); ++i ) {
     DiskImageView<PixelRGBA<uint8> > image(image_files[i]);
     images.push_back(image);
@@ -154,14 +154,14 @@ int main(int argc, char **argv) {
   }
 
   composite.prepare();
-  std::cout << "Composite dimensions: " << composite.cols() << " x " << composite.rows() << "\n";
+  vw_out() << "Composite dimensions: " << composite.cols() << " x " << composite.rows() << "\n";
 
-  std::cout << "Generating tile set at " << output_file_name << "." << std::endl;
+  vw_out() << "Generating tile set at " << output_file_name << "." << std::endl;
   QuadTreeGenerator qtree( composite, output_file_name );
   ToastQuadTreeConfig tqtc;
   tqtc.configure( qtree, composite );
   qtree.set_file_type( output_file_type );
-  qtree.generate( TerminalProgressCallback() );
+  qtree.generate( TerminalProgressCallback(InfoMessage,"tools","") );
 
   return 0;
 }

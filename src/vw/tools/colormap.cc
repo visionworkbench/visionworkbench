@@ -118,27 +118,26 @@ void do_colorized_dem(po::variables_map const& vm) {
 
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input_file_name);
-  
+
   DiskImageView<PixelT> disk_dem_file(input_file_name);
   ImageViewRef<PixelGray<float> > input_image = channel_cast<float>(disk_dem_file);
 
-  
-  std::cout << "Creating colorized DEM.\n";
+  vw_out() << "Creating colorized DEM.\n";
   if (min_val == 0 && max_val == 0) {
     min_max_channel_values( create_mask( input_image, nodata_value), min_val, max_val);
-    std::cout << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
+    vw_out() << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
   } else {
-    std::cout << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
+    vw_out() << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
   }
 
   ImageViewRef<PixelMask<PixelGray<float> > > dem;
   DiskImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
   if (vm.count("nodata-value")) {
-    std::cout << "\t--> Masking nodata value: " << nodata_value << ".\n";
+    vw_out() << "\t--> Masking nodata value: " << nodata_value << ".\n";
     dem = channel_cast<float>(create_mask(input_image, nodata_value));
   } else if ( disk_dem_rsrc->has_nodata_value() ) {
     nodata_value = disk_dem_rsrc->nodata_value();
-    std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+    vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
   } else {
     dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
@@ -148,14 +147,16 @@ void do_colorized_dem(po::variables_map const& vm) {
   ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(normalize(dem,min_val,max_val,0,1.0));
 
   if (shaded_relief_file_name != "") {
-    std::cout << "\t--> Incorporating hillshading from: " << shaded_relief_file_name << ".\n";
+    vw_out() << "\t--> Incorporating hillshading from: " << shaded_relief_file_name << ".\n";
     DiskImageView<PixelMask<float> > shaded_relief_image(shaded_relief_file_name);
     ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
-    std::cout << "Writing image color-mapped image: " << output_file_name << "\n";
-    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef, TerminalProgressCallback());
+    vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
+    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef,
+                              TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
   } else {
-    std::cout << "Writing image color-mapped image: " << output_file_name << "\n";
-    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef, TerminalProgressCallback());
+    vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
+    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef,
+                              TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
   }
 }
 

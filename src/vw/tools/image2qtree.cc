@@ -608,7 +608,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  TerminalProgressCallback tpc;
+  TerminalProgressCallback tpc(InfoMessage, "tools", "");
   const ProgressCallback *progress = &tpc;
 
   // Set a few booleans based on input values.

@@ -110,7 +110,7 @@ int main( int argc, char *argv[] ) {
       DiskImageView<PixelGray<float> > right_disk_image( right_file_name );
       right_file_name = "aligned_right.tif";
       write_image( right_file_name, transform(right_disk_image, HomographyTransform(alignment)),
-                   TerminalProgressCallback(InfoMessage, "Aligning: ") );
+                   TerminalProgressCallback(InfoMessage, "tools", "Aligning: ") );
       found_alignment = true;
     }
 

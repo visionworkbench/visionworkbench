@@ -136,7 +136,7 @@ namespace stereo {
       for (int n = m_pyramid_levels - 1; n >=0; --n) {
         std::ostringstream current_level;
         current_level << n;
-        TerminalProgressCallback prog(InfoMessage,"\tLevel " + current_level.str() );
+        TerminalProgressCallback prog(InfoMessage,"stereo", "\tLevel " + current_level.str() );
 
         ImageView<PixelMask<Vector2f> > new_disparity_map(left_pyramid[n].cols(), left_pyramid[n].rows());
 

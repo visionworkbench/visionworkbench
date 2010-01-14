@@ -152,15 +152,17 @@ int main(int argc, char** argv) {
       if ( !vm.count("non-kdtree") ) {
         // Run interest point matcher that uses KDTree algorithm.
         InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-        matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+        matcher(ip1, ip2, matched_ip1, matched_ip2, false,
+                TerminalProgressCallback(InfoMessage,"tools","Matching:"));
       } else {
         // Run interest point matcher that does not use KDTree algorithm.
         InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-        matcher(ip1, ip2, matched_ip1, matched_ip2, false, TerminalProgressCallback());
+        matcher(ip1, ip2, matched_ip1, matched_ip2, false,
+                TerminalProgressCallback(InfoMessage,"tools","Matching:"));
       }
 
       remove_duplicates(matched_ip1, matched_ip2);
-      vw_out(InfoMessage) << "Found " << matched_ip1.size() << " putative matches.\n";
+      vw_out() << "Found " << matched_ip1.size() << " putative matches.\n";
 
       std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
@@ -194,7 +196,7 @@ int main(int argc, char** argv) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
         continue;
       }
-      vw_out(InfoMessage) << "Found " << indices.size() << " final matches.\n";
+      vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
       for (unsigned idx=0; idx < indices.size(); ++idx) {
