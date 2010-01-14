@@ -375,25 +375,32 @@ namespace vw {
       for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
 
         // Pass through rule for complete wildcard
-        if ( vw::EveryMessage == (*it).first && (*it).second == "*" )
+        if ( (*it).second == "*" &&
+             ( (*it).first == vw::EveryMessage ||
+               log_level <= (*it).first ) )
           return true;
 
-        if ( log_level <= (*it).first ) {
-
-          // Pass through if the level matches and the namespace is a wildcard
-          if ( (*it).second == "*" )
+        // For explicit matching on namespace
+        if ( (*it).second == lower_namespace )
+          if ( log_level <= (*it).first )
             return true;
+          else
+            return false;
 
-          // Pass through if the level and namepace match
-          if ( (*it).second == lower_namespace )
+        // Evaluation of half wild card
+        if ( has_leading_wildcard( (*it).second )  &&
+             boost::iends_with(lower_namespace,after_wildcard((*it).second)) )
+          if ( log_level <= (*it).first )
             return true;
-
-          // Evaluation of wildcard up front
-          if ( has_leading_wildcard( (*it).second ) &&
-               boost::iends_with(after_wildcard((*it).second),lower_namespace) )
-            return true;
-        }
+          else
+            return false;
       }
+
+      // Progress bars get a free ride at InfoMessage level unless a
+      // rule above modifies that.
+      if ( boost::iends_with(lower_namespace,".progress") &&
+           log_level == vw::InfoMessage )
+        return true;
 
       // We reach this line if all of the rules have failed, in
       // which case we return a NULL stream, which will result in
