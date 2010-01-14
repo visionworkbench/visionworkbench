@@ -61,20 +61,11 @@ namespace platefile {
     uint64 m_end_of_file_ptr;
     uint64 m_write_count;
 
-    BlobRecord read_blob_record(uint16 &blob_record_size) const {
+    /// Returns the metadata (i.e. BlobRecord) for a blob entry.
+    BlobRecord read_blob_record(uint16 &blob_record_size) const;
 
-      // Read the blob record
-      m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
-      boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
-      m_fstream->read((char*)(blob_rec_data.get()), blob_record_size);
-      BlobRecord blob_record;
-      bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
-      if (!worked)
-        vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while "
-                 << "deserializing the BlobRecord.");
-      return blob_record;
-
-    }
+    /// Returns the binary data for an entry starting at base_offset.
+    boost::shared_array<uint8> read_data(vw::uint64 base_offset);
 
     // End-of-file point manipulation.
     void write_end_of_file_ptr(uint64 ptr);
@@ -140,7 +131,6 @@ namespace platefile {
     };
     
     // -----------------------------------------------------------------------
-
 
     /// Constructor
     Blob(std::string filename, bool readonly = false);
@@ -225,9 +215,6 @@ namespace platefile {
                                                          << " from " << m_blob_filename << "\n";
       return header;
     }
-
-    /// Returns the binary data for an entry starting at base_offset.
-    boost::shared_array<uint8> read_data(vw::uint64 base_offset);
 
     /// Returns the parameters necessary to call sendfile(2)
     void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);

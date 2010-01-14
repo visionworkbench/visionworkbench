@@ -103,12 +103,11 @@
 
 #include <vector>
 #include <fstream>
+#include <stdlib.h>
+
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/scoped_array.hpp>
-
-#include <stdlib.h>
-
 namespace fs = boost::filesystem;
 
 namespace vw {

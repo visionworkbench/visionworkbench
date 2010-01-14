@@ -108,8 +108,10 @@ namespace platefile {
     /// Destructor
     virtual ~LocalIndex() {}
     
-    // Rebuild an index from blob file entries
-    virtual void rebuild_index(std::string plate_filename);
+    // Rebuild an index from blob file entries.  You should only do
+    // this if you lose or corrupt an index.  This may take a long
+    // time.
+    void rebuild_index();
 
     /// Use this to send data to the index's logfile like this:
     ///

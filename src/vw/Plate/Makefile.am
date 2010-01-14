@@ -71,6 +71,9 @@ image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIB
 snapshot_SOURCES = snapshot.cc
 snapshot_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
 
+rebuild_index_SOURCES = rebuild_index.cc
+rebuild_index_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
+
 tiles2plate_SOURCES = tiles2plate.cc
 tiles2plate_LDADD = $(PLATE_LOCAL_LIBS)
 
@@ -95,9 +98,9 @@ rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
 lustre_torture_SOURCES = lustre_torture.cc
 lustre_torture_LDADD = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = tiles2plate image2plate snapshot index_server		\
-	       index_client amqp_perftest index_perftest rpc_tool	\
-	       lustre_torture
+bin_PROGRAMS = tiles2plate image2plate snapshot rebuild_index		\
+	       index_server index_client amqp_perftest index_perftest	\
+	       rpc_tool lustre_torture
 
 endif
 

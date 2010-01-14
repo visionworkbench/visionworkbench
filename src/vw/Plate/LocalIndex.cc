@@ -352,16 +352,13 @@ int32 vw::platefile::LocalIndex::transaction_cursor() {
 // Load index entries by iterating through TileHeaders saved in the
 // blob file.  This function essentially rebuilds an index in memory
 // using entries that had been previously saved to disk.
-void vw::platefile::LocalIndex::rebuild_index(std::string plate_filename) {
+void vw::platefile::LocalIndex::rebuild_index() {
 
-  //  std::cout << "\tRebuilding index: " << plate_filename <<"\n";
+  vw_out(InfoMessage) << "Rebuilding index: " << m_plate_filename <<"\n";
 
   std::vector<std::string> blob_files = this->blob_filenames();
   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-    // this->log() << "Loading index entries from blob file: "
-    //             << this->platefile_name() << "/" << blob_files[i] << "\n";
-    
-    TerminalProgressCallback tpc(InfoMessage, "\t    " + blob_files[i] + " : ");
+    TerminalProgressCallback tpc(InfoMessage, "\t --> Rebuild from " + blob_files[i] + " : ");
     tpc.report_progress(0);
     
     // Extract the current blob id as an integer.

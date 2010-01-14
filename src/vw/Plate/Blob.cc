@@ -25,6 +25,49 @@ using namespace vw;
 //                                 BLOB
 // -------------------------------------------------------------------
 
+/// read_blob_record()
+vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_record_size) const {
+  
+  // Read the blob record
+  m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
+  boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
+  m_fstream->read((char*)(blob_rec_data.get()), blob_record_size);
+  BlobRecord blob_record;
+  bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
+  if (!worked)
+    vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while "
+             << "deserializing the BlobRecord.");
+  return blob_record;
+}
+
+/// read_data()
+boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
+
+  vw::uint64 offset, size;
+  std::string dontcare;
+
+  read_sendfile(base_offset, dontcare, offset, size);
+
+  // Allocate an array of the appropriate size to read the data.
+  boost::shared_array<uint8> data(new uint8[size]);
+
+  m_fstream->seekg(offset, std::ios_base::beg);
+  m_fstream->read((char*)(data.get()), size);
+
+  // Throw an exception if the read operation failed (after clearing the error bit)
+  if (m_fstream->fail()) {
+    m_fstream->clear();
+    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading " 
+             << "data from the blob file.\n");
+  }
+
+  vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
+                                                     << size << " bytes at " << offset 
+                                                     << " from " << m_blob_filename << "\n";
+  return data;
+}
+
+
 // Constructor stores the blob filename for reading & writing
 vw::platefile::Blob::Blob(std::string filename, bool readonly) : 
   m_blob_filename(filename), m_write_count(0) {
@@ -32,11 +75,9 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
   if (readonly) {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::binary));
-    if (!m_fstream->is_open()) {
+    if (!m_fstream->is_open()) 
         vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");      
-    } else {
-      m_end_of_file_ptr = read_end_of_file_ptr();
-    }
+
     vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READONLY)\n";
   } else {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
@@ -55,15 +96,16 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
       m_fstream->close();                                   // Close output-only file
       m_fstream->open(filename.c_str(),                     // Reopen as read/write
                       std::ios::out|std::ios::in|std::ios::binary); 
-    } else {
-      m_end_of_file_ptr = read_end_of_file_ptr();
-    }
-
+    } 
+      
     vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READ/WRITE)\n";
   }
 
   if (!m_fstream->is_open()) 
     vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");
+
+  // Set the cached copy of the end_of_file_ptr.
+  m_end_of_file_ptr = read_end_of_file_ptr();
 }
 
 /// Destructor: make sure that we have written the end of file ptr.
@@ -139,33 +181,6 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
     m_fstream->seekg(0, std::ios_base::end);
     return m_fstream->tellg();
   }
-}
-
-/// read_data()
-boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
-
-  vw::uint64 offset, size;
-  std::string dontcare;
-
-  read_sendfile(base_offset, dontcare, offset, size);
-
-  // Allocate an array of the appropriate size to read the data.
-  boost::shared_array<uint8> data(new uint8[size]);
-
-  m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read((char*)(data.get()), size);
-
-  // Throw an exception if the read operation failed (after clearing the error bit)
-  if (m_fstream->fail()) {
-    m_fstream->clear();
-    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading " 
-             << "data from the blob file.\n");
-  }
-
-  vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
-                                                     << size << " bytes at " << offset 
-                                                     << " from " << m_blob_filename << "\n";
-  return data;
 }
 
 /// Read data out of the blob and save it as its own file on disk.
