@@ -17,11 +17,8 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
 }
 
 // Deprecrated Progress Bar
-vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std::string pre_progress_text, uint32_t precision ) {
-  m_level = level;
-  m_namespace = ".progress";
-  m_pre_progress_text = pre_progress_text;
-  m_step = std::pow(10., -(int32_t(precision)+2));
+vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std::string pre_progress_text, uint32_t precision) : m_level(level), m_namespace(".progress"), m_pre_progress_text(pre_progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
+  boost::replace_all(m_pre_progress_text,"\t","        ");
   if ( m_level <  InfoMessage )
     vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
 
@@ -55,5 +52,6 @@ void vw::TerminalProgressCallback::report_finished() const {
   std::ostringstream p;
   for ( int i = 0; i < cbar_length; i++ )
     p << "*";
-  vw_out(m_level) << "\r" << m_pre_progress_text << "[" << p << "] Complete!\n";
+  vw_out(m_level) << "\r" << m_pre_progress_text << "[" << p.str() << "] Complete!\n";
 }
+

@@ -19,6 +19,8 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
 
+#include <boost/algorithm/string/replace.hpp>
+
 #include <vw/config.h>
 
 #if defined(VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED) && (VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED==1)
@@ -148,9 +150,13 @@ namespace vw {
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) DEPRECATED;
 
-    TerminalProgressCallback( MessageLevel log_level, std::string log_namespace, std::string progress_text, uint32_t precision = 0 ) :
+    TerminalProgressCallback( MessageLevel log_level, std::string log_namespace, std::string progress_text, uint32_t precision = 0) :
     m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
       m_namespace += ".progress";
+      boost::replace_all(m_pre_progress_text,"\t","        ");
+
+      if ( m_level <  InfoMessage )
+        vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
 
       // Calculating bar length
       m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;

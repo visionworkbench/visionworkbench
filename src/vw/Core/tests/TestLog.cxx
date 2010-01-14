@@ -105,10 +105,10 @@ TEST(Log, RuleSet) {
 TEST(Log, BasicLogging) {
 
   LogInstance stdout_log(std::cout);
-  stdout_log(0,"log test") << "Testing logging to stdout" << std::endl;
+  stdout_log(InfoMessage,"log test") << "Testing logging to stdout" << std::endl;
 
   LogInstance stderr_log(std::cerr);
-  stderr_log(0,"log test") << "Testing logging to stderr" << std::endl;
+  stderr_log(InfoMessage,"log test") << "Testing logging to stderr" << std::endl;
 }
 
 TEST(Log, MultiThreadLog) {
@@ -217,7 +217,7 @@ TEST(Log, ProgressCallback) {
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
   vw_out() << "\nTesting Logging with a progress callback\n";
-  TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ");
+  TerminalProgressCallback pc(vw::InfoMessage, "test", "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
     pc.report_progress(i);
     Thread::sleep_ms(0);
@@ -226,7 +226,9 @@ TEST(Log, ProgressCallback) {
 
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
-  EXPECT_TRUE(boost::iends_with(out, std::string("\r\tTesting: [************************************************************] Complete!\n")));
+  size_t last_line_idx = out.rfind("\r");
+  EXPECT_EQ( 80, out.size()-last_line_idx-2 );
+  EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
 }
 
 TEST(Log, HiresProgressCallback) {
@@ -236,7 +238,7 @@ TEST(Log, HiresProgressCallback) {
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
   vw_out() << "\nTesting Logging with a progress callback\n";
-  TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ", 2);
+  TerminalProgressCallback pc(vw::InfoMessage, "test", "\tTesting: ", 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);
     if (i % 50 == 0)
@@ -246,7 +248,9 @@ TEST(Log, HiresProgressCallback) {
 
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
-  EXPECT_TRUE(boost::iends_with(out, std::string("\r\tTesting: [************************************************************] Complete!\n")));
+  size_t last_line_idx = out.rfind("\r");
+  EXPECT_EQ( 80, out.size()-last_line_idx-2 );
+  EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
 }
 
 TEST(Log, FlushAndNewline) {
@@ -265,29 +269,29 @@ TEST(Log, FlushAndNewline) {
               s6("Finished.\n");
 
   // Make sure a newline flushes
-  log(0) << s1;
+  log(InfoMessage) << s1;
   EXPECT_EQ(s1, stream.str());
 
   // Make sure no newline does not flush
-  log(0) << s2;
+  log(InfoMessage) << s2;
   EXPECT_EQ(s1, stream.str());
 
   // Explicit flush
-  log(0) << std::flush;
+  log(InfoMessage) << std::flush;
   EXPECT_EQ(s1 + s2, stream.str());
 
   // Another newline
-  log(0) << s3;
+  log(InfoMessage) << s3;
   EXPECT_EQ(s1 + s2 + s3, stream.str());
 
   // No newline again
-  log(0) << s4;
+  log(InfoMessage) << s4;
   EXPECT_EQ(s1 + s2 + s3, stream.str());
 
   // And try to flush with endl
-  log(0) << std::endl;
+  log(InfoMessage) << std::endl;
   EXPECT_EQ(s1 + s2 + s3 + s4 + s5, stream.str());
 
-  log(0) << s6;
+  log(InfoMessage) << s6;
   EXPECT_EQ(s1 + s2 + s3 + s4 + s5 + s6, stream.str());
 }
