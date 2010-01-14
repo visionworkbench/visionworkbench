@@ -142,17 +142,27 @@ namespace vw {
     uint32_t m_precision;
     double  m_step;
 
+    static const uint32_t m_max_characters = 80;
+    uint32_t m_bar_length;
+
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) DEPRECATED;
 
     TerminalProgressCallback( MessageLevel log_level, std::string log_namespace, std::string progress_text, uint32_t precision = 0 ) :
     m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
+      m_namespace += ".progress";
+
+      // Calculating bar length
+      m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;
+      if ( m_precision > 0 )
+        m_bar_length -= m_precision + 1; // 1 for decimal point
     }
 
     virtual ~TerminalProgressCallback() {}
 
     TerminalProgressCallback( const TerminalProgressCallback& copy ) : ProgressCallback(copy) {
       m_level = copy.message_level();
+      m_namespace = copy.message_namespace();
       m_pre_progress_text = copy.pre_progress_text();
       m_progress = copy.progress();
       m_abort_requested = copy.abort_requested();
@@ -182,6 +192,7 @@ namespace vw {
 
     std::string pre_progress_text() const { return m_pre_progress_text; }
     MessageLevel message_level() const { return m_level; }
+    std::string message_namespace() const { return m_namespace; }
   };
 
 } // namespace vw
