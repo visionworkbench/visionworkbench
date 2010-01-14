@@ -85,6 +85,7 @@ AX_COMMON_OPTIONS
 
 # Does the compiler support noreturn?
 AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
+AX_CHECK_FUNCTION_ATTRIBUTE([deprecated])
 
 # Looking for posix headers
 AC_CHECK_HEADERS([unistd.h pwd.h])

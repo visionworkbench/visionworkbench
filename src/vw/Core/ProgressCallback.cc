@@ -16,6 +16,15 @@ const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {
   return g_dummy_progress_callback_instance;
 }
 
+vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std::string pre_progress_text, uint32_t precision ) {
+  m_level = level;
+  m_namespace = "";
+  m_pre_progress_text = pre_progress_text;
+  m_step = std::pow(10., -(int32_t(precision)+2));
+  if ( m_level <  InfoMessage )
+    vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
+}
+
 void vw::TerminalProgressCallback::print_progress() const {
   if (fabs(m_progress - m_last_reported_progress) > m_step) {
     m_last_reported_progress = m_progress;
