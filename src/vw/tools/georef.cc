@@ -134,14 +134,15 @@ int main( int argc, char *argv[] ) {
   if ( georef.proj4_str() == "" ) georef.set_well_known_geogcs("WGS84");
   if( manual || georef.transform() == identity_matrix<3>() ) {
     if( manual ) {
-      vw_out(InfoMessage) << "Using manual Plate Carree coordinates: ";
+      vw_out() << "Using manual Plate Carree coordinates: ";
       georef = GeoReference(georef.datum());
     } else {
-      vw_out(InfoMessage) << "No georeferencing info found.  Assuming Plate Carree WGS84: ";
+      vw_out() << "No georeferencing info found.  Assuming Plate Carree WGS84: ";
       georef = GeoReference();
       georef.set_well_known_geogcs("WGS84");
     }
-    vw_out(InfoMessage) << east_lon << " to " << west_lon << " E, " << south_lat << " to " << north_lat << " N." << std::endl;
+    vw_out() << east_lon << " to " << west_lon << " E, "
+             << south_lat << " to " << north_lat << " N." << std::endl;
 
     Matrix3x3 m;
     m(0,0) = (east_lon - west_lon) / file_resource.cols();
@@ -172,7 +173,7 @@ int main( int argc, char *argv[] ) {
     georef.set_transform( m );
   }
 
-  vw_out(0) << "Writing file with Proj4 String: " << georef.proj4_str() << "\n";
+  vw_out() << "Writing file with Proj4 String: " << georef.proj4_str() << "\n";
 
   // Our file readers do a better job that GDAL's of coping with large 
   // image files in some cases, so we make a fresh DiskImageView rather 

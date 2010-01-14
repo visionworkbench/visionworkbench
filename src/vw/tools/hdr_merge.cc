@@ -81,8 +81,8 @@ int main( int argc, char *argv[] ) {
       brightness_values = brightness_values_from_exif(input_filenames);
 
     // For debugging: (print out the brightness values
-    //     for (int i = 0; i < brightness_values.size(); ++i) 
-    //       vw_out(0) << "BV: " << brightness_values[i] << "\n";
+    //     for (int i = 0; i < brightness_values.size(); ++i)
+    //       vw_out() << "BV: " << brightness_values[i] << "\n";
 
     std::vector<ImageViewRef<PixelRGB<float> > > images(input_filenames.size());
     for ( unsigned i=0; i < input_filenames.size(); ++i )
@@ -105,9 +105,9 @@ int main( int argc, char *argv[] ) {
     write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values) );
 
   } catch (vw::Exception &e) {
-    std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" 
-	      << e.what() << "\nExiting.\n\n";  
+    vw_out() << argv[0] << ": a Vision Workbench error occurred: \n\t"
+             << e.what() << "\nExiting.\n\n";
     return 1;
-  }  
+  }
   return 0;
 }

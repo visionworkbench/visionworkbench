@@ -141,7 +141,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   
   // Verify that our OpenGL formatting options stuck
   if (!QGLFormat::hasOpenGL()) {
-    vw::vw_out(0) << "This system has no OpenGL support.\nExiting\n\n";
+    vw::vw_out() << "This system has no OpenGL support.\nExiting\n\n";
     exit(1);
   }
   if (!format().sampleBuffers())

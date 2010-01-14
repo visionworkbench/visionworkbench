@@ -37,7 +37,7 @@ void vw::platefile::AmqpRpcServer::run() {
                                                << " from " << request_wrapper.requestor() 
                                                << "  SEQ: " << request_wrapper.sequence_number() << "]\n";
       } catch (const vw::platefile::RpcErr&e) {
-        vw_out(0) << "Invalid RPC, ignoring." << std::endl;
+        vw_out() << "Invalid RPC, ignoring." << std::endl;
         continue;
       }
 
@@ -102,9 +102,9 @@ void vw::platefile::AmqpRpcServer::run() {
         this->send_message(response_wrapper, request_wrapper.requestor());
       }
     } catch (const AMQPErr &e) {
-      vw_out(0) << "WARNING!! Uncaught AMQP error:\n\t" << e.what() << "\n";
+      vw_out() << "WARNING!! Uncaught AMQP error:\n\t" << e.what() << "\n";
     } catch (const vw::Exception &e) {
-      vw_out(0) << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
+      vw_out() << "WARNING!! Uncaught Vision Workbench Exception:\n\t" << e.what() << "\n";
     }
 
   } // while
@@ -163,7 +163,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
       // is found.  This may end up timing out if the queue empties
       // and no message with the desired sequence number ever appears.
       while (response_wrapper.sequence_number() != request_seq) {
-        vw_out(0) << "WARNING: CallMethod() sequence number did not match.  ("
+        vw_out() << "WARNING: CallMethod() sequence number did not match.  ("
                   << request_seq << " != " << response_wrapper.sequence_number() 
                   << ").  Retrying...\n";
         real_controller->get_message(response_wrapper, 15000); // 15 seconds
@@ -183,7 +183,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
                  << m_max_tries << " tries.");
       }
 
-      vw_out(0) << "WARNING: CallMethod() timed out.  Executing retry #" << ntries << ".\n";
+      vw_out() << "WARNING: CallMethod() timed out.  Executing retry #" << ntries << ".\n";
     }
   }
 
@@ -198,7 +198,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
   if (response_wrapper.error()) {
 
     // For debugging:
-    // vw_out(0) << "[RPC ERROR]  Type = " << response_wrapper.error_info().type()
+    // vw_out() << "[RPC ERROR]  Type = " << response_wrapper.error_info().type()
     //           << "  Description = " << response_wrapper.error_info().message() << "\n";
 
     if (response_wrapper.error_info().type() == "TileNotFoundErr") {
@@ -214,7 +214,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
       vw_throw(BlobLimitErr() << response_wrapper.error_info().message());
 
     } else {
-      vw_out(0) << "WARNING!! Unknown exception in RPC message:\n\t"
+      vw_out() << "WARNING!! Unknown exception in RPC message:\n\t"
                 << "Type = " << response_wrapper.error_info().type() << "\n\t"
                 << "Description = " << response_wrapper.error_info().message() << "\n";
 
@@ -227,7 +227,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
     response->ParseFromString(response_wrapper.payload());
 
     // For debugging:
-    //    vw_out(0) << "Response:\n" << response->DebugString() << "\n\n";
+    //    vw_out() << "Response:\n" << response->DebugString() << "\n\n";
   }
   done->Run();
 }

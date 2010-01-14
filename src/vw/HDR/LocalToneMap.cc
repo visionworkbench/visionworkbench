@@ -30,20 +30,20 @@ ImageView<double> ashikhmin_world_adaptation_luminance(ImageView<double> L_w, do
   std::vector<Map> L_w_blur(ASH_MAX_KERNEL * 2);
   std::vector<Map> V(ASH_MAX_KERNEL);
 
-  vw_out(0) << "Computing L_w_blur\n";
+  vw_out() << "Computing L_w_blur\n";
   for ( unsigned s = 1; s <= ASH_MAX_KERNEL * 2; ++s ) {
     if ((s < ASH_MAX_KERNEL) || (s % 2 == 0)) {
-      vw_out(0) << "L_w_blur[" << (s) << "]\n";
+      vw_out() << "L_w_blur[" << (s) << "]\n";
       L_w_blur[s-1] = gaussian_filter(L_w, 1.0, 1.0, s, s);
     }
   }
 
-  vw_out(0) << "Computing Vs\n";
+  vw_out() << "Computing Vs\n";
   for ( unsigned s = 1; s <= ASH_MAX_KERNEL; ++s ) {
     V[s-1] = abs((L_w_blur[s-1] - L_w_blur[2*s - 1]) / (L_w_blur[s-1] + 0.0001));
   }
 
-  vw_out(0) << "Computing L_wa\n";
+  vw_out() << "Computing L_wa\n";
   Map L_wa(L_w.cols(), L_w.rows());
   for ( int32 x = 0; x < L_wa.cols(); ++x ) {
     for ( int32 y = 0; y < L_wa.rows(); ++y ) {
@@ -66,8 +66,8 @@ public:
   AshikhminCompressiveFunctor(double L_wmin, double L_wmax, double L_dmax = 1.0) {
     C_L_wmin = C(L_wmin);
     k = L_dmax / (C(L_wmax) - C_L_wmin);
-    vw_out(0) << "C(L_wmin) = " << C_L_wmin << "\n";
-    vw_out(0) << "k = " << k << "\n";
+    vw_out() << "C(L_wmin) = " << C_L_wmin << "\n";
+    vw_out() << "k = " << k << "\n";
   }
 
   double C(double L) const {
@@ -93,14 +93,14 @@ ImageView<PixelRGB<double> > vw::hdr::ashikhmin_tone_map(ImageView<PixelRGB<doub
   //  write_image("lwa.jpg", L_wa);
 
   // Compute display luminances
-  vw_out(0) << "Computing L_wmin and L_wmax\n";
+  vw_out() << "Computing L_wmin and L_wmax\n";
   double L_wmin, L_wmax;
   min_max_channel_values(L_w, L_wmin, L_wmax);
-  vw_out(0) << "Computing F(L_wa)\n";
+  vw_out() << "Computing F(L_wa)\n";
   AshikhminCompressiveFunctor F(L_wmin, L_wmax);
   ImageView<double> F_L_wa = per_pixel_filter(L_wa, F);
   //  write_image("flwa.jpg", F_L_wa);
-  vw_out(0) << "Computing display luminances\n";
+  vw_out() << "Computing display luminances\n";
   ImageView<double> L_d = F_L_wa * L_w / L_wa;
   //  write_image("ld.jpg", L_d);
 

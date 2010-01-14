@@ -127,13 +127,13 @@ int main(int argc, char** argv) {
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {
-    vw_out(0) << usage.str();
+    vw_out() << usage.str();
     return 1;
   }
 
   if( input_file_names.size() < 2 ) {
-    vw_out(0) << "Error: Must specify at least two input files!" << std::endl << std::endl;
-    vw_out(0) << usage.str();
+    vw_out() << "Error: Must specify at least two input files!" << std::endl << std::endl;
+    vw_out() << usage.str();
     return 1;
   }
 
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
       std::vector<InterestPoint> ip1, ip2;
       ip1 = read_binary_ip_file(prefix_from_filename(input_file_names[i])+".vwip");
       ip2 = read_binary_ip_file(prefix_from_filename(input_file_names[j])+".vwip");
-      vw_out(0) << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n";
+      vw_out() << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n";
 
       std::vector<InterestPoint> matched_ip1, matched_ip2;
 

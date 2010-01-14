@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
     ImageViewRef<PixelRGBA<uint8> > toast_image;
 
     if( global ) {
-      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
+      vw_out() << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
       composite.insert(transform(image,toast_tx,resolution,resolution,CylindricalEdgeExtension(),BicubicInterpolation()), 0, 0);
     }
     else {

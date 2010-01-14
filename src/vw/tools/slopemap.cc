@@ -355,7 +355,7 @@ int main( int argc, char *argv[] ) {
     algorithm_string == "planefit" ||
 
     algorithm_string == "" ) ) { //it's okay if it isn't set?
-    vw_out(0) << "Unknown opt.algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
+    vw_out() << "Unknown opt.algorithm: " << algorithm_string << ". Options are : [ horn, fh, sa, planefit ]\n";
     exit(0);
   }
   else {
@@ -374,7 +374,7 @@ int main( int argc, char *argv[] ) {
   opt.output_pretty   = vm.count("pretty");
 
   if(!opt.output_aspect && !opt.output_gradient && !opt.output_pretty) {
-    vw_out(0) << "No output specified. Select at least one of [ gradient, output, pretty ].\n"
+    vw_out() << "No output specified. Select at least one of [ gradient, output, pretty ].\n"
              << std::endl;
   }
 

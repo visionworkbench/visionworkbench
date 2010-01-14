@@ -77,7 +77,7 @@ int main( int argc, char *argv[] ) {
   if ( vm.count("help") ||
        !vm.count("cnet") ||
        !vm.count("image-mean") ) {
-    vw_out(0) << usage.str() << std::endl;
+    vw_out() << usage.str() << std::endl;
     return 1;
   }
 
@@ -127,7 +127,7 @@ int main( int argc, char *argv[] ) {
   mean_image /= error_size;
   stddev_image /=  error_size;
   stddev_image = sqrt( stddev_image - mean_image*mean_image );
-  vw_out(0) << "Image min: " << min_image << " max: " << max_image
+  vw_out() << "Image min: " << min_image << " max: " << max_image
             << " mean: " << mean_image << " stddev: " << stddev_image
             << std::endl;
 
@@ -162,16 +162,16 @@ int main( int argc, char *argv[] ) {
       deleted[del_i] = true;
     }
   }
-  vw_out(0) << float(clipping_count) * 100.0 / float(clipping_count + other_count)
+  vw_out() << float(clipping_count) * 100.0 / float(clipping_count + other_count)
             << "% (" << clipping_count << ") of the control measures removed.\n";
-  vw_out(0) << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size())
+  vw_out() << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size())
             << "% (" << cp_clip_count << ") of control points removed.\n";
 
-  vw_out(0) << "\nWriting out new control network\n";
+  vw_out() << "\nWriting out new control network\n";
   std::string outfile_str = fs::path(data_dir / output_cnet_file.branch_path() / fs::basename(output_cnet_file)).string();
   cnet.write_binary(outfile_str);
 
-  vw_out(0) << "\nWriting deleted index file\n";
+  vw_out() << "\nWriting deleted index file\n";
   std::string delindex_file_str = fs::path(data_dir / output_deleted_index_file.branch_path() / fs::basename(output_deleted_index_file)).string();
 
   std::ofstream di_out(delindex_file_str.c_str());

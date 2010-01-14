@@ -42,7 +42,7 @@ namespace po = boost::program_options;
 class SnapshotParameters {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(0) << "Error parsing arguments for --" << arg << " : " << params << "\n";
+    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
     exit(1);
   }
 
@@ -142,8 +142,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
   if (snapshot_parameters.level != -1) {
 
     if (snapshot_parameters.write_transaction_id == -1) {
-      vw_out(0) << "Error: you must specify a transaction_id for this snapshot "
-                << "using the --transaction_id flag.";
+      vw_out(ErrorMessage) << "Error: you must specify a transaction_id for this snapshot "
+                           << "using the --transaction_id flag.";
       exit(1);
     }
     
@@ -272,19 +272,19 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
       int t = platefile->transaction_request(start_description, transaction_id);
-      vw_out(0) << "Transaction started with ID = " << t << "\n";
-      vw_out(0) << "Plate has " << platefile->num_levels() << " levels.\n";
+      vw_out() << "Transaction started with ID = " << t << "\n";
+      vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
       exit(0);
     }
 
     if (vm.count("finish")) {
       if (!vm.count("transaction-id")) {
-        std::cout << "You must specify a transaction-id if you use --finish.\n";
+        vw_out() << "You must specify a transaction-id if you use --finish.\n";
         exit(1);
       }
       // Update the read cursor when the snapshot is complete!
       platefile->transaction_complete(transaction_id, true);
-      vw_out(0) << "Transaction " << transaction_id << " complete.\n";
+      vw_out() << "Transaction " << transaction_id << " complete.\n";
       exit(0);
     }
 

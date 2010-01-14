@@ -233,7 +233,7 @@ namespace cartography {
     std::string proj4_str = proj_str_tmp;
     CPLFree( proj_str_tmp );
     // For debugging:
-    //      vw_out(0) << "PROJ in --> " << proj4_str << "\n";
+    //      vw_out() << "PROJ in --> " << proj4_str << "\n";
 
     std::vector<std::string> input_strings;
     std::vector<std::string> output_strings;
@@ -273,7 +273,7 @@ namespace cartography {
       strm << output_strings[i] << " ";
     }
     // For debugging:
-    //      vw_out(0) << "     out --> " << strm.str() << "\n";
+    //      vw_out() << "     out --> " << strm.str() << "\n";
 
     // If the file contains no projection related information, we
     // supply proj.4 with a "default" interpretation that the file

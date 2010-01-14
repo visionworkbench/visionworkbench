@@ -93,8 +93,8 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
 
 void IndexServiceImpl::sync() {
   for (index_list_type::iterator iter = m_indices.begin(); iter != m_indices.end(); ++iter) {
-    vw_out(0) << "\t--> Syncing index for " << iter->second.short_plate_filename 
-              << " to disk.\n";
+    vw_out() << "\t--> Syncing index for " << iter->second.short_plate_filename 
+             << " to disk.\n";
     iter->second.index->sync();
   }
 }

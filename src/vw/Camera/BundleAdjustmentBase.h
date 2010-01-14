@@ -109,7 +109,7 @@ namespace camera {
 
         if (i == j){
           if (sum <= 0.0){
-            vw_out(0) << " Not positive definite! " << "\n";
+            vw_out() << " Not positive definite! " << "\n";
             return 0;
           }
           M(i,i) = sqrt(sum);

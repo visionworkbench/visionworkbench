@@ -191,7 +191,7 @@ namespace platefile {
           fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
           fabs(georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
           fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1 ) {
-        vw_out(0) << "\t--> Detected global overlay.  " 
+        vw_out() << "\t--> Detected global overlay.  " 
                   << "Using cylindrical edge extension to hide the seam.\n";
         toast_view = transform(image,toast_tx,
                                CylindricalEdgeExtension(),BicubicInterpolation());

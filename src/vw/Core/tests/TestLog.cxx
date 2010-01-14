@@ -40,14 +40,14 @@ struct TestLogTask {
                         tick("Tick " + vw::stringify(Thread::id()) + "\n"),
                         stop("Stop " + vw::stringify(Thread::id()) + "\n");
 
-    m_log(0,m_ns) << start;
+    m_log(InfoMessage,m_ns) << start;
 
     while( !m_terminate ) {
       Thread::sleep_ms(100);
-      m_log(0,m_ns) << tick;
+      m_log(InfoMessage,m_ns) << tick;
     }
 
-    m_log(0,m_ns) << stop;
+    m_log(InfoMessage,m_ns) << stop;
   }
 
   void kill() { m_terminate = true; }
@@ -122,7 +122,7 @@ TEST(Log, MultiThreadLog) {
   std::vector<std::pair<TheTask, TheThread> > threads(100);
 
   for (size_t i = 0; i < threads.size(); ++i) {
-      TheTask task(   new TestLogTask(log,"log test") );
+    TheTask task(   new TestLogTask(log,"log test") );
     TheThread thread( new Thread(task) );
     threads[i] = std::make_pair(task, thread);
   }
@@ -183,16 +183,16 @@ TEST(Log, SystemLog) {
 
   vw_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
 
-  vw_out(0) << "\tTesting system log (first call)\n";
-  vw_out(0,"test") << "\tTesting system log (second call)\n";
+  vw_out() << "\tTesting system log (first call)\n";
+  vw_out(InfoMessage,"test") << "\tTesting system log (second call)\n";
 
   boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
   new_log->rule_set().add_rule(vw::EveryMessage, "test");
   vw_log().add(new_log);
-  vw_out(0,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
+  vw_out(InfoMessage,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 
   vw_log().clear();
-  vw_out(0,"test") << "\tYou should see this message once.\n";
+  vw_out(InfoMessage,"test") << "\tYou should see this message once.\n";
 
   const std::string &out = sstr.str();
   std::vector<std::string> lines;
@@ -216,7 +216,7 @@ TEST(Log, ProgressCallback) {
   raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
-  vw_out(0) << "\nTesting Logging with a progress callback\n";
+  vw_out() << "\nTesting Logging with a progress callback\n";
   TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
     pc.report_progress(i);
@@ -235,7 +235,7 @@ TEST(Log, HiresProgressCallback) {
   raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
-  vw_out(0) << "\nTesting Logging with a progress callback\n";
+  vw_out() << "\nTesting Logging with a progress callback\n";
   TerminalProgressCallback pc(vw::InfoMessage, "\tTesting: ", 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);

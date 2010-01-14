@@ -85,19 +85,19 @@ int main( int argc, char *argv[] ) {
     po::notify( vm );
 
     if( vm.count("help") ) {
-      vw_out(0) << desc << std::endl;
+      vw_out() << desc << std::endl;
       return 1;
     }
 
     if( vm.count("left") != 1 || vm.count("right") != 1 ) {
-      vw_out(0) << "Error: Must specify one (and only one) left and right input file!" << std::endl;
-      vw_out(0) << desc << std::endl;
+      vw_out() << "Error: Must specify one (and only one) left and right input file!" << std::endl;
+      vw_out() << desc << std::endl;
       return 1;
     }
 
     if ( fs::exists( prefix_from_filename( left_file_name ) + "__" +
                      prefix_from_filename( right_file_name ) + ".match" ) ) {
-      vw_out(0) << "Found a match file. Using it to pre-align images.\n";
+      vw_out() << "Found a match file. Using it to pre-align images.\n";
       std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
       ip::read_binary_match_file( prefix_from_filename( left_file_name ) + "__" +
                                   prefix_from_filename( right_file_name ) + ".match",

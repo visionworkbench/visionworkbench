@@ -96,12 +96,12 @@ void PlateInfo(const std::string& name) {
   boost::shared_ptr<Index> index = Index::construct_open(std::string("pf://index/") + name);
   const IndexHeader& hdr = index->index_header();
 
-  vw_out(0) << "Platefile: "
-            << "ID["          << hdr.platefile_id()      << "] "
-            << "Name["        << fs::path(name).leaf()   << "] "
-            << "Filename["    << index->platefile_name() << "] "
-            << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "]"
-            << std::endl;
+  vw_out() << "Platefile: "
+           << "ID["          << hdr.platefile_id()      << "] "
+           << "Name["        << fs::path(name).leaf()   << "] "
+           << "Filename["    << index->platefile_name() << "] "
+           << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "]"
+           << std::endl;
 }
 
 void ListPlates() {
@@ -111,9 +111,9 @@ void ListPlates() {
 
   rpc_mutable().service->ListRequest(rpc_mutable().client.get(), &request, &reply, google::protobuf::NewCallback(&null_closure));
 
-  vw_out(0) << "Got Plates:" << std::endl;
-  std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(0), " "));
-  vw_out(0) << std::endl;
+  vw_out() << "Got Plates:" << std::endl;
+  std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(), " "));
+  vw_out() << std::endl;
 
   std::for_each(reply.platefile_names().begin(), reply.platefile_names().end(), boost::bind(&PlateInfo, _1));
 }

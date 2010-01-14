@@ -169,7 +169,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
     if(vm.count("force-lunar-datum")) {
       const double LUNAR_RADIUS = 1737400;
-      vw_out(0) << "\t--> Using standard lunar spherical datum: " 
+      vw_out() << "\t--> Using standard lunar spherical datum: "
                 << LUNAR_RADIUS << "\n";
       cartography::Datum datum("D_MOON",
                                "MOON",
@@ -180,7 +180,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       input_georef.set_datum(datum);
     } else if(vm.count("force-mars-datum")) {
       const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
-      std::cout << "\t--> Using standard MOLA spherical datum: " 
+      vw_out() << "\t--> Using standard MOLA spherical datum: "
                 << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
       cartography::Datum datum("D_MARS",
                                "MARS",
@@ -204,8 +204,9 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     bool manual = vm.count("north") || vm.count("south") || vm.count("east") || vm.count("west");
     if( manual || input_georef.transform() == identity_matrix<3>() ) {
       if( image_files.size() == 1 ) {
-        vw_out(InfoMessage) << "No georeferencing info found.  Assuming Plate Carree WGS84: " 
-                            << east_lon << " to " << west_lon << " E, " << south_lat << " to " << north_lat << " N." << std::endl;
+        vw_out() << "No georeferencing info found.  Assuming Plate Carree WGS84: "
+                 << east_lon << " to " << west_lon << " E, " << south_lat
+                 << " to " << north_lat << " N." << std::endl;
         input_georef = GeoReference();
         input_georef.set_well_known_geogcs("WGS84");
         Matrix3x3 m;
@@ -309,7 +310,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     if (global) {
-      vw_out(0) << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
+      vw_out() << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
       source = crop( transform( source, geotx, source.cols(), source.rows(), CylindricalEdgeExtension() ), bbox );
     }
     else
@@ -434,7 +435,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   quadtree.set_file_type(output_file_type);
 
   // Generate the composite.
-  vw_out(InfoMessage) << "Generating " << output_metadata << " overlay..." << std::endl;
+  vw_out() << "Generating " << output_metadata << " overlay..." << std::endl;
   quadtree.generate(*progress);
 
   // This should really get moved into a metadata function for 

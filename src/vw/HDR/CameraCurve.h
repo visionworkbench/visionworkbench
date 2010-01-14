@@ -115,8 +115,8 @@ namespace hdr {
       if ((I_1 > 0.01) && (I_1 < 0.99) && (I_2 > 0.01) && (I_2 < 0.99)) {
 
         // FOR DEBUGGING:
-        //                vw_out(0) << "Adding ["<< id1 << " " << id2 <<"] " << I_1 << "   " << I_2 << "   " << brightness_values[id1] << "    " << brightness_values[id2] << "\n";
-        //                vw_out(0) << "      " << pow(2.0, (brightness_values[id2] - brightness_values[id1]) * 0.5) << "  " << brightness_values[id2]/brightness_values[id1] << "\n";
+        //                vw_out() << "Adding ["<< id1 << " " << id2 <<"] " << I_1 << "   " << I_2 << "   " << brightness_values[id1] << "    " << brightness_values[id2] << "\n";
+        //                vw_out() << "      " << pow(2.0, (brightness_values[id2] - brightness_values[id1]) * 0.5) << "  " << brightness_values[id2]/brightness_values[id1] << "\n";
 
         pair_list(i, 0) = I_1;
         pair_list(i, 1) = I_2;

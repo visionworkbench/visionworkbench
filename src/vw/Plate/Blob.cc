@@ -134,8 +134,8 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   else if (data[0] == data[2])
     return data[0];
   else {
-    vw_out(0) << "\nWARNING: end of file ptr in blobfile " << m_blob_filename 
-              << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
+    vw_out() << "\nWARNING: end of file ptr in blobfile " << m_blob_filename
+             << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
     m_fstream->seekg(0, std::ios_base::end);
     return m_fstream->tellg();
   }

@@ -219,7 +219,7 @@ int main(int argc, char** argv) {
     std::cout << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
     exit(0);
   }
-  vw_out(0) << "\t Found " << ip1.size() << " and " << ip2.size() << " points in the left and right image respectively.\n";
+  vw_out() << "\t Found " << ip1.size() << " and " << ip2.size() << " points in the left and right image respectively.\n";
 
   // Write out images with interest points marked
   std::string prefix = prefix_from_filename(output_file_name);

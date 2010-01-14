@@ -206,15 +206,15 @@ namespace hdr {
 //     for ( int32 i = 0; i < n_channels; ++i ) {
 //       pairs[i] = generate_ldr_intensity_pairs(images, brightness_values, VW_HDR_NUM_PAIRS, i);
 //     }
-//     vw_out(0) << "Brightness values: \n";
+//     vw_out() << "Brightness values: \n";
 //     for (int i = 0; i < brightness_values.size(); ++i) {
-//       vw_out(0) << brightness_values[i] << "\n";
+//       vw_out() << brightness_values[i] << "\n";
 //     }
 
 //      std::cout << pairs[0].cols() << " x " << pairs[0].rows() << "\n";
 
 //     for (int i = 0; i < pairs[0].rows(); ++i) {
-//       vw_out(0) << pairs[0](i,0) << " " << pairs[0](i,1) << " " <<  pairs[0](i,2) << "\n";
+//       vw_out() << pairs[0](i,0) << " " << pairs[0](i,1) << " " <<  pairs[0](i,2) << "\n";
 //     }
 
 //     // Compute camera response curve for each channel. See CameraCurve.h.

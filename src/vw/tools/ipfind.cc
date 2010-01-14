@@ -52,7 +52,7 @@ void draw_line( ImageViewBase<ImageT>& image,
 static void write_debug_image( std::string out_file_name,
                                std::string input_file_name,
                                InterestPointList const& ip ) {
-  vw_out(0) << "Writing debug image: " << out_file_name << "\n";
+  vw_out() << "Writing debug image: " << out_file_name << "\n";
   DiskImageView<PixelGray<uint8> > image( input_file_name );
 
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
@@ -153,13 +153,13 @@ int main(int argc, char** argv) {
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {
-    vw_out(0) << usage.str();
+    vw_out() << usage.str();
     return 1;
   }
 
   if( input_file_names.size() < 1 ) {
-    vw_out(0) << "Error: Must specify at least one input file!" << std::endl << std::endl;
-    vw_out(0) << usage.str();
+    vw_out() << "Error: Must specify at least one input file!" << std::endl << std::endl;
+    vw_out() << usage.str();
     return 1;
   }
 
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
   if ( !( interest_operator == "harris" ||
           interest_operator == "log" ||
           interest_operator == "obalog" ) ) {
-    vw_out(0) << "Unknown interest operator: " << interest_operator
+    vw_out() << "Unknown interest operator: " << interest_operator
               << ". Options are : [ Harris, LoG, OBALoG ]\n";
     exit(0);
   }
@@ -184,7 +184,7 @@ int main(int argc, char** argv) {
           descriptor_generator == "pca"   ||
           descriptor_generator == "sgrad" ||
           descriptor_generator == "sgrad2" ) ) {
-    vw_out(0) << "Unkown descriptor generator: " << descriptor_generator
+    vw_out() << "Unkown descriptor generator: " << descriptor_generator
               << ". Options are : [ Patch, PCA, SGrad, SGrad2 ]\n";
     exit(0);
   }
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
   // Iterate over the input files and find interest points in each.
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
 
-    vw_out(0) << "Finding interest points in \"" << input_file_names[i] << "\".\n";
+    vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
     std::string file_prefix = prefix_from_filename(input_file_names[i]);
     DiskImageResource *image_rsrc = DiskImageResource::open( input_file_names[i] );
     DiskImageView<PixelGray<float> > image(image_rsrc);
@@ -284,13 +284,13 @@ int main(int argc, char** argv) {
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
     }
 
-    vw_out(0) << "\t Found " << ip.size() << " points.\n";
+    vw_out() << "\t Found " << ip.size() << " points.\n";
 
     // Additional Culling for the entire image
     ip.sort();
     if ( (max_points > 0) && (ip.size() > max_points) ) {
       ip.resize(max_points);
-      vw_out(0) << "\t Culled to " << ip.size() << " points.\n";
+      vw_out() << "\t Culled to " << ip.size() << " points.\n";
     }
 
     // Generate descriptors for interest points.

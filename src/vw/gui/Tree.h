@@ -204,12 +204,12 @@ namespace gui {
     }
 
     void print_helper(int current_level) const {
-      vw_out(0) << (*(m_records.begin())).second.status() << "\n";
-      for (int i = 0; i < 4; ++i) 
+      vw_out() << (*(m_records.begin())).second.status() << "\n";
+      for (int i = 0; i < 4; ++i)
         if ( this->child(i) ) {
-          for (int l = 0; l < current_level+1; ++l) 
-            vw_out(0) << "  ";
-          vw_out(0) << "[ " << (current_level+1) 
+          for (int l = 0; l < current_level+1; ++l)
+            vw_out() << "  ";
+          vw_out() << "[ " << (current_level+1)
                      << " -- Child " << i << " ] - " ;
           this->child(i)->print_helper(current_level + 1);
         }
@@ -317,9 +317,9 @@ namespace gui {
     }
 
     /// Print the tree.  (Use only for debugging small trees....)
-    void print() const { 
-      vw_out(0) << "[ 0 -- Child 0 ] - ";
-      this->print_helper(0); 
+    void print() const {
+      vw_out() << "[ 0 -- Child 0 ] - ";
+      this->print_helper(0);
     }
 
     void map(boost::shared_ptr<TreeMapFunc> func) {

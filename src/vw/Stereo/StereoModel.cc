@@ -26,7 +26,7 @@ ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const
   error.set_size(disparity_map.cols(), disparity_map.rows());
 
   // Compute 3D position for each pixel in the disparity map
-  vw_out(0) << "StereoModel: Applying camera models\n";
+  vw_out() << "StereoModel: Applying camera models\n";
   for (int32 y = 0; y < disparity_map.rows(); y++) {
     if (y % 100 == 0) {
       printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
@@ -57,12 +57,12 @@ ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const
   }
 
   if (divergent != 0)
-    vw_out(0) << "WARNING in StereoModel: " << divergent
-              << " rays diverged or were parallel!\n";
+    vw_out() << "WARNING in StereoModel: " << divergent
+             << " rays diverged or were parallel!\n";
 
-  vw_out(0) << "\tStereoModel computing points: Done.                  \n";
-    vw_out(0) << "\tMean error = " << mean_error/double(point_count)
-              << ",  Max error = " << max_error << std::endl;
+  vw_out() << "\tStereoModel computing points: Done.                  \n";
+  vw_out() << "\tMean error = " << mean_error/double(point_count)
+           << ",  Max error = " << max_error << std::endl;
     return xyz;
 }
 

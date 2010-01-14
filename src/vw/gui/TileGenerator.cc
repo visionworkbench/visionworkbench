@@ -96,7 +96,7 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
   // If testpattern, then we use the testpattern tile generator
   } else if (filename == "testpattern") {
 
-    vw_out(0) << "\t--> Starting vwv in testpattern mode.\n";
+    vw_out() << "\t--> Starting vwv in testpattern mode.\n";
     return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
     
   // Otherwise, assume an image.
@@ -371,7 +371,7 @@ int32 PlatefileTileGenerator::num_levels() const {
 
 ImageTileGenerator::ImageTileGenerator(std::string filename) : 
   m_filename(filename), m_rsrc( DiskImageResource::open(filename) ) {
-  vw_out(0) << "\t--> Loading image: " << filename << ".\n";
+  vw_out() << "\t--> Loading image: " << filename << ".\n";
 }
 
 

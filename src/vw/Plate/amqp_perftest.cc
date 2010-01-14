@@ -37,7 +37,7 @@ void run_client(std::string exchange, std::string client_queue,
     try {
       client.get_bytes(result, 3000);
     } catch (const AMQPTimeout&) {
-      vw_out(0) << "No messages for 3 seconds" << std::endl;
+      vw_out() << "No messages for 3 seconds" << std::endl;
       break;
     }
 
@@ -129,7 +129,7 @@ void run_server(const std::string exchange, const std::string client_queue,
       try {
         server.get_bytes(result, 3000);
       } catch (const AMQPTimeout&) {
-        vw_out(0) << "No ACKs for 3 seconds" << std::endl;
+        vw_out() << "No ACKs for 3 seconds" << std::endl;
         break;
       }
 

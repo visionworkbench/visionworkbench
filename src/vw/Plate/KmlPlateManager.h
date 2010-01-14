@@ -130,10 +130,10 @@ namespace platefile {
       BBox2i output_bbox = kml_tx.forward_bbox(input_bbox);
       output_bbox.crop( BBox2i(0,0,resolution,resolution) );
 
-      std::cout << "\t    Placing image at level " << pyramid_level 
-                << " with bbox " << output_bbox << "\n"
-                << "\t    (Total KML resolution at this level =  " 
-                << resolution << " pixels.)\n";
+      vw_out() << "\t    Placing image at level " << pyramid_level
+               << " with bbox " << output_bbox << "\n"
+               << "\t    (Total KML resolution at this level =  "
+               << resolution << " pixels.)\n";
       
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> kml_view = 
@@ -144,8 +144,8 @@ namespace platefile {
           fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
           fabs(input_georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
           fabs(input_georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1 ) {
-        vw_out(0) << "\t--> Detected global overlay.  " 
-                  << "Using cylindrical edge extension to hide the seam.\n";
+        vw_out() << "\t--> Detected global overlay.  "
+                 << "Using cylindrical edge extension to hide the seam.\n";
         kml_view = transform(image,kml_tx,
                              CylindricalEdgeExtension(), BicubicInterpolation());
       } 

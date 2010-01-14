@@ -180,7 +180,7 @@ int main( int argc, char *argv[] ) {
     delete rsrc;
 
   } catch (vw::Exception &e) {
-    vw_out(1) << "An error occured: " << e.what() << "\n";
+    vw_out(ErrorMessage) << "An error occured: " << e.what() << "\n";
     exit(1);
   }
 
@@ -206,14 +206,14 @@ int main( int argc, char *argv[] ) {
   }
 
   if (vm.count("transaction-id") && transaction_id_override < 1) {
-    vw_out(0) << "Error: you must specify a positive transaction-id.\n";
+    vw_out() << "Error: you must specify a positive transaction-id.\n";
     exit(1);
   }
 
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
   if (output_mode != "toast" && output_mode != "kml") {
-    vw_out(0) << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
+    vw_out() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
     exit(1);
   }
   try {
@@ -230,7 +230,7 @@ int main( int argc, char *argv[] ) {
 
       // Check to see if the image exists.
       if ( !fs::exists(image_files[i]) ) {
-        vw_out(0) << "Error: could not image file named \"" << image_files[i] << "\"";
+        vw_out() << "Error: could not image file named \"" << image_files[i] << "\"";
         exit(1);
       }
 
@@ -280,7 +280,7 @@ int main( int argc, char *argv[] ) {
                       image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
-          vw_out(0) << "Image contains a channel type not supported by image2plate.\n";
+          vw_out() << "Image contains a channel type not supported by image2plate.\n";
           exit(1);
         }
         break;
@@ -292,12 +292,12 @@ int main( int argc, char *argv[] ) {
                     image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
-          vw_out(0) << "Platefile contains a channel type not supported by image2plate.\n";
+          vw_out() << "Platefile contains a channel type not supported by image2plate.\n";
           exit(1);
         }
         break;
       default:
-        vw_out(0) << "Image contains a pixel type not supported by image2plate.\n";
+        vw_out() << "Image contains a pixel type not supported by image2plate.\n";
         exit(1);
       }
     }

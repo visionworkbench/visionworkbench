@@ -35,8 +35,8 @@ namespace vw {
 }
 
 void print_usage(po::options_description const& visible_options) {
-  vw_out(0) << "\nUsage: vwv [options] <image file> \n";
-  vw_out(0) << visible_options << std::endl;
+  vw_out() << "\nUsage: vwv [options] <image file> \n";
+  vw_out() << visible_options << std::endl;
 }
 
 int main(int argc, char *argv[]) {
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   }
 
   if( vm.count("image") != 1 ) {
-    vw_out(0) << "Error: Must specify exactly one input file!" << std::endl;
+    vw_out() << "Error: Must specify exactly one input file!" << std::endl;
     print_usage(visible_options);
     return 1;
   }
@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
   try {
     app.exec();
   } catch (vw::Exception &e) {
-    vw_out(0) << "An unexpected error occurred: " << e.what() << "\nExiting\n\n";
+    vw_out() << "An unexpected error occurred: " << e.what() << "\nExiting\n\n";
   }
 
   return 0;

@@ -98,12 +98,12 @@ int main( int argc, char *argv[] ) {
     else if (bit_depth == 64)
       write_image(output_filename, tone_mapped);
     else {
-      vw_out(0) << "Unknown bit depth specified by user.  Please choose from the following options: [ 8, 16, 32, 64 ]\n";
+      vw_out() << "Unknown bit depth specified by user.  Please choose from the following options: [ 8, 16, 32, 64 ]\n";
       exit(1);
     }
 
   } catch (vw::Exception &e) {
-    std::cout << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";  
+    vw_out() << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";
     return 1;
   }
 }

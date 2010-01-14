@@ -91,7 +91,7 @@ public:
     }
 
     // Rasterize the views and pass them along to be correlated.
-    vw_out(0) << "Reference Correlator\n";
+    vw_out() << "Reference Correlator\n";
     typename PreProcFilterT::result_type l_image = preproc_filter(channels_to_planes(image0));
     typename PreProcFilterT::result_type r_image = preproc_filter(channels_to_planes(image1));
 
@@ -102,25 +102,25 @@ public:
     Stopwatch timer;
     timer.start();
 
-    vw_out(0) << "\tRunning left-to-right correlation... " << std::flush;
+    vw_out() << "\tRunning left-to-right correlation... " << std::flush;
     ImageView<PixelMask<Vector2f> > resultL2R = this->correlate(l_image, r_image,false,PreProcFilterT::use_bit_image());
-    vw_out(0) << "done.\n\tRunning right-to-left correlation... " << std::flush;
+    vw_out() << "done.\n\tRunning right-to-left correlation... " << std::flush;
     ImageView<PixelMask<Vector2f> > resultR2L = this->correlate(r_image, l_image,true,PreProcFilterT::use_bit_image());
-    vw_out(0) << "done.\n";
+    vw_out() << "done.\n";
 
     // Cross check the left and right disparity maps
-    vw_out(0) << "Cross-correlation consistency check.\n";
+    vw_out() << "Cross-correlation consistency check.\n";
     cross_corr_consistency_check(resultL2R, resultR2L,m_crossCorrThreshold);
 
     // Do subpixel correlation
-    vw_out(0) << "Subpixel.\n";
+    vw_out() << "Subpixel.\n";
     if (m_do_affine_subpixel)
       subpixel_correlation_affine_2d(resultL2R, l_image, r_image, m_lKernWidth,
                                      m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
     else
       subpixel_correlation_parabola(resultL2R, l_image, r_image, m_lKernWidth,
                                     m_lKernHeight, m_useHorizSubpixel, m_useVertSubpixel);
-    vw_out(0) << "Done Subpixel.\n";
+    vw_out() << "Done Subpixel.\n";
 
     int matched = 0;
     int total = 0;
@@ -138,14 +138,14 @@ public:
     timer.stop();
     double lapse__ = timer.elapsed_seconds();
     if (m_verbose) {
-      vw_out(0) << "\tTotal correlation + subpixel took " << lapse__ << " sec";
+      vw_out() << "\tTotal correlation + subpixel took " << lapse__ << " sec";
       double nTries = 2.0 * (m_lMaxV - m_lMinV + 1) * (m_lMaxH - m_lMinH + 1);
       double rate = nTries * width * height / lapse__ / 1.0e6;
-      vw_out(0) << "\t(" << rate << " M disparities/second)" << std::endl;
+      vw_out() << "\t(" << rate << " M disparities/second)" << std::endl;
     }
 
     double score = (100.0 * matched) / total;
-    vw_out(0) << "\tCorrelation rate: " << score << "\n\n";
+    vw_out() << "\tCorrelation rate: " << score << "\n\n";
 
     return resultL2R;
   }

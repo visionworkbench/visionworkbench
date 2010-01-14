@@ -58,7 +58,7 @@ namespace stereo {
       #if 0
       ImageView<float> g_img;
       g_img = gaussian_filter(img, 1.5);
-      vw_out(0) << "Gaussian blurring\n";
+      vw_out() << "Gaussian blurring\n";
 
       for (vw::int32 p = 0; p < outImg.planes(); p++)
         for (vw::int32 i = 0; i < outImg.cols(); i++)

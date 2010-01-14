@@ -268,35 +268,35 @@ namespace vw {
       
       // go up the pyramid; first run refinement, then upsample result for the next level
       for(int i = pyramid_levels-1; i >=0; i--) {
-	vw_out(0) << "processing pyramid level "
-		  << i << " of " << pyramid_levels-1 << std::endl;
-	
-	if(debug_level >= 0) {
-	  std::stringstream stream;
-	  stream << "pyramid_level_" << i << ".tif";
-	  write_image(stream.str(), disparity_map_pyramid[i]);
-	}
-	
-	ImageView<ImagePixelT> process_left_image = left_pyramid[i];
-	ImageView<ImagePixelT> process_right_image = right_pyramid[i];
-	
-	if(i > 0) { // in this case take refine the upsampled disparity map from the previous level,
-	  // and upsample for the next level
-	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-			    disparity_map_pyramid[i], disparity_map_pyramid[i], warps[i],
-			    regions_of_interest[i], false, debug_level == i);
-	  
-	  // upsample the warps and the refined map for the next level of processing
-	  int up_width = left_pyramid[i-1].cols();
-	  int up_height = left_pyramid[i-1].rows();
-	  warps[i-1] = copy(resize(warps[i], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //upsample affine transforms
-	  disparity_map_pyramid[i-1] = copy(upsample_disp_map_by_two(disparity_map_pyramid[i], up_width, up_height));
-	}
-	else { // here there is no next level so we refine directly to the output patch
-	  m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
-			    disparity_map_pyramid[i], disparity_map_patch_out, warps[i],
-			    regions_of_interest[i], true, debug_level == i);
-	}
+        vw_out() << "processing pyramid level "
+                  << i << " of " << pyramid_levels-1 << std::endl;
+        
+        if(debug_level >= 0) {
+          std::stringstream stream;
+          stream << "pyramid_level_" << i << ".tif";
+          write_image(stream.str(), disparity_map_pyramid[i]);
+        }
+        
+        ImageView<ImagePixelT> process_left_image = left_pyramid[i];
+        ImageView<ImagePixelT> process_right_image = right_pyramid[i];
+        
+        if(i > 0) { // in this case take refine the upsampled disparity map from the previous level,
+          // and upsample for the next level
+          m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
+                            disparity_map_pyramid[i], disparity_map_pyramid[i], warps[i],
+                            regions_of_interest[i], false, debug_level == i);
+          
+          // upsample the warps and the refined map for the next level of processing
+          int up_width = left_pyramid[i-1].cols();
+          int up_height = left_pyramid[i-1].rows();
+          warps[i-1] = copy(resize(warps[i], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //upsample affine transforms
+          disparity_map_pyramid[i-1] = copy(upsample_disp_map_by_two(disparity_map_pyramid[i], up_width, up_height));
+        }
+        else { // here there is no next level so we refine directly to the output patch
+          m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
+                            disparity_map_pyramid[i], disparity_map_patch_out, warps[i],
+                            regions_of_interest[i], true, debug_level == i);
+        }
       }
       
 #ifdef USE_GRAPHICS
@@ -430,7 +430,7 @@ namespace vw {
 
       for(y = ROI.min()[1]; y < ROI.max()[1]; y++) {
 	if(y%10 == 0 && y != 0) {
-          vw_out(0) << "@ row " << y << ": average pixel took "
+          vw_out() << "@ row " << y << ": average pixel took "
                     << 1000*pixel_timer.elapsed_seconds()/(double)num_pixels
                     << " over " <<  num_pixels << " pixels" << std::endl;
         }
@@ -465,9 +465,9 @@ namespace vw {
           l_window = crop(edge_extend(left_image.impl(), ZeroEdgeExtension()), window_box);
 
           if(debug) {
-            vw_out(0) << "course estimate = " << pos << " + "
+            vw_out() << "course estimate = " << pos << " + "
                       << disparity_in.impl()(x, y) << std::endl;
-            vw_out(0) << "initial warp: "
+            vw_out() << "initial warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
 
@@ -526,18 +526,18 @@ namespace vw {
           // double ll_w0, ll_w1, ll_w2; // not used
 
           if (debug) {
-            vw_out(0) << "P_1 = " << P_1 << std::endl;
-            vw_out(0) << "P_outlier1 = " << P_outlier1 << std::endl;
-            vw_out(0) << "P_outlier2 = " << P_outlier2 << std::endl;
+            vw_out() << "P_1 = " << P_1 << std::endl;
+            vw_out() << "P_outlier1 = " << P_outlier1 << std::endl;
+            vw_out() << "P_outlier2 = " << P_outlier2 << std::endl;
 
             affine_comp.print_status("affine.");
             if(use_left_outliers)
               outlier_comp1.print_status("outlier1.");
             if(use_right_outliers)
               outlier_comp2.print_status("outlier2.");
-            vw_out(0) << "iter = 0" << std::endl;
+            vw_out() << "iter = 0" << std::endl;
 
-            vw_out(0) << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
+            vw_out() << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
             r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
             vw_show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
@@ -546,7 +546,7 @@ namespace vw {
             vw_show_image(w_window_o1_view, resize(weights_outlier1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
             vw_show_image(w_window_o2_view, resize(weights_outlier2, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
             vw_show_image(errors_window_p1_view, debug_view_mag*resize(normalize(affine_comp.errors()), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
-            vw_out(0) << "max_error = " << max_pixel_value(affine_comp.errors()) << std::endl;
+            vw_out() << "max_error = " << max_pixel_value(affine_comp.errors()) << std::endl;
             usleep((int)(1*1000*1000));
 #endif
 
@@ -661,9 +661,9 @@ namespace vw {
             }
 
             if(debug) {
-              vw_out(0) << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
-              vw_out(0) << "P_1 = " << P_1 << std::endl;
-              vw_out(0) << "P_outlier1 = " << P_outlier1 << std::endl;
+              vw_out() << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
+              vw_out() << "P_1 = " << P_1 << std::endl;
+              vw_out() << "P_outlier1 = " << P_outlier1 << std::endl;
 	      
               affine_comp.print_status("affine.");
               if(use_left_outliers)
@@ -671,17 +671,17 @@ namespace vw {
               if(use_right_outliers)
                 outlier_comp2.print_status("outlier2.");
 
-              vw_out(0) << "f_value = " << f_value << std::endl;
+              vw_out() << "f_value = " << f_value << std::endl;
             }
 
             if (debug) {
-              vw_out(0) << "iter = " << em_iter+1 << std::endl;
-              vw_out(0) << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
+              vw_out() << "iter = " << em_iter+1 << std::endl;
+              vw_out() << "RMS error = " << sqrt(sum_of_pixel_values(pow(affine_comp.errors(),2))/affine_comp.errors().cols()/affine_comp.errors().rows()) << std::endl;
 #ifdef USE_GRAPHICS
               r_window_p1 = crop(transform(right_image.impl(), affine_comp.affine_transform()), window_box);
 
               double norm = 1.; //std::max<double>(max_pixel_value(outlier_comp1.prob()), max_pixel_value(affine_comp.prob()));
-              vw_out(0) << "normalization constant = " << norm << std::endl;
+              vw_out() << "normalization constant = " << norm << std::endl;
               vw_show_image(r_window_p1_view, debug_view_mag*resize(r_window_p1, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation())); //, NearestPixelInterpolation()));
               vw_show_image(l_window_view, debug_view_mag*resize(l_window, 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               vw_show_image(w_window_p1_view, resize((affine_comp.weights()/norm), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
@@ -694,7 +694,7 @@ namespace vw {
               vw_show_image(errors_window_p1_view, debug_view_mag*resize(20*affine_comp.errors(), 200, 200, ZeroEdgeExtension(), NearestPixelInterpolation()));
               usleep((int)(.5*1000*1000));
 #endif
-              vw_out(0) << std::endl;
+              vw_out() << std::endl;
             }
 
             // check termination condition for em loop
@@ -704,7 +704,7 @@ namespace vw {
           } // end em loop
           em_timer.stop();
 
-          //vw_out(0) << "EM converged in " << em_iter << " iterations (" << 1000*em_timer.elapsed_seconds() << ")" <<  std::endl;
+          //vw_out() << "EM converged in " << em_iter << " iterations (" << 1000*em_timer.elapsed_seconds() << ")" <<  std::endl;
 
           pos = Vector2(x, y);
           cor_pos = affine_comp.affine_transform().reverse(pos);
@@ -722,9 +722,9 @@ namespace vw {
 
 
           if(debug) {
-            vw_out(0) << "refined estimate = "
+            vw_out() << "refined estimate = "
                       << disparity_out.impl()(x, y) << std::endl;
-            vw_out(0) << "refined warp: "
+            vw_out() << "refined warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
 	  
@@ -796,7 +796,7 @@ namespace vw {
       #if 0
       ImageView<float> g_img;
       g_img = gaussian_filter(img, 1.5);
-      vw_out(0) << "Gaussian blurring\n";
+      vw_out() << "Gaussian blurring\n";
 
       for (vw::int32 p = 0; p < outImg.planes(); p++)
         for (vw::int32 i = 0; i < outImg.cols(); i++)

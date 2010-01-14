@@ -418,7 +418,7 @@ namespace {
         m_os << "    }" << std::endl;
       }
       else {
-	vw::vw_out(0) << "ERROR in VRMLFunctor: unable to write to output stream!" << std::endl;
+        vw::vw_out() << "ERROR in VRMLFunctor: unable to write to output stream!" << std::endl;
       }
     }
   private:
