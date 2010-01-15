@@ -34,12 +34,11 @@
 
 [general]
 default_num_threads = 8
-system_cache_size = 2048
+system_cache_size = 2000000000 # ~ 2 GB
 
 [logfile console]
 20 = thread
 * = cache
-20 = stereo
 VerboseDebugMessage = *
 # This turns off all progress bars to the console.
 0 = *.progress
