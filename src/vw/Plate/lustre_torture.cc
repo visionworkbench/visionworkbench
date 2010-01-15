@@ -27,7 +27,6 @@ struct Options {
   uint32 block_count;
   std::string server;
   bool verify;
-  bool append;
   bool fsync;
 };
 
@@ -45,7 +44,6 @@ void handle_arguments(int argc, char *argv[], Options& opt)
     ("id,i",          po::value(&opt.id),       "This client's id.")
     ("timeout,t",     po::value(&opt.timeout)->default_value(30000), "timeout in ms.")
     ("verify,v",      "Check the file instead of writing it")
-    ("append",        "Use O_APPEND rather than lseek (this will mess up lustre!)")
     ("fsync",         "Call fsync before closing")
     ("block-size,b",  po::value(&opt.block_size)->default_value(4),  "How much should each client write?")
     ("block-count,c", po::value(&opt.block_count)->default_value(std::numeric_limits<uint32>().max()), "How many times should each client write?")
@@ -66,7 +64,6 @@ void handle_arguments(int argc, char *argv[], Options& opt)
 
   opt.verify = vm.count("verify");
   help = vm.count("help");
-  opt.append = vm.count("append");
 
   if (!opt.verify)
     REQUIRE(id);
@@ -142,17 +139,41 @@ void run(const Options& opt) {
 
   uint32 blocks_written = 0;
   uint32 tick = opt.block_count / 100;
+
+  double increment;
+  if (tick == 0) {
+    tick = 1;
+    increment = 1./opt.block_count;
+  } else {
+    increment = .01;
+  }
+
   while (blocks_written < opt.block_count) {
     if (blocks_written % tick == 0) {
-      pc.report_incremental_progress(.01);
+      pc.report_incremental_progress(increment);
       pc.print_progress();
     }
     int fd;
+    ssize_t ret;
+
+    // eof offset should contain the offset of where the next write should go
+    int64 eof_offset;
+    // Just check to make sure we're doing 64-bit io
+    BOOST_STATIC_ASSERT(sizeof(eof_offset) == sizeof(off_t));
+
     if (first_node) {
       first_node = false;
       // truncate file and create it if necessary
-      fd = open(opt.filename.c_str(), O_WRONLY|O_TRUNC|O_CREAT, 0660);
+      fd = open(opt.filename.c_str(), O_RDWR|O_TRUNC|O_CREAT, 0660);
       VW_ASSERT(fd >= 0, IOErr() << "Could not truncate file " << opt.filename << ": " << strerror(errno));
+
+      eof_offset = sizeof(eof_offset);
+      ret = lseek(fd, 0, SEEK_SET);
+      VW_ASSERT(ret == 0, IOErr() << "Failed to seek to intial eof ptr location");
+
+      ret = write(fd, reinterpret_cast<char*>(&eof_offset), sizeof(eof_offset));
+      VW_ASSERT(ret == sizeof(eof_offset), IOErr() << "Failed to write initial eof ptr");
+
     } else {
       SharedByteArray msg;
       node.get_bytes(msg, opt.timeout);
@@ -161,38 +182,46 @@ void run(const Options& opt) {
       VW_ASSERT(std::equal(want_msg.begin(), want_msg.end(), msg->begin()),
               LogicErr() << "Got the wrong message.");
 
-      if (opt.append)
-        fd = open(opt.filename.c_str(), O_WRONLY|O_APPEND);
-      else
-        fd = open(opt.filename.c_str(), O_WRONLY);
-
+      fd = open(opt.filename.c_str(), O_RDWR);
       VW_ASSERT(fd >= 0, IOErr() << "Could not open file " << opt.filename << ": " << strerror(errno));
-
-      if (!opt.append) {
-        off_t offset = (opt.clients * blocks_written + opt.id) * opt.block_size;
-        VW_ASSERT(lseek(fd, offset, SEEK_SET) > 0,
-            IOErr() << "Could not seek in file");
-      }
     }
 
     std::string s_id = boost::lexical_cast<std::string>(opt.id);
     s_id.insert(0, opt.block_size-s_id.size(), '0');
     VW_ASSERT(s_id.size() == opt.block_size, LogicErr() << "Must pad s_id to block size");
 
-    // struct flock lock;
-    // lock.l_type   = F_WRLCK;
-    // lock.l_whence = SEEK_END;
-    // lock.l_start  = 0;
-    // // len == 0 means "lock to end of file, even if file grows"
-    // lock.l_len    = 0;
+    // Seek to EOF value
+    ret = lseek(fd, 0, SEEK_SET);
+    VW_ASSERT(ret == 0, IOErr() << "Failed to seek to eof ptr location");
 
-    // // Try to set the write lock, and wait until it's available. lock is released on close.
-    // VW_ASSERT(fcntl(fd, F_SETLKW, &lock) >= 0,
-    //         IOErr() << "Could not get write lock: " << strerror(errno));
+    // Read EOF value
+    ret = read(fd, reinterpret_cast<char*>(&eof_offset), sizeof(eof_offset));
+    VW_ASSERT(ret == sizeof(eof_offset), IOErr() << "Failed to read eof offset");
 
-    VW_ASSERT(write(fd, s_id.c_str(), s_id.size()) == (ssize_t)s_id.size(),
-            IOErr() << "Failed to write all data to file");
+    // Make sure our offset matches the expected one
+    int64 expected_offset = (opt.clients * blocks_written + opt.id) * opt.block_size + sizeof(eof_offset);
+    VW_ASSERT(expected_offset == eof_offset,
+        IOErr() << "Corruption! EOF offset is " << eof_offset << " and we expected " << expected_offset);
+
+    // Seek to new data location
+    ret = lseek(fd, eof_offset, SEEK_SET);
+    VW_ASSERT(ret == eof_offset, IOErr() << "Failed to seek to start of data");
+
+    // Write data there
+    ret = write(fd, s_id.c_str(), s_id.size());
+    VW_ASSERT(ret == (ssize_t)s_id.size(), IOErr() << "Failed to write all data to file");
+
+    // Record that we wrote data
+    eof_offset += s_id.size();
     blocks_written++;
+
+    // Seek back to EOF value
+    ret = lseek(fd, 0, SEEK_SET);
+    VW_ASSERT(ret == 0, IOErr() << "Failed to seek to eof ptr location, second time");
+
+    // write updated EOF value
+    ret = write(fd, reinterpret_cast<char*>(&eof_offset), sizeof(eof_offset));
+    VW_ASSERT(ret == sizeof(eof_offset), IOErr() << "Failed to write eof ptr to file");
 
     if (opt.fsync)
       VW_ASSERT(fsync(fd) == 0, IOErr() << "Could not fsync: " << strerror(errno));
@@ -214,11 +243,31 @@ void verify(const Options& opt) {
 
     TerminalProgressCallback pc( "plate.tools.lustre_torture", "");
     uint32 tick = (opt.clients * opt.block_count) / 100;
+    double increment;
+    if (tick == 0) {
+      tick = 1;
+      increment = 1./(opt.block_count * opt.clients);
+    } else {
+      increment = .01;
+    }
 
     uint32 blocks_read = 0;
+    int64 eof_offset, calculated_eof_offset;
+
+    file.seekg(0, std::ios::end);
+    calculated_eof_offset = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    file.read(reinterpret_cast<char*>(&eof_offset), sizeof(eof_offset));
+
+    VW_ASSERT(eof_offset == calculated_eof_offset,
+        LogicErr() << "Expected an eof offset of " << calculated_eof_offset << " but the file had " << eof_offset);
+
+    file.seekg(sizeof(eof_offset), std::ios::beg);
+
     while (file.read(&bytes[0], opt.block_size)) {
       if (blocks_read++ % tick == 0) {
-        pc.report_incremental_progress(.01);
+        pc.report_incremental_progress(increment);
         pc.print_progress();
       }
       try {
