@@ -50,7 +50,7 @@ void vw::TerminalProgressCallback::report_finished() const {
   Mutex::Lock lock(m_mutex);
   uint32_t cbar_length = m_max_characters - m_pre_progress_text.size()-12;
   std::ostringstream p;
-  for ( int i = 0; i < cbar_length; i++ )
+  for ( uint32_t i = 0; i < cbar_length; i++ )
     p << "*";
   vw_out(m_level, m_namespace) << "\r" << m_pre_progress_text
                                << "[" << p.str() << "] Complete!\n";

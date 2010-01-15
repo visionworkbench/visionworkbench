@@ -321,8 +321,10 @@ namespace vw {
 
     // Help functions
     inline bool has_leading_wildcard( std::string const& exp ) {
-      int index = exp.rfind("*");
-      return exp.size()-1 > index;
+      size_t index = exp.rfind("*");
+      if ( index != std::string::npos )
+        return false;
+      return size_t(exp.size())-1 > index;
     }
 
     inline std::string after_wildcard( std::string const& exp ) {

@@ -131,12 +131,16 @@ namespace stereo {
       BBox2 initial_search_range = m_initial_search_range / pow(2.0, m_pyramid_levels-1);
       ImageView<PixelMask<Vector2f> > disparity_map;
 
+      // Overall Progress Bar
+      TerminalProgressCallback prog( "stereo", "Pyr Search:");
+
       // Refined the disparity map by searching in the local region
       // where the last good disparity value was found.
       for (int n = m_pyramid_levels - 1; n >=0; --n) {
         std::ostringstream current_level;
         current_level << n;
-        TerminalProgressCallback prog( "stereo", "\tLevel " + current_level.str() );
+
+        SubProgressCallback subbar(prog,float(m_pyramid_levels-1-n)/float(m_pyramid_levels), float(m_pyramid_levels-n)/float(m_pyramid_levels));
 
         ImageView<PixelMask<Vector2f> > new_disparity_map(left_pyramid[n].cols(), left_pyramid[n].rows());
 
@@ -172,7 +176,7 @@ namespace stereo {
         }
 
         for (unsigned r = 0; r < nominal_blocks.size(); ++r) {
-          prog.report_progress((float)r/nominal_blocks.size());
+          subbar.report_progress((float)r/nominal_blocks.size());
 
           // Given a block from the left image, compute the bounding
           // box of pixels we will be searching in the right image
@@ -218,7 +222,7 @@ namespace stereo {
                                                             nominal_blocks[r].width(),
                                                             nominal_blocks[r].height());
         }
-        prog.report_finished();
+        subbar.report_finished();
 
 
         // Clean up the disparity map by rejecting outliers in the lower
@@ -260,6 +264,7 @@ namespace stereo {
         if (m_debug_prefix.size() > 0)
           write_debug_images(n, disparity_map, nominal_blocks);
       }
+      prog.report_finished();
 
       return disparity_map;
     }
