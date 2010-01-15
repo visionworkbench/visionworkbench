@@ -147,6 +147,14 @@ namespace vw {
     static const uint32_t m_max_characters = 80;
     uint32_t m_bar_length;
 
+    void calculate_bar_length() {
+      VW_ASSERT( m_pre_progress_text.size()+8+m_precision < 80,
+                 ArgumentErr() << "Pre-progress Text or Precision too big to allow progress bar to fit inside 80 char" );
+      m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;
+      if ( m_precision > 0 )
+        m_bar_length -= m_precision + 1; // 1 for decimal point
+    }
+
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) DEPRECATED;
 
@@ -159,10 +167,7 @@ namespace vw {
       if ( m_level <  InfoMessage )
         vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
 
-      // Calculating bar length
-      m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;
-      if ( m_precision > 0 )
-        m_bar_length -= m_precision + 1; // 1 for decimal point
+      calculate_bar_length();
     }
 
     virtual ~TerminalProgressCallback() {}
@@ -178,6 +183,8 @@ namespace vw {
     void set_progress_text( std::string const& text ) {
       Mutex::Lock lock(m_mutex);
       m_pre_progress_text = text;
+
+      calculate_bar_length();
     }
 
     virtual void report_progress(double progress) const {
