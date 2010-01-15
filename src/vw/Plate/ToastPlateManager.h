@@ -258,7 +258,7 @@ namespace platefile {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level-1 << ": ";
         this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
-                     TerminalProgressCallback(InfoMessage, mipmap_str.str())); 
+                     TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 
       // Release the blob id lock.

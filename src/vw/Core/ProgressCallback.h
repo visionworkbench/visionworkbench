@@ -150,8 +150,9 @@ namespace vw {
   public:
     TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) DEPRECATED;
 
-    TerminalProgressCallback( MessageLevel log_level, std::string log_namespace, std::string progress_text, uint32_t precision = 0) :
-    m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
+    TerminalProgressCallback( std::string log_namespace, std::string progress_text, MessageLevel log_level = InfoMessage, uint32_t precision = 0) :
+      m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
+
       m_namespace += ".progress";
       boost::replace_all(m_pre_progress_text,"\t","        ");
 

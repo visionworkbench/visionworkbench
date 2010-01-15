@@ -81,7 +81,7 @@ void do_tiles(cartography::GeoReference output_georef) {
                                  Vector2i(256,256));
       write_georeference(rsrc, tile_georef);
       write_image(rsrc, cropped_view, 
-                  TerminalProgressCallback(InfoMessage, "\t    Writing: "));
+                  TerminalProgressCallback( "plate.tools", "\t    Writing: "));
     }
   }
 }

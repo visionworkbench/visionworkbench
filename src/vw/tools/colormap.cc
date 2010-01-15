@@ -152,11 +152,11 @@ void do_colorized_dem(po::variables_map const& vm) {
     ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
     vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
     write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef,
-                              TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
+                              TerminalProgressCallback( "tools.colormap", "Writing:"));
   } else {
     vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
     write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef,
-                              TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
+                              TerminalProgressCallback( "tools.colormap", "Writing:"));
   }
 }
 

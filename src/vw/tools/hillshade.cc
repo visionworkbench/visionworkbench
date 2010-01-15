@@ -200,7 +200,7 @@ void do_hillshade(po::variables_map const& vm) {
   rsrc.set_block_size(Vector2i(1024,1024));
   write_georeference(rsrc, georef);
   write_image(rsrc, shaded_image,
-              TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
+              TerminalProgressCallback( "tools.hillshade", "Writing:"));
 }
 
 int main( int argc, char *argv[] ) {

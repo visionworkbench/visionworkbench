@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
   ToastQuadTreeConfig tqtc;
   tqtc.configure( qtree, composite );
   qtree.set_file_type( output_file_type );
-  qtree.generate( TerminalProgressCallback(InfoMessage,"tools","") );
+  qtree.generate( TerminalProgressCallback( "tools.image2toast","") );
 
   return 0;
 }

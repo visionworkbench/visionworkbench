@@ -127,7 +127,7 @@ void run(const Options& opt) {
   want_msg[1] = 'O';
   std::copy(me.begin(), me.end(), want_msg.begin()+2);
 
-  TerminalProgressCallback pc;
+  TerminalProgressCallback pc( "plate.tools.lustre_torture", "");
 
   {
       std::string sending(send_msg.begin(), send_msg.end()),
@@ -212,7 +212,7 @@ void verify(const Options& opt) {
     uint32 failed = 0;
     int32 first_failure = -1;
 
-    TerminalProgressCallback pc;
+    TerminalProgressCallback pc( "plate.tools.lustre_torture", "");
     uint32 tick = (opt.clients * opt.block_count) / 100;
 
     uint32 blocks_read = 0;

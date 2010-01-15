@@ -153,12 +153,12 @@ int main(int argc, char** argv) {
         // Run interest point matcher that uses KDTree algorithm.
         InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
         matcher(ip1, ip2, matched_ip1, matched_ip2, false,
-                TerminalProgressCallback(InfoMessage,"tools","Matching:"));
+                TerminalProgressCallback( "tools.ipmatch","Matching:"));
       } else {
         // Run interest point matcher that does not use KDTree algorithm.
         InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
         matcher(ip1, ip2, matched_ip1, matched_ip2, false,
-                TerminalProgressCallback(InfoMessage,"tools","Matching:"));
+                TerminalProgressCallback( "tools.ipmatch","Matching:"));
       }
 
       remove_duplicates(matched_ip1, matched_ip2);

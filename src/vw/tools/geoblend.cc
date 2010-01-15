@@ -119,7 +119,7 @@ void do_blend() {
   typedef typename AlphaTypeFromPixelType<PixelT>::type alpha_pixel_type;
   typedef typename PixelChannelCast<alpha_pixel_type,float32>::type float_pixel_type;
 
-  TerminalProgressCallback tpc( vw::InfoMessage, "tools", "");
+  TerminalProgressCallback tpc( "tools.geoblend", "");
 
   vw::mosaic::ImageComposite<float_pixel_type> composite;
   if( draft ) composite.set_draft_mode( true );

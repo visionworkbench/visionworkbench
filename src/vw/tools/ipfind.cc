@@ -101,7 +101,7 @@ static void write_debug_image( std::string out_file_name,
                                                       oimage.format() );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
   block_write_image( *rsrc, oimage,
-                     TerminalProgressCallback(InfoMessage, "tools","\t : ") );
+                     TerminalProgressCallback( "tools.ipfind","\t : ") );
 
 }
 

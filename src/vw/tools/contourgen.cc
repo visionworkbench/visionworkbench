@@ -365,7 +365,7 @@ int main(int argc, char *argv[])
     // done parsing options
 
     vw::ImageView<float> dem;
-    //TerminalProgressCallback tpc(vw::InfoMessage);
+    //TerminalProgressCallback tpc();
     PointContourSet cset;
     SegmentList segment_list;
     int rows, cols;

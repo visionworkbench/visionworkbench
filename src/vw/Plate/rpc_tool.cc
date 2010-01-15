@@ -49,7 +49,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                                                                          new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
     
     pm->insert(view.impl(), filename, georef,
-               TerminalProgressCallback(InfoMessage, status_str.str()) );
+               TerminalProgressCallback( "plate.tools", status_str.str()) );
 
   }  else if (output_mode == "kml")  {
 
@@ -57,7 +57,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
 
     // pm->insert(view.impl(), filename, georef,
-    //            TerminalProgressCallback(InfoMessage, status_str.str()) );
+    //            TerminalProgressCallback( status_str.str()) );
 
   }
 

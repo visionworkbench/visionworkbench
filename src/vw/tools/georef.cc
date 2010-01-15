@@ -194,7 +194,7 @@ int main( int argc, char *argv[] ) {
     }
     tfw_file.close();
   } else {
-    TerminalProgressCallback bar( InfoMessage, "tools", "Writing:" );
+    TerminalProgressCallback bar( "tools.georef", "Writing:" );
     switch( file_resource.channel_type() ) {
     case VW_CHANNEL_INT16:
       switch( file_resource.pixel_format() ) {

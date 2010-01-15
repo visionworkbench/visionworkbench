@@ -216,7 +216,7 @@ TEST(Log, ProgressCallback) {
   raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
-  TerminalProgressCallback pc(vw::InfoMessage, "test", "\tTesting: ");
+  TerminalProgressCallback pc( "test", "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
     pc.report_progress(i);
     Thread::sleep_ms(0);
@@ -236,7 +236,7 @@ TEST(Log, HiresProgressCallback) {
   raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
            boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
 
-  TerminalProgressCallback pc(vw::InfoMessage, "test", "\tTesting: ", 2);
+  TerminalProgressCallback pc( "test", "\tTesting: ", vw::InfoMessage, 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);
     if (i % 50 == 0)

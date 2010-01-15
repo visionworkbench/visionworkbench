@@ -257,7 +257,7 @@ int main(int argc, char** argv) {
   DefaultMatcher matcher(matcher_threshold);
   std::vector<InterestPoint> matched_ip1, matched_ip2;
   matcher(ip1_copy, ip2_copy, matched_ip1, matched_ip2, false,
-          TerminalProgressCallback(InfoMessage, "tools", "Writing:"));
+          TerminalProgressCallback( "tools.ipalign", "Writing:"));
   vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
 
   // Write out the putative point correspondence image

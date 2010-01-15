@@ -608,7 +608,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  TerminalProgressCallback tpc(InfoMessage, "tools", "");
+  TerminalProgressCallback tpc( "tools.image2qtree", "");
   const ProgressCallback *progress = &tpc;
 
   // Set a few booleans based on input values.
