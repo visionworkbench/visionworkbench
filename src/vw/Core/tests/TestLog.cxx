@@ -228,6 +228,7 @@ TEST(Log, ProgressCallback) {
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
 }
 
 TEST(Log, HiresProgressCallback) {
@@ -249,6 +250,7 @@ TEST(Log, HiresProgressCallback) {
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
 }
 
 TEST(Log, FlushAndNewline) {
