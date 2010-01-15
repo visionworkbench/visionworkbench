@@ -345,7 +345,8 @@ PlateModule::PlateModule() {
   m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
   m_client->bind_service(m_index_service, queue_name);
 
-  sync_index_cache();
+  // TODO: Do not sync index cache on startup until callmethod obeys timeouts
+  // sync_index_cache();
 
   vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
 }
