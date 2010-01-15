@@ -383,19 +383,21 @@ namespace vw {
           return true;
 
         // For explicit matching on namespace
-        if ( (*it).second == lower_namespace )
+        if ( (*it).second == lower_namespace ) {
           if ( log_level <= (*it).first )
             return true;
           else
             return false;
+        }
 
         // Evaluation of half wild card
         if ( has_leading_wildcard( (*it).second )  &&
-             boost::iends_with(lower_namespace,after_wildcard((*it).second)) )
+             boost::iends_with(lower_namespace,after_wildcard((*it).second)) ) {
           if ( log_level <= (*it).first )
             return true;
           else
             return false;
+        }
       }
 
       // Progress bars get a free ride at InfoMessage level unless a
