@@ -134,7 +134,7 @@ namespace platefile {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(int size) = 0;
+    virtual int write_request(uint64 &size) = 0;
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.

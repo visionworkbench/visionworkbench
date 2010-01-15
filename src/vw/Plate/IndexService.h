@@ -131,6 +131,11 @@ namespace platefile {
                                   ::vw::platefile::IndexNumLevelsReply* response,
                                   ::google::protobuf::Closure* done);      
 
+    virtual void LogRequest(::google::protobuf::RpcController* controller,
+                            const ::vw::platefile::IndexLogRequest* request,
+                            ::vw::platefile::RpcNullMessage* response,
+                            ::google::protobuf::Closure* done);      
+
     // A simple message that echos back the value that was sent.
     virtual void TestRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexTestRequest* request,

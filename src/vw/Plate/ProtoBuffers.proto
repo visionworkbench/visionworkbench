@@ -107,6 +107,11 @@ message IndexInfoRequest {
   required int32 platefile_id = 1;
 }
 
+message IndexLogRequest {
+  required int32 platefile_id = 1;
+  required string message = 2;
+}
+
 message IndexReadRequest {
   required int32 platefile_id = 1;
   required int32 col = 3;
@@ -134,7 +139,6 @@ message IndexMultiReadRequest {
 
 message IndexWriteRequest {
   required int32 platefile_id = 1;
-  required int32 size = 3;
 }
 
 message IndexWriteUpdate {
@@ -238,6 +242,7 @@ message IndexSuccess {
 
 message IndexWriteReply {
   required int32 blob_id = 1;
+  required int32 size = 2;
 }
 
 message IndexTransactionReply {
@@ -315,4 +320,6 @@ service IndexService {
   rpc NumLevelsRequest (IndexNumLevelsRequest) returns (IndexNumLevelsReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
   rpc TestRequest (IndexTestRequest) returns (IndexTestReply);
+  rpc LogRequest (IndexLogRequest) returns (RpcNullMessage);
+
 }

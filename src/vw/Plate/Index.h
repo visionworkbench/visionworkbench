@@ -50,6 +50,9 @@ namespace platefile {
     /// Sync any unsaved data in the index to disk.
     virtual void sync() = 0;
 
+    /// Log a message to the platefile log.
+    virtual void log(std::string message) = 0;
+
     // -------------------------- I/O ---------------------------
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand
@@ -83,7 +86,7 @@ namespace platefile {
   
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.
-    virtual int write_request(int size) = 0;
+    virtual int write_request(uint64 &size) = 0;
 
     /// Writing, pt. 2: Supply information to update the index and
     /// unlock the blob id.

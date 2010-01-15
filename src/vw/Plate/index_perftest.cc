@@ -29,8 +29,6 @@ static void null_closure() {}
 
 int main(int argc, char** argv) {
 
-  int message_size;
-
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("help", "Display this help message");

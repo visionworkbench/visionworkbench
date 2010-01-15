@@ -285,10 +285,16 @@
    return (*m_log)(InfoMessage, "console");
  }
 
- // Clients are expected to make a transaction request whenever
- // they start a self-contained chunk of mosaicking work.  .
- int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
-                                                      int transaction_id_override) {
+/// Log a message to the platefile log.
+void vw::platefile::LocalIndex::log(std::string message) {
+  this->log() << message;
+}
+
+
+// Clients are expected to make a transaction request whenever
+// they start a self-contained chunk of mosaicking work.  .
+int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
+                                                     int transaction_id_override) {
 
    if (transaction_id_override != -1) {
 
@@ -389,7 +395,7 @@
 // -----------------------    I/O      ----------------------
 
 /// Writing, pt. 1: Reserve a blob lock
-int vw::platefile::LocalIndex::write_request(int size) {
+int vw::platefile::LocalIndex::write_request(uint64 &size) {
   return m_blob_manager->request_lock(size);
 }
 

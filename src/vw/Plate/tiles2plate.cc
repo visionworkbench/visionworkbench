@@ -160,7 +160,7 @@ public:
               << tile.m_col << " " << tile.m_row << " " << tile.m_level << " ] "
               << " (" << tile.m_path.leaf() << ")"
               << std::endl;
-    m_platefile->write_request(0);
+    m_platefile->write_request();
     m_platefile->write_update(image, 
                               tile.m_col, tile.m_row, 
                               tile.m_level, m_write_transaction_id);

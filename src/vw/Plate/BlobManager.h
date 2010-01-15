@@ -92,7 +92,7 @@ namespace platefile {
     // efficient because it blocks on write if it catches up to a blob
     // that is still locked.  We should add real blob selection logic
     // here at a later date.
-    int request_lock(vw::int64 size);
+    int request_lock(vw::uint64 &size);
 
     // Release the blob lock and update its write index (essentially
     // "committing" the write to the blob when you are finished with

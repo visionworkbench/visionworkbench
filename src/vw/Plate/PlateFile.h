@@ -370,12 +370,11 @@ namespace platefile {
     
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write tiles.
-    void write_request(int size) { 
+    void write_request() { 
 
       // Request a blob lock from the index
-      m_write_blob_id = m_index->write_request(size); 
-
-      std::cout << "Grabbed lock on blob " << m_write_blob_id << "\n";
+      uint64 last_size;
+      m_write_blob_id = m_index->write_request(last_size); 
 
       // Compute blob filename for writing.
       std::ostringstream blob_filename;
@@ -383,6 +382,14 @@ namespace platefile {
       
       // Open the blob for writing.
       m_write_blob.reset( new Blob(blob_filename.str()) );
+
+      if (last_size != m_write_blob->size()) {
+        std::ostringstream ostr; 
+        ostr << "WARNING: last close size did not match current size when opening " 
+             << blob_filename.str() 
+             << "  ( " << last_size << " != " << m_write_blob->size() << " )\n";
+        m_index->log(ostr.str());
+      }
     }
 
     /// Writing, pt. 2: Write an image to the specified tile location

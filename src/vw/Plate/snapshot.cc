@@ -149,7 +149,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
-    platefile->write_request(0);
+    platefile->write_request();
       
     // If the user has specified a region, then we 
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
@@ -172,7 +172,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
-      platefile->write_request(0);
+      platefile->write_request();
 
       // Do a full snapshot
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
@@ -191,7 +191,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
-      platefile->write_request(0);
+      platefile->write_request();
 
       // User-supplied transaction_id
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
@@ -299,8 +299,6 @@ int main( int argc, char *argv[] ) {
     // Parse out the rest of the command line options into a special
     // SnapshotParameters class.
     SnapshotParameters snapshot_params(range_string, region_string, transaction_id);
-    PixelFormatEnum pixel_format = platefile->pixel_format();
-    ChannelTypeEnum channel_type = platefile->channel_type();
     
     // Dispatch to the compositer based on the pixel type of this mosaic.
     switch(platefile->pixel_format()) {

@@ -118,10 +118,13 @@ namespace platefile {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(int size);
+    virtual int write_request(uint64 &size);
   
     /// Writing, pt. 3: Signal the completion 
     virtual void write_complete(int blob_id, uint64 blob_offset);
+
+    /// Log a message to the platefile log.
+    virtual void log(std::string message);
 
     // ----------------------- PROPERTIES  ----------------------
 

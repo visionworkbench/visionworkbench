@@ -113,6 +113,9 @@ namespace platefile {
     // time.
     void rebuild_index();
 
+    /// Log a message to the platefile log.
+    virtual void log(std::string message);
+
     /// Use this to send data to the index's logfile like this:
     ///
     ///   index_instance.log() << "some text for the log...\n";
@@ -123,7 +126,7 @@ namespace platefile {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(int size);
+    virtual int write_request(uint64 &size);
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.

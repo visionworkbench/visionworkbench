@@ -303,8 +303,10 @@ void IndexServiceImpl::WriteRequest(::google::protobuf::RpcController* controlle
     
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
-  int blob_id = rec.index->write_request(request->size());
+  uint64 size;
+  int blob_id = rec.index->write_request(size);
   response->set_blob_id(blob_id);
+  response->set_size(size);
   done->Run();
 }
 
@@ -472,6 +474,18 @@ void IndexServiceImpl::NumLevelsRequest(::google::protobuf::RpcController* contr
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
   response->set_num_levels(rec.index->num_levels());
+  done->Run();
+}
+
+void IndexServiceImpl::LogRequest(::google::protobuf::RpcController* controller,
+                                  const ::vw::platefile::IndexLogRequest* request,
+                                  ::vw::platefile::RpcNullMessage* response,
+                                  ::google::protobuf::Closure* done) {
+  // Fetch the index service record 
+  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+  rec.index->log(request->message());
+
+  // This message has no response
   done->Run();
 }
 

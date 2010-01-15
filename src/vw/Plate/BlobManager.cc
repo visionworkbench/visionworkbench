@@ -123,7 +123,7 @@ vw::int64 vw::platefile::BlobManager::max_blob_size() {
 // efficient because it blocks on write if it catches up to a blob
 // that is still locked.  We should add real blob selection logic
 // here at a later date.
-int vw::platefile::BlobManager::request_lock(int64 size) {
+int vw::platefile::BlobManager::request_lock(uint64 &size) {
   Mutex::Lock lock(m_mutex);
  
   // First, we check to see if the next blob is free.  If not, we
@@ -135,6 +135,7 @@ int vw::platefile::BlobManager::request_lock(int64 size) {
   
   // Then we lock it, increment the blob index, and return it.
   m_blob_locks[next_available_blob].lock();
+  size = m_blob_locks[next_available_blob].current_blob_offset;
   return next_available_blob;
 }
 
