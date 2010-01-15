@@ -32,21 +32,24 @@ namespace platefile {
     struct BlobRecord {
       bool locked;
       uint64 current_blob_offset;
-      time_t lock_time;
+      //      time_t lock_time;
 
-      BlobRecord() : locked(false), current_blob_offset(0) {}
+      // Note: with the end_of_file_ptr written at the beginning of
+      // the blob file, the initial blob_offset should be 
+      // 3 * 8 bytes = 24 bytes.
+      BlobRecord() : locked(false), current_blob_offset(24) {}
 
       void lock() {
         this->locked = true;
-        this->lock_time = time(0);
+        //        this->lock_time = time(0);
       }
 
-      void unlock_if_timeout() {
-        time_t now = time(0);
-        if (this->locked && now - lock_time > 60) { // 60 second timeout
-          this->locked = false;
-        }
-      }
+      // void unlock_if_timeout() {
+      //   time_t now = time(0);
+      //   if (this->locked && now - lock_time > 60) { // 60 second timeout
+      //     this->locked = false;
+      //   }
+      // }
       
       void unlock(int current_blob_offset) {
         this->current_blob_offset = current_blob_offset;
@@ -66,9 +69,6 @@ namespace platefile {
     
     // Helper function for incrementing blob ids, and wrapping around the end.
     void increment_blob_index(int &blob_index);  
-
-    // Helper function for checking whether a blob lock has timed out.
-    void check_timeout(int blob_index);
 
   public:
 

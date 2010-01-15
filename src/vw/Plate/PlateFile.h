@@ -390,6 +390,10 @@ namespace platefile {
              << "  ( " << last_size << " != " << m_write_blob->size() << " )\n";
         m_index->log(ostr.str());
       }
+
+      std::ostringstream ostr; 
+      ostr << "Opened blob " << m_write_blob_id << " ( size = " << m_write_blob->size() << " )\n";
+      m_index->log(ostr.str());
     }
 
     /// Writing, pt. 2: Write an image to the specified tile location
@@ -437,6 +441,10 @@ namespace platefile {
 
       // Close the blob for writing.
       m_write_blob.reset();
+
+      std::ostringstream ostr; 
+      ostr << "Closed blob " << m_write_blob_id << " ( size = " << new_blob_size << " )\n";
+      m_index->log(ostr.str());
 
       // Release the blob lock.
       return m_index->write_complete(m_write_blob_id, new_blob_size); 

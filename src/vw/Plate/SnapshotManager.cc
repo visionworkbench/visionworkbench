@@ -70,7 +70,8 @@ template <class PixelT>
 void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction_id, 
                                                            int end_transaction_id, 
                                                            int write_transaction_id) const {
-  for (int level = 0; level < m_platefile->num_levels(); ++level) {
+  //  for (int level = 0; level < m_platefile->num_levels(); ++level) {
+  for (int level = 0; level < 16; ++level) {
     
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().

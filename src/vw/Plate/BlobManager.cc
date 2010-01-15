@@ -24,13 +24,6 @@ void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
     blob_index = 0;
 }
 
-// Move to the next blob, wrapping around if we reach the end.
-void vw::platefile::BlobManager::check_timeout(int blob_index) {
-  if ( m_blob_locks[blob_index].locked ) {
-    
-  }
-}
-
 // A method to poll for an available blob.  Returns -1 if there
 // are no blobs available.  
 int vw::platefile::BlobManager::get_next_available_blob() {
@@ -42,7 +35,10 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   // Blobs should only stay locked for a split second.  If they remain
   // locked for much longer than that, then there is a very good
   // chance the mosaicking client that requested the lock has died.
-  m_blob_locks[m_blob_index].unlock_if_timeout();
+  //
+  // XXX: These timeouts are a bad idea!  Disabling for now.
+  //
+  //  m_blob_locks[m_blob_index].unlock_if_timeout();
 
   // If the next blob_id happens to be unlocked and not full, then we
   // return it immediately.
@@ -54,7 +50,9 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   // we can tell when we've wrapped all the way around..
   int starting_blob = m_blob_index;
   increment_blob_index(m_blob_index);
-  m_blob_locks[m_blob_index].unlock_if_timeout();
+  // XXX: These timeouts are a bad idea!  Disabling for now.
+  //
+  //  m_blob_locks[m_blob_index].unlock_if_timeout();
 
   while (m_blob_index != starting_blob) {
 
@@ -67,7 +65,10 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
     // Otherwise, we increment m_blob_index and try again.
     increment_blob_index(m_blob_index);
-    m_blob_locks[m_blob_index].unlock_if_timeout();
+
+    // XXX: These timeouts are a bad idea!  Disabling for now.
+    //
+    //    m_blob_locks[m_blob_index].unlock_if_timeout();
   }
 
   // If we have reached this point, then no valid blobs were found.
@@ -79,8 +80,6 @@ int vw::platefile::BlobManager::get_next_available_blob() {
     return -1;
   } else {
     BlobRecord rec;
-    rec.locked = false;
-    rec.current_blob_offset = 0;
     m_blob_locks.push_back(rec);
     return m_blob_locks.size() - 1;
   }
