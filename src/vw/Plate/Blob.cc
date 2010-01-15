@@ -35,8 +35,8 @@ vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_rec
   BlobRecord blob_record;
   bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
   if (!worked)
-    vw_throw(IOErr() << "Blob::read_blob_record() -- an error occurred while "
-             << "deserializing the BlobRecord.");
+    vw_throw(BlobIoErr() << "read_blob_record() failed in " << m_blob_filename 
+             << " at offset " << m_fstream->tellg() << "\n");
   return blob_record;
 }
 

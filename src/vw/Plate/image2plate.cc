@@ -240,7 +240,7 @@ int main( int argc, char *argv[] ) {
       // georeferencing info for this image.
       DiskImageResource *rsrc = DiskImageResource::open(image_files[i]);
       
-      double nodata_value;
+      double nodata_value = 0;
       bool has_nodata_value = false;
       if ( rsrc->has_nodata_value() ) {
         has_nodata_value = true;

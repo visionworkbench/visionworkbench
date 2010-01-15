@@ -104,9 +104,11 @@ namespace platefile {
       // TODO: This is where we could strip the tile of its alpha
       // channel to save space in the placefile.  This will require a
       // view that strips off the alpha channel.
+      m_platefile->write_request(0);
       m_platefile->write_update(tile, 
                                 m_tile_info.i, m_tile_info.j, 
                                 m_level, m_transaction_id);
+      m_platefile->write_complete();
       m_progress.report_incremental_progress(1.0);
     }
   };

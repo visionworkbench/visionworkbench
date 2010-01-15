@@ -137,7 +137,7 @@ namespace platefile {
       boost::scoped_array<char> c_str(new char[base_name.size()+1]);
       strncpy(c_str.get(), base_name.c_str(), base_name.size()+1);
       char* dummy = mktemp(c_str.get());
-      std::string ret(c_str.get());
+      std::string ret(dummy);
       return ret + "." + file_extension;
     }
 
@@ -243,18 +243,15 @@ namespace platefile {
       // 1. Call index read_request(col,row,level).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, level, transaction_id);
 
-      std::ostringstream blob_filename;
-      blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
-
       // 2. Open the blob file and read the header
       boost::shared_ptr<Blob> read_blob;
-      if (m_write_blob && record.blob_id() == m_write_blob_id) {
-        read_blob = m_write_blob;
-      } else {
+      // if (m_write_blob && record.blob_id() == m_write_blob_id) {
+      //   read_blob = m_write_blob;
+      // } else {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
         read_blob.reset(new Blob(blob_filename.str(), true));
-      }
+      // }
       TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
 
       // 3. Choose a temporary filename and call BlobIO
@@ -294,13 +291,13 @@ namespace platefile {
       // ahead and use that already-open file pointer.  Otherwise, we
       // open the new blob for reading.
       boost::shared_ptr<Blob> read_blob;
-      if (m_write_blob && record.blob_id() == m_write_blob_id) {
-        read_blob = m_write_blob;
-      } else {
+      // if (m_write_blob && record.blob_id() == m_write_blob_id) {
+      //   read_blob = m_write_blob;
+      // } else {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
         read_blob.reset(new Blob(blob_filename.str(), true));
-      }
+      // }
       TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
       
       // 3. Choose a temporary filename and call BlobIO
@@ -342,13 +339,13 @@ namespace platefile {
           
         // 2. Open the blob file and read the header
         boost::shared_ptr<Blob> read_blob;
-        if (m_write_blob && record.blob_id() == m_write_blob_id) {
-          read_blob = m_write_blob;
-        } else {
+        // if (m_write_blob && record.blob_id() == m_write_blob_id) {
+        //   read_blob = m_write_blob;
+        // } else {
           std::ostringstream blob_filename;
           blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
           read_blob.reset(new Blob(blob_filename.str(), true));
-        }
+          //        }
         TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
           
         // 3. Choose a temporary filename and call BlobIO
@@ -377,6 +374,8 @@ namespace platefile {
 
       // Request a blob lock from the index
       m_write_blob_id = m_index->write_request(size); 
+
+      std::cout << "Grabbed lock on blob " << m_write_blob_id << "\n";
 
       // Compute blob filename for writing.
       std::ostringstream blob_filename;
@@ -408,7 +407,6 @@ namespace platefile {
       // 1. Write data to temporary file. 
       TemporaryTileFile tile(view, this->default_file_type());
       std::string tile_filename = tile.file_name();
-      int64 file_size = tile.file_size();
 
       // 3. Create a blob and call write_from_file(filename).  Returns
       // offset, size.  

@@ -235,7 +235,7 @@ namespace platefile {
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
-      m_platefile->write_request(0);
+      //m_platefile->write_request(0);
 
       // Add each tile.
       progress.report_progress(0);
@@ -262,7 +262,7 @@ namespace platefile {
       }
 
       // Release the blob id lock.
-      m_platefile->write_complete();
+      //m_platefile->write_complete();
 
       // Notify the index that this transaction is complete.  Do not
       // update the read cursor (false).
