@@ -540,12 +540,9 @@ namespace camera {
     boost::erase_all( m_modified, "\n" );
     boost::erase_all( m_modified, " " );
 
-    // TODO: this is broken when filename contains a . (eg. in the path)
     // Forcing file extension type
-    std::vector<std::string> tokens;
-    boost::split( tokens, filename, boost::is_any_of(".") );
-    filename = tokens[0];
-    filename = filename + ".cnet";
+    filename = filename.substr(0,filename.rfind("."));
+    filename += ".cnet";
 
     // Opening file
     std::ofstream f( filename.c_str() );
@@ -605,10 +602,8 @@ namespace camera {
     boost::erase_all( m_modified, " " );
 
     // Forcing file extension type
-    std::vector<std::string> tokens;
-    boost::split( tokens, filename, boost::is_any_of(".") );
-    filename = tokens[0];
-    filename = filename + ".net";
+    filename = filename.substr(0,filename.rfind("."));
+    filename += ".net";
 
     // Making sure all the control points have unique IDs
     for ( unsigned p = 0; p < m_control_points.size(); p++ ) {
