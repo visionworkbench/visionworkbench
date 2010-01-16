@@ -136,11 +136,10 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
   request_wrapper.set_payload(request->SerializeAsString());
 
   RpcResponseWrapper response_wrapper;
-  int ntries = 0;
+  unsigned ntries = 0;
   bool success = false;
 
-  // Try to send the message up to three times.
-  int request_seq;
+  unsigned request_seq;
   while (!success && ntries < m_max_tries) {
 
     // Set the sequence number and send the message.
@@ -155,20 +154,22 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
     // Send the message
     real_controller->send_message(request_wrapper, m_request_routing_key);
 
-    // Try to get the message.  If we succed, check the sequence number.
+    // Try to get the message.  If we succeed, check the sequence number.
     try {
-      real_controller->get_message(response_wrapper, 15000);   // 15 seconds
-      
-      // Grab packets off of the queue until a sequence number match
-      // is found.  This may end up timing out if the queue empties
-      // and no message with the desired sequence number ever appears.
+        real_controller->get_message(response_wrapper, m_timeout);
+
       while (response_wrapper.sequence_number() != request_seq) {
-        vw_out() << "WARNING: CallMethod() sequence number did not match.  ("
-                  << request_seq << " != " << response_wrapper.sequence_number() 
-                  << ").  Retrying...\n";
-        real_controller->get_message(response_wrapper, 15000); // 15 seconds
+        vw_out(WarningMessage)
+          << "CallMethod() sequence number did not match.  ("
+          << request_seq << " != " << response_wrapper.sequence_number()
+          << ").  Retrying...\n";
+
+        if (++ntries >= m_max_tries)
+          break;
+
+        real_controller->get_message(response_wrapper, m_timeout);
       }
-      
+
       // If the sequence number does appear, then we declare victory
       // and continue onward to parse the result.
       if (response_wrapper.sequence_number() == request_seq)
@@ -178,14 +179,15 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
       // If we timed out, increment the number of tries and loop back
       // to the beginning.
       ++ntries;
-      if (ntries >= m_max_tries) {
-        vw_throw(AMQPTimeout() << "CallMethod timed out completely after " 
-                 << m_max_tries << " tries.");
-      }
-
-      vw_out() << "WARNING: CallMethod() timed out.  Executing retry #" << ntries << ".\n";
+      if (ntries < m_max_tries)
+        vw_out(WarningMessage) << "CallMethod() timed out.  Executing retry #" << ntries << ".\n";
     }
   }
+
+  if (!success)
+    vw_throw(AMQPTimeout() << "CallMethod timed out completely after "
+                           << m_max_tries << " tries.");
+
 
   // Handle errors and exceptions.
   //
@@ -241,8 +243,6 @@ std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string iden
   return requestor.str();
 }
 
-vw::int32 AmqpRpcEndpoint::m_default_timeout = -1;
-
 AmqpRpcEndpoint::AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, uint32 exchange_count)
   : m_channel(new AmqpChannel(conn)), m_exchange(exchange), m_queue(queue), m_exchange_count(exchange_count), m_next_exchange(0) {
 
@@ -274,9 +274,6 @@ void AmqpRpcEndpoint::send_bytes(ByteArray const& message, std::string routing_k
 }
 
 void AmqpRpcEndpoint::get_bytes(SharedByteArray& bytes, vw::int32 timeout) {
-  if (timeout == -2)
-    timeout = m_default_timeout;
-
   if (timeout == -1)
     this->m_incoming_messages.wait_pop(bytes);
   else {

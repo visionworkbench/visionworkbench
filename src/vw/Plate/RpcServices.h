@@ -62,8 +62,6 @@ namespace platefile {
   class AmqpRpcEndpoint : public google::protobuf::RpcController {
 
     protected:
-      static int32 m_default_timeout;
-
       boost::shared_ptr<AmqpChannel> m_channel;
       boost::shared_ptr<google::protobuf::Service> m_service;
       std::string m_exchange;
@@ -94,10 +92,9 @@ namespace platefile {
       void send_message(const ::google::protobuf::Message& message, std::string routing_key);
 
       /// Read and deserialize a protobuf message from the wire.
-      /// For timeout, -2 means "use default", -1 means "none", and anything
-      ///    else means "timeout" milliseconds
+      /// -1 means "never timeout", other values in ms
       template <typename MessageT>
-      void get_message(MessageT& message, vw::int32 timeout = -2) {
+      void get_message(MessageT& message, vw::int32 timeout = -1) {
         SharedByteArray bytes;
         get_bytes(bytes, timeout);
         parse_message(*bytes.get(), message);
@@ -107,9 +104,8 @@ namespace platefile {
       void send_bytes(ByteArray const& message, std::string routing_key);
 
       // Get an array of bytes from the incoming queue.
-      /// For timeout, -2 means "use default", -1 means "none", and anything
-      ///    else means "timeout" milliseconds
-      void get_bytes(SharedByteArray& bytes, vw::int32 timeout = -2);
+      /// -1 means "never timeout", other values in ms
+      void get_bytes(SharedByteArray& bytes, vw::int32 timeout = -1);
 
       // Bind an rpc service to a specified routing key
       void bind_service(boost::shared_ptr<google::protobuf::Service> service,
@@ -120,17 +116,12 @@ namespace platefile {
       const std::string queue_name() {
         return m_queue;
       }
-  
+
       int incoming_message_queue_size() const {
         return m_incoming_messages.size();
       }
 
       virtual void Reset() { }
-
-      // Change the default global timeout. -1 means "no timeout"
-      static void set_default_timeout(vw::int32 timeout = -1) {
-          m_default_timeout = timeout;
-      }
 
     protected:
       // These functions are not used. Bail out if someone tries.
@@ -188,17 +179,33 @@ namespace platefile {
     // This sequence number is used to make sure that we receive
     // packets back in the order that we send them!
     vw::uint32 m_sequence_number;
-    int m_max_tries;
+
+    // CallMethod retry count
+    unsigned m_max_tries;
+    // CallMethod timeout
+    int m_timeout;
+
 
   public:
     AmqpRpcClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange,
                   std::string queue, std::string request_routing_key, uint32 exchange_count = 1) :
       AmqpRpcEndpoint(conn, exchange, queue, exchange_count), 
       m_request_routing_key(request_routing_key),
-      m_sequence_number(0), 
-      m_max_tries(10) {}  // Retry timed out AMQP tests 3 times...
+      m_sequence_number(0), m_max_tries(10), m_timeout(15000) {}
 
     virtual ~AmqpRpcClient() {}
+
+    int  get_timeout() {return m_timeout;}
+    void timeout(int new_timeout) {
+        VW_ASSERT(new_timeout >= -1, ArgumentErr() << "timeouts < -1 are not defined");
+        m_timeout = new_timeout;
+    }
+
+    unsigned get_tries() {return m_max_tries;}
+    void tries(unsigned new_tries) {
+        VW_ASSERT(new_tries > 0, ArgumentErr() << "CallMethod needs to try at least once!");
+        m_max_tries = new_tries;
+    }
 
     virtual void CallMethod(const google::protobuf::MethodDescriptor* method,
                             google::protobuf::RpcController* controller,
