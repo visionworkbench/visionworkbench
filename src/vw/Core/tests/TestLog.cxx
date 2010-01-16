@@ -253,6 +253,32 @@ TEST(Log, HiresProgressCallback) {
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
 }
 
+TEST(Log, ProgressHide) {
+
+  std::ostringstream sstr;
+
+  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
+           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+
+  // Progress bars hidden
+  vw_log().console_log().rule_set().add_rule(0, "*.progress");
+
+  // Can't see progress bar
+  TerminalProgressCallback pc( "test", "Rawr:" );
+  pc.report_progress(.1);
+  pc.report_progress(.2);
+
+  EXPECT_EQ( sstr.str().size(), 0 );
+
+  vw_log().console_log().rule_set().clear();
+
+  // Can see progress bar
+  pc.report_progress(.5);
+  pc.report_finished();
+
+  EXPECT_GT( sstr.str().size(), 0 );
+}
+
 TEST(Log, FlushAndNewline) {
   std::ostringstream stream, end;
   LogInstance log(stream, false);
