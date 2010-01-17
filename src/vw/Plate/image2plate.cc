@@ -279,6 +279,16 @@ int main( int argc, char *argv[] ) {
             do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
                       image_files[i], transaction_id_override, georef, output_mode);
           break;
+        case VW_CHANNEL_INT16:  
+          if (has_nodata_value)
+            do_mosaic(platefile, 
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]), 
+                                                nodata_value)),
+                      image_files[i], transaction_id_override, georef, output_mode);
+          else
+            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]), 
+                      image_files[i], transaction_id_override, georef, output_mode);
+          break;
         default:
           vw_out() << "Image contains a channel type not supported by image2plate.\n";
           exit(1);

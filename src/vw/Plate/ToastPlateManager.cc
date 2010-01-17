@@ -147,12 +147,20 @@ namespace platefile {
                                                                                   int level, 
                                                                                   int transaction_id) const;
   template 
+  void vw::platefile::ToastPlateManager<PixelGrayA<int16> >::generate_mipmap_tile(int col, int row, 
+                                                                                 int level, 
+                                                                                 int transaction_id) const;
+  template 
   void vw::platefile::ToastPlateManager<PixelRGBA<uint8> >::generate_mipmap_tile(int col, int row, 
                                                                                  int level, 
                                                                                  int transaction_id) const;
 
   template 
   ImageView<PixelGrayA<uint8> > vw::platefile::ToastPlateManager<PixelGrayA<uint8> >::fetch_child_tile(int col, int row, 
+                                                                                                       int level, 
+                                                                                                       int transaction_id) const;
+  template 
+  ImageView<PixelGrayA<uint8> > vw::platefile::ToastPlateManager<PixelGrayA<int16> >::fetch_child_tile(int col, int row, 
                                                                                                        int level, 
                                                                                                        int transaction_id) const;
   template 
