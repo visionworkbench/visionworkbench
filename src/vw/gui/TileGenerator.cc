@@ -223,6 +223,8 @@ PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
   case VW_PIXEL_GRAYA:                                                               \
       if (this->channel_type() == VW_CHANNEL_UINT8) {                                \
         return func<PixelGrayA<uint8> >(arg1, arg2);                                 \
+      } else if (this->channel_type() == VW_CHANNEL_INT16) {                         \
+        return func<PixelGrayA<int16> >(arg1, arg2);                                 \
       } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {                       \
         return func<PixelGrayA<float> >(arg1, arg2);                                 \
       } else {                                                                       \

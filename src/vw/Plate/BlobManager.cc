@@ -20,7 +20,7 @@
 // Move to the next blob, wrapping around if we reach the end.
 void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
   ++blob_index;
-  if (blob_index >= m_blob_locks.size())
+  if (blob_index >= int(m_blob_locks.size()))
     blob_index = 0;
 }
 
@@ -87,7 +87,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
 /// Create a new blob manager.  The max_blob_size is specified in
 /// units of megabytes.
-vw::platefile::BlobManager::BlobManager(int64 max_blob_size, int initial_nblobs, int max_blobs) : 
+vw::platefile::BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) : 
   m_max_blob_size(max_blob_size * 1024 * 1024), m_max_blobs(max_blobs), m_blob_index(0) { 
 
   VW_ASSERT(initial_nblobs >=1, ArgumentErr() << "BlobManager: inital_nblobs must be >= 1.");

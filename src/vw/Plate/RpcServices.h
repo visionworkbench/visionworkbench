@@ -191,12 +191,7 @@ namespace platefile {
                   std::string queue, std::string request_routing_key, uint32 exchange_count = 1) :
       AmqpRpcEndpoint(conn, exchange, queue, exchange_count), 
       m_request_routing_key(request_routing_key),
-<<<<<<< Updated upstream
       m_sequence_number(0), m_max_tries(10), m_timeout(15000) {}
-=======
-      m_sequence_number(0), 
-      m_max_tries(10) {}  // Retry timed out AMQP tests 10 times...
->>>>>>> Stashed changes
 
     virtual ~AmqpRpcClient() {}
 

@@ -122,7 +122,7 @@ void vw::platefile::RemoteIndexPage::set(TileHeader const& header, IndexRecord c
   *(request.mutable_header()) = header;
   *(request.mutable_record()) = record;
   m_write_queue.push(request);
-  static const int write_queue_size = 10; // arbitrary, but probably good.
+  static const unsigned write_queue_size = 10; // arbitrary, but probably good.
   if (m_write_queue.size() >= write_queue_size)
     this->flush_write_queue();
 }

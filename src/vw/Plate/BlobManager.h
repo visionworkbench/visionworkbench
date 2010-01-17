@@ -57,8 +57,8 @@ namespace platefile {
       }
     };
 
-    vw::int64 m_max_blob_size;
-    int m_max_blobs;
+    vw::uint64 m_max_blob_size;
+    unsigned int m_max_blobs;
     std::vector<BlobRecord> m_blob_locks;
     int m_blob_index;
     vw::Mutex m_mutex;
@@ -74,7 +74,7 @@ namespace platefile {
 
     /// Create a new blob manager.  The max_blob_size is specified in
     /// units of megabytes.
-    BlobManager(vw::int64 max_blob_size = 2048, int initial_nblobs = 1, int max_blobs = 16384);
+    BlobManager(vw::uint64 max_blob_size = 2048, int initial_nblobs = 1, unsigned max_blobs = 16384);
 
     /// Return the number of blobs currently in use.
     unsigned num_blobs();

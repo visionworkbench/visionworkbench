@@ -97,10 +97,8 @@ int main( int argc, char *argv[] ) {
   general_options.add_options()
     ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
     ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
-    ("file-type", po::value<std::string>(&tile_filetype), 
-     "Output file type (png is used by default)")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), 
-     "Output mode [toast, kml]")
+    ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
+    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, kml]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")

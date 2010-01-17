@@ -286,21 +286,31 @@ vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
         // Iterate over entries.
         multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
         multi_value_type::const_iterator it = entries.begin();
-        
-        // Search through the entries in the list, looking entries
-        // that match the requested transaction_id range.  Note: this
-        // search is O(n), so it can be slow if there are a lot of
-        // entries and the entry you are looking for is near the end.
-        // However, most pages will contain very few entries, and for
-        // those with many entries (i.e. tiles near the root of the
-        // mosaic), you will most likely be searching for recently
-        // added tiles, which are sorted to the beginning.
         multi_value_type candidates;
-        while (it != entries.end() && it->first >= start_transaction_id) {
-          if ( it->first >= start_transaction_id && it->first <= end_transaction_id ) {
-            candidates.push_back(*it);
+
+        if (start_transaction_id == -1 && end_transaction_id == -1) {
+          
+          // If the user has specified a transaction range of [-1, -1],
+          // then we only return the last valid tile.
+          if (entries.size() > 0)
+            candidates.push_back( *(entries.begin()) );
+
+        } else {
+
+          // Search through the entries in the list, looking entries
+          // that match the requested transaction_id range.  Note: this
+          // search is O(n), so it can be slow if there are a lot of
+          // entries and the entry you are looking for is near the end.
+          // However, most pages will contain very few entries, and for
+          // those with many entries (i.e. tiles near the root of the
+          // mosaic), you will most likely be searching for recently
+          // added tiles, which are sorted to the beginning.
+          while (it != entries.end() && it->first >= start_transaction_id) {
+            if ( it->first >= start_transaction_id && it->first <= end_transaction_id ) {
+              candidates.push_back(*it);
+            }
+            ++it;
           }
-          ++it;
         }
         
         // Do the region check.
