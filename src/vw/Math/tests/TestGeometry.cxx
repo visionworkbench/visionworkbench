@@ -373,7 +373,7 @@ TEST(Geometry, TranslationFittingFunctorN) {
   EXPECT_MATRIX_NEAR( S, TranslationFittingFunctorN<3>()(p1,p2), 1.8e-15 );
 }
 
-TEST(Geometry, FundamentalMatrixFittingFunctor) {
+TEST(Geometry, FundamentalMatrixFittingFunctor7p) {
   std::vector<Vector3> ip1, ip2;
   ip1.push_back(Vector3(793,796,1)); // These come from Z's potato
   ip2.push_back(Vector3(187,678,1)); // chip example
@@ -391,5 +391,9 @@ TEST(Geometry, FundamentalMatrixFittingFunctor) {
   ip2.push_back(Vector3(401,441,1));
 
   FundamentalMatrixFittingFunctor7 cow;
-  cow(ip1,ip2);
+  Matrix<double> fundie = cow(ip1,ip2);
+  EXPECT_EQ(fundie.cols(),3);
+  EXPECT_EQ(fundie.rows(),3);
+  EXPECT_NEAR( det(fundie), 0, 1e-10 );
+  EXPECT_EQ(cow.num_solutions(), 1); // Just happens to work out with this data.
 }

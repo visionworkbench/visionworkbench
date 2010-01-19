@@ -29,17 +29,39 @@ namespace math {
   // the algorithm defined on pg 281 of Multiview Geometry (aka Bible)
   struct FundamentalMatrixFittingFunctor7 {
     typedef vw::Matrix<double> result_type;
+    Matrix<double> m_nullspace;
+    std::vector<double> m_solutions;
 
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& example) const {
       return 7;
     }
 
+    // In this algorithm there can be multiple solutions for the F matrix
+    // here we allow the user to see them
+    uint num_solutions() const { return m_solutions.size(); }
+
+    Matrix<double> fundamental_matrix( uint which = 0 ) const {
+      Matrix<double> output(3,3);
+      VW_ASSERT( m_nullspace.rows() == 9 && m_nullspace.cols() == 2,
+                 vw::ArgumentErr() << "FundamentalMatrixFittingFunctor7::operator() must have been called once." );
+      uint current_index = 0;
+      double a = m_solutions[which];
+      double ia = 1 - a;
+      for ( uint i = 0; i < 3; i++ ) {
+        for ( uint j = 0; j < 3; j++ ) {
+          output(i,j) = a*m_nullspace(current_index,0)+ia*m_nullspace(current_index,1);
+          current_index++;
+        }
+      }
+      return output;
+    }
+
     // Interface to solve for F matrix. Will throw error if more than
     // 7 elements
     template <class ContainerT>
     vw::Matrix<double> operator()( std::vector<ContainerT> const& p1,
-                                   std::vector<ContainerT> const& p2 ) const {
+                                   std::vector<ContainerT> const& p2 ) {
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "p1 and p2's size not equal" );
       VW_ASSERT( p1.size() == 7,
@@ -61,29 +83,40 @@ namespace math {
         A(i,8) = 1;
       }
 
-      std::cout << "A: " << A << "\n";
       // Matrix9x2
       Matrix<double> n = null(A);
-      std::cout << "null: " << n << "\n";
+      m_nullspace = n;
 
       // Solving for alpha cubic
       Vector<double,4> acubic;
-      // a2*e2*i2 - a2*f2*h2 - b2*d2*i2 + b2*f2*g2 + c2*d2*h2 - c2*e2*g2
-      acubic[0] = n(0,1)*n(4,1)*n(8,1) - n(0,1)*n(5,1),*n(7,1) - n(1,1)*n(3,1)*n(8,1) + n(1,1)*n(5,1)*n(6,1) + n(2,1)*n(3,1)*n(7,1) - n(2,1)*n(4,1)*n(6,1);
+      // The following equations are expansions of 0=det(a*F1+(1-a)*F2)
+      acubic[0] = n(0,1)*n(4,1)*n(8,1) - n(0,1)*n(5,1)*n(7,1) - n(1,1)*n(3,1)*n(8,1) + n(1,1)*n(5,1)*n(6,1) + n(2,1)*n(3,1)*n(7,1) - n(2,1)*n(4,1)*n(6,1);
+      acubic[1] = n(0,0)*n(4,1)*n(8,1) - n(0,0)*n(5,1)*n(7,1) + n(0,1)*n(4,0)*n(8,1) + n(0,1)*n(4,1)*n(8,0) - n(0,1)*n(5,0)*n(7,1) - n(0,1)*n(5,1)*n(7,0) - n(1,0)*n(3,1)*n(8,1) + n(1,0)*n(5,1)*n(6,1) - n(1,1)*n(3,0)*n(8,1) - n(1,1)*n(3,1)*n(8,0) + n(1,1)*n(5,0)*n(6,1) + n(1,1)*n(5,1)*n(6,0) + n(2,0)*n(3,1)*n(7,1) - n(2,0)*n(4,1)*n(6,1) + n(2,1)*n(3,0)*n(7,1) + n(2,1)*n(3,1)*n(7,0) - n(2,1)*n(4,0)*n(6,1) - n(2,1)*n(4,1)*n(6,0) - 3*n(0,1)*n(4,1)*n(8,1) + 3*n(0,1)*n(5,1)*n(7,1) + 3*n(1,1)*n(3,1)*n(8,1) - 3*n(1,1)*n(5,1)*n(6,1) - 3*n(2,1)*n(3,1)*n(7,1) + 3*n(2,1)*n(4,1)*n(6,1);
+      acubic[2] = n(0,0)*n(4,0)*n(8,1) + n(0,0)*n(4,1)*n(8,0) - n(0,0)*n(5,0)*n(7,1) - n(0,0)*n(5,1)*n(7,0) + n(0,1)*n(4,0)*n(8,0) - n(0,1)*n(5,0)*n(7,0) - n(1,0)*n(3,0)*n(8,1) - n(1,0)*n(3,1)*n(8,0) + n(1,0)*n(5,0)*n(6,1) + n(1,0)*n(5,1)*n(6,0) - n(1,1)*n(3,0)*n(8,0) + n(1,1)*n(5,0)*n(6,0) + n(2,0)*n(3,0)*n(7,1) + n(2,0)*n(3,1)*n(7,0) - n(2,0)*n(4,0)*n(6,1) - n(2,0)*n(4,1)*n(6,0) + n(2,1)*n(3,0)*n(7,0) - n(2,1)*n(4,0)*n(6,0)  - 2*n(0,0)*n(4,1)*n(8,1) + 2*n(0,0)*n(5,1)*n(7,1) - 2*n(0,1)*n(4,0)*n(8,1) - 2*n(0,1)*n(4,1)*n(8,0) + 2*n(0,1)*n(5,0)*n(7,1) + 2*n(0,1)*n(5,1)*n(7,0) + 2*n(1,0)*n(3,1)*n(8,1) - 2*n(1,0)*n(5,1)*n(6,1) + 2*n(1,1)*n(3,0)*n(8,1) + 2*n(1,1)*n(3,1)*n(8,0) - 2*n(1,1)*n(5,0)*n(6,1) - 2*n(1,1)*n(5,1)*n(6,0) - 2*n(2,0)*n(3,1)*n(7,1) + 2*n(2,0)*n(4,1)*n(6,1) - 2*n(2,1)*n(3,0)*n(7,1) - 2*n(2,1)*n(3,1)*n(7,0) + 2*n(2,1)*n(4,0)*n(6,1) + 2*n(2,1)*n(4,1)*n(6,0) + 3*n(0,1)*n(4,1)*n(8,1) - 3*n(0,1)*n(5,1)*n(7,1) - 3*n(1,1)*n(3,1)*n(8,1) + 3*n(1,1)*n(5,1)*n(6,1) + 3*n(2,1)*n(3,1)*n(7,1) - 3*n(2,1)*n(4,1)*n(6,1);
+      acubic[3] = n(0,0)*n(4,0)*n(8,0) - n(0,0)*n(5,0)*n(7,0) - n(1,0)*n(3,0)*n(8,0) + n(1,0)*n(5,0)*n(6,0) + n(2,0)*n(3,0)*n(7,0) - n(2,0)*n(4,0)*n(6,0) - n(0,0)*n(4,0)*n(8,1) - n(0,0)*n(4,1)*n(8,0) + n(0,0)*n(5,0)*n(7,1) + n(0,0)*n(5,1)*n(7,0) - n(0,1)*n(4,0)*n(8,0) + n(0,1)*n(5,0)*n(7,0) + n(1,0)*n(3,0)*n(8,1) + n(1,0)*n(3,1)*n(8,0) - n(1,0)*n(5,0)*n(6,1) - n(1,0)*n(5,1)*n(6,0) + n(1,1)*n(3,0)*n(8,0) - n(1,1)*n(5,0)*n(6,0) - n(2,0)*n(3,0)*n(7,1) - n(2,0)*n(3,1)*n(7,0) + n(2,0)*n(4,0)*n(6,1) + n(2,0)*n(4,1)*n(6,0) - n(2,1)*n(3,0)*n(7,0) + n(2,1)*n(4,0)*n(6,0) + n(0,0)*n(4,1)*n(8,1) - n(0,0)*n(5,1)*n(7,1) + n(0,1)*n(4,0)*n(8,1) + n(0,1)*n(4,1)*n(8,0) - n(0,1)*n(5,0)*n(7,1) - n(0,1)*n(5,1)*n(7,0) - n(1,0)*n(3,1)*n(8,1) + n(1,0)*n(5,1)*n(6,1) - n(1,1)*n(3,0)*n(8,1) - n(1,1)*n(3,1)*n(8,0) + n(1,1)*n(5,0)*n(6,1) + n(1,1)*n(5,1)*n(6,0) + n(2,0)*n(3,1)*n(7,1) - n(2,0)*n(4,1)*n(6,1) + n(2,1)*n(3,0)*n(7,1) + n(2,1)*n(3,1)*n(7,0) - n(2,1)*n(4,0)*n(6,1) - n(2,1)*n(4,1)*n(6,0) - n(0,1)*n(4,1)*n(8,1) + n(0,1)*n(5,1)*n(7,1) + n(1,1)*n(3,1)*n(8,1) - n(1,1)*n(5,1)*n(6,1) - n(2,1)*n(3,1)*n(7,1) + n(2,1)*n(4,1)*n(6,1);
+      acubic /= acubic[3];
 
-      // a1*alpha*e2*i2 - a1*alpha*f2*h2 + a2*alpha*e1*i2 + a2*alpha*e2*i1 - a2*alpha*f1*h2 - a2*alpha*f2*h1 - alpha*b1*d2*i2
-      acubic[1] = 0;
-      // + alpha*b1*f2*g2 - alpha*b2*d1*i2 - alpha*b2*d2*i1 + alpha*b2*f1*g2 + alpha*b2*f2*g1 + alpha*c1*d2*h2 - alpha*c1*e2*g2
-      acubic[1] += 0;
-      // + alpha*c2*d1*h2 + alpha*c2*d2*h1 - alpha*c2*e1*g2 - alpha*c2*e2*g1 - 3*a2*alpha*e2*i2 + 3*a2*alpha*f2*h2
-      acubic[1] += 0;
-      // + 3*alpha*b2*d2*i2 - 3*alpha*b2*f2*g2 - 3*alpha*c2*d2*h2 + 3*alpha*c2*e2*g2
-      acubic[1] += 3*n(1,1)*n(3,1)*n(8,1) - 3*n(1,1)*n(5,1)*n(6,1) - 3*n(2,1)*n(3,1)*n(7,1)+3*n(2,1)*n(4,1)*n(6,1);
+      //Finding for solutions of cubic function
+      Matrix3x3 companion;
+      companion(0,2) = -acubic[0];
+      companion(1,0) = 1;
+      companion(1,2) = -acubic[1];
+      companion(2,1) = 1;
+      companion(2,2) = -acubic[2];
 
-      // a1*alpha^2*e1*i2 + a1*alpha^2*e2*i1 - a1*alpha^2*f1*h2 - a1*alpha^2*f2*h1 + a2*alpha^2*e1*i1 - a2*alpha^2*f1*h1 - alpha^2*b1*d1*i2 - alpha^2*b1*d2*i1 + alpha^2*b1*f1*g2 + alpha^2*b1*f2*g1 - alpha^2*b2*d1*i1 + alpha^2*b2*f1*g1 + alpha^2*c1*d1*h2 + alpha^2*c1*d2*h1 - alpha^2*c1*e1*g2 - alpha^2*c1*e2*g1 + alpha^2*c2*d1*h1 - alpha^2*c2*e1*g1  - 2*a1*alpha^2*e2*i2 + 2*a1*alpha^2*f2*h2 - 2*a2*alpha^2*e1*i2 - 2*a2*alpha^2*e2*i1 + 2*a2*alpha^2*f1*h2 + 2*a2*alpha^2*f2*h1 + 2*alpha^2*b1*d2*i2 - 2*alpha^2*b1*f2*g2 + 2*alpha^2*b2*d1*i2 + 2*alpha^2*b2*d2*i1 - 2*alpha^2*b2*f1*g2 - 2*alpha^2*b2*f2*g1 - 2*alpha^2*c1*d2*h2 + 2*alpha^2*c1*e2*g2 - 2*alpha^2*c2*d1*h2 - 2*alpha^2*c2*d2*h1 + 2*alpha^2*c2*e1*g2 + 2*alpha^2*c2*e2*g1 + 3*a2*alpha^2*e2*i2 - 3*a2*alpha^2*f2*h2 - 3*alpha^2*b2*d2*i2 + 3*alpha^2*b2*f2*g2 + 3*alpha^2*c2*d2*h2 - 3*alpha^2*c2*e2*g2
+      Vector<std::complex<double> > roots;
+      eigen(companion,roots);
 
-      // a1*alpha^3*e1*i1 - a1*alpha^3*f1*h1 - alpha^3*b1*d1*i1 + alpha^3*b1*f1*g1 + alpha^3*c1*d1*h1 - alpha^3*c1*e1*g1 - a1*alpha^3*e1*i2 - a1*alpha^3*e2*i1 + a1*alpha^3*f1*h2 + a1*alpha^3*f2*h1 - a2*alpha^3*e1*i1 + a2*alpha^3*f1*h1 + alpha^3*b1*d1*i2 + alpha^3*b1*d2*i1 - alpha^3*b1*f1*g2 - alpha^3*b1*f2*g1 + alpha^3*b2*d1*i1 - alpha^3*b2*f1*g1 - alpha^3*c1*d1*h2 - alpha^3*c1*d2*h1 + alpha^3*c1*e1*g2 + alpha^3*c1*e2*g1 - alpha^3*c2*d1*h1 + alpha^3*c2*e1*g1 + a1*alpha^3*e2*i2 - a1*alpha^3*f2*h2 + a2*alpha^3*e1*i2 + a2*alpha^3*e2*i1 - a2*alpha^3*f1*h2 - a2*alpha^3*f2*h1 - alpha^3*b1*d2*i2 + alpha^3*b1*f2*g2 - alpha^3*b2*d1*i2 - alpha^3*b2*d2*i1 + alpha^3*b2*f1*g2 + alpha^3*b2*f2*g1 + alpha^3*c1*d2*h2 - alpha^3*c1*e2*g2 + alpha^3*c2*d1*h2 + alpha^3*c2*d2*h1 - alpha^3*c2*e1*g2 - alpha^3*c2*e2*g1 - a2*alpha^3*e2*i2 + a2*alpha^3*f2*h2 + alpha^3*b2*d2*i2 - alpha^3*b2*f2*g2 - alpha^3*c2*d2*h2 + alpha^3*c2*e2*g2
+      m_solutions.clear();
+      for ( uint i = 0; i < roots.size(); i++ ) {
+        if ( roots[i].imag() < 1e-10 && roots[i].imag() > -1e-10 ) {
+          m_solutions.push_back(roots[i].real());
+        }
+      }
+      VW_ASSERT( roots.size() > 0,
+                 vw::MathErr() << "FundamentalMatrixFittingFunctor7 didn't find a solution.\n" );
 
+      return this->fundamental_matrix();
     }
   };
 
@@ -112,7 +145,7 @@ namespace math {
     vw::Matrix<double> NormSimilarity( std::vector<Vector<double> > const& pts ) const {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
-      
+
       Matrix<double> translation;
       translation.set_identity(dimension);
 
