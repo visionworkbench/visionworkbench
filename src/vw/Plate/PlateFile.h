@@ -95,6 +95,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/ThreadPool.h>
 
 #include <vw/Plate/Index.h>
@@ -130,25 +131,14 @@ namespace platefile {
     TemporaryTileFile& operator=(TemporaryTileFile const&) { return *this; }
   
   public:
-
-    static std::string unique_tempfile_name(std::string file_extension) {
-      std::string base_name = vw_settings().tmp_directory() + "/vw_plate_tile_XXXXXXX";
-
-      boost::scoped_array<char> c_str(new char[base_name.size()+1]);
-      strncpy(c_str.get(), base_name.c_str(), base_name.size()+1);
-      char* dummy = mktemp(c_str.get());
-      std::string ret(dummy);
-      return ret + "." + file_extension;
-    }
+    
+    /// Generate a unique filename ( usually in /tmp, though this can
+    /// be overridden using vw_settings().tmp_directory() ).
+    static std::string unique_tempfile_name(std::string file_extension);
 
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
-    TemporaryTileFile(std::string filename) : 
-      m_filename(filename) {
-      vw_out(DebugMessage, "plate::tempfile") << "Assumed control of temporary file: " 
-                                              << m_filename << "\n";
-
-    }
+    TemporaryTileFile(std::string filename);
 
     /// This constructor assumes control over an existing file on disk,
     /// and deletes it when the TemporaryTileFile object is de-allocated.
@@ -160,29 +150,14 @@ namespace platefile {
                                               << m_filename << "\n";
     }
 
-    ~TemporaryTileFile() {
-      int result = unlink(m_filename.c_str());
-      if (result)
-        vw_out(ErrorMessage, "plate::tempfile") 
-          << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \"" 
-          << m_filename << "\"\n";
-      vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: " 
-                                              << m_filename << "\n";
-    }
+    ~TemporaryTileFile();
 
     std::string file_name() const { return m_filename; }
 
     /// Opens the temporary file and determines its size in bytes.
-    int64 file_size() const {
-      std::ifstream istr(m_filename.c_str(), std::ios::binary);
-      
-      if (!istr.is_open())
-        vw_throw(IOErr() << "TempPlateFile::file_size() -- could not open \"" 
-                 << m_filename << "\".");
-      istr.seekg(0, std::ios_base::end);
-      return istr.tellg();
-    }
+    int64 file_size() const;
 
+    // Read an image from the temporary tile file.
     template <class PixelT> 
     ImageView<PixelT> read() const {
       ImageView<PixelT> img;
@@ -235,35 +210,7 @@ namespace platefile {
     /// file's image extension).  The image extension will be appended
     /// automatically for you based on the filetype in the TileHeader.
     std::string read_to_file(std::string const& base_name, 
-                             int col, int row, int level, int transaction_id) {
-
-      TileHeader result;
-      std::string filename = base_name;
-
-      // 1. Call index read_request(col,row,level).  Returns IndexRecord.
-      IndexRecord record = m_index->read_request(col, row, level, transaction_id);
-
-      // 2. Open the blob file and read the header
-      boost::shared_ptr<Blob> read_blob;
-      // if (m_write_blob && record.blob_id() == m_write_blob_id) {
-      //   read_blob = m_write_blob;
-      // } else {
-        std::ostringstream blob_filename;
-        blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
-        read_blob.reset(new Blob(blob_filename.str(), true));
-      // }
-      TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
-
-      // 3. Choose a temporary filename and call BlobIO
-      // read_as_file(filename, offset, size) [ offset, size from
-      // IndexRecord ]
-      filename += "." + header.filetype();
-      read_blob->read_to_file(filename, record.blob_offset());
-
-      // 4. Return the name of the file
-      return filename;
-    }
-
+                             int col, int row, int level, int transaction_id);
 
     /// Read an image from the specified tile location in the plate file.  
     ///
@@ -370,31 +317,7 @@ namespace platefile {
     
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write tiles.
-    void write_request() { 
-
-      // Request a blob lock from the index
-      uint64 last_size;
-      m_write_blob_id = m_index->write_request(last_size); 
-
-      // Compute blob filename for writing.
-      std::ostringstream blob_filename;
-      blob_filename << this->name() << "/plate_" << m_write_blob_id << ".blob";
-      
-      // Open the blob for writing.
-      m_write_blob.reset( new Blob(blob_filename.str()) );
-
-      if (last_size != m_write_blob->size()) {
-        std::ostringstream ostr; 
-        ostr << "WARNING: last close size did not match current size when opening " 
-             << blob_filename.str() 
-             << "  ( " << last_size << " != " << m_write_blob->size() << " )\n";
-        m_index->log(ostr.str());
-      }
-
-      std::ostringstream ostr; 
-      ostr << "Opened blob " << m_write_blob_id << " ( size = " << m_write_blob->size() << " )\n";
-      m_index->log(ostr.str());
-    }
+    void write_request();
 
     /// Writing, pt. 2: Write an image to the specified tile location
     /// in the plate file.  Returns the size (in bytes) written by
@@ -434,21 +357,7 @@ namespace platefile {
     }
 
     /// Writing, pt. 3: Signal the completion of the write operation.
-    void write_complete() { 
-      
-      // Fetch the size from the blob.
-      uint64 new_blob_size = m_write_blob->size();
-
-      // Close the blob for writing.
-      m_write_blob.reset();
-
-      std::ostringstream ostr; 
-      ostr << "Closed blob " << m_write_blob_id << " ( size = " << new_blob_size << " )\n";
-      m_index->log(ostr.str());
-
-      // Release the blob lock.
-      return m_index->write_complete(m_write_blob_id, new_blob_size); 
-    }
+    void write_complete();
 
     /// Read a record out of the platefile.  
     ///
@@ -462,9 +371,7 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     IndexRecord read_record(int col, int row, int level, 
-                            int transaction_id, bool exact_transaction_match = false) {
-      return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
-    }
+                            int transaction_id, bool exact_transaction_match = false);
 
     // --------------------- TRANSACTIONS ------------------------
 

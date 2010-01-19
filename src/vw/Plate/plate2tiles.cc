@@ -16,6 +16,7 @@
 #include <vw/FileIO.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/PlateManager.h>    // for bbox_tiles()...
+#include <vw/Plate/ToastDem.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -147,6 +148,10 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
         save_toast_tile(output_name, platefile, 
                         header_iter->col(), header_iter->row(), 
                         header_iter->level(), header_iter->transaction_id());        
+      } else if (output_format == "toast_dem") {
+        save_toast_dem_tile(output_name, platefile, 
+                          header_iter->col(), header_iter->row(), 
+                          header_iter->level(), header_iter->transaction_id());
       } else if (output_format == "gigapan") {
         save_gigapan_tile(output_name, platefile, 
                           header_iter->col(), header_iter->row(), 
@@ -206,9 +211,12 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
-    ("output-format,f", po::value<std::string>(&output_format)->default_value("toast"), "Output tree format")
-    ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
-    ("transaction-id,t", po::value<int>(&transaction_id)->default_value(-1), "Specify the transaction id to save.")
+    ("output-format,f", po::value<std::string>(&output_format)->default_value("toast"), 
+     "Output tree format, one of [ toast, toast_dem, gigapan ] ")
+    ("output-name,o", po::value<std::string>(&output_file_name), 
+     "Specify the base output directory")
+    ("transaction-id,t", po::value<int>(&transaction_id)->default_value(-1), 
+     "Specify the transaction id to save.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -238,10 +246,6 @@ int main( int argc, char *argv[] ) {
   if( vm.count("help") ) {
     std::cout << usage.str();
     return 0;
-  }
-
-  if( output_format != "toast" && output_format != "gigapan" ) {
-    vw_throw(ArgumentErr() << "Unknown format passed in using --output-format: " << output_format);
   }
 
   if( vm.count("plate-file") != 1 ) {
