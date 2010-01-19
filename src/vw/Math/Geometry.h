@@ -24,6 +24,69 @@
 namespace vw { 
 namespace math {
 
+  // This fitting functor attempts to find a 7 DoF matrix that charaterizes
+  // the relationship of epipolar lines between to images. This implements
+  // the algorithm defined on pg 281 of Multiview Geometry (aka Bible)
+  struct FundamentalMatrixFittingFunctor7 {
+    typedef vw::Matrix<double> result_type;
+
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
+      return 7;
+    }
+
+    // Interface to solve for F matrix. Will throw error if more than
+    // 7 elements
+    template <class ContainerT>
+    vw::Matrix<double> operator()( std::vector<ContainerT> const& p1,
+                                   std::vector<ContainerT> const& p2 ) const {
+      VW_ASSERT( p1.size() == p2.size(),
+                 vw::ArgumentErr() << "p1 and p2's size not equal" );
+      VW_ASSERT( p1.size() == 7,
+                 vw::ArgumentErr() << "Only seven elements are used in the 7 point Fundamental Matrix algorithm" );
+      VW_ASSERT( p1[0].size() == 3 && p1[0][2] == 1,
+                 vw::ArgumentErr() << "p1 does not appert to be normalized homogeneous 2D vectors." );
+
+      // Building A-Matrix
+      Matrix<double> A(7,9);
+      for ( uint i = 0; i < 7; i++ ) {
+        A(i,0) = p1[i].x()*p2[i].x();
+        A(i,1) = p2[i].x()*p1[i].y();
+        A(i,2) = p2[i].x();
+        A(i,3) = p2[i].y()*p1[i].x();
+        A(i,4) = p2[i].y()*p1[i].y();
+        A(i,5) = p2[i].y();
+        A(i,6) = p1[i].x();
+        A(i,7) = p1[i].y();
+        A(i,8) = 1;
+      }
+
+      std::cout << "A: " << A << "\n";
+      // Matrix9x2
+      Matrix<double> n = null(A);
+      std::cout << "null: " << n << "\n";
+
+      // Solving for alpha cubic
+      Vector<double,4> acubic;
+      // a2*e2*i2 - a2*f2*h2 - b2*d2*i2 + b2*f2*g2 + c2*d2*h2 - c2*e2*g2
+      acubic[0] = n(0,1)*n(4,1)*n(8,1) - n(0,1)*n(5,1),*n(7,1) - n(1,1)*n(3,1)*n(8,1) + n(1,1)*n(5,1)*n(6,1) + n(2,1)*n(3,1)*n(7,1) - n(2,1)*n(4,1)*n(6,1);
+
+      // a1*alpha*e2*i2 - a1*alpha*f2*h2 + a2*alpha*e1*i2 + a2*alpha*e2*i1 - a2*alpha*f1*h2 - a2*alpha*f2*h1 - alpha*b1*d2*i2
+      acubic[1] = 0;
+      // + alpha*b1*f2*g2 - alpha*b2*d1*i2 - alpha*b2*d2*i1 + alpha*b2*f1*g2 + alpha*b2*f2*g1 + alpha*c1*d2*h2 - alpha*c1*e2*g2
+      acubic[1] += 0;
+      // + alpha*c2*d1*h2 + alpha*c2*d2*h1 - alpha*c2*e1*g2 - alpha*c2*e2*g1 - 3*a2*alpha*e2*i2 + 3*a2*alpha*f2*h2
+      acubic[1] += 0;
+      // + 3*alpha*b2*d2*i2 - 3*alpha*b2*f2*g2 - 3*alpha*c2*d2*h2 + 3*alpha*c2*e2*g2
+      acubic[1] += 3*n(1,1)*n(3,1)*n(8,1) - 3*n(1,1)*n(5,1)*n(6,1) - 3*n(2,1)*n(3,1)*n(7,1)+3*n(2,1)*n(4,1)*n(6,1);
+
+      // a1*alpha^2*e1*i2 + a1*alpha^2*e2*i1 - a1*alpha^2*f1*h2 - a1*alpha^2*f2*h1 + a2*alpha^2*e1*i1 - a2*alpha^2*f1*h1 - alpha^2*b1*d1*i2 - alpha^2*b1*d2*i1 + alpha^2*b1*f1*g2 + alpha^2*b1*f2*g1 - alpha^2*b2*d1*i1 + alpha^2*b2*f1*g1 + alpha^2*c1*d1*h2 + alpha^2*c1*d2*h1 - alpha^2*c1*e1*g2 - alpha^2*c1*e2*g1 + alpha^2*c2*d1*h1 - alpha^2*c2*e1*g1  - 2*a1*alpha^2*e2*i2 + 2*a1*alpha^2*f2*h2 - 2*a2*alpha^2*e1*i2 - 2*a2*alpha^2*e2*i1 + 2*a2*alpha^2*f1*h2 + 2*a2*alpha^2*f2*h1 + 2*alpha^2*b1*d2*i2 - 2*alpha^2*b1*f2*g2 + 2*alpha^2*b2*d1*i2 + 2*alpha^2*b2*d2*i1 - 2*alpha^2*b2*f1*g2 - 2*alpha^2*b2*f2*g1 - 2*alpha^2*c1*d2*h2 + 2*alpha^2*c1*e2*g2 - 2*alpha^2*c2*d1*h2 - 2*alpha^2*c2*d2*h1 + 2*alpha^2*c2*e1*g2 + 2*alpha^2*c2*e2*g1 + 3*a2*alpha^2*e2*i2 - 3*a2*alpha^2*f2*h2 - 3*alpha^2*b2*d2*i2 + 3*alpha^2*b2*f2*g2 + 3*alpha^2*c2*d2*h2 - 3*alpha^2*c2*e2*g2
+
+      // a1*alpha^3*e1*i1 - a1*alpha^3*f1*h1 - alpha^3*b1*d1*i1 + alpha^3*b1*f1*g1 + alpha^3*c1*d1*h1 - alpha^3*c1*e1*g1 - a1*alpha^3*e1*i2 - a1*alpha^3*e2*i1 + a1*alpha^3*f1*h2 + a1*alpha^3*f2*h1 - a2*alpha^3*e1*i1 + a2*alpha^3*f1*h1 + alpha^3*b1*d1*i2 + alpha^3*b1*d2*i1 - alpha^3*b1*f1*g2 - alpha^3*b1*f2*g1 + alpha^3*b2*d1*i1 - alpha^3*b2*f1*g1 - alpha^3*c1*d1*h2 - alpha^3*c1*d2*h1 + alpha^3*c1*e1*g2 + alpha^3*c1*e2*g1 - alpha^3*c2*d1*h1 + alpha^3*c2*e1*g1 + a1*alpha^3*e2*i2 - a1*alpha^3*f2*h2 + a2*alpha^3*e1*i2 + a2*alpha^3*e2*i1 - a2*alpha^3*f1*h2 - a2*alpha^3*f2*h1 - alpha^3*b1*d2*i2 + alpha^3*b1*f2*g2 - alpha^3*b2*d1*i2 - alpha^3*b2*d2*i1 + alpha^3*b2*f1*g2 + alpha^3*b2*f2*g1 + alpha^3*c1*d2*h2 - alpha^3*c1*e2*g2 + alpha^3*c2*d1*h2 + alpha^3*c2*d2*h1 - alpha^3*c2*e1*g2 - alpha^3*c2*e2*g1 - a2*alpha^3*e2*i2 + a2*alpha^3*f2*h2 + alpha^3*b2*d2*i2 - alpha^3*b2*f2*g2 - alpha^3*c2*d2*h2 + alpha^3*c2*e2*g2
+
+    }
+  };
+
   /// This fitting functor attempts to find a homography (8 degrees of
   /// freedom) that transforms point p1 to match points p2.  This fit
   /// is optimal in a least squares sense.
