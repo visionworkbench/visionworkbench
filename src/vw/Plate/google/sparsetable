@@ -56,7 +56,7 @@
 #ifndef _SPARSETABLE_H_
 #define _SPARSETABLE_H_
 
-#include <google/sparsehash/sparseconfig.h>
+#include <vw/Plate/google/sparsehash/sparseconfig.h>
 #include <stdlib.h>             // for malloc/free
 #include <stdio.h>              // to read/write tables
 #ifdef HAVE_STDINT_H
@@ -73,7 +73,7 @@
 #include <algorithm>            // equal, lexicographical_compare, swap,...
 #include <memory>               // uninitialized_copy
 #include <vector>               // a sparsetable is a vector of groups
-#include <google/type_traits.h> // for true_type, integral_constant, etc.
+#include <vw/Plate/google/type_traits.h> // for true_type, integral_constant, etc.
 #include <istream>
 #include <ostream>
 
