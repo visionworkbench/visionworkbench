@@ -85,6 +85,10 @@ namespace math {
 
       // Matrix9x2
       Matrix<double> n = null(A);
+
+      // Nullspace seems to glitch sometimes. It should always by 2D here. -ZMM
+      if ( n.cols() > 2 )
+        n = submatrix(n,0,n.cols()-2,9,2);
       m_nullspace = n;
 
       // Solving for alpha cubic
