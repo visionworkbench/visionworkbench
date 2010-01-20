@@ -30,8 +30,9 @@ TestLinearAlgebra_SOURCES      = TestLinearAlgebra.cxx
 TestGeometry_SOURCES           = TestGeometry.cxx
 TestLevenbergMarquardt_SOURCES = TestLevenbergMarquardt.cxx
 TestPoseEstimation_SOURCES     = TestPoseEstimation.cxx
+TestFundamentalMatrix_SOURCES  = TestFundamentalMatrix.cxx
 
-TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt TestPoseEstimation
+TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt TestPoseEstimation TestFundamentalMatrix
 endif
 
 TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\

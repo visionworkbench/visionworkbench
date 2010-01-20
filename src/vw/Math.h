@@ -16,6 +16,7 @@
 
 #include <vw/Math/Functions.h>
 #include <vw/Math/Functors.h>
+#include <vw/Math/FundamentalMatrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/BBox.h>
