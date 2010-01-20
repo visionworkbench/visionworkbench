@@ -82,11 +82,9 @@ namespace math {
       }
 
       // Matrix9x2
-      Matrix<double> n = null(A);
-
-      // Nullspace seems to glitch sometimes. It should always by 2D here. -ZMM
-      if ( n.cols() > 2 )
-        n = submatrix(n,0,n.cols()-2,9,2);
+      Matrix<double> n = nullspace(A);
+      VW_ASSERT( n.cols() == 2,
+                 vw::MathErr() << "A Matrix has incorrect nullity. Don't know how to handle at the moment, A = " << A << " Rank = " << rank(A) << " Null = " << nullity(A) << "\n" );
       m_nullspace = n;
 
       // Solving for alpha cubic
@@ -132,7 +130,8 @@ namespace math {
     unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 8; }
 
     /// Solve for Normalization Similarity Matrix used for noise rej.
-    vw::Matrix<double> NormSimilarity( std::vector<Vector<double> > const& pts ) const {
+    template <class ContainerT>
+    vw::Matrix<double> NormSimilarity( std::vector<ContainerT> const& pts ) const {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
 
@@ -195,7 +194,7 @@ namespace math {
         A(i,7) = input_p[i][1];
         A(i,8) = 1;
       }
-      Matrix<double> n = null(A);
+      Matrix<double> n = nullspace(A);
       std::cout << "n: " << n << "\n";
 
       // Constraint enforcement

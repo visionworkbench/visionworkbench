@@ -98,12 +98,12 @@ namespace math {
           A(i+4,j+6) = -output[i][0]*input[i][j];
         }
 
-      Matrix<double> nullspace = null(A);
-      nullspace /= nullspace(8,0);
+      Matrix<double> nullsp = nullspace(A);
+      nullsp /= nullsp(8,0);
       Matrix<double,3,3> H;
       for ( unsigned i = 0; i < 3; i++ )
         for ( unsigned j = 0; j < 3; j++ )
-          H(i,j) = nullspace(i*3+j,0);
+          H(i,j) = nullsp(i*3+j,0);
       return H;
     }
 

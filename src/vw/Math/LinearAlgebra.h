@@ -17,6 +17,7 @@
 #define __VW_MATH_LINEAR_ALGEBRA_H__
 
 #include <vector>
+#include <limits>
 
 #include <vw/config.h>
 #include <vw/Core/Exception.h>
@@ -426,7 +427,7 @@ namespace math {
     if (info > 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
   }
-  
+
   /// Solve the equation Ax=b where A is a symmetric positive definite
   /// matrix.  This version of this method will not modify A and b.
   /// The result (x) is returned as the return value.
@@ -453,22 +454,98 @@ namespace math {
     return transpose(result);
   }
 
-  // Solve for the nullspace of a Matrix A. If Ax = [0], the nullspace
-  // is an x that is not zero.
-  template <class MatrixT >
-  inline Matrix<typename MatrixT::value_type> null( MatrixBase<MatrixT> const& A ) {
+  // Solve for the rank of a matrix .. using previous SVD results
+  template <class MatrixT, class MatrixT2, class VectorT>
+  inline int rank( MatrixBase<MatrixT> const& A,
+                   MatrixBase<MatrixT2> const& U,
+                   VectorBase<VectorT> const& S,
+                   MatrixBase<MatrixT2> const& V,
+                   double const& thresh = -1 ) {
+    typedef typename MatrixT::value_type value_type;
+    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
+    int nr = 0;
+    for ( uint j = 0; j < S.impl().size(); j++ ) {
+      if ( S.impl()[j] > th )
+        nr++;
+    }
+    return nr;
+  }
+
+  // Solve for the rank of a matrix. Implementation from pg 68, of Numerical Receipes 3rd Edition
+  template <class MatrixT>
+  inline int rank( MatrixBase<MatrixT> const& A,
+                   double const& thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     Matrix<value_type> U, V;
     Vector<value_type> S;
     complete_svd( A.impl(), U, S, V );
     V = transpose(V);
+    return rank(A,U,S,V,thresh);
+  }
+
+  // Solve for nullity .. using previous SVD results
+  template <class MatrixT, class MatrixT2, class VectorT>
+  inline int nullity( MatrixBase<MatrixT> const& A,
+                      MatrixBase<MatrixT2> const& U,
+                      VectorBase<VectorT> const& S,
+                      MatrixBase<MatrixT2> const& V,
+                      double const& thresh = -1 ) {
+    typedef typename MatrixT::value_type value_type;
+    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
+    int nn = A.impl().cols()-S.impl().size();
+    for ( uint j = 0; j < S.impl().size(); j++ ) {
+      if ( S.impl()[j] <= th )
+        nn++;
+    }
+    return nn;
+  }
+
+  // Nullity of a matrix (again from Numerical Receipes)
+  template <class MatrixT>
+  inline int nullity( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
+    typedef typename MatrixT::value_type value_type;
+    Matrix<value_type> U, V;
+    Vector<value_type> S;
+    complete_svd( A.impl(), U, S, V );
+    V = transpose(V);
+    return nullity(A,U,S,V,thresh);
+  }
+
+  // Solve for the nullspace of a Matrix A. If Ax = [0], the nullspace
+  // is an x that is not zero.
+  template <class MatrixT >
+  inline Matrix<typename MatrixT::value_type> nullspace( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
+    typedef typename MatrixT::value_type value_type;
+    Matrix<value_type> U, V;
+    Vector<value_type> S;
+    complete_svd( A.impl(), U, S, V );
+    V = transpose(V);
+
+    int nty = nullity(A.impl(),U,S,V,thresh);
+    if ( nty == 0 )
+      return Matrix<value_type>(0,0);
+    Matrix<value_type> nullsp(A.impl().cols(),
+                              nty );
+    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S[0]*std::numeric_limits<value_type>::epsilon() );
+    uint nn = 0;
+    for ( uint j = 0; j < A.impl().cols(); j++ ) {
+      if ( S[j] <= th ) {
+        for ( uint jj = 0; jj < A.impl().cols(); jj++ )
+          nullsp(jj,nn) = V[jj][j];
+        nn++;
+      }
+    }
+    return nullsp;
+
+    /*
     unsigned max_size = std::max( A.impl().cols(),
-				  A.impl().rows() );
+                                  A.impl().rows() );
     value_type tol = A.impl().cols() == 1 ? max_size*1e-9 : max_size*1e-9*max(S);
     unsigned r = 0;
     for ( unsigned i = 0; i < S.size(); i++ )
       if ( S(i) > tol ) r++;
     return submatrix(V,0,r,V.rows(),V.cols()-r);
+    */
   }
 
 } // namespace math

@@ -35,9 +35,32 @@ TEST(Fundamental, 7pFittingFunctor) {
   EXPECT_EQ(fundie.cols(),3);
   EXPECT_EQ(fundie.rows(),3);
   EXPECT_NEAR( det(fundie), 0, 1e-10 );
-  EXPECT_EQ(cow.num_solutions(), 1); // Just happens to work out with this data.
+  EXPECT_EQ(cow.num_solutions(), 3); // Not verified
+  for ( uint i = 0; i < 3; i++ ) {
+    fundie = cow.fundamental_matrix( i );
+    EXPECT_NEAR( det(fundie), 0, 1e-10 );
+  }
 }
 
 TEST(Fundamental, 8pFittingFunctor) {
-  
+  std::vector<Vector3> ip1, ip2;
+  ip1.push_back(Vector3(971, 605,1)); // 1
+  ip2.push_back(Vector3(1318, 661,1));
+  ip1.push_back(Vector3(765, 632,1)); // 2
+  ip2.push_back(Vector3(1108, 685,1));
+  ip1.push_back(Vector3(953, 617,1)); // 3
+  ip2.push_back(Vector3(1300, 673,1));
+  ip1.push_back(Vector3(984, 606,1)); // 4
+  ip2.push_back(Vector3(1331, 662,1));
+  ip1.push_back(Vector3(941, 595,1)); // 5
+  ip2.push_back(Vector3(1290, 651,1));
+  ip1.push_back(Vector3(1005, 609,1)); // 6
+  ip2.push_back(Vector3(1352, 666,1));
+  ip1.push_back(Vector3(866, 644,1)); // 7
+  ip2.push_back(Vector3(1213, 698));
+  ip1.push_back(Vector3(728, 635,1)); // 8
+  ip2.push_back(Vector3(1076, 685,1));
+
+  Fundamental8FittingFunctor cow;
+  cow(ip1,ip2);
 }
