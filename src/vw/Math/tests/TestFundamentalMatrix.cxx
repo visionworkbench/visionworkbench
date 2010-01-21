@@ -35,8 +35,7 @@ TEST(Fundamental, 7pFittingFunctor) {
   EXPECT_EQ(fundie.cols(),3);
   EXPECT_EQ(fundie.rows(),3);
   EXPECT_NEAR( det(fundie), 0, 1e-10 );
-  EXPECT_EQ(cow.num_solutions(), 3); // Not verified
-  for ( uint i = 0; i < 3; i++ ) {
+  for ( uint i = 0; i < cow.num_solutions(); i++ ) {
     fundie = cow.fundamental_matrix( i );
     EXPECT_NEAR( det(fundie), 0, 1e-10 );
   }

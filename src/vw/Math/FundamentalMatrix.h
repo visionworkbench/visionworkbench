@@ -84,7 +84,7 @@ namespace math {
       // Matrix9x2
       Matrix<double> n = nullspace(A);
       VW_ASSERT( n.cols() == 2,
-                 vw::MathErr() << "A Matrix has incorrect nullity. Don't know how to handle at the moment, A = " << A << " Rank = " << rank(A) << " Null = " << nullity(A) << "\n" );
+                 vw::MathErr() << "A Matrix has incorrect nullity due insufficient rank or threshold error in math ops. Did you input the data correctly? A = " << A << " Rank = " << rank(A) << " Null = " << nullity(A) << "\n" );
       m_nullspace = n;
 
       // Solving for alpha cubic
@@ -121,7 +121,9 @@ namespace math {
   };
 
   // The normalized 8 point and greater algorithm for F matrix. On
-  // page 282.
+  // page 282. This algorithm is not gold standard as it doesn't
+  // enforce output F has norm =1 to 1. It only enforces that the det is
+  // zero.
   struct Fundamental8FittingFunctor {
     typedef vw::Matrix<double> result_type;
 
@@ -195,12 +197,26 @@ namespace math {
         A(i,8) = 1;
       }
       Matrix<double> n = nullspace(A);
-      std::cout << "n: " << n << "\n";
+
+      // Rearranging
+      Matrix<double,3,3> rn;
+      int i = 0;
+      for ( Matrix<double,3,3>::iterator it = rn.begin(); it != rn.end(); it++ ) {
+        (*it) = n(i,0);
+        i++;
+      }
 
       // Constraint enforcement
+      Matrix<double> U, V;
+      Vector<double> S;
+      complete_svd(rn, U, S, V);
+      S[2] = 0;
+      rn = U*diagonal_matrix(S)*V;
 
       // Denormalization
+      rn = inverse(S_out)*rn*S_in;
 
+      return rn;
     }
 
   };

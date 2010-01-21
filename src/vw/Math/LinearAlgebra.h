@@ -529,23 +529,14 @@ namespace math {
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S[0]*std::numeric_limits<value_type>::epsilon() );
     uint nn = 0;
     for ( uint j = 0; j < A.impl().cols(); j++ ) {
-      if ( S[j] <= th ) {
-        for ( uint jj = 0; jj < A.impl().cols(); jj++ )
-          nullsp(jj,nn) = V[jj][j];
-        nn++;
-      }
+      if ( j < S.size() )
+        if ( S[j] > th )
+          continue;
+      for ( uint jj = 0; jj < A.impl().cols(); jj++ )
+        nullsp(jj,nn) = V[jj][j];
+      nn++;
     }
     return nullsp;
-
-    /*
-    unsigned max_size = std::max( A.impl().cols(),
-                                  A.impl().rows() );
-    value_type tol = A.impl().cols() == 1 ? max_size*1e-9 : max_size*1e-9*max(S);
-    unsigned r = 0;
-    for ( unsigned i = 0; i < S.size(); i++ )
-      if ( S(i) > tol ) r++;
-    return submatrix(V,0,r,V.rows(),V.cols()-r);
-    */
   }
 
 } // namespace math
