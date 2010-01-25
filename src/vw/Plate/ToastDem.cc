@@ -58,7 +58,12 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
       float v_index = float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1);
 
       // TODO: Thing about what to do if the pixel has alpha!
-      PixelGrayA<int16> value = interp_tile( u_index, v_index );
+      //      PixelGrayA<int16> value = interp_tile( u_index, v_index );
+      PixelGrayA<int16> value;
+      if (u_index > v_index)
+        value[0] = 500;
+      else 
+        value[0] = -500;
       uint8 lsb = uint8(value[0] & 0xFF);
       uint8 msb = uint8((value[0] >> 8) & 0xFF);
       of.write((char*)(&lsb), 1);

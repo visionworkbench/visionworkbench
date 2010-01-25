@@ -154,26 +154,17 @@ namespace platefile {
     /// Returns an iterator pointing one past the last TileHeader in the blob.
     iterator end() { return iterator(*this, m_end_of_file_ptr ); }
 
-    uint64 next_base_offset(uint64 current_base_offset) {
-
-      // Seek to the requested offset and read the header and data offset
-      m_fstream->seekg(current_base_offset, std::ios_base::beg);
-      
-      // Read the blob record
-      uint16 blob_record_size;
-      BlobRecord blob_record = this->read_blob_record(blob_record_size);
-
-      uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
-      uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
-
-      return next_offset;
-    }
-
+    /// Seek to the next base offset given the current base offset.
+    uint64 next_base_offset(uint64 current_base_offset);
 
     /// Returns binary index record (a serialized protobuffer) for an
     /// entry starting at base_offset.
     template <class ProtoBufT>
     ProtoBufT read_header(vw::uint64 base_offset) {
+
+      vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_header() -- "
+                                                     <<" base_offset: " 
+                                                     <<  base_offset << "\n";
 
       // Seek to the requested offset and read the header and data offset
       m_fstream->seekg(base_offset, std::ios_base::beg);
@@ -192,6 +183,10 @@ namespace platefile {
       
       // Allocate an array of the appropriate size to read the data.
       boost::shared_array<uint8> data(new uint8[size]);
+
+      vw_out(VerboseDebugMessage, "platefile::blob") << "         read_header() -- "
+                                                     << " data offset: " << offset 
+                                                     << " size: " << size << "\n";
       
       m_fstream->seekg(offset, std::ios_base::beg);
       m_fstream->read((char*)(data.get()), size);
@@ -210,7 +205,7 @@ namespace platefile {
         vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
                  << "from the blob file.\n");
       
-      vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
+      vw::vw_out(vw::VerboseDebugMessage, "platefile::blob") << "         read_header() -- read " 
                                                          << size << " bytes at " << offset
                                                          << " from " << m_blob_filename << "\n";
       return header;
@@ -220,16 +215,7 @@ namespace platefile {
     void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);
 
     /// Returns the data size
-    uint32 data_size(uint64 base_offset) const {
-
-      // Seek to the requested offset and read the header and data offset
-      m_fstream->seekg(base_offset, std::ios_base::beg);
-
-      // Read the blob record
-      uint16 blob_record_size;
-      BlobRecord blob_record = this->read_blob_record(blob_record_size);
-      return blob_record.data_size();
-    }
+    uint32 data_size(uint64 base_offset) const;
 
     /// Write a tile to the blob file. You must supply the header
     /// (e.g. a serialized TileHeader protobuffer) and the data as
@@ -264,7 +250,7 @@ namespace platefile {
   
       // Write the data at the end of the file and return the offset
       // of the beginning of this data file.
-      vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::write() -- writing " 
+      vw::vw_out(vw::VerboseDebugMessage, "platefile::blob") << "Blob::write() -- writing " 
                                                          << data_size
                                                          << " bytes to "
                                                          << m_blob_filename << "\n";

@@ -27,11 +27,21 @@ using namespace vw;
 
 /// read_blob_record()
 vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_record_size) const {
+
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_blob_record() -- "
+                                                 <<" Filename: " << m_blob_filename 
+                                                 << " Offset: " << m_fstream->tellg() << "\n";
+  
   
   // Read the blob record
   m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
+  vw_out(VerboseDebugMessage, "platefile::blob") << "         read_blob_record() --  "
+                                                 <<" blob_record_size: "
+                                                 << blob_record_size << "\n"; 
   boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
   m_fstream->read((char*)(blob_rec_data.get()), blob_record_size);
+  vw_out(VerboseDebugMessage, "platefile::blob") << "         read_blob_record() --  "
+                                                 <<" read complete.\n";
   BlobRecord blob_record;
   bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
   if (!worked)
@@ -67,6 +77,49 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
   return data;
 }
 
+vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
+
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering next_base_offset() -- "
+                                                 <<" current_base_offset: " 
+                                                 <<  current_base_offset << "\n";
+
+  // Seek to the requested offset and read the header and data offset
+  m_fstream->seekg(current_base_offset, std::ios_base::beg);
+  
+  // Read the blob record
+  uint16 blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(blob_record_size);
+  
+  uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+  uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
+
+  vw_out(VerboseDebugMessage, "platefile::blob") << "        next_base_offset() -- "
+                                                 <<" next_offset: " <<  next_offset << "\n";
+
+  return next_offset;
+}
+
+/// Returns the data size
+vw::uint32 vw::platefile::Blob::data_size(uint64 base_offset) const {
+
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering data_size() -- "
+                                                 <<" base_offset: " 
+                                                 <<  base_offset << "\n";
+
+  // Seek to the requested offset and read the header and data offset
+  m_fstream->seekg(base_offset, std::ios_base::beg);
+  
+  // Read the blob record
+  uint16 blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(blob_record_size);
+
+  vw_out(VerboseDebugMessage, "platefile::blob") << "         data_size() -- "
+                                                 << " result size: " 
+                                                 <<  blob_record.data_size() << "\n";
+
+  return blob_record.data_size();
+}
+
 
 // Constructor stores the blob filename for reading & writing
 vw::platefile::Blob::Blob(std::string filename, bool readonly) : 
@@ -98,6 +151,9 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
                       std::ios::out|std::ios::in|std::ios::binary); 
     } 
       
+    // Set up the fstream so that it throws an exception.
+    m_fstream->exceptions ( std::fstream::eofbit | std::fstream::failbit | std::fstream::badbit );
+
     vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READ/WRITE)\n";
   }
 
@@ -167,7 +223,7 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   // 
   // If none agree, return the end of file but print an error,
   // because this blob file might be corrupt.
-  if (data[0] == data[1] == data[2]) 
+  if ((data[0] == data[1]) && (data[0] == data[2])) 
     return data[0];
   else if (data[0] == data[1])
     return data[0];
