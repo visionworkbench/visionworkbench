@@ -44,34 +44,34 @@ namespace math {
       return out;
     }
 
-    /// Solve for Normalization Similarity Matrix used for noise
-    /// rejection in DLT.
-    vw::Matrix<double> NormSimilarity( std::vector<Vector<double> > const& pts ) const {
+    /// Solve for Normalization Similarity Matrix used for noise rej.
+    template <class ContainerT>
+    vw::Matrix<double> NormSimilarity( std::vector<ContainerT> const& pts ) const {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
 
-      Matrix<double> translation;
-      translation.set_identity(dimension);
-
-      Vector<double> sum;
-      sum.set_size(dimension-1);
+      Vector<double> translation;
+      translation.set_size(dimension-1);
       for ( unsigned i = 0; i < num_points; i++ )
-        sum+=subvector(pts[i],0,dimension-1);
-      sum /= num_points;
-      for ( unsigned i = 0; i < dimension-1; i++ )
-        translation(i,dimension-1) = -sum(i);
+        translation+=subvector(pts[i],0,dimension-1);
+      translation /= num_points;
 
-      std::vector<Vector<double> > pts_int = apply_matrix( translation, pts );
+      std::vector<Vector<double> > pts_int;
+      for ( uint i = 0; i < pts.size(); i++ )
+        pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
 
-      Matrix<double> scalar;
-      scalar.set_identity(dimension);
       double scale = 0;
       for ( unsigned i = 0; i < num_points; i++ )
         scale += norm_2( subvector(pts_int[i],0,dimension-1) );
       scale = num_points*sqrt(2.)/scale;
-      scalar *= scale;
-      scalar(dimension-1,dimension-1) = 1;
-      return scalar*translation;
+
+      Matrix3x3 t;
+      t(2,2) = 1;
+      t(0,0) = scale;
+      t(1,1) = scale;
+      t(0,2) = -scale*translation[0];
+      t(1,2) = -scale*translation[1];
+      return t;
     }
 
     vw::Matrix<double> BasicDLT( std::vector<Vector<double> > const& input,

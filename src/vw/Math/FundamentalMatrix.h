@@ -137,30 +137,28 @@ namespace math {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
 
-      Matrix<double> translation;
-      translation.set_identity(dimension);
-
-      Vector<double> sum;
-      sum.set_size(dimension-1);
+      Vector<double> translation;
+      translation.set_size(dimension-1);
       for ( unsigned i = 0; i < num_points; i++ )
-        sum+=subvector(pts[i],0,dimension-1);
-      sum /= num_points;
-      for ( unsigned i = 0; i < dimension-1; i++ )
-        translation(i,dimension-1) = -sum(i);
+        translation+=subvector(pts[i],0,dimension-1);
+      translation /= num_points;
 
       std::vector<Vector<double> > pts_int;
       for ( uint i = 0; i < pts.size(); i++ )
-        pts_int.push_back( translation*pts[i] );
+        pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
 
-      Matrix<double> scalar;
-      scalar.set_identity(dimension);
       double scale = 0;
       for ( unsigned i = 0; i < num_points; i++ )
         scale += norm_2( subvector(pts_int[i],0,dimension-1) );
       scale = num_points*sqrt(2.)/scale;
-      scalar *= scale;
-      scalar(dimension-1,dimension-1) = 1;
-      return scalar*translation;
+
+      Matrix3x3 t;
+      t(2,2) = 1;
+      t(0,0) = scale;
+      t(1,1) = scale;
+      t(0,2) = -scale*translation[0];
+      t(1,2) = -scale*translation[1];
+      return t;
     }
 
     // Interface to solve for F matrix
@@ -186,7 +184,7 @@ namespace math {
       // Linear solution
       Matrix<double> A(p1.size(),9);
       for ( uint i = 0; i < p1.size(); i++ ) {
-        A(i,0) = input_p[i][0]*output_p[i][0];
+        A(i,0) = output_p[i][0]*input_p[i][0];
         A(i,1) = output_p[i][0]*input_p[i][1];
         A(i,2) = output_p[i][0];
         A(i,3) = output_p[i][1]*input_p[i][0];
@@ -201,7 +199,8 @@ namespace math {
       // Rearranging
       Matrix<double,3,3> rn;
       int i = 0;
-      for ( Matrix<double,3,3>::iterator it = rn.begin(); it != rn.end(); it++ ) {
+      for ( Matrix<double,3,3>::iterator it = rn.begin();
+            it != rn.end(); it++ ) {
         (*it) = n(i,0);
         i++;
       }
@@ -214,7 +213,7 @@ namespace math {
       rn = U*diagonal_matrix(S)*V;
 
       // Denormalization
-      rn = inverse(S_out)*rn*S_in;
+      rn = transpose(S_out)*rn*S_in;
 
       return rn;
     }
