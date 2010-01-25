@@ -168,11 +168,13 @@ int main( int argc, char *argv[] ) {
             << "% (" << cp_clip_count << ") of control points removed.\n";
 
   vw_out() << "\nWriting out new control network\n";
-  std::string outfile_str = fs::path(data_dir / output_cnet_file.branch_path() / fs::basename(output_cnet_file)).string();
+  std::string outfile_str = fs::path(data_dir / output_cnet_file ).string();
+  vw_out() << "\tfile: " << outfile_str << "\n";
   cnet.write_binary(outfile_str);
 
   vw_out() << "\nWriting deleted index file\n";
-  std::string delindex_file_str = fs::path(data_dir / output_deleted_index_file.branch_path() / fs::basename(output_deleted_index_file)).string();
+  std::string delindex_file_str = fs::path(data_dir / output_deleted_index_file ).string();
+  vw_out() << "\tfile: " << delindex_file_str << "\n";
 
   std::ofstream di_out(delindex_file_str.c_str());
   for ( uint i = 0; i < deleted.size()-1; i++) 
