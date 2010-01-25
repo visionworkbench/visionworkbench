@@ -145,8 +145,16 @@ int handle_image(request_rec *r, const std::string& url) {
                                                  << "] format[" << format << "]" << std::endl;
 
   PlateModule::IndexCache::const_iterator index_i = mod_plate().get_index().find(id);
-  if (index_i == mod_plate().get_index().end())
-    vw_throw(BadRequest() << "No such platefile [id = " << id << "]");
+
+  if (index_i == mod_plate().get_index().end()) {
+    // If we get an unknown platefile, resync just to make sure
+    vw_out(DebugMessage, "plate.apache") << "Unknown platefile. Resyncing.";
+    mod_plate().sync_index_cache();
+
+    index_i = mod_plate().get_index().find(id);
+    if (index_i == mod_plate().get_index().end())
+      vw_throw(BadRequest() << "No such platefile [id = " << id << "]");
+  }
 
   const PlateModule::IndexCacheEntry& index = index_i->second;
 
@@ -340,15 +348,15 @@ PlateModule::PlateModule() {
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection("198.10.124.5"));
 
   m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, "index") );
+
   // Needs to respond in five seconds
-  m_client->timeout(500);
-  m_client->tries(10);
+  m_client->timeout(1000);
+  m_client->tries(5);
 
   m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
   m_client->bind_service(m_index_service, queue_name);
 
-  // TODO: Do not sync index cache on startup until callmethod obeys timeouts
-  // sync_index_cache();
+  sync_index_cache();
 
   vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
 }
