@@ -15,6 +15,13 @@
 #include <vw/Image/ViewImageResource.h>
 #include <vw/Plate/PlateFile.h>
 
+// Qt
+#include <QObject>
+#include <QThread>
+#include <QHttp>
+#include <QBuffer>
+
+
 namespace vw {
 namespace gui {
 
@@ -41,7 +48,7 @@ namespace gui {
   //                              TILE GENERATOR
   // --------------------------------------------------------------------------
 
-  class TileGenerator {
+  class TileGenerator : public QObject {
   public:
     virtual ~TileGenerator() {}
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
@@ -84,15 +91,49 @@ namespace gui {
   };
 
   // --------------------------------------------------------------------------
-  //                            WEB TILE GENERATOR
+  //                          WEB TILE GENERATOR
   // --------------------------------------------------------------------------
+  class HttpDownloadThread : public QThread {
+    Q_OBJECT
+    
+    QHttp *m_http;
+    
+    struct RequestBuffer {
+      boost::shared_ptr<QByteArray> bytes;
+      boost::shared_ptr<QBuffer> buffer;
+      bool finished;
+
+      RequestBuffer() {
+        bytes.reset(new QByteArray());
+        buffer.reset(new QBuffer(bytes.get()));
+        buffer->open(QIODevice::WriteOnly);
+        finished = false;
+      }
+    };
+    std::map<int, RequestBuffer> m_requests;
+    
+  protected:
+    void run();
+  public:
+    virtual ~HttpDownloadThread();
+    int get(std::string url);
+    bool result_available(int request_id);
+  public slots:
+    void request_started(int id);
+    void request_finished(int id, bool error);
+  };
 
   class WebTileGenerator : public TileGenerator {
+    Q_OBJECT
+
     int m_tile_size;
     std::string m_url;
-
+    bool m_download_complete;
+    int m_request_id;
+    HttpDownloadThread m_download_thread;
+    
   public:
-    WebTileGenerator(std::string url) : m_tile_size(256), m_url(url) {}
+    WebTileGenerator(std::string url);
     virtual ~WebTileGenerator() {}
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
@@ -105,6 +146,7 @@ namespace gui {
     virtual ChannelTypeEnum channel_type() const;
     virtual Vector2i tile_size() const;
     virtual int32 num_levels() const;
+
   };
 
   // --------------------------------------------------------------------------

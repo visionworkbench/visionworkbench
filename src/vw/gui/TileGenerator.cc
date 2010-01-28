@@ -15,6 +15,7 @@
 #include <QBuffer>
 #include <QImage>
 #include <QHttp>
+#include <QByteArray> 
 
 using namespace vw;
 using namespace vw::gui;
@@ -112,8 +113,8 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 
 boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& tile_info) {
   ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
-  for (unsigned j = 0; j < m_tile_size; ++j){
-    for (unsigned i = 0; i < m_tile_size; ++i){
+  for (int j = 0; j < m_tile_size; ++j){
+    for (int i = 0; i < m_tile_size; ++i){
       if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
         tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
       else 
@@ -146,41 +147,92 @@ int32 TestPatternTileGenerator::num_levels() const {
 //                            WEB TILE GENERATOR
 // --------------------------------------------------------------------------
 
+void HttpDownloadThread::run() {
+  std::cout << "Starting the HttpDownloadThread!!\n";
+  m_http = new QHttp(NULL);
+  connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));  
+  connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));  
+  QThread::exec();
+}
+
+HttpDownloadThread::~HttpDownloadThread() {
+  if (m_http)
+    delete m_http;
+}
+
+int HttpDownloadThread::get(std::string url_string) {
+  std::cout << "Call te blocking_get() with url: " << url_string << "\n";
+  QUrl url(url_string.c_str());
+
+  int request_id;
+  if (m_http) {
+    m_http->setHost(url.host());
+
+    // Set up request buffer
+    RequestBuffer buf;
+    request_id = m_http->get (url.path(),buf.buffer.get());
+    std::cout << "Initiated request: " << request_id << "\n";
+    m_requests[request_id] = buf;
+  }
+  return request_id;
+}
+
+bool HttpDownloadThread::result_available(int request_id) {
+  return m_requests[request_id].finished;
+}
+
+void HttpDownloadThread::request_started(int request_id) {}
+
+void HttpDownloadThread::request_finished(int request_id, bool error) {
+  std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(request_id);
+  if (request_iter != m_requests.end()) {
+    std::cout << "Request Finished: request_id = " << request_id << "  " << error << "!!\n";
+    RequestBuffer buf = m_requests[request_id];
+    std::cout << "Loading from data " << buf.buffer->buffer().size() << "\n";
+    QImage image;
+    image.loadFromData(buf.buffer->buffer());
+    std::cout << "\t [ " << image.width() << " x " << image.height() << " ]\n";
+    //  std::cout << (image.bytesPerLine() / image.width()) << " bytes per pixel.";
+    m_requests[request_id].finished = true;
+  }
+}
+
+
+WebTileGenerator::WebTileGenerator(std::string url) : m_tile_size(256), m_url(url) {
+  std::cout << "WebTileGenerator constructor...\n";
+  m_download_thread.start();
+  sleep(2);
+}
+
 boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
   
-  // std::ostringstream full_url;
-  // full_url << m_url << "/" << tile_info.level 
-  //          << "/" << tile_info.row 
-  //          << "/" << tile_info.col << ".png";
-  // std::cout << "Fetching " << full_url.str() << "\n";
+  std::ostringstream full_url;
+  full_url << m_url << "/" << tile_info.level 
+           << "/" << tile_info.row 
+           << "/" << tile_info.col << ".png";
+  std::cout << "Fetching " << full_url.str() << "\n";
   
-  // std::string test = "http://farm4.static.flickr.com/3265/2770466796_f50268e1a2_s.jpg";
-
-  // QUrl url(test.c_str());
-  // QHttp *http = new QHttp(NULL);
-  // QByteArray bytes;
-  // QBuffer *buffer = new QBuffer(&bytes);
-  // buffer->open(QIODevice::WriteOnly);
-  // http->setHost(url.host());
-  // int Request=http->get (url.path(),buffer);
-  // while (http->hasPendingRequests()) 
+  std::string test = "http://farm4.static.flickr.com/3265/2770466796_f50268e1a2_s.jpg";
+  int requset_id = m_download_thread.get(test);
+  // while(!m_download_thread.result_available())
   //   std::cout << "Waiting...\n";
 
-  // if (Request=requestId){
-  //   QImage img;
-  //   img.loadFromData(bytes);
+  // std::cout << "Success!!\n";
+  // if (Request == m_request_id){
+  //   QImage image;
+  //   image.loadFromData(bytes);
+  //   std::cout << "\t [ " << image.width() << " x " << image.height() << "   " << 
+  //     (image.bytesPerLine() / image.width()) << " bytes per pixel.";
   // }
 
-  // std::cout << "\t [ " << image.width() << " x " << image.height() << "   " << 
-  //   (image.bytesPerLine() / image.width()) << " bytes per pixel.";
 
   ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
-  for (unsigned j = 0; j < m_tile_size; ++j){
-    for (unsigned i = 0; i < m_tile_size; ++i){
+  for (int j = 0; j < m_tile_size; ++j){
+    for (int i = 0; i < m_tile_size; ++i){
       if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
         tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
       else 
-        tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
+        tile(i,j) = PixelRGBA<uint8>(0,255,0,255);
     }
   }
   boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );

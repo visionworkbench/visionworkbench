@@ -206,9 +206,10 @@ namespace platefile {
 
     int num_levels() const { return m_index->num_levels(); }
 
-    /// Read the tile header. You supply a base name (without the
-    /// file's image extension).  The image extension will be appended
-    /// automatically for you based on the filetype in the TileHeader.
+    /// Read data directly to a file on disk. You supply a base name
+    /// (without the file's image extension).  The image extension
+    /// will be appended automatically for you based on the filetype
+    /// in the TileHeader.
     std::string read_to_file(std::string const& base_name, 
                              int col, int row, int level, int transaction_id);
 
