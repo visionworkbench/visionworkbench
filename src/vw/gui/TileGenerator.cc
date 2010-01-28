@@ -84,25 +84,31 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
 
 boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 
-  // If ends in .plate, then assume platefile.
-  if ( fs::extension(filename) == ".plate") {
+  try {
 
-    return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(filename) );
-
-  // If begins with http://, then assume web tiles.
-  } else if ( filename.find("http://") == 0) {
-
-    return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename) );
-
-  // If testpattern, then we use the testpattern tile generator
-  } else if (filename == "testpattern") {
-
-    vw_out() << "\t--> Starting vwv in testpattern mode.\n";
-    return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
+    // If ends in .plate, then assume platefile.
+    if ( fs::extension(filename) == ".plate") {
+      
+      return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(filename) );
+      
+    // If begins with http://, then assume web tiles.
+    } else if ( filename.find("http://") == 0) {
+      
+      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename) );
     
-  // Otherwise, assume an image.
-  } else {
-    return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(filename) );
+    // If testpattern, then we use the testpattern tile generator
+    } else if (filename == "testpattern") {
+
+      vw_out() << "\t--> Starting vwv in testpattern mode.\n";
+      return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
+      
+    // Otherwise, assume an image.
+    } else {
+      return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(filename) );
+    }
+  } catch (vw::IOErr &e) {
+    std::cout << "An error occurred opening \"" << filename << "\":\n\t" << e.what() << "\n";
+    exit(0);
   }
 }
 
@@ -147,11 +153,13 @@ int32 TestPatternTileGenerator::num_levels() const {
 //                            WEB TILE GENERATOR
 // --------------------------------------------------------------------------
 
-void HttpDownloadThread::run() {
-  std::cout << "Starting the HttpDownloadThread!!\n";
+HttpDownloadThread::HttpDownloadThread() {
   m_http = new QHttp(NULL);
   connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));  
   connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));  
+}
+
+void HttpDownloadThread::run() {
   QThread::exec();
 }
 
@@ -161,8 +169,10 @@ HttpDownloadThread::~HttpDownloadThread() {
 }
 
 int HttpDownloadThread::get(std::string url_string) {
-  std::cout << "Call te blocking_get() with url: " << url_string << "\n";
   QUrl url(url_string.c_str());
+
+  /// XXX: Hard coding file_type as PNG for now. FIXME!!!!
+  std::string file_type = "png";
 
   int request_id;
   if (m_http) {
@@ -170,8 +180,9 @@ int HttpDownloadThread::get(std::string url_string) {
 
     // Set up request buffer
     RequestBuffer buf;
+    buf.file_type = file_type;
     request_id = m_http->get (url.path(),buf.buffer.get());
-    std::cout << "Initiated request: " << request_id << "\n";
+    std::cout << "Fetching (" << request_id << ") : " << url_string << "\n";
     m_requests[request_id] = buf;
   }
   return request_id;
@@ -181,62 +192,63 @@ bool HttpDownloadThread::result_available(int request_id) {
   return m_requests[request_id].finished;
 }
 
+vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_id) {
+  return m_requests[request_id].result;
+}
+
 void HttpDownloadThread::request_started(int request_id) {}
 
 void HttpDownloadThread::request_finished(int request_id, bool error) {
   std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(request_id);
   if (request_iter != m_requests.end()) {
-    std::cout << "Request Finished: request_id = " << request_id << "  " << error << "!!\n";
-    RequestBuffer buf = m_requests[request_id];
-    std::cout << "Loading from data " << buf.buffer->buffer().size() << "\n";
-    QImage image;
-    image.loadFromData(buf.buffer->buffer());
-    std::cout << "\t [ " << image.width() << " x " << image.height() << " ]\n";
-    //  std::cout << (image.bytesPerLine() / image.width()) << " bytes per pixel.";
-    m_requests[request_id].finished = true;
+    RequestBuffer &buf = request_iter->second;
+
+    // Handle the error case.
+    if (error || buf.buffer->buffer().length() == 0) {
+      buf.failed = true;
+      buf.finished = true;
+      return;
+    }
+
+    // Save the data to a temporary file, and then read the image file
+    // using the Vision Workbench FileIO subsystem.  
+    std::string temp_filename = platefile::TemporaryTileFile::unique_tempfile_name(buf.file_type);
+    std::ofstream of(temp_filename.c_str());
+    if ( !(of.good()) )
+      vw_throw(IOErr() << "Could not open temporary tile file for writing: " << temp_filename);
+    of.write(buf.buffer->buffer().data(), buf.buffer->buffer().length());
+    of.close();
+    TemporaryTileFile temp_tile_file(temp_filename);
+
+    // Now read the image out of the tempfile and save the decoded
+    // pixels as the result.
+    try {
+      ImageView<PixelRGBA<float> > vw_image = temp_tile_file.read<PixelRGBA<float> >();
+      buf.result = vw_image;
+      buf.finished = true;
+    } catch (IOErr &e) {
+      vw_out(WarningMessage) << "Could not read data from temporary file: " << temp_filename << "\n";
+    }
   }
 }
 
 
 WebTileGenerator::WebTileGenerator(std::string url) : m_tile_size(256), m_url(url) {
-  std::cout << "WebTileGenerator constructor...\n";
   m_download_thread.start();
-  sleep(2);
 }
 
 boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
   
   std::ostringstream full_url;
   full_url << m_url << "/" << tile_info.level 
-           << "/" << tile_info.row 
-           << "/" << tile_info.col << ".png";
-  std::cout << "Fetching " << full_url.str() << "\n";
-  
-  std::string test = "http://farm4.static.flickr.com/3265/2770466796_f50268e1a2_s.jpg";
-  int requset_id = m_download_thread.get(test);
-  // while(!m_download_thread.result_available())
-  //   std::cout << "Waiting...\n";
+           << "/" << tile_info.col 
+           << "/" << tile_info.row << ".png?nocache=1";
+  int request_id = m_download_thread.get(full_url.str());
 
-  // std::cout << "Success!!\n";
-  // if (Request == m_request_id){
-  //   QImage image;
-  //   image.loadFromData(bytes);
-  //   std::cout << "\t [ " << image.width() << " x " << image.height() << "   " << 
-  //     (image.bytesPerLine() / image.width()) << " bytes per pixel.";
-  // }
-
-
-  ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
-  for (int j = 0; j < m_tile_size; ++j){
-    for (int i = 0; i < m_tile_size; ++i){
-      if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
-        tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
-      else 
-        tile(i,j) = PixelRGBA<uint8>(0,255,0,255);
-    }
-  }
-  boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
-  return result;
+  while(!m_download_thread.result_available(request_id));
+    
+  vw::ImageView<vw::PixelRGBA<float> > result = m_download_thread.pop_result(request_id);
+  return boost::shared_ptr<ViewImageResource>( new ViewImageResource( result ) );
 }
 
 Vector2 WebTileGenerator::minmax() { return Vector2(0.0, 1.0); }

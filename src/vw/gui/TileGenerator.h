@@ -102,12 +102,16 @@ namespace gui {
       boost::shared_ptr<QByteArray> bytes;
       boost::shared_ptr<QBuffer> buffer;
       bool finished;
+      bool failed;
+      std::string file_type;
+      vw::ImageView<vw::PixelRGBA<float> > result;
 
       RequestBuffer() {
         bytes.reset(new QByteArray());
         buffer.reset(new QBuffer(bytes.get()));
         buffer->open(QIODevice::WriteOnly);
         finished = false;
+        failed = false;
       }
     };
     std::map<int, RequestBuffer> m_requests;
@@ -115,9 +119,11 @@ namespace gui {
   protected:
     void run();
   public:
+    HttpDownloadThread();
     virtual ~HttpDownloadThread();
     int get(std::string url);
     bool result_available(int request_id);
+    vw::ImageView<vw::PixelRGBA<float> > pop_result(int request_id);
   public slots:
     void request_started(int id);
     void request_finished(int id, bool error);

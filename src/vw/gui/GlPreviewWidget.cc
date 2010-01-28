@@ -180,15 +180,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   this->setFocusPolicy(Qt::ClickFocus);
 
-  std::cout << "Creating tile generator...\n";
   m_tile_generator = TileGenerator::create(filename);
-  TileLocator loc;
-  loc.col = 0;
-  loc.row = 0;
-  loc.level = 0;
-  loc.transaction_id = 0;
-  boost::shared_ptr<ViewImageResource> test = m_tile_generator->generate_tile(loc);
-  std::cout << "Experiment Complete...\n";
   m_gl_texture_cache.reset( new GlTextureCache(m_tile_generator) );
   size_to_fit();
 }
