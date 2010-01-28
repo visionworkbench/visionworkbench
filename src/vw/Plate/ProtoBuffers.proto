@@ -62,7 +62,7 @@ message IndexHeader {
   //
   required int32 platefile_id = 1;   // a unique number that identifies this platefile
   optional int32 version = 10 [default = 1];  
-  optional int32 transaction_read_cursor = 11 [default = 0];
+  optional int32 transaction_read_cursor = 11 [default = 1];
   optional int32 transaction_write_cursor = 12 [default = 1];
 
 }

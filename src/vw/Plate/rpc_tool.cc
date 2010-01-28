@@ -36,8 +36,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
   if (output_mode == "toast") {
 
-    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
-                                                                         new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
+    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm(new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
     
     pm->insert(view.impl(), filename, georef,
                TerminalProgressCallback( "plate.tools", status_str.str()) );
@@ -65,7 +64,8 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
-    ("transaction_id,t", po::value<unsigned>(&transaction_id), "Transaction id to force as complete.")
+    ("failed", po::value<unsigned>(&transaction_id), "Mark a transaction as failed.")
+    ("complete", po::value<unsigned>(&transaction_id), "Mark a transaction as complete, and update the read cursor..")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -110,10 +110,13 @@ int main( int argc, char *argv[] ) {
     std::cout << "\nOpening plate file: " << url << "\n";
     boost::shared_ptr<PlateFile> platefile = 
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
-  
-    if (vm.count("transaction_id"))
-        platefile->transaction_failed(transaction_id);
-
+    
+    if (vm.count("failed"))
+      platefile->transaction_failed(transaction_id);
+    
+    if (vm.count("complete"))
+      platefile->transaction_complete(transaction_id,true);
+    
   }  catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
     exit(1);
