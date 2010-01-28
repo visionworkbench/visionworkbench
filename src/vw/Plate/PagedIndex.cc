@@ -27,7 +27,7 @@ vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> pa
   m_horizontal_pages = ceil(float(tiles_per_side) / page_width);
   m_vertical_pages = ceil(float(tiles_per_side) / page_height);
   int pages = m_horizontal_pages * m_vertical_pages;
-  
+
   // Create the cache handles
   m_cache_handles.resize(pages);
   m_cache_generators.resize(pages);
@@ -143,7 +143,7 @@ vw::platefile::IndexLevel::valid_tiles(BBox2i const& region,
   // Start by computing the search range in pages based on the requested region. 
   int32 min_level_col = region.min().x() / m_page_width;
   int32 min_level_row = region.min().y() / m_page_height;
-
+  
   int32 max_level_col = ceilf(float(region.max().x()) / m_page_width);
   int32 max_level_row = ceilf(float(region.max().y()) / m_page_height);
 
@@ -258,7 +258,7 @@ vw::platefile::PagedIndex::valid_tiles(int level, BBox2i const& region,
                                        int min_num_matches) const {
   
   // If the level does not exist, we return an empty list.
-  if (level < 0 && level >= m_levels.size())
+  if (level < 0 || level >= m_levels.size())
     return std::list<TileHeader>();
 
   // Otherwise, we delegate to the valid_tiles() method for that level.
