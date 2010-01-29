@@ -147,7 +147,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
     request_wrapper.set_sequence_number(request_seq);
 
     // For debugging:
-    vw_out(DebugMessage, "platefile::rpc") << "[ RPC: " << request_wrapper.method() 
+    vw_out(DebugMessage, "platefile::rpc::send") << "[ RPC: " << request_wrapper.method() 
                                            << " from " << request_wrapper.requestor() 
                                            << "  SEQ: " << request_wrapper.sequence_number() << " ]\n";
 

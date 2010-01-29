@@ -340,6 +340,35 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
                                  google::protobuf::NewCallback(&null_closure));
 }
 
+// This is the old valid_tiles RPC implementation.  It has been
+// replaced by the valid_tiles implementation in the PagedIndex class.
+// 
+// std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i const& region,
+//                                                               int begin_transaction_id, 
+//                                                               int end_transaction_id,
+//                                                               int min_num_matches) const {
+//   IndexValidTilesRequest request;
+//   request.set_platefile_id(m_platefile_id);
+//   request.set_level(level);
+//   request.set_region_col(region.min().x());
+//   request.set_region_row(region.min().y());
+//   request.set_region_width(region.width());
+//   request.set_region_height(region.height());
+//   request.set_begin_transaction_id(begin_transaction_id);
+//   request.set_end_transaction_id(end_transaction_id);
+//   request.set_min_num_matches(min_num_matches);
+
+//   IndexValidTilesReply response;
+//   m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, 
+//                               google::protobuf::NewCallback(&null_closure));
+
+//   std::list<TileHeader> results;
+//   for (int i = 0; i < response.tile_headers_size(); ++i) {
+//     results.push_back(response.tile_headers().Get(i));    
+//   }
+//   return results;
+// }
+
 vw::int32 vw::platefile::RemoteIndex::num_levels() const { 
   IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);

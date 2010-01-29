@@ -18,7 +18,54 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
   for ( std::list<BBox2i>::iterator region_iter = tile_workunits.begin(); 
         region_iter != tile_workunits.end(); ++region_iter) {
 
+    // It will save us time (and result in fewer RPC calls to
+    // valid_tiles()) if we start the search by popping up several
+    // levels in the pyramid to first confirm that there is indeed new
+    // data that needs to be snapshotted.  If there isn't any
+    // snapshotting to be done at these higher levels, then there
+    // won't be any snapshotting to do at this level, so we can bail
+    // early.
+    int search_level = level-5;
+    bool worth_continuing = true;
+    while (search_level != level && search_level >= 0) {
+
+      // Subsample this region, returning a region covering the same
+      // area at a lower level of the pyramid.  
+      BBox2i level_region = *region_iter;
+      level_region.min() /= pow(2,level-search_level);
+      level_region.max().x() = ceil(float(level_region.max().x()) / 
+                                    powf(2.0,level-search_level));
+      level_region.max().y() = ceil(float(level_region.max().y()) / 
+                                    powf(2.0,level-search_level));
+      
+      // Check to see if there are any tiles at this level.  
+      std::list<TileHeader> tile_records = m_platefile->valid_tiles(search_level, level_region,
+                                                                    start_transaction_id,
+                                                                    end_transaction_id, 2);
+
+      // If there are, then we continue the search.  If not, then we
+      // bail early on the search in this particular region.
+      if (tile_records.size() == 0) {
+        worth_continuing = false;
+        break;
+      }
+
+      // Move down the pyramid
+      search_level++;
+    }
+
+    // If our search at higher levels of the pyramid failed, then we
+    // skip this region.  This optimization prevents us from wasting
+    // time looking for valid tiles in an area of the mosaic that is
+    // devoid of any valid tiles.
+    if (!worth_continuing)
+      continue;
+
+    std::cout << "Found some tiles worth considering: " << *region_iter << ".\n";
+
+
     // Fetch the list of valid tiles in this particular workunit.  
+    std::cout << "Calling valid_tiles with region " << *region_iter << "\n";
     std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
                                                                   start_transaction_id,
                                                                   end_transaction_id, 2);
@@ -29,6 +76,8 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
 
     for ( std::list<TileHeader>::iterator header_iter = tile_records.begin(); 
           header_iter != tile_records.end(); ++header_iter) {
+
+      std::cout << "Calling multi_read.\n";
       
       std::list<ImageView<PixelT> > tiles;
       std::list<TileHeader> headers = m_platefile->multi_read(tiles, 
@@ -55,6 +104,8 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
         composite.set_draft_mode( true );
         composite.prepare();
         ImageView<PixelT> composited_tile = composite;
+        std::cout << "Calling write_update with header\n";
+
         m_platefile->write_update(composited_tile, 
                                   header_iter->col(),
                                   header_iter->row(),

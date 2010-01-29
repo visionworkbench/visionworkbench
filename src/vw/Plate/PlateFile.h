@@ -239,13 +239,13 @@ namespace platefile {
       // ahead and use that already-open file pointer.  Otherwise, we
       // open the new blob for reading.
       boost::shared_ptr<Blob> read_blob;
-      // if (m_write_blob && record.blob_id() == m_write_blob_id) {
-      //   read_blob = m_write_blob;
-      // } else {
+      if (m_write_blob && record.blob_id() == m_write_blob_id) {
+        read_blob = m_write_blob;
+      } else {
         std::ostringstream blob_filename;
         blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
         read_blob.reset(new Blob(blob_filename.str(), true));
-      // }
+      }
       TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
       
       // 3. Choose a temporary filename and call BlobIO
@@ -287,13 +287,13 @@ namespace platefile {
           
         // 2. Open the blob file and read the header
         boost::shared_ptr<Blob> read_blob;
-        // if (m_write_blob && record.blob_id() == m_write_blob_id) {
-        //   read_blob = m_write_blob;
-        // } else {
+        if (m_write_blob && record.blob_id() == m_write_blob_id) {
+          read_blob = m_write_blob;
+        } else {
           std::ostringstream blob_filename;
           blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
           read_blob.reset(new Blob(blob_filename.str(), true));
-          //        }
+        }
         TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
           
         // 3. Choose a temporary filename and call BlobIO

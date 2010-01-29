@@ -126,6 +126,12 @@ namespace platefile {
     /// Log a message to the platefile log.
     virtual void log(std::string message);
 
+    // /// Returns a list of valid tiles at this level.
+    // virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
+    //                                           int start_transaction_id, 
+    //                                           int end_transaction_id, 
+    //                                           int min_num_matches) const;
+
     // ----------------------- PROPERTIES  ----------------------
 
     // /// Returns a list of tile headers for any valid tiles that exist
