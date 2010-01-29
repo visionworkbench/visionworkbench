@@ -29,6 +29,9 @@
 #include <boost/scoped_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/function.hpp>
+#include <boost/algorithm/string/find_iterator.hpp>
+
+#include <cstring>
 
 #include <google/protobuf/service.h>
 
@@ -40,6 +43,8 @@ using namespace vw::platefile;
 VW_DEFINE_EXCEPTION(PlateException, Exception);
 VW_DEFINE_EXCEPTION(BadRequest,  PlateException);
 VW_DEFINE_EXCEPTION(ServerError, PlateException);
+
+typedef std::map<std::string, std::string> QueryMap;
 
 static void null_closure() {}
 
@@ -86,6 +91,45 @@ namespace {
   }
 }
 
+std::string url_unquote(const std::string& str) {
+  // This is sort of ugly... make sure shared_ptr deletes with free
+  boost::shared_ptr<char> bytes(::strdup(str.c_str()), free);
+  int ret = ap_unescape_url(bytes.get());
+  if (ret != OK)
+    vw_throw(BadRequest() << "Invalid query string");
+
+  std::string unquoted(bytes.get());
+  boost::replace_all(unquoted, "+", " ");
+
+  return unquoted;
+}
+
+void parse_query(std::map<std::string, std::string>& keyval, const char* query) {
+  if (!query)
+    return;
+
+  vw_out(VerboseDebugMessage, "plate.apache") << "Parsing query string: " << query << std::endl
+                                              << "Result:" << std::endl;
+
+  std::vector<std::string> items;
+  boost::split(items, query, boost::is_any_of(";&"));
+
+  BOOST_FOREACH(const std::string& item, items) {
+    if (item.empty())
+      continue;
+    size_t eq = item.find('=', 1);
+    if (eq == std::string::npos) {
+      keyval[url_unquote(item)] = "";
+      continue;
+    }
+    keyval[url_unquote(item.substr(0, eq))] = url_unquote(item.substr(eq+1));
+  }
+
+  BOOST_FOREACH( const QueryMap::value_type &i, keyval )
+    vw_out(VerboseDebugMessage, "plate.apache") << "\t" << i.first << "[" << i.second << "]" << std::endl;
+  vw_out(VerboseDebugMessage, "plate.apache") << std::endl;
+}
+
 /// Static method to access the singleton instance of the plate module object.
 PlateModule& mod_plate() {
   mod_plate_once.run( init_mod_plate );
@@ -109,15 +153,9 @@ struct raii {
   ~raii() {m_leave();}
 };
 
-// XXX: This is so wrong, and makes me feel dirty. Why doesn't apache have a arg parser?
-std::string get_nocache_value(const request_rec* r) {
-  boost::smatch match;
-  if (r->args) {
-    boost::regex nocache_regex("^(.*&)?nocache=(\\d)(&.*)?$");
-    if (boost::regex_search(std::string(r->args), match, nocache_regex))
-      return match[2];
-  }
-  return "";
+static int log_headers(void *null, const char *key, const char *value) {
+  vw_out(VerboseDebugMessage, "plate.apache") << "\t" << key << "[" << value << "]" << std::endl;
+  return 1;
 }
 
 
@@ -131,6 +169,12 @@ int handle_image(request_rec *r, const std::string& url) {
   boost::smatch match;
   if (!boost::regex_search(url, match, match_regex))
     return DECLINED;
+
+  QueryMap query;
+  parse_query(query, r->args);
+
+  vw_out(VerboseDebugMessage, "plate.apache") << "Headers: " << std::endl;
+  apr_table_do(log_headers, 0, r->headers_in, NULL);
 
   int id    = boost::lexical_cast<int>(match[1]),
       level = boost::lexical_cast<int>(match[2]),
@@ -148,7 +192,7 @@ int handle_image(request_rec *r, const std::string& url) {
 
   if (index_i == mod_plate().get_index().end()) {
     // If we get an unknown platefile, resync just to make sure
-    vw_out(DebugMessage, "plate.apache") << "Unknown platefile. Resyncing.";
+    vw_out(WarningMessage, "plate.apache") << "Platefile not in platefile cache. Resyncing." << std::endl;
     mod_plate().sync_index_cache();
 
     index_i = mod_plate().get_index().find(id);
@@ -163,6 +207,7 @@ int handle_image(request_rec *r, const std::string& url) {
   IndexRecord idx_record;
   try {
       /// XXX: This doubles the number of amqp messages
+    vw_out(DebugMessage, "plate.apache") << "Sending tile read_request" << std::endl;;
     idx_record = index.index->read_request(col,row,level,index.index->transaction_cursor());
   } catch(const TileNotFoundErr &) {
       throw;
@@ -176,15 +221,18 @@ int handle_image(request_rec *r, const std::string& url) {
   // HEAD returns the correct file type
   r->content_type = "image/png";
 
-  std::string nocache = get_nocache_value(r);
-  if (nocache.empty()) {
+
+  if (query.count("nocache") == 0) {
+    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=0" << std::endl;
     if (level <= 7)
       apr_table_set(r->headers_out, "Cache-Control", "max-age=604800");
     else
       apr_table_set(r->headers_out, "Cache-Control", "max-age=1200");
   }
-  else
+  else {
+    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=1" << std::endl;
     apr_table_set(r->headers_out, "Cache-Control", "no-cache");
+  }
 
   // This is as far as we can go without making the request heavyweight. Bail
   // out on a header request now.
@@ -196,11 +244,14 @@ int handle_image(request_rec *r, const std::string& url) {
   vw::uint64 offset, size;
 
   try {
+    vw_out(DebugMessage, "plate.apache") << "Fetching blob" << std::endl;
     // Grab a blob from the blob cache by filename
     boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
+
+    vw_out(DebugMessage, "plate.apache") << "Fetching data from blob" << std::endl;
     // And calculate the sendfile(2) parameters
     blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
-    
+
   } catch (vw::Exception &e) {
     vw_throw(ServerError() << "Could not load blob data: " << e.what());
   }
@@ -213,11 +264,17 @@ int handle_image(request_rec *r, const std::string& url) {
 
   // Use sendfile (if available) to send the proper tile data
   size_t sent;
-  if (ap_send_fd(fd, r, offset, size, &sent) != APR_SUCCESS || sent != size)
-    vw_throw(ServerError() << "Did not send tile correctly!");
+  apr_status_t ap_ret;
+
+  if ((ap_ret = ap_send_fd(fd, r, offset, size, &sent) != APR_SUCCESS)) {
+    char buf[256];
+    apr_strerror(ap_ret, buf, 256);
+    vw_throw(ServerError() << "ap_send_fd failed: " << buf);
+  }
+  else if (sent != size)
+    vw_throw(ServerError() << "ap_send_fd: short write (expected to send " << size << " bytes, but only sent " << sent);
 
   return OK;
-
 }
 
 class WTMLImageSet : public std::map<std::string, std::string> {
@@ -283,6 +340,9 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (!boost::regex_match(url, match, match_regex))
     return DECLINED;
 
+  QueryMap query;
+  parse_query(query, r->args);
+
   std::string filename = boost::lexical_cast<std::string>(match[1]);
 
   r->content_type = "application/xml";
@@ -303,8 +363,6 @@ int handle_wtml(request_rec *r, const std::string& url) {
   //r->headers_out
   //APR_DECLARE(void) apr_table_set(apr_table_t *t, const char *key, const char *val);
 
-  std::string nocache = get_nocache_value(r);
-
   out
     << "<?xml version='1.0' encoding='UTF-8'?>"              << std::endl
     << "<Folder Name='Ames Planetary Content' Group='View'>" << std::endl << std::endl;
@@ -319,9 +377,9 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
     WTMLImageSet img(prefix.str(), e.second);
-    if (!nocache.empty()) {
-      img["Url"]          += "?nocache=" + nocache;
-      img["ThumbnailUrl"] += "?nocache=" + nocache;
+    if (query.count("nocache") != 0) {
+      img["Url"]          += "?nocache=" + query["nocache"];
+      img["ThumbnailUrl"] += "?nocache=" + query["nocache"];
     }
     img.serializeToOstream(out);
   }
