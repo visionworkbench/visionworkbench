@@ -48,6 +48,19 @@ typedef std::map<std::string, std::string> QueryMap;
 
 static void null_closure() {}
 
+template <typename MapT, typename DataType>
+DataType mapget(MapT& m, const typename MapT::key_type& key, DataType def) {
+  if (m.count(key) == 0)
+    return def;
+  else {
+    try {
+      return boost::lexical_cast<DataType>(m[key]);
+    } catch (const boost::bad_lexical_cast&) {
+      vw_throw(BadRequest() << "Illegal query string value");
+    }
+  }
+}
+
 class PlateModule {
   public:
     PlateModule();
@@ -206,11 +219,20 @@ int handle_image(request_rec *r, const std::string& url) {
 
   IndexRecord idx_record;
   try {
-      /// XXX: This doubles the number of amqp messages
-    vw_out(DebugMessage, "plate.apache") << "Sending tile read_request" << std::endl;;
-    idx_record = index.index->read_request(col,row,level,index.index->transaction_cursor());
+    int transaction_id = mapget(query, "transaction_id", -1);
+    bool exact = mapget(query, "exact", false);
+
+    if (transaction_id == -1) {
+      transaction_id = index.index->transaction_cursor();
+      exact = false;
+    }
+
+    vw_out(DebugMessage, "plate.apache") << "Sending tile read_request with transaction[" << transaction_id << "] and exact[" << exact << "]" << std::endl;;
+    idx_record = index.index->read_request(col,row,level,transaction_id,exact);
   } catch(const TileNotFoundErr &) {
       throw;
+  } catch (const BadRequest &) {
+    throw;
   } catch(const vw::Exception &e) {
     vw_throw(ServerError() << "Could not read plate index: " << e.what());
   }
@@ -221,17 +243,16 @@ int handle_image(request_rec *r, const std::string& url) {
   // HEAD returns the correct file type
   r->content_type = "image/png";
 
-
-  if (query.count("nocache") == 0) {
+  if (mapget(query, "nocache", 0u) == 1) {
+    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=1" << std::endl;
+    apr_table_set(r->headers_out, "Cache-Control", "no-cache");
+  }
+  else {
     vw_out(DebugMessage, "plate.apache") << "Responding to nocache=0" << std::endl;
     if (level <= 7)
       apr_table_set(r->headers_out, "Cache-Control", "max-age=604800");
     else
       apr_table_set(r->headers_out, "Cache-Control", "max-age=1200");
-  }
-  else {
-    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=1" << std::endl;
-    apr_table_set(r->headers_out, "Cache-Control", "no-cache");
   }
 
   // This is as far as we can go without making the request heavyweight. Bail
@@ -377,7 +398,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
     WTMLImageSet img(prefix.str(), e.second);
-    if (query.count("nocache") != 0) {
+    if (mapget(query, "nocache", 0) != 0) {
       img["Url"]          += "?nocache=" + query["nocache"];
       img["ThumbnailUrl"] += "?nocache=" + query["nocache"];
     }
