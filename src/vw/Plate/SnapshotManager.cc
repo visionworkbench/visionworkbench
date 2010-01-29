@@ -10,8 +10,6 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
                                                       int end_transaction_id, 
                                                       int write_transaction_id) const {
   
-  std::cout << "\t--> Snapshotting " << tile_region << " @ level " << level << ".\n";
-
   // Subdivide the bbox into smaller workunits if necessary.
   // This helps to keep operations efficient.
   std::list<BBox2i> tile_workunits = bbox_tiles(tile_region, 1024, 1024);
@@ -60,24 +58,20 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
     // devoid of any valid tiles.
     if (!worth_continuing)
       continue;
-
-    std::cout << "Found some tiles worth considering: " << *region_iter << ".\n";
-
+    vw_out() << "\t--> Snapshotting " << tile_region << " @ level " << level << ".\n";
 
     // Fetch the list of valid tiles in this particular workunit.  
-    std::cout << "Calling valid_tiles with region " << *region_iter << "\n";
     std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
                                                                   start_transaction_id,
                                                                   end_transaction_id, 2);
 
+    // For debugging:
     //    if (tile_records.size() != 0)
-      // std::cout << "\t    Processing Workunit: " << *region_iter 
-      //           << "    Found " << tile_records.size() << " tile records.\n";    
+    // std::cout << "\t    Processing Workunit: " << *region_iter 
+    //           << "    Found " << tile_records.size() << " tile records.\n";    
 
     for ( std::list<TileHeader>::iterator header_iter = tile_records.begin(); 
           header_iter != tile_records.end(); ++header_iter) {
-
-      std::cout << "Calling multi_read.\n";
       
       std::list<ImageView<PixelT> > tiles;
       std::list<TileHeader> headers = m_platefile->multi_read(tiles, 
@@ -104,7 +98,6 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
         composite.set_draft_mode( true );
         composite.prepare();
         ImageView<PixelT> composited_tile = composite;
-        std::cout << "Calling write_update with header\n";
 
         m_platefile->write_update(composited_tile, 
                                   header_iter->col(),
