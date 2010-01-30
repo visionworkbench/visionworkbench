@@ -117,7 +117,7 @@ std::string url_unquote(const std::string& str) {
   return unquoted;
 }
 
-void parse_query(std::map<std::string, std::string>& keyval, const char* query) {
+void query_to_map(QueryMap& keyval, const char* query) {
   if (!query)
     return;
 
@@ -184,7 +184,7 @@ int handle_image(request_rec *r, const std::string& url) {
     return DECLINED;
 
   QueryMap query;
-  parse_query(query, r->args);
+  query_to_map(query, r->args);
 
   vw_out(VerboseDebugMessage, "plate.apache") << "Headers: " << std::endl;
   apr_table_do(log_headers, 0, r->headers_in, NULL);
@@ -361,9 +361,6 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (!boost::regex_match(url, match, match_regex))
     return DECLINED;
 
-  QueryMap query;
-  parse_query(query, r->args);
-
   std::string filename = boost::lexical_cast<std::string>(match[1]);
 
   r->content_type = "application/xml";
@@ -398,9 +395,9 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
     WTMLImageSet img(prefix.str(), e.second);
-    if (mapget(query, "nocache", 0) != 0) {
-      img["Url"]          += "?nocache=" + query["nocache"];
-      img["ThumbnailUrl"] += "?nocache=" + query["nocache"];
+    if (r->args) {
+      img["Url"]          += std::string("?") + r->args;
+      img["ThumbnailUrl"] += std::string("?") + r->args;
     }
     img.serializeToOstream(out);
   }
