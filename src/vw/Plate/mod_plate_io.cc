@@ -186,7 +186,7 @@ int handle_image(request_rec *r, const std::string& url) {
   QueryMap query;
   query_to_map(query, r->args);
 
-  vw_out(VerboseDebugMessage, "plate.apache") << "Headers: " << std::endl;
+  vw_out(VerboseDebugMessage, "plate.apache") << "Request Headers: " << std::endl;
   apr_table_do(log_headers, 0, r->headers_in, NULL);
 
   int id    = boost::lexical_cast<int>(match[1]),
@@ -229,7 +229,7 @@ int handle_image(request_rec *r, const std::string& url) {
       exact = false;
     }
 
-    vw_out(DebugMessage, "plate.apache") << "Sending tile read_request with transaction[" << transaction_id << "] and exact[" << exact << "]" << std::endl;;
+    vw_out(VerboseDebugMessage, "plate.apache") << "Sending tile read_request with transaction[" << transaction_id << "] and exact[" << exact << "]" << std::endl;;
     idx_record = index.index->read_request(col,row,level,transaction_id,exact);
   } catch(const TileNotFoundErr &) {
       throw;
@@ -246,11 +246,9 @@ int handle_image(request_rec *r, const std::string& url) {
   r->content_type = "image/png";
 
   if (mapget(query, "nocache", 0u) == 1) {
-    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=1" << std::endl;
     apr_table_set(r->headers_out, "Cache-Control", "no-cache");
   }
   else {
-    vw_out(DebugMessage, "plate.apache") << "Responding to nocache=0" << std::endl;
     if (level <= 7)
       apr_table_set(r->headers_out, "Cache-Control", "max-age=604800");
     else
@@ -267,11 +265,11 @@ int handle_image(request_rec *r, const std::string& url) {
   vw::uint64 offset, size;
 
   try {
-    vw_out(DebugMessage, "plate.apache") << "Fetching blob" << std::endl;
+    vw_out(VerboseDebugMessage, "plate.apache") << "Fetching blob" << std::endl;
     // Grab a blob from the blob cache by filename
     boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
 
-    vw_out(DebugMessage, "plate.apache") << "Fetching data from blob" << std::endl;
+    vw_out(VerboseDebugMessage, "plate.apache") << "Fetching data from blob" << std::endl;
     // And calculate the sendfile(2) parameters
     blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
 
@@ -296,6 +294,9 @@ int handle_image(request_rec *r, const std::string& url) {
   }
   else if (sent != size)
     vw_throw(ServerError() << "ap_send_fd: short write (expected to send " << size << " bytes, but only sent " << sent);
+
+  vw_out(VerboseDebugMessage, "plate.apache") << "Reply Headers: " << std::endl;
+  apr_table_do(log_headers, 0, r->headers_out, NULL);
 
   return OK;
 }
@@ -418,7 +419,7 @@ PlateModule::PlateModule() {
   vw::vw_settings().set_rc_filename("");
 
   LogRuleSet rules;
-  rules.add_rule(EveryMessage, "plate.apache");
+  rules.add_rule(DebugMessage, "plate.apache");
 
   // And log to stderr, which will go to the apache error log
   vw_log().set_console_stream(std::cerr, rules, false);
