@@ -222,6 +222,8 @@ int handle_image(request_rec *r, const std::string& url) {
     int transaction_id = mapget(query, "transaction_id", -1);
     bool exact = mapget(query, "exact", false);
 
+    VW_ASSERT(transaction_id >= -1, BadRequest() << "Illegal transaction_id");
+
     if (transaction_id == -1) {
       transaction_id = index.index->transaction_cursor();
       exact = false;
