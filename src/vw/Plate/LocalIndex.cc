@@ -364,7 +364,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
 
    std::vector<std::string> blob_files = this->blob_filenames();
    for (unsigned int i = 0; i < blob_files.size(); ++i) {
-     TerminalProgressCallback tpc(InfoMessage, "\t --> Rebuild from " + blob_files[i] + " : ");
+     TerminalProgressCallback tpc("plate", "\t --> Rebuild from " + blob_files[i] + " : ");
      tpc.report_progress(0);
 
      // Extract the current blob id as an integer.
