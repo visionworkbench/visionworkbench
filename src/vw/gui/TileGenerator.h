@@ -97,13 +97,15 @@ namespace gui {
     Q_OBJECT
     
     QHttp *m_http;
-    
+    int m_current_request;
+
     struct RequestBuffer {
       boost::shared_ptr<QByteArray> bytes;
       boost::shared_ptr<QBuffer> buffer;
       bool finished;
-      bool failed;
       std::string file_type;
+      int status;
+      std::string url;
       vw::ImageView<vw::PixelRGBA<float> > result;
 
       RequestBuffer() {
@@ -111,10 +113,11 @@ namespace gui {
         buffer.reset(new QBuffer(bytes.get()));
         buffer->open(QIODevice::WriteOnly);
         finished = false;
-        failed = false;
+        status = 0;
       }
     };
     std::map<int, RequestBuffer> m_requests;
+    vw::Mutex m_mutex;
     
   protected:
     void run();
@@ -126,6 +129,7 @@ namespace gui {
     vw::ImageView<vw::PixelRGBA<float> > pop_result(int request_id);
   public slots:
     void request_started(int id);
+    void response_header_received( const QHttpResponseHeader & resp );
     void request_finished(int id, bool error);
   };
 
@@ -133,13 +137,14 @@ namespace gui {
     Q_OBJECT
 
     int m_tile_size;
+    int m_levels;
     std::string m_url;
     bool m_download_complete;
     int m_request_id;
     HttpDownloadThread m_download_thread;
     
   public:
-    WebTileGenerator(std::string url);
+    WebTileGenerator(std::string url, int levels);
     virtual ~WebTileGenerator() {}
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
@@ -152,7 +157,6 @@ namespace gui {
     virtual ChannelTypeEnum channel_type() const;
     virtual Vector2i tile_size() const;
     virtual int32 num_levels() const;
-
   };
 
   // --------------------------------------------------------------------------

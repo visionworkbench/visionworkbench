@@ -94,7 +94,7 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
     // If begins with http://, then assume web tiles.
     } else if ( filename.find("http://") == 0) {
       
-      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename) );
+      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename,17));
     
     // If testpattern, then we use the testpattern tile generator
     } else if (filename == "testpattern") {
@@ -157,6 +157,7 @@ HttpDownloadThread::HttpDownloadThread() {
   m_http = new QHttp(NULL);
   connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));  
   connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));  
+  connect(m_http, SIGNAL(responseHeaderReceived(QHttpResponseHeader)),this, SLOT(response_header_received(QHttpResponseHeader)));  
 }
 
 void HttpDownloadThread::run() {
@@ -169,6 +170,7 @@ HttpDownloadThread::~HttpDownloadThread() {
 }
 
 int HttpDownloadThread::get(std::string url_string) {
+  Mutex::Lock lock(m_mutex);
   QUrl url(url_string.c_str());
 
   /// XXX: Hard coding file_type as PNG for now. FIXME!!!!
@@ -181,31 +183,58 @@ int HttpDownloadThread::get(std::string url_string) {
     // Set up request buffer
     RequestBuffer buf;
     buf.file_type = file_type;
+    buf.url = url_string;
     request_id = m_http->get (url.path(),buf.buffer.get());
-    std::cout << "Fetching (" << request_id << ") : " << url_string << "\n";
     m_requests[request_id] = buf;
+    m_current_request = request_id;
   }
   return request_id;
 }
 
 bool HttpDownloadThread::result_available(int request_id) {
+  Mutex::Lock lock(m_mutex);
   return m_requests[request_id].finished;
 }
 
 vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_id) {
-  return m_requests[request_id].result;
+  Mutex::Lock lock(m_mutex);
+  vw::ImageView<vw::PixelRGBA<float> > result = m_requests[request_id].result;
+  m_requests.erase(request_id);
+  return result;
 }
 
 void HttpDownloadThread::request_started(int request_id) {}
 
+void HttpDownloadThread::response_header_received( const QHttpResponseHeader & resp ) {
+  Mutex::Lock lock(m_mutex);
+
+  std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(m_current_request);
+  if (request_iter != m_requests.end()) {
+    RequestBuffer &buf = request_iter->second;
+    buf.status = resp.statusCode();
+  }
+}
+
 void HttpDownloadThread::request_finished(int request_id, bool error) {
+  Mutex::Lock lock(m_mutex);
   std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(request_id);
   if (request_iter != m_requests.end()) {
     RequestBuffer &buf = request_iter->second;
 
+    if (buf.status != 404 && buf.status != 200) {
+      std::cout << "WARNING: Request " << request_id << " failed with status " << buf.status 
+                << " for URL: " << buf.url << "\n";
+      ImageView<PixelRGBA<float> > vw_image(1,1);
+      vw_image(0,0) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
+      buf.result = vw_image;
+    } else if (buf.status == 404) {
+      ImageView<PixelRGBA<float> > vw_image(1,1);
+      vw_image(0,0) = PixelRGBA<float>(0.0,0.1,0.0,1.0);
+      buf.result = vw_image;
+    }
+
     // Handle the error case.
-    if (error || buf.buffer->buffer().length() == 0) {
-      buf.failed = true;
+    if (error || buf.buffer->buffer().length() == 0 || buf.status != 200) {
       buf.finished = true;
       return;
     }
@@ -234,7 +263,8 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
 }
 
 
-WebTileGenerator::WebTileGenerator(std::string url) : m_tile_size(256), m_url(url) {
+WebTileGenerator::WebTileGenerator(std::string url, int levels) : 
+  m_tile_size(256), m_levels(levels), m_url(url) {
   m_download_thread.start();
 }
 
@@ -245,9 +275,10 @@ boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator
            << "/" << tile_info.col 
            << "/" << tile_info.row << ".png?nocache=1";
   int request_id = m_download_thread.get(full_url.str());
+  std::cout << "Requesting: " << full_url.str() << "\n";
 
   while(!m_download_thread.result_available(request_id));
-    
+
   vw::ImageView<vw::PixelRGBA<float> > result = m_download_thread.pop_result(request_id);
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource( result ) );
 }
@@ -259,17 +290,15 @@ PixelRGBA<float32> WebTileGenerator::sample(int x, int y) {
   return result;
 }
 
-int WebTileGenerator::cols() const { return 2048; }
-int WebTileGenerator::rows() const { return 2048; }
+int WebTileGenerator::cols() const { return m_tile_size * pow(2,m_levels-1); }
+int WebTileGenerator::rows() const { return m_tile_size * pow(2,m_levels-1); }
 PixelFormatEnum WebTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
 ChannelTypeEnum WebTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
 Vector2i WebTileGenerator::tile_size() const { 
   return Vector2i(m_tile_size, m_tile_size); 
 }
 int32 WebTileGenerator::num_levels() const {
-  return 4; // XXX: I need to think more carefully about how many
-             // levels to return here.  For now this just means "a lot
-             // of levels."
+  return m_levels;
 }
 
 // --------------------------------------------------------------------------

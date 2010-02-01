@@ -223,7 +223,6 @@ void GlPreviewWidget::zoom(float scale) {
       m_current_viewport.height()/scale > 1.0 &&
       m_current_viewport.width()/scale < 20*m_tile_generator->cols() &&
       m_current_viewport.height()/scale < 20*m_tile_generator->rows()) {
-
     m_current_viewport = (m_current_viewport - makeVector(currentImagePos)) / scale + makeVector(currentImagePos);
     update();
   }
@@ -385,7 +384,8 @@ void GlPreviewWidget::drawImage() {
   glUseProgram(0);
   
   // Set the background color and viewport.
-  qglClearColor(QColor(0, 25, 50)); // Bluish-green background
+  //  qglClearColor(QColor(0, 25, 50)); // Bluish-green background
+  qglClearColor(QColor(0, 0, 0)); // Black background
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_viewport_width,m_viewport_height);
     
