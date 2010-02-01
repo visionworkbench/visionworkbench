@@ -228,6 +228,7 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
       buf.finished = true;
     } catch (IOErr &e) {
       vw_out(WarningMessage) << "Could not read data from temporary file: " << temp_filename << "\n";
+      buf.finished = true;
     }
   }
 }
@@ -266,7 +267,9 @@ Vector2i WebTileGenerator::tile_size() const {
   return Vector2i(m_tile_size, m_tile_size); 
 }
 int32 WebTileGenerator::num_levels() const {
-  return 4;
+  return 4; // XXX: I need to think more carefully about how many
+             // levels to return here.  For now this just means "a lot
+             // of levels."
 }
 
 // --------------------------------------------------------------------------
