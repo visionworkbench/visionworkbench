@@ -157,10 +157,11 @@ void vw::platefile::PlateFile::write_request() {
          << "  ( " << last_size << " != " << m_write_blob->size() << " )\n";
     m_index->log(ostr.str());
   }
-  
-  std::ostringstream ostr; 
-  ostr << "Opened blob " << m_write_blob_id << " ( size = " << m_write_blob->size() << " )\n";
-  m_index->log(ostr.str());
+
+  // For debugging:
+  // std::ostringstream ostr; 
+  // ostr << "Opened blob " << m_write_blob_id << " ( size = " << m_write_blob->size() << " )\n";
+  // m_index->log(ostr.str());
 }
 
 /// Writing, pt. 3: Signal the completion of the write operation.
@@ -172,9 +173,10 @@ void vw::platefile::PlateFile::write_complete() {
   // Close the blob for writing.
   m_write_blob.reset();
   
-  std::ostringstream ostr; 
-  ostr << "Closed blob " << m_write_blob_id << " ( size = " << new_blob_size << " )\n";
-  m_index->log(ostr.str());
+  // For debugging:
+  // std::ostringstream ostr; 
+  // ostr << "Closed blob " << m_write_blob_id << " ( size = " << new_blob_size << " )\n";
+  //  m_index->log(ostr.str());
   
   // Release the blob lock.
   return m_index->write_complete(m_write_blob_id, new_blob_size); 

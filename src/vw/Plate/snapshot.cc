@@ -146,7 +146,13 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
                            << "using the --transaction_id flag.";
       exit(1);
     }
-    
+
+    std::ostringstream log_description;
+    log_description << "\tMulti-part snapshot (t_id = " << snapshot_parameters.write_transaction_id 
+                    << ") -- level:" << snapshot_parameters.level
+                    << " region: " << snapshot_parameters.region << "\n";
+    platefile->log(log_description.str());
+
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
     platefile->write_request();
@@ -168,7 +174,9 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // User did not supply a t_id.  We must request and complete a
       // transaction on our own.
-      int t_id = platefile->transaction_request("Full snapshot (auto-generated t_id).", -1);
+      std::ostringstream transaction_description;
+      transaction_description << "Full snapshot (auto-generated t_id)";
+      int t_id = platefile->transaction_request(transaction_description.str(), -1);
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
@@ -186,7 +194,10 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     } else {
 
       // Use the user-supplied t_id.
-      int t_id = platefile->transaction_request("Full snapshot (user-supplied t_id).", 
+      std::ostringstream transaction_description;
+      transaction_description << "Full snapshot (auto-generated t_id = " 
+                              << snapshot_parameters.write_transaction_id << " )";
+      int t_id = platefile->transaction_request(transaction_description.str(), 
                                                 snapshot_parameters.write_transaction_id);
 
       // Grab a lock on a blob file to use for writing tiles during
@@ -277,6 +288,7 @@ int main( int argc, char *argv[] ) {
         std::cout << "You must specify a transaction-id if you use --start.\n";
         exit(1);
       }
+      
       int t = platefile->transaction_request(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
       vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";

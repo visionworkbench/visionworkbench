@@ -58,12 +58,18 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
     // devoid of any valid tiles.
     if (!worth_continuing)
       continue;
-    vw_out() << "\t--> Snapshotting " << tile_region << " @ level " << level << ".\n";
 
     // Fetch the list of valid tiles in this particular workunit.  
     std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
                                                                   start_transaction_id,
                                                                   end_transaction_id, 2);
+
+    // If there were no valid tiles at *this* level, then we can
+    // continue also.
+    if (tile_records.size() == 0) 
+      continue;
+
+    vw_out() << "\t--> Snapshotting " << tile_region << " @ level " << level << ". [ " << tile_records.size() << " snapshottable tiles. ]\n";
 
     // For debugging:
     //    if (tile_records.size() != 0)
@@ -104,8 +110,12 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
                                   header_iter->row(),
                                   header_iter->level(),
                                   write_transaction_id);
+      } else {
+        vw_out() << "WARNING: Wasting time!!!\n";
       }
     }
+
+    vw_out() << "\t    Region complete.\n";
   }
 }
 
@@ -116,6 +126,7 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction
                                                            int write_transaction_id) const {
 
   for (int level = 0; level < m_platefile->num_levels(); ++level) {    
+  //  for (int level = 0; level < 14; ++level) {    
 
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().

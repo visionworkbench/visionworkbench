@@ -206,6 +206,8 @@ namespace platefile {
 
     int num_levels() const { return m_index->num_levels(); }
 
+    void log(std::string message) { m_index->log(message); }
+
     /// Read data directly to a file on disk. You supply a base name
     /// (without the file's image extension).  The image extension
     /// will be appended automatically for you based on the filetype
