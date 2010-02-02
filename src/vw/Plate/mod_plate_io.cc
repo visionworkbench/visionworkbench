@@ -63,7 +63,7 @@ DataType mapget(MapT& m, const typename MapT::key_type& key, DataType def) {
 
 class PlateModule {
   public:
-    PlateModule();
+    PlateModule(const server_rec *s);
     ~PlateModule();
     void connect_index();
     int operator()(request_rec *r) const;
@@ -99,18 +99,23 @@ class PlateModule {
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
     bool m_connected;
+    // We don't manage the data, and I think apache might modify it behind the scenes.
+    // As such, mark it volatile.
+    volatile const plate_config *m_conf;
 };
 
 namespace {
-  vw::RunOnce mod_plate_once = VW_RUNONCE_INIT;
   boost::shared_ptr<PlateModule> mod_plate_ptr;
-  void init_mod_plate() {
-    mod_plate_ptr = boost::shared_ptr<PlateModule>(new PlateModule());
-  }
-  void kill_mod_plate() {
-    // This is safe because it's a shared pointer.
-    init_mod_plate();
-  }
+}
+
+const PlateModule& mod_plate() {
+  VW_ASSERT( mod_plate_ptr, LogicErr() << "Please initialize mod_plate_ptr first" );
+  return *mod_plate_ptr;
+}
+
+PlateModule& mod_plate_mutable() {
+  VW_ASSERT( mod_plate_ptr, LogicErr() << "Please initialize mod_plate_ptr first" );
+  return *mod_plate_ptr;
 }
 
 std::string url_unquote(const std::string& str) {
@@ -152,12 +157,6 @@ void query_to_map(QueryMap& keyval, const char* query) {
   vw_out(VerboseDebugMessage, "plate.apache") << std::endl;
 }
 
-/// Static method to access the singleton instance of the plate module object.
-PlateModule& mod_plate() {
-  mod_plate_once.run( init_mod_plate );
-  return *mod_plate_ptr;
-}
-
 class apache_output : public boost::iostreams::sink {
   public:
     apache_output(request_rec *r) : r(r) {}
@@ -193,7 +192,7 @@ int handle_image(request_rec *r, const std::string& url) {
     return DECLINED;
 
   // We didn't decline. Connect!
-  mod_plate().connect_index();
+  mod_plate_mutable().connect_index();
 
   QueryMap query;
   query_to_map(query, r->args);
@@ -376,7 +375,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (!boost::regex_match(url, match, match_regex))
     return DECLINED;
 
-  mod_plate().connect_index();
+  mod_plate_mutable().connect_index();
 
   std::string filename = boost::lexical_cast<std::string>(match[1]);
 
@@ -427,13 +426,21 @@ int handle_wtml(request_rec *r, const std::string& url) {
   return OK;
 }
 
-PlateModule::PlateModule() : m_connected(false) {
-
+PlateModule::PlateModule(const server_rec *s) : m_connected(false), m_conf(get_plate_config(s)) {
   // Disable the config file
   vw::vw_settings().set_rc_filename("");
 
   LogRuleSet rules;
-  rules.add_rule(DebugMessage, "plate.apache");
+  if (m_conf->rules->nelts == 0)
+    rules.add_rule(DebugMessage, "plate.apache");
+  else {
+    ssize_t i;
+    rule_entry *entry = reinterpret_cast<rule_entry*>(m_conf->rules->elts);
+    for (i = 0; i < m_conf->rules->nelts; ++i) {
+      rules.add_rule(entry->level, entry->name);
+      entry++;
+    }
+  }
 
   // And log to stderr, which will go to the apache error log
   vw_log().set_console_stream(std::cerr, rules, false);
@@ -449,8 +456,7 @@ void PlateModule::connect_index() {
   // Create the necessary services
   std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
 
-  // XXX: The rabbitmq host needs to be an apache configuration variable or something
-  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection("198.10.124.5"));
+  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(m_conf->rabbit_ip));
 
   m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, "index") );
 
@@ -462,6 +468,7 @@ void PlateModule::connect_index() {
   m_client->bind_service(m_index_service, queue_name);
 
   m_connected = true;
+  vw_out(DebugMessage, "plate.apache") << "child connected to rabbitmq" << std::endl;
 }
 
 PlateModule::~PlateModule() {}
@@ -525,8 +532,8 @@ void PlateModule::sync_index_cache() const {
     int32 id;
 
     try {
-        // XXX: The rabbitmq host needs to be an apache configuration variable or something
-        entry.index = Index::construct_open(std::string("pf://198.10.124.5/index/") + name);
+        std::string index_url = std::string("pf://") + m_conf->rabbit_ip + "/index/" + name;
+        entry.index = Index::construct_open(index_url);
         const IndexHeader& hdr = entry.index->index_header();
 
         entry.shortname   = name;
@@ -545,10 +552,6 @@ void PlateModule::sync_index_cache() const {
 }
 
 // --------------------- Apache C++ Entry Points ------------------------
-
-void mod_plate_destroy() {
-  kill_mod_plate();
-}
 
 extern "C" int mod_plate_handler(request_rec *r) {
   try {
@@ -583,7 +586,9 @@ extern "C" int mod_plate_status(request_rec *r, int flags) {
 
 extern "C" void mod_plate_child_init(apr_pool_t *pchild, server_rec *s) {
   try {
-    static_cast<void>(mod_plate());
+    // make sure we create the handler object, and attach the server to it
+    mod_plate_ptr.reset(new PlateModule(s));
+    mod_plate();
   } catch (const Exception& e) {
     ap_log_error(APLOG_MARK, APLOG_ALERT, 0, s, "Could not start mod_plate child! [uncaught vw::Exception]: %s", e.what());
   } catch (const std::exception& e) {

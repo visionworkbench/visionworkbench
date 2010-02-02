@@ -54,26 +54,6 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_fil
     return *name ## _ptr; \
   }
 
-#define VW_DEFINE_SINGLETON_FUNC(name, klass, func) \
-  namespace { \
-    vw::RunOnce name ## _once = VW_RUNONCE_INIT; \
-    boost::shared_ptr<klass> name ## _ptr; \
-    void init_ ## name() { \
-      name ## _ptr = func(); \
-    } \
-    void kill_ ## name() { \
-      init_ ## name(); \
-    } \
-  } \
-  const klass& name() { \
-    name ## _once.run( init_ ## name ); \
-    return *name ## _ptr; \
-  } \
-  klass& name ## _mutable() { \
-    name ## _once.run( init_ ## name ); \
-    return *name ## _ptr; \
-  }
-
 std::string queue_name() {
   return AmqpRpcClient::UniqueQueueName("index_client");
 }
