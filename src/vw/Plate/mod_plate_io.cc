@@ -339,7 +339,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["ElevationModel"]     = "False";
       (*this)["StockSet"]           = "False";
       // XXX: This is wrong for non-mars!
-      (*this)["DemUrl"]             = "http://www.worldwidetelescope.ccom/wwtweb/marsdem.aaspx?q={0},{1},{2},T";
+      (*this)["DemUrl"]             = "http://198.10.124.49/static/megt128/{0}/{1}/{2}?nocache=1";
 
       (*this)["Name"]         = layer.description;
       (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
