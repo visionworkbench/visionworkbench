@@ -264,58 +264,58 @@ namespace platefile {
       return header;
     }
 
-    /// Read one ore more images at a specified location in the
-    /// platefile by specifying a range of transaction ids of
-    /// interest.  This range is inclusive of the first entry, but not
-    /// the last entry: [ begin_transaction_id, end_transaction_id )
-    ///
-    /// This is mostly useful when compositing tiles during mipmapping.
-    ///
-    template <class ViewT>
-    std::list<TileHeader> multi_read(std::list<ViewT> &tiles, int col, int row, int level, 
-                                     int begin_transaction_id, int end_transaction_id) {
+    // /// Read one ore more images at a specified location in the
+    // /// platefile by specifying a range of transaction ids of
+    // /// interest.  This range is inclusive of the first entry, but not
+    // /// the last entry: [ begin_transaction_id, end_transaction_id )
+    // ///
+    // /// This is mostly useful when compositing tiles during mipmapping.
+    // ///
+    // template <class ViewT>
+    // std::list<TileHeader> multi_read(std::list<ViewT> &tiles, int col, int row, int level, 
+    //                                  int begin_transaction_id, int end_transaction_id) {
 
-      std::list<TileHeader> results;
+    //   std::list<TileHeader> results;
       
-      // 1. Call index read_request(col,row,level).  Returns IndexRecord.
-      std::list<std::pair<int32, IndexRecord> > records = m_index->multi_read_request(col, row, 
-                                                                                      level, 
-                                                                                      begin_transaction_id, 
-                                                                                      end_transaction_id);
+    //   // 1. Call index read_request(col,row,level).  Returns IndexRecord.
+    //   std::list<std::pair<int32, IndexRecord> > records = m_index->multi_read_request(col, row, 
+    //                                                                                   level, 
+    //                                                                                   begin_transaction_id, 
+    //                                                                                   end_transaction_id);
 
-      std::list<std::pair<int32, IndexRecord> >::iterator iter = records.begin();
-      while (iter != records.end()) {
-        IndexRecord &record = iter->second;
+    //   std::list<std::pair<int32, IndexRecord> >::iterator iter = records.begin();
+    //   while (iter != records.end()) {
+    //     IndexRecord &record = iter->second;
           
-        // 2. Open the blob file and read the header
-        boost::shared_ptr<Blob> read_blob;
-        if (m_write_blob && record.blob_id() == m_write_blob_id) {
-          read_blob = m_write_blob;
-        } else {
-          std::ostringstream blob_filename;
-          blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
-          read_blob.reset(new Blob(blob_filename.str(), true));
-        }
-        TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
+    //     // 2. Open the blob file and read the header
+    //     boost::shared_ptr<Blob> read_blob;
+    //     if (m_write_blob && record.blob_id() == m_write_blob_id) {
+    //       read_blob = m_write_blob;
+    //     } else {
+    //       std::ostringstream blob_filename;
+    //       blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+    //       read_blob.reset(new Blob(blob_filename.str(), true));
+    //     }
+    //     TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
           
-        // 3. Choose a temporary filename and call BlobIO
-        // read_as_file(filename, offset, size) [ offset, size from
-        // IndexRecord ]
-        std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
-        read_blob->read_to_file(tempfile, record.blob_offset());
-        TemporaryTileFile tile_file(tempfile);
+    //     // 3. Choose a temporary filename and call BlobIO
+    //     // read_as_file(filename, offset, size) [ offset, size from
+    //     // IndexRecord ]
+    //     std::string tempfile = TemporaryTileFile::unique_tempfile_name(header.filetype());
+    //     read_blob->read_to_file(tempfile, record.blob_offset());
+    //     TemporaryTileFile tile_file(tempfile);
         
-        // 4. Read data from temporary file.
-        ViewT tile = tile_file.read<typename ViewT::pixel_type>();
-        tiles.push_back(tile);
+    //     // 4. Read data from temporary file.
+    //     ViewT tile = tile_file.read<typename ViewT::pixel_type>();
+    //     tiles.push_back(tile);
         
-        // 5. Access the tile header and return it.
-        results.push_back( header );
+    //     // 5. Access the tile header and return it.
+    //     results.push_back( header );
         
-        ++iter;
-      }
-      return results;
-    }
+    //     ++iter;
+    //   }
+    //   return results;
+    // }
 
     
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -408,15 +408,30 @@ namespace platefile {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
-    std::list<TileHeader> valid_tiles(int level, vw::BBox2i const& region,
-                                      int start_transaction_id, 
-                                      int end_transaction_id, 
-                                      int min_num_matches) const {
-      return m_index->valid_tiles(level, region, 
+    std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
+                                           int start_transaction_id, 
+                                           int end_transaction_id, 
+                                           int min_num_matches, 
+                                           bool fetch_one_additional_entry = false) const {
+      return m_index->search_by_region(level, region, 
                                   start_transaction_id, end_transaction_id,
-                                  min_num_matches);
+                                  min_num_matches, fetch_one_additional_entry);
     }
 
+    /// Read one ore more images at a specified location in the
+    /// platefile by specifying a range of transaction ids of
+    /// interest.  This range is inclusive of the first entry, but not
+    /// the last entry: [ begin_transaction_id, end_transaction_id )
+    ///
+    /// This is mostly useful when compositing tiles during mipmapping.
+    ///
+    std::list<TileHeader> search_by_location(int col, int row, int level, 
+                                             int begin_transaction_id, int end_transaction_id,
+                                             bool fetch_one_additional_entry = false) {
+      return m_index->search_by_location(col, row, level, 
+                                         begin_transaction_id, end_transaction_id,
+                                         fetch_one_additional_entry);
+    }
 
   };
 

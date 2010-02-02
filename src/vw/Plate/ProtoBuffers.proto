@@ -128,14 +128,14 @@ message IndexPageRequest {
   required int32 level = 5;
 }
 
-message IndexMultiReadRequest {
-  required int32 platefile_id = 1;
-  required int32 col = 3;
-  required int32 row = 4;
-  required int32 level = 5;
-  required int32 begin_transaction_id = 6;
-  required int32 end_transaction_id = 7;
-}
+// message IndexMultiReadRequest {
+//   required int32 platefile_id = 1;
+//   required int32 col = 3;
+//   required int32 row = 4;
+//   required int32 level = 5;
+//   required int32 begin_transaction_id = 6;
+//   required int32 end_transaction_id = 7;
+// }
 
 message IndexWriteRequest {
   required int32 platefile_id = 1;
@@ -178,17 +178,17 @@ message IndexTransactionCursorRequest {
   required int32 platefile_id = 1;
 }
 
-message IndexValidTilesRequest {
-  required int32 platefile_id = 1;
-  required int32 level = 2;
-  required int32 region_col = 3;
-  required int32 region_row = 4;
-  required int32 region_width = 5;
-  required int32 region_height = 6;
-  required int32 begin_transaction_id = 7;
-  required int32 end_transaction_id = 8;
-  required int32 min_num_matches = 9;
-}
+// message IndexValidTilesRequest {
+//   required int32 platefile_id = 1;
+//   required int32 level = 2;
+//   required int32 region_col = 3;
+//   required int32 region_row = 4;
+//   required int32 region_width = 5;
+//   required int32 region_height = 6;
+//   required int32 begin_transaction_id = 7;
+//   required int32 end_transaction_id = 8;
+//   required int32 min_num_matches = 9;
+// }
 
 message IndexNumLevelsRequest {
   required int32 platefile_id = 1;
@@ -231,11 +231,6 @@ message IndexReadReply {
   required IndexRecord index_record = 1;
 }
 
-message IndexMultiReadReply {
-  repeated int32 transaction_ids = 1;
-  repeated IndexRecord index_records = 2;
-}
-
 message IndexSuccess {
   optional string message = 1;
 }
@@ -251,10 +246,6 @@ message IndexTransactionReply {
 
 message IndexTransactionCursorReply {
   required int32 transaction_id = 1;
-}
-
-message IndexValidTilesReply {
-  repeated TileHeader tile_headers = 1;
 }
 
 message IndexNumLevelsReply {
@@ -302,7 +293,6 @@ service IndexService {
   // Platefile I/O
   rpc PageRequest (IndexPageRequest) returns (IndexPageReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
-  rpc MultiReadRequest (IndexMultiReadRequest) returns (IndexMultiReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
   rpc WriteUpdate (IndexWriteUpdate) returns (RpcNullMessage);
   rpc MultiWriteUpdate (IndexMultiWriteUpdate) returns (RpcNullMessage);
@@ -316,7 +306,6 @@ service IndexService {
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
 
   // Misc.
-  rpc ValidTiles (IndexValidTilesRequest) returns (IndexValidTilesReply);
   rpc NumLevelsRequest (IndexNumLevelsRequest) returns (IndexNumLevelsReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
   rpc TestRequest (IndexTestRequest) returns (IndexTestReply);

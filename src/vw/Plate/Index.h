@@ -73,17 +73,6 @@ namespace platefile {
     /// most recent tile, regardless of its transaction id.
     virtual IndexRecord read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) = 0;
 
-    /// Return multiple index entries that match the specified
-    /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
-    ///
-    /// Results are return as a std::pair<int32, IndexRecord>.  The
-    /// first value in the pair is the transaction id for that
-    /// IndexRecord.
-    virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
-                                                                         int begin_transaction_id, 
-                                                                         int end_transaction_id) = 0;
-  
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.
     virtual int write_request(uint64 &size) = 0;
@@ -104,10 +93,19 @@ namespace platefile {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
-    virtual std::list<TileHeader> valid_tiles(int level, vw::BBox2i const& region,
-                                              int start_transaction_id, 
-                                              int end_transaction_id, 
-                                              int min_num_matches) const = 0;
+    virtual std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
+                                                   int start_transaction_id, 
+                                                   int end_transaction_id, 
+                                                   int min_num_matches,
+                                                   bool fetch_one_additional_entry = false) const = 0;
+
+    /// Return multiple tile headers that match the specified
+    /// transaction id range.  This range is inclusive of the first
+    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
+    virtual std::list<TileHeader> search_by_location(int col, int row, int level, 
+                                                     int start_transaction_id, 
+                                                     int end_transaction_id,
+                                                     bool fetch_one_additional_entry = false) const = 0;
 
     virtual IndexHeader index_header() const = 0;
 

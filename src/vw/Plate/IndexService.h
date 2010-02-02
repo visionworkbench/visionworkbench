@@ -75,11 +75,6 @@ namespace platefile {
                              ::vw::platefile::IndexReadReply* response,
                              ::google::protobuf::Closure* done);      
 
-    virtual void MultiReadRequest(::google::protobuf::RpcController* controller,
-                                  const ::vw::platefile::IndexMultiReadRequest* request,
-                                  ::vw::platefile::IndexMultiReadReply* response,
-                                  ::google::protobuf::Closure* done);      
-
     virtual void WriteRequest(::google::protobuf::RpcController* controller,
                               const ::vw::platefile::IndexWriteRequest* request,
                               ::vw::platefile::IndexWriteReply* response,
@@ -121,11 +116,6 @@ namespace platefile {
                                    ::vw::platefile::IndexTransactionCursorReply* response,
                                    ::google::protobuf::Closure* done);      
 
-    virtual void ValidTiles(::google::protobuf::RpcController* controller,
-                            const ::vw::platefile::IndexValidTilesRequest* request,
-                            ::vw::platefile::IndexValidTilesReply* response,
-                            ::google::protobuf::Closure* done);      
-    
     virtual void NumLevelsRequest(::google::protobuf::RpcController* controller,
                                   const ::vw::platefile::IndexNumLevelsRequest* request,
                                   ::vw::platefile::IndexNumLevelsReply* response,

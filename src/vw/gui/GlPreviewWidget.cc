@@ -545,13 +545,24 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     glReadPixels(lastPos.x(),m_viewport_height-lastPos.y(),
                  1,1,GL_RGBA,GL_FLOAT,&raw_pixels);
     PixelRGBA<float32> pix_value(raw_pixels[0], raw_pixels[1], raw_pixels[2], raw_pixels[3]);
+
+    
     
     const char* pixel_name = vw::pixel_format_name(m_tile_generator->pixel_format());
     const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
     int num_channels = vw::num_channels(m_tile_generator->pixel_format());
 
+    // Compute the tile location
+    int tile_x = currentImagePos.x() / 
+      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) / 
+      m_tile_generator->tile_size()[0];
+    int tile_y = currentImagePos.y() / 
+      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
+      m_tile_generator->tile_size()[1];
+
     std::ostringstream pix_value_ostr;
-    pix_value_ostr << "Pos: ( " << currentImagePos.x() << " " << currentImagePos.y() << " ) --> Val: [ ";
+    pix_value_ostr << "Pos: ( " << currentImagePos.x() << " " << currentImagePos.y() << " )"
+                   << "[ " << tile_x << " " << tile_y << " ] --> Val: [ ";
 
     // The following code is very messy and should be replaced and/or
     // simplified once we have better control over whether automatic
@@ -637,6 +648,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       else
         pix_value_ostr << (pix_value[i] * scale_factor) << " ";
     }
+
 
     // We don't print out the channel value for the alpha channel for
     // those pixel types that have alpha.  This is messy too, and

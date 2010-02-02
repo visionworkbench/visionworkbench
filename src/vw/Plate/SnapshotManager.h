@@ -25,7 +25,7 @@ namespace platefile {
 
   public:
 
-    SnapshotManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
+    SnapshotManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {} 
 
     // ---------------------------- SNAPSHOTTING --------------------------------
 

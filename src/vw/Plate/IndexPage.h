@@ -98,10 +98,25 @@ namespace platefile {
     /// Returns a list of valid tiles in this IndexPage.  
     ///
     /// Note: this function is mostly used when creating snapshots.
-    std::list<TileHeader> valid_tiles(vw::BBox2i const& region, 
-                                      int start_transaction_id, 
-                                      int end_transaction_id, 
-                                      int min_num_matches) const;
+    std::list<TileHeader> search_by_region(vw::BBox2i const& region, 
+                                           int start_transaction_id, 
+                                           int end_transaction_id, 
+                                           int min_num_matches,
+                                           bool fetch_one_additional_entry) const;
+
+    /// Return multiple tile headers that match the specified
+    /// transaction id range.  This range is inclusive of the first
+    /// entry AND the last entry: [ begin_transaction_id, end_transaction_id ]
+    ///
+    /// Results are return as a std::pair<int32, IndexRecord>.  The
+    /// first value in the pair is the transaction id for that
+    /// IndexRecord.
+    ///
+    /// Note: this function is mostly used when creating snapshots.
+    std::list<TileHeader> search_by_location(int col, int row, 
+                                             int start_transaction_id, int end_transaction_id,
+                                             bool fetch_one_additional_entry) const;
+    
   };
 
   // ----------------------------------------------------------------------

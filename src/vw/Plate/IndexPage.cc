@@ -128,10 +128,10 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
     // We need to keep this list sorted in decreasing order of
     // transaction ID, do a simple insertion sort here.
     multi_value_type::iterator it = entries->begin();
-    while (it != entries->end() && (*it).first >= header.transaction_id() ) {
+    while (it != entries->end() && (*it).first >= int64(header.transaction_id()) ) {
 
       // Handle the case where we replace an entry
-      if ( (*it).first == header.transaction_id() ) {
+      if ( (*it).first == int64(header.transaction_id()) ) {
         (*it).second = record;
         return;
       }
@@ -214,41 +214,6 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
   return IndexRecord(); // never reached
 }
 
-vw::platefile::IndexPage::multi_value_type 
-vw::platefile::IndexPage::multi_get(int col, int row, 
-                                    int start_transaction_id, 
-                                    int end_transaction_id) const {
-
-  int32 page_col = col % m_page_width;
-  int32 page_row = row % m_page_height;
-
-  // Basic bounds checking
-  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height, 
-            TileNotFoundErr() << "IndexPage::multi_get() failed.  Invalid index [" 
-            << page_col << " " << page_row << "]");
-
-  // Check first to make sure that there are actually tiles at this location.
-  if (!m_sparse_table.test(page_row*m_page_width + page_col)) 
-    vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
-    
-  // If there are, then we apply the transaction_id filters to select the requested ones.
-  multi_value_type results;
-  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
-  multi_value_type::const_iterator it = entries.begin();
-  while (it != entries.end() && it->first >= start_transaction_id) {
-    //    std::cout << "Comparing: " << (it->first) << " and " << start_transaction_id << " <-> " << end_transaction_id << "\n";
-    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
-      results.push_back(*it);
-    }
-    ++it;
-  }
-  
-  if (results.empty()) 
-    vw_throw(TileNotFoundErr() << entries.size() << " tiles exist at this location, "
-             << "but none match the transaction_id range you specified.\n");
-
-  return results;
-}
 
 void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::TileHeader> &results, 
                                                     multi_value_type const& candidates,
@@ -257,11 +222,13 @@ void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::Til
 
   // Check to see if the tile is in the specified region.
   Vector2i loc( m_base_col + col, m_base_row + row);
-  if ( region.contains( loc ) && candidates.size() >= min_num_matches ) {
+  if ( region.contains( loc ) && int(candidates.size()) >= min_num_matches ) {
     TileHeader hdr;
     hdr.set_col( m_base_col + col );
     hdr.set_row( m_base_row + row );
     hdr.set_level(m_level);
+
+    // Return the transaction ID of the first result in the list.
     hdr.set_transaction_id(candidates.begin()->first);
     results.push_back(hdr);
   }
@@ -271,12 +238,13 @@ void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::Til
 /// of TileHeaders with col/row/level and transaction_id of the most
 /// recent tile at each valid location.  Note: there may be other
 /// tiles in the transaction range at this col/row/level, but
-/// valid_tiles() only returns the first one.
+/// search_by_region() only returns the first one.
 std::list<vw::platefile::TileHeader> 
-vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
-                                      int start_transaction_id,
-                                      int end_transaction_id,
-                                      int min_num_matches) const {
+vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
+                                           int start_transaction_id,
+                                           int end_transaction_id,
+                                           int min_num_matches,
+                                           bool fetch_one_additional_entry) const {
   std::list<TileHeader> results;
 
   for (int row = 0; row < m_page_height; ++row) {
@@ -297,6 +265,11 @@ vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
 
         } else {
 
+          // std::ostringstream ostr;
+          // ostr << "Accumulating entries for tile ["
+          //      << (m_base_col + col) << " " << (m_base_row + row) <<  " @ " 
+          //      << m_level << "] with " << entries.size() << " entries -- ";
+
           // Search through the entries in the list, looking entries
           // that match the requested transaction_id range.  Note: this
           // search is O(n), so it can be slow if there are a lot of
@@ -307,10 +280,24 @@ vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
           // added tiles, which are sorted to the beginning.
           while (it != entries.end() && it->first >= start_transaction_id) {
             if ( it->first >= start_transaction_id && it->first <= end_transaction_id ) {
+              //              ostr << it->first << " ";
               candidates.push_back(*it);
             }
             ++it;
           }
+
+          // For snapshotting, we need to fetch one additional entry
+          // outside of the specified range.  This next tile
+          // represents the "top" tile in the mosaic for entries that
+          // may not have been part of the last snapshot.  
+          if (fetch_one_additional_entry && it != entries.end()) {
+            //ostr << it->first << " ";
+            candidates.push_back(*it);
+          }
+          
+          // For debugging
+          // if (candidates.size() != 0)// && m_level == 10)
+          //   std::cout << ostr.str() << "   ( " << candidates.size() << " )\n";
         }
         
         // Do the region check.
@@ -322,3 +309,52 @@ vw::platefile::IndexPage::valid_tiles(vw::BBox2i const& region,
   return results;
 }
 
+std::list<vw::platefile::TileHeader> 
+vw::platefile::IndexPage::search_by_location(int col, int row, 
+                                             int start_transaction_id, 
+                                             int end_transaction_id, 
+                                             bool fetch_one_additional_entry) const {
+
+  int32 page_col = col % m_page_width;
+  int32 page_row = row % m_page_height;
+
+  // Basic bounds checking
+  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height, 
+            TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index [" 
+            << page_col << " " << page_row << "]");
+
+  // Check first to make sure that there are actually tiles at this location.
+  if (!m_sparse_table.test(page_row*m_page_width + page_col)) 
+    vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
+    
+  // If there are, then we apply the transaction_id filters to select the requested ones.
+  std::list<vw::platefile::TileHeader> results;
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
+  multi_value_type::const_iterator it = entries.begin();
+  while (it != entries.end() && it->first >= start_transaction_id) {
+    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
+      TileHeader hdr;
+      hdr.set_col( m_base_col + page_col );
+      hdr.set_row( m_base_row + page_row );
+      hdr.set_level(m_level);
+      hdr.set_transaction_id(it->first);
+      results.push_back(hdr);
+    }
+    ++it;
+  }
+  
+  // For snapshotting, we need to fetch one additional entry
+  // outside of the specified range.  This next tile
+  // represents the "top" tile in the mosaic for entries that
+  // may not have been part of the last snapshot.  
+  if (fetch_one_additional_entry && it != entries.end()) {
+    TileHeader hdr;
+    hdr.set_col( m_base_col + page_col );
+    hdr.set_row( m_base_row + page_row );
+    hdr.set_level(m_level);
+    hdr.set_transaction_id(it->first);
+    results.push_back(hdr);
+  }
+  
+  return results;
+}

@@ -50,19 +50,20 @@ namespace platefile {
     /// Fetch the value of an index node at this level.
     IndexRecord get(int32 col, int32 row, int32 transaction_id, bool exact_match = false) const;
 
-    /// Fetch the value of an index node at this level.
-    multi_value_type multi_get(int32 col, int32 row, 
-                               int32 begin_transaction_id, 
-                               int32 end_transaction_id) const; 
-
     /// Set the value of an index node at this level.
     void set(TileHeader const& hdr, IndexRecord const& rec);
 
     /// Returns a list of valid tiles at this level.
-    std::list<TileHeader> valid_tiles(BBox2i const& region,
-                                      int start_transaction_id, 
-                                      int end_transaction_id, 
-                                      int min_num_matches) const;
+    std::list<TileHeader> search_by_region(BBox2i const& region,
+                                           int start_transaction_id, 
+                                           int end_transaction_id, 
+                                           int min_num_matches,
+                                           bool fetch_one_additional_entry) const;
+
+    /// Returns a list of valid tiles at this level and specified location
+    std::list<TileHeader> search_by_location(int col, int row, 
+                                             int start_transaction_id, int end_transaction_id,
+                                             bool fetch_one_additional_entry = false) const;
   };
 
   // --------------------------------------------------------------------
@@ -121,17 +122,6 @@ namespace platefile {
     virtual IndexRecord read_request(int col, int row, int level, 
                                      int transaction_id, bool exact_transaction_match = false);
 
-    /// Return multiple index entries that match the specified
-    /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
-    ///
-    /// Results are return as a std::pair<int32, IndexRecord>.  The
-    /// first value in the pair is the transaction id for that
-    /// IndexRecord.
-    virtual std::list<std::pair<int32, IndexRecord> > multi_read_request(int col, int row, int level, 
-                                                                         int begin_transaction_id, 
-                                                                         int end_transaction_id);
-
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
     virtual int write_request(uint64 &size) = 0;
@@ -151,10 +141,19 @@ namespace platefile {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
-    virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-                                              int start_transaction_id,
-                                              int end_transaction_id,
-                                              int min_num_matches) const;
+    virtual std::list<TileHeader> search_by_region(int level, BBox2i const& region,
+                                                   int start_transaction_id,
+                                                   int end_transaction_id,
+                                                   int min_num_matches,
+                                                   bool fetch_one_additional_entry) const;
+
+    /// Returns a list of tile headers for a given tile location in
+    /// the mosaic, subject to the specified transaction_id range.
+    virtual std::list<TileHeader> search_by_location(int col, int row, int level, 
+                                                     int start_transaction_id, 
+                                                     int end_transaction_id,
+                                                     bool fetch_one_additional_entry) const;
+
   };
 
 }} // namespace vw::platefile

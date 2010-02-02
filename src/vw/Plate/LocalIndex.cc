@@ -410,7 +410,7 @@ void vw::platefile::LocalIndex::write_update(TileHeader const& header, IndexReco
 
   // If adding the record resulted in more levels, we save that
   // information to the index header.
-  if (m_levels.size() != starting_size) {
+  if (int(m_levels.size()) != starting_size) {
     m_header.set_num_levels(m_levels.size());
     this->save_index_file();
   }

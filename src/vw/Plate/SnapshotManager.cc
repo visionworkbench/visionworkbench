@@ -37,9 +37,11 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
                                     powf(2.0,level-search_level));
       
       // Check to see if there are any tiles at this level.  
-      std::list<TileHeader> tile_records = m_platefile->valid_tiles(search_level, level_region,
+      std::list<TileHeader> tile_records = m_platefile->search_by_region(search_level, 
+                                                                    level_region,
                                                                     start_transaction_id,
-                                                                    end_transaction_id, 2);
+                                                                    end_transaction_id, 2,
+                                                                    true); // fetch_one_additional_entry
 
       // If there are, then we continue the search.  If not, then we
       // bail early on the search in this particular region.
@@ -60,61 +62,115 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
       continue;
 
     // Fetch the list of valid tiles in this particular workunit.  
-    std::list<TileHeader> tile_records = m_platefile->valid_tiles(level, *region_iter,
-                                                                  start_transaction_id,
-                                                                  end_transaction_id, 2);
+    std::list<TileHeader> tiles_in_region = m_platefile->search_by_region(level, *region_iter,
+                                                                          start_transaction_id,
+                                                                          end_transaction_id, 2,
+                                                                          true); // fetch_one_additional_entry
 
     // If there were no valid tiles at *this* level, then we can
     // continue also.
-    if (tile_records.size() == 0) 
+    if (tiles_in_region.size() == 0) 
       continue;
 
-    vw_out() << "\t--> Snapshotting " << tile_region << " @ level " << level << ". [ " << tile_records.size() << " snapshottable tiles. ]\n";
+    vw_out() << "\t--> Snapshotting " << *region_iter << " @ level " << level 
+             << ". [ " << tiles_in_region.size() << " snapshottable tiles. ]\n";
 
     // For debugging:
-    //    if (tile_records.size() != 0)
+    //    if (tiles_in_region.size() != 0)
     // std::cout << "\t    Processing Workunit: " << *region_iter 
-    //           << "    Found " << tile_records.size() << " tile records.\n";    
+    //           << "    Found " << tiles_in_region.size() << " tile records.\n";    
 
-    for ( std::list<TileHeader>::iterator header_iter = tile_records.begin(); 
-          header_iter != tile_records.end(); ++header_iter) {
+    for ( std::list<TileHeader>::iterator header_iter = tiles_in_region.begin(); 
+          header_iter != tiles_in_region.end(); ++header_iter) {
+
+      // For each location with valid tiles, we query the index for
+      // the complete list of tiles that match our transaction range
+      // query.
+      std::list<TileHeader> tiles_at_location = m_platefile->search_by_location(header_iter->col(),
+                                                                   header_iter->row(),
+                                                                   header_iter->level(),
+                                                                   start_transaction_id,
+                                                                   end_transaction_id, 
+                                                                   true); // fetch_one_additional_entry
+
+
+      // Create a tile into which we will accumulate composited data.
+      ImageView<PixelT> composite_tile(m_platefile->default_tile_size(),
+                                       m_platefile->default_tile_size());
+
+      // Check to see if the second entry is the start_transaction_id.
+      // If this is the case, then we can safely skip the first tile
+      // since it will have already been incorporated into the
+      // previous snapshot.
+      bool ignore_additional_entry = false;
+      if (tiles_at_location.size() >= 2) {
+        std::list<TileHeader>::reverse_iterator lowest_tid_iter = tiles_at_location.rbegin();
+        std::list<TileHeader>::reverse_iterator second_tid_iter = lowest_tid_iter;
+        ++second_tid_iter;
+        if (second_tid_iter->transaction_id() == start_transaction_id) {
+          ignore_additional_entry = true;
+        } 
+      }
+
+      // Iterate over the tiles at this location.  Start at the top.  
+      int num_composited = 0;
+      for ( std::list<TileHeader>::iterator location_iter = tiles_at_location.begin(); 
+            location_iter != tiles_at_location.end(); ++location_iter) {
+
+        // Check the transaction_id and the ignore_additional_entry
+        // flag to make sure we don't duplicate any effort from the last snapshot.
+        if (ignore_additional_entry && location_iter->transaction_id() < start_transaction_id) 
+          continue;
+
+        // Read the tile from the platefile.
+        ImageView<PixelT> new_tile;
+        m_platefile->read(new_tile, 
+                          header_iter->col(), header_iter->row(), 
+                          header_iter->level(), location_iter->transaction_id(),
+                          true); // exact_transaction_match
       
-      std::list<ImageView<PixelT> > tiles;
-      std::list<TileHeader> headers = m_platefile->multi_read(tiles, 
-                                                              header_iter->col(),
-                                                              header_iter->row(),
-                                                              header_iter->level(),
-                                                              start_transaction_id,
-                                                              end_transaction_id);
+        // If this is the first tile in the location, and it is opaque
+        // (which is a very common case), then we don't need to save
+        // it as part of the snapshot since its already on top.  This
+        // optimization saves us both space and time!
+        if ( is_opaque(new_tile) && location_iter == tiles_at_location.begin()) 
+          break;
 
-      // If there is only one tile at this location, then there is no
-      // need to replace it with a new version in the snapshot.  We
-      // only create a new version if there are 2 or more tiles that
-      // need to be composited together.
-      if (tiles.size() > 1) {
+        // if (debug_me)
+        //   std::cout << "\t--> Adding " << location_iter->col() << " " << location_iter->row() << "   --   " << location_iter->transaction_id() << "\n";
+
+        // Add the new tile UNDERNEATH the tiles we have already composited.
         vw::mosaic::ImageComposite<PixelT> composite;
-
-        // The list of tiles comes sorted from newest to oldest, but
-        // we actually want to composite the images in the opposite
-        // order.  We use reverse iterators here instead.
-        for (typename std::list<ImageView<PixelT> >::reverse_iterator tile_iter = tiles.rbegin();
-             tile_iter != tiles.rend();  ++tile_iter) {
-          composite.insert(*tile_iter, 0, 0);
-        }
+        composite.insert(new_tile, 0, 0);
+        composite.insert(composite_tile, 0, 0);
         composite.set_draft_mode( true );
         composite.prepare();
-        ImageView<PixelT> composited_tile = composite;
 
-        m_platefile->write_update(composited_tile, 
+        // Overwrite the composite_tile
+        composite_tile = composite;
+        ++num_composited;
+
+        // Check to see if the composite tile is opaque.  If so, then
+        // there's no point in compositing any more tiles because they
+        // will end up hidden anyway.
+        if ( is_opaque(composite_tile) )
+          break;
+      }
+        
+      if (num_composited > 1) {
+        // -- debug
+        // std::cout << "Compositing " << header_iter->col() << " " 
+        //           << header_iter->row() << " @ " << header_iter->level() << "  [ "
+        //           << tiles_at_location.size() << "]\n";
+        //---
+
+        m_platefile->write_update(composite_tile, 
                                   header_iter->col(),
                                   header_iter->row(),
                                   header_iter->level(),
                                   write_transaction_id);
-      } else {
-        vw_out() << "WARNING: Wasting time!!!\n";
       }
     }
-
     vw_out() << "\t    Region complete.\n";
   }
 }

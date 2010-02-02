@@ -277,9 +277,19 @@ int main( int argc, char *argv[] ) {
 
     //--------------------------- OPEN THE PLATE FILE -----------------------------
 
-    std::cout << "\nOpening plate file: " << url << "\n";
+    std::cout << "\nOpening input plate file: " << url << "\n";
     boost::shared_ptr<PlateFile> platefile = 
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
+
+    // std::cout << "\nOpening output plate file: " << output_url << "\n";
+    // boost::shared_ptr<PlateFile> output_platefile = 
+    //   boost::shared_ptr<PlateFile>( new PlateFile(output_url,
+    //                                               input_platefile->index_header().type(),
+    //                                               input_platefile->index_header().description(),
+    //                                               input_platefile->default_tile_size(),
+    //                                               input_platefile->default_file_type(),
+    //                                               input_platefile->pixel_format(),
+    //                                               input_platefile->channel_type()) );
 
     //------------------------ START/FINISH TRANSACTION ---------------------------
 

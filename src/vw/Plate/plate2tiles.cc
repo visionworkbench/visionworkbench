@@ -133,9 +133,9 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
         region_iter != tile_workunits.end(); ++region_iter) {
     
     // Fetch the list of valid tiles in this particular workunit.  
-    std::list<TileHeader> tile_records = platefile->valid_tiles(level, *region_iter,
-                                                                transaction_id,
-                                                                transaction_id, 1);
+    std::list<TileHeader> tile_records = platefile->search_by_region(level, *region_iter,
+                                                                     transaction_id,
+                                                                     transaction_id, 1);
 
     if (tile_records.size() != 0) {
       vw_out() << "\t--> Exporting " << tile_records.size() << " tiles in " << *region_iter
