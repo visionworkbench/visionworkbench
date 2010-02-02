@@ -65,6 +65,7 @@ class PlateModule {
   public:
     PlateModule();
     ~PlateModule();
+    void connect_index();
     int operator()(request_rec *r) const;
     int status(request_rec *r, int flags) const;
 
@@ -97,6 +98,7 @@ class PlateModule {
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
+    bool m_connected;
 };
 
 namespace {
@@ -189,6 +191,9 @@ int handle_image(request_rec *r, const std::string& url) {
   boost::smatch match;
   if (!boost::regex_search(url, match, match_regex))
     return DECLINED;
+
+  // We didn't decline. Connect!
+  mod_plate().connect_index();
 
   QueryMap query;
   query_to_map(query, r->args);
@@ -371,6 +376,8 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (!boost::regex_match(url, match, match_regex))
     return DECLINED;
 
+  mod_plate().connect_index();
+
   std::string filename = boost::lexical_cast<std::string>(match[1]);
 
   r->content_type = "application/xml";
@@ -420,7 +427,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
   return OK;
 }
 
-PlateModule::PlateModule() {
+PlateModule::PlateModule() : m_connected(false) {
 
   // Disable the config file
   vw::vw_settings().set_rc_filename("");
@@ -430,6 +437,14 @@ PlateModule::PlateModule() {
 
   // And log to stderr, which will go to the apache error log
   vw_log().set_console_stream(std::cerr, rules, false);
+
+  vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
+}
+
+void PlateModule::connect_index() {
+
+  if (m_connected)
+      return;
 
   // Create the necessary services
   std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
@@ -446,9 +461,7 @@ PlateModule::PlateModule() {
   m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
   m_client->bind_service(m_index_service, queue_name);
 
-  sync_index_cache();
-
-  vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
+  m_connected = true;
 }
 
 PlateModule::~PlateModule() {}
@@ -496,6 +509,9 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(int platefile_id, const std:
 }
 
 void PlateModule::sync_index_cache() const {
+
+  VW_ASSERT(m_connected, LogicErr() << "Must connect before trying to sync cache");
+
   IndexListRequest request;
   IndexListReply id_list;
 
