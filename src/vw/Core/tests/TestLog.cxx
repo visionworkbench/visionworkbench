@@ -226,7 +226,7 @@ TEST(Log, ProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  EXPECT_EQ( 80, out.size()-last_line_idx-2 );
+  EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
 }
@@ -248,7 +248,7 @@ TEST(Log, HiresProgressCallback) {
   const std::string &out = sstr.str();
   EXPECT_GT(out.size(), 0u);
   size_t last_line_idx = out.rfind("\r");
-  EXPECT_EQ( 80, out.size()-last_line_idx-2 );
+  EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
   EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
 }
@@ -268,7 +268,7 @@ TEST(Log, ProgressHide) {
   pc.report_progress(.1);
   pc.report_progress(.2);
 
-  EXPECT_EQ( sstr.str().size(), 0 );
+  EXPECT_EQ( sstr.str().size(), 0u );
 
   vw_log().console_log().rule_set().clear();
 
@@ -276,7 +276,7 @@ TEST(Log, ProgressHide) {
   pc.report_progress(.5);
   pc.report_finished();
 
-  EXPECT_GT( sstr.str().size(), 0 );
+  EXPECT_GT( sstr.str().size(), 0u );
 }
 
 TEST(Log, FlushAndNewline) {
