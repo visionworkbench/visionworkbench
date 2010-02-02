@@ -22,7 +22,7 @@ namespace platefile {
   ///
   VW_DEFINE_EXCEPTION(PlatefileErr, Exception);
 
-  /// TileNotFound exception 
+  /// TileNotFound exception
   ///
   /// This exception is thrown by the Tree and Index classes whenever
   /// a tile is requested that does not exist.  It is frequently
@@ -31,7 +31,7 @@ namespace platefile {
   ///
   VW_DEFINE_EXCEPTION(TileNotFoundErr, PlatefileErr);
 
-  /// InvalidPlatefileErr exception 
+  /// InvalidPlatefileErr exception
   ///
   /// This exception is thrown by the IndexService when there is an
   /// attempt to access or operate on a platefile that has not been
@@ -62,7 +62,7 @@ namespace platefile {
   ///
   VW_DEFINE_EXCEPTION(PlatefileCreationErr, PlatefileErr);
 
-  /// InvalidPlatefileErr exception 
+  /// InvalidPlatefileErr exception
   ///
   /// This exception is thrown when an unexpect RPC error occurs.
   ///

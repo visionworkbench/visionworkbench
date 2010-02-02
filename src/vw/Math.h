@@ -6,9 +6,9 @@
 
 
 /// \file Math.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Math.
-/// 
+///
 #ifndef __VW_MATH_H__
 #define __VW_MATH_H__
 
@@ -28,13 +28,13 @@
 #include <vw/Math/Statistics.h>
 #include <vw/Math/DisjointSet.h>
 #include <vw/Math/MinimumSpanningTree.h>
-#include <vw/Math/PoseEstimation.h>
 #include <vw/Math/RANSAC.h>
 
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Math/Geometry.h>
+#include <vw/Math/PoseEstimation.h>
 #endif
 
 #endif // __VW_MATH_H__

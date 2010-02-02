@@ -8,6 +8,8 @@
 #ifndef __VW_GUI_TEXTURE_CACHE_H__
 #define __VW_GUI_TEXTURE_CACHE_H__
 
+#include <vw/config.h>
+
 #ifdef __linux__
 // This is required to get prototypes, according to the opengl linux abi
 #define GL_GLEXT_PROTOTYPES 1

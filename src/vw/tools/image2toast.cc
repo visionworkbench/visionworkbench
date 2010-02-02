@@ -85,7 +85,7 @@ int main(int argc, char **argv) {
   if( output_file_name == "" )
     output_file_name = prefix_from_filename(image_files[0]) + ".toast";
 
-  if( tile_size <= 0 || tile_size != pow(2,int(log(tile_size)/log(2))) ) {
+  if( tile_size <= 0 || tile_size != pow(2.,floor(log((double)tile_size)/log(2.))) ) {
     std::cerr << "Error: The tile size must be a power of two!  (You specified: " << tile_size << ")" << std::endl << std::endl;
     std::cout << usage.str();
     return 1;
@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
     Vector2 p1 = georef.pixel_to_lonlat(Vector2(image.cols()/2+1,image.rows()/2));
     Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.cols()/2,image.rows()/2+1));
     double delta = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-    int level = (int)round(log(180/delta/(tile_size-1))/log(2));
+    int level = (int)round(log(180/delta/(tile_size-1))/log(2.));
     if( level > max_level ) max_level = level;
   }
 

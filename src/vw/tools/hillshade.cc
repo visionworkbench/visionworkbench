@@ -164,7 +164,7 @@ void do_hillshade(po::variables_map const& vm) {
   
   // Set the direction of the light source.
   Vector3 light_0(1,0,0);
-  Vector3 light = math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;  
+  Vector3 light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;  
 
   // Compute the surface normals
   std::cout << "Loading: " << input_file_name << ".\n";

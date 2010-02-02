@@ -78,7 +78,7 @@ float lo_value = ScalarTypeLimits<float>::highest();
 float hi_value = ScalarTypeLimits<float>::lowest();
 
 // Function pointers for computing resolution.
-std::map<std::string, int (*)(const GeoTransform&, const Vector2&)> str_to_resolution_fn_map;
+std::map<std::string, vw::int32 (*)(const GeoTransform&, const Vector2&)> str_to_resolution_fn_map;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -91,13 +91,13 @@ static std::string prefix_from_filename(std::string const& filename) {
 
 // Fill the maps for converting input strings to function pointers.
 static void fill_input_maps() {
-  str_to_resolution_fn_map[std::string("none")] = NULL;
-  str_to_resolution_fn_map[std::string("kml")] = &vw::cartography::output::kml::compute_resolution;
-  str_to_resolution_fn_map[std::string("tms")] = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("uniview")] = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("gmap")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("none")]     = NULL;
+  str_to_resolution_fn_map[std::string("kml")]      = &vw::cartography::output::kml::compute_resolution;
+  str_to_resolution_fn_map[std::string("tms")]      = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("uniview")]  = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("gmap")]     = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("celestia")] = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("gigapan")] = &vw::cartography::output::tms::compute_resolution;
+  str_to_resolution_fn_map[std::string("gigapan")]  = &vw::cartography::output::tms::compute_resolution;
   str_to_resolution_fn_map[std::string("gigapan-noproj")] = NULL;
 }
 
@@ -333,7 +333,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   if(output_metadata == "kml") {
     // Compute a tighter Google Earth coordinate system aligned bounding box.
     bbox.crop( BBox2i(0,0,xresolution,yresolution) );
-    int dim = 2 << (int)(log( (std::max)(bbox.width(),bbox.height()) )/log(2));
+    int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
     if( dim > total_resolution ) dim = total_resolution;
     total_bbox = BBox2i( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
     if( ! total_bbox.contains( bbox ) ) {

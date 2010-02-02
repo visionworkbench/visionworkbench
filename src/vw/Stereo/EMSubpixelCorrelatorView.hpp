@@ -37,7 +37,7 @@ namespace vw {
       ImageView<float> weight(kern_width, kern_height);
       for (int j = 0; j < kern_height; ++j) {
         for (int i = 0; i < kern_width; ++i ) {
-          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2) + pow(j-center_pix_y,2)) / two_sigma_sqr);
+          weight(i,j) = exp(-1 * (pow(i-center_pix_x,2.) + pow(j-center_pix_y,2.)) / two_sigma_sqr);
           sum = sum + weight(i,j);
         }
       }

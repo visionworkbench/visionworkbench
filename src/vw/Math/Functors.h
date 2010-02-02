@@ -26,6 +26,7 @@
 #include <vw/Core/TypeDeduction.h>
 #include <vw/Core/Functors.h>
 #include <vw/Core/Exception.h>
+#include <vw/config.h>
 
 // The math.h header in FreeBSD (and possibly other platforms) does not
 // include routines for manipulating long doubles.  We disable long

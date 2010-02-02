@@ -32,7 +32,7 @@ namespace hdr {
                                           // 100 and f/5.6
     std::vector<double> brightness_values(size);
     for ( unsigned i=0; i < brightness_values.size(); ++i ) {
-      brightness_values[i] = base_brightness*pow(exposure_ratio, i);
+      brightness_values[i] = base_brightness*pow(exposure_ratio, (double)i);
     }
     return brightness_values;
   }
