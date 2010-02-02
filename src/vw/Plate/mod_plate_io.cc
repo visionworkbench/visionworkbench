@@ -76,17 +76,24 @@ class PlateModule {
       int read_cursor;
     };
 
+    struct BlobCacheEntry {
+      boost::shared_ptr<Blob> blob;
+      int platefile_id;
+      BlobCacheEntry(boost::shared_ptr<Blob> b, int id) :
+        blob(b), platefile_id(id) {}
+    };
+
     typedef std::map<int32, IndexCacheEntry> IndexCache;
 
     const IndexCache& get_index() const { return index_cache; }
-    const boost::shared_ptr<Blob> get_blob(const std::string& plate_filename, uint32 blob_id) const;
+    const boost::shared_ptr<Blob> get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const;
     void sync_index_cache() const;
 
   private:
     boost::shared_ptr<AmqpRpcClient> m_client;
     boost::shared_ptr<IndexService>  m_index_service;
 
-    typedef std::map<std::string, boost::shared_ptr<Blob> > BlobCache;
+    typedef std::map<std::string, BlobCacheEntry> BlobCache;
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
@@ -267,7 +274,7 @@ int handle_image(request_rec *r, const std::string& url) {
   try {
     vw_out(VerboseDebugMessage, "plate.apache") << "Fetching blob" << std::endl;
     // Grab a blob from the blob cache by filename
-    boost::shared_ptr<Blob> blob = mod_plate().get_blob(index.filename, idx_record.blob_id());
+    boost::shared_ptr<Blob> blob = mod_plate().get_blob(id, index.filename, idx_record.blob_id());
 
     vw_out(VerboseDebugMessage, "plate.apache") << "Fetching data from blob" << std::endl;
     // And calculate the sendfile(2) parameters
@@ -471,17 +478,20 @@ int PlateModule::status(request_rec *r, int flags) const {
   return OK;
 }
 
-const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_filename, uint32 blob_id) const {
+const boost::shared_ptr<Blob> PlateModule::get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const {
   std::ostringstream ostr;
   ostr << plate_filename << "/plate_" << blob_id << ".blob";
   const std::string& filename = ostr.str();
 
   BlobCache::const_iterator blob = blob_cache.find(filename);
-  if (blob != blob_cache.end())
-    return blob->second;
+
+  // Check the platefile id to make sure the blob wasn't deleted and recreated
+  // with a different platefile
+  if (blob != blob_cache.end() && blob->second.platefile_id == platefile_id)
+    return blob->second.blob;
 
   boost::shared_ptr<Blob> ret( new Blob(filename, true) );
-  blob_cache[filename] = ret;
+  blob_cache.insert(std::make_pair(filename, BlobCacheEntry(ret, platefile_id)));
   return ret;
 }
 
