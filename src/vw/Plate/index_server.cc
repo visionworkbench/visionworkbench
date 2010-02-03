@@ -15,6 +15,17 @@
 
 #include <google/protobuf/descriptor.h>
 
+#ifdef VW_HAVE_PKG_TCMALLOC
+#include <google/heap-checker.h>
+#else
+class HeapLeakChecker {
+    public:
+        explicit HeapLeakChecker(const char* name) {std::cerr << "Using fake leak checker: " << name << std::endl;}
+        bool NoLeaks() {return true;}
+        ssize_t BytesLeaked() const {return 0;}
+};
+#endif
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace vw::platefile;
@@ -26,11 +37,18 @@ boost::shared_ptr<IndexServiceImpl> g_service;
 // ------------------------------ SIGNAL HANDLER -------------------------------
 
 volatile bool process_messages = true;
+volatile bool force_sync = false;
 
 void sig_unexpected_shutdown(int sig_num) {
   signal(sig_num, SIG_IGN);
   process_messages = false;
   signal(sig_num, sig_unexpected_shutdown);
+}
+
+void sig_sync(int sig_num) {
+  signal(sig_num, SIG_IGN);
+  force_sync = true;
+  signal(sig_num, sig_sync);
 }
 
 // ------------------------------    MAIN LOOP   -------------------------------
@@ -111,12 +129,25 @@ int main(int argc, char** argv) {
   // Install Unix Signal Handlers.  These will help us to gracefully
   // recover and salvage the index under most unexpected error
   // conditions.
-  signal(SIGINT, sig_unexpected_shutdown);
+  signal(SIGINT,  sig_unexpected_shutdown);
+  signal(SIGUSR1, sig_sync);
 
   std::cout << "\n\n";
   long long t0 = Stopwatch::microtime();
 
+  HeapLeakChecker checker_end("testing_at_end");
+
+  {
+  HeapLeakChecker checker_sync("testing_force_sync");
+
   while(process_messages) {
+    if (force_sync) {
+      std::cout << "Syncing." << std::endl;
+      g_service->sync();
+      if (!checker_sync.NoLeaks())
+          std::cout << "Leaked " << checker_sync.BytesLeaked() << " bytes" << std::endl;
+      force_sync = false;
+    }
     int queries = server->queries_processed();
     size_t bytes = server->bytes_processed();
     int n_outstanding_messages = server->incoming_message_queue_size();
@@ -132,9 +163,13 @@ int main(int argc, char** argv) {
               << std::flush;
     sleep(1.0);
   }
+  }
 
   std::cout << "\nShutting down the index service safely.\n";
   g_service->sync();
+
+  if (!checker_end.NoLeaks())
+      std::cout << "Leaked " << checker_end.BytesLeaked() << " bytes at end" << std::endl;
 
   return 0;
 }
