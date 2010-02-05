@@ -148,7 +148,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     }
 
     std::ostringstream log_description;
-    log_description << "\tMulti-part snapshot (t_id = " << snapshot_parameters.write_transaction_id 
+    log_description << "Started multi-part snapshot (t_id = " 
+                    << snapshot_parameters.write_transaction_id 
                     << ") -- level:" << snapshot_parameters.level
                     << " region: " << snapshot_parameters.region << "\n";
     platefile->log(log_description.str());
@@ -165,6 +166,13 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     
     // Release the blob id lock.
     platefile->write_complete();
+
+    std::ostringstream log_description2;
+    log_description2 << "Finished multi-part snapshot (t_id = " 
+                    << snapshot_parameters.write_transaction_id 
+                    << ") -- level:" << snapshot_parameters.level
+                    << " region: " << snapshot_parameters.region << "\n";
+    platefile->log(log_description2.str());
 
   } else {
 

@@ -45,61 +45,72 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
   int midpoint = pow(2,level)/2;
   if ( (col >= midpoint && row < midpoint) ||   // upper right
        (col < midpoint && row >= midpoint) ) {  // lower left
-  u_toast_indices = ur_ll_quadrant_u_toast_indices;
-  v_toast_indices = ur_ll_quadrant_v_toast_indices;
+    u_toast_indices = ur_ll_quadrant_u_toast_indices;
+    v_toast_indices = ur_ll_quadrant_v_toast_indices;
   } else { // upper left or lower right
     u_toast_indices = ul_lr_quadrant_u_toast_indices;
     v_toast_indices = ul_lr_quadrant_v_toast_indices;
   }
 
+  // Next, we need to determine how many levels of difference there is
+  // between the image tile size and the DEM tile size.  The latter is
+  // 32x32.
+  VW_DEBUG_ASSERT(platefile->default_tile_size() > 32, 
+                  LogicErr() << "Platefile tile size must be larger than 32x32.");
+  int level_difference = log(platefile->default_tile_size()/32) / log(2);
+
   try {
-      
-    // Create the level directory (if it doesn't exist)
-    std::ostringstream ostr;
-    ostr << base_output_name << "/" << level;
-    if ( !fs::exists(ostr.str()) )
-      fs::create_directory(ostr.str());
-    
-    // Create the column directory (if it doesn't exist)
-    ostr << "/" << col;
-    if ( !fs::exists(ostr.str()) )
-      fs::create_directory(ostr.str());
-    
-    // Create the file (with the row as the filename)
-    ostr << "/" << row;
-    
+
     // Read the tile & prepare an interpolation view for sampling it.
     ImageView<PixelGrayA<int16> > tile;
     platefile->read(tile, col, row, level, transaction_id);
-
-
+    
     InterpolationView<ImageView<PixelGrayA<int16> >, BilinearInterpolation > interp_tile(tile, 
                                                                   BilinearInterpolation()); 
-    
-    // Open the file for writing
-    std::ofstream of(ostr.str().c_str());
-    
-    // Iterate over the triangle vertex arrays above, writing the DEM
-    // values in INTEL byte order to disk.
-    for (int i = 0; i < num_toast_indices; ++i) {
-      float u_index = float(u_toast_indices[i]) / 32.0 * (interp_tile.cols() - 1);
-      float v_index = float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1);
+  
+    int dem_level = level + level_difference;
+    for (unsigned v = 0; v < pow(2,level_difference); ++v) {
+      for (unsigned u = 0; u < pow(2,level_difference); ++u) {
+        int dem_col = col * pow(2,level_difference) + u;
+        int dem_row = row * pow(2,level_difference) + v;
 
-      // TODO: Thing about what to do if the pixel has alpha!
-      PixelGrayA<int16> value = interp_tile( u_index, v_index );
-      // PixelGrayA<int16> value;
-      // if (u_index > v_index)
-      //   value[0] = 500;
-      // else 
-      //   value[0] = -500;
-      uint8 lsb = uint8(value[0] & 0xFF);
-      uint8 msb = uint8((value[0] >> 8) & 0xFF);
-      of.write((char*)(&lsb), 1);
-      of.write((char*)(&msb), 1);
+        // Create the level directory (if it doesn't exist)
+        std::ostringstream ostr;
+        ostr << base_output_name << "/" << dem_level;
+        if ( !fs::exists(ostr.str()) )
+          fs::create_directory(ostr.str());
+    
+        // Create the column directory (if it doesn't exist)
+        ostr << "/" << dem_col;
+        if ( !fs::exists(ostr.str()) )
+          fs::create_directory(ostr.str());
+        
+        // Create the file (with the row as the filename)
+        ostr << "/" << dem_row;
+           
+        // Open the file for writing
+        std::ofstream of(ostr.str().c_str());
+    
+        // Iterate over the triangle vertex arrays above, writing the DEM
+        // values in INTEL byte order to disk.
+        for (int i = 0; i < num_toast_indices; ++i) {
+          float u_sample_index = u * ((interp_tile.cols() - 1) / pow(2,level_difference)) + 
+            float(u_toast_indices[i]) / 32.0 * (interp_tile.cols() - 1) / pow(2,level_difference);
+          float v_sample_index = v * ((interp_tile.rows() - 1) / pow(2,level_difference)) +
+            float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1) / pow(2,level_difference);
+
+          // TODO: Thing about what to do if the pixel has alpha!
+          PixelGrayA<int16> value = interp_tile( u_sample_index, v_sample_index );
+          uint8 lsb = uint8(value[0] & 0xFF);
+          uint8 msb = uint8((value[0] >> 8) & 0xFF);
+          of.write((char*)(&lsb), 1);
+          of.write((char*)(&msb), 1);
+        }
+
+        // Clean up.
+        of.close();
+      }
     }
-
-    // Clean up.
-    of.close();
 
   } catch (TileNotFoundErr &e) { 
     // Do nothing if the tile does not exist

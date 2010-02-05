@@ -112,10 +112,13 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
         } 
       }
 
+      //      std::cout << "There are " << tiles_at_location.size() << " tiles.\n";
+
       // Iterate over the tiles at this location.  Start at the top.  
       int num_composited = 0;
       for ( std::list<TileHeader>::iterator location_iter = tiles_at_location.begin(); 
             location_iter != tiles_at_location.end(); ++location_iter) {
+        //        std::cout << "\tCompositing " << location_iter->transaction_id() << "\n";
 
         // Check the transaction_id and the ignore_additional_entry
         // flag to make sure we don't duplicate any effort from the last snapshot.
@@ -124,10 +127,21 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
 
         // Read the tile from the platefile.
         ImageView<PixelT> new_tile;
-        m_platefile->read(new_tile, 
-                          header_iter->col(), header_iter->row(), 
-                          header_iter->level(), location_iter->transaction_id(),
-                          true); // exact_transaction_match
+        try {
+          m_platefile->read(new_tile, 
+                            header_iter->col(), header_iter->row(), 
+                            header_iter->level(), location_iter->transaction_id(),
+                            true); // exact_transaction_match
+        } catch (BlobIoErr &e) {
+
+          // If we get a BlobIO error, that's bad news, but not worth
+          // killing the snapshot for.  Instead we log the error here and move
+          // onto the next location.
+          std::ostringstream ostr;
+          ostr << "WARNING: error reading tile from blob: " << e.what();
+          m_platefile->log(ostr.str());
+          continue;
+        }
       
         // If this is the first tile in the location, and it is opaque
         // (which is a very common case), then we don't need to save
@@ -181,8 +195,8 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction
                                                            int end_transaction_id, 
                                                            int write_transaction_id) const {
 
-  for (int level = 0; level < m_platefile->num_levels(); ++level) {    
-  //  for (int level = 0; level < 14; ++level) {    
+  //  for (int level = 0; level < m_platefile->num_levels(); ++level) {    
+  for (int level = 0; level < 1; ++level) {    
 
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().
