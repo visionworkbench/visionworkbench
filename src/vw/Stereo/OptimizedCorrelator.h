@@ -26,23 +26,24 @@ namespace stereo {
 
   protected:
     BBox2i m_left_bbox;
-    ImageView<float> m_src;
     ImageView<float> m_dst;
-    std::vector<float> m_rSum;
     int m_kernel_size;
+    float m_kernel_size_i2;
+    int m_half_kernel;
 
   public:
     // The constructor allocates the buffers for the box filter once
     // and only once.
     StereoCostFunction(int width, int height, BBox2i const& search_window, int kernel_size) :
-      m_left_bbox(BBox2i((search_window.max().x() < 0) ? (-search_window.max().x()) : 0,
-                         (search_window.max().y() < 0) ? (-search_window.max().y()) : 0,
-                         (search_window.min().x() < 0) ? width - abs(search_window.max().x()) : width - abs(search_window.min().x()),
-                         (search_window.min().y() < 0) ? height - abs(search_window.max().y()) : height - abs(search_window.min().y()) )),
-      m_src(m_left_bbox.width(), m_left_bbox.height()),
+    m_left_bbox(BBox2i((search_window.max().x() < 0) ? (-search_window.max().x()) : 0,
+                       (search_window.max().y() < 0) ? (-search_window.max().y()) : 0,
+                       (search_window.min().x() < 0) ? width - abs(search_window.max().x()) : width - abs(search_window.min().x()),
+                       (search_window.min().y() < 0) ? height - abs(search_window.max().y()) : height - abs(search_window.min().y()) )),
       m_dst(m_left_bbox.width(), m_left_bbox.height()),
-      m_rSum(m_left_bbox.height()),
-      m_kernel_size(kernel_size) {}
+      m_kernel_size(kernel_size), m_kernel_size_i2(1.0/float(kernel_size*kernel_size)),
+      m_half_kernel(kernel_size/2) {}
+
+    virtual ~StereoCostFunction() {}
 
     BBox2i const& bbox() const { return m_left_bbox; }
     int kernel_size() const { return m_kernel_size; }
@@ -55,8 +56,6 @@ namespace stereo {
                                          // pixels needed to calculate
                                          // the cost for a single
                                          // pixel?
-    virtual ~StereoCostFunction() {}
-
   protected:
 
     // Efficient box filter implemenation.  This filter is called
@@ -64,9 +63,6 @@ namespace stereo {
     // constructor, above).
     template <class BoxViewT>
     ImageView<float> box_filter(ImageViewBase<BoxViewT> const& img) {
-      int kern_width = m_kernel_size;
-      int kern_height = m_kernel_size;
-
       VW_ASSERT(img.impl().cols() == m_dst.cols() && img.impl().rows() == m_dst.rows(),
                 ArgumentErr() << "StereoCostFunction::box_filter() : image size (" << img.impl().cols() << " " << img.impl().rows() << ") does not match box filter size (" << m_dst.cols() << " " << m_dst.rows() << ").");
 
@@ -75,31 +71,31 @@ namespace stereo {
       // Seed the column sum buffer
       for (int x = 0; x < img.impl().cols(); x++) {
         cSum(x) = 0;
-        for (int ky = 0; ky < kern_height; ky++) {
+        for (int ky = 0; ky < m_kernel_size; ky++) {
           cSum(x) += img.impl()(x, ky);
         }
       }
 
-      for (int y = 0; y < img.impl().rows() - kern_height; y++) {
+      for (int y = 0; y < img.impl().rows() - m_kernel_size; y++) {
         // Seed the row sum
         float rsum = 0;
-        for (int i = 0; i < kern_width; i++) {
+        for (int i = 0; i < m_kernel_size; i++) {
           rsum += cSum(i);
         }
 
-        for (int x = 0; x < img.impl().cols() - kern_width; x++) {
-          m_dst(x + kern_width / 2, y + kern_height / 2) = rsum;
+        for (int x = 0; x < img.impl().cols() - m_kernel_size; x++) {
+          m_dst(x + m_half_kernel, y + m_half_kernel) = rsum;
           // Update the row sum
-          rsum += cSum(x + kern_width) - cSum(x);
+          rsum += cSum(x + m_kernel_size) - cSum(x);
         }
 
         // Update the column sum
         for (int i = 0; i < img.impl().cols(); i++) {
-          cSum(i) += img.impl()(i, y + kern_height) - img.impl()(i, y);
+          cSum(i) += img.impl()(i, y + m_kernel_size) - img.impl()(i, y);
         }
       }
 
-      return m_dst / (kern_width * kern_height);
+      return m_dst * m_kernel_size_i2;
     }
   };
 
