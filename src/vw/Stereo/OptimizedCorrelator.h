@@ -57,6 +57,7 @@ namespace stereo {
                                          // pixel?
     virtual ~StereoCostFunction() {}
 
+  protected:
 
     // Efficient box filter implemenation.  This filter is called
     // repeatedly, but we allocate the image buffers only once (in the
