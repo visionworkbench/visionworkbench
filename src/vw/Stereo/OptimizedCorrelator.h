@@ -8,7 +8,6 @@
 #ifndef __VW_STEREO_OPTIMIZED_CORRELATOR__
 #define __VW_STEREO_OPTIMIZED_CORRELATOR__
 
-#include <vw/Core/Stopwatch.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Stereo/Correlate.h>

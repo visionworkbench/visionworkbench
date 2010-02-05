@@ -36,6 +36,10 @@ namespace stereo {
     std::string m_debug_prefix;
     bool m_do_pyramid_correlator;
 
+    // Precalculated constants
+    int m_num_pyramid_levels;
+    Vector2i m_kernpad;         // Padding used around a render box
+
   public:
     typedef PixelMask<Vector2f> pixel_type;
     typedef pixel_type result_type;
@@ -74,13 +78,22 @@ namespace stereo {
         m_corr_score_threshold = 1.3;
         m_cost_blur = 1;
         m_correlator_type = ABS_DIFF_CORRELATOR;
+
+        // Calculating constants
+        m_num_pyramid_levels = 4;
+        if ( !m_do_pyramid_correlator )
+          m_num_pyramid_levels = 1;
+        m_kernpad = m_kernel_size*pow(2,m_num_pyramid_levels-1)/2;
       }
 
       // Basic accessor functions
       void set_search_range(BBox2i range) { m_search_range = range; }
       BBox2i search_range() const { return m_search_range; }
 
-      void set_kernel_size(Vector2i size) { m_kernel_size = size; }
+      void set_kernel_size(Vector2i size) {
+        m_kernel_size = size;
+        m_kernpad = m_kernel_size*pow(2,m_num_pyramid_levels-1)/2;
+      }
       Vector2i kernel_size() const { return m_kernel_size; }
 
       void set_correlator_options(int cost_blur, stereo::CorrelatorType correlator_type) {
@@ -115,11 +128,6 @@ namespace stereo {
       /// \cond INTERNAL
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
       inline prerasterize_type prerasterize(BBox2i bbox) const {
-        int num_pyramid_levels = 4;
-
-        if (!m_do_pyramid_correlator)
-          num_pyramid_levels = 1;
-
         vw_out(DebugMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
 
         // The area in the right image that we'll be searching is
@@ -138,11 +146,10 @@ namespace stereo {
 
         // Finally, we must adjust both bounding boxes to account for
         // the size of the kernel itself.
-        Vector2i kernpad = Vector2i(m_kernel_size[0], m_kernel_size[1])*pow(2,num_pyramid_levels-1)/2;
-        right_crop_bbox.min() -= kernpad;
-        right_crop_bbox.max() += kernpad;
-        left_crop_bbox.min() -= kernpad;
-        left_crop_bbox.max() += kernpad;
+        right_crop_bbox.min() -= m_kernpad;
+        right_crop_bbox.max() += m_kernpad;
+        left_crop_bbox.min() -= m_kernpad;
+        left_crop_bbox.max() += m_kernpad;
 
         // Log some helpful debugging info
         vw_out(DebugMessage, "stereo") << "\t search_range:    "
@@ -176,7 +183,7 @@ namespace stereo {
                                                m_search_range.height()),
                                          Vector2i(m_kernel_size[0], m_kernel_size[1]),
                                          m_cross_corr_threshold, m_corr_score_threshold,
-                                         m_cost_blur, m_correlator_type, num_pyramid_levels);
+                                         m_cost_blur, m_correlator_type, m_num_pyramid_levels);
 
             // For debugging: this saves the disparity map at various
             // pyramid levels to disk.
@@ -216,8 +223,8 @@ namespace stereo {
         // the bbox.  This allows rasterize to touch those pixels
         // using the coordinates inside the bbox.  The pixels outside
         // those coordinates are invalid, and they never get accessed.
-        return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(kernpad[0]-bbox.min().x(),
-                                                                       kernpad[1]-bbox.min().y(),
+        return CropView<ImageView<pixel_type> > (disparity_map, BBox2i(m_kernpad[0]-bbox.min().x(),
+                                                                       m_kernpad[1]-bbox.min().y(),
                                                                        bbox.width(), bbox.height()));
       }
 
