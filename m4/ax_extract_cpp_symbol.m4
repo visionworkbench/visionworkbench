@@ -1,5 +1,9 @@
 dnl __BEGIN_LICENSE__
+dnl Copyright (C) 2006-2010 United States Government as represented by
+dnl the Administrator of the National Aeronautics and Space Administration.
+dnl All Rights Reserved.
 dnl __END_LICENSE__
+
 
 dnl Usage: AX_EXTRACT_CPP_SYMBOL([symbol], [headers], [ifyes], [ifno], [cppflags])
 dnl         It the variable $output will contain the extracted value
