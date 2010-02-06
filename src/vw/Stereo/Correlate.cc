@@ -882,10 +882,14 @@ namespace vw {
                                       bool do_vertical_subpixel,
                                       bool verbose) {
 
-      unsigned max_em_iter = 2;
-      float  blur_sigma = 1.5;
-      float  min_var2_plane = 0.000001;
-      float  min_var2_noise = 0.000001;
+      // Bail out if no subpixel computation has been requested
+      if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
+
+      // Fixed consts
+      const unsigned max_em_iter = 2;
+      const float  blur_sigma = 1.5;
+      const float  min_var2_plane = 0.000001;
+      const float  min_var2_noise = 0.000001;
       float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
       VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
@@ -895,8 +899,13 @@ namespace vw {
       ImageView<float> confidence_image (left_input_image.cols(),
                                          left_input_image.rows());
 
+      // Input Image
       ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
       ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+
+      // Interpolated Input Images
+      InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
+              interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
 
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.
@@ -904,17 +913,11 @@ namespace vw {
 
       int kern_half_height = kern_height/2;
       int kern_half_width = kern_width/2;
-
       int kern_pixels = kern_height * kern_width;
-
       int weight_threshold = kern_pixels / 2;
-
-      // Bail out if no subpixel computation has been requested
-      if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
 
       ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
       ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
-
       ImageView<float> weight_template = compute_spatial_weight_image(kern_width, kern_height, two_sigma_sqr);
 
       // Workspace images are allocated up here out of the tight inner
@@ -923,24 +926,9 @@ namespace vw {
 
       // Iterate over all of the pixels in the disparity map except for
       // the outer edges.
-      Stopwatch sw;
-      sw.start();
-      double last_time = 0;
-
-
       for ( int y = std::max<int>(region_of_interest.min().y()-1,kern_half_height);
             y < std::min(left_image.rows()-kern_half_height, region_of_interest.max().y()+1) ;
             ++y) {
-        if (verbose && y % 10 == 0) {
-          sw.stop();
-          vw_out(InfoMessage, "stereo") << "\tProcessing subpixel line: " << y
-                                        << " / " << left_image.rows() << "    ("
-                                        << (10 * left_image.cols() / (sw.elapsed_seconds() - last_time))
-                                        << " pixels/s, "<< sw.elapsed_seconds()
-                                        << " s total )      \r" << std::flush;
-          last_time = sw.elapsed_seconds();
-          sw.start();
-        }
 
         for (int x=std::max<int>(region_of_interest.min().x()-1,kern_half_width);
              x<std::min<int>(left_image.cols()-kern_half_width, region_of_interest.max().x()+1);
@@ -964,7 +952,11 @@ namespace vw {
           //
           Vector<float,6> d;
           d(0) = 1.0;
+          d(1) = 0.0;
+          d(2) = 0.0;
+          d(3) = 0.0;
           d(4) = 1.0;
+          d(5) = 0.0;
 
           // Compute the derivative image patches
           CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
@@ -983,25 +975,16 @@ namespace vw {
 
           float curr_sum_I_e_val = 0.0;
           float prev_sum_I_e_val = 0.0;
-          unsigned iter;
-          d(0) = 1.0;
-          d(1) = 0.0;
-          d(2) = 0.0;
-          d(3) = 0.0;
-          d(4) = 1.0;
-          d(5) = 0.0;
+
           // Iterate until a solution is found or the max number of
           // iterations is reached.
-          for (iter = 0; iter < 10; ++iter) {
+          for (unsigned iter = 0; iter < 10; ++iter) {
             // First we check to see if our current subpixel translation
             // is less than one half of the window width.  If not, then
             // we are probably having trouble converging and we abort
             // this pixel!!
             if (norm_2( Vector<float,2>(d[2],d[5]) ) > AFFINE_SUBPIXEL_MAX_TRANSLATION)
               break;
-
-            InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-              interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
 
             float x_base = x + disparity_map(x,y)[0];
             float y_base = y + disparity_map(x,y)[1];
@@ -1025,11 +1008,10 @@ namespace vw {
             //EXPECTATION - START
             float in_curr_sum_I_e_val = 0.0;
             float in_prev_sum_I_e_val = 1000000.0;
-            unsigned em_iter;
             Vector<float,6> d_em;
             d_em = d;
 
-            for (em_iter=0; em_iter<max_em_iter; em_iter++){
+            for (unsigned em_iter=0; em_iter<max_em_iter; em_iter++){
 
               float noise_norm_factor = 1.0/sqrt(6.28*var2_noise);
               float plane_norm_factor = 1.0/sqrt(6.28*var2_plane);
