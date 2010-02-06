@@ -98,9 +98,12 @@ rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
 lustre_torture_SOURCES = lustre_torture.cc
 lustre_torture_LDADD = $(PLATE_LOCAL_LIBS)
 
+hirise2tif_SOURCES = hirise2tif.cc
+hirise2tif_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
+
 bin_PROGRAMS = tiles2plate plate2tiles image2plate snapshot		\
 	       rebuild_index index_server index_client amqp_perftest	\
-	       index_perftest rpc_tool lustre_torture
+	       index_perftest rpc_tool lustre_torture hirise2tif
 
 endif
 
