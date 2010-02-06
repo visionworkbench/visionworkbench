@@ -166,7 +166,7 @@ Vector2 uneven_grid (const ::Options& opt, int x, int y, DiskImageView<ImageT> i
       if(i==0 && j==0) continue;
       int repeat=1;
       if(opt.algorithm==HORN) {
-        if(i==0 && j!=0 || i!=0 && j==0) //for horn, weight direct neighbors twice
+        if((i==0 && j!=0) || (i!=0 && j==0)) //for horn, weight direct neighbors twice
           repeat=2;
       }
       if(opt.algorithm==FH) {
