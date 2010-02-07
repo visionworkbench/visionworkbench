@@ -57,7 +57,6 @@ namespace camera {
     }
 
     math::MatrixSparseSkyline<double> S() const { return m_S; }
-    void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
 
     // Covariance Calculator
     // __________________________________________________
@@ -81,7 +80,7 @@ namespace camera {
       Id.set_identity();
       Matrix<double> Cov = multi_sparse_solve(S, Id);
 
-      //pick out covariances of individual cameras
+      //pick out covariances of indvidual cameras
       for ( unsigned i = 0; i < num_cameras; i++ )
         sparse_cov(i) = submatrix(Cov, i*num_cam_params,
                                   i*num_cam_params,
@@ -390,11 +389,11 @@ namespace camera {
         }
       }
 
-      this->set_S(S);
+      m_S = S;
 
       // Computing ideal ordering of sparse matrix
       if ( !m_found_ideal_ordering ) {
-        m_ideal_ordering = cuthill_mckee_ordering(S);
+        m_ideal_ordering = cuthill_mckee_ordering(S,num_cam_params);
         math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
         m_ideal_skyline = solve_for_skyline( mod_S );
 

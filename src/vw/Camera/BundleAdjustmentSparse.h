@@ -58,7 +58,6 @@ namespace camera {
     }
 
     math::MatrixSparseSkyline<double> S() const { return m_S; }
-    void set_S(math::MatrixSparseSkyline<double> const& S) { m_S = S; }
 
     // Covariance Calculator
     // ___________________________________________________________
@@ -376,13 +375,13 @@ namespace camera {
         }
       }
 
-      this->set_S(S);
+      m_S = S; // S is modified in sparse solve. Keeping a copy.
       delete time;
 
       // Computing ideal ordering
       if (!m_found_ideal_ordering) {
         time = new Timer("Solving Cuthill-Mckee", DebugMessage, "bundle_adjust");
-        m_ideal_ordering = cuthill_mckee_ordering(S);
+        m_ideal_ordering = cuthill_mckee_ordering(S,num_cam_params);
         math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
         m_ideal_skyline = solve_for_skyline(mod_S);
 
@@ -394,9 +393,9 @@ namespace camera {
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
-      Vector<double> delta_a = sparse_solve(modified_S,
-                                            reorganize(e, m_ideal_ordering),
-                                            m_ideal_skyline );
+      Vector<double> delta_a = sparse_solve( modified_S,
+                                             reorganize(e, m_ideal_ordering),
+                                             m_ideal_skyline );
       delta_a = reorganize(delta_a, modified_S.inverse());
       delete time;
 
