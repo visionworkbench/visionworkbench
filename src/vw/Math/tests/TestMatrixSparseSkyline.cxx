@@ -318,7 +318,7 @@ TEST(SparseSkyline, CuthillMcKee) {
   fill_with_buckeyball(sparse);
 
   // Solving for ordering
-  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse);
+  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse,1);
 
   // This ordering comes from the MATLAB cuthill mckee example
   uint ideal_order[61] = {1,6,2,5,7,26,30,10,11,12,3,4,8,27,29,9,15,13,16,17,21,25,42,28,43,38,37,14,20,18,22,24,41,47,44,39,36,33,19,32,23,48,45,46,40,34,53,31,52,49,58,50,57,35,54,51,59,56,55,60,0};
@@ -356,7 +356,7 @@ TEST(SparseSkyline, ReorderOptimization) {
   EXPECT_EQ( 61u, x_sparse.size() );
 
   // Optimized method;
-  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse);
+  std::vector<uint> new_ordering = cuthill_mckee_ordering(sparse,1);
   math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse( sparse, new_ordering);
 
   Vector<uint> new_skyline = solve_for_skyline(rsparse);
