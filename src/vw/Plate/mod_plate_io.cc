@@ -324,7 +324,10 @@ class WTMLImageSet : public std::map<std::string, std::string> {
   Child child_keys;
 
   public:
-    WTMLImageSet(const std::string& url_prefix, const PlateModule::IndexCacheEntry& layer) {
+    WTMLImageSet(const std::string& host,
+                 const std::string& data_prefix,
+                 const std::string& static_prefix,
+                 const PlateModule::IndexCacheEntry& layer) {
       const IndexHeader& hdr = layer.index->index_header();
 
       (*this)["Generic"]            = "False";
@@ -343,17 +346,18 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["Sparse"]             = "True";
       (*this)["ElevationModel"]     = "False";
       (*this)["StockSet"]           = "False";
-      // XXX: This is wrong for non-mars!
-      (*this)["DemUrl"]             = "http://198.10.124.49/static/megt128/{0}/{1}/{2}?nocache=1";
 
       (*this)["Name"]         = layer.description;
       (*this)["FileType"]     = std::string(".") + hdr.tile_filetype();
       (*this)["TileLevels"]   = boost::lexical_cast<std::string>(layer.index->num_levels());
 
-      const std::string url2 = url_prefix + "p/" + vw::stringify(hdr.platefile_id());
+      std::string data_url = host + data_prefix + vw::stringify(hdr.platefile_id());
 
-      (*this)["Url"]          = url2 + "/{1}/{2}/{3}." + hdr.tile_filetype();
-      (*this)["ThumbnailUrl"] = url2 + "/0/0/0."       + hdr.tile_filetype();
+      (*this)["Url"]          = data_url + "/{1}/{2}/{3}." + hdr.tile_filetype();
+      (*this)["ThumbnailUrl"] = data_url + "/0/0/0."       + hdr.tile_filetype();
+      // XXX: This is wrong for non-mars!
+      (*this)["DemUrl"]       = host + static_prefix + "megt128/{0}/{1}/{2}";
+
 
       child_keys.insert("ThumbnailUrl");
       child_keys.insert("Credits");
@@ -417,13 +421,12 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (!ap_is_default_port(port, r))
       prefix << ":" << port;
 
-  prefix << "/wwt/";
-
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
-    WTMLImageSet img(prefix.str(), e.second);
+    WTMLImageSet img(prefix.str(), "/wwt/p/", "/static/", e.second);
     if (r->args) {
       img["Url"]          += std::string("?") + r->args;
       img["ThumbnailUrl"] += std::string("?") + r->args;
+      img["DemUrl"]       += std::string("?") + r->args;
     }
     img.serializeToOstream(out);
   }
