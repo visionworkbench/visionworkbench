@@ -145,8 +145,7 @@ int main(int argc, char** argv) {
     if (force_sync) {
       std::cout << "Syncing." << std::endl;
       g_service->sync();
-      if (!checker_sync.NoLeaks())
-          std::cout << "Leaked " << checker_sync.BytesLeaked() << " bytes" << std::endl;
+      checker_sync.NoLeaks();
       force_sync = false;
     }
     int queries = server->queries_processed();
@@ -169,8 +168,7 @@ int main(int argc, char** argv) {
   std::cout << "\nShutting down the index service safely.\n";
   g_service->sync();
 
-  if (!checker_end.NoLeaks())
-      std::cout << "Leaked " << checker_end.BytesLeaked() << " bytes at end" << std::endl;
+  checker_end.NoLeaks();
 
   return 0;
 }
