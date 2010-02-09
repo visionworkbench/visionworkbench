@@ -3,6 +3,8 @@
 #include <http_config.h>
 #include <mod_status.h>
 
+#include <vw/Plate/common.h>
+
 /* Forward declarations (You got c++ in my c!) */
 #include "mod_plate_io.h"
 
@@ -25,13 +27,6 @@ static void plate_register_hooks(apr_pool_t *p)
   ap_hook_handler(mod_plate_handler, NULL, NULL, APR_HOOK_MIDDLE);
   ap_hook_child_init(mod_plate_child_init, NULL, NULL, APR_HOOK_MIDDLE);
   APR_OPTIONAL_HOOK(ap, status_hook, mod_plate_status, NULL, NULL, APR_HOOK_MIDDLE);
-}
-
-static const char* handle_ip(cmd_parms* cmd, void* null, const char* arg) {
-  plate_config *cfg = get_plate_config_mutable(cmd->server);
-  cfg->rabbit_ip = arg;
-  ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);
-  return NULL;
 }
 
 static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level, const char* name) {
@@ -68,15 +63,32 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
   return NULL;
 }
 
+#define ADD_STRING_CONFIG(key) \
+  static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
+    plate_config *cfg = get_plate_config_mutable(cmd->server);\
+    cfg->key = arg;\
+    ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);\
+    return NULL;\
+  }
+
+ADD_STRING_CONFIG(rabbit_ip);
+ADD_STRING_CONFIG(index_exchange);
+ADD_STRING_CONFIG(index_routing);
+
+
 static const command_rec my_cmds[] = {
-  AP_INIT_TAKE1("PlateRabbitMQIP", handle_ip,   NULL, RSRC_CONF, "The IP of the rabbitmq server"),
-  AP_INIT_TAKE12("PlateLogRule",   handle_rule, NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
+  AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
+  AP_INIT_TAKE1("PlateIndexExchange", handle_index_exchange, NULL, RSRC_CONF, "The rabbitmq exchange on which to look for the index server"),
+  AP_INIT_TAKE1("PlateIndexRoute",    handle_index_routing,  NULL, RSRC_CONF, "The rabbitmq routing key to use for the index server"),
+  AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
   { NULL }
 };
 
 static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   plate_config* conf = (plate_config*)apr_pcalloc(p, sizeof(plate_config));
-  conf->rabbit_ip = "127.0.0.1";
+  conf->rabbit_ip      = "127.0.0.1";
+  conf->index_exchange = INDEX_EXCHANGE;
+  conf->index_routing  = "index";
   conf->rules = apr_array_make(p, 8, sizeof(rule_entry));
   return conf;
 }

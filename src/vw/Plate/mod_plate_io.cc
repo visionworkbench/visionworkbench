@@ -9,7 +9,6 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/common.h>
 
 // Apache and the Apache Runtime
 #include <httpd.h>
@@ -467,7 +466,7 @@ void PlateModule::connect_index() {
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(m_conf->rabbit_ip));
 
-  m_client.reset( new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name, "index") );
+  m_client.reset( new AmqpRpcClient(conn, m_conf->index_exchange, queue_name, m_conf->index_routing) );
 
   // Needs to respond in five seconds
   m_client->timeout(1000);
