@@ -64,9 +64,11 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
       new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
 
     pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
-               TerminalProgressCallback( "plate.tools.image2plate", status_str.str()) );
+               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 
   }  else if (output_mode == "kml")  {
+
+    vw_throw(NoImplErr() << "KML support is currently broken.");
 
     // boost::shared_ptr<KmlPlateManager> pm = 
     //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile) );

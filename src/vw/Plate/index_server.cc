@@ -16,17 +16,6 @@
 
 #include <google/protobuf/descriptor.h>
 
-#ifdef VW_HAVE_PKG_TCMALLOC
-#include <google/heap-checker.h>
-#else
-class HeapLeakChecker {
-    public:
-        explicit HeapLeakChecker(const char* name) {std::cerr << "Using fake leak checker: " << name << std::endl;}
-        bool NoLeaks() {return true;}
-        ssize_t BytesLeaked() const {return 0;}
-};
-#endif
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 using namespace vw::platefile;
@@ -136,16 +125,10 @@ int main(int argc, char** argv) {
   std::cout << "\n\n";
   long long t0 = Stopwatch::microtime();
 
-  HeapLeakChecker checker_end("testing_at_end");
-
-  {
-  HeapLeakChecker checker_sync("testing_force_sync");
-
   while(process_messages) {
     if (force_sync) {
       std::cout << "Syncing." << std::endl;
       g_service->sync();
-      checker_sync.NoLeaks();
       force_sync = false;
     }
     int queries = server->queries_processed();
@@ -163,12 +146,9 @@ int main(int argc, char** argv) {
               << std::flush;
     sleep(1.0);
   }
-  }
 
   std::cout << "\nShutting down the index service safely.\n";
   g_service->sync();
-
-  checker_end.NoLeaks();
 
   return 0;
 }
