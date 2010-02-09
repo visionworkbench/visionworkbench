@@ -42,7 +42,7 @@ namespace {
   void die_on_error(int x, const std::string& context);
   SharedByteArray read_content(amqp_connection_state_t conn);
   bool select_helper(int fd, vw::int32 timeout, const std::string& context);
-  void vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
+  bool vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             vw::int32 timeout, const std::string& context);
 }
 
@@ -235,7 +235,11 @@ class AmqpConsumeTask {
           // perhaps we don't need to call it so often. Not clear on tradeoff.
           amqp_maybe_release_buffers(m_conn->m_state.get());
 
-          vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame");
+          while (1) {
+            if (!go) return;
+            if (vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame"))
+              break;
+          }
 
           // Make sure we aren't confused somehow
           VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD,
@@ -441,7 +445,7 @@ struct amqp_connection_state_t_ {
 
 namespace {
 
-void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw::int32 timeout, const std::string& context) {
+bool vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw::int32 timeout, const std::string& context) {
 
   // If we already have frames in the queue (perhaps processed on a previous
   // call) return one of those
@@ -452,7 +456,7 @@ void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
       state->last_queued_frame = NULL;
     }
     *frame = *f;
-    return;
+    return true;
   }
 
   while (1) {
@@ -474,13 +478,13 @@ void vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
 
       if (frame->frame_type != 0) {
         /* Complete frame was read. Return it. */
-        return;
+        return true;
       }
     }
 
     // Darn, out of data. Let's try to get some.
     if (!select_helper(state->sockfd, timeout, context))
-      vw_throw(AMQPTimeout() << context << ": timed out");
+      return false;
 
     // Won't block because we select()'d, and we know it's primed.
     int result = read(state->sockfd,
