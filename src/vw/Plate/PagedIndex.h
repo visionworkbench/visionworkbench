@@ -28,12 +28,15 @@ namespace platefile {
   // --------------------------------------------------------------------
   class IndexLevel {
 
+    boost::shared_ptr<PageGeneratorFactory> m_page_gen_factory;
     int m_level;
     int m_page_width, m_page_height;
     int m_horizontal_pages, m_vertical_pages;
     std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
     std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
     vw::Cache m_cache;
+
+    void create_handles();
 
   public:
     typedef IndexPage::multi_value_type multi_value_type;

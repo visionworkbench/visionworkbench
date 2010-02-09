@@ -22,11 +22,18 @@ using namespace vw;
 // --------------------------------------------------------------------
 
 vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
-                                      int level, int page_width, int page_height, int cache_size) : 
-  m_level(level), m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
+                                      int level, int page_width, int page_height, int cache_size)
+    : m_page_gen_factory(page_gen_factory), m_level(level),
+      m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
+
   int tiles_per_side = pow(2,level);
   m_horizontal_pages = ceil(float(tiles_per_side) / page_width);
   m_vertical_pages = ceil(float(tiles_per_side) / page_height);
+
+  create_handles();
+}
+
+void vw::platefile::IndexLevel::create_handles() {
   int pages = m_horizontal_pages * m_vertical_pages;
 
   // Create the cache handles
@@ -34,11 +41,10 @@ vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> pa
   m_cache_generators.resize(pages);
   for (int j = 0; j < m_vertical_pages; ++j) {
     for (int i = 0; i < m_horizontal_pages; ++i) {
-      boost::shared_ptr<IndexPageGenerator> generator = page_gen_factory->create(level, 
-                                                                                 i * m_page_width,
-                                                                                 j * m_page_height,
-                                                                                 page_width, 
-                                                                                 page_height) ;
+      boost::shared_ptr<IndexPageGenerator> generator =
+          m_page_gen_factory->create(
+              m_level, i * m_page_width, j * m_page_height, m_page_width, m_page_height);
+
       m_cache_generators[j*m_horizontal_pages + i] = generator;
       m_cache_handles[j*m_horizontal_pages + i] = m_cache.insert( *generator );
     }
@@ -62,6 +68,9 @@ void vw::platefile::IndexLevel::sync() {
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
     m_cache_handles[i].reset();
   }
+
+  // recreate the handles now that we've released the old ones
+  create_handles();
 
 }
 
