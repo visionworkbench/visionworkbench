@@ -61,14 +61,16 @@ public:
 // ------------------------------      MAIN      -------------------------------
 
 int main(int argc, char** argv) {
-  std::string queue_name, root_directory;
+  std::string queue_name, exchange_name, root_directory;
   std::string hostname;
   int port;
 
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
   general_options.add_options()
+    ("exchange,e", po::value<std::string>(&exchange_name)->default_value(INDEX_EXCHANGE),
+     "Specify the name of the AMQP exchange to use for the index service.")
     ("queue_name,q", po::value<std::string>(&queue_name)->default_value("index"),
-     "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
+     "Specify the name of the AMQP queue and routing key to use for the index service.")
     ("hostname,h", po::value<std::string>(&hostname)->default_value("localhost"),
      "Specify the hostname of the AMQP server to use for remote procedure calls (RPCs).")
     ("port,p", po::value<int>(&port)->default_value(5672),
@@ -107,10 +109,10 @@ int main(int argc, char** argv) {
   }
 
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(hostname, port) );
-  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, INDEX_EXCHANGE, 
+  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, exchange_name, 
                                                              queue_name, vm.count("debug")) );
   g_service.reset( new IndexServiceImpl(root_directory) );
-  server->bind_service(g_service, "index");
+  server->bind_service(g_service, queue_name);
 
   // Start the server task in another thread
   boost::shared_ptr<ServerTask> server_task( new ServerTask(server) );
