@@ -115,14 +115,23 @@ UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view
 
 template <class PixelT>
 void do_colorized_dem(po::variables_map const& vm) {
+  vw_out() << "Creating colorized DEM.\n";
 
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input_file_name);
 
+  // Attempt to extract nodata value
+  DiskImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
+  if (vm.count("nodata-value")) {
+    vw_out() << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
+  } else if ( disk_dem_rsrc->has_nodata_value() ) {
+    nodata_value = disk_dem_rsrc->nodata_value();
+    vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+  } 
+
+  // Compute min/max
   DiskImageView<PixelT> disk_dem_file(input_file_name);
   ImageViewRef<PixelGray<float> > input_image = channel_cast<float>(disk_dem_file);
-
-  vw_out() << "Creating colorized DEM.\n";
   if (min_val == 0 && max_val == 0) {
     min_max_channel_values( create_mask( input_image, nodata_value), min_val, max_val);
     vw_out() << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
@@ -131,13 +140,9 @@ void do_colorized_dem(po::variables_map const& vm) {
   }
 
   ImageViewRef<PixelMask<PixelGray<float> > > dem;
-  DiskImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
   if (vm.count("nodata-value")) {
-    vw_out() << "\t--> Masking nodata value: " << nodata_value << ".\n";
     dem = channel_cast<float>(create_mask(input_image, nodata_value));
   } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    nodata_value = disk_dem_rsrc->nodata_value();
-    vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
   } else {
     dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
