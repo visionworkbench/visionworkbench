@@ -847,17 +847,20 @@ void run_bundle_adjustment(AdjusterT &adjuster,
         bool save)
 {
   double abs_tol=1e10, rel_tol=1e10;
-  while (adjuster.update(abs_tol, rel_tol)) {
+  double overall_delta = 2;
+  while (overall_delta) {
     //reporter.loop_tie_in();
+    if (adjuster.iterations() >= max_iter || abs_tol < 1e-3 || rel_tol < 1e-3)
+      break;
+
+    // Performing iteration
+    overall_delta = adjuster.update(abs_tol, rel_tol);
 
     if (save) {
       //Write this iterations camera and point data
       adjuster.bundle_adjust_model().write_adjusted_cameras_append(CameraParamsReportFile, results_dir);
       adjuster.bundle_adjust_model().write_points_append(PointsReportFile, results_dir);
     }
-
-    if (adjuster.iterations() >= max_iter || abs_tol < 1e-3 || rel_tol < 1e-3)
-      break;
   }
 
   // if config.report_level >= 35, this will write the image errors file needed
