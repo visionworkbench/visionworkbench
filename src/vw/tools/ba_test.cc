@@ -148,10 +148,6 @@ enum BundleAdjustmentT {
     SPARSE, 
     ROBUST_REF, 
     ROBUST_SPARSE,
-    REF_C, 
-    SPARSE_C, 
-    ROBUST_REF_C, 
-    ROBUST_SPARSE_C,
     SPARSE_HUBER, 
     SPARSE_CAUCHY
 };
@@ -1010,7 +1006,7 @@ int main(int argc, char* argv[]) {
 
   // Write initial camera parameters and world points
   ba_model.write_camera_params(cam_file_initial);
-  ba_model.write_world_points(wp_file_initial); // will be same as ground truth
+  ba_model.write_world_points(wp_file_initial);
 
   // Run bundle adjustment according to user-specified type
   switch (config.bundle_adjustment_type) {

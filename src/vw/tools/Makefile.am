@@ -127,7 +127,7 @@ batest_progs = ba_test make_ba_test_data
 ba_test_SOURCES = ba_test.cc
 ba_test_LDADD = @PKG_CAMERA_LIBS@ @PKG_STEREO_LIBS@ $(COMMON_LIBS)
 make_ba_test_data_SOURCES = make_ba_test_data.cc
-make_ba_test_data_LDADD = @PKG_CAMERA_LIBS@ $(COMMON_LIBS)
+make_ba_test_data_LDADD = @PKG_CAMERA_LIBS@ @PKG_STEREO_LIBS@ $(COMMON_LIBS)
 endif
 endif
 

@@ -136,6 +136,7 @@ namespace fs = boost::filesystem;
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/BundleAdjustmentSparse.h>
 #include <vw/Camera/BundleAdjustReport.h>
+#include <vw/Stereo/StereoModel.h>
 #include <vw/Math.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Core/Log.h>
@@ -144,6 +145,7 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::camera;
 
+using vw::stereo::StereoModel;
 using std::cout;
 using std::endl;
 using std::ios;
@@ -929,16 +931,23 @@ generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tie
 
 /* {{{ add_noise_to_control_network */
 boost::shared_ptr<ControlNetwork>
-add_noise_to_control_network(boost::shared_ptr<ControlNetwork> cnet, base_rng_type &rng, NoiseParams np)
+add_noise_to_control_network(
+        boost::shared_ptr<ControlNetwork> cnet, 
+        CameraVector &cams, 
+        base_rng_type &rng, 
+        NoiseParams np)
 {
   boost::shared_ptr<ControlNetwork> noisy_cnet(new ControlNetwork("Noisy Control Network"));
 
   int cnet_size = cnet->size();
   for (int i = 0; i < cnet_size; i++) {
     ControlPoint cp;
-    cp.set_position((*cnet)[i].position());
 
     int num_measures = (*cnet)[i].size();
+    if (num_measures < 2) {
+        vw_out(ErrorMessage) << "Control point with less than 2 measures" << endl;
+        exit(1);
+    }
     for (int j = 0; j < num_measures; j++) {
       ControlMeasure cm;
       cm.set_sigma((*cnet)[i][j].sigma());
@@ -946,6 +955,11 @@ add_noise_to_control_network(boost::shared_ptr<ControlNetwork> cnet, base_rng_ty
       cm.set_position(add_noise_to_pixel((*cnet)[i][j].position(), rng, np));
       cp.add_measure(cm);
     }
+
+    // Calculate new control point position estimate by triangulation
+    StereoModel sm(&cams[cp[0].image_id()], &cams[cp[1].image_id()]);
+    double err;
+    cp.set_position(sm(cp[0].position(), cp[1].position(), err));
     noisy_cnet->add_control_point(cp);
   }
 
@@ -1060,9 +1074,10 @@ int main(int argc, char* argv[]) {
   // Generate random control network
   boost::shared_ptr<ControlNetwork>
       cnet = generate_control_network(rng, cameras, config.min_tiepoints);
+
   // Add configured noise to control network
   boost::shared_ptr<ControlNetwork>
-      noisy_cnet = add_noise_to_control_network(cnet, rng, config.pixel_params);
+      noisy_cnet = add_noise_to_control_network(cnet, noisy_cameras, rng, config.pixel_params);
 
   // Write camera model files
   write_camera_models(cameras, CameraPrefix, config.data_dir);

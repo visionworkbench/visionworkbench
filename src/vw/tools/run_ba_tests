@@ -191,7 +191,7 @@ sub mse {
     return $stat->mean();
 }
 
-sub mean_euclidean_error {
+sub median_euclidean_error {
     my $a1 = shift;
     my $a2 = shift;
     my $size = scalar @$a1;
@@ -199,13 +199,11 @@ sub mean_euclidean_error {
     die "Error: don't have 3 coordinates for each point in mean_euclidean_error()\n" unless $size % 3 == 0;
     my $stat = Statistics::Descriptive::Full->new();
     my $num_wp = $size/3;
-    foreach my $i (0 .. $size-1) {
-        my @p1 = $a1->[$i .. $i+2];
-        my @p2 = $a2->[$i .. $i+2];
+    foreach my $i (0 .. $num_wp-1) {
+        my @p1 = @$a1[$i*3 .. ($i*3)+2];
+        my @p2 = @$a2[$i*3 .. ($i*3)+2];
         my $err = 0;
-        foreach my $j (0 .. 2) {
-            $err += ($p1[$j] - $p2[$j])**2;
-        }
+        for (0 .. 2) { $err += ($p1[$_] - $p2[$_])**2; }
         $err = sqrt($err);
         $stat->add_data($err);
     }
@@ -332,9 +330,10 @@ sub read_results {
         push @results, {};
         foreach my $ba_type (@ba_types) {
             print STDERR "    $ba_type\n" if $verbose;
-            my @wp_mse = ();
-            my @xyz_mse = ();
-            my @euler_mse = ();
+            my @wp_initial_mee = ();
+            my @wp_final_mee   = ();
+            my @xyz_mee        = ();
+            my @euler_mse      = ();
 
             for (my $i = 0; $i < $num_tests; $i++) {
                 print STDERR "      Test $i\n" if $verbose; 
@@ -385,14 +384,18 @@ sub read_results {
                 my ($xyz_true, $euler_true)   = read_cam_results("$test_dir/$cam_true_file");
                 my ($xyz_init, $euler_init)   = read_cam_results("$results_dir/$cam_init_file");
                 my ($xyz_final, $euler_final) = read_cam_results("$results_dir/$cam_final_file");
-                print STDERR "        Calculating MSEs\n" if $verbose;
-                push @wp_mse, mse($wp_final, $wp_true);
-                push @xyz_mse, mse($xyz_final, $xyz_true);
-                push @euler_mse, mse($euler_final, $euler_true); 
+                print STDERR "        Calculating Errors\n" if $verbose;
+                my $wp_initial_mee = median_euclidean_error($wp_init, $wp_true);
+                my $wp_final_mee   = median_euclidean_error($wp_final, $wp_true);
+                push @wp_initial_mee, $wp_initial_mee;
+                push @wp_final_mee,   $wp_final_mee;
+                push @xyz_mee,        median_euclidean_error($xyz_final, $xyz_true);
+                push @euler_mse,      mse($euler_final, $euler_true); 
             }
-            $results[$t]{$ba_type} = {wp => \@wp_mse, 
-                                      xyz => \@xyz_mse, 
-                                      euler => \@euler_mse}; 
+            $results[$t]{$ba_type} = {wp_initial => \@wp_initial_mee, 
+                                      wp_final   => \@wp_final_mee, 
+                                      xyz        => \@xyz_mee, 
+                                      euler      => \@euler_mse}; 
         }
     }
     return \@results;
@@ -440,7 +443,7 @@ sub print_result_stats {
 
     my @headers = ('test_plan','num_tests');
     my @ba_types = keys %{$results->[0]};
-    my @data_types = qw(wp xyz euler);
+    my @data_types = qw(wp_initial wp_final xyz euler);
     my @stats = ("mean", "stddev", 
                  $percentile_low."pct",
                  $percentile_high."pct");
