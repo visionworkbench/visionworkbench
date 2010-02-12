@@ -159,7 +159,7 @@ int main( int argc, char *argv[] ) {
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
-  vw_system_cache().resize( cache_size*1024*1024 );
+  vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
   uint16 min_gray=1024, max_gray=0, min_i=1024, max_i=0, min_r=1024, max_r=0, min_b=1024, max_b=0;
 
