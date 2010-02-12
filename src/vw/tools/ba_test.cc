@@ -143,11 +143,25 @@ std::istream& operator>>(std::istream& is, fs::path& p) {
  * Program Options
  */
 /* {{{ ProgramOptions */
-enum BundleAdjustmentT { REF, SPARSE, ROBUST_REF, ROBUST_SPARSE };
+enum BundleAdjustmentT { 
+    REF, 
+    SPARSE, 
+    ROBUST_REF, 
+    ROBUST_SPARSE,
+    REF_C, 
+    SPARSE_C, 
+    ROBUST_REF_C, 
+    ROBUST_SPARSE_C,
+    SPARSE_HUBER, 
+    SPARSE_CAUCHY
+};
 
 struct ProgramOptions {
   BundleAdjustmentT bundle_adjustment_type;
   double lambda;
+  int control;
+  double huber_param;
+  double cauchy_param;
   double camera_position_sigma; // constraint on adjustment to camera position
   double camera_pose_sigma;     // constraint on adjustment to camera pose
   double gcp_sigma;           // constraint on adjustment to GCP position
@@ -178,6 +192,10 @@ std::ostream& operator<<(std::ostream& ostr, const ProgramOptions& o) {
       ostr << "Reference"; break;
     case SPARSE:
       ostr << "Sparse"; break;
+    case SPARSE_HUBER:
+      ostr << "Sparse Huber"; break;
+    case SPARSE_CAUCHY:
+      ostr << "Sparse Cauchy"; break;
     case ROBUST_REF:
       ostr << "Robust Reference"; break;
     case ROBUST_SPARSE:
@@ -188,6 +206,8 @@ std::ostream& operator<<(std::ostream& ostr, const ProgramOptions& o) {
   ostr << endl;
   if (o.use_user_lambda == true)
     ostr << "Lambda: " << o.lambda << endl;
+  ostr << "Huber parameter: " << o.huber_param << endl;
+  ostr << "Cauchy parameter: " << o.cauchy_param << endl;
   ostr << "Camera position sigma: " << o.camera_position_sigma << endl;
   ostr << "Camera pose sigma: " << o.camera_pose_sigma << endl;
   ostr << "Ground control point sigma: " << o.gcp_sigma << endl;
@@ -209,6 +229,8 @@ BundleAdjustmentT string_to_ba_type(std::string &s) {
   BundleAdjustmentT t = REF;
   std::transform(s.begin(), s.end(), s.begin(), ::tolower);
   if (s == "sparse") t = SPARSE;
+  else if (s == "sparse_huber") t = SPARSE_HUBER;
+  else if (s == "sparse_cauchy") t = SPARSE_CAUCHY;
   else if (s == "robust_ref") t = ROBUST_REF;
   else if (s == "robust_sparse") t = ROBUST_SPARSE;
   return t;
@@ -223,6 +245,10 @@ std::string ba_type_to_string(BundleAdjustmentT t) {
       s = "ref"; break;
     case SPARSE:
       s = "sparse"; break;
+    case SPARSE_HUBER:
+      s = "sparse_huber"; break;
+    case SPARSE_CAUCHY:
+      s = "sparse_cauchy"; break;
     case ROBUST_REF:
       s = "robust_ref"; break;
     case ROBUST_SPARSE:
@@ -260,13 +286,22 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   ba_options.add_options()
     ("bundle-adjustment-type,b",
         po::value<std::string>(&ba_type)->default_value("ref"),
-        "Select bundle adjustment type (options are: \"ref\", \"sparse\", \"robust_ref\", \"robust_sparse\")")
+        "Select bundle adjustment type (options are: \"ref\", \"sparse\", \"sparse_huber\", \"sparse_cauchy\", \"robust_ref\", \"robust_sparse\" )")
     ("cnet,c",
         po::value<fs::path>(&opts.cnet_file),
         "Load a control network from a file")
     ("lambda,l",
         po::value<double>(&opts.lambda),
         "Set the initial value of the LM parameter lambda")
+    ("control",
+        po::value<int>(&opts.control)->default_value(0),
+        "Control variable (see set_control in BundleAdjustmentBase.h)")
+    ("huber-param",
+        po::value<double>(&opts.huber_param),
+        "Set value of Huber parameter")
+    ("cauchy-param",
+        po::value<double>(&opts.cauchy_param),
+        "Set value of Cauchy parameter")
     ("camera-position-sigma",
         po::value<double>(&opts.camera_position_sigma)->default_value(1.0),
         "Covariance constraint on camera position")
@@ -398,6 +433,12 @@ ProgramOptions parse_options(int argc, char* argv[]) {
   // Check we have at least one camera model file
   if (opts.camera_files.size() < 1) {
     cout << "Error: Must specify at least one camera model file!" << endl << endl;
+    cout << usage.str() << endl;
+    exit(1);
+  }
+
+  if (opts.control != 0 && opts.control != 1) {
+    cout << "Error: Control must be 0 or 1" << endl << endl;
     cout << usage.str() << endl;
     exit(1);
   }
@@ -870,11 +911,11 @@ void run_bundle_adjustment(AdjusterT &adjuster,
 /* }}} */
 
 /* {{{ adjust_bundles */
-template <class AdjusterT>
-void adjust_bundles(BundleAdjustmentModel &ba_model,
+template <class AdjusterT, class CostT>
+void adjust_bundles(BundleAdjustmentModel &ba_model, CostT const &cost_func,
         ProgramOptions const &config, std::string ba_type_str)
 {
-  AdjusterT bundle_adjuster(ba_model, L2Error());
+  AdjusterT bundle_adjuster(ba_model, cost_func);
   vw_out(DebugMessage) << "Running bundle adjustment" << endl;
 
   fs::path results_dir = config.results_dir;
@@ -888,6 +929,9 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
   // Set lambda if user has requested it
   if (config.use_user_lambda)
     bundle_adjuster.set_lambda(config.lambda);
+
+  // Set control as specified
+  bundle_adjuster.set_control(config.control);
 
   // Clear the monitoring text files to be used for saving camera params
   if (config.save_iteration_data)
@@ -915,12 +959,14 @@ void adjust_bundles(BundleAdjustmentModel &ba_model,
         config.camera_position_sigma, config.camera_pose_sigma, config.gcp_sigma);
 
     // Make a new adjuster
-    AdjusterT bundle_adjuster_no_outliers(ba_model_no_outliers, L2Error());
+    AdjusterT bundle_adjuster_no_outliers(ba_model_no_outliers, cost_func);
     vw_out(DebugMessage) << "Running bundle adjustment with outliers removed" << endl;
 
     // Set lambda if user has requested it
     if (config.use_user_lambda)
       bundle_adjuster_no_outliers.set_lambda(config.lambda);
+    
+    bundle_adjuster.set_control(config.control);
 
     // Configure reporter
     BundleAdjustReport<AdjusterT>
@@ -969,20 +1015,28 @@ int main(int argc, char* argv[]) {
   // Run bundle adjustment according to user-specified type
   switch (config.bundle_adjustment_type) {
     case REF:
-      adjust_bundles<BundleAdjustmentRef<BundleAdjustmentModel, L2Error> >
-        (ba_model, config, "Reference");
+      adjust_bundles<BundleAdjustmentRef<BundleAdjustmentModel, L2Error>, L2Error >
+        (ba_model, L2Error(), config, "Reference");
       break;
     case SPARSE:
-      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, L2Error> >
-        (ba_model, config, "Sparse");
+      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, L2Error>, L2Error >
+        (ba_model, L2Error(), config, "Sparse");
+      break;
+    case SPARSE_HUBER:
+      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, HuberError>, HuberError >
+        (ba_model, HuberError(config.huber_param), config, "Sparse Huber");
+      break;
+    case SPARSE_CAUCHY:
+      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, CauchyError>, CauchyError >
+        (ba_model, CauchyError(config.cauchy_param), config, "Sparse Cauchy");
       break;
     case ROBUST_REF:
-      adjust_bundles<BundleAdjustmentRobustRef<BundleAdjustmentModel, L2Error> >
-        (ba_model, config, "Robust Reference");
+      adjust_bundles<BundleAdjustmentRobustRef<BundleAdjustmentModel, L2Error>, L2Error >
+        (ba_model, L2Error(), config, "Robust Reference");
       break;
     case ROBUST_SPARSE:
-      adjust_bundles<BundleAdjustmentRobustSparse<BundleAdjustmentModel, L2Error> >
-        (ba_model, config, "Robust Sparse");
+      adjust_bundles<BundleAdjustmentRobustSparse<BundleAdjustmentModel, L2Error>, L2Error >
+        (ba_model, L2Error(), config, "Robust Sparse");
       break;
   }
   

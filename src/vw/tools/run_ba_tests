@@ -69,10 +69,12 @@ my $camera_prefix      = "noisy_camera";
 # Don't change this
 my $camera_ext         = "tsai";
 
-## Accepts: ref, sparse, robust_ref, robust sparse
+## Accepts: ref, sparse, robust_ref, robust sparse, sparse_huber,
+## sparse_cauchy, ref_control, sparse_control, robust_ref_control,
+## robust_sparse_control
 ## Append '_no_outliers' to any of the above to do a second run after
 ## eliminating outliers (> 2 std dev) from the control network
-my @ba_types = qw/sparse robust_sparse sparse_no_outliers/;
+my @ba_types = qw/sparse robust_sparse/;
 
 ## Low and high percentiles to report in result statistics
 ##
@@ -82,6 +84,12 @@ my @ba_types = qw/sparse robust_sparse sparse_no_outliers/;
 ## warnings about "uninitialized values" at line 326"
 my $percentile_low  = 25;
 my $percentile_high = 75;
+
+## Huber parameter values
+my @huber_params = ();
+
+## Cauchy parameter values
+my @cauchy_params = ();
 
 #################################################
 ##
@@ -183,6 +191,27 @@ sub mse {
     return $stat->mean();
 }
 
+sub mean_euclidean_error {
+    my $a1 = shift;
+    my $a2 = shift;
+    my $size = scalar @$a1;
+    die "Error: different size arrays passed to mean_euclidean_error()\n" unless scalar @$a2 == $size;
+    die "Error: don't have 3 coordinates for each point in mean_euclidean_error()\n" unless $size % 3 == 0;
+    my $stat = Statistics::Descriptive::Full->new();
+    my $num_wp = $size/3;
+    foreach my $i (0 .. $size-1) {
+        my @p1 = $a1->[$i .. $i+2];
+        my @p2 = $a2->[$i .. $i+2];
+        my $err = 0;
+        foreach my $j (0 .. 2) {
+            $err += ($p1[$j] - $p2[$j])**2;
+        }
+        $err = sqrt($err);
+        $stat->add_data($err);
+    }
+    return $stat->median();
+}
+
 sub read_test_plans {
     my ($test_plan_file, $num_test_plans) = @_;
     die "Error: must provide a test plan\n" unless defined $test_plan_file;
@@ -266,7 +295,17 @@ sub run_tests {
                     '-D',$test_dir,
                     '-r',$ba_report_level,
                     '-f',$test_cfg_file);
-                my $ba_type_arg = $ba_type;
+                my $ba_type_arg;
+                if ($ba_type =~ /^(sparse_(huber|cauchy))_([\d\.]+)$/) {
+                    $ba_type_arg = $1;
+                    push @ba_test_opts, ("--$2-param",$3);
+                    push @ba_test_opts, ("--control", 1);
+                } elsif ($ba_type =~ /^([\w]+)_control$/) {
+                    $ba_type_arg = $1;
+                    push @ba_test_opts, ("--control", 1);
+                } else {
+                    $ba_type_arg = $ba_type;
+                }
                 # add option for outlier removal if required (defaults to 
                 # removing outliers beyond 2 standard deviations)
                 if ($ba_type =~ /no_outliers$/) {
@@ -275,6 +314,7 @@ sub run_tests {
                 }
                 push(@ba_test_opts,'-b',$ba_type_arg);
                 my @ba_test = ($ba_test, @ba_test_opts, @camera_files);
+                print STDERR join(" ", @ba_test), "\n" if $verbose;
                 system(@ba_test) == 0 or die "@ba_test failed: $!";
             }
         }
@@ -439,6 +479,8 @@ sub print_result_stats {
 my $help = 0;
 my $man = 0;
 my $ba_type_str = '';
+my $huber_param_str = '';
+my $cauchy_param_str = '';
 GetOptions('help|?'        => \$help,
            'man'           => \$man,
            'verbose|v'     => \$verbose,
@@ -446,7 +488,9 @@ GetOptions('help|?'        => \$help,
            'num_tests|n=i' => \$num_tests,
            'pct_low|l=i'   => \$percentile_low,
            'pct_high|h=i'  => \$percentile_high,
-           'bundle_adjustment_types|b=s' => \$ba_type_str);
+           'bundle_adjustment_types|b=s' => \$ba_type_str,
+           'huber_param=s' => \$huber_param_str,
+           'cauchy_params=s' => \$cauchy_param_str);
 
 pod2usage(-verbose => 99, -sections => "USAGE") if $help;
 pod2usage(-verbose => 2) if $man;
@@ -455,6 +499,32 @@ if ($ba_type_str ne '') {
     $ba_type_str =~ s/ //;
     @ba_types = split(",",$ba_type_str);
 }
+
+if ($huber_param_str ne '') {
+    $huber_param_str =~ s/ //;
+    @huber_params = split(",",$huber_param_str);
+}
+
+if ($cauchy_param_str ne '') {
+    $cauchy_param_str =~ s/ //;
+    @cauchy_params = split(",",$cauchy_param_str);
+}
+
+my @new_ba_types = ();
+foreach my $t (@ba_types) {
+    if ($t eq 'sparse_huber' and scalar(@huber_params) > 0) {
+        foreach my $p (@huber_params) {
+            push @new_ba_types, "sparse_huber_$p";
+        }
+    } elsif ($t eq 'sparse_cauchy' and scalar(@cauchy_params) > 0) {
+        foreach my $p (@cauchy_params) {
+            push @new_ba_types, "sparse_cauchy_$p";
+        }
+    } else {
+        push @new_ba_types, $t;
+    }
+}
+@ba_types = @new_ba_types;
 
 my $num_test_plans = 0;
 my $test_plans = read_test_plans($ARGV[0], \$num_test_plans);
