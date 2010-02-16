@@ -3,14 +3,14 @@ Section: libs
 Priority: optional
 Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
 XSBC-Original-Maintainer: Mike Lundy <mike.lundy@nasa.gov>
-Build-Depends: debhelper (>= 7), cdbs, libtool, libboost-math1.40-dev, libboost-filesystem1.40-dev, libboost-program-options1.40-dev, libboost-graph1.40-dev, libboost-thread1.40-dev, libboost-iostreams1.40-dev, libz-dev, libpng-dev, libjpeg-dev, libtiff-dev, liblapack-dev, libgdal1-dev, libproj-dev
+Build-Depends: debhelper (>= 7), cdbs, libtool, libboost-math1.40-dev, libboost-filesystem1.40-dev, libboost-program-options1.40-dev, libboost-graph1.40-dev, libboost-thread1.40-dev, libboost-iostreams1.40-dev, libz-dev, libpng-dev, libjpeg-dev, libtiff-dev, liblapack-dev, libgdal1-dev, libproj-dev, texlive-latex-extra, texlive-latex-recommended, doxygen, ghostscript
 Standards-Version: 3.8.3
 Homepage: http://ti.arc.nasa.gov/project/nasa-vision-workbench/
 Vcs-Svn: http://babelfish.arc.nasa.gov/svn/visionworkbench/trunk
 
 Package: visionworkbench-dev
 Architecture: any
-Suggests: ${shlibs:Depends}, ${misc:Depends}, visionworkbench-basic-dev, visionworkbench-camera-dev, visionworkbench-interestpoint-dev, visionworkbench-mosaic-dev, visionworkbench-cartography-dev, visionworkbench-hdr-dev, visionworkbench-stereo-dev, visionworkbench-geometry-dev
+Depends: ${shlibs:Depends}, ${misc:Depends}, visionworkbench-basic-dev, visionworkbench-camera-dev, visionworkbench-interestpoint-dev, visionworkbench-mosaic-dev, visionworkbench-cartography-dev, visionworkbench-hdr-dev, visionworkbench-stereo-dev, visionworkbench-geometry-dev, vision-workbench-doc, vision-workbench-tools
 Description: most modules - development version
  The NASA Vision Workbench (VW) is a general purpose image processing
  and computer vision library implemented in C++.
@@ -84,3 +84,11 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: documentation
  The NASA Vision Workbench (VW) is a general purpose image processing
  and computer vision library implemented in C++.
+
+Package: visionworkbench-tools
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, visionworkbench-basic-dev, visionworkbench-camera-dev, visionworkbench-interestpoint-dev, visionworkbench-mosaic-dev, visionworkbench-cartography-dev, visionworkbench-hdr-dev, visionworkbench-stereo-dev, visionworkbench-geometry-dev
+Description: command-line tools
+ The NASA Vision Workbench (VW) is a general purpose image processing
+ and computer vision library implemented in C++.
+
