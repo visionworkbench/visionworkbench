@@ -95,6 +95,11 @@ doxygen:
 
 doc: workbook doxygen
 
+install-with-doc: doc install
+	mkdir -p $(DESTDIR)usr/share/doc/visionworkbench
+	cp docs/workbook/workbook.pdf $(DESTDIR)usr/share/doc/visionworkbench/
+	cp -r docs/doxygen $(DESTDIR)usr/share/doc/visionworkbench/apiReference
+
 push-coverage:
 	if test -n "$(LCOV_REMOTE_PATH)" ; then rsync -P -e ssh -r coverage/ $(LCOV_REMOTE_PATH); fi
 
