@@ -10,7 +10,7 @@ Vcs-Svn: http://babelfish.arc.nasa.gov/svn/visionworkbench/trunk
 
 Package: visionworkbench-dev
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, visionworkbench-basic-dev, visionworkbench-camera-dev, visionworkbench-interestpoint-dev, visionworkbench-mosaic-dev, visionworkbench-cartography-dev, visionworkbench-hdr-dev, visionworkbench-stereo-dev, visionworkbench-geometry-dev, vision-workbench-doc, vision-workbench-tools
+Depends: ${shlibs:Depends}, ${misc:Depends}, visionworkbench-basic-dev, visionworkbench-camera-dev, visionworkbench-interestpoint-dev, visionworkbench-mosaic-dev, visionworkbench-cartography-dev, visionworkbench-hdr-dev, visionworkbench-stereo-dev, visionworkbench-geometry-dev, visionworkbench-doc, visionworkbench-tools
 Description: most modules - development version
  The NASA Vision Workbench (VW) is a general purpose image processing
  and computer vision library implemented in C++.
