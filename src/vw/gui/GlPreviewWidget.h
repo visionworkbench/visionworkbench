@@ -141,7 +141,6 @@ namespace gui {
   
     // Image & OpenGL
     GLuint m_glsl_program;
-    bool m_draw_texture;
     bool m_show_legend;
     bool m_bilinear_filter;
     bool m_use_colormap;
@@ -153,6 +152,7 @@ namespace gui {
     // Image tiles and the texture cache
     boost::shared_ptr<TileGenerator> m_tile_generator;
     boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
+    PixelRGBA<float> m_last_pixel_sample;
 
     // Adjustment mode
     enum AdjustmentMode { TransformAdjustment, GainAdjustment, 
@@ -183,8 +183,8 @@ namespace gui {
 
     enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };
     int m_display_channel;
-    int m_colorize_display;;
-    int m_hillshade_display;;
+    int m_colorize_display;
+    int m_hillshade_display;
   };
 
 }} // namespace vw::gui

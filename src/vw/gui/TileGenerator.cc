@@ -135,7 +135,7 @@ boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(Til
 
 Vector2 TestPatternTileGenerator::minmax() { return Vector2(0.0, 1.0); }
 
-PixelRGBA<float32> TestPatternTileGenerator::sample(int x, int y) {
+PixelRGBA<float32> TestPatternTileGenerator::sample(int x, int y, int level, int transaction_id) {
   PixelRGBA<float32> result;
   return result;
 }
@@ -298,7 +298,7 @@ boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator
 
 Vector2 WebTileGenerator::minmax() { return Vector2(0.0, 1.0); }
 
-PixelRGBA<float32> WebTileGenerator::sample(int x, int y) {
+PixelRGBA<float32> WebTileGenerator::sample(int x, int y, int level, int transaction_id) {
   PixelRGBA<float32> result;
   return result;
 }
@@ -397,7 +397,7 @@ Vector2 PlatefileTileGenerator::minmax() {
 //   return tile(px_loc[0], px_loc[1]);
 // }
 
-PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y) {
+PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y, int level, int transaction_id) {
   // TileLocator tile_loc;
   // tile_loc.col = floor(x/this->tile_size[0]);
   // tile_loc.row = floor(y/this->tile_size[1]);
@@ -406,7 +406,7 @@ PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y) {
   //                  y % this->tile_size[1]);
 
   try {
-    return PixelRGBA<float32>();
+    return PixelRGBA<float32>(1.0, 0.0, 0.0, 1.0);
     //    VW_DELEGATE_BY_PIXEL_TYPE(sample_tile_impl, tile_loc, px_loc)
   } catch (platefile::TileNotFoundErr &e) {
     ImageView<PixelGrayA<uint8> > blank_tile(1,1);
@@ -606,7 +606,7 @@ Vector2 ImageTileGenerator::minmax() {
   return Vector2(0,1.0); // TODO: Implement this properly
 }
 
-PixelRGBA<float32> ImageTileGenerator::sample(int x, int y) {
+PixelRGBA<float32> ImageTileGenerator::sample(int x, int y, int level, int transaction_id) {
   PixelRGBA<float32> result; // TODO: Implement this properly
   return result;
 }

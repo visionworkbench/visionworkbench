@@ -156,7 +156,6 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_image_max = 1.0;
 
   // Set some reasonable defaults
-  m_draw_texture = true;
   m_show_legend = false;
   m_bilinear_filter = true;
   m_use_colormap = false;
@@ -542,12 +541,15 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
   if (currentImagePos.x() >= 0 && currentImagePos.x() < m_tile_generator->cols() &&
       currentImagePos.y() >= 0 && currentImagePos.y() < m_tile_generator->rows()) {
 
+
+    // Note: we sample directly from the OpenGL texture buffer for
+    // now, but eventually we would prefer to sample the actual value
+    // from the tile_generator itself.
     float raw_pixels[4];
     glReadPixels(lastPos.x(),m_viewport_height-lastPos.y(),
                  1,1,GL_RGBA,GL_FLOAT,&raw_pixels);
     PixelRGBA<float32> pix_value(raw_pixels[0], raw_pixels[1], raw_pixels[2], raw_pixels[3]);
-
-    
+    //    PixelRGBA<float32> pix_value = m_last_pixel_sample;
     
     const char* pixel_name = vw::pixel_format_name(m_tile_generator->pixel_format());
     const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
@@ -763,8 +765,11 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
   update();
 }
 
-void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent * /*event*/) {
-  m_draw_texture = !m_draw_texture;
+void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+  lastPos = event->pos();
+  updateCurrentMousePosition();
+  m_last_pixel_sample = m_tile_generator->sample(currentImagePos.x(), currentImagePos.y(),
+                                                 m_current_level, m_current_transaction_id);
   update();
 }
 

@@ -56,7 +56,7 @@ namespace gui {
     virtual ~TileGenerator() {}
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
     virtual Vector2 minmax() = 0;
-    virtual PixelRGBA<float> sample(int x, int y) = 0;
+    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id) = 0;
 
     virtual int cols() const = 0;
     virtual int rows() const = 0;
@@ -83,7 +83,7 @@ namespace gui {
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y);
+    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 
     virtual int cols() const;
     virtual int rows() const;
@@ -152,7 +152,7 @@ namespace gui {
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y);
+    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 
     virtual int cols() const;
     virtual int rows() const;
@@ -176,7 +176,7 @@ namespace gui {
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y);
+    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 
     virtual int cols() const;
     virtual int rows() const;
@@ -197,7 +197,7 @@ namespace gui {
   public:
     ImageTileGenerator(std::string filename);
     virtual ~ImageTileGenerator() {}
-    virtual PixelRGBA<float> sample(int x, int y);
+    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
