@@ -38,7 +38,7 @@ BBox2i vw::gui::tile_to_bbox(Vector2i tile_size, int col, int row, int level, in
   }
 }
   
-std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level, int transaction_id) {
+std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level, int transaction_id, bool exact_transaction_id_match) {
   std::list<TileLocator> results;
 
   // Compute the bounding box at the current level.
@@ -66,6 +66,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
       loc.row = tile_y;
       loc.level = level;
       loc.transaction_id = transaction_id;
+      loc.exact_transaction_id_match = exact_transaction_id_match;
       results.push_back(loc);
         
       ++tile_x;
@@ -170,9 +171,13 @@ HttpDownloadThread::~HttpDownloadThread() {
     delete m_http;
 }
 
-int HttpDownloadThread::get(std::string url_string) {
+int HttpDownloadThread::get(std::string url_string, int transaction_id,
+                            bool exact_transaction_id_match) {
   Mutex::Lock lock(m_mutex);
   QUrl url(url_string.c_str());
+
+  std::cout << "URL STRING: " << url.toString().toStdString() << "\n";
+  std::cout << "URL FRAG: " << url.fragment().toStdString() << "\n";
 
   /// XXX: Hard coding file_type as PNG for now. FIXME!!!!
   std::string file_type = "png";
@@ -185,7 +190,14 @@ int HttpDownloadThread::get(std::string url_string) {
     RequestBuffer buf;
     buf.file_type = file_type;
     buf.url = url_string;
-    request_id = m_http->get (url.path(),buf.buffer.get());
+
+    std::ostringstream path_with_opts;
+    path_with_opts << url.path().toStdString() << "?nocache=1&transaction_id=" << transaction_id;
+    if (exact_transaction_id_match)
+      path_with_opts << "&exact=1";
+    vw_out() << "\t --> Fetching " << path_with_opts.str() << "\n";
+    QString final_path_str(path_with_opts.str().c_str());
+    request_id = m_http->get (final_path_str, buf.buffer.get());
     m_requests[request_id] = buf;
     m_current_request = request_id;
   }
@@ -274,10 +286,10 @@ boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator
   std::ostringstream full_url;
   full_url << m_url << "/" << tile_info.level 
            << "/" << tile_info.col 
-           << "/" << tile_info.row << ".png?nocache=1";
-  int request_id = m_download_thread.get(full_url.str());
-  std::cout << "Requesting: " << full_url.str() << "\n";
-
+           << "/" << tile_info.row << ".png";
+  int request_id = m_download_thread.get(full_url.str(), 
+                                         tile_info.transaction_id,
+                                         tile_info.exact_transaction_id_match);
   while(!m_download_thread.result_available(request_id));
 
   vw::ImageView<vw::PixelRGBA<float> > result = m_download_thread.pop_result(request_id);
@@ -409,9 +421,11 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
   try {
 
     IndexRecord rec = platefile->read_record(tile_info.col, tile_info.row, 
-                                             tile_info.level, tile_info.transaction_id);
+                                             tile_info.level, tile_info.transaction_id,
+                                             tile_info.exact_transaction_id_match);
     platefile->read(tile, tile_info.col, tile_info.row, 
-                    tile_info.level, tile_info.transaction_id);
+                    tile_info.level, tile_info.transaction_id,
+                    tile_info.exact_transaction_id_match);
 
   } catch (platefile::TileNotFoundErr &e) {
 

@@ -171,6 +171,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_offset = 0.0;
   m_gamma = 1.0;
   m_current_transaction_id = -1;
+  m_exact_transaction_id_match = false;
   
   // Set mouse tracking
   this->setMouseTracking(true);
@@ -421,7 +422,7 @@ void GlPreviewWidget::drawImage() {
   if (level > max_level) level = max_level;
   m_current_level = level;
 
-  std::list<TileLocator> tiles = bbox_to_tiles(tile_size, m_current_viewport, level, max_level, m_current_transaction_id);
+  std::list<TileLocator> tiles = bbox_to_tiles(tile_size, m_current_viewport, level, max_level, m_current_transaction_id, m_exact_transaction_id_match);
   std::list<TileLocator>::iterator tile_iter = tiles.begin();
 
   while (tile_iter != tiles.end()) {
@@ -814,6 +815,11 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     break;
   case Qt::Key_Minus:  // Decrease transaction id
     m_current_transaction_id--;
+    m_gl_texture_cache->clear();
+    update();
+    break;
+  case Qt::Key_E:  // Toggle exact transaction id match
+    m_exact_transaction_id_match = !m_exact_transaction_id_match;
     m_gl_texture_cache->clear();
     update();
     break;

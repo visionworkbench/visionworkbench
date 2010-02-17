@@ -31,6 +31,7 @@ namespace gui {
     int row;
     int level;
     int transaction_id;
+    bool exact_transaction_id_match;
 
     bool is_valid() const {
       return (col >= 0 && row >= 0 && col < pow(2, level) && row < pow(2, level));
@@ -43,7 +44,8 @@ namespace gui {
   BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level);
   
   std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, 
-                                       int max_level, int transaction_id);
+                                       int max_level, int transaction_id, 
+                                       bool exact_transaction_id_match);
 
   // --------------------------------------------------------------------------
   //                              TILE GENERATOR
@@ -125,7 +127,7 @@ namespace gui {
   public:
     HttpDownloadThread();
     virtual ~HttpDownloadThread();
-    int get(std::string url);
+    int get(std::string url, int transaction_id, bool exact_transaction_id_match);
     bool result_available(int request_id);
     vw::ImageView<vw::PixelRGBA<float> > pop_result(int request_id);
   public slots:

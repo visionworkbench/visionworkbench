@@ -178,6 +178,7 @@ namespace gui {
     float m_offset;
     float m_gamma;
     int m_current_transaction_id;
+    bool m_exact_transaction_id_match;
     int m_current_level;
 
     enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };

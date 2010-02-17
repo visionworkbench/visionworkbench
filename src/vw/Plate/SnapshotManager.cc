@@ -107,8 +107,10 @@ void vw::platefile::SnapshotManager<PixelT>::snapshot(int level, BBox2i const& t
 
       // Check to see if the second entry is the start_transaction_id.
       // If this is the case, then we can safely skip the first tile
-      // since it will have already been incorporated into the
-      // previous snapshot.
+      // (which is then assumed to be the "additional_entry" that
+      // falls earlier than the given transaction range."  since it
+      // will have already been incorporated into the previous
+      // snapshot.
       bool ignore_additional_entry = false;
       if (tiles_at_location.size() >= 2) {
         std::list<TileHeader>::reverse_iterator lowest_tid_iter = tiles_at_location.rbegin();
