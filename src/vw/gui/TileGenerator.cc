@@ -426,7 +426,6 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
 
   } catch (platefile::TileNotFoundErr &e) {
 
-    std::cout << "Tile not found...\n";
     ImageView<PixelRGBA<uint8> > blank_tile(1,1);
     blank_tile(0,0) = PixelRGBA<uint8>(0, 20, 0, 255);
     return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
