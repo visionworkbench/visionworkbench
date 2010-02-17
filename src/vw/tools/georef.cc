@@ -19,8 +19,6 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#define VW_DEBUG_LEVEL 2
-
 #include <vw/Core/Cache.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Math/Matrix.h>
@@ -43,7 +41,6 @@ int main( int argc, char *argv[] ) {
   double east_lon=180.0, west_lon=-180.0;
   double proj_lat=0, proj_lon=0, proj_scale=1;
   unsigned utm_zone;
-  unsigned cache_size;
   double nudge_x=0, nudge_y=0;
 
   po::options_description general_options("General Options");
@@ -51,7 +48,6 @@ int main( int argc, char *argv[] ) {
     ("output-file,o", po::value<std::string>(&output_filename)->default_value("output.tif"), "Specify the base output filename")
     ("quiet,q", "Quiet output")
     ("verbose,v", "Verbose output")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
     ("help,h", "Display this help message");
 
   po::options_description projection_options("Projection Options");

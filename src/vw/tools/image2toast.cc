@@ -40,7 +40,6 @@ int main(int argc, char **argv) {
   int tile_size;
   float jpeg_quality;
   int png_compression;
-  unsigned cache_size;
   std::vector<std::string> image_files;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
@@ -50,7 +49,6 @@ int main(int argc, char **argv) {
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -93,7 +91,6 @@ int main(int argc, char **argv) {
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
-  vw_system_cache().resize( cache_size*1024*1024 );
 
   std::vector<DiskImageView<PixelRGBA<uint8> > > images;
   std::vector<GeoReference> georefs;

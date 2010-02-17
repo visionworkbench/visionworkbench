@@ -36,7 +36,6 @@ using namespace vw;
 
 std::string mosaic_name;
 std::string file_type;
-unsigned int cache_size;
 int tile_size;
 bool draft;
 bool qtree;
@@ -97,8 +96,6 @@ int main( int argc, char *argv[] ) {
        "Output file type")
       ("tile-size", po::value<int>(&tile_size)->default_value(256), 
        "Tile size, in pixels")
-      ("cache", po::value<unsigned>(&cache_size)->default_value(1024), 
-       "Cache size, in megabytes")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
       ("grayscale", "Process in grayscale only")
@@ -134,8 +131,6 @@ int main( int argc, char *argv[] ) {
       std::cout << desc << std::endl;
       return 1;
     }
-
-    vw_system_cache().resize( cache_size*1024*1024 );
 
     if( vm.count("grayscale") ) {
       do_blend<PixelGrayA<float> >();

@@ -61,7 +61,6 @@ int utm_zone;
 int tile_size;
 float jpeg_quality;
 int png_compression;
-unsigned cache_size;
 std::string palette_file;
 std::string channel_type_str;
 float palette_scale=1.0, palette_offset=0.0;
@@ -151,7 +150,6 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
-  vw_system_cache().resize( cache_size*1024*1024 );
 
   // Read in georeference info and compute total resolution.
   GeoReference output_georef;
@@ -502,7 +500,6 @@ int main(int argc, char **argv) {
     ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
     ("quiet,q", "Quiet output")
     ("verbose,v", "Verbose output")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
     ("help,h", "Display this help message");
 
   po::options_description input_options("Input Options");

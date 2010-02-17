@@ -42,7 +42,6 @@ std::vector<std::string> image_files;
 std::string mosaic_name;
 std::string output_file_type;
 std::string channel_type_str;
-unsigned cache_size;
 bool draft;
 unsigned int tilesize;
 bool tile_output = false;
@@ -298,7 +297,6 @@ int main( int argc, char *argv[] ) {
       ("tiled-tiff", po::value<unsigned int>(&tilesize)->default_value(0), "Output a tiled TIFF image, with given tile size (0 disables, TIFF only)")
       ("patch-size", po::value<unsigned int>(&patch_size)->default_value(256), "Patch size for tiled output, in pixels")
       ("patch-overlap", po::value<unsigned int>(&patch_overlap)->default_value(0), "Patch overlap for tiled output, in pixels")
-      ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Cache size, in megabytes")
       ("draft", "Draft mode (no blending)")
       ("ignore-alpha", "Ignore the alpha channel of the input images, and don't write an alpha channel in output.")
       ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output (when there's no alpha channel)")
@@ -372,8 +370,6 @@ int main( int argc, char *argv[] ) {
     }
 
     if(vm.count("nodata-value")) has_nodata_value = true;
-
-    vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
     DiskImageResource *first_resource = DiskImageResource::open(image_files[0]);
     ChannelTypeEnum channel_type = first_resource->channel_type();
