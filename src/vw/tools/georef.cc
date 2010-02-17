@@ -14,7 +14,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
-#include <iostream> 
+#include <iostream>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -114,8 +114,6 @@ int main( int argc, char *argv[] ) {
     set_debug_level(WarningMessage);
   }
 
-  vw_system_cache().resize( cache_size*1024*1024 );
-
   GeoReference output_georef;
   output_georef.set_well_known_geogcs("WGS84");
 
@@ -126,8 +124,7 @@ int main( int argc, char *argv[] ) {
   GeoReference georef;
   if( vm.count("copy") ) {
     read_georeference( georef, copy_filename );
-  }
-  else {
+  } else {
     read_georeference( georef, file_resource );
   }
 
@@ -141,8 +138,8 @@ int main( int argc, char *argv[] ) {
       georef = GeoReference();
       georef.set_well_known_geogcs("WGS84");
     }
-    vw_out() << east_lon << " to " << west_lon << " E, "
-             << south_lat << " to " << north_lat << " N." << std::endl;
+    vw_out() << east_lon << " E to " << west_lon << " W, "
+             << south_lat << " S to " << north_lat << " N." << std::endl;
 
     Matrix3x3 m;
     m(0,0) = (east_lon - west_lon) / file_resource.cols();
