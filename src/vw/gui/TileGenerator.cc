@@ -420,16 +420,15 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
   ImageView<PixelT> tile(1,1);
   try {
 
-    IndexRecord rec = platefile->read_record(tile_info.col, tile_info.row, 
-                                             tile_info.level, tile_info.transaction_id,
-                                             tile_info.exact_transaction_id_match);
     platefile->read(tile, tile_info.col, tile_info.row, 
                     tile_info.level, tile_info.transaction_id,
                     tile_info.exact_transaction_id_match);
 
   } catch (platefile::TileNotFoundErr &e) {
 
-    ImageView<PixelGrayA<uint8> > blank_tile(1,1);
+    std::cout << "Tile not found...\n";
+    ImageView<PixelRGBA<uint8> > blank_tile(1,1);
+    blank_tile(0,0) = PixelRGBA<uint8>(0, 20, 0, 255);
     return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
 
   } catch (vw::IOErr &e) {

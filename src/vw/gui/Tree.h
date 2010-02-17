@@ -221,7 +221,7 @@ namespace gui {
 
     /// Use this constructor for the root of the tree....
     TreeNode() : m_parent(0), m_num_levels(0) {
-      m_records[0] = ElementT();
+      //      m_records[0] = ElementT();
       m_children.resize(4);
     }
 

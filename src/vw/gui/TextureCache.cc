@@ -205,8 +205,10 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     // but this node does not itself contain any data yet.  To
     // populate it with data, we throw an exception to run the code
     // below.
-    if ( !rec )
+    if ( !rec ) {
+      std::cout << "Invalid record...\n";
       vw_throw(gui::TileNotFoundErr() << "invalid record. regenerating...");
+    }
 
     // If the texture_id of this record is 0, then we need to send a
     // request to regenerate the texture.  It will get rendered in the

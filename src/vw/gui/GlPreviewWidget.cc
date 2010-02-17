@@ -243,6 +243,9 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+
+  vw_out(VerboseDebugMessage, "gui") << "Allocating texture for " 
+                                     << tile->cols() << "x" << tile->rows() << " sized tile.\n";
   
   // std::cout << "This image has " << tile->channels() << " channels\n";
   // std::cout << "           ond " << tile->channel_type() << " channel type\n";
