@@ -387,8 +387,8 @@ void GlPreviewWidget::drawImage() {
   glUseProgram(0);
   
   // Set the background color and viewport.
-  //  qglClearColor(QColor(0, 25, 50)); // Bluish-green background
-  qglClearColor(QColor(0, 0, 0)); // Black background
+  qglClearColor(QColor(0, 25, 50)); // Bluish-green background
+  //qglClearColor(QColor(0, 0, 0)); // Black background
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_viewport_width,m_viewport_height);
     

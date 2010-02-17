@@ -299,8 +299,14 @@ int main( int argc, char *argv[] ) {
       case VW_PIXEL_RGBA:
         switch(platefile->channel_type()) {
         case VW_CHANNEL_UINT8:  
-          do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                    image_files[i], transaction_id_override, georef, output_mode);
+          if (has_nodata_value)
+            do_mosaic(platefile, 
+                      pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
+                                                                              nodata_value))),
+                      image_files[i], transaction_id_override, georef, output_mode);
+          else
+            do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
+                      image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
           vw_out() << "Platefile contains a channel type not supported by image2plate.\n";
