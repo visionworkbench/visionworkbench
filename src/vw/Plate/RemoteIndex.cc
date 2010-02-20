@@ -19,9 +19,9 @@ using namespace vw::platefile;
 // A dummy method for passing to the RPC calls below.
 static void null_closure() {}
 
-// Parse a URL with the format: pf://<exchange>/<platefile name>.plate
+// Parse a URL with the format: pf://<routing_key>/<platefile name>.plate
 void parse_url(std::string const& url, std::string &hostname, int &port, 
-               std::string &exchange, std::string &platefile_name) {
+               std::string &routing_key, std::string &platefile_name) {
     if (url.find("pf://") != 0) {
       vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
     } else {
@@ -35,13 +35,13 @@ void parse_url(std::string const& url, std::string &hostname, int &port,
         hostname = "localhost"; // default to localhost
         port = 5672;            // default rabbitmq port
 
-        exchange = split_vec[0];
+        routing_key = split_vec[0];
         platefile_name = split_vec[1];
 
       // No hostname was specified: pf://<ip address>:<port>/<routing_key>/<platefilename>.plate
       } else if (split_vec.size() == 3) {
 
-        exchange = split_vec[1];
+        routing_key = split_vec[1];
         platefile_name = split_vec[2];
 
         std::vector<std::string> host_port_vec;
