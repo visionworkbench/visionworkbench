@@ -95,6 +95,14 @@ class PlateModule {
     const boost::shared_ptr<Blob> get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const;
     void sync_index_cache() const;
 
+    std::ostream& logger(MessageLevel level, bool child_id = true) const {
+      std::ostream& out = vw_out(level, "plate.apache");
+
+      if (child_id)
+        out << "Child[" << m_queue_name << "]: ";
+      return out;
+    }
+
   private:
     boost::shared_ptr<AmqpRpcClient> m_client;
     boost::shared_ptr<IndexService>  m_index_service;
@@ -107,6 +115,7 @@ class PlateModule {
     // We don't manage the data, and I think apache might modify it behind the scenes.
     // As such, mark it volatile.
     volatile const plate_config *m_conf;
+    std::string m_queue_name;
 };
 
 namespace {
@@ -140,8 +149,8 @@ void query_to_map(QueryMap& keyval, const char* query) {
   if (!query)
     return;
 
-  vw_out(VerboseDebugMessage, "plate.apache") << "Parsing query string: " << query << std::endl
-                                              << "Result:" << std::endl;
+  //logger(VerboseDebugMessage) << "Parsing query string: " << query << std::endl
+  //                            << "Result:" << std::endl;
 
   std::vector<std::string> items;
   boost::split(items, query, boost::is_any_of(";&"));
@@ -157,9 +166,8 @@ void query_to_map(QueryMap& keyval, const char* query) {
     keyval[url_unquote(item.substr(0, eq))] = url_unquote(item.substr(eq+1));
   }
 
-  BOOST_FOREACH( const QueryMap::value_type &i, keyval )
-    vw_out(VerboseDebugMessage, "plate.apache") << "\t" << i.first << "[" << i.second << "]" << std::endl;
-  vw_out(VerboseDebugMessage, "plate.apache") << std::endl;
+  //BOOST_FOREACH( const QueryMap::value_type &i, keyval )
+  //  logger(VerboseDebugMessage) << "\t" << i.first << "[" << i.second << "]" << std::endl;
 }
 
 class apache_output : public boost::iostreams::sink {
@@ -179,10 +187,10 @@ struct raii {
   ~raii() {m_leave();}
 };
 
-static int log_headers(void *null, const char *key, const char *value) {
-  vw_out(VerboseDebugMessage, "plate.apache") << "\t" << key << "[" << value << "]" << std::endl;
-  return 1;
-}
+//static int log_headers(void *null, const char *key, const char *value) {
+//  logger(VerboseDebugMessage) << "\t" << key << "[" << value << "]" << std::endl;
+//  return 1;
+//}
 
 
 // ---------------------------------------------------
@@ -202,8 +210,8 @@ int handle_image(request_rec *r, const std::string& url) {
   QueryMap query;
   query_to_map(query, r->args);
 
-  vw_out(VerboseDebugMessage, "plate.apache") << "Request Headers: " << std::endl;
-  apr_table_do(log_headers, 0, r->headers_in, NULL);
+  //logger(VerboseDebugMessage) << "Request Headers: " << std::endl;
+  //apr_table_do(log_headers, 0, r->headers_in, NULL);
 
   int id    = boost::lexical_cast<int>(match[1]),
       level = boost::lexical_cast<int>(match[2]),
@@ -211,17 +219,17 @@ int handle_image(request_rec *r, const std::string& url) {
       row   = boost::lexical_cast<int>(match[4]);
   std::string format = boost::lexical_cast<std::string>(match[5]);
 
-  vw_out(DebugMessage, "plate.apache") << "Request Image: id["  << id
-                                                 << "] level["  << level
-                                                 << "] col["    << col
-                                                 << "] row["    << row
-                                                 << "] format[" << format << "]" << std::endl;
+  mod_plate().logger(DebugMessage) << "Request Image: id["  << id
+                                   << "] level["  << level
+                                   << "] col["    << col
+                                   << "] row["    << row
+                                   << "] format[" << format << "]" << std::endl;
 
   PlateModule::IndexCache::const_iterator index_i = mod_plate().get_index().find(id);
 
   if (index_i == mod_plate().get_index().end()) {
     // If we get an unknown platefile, resync just to make sure
-    vw_out(WarningMessage, "plate.apache") << "Platefile not in platefile cache. Resyncing." << std::endl;
+    mod_plate().logger(WarningMessage) << "Platefile not in platefile cache. Resyncing." << std::endl;
     mod_plate().sync_index_cache();
 
     index_i = mod_plate().get_index().find(id);
@@ -245,7 +253,7 @@ int handle_image(request_rec *r, const std::string& url) {
       exact = false;
     }
 
-    vw_out(VerboseDebugMessage, "plate.apache") << "Sending tile read_request with transaction[" << transaction_id << "] and exact[" << exact << "]" << std::endl;;
+    mod_plate().logger(VerboseDebugMessage) << "Sending tile read_request with transaction[" << transaction_id << "] and exact[" << exact << "]" << std::endl;;
     idx_record = index.index->read_request(col,row,level,transaction_id,exact);
   } catch(const TileNotFoundErr &) {
       throw;
@@ -281,11 +289,11 @@ int handle_image(request_rec *r, const std::string& url) {
   vw::uint64 offset, size;
 
   try {
-    vw_out(VerboseDebugMessage, "plate.apache") << "Fetching blob" << std::endl;
+    mod_plate().logger(VerboseDebugMessage) << "Fetching blob" << std::endl;
     // Grab a blob from the blob cache by filename
     boost::shared_ptr<Blob> blob = mod_plate().get_blob(id, index.filename, idx_record.blob_id());
 
-    vw_out(VerboseDebugMessage, "plate.apache") << "Fetching data from blob" << std::endl;
+    mod_plate().logger(VerboseDebugMessage) << "Fetching data from blob" << std::endl;
     // And calculate the sendfile(2) parameters
     blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
 
@@ -311,8 +319,8 @@ int handle_image(request_rec *r, const std::string& url) {
   else if (sent != size)
     vw_throw(ServerError() << "ap_send_fd: short write (expected to send " << size << " bytes, but only sent " << sent);
 
-  vw_out(VerboseDebugMessage, "plate.apache") << "Reply Headers: " << std::endl;
-  apr_table_do(log_headers, 0, r->headers_out, NULL);
+  //logger(VerboseDebugMessage) << "Reply Headers: " << std::endl;
+  //apr_table_do(log_headers, 0, r->headers_out, NULL);
 
   return OK;
 }
@@ -396,7 +404,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
   mod_plate().sync_index_cache();
 
   apache_stream out(r);
-  vw_out(DebugMessage, "plate.apache") << "Served WTML[" << filename << "]" << std::endl;
+  mod_plate().logger(DebugMessage) << "Served WTML[" << filename << "]" << std::endl;
 
   //WTMLImageSet lalt, mdim2, mdim1, mola;
 
@@ -434,7 +442,11 @@ int handle_wtml(request_rec *r, const std::string& url) {
   return OK;
 }
 
-PlateModule::PlateModule(const server_rec *s) : m_connected(false), m_conf(get_plate_config(s)) {
+PlateModule::PlateModule(const server_rec *s)
+  : m_connected(false), m_conf(get_plate_config(s)),
+    m_queue_name(AmqpRpcClient::UniqueQueueName("mod_plate"))
+{
+
   // Disable the config file
   vw::vw_settings().set_rc_filename("");
 
@@ -451,9 +463,9 @@ PlateModule::PlateModule(const server_rec *s) : m_connected(false), m_conf(get_p
   }
 
   // And log to stderr, which will go to the apache error log
-  vw_log().set_console_stream(std::cerr, rules, false);
+  vw_log().set_console_stream(std::cerr, rules, true);
 
-  vw_out(DebugMessage, "plate.apache") << "child startup" << std::endl;
+  logger(DebugMessage) << "child startup" << std::endl;
 }
 
 void PlateModule::connect_index() {
@@ -462,21 +474,22 @@ void PlateModule::connect_index() {
       return;
 
   // Create the necessary services
-  std::string queue_name = AmqpRpcClient::UniqueQueueName("mod_plate");
-
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(m_conf->rabbit_ip));
 
-  m_client.reset( new AmqpRpcClient(conn, m_conf->index_exchange, queue_name, m_conf->index_routing) );
+  m_client.reset( new AmqpRpcClient(conn, m_conf->index_exchange, m_queue_name, m_conf->index_routing) );
 
   // Needs to respond in five seconds
   m_client->timeout(1000);
   m_client->tries(5);
 
   m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
-  m_client->bind_service(m_index_service, queue_name);
+  m_client->bind_service(m_index_service, m_queue_name);
 
   m_connected = true;
-  vw_out(DebugMessage, "plate.apache") << "child connected to rabbitmq" << std::endl;
+  logger(DebugMessage) << "child connected to rabbitmq[ " << m_conf->rabbit_ip
+                       << "] exchange [" << m_conf->index_exchange
+                       << "] route ["    << m_conf->index_routing
+                       << "]" << std::endl;
 }
 
 PlateModule::~PlateModule() {}
@@ -541,6 +554,8 @@ void PlateModule::sync_index_cache() const {
 
     try {
         std::string index_url = std::string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_exchange + "/" + name;
+        logger(VerboseDebugMessage) << "Trying to load index: " << index_url << std::endl;
+
         entry.index = Index::construct_open(index_url);
         const IndexHeader& hdr = entry.index->index_header();
 
@@ -550,12 +565,12 @@ void PlateModule::sync_index_cache() const {
         entry.description = (hdr.has_description() && ! hdr.description().empty()) ? hdr.description() : entry.shortname + "." + vw::stringify(entry.read_cursor);
         id                = hdr.platefile_id();
     } catch (const vw::Exception& e) {
-        vw_out(ErrorMessage, "plate.apache") << "Tried to add " << name << " to the index cache, but failed: " << e.what() << std::endl;
+        logger(ErrorMessage) << "Tried to add " << name << " to the index cache, but failed: " << e.what() << std::endl;
         continue;
     }
 
     index_cache[id] = entry;
-    vw_out(DebugMessage, "plate.apache") << "Adding " << entry.shortname << " to index cache [cursor=" << entry.read_cursor << "]" << std::endl;
+    logger(DebugMessage) << "Adding " << entry.shortname << " to index cache [cursor=" << entry.read_cursor << "]" << std::endl;
   }
 }
 
