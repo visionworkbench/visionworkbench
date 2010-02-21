@@ -233,10 +233,11 @@ int main( int argc, char *argv[] ) {
     progress.report_finished();
   }
 
-  //std::cout << "GRAY: " << min_gray << " - " << max_gray << std::endl;
-  //std::cout << "IR:   " << min_i << " - " << max_i << std::endl;
-  //std::cout << "RED:  " << min_r << " - " << max_r << std::endl;
-  //std::cout << "BLUE: " << min_b << " - " << max_b << std::endl;
+  std::cout << "Pixel ranges:\n";
+  std::cout << "\tGRAY: " << min_gray << " - " << max_gray << std::endl;
+  std::cout << "\tIR:   " << min_i << " - " << max_i << std::endl;
+  std::cout << "\tRED:  " << min_r << " - " << max_r << std::endl;
+  std::cout << "\tBLUE: " << min_b << " - " << max_b << std::endl;
 
   // Add the transformed input files to the composite
   ImageComposite<PixelRGBA<uint8> > composite;
