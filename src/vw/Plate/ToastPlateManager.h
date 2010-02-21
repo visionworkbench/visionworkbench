@@ -24,6 +24,7 @@
 
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/algorithm/string.hpp>
 namespace fs = boost::filesystem;
 
 namespace vw {
@@ -186,11 +187,11 @@ namespace platefile {
       ImageViewRef<typename ViewT::pixel_type> toast_view = 
         transform(image,toast_tx, ZeroEdgeExtension(),BicubicInterpolation());
 
-      if( georef.proj4_str()=="+proj=longlat" &&
-          fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-          fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
-          fabs(georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-          fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1 ) {
+      if( (boost::trim_copy(georef.proj4_str())=="+proj=longlat") &&
+          (fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1) &&
+          (fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1) &&
+          (fabs(georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1) &&
+          (fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1) ) {
         vw_out() << "\t--> Detected global overlay.  " 
                   << "Using cylindrical edge extension to hide the seam.\n";
         toast_view = transform(image,toast_tx,
