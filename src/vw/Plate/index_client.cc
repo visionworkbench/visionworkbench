@@ -69,7 +69,7 @@ struct RPC {
   boost::shared_ptr<IndexService>  service;
   RPC() {
     boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-    client.reset(  new AmqpRpcClient(conn, INDEX_EXCHANGE, queue_name(), "index") );
+    client.reset(  new AmqpRpcClient(conn, DEV_INDEX, queue_name(), "index") );
     service.reset( new IndexService::Stub(client.get() ) );
     client->bind_service(service, queue_name());
   }

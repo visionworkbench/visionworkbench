@@ -41,6 +41,7 @@
 #include <google/protobuf/service.h>
 
 #include "mod_plate_io.h"
+#include "common.h"
 
 using namespace vw;
 using namespace vw::platefile;
@@ -476,7 +477,9 @@ void PlateModule::connect_index() {
   // Create the necessary services
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(m_conf->rabbit_ip));
 
-  m_client.reset( new AmqpRpcClient(conn, m_conf->index_exchange, m_queue_name, m_conf->index_routing) );
+  std::string exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + m_conf->index_exchange;
+
+  m_client.reset( new AmqpRpcClient(conn, exchange, m_queue_name, "index") );
 
   // Needs to respond in five seconds
   m_client->timeout(1000);
@@ -486,10 +489,8 @@ void PlateModule::connect_index() {
   m_client->bind_service(m_index_service, m_queue_name);
 
   m_connected = true;
-  logger(DebugMessage) << "child connected to rabbitmq[ " << m_conf->rabbit_ip
-                       << "] exchange [" << m_conf->index_exchange
-                       << "] route ["    << m_conf->index_routing
-                       << "]" << std::endl;
+  logger(DebugMessage) << "child connected to rabbitmq[" << m_conf->rabbit_ip
+                       << "] exchange[" << exchange << "]" << std::endl;
 }
 
 PlateModule::~PlateModule() {}
@@ -553,7 +554,7 @@ void PlateModule::sync_index_cache() const {
     int32 id;
 
     try {
-        std::string index_url = std::string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_routing + "/" + name;
+        std::string index_url = std::string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_exchange + "/" + name;
         logger(VerboseDebugMessage) << "Trying to load index: " << index_url << std::endl;
 
         entry.index = Index::construct_open(index_url);

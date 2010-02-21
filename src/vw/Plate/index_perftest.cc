@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
   std::string queue_name = "index_perftest_queue";
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-  boost::shared_ptr<AmqpRpcClient> rpc_controller( new AmqpRpcClient(conn, INDEX_EXCHANGE, 
+  boost::shared_ptr<AmqpRpcClient> rpc_controller( new AmqpRpcClient(conn, DEV_INDEX,
                                                                      queue_name, "index") );
   boost::shared_ptr<IndexService> index_service( new IndexService::Stub(rpc_controller.get() ) );
   rpc_controller->bind_service(index_service, queue_name);

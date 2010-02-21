@@ -8,8 +8,12 @@
 #ifndef __VW_PLATE_COMMON_H__
 #define __VW_PLATE_COMMON_H__
 
-#define INDEX_NAMESPACE    "ngt.platefile"
-#define INDEX_EXCHANGE     INDEX_NAMESPACE ".index"
-#define INDEX_MGR_EXCHANGE INDEX_NAMESPACE ".mgr"
+#define PLATE_EXCHANGE_NAMESPACE "ngt.platefile"
+
+#define DEV_INDEX_BARE  "index"
+#define PROD_INDEX_BARE "production"
+
+#define DEV_INDEX       PLATE_EXCHANGE_NAMESPACE "." DEV_INDEX_BARE
+#define PROD_INDEX      PLATE_EXCHANGE_NAMESPACE "." PROD_INDEX_BARE
 
 #endif

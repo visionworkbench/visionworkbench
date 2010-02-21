@@ -63,23 +63,41 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
   return NULL;
 }
 
-#define ADD_STRING_CONFIG(key) \
+#define ADD_STRING_CONFIG(key, check) \
   static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
     plate_config *cfg = get_plate_config_mutable(cmd->server);\
     cfg->key = arg;\
+    const char *error = check(arg);\
+    if (error)\
+      return error;\
     ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);\
     return NULL;\
   }
 
-ADD_STRING_CONFIG(rabbit_ip);
-ADD_STRING_CONFIG(index_exchange);
-ADD_STRING_CONFIG(index_routing);
+const char* is_ip_address(const char* arg) {
+    // really stupid heuristic
+    if (!arg)
+        return "Expected an IP address: cannot be null";
+    if (arg[0] < '0' || arg[0] > '9')
+        return "Expected an IP address: should have a leading number";
+    return NULL;
+}
+
+const char* is_bare_exchange(const char* arg) {
+    if (!arg)
+        return "Expected a bare exchange name: cannot be null";
+    if (strchr(arg, '.'))
+        return "Expected a bare exchange name: periods delimit namespaces!";
+    return NULL;
+}
+
+ADD_STRING_CONFIG(rabbit_ip, is_ip_address);
+ADD_STRING_CONFIG(index_exchange, is_bare_exchange);
 
 
 static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
   AP_INIT_TAKE1("PlateIndexExchange", handle_index_exchange, NULL, RSRC_CONF, "The rabbitmq exchange on which to look for the index server"),
-  AP_INIT_TAKE1("PlateIndexRoute",    handle_index_routing,  NULL, RSRC_CONF, "The rabbitmq routing key to use for the index server"),
   AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
   { NULL }
 };
@@ -87,8 +105,7 @@ static const command_rec my_cmds[] = {
 static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   plate_config* conf = (plate_config*)apr_pcalloc(p, sizeof(plate_config));
   conf->rabbit_ip      = "127.0.0.1";
-  conf->index_exchange = INDEX_EXCHANGE;
-  conf->index_routing  = "index";
+  conf->index_exchange = DEV_INDEX_BARE;
   conf->rules = apr_array_make(p, 8, sizeof(rule_entry));
   return conf;
 }
