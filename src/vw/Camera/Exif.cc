@@ -183,6 +183,41 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
   return focal_length * sqrt(36.*36.+24.*24.) / sensor_diagonal_in_mm;
 }
 
+// Returns the x & y focal lengths in pixels (good for working with vw::camera)
+vw::Vector2 vw::camera::ExifView::get_focal_length_pix() const {
+  double focal_length; // mm
+  vw::Vector2 focal_plane_res;
+  query_by_tag(EXIF_FocalLength, focal_length);
+  query_by_tag(EXIF_FocalPlaneXResolution, focal_plane_res[0]);
+  query_by_tag(EXIF_FocalPlaneYResolution, focal_plane_res[1]);
+  if ( focal_plane_res[0] <= 0 )
+    vw_throw(ExifErr() << "Illegal value for FocalPlaneXResolution");
+  if ( focal_plane_res[1] <= 0 )
+    vw_throw(ExifErr() << "Illegal value for FocalPlaneYResolution");
+  int focal_plane_resolution_unit = 2;
+  try { query_by_tag(EXIF_FocalPlaneResolutionUnit, focal_plane_resolution_unit); } catch (ExifErr) {}
+  double focal_plane_resolution_unit_in_mm = 0;
+  switch (focal_plane_resolution_unit) {
+  case 2: // inch
+    focal_plane_resolution_unit_in_mm = 25.4;
+    break;
+  case 3: // cm
+    focal_plane_resolution_unit_in_mm = 10.;
+    break;
+  default:
+    vw_throw(ExifErr() << "Illegal value for FocalPlaneResolutionUnit");
+  }
+  return focal_plane_res*focal_length/focal_plane_resolution_unit_in_mm;
+}
+
+// Returns image size, useful if the image is never really opened.
+vw::Vector2i vw::camera::ExifView::get_image_size() const {
+  vw::Vector2i image_size;
+  query_by_tag(EXIF_PixelXDimension, image_size[0]);
+  query_by_tag(EXIF_PixelYDimension, image_size[1]);
+  return image_size;
+}
+
 // FIXME: report in some logical way when value doesn't exist
 double vw::camera::ExifView::get_aperture_value() const {
   double value;

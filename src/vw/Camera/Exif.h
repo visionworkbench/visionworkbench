@@ -26,6 +26,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Camera/ExifData.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
 namespace camera {
@@ -175,6 +176,8 @@ namespace camera {
     double get_exposure_time() const;
     double get_iso() const;
     double get_focal_length_35mm_equiv() const;
+    Vector2 get_focal_length_pix() const;
+    Vector2i get_image_size() const;
 
     // APEX equivalents
     //
