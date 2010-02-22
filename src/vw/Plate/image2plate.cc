@@ -105,7 +105,7 @@ int main( int argc, char *argv[] ) {
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Soure data cache size, in megabytes")
+    ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
     ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
@@ -218,13 +218,12 @@ int main( int argc, char *argv[] ) {
     exit(1);
   }
   try {
-
+      
     std::cout << "\nOpening plate file: " << url << "\n";
     boost::shared_ptr<PlateFile> platefile = 
       boost::shared_ptr<PlateFile>( new PlateFile(url, output_mode, "",
                                                   tile_size, tile_filetype,
                                                   pixel_format, channel_type));
-  
 
     // Process each image individually
     for ( unsigned i = 0; i < image_files.size(); ++i ) {
@@ -264,7 +263,7 @@ int main( int argc, char *argv[] ) {
         georef.set_transform( M );
       }
       delete rsrc;
-    
+
       // Dispatch to the compositer based on the pixel type of this mosaic.
       switch(platefile->pixel_format()) {
       case VW_PIXEL_GRAYA:
