@@ -15,10 +15,10 @@
 //    you want with it, and include it software that is licensed under
 //    the GNU or the BSD license, or whatever other licence you chose,
 //    including proprietary closed source licenses.  Although not part
-//    of the license, I do expect common courtesy, please. 
+//    of the license, I do expect common courtesy, please.
 //
 //    -Matthias Wandel
-// 
+//
 
 #include <vw/Camera/Exif.h>
 
@@ -110,33 +110,33 @@ vw::camera::ExifDateTime vw::camera::ExifView::get_digitization_time() const {
 // Camera settings
 double vw::camera::ExifView::get_f_number() const {
   double value;
-  try { 
-    query_by_tag(EXIF_FNumber, value); 
+  try {
+    query_by_tag(EXIF_FNumber, value);
     return value;
   } catch (ExifErr &/*e*/) {
-    query_by_tag(EXIF_ApertureValue, value); 
+    query_by_tag(EXIF_ApertureValue, value);
     return pow(2.0, value * 0.5);
   }
 }
 
 double vw::camera::ExifView::get_exposure_time() const {
   double value;
-  try { 
-    query_by_tag(EXIF_ExposureTime, value); 
+  try {
+    query_by_tag(EXIF_ExposureTime, value);
     return value;
   } catch (ExifErr &/*e*/) {
-    query_by_tag(EXIF_ShutterSpeedValue, value); 
+    query_by_tag(EXIF_ShutterSpeedValue, value);
     return pow(2.0, -value);
   }
 }
 
 double vw::camera::ExifView::get_iso() const {
   double value;
-  try { 
-    query_by_tag(EXIF_ISOSpeedRatings, value); 
+  try {
+    query_by_tag(EXIF_ISOSpeedRatings, value);
     return value;
   } catch (ExifErr &/*e*/) {
-    query_by_tag(EXIF_ExposureIndex, value); 
+    query_by_tag(EXIF_ExposureIndex, value);
     return value;
   }
   // otherwise probably have to dig through MakerNote
@@ -145,7 +145,7 @@ double vw::camera::ExifView::get_iso() const {
 // Returns focal length of camera in mm, as if image sensor were 36mm x 24mm
 double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
   double value;
-  try { 
+  try {
     query_by_tag(EXIF_FocalLengthIn35mmFilm, value); // 0 if unknown
     if (value > 0) return value;
   } catch (ExifErr &/*e*/) {}
@@ -186,22 +186,22 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
 // FIXME: report in some logical way when value doesn't exist
 double vw::camera::ExifView::get_aperture_value() const {
   double value;
-  try { 
-    query_by_tag(EXIF_ApertureValue, value); 
+  try {
+    query_by_tag(EXIF_ApertureValue, value);
     return value;
   } catch (ExifErr &/*e*/) {
-    query_by_tag(EXIF_FNumber, value); 
+    query_by_tag(EXIF_FNumber, value);
     return 2 * log(value)/log(2.);  // log2(value) = log(value)/log(2)
   }
 }
 
 double vw::camera::ExifView::get_time_value() const {
   double value;
-  try { 
-    query_by_tag(EXIF_ShutterSpeedValue, value); 
+  try {
+    query_by_tag(EXIF_ShutterSpeedValue, value);
     return value;
   } catch (ExifErr &/*e*/) {
-    query_by_tag(EXIF_ExposureTime, value); 
+    query_by_tag(EXIF_ExposureTime, value);
     return log(1/value)/log(2.); // log2(value) = log(value)/log(2)
   }
 }
@@ -211,7 +211,7 @@ double vw::camera::ExifView::get_exposure_value() const {
 }
 
 // Film speed value is log_2(N * iso)
-// 
+//
 // N is a constant that establishes the relationship between the ASA
 // arithmetic film speed and the ASA speed value. The value of N
 // 1/3.125, as defined by the EXIF 2.2 spec.  The constant K is the
@@ -221,7 +221,7 @@ double vw::camera::ExifView::get_exposure_value() const {
 double vw::camera::ExifView::get_film_speed_value() const {
   double iso = (double)get_iso();
   const double N = 1/3.125;
-  //  const double K = 12.5; 
+  //  const double K = 12.5;
   return log(iso * N)/log(2.); // log2(value) = log(value)/log(2)
 }
 
@@ -230,7 +230,7 @@ double vw::camera::ExifView::get_luminance_value() const {
   try{
     query_by_tag(EXIF_BrightnessValue, Bv);
     return Bv;
-  } catch (ExifErr &/*e*/) { 
+  } catch (ExifErr &/*e*/) {
     try {
       double Av = get_aperture_value();
       double Tv = get_time_value();
@@ -244,7 +244,7 @@ double vw::camera::ExifView::get_luminance_value() const {
 }
 
 // Film speed value is log_2(N * iso)
-// 
+//
 // N is a constant that establishes the relationship between the ASA
 // arithmetic film speed and the ASA speed value. The value of N
 // 1/3.125, as defined by the EXIF 2.2 spec.  The constant K is the
@@ -253,7 +253,7 @@ double vw::camera::ExifView::get_luminance_value() const {
 //
 double vw::camera::ExifView::get_average_luminance() const {
   // const double N = 1/3.125;
-  const double K = 12.5; 
+  const double K = 12.5;
 
   try {
     double A = get_f_number();

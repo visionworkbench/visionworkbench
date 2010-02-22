@@ -15,10 +15,10 @@
 //    you want with it, and include it software that is licensed under
 //    the GNU or the BSD license, or whatever other licence you chose,
 //    including proprietary closed source licenses.  Although not part
-//    of the license, I do expect common courtesy, please. 
+//    of the license, I do expect common courtesy, please.
 //
 //    -Matthias Wandel
-// 
+//
 
 #include <cstdio>
 #include <cstring>
@@ -55,12 +55,12 @@ namespace camera {
     SINGLE,
     DOUBLE
   } ExifDataFormat;
-  
+
   const int M_SOI = 0xD8; //Start Of Image
   const int M_EOI = 0xD9; //End Of Image
   const int M_SOS = 0xDA; //Start Of Scan (begins compressed data)
   const int M_EXIF = 0xE1; //Exif marker
- 
+
 const int BytesPerFormat[] = {0,1,1,2,4,8,1,1,2,4,8,4,8};
 
 
@@ -157,13 +157,13 @@ double vw::camera::ExifData::convert_any_format(const void * ValuePtr, int Forma
       break;
 
     case URATIONAL:
-    case SRATIONAL: 
+    case SRATIONAL:
       Num = Get32s(ValuePtr);
       Den = Get32s(4+(const char *)ValuePtr);
       if (Den == 0) {
-	Value = 0;
+        Value = 0;
       } else {
-	Value = (double)Num/Den;
+        Value = (double)Num/Den;
       }
       break;
 
@@ -194,8 +194,8 @@ const unsigned char * vw::camera::ExifData::dir_entry_addr(const unsigned char *
   return (start + 2 + 12 * entry);
 }
 
-void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase, 
-				unsigned ExifLength, int NestingLevel) {
+void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, const unsigned char * OffsetBase,
+                                unsigned ExifLength, int NestingLevel) {
   VW_ASSERT( NestingLevel <= 4, IOErr() << "Maximum directory nesting exceeded (corrupt Exif header)." );
 
   int NumDirEntries = Get16u(DirStart);
@@ -204,13 +204,13 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
   const uint8* DirEnd = dir_entry_addr(DirStart, NumDirEntries);
   if (DirEnd + 4 > (OffsetBase + ExifLength)) {
     VW_ASSERT( DirEnd+2 == OffsetBase+ExifLength || DirEnd == OffsetBase+ExifLength,
-	       IOErr() << "Illegally sized directory." );
+               IOErr() << "Illegally sized directory." );
   }
 
   for (int de = 0; de < NumDirEntries; de++) {
     const unsigned char * ValuePtr;
     const uint8 * DirEntry = dir_entry_addr(DirStart, de);
-    
+
     int Tag = Get16u(DirEntry);
     int Format = Get16u(DirEntry+2);
     int Components = Get32u(DirEntry+4);
@@ -219,7 +219,7 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
       printf("Warning: illegal number format %d for tag %04x\n", Format, Tag);
       continue;
     }
-    
+
     if ((unsigned)Components > 0x10000) {
       printf("Warning: illegal number of components %d for tag %04x\n", Components, Tag);
       continue;
@@ -231,9 +231,9 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
       unsigned OffsetVal = Get32u(DirEntry + 8);
       // If its bigger than 4 bytes, the dir entry contains an offset.
       if (OffsetVal + ByteCount > ExifLength){
-	// Bogus pointer offset and / or bytecount value
-	printf("Warning: illegal value pointer for tag %04x\n", Tag);
-	continue;
+        // Bogus pointer offset and / or bytecount value
+        printf("Warning: illegal value pointer for tag %04x\n", Tag);
+        continue;
       }
       ValuePtr = OffsetBase + OffsetVal;
     } else {
@@ -245,14 +245,14 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
     switch (Format) {
       case ASCII:
       case UNDEFINED:
-	// Store as string data
-	tags[Tag].type = StringType;
-	// Next line might not work if a tag like MakerNote includes '\0' characters
-	//tags[Tag].value.s = strndup((const char *)ValuePtr, ByteCount);
-	tags[Tag].value.s = (char *)malloc(ByteCount + 1);
-	memcpy(tags[Tag].value.s, ValuePtr, ByteCount);
-	tags[Tag].value.s[ByteCount] = '\0';
-	break;
+        // Store as string data
+        tags[Tag].type = StringType;
+        // Next line might not work if a tag like MakerNote includes '\0' characters
+        //tags[Tag].value.s = strndup((const char *)ValuePtr, ByteCount);
+        tags[Tag].value.s = (char *)malloc(ByteCount + 1);
+        memcpy(tags[Tag].value.s, ValuePtr, ByteCount);
+        tags[Tag].value.s[ByteCount] = '\0';
+        break;
 
       case UBYTE:
       case USHORT:
@@ -260,17 +260,17 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
       case SBYTE:
       case SSHORT:
       case SLONG:
-	// Store as integer data
-	tags[Tag].type = IntType;
-	tags[Tag].value.i = (int)convert_any_format(ValuePtr, Format);
-	break;
+        // Store as integer data
+        tags[Tag].type = IntType;
+        tags[Tag].value.i = (int)convert_any_format(ValuePtr, Format);
+        break;
 
     default:
       // Store as floating point data
       tags[Tag].type = DoubleType;
       tags[Tag].value.d = convert_any_format(ValuePtr, Format);
     }
-    
+
     // Do any special processing for specific tags
     switch (Tag) {
     case 0x8769:  // TAG_ExifOffset
@@ -282,13 +282,13 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
         process_exif_dir(SubdirStart, OffsetBase, ExifLength, NestingLevel+1);
       }
       continue;
-      
+
       // Process MakerNote
       /*
         case TAG_MakerNote:
         continue;
       */
-      
+
       // Process GPS info
       // If you need GPS info, probably the Cartography module is a surer bet.
       /*
@@ -304,7 +304,7 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
     }
   }
 
-  // In addition to linking to subdirectories via exif tags, 
+  // In addition to linking to subdirectories via exif tags,
   // there's also a potential link to another directory at the end of each
   // directory.
   if (dir_entry_addr(DirStart, NumDirEntries) + 4 <= OffsetBase + ExifLength){
@@ -312,15 +312,15 @@ void vw::camera::ExifData::process_exif_dir(const unsigned char * DirStart, cons
     if (Offset){
       const uint8* SubdirStart = OffsetBase + Offset;
       if ((SubdirStart > OffsetBase + ExifLength) || (SubdirStart < OffsetBase)) {
-	if ((SubdirStart > OffsetBase) && (SubdirStart < OffsetBase + ExifLength + 20)) {
-	  // let this pass silently
-	} else {
-	  printf("Warning: illegal subdirectory link\n");
-	}
+        if ((SubdirStart > OffsetBase) && (SubdirStart < OffsetBase + ExifLength + 20)) {
+          // let this pass silently
+        } else {
+          printf("Warning: illegal subdirectory link\n");
+        }
       } else {
-	if (SubdirStart <= OffsetBase + ExifLength){
-	  process_exif_dir(SubdirStart, OffsetBase, ExifLength, NestingLevel+1);
-	}
+        if (SubdirStart <= OffsetBase + ExifLength){
+          process_exif_dir(SubdirStart, OffsetBase, ExifLength, NestingLevel+1);
+        }
       }
     }
   }
@@ -401,59 +401,59 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
 
   while (true) {
     int marker = 0;
-    
+
     for (int i = 0; i < 7; i++){
       marker = fgetc(infile);
       pos++;
       if (marker != 0xff) break;
-      
+
       VW_ASSERT( i < 6, IOErr() << "Too many padding bytes." );
     }
-    
+
     // Read the length of the section.
     int lh = fgetc(infile);
     int ll = fgetc(infile);
     int itemlen = (lh << 8) | ll;
-    
+
     VW_ASSERT( itemlen >= 2, IOErr() << "Invalid JPEG marker." );
-    
+
     uint8* data = (uint8 *)malloc(itemlen);
     VW_ASSERT( data != NULL, NullPtrErr() << "Could not allocate memory." );
-    
+
     // Store first two pre-read bytes.
     data[0] = (uint8)lh;
     data[1] = (uint8)ll;
-    
+
     int got = fread(data+2, 1, itemlen-2, infile); // Read the whole section.
     pos += itemlen;
     VW_ASSERT( got == itemlen - 2, IOErr() << "Premature end of file." );
-    
+
     switch(marker){
-      case M_SOS:   // stop before hitting compressed data 
-	free(data);
-	return false;
-      
+      case M_SOS:   // stop before hitting compressed data
+        free(data);
+        return false;
+
       case M_EOI:   // end of input
-	free(data);
-	return false;
-      
+        free(data);
+        return false;
+
       case M_EXIF:
-	// Make sure section is marked "Exif", as some software may use
-	// marker 31 for other purposes.
-	if (memcmp(data+2, "Exif", 4) == 0) {
+        // Make sure section is marked "Exif", as some software may use
+        // marker 31 for other purposes.
+        if (memcmp(data+2, "Exif", 4) == 0) {
           ExifLocation = pos - itemlen + 8;
-	  process_exif(data, itemlen);
-	  free(data);
-	  return true;
-	} else {
-	  free(data);
-	  return false;
-	}
-      
+          process_exif(data, itemlen);
+          free(data);
+          return true;
+        } else {
+          free(data);
+          return false;
+        }
+
       default:
-	// Skip any other sections.
-	free(data);
-	break;
+        // Skip any other sections.
+        free(data);
+        break;
     }
   }
   return false;
@@ -462,12 +462,12 @@ bool vw::camera::ExifData::read_jpeg_sections(FILE* infile) {
 bool vw::camera::ExifData::import_data(std::string const &filename) {
   tags.clear();
   FILE * infile = fopen(filename.c_str(), "rb"); // Unix ignores 'b', windows needs it.
-  
+
   VW_ASSERT( infile != NULL, IOErr() << "Cannot open file.");
   bool ret = false;
-  
+
   // Identify file type (using suffixes)
-  
+
   if (boost::algorithm::iends_with(filename, ".jpg") ||
       boost::algorithm::iends_with(filename, ".jpeg")) {
     // Scan the JPEG headers
@@ -480,7 +480,7 @@ bool vw::camera::ExifData::import_data(std::string const &filename) {
     VW_ASSERT( 0, IOErr() << "Cannot determine file type.");
   }
   fclose(infile);
-  
+
   return ret;
 }
 

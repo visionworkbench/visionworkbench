@@ -12,13 +12,13 @@
 // copyright notice:
 //
 //    Jhead is public domain software - that is, you can do whatever
-//    you want with it, and include it software that is licensed under
+//    you want with it, and include it in software that is licensed under
 //    the GNU or the BSD license, or whatever other licence you chose,
 //    including proprietary closed source licenses.  Although not part
-//    of the license, I do expect common courtesy, please. 
+//    of the license, I do expect common courtesy, please.
 //
 //    -Matthias Wandel
-// 
+//
 
 #ifndef __VW_CAMERA_EXIF_H__
 #define __VW_CAMERA_EXIF_H__
@@ -27,7 +27,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Camera/ExifData.h>
 
-namespace vw { 
+namespace vw {
 namespace camera {
 
   struct ExifDateTime {
@@ -150,7 +150,7 @@ namespace camera {
 
   class ExifView {
     ExifData m_data;
-    
+
   public:
     ExifView(std::string const& filename);
 
@@ -160,7 +160,7 @@ namespace camera {
     void query_by_tag(const uint16 tag, double& value) const;
     void query_by_tag(const uint16 tag, std::string& value) const;
     void query_by_tag(const uint16 tag, ExifDateTime& value) const;
-    
+
     // Camera info
     std::string get_make() const;
     std::string get_model() const;
@@ -169,18 +169,18 @@ namespace camera {
     ExifDateTime get_modification_time() const;
     ExifDateTime get_capture_time() const;
     ExifDateTime get_digitization_time() const;
-    
+
     // Camera settings
     double get_f_number() const;
     double get_exposure_time() const;
     double get_iso() const;
     double get_focal_length_35mm_equiv() const;
-    
+
     // APEX equivalents
     //
     // These functions report values in the Additive System for
     // Photographic Exposure.  For more information, see:
-    // 
+    //
     //    http://en.wikipedia.org/wiki/APEX_system
 
     // This function returns the value for brightness using the linear
@@ -201,5 +201,5 @@ namespace camera {
   };
 
 }} // namespace vw::camera
-  
+
 #endif  // __VW_CAMERA_EXIF_H__
