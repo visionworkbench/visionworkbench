@@ -32,10 +32,11 @@ namespace platefile {
     int m_level;
     int m_page_width, m_page_height;
     int m_horizontal_pages, m_vertical_pages;
-    std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
-    std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
-    vw::Cache m_cache;
+    mutable std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
+    mutable std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
+    mutable vw::Cache m_cache;
 
+    void load_cache_handle(int i, int j) const;
     void create_handles();
 
   public:

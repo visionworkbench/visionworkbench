@@ -384,7 +384,8 @@ vw::int32 vw::platefile::RemoteIndex::num_levels() const {
 
   // Make sure that the local (cached) number of levels matches the
   // number of levels on the server.
-  for (int level = m_levels.size(); level < response.num_levels(); ++level) { 
+  //  for (int level = m_levels.size(); level < response.num_levels(); ++level) { 
+  for (int level = m_levels.size(); level < 21; ++level) { 
     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level, 
                                                             m_page_width, m_page_height, 
                                                             m_default_cache_size) );
