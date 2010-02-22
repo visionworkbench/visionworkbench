@@ -36,7 +36,7 @@ void vw::Cache::allocate( size_t size ) {
     m_last_valid->invalidate();
   }
   m_size += size;
-  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " total)" << "\n"; )
+  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
 void vw::Cache::resize( size_t size ) {
@@ -50,7 +50,7 @@ void vw::Cache::resize( size_t size ) {
 
 void vw::Cache::deallocate( size_t size ) {
   m_size -= size;
-  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " total)" << "\n"; )
+  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
 // Move the cache line to the top of the valid list.
