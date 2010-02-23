@@ -4,9 +4,13 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
+#include <vw/Core/Log.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/EulerAngles.h>
+
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#include <vw/Math/LinearAlgebra.h>
+#endif
 
 // For std::setprecision
 #include <iomanip>
@@ -204,6 +208,49 @@ vw::Vector3 vw::camera::PinholeModel::pixel_to_vector (vw::Vector2 const& pix) c
   vw::Vector3 p(0,0,1);
   subvector(p,0,2) = undistorted_pix;
   return normalize( m_inv_camera_transform * p);
+}
+
+void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+  // Solving for camera center
+  Matrix<double> cam_nullsp = nullspace(p);
+  Vector<double> cam_center = select_col(cam_nullsp,0);
+  cam_center /= cam_center[3];
+  m_camera_center = subvector(cam_center,0,3);
+
+  // Solving for intrinsics with RQ decomposition
+  Matrix<double> M = submatrix(p,0,0,3,3);
+  Matrix<double> R,Q;
+  rqd( M, R, Q );
+  Matrix<double> sign_fix(3,3);
+  sign_fix.set_identity();
+  if ( R(0,0) < 0 )
+    sign_fix(0,0) = -1;
+  if ( R(1,1) < 0 )
+    sign_fix(1,1) = -1;
+  if ( R(2,2) < 0 )
+    sign_fix(2,2) = -1;
+  R = R*sign_fix;
+  Q = sign_fix*Q;
+
+  // Pulling out intrinsic and last extrinsic
+  Matrix<double,3,3> uvwRotation;
+  select_row(uvwRotation,0) = m_u_direction;
+  select_row(uvwRotation,1) = m_v_direction;
+  select_row(uvwRotation,2) = m_w_direction;
+  m_rotation = inverse(uvwRotation*Q);
+  m_fu = R(0,0);
+  m_fv = R(1,1);
+  m_cu = R(0,2);
+  m_cv = R(1,2);
+  if ( fabs(R(0,1)) >= 1.2 )
+    vw_out(vw::WarningMessage,"camera") << "Significant skew not modelled by pinhole camera\n";
+
+  // Rebuild
+  rebuild_camera_matrix();
+#else
+  vw_throw( NoImplErr() << "PinholeModel::set_Camera_Matrix is unavailable without LAPACK" );
+#endif
 }
 
 void vw::camera::PinholeModel::rebuild_camera_matrix() {

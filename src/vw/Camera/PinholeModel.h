@@ -277,7 +277,7 @@ namespace camera {
       rebuild_camera_matrix();
     }
 
-    // Redudant...
+    // Redundant...
     Vector3 coordinate_frame_u_direction() const { return m_u_direction; }
     Vector3 coordinate_frame_v_direction() const { return m_v_direction; }
     Vector3 coordinate_frame_w_direction() const { return m_w_direction; }
@@ -297,6 +297,10 @@ namespace camera {
       m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
       rebuild_camera_matrix();
     }
+
+    // Ingest camera matrix
+    // This performs a camera matrix decomposition and rewrites most variables
+    void set_camera_matrix( Matrix<double,3,4> const& p );
 
   private:
     /// This must be called whenever camera parameters are modified.
