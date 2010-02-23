@@ -5,15 +5,20 @@
 // __END_LICENSE__
 
 
-// TestLinearPushbroomModel.h
+// TestPinholeModel.h
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Camera/PinholeModel.h>
+#include <boost/random.hpp>
+
 #include <vw/Math/Vector.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Math/LinearAlgebra.h>
 
 #include <vw/FileIO.h>
+
+#include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraTransform.h>
-#include <vw/Math/EulerAngles.h>
+#include <vw/Camera/CameraGeometry.h>
 
 using namespace vw;
 using namespace vw::camera;
@@ -31,8 +36,8 @@ public:
     PinholeModel pinhole( Vector3(0,0,0), // camera center
                           pose,           // camera pose
                           500,500,        // fx, fy
-                          500,500,
-                          NullLensDistortion());       // cx, cy
+                          500,500,        // cx, cy
+                          NullLensDistortion());
 
     // TS_TRACE(stringify(pinhole));
     TS_ASSERT_EQUALS(pinhole.point_to_pixel(Vector3(0,0,10)),Vector2(500,500));
@@ -180,6 +185,66 @@ public:
 
     TS_ASSERT_DELTA(o_return[0],s_return[0]*10,5); // Lens distortion doesn't
     TS_ASSERT_DELTA(o_return[1],s_return[1]*10,5); // seem to be too accurate
+  }
+
+  void test_pinhole_set_camera_matrix () {
+    // First set control camera
+    Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+
+    // Create an imaginary 1000x1000 pixel imager
+    PinholeModel control_pinhole( Vector3(0,4,-10),
+                                  pose, 600, 700,
+                                  500, 500,
+                                  NullLensDistortion() );
+
+    // Make solve control camera (w/ random input for now)
+    pose.set_identity();
+    PinholeModel solved_pinhole( Vector3(-5,-2,5),
+                                 pose, 833, 544,
+                                 400, 700,
+                                 NullLensDistortion() );
+
+    // Create Measurements used to solve for camera matrix
+    std::vector<Vector<double> > world_m, image_m;
+    boost::minstd_rand random_gen(42u);
+    random_gen.seed((unsigned int)(::time(0)));
+    boost::normal_distribution<double> normal(0,20);
+    boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
+    for ( uint i = 0; i < 6; i++ ) {
+      Vector3 point( generator(), generator(), generator()+60.0 );
+      world_m.push_back( Vector4(point[0],point[1],point[2],1) );
+      Vector2 pixel = control_pinhole.point_to_pixel(point);
+      image_m.push_back( Vector3(pixel[0],pixel[1],1) );
+    }
+
+    // Building Camera Matrix
+    CameraMatrixFittingFunctor fitfunc;
+    Matrix<double> P = fitfunc(world_m,image_m);
+
+    solved_pinhole.set_camera_matrix( P );
+
+    // Compare camera matrices
+    {
+      Vector3 solved = solved_pinhole.camera_center( Vector2() );
+      Vector3 control = control_pinhole.camera_center( Vector2() );
+      for ( uint i = 0; i < 3; i++ )
+        TS_ASSERT_DELTA( solved[i], control[i], 1e-8 );
+    }
+    {
+      Quaternion<double> solved = solved_pinhole.camera_pose( Vector2() );
+      Quaternion<double> control = control_pinhole.camera_pose( Vector2() );
+      for ( uint i = 0; i < 4; i++ )
+        TS_ASSERT_DELTA( solved[i], control[i], 1e-8 );
+    }
+    {
+      double s_fu, s_fv, s_cu, s_cv;
+      double c_fu, c_fv, c_cu, c_cv;
+      solved_pinhole.intrinsic_parameters( s_fu, s_fv, s_cu, s_cv );
+      control_pinhole.intrinsic_parameters( c_fu, c_fv, c_cu, c_cv );
+      TS_ASSERT_DELTA( s_fv/s_fu, c_fv/c_fu, 1e-2 ); // Only accurate to 1%
+      TS_ASSERT_DELTA( s_cu/s_fu, c_cu/c_fu, 1e-2 );
+      TS_ASSERT_DELTA( s_cv/s_fu, c_cv/c_fu, 1e-2 );
+    }
   }
 
 };

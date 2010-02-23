@@ -6,9 +6,9 @@
 
 
 /// \file Camera.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Camera.
-/// 
+///
 #ifndef __VW_CAMERA_H__
 #define __VW_CAMERA_H__
 
@@ -32,7 +32,8 @@
 #include <vw/Camera/LinescanModel.h>
 #include <vw/Camera/LinearPushbroomModel.h>
 #include <vw/Camera/OrbitingPushbroomModel.h>
+#include <vw/Camera/CameraGeometry.h>
 #endif
 
 #endif // __VW_CAMERA_H__
- 
+

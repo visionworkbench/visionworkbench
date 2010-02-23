@@ -17,11 +17,12 @@ TestLinearPushbroomModel_SOURCES  = TestLinearPushbroomModel.oldtest
 TestPinholeModel_SOURCES          = TestPinholeModel.oldtest
 TestPinholeModelCalibrate_SOURCES = TestPinholeModelCalibrate.oldtest
 TestExifData_SOURCES              = TestExifData.oldtest
+TestCameraGeometry_SOURCES        = TestCameraGeometry.oldtest
 #TestLensDistortion_SOURCES       = TestLensDistortion.oldtest
 #TestCameraTransform_SOURCES      = TestCameraTransform.oldtest
 
 TESTS = TestCAHVORModel TestLinearPushbroomModel TestPinholeModel TestPinholeModelCalibrate \
-	TestExifData TestCAHVModel # TestLensDistortion TestCameraTransform
+	TestExifData TestCAHVModel TestCameraGeometry # TestLensDistortion TestCameraTransform
 
 include $(top_srcdir)/config/instantiate.am
 

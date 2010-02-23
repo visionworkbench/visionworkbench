@@ -14,6 +14,7 @@
 
 #include <vector>
 #include <boost/shared_ptr.hpp>
+#include <boost/foreach.hpp>
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
@@ -36,7 +37,7 @@ namespace math {
 
     // Applies a transform matrix to a list of points;
     std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
-                 std::vector<Vector<double> > const& pts ) const {
+                                               std::vector<Vector<double> > const& pts ) const {
       std::vector<Vector<double> > out;
       for ( unsigned i = 0; i < pts.size(); i++ ) {
         out.push_back( m*pts[i] );
@@ -165,16 +166,15 @@ namespace math {
                  vw::ArgumentErr() << "Cannot compute homography. Insufficient data.");
       VW_ASSERT( p1[0].size() == 3,
                  vw::ArgumentErr() << "Cannot compute homography. Currently only support homogeneous 2D vectors." );
-      VW_ASSERT( p1[0][2] == 1,
-                 vw::ArgumentErr() << "Cannot compute homography. Vectors have not been normalized.");
-      
+
       // Converting to a container that is used internally.
-      std::vector<Vector<double> > input;
-      std::vector<Vector<double> > output;
-      for ( unsigned i = 0; i < p1.size(); i++ )
-        input.push_back( Vector3( p1[i][0], p1[i][1], 1 ) );
-      for ( unsigned i = 0; i < p2.size(); i++ ) 
-        output.push_back( Vector3( p2[i][0], p2[i][1], 1 ) );
+      std::vector<Vector<double> > input, output;
+      BOOST_FOREACH( ContainerT p, p1 ) {
+        input.push_back( Vector3( p[0], p[1], p[2] ) );
+      }
+      BOOST_FOREACH( ContainerT p, p2 ) {
+        output.push_back( Vector3( p[0], p[1], p[2] ) );
+      }
 
       unsigned num_points = p1.size();
       if ( num_points == min_elements_needed_for_fit(p1[0] ) ) {
@@ -189,7 +189,7 @@ namespace math {
         return H;
       } else {
         // Levenberg Marquardt method for solving for homography.
-        // - The error metric is x2 - norm(H*x1). 
+        // - The error metric is x2 - norm(H*x1).
         // - measure in x1 are fixed.
         // - Unfortunately at this time. Error in x1 are not dealt
         // with and I need more time to read up on other error
@@ -226,7 +226,7 @@ namespace math {
         int status = 0;
         Vector<double> result_flat = levenberg_marquardt( model, seed,
                                                           output_flat, status );
-        
+
         // Unflatting result
         Matrix3x3 result;
         for ( unsigned i = 0; i < 3; i++ )
@@ -258,20 +258,20 @@ namespace math {
     /// vw::Vector<>, but you could substitute other classes here as
     /// well.
     template <class ContainerT>
-    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
                                    vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
+      VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
-      
+
 
       int dfree = dim * (dim + 1); // Number of parameters that we're solving for
 
-      Vector<double> y(p1.size()*dim); 
+      Vector<double> y(p1.size()*dim);
       Vector<double> x(dfree);
       Matrix<double> A(p1.size()*dim, dfree);
 
@@ -287,7 +287,7 @@ namespace math {
       // Ax = y
       //
       // x[0:8] represents the components of the similarity matrix, above
-      // 
+      //
       // A is defined as follows:
       //
       // A(row i)     = | p1[i][0] p1[i][1]        1        0        0        0 |
@@ -297,7 +297,7 @@ namespace math {
       //
       // y(row i)     = | p2[i][0] |
       // y(row i + 1) = | p2[i][1] |
-      
+
       for (unsigned i = 0; i < p1.size(); ++i) {
         for (unsigned j = 0; j < dim; ++j) {
           unsigned row = i*dim+j;
@@ -307,7 +307,7 @@ namespace math {
           y(row) = p2[i][j];
         }
       }
-        
+
       x = least_squares(A,y);
 
       Matrix<double> S(dim+1,dim+1);
@@ -342,12 +342,12 @@ namespace math {
     /// vw::Vector<>, but you could substitute other classes here as
     /// well.
     template <class ContainerT>
-    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
            vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
+      VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
@@ -362,11 +362,11 @@ namespace math {
       for (unsigned i = 0; i < p1.size(); ++i) {
         dist1 += norm_2(p1[i]-mean1);
         dist2 += norm_2(p2[i]-mean2);
-      }      
+      }
       dist1 /= p1.size();
       dist2 /= p2.size();
       double scale_factor = dist2/dist1;
-          
+
       // Compute the rotation
       Matrix<double> H(dim, dim);
       for (unsigned i = 0; i < p1.size(); ++i) {
@@ -384,10 +384,10 @@ namespace math {
       svd(H, U, S, VT);
 
       Matrix<double> R = transpose(VT)*transpose(U);
-    
+
       // Compute the translation
       Vector<double> translation = subvector(mean2,0,dim)-scale_factor*R*subvector(mean1,0,dim);
-  
+
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = scale_factor*R;
       for (unsigned i = 0; i < result.rows(); ++i) {
@@ -414,12 +414,12 @@ namespace math {
     /// vw::Vector<>, but you could substitute other classes here as
     /// well.
     template <class ContainerT>
-    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
            vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
+      VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
@@ -446,10 +446,10 @@ namespace math {
       svd(H, U, S, VT);
 
       Matrix<double> R = transpose(VT)*transpose(U);
-    
+
       // Compute the translation
       Vector<double> translation = subvector(mean2,0,dim)-R*subvector(mean1,0,dim);
-  
+
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = R;
       for (unsigned i = 0; i < result.rows(); ++i) {
@@ -461,7 +461,7 @@ namespace math {
   };
 
   typedef TranslationRotationFittingFunctorN<2> TranslationRotationFittingFunctor;
-  
+
   /// This fitting functor attempts to find a translation transformation
   template <int dim>
   struct TranslationFittingFunctorN {
@@ -476,12 +476,12 @@ namespace math {
     /// vw::Vector<>, but you could substitute other classes here as
     /// well.
     template <class ContainerT>
-    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1, 
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
            vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
 
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
+      VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute translation transformation.  p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute translation transformation.  Insufficient data.\n");
@@ -490,10 +490,10 @@ namespace math {
       MeanFunctor m(true);
       ContainerT mean1 = m(p1);
       ContainerT mean2 = m(p2);
-   
+
       // Compute the translation
       Vector<double> translation = subvector(mean2,0,dim)-subvector(mean1,0,dim);
-  
+
       Matrix<double> result(dim+1,dim+1);
       result.set_identity();
       for (unsigned i = 0; i < dim; ++i) {

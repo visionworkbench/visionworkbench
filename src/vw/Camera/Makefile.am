@@ -12,9 +12,9 @@
 if MAKE_MODULE_CAMERA
 
 if HAVE_PKG_LAPACK
-lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h	\
-              OrbitingPushbroomModel.h PinholeModel.h PinholeModelCalibrate.h \
-              LensDistortion.h
+lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h       \
+              OrbitingPushbroomModel.h PinholeModelCalibrate.h          \
+              LensDistortion.h CameraGeometry.h
 endif
 
 ba_headers = BundleAdjust.h BundleAdjustModelBase.h                     \
@@ -24,11 +24,11 @@ ba_headers = BundleAdjust.h BundleAdjustModelBase.h                     \
 
 ba_sources = BundleAdjustReport.cc
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h		\
-                  CameraTransform.h Exif.h ExifData.h BayerFilter.h	\
-                  ControlNetwork.h $(lsm_headers) $(ba_headers)
+include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h               \
+                  CameraTransform.h Exif.h ExifData.h BayerFilter.h     \
+                  ControlNetwork.h PinholeModel.h $(lsm_headers) $(ba_headers)
 
-libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc	\
+libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
                          Exif.cc ExifData.cc ControlNetwork.cc          \
                          LensDistortion.cc $(ba_sources)
 
