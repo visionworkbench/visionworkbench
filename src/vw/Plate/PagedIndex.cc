@@ -30,17 +30,27 @@ vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> pa
   m_horizontal_pages = ceil(float(tiles_per_side) / page_width);
   m_vertical_pages = ceil(float(tiles_per_side) / page_height);
 
-  create_handles();
+  // Create space for cache handles.  The actual generators are not
+  // created until they are needed (because they take enough memory
+  // that it's not efficient to allocate the generators ahead of
+  // time).  Actual allocation is done automatically by calling
+  // load_cache_handle().
+  int pages = m_horizontal_pages * m_vertical_pages;
+  m_cache_handles.resize(pages);
+  m_cache_generators.resize(pages);
+
 }
 
-// IMPORTANT: Call this method before manipulating a cache handle.
-// This ensures that the handle's generator exists!
-void vw::platefile::IndexLevel::load_cache_handle(int i, int j) const {
-  
+boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::fetch_page(int i, int j) const {
+  Mutex::Lock lock(m_cache_mutex);
+
   // We may need to actually create the page's cache handle if it
   // hasn't been created already.
   if ( !(m_cache_generators[j*m_horizontal_pages + i])) {
 
+    vw_out(DebugMessage, "platefile::PagedIndex") << "Creating cache generator for page " 
+                                                  << i << " " << j << " @ " << m_level << "\n";
+  
     boost::shared_ptr<IndexPageGenerator> generator =
       m_page_gen_factory->create(m_level, i * m_page_width, j * m_page_height, 
                                  m_page_width, m_page_height);
@@ -49,21 +59,12 @@ void vw::platefile::IndexLevel::load_cache_handle(int i, int j) const {
 
   }
 
+  return m_cache_handles[j*m_horizontal_pages + i];
 }
 
-void vw::platefile::IndexLevel::create_handles() {
-  int pages = m_horizontal_pages * m_vertical_pages;
-
-  // Create space for cache handles.  The actual generators are not
-  // created until they are needed (because they take enough memory
-  // that it's not efficient to allocate the generators ahead of
-  // time).  Actual allocation is done automatically by calling
-  // load_cache_handle().
-  m_cache_handles.resize(pages);
-  m_cache_generators.resize(pages);
-}
 
 vw::platefile::IndexLevel::~IndexLevel() {
+  Mutex::Lock lock(m_cache_mutex);
 
   // We need to free the cache handles first before other things
   // (especially the generators) get unallocated.
@@ -75,6 +76,7 @@ vw::platefile::IndexLevel::~IndexLevel() {
 }
 
 void vw::platefile::IndexLevel::sync() {
+  Mutex::Lock lock(m_cache_mutex);
 
   // We need to free the cache handles first before the data gets
   // saved.  
@@ -82,9 +84,6 @@ void vw::platefile::IndexLevel::sync() {
     if (m_cache_generators[i]) 
       m_cache_handles[i].reset();
   }
-
-  // recreate the handles now that we've released the old ones
-  create_handles();
 
 }
 
@@ -97,10 +96,12 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(
   int32 level_col = col / m_page_width;
   int32 level_row = row / m_page_height;
 
+  vw_out(DebugMessage, "platefile::PagedIndex") << "IndexPage::get_page() called " 
+                                                << level_col << " " << level_row 
+                                                << " @ " << m_level << "\n";
+
   // Access the page.  This will load it into memory if necessary.
-  load_cache_handle(level_col,level_row);
-  boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
-  return page;
+  return fetch_page(level_col, level_row);
 }
 
 
@@ -116,10 +117,13 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
   
   int32 level_col = col / m_page_width;
   int32 level_row = row / m_page_height;
+
+  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::get() called " 
+                                                       << level_col << " " << level_row 
+                                                       << " @ " << m_level << "\n";
   
   // Access the page.  This will load it into memory if necessary.
-  load_cache_handle(level_col,level_row);
-  boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
+  boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
   return page->get(col, row, transaction_id, exact_match);
 }
 
@@ -134,10 +138,13 @@ void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
   
   int32 level_col = header.col() / m_page_width;
   int32 level_row = header.row() / m_page_height;
+
+  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::set() called " 
+                                                       << level_col << " " << level_row 
+                                                       << " @ " << m_level << "\n";
   
   // Access the page.  This will load it into memory if necessary.
-  load_cache_handle(level_col,level_row);
-  boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
+  boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
   page->set(header, rec);
 }
 
@@ -156,12 +163,17 @@ vw::platefile::IndexLevel::search_by_region(BBox2i const& region,
   int32 max_level_col = ceilf(float(region.max().x()) / m_page_width);
   int32 max_level_row = ceilf(float(region.max().y()) / m_page_height);
 
+  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::search_by_region() called " 
+                                                       << "[" << min_level_col << " " 
+                                                       << min_level_row << "]"
+                                                       << " to [" << max_level_col 
+                                                       << " " << max_level_row << "]\n";
+
   // Iterate over the pages that overlap with the region of interest.
   std::list<TileHeader> result;
   for (int32 level_row = min_level_row; level_row < max_level_row; ++level_row) {
     for (int32 level_col = min_level_col; level_col < max_level_col; ++level_col) {
-      load_cache_handle(level_col,level_row);
-      boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
+      boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
 
       // Accumulate valid tiles that overlap with region from this IndexPage.
       std::list<TileHeader> sub_result = page->search_by_region(region,
@@ -190,8 +202,7 @@ vw::platefile::IndexLevel::search_by_location(int32 col, int32 row,
   int32 level_row = row / m_page_height;
   
   // Access the page.  This will load it into memory if necessary.
-  load_cache_handle(level_col,level_row);
-  boost::shared_ptr<IndexPage> page = m_cache_handles[level_row*m_horizontal_pages + level_col];
+  boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
   return page->search_by_location(col, row, start_transaction_id, 
                                   end_transaction_id, fetch_one_additional_entry);
 }

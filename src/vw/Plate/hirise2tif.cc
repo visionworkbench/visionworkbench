@@ -103,7 +103,7 @@ int main( int argc, char *argv[] ) {
     ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output filename")
     ("quiet,q", "Quiet output")
     ("verbose,v", "Verbose output")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Cache size, in megabytes")
+    ("cache", po::value<unsigned>(&cache_size)->default_value(768), "Cache size, in megabytes")
     ("help", "Display this help message");
 
   po::options_description output_options("Output Options");

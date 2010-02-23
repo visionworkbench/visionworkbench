@@ -329,6 +329,9 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
  // work to the mosaic by issuing a transaction_complete method.
  void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
 
+   // First we save (sync) the index pages to disk
+   this->sync();
+
    if ( update_read_cursor ) {
      int max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
      m_header.set_transaction_read_cursor(max_trans_id);

@@ -66,7 +66,8 @@ int main( int argc, char *argv[] ) {
   general_options.add_options()
     ("failed", po::value<unsigned>(&transaction_id), "Mark a transaction as failed.")
     ("complete", po::value<unsigned>(&transaction_id), "Mark a transaction as complete, and update the read cursor..")
-    ("help", "Display this help message");
+    ("sync", "Sync the platefile index to disk.")
+    ("help", "Display this help message.");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -116,6 +117,9 @@ int main( int argc, char *argv[] ) {
     
     if (vm.count("complete"))
       platefile->transaction_complete(transaction_id,true);
+
+    if (vm.count("sync"))
+      platefile->sync();
     
   }  catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";

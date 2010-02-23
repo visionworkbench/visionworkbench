@@ -35,9 +35,9 @@ namespace platefile {
     mutable std::vector<boost::shared_ptr<IndexPageGenerator> > m_cache_generators;
     mutable std::vector<Cache::Handle<IndexPageGenerator> > m_cache_handles;
     mutable vw::Cache m_cache;
+    mutable Mutex m_cache_mutex;
 
-    void load_cache_handle(int i, int j) const;
-    void create_handles();
+    boost::shared_ptr<IndexPage> fetch_page(int col, int row) const;
 
   public:
     typedef IndexPage::multi_value_type multi_value_type;
