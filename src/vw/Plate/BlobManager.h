@@ -37,7 +37,7 @@ namespace platefile {
       // Note: with the end_of_file_ptr written at the beginning of
       // the blob file, the initial blob_offset should be 
       // 3 * 8 bytes = 24 bytes.
-      BlobRecord() : locked(false), current_blob_offset(24) {}
+      BlobRecord() : locked(false), current_blob_offset(0) {}
 
       void lock() {
         this->locked = true;

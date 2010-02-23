@@ -76,11 +76,12 @@ vw::platefile::IndexLevel::~IndexLevel() {
 }
 
 void vw::platefile::IndexLevel::sync() {
+   Mutex::Lock lock(m_cache_mutex);
 
   // Write the index page to disk by calling it's sync() method.
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
     if (m_cache_generators[i]) {
-      boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
+      boost::shared_ptr<IndexPage> page = m_cache_handles[i];
       page->sync();
     }
   }

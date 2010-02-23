@@ -333,7 +333,7 @@ void vw::platefile::RemoteIndex::log(std::string message) {
   m_index_service->LogRequest(m_rpc_controller.get(), &request, &response, 
                        google::protobuf::NewCallback(&null_closure));  
 }
-  
+
 /// Writing, pt. 3: Signal the completion 
 void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
   IndexWriteComplete request;

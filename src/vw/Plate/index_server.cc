@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 
   while(process_messages) {
     if (force_sync) {
-      std::cout << "Syncing." << std::endl;
+      std::cout << "\nReceived signal USR1.  Synchronizing index entries to disk:\n";
       g_service->sync();
       force_sync = false;
     }

@@ -151,7 +151,7 @@ void vw::platefile::PlateFile::write_request() {
   // Open the blob for writing.
   m_write_blob.reset( new Blob(blob_filename.str()) );
   
-  if (last_size != m_write_blob->size()) {
+  if (last_size != 0 && last_size != m_write_blob->size()) {
     std::ostringstream ostr; 
     ostr << "WARNING: last close size did not match current size when opening " 
          << blob_filename.str() 
