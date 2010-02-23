@@ -231,7 +231,7 @@ namespace platefile {
     /// most recent tile, regardless of its transaction id.
     template <class ViewT>
     TileHeader read(ViewT &view, int col, int row, int level, 
-                    int transaction_id, bool exact_transaction_match = false) {
+                    int transaction_id, bool exact_transaction_match = false) const {
 
       TileHeader result;
       
@@ -272,14 +272,13 @@ namespace platefile {
     void write_request();
 
     /// Writing, pt. 2: Write an image to the specified tile location
-    /// in the plate file.  Returns the size (in bytes) written by
-    /// this write_update.
+    /// in the plate file.
     template <class ViewT>
     void write_update(ImageViewBase<ViewT> const& view, 
                       int col, int row, int level, int transaction_id) {      
 
       if (!m_write_blob)
-        vw_throw(BlobIoErr() << "Error issueing write_update().  No blob file open.  "
+        vw_throw(BlobIoErr() << "Error issuing write_update().  No blob file open.  "
                  << "Are you sure your ran write_request()?");
 
       // 0. Create a write_header
@@ -305,6 +304,34 @@ namespace platefile {
       write_record.set_blob_id(m_write_blob_id);
       write_record.set_blob_offset(blob_offset);
       
+      m_index->write_update(write_header, write_record);
+    }
+
+    /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
+    /// tile location. Use the filetype to identify the data later.
+    void write_update(const boost::shared_array<uint8> data, uint64 data_size,
+                      int col, int row, int level, int transaction_id) {
+
+      if (!m_write_blob)
+        vw_throw(BlobIoErr() << "Error issuing write_update(). No blob file open. "
+                             << "Are you sure your ran write_request()?");
+
+      // 0. Create a write_header
+      TileHeader write_header;
+      write_header.set_col(col);
+      write_header.set_row(row);
+      write_header.set_level(level);
+      write_header.set_transaction_id(transaction_id);
+      write_header.set_filetype(this->default_file_type());
+
+      // 1. Write the data into the blob
+      int64 blob_offset = m_write_blob->write(write_header, data, data_size);
+
+      // 2. Update the index
+      IndexRecord write_record;
+      write_record.set_blob_id(m_write_blob_id);
+      write_record.set_blob_offset(blob_offset);
+
       m_index->write_update(write_header, write_record);
     }
 

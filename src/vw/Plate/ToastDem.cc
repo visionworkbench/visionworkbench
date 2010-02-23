@@ -30,10 +30,12 @@ namespace {
   static const int num_toast_indices = 513;
 }
 
-void vw::platefile::save_toast_dem_tile(std::string base_output_name, 
-                                        boost::shared_ptr<PlateFile> platefile, 
-                                        int32 col, int32 row, int32 level, 
-                                        int32 transaction_id) {
+// returns false if the type didn't exist and was skipped (not necessarily an error!)
+bool vw::platefile::make_toast_dem_tile(
+    const ToastDemWriter& writer,
+    const PlateFile& platefile, int32 col, int32 row, int32 level, int32 transaction_id) {
+
+  typedef PixelGrayA<int16> Pixel;
 
   // First, we need to determine which set of triangle indices to use
   // for this tile.  For upper right and lower left quadrants, we use
@@ -56,65 +58,108 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
   // Next, we need to determine how many levels of difference there is
   // between the image tile size and the DEM tile size.  The latter is
   // 32x32.
-  VW_DEBUG_ASSERT(platefile->default_tile_size() > 32, 
+  VW_DEBUG_ASSERT(platefile->default_tile_size() > 32,
                   LogicErr() << "Platefile tile size must be larger than 32x32.");
-  int level_difference = log(platefile->default_tile_size()/32) / log(2);
 
+  // How far do we move up the tree to find the already-subsampled images?
+  //int level_difference = log(platefile.default_tile_size()/32) / log(2);
+  // TODO: use this to skip the interpolation
+  int level_difference = 0;
+
+  ImageView<Pixel> tile;
   try {
-
     // Read the tile & prepare an interpolation view for sampling it.
-    ImageView<PixelGrayA<int16> > tile;
-    platefile->read(tile, col, row, level, transaction_id);
-    
-    InterpolationView<ImageView<PixelGrayA<int16> >, BilinearInterpolation > interp_tile(tile, 
-                                                                  BilinearInterpolation()); 
-  
-    int dem_level = level + level_difference;
-    for (unsigned v = 0; v < pow(2,level_difference); ++v) {
-      for (unsigned u = 0; u < pow(2,level_difference); ++u) {
-        int dem_col = col * pow(2,level_difference) + u;
-        int dem_row = row * pow(2,level_difference) + v;
-
-        // Create the level directory (if it doesn't exist)
-        std::ostringstream ostr;
-        ostr << base_output_name << "/" << dem_level;
-        if ( !fs::exists(ostr.str()) )
-          fs::create_directory(ostr.str());
-    
-        // Create the column directory (if it doesn't exist)
-        ostr << "/" << dem_col;
-        if ( !fs::exists(ostr.str()) )
-          fs::create_directory(ostr.str());
-        
-        // Create the file (with the row as the filename)
-        ostr << "/" << dem_row;
-           
-        // Open the file for writing
-        std::ofstream of(ostr.str().c_str());
-    
-        // Iterate over the triangle vertex arrays above, writing the DEM
-        // values in INTEL byte order to disk.
-        for (int i = 0; i < num_toast_indices; ++i) {
-          float u_sample_index = u * ((interp_tile.cols() - 1) / pow(2,level_difference)) + 
-            float(u_toast_indices[i]) / 32.0 * (interp_tile.cols() - 1) / pow(2,level_difference);
-          float v_sample_index = v * ((interp_tile.rows() - 1) / pow(2,level_difference)) +
-            float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1) / pow(2,level_difference);
-
-          // TODO: Thing about what to do if the pixel has alpha!
-          PixelGrayA<int16> value = interp_tile( u_sample_index, v_sample_index );
-          uint8 lsb = uint8(value[0] & 0xFF);
-          uint8 msb = uint8((value[0] >> 8) & 0xFF);
-          of.write((char*)(&lsb), 1);
-          of.write((char*)(&msb), 1);
-        }
-
-        // Clean up.
-        of.close();
-      }
-    }
-
-  } catch (TileNotFoundErr &e) { 
+    platefile.read(tile, col, row, level, transaction_id);
+  } catch (TileNotFoundErr &e) {
     // Do nothing if the tile does not exist
+    return false;
   }
 
+  const uint64 data_size = num_toast_indices*2;
+
+  // Reduce heap pressure by allocating this up here.
+  boost::shared_array<uint8> data(new uint8[data_size]);
+
+  InterpolationView<ImageView<Pixel>, BilinearInterpolation> interp_tile(tile,
+                                                                         BilinearInterpolation());
+  uint32 dem_level = level + level_difference;
+  uint32 tile_diff = pow(2,level_difference);
+
+  union I16 {
+    int16 i16;
+    uint8 u8[2];
+  };
+  // Just make sure no funny alignment games are going on.
+  BOOST_STATIC_ASSERT(sizeof(I16) == 2);
+
+  for (unsigned v = 0; v < tile_diff; ++v) {
+    for (unsigned u = 0; u < tile_diff; ++u) {
+      int32 dem_col = col * tile_diff + u;
+      int32 dem_row = row * tile_diff + v;
+
+      // Iterate over the triangle vertex arrays above, writing the DEM
+      // values in INTEL byte order to disk.
+      for (int32 i = 0; i < num_toast_indices; ++i) {
+        float u_sample_index = u * ((interp_tile.cols() - 1) / float(tile_diff)) + 
+          float(u_toast_indices[i]) / 32.0 * (interp_tile.cols() - 1) / float(tile_diff);
+        float v_sample_index = v * ((interp_tile.rows() - 1) / float(tile_diff)) +
+          float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1) / float(tile_diff);
+
+        I16 value;
+
+        // TODO: Think about what to do if the pixel has alpha!
+        value.i16 = interp_tile( u_sample_index, v_sample_index ).v();
+#if VW_BYTE_ORDER == VW_BIG_ENDIAN
+        // spec for toast dem files says "intel" byte order (little-endian)
+        // so if we're on big endian, swap them.
+        std::swap(value.u8[0], value.u8[1]);
+#endif
+        // write lsb
+        data[i*2]   = value.u8[0];
+        // write msb
+        data[i*2+1] = value.u8[1];
+      }
+
+      // We've batched a dem tile worth of data. Call the writer.
+      writer(data, data_size, dem_col, dem_row, dem_level, transaction_id);
+    }
+  }
+  return true;
+}
+
+namespace {
+  struct DemFilesystem : public vw::platefile::ToastDemWriter {
+
+    const std::string& base_output_name;
+
+    DemFilesystem(const std::string& base_output_name) : base_output_name(base_output_name) {}
+
+    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
+      // Create the level directory (if it doesn't exist)
+      std::ostringstream ostr;
+      ostr << base_output_name
+        << "/" << dem_level
+        << "/" << dem_col
+        << "/" << dem_row;
+
+      fs::path output_file(ostr.str());
+      fs::create_directories(output_file.branch_path());
+
+      // Open the file for writing
+      std::ofstream of(output_file.file_string().c_str(), std::ios::binary);
+      if (!of.is_open())
+        vw_throw(IOErr() << "Failed to open toast dem tile for writing");
+
+      of.write(reinterpret_cast<const char*>(data.get()), data_size);
+    }
+  };
+}
+
+void vw::platefile::save_toast_dem_tile(std::string base_output_name, 
+                                        boost::shared_ptr<PlateFile> platefile,
+                                        int32 col, int32 row, int32 level,
+                                        int32 transaction_id) {
+
+  DemFilesystem writer(base_output_name);
+  make_toast_dem_tile(writer, *platefile, col, row, level, transaction_id);
 }
