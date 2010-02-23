@@ -69,20 +69,20 @@ vw::platefile::IndexLevel::~IndexLevel() {
   // We need to free the cache handles first before other things
   // (especially the generators) get unallocated.
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
-    if (m_cache_generators[i])
+    if (m_cache_generators[i]) 
       m_cache_handles[i].reset();
   }
 
 }
 
 void vw::platefile::IndexLevel::sync() {
-  Mutex::Lock lock(m_cache_mutex);
 
-  // We need to free the cache handles first before the data gets
-  // saved.  
+  // Write the index page to disk by calling it's sync() method.
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
-    if (m_cache_generators[i]) 
-      m_cache_handles[i].reset();
+    if (m_cache_generators[i]) {
+      boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
+      page->sync();
+    }
   }
 
 }
