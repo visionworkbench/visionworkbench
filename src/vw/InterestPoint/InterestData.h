@@ -32,8 +32,8 @@ namespace ip {
 
     InterestPoint() {}
 
-  InterestPoint(int x, int y, float scale=1.0, float interest=0.0, float ori=0.0, bool pol=false, unsigned octave = 0, unsigned scale_lvl = 0)
-  : x((float)x), y((float)y), scale(scale), ix(x), iy(y), orientation(ori), interest(interest), polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
+  InterestPoint(float x, float y, float scale=1.0, float interest=0.0, float ori=0.0, bool pol=false, unsigned octave = 0, unsigned scale_lvl = 0)
+  : x(x), y(y), scale(scale), ix(int(x)), iy(int(y)), orientation(ori), interest(interest), polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
 
 
     /// Subpixel (col,row) location of point
