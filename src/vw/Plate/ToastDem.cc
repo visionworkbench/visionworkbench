@@ -58,8 +58,8 @@ bool vw::platefile::make_toast_dem_tile(
   // Next, we need to determine how many levels of difference there is
   // between the image tile size and the DEM tile size.  The latter is
   // 32x32.
-  VW_DEBUG_ASSERT(platefile->default_tile_size() > 32,
-                  LogicErr() << "Platefile tile size must be larger than 32x32.");
+  VW_ASSERT(platefile.default_tile_size() > 32,
+            LogicErr() << "Platefile tile size must be larger than 32x32.");
 
   // How far do we move up the tree to find the already-subsampled images?
   //int level_difference = log(platefile.default_tile_size()/32) / log(2);
@@ -85,6 +85,7 @@ bool vw::platefile::make_toast_dem_tile(
   uint32 dem_level = level + level_difference;
   uint32 tile_diff = pow(2,level_difference);
 
+  // Access individual bytes without violating aliasing by using a pointer
   union I16 {
     int16 i16;
     uint8 u8[2];
