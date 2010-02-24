@@ -364,7 +364,8 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["Url"]          = data_url + "/{1}/{2}/{3}." + hdr.tile_filetype();
       (*this)["ThumbnailUrl"] = data_url + "/0/0/0."       + hdr.tile_filetype();
       // XXX: This is wrong for non-mars!
-      (*this)["DemUrl"]       = host + static_prefix + "megt128/{0}/{1}/{2}";
+      //(*this)["DemUrl"]       = host + static_prefix + "megt128/{0}/{1}/{2}";
+      (*this)["DemUrl"]       = host + data_prefix + "871880291/{0}/{1}/{2}.toast_dem_v1";
 
 
       child_keys.insert("ThumbnailUrl");
