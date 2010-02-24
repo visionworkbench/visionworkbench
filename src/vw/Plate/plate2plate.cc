@@ -142,8 +142,10 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   PlateFile output(opt.output_name, opt.mode, opt.description, opt.tile_size, opt.filetype, opt.pixel_format, opt.channel_type);
 
+  int transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
+
   for (int level = 0; level < input.num_levels(); ++level) {
-    std::cout << "Processing level " << level << " of " << input.num_levels() << std::endl;
+    std::cout << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
 
     // The entire region contains 2^level tiles.
     int region_size = pow(2,level);
@@ -161,6 +163,8 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
       }
     }
   }
+
+  output.transaction_complete(transaction_id, true);
 }
 
 // Blah blah boilerplate
