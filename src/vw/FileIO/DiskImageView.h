@@ -21,6 +21,12 @@
 #include <vw/Image/BlockRasterize.h>
 #include <vw/FileIO/DiskImageResource.h>
 
+// For multithreaded cache if available
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL == 1
+#include <vw/Image/ImageViewRef.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+#endif
+
 namespace vw {
 
   /// A view of an image on disk.
@@ -115,16 +121,28 @@ namespace vw {
   class DiskCacheImageView : public ImageViewBase< DiskCacheImageView<PixelT> > {
   private:
     boost::shared_ptr<DiskCacheHandle<PixelT> > m_handle;
-    std::string m_file_type;
+    std::string m_file_type, m_directory;
 
     template <class ViewT>
     void initialize(ImageViewBase<ViewT> const& view,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      char base_name[] = "/tmp/vw_cache_XXXXXXX";
+      char base_name[] = "/vw_cache_XXXXXXX";
       std::string filename = mktemp(base_name);
-      filename = filename + "." + m_file_type;
+      filename = m_directory+filename + "." + m_file_type;
       vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << filename << "\n";
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+      if ( m_file_type == "tif" ) {
+        ImageViewRef<PixelT> output = pixel_cast_rescale<PixelT>(view);
+        DiskImageResourceGDAL file_rsrc( filename, output.format(),
+                                         Vector2i(vw_settings().default_tile_size(),
+                                                  vw_settings().default_tile_size()) );
+        block_write_image( file_rsrc, output, progress_callback );
+      } else {
+        write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
+      }
+#else
       write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
+#endif
       m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename));
     }
 
@@ -137,8 +155,9 @@ namespace vw {
     /// system supplied temporary filename.
     template <class ViewT>
     DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif",
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
-      m_file_type(file_type) {
+                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
+                       std::string const& directory = "/tmp" ) :
+      m_file_type(file_type), m_directory(directory) {
       this->initialize(view.impl(), progress_callback);
     }
 
