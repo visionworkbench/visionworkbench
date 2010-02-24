@@ -7,7 +7,7 @@
 
 /// \file DiskImageView.h
 ///
-/// A read-only disk image view.  This is now just a thin 
+/// A read-only disk image view.  This is now just a thin
 /// wrapper around the more general ImageResourceView.
 ///
 #ifndef __VW_FILEIO_DISKIMAGEVIEW_H__
@@ -28,8 +28,8 @@ namespace vw {
   class DiskImageView : public ImageViewBase<DiskImageView<PixelT> >
   {
     typedef BlockRasterizeView<ImageResourceView<PixelT> > impl_type;
-    // This is sort of redundant, but holding both the resource and 
-    // the block rasterize view simplifies construction and access 
+    // This is sort of redundant, but holding both the resource and
+    // the block rasterize view simplifies construction and access
     // to the underlying resource.
     boost::shared_ptr<DiskImageResource> m_rsrc;
     impl_type m_impl;
@@ -43,7 +43,7 @@ namespace vw {
     DiskImageView( std::string const& filename, bool cache=true )
       : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
 
-    /// Constructs a DiskImageView of the given file on disk 
+    /// Constructs a DiskImageView of the given file on disk
     /// using the specified cache area.
     DiskImageView( std::string const& filename, Cache& cache )
       : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
@@ -77,11 +77,11 @@ namespace vw {
 
     pixel_accessor origin() const { return m_impl.origin(); }
     result_type operator()( int32 x, int32 y, int32 p = 0 ) const { return m_impl(x,y,p); }
-    
+
     typedef typename impl_type::prerasterize_type prerasterize_type;
     prerasterize_type prerasterize( BBox2i const& bbox ) const { return m_impl.prerasterize( bbox ); }
     template <class DestT> void rasterize( DestT const& dest, BBox2i const& bbox ) const { m_impl.rasterize( dest, bbox ); }
-    
+
     std::string filename() const { return m_rsrc->filename(); }
 
   };
@@ -95,10 +95,10 @@ namespace vw {
   public:
     template <class ViewT>
     DiskCacheHandle(ImageViewBase<ViewT> const& view, std::string const& filename) :
-      m_disk_image_view(filename), m_filename(filename) {      
+      m_disk_image_view(filename), m_filename(filename) {
     }
-    
-    ~DiskCacheHandle() { 
+
+    ~DiskCacheHandle() {
       vw_out(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
       unlink(m_filename.c_str());
     }
@@ -113,19 +113,19 @@ namespace vw {
   /// destroyed.
   template <class PixelT>
   class DiskCacheImageView : public ImageViewBase< DiskCacheImageView<PixelT> > {
-  private:                                      
+  private:
     boost::shared_ptr<DiskCacheHandle<PixelT> > m_handle;
     std::string m_file_type;
 
     template <class ViewT>
-    void initialize(ImageViewBase<ViewT> const& view, 
+    void initialize(ImageViewBase<ViewT> const& view,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       char base_name[] = "/tmp/vw_cache_XXXXXXX";
       std::string filename = mktemp(base_name);
       filename = filename + "." + m_file_type;
       vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << filename << "\n";
       write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
-      m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename)); 
+      m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename));
     }
 
   public:
@@ -137,7 +137,7 @@ namespace vw {
     /// system supplied temporary filename.
     template <class ViewT>
     DiskCacheImageView(ImageViewBase<ViewT> const& view, std::string const& file_type = "tif",
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) : 
+                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) :
       m_file_type(file_type) {
       this->initialize(view.impl(), progress_callback);
     }
