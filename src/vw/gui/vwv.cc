@@ -44,6 +44,7 @@ int main(int argc, char *argv[]) {
   unsigned cache_size;
   std::string image_filename;
   float nodata_value;
+  int transaction_id = -1;;
 
   // Set up command line options
   po::options_description visible_options("Options");
@@ -51,6 +52,7 @@ int main(int argc, char *argv[]) {
     ("help,h", "Display this help message")
     ("normalize,n", "Attempt to normalize the image before display.")
     ("nodata-value", po::value<float>(&nodata_value), "Choose a \"nodata\" value in the image to treat as transparent.")
+    ("transaction-id,t", po::value<int>(&transaction_id), "Choose an initial transaction_id.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
 
   po::options_description positional_options("Positional Options");
@@ -85,7 +87,7 @@ int main(int argc, char *argv[]) {
 
   // Start up the Qt GUI
   QApplication app(argc, argv);
-  vw::gui::MainWindow main_window(image_filename, nodata_value, vm.count("normalize"), vm);
+  vw::gui::MainWindow main_window(image_filename, nodata_value, transaction_id, vm.count("normalize"), vm);
   main_window.show();
   try {
     app.exec();

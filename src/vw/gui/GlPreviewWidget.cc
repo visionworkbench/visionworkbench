@@ -136,7 +136,8 @@ void check_gl_errors( void )
 //               GlPreviewWidget Public Methods
 // --------------------------------------------------------------
 
-GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt) : 
+GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt,
+                                 int transaction_id) : 
   QGLWidget(frmt, parent) {
   
   // Verify that our OpenGL formatting options stuck
@@ -169,7 +170,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_gain = 1.0;
   m_offset = 0.0;
   m_gamma = 1.0;
-  m_current_transaction_id = -1;
+  m_current_transaction_id = transaction_id;
   m_exact_transaction_id_match = false;
   
   // Set mouse tracking

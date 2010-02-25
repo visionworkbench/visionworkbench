@@ -74,7 +74,7 @@ namespace gui {
     public:
 
     // Constructors/Destructor
-    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt);
+    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt, int transaction_id);
     virtual ~GlPreviewWidget();
 
     virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile);

@@ -24,7 +24,8 @@ using namespace vw::gui;
 #include <sstream>
 
 MainWindow::MainWindow(std::string input_filename, 
-                       float nodata_value, 
+                       float nodata_value,
+                       int transaction_id,
                        bool do_normalize, 
                        po::variables_map const& vm) :
   m_filename(input_filename), m_nodata_value(nodata_value), m_vm(vm) {
@@ -45,7 +46,7 @@ MainWindow::MainWindow(std::string input_filename,
   gl_frmt.setSwapInterval(1);
 
   // Set up GlPreviewWidget
-  m_preview_widget = new GlPreviewWidget(this, input_filename, gl_frmt);
+  m_preview_widget = new GlPreviewWidget(this, input_filename, gl_frmt, transaction_id);
   setCentralWidget(m_preview_widget);
 
   // // Set the nodata value
