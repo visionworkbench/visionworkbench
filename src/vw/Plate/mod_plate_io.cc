@@ -268,7 +268,12 @@ int handle_image(request_rec *r, const std::string& url) {
 
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
-  r->content_type = "image/png";
+  if (index.index->tile_filetype() == "png")
+    r->content_type = "image/png";
+  else if (index.index->tile_filetype() == "jpg")
+    r->content_type = "image/jpg";
+  else
+    r->content_type = "application/octet-stream";
 
   if (mapget(query, "nocache", 0u) == 1) {
     apr_table_set(r->headers_out, "Cache-Control", "no-cache");
@@ -509,7 +514,11 @@ int PlateModule::operator()(request_rec *r) const {
     if (!r->path_info)
         return DECLINED;
 
-  const std::string url(r->path_info);
+  std::string url(r->path_info);
+
+  // XXX: WWT will append &new to dem urls... even when there's no ?.
+  if (url.compare(url.size()-4,4,"&new") == 0)
+      url.erase(url.size()-4);
 
   typedef boost::function<int (request_rec*, const std::string& url)> Handler;
   static const Handler Handlers[] = {handle_image, handle_wtml};
