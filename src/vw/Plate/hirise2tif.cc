@@ -205,7 +205,7 @@ int main( int argc, char *argv[] ) {
     std::cout << "Scanning red image for autoscaling..." << std::endl;
     DiskImageView<uint16> image( image_files[0] );
     ImageView<uint16> stripe( image.cols(), filter );
-    TerminalProgressCallback progress;
+    TerminalProgressCallback progress("plate.tools.hirise2tif", "");
     for( int y=0; y+filter-1<image.rows(); y+=filter ) {
       progress.report_progress( (double)y / image.rows() );
       stripe = crop( image, 0, y, image.cols(), filter );
@@ -285,13 +285,13 @@ int main( int argc, char *argv[] ) {
     DiskImageResourceGDAL output_resource( output_file_name, format, Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
     std::cout << "Retaining alpha channel!" << std::endl;
-    write_image( output_resource, composite, TerminalProgressCallback() );
+    write_image( output_resource, composite, TerminalProgressCallback("plate.tools.hirise2tif", "") );
   } else {
     format.pixel_format = VW_PIXEL_RGB;
     DiskImageResourceGDAL output_resource( output_file_name, format, Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
     std::cout << "Replacing alpha with black!" << std::endl;
-    write_image( output_resource, per_pixel_filter(composite,&rgba8_to_rgb8), TerminalProgressCallback() );
+    write_image( output_resource, per_pixel_filter(composite,&rgba8_to_rgb8), TerminalProgressCallback("plate.tools.hirise2tif", "") );
   }
 
   return 0;
