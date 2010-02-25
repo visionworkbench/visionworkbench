@@ -16,6 +16,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw {
 namespace camera {
@@ -70,8 +71,6 @@ namespace camera {
     // Simple linear solution
     vw::Matrix<double> BasicDLT( std::vector<Vector<double> > const& input,
                                  std::vector<Vector<double> > const& output ) const {
-      VW_ASSERT( input.size() == 6 && output.size() == 6,
-                 vw::ArgumentErr() << "Camera Matrix DLT requires exactly 6 measures." );
       VW_ASSERT( input[0].size() == 4 && output[0].size() == 3,
                  vw::ArgumentErr() << "Camera Matrix requires Vector4 inputs and Vector3 outputs." );
 
@@ -89,14 +88,70 @@ namespace camera {
         }
       }
 
-      Matrix<double> nullsp = nullspace(A);
-      nullsp /= nullsp(11,0);
       Matrix<double,3,4> p;
-      for ( unsigned i = 0; i < 3; i++ )
-        for ( unsigned j = 0; j < 4; j++ )
-          p(i,j) = nullsp(i*4+j,0);
+      // SVD for smallest singular value
+      Matrix<double> U,VT;
+      Vector<double> S;
+      svd(A,U,S,VT);
+      submatrix(p,0,0,1,4) = submatrix(VT,VT.rows()-1,0,1,4);
+      submatrix(p,1,0,1,4) = submatrix(VT,VT.rows()-1,4,1,4);
+      submatrix(p,2,0,1,4) = submatrix(VT,VT.rows()-1,8,1,4);
       return p;
     }
+
+    // Non-linear solution to an over-constrained problem
+    class CameraMatrixModelLMA : public math::LeastSquaresModelBase<CameraMatrixModelLMA> {
+      std::vector<Vector<double> > m_world_input;
+      std::vector<Vector<double> > m_image_output;
+
+    public:
+      // What is returned by evaluating functor. It's the reprojection error.
+      typedef Vector<double> result_type;
+      // Define the search space. This is the camera matrix flattened out.
+      typedef Vector<double> domain_type;
+      // Jacobian form
+      typedef Matrix<double> jacobian_type;
+
+      // Constructor
+      inline CameraMatrixModelLMA( std::vector<Vector<double> > input,
+                                   std::vector<Vector<double> > output ) :
+        m_world_input(input), m_image_output(output) {}
+
+      // Evaluator
+      inline result_type operator()( domain_type const& x ) const {
+        result_type output;
+        output.set_size( m_world_input.size() );
+        Matrix<double,3,4> P = unflatten(x);
+
+        for ( uint i = 0; i < m_world_input.size(); i++ ) {
+          Vector3 reproj = P*m_world_input[i];
+          reproj /= reproj[2];
+          output[i] = norm_2( subvector(m_image_output[i],0,2) - subvector(reproj,0,2) );
+        }
+        return output;
+      }
+
+      // Help functions
+      Vector<double> flatten( Matrix<double> const& input ) const {
+        Vector<double,12> output;
+        for ( uint i = 0; i < 3; i++ ) {
+          for ( uint j = 0; j < 4; j++ ) {
+            output(4*i+j) = input(i,j);
+          }
+        }
+        return output;
+      }
+
+      Matrix<double> unflatten( Vector<double> const& input ) const {
+        Matrix<double,3,4> output;
+        for ( uint i = 0; i < 3; i++ ) {
+          for ( uint j = 0; j < 4; j++ ) {
+            output(i,j) = input(4*i+j);
+          }
+        }
+        return output;
+      }
+    };
 
     // Interface for solving for Camera Matrix (switches between DLT and Gold Standard)
     template <class ContainerT>
@@ -130,7 +185,32 @@ namespace camera {
         P /= P(2,3);
         return P;
       } else {
-        vw_throw( NoImplErr() << "Camera Matrix iterative solution is unfinished." );
+        Matrix<double> seed_matrix = seed_input;
+
+        Matrix<double> S_in = NormSimilarity( input );
+        Matrix<double> S_out = NormSimilarity( output );
+        std::vector<Vector<double> > input_prime = apply_matrix( S_in, input );
+        std::vector<Vector<double> > output_prime = apply_matrix( S_out, output );
+
+        // Perform DLT if needed
+        if ( seed_matrix.cols() == 0 )
+          seed_matrix = BasicDLT( input_prime, output_prime );
+
+        // Iterative solution be here
+        CameraMatrixModelLMA model( input_prime,
+                                    output_prime );
+        Vector<double> seed = model.flatten( seed_matrix );
+        int status = 0;
+        Vector<double> objective;
+        objective.set_size( input.size() );
+        Vector<double> result = levenberg_marquardt( model, seed,
+                                                     objective, status );
+        seed_matrix = model.unflatten( result );
+
+        // Denormalization
+        Matrix<double> P = inverse(S_out)*seed_matrix*S_in;
+        P /= P(2,3);
+        return P;
       }
     }
   };
