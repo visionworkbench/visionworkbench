@@ -352,7 +352,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["OffsetY"]            = "0";
       (*this)["Rotation"]           = "0";
       (*this)["Sparse"]             = "True";
-      (*this)["ElevationModel"]     = "False";
+      (*this)["ElevationModel"]     = "True";
       (*this)["StockSet"]           = "False";
 
       (*this)["Name"]         = layer.description;
