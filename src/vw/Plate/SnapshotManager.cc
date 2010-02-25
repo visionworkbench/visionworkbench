@@ -173,26 +173,13 @@ namespace platefile {
         // pyramid, it needs to be supersampled and cropped before we
         // can use it here.
         if (current_hdr.level() != target_level) {
-          
-          int level_diff = target_level - current_hdr.level();
-          int scaling_factor = pow(2,level_diff);
-          int subtile_u = current_col - current_hdr.col() * scaling_factor;
-          int subtile_v = current_row - current_hdr.row() * scaling_factor;
-          BBox2i subtile_bbox(new_tile.cols() * subtile_u,
-                              new_tile.rows() * subtile_v,
-                              new_tile.cols(), new_tile.rows());
-        
-          // Scale up and interpolate the old_tile, then crop out the
-          // subtile that we need.
-          ImageView<PixelT> subtile = 
-            crop(transform(new_tile, ResampleTransform(scaling_factor, scaling_factor), 
-                           ConstantEdgeExtension(), BilinearInterpolation()),
-                 subtile_bbox);
-          
-          // Replace the old data
-          new_tile = subtile;
+
+          new_tile = resample_img_from_level(
+                      new_tile, current_hdr.col(), current_hdr.row(), current_hdr.level(),
+                      current_col, current_row, target_level);
+
         }
-        
+
         // Add the new tile UNDERNEATH the tiles we have already composited.
         vw::mosaic::ImageComposite<PixelT> composite;
         composite.insert(new_tile, 0, 0);

@@ -8,6 +8,7 @@
 #ifndef __VW_PLATE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATEMANAGER_H__
 
+#include <vw/Plate/TileManipulation.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
@@ -23,10 +24,6 @@ namespace platefile {
     BBox2i bbox;
     TileInfo(int i, int j, BBox2i const& bbox) : i(i), j(j), bbox(bbox) {}
   };
-
-  // Given a bbox, returns a list of smaller bboxes that perfectly
-  // tile the space of the larger bbox.
-  std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int height);
 
   // -------------------------------------------------------------------------
   //                              PLATE MANAGER
