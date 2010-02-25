@@ -69,7 +69,17 @@ struct ToastDem : public FilterBase<ToastDem> {
 
   struct DemWriter : public ToastDemWriter {
     PlateFile& platefile;
-    DemWriter(PlateFile& output) : platefile(output) {}
+    DemWriter(PlateFile& output, int transaction_id) : platefile(output) {
+      // Write null tiles for the levels we don't have data for
+      int level_difference = log(platefile.default_tile_size()/32.) / log(2.) + 0.5;
+
+      for (int level = 0; level < level_difference; ++level) {
+        int region_size = 1 << level;
+        for (int col = 0; col < region_size; ++col)
+          for (int row = 0; row < region_size; ++row)
+            create_uniform_tile(0, output, col, row, level, transaction_id);
+      }
+    }
     void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
       platefile.write_update(data, data_size, dem_col, dem_row, dem_level, transaction_id);
     }
@@ -78,7 +88,7 @@ struct ToastDem : public FilterBase<ToastDem> {
   inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
     output.write_request();
 
-    DemWriter writer(output);
+    DemWriter writer(output, transaction_id);
     make_toast_dem_tile(writer, input, col, row, level, transaction_id);
     output.write_complete();
   }
@@ -148,7 +158,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     std::cout << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
 
     // The entire region contains 2^level tiles.
-    int region_size = pow(2,level);
+    int region_size = 1 << level;
     int subdivided_region_size = region_size / 16;
     if (subdivided_region_size < 1024) subdivided_region_size = 1024;
 

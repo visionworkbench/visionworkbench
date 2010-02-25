@@ -28,6 +28,15 @@ namespace {
   static int const ul_lr_quadrant_v_toast_indices[] = {0,0,0,16,16,16,32,32,32,0,8,8,8,16,8,8,12,12,4,4,0,4,0,4,8,4,4,12,16,12,8,4,4,12,12,16,12,8,12,12,14,14,10,10,8,10,8,10,12,10,10,2,2,0,2,0,2,4,6,6,2,2,4,2,0,2,4,6,6,2,2,0,2,4,2,4,2,2,6,6,8,6,8,6,4,6,6,14,16,14,12,10,10,14,14,16,14,12,14,4,2,2,6,6,8,6,8,6,4,6,6,14,14,16,14,16,14,12,10,10,14,14,12,10,8,10,12,14,14,10,10,8,10,12,10,0,8,8,8,16,8,8,12,12,4,4,0,4,0,4,8,4,4,12,16,12,8,4,4,12,12,16,12,8,12,12,14,14,10,10,8,10,8,10,12,10,10,2,2,0,2,0,2,4,6,6,2,2,4,2,0,2,4,6,6,2,2,0,2,4,2,4,2,2,6,6,8,6,8,6,4,6,6,14,16,14,12,10,10,14,14,16,14,12,14,4,2,2,6,6,8,6,8,6,4,6,6,14,14,16,14,16,14,12,10,10,14,14,12,10,8,10,12,14,14,10,10,8,10,12,10,16,24,24,24,32,24,24,28,28,20,20,16,20,16,20,24,20,20,28,32,28,24,20,20,28,28,32,28,24,28,28,30,30,26,26,24,26,24,26,28,26,26,18,18,16,18,16,18,20,22,22,18,18,20,18,16,18,20,22,22,18,18,16,18,20,18,20,18,18,22,22,24,22,24,22,20,22,22,30,32,30,28,26,26,30,30,32,30,28,30,20,18,18,22,22,24,22,24,22,20,22,22,30,30,32,30,32,30,28,26,26,30,30,28,26,24,26,28,30,30,26,26,24,26,28,26,16,24,24,24,32,24,24,28,28,20,20,16,20,16,20,24,20,20,28,32,28,24,20,20,28,28,32,28,24,28,28,30,30,26,26,24,26,24,26,28,26,26,18,18,16,18,16,18,20,22,22,18,18,20,18,16,18,20,22,22,18,18,16,18,20,18,20,18,18,22,22,24,22,24,22,20,22,22,30,32,30,28,26,26,30,30,32,30,28,30,20,18,18,22,22,24,22,24,22,20,22,22,30,30,32,30,32,30,28,26,26,30,30,28,26,24,26,28,30,30,26,26,24,26,28,26};
 
   static const int num_toast_indices = 513;
+  static const uint64 tile_bytes = num_toast_indices*2;
+
+  // Access individual bytes without violating aliasing by using a pointer
+  union I16 {
+    int16 i16;
+    uint8 u8[2];
+  };
+  // Just make sure no funny alignment games are going on.
+  BOOST_STATIC_ASSERT(sizeof(I16) == 2);
 }
 
 // returns false if the type didn't exist and was skipped (not necessarily an error!)
@@ -61,55 +70,48 @@ bool vw::platefile::make_toast_dem_tile(
   VW_ASSERT(platefile.default_tile_size() > 32,
             LogicErr() << "Platefile tile size must be larger than 32x32.");
 
-  // How far do we move up the tree to find the already-subsampled images?
-  //int level_difference = log(platefile.default_tile_size()/32) / log(2);
-  // TODO: use this to skip the interpolation
-  int level_difference = 0;
-
-  ImageView<Pixel> tile;
+  ImageView<Pixel> src_tile;
   try {
-    // Read the tile & prepare an interpolation view for sampling it.
-    platefile.read(tile, col, row, level, transaction_id);
+    // Read the tile & prepare the interpolation view for sampling it.
+    platefile.read(src_tile, col, row, level, transaction_id);
   } catch (TileNotFoundErr &e) {
     // Do nothing if the tile does not exist
     return false;
   }
 
-  const uint64 data_size = num_toast_indices*2;
+  int level_difference = log(platefile.default_tile_size()/32.) / log(2.) + 0.5;
 
-  // Reduce heap pressure by allocating this up here.
-  boost::shared_array<uint8> data(new uint8[data_size]);
+  int src_level = level;
+  int dst_level = src_level + level_difference;
+  int dst_region_offset = 1 << level_difference;
 
-  InterpolationView<ImageView<Pixel>, BilinearInterpolation> interp_tile(tile,
-                                                                         BilinearInterpolation());
-  uint32 dem_level = level + level_difference;
-  uint32 tile_diff = pow(2,level_difference);
+  //ImageView<PixelT> resample_img_from_level(const ImageView<PixelT> &src_tile, int src_col, int src_row,
+  //                                          int src_level, int dst_col, int dst_row, int dst_level)
 
-  // Access individual bytes without violating aliasing by using a pointer
-  union I16 {
-    int16 i16;
-    uint8 u8[2];
-  };
-  // Just make sure no funny alignment games are going on.
-  BOOST_STATIC_ASSERT(sizeof(I16) == 2);
+  // Reduce heap pressure by allocating this up here and reusing
+  boost::shared_array<uint8> data(new uint8[tile_bytes]);
 
-  for (unsigned v = 0; v < tile_diff; ++v) {
-    for (unsigned u = 0; u < tile_diff; ++u) {
-      int32 dem_col = col * tile_diff + u;
-      int32 dem_row = row * tile_diff + v;
+  for (int v = 0; v < dst_region_offset; ++v) {
+    for (int u = 0; u < dst_region_offset; ++u) {
+      int dst_col = col * dst_region_offset + u;
+      int dst_row = row * dst_region_offset + v;
+
+      ImageView<Pixel> dst_img = resample_img_from_level(src_tile,
+                                       col,     row, src_level,
+                                   dst_col, dst_row, dst_level);
 
       // Iterate over the triangle vertex arrays above, writing the DEM
       // values in INTEL byte order to disk.
       for (int32 i = 0; i < num_toast_indices; ++i) {
-        float u_sample_index = u * ((interp_tile.cols() - 1) / float(tile_diff)) + 
-          float(u_toast_indices[i]) / 32.0 * (interp_tile.cols() - 1) / float(tile_diff);
-        float v_sample_index = v * ((interp_tile.rows() - 1) / float(tile_diff)) +
-          float(v_toast_indices[i]) / 32.0 * (interp_tile.rows() - 1) / float(tile_diff);
+        float u_sample_index = u * ((dst_img.cols() - 1) / float(dst_region_offset)) +
+          float(u_toast_indices[i]) / 32.0 * (dst_img.cols() - 1) / float(dst_region_offset);
+        float v_sample_index = v * ((dst_img.rows() - 1) / float(dst_region_offset)) +
+          float(v_toast_indices[i]) / 32.0 * (dst_img.rows() - 1) / float(dst_region_offset);
 
         I16 value;
 
         // TODO: Think about what to do if the pixel has alpha!
-        value.i16 = interp_tile( u_sample_index, v_sample_index ).v();
+        value.i16 = dst_img( u_sample_index, v_sample_index ).v();
 #if VW_BYTE_ORDER == VW_BIG_ENDIAN
         // spec for toast dem files says "intel" byte order (little-endian)
         // so if we're on big endian, swap them.
@@ -122,7 +124,7 @@ bool vw::platefile::make_toast_dem_tile(
       }
 
       // We've batched a dem tile worth of data. Call the writer.
-      writer(data, data_size, dem_col, dem_row, dem_level, transaction_id);
+      writer(data, tile_bytes, dst_col, dst_row, dst_level, transaction_id);
     }
   }
   return true;
@@ -156,7 +158,7 @@ namespace {
   };
 }
 
-void vw::platefile::save_toast_dem_tile(std::string base_output_name, 
+void vw::platefile::save_toast_dem_tile(std::string base_output_name,
                                         boost::shared_ptr<PlateFile> platefile,
                                         int32 col, int32 row, int32 level,
                                         int32 transaction_id) {
