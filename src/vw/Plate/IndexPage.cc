@@ -327,55 +327,34 @@ vw::platefile::IndexPage::search_by_location(int col, int row,
   // Check first to make sure that there are actually tiles at this location.
   if (!m_sparse_table.test(page_row*m_page_width + page_col)) 
     vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
-
+    
   // If there are, then we apply the transaction_id filters to select the requested ones.
   std::list<vw::platefile::TileHeader> results;
   multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
-
-  if (start_transaction_id == -1 && end_transaction_id == -1) {
-
-    if (it != entries.end() ) { 
-    
-      // If the user has specified a transaction range of [-1, -1],
-      // then we only return the last valid tile.
+  while (it != entries.end() && it->first >= start_transaction_id) {
+    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
       TileHeader hdr;
       hdr.set_col( m_base_col + page_col );
       hdr.set_row( m_base_row + page_row );
       hdr.set_level(m_level);
       hdr.set_transaction_id(it->first);
       results.push_back(hdr);
-    } else {
-      vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
     }
-
-  } else {
-    
-    while (it != entries.end() && it->first >= start_transaction_id) {
-      if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
-        TileHeader hdr;
-        hdr.set_col( m_base_col + page_col );
-        hdr.set_row( m_base_row + page_row );
-        hdr.set_level(m_level);
-        hdr.set_transaction_id(it->first);
-        results.push_back(hdr);
-      }
-      ++it;
-    }
+    ++it;
+  }
   
-    // For snapshotting, we need to fetch one additional entry
-    // outside of the specified range.  This next tile
-    // represents the "top" tile in the mosaic for entries that
-    // may not have been part of the last snapshot.  
-    if (fetch_one_additional_entry && it != entries.end()) {
-      TileHeader hdr;
-      hdr.set_col( m_base_col + page_col );
-      hdr.set_row( m_base_row + page_row );
-      hdr.set_level(m_level);
-      hdr.set_transaction_id(it->first);
-      results.push_back(hdr);
-    }
-
+  // For snapshotting, we need to fetch one additional entry
+  // outside of the specified range.  This next tile
+  // represents the "top" tile in the mosaic for entries that
+  // may not have been part of the last snapshot.  
+  if (fetch_one_additional_entry && it != entries.end()) {
+    TileHeader hdr;
+    hdr.set_col( m_base_col + page_col );
+    hdr.set_row( m_base_row + page_row );
+    hdr.set_level(m_level);
+    hdr.set_transaction_id(it->first);
+    results.push_back(hdr);
   }
   
   return results;
