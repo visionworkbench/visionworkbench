@@ -431,6 +431,14 @@ int handle_wtml(request_rec *r, const std::string& url) {
       prefix << ":" << port;
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
+
+    const std::string filetype = e.second.index->index_header().tile_filetype();
+    // WWT can only handle jpg and png
+    if (filetype != "jpg" && filetype != "png") {
+      vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
+      continue;
+    }
+
     WTMLImageSet img(prefix.str(), "/wwt/p/", "/static/", e.second);
     if (r->args) {
       img["Url"]          += std::string("?") + r->args;
