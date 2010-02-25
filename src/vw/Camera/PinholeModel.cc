@@ -232,6 +232,7 @@ void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) 
     sign_fix(2,2) = -1;
   R = R*sign_fix;
   Q = sign_fix*Q;
+  R /= R(2,2);
 
   // Pulling out intrinsic and last extrinsic
   Matrix<double,3,3> uvwRotation;
@@ -243,6 +244,7 @@ void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) 
   m_fv = R(1,1);
   m_cu = R(0,2);
   m_cv = R(1,2);
+
   if ( fabs(R(0,1)) >= 1.2 )
     vw_out(vw::WarningMessage,"camera") << "Significant skew not modelled by pinhole camera\n";
 
