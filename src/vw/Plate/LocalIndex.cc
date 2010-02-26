@@ -330,7 +330,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
  void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
 
    // First we save (sync) the index pages to disk
-   this->sync();
+   //this->sync();
 
    if ( update_read_cursor ) {
      int max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
