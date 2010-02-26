@@ -516,8 +516,8 @@ int PlateModule::operator()(request_rec *r) const {
 
   std::string url(r->path_info);
 
-  // XXX: WWT will append &new to dem urls... even when there's no ?.
-  if (url.compare(url.size()-4,4,"&new") == 0)
+  // WWT will append &new to dem urls... even when there's no ?.
+  if (url.size() > 4 && url.compare(url.size()-4,4,"&new") == 0)
       url.erase(url.size()-4);
 
   typedef boost::function<int (request_rec*, const std::string& url)> Handler;
