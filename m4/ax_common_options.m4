@@ -105,8 +105,13 @@ if test x"$ENABLE_PROFILE" = "xyes"; then
     AX_TRY_CPPFLAGS([-pg], [AX_CFLAGS="$AX_CFLAGS -pg"], [AC_MSG_ERROR([Cannot enable profiling: compiler doesn't seem to support it])])
 fi
 
-CFLAGS="$AX_CFLAGS $CFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
-CXXFLAGS="$AX_CFLAGS $CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
+if ( gcc --version | grep 3.4 ); then
+   CFLAGS="$AX_CFLAGS $CFLAGS -Wall -Wextra -Wno-unused-parameter"
+   CXXFLAGS="$AX_CFLAGS $CXXFLAGS -Wall -Wextra -Wno-unused-parameter"
+else
+   CFLAGS="$AX_CFLAGS $CFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
+   CXXFLAGS="$AX_CFLAGS $CXXFLAGS -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
+fi
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.
