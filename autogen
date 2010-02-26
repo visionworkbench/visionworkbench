@@ -1,13 +1,17 @@
 #!/bin/sh
 
-if test -n "$1" && "$1" = "old" ; then
-    export AUTOCONF=autoconf-2.59
-    export AUTOMAKE=automake-1.6
-    export ACLOCAL=aclocal-1.6
-    export AUTOHEADER=autoheader-2.59
-    reconf=autoreconf-2.59
-else
-    reconf=autoreconf
+am_version=$(automake --version | head -n1 | cut -d ' ' -f 4)
+if test "$am_version" \< "1.9.5b" ; then
+    topdir="$(cd `dirname $0` && pwd)"
+
+    echo "WARNING: automake < 1.9.5b doesn't know how to handle relative"
+    echo "m4_include paths. Working around it."
+    echo
+    set -x
+    mkdir -p "$topdir/m4/m4"
+    ln -sf $topdir/m4/fixups.m4 $topdir/m4/m4/fixups.m4
+    set +x
+    echo
 fi
 
-$reconf --force --verbose --install -I m4 -I thirdparty/m4
+autoreconf --force --verbose --install -I m4 -I thirdparty/m4

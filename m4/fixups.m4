@@ -5,8 +5,10 @@ dnl All Rights Reserved.
 dnl __END_LICENSE__
 
 
-dnl caller must protect themselves from multiple inclusion, like:
-dnl m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
+dnl caller must protect themselves from multiple inclusion
+dnl m4_ifdef([_AX_FIXUPS], [], [m4_exclude([fixups.m4])])
+dnl ^--- this code isn't quite right; the correct code is "include", not "exclude".
+dnl automake 1.9.? will break on includes inside comments.
 
 dnl 2.65 added an additional level of quoting for upper and lower
 m4_pushdef([AAA],[---])dnl
