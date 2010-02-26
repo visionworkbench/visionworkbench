@@ -58,11 +58,18 @@
 
 #include <vw/FileIO/DiskImageResource_internal.h>
 
+static void register_default_file_types_impl();
 namespace {
   typedef std::map<std::string,vw::DiskImageResource::construct_open_func> OpenMapType;
   typedef std::map<std::string,vw::DiskImageResource::construct_create_func> CreateMapType;
   OpenMapType *open_map = 0;
   CreateMapType *create_map = 0;
+
+  // This extra class helps to ensure that register_file_type() is only run once.
+  vw::RunOnce rdft_once = VW_RUNONCE_INIT;
+  void register_default_file_types_internal() {
+    rdft_once.run( register_default_file_types_impl );
+  }
 }
 
 bool vw::DiskImageResource::default_rescale = true;
@@ -81,7 +88,7 @@ namespace vw {
 void foreach_ext(std::string const& prefix, ExtTestFunction const& callback, std::set<std::string> const& exclude)
 {
   OpenMapType::const_iterator oi;
-  vw::DiskImageResource::register_default_file_types();
+  register_default_file_types_internal();
 
   for (oi = open_map->begin(); oi != open_map->end(); ++oi)
   {
@@ -99,20 +106,15 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
 {
   if( ! open_map ) open_map = new OpenMapType();
   if( ! create_map ) create_map = new CreateMapType();
-  //  std::cout << "REGISTERING DiskImageResource " << disk_image_resource_type << " for extension " << extension << std::endl;
 
-  OpenMapType::iterator om_iter = open_map->find( extension );
-  if ( om_iter != open_map->end() )
-    om_iter->second = open_func;
-  else
-    open_map->insert( std::make_pair( extension, open_func ) );
+  // This call will only result in the default types being registered once. If
+  // we have been called from register_default_file_types, this will not
+  // recurse because the RunOnce will protect us.
+  register_default_file_types_internal();
 
-  CreateMapType::iterator cm_iter = create_map->find( extension );
-  if ( cm_iter != create_map->end() )
-    cm_iter->second = create_func;
-  else
-    create_map->insert( std::make_pair( extension, create_func ) );
-
+  // This will create the entries if they don't exist
+  (*open_map)[extension]   = open_func;
+  (*create_map)[extension] = create_func;
 }
 
 static std::string file_extension( std::string const& filename ) {
@@ -123,8 +125,6 @@ static std::string file_extension( std::string const& filename ) {
   boost::to_lower( extension );
   return extension;
 }
-
-static vw::RunOnce rdft_once = VW_RUNONCE_INIT;
 
 static void register_default_file_types_impl() {
 
@@ -206,13 +206,13 @@ static void register_default_file_types_impl() {
 
 }
 
-// This extra class helps to ensure that register_file_type() is only run once.
+// Kill this function eventually.. it's marked as deprecated now.
 void vw::DiskImageResource::register_default_file_types() {
-  rdft_once.run( register_default_file_types_impl );
+  register_default_file_types_internal();
 }
 
 vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename ) {
-  register_default_file_types();
+  register_default_file_types_internal();
   if( open_map ) {
     OpenMapType::iterator i = open_map->find( file_extension( filename ) );
     if( i != open_map->end() ) {
@@ -239,7 +239,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
 /// Returns a disk image resource with the given filename.  The file
 /// type is determined by the value in 'type'.
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, std::string const& type ) {
-  register_default_file_types();
+  register_default_file_types_internal();
   if( create_map ) {
     CreateMapType::iterator i = create_map->find( type );
     if( i != create_map->end() )
@@ -252,7 +252,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
 /// Returns a disk image resource with the given filename.  The file
 /// type is determined by the extension of the filename.
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
-  register_default_file_types();
+  register_default_file_types_internal();
   if( create_map ) {
     CreateMapType::iterator i = create_map->find( file_extension( filename ) );
     if( i != create_map->end() )
