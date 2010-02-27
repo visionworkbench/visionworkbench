@@ -363,25 +363,21 @@ namespace cartography {
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
 
-    // Clamp the latitude range to [-90, 90] as occasionally we get edge 
-    // pixels that extend slightly beyond that range and cause Proj.4 to 
-    // fail.
-    if(lon_lat[1] > 90) lon_lat[1] = 90;
-    else if(lon_lat[1] < -90) lon_lat[1] = -90;
-
-    XY projected;  
+    XY projected;
     LP unprojected;
 
-    // Proj.4 expects the (lon,lat) pair to be in radians, so we
-    // must make a conversion if the CS in geographic (lat/lon).
+    // Proj.4 expects the (lon,lat) pair to be in radians
     unprojected.u = lon_lat[0] * DEG_TO_RAD;
     unprojected.v = lon_lat[1] * DEG_TO_RAD;
 
+    // Clamp the latitude range to [-HALFPI,HALFPI] ([-90, 90]) as occasionally
+    // we get edge pixels that extend slightly beyond that range (probably due
+    // to pixel as area vs point) and cause Proj.4 to fail. We use HALFPI
+    // rather than other incantations for pi/2 because that's what proj.4 uses.
+    if(lon_lat[1] > HALFPI)       lon_lat[1] = HALFPI;
+    else if(lon_lat[1] < -HALFPI) lon_lat[1] = -HALFPI;
+
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
-    // Needed because latitudes -90 and 90 can fail on spheroids.
-    if(pj_errno == -20)
-      if(lon_lat[1] == 90 || lon_lat[1] == -90)
-        return Vector2(-1, -1);
     CHECK_PROJ_ERROR;
 
     return Vector2(projected.u, projected.v);
