@@ -69,7 +69,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
     opts = po::parse_config_file( stream, desc );
   } catch (const po::invalid_syntax& e) {
     std::cerr << "Could not parse config file. Ignoring. (" 
-	      << e.msg << " near \"" << e.tokens << "\")" << std::endl;
+	      << e.what() << ")" << std::endl;
   } catch (const boost::program_options::unknown_option& /*e*/) {
       // Swallow this one. We don't care about unknown options.
       vw_throw(LogicErr() << "We should be accepting all options. This shouldn't happen.");
