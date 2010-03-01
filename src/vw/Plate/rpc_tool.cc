@@ -7,51 +7,14 @@
 
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-#include <vw/Cartography.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ToastPlateManager.h>
-//#include <vw/Plate/KmlPlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
-using namespace vw::mosaic;
-using namespace vw::cartography;
 
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-
-// --------------------------------------------------------------------------
-//                                DO_MOSAIC
-// --------------------------------------------------------------------------
-
-template <class ViewT>
-void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
-               ImageViewBase<ViewT> const& view,
-               std::string filename, GeoReference const& georef, 
-               std::string output_mode, int num_threads) {
-
-  std::ostringstream status_str;
-  status_str << "\t    " << filename << " : ";
-
-  if (output_mode == "toast") {
-
-    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm(new ToastPlateManager<typename ViewT::pixel_type> (platefile, num_threads) );
-    
-    pm->insert(view.impl(), filename, georef,
-               TerminalProgressCallback( "plate.tools", status_str.str()) );
-
-  }  else if (output_mode == "kml")  {
-
-    // boost::shared_ptr<KmlPlateManager> pm = 
-    //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile, num_threads) );
-
-    // pm->insert(view.impl(), filename, georef,
-    //            TerminalProgressCallback( status_str.str()) );
-
-  }
-
-}
 
 // --------------------------------------------------------------------------
 //                                    MAIN

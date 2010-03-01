@@ -83,9 +83,10 @@ namespace platefile {
       
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
-      if (m_verbose) 
-        std::cout << "\t    Generating tile: [ " << m_tile_info.j << " " << m_tile_info.i 
-                  << " @ level " <<  m_level << "]    BBox: " << m_tile_info.bbox << "\n";
+      vw_out(DebugMessage, "platefile") << std::cout << "\t    Generating tile: [ " 
+                                        << m_tile_info.j << " " << m_tile_info.i 
+                                        << " @ level " <<  m_level << "]    BBox: " 
+                                        << m_tile_info.bbox << "\n";
 
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);

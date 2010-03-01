@@ -59,9 +59,10 @@ ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int
       CacheEntry e = *i;
       m_cache.erase(i);
       m_cache.push_front(e);
-      vw_out(VerboseDebugMessage, "platefile") << "Found cached tile at " << x << " " << y << " " << level << "\n";
+      vw_out(VerboseDebugMessage, "platefile") << "Found cached tile at "
+                                               << x << " " << y << " " << level << "\n";
       return e.tile;
-    }
+    } 
   }
 
   ImageView<PixelT> tile;

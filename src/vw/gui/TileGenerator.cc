@@ -265,8 +265,11 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
     // Now read the image out of the tempfile and save the decoded
     // pixels as the result.
     try {
-      ImageView<PixelRGBA<float> > vw_image = temp_tile_file.read<PixelRGBA<float> >();
-      buf.result = vw_image;
+      ImageView<PixelRGBA<uint8> > vw_image = temp_tile_file.read<PixelRGBA<uint8> >();
+      //      ImageView<PixelRGBA<int16> > vw_image = temp_tile_file.read<PixelRGBA<int16> >();
+      //      std::cout << "\t --> Center pixel value: " << vw_image(vw_image.cols()/2, 
+      //                                                             vw_image.rows()/2) << "\n";
+      buf.result = channel_cast_rescale<float>(vw_image);
       buf.finished = true;
     } catch (IOErr &e) {
       vw_out(WarningMessage) << "Could not read data from temporary file: " << temp_filename << "\n";

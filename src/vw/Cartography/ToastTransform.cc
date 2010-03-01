@@ -276,7 +276,6 @@ vw::Vector2 vw::cartography::ToastTransform::reverse(vw::Vector2 const& point) c
 // We override forward_bbox so it understands to check if the image 
 // crosses the poles or not.
 vw::BBox2i vw::cartography::ToastTransform::forward_bbox( vw::BBox2i const& bbox ) const {
-
   // If the source bounding box contains the south pole, then the dest
   // bounding box is the entire TOAST projection space, since the
   // south pole is mapped to the four corners of TOAST.
