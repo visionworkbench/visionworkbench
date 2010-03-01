@@ -312,17 +312,37 @@ vw::BBox2i vw::cartography::ToastTransform::reverse_bbox( vw::BBox2i const& bbox
 // destiation (TOAST) pixel space.
 void vw::cartography::ToastTransform::reverse_bbox_poles(vw::BBox2 const& dst_bbox, vw::BBox2 & src_bbox) const {
   if( dst_bbox.contains( Vector2(m_resolution/2, m_resolution/2) ) ) {
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(-180,90)) );
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(0,90)) );
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(180,90)) );
+
+    // XXX - This code band-aids the fact that we return Vector(-1,-1)
+    // of lonlat_to_point if proj.4 throws an error.  This is bad.  We
+    // should throw an exception (and catch it here instead).  
+    //
+    // When proj.4 returns an error in lonlat_to_point, that usually
+    // indicates that this pole is invalid in the map projection of
+    // interest.  The best thing to do here is to create a bounding
+    // box with zero size off to the side that will not intersect with
+    // the input image at all.
+    Vector2 pole_point = m_georef.lonlat_to_point(Vector2(-180,90));
+    if (pole_point[0] = -1 && pole_point[1] == -1) {
+      src_bbox = BBox2i(-1,-1,0,0);
+    } else {
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(-180,90)) );
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(0,90)) );
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(180,90)) );
+    }
   }
   if( dst_bbox.contains( Vector2(0,0) ) ||
       dst_bbox.contains( Vector2(m_resolution-1,0) ) ||
       dst_bbox.contains( Vector2(0,m_resolution-1) ) ||
       dst_bbox.contains( Vector2(m_resolution-1, m_resolution-1) ) ) {
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(-180,-90)) );
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(0,-90)) );
-    src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(180,-90)) );
+    Vector2 pole_point = m_georef.lonlat_to_point(Vector2(-180,-90));
+    if (pole_point[0] = -1 && pole_point[1] == -1) {
+      src_bbox = BBox2i(-1,-1,0,0);
+    } else {
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(-180,-90)) );
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(0,-90)) );
+      src_bbox.grow( m_georef.lonlat_to_pixel(Vector2(180,-90)) );
+    }
   }
 }
 

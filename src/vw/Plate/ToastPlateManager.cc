@@ -132,8 +132,11 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
                                                 tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 
   if (!is_transparent(new_tile)) {
-    //    std::cout << "Writing " << col << " " << row << " @ " << level << "\n";
-    //m_platefile->write_request();
+    vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row 
+                                             << " @ " << level << "\n";
+    //m_platefile->write_request();  // These could be used here, but this 
+                                     // causes a lot of unnecessary work for
+                                     // the BlobManager...
     m_platefile->write_update(new_tile, col, row, level, transaction_id);
     //m_platefile->write_complete();
   }

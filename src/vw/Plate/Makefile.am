@@ -37,7 +37,7 @@ libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
-libvwPlate_la_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
+libvwPlate_la_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@ -ltcmalloc -lprofiler
 
 lib_LTLIBRARIES += libvwPlate.la
 
@@ -66,7 +66,7 @@ index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
 
 image2plate_SOURCES = image2plate.cc
-image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
+image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS) -ltcmalloc -lprofiler
 
 snapshot_SOURCES = snapshot.cc
 snapshot_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
@@ -116,7 +116,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS = @VW_LDFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@ -ltcmalloc -lprofiler
 
 SUBDIRS = . tests
 CLEANFILES = $(protocol_sources) $(protocol_headers)

@@ -88,6 +88,14 @@ namespace platefile {
                                         << " @ level " <<  m_level << "]    BBox: " 
                                         << m_tile_info.bbox << "\n";
 
+      // XXX: Remove me!  I'm for debugging only!
+
+      // if ( (m_tile_info.i == 255 && m_tile_info.j == 255) || 
+      //      (m_tile_info.i == 0 && m_tile_info.j == 0) ) 
+      //   std::cout << "Processing " << m_tile_info.bbox << "\n";
+      // else
+      //   return;
+
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);
       

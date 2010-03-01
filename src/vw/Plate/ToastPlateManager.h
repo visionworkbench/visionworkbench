@@ -120,8 +120,8 @@ namespace platefile {
             if (input_bbox.intersects(reversed_bbox)) {
               if (reversed_bbox.width() > 10 * be.bbox.width() ||
                   reversed_bbox.height() > 10 * be.bbox.height()) {
-                vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "\n";
-              } else {
+                vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "   " << "\n";
+               } else {
                 result.push_back(be);
               } 
             }
@@ -137,23 +137,6 @@ namespace platefile {
       return result;
     }
  
-    // Read a previously-written tile in from disk.  Cache the most
-    // recently accessed tiles, since each will be used roughly four
-    // times.
-    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int transaction_id, int max_level ) {
-      tile = this->load_tile_impl(level, x, y, transaction_id, max_level);
-    }
-
-    // Ok. This is one of those really annoying and esoteric c++
-    // template problems: we can't call load_tile_impl<> directly from
-    // the CRTP superclass because the template appears in the return
-    // type of this method.  Instead, we add the extra layer of
-    // indirection (load_tile<>, above), which has the return value in
-    // the function arguments.  
-    ImageView<PixelT> load_tile_impl( int32 level, int32 x, int32 y, 
-                                      int transaction_id, int max_level );
-
  public:
   
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile) : 
@@ -192,6 +175,7 @@ namespace platefile {
 
       // Set up the toast transform and compute the bounding box of this
       // image in the toast projection space.
+      
       cartography::ToastTransform toast_tx( georef, m_resolution );
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = toast_tx.forward_bbox(input_bbox);
@@ -272,6 +256,9 @@ namespace platefile {
       m_queue.join_all();
       progress.report_finished();
       
+      // Sync the index
+      m_platefile->sync();
+
       // Mipmap the tiles.
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;

@@ -14,7 +14,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
 
 
   // Adjust the size of the bbox for the first mipmapping level, which
-  // is one level down from the starting_level.  We also pad it
+  // is one level up from the starting_level.  We also pad it
   // slightly here, since we want to make sure we don't trucate at
   // tiles when we divide by 2.
   BBox2i level_bbox = bbox;
@@ -48,7 +48,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
 
     // Subdivide the bbox into smaller workunits if necessary.
     // This helps to keep operations efficient.
-    std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 256, 256);
+    std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 16, 16);
     int prog_counter = 0;
     for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
       SubProgressCallback sub_sub_progress(sub_progress, 
@@ -72,6 +72,10 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
                                                                                transaction_id, 
                                                                                1);
 
+      // Debugging:
+      // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1) 
+      //           << "   found " << valid_tile_records.size() << "\n";
+
       if (valid_tile_records.size() != 0) {
 
         // Once we compute the valid tiles at the parent level, we
@@ -88,6 +92,9 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         trimmed_region.max().x() += 1;
         trimmed_region.max().y() += 1;
         
+        // Debugging:
+        //        vw_out() << "Generating mipmap tiles for " << trimmed_region << " @ " << level << "\n";
+
         for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
           for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
             this->generate_mipmap_tile(i,j,level,transaction_id);
