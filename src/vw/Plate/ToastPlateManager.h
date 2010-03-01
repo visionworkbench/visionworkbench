@@ -118,12 +118,12 @@ namespace platefile {
             // imagery.
             //
             if (input_bbox.intersects(reversed_bbox)) {
-              if (reversed_bbox.width() > 10 * be.bbox.width() ||
-                  reversed_bbox.height() > 10 * be.bbox.height()) {
-                vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "   " << "\n";
-               } else {
+              // if (reversed_bbox.width() > 10 * be.bbox.width() ||
+              //     reversed_bbox.height() > 10 * be.bbox.height()) {
+              //   vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "   " << "\n";
+              //  } else {
                 result.push_back(be);
-              } 
+              // } 
             }
           }
           curx += (tile_size-1);
