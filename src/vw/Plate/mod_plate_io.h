@@ -26,6 +26,7 @@ typedef struct {
 typedef struct {
   const char *rabbit_ip;
   const char *index_exchange;
+  const char *dem_id;
   apr_array_header_t *rules; // This holds rule_entries
 } plate_config;
 

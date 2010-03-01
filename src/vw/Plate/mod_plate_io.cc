@@ -104,6 +104,10 @@ class PlateModule {
       return out;
     }
 
+    std::string get_dem() const {
+      return m_conf->dem_id;
+    }
+
   private:
     boost::shared_ptr<AmqpRpcClient> m_client;
     boost::shared_ptr<IndexService>  m_index_service;
@@ -340,6 +344,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
     WTMLImageSet(const std::string& host,
                  const std::string& data_prefix,
                  const std::string& static_prefix,
+                 const std::string dem_id,
                  const PlateModule::IndexCacheEntry& layer) {
       const IndexHeader& hdr = layer.index->index_header();
 
@@ -370,7 +375,8 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["ThumbnailUrl"] = data_url + "/0/0/0."       + hdr.tile_filetype();
       // XXX: This is wrong for non-mars!
       //(*this)["DemUrl"]       = host + static_prefix + "megt128/{0}/{1}/{2}";
-      (*this)["DemUrl"]       = host + data_prefix + "871880291/{0}/{1}/{2}.toast_dem_v1";
+
+      (*this)["DemUrl"]       = host + data_prefix + dem_id + "/{0}/{1}/{2}.toast_dem_v1";
 
 
       child_keys.insert("ThumbnailUrl");
@@ -444,7 +450,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
       continue;
     }
 
-    WTMLImageSet img(prefix.str(), "/wwt/p/", "/static/", e.second);
+    WTMLImageSet img(prefix.str(), "/wwt/p/", "/static/", mod_plate().get_dem(), e.second);
     if (r->args) {
       img["Url"]          += std::string("?") + r->args;
       img["ThumbnailUrl"] += std::string("?") + r->args;
@@ -513,6 +519,11 @@ int PlateModule::operator()(request_rec *r) const {
 
     if (!r->path_info)
         return DECLINED;
+
+  if (!m_conf->dem_id) {
+    logger(ErrorMessage) << "You forgot to set PlateDemID in the apache config. Refusing to proceed." << std::endl;
+    return DECLINED;
+  }
 
   std::string url(r->path_info);
 
