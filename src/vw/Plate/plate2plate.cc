@@ -185,7 +185,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
       std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
-        filter(output, input, tile.col(), tile.row(), tile.level(), tile.transaction_id());
+        filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
       }
     }
   }
