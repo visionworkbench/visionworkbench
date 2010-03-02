@@ -615,6 +615,7 @@ extern "C" int mod_plate_handler(request_rec *r) {
     return HTTP_BAD_REQUEST;
   } catch (const TileNotFoundErr& e) {
     // Valid format, but not there
+    ap_log_rerror(APLOG_MARK, APLOG_NOTICE, 0, r,  "Tile not found: %s", e.what());
     return HTTP_NOT_FOUND;
   } catch (const ServerError& e) {
     // Something screwed up, but we controlled it
