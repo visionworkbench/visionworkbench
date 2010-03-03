@@ -1,9 +1,9 @@
 *************************************************************************
 ADDITIONAL INSTRUCTIONS FOR VISION WORKBENCH PLATE MODULE
 
-So you think yourself a rock star do ya and you want to play with
-the Plate filesystem ? Well champ, here's some additional notes to
-help ease in find and building it's dependencies.
+So you think yourself a rock star do ya? You want to play with
+the Plate filesystem? Well champ, here's some additional notes to
+help ease in finding and building it's dependencies.
 
 The Plate Module requires at least two more dependencies:
 
@@ -27,7 +27,7 @@ Here's an outline for downloading RabbitMQ C and installing
       rabitmq-c/codegen
  cd rabbitmq-c
  autoreconf -fvi
- ./configure --prefix (YOUR INSTALL DIRECTORY HERE)
+ ./configure --prefix=(YOUR INSTALL DIRECTORY HERE)
  make PYTHON=python
  make install
 
@@ -38,6 +38,6 @@ Source code is available at:
 
  http://code.google.com/p/protobuf/downloads/list
 
-Alternatively for mac users, they can just:
+Alternatively for Mac users, they can just:
 
  sudo port install protobuf-cpp
