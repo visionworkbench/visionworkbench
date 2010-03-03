@@ -252,6 +252,7 @@ namespace vw {
   VW_DECLARE_PIXEL_TYPE(PixelGrayA,2);
   template <class T> struct PixelHasAlpha<PixelGrayA<T> > : true_type {};
   template <class T> struct PixelWithAlpha<PixelGray<T> > { typedef PixelGrayA<T> type; };
+  template <class T> struct PixelWithAlpha<PixelGrayA<T> > { typedef PixelGrayA<T> type; };
   template <class T> struct PixelWithoutAlpha<PixelGrayA<T> > { typedef PixelGray<T> type; };
   template <class T> T& alpha_channel( PixelGrayA<T>& pix ) {
     return pix.a();
@@ -463,6 +464,7 @@ namespace vw {
   VW_DECLARE_PIXEL_TYPE(PixelRGBA,4);
   template <class T> struct PixelHasAlpha<PixelRGBA<T> > : true_type {};
   template <class T> struct PixelWithAlpha<PixelRGB<T> > { typedef PixelRGBA<T> type; };
+  template <class T> struct PixelWithAlpha<PixelRGBA<T> > { typedef PixelRGBA<T> type; };
   template <class T> struct PixelWithoutAlpha<PixelRGBA<T> > { typedef PixelRGB<T> type; };
   template <class T> T& alpha_channel( PixelRGBA<T>& pix ) {
     return pix.a();
