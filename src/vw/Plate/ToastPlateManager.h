@@ -75,67 +75,7 @@ namespace platefile {
                                            cartography::ToastTransform const& toast_tx,
                                            BBox2i const& tile_bbox, 
                                            int32 const resolution,
-                                           int32 const tile_size) {
-      std::vector<TileInfo> result;
-      
-      // There's no point in starting the search before there is good
-      // image data, so we adjust the start point here.
-      int32 minx = int(floor(tile_bbox.min().x() / (tile_size-1)) * (tile_size-1));
-      int32 miny = int(floor(tile_bbox.min().y() / (tile_size-1)) * (tile_size-1));
-      int x = minx / (tile_size-1);
-      int y = miny / (tile_size-1);
-
-      // Iterate over the bounding boxes in the entire TOAST space...
-      int curx = minx;
-      int cury = miny;
-      while (cury < tile_bbox.max().y() - 1) {
-        while (curx < tile_bbox.max().x() - 1) {
-      
-          TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
-      
-          // ...but only add bounding boxes that overlap with the image.
-          if (tile_bbox.intersects(be.bbox)) {
-
-            // Compute the region in the input image that corresponds
-            // to the tile we are considering in the output
-            // image. approximate == true for reverse_bbox() to speed
-            // things up.
-            BBox2i reversed_bbox = toast_tx.reverse_bbox(be.bbox, true);
-
-            // The bad_bbox checks to make sure that the output bbox
-            // is not much larger than the input bbox.  This rarely
-            // happens except in cases of singularities in the map
-            // projection (like the north & south pole in polar
-            // stereographic).  The intuition here is that we have
-            // intentionally chose our space such that input tile and
-            // output tiles are approximately the same resolution.
-
-            // Images that cross the edges of the TOAST space have
-            // very, very large tile_bbox's (sometimes containing the
-            // whole space!)  We take each individual tile under
-            // consideration, and transform it the OTHER way to make
-            // sure it actually does still intersect with the source
-            // imagery.
-            //
-            if (input_bbox.intersects(reversed_bbox)) {
-              // if (reversed_bbox.width() > 10 * be.bbox.width() ||
-              //     reversed_bbox.height() > 10 * be.bbox.height()) {
-              //   vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "   " << "\n";
-              //  } else {
-                result.push_back(be);
-              // } 
-            }
-          }
-          curx += (tile_size-1);
-          ++x;
-        }
-        curx = minx;
-        x = minx / (tile_size-1);
-        cury += (tile_size-1);
-        ++y;
-      }
-      return result;
-    }
+                                           int32 const tile_size);
  
  public:
   
@@ -205,34 +145,22 @@ namespace platefile {
                                                      m_resolution, 
                                                      m_platefile->default_tile_size());
 
-      // Obtain a transaction ID for this image.  To do so, we must
-      // create a list of root tiles that we will be writing so that
-      // the index can go ahead and mark those tiles a "being
-      // processed."  Marking tiles as part of a transaction_request
-      // is an atomic operation on the index, and is critical for
-      // ensuring that concurrent image mosaics don't trample on each
-      // other by informing the index which tiles will be (eventually)
-      // modified under this transaction id.
-      std::vector<TileHeader> tile_headers;
+      // Compute the affected tiles.
       BBox2i affected_tiles_bbox;
-      for (size_t i = 0; i < tiles.size(); ++i) {
-        TileHeader hdr;
-        hdr.set_col(tiles[i].i);
-        hdr.set_row(tiles[i].j);
-        hdr.set_level(pyramid_level);
-        tile_headers.push_back(hdr);
+      for (size_t i = 0; i < tiles.size(); ++i) 
         affected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
-      }
-      int platefile_id = m_platefile->index_header().platefile_id();
 
+      // Obtain a transaction ID for this image.  
+      //
       // Note: the user may have specified a transaction_id to use,
       // which was passed in with transaction_id_override.  If not,
       // then transaction_id_override == -1, and we get an
       // automatically assigned t_id.
       int transaction_id = m_platefile->transaction_request(description, 
                                                             transaction_id_override);
+
       std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
-                << "\t    Platefile ID: " << platefile_id << "\n"
+                << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n"
                 << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
 
@@ -262,7 +190,7 @@ namespace platefile {
       // Mipmap the tiles.
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
-        mipmap_str << "\t--> Mipmapping from level " << pyramid_level-1 << ": ";
+        mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
         this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }

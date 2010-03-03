@@ -12,7 +12,7 @@
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/Plate/PlateView.h>
-//#include <vw/Plate/KmlPlateManager.h>
+#include <vw/Plate/PlateCarreePlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -36,11 +36,15 @@ static std::string prefix_from_filename(std::string const& filename) {
 }
 
 template <class PixelT>
-void do_tiles(cartography::GeoReference output_georef) {
+void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     
+  PlateCarreePlateManager<PixelT> pm(platefile);
+  cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
+
   PlateView<PixelT> plate_view(plate_file_name);    
   std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
   std::cout << output_georef << "\n";
+
   // Get the output georeference.
   vw::BBox2i output_bbox;
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(west, north)));
@@ -139,7 +143,6 @@ int main( int argc, char *argv[] ) {
   // Open the plate file
   try {
     boost::shared_ptr<PlateFile> platefile(new PlateFile(plate_file_name));
-    KmlPlateManager pm(platefile, 1);
 
     std::cout << "Opened " << plate_file_name << ".     Depth: " 
               << platefile->num_levels() << " levels.\n";
@@ -148,22 +151,10 @@ int main( int argc, char *argv[] ) {
     ChannelTypeEnum channel_type = platefile->channel_type();
 
     switch(pixel_format) {
-    case VW_PIXEL_GRAY:
-      switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
-        do_tiles<PixelGray<uint8> >(pm.georeference(platefile->num_levels()-1));
-        break;
-      case VW_CHANNEL_INT16:  
-        do_tiles<PixelGray<int16> >(pm.georeference(platefile->num_levels()-1));
-        break;
-      default:
-        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
-      }
-      break;
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        do_tiles<PixelGrayA<uint8> >(pm.georeference(platefile->num_levels()-1));
+        do_tiles<PixelGrayA<uint8> >(platefile);
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -174,15 +165,13 @@ int main( int argc, char *argv[] ) {
     default:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:  
-        do_tiles<PixelRGBA<uint8> >(pm.georeference(platefile->num_levels()-1));
+        do_tiles<PixelRGBA<uint8> >(platefile);
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
       break;
     }
- 
-
 
   } catch (vw::Exception &e) {
     std::cout << "An error occurred: " << e.what() << "\nExiting.\n\n";

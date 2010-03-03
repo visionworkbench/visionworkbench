@@ -5,8 +5,8 @@
 // __END_LICENSE__
 
 
-#ifndef __VW_PLATE_KML_PLATEMANAGER_H__
-#define __VW_PLATE_KML_PLATEMANAGER_H__
+#ifndef __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
+#define __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
 
 #include <vw/Image.h>
 #include <vw/Math/Vector.h>
@@ -24,10 +24,6 @@
 #include <fstream>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/convenience.hpp>
-
-// Protocol Buffer
-#include <vw/Plate/ProtoBuffers.pb.h>
-
 namespace fs = boost::filesystem;
 
 namespace vw {
@@ -37,15 +33,15 @@ namespace platefile {
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
   
-  class KmlPlateManager {
+  template <class PixelT>
+  class PlateCarreePlateManager : public PlateManager {
 
-    boost::shared_ptr<PlateFile> m_platefile;
     FifoWorkQueue m_queue;
 
   public:
   
-    KmlPlateManager(boost::shared_ptr<PlateFile> platefile, int num_threads) : 
-      m_platefile(platefile), m_queue(num_threads)  {}
+    PlateCarreePlateManager(boost::shared_ptr<PlateFile> platefile) : 
+      PlateManager(platefile), m_queue(1)  {} // Set threads to 1 for now...
 
     // Create a georeference object for this plate file.  The user
     // supplies the desired level for which they want the
@@ -82,9 +78,9 @@ namespace platefile {
 
     /// Add an image to the plate file.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, 
-                cartography::GeoReference const& input_georef,
-                int read_transaction_id, int write_transaction_id,
+    void insert(ImageViewBase<ViewT> const& image, std::string const& description,
+                int transaction_id_override, cartography::GeoReference const& input_georef, 
+                bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
@@ -154,14 +150,36 @@ namespace platefile {
       std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, resolution,
                                                      m_platefile->default_tile_size());
 
-      // And save each tile to the PlateFile
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n";
+
+      // Compute the affected tiles.
+      BBox2i affected_tiles_bbox;
+      for (size_t i = 0; i < tiles.size(); ++i) 
+        affected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
+
+      // Obtain a transaction ID for this image.  
+      //
+      // Note: the user may have specified a transaction_id to use,
+      // which was passed in with transaction_id_override.  If not,
+      // then transaction_id_override == -1, and we get an
+      // automatically assigned t_id.
+      int transaction_id = m_platefile->transaction_request(description, 
+                                                            transaction_id_override);
+
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
+                << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
+                << "\t    Transaction ID: " << transaction_id << "\n"
+                << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
+
+      // Grab a lock on a blob file to use for writing tiles during
+      // the two operations below.
+      m_platefile->write_request();
+
+      // Add each tile
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
           new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
-                                                                            read_transaction_id,
-                                                                            write_transaction_id,
+                                                                            transaction_id,
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             kml_view,
@@ -171,103 +189,33 @@ namespace platefile {
       }
       m_queue.join_all();
       progress.report_finished();
-    }
 
-    // Read a previously-written tile in from disk.  Cache the most
-    // recently accessed tiles, since each will be used roughly four
-    // times.
-    template <class PixelT>
-    void load_tile( vw::ImageView<PixelT> &tile, int32 level, int32 x, int32 y, 
-                    int read_transaction_id, int write_transaction_id ) {
-    
-      // First we try to access the indexrecord for this tile.  If that
-      // fails, then we must be trying to access a node in the tree that
-      // simply doesn't exist.  In this case, we create a totally empty
-      // tile with zero pixels and return it.
-      tile.reset();
-      IndexRecord rec;
-      try {
-        rec = m_platefile->read_record(x, y, level, write_transaction_id);
-      } catch (TileNotFoundErr &e) {
-        return;
+      // Sync the index
+      m_platefile->sync();
+
+      // Mipmap the tiles.
+      if (m_platefile->num_levels() > 1) {
+        std::ostringstream mipmap_str;
+        mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
+                     TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 
-      // If the record lookup succeded, we look at the current status of
-      // the tile to decide what to do next.
-      if (rec.status() == INDEX_RECORD_VALID) {
+      // Release the blob id lock.
+      m_platefile->write_complete();
 
-        // CASE 1 : Valid tiles can be returned without any further processing.
-        m_platefile->read(tile, x, y, level, write_transaction_id);
-        return;
-
-      } else if (rec.status() == INDEX_RECORD_EMPTY || 
-                 rec.status() == INDEX_RECORD_STALE) {
-    
-        // CASE 2 : Empty tiles need to be regenerated from scratch.
-
-        // Create an image large enough to store all of the child nodes
-        int tile_size = m_platefile->default_tile_size();
-        ImageView<PixelT> super(2*tile_size, 2*tile_size);
-        
-        // Iterate over the children, gathering them and (recursively)
-        // regenerating them if necessary.
-        for( int j=0; j<2; ++j ) {
-          for( int i=0; i<2; ++i ) {
-            ImageView<PixelT> child;
-            load_tile(child,level+1,2*x+i,2*y+j,read_transaction_id,write_transaction_id);
-            if( child ) crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child; 
-          }
-        }
-        
-        // We subsample after blurring with a standard 2x2 box filter.
-        std::vector<float> kernel(2);
-        kernel[0] = kernel[1] = 0.5;
-    
-        tile = subsample( separable_convolution_filter( super, 
-                                                        kernel, 
-                                                        kernel, 
-                                                        1, 1,
-                                                        ConstantEdgeExtension() ), 2);
-    
-        if (rec.status() == INDEX_RECORD_STALE) {
-          std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Regenerating tile.\n";
-      
-          if( ! is_transparent(tile) ) {
-            ImageView<PixelT> old_data(tile.cols(), tile.rows());
-            try {
-              m_platefile->read(old_data, x, y, level, read_transaction_id);
-            } catch (TileNotFoundErr &e) { 
-              // Do nothing... we already have a default constructed empty image above! 
-            }
-
-            VW_ASSERT(old_data.cols() == tile.cols() && old_data.rows() == tile.rows(),
-                      LogicErr() << "WritePlateFileTask::operator() -- new tile dimensions do not " 
-                      << "match old tile dimensions.");
-        
-            vw::mosaic::ImageComposite<PixelT> composite;
-            composite.insert(old_data, 0, 0);
-            composite.insert(tile, 0, 0);
-            composite.set_draft_mode( true );
-            composite.prepare();
-      
-            ImageView<PixelT> composite_tile = composite;
-            if( ! is_transparent(composite_tile) ) 
-              m_platefile->write(composite_tile, x, y, level, write_transaction_id);
-          }
-      
-        } else {
-          std::cout << "\t    [ " << x << " " << y << " @ " << level << " ] -- Creating tile.\n";
-          if( ! is_transparent(tile) ) 
-            m_platefile->write(tile, x, y, level,write_transaction_id);
-        }
-      }
-
-      return;
+      // Notify the index that this transaction is complete.  Do not
+      // update the read cursor (false).
+      m_platefile->transaction_complete(transaction_id, false);
     }
+
+    /// This function generates a specific mipmap tile at the given
+    /// col, row, and level, and transaction_id.  
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
 
   };
 
 
 }} // namespace vw::plate
 
-#endif // __VW_PLATE_KML_PLATEMANAGER_H__
+#endif // __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__

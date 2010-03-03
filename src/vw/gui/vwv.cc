@@ -36,6 +36,18 @@ namespace vw {
 
 void print_usage(po::options_description const& visible_options) {
   vw_out() << "\nUsage: vwv [options] <image file> \n";
+  vw_out() << "\nHere is a quick list of vwv keybindings:\n\n"
+           << "  drag mouse - moves the image around\n"
+           << "  mousewheel - zooms in and out   <-- also works with two-finger-drag gestures on some laptops\n"
+           << "  +/-   -   Change requested transaction_id.\n"
+           << "  e - turn on \"exact\" transaction_id matching (otherwise vwv will show the tile with the largest t_id <= requested t_id)\n"
+           << "  t - turn on visualization of tile boundaries\n"
+           << "  1-4 - View R,G,B,Alpha channels separately\n"
+           << "  0 - View all channels together as RGBA\n"
+           << "  o - turn on 'offset' mode.  Drag mouse left and right to shift pixel intensities by offset\n"
+           << "  g - turn on 'gain' mode.  Drag mouse left and right to multiply pixel intensities by gain\n"
+           << "  v - turn on 'gamma' mode. Drag mouse left and right to scale pixels by gamma value\n"
+           << "  i - toggle nearest neighbor/bilinear interpolation\n\n";
   vw_out() << visible_options << std::endl;
 }
 

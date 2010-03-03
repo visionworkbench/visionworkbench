@@ -19,7 +19,7 @@
 #include <vw/Cartography.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/ToastPlateManager.h>
-//#include <vw/Plate/KmlPlateManager.h>
+#include <vw/Plate/PlateCarreePlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -66,16 +66,14 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 
-  }  else if (output_mode == "kml")  {
+  }  else if (output_mode == "equi")  {
 
-    vw_throw(NoImplErr() << "KML support is currently broken.");
+    boost::shared_ptr<PlateCarreePlateManager<typename ViewT::pixel_type> > pm(
+      new PlateCarreePlateManager<typename ViewT::pixel_type> (platefile) );
 
-    // boost::shared_ptr<KmlPlateManager> pm = 
-    //   boost::shared_ptr<KmlPlateManager>( new KmlPlateManager(platefile) );
-
-    // pm->insert(view.impl(), filename, georef,
-    //            TerminalProgressCallback( status_str.str()) );
-
+    pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
+               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
+    
   }
 
 }
@@ -101,7 +99,7 @@ int main( int argc, char *argv[] ) {
     ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
     ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
     ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, kml]")
+    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
@@ -213,7 +211,7 @@ int main( int argc, char *argv[] ) {
 
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
-  if (output_mode != "toast" && output_mode != "kml") {
+  if (output_mode != "toast" && output_mode != "equi") {
     vw_out() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
     exit(1);
   }

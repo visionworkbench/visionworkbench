@@ -401,6 +401,10 @@ namespace platefile {
     ///
     /// This is mostly useful when compositing tiles during mipmapping.
     ///
+    /// If you want to return all tiles at the give [col, row, level],
+    /// then you can supply a begin_transaction_id of -1 and
+    /// end_transaction_id of -1.
+    ///
     std::list<TileHeader> search_by_location(int col, int row, int level, 
                                              int begin_transaction_id, int end_transaction_id,
                                              bool fetch_one_additional_entry = false) {

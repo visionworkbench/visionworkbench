@@ -25,15 +25,17 @@ BUILT_SOURCES = $(protocol_sources)
 include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  LocalIndex.h RemoteIndex.h PlateFile.h Amqp.h		\
 		  PlateManager.h SnapshotManager.h ToastPlateManager.h	\
-		  PlateView.h RpcServices.h IndexService.h		\
-		  PagedIndex.h IndexPage.h ToastDem.h TileManipulation.h
+		  PlateCarreePlateManager.h PlateView.h RpcServices.h	\
+		  IndexService.h PagedIndex.h IndexPage.h ToastDem.h	\
+		  TileManipulation.h
 nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
 			IndexService.cc Amqp.cc PlateManager.cc		\
 			SnapshotManager.cc ToastPlateManager.cc		\
-			PagedIndex.cc IndexPage.cc ToastDem.cc TileManipulation.cc
+			PlateCarreePlateManager.cc PagedIndex.cc	\
+			IndexPage.cc ToastDem.cc TileManipulation.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
@@ -80,8 +82,8 @@ tiles2plate_LDADD = $(PLATE_LOCAL_LIBS)
 plate2tiles_SOURCES = plate2tiles.cc
 plate2tiles_LDADD    = $(PLATE_LOCAL_LIBS)
 
-#plate2dem_SOURCES = plate2dem.cc
-#plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
+plate2dem_SOURCES = plate2dem.cc
+plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
@@ -106,7 +108,8 @@ plate2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 
 bin_PROGRAMS = tiles2plate plate2tiles image2plate snapshot		\
 	       rebuild_index index_server index_client amqp_perftest	\
-	       index_perftest rpc_tool lustre_torture hirise2tif plate2plate
+	       index_perftest rpc_tool lustre_torture hirise2tif	\
+	       plate2plate plate2dem
 
 endif
 

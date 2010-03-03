@@ -9,10 +9,76 @@
 using namespace vw::platefile;
 using namespace vw;
 
+template <class PixelT>
+std::vector<TileInfo> ToastPlateManager<PixelT>::wwt_image_tiles( BBox2i const& input_bbox,
+                                           cartography::ToastTransform const& toast_tx,
+                                           BBox2i const& tile_bbox, 
+                                           int32 const resolution,
+                                           int32 const tile_size) {
+  std::vector<TileInfo> result;
+      
+  // There's no point in starting the search before there is good
+  // image data, so we adjust the start point here.
+  int32 minx = int(floor(tile_bbox.min().x() / (tile_size-1)) * (tile_size-1));
+  int32 miny = int(floor(tile_bbox.min().y() / (tile_size-1)) * (tile_size-1));
+  int x = minx / (tile_size-1);
+  int y = miny / (tile_size-1);
+
+  // Iterate over the bounding boxes in the entire TOAST space...
+  int curx = minx;
+  int cury = miny;
+  while (cury < tile_bbox.max().y() - 1) {
+    while (curx < tile_bbox.max().x() - 1) {
+      
+      TileInfo be(x, y, BBox2i(curx, cury, tile_size, tile_size));
+      
+      // ...but only add bounding boxes that overlap with the image.
+      if (tile_bbox.intersects(be.bbox)) {
+
+        // Compute the region in the input image that corresponds
+        // to the tile we are considering in the output
+        // image. approximate == true for reverse_bbox() to speed
+        // things up.
+        BBox2i reversed_bbox = toast_tx.reverse_bbox(be.bbox, true);
+
+        // The bad_bbox checks to make sure that the output bbox
+        // is not much larger than the input bbox.  This rarely
+        // happens except in cases of singularities in the map
+        // projection (like the north & south pole in polar
+        // stereographic).  The intuition here is that we have
+        // intentionally chose our space such that input tile and
+        // output tiles are approximately the same resolution.
+
+        // Images that cross the edges of the TOAST space have
+        // very, very large tile_bbox's (sometimes containing the
+        // whole space!)  We take each individual tile under
+        // consideration, and transform it the OTHER way to make
+        // sure it actually does still intersect with the source
+        // imagery.
+        //
+        if (input_bbox.intersects(reversed_bbox)) {
+          // if (reversed_bbox.width() > 10 * be.bbox.width() ||
+          //     reversed_bbox.height() > 10 * be.bbox.height()) {
+          //   vw_out() << "\t    Rejecting bogus bbox: " << reversed_bbox << "   " << "\n";
+          //  } else {
+          result.push_back(be);
+          // } 
+        }
+      }
+      curx += (tile_size-1);
+      ++x;
+    }
+    curx = minx;
+    x = minx / (tile_size-1);
+    cury += (tile_size-1);
+    ++y;
+  }
+  return result;
+}
 
 template <class PixelT>
-ImageView<PixelT> vw::platefile::ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level, 
-                                                                             int transaction_id) const {
+ImageView<PixelT> ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level, 
+                                                              int transaction_id) const {
 
   //  std::cout << "Fetching child tile " << x << " " << y << "\n";
 
@@ -147,30 +213,25 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
 namespace vw { 
 namespace platefile {
 
-  template 
-  void vw::platefile::ToastPlateManager<PixelGrayA<uint8> >::generate_mipmap_tile(int col, int row, 
-                                                                                  int level, 
-                                                                                  int transaction_id) const;
-  template 
-  void vw::platefile::ToastPlateManager<PixelGrayA<int16> >::generate_mipmap_tile(int col, int row, 
-                                                                                 int level, 
-                                                                                 int transaction_id) const;
-  template 
-  void vw::platefile::ToastPlateManager<PixelRGBA<uint8> >::generate_mipmap_tile(int col, int row, 
-                                                                                 int level, 
-                                                                                 int transaction_id) const;
+#define VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PIXELT)                 \
+  template std::vector<TileInfo>                                        \
+  ToastPlateManager<PIXELT >::wwt_image_tiles( BBox2i const& input_bbox,\
+                            cartography::ToastTransform const& toast_tx,\
+                            BBox2i const& tile_bbox,                    \
+                            int32 const resolution,                     \
+                            int32 const tile_size);                     \
+  template void                                                         \
+  ToastPlateManager<PIXELT >::generate_mipmap_tile(int col,             \
+                                                   int row,             \
+                                                   int level,           \
+                                                   int transaction_id) const; \
+  template ImageView<PIXELT >                                           \
+  ToastPlateManager<PIXELT >::fetch_child_tile(int col,                 \
+                                               int row,                 \
+                                               int level,               \
+                                               int transaction_id) const; \
 
-  template 
-  ImageView<PixelGrayA<uint8> > vw::platefile::ToastPlateManager<PixelGrayA<uint8> >::fetch_child_tile(int col, int row, 
-                                                                                                       int level, 
-                                                                                                       int transaction_id) const;
-  template 
-  ImageView<PixelGrayA<int16> > vw::platefile::ToastPlateManager<PixelGrayA<int16> >::fetch_child_tile(int col, int row, 
-                                                                                                       int level, 
-                                                                                                       int transaction_id) const;
-  template 
-  ImageView<PixelRGBA<uint8> > vw::platefile::ToastPlateManager<PixelRGBA<uint8> >::fetch_child_tile(int col, int row, 
-                                                                                                     int level, 
-                                                                                                     int transaction_id) const;
-  
+  VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<uint8>)
+  VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<int16>)
+  VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelRGBA<uint8>)
 }}
