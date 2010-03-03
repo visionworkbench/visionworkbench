@@ -148,13 +148,20 @@ contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
 contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
 endif
 
+# Grassfire Alpha program
+grassfire_progs = grassfirealpha
+grassfirealpha_SOURCES = grassfirealpha.cc
+grassfirealpha_CPPFLAGS = @VW_CPPFLAGS@
+grassfirealpha_LDADD = $(COMMON_LIBS)
+
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(interestpoint_progs) $(mosaic_progs)            \
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
-               $(cnet_editor_progs) $(contourgen_progs)
+               $(cnet_editor_progs) $(contourgen_progs)          \
+               $(grassfire_progs)
 
 noinst_PROGRAMS      = doc-generate $(batest_progs)
 dist_noinst_SCRIPTS  = ba_unit_test run_ba_tests
