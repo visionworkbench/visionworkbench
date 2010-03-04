@@ -10,7 +10,7 @@
 
 #include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/IndexPage.h>
-#include <vw/Plate/Amqp.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Plate/RpcServices.h>
 
 namespace vw {

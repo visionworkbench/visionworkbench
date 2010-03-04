@@ -7,7 +7,7 @@
 
 #include <iostream>
 #include <vw/Plate/RpcServices.h>
-#include <vw/Plate/Amqp.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Core/ProgressCallback.h>
 #include <boost/iostreams/device/file_descriptor.hpp>
 #include <cerrno>

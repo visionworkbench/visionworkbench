@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/Amqp.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/common.h>

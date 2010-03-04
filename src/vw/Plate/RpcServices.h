@@ -15,7 +15,7 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/ThreadQueue.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
-#include <vw/Plate/Amqp.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Plate/Exception.h>
 
 #include <google/protobuf/service.h>

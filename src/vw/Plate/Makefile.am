@@ -23,17 +23,19 @@ protocol_sources = ProtoBuffers.pb.cc
 BUILT_SOURCES = $(protocol_sources)
 
 include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
-		  LocalIndex.h RemoteIndex.h PlateFile.h Amqp.h		\
-		  PlateManager.h SnapshotManager.h ToastPlateManager.h	\
-		  PlateCarreePlateManager.h PlateView.h RpcServices.h	\
-		  IndexService.h PagedIndex.h IndexPage.h ToastDem.h	\
+		  LocalIndex.h RemoteIndex.h PlateFile.h		\
+		  AmqpConnection.h PlateManager.h SnapshotManager.h	\
+		  ToastPlateManager.h PlateCarreePlateManager.h		\
+		  PlateView.h RpcServices.h IndexService.h		\
+		  PagedIndex.h IndexPage.h ToastDem.h			\
 		  TileManipulation.h
 nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
-			IndexService.cc Amqp.cc PlateManager.cc		\
-			SnapshotManager.cc ToastPlateManager.cc		\
+			IndexService.cc AmqpConnection.cc		\
+			PlateManager.cc SnapshotManager.cc		\
+			ToastPlateManager.cc				\
 			PlateCarreePlateManager.cc PagedIndex.cc	\
 			IndexPage.cc ToastDem.cc TileManipulation.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
