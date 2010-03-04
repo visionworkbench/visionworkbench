@@ -24,7 +24,7 @@ Here's an outline for downloading RabbitMQ C and installing
  cd (YOUR BUILD DIRECTORY HERE)
  hg clone -r default http://hg.rabbitmq.com/rabbitmq-c
  hg clone -r default http://hg.rabbitmq.com/rabbitmq-codegen ...
-      rabitmq-c/codegen
+      rabbitmq-c/codegen
  cd rabbitmq-c
  autoreconf -fvi
  ./configure --prefix=(YOUR INSTALL DIRECTORY HERE)
