@@ -24,24 +24,24 @@ namespace po = boost::program_options;
 std::string output_prefix;
 std::string plate_file_name;
 int west = 0, east = 0, north = 0, south = 0;
-int tile_size;
+int tile_size, tile_size_deg = 0;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index, result.size());
   return result;
 }
 
 template <class PixelT>
 void do_tiles(boost::shared_ptr<PlateFile> platefile) {
-    
+
   PlateCarreePlateManager<PixelT> pm(platefile);
   cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
 
-  PlateView<PixelT> plate_view(plate_file_name);    
+  PlateView<PixelT> plate_view(plate_file_name);
   std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
   std::cout << output_georef << "\n";
 
@@ -52,54 +52,61 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(west, south)));
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(east, south)));
   std::cout << "\t--> Output bbox: " << output_bbox << "\n";
-  
+
+  if ( tile_size_deg > 0 ) {
+    // User must have specified out to be sized in degrees
+    tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
+                       output_georef.lonlat_to_pixel(Vector2(tile_size_deg,0)));
+  }
+
   // Compute the bounding box for each tile.
-  std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view, output_bbox), 
+  std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view, output_bbox),
                                                  tile_size, tile_size);
-  
+
   for (unsigned i = 0; i < crop_bboxes.size(); ++i) {
     // The crop bboxes start at (0,0), and we want them to start at
-    // the upper left corner of the output_bbox.  
+    // the upper left corner of the output_bbox.
     crop_bboxes[i].min() += output_bbox.min();
     crop_bboxes[i].max() += output_bbox.min();
-    
+
     cartography::GeoReference tile_georef = output_georef;
     Vector2 top_left_ll = output_georef.pixel_to_lonlat(crop_bboxes[i].min());
     Matrix3x3 T = tile_georef.transform();
     T(0,2) = top_left_ll(0);
     T(1,2) = top_left_ll(1);
     tile_georef.set_transform(T);
-    
-    std::cout << "\t--> Generating tile " << (i+1) << " / " << crop_bboxes.size() 
+
+    std::cout << "\t--> Generating tile " << (i+1) << " / " << crop_bboxes.size()
               << " : " << crop_bboxes[i] << "\n"
-              << "\t    with transform  " 
+              << "\t    with transform  "
               << tile_georef.transform() << "\n";
-    
+
     std::ostringstream output_filename;
-    output_filename << output_prefix << "_" << round(top_left_ll[0]) << "E_" 
+    output_filename << output_prefix << "_" << round(top_left_ll[0]) << "W_"
                     << round(top_left_ll[1]) << "N.tif";
-    
+
     ImageView<PixelT> cropped_view = crop(plate_view, crop_bboxes[i]);
     if( ! is_transparent(cropped_view) ) {
-      DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(), 
+      DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
                                  Vector2i(256,256));
       write_georeference(rsrc, tile_georef);
-      write_image(rsrc, cropped_view, 
+      write_image(rsrc, cropped_view,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
     }
   }
 }
 
 int main( int argc, char *argv[] ) {
- 
-  po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
+
+  po::options_description general_options("Chops platefile into georeferenced squares.\n\nGeneral Options");
   general_options.add_options()
     ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the base output directory")
-    ("west,w", po::value<int>(&west), "Specify west edge of the region to extract.")
-    ("east,e", po::value<int>(&east), "Specify east edge of the region to extract.")
-    ("north,n", po::value<int>(&north), "Specify north edge of the region to extract.")
-    ("south,s", po::value<int>(&south), "Specify south edge of the region to extract.")
-    ("tile-size", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output tile (in degres).")
+    ("west,w", po::value<int>(&west)->default_value(-180), "Specify west edge of the region to extract (deg).")
+    ("east,e", po::value<int>(&east)->default_value(180), "Specify east edge of the region to extract (deg).")
+    ("north,n", po::value<int>(&north)->default_value(90), "Specify north edge of the region to extract (deg).")
+    ("south,s", po::value<int>(&south)->default_value(-90), "Specify south edge of the region to extract (deg).")
+    ("tile-size-px,p", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
+    ("tile-size-deg,d", po::value<int>(&tile_size_deg), "Specify the size of each output dem in degrees.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -117,13 +124,13 @@ int main( int argc, char *argv[] ) {
   usage << general_options << std::endl;
 
   po::variables_map vm;
-  try { 
+  try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
-    return 0;    
+    return 0;
   }
 
   if( vm.count("help") ) {
@@ -144,7 +151,7 @@ int main( int argc, char *argv[] ) {
   try {
     boost::shared_ptr<PlateFile> platefile(new PlateFile(plate_file_name));
 
-    std::cout << "Opened " << plate_file_name << ".     Depth: " 
+    std::cout << "Opened " << plate_file_name << ".     Depth: "
               << platefile->num_levels() << " levels.\n";
 
     PixelFormatEnum pixel_format = platefile->pixel_format();
@@ -153,7 +160,7 @@ int main( int argc, char *argv[] ) {
     switch(pixel_format) {
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
+      case VW_CHANNEL_UINT8:
         do_tiles<PixelGrayA<uint8> >(platefile);
         break;
       default:
@@ -164,7 +171,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGBA:
     default:
       switch(channel_type) {
-      case VW_CHANNEL_UINT8:  
+      case VW_CHANNEL_UINT8:
         do_tiles<PixelRGBA<uint8> >(platefile);
         break;
       default:
