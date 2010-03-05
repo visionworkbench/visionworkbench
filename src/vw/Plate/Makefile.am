@@ -123,7 +123,7 @@ endif
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
 
-SUBDIRS = . tests
+SUBDIRS = . tests google
 CLEANFILES = $(protocol_sources) $(protocol_headers)
 
 includedir = $(prefix)/include/vw/Plate

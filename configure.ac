@@ -485,6 +485,8 @@ AC_CONFIG_FILES([                       \
   src/vw/gui/Makefile                   \
   src/vw/Plate/Makefile                 \
   src/vw/Plate/tests/Makefile           \
+  src/vw/Plate/google/Makefile          \
+  src/vw/Plate/google/sparsehash/Makefile \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \
