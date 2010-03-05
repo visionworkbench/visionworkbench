@@ -72,6 +72,8 @@ create_alpha( ImageViewBase<Image1T> const& image1,
 template <class PixelT>
 void grassfire_nodata( std::string input, typename CompoundChannelType<PixelT>::type nodata,
                        std::string output ) {
+  cartography::GeoReference georef;
+  cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(notnodata(input_image,nodata));
   int32 max = max_pixel_value( distance );
@@ -80,13 +82,16 @@ void grassfire_nodata( std::string input, typename CompoundChannelType<PixelT>::
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
   ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
   ImageViewRef<typename PixelWithAlpha<PixelT>::type> result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
-  write_image(output, result);
+  cartography::write_georeferenced_image(output, result, georef,
+                                         TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
 // Same as above but modified for alpha input
 template <class PixelT>
 void grassfire_already_alpha( std::string input,
                               std::string output ) {
+  cartography::GeoReference georef;
+  cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(apply_mask(invert_mask(alpha_to_mask(input_image)),1));
   int32 max = max_pixel_value(distance);
@@ -95,7 +100,8 @@ void grassfire_already_alpha( std::string input,
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
   ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
   ImageViewRef<PixelT> result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
-  write_image(output, result);
+  cartography::write_georeferenced_image(output, result, georef,
+                                         TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
 // Standard interface
