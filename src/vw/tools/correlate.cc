@@ -81,8 +81,15 @@ int main( int argc, char *argv[] ) {
     p.add("right", 1);
 
     po::variables_map vm;
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
-    po::notify( vm );
+    try {
+      po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
+      po::notify( vm );
+    } catch (po::error &e) {
+      std::cout << "An error occured while parsing command line arguments.\n";
+      std::cout << "\t" << e.what() << "\n\n";
+      std::cout << desc << std::endl;
+      return 1;
+    }
 
     if( vm.count("help") ) {
       vw_out() << desc << std::endl;
