@@ -82,13 +82,24 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
               << tile_georef.transform() << "\n";
 
     std::ostringstream output_filename;
-    output_filename << output_prefix << "_" << round(top_left_ll[0]) << "W_"
-                    << round(top_left_ll[1]) << "N.tif";
+    output_filename << output_prefix << "_" 
+                    << abs(round(top_left_ll[0]));
+    if ( top_left_ll[0] < 0 )
+      output_filename << "W_";
+    else
+      output_filename << "E_";
+    output_filename << abs(round(top_left_ll[1])); 
+    if ( top_left_ll[1] >= 0 )
+      output_filename << "N.tif";
+    else
+      output_filename << "S.tif";
 
     ImageView<PixelT> cropped_view = crop(plate_view, crop_bboxes[i]);
     if( ! is_transparent(cropped_view) ) {
+      DiskImageResourceGDAL::Options gdal_options;
+      gdal_options["COMPRESS"] = "LZW";
       DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
-                                 Vector2i(256,256));
+                                 Vector2i(256,256), gdal_options);
       write_georeference(rsrc, tile_georef);
       write_image(rsrc, cropped_view,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
