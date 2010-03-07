@@ -32,15 +32,15 @@ namespace platefile {
   // -------------------------------------------------------------------------
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
-  
+
   template <class PixelT>
   class PlateCarreePlateManager : public PlateManager {
 
     FifoWorkQueue m_queue;
 
   public:
-  
-    PlateCarreePlateManager(boost::shared_ptr<PlateFile> platefile) : 
+
+    PlateCarreePlateManager(boost::shared_ptr<PlateFile> platefile) :
       PlateManager(platefile), m_queue(1)  {} // Set threads to 1 for now...
 
     // Create a georeference object for this plate file.  The user
@@ -50,7 +50,7 @@ namespace platefile {
       int tile_size = m_platefile->default_tile_size();
       int resolution = (1<<level)*tile_size;
 
-      cartography::GeoReference output_georef = 
+      cartography::GeoReference output_georef =
         cartography::output::kml::get_output_georeference(resolution,resolution);
       return output_georef;
     }
@@ -72,14 +72,14 @@ namespace platefile {
     /// all possible bounding boxes before selecting down to the
     /// possible handful that overlap with the image_bbox.  It could
     /// be made to go MUCH faster by being smart about its search.
-    std::vector<TileInfo> kml_image_tiles( BBox2i const& image_bbox, 
+    std::vector<TileInfo> kml_image_tiles( BBox2i const& image_bbox,
                                            int32 const resolution,
                                            int32 const tile_size);
 
     /// Add an image to the plate file.
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description,
-                int transaction_id_override, cartography::GeoReference const& input_georef, 
+                int transaction_id_override, cartography::GeoReference const& input_georef,
                 bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
@@ -89,12 +89,12 @@ namespace platefile {
       output_georef.set_datum(input_georef.datum());
       int resolution = 256;
 
-      // Right now, we only need a WGS84 output geoereference to compute 
+      // Right now, we only need a WGS84 output geoereference to compute
       // the resolution. The rest of the output info will get set later.
       cartography::GeoTransform geotx( input_georef, output_georef );
-     
-      // Calculate the best resolution at 5 different points in the image, 
-      // as occasionally there's a singularity at the center pixel that 
+
+      // Calculate the best resolution at 5 different points in the image,
+      // as occasionally there's a singularity at the center pixel that
       // makes it extremely tiny (such as in pole-centered images).
       const int cols = image.impl().cols();
       const int rows = image.impl().rows();
@@ -112,7 +112,7 @@ namespace platefile {
 
       // Round the resolution to the nearest power of two.  The
       // base of the pyramid is 2^8 or 256x256 pixels.
-      int pyramid_level = (int)ceil(log(resolution) / log(2)) - 8; 
+      int pyramid_level = (int)ceil(log(resolution) / log(2)) - 8;
       int tile_size = m_platefile->default_tile_size();
       resolution = (1<<pyramid_level)*tile_size;
 
@@ -130,11 +130,11 @@ namespace platefile {
                << " with bbox " << output_bbox << "\n"
                << "\t    (Total KML resolution at this level =  "
                << resolution << " pixels.)\n";
-      
+
       // Create the output view and crop it to the proper size.
-      ImageViewRef<typename ViewT::pixel_type> kml_view = 
+      ImageViewRef<typename ViewT::pixel_type> kml_view =
         transform(image,kml_tx, ZeroEdgeExtension(),BicubicInterpolation());
-      
+
       if( input_georef.proj4_str()=="+proj=longlat" &&
           fabs(input_georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
           fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
@@ -144,7 +144,7 @@ namespace platefile {
                  << "Using cylindrical edge extension to hide the seam.\n";
         kml_view = transform(image,kml_tx,
                              CylindricalEdgeExtension(), BicubicInterpolation());
-      } 
+      }
 
       // chop up the image into small chunks
       std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, resolution,
@@ -153,19 +153,19 @@ namespace platefile {
 
       // Compute the affected tiles.
       BBox2i affected_tiles_bbox;
-      for (size_t i = 0; i < tiles.size(); ++i) 
+      for (size_t i = 0; i < tiles.size(); ++i)
         affected_tiles_bbox.grow(Vector2i(tiles[i].i,tiles[i].j));
 
-      // Obtain a transaction ID for this image.  
+      // Obtain a transaction ID for this image.
       //
       // Note: the user may have specified a transaction_id to use,
       // which was passed in with transaction_id_override.  If not,
       // then transaction_id_override == -1, and we get an
       // automatically assigned t_id.
-      int transaction_id = m_platefile->transaction_request(description, 
+      int transaction_id = m_platefile->transaction_request(description,
                                                             transaction_id_override);
 
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
+      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n"
                 << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
                 << "\t    Transaction ID: " << transaction_id << "\n"
                 << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
@@ -178,10 +178,10 @@ namespace platefile {
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         m_queue.add_task(boost::shared_ptr<Task>(
-          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile, 
+          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile,
                                                                             transaction_id,
-                                                                            tiles[i], 
-                                                                            pyramid_level, 
+                                                                            tiles[i],
+                                                                            pyramid_level,
                                                                             kml_view,
                                                                             false,
                                                                             tiles.size(),
@@ -210,7 +210,7 @@ namespace platefile {
     }
 
     /// This function generates a specific mipmap tile at the given
-    /// col, row, and level, and transaction_id.  
+    /// col, row, and level, and transaction_id.
     virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
 
   };
