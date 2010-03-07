@@ -131,7 +131,7 @@ void do_colorized_dem(po::variables_map const& vm) {
 
   // Compute min/max
   DiskImageView<PixelT> disk_dem_file(input_file_name);
-  ImageViewRef<PixelGray<float> > input_image = channel_cast<float>(disk_dem_file);
+  ImageViewRef<PixelGray<float> > input_image = pixel_cast<PixelGray<float> >(select_channel(disk_dem_file,0));
   if (min_val == 0 && max_val == 0) {
     min_max_channel_values( create_mask( input_image, nodata_value), min_val, max_val);
     vw_out() << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
@@ -140,7 +140,9 @@ void do_colorized_dem(po::variables_map const& vm) {
   }
 
   ImageViewRef<PixelMask<PixelGray<float> > > dem;
-  if (vm.count("nodata-value")) {
+  if ( PixelHasAlpha<PixelT>::value ) {
+    dem = alpha_to_mask(channel_cast<float>(disk_dem_file) );
+  } else if (vm.count("nodata-value")) {
     dem = channel_cast<float>(create_mask(input_image, nodata_value));
   } else if ( disk_dem_rsrc->has_nodata_value() ) {
     dem = create_mask(input_image, nodata_value);
@@ -268,6 +270,14 @@ int main( int argc, char *argv[] ) {
       case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(vm); break;
       case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(vm); break;
       default:                do_colorized_dem<PixelGray<float32> >(vm); break;
+      }
+      break;
+    case VW_PIXEL_GRAYA:
+      switch(channel_type) {
+      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGrayA<uint8>   >(vm); break;
+      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGrayA<int16>   >(vm); break;
+      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGrayA<uint16>  >(vm); break;
+      default:                do_colorized_dem<PixelGrayA<float32> >(vm); break;
       }
       break;
     default:
