@@ -174,6 +174,12 @@ int main( int argc, char *argv[] ) {
       case VW_CHANNEL_UINT8:
         do_tiles<PixelGrayA<uint8> >(platefile);
         break;
+      case VW_CHANNEL_INT16:
+        do_tiles<PixelGrayA<int16> >(platefile);
+        break;
+      case VW_CHANNEL_FLOAT32:
+        do_tiles<PixelGrayA<float32> >(platefile);
+        break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
       }
