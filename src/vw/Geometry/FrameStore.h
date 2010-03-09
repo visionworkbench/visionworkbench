@@ -9,19 +9,16 @@
 #ifndef vw_geometry_FrameStore_h
 #define vw_geometry_FrameStore_h
 
-#include "FrameHandle.h"
-#include "FrameTreeNode.h"
-#include "GeometryExport.h"
-
-#include "vw/Core/Thread.h"
+#include <vw/Geometry/FrameHandle.h>
+#include <vw/Geometry/FrameTreeNode.h>
+#include <vw/Core/Thread.h>
 
 
 namespace vw
 {
-namespace geometry
-{
-  // forward declaration
-  class FrameStore;
+  namespace geometry {
+    // forward declaration
+    class FrameStore;
 
     /**
      * @brief Thread-safe coordinate-frame tree class.
@@ -46,141 +43,128 @@ namespace geometry
      * the integrity of the tree. For instance, is_root() does not check
      * for membership of the frame to the FrameStore.
 
-   */
-  class FrameStore {
+     */
+    class FrameStore
+    {
 
-  public:
-    //! @{ Public data types.
+    public:
+      //! @{ Public data types.
 
       /**
        * The affine transform type used to denote a location
        */
       typedef vw::ATrans3 Transform;
 
-    //! A vector of frame handles.
-    typedef std::vector<FrameHandle> FrameHandleVector;
-    //! A vector of FrameTreeNode's.
-    /**
-     * Those are actual nodes, that can be manipulated using the
-     * TreeNode<Frame> interface.
-     */
-    typedef std::vector<FrameTreeNode> FrameTree;
+      /**
+       * A vector of frame handles.
+       */
+      typedef std::vector<FrameHandle> FrameHandleVector;
+      /**
+       * @brief A vector of FrameTreeNode's.
+       * Those are actual nodes, that can be manipulated using the
+       * TreeNode<Frame> interface.
+       */
+      typedef std::vector<FrameTreeNode> FrameTree;
 
       /**
        * @brief A vector of Transforms's.
        */
       typedef std::vector<Transform> TransformVector;
 
-      //! Handle to the frame to update.
-      FrameHandle handle;
-      //! Axis to update
-      ParameterType axis;
-      //! New axis value.
-      double value;
-    };
-    //! A vector of frame updates used in @update_frames().
-    typedef std::vector<FrameUpdate> UpdateVector;
+      //! @}
 
-    //! @}
+      /**
+       * Destructor.
+       * Deletes all frames owned by this FrameStore instance.
+       */
+      ~FrameStore() throw();
 
-    //! Destructor
-    /** Deletes all frames owned by this FrameStore instance.
-     */
-    ~FrameStore() throw();
+      /**
+       * @brief Get a copy of the frame tree.
+       * The vector holds a set of FrameTreeNode objects, which describe
+       * all tree(s) of the FrameStore.  The FrameStore is copied in
+       * pre-order, so the first element of the vector is the root node
+       * of the first tree.
+       *
+       * Note that the FrameTreeNodes have a completely different
+       * interface than the FrameStore. FrameTreeNodes don't have
+       * locking, so this is a static snapshot of the tree.
+       */
+      void clone_tree(FrameTree & tree, FrameHandle rootFrame = NULL) const;
 
-    //! Get a copy of the frame tree.
-    /**
-     *
-     * The vector holds a set of FrameTreeNode objects, which describe
-     * all tree(s) of the FrameStore.  The FrameStore is copied in
-     * pre-order, so the first element of the vector is the root node
-     * of the first tree.
-     *
-     * Note that the FrameTreeNodes have a completely different
-     * interface than the FrameStore. FrameTreeNodes don't have
-     * locking, so this is a static snapshot of the tree.
-     */
-    void clone_tree(FrameTree & tree, FrameHandle rootFrame = NULL) const;
-
-    //! Get a copy of the frame tree.
-    /**
-     * The rootFrame is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
-     *
-     * Note that the FrameTreeNodes have a completely different
-     * interface than the FrameStore. FrameTreeNodes don't have
-     * locking, so this is a static snapshot of the tree.
-     */
-    FrameTreeNode * clone_tree(FrameHandle rootFrame) const;
+      /**
+       * @brief Get a copy of the frame tree.
+       * The rootFrame is required to be non-NULL, otherwise
+       * @vw::LogicErr is thrown.
+       *
+       * Note that the FrameTreeNodes have a completely different
+       * interface than the FrameStore. FrameTreeNodes don't have
+       * locking, so this is a static snapshot of the tree.
+       */
+      FrameTreeNode * clone_tree(FrameHandle rootFrame) const;
 
 
-    //! Get name of frame.
-    /**
-     * @param frame
-     * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
-     */
-    std::string const& name(FrameHandle frame) const;
+      /**
+       * Get name of frame.
+       * @param frame
+       * The frame argument is required to be non-NULL, otherwise
+       * @vw::LogicErr is thrown.
+       */
+      std::string const& name(FrameHandle frame) const;
 
-    //! Get fully qualified name of frame, including path of all parent frames.
-    /**
-     * @param frame
-     * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
-     */
-    std::string full_name(FrameHandle frame) const;
+      /**
+       * Get fully qualified name of frame, including path of all parent frames.
+       * @param frame
+       * The frame argument is required to be non-NULL, otherwise
+       * @vw::LogicErr is thrown.
+       */
+      std::string full_name(FrameHandle frame) const;
 
-    //! Return list of fully qualified names of all frames.
-    std::vector<std::string> frame_names() const;
+      /**
+       * @return list of fully qualified names of all frames.
+       */
+      std::vector<std::string> frame_names() const;
 
-    //! Return the parent Frame
-    /**
-     * Returns the NULL-handle if root frame.
-     *
-     * @param frame
-     * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
-     */
-    FrameHandle parent(FrameHandle frame) const;
+      /**
+       * Return the parent Frame
+       * @return the NULL-handle if root frame.
+       *
+       * @param frame
+       * The frame argument is required to be non-NULL, otherwise
+       * @vw::LogicErr is thrown.
+       */
+      FrameHandle parent(FrameHandle frame) const;
 
-    //! Get the list of direct children of a frame.
-    /**
-     * @param frame
-     * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
-     */
-    FrameHandleVector children(FrameHandle frame = NULL_HANDLE) const;
+      /**
+       * Get the list of direct children of a frame.
+       * @param frame
+       * The frame argument is required to be non-NULL, otherwise
+       * @vw::LogicErr is thrown.
+       */
+      FrameHandleVector children(FrameHandle frame = NULL_HANDLE) const;
 
-    //! Lookup a frame by name.
-    /**
-     * @param name
-     *
-     * Note our special lookup naming semantics: Frame names are
-     * alphanumeric only. . and / are reserved characters.  A frame
-     * name can be specified by giving it's absolute or relative path
-     * in Unix file-system convention: /rootNode/myNode or
-     * ../../grandParent/uncleFrame.
-     *
-     * A special wild-card is the ... which starts a breadth-first
-     * expansion of the tree.  So .../myNode will return the first
-     * node named myNode beneath the scope-node in a bread-first
-     * expansion.  As the ordering of children is not defined, it is
-     * not guaranteed which node is returned if multiple nodes with
-     * the same name are specified at the same depth level.
-     *
-     * @param sope
-     * If a non-NULL scope frame is passed as second parameter, the
-     * search is restricted to the sub-tree spawned by this frame.
-     */
-    FrameHandle lookup(std::string const& name, FrameHandle scope = NULL) const;
-
-    //! Adding a frame to the frame store.
-    /**
-     * @param frame
-     * @param parent
-     * @param l
-     */
-    FrameHandle add(std::string const& name, FrameHandle parent, Location const& p);
+      /**
+       * Lookup a frame by name.
+       * @param name
+       *
+       * Note our special lookup naming semantics: Frame names are
+       * alphanumeric only. . and / are reserved characters.  A frame
+       * name can be specified by giving it's absolute or relative path
+       * in Unix file-system convention: /rootNode/myNode or
+       * ../../grandParent/uncleFrame.
+       *
+       * A special wild-card is the ... which starts a breadth-first
+       * expansion of the tree.  So .../myNode will return the first
+       * node named myNode beneath the scope-node in a bread-first
+       * expansion.  As the ordering of children is not defined, it is
+       * not guaranteed which node is returned if multiple nodes with
+       * the same name are specified at the same depth level.
+       *
+       * @param scope
+       * If a non-NULL scope frame is passed as second parameter, the
+       * search is restricted to the sub-tree spawned by this frame.
+       */
+      FrameHandle lookup(std::string const& name, FrameHandle scope = NULL_HANDLE) const;
 
       /**
        * Adding a frame to the frame store.
@@ -190,18 +174,16 @@ namespace geometry
        */
       FrameHandle add(std::string const& name, FrameHandle parent, Transform const& p);
 
-    //! Merging a tree with the the frame store
-    /**
-     * @param node
-     * The FrameStore takes ownership of the passed sub-tree.
-     * The tree must not be member of a FrameStore already. Otherwise,
-     * vw::LogicErr is throwsn
-     *
-     * @param startFrame
-     * The start-node for the merge operation. The startFrame is required to have the same
-     * name as the node.
-     */
-     FrameHandle merge_tree(FrameTreeNode * tree, FrameHandle startFrame);
+      /**
+       * Adding a sub-tree to the frame store
+       * @param node
+       * The FrameStore takes ownership of the passed sub-tree.
+       * The tree must not be member of a FrameStore already. Otherwise,
+       * vw::LogicErr is thrown.
+       *
+       * @param parent
+       */
+      void add(FrameTreeNode * node, FrameHandle parent);
 
       /**
        * Merging a tree with the the frame store
@@ -223,71 +205,60 @@ namespace geometry
        */
       bool merge_tree(FrameTreeNode * tree, FrameHandle start_frame = NULL_HANDLE);
 
-    //! Reparent a frame.
-    /**
-     * @param frame
-     * @param parent
-     */
-    void set_parent(FrameHandle frame, FrameHandle parent);
+      /**
+       * Delete frame from tree.
+       * @param tree
+       *
+       * @param recursive If recursive is set to false, all children of
+       * the frame will be added as root-frames to the FrameStore.
+       */
+      void del(FrameHandle frame, bool recursive = true);
 
-    //! Return root node of specified frame.
-    /**
-     * The frame-store can hold multiple-root nodes.
-     * @param frame
-     */
-    FrameHandle root(FrameHandle frame) const;
+      /**
+       * Reparent a frame.
+       * @param frame
+       * @param parent
+       */
+      void set_parent(FrameHandle frame, FrameHandle parent);
 
-    //! @{ Public predicates.
+      /**
+       * Return root node of specified frame.
+       * The frame-store can hold multiple-root nodes.
+       * @param frame
+       */
+      FrameHandle root(FrameHandle frame) const;
 
-    //! Test if frame is a base frame.
-    /**
-     * That is, does not have a parent.
-     * @param frame
-     */
-    bool is_root(FrameHandle frame) const;
+      //! @{ Public predicates.
 
-    //! Test if @frame is somewhere up in the chain of parents of @pop.
-    /**
-     * @param frame
-     * @param pop
-     */
-    bool is_ancestor_of(FrameHandle frame, FrameHandle pop) const;
+      /**
+       * @brief Test if frame is a root frame.
+       * That is, does not have a parent.
+       * @param frame
+       */
+      bool is_root(FrameHandle frame) const;
 
-    //! Test if the frame belongs to this FrameStore instance.
-    bool is_member(FrameHandle frame) const throw();
+      //! @{ Public predicates.
 
-    //! @}
+      /**
+       * Test if frame is a leaf frame.
+       * That is, does not have any children.
+       * @param frame
+       */
+      bool is_leaf(FrameHandle frame) const;
 
-    /** Return the location of @source with respect to @frame.
-     *
-     * @param frame
-     * @param wrt_frame
-     */
-    Location get_location(FrameHandle frame, FrameHandle source = NULL);
+      /**
+       * Test if @frame is somewhere up in the chain of parents of @pop.
+       * @param frame
+       * @param pop
+       */
+      bool is_ancestor_of(FrameHandle frame, FrameHandle pop) const;
 
-    /** Return the position @loc, which is expressed relative to @source
-     * with respect to @frame.
-     *
-     * @param frame
-     * @param wrt_frame
-     * @param loc
-     */
-    Location get_location_of(FrameHandle frame, FrameHandle source, Location const& loc);
+      /**
+       * Test if the frame belongs to this FrameStore instance.
+       */
+      bool is_member(FrameHandle frame) const throw();
 
-    /** Set the location of @frame to @update, which is expressed relative to @wrt_frame.
-     *
-     * @param frame
-     * @param wrt_frame
-     * @param update
-     */
-    void set_location(FrameHandle frame, FrameHandle wrt_frame, Location const& update);
-
-    /** Update the location of @frame to @loc, expressed relative to current location.
-     *
-     * @param frame
-     * @param loc
-     */
-    void set_location_rel(FrameHandle frame, Location const& loc);
+      //! @}
 
       /**
        * Return the transform of @source expressed relative to @frame.
@@ -351,7 +322,6 @@ namespace geometry
       FrameTreeNodeVector m_root_nodes;
     };
   }
-}
 }
 
 #endif // vw_geometry_FrameStore_h

@@ -9,8 +9,8 @@
 #ifndef vw_geometry_FrameTreeNode_h
 #define vw_geometry_FrameTreeNode_h
 
-#include "TreeNode.h"
-#include "Frame.h"
+#include <vw/Geometry/TreeNode.h>
+#include <vw/Geometry/Frame.h>
 
 namespace vw
 {

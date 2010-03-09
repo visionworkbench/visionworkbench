@@ -9,7 +9,7 @@
 #ifndef vw_Math_Frame_h
 #define vw_Math_Frame_h
 
-#include "ATrans.h"
+#include <vw/Geometry/ATrans.h>
 
 #include <string>
 

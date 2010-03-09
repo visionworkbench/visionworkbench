@@ -9,8 +9,8 @@
 #ifndef vw_geometry_ATrans_h
 #define vw_geometry_ATrans_h
 
-#include "vw/Math/Vector.h"
-#include "vw/Math/Matrix.h"
+#include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 
 namespace vw
 {
