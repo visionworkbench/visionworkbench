@@ -76,10 +76,18 @@ vw::platefile::IndexLevel::~IndexLevel() {
 }
 
 void vw::platefile::IndexLevel::sync() {
-   Mutex::Lock lock(m_cache_mutex);
-
+  
   // Write the index page to disk by calling it's sync() method.
+  //
+  // Note: the size of m_cache_handles and m_cache_generators does not
+  // change once it's set in the constructor of IndexLevel, so it's
+  // safe here to place m_cache_mutex _inside_ the loop.  This allows
+  // synchronization operations to be interleaved with fetch()
+  // operations, thus preventing the index_server from blocking when
+  // it periodically syncs the cache to disk.
+  //
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
+    Mutex::Lock lock(m_cache_mutex);
     if (m_cache_generators[i]) {
       boost::shared_ptr<IndexPage> page = m_cache_handles[i];
       page->sync();

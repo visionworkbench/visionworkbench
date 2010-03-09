@@ -63,6 +63,7 @@ public:
 int main(int argc, char** argv) {
   std::string exchange_name, root_directory;
   std::string hostname;
+  float sync_interval;
   int port;
 
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
@@ -73,6 +74,8 @@ int main(int argc, char** argv) {
      "Specify the hostname of the AMQP server to use for remote procedure calls (RPCs).")
     ("port,p", po::value<int>(&port)->default_value(5672),
      "Specify the port of the AMQP server to use for remote procedure calls (RPCs).")
+    ("sync-interval,s", po::value<float>(&sync_interval)->default_value(60),
+     "Specify the time interval (in minutes) for automatically synchronizing the index to disk.")
     ("debug", "Output debug messages.")
     ("help", "Display this help message");
 
@@ -127,12 +130,27 @@ int main(int argc, char** argv) {
   std::cout << "\n\n";
   long long t0 = Stopwatch::microtime();
 
+  long long sync_interval_seconds = uint64(sync_interval * 60);
+  long long seconds_until_sync = sync_interval_seconds;
+
   while(process_messages) {
+
+    // Check to see if the user generated a sync signal.
     if (force_sync) {
       std::cout << "\nReceived signal USR1.  Synchronizing index entries to disk:\n";
       g_service->sync();
       force_sync = false;
     }
+
+    // Check to see if our sync timeout has occurred.
+    if (seconds_until_sync-- <= 0) {
+      std::cout << "\nAutomatic sync of index started (interval = " << sync_interval << ")\n";
+      g_service->sync();
+
+      // Restart the count-down
+      seconds_until_sync = sync_interval_seconds;
+    }
+
     int queries = server->queries_processed();
     size_t bytes = server->bytes_processed();
     int n_outstanding_messages = server->incoming_message_queue_size();

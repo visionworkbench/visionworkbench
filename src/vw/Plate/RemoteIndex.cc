@@ -122,13 +122,15 @@ void vw::platefile::RemoteIndexPage::set(TileHeader const& header, IndexRecord c
   // First call up to the parent class and let the original code run.
   IndexPage::set(header, record);
 
-  // Save this write request to the queue, and flush the queue if it has gotten too full.
+  // Save this write request to the queue, and flush the queue if it
+  // has gotten too full.  (We send an update to the index_server
+  // every 50 writes!)
   IndexWriteUpdate request;
   request.set_platefile_id(m_platefile_id);
   *(request.mutable_header()) = header;
   *(request.mutable_record()) = record;
   m_write_queue.push(request);
-  static const unsigned write_queue_size = 10; // arbitrary, but probably good.
+  static const unsigned write_queue_size = 50; // arbitrary, but probably good.
   if (m_write_queue.size() >= write_queue_size)
     this->flush_write_queue();
 }
@@ -336,6 +338,13 @@ void vw::platefile::RemoteIndex::log(std::string message) {
 
 /// Writing, pt. 3: Signal the completion 
 void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
+
+  // First we make sure that we flush the write queue by synchronizing
+  // all of the pages back to the index_server!  Otherwise the write
+  // won't actually be complete!!
+  this->sync();
+
+  // Then we issue an actual write_complete.
   IndexWriteComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_blob_id(blob_id);
