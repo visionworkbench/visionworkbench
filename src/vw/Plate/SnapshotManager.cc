@@ -206,6 +206,12 @@ namespace platefile {
                                                  << "  [ " << num_composited << " ]\n";
         //---
 
+        // for (unsigned j = 0; j < composite_tile.rows(); ++j) {
+        //   for (unsigned i = 0; i < composite_tile.cols(); ++i) {
+        //     composite_tile(i,j)[0] *= -1;
+        //   }
+        // }
+
         m_platefile->write_update(composite_tile, 
                                 current_col, current_row, current_level,
                                 write_transaction_id);

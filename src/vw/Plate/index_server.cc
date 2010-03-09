@@ -138,14 +138,20 @@ int main(int argc, char** argv) {
     // Check to see if the user generated a sync signal.
     if (force_sync) {
       std::cout << "\nReceived signal USR1.  Synchronizing index entries to disk:\n";
+      long long sync_t0 = Stopwatch::microtime();
       g_service->sync();
+      float sync_dt = float(Stopwatch::microtime() - sync_t0) / 1e6;
+      std::cout << "Sync complete (took " << sync_dt << " seconds).\n";
       force_sync = false;
     }
 
     // Check to see if our sync timeout has occurred.
     if (seconds_until_sync-- <= 0) {
       std::cout << "\nAutomatic sync of index started (interval = " << sync_interval << ")\n";
+      long long sync_t0 = Stopwatch::microtime();
       g_service->sync();
+      float sync_dt = float(Stopwatch::microtime() - sync_t0) / 1e6;
+      std::cout << "Sync complete (took " << sync_dt << " seconds).\n";
 
       // Restart the count-down
       seconds_until_sync = sync_interval_seconds;

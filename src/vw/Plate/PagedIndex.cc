@@ -76,6 +76,7 @@ vw::platefile::IndexLevel::~IndexLevel() {
 }
 
 void vw::platefile::IndexLevel::sync() {
+  Mutex::Lock lock(m_cache_mutex);
   
   // Write the index page to disk by calling it's sync() method.
   //
@@ -87,10 +88,15 @@ void vw::platefile::IndexLevel::sync() {
   // it periodically syncs the cache to disk.
   //
   for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
-    Mutex::Lock lock(m_cache_mutex);
     if (m_cache_generators[i]) {
-      boost::shared_ptr<IndexPage> page = m_cache_handles[i];
-      page->sync();
+      
+      if (m_cache_handles[i].valid()) {
+        //        std::cout << "Handle " << i << " was VALID...\n";
+        boost::shared_ptr<IndexPage> page = m_cache_handles[i];
+        page->sync();
+      } else {
+        //        std::cout << "Handle " << i << " was INVALID...\n";
+      }
     }
   }
 

@@ -183,11 +183,16 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     std::list<BBox2i> boxes1 = bbox_tiles(full_region, subdivided_region_size, subdivided_region_size);
 
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
+      //      vw_out() << "\t--> " << region1 << "\n";
       std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
+        // vw_out() << "\t--> " << "[" << tile.transaction_id() << "]  " 
+        //         << tile.col() << " " << tile.row() << " @ " << tile.level() << "\n";
         filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
       }
     }
+
+    output.sync();
   }
 
   filter.fini(output, input, transaction_id);

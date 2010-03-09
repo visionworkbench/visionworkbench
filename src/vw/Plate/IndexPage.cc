@@ -37,6 +37,10 @@ vw::platefile::IndexPage::~IndexPage() {
 }
 
 void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
+  vw_out(VerboseDebugMessage, "platefile::index") << "Serializing index page [ " 
+                                                  << m_base_col << " " << m_base_row 
+                                                  << " @ " << m_level << " ]\n";
+
   // Part 1: Write out the page size
   ostr.write((char*)(&m_page_width), sizeof(m_page_width));
   ostr.write((char*)(&m_page_height), sizeof(m_page_height));
@@ -72,6 +76,11 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
 }
 
 void vw::platefile::IndexPage::deserialize(std::istream& istr) {
+
+  vw_out(VerboseDebugMessage, "platefile::index") << "Deserializing index page [ " 
+                                                  << m_base_col << " " << m_base_row 
+                                                  << " @ " << m_level << " ]\n";
+
   // Part 1: Read the page size
   istr.read((char*)(&m_page_width), sizeof(m_page_width));
   istr.read((char*)(&m_page_height), sizeof(m_page_height));
