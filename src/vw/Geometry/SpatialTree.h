@@ -48,7 +48,7 @@ namespace geometry {
       GeomPrimitive *prim;
       bool forced_this_level;
     };
-    
+
     struct SpatialTreeNode {
       SpatialTreeNode(int num_quadrants) {
         m_quadrant = new SpatialTreeNode*[num_quadrants];
@@ -60,7 +60,7 @@ namespace geometry {
       }
       ~SpatialTreeNode() {
         delete[] m_quadrant;
-        m_quadrant = 0;   
+        m_quadrant = 0;
       }
       bool is_split() { return m_is_split; }
       BBoxT &bounding_box() { return m_bbox; }

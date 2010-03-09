@@ -8,6 +8,7 @@
 #include "FrameTreeNode.h"
 
 #include <algorithm>
+#include <iterator>
 
 namespace vw
 {
@@ -15,99 +16,102 @@ namespace geometry
 {
   using namespace std;
 
-  Frame::Location
-  get_location(FrameTreeNode const * wrtFrame, FrameTreeNode const * source)
-  {
-    Frame::Location loc = vw::identity_matrix(4);
+    Frame::Transform
+    get_transform(FrameTreeNode const * target, FrameTreeNode const * source)
+    {
+      Frame::Transform loc = vw::identity_matrix(4);
 
     if (source != NULL) {
-    
+
       if (wrtFrame == NULL)
-	return source->data().location();
-      
+        return source->data().location();
+
       if (wrtFrame != source) {
-	
-	FrameTreeNode const * ancestor = wrtFrame->last_common_ancestor(source);
-	
-	if (ancestor != NULL) {
-	  // from the origin frame to the ancestor
-	  {
-	    FrameTreeNode::NodeVector const& nodes = wrtFrame->ancestry(true);
-	    FrameTreeNode::NodeVector::const_iterator iter =
-	      std::find(nodes.begin(), nodes.end(), ancestor);
-	    
-	    assert (iter != nodes.end());
-	    
-	    ++iter;
-	    if (iter != nodes.end()) {
-	      for (; iter != nodes.end(); ++iter) {
-		loc *= (*iter)->data().location();
-	      }
-	      loc = inverse(loc);
-	    }
-	  }
-	  
-	  
-	  // from the last common ancestor to the wrt frame
-	  {	
-	    FrameTreeNode::NodeVector const& nodes = source->ancestry(true);
-	    FrameTreeNode::NodeVector::const_iterator iter =
-	      std::find(nodes.begin(), nodes.end(), ancestor);
-	    
-	    assert (iter != nodes.end());
-	    
-	    for (; iter != nodes.end(); ++iter) {
-	      loc *= (*iter)->data().location();
-	    }
-	  }
-	}
+
+        FrameTreeNode const * ancestor = wrtFrame->last_common_ancestor(source);
+
+        if (ancestor != NULL) {
+          // from the origin frame to the ancestor
+          {
+            FrameTreeNode::NodeVector const& nodes = wrtFrame->ancestry(true);
+            FrameTreeNode::NodeVector::const_iterator iter =
+              std::find(nodes.begin(), nodes.end(), ancestor);
+
+            assert (iter != nodes.end());
+
+            ++iter;
+            if (iter != nodes.end()) {
+              for (; iter != nodes.end(); ++iter) {
+                loc *= (*iter)->data().location();
+              }
+              loc = inverse(loc);
+            }
+          }
+
+
+          // from the last common ancestor to the wrt frame
+          {
+            FrameTreeNode::NodeVector const& nodes = source->ancestry(true);
+            FrameTreeNode::NodeVector::const_iterator iter =
+              std::find(nodes.begin(), nodes.end(), ancestor);
+
+            assert (iter != nodes.end());
+
+            for (; iter != nodes.end(); ++iter) {
+              loc *= (*iter)->data().location();
+            }
+          }
+        }
       }
    }
-   
+
    return loc;
   }
 
-  namespace 
-  {
-    struct FtnLess
-    {
-      bool operator () (FrameTreeNode const * lhs, FrameTreeNode const * rhs)
-      {
-	return lhs->data().name() < rhs->data().name();
-      }
-    };
-  }
+        if (target == NULL)
+          return source->data().transform();
 
-  void 
-  merge_frame_trees(FrameTreeNode * target_tree, FrameTreeNode * source_tree)
-  {
-    if (target_tree->data().name() != source_tree->data().name())
-      return;
+        if (target != source) {
 
-    FrameTreeNode::NodeVector src_children = target_tree->children();
-
-    if (src_children.size() > 0) {
-      FrameTreeNode::NodeVector tgt_children = source_tree->children();
-      
-      FtnLess less;
-      sort(src_children.begin(), src_children.end(), less);
-      sort(tgt_children.begin(), tgt_children.end(), less);
+          int ancestorI = target->last_common_ancestor_index(source);
+          if (ancestorI >= 0) {
+            // from the origin frame to the ancestor
+            {
+              FrameTreeNode::NodeVector const& nodes = target->ancestry(true);
+              FrameTreeNode::NodeVector::const_iterator iter = nodes.begin();
+              std::advance(iter, ancestorI);
 
       FrameTreeNode::NodeVector::const_iterator first, last = src_children.end();
       FrameTreeNode::NodeVector::const_iterator tgt_iter = tgt_children.end();
       for (first = src_children.begin(); first != last; ++first) {
-	while (tgt_iter != tgt_children.end() &&
-	       (*first)->data().name() > (*tgt_iter)->data().name()) {
-	  ++tgt_iter;
-	}
+        while (tgt_iter != tgt_children.end() &&
+               (*first)->data().name() > (*tgt_iter)->data().name()) {
+          ++tgt_iter;
+        }
 
-	if (tgt_iter == tgt_children.end() ||
-	    (*first)->data().name() < (*tgt_iter)->data().name()) {
-	  (*first)->set_parent(target_tree);
-	}
-	else if ((*first)->data().name() == (*tgt_iter)->data().name()) {
-	  merge_frame_trees(*tgt_iter, *first);
-	}
+              ++iter;
+              if (iter != nodes.end()) {
+                for (; iter != nodes.end(); ++iter) {
+                  loc *= (*iter)->data().transform();
+                }
+                loc = geometry::inverse(loc);
+              }
+            }
+
+            // from the last common ancestor to the target coordinate frame
+            {
+              FrameTreeNode::NodeVector const& nodes = source->ancestry(true);
+              FrameTreeNode::NodeVector::const_iterator iter = nodes.begin();
+              std::advance(iter, ancestorI);
+
+              assert (iter != nodes.end());
+
+              for (++iter; iter != nodes.end(); ++iter) {
+                loc *= (*iter)->data().transform();
+              }
+            }
+          }
+        }
       }
 
     }
@@ -119,83 +123,93 @@ namespace geometry
     {
       vector<string> elements;
 
-      string::const_iterator first, last = path.end();
-      for (first = path.begin(); first < last; ++first) {
+      FrameTreeNode::NodeVector src_children = source_tree->children();
 
-	// skip /
-	if (*first == '/')
-	  continue;
+      if (src_children.size() > 0) {
+        FrameTreeNode::NodeVector tgt_children = target_tree->children();
 
-	// search next /
-	string::const_iterator start;
-	for (start = first; first != last; ++first) {
-	  if (*first == '/')
-	    break;
-	}
+        // search next /
+        string::const_iterator start;
+        for (start = first; first != last; ++first) {
+          if (*first == '/')
+            break;
+        }
 
-	string element(start, first);
-	if (element != ".")
-	  elements.push_back(element);
+        FrameTreeNode::NodeVector::const_iterator first, last = src_children.end();
+        FrameTreeNode::NodeVector::const_iterator tgt_iter = tgt_children.begin();
+        for (first = src_children.begin(); first != last; ++first) {
+          while (tgt_iter != tgt_children.end() &&
+                 (*first)->data().name() > (*tgt_iter)->data().name()) {
+            ++tgt_iter;
+          }
+
+          if (tgt_iter == tgt_children.end() ||
+              (*first)->data().name() < (*tgt_iter)->data().name()) {
+            (*first)->set_parent(target_tree);
+          }
+          else if ((*first)->data().name() == (*tgt_iter)->data().name()) {
+            merge_frame_trees(*tgt_iter, *first);
+          }
+        }
+
       }
-
-      return elements;
     }
 
     FrameTreeNode * matchNode(FrameTreeNode * node,
-			      vector<string>::const_iterator first,
-			      vector<string>::const_iterator last)
+                              vector<string>::const_iterator first,
+                              vector<string>::const_iterator last)
     {
       for (; first != last; ++first) {
 
-	// single dot is skipped in splitPath already
-	assert (*first != ".");
+        // single dot is skipped in splitPath already
+        assert (*first != ".");
 
-	// double dot is "one up"
-	if (*first == "..") {
-	  node = node->parent();
-	  if (node == NULL)
-	    break;
-	}
+        // double dot is "one up"
+        if (*first == "..") {
+          node = node->parent();
+          if (node == NULL)
+            break;
+        }
 
-	// triple dot is breadth-first search
-	else if (*first == "...") {
+        // triple dot is breadth-first search
+        else if (*first == "...") {
 
-	  vector<string>::const_iterator next = first;
-	  ++next;
+          vector<string>::const_iterator next = first;
+          ++next;
 
-	  // breadth first search for next element
-	  deque<FrameTreeNode *> nodes;
-	  back_insert_iterator<deque<FrameTreeNode *> > iter(nodes);
-	  nodes.push_back(node);
-	  //node->copy_children(iter);
-	  while (!nodes.empty()) {
+          // breadth first search for next element
+          deque<FrameTreeNode *> nodes;
+          back_insert_iterator<deque<FrameTreeNode *> > iter(nodes);
+          nodes.push_back(node);
+          //node->copy_children(iter);
+          while (!nodes.empty()) {
 
-	    FrameTreeNode * n = matchNode(nodes.front(), next, last);
-	    if (n != NULL)
-	      return n;
+            FrameTreeNode * n = matchNode(nodes.front(), next, last);
+            if (n != NULL)
+              return n;
 
-	    nodes.front()->copy_children(iter);
-	    nodes.pop_front();
-	  }
+            nodes.front()->copy_children(iter);
+            nodes.pop_front();
+          }
 
-	  return NULL;
-	}
+          return NULL;
+        }
 
-	// regular elements just need to match one by one
-	else {
-	  FrameTreeNode::NodeVector c = node->children();
-	  FrameTreeNode::NodeVector::const_iterator f, l = c.end();
-	  for (f = c.begin(); f != l; ++f) {
-	    if ((*f)->data().name() == *first) {
-	      node = (*f);
-	      break;
-	    }
-	  }
+        // regular elements just need to match one by one
+        else {
+          FrameTreeNode::NodeVector c = node->children();
+          FrameTreeNode::NodeVector::const_iterator f, l = c.end();
+          for (f = c.begin(); f != l; ++f) {
+            if ((*f)->data().name() == *first) {
+              node = (*f);
+              break;
+            }
+          }
 
-	  // return NULL if no child node matches
-	  if (f == l)
-	    return NULL;
-	}
+          // return NULL if no child node matches
+          if (f == l)
+            return NULL;
+        }
       }
 
       return node;
@@ -216,10 +230,10 @@ namespace geometry
 
       start_frame = start_frame->root();
       if (!elements.empty() && elements[0] != "...") {
-	if (start_frame->data().name() != elements.front())
-	  return NULL;
+        if (start_frame->data().name() != elements.front())
+          return NULL;
 
-	++first;
+        ++first;
       }
     }
 

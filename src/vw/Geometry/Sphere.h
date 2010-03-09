@@ -43,18 +43,18 @@ namespace geometry {
     /// Constructs a 2D sphere with the given center point
     /// coordinates and radius.  (Only valid for 2D spheres.)
     SphereBase( RealT centerx, RealT centery, RealT radius )
-      : m_center( Vector<RealT,2>(centerx,centery) ), 
+      : m_center( Vector<RealT,2>(centerx,centery) ),
         m_radius( radius ), m_empty( false ) {}
 
     /// Constructs a 3D sphere with the given center point
     /// coordinates and radius.  (Only valid for 3D spheres.)
     SphereBase( RealT centerx, RealT centery, RealT centerz, RealT radius )
-      : m_center( Vector<RealT,3>(centerx,centery,centerz) ), 
+      : m_center( Vector<RealT,3>(centerx,centery,centerz) ),
         m_radius( radius ), m_empty( false ) {}
 
     /// Returns the derived implementation type.
     SphereT& impl() { return *static_cast<SphereT*>(this); }
-    
+
     /// Returns the derived implementation type.
     SphereT const& impl() const { return *static_cast<SphereT const*>(this); }
 
@@ -81,7 +81,7 @@ namespace geometry {
         }
       }
     }
-    
+
     /// Grows a sphere to include the given sphere.
     template <class SphereT1, class RealT1, int DimN1>
     void grow( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
@@ -189,8 +189,8 @@ namespace geometry {
     RealT &radius() { return m_radius; }
 
     /// Returns true if the sphere is empty (i.e. degenerate).
-    /// Note that even a zero-radius sphere is not empty, 
-    /// because spheres contain their surfaces: a zer-radius 
+    /// Note that even a zero-radius sphere is not empty,
+    /// because spheres contain their surfaces: a zer-radius
     /// sphere actually consists of a single point.
     bool empty() const { return m_empty; }
 
@@ -229,7 +229,7 @@ namespace geometry {
     RealT m_radius;
     bool m_empty;
   };
-  
+
   /// Scales a sphere relative to the origin.
   template <class SphereT, class RealT, int DimN, class ScalarT>
   inline SphereT operator*( SphereBase<SphereT, RealT, DimN> const& sphere, ScalarT s ) {
@@ -251,7 +251,7 @@ namespace geometry {
   inline SphereT operator*( ScalarT s, SphereBase<SphereT, RealT, DimN> const& sphere ) {
     return sphere * s;
   }
-  
+
   /// Offsets a sphere by the given vector.
   template <class SphereT, class RealT, int DimN, class VectorT>
   inline SphereT operator+( SphereBase<SphereT, RealT, DimN> const& sphere, VectorBase<VectorT> const& v ) {
@@ -273,19 +273,19 @@ namespace geometry {
     result -= v.impl();
     return result;
   }
-  
+
   /// Equality of two spheres.
   template <class SphereT1, class RealT1, int DimN1, class SphereT2, class RealT2, int DimN2>
   inline bool operator==( SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2 ) {
     return sphere1.center_()==sphere2.center_() && sphere1.radius()==sphere2.radius();
   }
-  
+
   /// Inequality of two spheres.
   template <class SphereT1, class RealT1, int DimN1, class SphereT2, class RealT2, int DimN2>
   inline bool operator!=( SphereBase<SphereT1,RealT1,DimN1> const& sphere1, SphereBase<SphereT2,RealT2,DimN2> const& sphere2 ) {
     return sphere1.center_()!=sphere2.center_() || sphere1.radius()!=sphere2.radius();
   }
-  
+
   /// Writes a sphere to an ostream.
   template <class SphereT, class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, SphereBase<SphereT,RealT,DimN> const& sphere ) {
@@ -328,7 +328,7 @@ namespace geometry {
     template <class SphereT1, class RealT1, int DimN1>
     Sphere( SphereBase<SphereT1, RealT1, DimN1> const& sphere )
       : SphereBase<Sphere<RealT, DimN>, RealT, DimN>( sphere.center_() , sphere.radius() ) {}
-    
+
     /// Copy assignment operator.
     template <class SphereT1, class RealT1, int DimN1>
     Sphere& operator=( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {
@@ -367,7 +367,7 @@ namespace geometry {
     template <class SphereT1, class RealT1, int DimN1>
     Sphere( SphereBase<SphereT1, RealT1, DimN1> const& sphere )
       : SphereBase<Sphere<RealT, 0>, RealT, 0>( sphere.center_() , sphere.radius() ) {}
-    
+
     /// Copy assignment operator.
     template <class SphereT1, class RealT1, int DimN1>
     Sphere& operator=( SphereBase<SphereT1, RealT1, DimN1> const& sphere ) {

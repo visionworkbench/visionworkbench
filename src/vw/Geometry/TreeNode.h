@@ -307,13 +307,13 @@ namespace vw
 
       /**
        * @brief Calculate the last common ancestor.
-       * Returns NULL if the nodes are not connected.  If either node is
-       * a direct ancestor of the other, that node is returned.
+       * Returns -1 if the nodes are not connected.  If either node is
+       * a direct ancestor of the other, that index in ancestry() is returned.
        *
        * The algorithm is of complecity O(n * log(n)) with respect to the
        * depth of the tree.
        */
-      TreeNode * last_common_ancestor(TreeNode const * node) const {
+      int last_common_ancestor_index(TreeNode const * node) const {
         NodeVector const& a1 = node->ancestry(); // min length is 1
         NodeVector const& a2 = this->ancestry(); // min length is 1
 
@@ -345,7 +345,20 @@ namespace vw
           }
         }
 
-        return (base > 0)? a1[base - 1] : NULL;
+        return ((int)base) - 1;
+      }
+      /**
+       * @brief Calculate the last common ancestor.
+       * Returns NULL if the nodes are not connected.  If either node is
+       * a direct ancestor of the other, that node is returned.
+       *
+       * The algorithm is of complecity O(n * log(n)) with respect to the
+       * depth of the tree.
+       */
+      TreeNode * last_common_ancestor(TreeNode const * node) const {
+        int index = last_common_ancestor_index(node);
+
+        return (index >= 0)? ancestry_[index] : NULL;
       }
 
       /**

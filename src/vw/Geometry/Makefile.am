@@ -12,7 +12,7 @@
 if MAKE_MODULE_GEOMETRY
 
 
-include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h ATrans.h Frame.h TreeNode.h FrameTreeNode.h FrameStore.h
+include_HEADERS = Shape.h SpatialTree.h PointListIO.h Sphere.h Box.h ATrans.h Frame.h TreeNode.h FrameTreeNode.h FrameStore.h FrameHandle.h
 
 libvwGeometry_la_SOURCES = SpatialTree.cc FrameTreeNode.cc FrameStore.cc
 libvwGeometry_la_LIBADD = @MODULE_GEOMETRY_LIBS@

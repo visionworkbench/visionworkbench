@@ -20,9 +20,9 @@ namespace geometry {
   // class ShapeBase
   // *******************************************************************
 
-  /// A CRTP base class for general n-dimensional bounding shapes.  
-  /// Provides a mechanism for restricting function arguments to 
-  /// shapes, provides general shape operations, and provides the 
+  /// A CRTP base class for general n-dimensional bounding shapes.
+  /// Provides a mechanism for restricting function arguments to
+  /// shapes, provides general shape operations, and provides the
   /// various arithmetic assignment operators.
   template <class ShapeT, class RealT, int DimN>
   class ShapeBase {
@@ -31,7 +31,7 @@ namespace geometry {
 
     /// Returns the derived implementation type.
     ShapeT& shape_impl() { return *static_cast<ShapeT*>(this); }
-    
+
     /// Returns the derived implementation type.
     ShapeT const& shape_impl() const { return *static_cast<ShapeT const*>(this); }
 /* These introduce ambiguities in Box, and it's not clear that we really want them....
@@ -92,7 +92,7 @@ namespace geometry {
     }
 */
   };
-  
+
   /// Scales a bounding shape relative to the origin.
   template <class ShapeT, class RealT, int DimN, class ScalarT>
   inline ShapeT operator*( ShapeBase<ShapeT, RealT, DimN> const& shape, ScalarT s ) {
@@ -114,7 +114,7 @@ namespace geometry {
   inline ShapeT operator*( ScalarT s, ShapeBase<ShapeT, RealT, DimN> const& shape ) {
     return shape * s;
   }
-  
+
   /// Offsets a bounding shape by the given vector.
   template <class ShapeT, class RealT, int DimN, class VectorT>
   inline ShapeT operator+( ShapeBase<ShapeT, RealT, DimN> const& shape, VectorBase<VectorT> const& v ) {
@@ -136,13 +136,13 @@ namespace geometry {
     result -= v.impl();
     return result;
   }
-  
+
   /// Equality of two bounding shapes.
   template <class ShapeT, class RealT, int DimN>
   inline bool operator==( ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2 ) {
     return shape1.shape_impl() == shape2.shape_impl();
   }
-  
+
   /// Inequality of two bounding shapes.
   template <class ShapeT, class RealT, int DimN>
   inline bool operator!=( ShapeBase<ShapeT, RealT, DimN> const& shape1, ShapeBase<ShapeT, RealT, DimN> const& shape2 ) {

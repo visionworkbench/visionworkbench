@@ -55,7 +55,7 @@ namespace math {
   template <class ContainerT>
   void write_point_list(std::string const& filename, std::vector<ContainerT> const& pts, bool binary = false) {
     VW_ASSERT( pts.size() > 0, LogicErr() << "No vectors to write!" );
-    
+
     if (binary) {
       std::ofstream f(filename.c_str(), std::ofstream::out | std::ofstream::binary);
       VW_ASSERT( f, IOErr() << "Unable to open file for writing!" );

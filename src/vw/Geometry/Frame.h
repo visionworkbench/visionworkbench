@@ -26,7 +26,7 @@ namespace vw
     class Frame
     {
     public:
-      typedef vw::ATrans3 Location;
+      typedef vw::ATrans3 Transform;
 
       /**
        * Default constructor.
@@ -35,9 +35,9 @@ namespace vw
       /**
        * Initializing constructor.
        */
-      Frame(std::string const& name, Location const& loc = identity_matrix<4>()) :
+      Frame(std::string const& name, Transform const& trans = identity_matrix<4>()) :
           m_name(name),
-          m_loc(loc) {}
+          m_trans(trans) {}
 
       /// @{ Accessor methods
 
@@ -49,23 +49,23 @@ namespace vw
       void set_name(std::string const& name) {
         m_name = name;
       }
-      /** Access location field. */
-      Location const& location() const throw() {
-        return m_loc;
+      /** Access transform field. */
+      Transform const& transform() const throw() {
+        return m_trans;
       }
-      /** Mutable access to location field. */
-      Location& location() throw() {
-        return m_loc;
+      /** Mutable access to transform field. */
+      Transform& transform() throw() {
+        return m_trans;
       }
-      /** Set location field. */
-      void set_location(Location const& loc) {
-        m_loc = loc;
+      /** Set transform field. */
+      void set_transform(Transform const& trans) {
+        m_trans = trans;
       }
       /// @}
 
     protected:
       std::string m_name;
-      Location m_loc;
+      Transform m_trans;
     };
   }
 }
