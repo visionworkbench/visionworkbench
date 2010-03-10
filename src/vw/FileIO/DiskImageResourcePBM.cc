@@ -155,13 +155,8 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   input.seekg(m_image_data_position);
 
   // Reading image data
-  ImageBuffer src;
-  src.format = m_format;
-  src.cstride = num_channels(src.format.pixel_format) * channel_size(src.format.channel_type);
-  src.rstride = src.cstride * src.format.cols;
-  src.pstride = src.rstride * src.format.rows;
-
-  size_t data_size = src.pstride;
+  ImageBuffer src(m_format, 0);
+  size_t data_size = src.pstride * src.format.planes;
   scoped_array<uint8> image_data(new uint8[data_size]);
 
   // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
@@ -278,13 +273,8 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
   output.exceptions(ofstream::failbit | ofstream::badbit);
   output.seekp(m_image_data_position);
 
-  ImageBuffer dst;
-  dst.format = m_format;
-  dst.cstride = num_channels(dst.format.pixel_format) * channel_size(dst.format.channel_type);
-  dst.rstride = dst.cstride * dst.format.cols;
-  dst.pstride = dst.rstride * dst.format.rows;
-
-  size_t data_size = dst.pstride;
+  ImageBuffer dst(m_format, 0);
+  size_t data_size = dst.pstride * dst.format.planes;
 
   // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
   if ( m_magic == "P4" )

@@ -454,12 +454,7 @@ void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbo
   if( !buf ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to malloc!" );
 
   // Set up the image buffer and convert the data into this buffer.
-  ImageBuffer dst;
-  dst.data = (uint8*)buf;
-  dst.format = m_format;
-  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
-  dst.rstride = dst.cstride * m_format.cols;
-  dst.pstride = dst.rstride * m_format.rows;
+  ImageBuffer dst(m_format, buf);
 
   ImageBuffer src_plane = src;
   src_plane.format.rows = 1;

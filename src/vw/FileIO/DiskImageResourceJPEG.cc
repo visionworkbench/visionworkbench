@@ -416,17 +416,12 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
   jpeg_set_quality(&cinfo, (int)(100*m_quality), TRUE); // limit to baseline-JPEG values
 
   // Set up the image buffer and convert the data into this buffer
-  ImageBuffer dst;
   boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
+  ImageBuffer dst(m_format, buf.get());
 
   if (setjmp(jerr.error_return))
     vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
 
-  dst.data = buf.get();
-  dst.format = m_format;
-  dst.cstride = num_channels(m_format.pixel_format) * channel_size(m_format.channel_type);
-  dst.rstride = dst.cstride * m_format.cols;
-  dst.pstride = dst.rstride * m_format.rows;
   convert( dst, src, m_rescale );
 
   jpeg_start_compress(&cinfo, TRUE);

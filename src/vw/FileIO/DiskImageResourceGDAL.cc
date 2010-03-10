@@ -565,15 +565,12 @@ namespace vw {
     VW_ASSERT( channels() == 1 || planes()==1,
                LogicErr() << "DiskImageResourceGDAL: cannot read an image that has both multiple channels and multiple planes." );
 
-    uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
-    ImageBuffer src;
-    src.data = data;
-    src.format = m_format;
-    src.format.cols = bbox.width();
-    src.format.rows = bbox.height();
-    src.cstride = channels() * channel_size(src.format.channel_type);
-    src.rstride = src.cstride * src.format.cols;
-    src.pstride = src.rstride * src.format.rows;
+    ImageFormat src_fmt = m_format;
+    src_fmt.cols = bbox.width();
+    src_fmt.rows = bbox.height();
+
+    ImageBuffer src(src_fmt, 0);
+    src.data = new uint8[src.pstride * src.format.planes];
 
     {
       Mutex::Lock lock(*gdal_mutex_ptr);
@@ -599,7 +596,7 @@ namespace vw {
         uint8 *index_data = new uint8[bbox.width() * bbox.height()];
         band->RasterIO( GF_Read, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),
                         index_data, bbox.width(), bbox.height(), GDT_Byte, 1, bbox.width() );
-        PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) data;
+        PixelRGBA<uint8> *rgba_data = (PixelRGBA<uint8>*) src.data;
         for( int i=0; i<bbox.width()*bbox.height(); ++i )
           rgba_data[i] = m_palette[index_data[i]];
         delete [] index_data;
@@ -607,22 +604,19 @@ namespace vw {
     }
 
     convert( dest, src, m_rescale );
-    delete [] data;
+    delete [] reinterpret_cast<uint8*>(src.data);
   }
 
 
   // Write the given buffer into the disk image.
   void DiskImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox )
   {
-    uint8 *data = new uint8[channel_size(channel_type()) * bbox.width() * bbox.height() * planes() * channels()];
-    ImageBuffer dst;
-    dst.data = data;
-    dst.format = m_format;
-    dst.format.cols = bbox.width();
-    dst.format.rows = bbox.height();
-    dst.cstride = channels() * channel_size(dst.format.channel_type);
-    dst.rstride = dst.format.cols * dst.cstride;
-    dst.pstride = dst.format.rows * dst.rstride;
+    ImageFormat dst_fmt = m_format;
+    dst_fmt.cols = bbox.width();
+    dst_fmt.rows = bbox.height();
+
+    ImageBuffer dst(dst_fmt, 0);
+    dst.data = new uint8[dst.pstride * dst.format.planes];
     convert( dst, src, m_rescale );
 
     {
@@ -645,7 +639,7 @@ namespace vw {
     if (is_jp2(m_filename))
       m_convert_jp2 = true;
 
-    delete [] data;
+    delete [] reinterpret_cast<uint8*>(dst.data);
   }
 
   // Set the block size
