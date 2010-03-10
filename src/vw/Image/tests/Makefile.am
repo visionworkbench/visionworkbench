@@ -26,11 +26,12 @@ TestFilter_SOURCES                = TestFilter.oldtest
 TestTransform_SOURCES             = TestTransform.oldtest
 TestAlgorithms_SOURCES            = TestAlgorithms.oldtest
 TestStatistics_SOURCES            = TestStatistics.oldtest
+TestImageResource_SOURCES         = TestImageResource.oldtest
 
 TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef		\
 	TestManipulation TestPerPixelViews TestPerPixelAccessorViews		\
 	TestImageMath TestEdgeExtension TestInterpolation TestConvolution	\
-	TestFilter TestTransform TestAlgorithms TestStatistics
+	TestFilter TestTransform TestAlgorithms TestStatistics TestImageResource
 
 include $(top_srcdir)/config/instantiate.am
 
