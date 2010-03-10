@@ -133,7 +133,10 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
                    std::list<BBox2i> const& workunits,
                    Options& opt, ReduceBase<ReduceT>& reduce) {
 
+  TerminalProgressCallback tpc("plate.platereduce", "Processing");
+  double inc_tpc = 1.0/float(workunits.size());
   BOOST_FOREACH(BBox2i workunit, workunits) {
+    tpc.report_incremental_progress(inc_tpc);
     for ( int ix = 0; ix < workunit.width(); ix++ ) {
       for ( int iy = 0; iy < workunit.height(); iy++ ) {
         Vector2i location(ix,iy);
@@ -175,6 +178,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
       }
     }
   }
+  tpc.report_finished();
 }
 
 // Function that runs the apply_reduce over the plate file
