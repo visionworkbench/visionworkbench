@@ -211,6 +211,7 @@ int main(int argc, char *argv[])
   Options opt;
   try {
     handle_arguments(argc, argv, opt);
+    boost::to_lower(opt.filter);
     if (opt.filter == "identity") {
       Identity f;
       run(opt, f);
