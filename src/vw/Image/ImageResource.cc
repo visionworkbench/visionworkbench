@@ -23,6 +23,9 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageResource.h>
+
+#include <cmath>
+
 using namespace vw;
 
 typedef void (*channel_convert_func)(void* src, void* dest);
@@ -255,7 +258,7 @@ typedef void (*channel_premultiply_func)(void* src, void* dst, int32 len);
 template <class T>
 void channel_premultiply_int( T* src, T* dst, int32 len ) {
   double scale = src[len-1] / (double)(boost::integer_traits<T>::const_max);
-  for( int32 i=0; i<len-1; ++i ) dst[i] = T( src[i] * scale );
+  for( int32 i=0; i<len-1; ++i ) dst[i] = T( round(src[i] * scale) );
   dst[len-1] = src[len-1];
 }
 
@@ -295,7 +298,7 @@ typedef void (*channel_unpremultiply_func)(void* src, void* dst, int32 len);
 template <class T>
 void channel_unpremultiply_int( T* src, T* dst, int32 len ) {
   double scale = src[len-1] / (double)(boost::integer_traits<T>::const_max);
-  for( int32 i=0; i<len-1; ++i ) dst[i] = T( src[i] / scale );
+  for( int32 i=0; i<len-1; ++i ) dst[i] = T( round(src[i] / scale) );
   dst[len-1] = src[len-1];
 }
 

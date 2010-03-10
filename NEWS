@@ -1,3 +1,7 @@
+*** RELEASE 2.0_beta5 ***
+IMAGE
+ - Fix rounding bug with premultipliying (bugfix from William Rucklidge)
+
 *** RELEASE 2.0_beta4, 26 OCTOBER 2009 ***
 
 CORE
