@@ -139,8 +139,13 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("help,h",           "Display this help message.");
 
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(options).run(), vm );
-  po::notify( vm );
+  try {
+    po::store( po::command_line_parser( argc, argv ).options(options).run(), vm );
+    po::notify( vm );
+  } catch (po::error &e) {
+    vw_throw(Usage() << "Error parsing input:\n\t"
+             << e.what() << "\n" << options );
+  }
 
   if (opt.output_name.empty() || opt.input_name.empty() || opt.filter.empty())
     vw_throw(Usage() << options);
