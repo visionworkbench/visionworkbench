@@ -6,11 +6,11 @@
 
 
 /// \file DiskImageResourceGDAL.h
-/// 
+///
 /// Provides support for georeferenced files via the GDAL library.
 ///
-/// Advanced users can pass custom options to GDAL when creating a 
-/// resource.  Here is an example showing how to make a tiled, 
+/// Advanced users can pass custom options to GDAL when creating a
+/// resource.  Here is an example showing how to make a tiled,
 /// compressed BigTIFF (assuming libtiff 4.0 or greater):
 ///
 ///   DiskImageResourceGDAL::Options options;
@@ -51,11 +51,11 @@ namespace vw {
     typedef GDALDataset value_type;
 
     GdalDatasetGenerator( std::string filename ) : m_filename( filename ) {}
-    
+
     size_t size() const {
       return 1;
     }
-    
+
     boost::shared_ptr<GDALDataset> generate() const;
   };
 
@@ -72,7 +72,7 @@ namespace vw {
       open( filename );
     }
 
-    DiskImageResourceGDAL( std::string const& filename, 
+    DiskImageResourceGDAL( std::string const& filename,
                            ImageFormat const& format,
                            Vector2i block_size = Vector2i(-1,-1) )
       : DiskImageResource( filename )
@@ -80,8 +80,8 @@ namespace vw {
       m_convert_jp2 = false;
       create( filename, format, block_size );
     }
-    
-    DiskImageResourceGDAL( std::string const& filename, 
+
+    DiskImageResourceGDAL( std::string const& filename,
                            ImageFormat const& format,
                            Vector2i block_size,
                            Options const& options )
@@ -90,15 +90,15 @@ namespace vw {
       m_convert_jp2 = false;
       create( filename, format, block_size, options );
     }
-    
+
     virtual ~DiskImageResourceGDAL();
 
     /// Returns the type of disk image resource.
     static std::string type_static() { return "GDAL"; }
-    
+
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
@@ -111,11 +111,11 @@ namespace vw {
     static bool gdal_has_support(std::string const& filename);
 
     /// Some GDAL files store a "NoData" value.  You can use these
-    /// methods to access that information. 
+    /// methods to access that information.
     virtual bool has_nodata_value() const;
     virtual double nodata_value() const;
 
-    void open( std::string const& filename );    
+    void open( std::string const& filename );
     void create( std::string const& filename,
                  ImageFormat const& format,
                  Vector2i block_size,
@@ -125,9 +125,19 @@ namespace vw {
                  ImageFormat const& format,
                  Vector2i block_size = Vector2i(-1,-1) )
     {
-      create( filename, format, block_size, Options() );
+      std::string::size_type dot = filename.find_last_of('.');
+      std::string extension = filename.substr( dot );
+      boost::to_lower(extension);
+      if ( extension == ".tif" || extension == ".tiff" ) {
+        // TIFF should use LZW by default
+        Options tiff_options;
+        tiff_options["COMPRESS"] = "LZW";
+        create( filename, format, block_size, tiff_options );
+      } else {
+        create( filename, format, block_size, Options() );
+      }
     }
-    
+
     static DiskImageResource* construct_open( std::string const& filename );
 
     static DiskImageResource* construct_create( std::string const& filename,
