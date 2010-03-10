@@ -25,6 +25,7 @@ std::string output_prefix;
 std::string plate_file_name;
 int west = 0, east = 0, north = 0, south = 0;
 int tile_size, tile_size_deg = 0;
+double tile_ppd = 0;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -42,6 +43,21 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
   cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
 
   PlateView<PixelT> plate_view(plate_file_name);
+  ImageViewRef<PixelT> plate_view_ref = plate_view;
+  if ( tile_ppd > 0 ) {
+    // Finding out our current PPD and attempting to match
+    double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
+                             output_georef.lonlat_to_pixel(Vector2(1,0)));
+    double scale_change = tile_ppd / curr_ppd;
+    plate_view_ref = resample( plate_view, scale_change, scale_change,
+                               ZeroEdgeExtension(),
+                               BicubicInterpolation() );
+    Matrix3x3 scale;
+    scale.set_identity();
+    scale(0,0) *= scale_change;
+    scale(1,1) *= scale_change;
+    output_georef.set_transform( scale*output_georef.transform() );
+  }
   std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
   std::cout << output_georef << "\n";
 
@@ -54,9 +70,13 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
   std::cout << "\t--> Output bbox: " << output_bbox << "\n";
 
   if ( tile_size_deg > 0 ) {
-    // User must have specified out to be sized in degrees
-    tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
-                       output_georef.lonlat_to_pixel(Vector2(tile_size_deg,0)));
+    if ( tile_ppd > 0 ) {
+      // User must have specified out to be sized in degrees
+      tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
+                         output_georef.lonlat_to_pixel(Vector2(tile_size_deg,0)));
+    } else {
+      tile_size = tile_size_deg * tile_ppd;
+    }
   }
 
   // Compute the bounding box for each tile.
@@ -116,8 +136,9 @@ int main( int argc, char *argv[] ) {
     ("east,e", po::value<int>(&east)->default_value(180), "Specify east edge of the region to extract (deg).")
     ("north,n", po::value<int>(&north)->default_value(90), "Specify north edge of the region to extract (deg).")
     ("south,s", po::value<int>(&south)->default_value(-90), "Specify south edge of the region to extract (deg).")
-    ("tile-size-px,p", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
+    ("tile-size-px,t", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
     ("tile-size-deg,d", po::value<int>(&tile_size_deg), "Specify the size of each output dem in degrees.")
+    ("tile-px-per-degree,p", po::value<double>(&tile_ppd), "Specify the output tiles' pixel per degrees.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
