@@ -48,14 +48,16 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     // Finding out our current PPD and attempting to match
     double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                              output_georef.lonlat_to_pixel(Vector2(1,0)));
+    std::cout << "Current PPD: " << curr_ppd << "\n";
     double scale_change = tile_ppd / curr_ppd;
+    std::cout << "Scale change: " << scale_change << "\n";
     plate_view_ref = resample( plate_view, scale_change, scale_change,
                                ZeroEdgeExtension(),
                                BicubicInterpolation() );
     Matrix3x3 scale;
     scale.set_identity();
-    scale(0,0) *= scale_change;
-    scale(1,1) *= scale_change;
+    scale(0,0) /= scale_change;
+    scale(1,1) /= scale_change;
     output_georef.set_transform( scale*output_georef.transform() );
   }
   std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
@@ -71,16 +73,16 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
 
   if ( tile_size_deg > 0 ) {
     if ( tile_ppd > 0 ) {
+      tile_size = tile_size_deg * tile_ppd;      
+    } else {
       // User must have specified out to be sized in degrees
       tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
                          output_georef.lonlat_to_pixel(Vector2(tile_size_deg,0)));
-    } else {
-      tile_size = tile_size_deg * tile_ppd;
     }
   }
 
   // Compute the bounding box for each tile.
-  std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view, output_bbox),
+  std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view_ref, output_bbox),
                                                  tile_size, tile_size);
 
   for (unsigned i = 0; i < crop_bboxes.size(); ++i) {
@@ -114,7 +116,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     else
       output_filename << "S.tif";
 
-    ImageView<PixelT> cropped_view = crop(plate_view, crop_bboxes[i]);
+    ImageView<PixelT> cropped_view = crop(plate_view_ref, crop_bboxes[i]);
     if( ! is_transparent(cropped_view) ) {
       DiskImageResourceGDAL::Options gdal_options;
       gdal_options["COMPRESS"] = "LZW";
