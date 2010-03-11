@@ -188,7 +188,7 @@ namespace platefile {
               PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
 
     /// The destructor saves the platefile to disk. 
-    ~PlateFile() {}
+    virtual ~PlateFile() {}
 
     /// Returns the name of the root directory containing the plate file.
     std::string name() const { return m_index->platefile_name(); }

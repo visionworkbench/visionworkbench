@@ -38,6 +38,8 @@ namespace platefile {
 
     PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
     
+    virtual ~PlateManager() {}
+
     // ---------------------------- MIPMAPPING --------------------------------
 
     // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
