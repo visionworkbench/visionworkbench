@@ -343,7 +343,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
   public:
     WTMLImageSet(const std::string& host,
                  const std::string& data_prefix,
-                 const std::string& static_prefix,
+                 const std::string& /*static_prefix*/,
                  const std::string dem_id,
                  const PlateModule::IndexCacheEntry& layer) {
       const IndexHeader& hdr = layer.index->index_header();
@@ -543,7 +543,7 @@ int PlateModule::operator()(request_rec *r) const {
 }
 
 
-int PlateModule::status(request_rec *r, int flags) const {
+int PlateModule::status(request_rec *r, int /*flags*/) const {
   apache_stream out(r);
   out << "Moo!" << std::endl;
   return OK;
@@ -638,7 +638,7 @@ extern "C" int mod_plate_status(request_rec *r, int flags) {
   return mod_plate().status(r, flags);
 }
 
-extern "C" void mod_plate_child_init(apr_pool_t *pchild, server_rec *s) {
+extern "C" void mod_plate_child_init(apr_pool_t * /*pchild*/, server_rec *s) {
   try {
     // make sure we create the handler object, and attach the server to it
     mod_plate_ptr.reset(new PlateModule(s));

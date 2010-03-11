@@ -181,7 +181,7 @@ namespace vw {
   // This is a no-op by default, but it actually calls px.validate()
   // for PixelMask<> types.
   template <class PixelT>
-  inline void invalidate(PixelT &pixel) { return; }
+  inline void invalidate(PixelT& /*pixel*/) { return; }
 
   template <class ChildPixelT>
   inline void invalidate(PixelMask<ChildPixelT> &pixel) { pixel.invalidate(); }

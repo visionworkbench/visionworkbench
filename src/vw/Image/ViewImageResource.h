@@ -112,17 +112,17 @@ namespace vw {
     }
 
     /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) {
-      vw_throw(NoImplErr() << "ViewImageResource::write() failed.  ViewImageResource is read-only."); 
+    virtual void write( ImageBuffer const& /*buf*/, BBox2i const& /*bbox*/ ) {
+      vw_throw(NoImplErr() << "ViewImageResource::write() failed.  ViewImageResource is read-only.");
     }
 
-    virtual char* data() const { 
+    virtual char* data() const {
       return ViewDataAccessor<ViewT>::data(m_view);
     }
   };
 
   /// Base class from which specific image resources derive.
-  class ViewImageResource : public ImageResource { 
+  class ViewImageResource : public ImageResource {
     boost::shared_ptr<ViewImageResourceBase> m_rsrc;
     Vector2i m_block_size;
 

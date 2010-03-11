@@ -42,7 +42,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
-    inline result_type operator()( int32 col, int32 row, int32 plane=0 ) const { return m_value; }
+    inline result_type operator()( int32 /*col*/, int32 /*row*/, int32 /*plane*/=0 ) const { return m_value; }
 
     typedef ConstantView prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }

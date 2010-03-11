@@ -365,7 +365,7 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef EdgeMaskView<ViewT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }

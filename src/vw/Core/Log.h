@@ -73,7 +73,7 @@ namespace vw {
   class NullOutputBuf : public std::basic_streambuf<CharT, traits> {
     typedef typename std::basic_streambuf<CharT, traits>::int_type int_type;
     virtual int_type overflow(int_type c) { return traits::not_eof(c); }
-    virtual std::streamsize xsputn(const CharT* sequence, std::streamsize num) { return num; }
+    virtual std::streamsize xsputn(const CharT* /*sequence*/, std::streamsize num) { return num; }
   };
 
   template<typename CharT, typename traits>

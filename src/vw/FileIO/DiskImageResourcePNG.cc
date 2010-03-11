@@ -574,7 +574,7 @@ DiskImageResource* DiskImageResourcePNG::construct_create( std::string const& fi
  ************************ STUFF FOR READING ****************************
 ***********************************************************************/
 
-void DiskImageResourcePNG::open( std::string const& filename ) {
+void DiskImageResourcePNG::open( std::string const& /*filename*/ ) {
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
   
   // Block reading is supported, we only use it in the event of really large images.

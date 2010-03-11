@@ -1,3 +1,9 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2009 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
 #include <vw/Image.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/TileManipulation.h>
@@ -33,7 +39,7 @@ struct WeightedAverage : public ReduceBase<WeightedAverage> {
 
   template <class PixelT>
   inline void operator()( list<ImageView<PixelT> > const& input,
-                          list<TileHeader> const& input_header,
+                          list<TileHeader> const& /*input_header*/,
                           ImageView<PixelT> & output) {
     // Input Images will always have an alpha channel. That is a requirement of PlateFiles.
     int num_channels = CompoundNumChannels<PixelT>::value;
@@ -264,6 +270,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   } catch ( const Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
   }
 
   return 0;

@@ -89,7 +89,7 @@ namespace vw {
     virtual double nodata_value() const { return 0.0; }
 
     /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_nodata_value( double value ) { 
+    virtual void set_nodata_value( double /*value*/ ) { 
       vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value()."); 
     };
 

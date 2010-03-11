@@ -62,7 +62,7 @@ namespace ip {
     /// value of 2048 seems to work well in most cases.
     template <class ViewT>
     InterestPointList operator() (vw::ImageViewBase<ViewT> const& image,
-                                  const int32 max_interestpoint_image_dimension = 0) {
+                                  const int32 /*max_interestpoint_image_dimension*/ = 0) {
 
       InterestPointList interest_points;
       vw_out(DebugMessage, "interest_point") << "Finding interest points in block: [ " << image.impl().cols() << " x " << image.impl().rows() << " ]\n";

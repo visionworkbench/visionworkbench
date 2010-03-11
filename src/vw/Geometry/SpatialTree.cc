@@ -29,17 +29,17 @@
 namespace vw {
 namespace geometry {
 
-  /*virtual*/ double GeomPrimitive::distance(const Vector<double> &point) const {
+  /*virtual*/ double GeomPrimitive::distance(const Vector<double> & /*point*/) const {
     VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement distance()!" );
     return 0;
   }
 
-  /*virtual*/ bool GeomPrimitive::contains(const Vector<double> &point) const {
+  /*virtual*/ bool GeomPrimitive::contains(const Vector<double> & /*point*/) const {
     VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement contains()!" );
     return 0;
   }
 
-  /*virtual*/ bool GeomPrimitive::intersects(const GeomPrimitive *prim) const {
+  /*virtual*/ bool GeomPrimitive::intersects(const GeomPrimitive * /*prim*/) const {
     VW_ASSERT( 0, LogicErr() << "Child class of GeomPrimitive does not implement intersects()!" );
     return 0;
   }
@@ -178,10 +178,10 @@ namespace {
     virtual ~ApplyFunctor() {}
     virtual ApplySearchType search_type() const {return SEARCH_DFS;}
     virtual ApplyProcessOrder process_order() const {return PROCESS_CURRENT_NODE_BEFORE_CHILDREN;}
-    virtual bool should_process(const ApplyState &state) {return true;}
-    virtual bool operator()(const ApplyState &state) {return true;}
-    virtual bool should_process_child(const ApplyState &state, double &priority) {return true;}
-    virtual void finished_processing(const ApplyState &state) {}
+    virtual bool should_process(const ApplyState& /*state*/) {return true;}
+    virtual bool operator()(const ApplyState& /*state*/) {return true;}
+    virtual bool should_process_child(const ApplyState& /*state*/, double& /*priority*/) {return true;}
+    virtual void finished_processing(const ApplyState& /*state*/) {}
   };
 
   class ApplyQueue {
@@ -590,7 +590,7 @@ namespace {
 
   class NodeContainsBBoxFunctor : public ApplyFunctor {
   public:
-    NodeContainsBBoxFunctor(const SpatialTree::BBoxT &bbox, int num_quadrants, bool create_children = false, int max_create_level = -1)
+    NodeContainsBBoxFunctor(const SpatialTree::BBoxT &bbox, int /*num_quadrants*/, bool create_children = false, int max_create_level = -1)
       : m_bbox(bbox), m_create_children(create_children), m_max_create_level(max_create_level), m_tree_node(0), m_first_split_tree_node(0), m_forced_this_level(false) {}
     virtual ApplyProcessOrder process_order() const {return PROCESS_CHILDREN_ONLY;}
     virtual bool should_process(const ApplyState &state) {

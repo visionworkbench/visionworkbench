@@ -77,7 +77,7 @@ namespace camera {
 
     std::string name() const { return "NULL"; }
 
-    void scale(float const& scale) { }
+    void scale(float const& /*scale*/) { }
   };
 
   /// TSAI Lens Distortion Model

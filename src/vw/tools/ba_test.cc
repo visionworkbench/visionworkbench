@@ -643,7 +643,7 @@ public:
 /* {{{ A and B inverse covariance */
   // Return the covariance of the camera parameters for camera j.
   inline Matrix<double,camera_params_n,camera_params_n>
-  A_inverse_covariance ( unsigned j ) const
+  A_inverse_covariance ( unsigned /*j*/ ) const
   {
     Matrix<double,camera_params_n,camera_params_n> result;
     result(0,0) = 1/pow(m_camera_position_sigma,2);
@@ -658,7 +658,7 @@ public:
   // Return the covariance of the point parameters for point i.
   // NB: only applied to Ground Control Points
   inline Matrix<double,point_params_n,point_params_n>
-  B_inverse_covariance ( unsigned i ) const
+  B_inverse_covariance ( unsigned /*i*/ ) const
   {
     Matrix<double,point_params_n,point_params_n> result;
     result(0,0) = 1/pow(m_gcp_sigma,2);
@@ -674,7 +674,7 @@ public:
   // image, and the 'b' vector (3D point location) for the i'th
   // point, return the location of b_i on imager j in pixel
   // coordinates.
-  Vector2 operator() ( unsigned i, unsigned j, camera_vector_t const& a_j, point_vector_t const& b_i ) const {
+  Vector2 operator() ( unsigned /*i*/, unsigned j, camera_vector_t const& a_j, point_vector_t const& b_i ) const {
     Vector3 position_correction = subvector(a_j,0,3);
     Vector3 p = subvector(a_j,3,3);
     Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2], "xyz");

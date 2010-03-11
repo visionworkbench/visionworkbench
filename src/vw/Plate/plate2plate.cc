@@ -57,8 +57,8 @@ struct Identity : public FilterBase<Identity> {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void init(PlateFile& output, const PlateFile& input, int transaction_id) { output.write_request(); }
-  inline void fini(PlateFile& output, const PlateFile& input, int transaction_id) { output.write_complete(); }
+  inline void init(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_request(); }
+  inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_complete(); }
 
   inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
     ImageView<PixelRGBA<double> > tile;
@@ -90,7 +90,7 @@ struct ToastDem : public FilterBase<ToastDem> {
     }
   }
 
-  inline void fini(PlateFile& output, const PlateFile& input, int transaction_id) {
+  inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) {
     output.write_complete();
   }
 

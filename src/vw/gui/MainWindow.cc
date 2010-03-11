@@ -23,10 +23,10 @@ using namespace vw::gui;
 
 #include <sstream>
 
-MainWindow::MainWindow(std::string input_filename, 
+MainWindow::MainWindow(std::string input_filename,
                        float nodata_value,
                        int transaction_id,
-                       bool do_normalize, 
+                       bool /*do_normalize*/,
                        po::variables_map const& vm) :
   m_filename(input_filename), m_nodata_value(nodata_value), m_vm(vm) {
 
@@ -34,7 +34,7 @@ MainWindow::MainWindow(std::string input_filename,
   create_actions();
   create_menus();
   create_status_bar();
-  
+
   // Set the window title and add tabs
   std::string window_title = "Vision Workbench Viewer : " + m_filename;
   this->setWindowTitle(window_title.c_str());

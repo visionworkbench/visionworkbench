@@ -237,8 +237,8 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 }
 
 /// Bind the resource to a file for writing.
-void vw::DiskImageResourcePDS::create( std::string const& filename, 
-                                       ImageFormat const& format )
+void vw::DiskImageResourcePDS::create( std::string const& /*filename*/,
+                                       ImageFormat const& /*format*/ )
 {
   vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }
@@ -365,7 +365,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
 }
 
 // Write the given buffer into the disk image.
-void vw::DiskImageResourcePDS::write( ImageBuffer const& src, BBox2i const& bbox ) 
+void vw::DiskImageResourcePDS::write( ImageBuffer const& /*src*/, BBox2i const& /*bbox*/ )
 {
   vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
 }

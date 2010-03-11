@@ -46,12 +46,12 @@ namespace mosaic {
       : ProcessorBase( qtree ), m_source( source )
     {}
 
-    void generate( BBox2i const& region_bbox, const ProgressCallback &progress_callback ) {
+    void generate( BBox2i const& /*region_bbox*/, const ProgressCallback &progress_callback ) {
       // Note: We ignore the region_bbox parameter!
       for( int32 level = qtree->get_tree_levels()-1; level>=0; --level ) {
-	double progress = progress_callback.progress();
-	SubProgressCallback spc(progress_callback, progress, 1-(1-progress)/4);
-	generate_branch( level, 0, 0, 0, spc );
+        double progress = progress_callback.progress();
+        SubProgressCallback spc(progress_callback, progress, 1-(1-progress)/4);
+        generate_branch( level, 0, 0, 0, spc );
       }
       progress_callback.report_progress(1);
     }

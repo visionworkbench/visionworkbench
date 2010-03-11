@@ -80,7 +80,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description,
                 int transaction_id_override, cartography::GeoReference const& input_georef,
-                bool verbose = false,
+                bool /*verbose*/ = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's

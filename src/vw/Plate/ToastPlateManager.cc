@@ -12,8 +12,8 @@ using namespace vw;
 template <class PixelT>
 std::vector<TileInfo> ToastPlateManager<PixelT>::wwt_image_tiles( BBox2i const& input_bbox,
                                            cartography::ToastTransform const& toast_tx,
-                                           BBox2i const& tile_bbox, 
-                                           int32 const resolution,
+                                           BBox2i const& tile_bbox,
+                                           int32 const /*resolution*/,
                                            int32 const tile_size) {
   std::vector<TileInfo> result;
       

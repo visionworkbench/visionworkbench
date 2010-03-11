@@ -56,21 +56,21 @@ namespace vw {
     };
   };
 
-  /// A special type providing no edge extension.  This is mainly 
-  /// used as a signal to certain types to adopt fundamentally 
+  /// A special type providing no edge extension.  This is mainly
+  /// used as a signal to certain types to adopt fundamentally
   /// different behavior.
   struct NoEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       return view(i,j,p);
     }
     template <class ViewT>
-    inline BBox2i source_bbox( ViewT const& view, BBox2i const& bbox ) const {
+    inline BBox2i source_bbox( ViewT const& /*view*/, BBox2i const& bbox ) const {
       return bbox;
     }
   };
 
-  /// An edge extention type that extends the image with zeroes in 
+  /// An edge extention type that extends the image with zeroes in
   /// all directions.
   struct ZeroEdgeExtension : EdgeExtensionBase {
     template <class ViewT>

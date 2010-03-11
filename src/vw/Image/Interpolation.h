@@ -160,7 +160,7 @@ namespace vw {
       typedef BicubicInterpolationImpl<ViewT> type;
     };
     template <class ViewT>
-    static typename Interpolator<ViewT>::type interpolator( const ViewT &view ) {
+    static typename Interpolator<ViewT>::type interpolator( const ViewT & /*view*/ ) {
       return typename Interpolator<ViewT>::type();
     }
     // This function is here for backwards-compatibility and is deprecated.
@@ -170,7 +170,7 @@ namespace vw {
     }
   };
 
-  // NearestPixel interpolation operator.  
+  // NearestPixel interpolation operator.
   struct NearestPixelInterpolation {
     static const int32 pixel_buffer = 1;
     template <class ViewT>
@@ -178,7 +178,7 @@ namespace vw {
       typedef NearestPixelInterpolation type;
     };
     template <class ViewT>
-    static NearestPixelInterpolation interpolator( const ViewT &view ) {
+    static NearestPixelInterpolation interpolator( const ViewT & /*view*/ ) {
       return NearestPixelInterpolation();
     }
     template <class ViewT>
@@ -210,7 +210,7 @@ namespace vw {
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
     
     InterpolationView( ImageT const& image, 
-                       InterpT const& interp_stub = InterpT()) :
+                       InterpT const& /*interp_stub*/ = InterpT()) :
       m_image(image), m_interp_func(InterpT::interpolator(image)) {}
 
     inline int32 cols() const { return m_image.cols(); }

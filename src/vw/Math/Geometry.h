@@ -33,7 +33,7 @@ namespace math {
 
     /// A homography requires at least 4 point matches to determine 8 unknowns
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 4; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 4; }
 
     // Applies a transform matrix to a list of points;
     std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
@@ -251,7 +251,7 @@ namespace math {
     /// A affine transformation has dim*(dim+1) degrees of freedom so we need
     /// dim*(dim+1)/dim pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return dim+1; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return dim+1; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -260,7 +260,7 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
@@ -335,7 +335,7 @@ namespace math {
 
     /// A similarity transformation requires 3 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 3; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 3; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -344,7 +344,7 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-           vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),

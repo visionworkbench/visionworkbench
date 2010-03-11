@@ -249,7 +249,7 @@ namespace ip {
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
                      MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     bool bidirectional = false,
+                     bool /*bidirectional*/ = false,
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 

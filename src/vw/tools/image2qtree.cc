@@ -116,7 +116,7 @@ static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file
 }
 
 template <class PixelT>
-void do_normal_mosaic(po::variables_map const& vm, const ProgressCallback *progress) {
+void do_normal_mosaic(po::variables_map const& /*vm*/, const ProgressCallback *progress) {
     DiskImageView<PixelT> img(image_files[0]);
     QuadTreeGenerator quadtree(img, output_file_name);
     quadtree.set_tile_size( tile_size );

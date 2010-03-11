@@ -53,7 +53,7 @@ public:
   template <class PixelT>
   ImageView<PixelMask<Vector2f> > correlate(ImageView<PixelT>& left_image,
                                             ImageView<PixelT>& right_image,
-                                            bool swap, bool use_bit_image) {
+                                            bool swap, bool /*use_bit_image*/) {
     ImageView<PixelMask<Vector2f> > result(left_image.cols(), left_image.rows());
 
     for (int i = 0; i < left_image.cols(); i++) {

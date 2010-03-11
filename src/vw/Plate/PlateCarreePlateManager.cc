@@ -10,7 +10,7 @@ using namespace vw;
 
 template <class PixelT> std::vector<TileInfo>
 PlateCarreePlateManager<PixelT>::kml_image_tiles( BBox2i const& image_bbox,
-                                  int32 const resolution,
+                                  int32 const /*resolution*/,
                                   int32 const tile_size) {
   std::vector<TileInfo> result;
 

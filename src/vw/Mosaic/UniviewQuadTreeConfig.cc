@@ -70,17 +70,17 @@ namespace mosaic {
     else
       oss << name.length()-1 << "/" << pos.y() << "/" << pos.x();
     path /= oss.str();
-    
+
     return path.native_file_string();
   }
 
 
-  boost::shared_ptr<ImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
+  boost::shared_ptr<ImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& /*qtree*/,QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
     create_directories( fs::path( info.filepath, fs::native ).branch_path() );
     return boost::shared_ptr<ImageResource>( new UniviewTerrainResource( info.filepath+info.filetype, format ) );
   }
 
-  
+
   void UniviewQuadTreeConfig::configure( QuadTreeGenerator &qtree ) const {
     qtree.set_image_path_func( &image_path );
     if( m_terrain ) qtree.set_tile_resource_func( &terrain_tile_resource );

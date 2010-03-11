@@ -140,13 +140,13 @@ namespace platefile {
         vw_throw(NoImplErr() << "AmqpRpcEndpoint::StartCancel(): Use exceptions instead.");
       }
 
-      virtual void SetFailed(const std::string& reason) {
+      virtual void SetFailed(const std::string& /*reason*/ ) {
         vw_throw(NoImplErr() << "AmqpRpcEndpoint::SetFailed(): Use exceptions instead.");
       }
 
       virtual bool IsCanceled() const { return false; }
 
-      virtual void NotifyOnCancel(google::protobuf::Closure* callback) {
+      virtual void NotifyOnCancel(google::protobuf::Closure* /*callback*/) {
         vw_throw(NoImplErr() << "AmqpRpcEndpoint::NotifyOnCancel(): Use exceptions instead.");
       }
   };

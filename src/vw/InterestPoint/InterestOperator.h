@@ -84,7 +84,7 @@ namespace ip {
     }
 
     template <class DataT>
-    inline bool threshold (InterestPoint const& pt, DataT const& data) const {
+    inline bool threshold (InterestPoint const& pt, DataT const& /*data*/) const {
       return (pt.interest > m_threshold);
     }
   };
@@ -135,7 +135,7 @@ namespace ip {
     }
 
     template <class DataT>
-    inline bool threshold (InterestPoint const& pt, DataT const& data) const {
+    inline bool threshold (InterestPoint const& pt, DataT const& /*data*/) const {
       return (fabs(pt.interest) > m_threshold);
     }
   };

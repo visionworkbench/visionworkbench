@@ -74,7 +74,7 @@ namespace {
   // this one avoids calling the registration function, so it can be called
   // from INSIDE the registration function.
   void register_file_type_internal( std::string const& extension,
-      std::string const& disk_image_resource_type,
+      std::string const& /*disk_image_resource_type*/,
       vw::DiskImageResource::construct_open_func open_func,
       vw::DiskImageResource::construct_create_func create_func ) {
 

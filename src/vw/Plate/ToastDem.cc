@@ -137,7 +137,7 @@ namespace {
 
     DemFilesystem(const std::string& base_output_name) : base_output_name(base_output_name) {}
 
-    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
+    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 /*transaction_id*/) const {
       // Create the level directory (if it doesn't exist)
       std::ostringstream ostr;
       ostr << base_output_name

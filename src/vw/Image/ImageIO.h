@@ -143,8 +143,8 @@ namespace vw {
     CountingSemaphore m_write_queue_limit;
 
     // Disable copy
-    ThreadedBlockWriter(ThreadedBlockWriter& copy) {}
-    void operator=(ThreadedBlockWriter& copy) {}
+    ThreadedBlockWriter(ThreadedBlockWriter& /*copy*/) {}
+    void operator=(ThreadedBlockWriter& /*copy*/) {}
 
     // ----------------------------- TASK TYPES (2) --------------------------
 
@@ -162,7 +162,7 @@ namespace vw {
       m_resource(resource), m_image_block(image_block), m_bbox(bbox), m_idx(idx), m_write_finish_event(write_finish_event) {}
 
       virtual ~WriteBlockTask() {}
-      virtual void operator() () {	
+      virtual void operator() () {
         vw_out(DebugMessage, "image") << "Writing block " << m_idx << " at " << m_bbox << "\n";
         m_resource.write( m_image_block.buffer(), m_bbox );
         m_write_finish_event.notify();

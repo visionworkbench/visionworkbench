@@ -119,13 +119,13 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 //                         TEST PATTERN TILE GENERATOR
 // --------------------------------------------------------------------------
 
-boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& tile_info) {
+boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& /*tile_info*/) {
   ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
   for (int j = 0; j < m_tile_size; ++j){
     for (int i = 0; i < m_tile_size; ++i){
       if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
         tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
-      else 
+      else
         tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
     }
   }
@@ -135,7 +135,7 @@ boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(Til
 
 Vector2 TestPatternTileGenerator::minmax() { return Vector2(0.0, 1.0); }
 
-PixelRGBA<float32> TestPatternTileGenerator::sample(int x, int y, int level, int transaction_id) {
+PixelRGBA<float32> TestPatternTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
   PixelRGBA<float32> result;
   return result;
 }
@@ -216,7 +216,7 @@ vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_
   return result;
 }
 
-void HttpDownloadThread::request_started(int request_id) {}
+void HttpDownloadThread::request_started(int /*request_id*/) {}
 
 void HttpDownloadThread::response_header_received( const QHttpResponseHeader & resp ) {
   Mutex::Lock lock(m_mutex);
@@ -301,7 +301,7 @@ boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator
 
 Vector2 WebTileGenerator::minmax() { return Vector2(0.0, 1.0); }
 
-PixelRGBA<float32> WebTileGenerator::sample(int x, int y, int level, int transaction_id) {
+PixelRGBA<float32> WebTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
   PixelRGBA<float32> result;
   return result;
 }
@@ -400,12 +400,12 @@ Vector2 PlatefileTileGenerator::minmax() {
 //   return tile(px_loc[0], px_loc[1]);
 // }
 
-PixelRGBA<float32> PlatefileTileGenerator::sample(int x, int y, int level, int transaction_id) {
+PixelRGBA<float32> PlatefileTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
   // TileLocator tile_loc;
   // tile_loc.col = floor(x/this->tile_size[0]);
   // tile_loc.row = floor(y/this->tile_size[1]);
   // tile_loc.level = this->num_levels();
-  // px_loc = Vector2(x % this->tile_size[0], 
+  // px_loc = Vector2(x % this->tile_size[0],
   //                  y % this->tile_size[1]);
 
   try {
@@ -598,8 +598,8 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
     std::cout << "Exiting...\n\n";
     exit(0);
   }
-  
-  vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");  
+
+  vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");
 
 }
 
@@ -607,7 +607,7 @@ Vector2 ImageTileGenerator::minmax() {
   return Vector2(0,1.0); // TODO: Implement this properly
 }
 
-PixelRGBA<float32> ImageTileGenerator::sample(int x, int y, int level, int transaction_id) {
+PixelRGBA<float32> ImageTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
   PixelRGBA<float32> result; // TODO: Implement this properly
   return result;
 }
