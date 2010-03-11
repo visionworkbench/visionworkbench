@@ -10,6 +10,7 @@
 
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/Core/Exception.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -22,12 +23,18 @@
 // for this structure.
 struct PJconsts;
 
-// Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ArgumentErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
- 
 namespace vw {
 namespace cartography {
+
+  // Define a specific exception for proj to throw.  It's derived from
+  // ArgumentErr both because that's what used to be thrown here, and also
+  // because basically every error proj.4 returns is due to some variety of bad
+  // input.
+  VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
+
+  // Macro for checking Proj.4 output, something we do a lot of.
+#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
+#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
 
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.  Using a smart pointer
