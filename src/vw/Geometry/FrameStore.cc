@@ -1,10 +1,3 @@
-// __BEGIN_LICENSE__
-// Copyright (C) 2006-2010 United States Government as represented by
-// the Administrator of the National Aeronautics and Space Administration.
-// All Rights Reserved.
-// __END_LICENSE__
-
-
 #include <vw/Geometry/FrameStore.h>
 #include <vw/Core/Exception.h>
 #include <vw/Math/EulerAngles.h>
@@ -97,6 +90,31 @@ namespace vw
 
       return name;
     }
+
+    Frame::Extras *
+    FrameStore::get_extras(FrameHandle frame) const
+    {
+      RecursiveMutex::Lock lock(m_mutex);
+
+      VW_ASSERT (frame.node != NULL,
+                 vw::LogicErr("NULL handle not allowed as parameter."));
+
+
+      return (frame.node->data().extras() != NULL)?
+        frame.node->data().extras()->clone() : 0;
+    }
+
+    void
+    FrameStore::set_extras(FrameHandle frame, Frame::Extras * extras)
+    {
+      RecursiveMutex::Lock lock(m_mutex);
+
+      VW_ASSERT (frame.node != NULL,
+                 vw::LogicErr("NULL handle not allowed as parameter."));
+
+      frame.node->data().set_extras(extras);
+    }
+
 
     FrameHandle
     FrameStore::lookup(std::string const& name, FrameHandle scope) const

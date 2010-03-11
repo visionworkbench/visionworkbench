@@ -28,16 +28,44 @@ namespace vw
     public:
       typedef vw::ATrans3 Transform;
 
+      class Extras
+      {
+      public:
+        virtual ~Extras() throw() {}
+        virtual Extras * clone() = 0;
+      };
+
       /**
        * Default constructor.
        */
-      Frame() {}
+      Frame() : m_extras(NULL) {}
       /**
        * Initializing constructor.
        */
       Frame(std::string const& name, Transform const& trans = identity_matrix<4>()) :
           m_name(name),
-          m_trans(trans) {}
+          m_trans(trans),
+          m_extras(NULL)
+      {}
+      Frame(Frame const& rhs) :
+        m_name(rhs.m_name),
+        m_trans(rhs.m_trans),
+        m_extras((rhs.m_extras == NULL)? NULL : rhs.m_extras->clone())
+      {}
+
+      ~Frame() throw()
+      {
+        delete m_extras;
+      }
+
+      Frame& operator = (Frame const& rhs) {
+        if (&rhs != this) {
+          m_name = rhs.m_name;
+          m_trans = rhs.m_trans;
+          m_extras = (rhs.m_extras == NULL)? NULL : rhs.m_extras->clone();
+        }
+        return *this;
+      }
 
       /// @{ Accessor methods
 
@@ -61,11 +89,21 @@ namespace vw
       void set_transform(Transform const& trans) {
         m_trans = trans;
       }
+
+      Extras * extras() const throw() {
+        return m_extras;
+      }
+
+      void set_extras(Extras * extras) {
+        delete m_extras;
+        m_extras = extras;
+      }
       /// @}
 
     protected:
       std::string m_name;
       Transform m_trans;
+      Extras * m_extras;
     };
   }
 }

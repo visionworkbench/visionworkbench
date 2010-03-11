@@ -6,64 +6,66 @@
 
 
 #include <vw/Geometry/FrameTreeNode.h>
-
 #include <algorithm>
 #include <iterator>
 
 namespace vw
 {
-  namespace geometry {
-    using namespace std;
+namespace geometry
+{
+  using namespace std;
 
     Frame::Transform
     get_transform(FrameTreeNode const * target, FrameTreeNode const * source)
     {
       Frame::Transform loc = vw::identity_matrix(4);
 
-      if (source != NULL) {
+    if (source != NULL) {
 
-        if (target == NULL)
-          return source->data().transform();
+      if (target == NULL)
+        return source->data().transform();
 
-        if (target != source) {
+      if (target != source) {
 
-          int ancestorI = target->last_common_ancestor_index(source);
-          if (ancestorI >= 0) {
-            // from the origin frame to the ancestor
-            {
-              FrameTreeNode::NodeVector const& nodes = target->ancestry(true);
-              FrameTreeNode::NodeVector::const_iterator iter = nodes.begin();
-              std::advance(iter, ancestorI);
+        FrameTreeNode const * ancestor = target->last_common_ancestor(source);
 
-              assert (iter != nodes.end());
+        if (ancestor != NULL) {
+          // from the origin frame to the ancestor
+          {
+            FrameTreeNode::NodeVector const& nodes = target->ancestry(true);
+            FrameTreeNode::NodeVector::const_iterator iter =
+              std::find(nodes.begin(), nodes.end(), ancestor);
 
-              ++iter;
-              if (iter != nodes.end()) {
-                for (; iter != nodes.end(); ++iter) {
-                  loc *= (*iter)->data().transform();
-                }
-                loc = geometry::inverse(loc);
-              }
-            }
+            assert (iter != nodes.end());
 
-            // from the last common ancestor to the target coordinate frame
-            {
-              FrameTreeNode::NodeVector const& nodes = source->ancestry(true);
-              FrameTreeNode::NodeVector::const_iterator iter = nodes.begin();
-              std::advance(iter, ancestorI);
-
-              assert (iter != nodes.end());
-
-              for (++iter; iter != nodes.end(); ++iter) {
+            ++iter;
+            if (iter != nodes.end()) {
+              for (; iter != nodes.end(); ++iter) {
                 loc *= (*iter)->data().transform();
               }
+              loc = inverse(loc);
+            }
+          }
+
+
+          // from the last common ancestor to the wrt frame
+          {
+            FrameTreeNode::NodeVector const& nodes = source->ancestry(true);
+            FrameTreeNode::NodeVector::const_iterator iter =
+              std::find(nodes.begin(), nodes.end(), ancestor);
+
+            assert (iter != nodes.end());
+
+            for (; iter != nodes.end(); ++iter) {
+              loc *= (*iter)->data().transform();
             }
           }
         }
       }
+   }
 
-      return loc;
-    }
+   return loc;
+  }
 
     namespace {
       struct FtnLess {

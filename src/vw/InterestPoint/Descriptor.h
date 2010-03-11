@@ -226,10 +226,6 @@ namespace ip {
     int support_size( void ) { return 42; }
   };
 
-  //const uint SGradDescriptorGenerator::box_strt[5] = {17,15, 9, 6,  0};
-  //const uint SGradDescriptorGenerator::box_size[5] = { 2, 4, 8, 10, 14};
-  //const uint SGradDescriptorGenerator::box_half[5] = { 1, 2, 4, 5,  7};
-
 }} // namespace vw::ip
 
 
