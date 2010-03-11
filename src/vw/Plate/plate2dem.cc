@@ -48,17 +48,18 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     // Finding out our current PPD and attempting to match
     double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                              output_georef.lonlat_to_pixel(Vector2(1,0)));
-    std::cout << "Current PPD: " << curr_ppd << "\n";
-    double scale_change = tile_ppd / curr_ppd;
-    std::cout << "Scale change: " << scale_change << "\n";
+    scale_change = tile_ppd / curr_ppd;
     plate_view_ref = resample( plate_view, scale_change, scale_change,
-                               ZeroEdgeExtension(),
-                               BicubicInterpolation() );
+                               ZeroEdgeExtension());
     Matrix3x3 scale;
     scale.set_identity();
     scale(0,0) /= scale_change;
     scale(1,1) /= scale_change;
-    output_georef.set_transform( scale*output_georef.transform() );
+    output_georef.set_transform( output_georef.transform()*scale );
+
+    // Double check
+    curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
+                      output_georef.lonlat_to_pixel(Vector2(1,0)));
   }
   std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
   std::cout << output_georef << "\n";
@@ -73,7 +74,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
 
   if ( tile_size_deg > 0 ) {
     if ( tile_ppd > 0 ) {
-      tile_size = tile_size_deg * tile_ppd;      
+      tile_size = tile_size_deg * tile_ppd;
     } else {
       // User must have specified out to be sized in degrees
       tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
@@ -104,13 +105,13 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
               << tile_georef.transform() << "\n";
 
     std::ostringstream output_filename;
-    output_filename << output_prefix << "_" 
+    output_filename << output_prefix << "_"
                     << abs(round(top_left_ll[0]));
     if ( top_left_ll[0] < 0 )
       output_filename << "W_";
     else
       output_filename << "E_";
-    output_filename << abs(round(top_left_ll[1])); 
+    output_filename << abs(round(top_left_ll[1]));
     if ( top_left_ll[1] >= 0 )
       output_filename << "N.tif";
     else
