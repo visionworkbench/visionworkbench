@@ -261,18 +261,18 @@ namespace math {
   class VarianceDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned disc) const {
+    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned /*disc*/) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
 
       //the number of keys in a record
       unsigned k = std::distance( (*file_beg).begin(), (*file_beg).end() );
-    
+
       std::vector<double> mean;
       std::vector<double> variance;
       variance.assign(k,0);
       mean.assign(k,0);
-  
+
       //Calculate Mean.
       int num_points = 0;
       for(RandomAccessIterT temp = file_beg; temp != file_end; ++temp){

@@ -20,8 +20,8 @@ public:
   void test_apply_box_filter() {
     ImageView<float> image(3,3);
     float count = 0;
-    for ( uint i = 0; i < 3; i++ ) {
-      for ( uint j = 0; j < 3; j++ ) {
+    for ( uint8 i = 0; i < 3; i++ ) {
+      for ( uint8 j = 0; j < 3; j++ ) {
         image(i,j) = count;
         count++;
       }
@@ -47,8 +47,8 @@ public:
   void test_box_filter_view() {
     ImageView<float> image(4,4);
     float count = 0;
-    for ( uint i = 0; i < 4; i++ ) {
-      for ( uint j = 0; j < 4; j++ ) {
+    for ( uint8 i = 0; i < 4; i++ ) {
+      for ( uint8 j = 0; j < 4; j++ ) {
         image(i,j) = count;
         count++;
       }

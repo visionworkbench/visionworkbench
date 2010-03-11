@@ -162,7 +162,7 @@ namespace ip {
       if ( *mid_o <= *low_o ) return false;
       if ( *mid_o <= *hi_o  ) return false;
 
-      for ( uint step = 0; step < 8; step++ ) {
+      for ( uint8 step = 0; step < 8; step++ ) {
         if ( step == 0 ) {
           low_o.advance(-1,-1); mid_o.advance(-1,-1);hi_o.advance(-1,-1);
         } else if ( step == 1 || step == 2 ) {

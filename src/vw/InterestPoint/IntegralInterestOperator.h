@@ -83,7 +83,7 @@ namespace ip {
     inline void operator() (DataT& data, int scale = 0 ) const {
       // 1.) Assemble Filter
       BoxFilter bfilter;
-      for ( uint b = 0; b < 6; b++ ) {
+      for ( uint8 b = 0; b < 6; b++ ) {
         SumBox instance;
         instance.size = Vector2i(SCALE_BOX_WIDTH[scale][b],
                                  SCALE_BOX_HEIGHT[scale][b]);

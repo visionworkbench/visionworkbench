@@ -22,7 +22,7 @@ TEST(Accumulators, CDF_cauchy) {
   boost::cauchy_distribution<double> cauchy(35,80);
   boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
-  for ( uint i = 0; i < 50000; i++ )
+  for ( uint16 i = 0; i < 50000; i++ )
     cdf( generator() );
 
   std::cout << "CDF Median: " << cdf.median() << "\n";
@@ -40,7 +40,7 @@ TEST(Accumulators, CDF_triangular) {
   boost::triangle_distribution<double> triangular(10,60,80);
   boost::variate_generator<boost::minstd_rand, boost::triangle_distribution<double> > generator(random_gen, triangular);
 
-  for ( uint i = 0; i < 50000; i++ )
+  for ( uint16 i = 0; i < 50000; i++ )
     cdf( generator() );
 
   EXPECT_NEAR( cdf.median(), 51.833, 1.0 );
@@ -56,7 +56,7 @@ TEST(Accumulators, Median) {
   boost::cauchy_distribution<double> cauchy(35,80);
   boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
-  for ( uint i = 0; i < 50000; i++ )
+  for ( uint16 i = 0; i < 50000; i++ )
     median( generator() );
 
   EXPECT_NEAR( median.value(), 35.0, 1.5 );

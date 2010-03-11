@@ -165,9 +165,9 @@ namespace ip {
   // illumination changes.
   struct SGradDescriptorGenerator : public DescriptorGeneratorBase<SGradDescriptorGenerator> {
 
-    static const uint box_strt[5];
-    static const uint box_size[5];
-    static const uint box_half[5];
+    static const uint32 box_strt[5];
+    static const uint32 box_size[5];
+    static const uint32 box_half[5];
 
     template <class ViewT>
     Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
@@ -176,15 +176,15 @@ namespace ip {
       typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
       ImageView<channel_type> iimage = IntegralImage(support);
 
-      uint write_idx = 0;
+      uint8 write_idx = 0;
 
       // Iterate through scales
-      for ( uint s = 0; s < 5; s++ ) {
+      for ( uint8 s = 0; s < 5; s++ ) {
         float inv_bh2 = 1 / float(box_half[s]*box_half[s]);
 
         // Iterate though quadrants
-        for ( uint i = 0; i < 3; i++ ) {
-          for ( uint j = 0; j < 3; j++ ) {
+        for ( uint8 i = 0; i < 3; i++ ) {
+          for ( uint8 j = 0; j < 3; j++ ) {
             Vector2i top_left( box_strt[s]+i*box_size[s],
                                box_strt[s]+j*box_size[s] );
 

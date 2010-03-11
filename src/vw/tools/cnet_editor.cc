@@ -114,7 +114,7 @@ int main( int argc, char *argv[] ) {
   std::list<double> image_errors;
   f.read((char*)&(error_size), sizeof(unsigned));
 
-  for ( uint i = 0; i < error_size; i++ ) {
+  for ( unsigned i = 0; i < error_size; i++ ) {
     double temp;
     f.read((char*)&(temp), sizeof(double));
     image_errors.push_back(temp);
@@ -184,7 +184,7 @@ int main( int argc, char *argv[] ) {
   vw_out() << "\tfile: " << delindex_file_str << "\n";
 
   std::ofstream di_out(delindex_file_str.c_str());
-  for ( uint i = 0; i < deleted.size()-1; i++) 
+  for ( size_t i = 0; i < deleted.size()-1; i++) 
     di_out << deleted[i] << " ";
   di_out << deleted[deleted.size()-1] << "\n";
   di_out.close();

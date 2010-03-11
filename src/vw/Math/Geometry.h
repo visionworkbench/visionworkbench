@@ -39,7 +39,7 @@ namespace math {
     std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
                                                std::vector<Vector<double> > const& pts ) const {
       std::vector<Vector<double> > out;
-      for ( unsigned i = 0; i < pts.size(); i++ ) {
+      for ( size_t i = 0; i < pts.size(); i++ ) {
         out.push_back( m*pts[i] );
       }
       return out;
@@ -58,7 +58,7 @@ namespace math {
       translation /= num_points;
 
       std::vector<Vector<double> > pts_int;
-      for ( uint i = 0; i < pts.size(); i++ )
+      for ( size_t i = 0; i < pts.size(); i++ )
         pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
 
       double scale = 0;
@@ -87,8 +87,8 @@ namespace math {
                  vw::ArgumentErr() << "Unfortunately at this time, BasicDLT only support homogeneous 2D vectors.");
 
       vw::Matrix<double,8,9> A;
-      for ( unsigned i = 0; i < 4; i++ )
-        for ( unsigned j = 0; j < 3; j++ ) {
+      for ( uint8 i = 0; i < 4; i++ )
+        for ( uint8 j = 0; j < 3; j++ ) {
           // Filling in -wi'*xi^T
           A(i,j+3) = -output[i][2]*input[i][j];
           // Filling in yi'*xi^T
@@ -102,8 +102,8 @@ namespace math {
       Matrix<double> nullsp = nullspace(A);
       nullsp /= nullsp(8,0);
       Matrix<double,3,3> H;
-      for ( unsigned i = 0; i < 3; i++ )
-        for ( unsigned j = 0; j < 3; j++ )
+      for ( uint8 i = 0; i < 3; i++ )
+        for ( uint8 j = 0; j < 3; j++ )
           H(i,j) = nullsp(i*3+j,0);
       return H;
     }
@@ -135,8 +135,8 @@ namespace math {
         result_type output;
         output.set_size(m_measure.size());
         Matrix3x3 H;
-        for ( unsigned i = 0; i < 3; i++ )
-          for ( unsigned j = 0; j < 3; j++ )
+        for ( uint8 i = 0; i < 3; i++ )
+          for ( uint8 j = 0; j < 3; j++ )
             if ( i != 2 || j != 2 )
               H(i,j) = x( 3*i+j );
             else
@@ -199,7 +199,7 @@ namespace math {
         Matrix<double> seed_copy = seed_input;
         if ( seed_copy.cols() != 3 || seed_copy.rows() != 3 ) {
           std::vector<ContainerT> p1_small, p2_small;
-          for ( unsigned i = 0; i < 4; i++ ) {
+          for ( uint8 i = 0; i < 4; i++ ) {
             p1_small.push_back( p1[i] );
             p2_small.push_back( p2[i] );
           }
@@ -209,7 +209,7 @@ namespace math {
         // Flatting input & output;
         Vector<double> input_flat( input.size()*2 );
         Vector<double> output_flat( output.size()*2 );
-        for ( unsigned i = 0; i < input.size(); i++ ) {
+        for ( size_t i = 0; i < input.size(); i++ ) {
           subvector(input_flat,i*2,2) = subvector(input[i],0,2);
           subvector(output_flat,i*2,2) = subvector(output[i],0,2);
         }
@@ -218,8 +218,8 @@ namespace math {
 
         // Flatting Homography matrix into 8-vector
         Vector<double> seed(8);
-        for ( unsigned i = 0; i < 3; i++ )
-          for ( unsigned j = 0; j < 3; j++ )
+        for ( uint8 i = 0; i < 3; i++ )
+          for ( uint8 j = 0; j < 3; j++ )
             if ( i != 2 || j != 2 )
               seed( i*3+j ) = seed_copy(i,j);
 
@@ -229,8 +229,8 @@ namespace math {
 
         // Unflatting result
         Matrix3x3 result;
-        for ( unsigned i = 0; i < 3; i++ )
-          for ( unsigned j = 0; j < 3; j++ )
+        for ( uint8 i = 0; i < 3; i++ )
+          for ( uint8 j = 0; j < 3; j++ )
             if ( i != 2 || j != 2 )
               result(i,j) = result_flat( 3*i+j );
             else

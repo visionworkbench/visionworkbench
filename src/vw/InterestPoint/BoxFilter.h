@@ -39,7 +39,7 @@ namespace ip {
   inline apply_box_filter_at_point( IntegralAccessT const& src,
                                     BoxFilter const& box ) {
     typename IntegralAccessT::pixel_type result = 0;
-    for ( uint b = 0; b < box.size(); b++ ) {
+    for ( size_t b = 0; b < box.size(); b++ ) {
       IntegralAccessT instance = src;
       typename IntegralAccessT::pixel_type box_sum = 0;
       instance.advance( box[b].start[0],
@@ -78,7 +78,7 @@ namespace ip {
     BoxFilterView( IntegralT const& image, BoxFilter const& box ) :
     m_integral( image ), m_filter( box ) {
       m_max_filter_size = 0;
-      for ( uint b = 0; b < m_filter.size(); b++ ) {
+      for ( size_t b = 0; b < m_filter.size(); b++ ) {
         if ( m_max_filter_size < m_filter[b].size[0] )
           m_max_filter_size = m_filter[b].size[0];
         if ( m_max_filter_size < m_filter[b].size[1] )

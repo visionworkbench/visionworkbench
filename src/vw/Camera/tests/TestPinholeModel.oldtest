@@ -210,7 +210,7 @@ public:
     random_gen.seed((unsigned int)(::time(0)));
     boost::normal_distribution<double> normal(0,20);
     boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
-    for ( uint i = 0; i < 6; i++ ) {
+    for ( uint8 i = 0; i < 6; i++ ) {
       Vector3 point( generator(), generator(), generator()+60.0 );
       world_m.push_back( Vector4(point[0],point[1],point[2],1) );
       Vector2 pixel = control_pinhole.point_to_pixel(point);
@@ -227,13 +227,13 @@ public:
     {
       Vector3 solved = solved_pinhole.camera_center( Vector2() );
       Vector3 control = control_pinhole.camera_center( Vector2() );
-      for ( uint i = 0; i < 3; i++ )
+      for ( uint8 i = 0; i < 3; i++ )
         TS_ASSERT_DELTA( solved[i], control[i], 1e-8 );
     }
     {
       Quaternion<double> solved = solved_pinhole.camera_pose( Vector2() );
       Quaternion<double> control = control_pinhole.camera_pose( Vector2() );
-      for ( uint i = 0; i < 4; i++ )
+      for ( uint8 i = 0; i < 4; i++ )
         TS_ASSERT_DELTA( solved[i], control[i], 1e-8 );
     }
     {

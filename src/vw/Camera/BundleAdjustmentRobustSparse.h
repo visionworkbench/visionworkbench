@@ -40,8 +40,8 @@ namespace camera {
   class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
 
     math::MatrixSparseSkyline<double> m_S;
-    std::vector<uint> m_ideal_ordering;
-    Vector<uint> m_ideal_skyline;
+    std::vector<unsigned> m_ideal_ordering;
+    Vector<unsigned> m_ideal_skyline;
     bool m_found_ideal_ordering;
 
   public:

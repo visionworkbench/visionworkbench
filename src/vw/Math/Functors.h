@@ -228,7 +228,7 @@ namespace math {
   // Imaginary part functor
   struct ArgImagFunctor : UnaryReturnTemplateType<MakeReal> {
     template <class ValT>
-    ValT operator()( ValT const& val ) const {
+      ValT operator()( ValT const& /*val*/ ) const {
       return ValT();
     }
 

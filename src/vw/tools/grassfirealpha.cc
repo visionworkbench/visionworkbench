@@ -149,7 +149,7 @@ int main( int argc, char *argv[] ) {
   }
 
   // iterate through input files
-  for ( uint i = 0; i < input_file_names.size(); i++ ) {
+  for ( size_t i = 0; i < input_file_names.size(); i++ ) {
 
     // First determine the format of the input
     DiskImageResource *first_resource = DiskImageResource::open(input_file_names[i]);

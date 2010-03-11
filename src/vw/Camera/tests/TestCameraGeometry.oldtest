@@ -31,7 +31,7 @@ public:
     random_gen.seed((unsigned int)(::time(0)));
     boost::normal_distribution<double> normal(0,20);
     boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
-    for ( uint i = 0; i < 6; i++ ) {
+    for ( uint8 i = 0; i < 6; i++ ) {
       Vector3 point( generator(), generator(), generator()+60.0 );
       world_m.push_back( Vector4(point[0],point[1],point[2],1) );
       Vector2 pixel = pinhole.point_to_pixel(point);
@@ -45,7 +45,7 @@ public:
     TS_ASSERT_EQUALS(P.cols(),4);
 
     // Testing to see that it matches pinhole
-    for ( uint i = 0; i < 10; i++ ) {
+    for ( uint8 i = 0; i < 10; i++ ) {
       Vector4 point( generator(), generator(), generator()+60.0, 1.0 );
       Vector3 p_result = P*point;
       p_result /= p_result[2];
@@ -71,7 +71,7 @@ public:
       random_gen.seed((unsigned int)(::time(0)));
       boost::normal_distribution<double> normal(0,20);
       boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
-      for ( uint i = 0; i < 50; i++ ) {
+      for ( uint8 i = 0; i < 50; i++ ) {
         Vector3 point( generator(), generator(), generator()+60.0 );
         world_m.push_back( Vector4(point[0],point[1],point[2],1) );
         Vector2 pixel = pinhole.point_to_pixel(point);
@@ -85,7 +85,7 @@ public:
       random_gen.seed((unsigned int)(::time(0)));
       boost::normal_distribution<double> normal(0,1.0);
       boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
-      for ( uint i = 0; i < 50; i++ ) {
+      for ( uint8 i = 0; i < 50; i++ ) {
         world_m[i][0] += generator();
         world_m[i][1] += generator();
         world_m[i][2] += generator();
@@ -99,7 +99,7 @@ public:
     TS_ASSERT_EQUALS(P.cols(),4);
 
     // Testing to see that it matches pinhole
-    for ( uint i = 0; i < 50; i++ ) {
+    for ( uint8 i = 0; i < 50; i++ ) {
       Vector3 p_result = P*world_m[i];
       p_result /= p_result[2];
       //Vector2 cam_result = pinhole.point_to_pixel(subvector(world_m[i],0,3));

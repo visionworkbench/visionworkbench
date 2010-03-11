@@ -110,7 +110,7 @@ namespace math {
                  m.cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
       m_matrix.clear();
-      VectorClearImpl<Vector<uint> >::clear(m_skyline);
+      VectorClearImpl<Vector<unsigned> >::clear(m_skyline);
       // Iterate through non-zero elements
       for ( typename MatrixSparseSkyline<ElemT>::const_sparse_iterator1 it1 = m.sparse_begin();
             it1 != m.sparse_end(); it1++ ) {
@@ -195,11 +195,11 @@ namespace math {
     // Need to first determine the sampling rate. In bundle adjustment
     // it doesn't make sense to show every element as camera variables will
     // come in blocks of 6.
-    uint smallest_sampling_rate = m.cols();
-    uint curr_sampling_rate = m.cols();
+    unsigned smallest_sampling_rate = m.cols();
+    unsigned curr_sampling_rate = m.cols();
     unsigned last_value = 10000;
     Vector<unsigned> skyline = m.skyline();
-    for ( uint i = 0; i < skyline.size(); i++ ) {
+    for ( unsigned i = 0; i < skyline.size(); i++ ) {
       if ( last_value != skyline(i) ) {
         if ( smallest_sampling_rate  > curr_sampling_rate )
           smallest_sampling_rate = curr_sampling_rate;
@@ -444,7 +444,7 @@ namespace math {
   template <class VectorT>
   class VectorReorganize : public VectorBase<VectorReorganize<VectorT> > {
     VectorT & m_vector;
-    std::vector<uint> m_lookup;
+    std::vector<unsigned> m_lookup;
 
   public:
     typedef typename VectorT::value_type value_type;
@@ -456,7 +456,7 @@ namespace math {
     typedef IndexingVectorIterator<const VectorReorganize<VectorT> > const_iterator;
 
     // Constructor
-    explicit VectorReorganize( VectorT& vector, std::vector<uint> const& lookup ) : m_vector(vector), m_lookup(lookup) {
+    explicit VectorReorganize( VectorT& vector, std::vector<unsigned> const& lookup ) : m_vector(vector), m_lookup(lookup) {
       VW_ASSERT( vector.size()==lookup.size(),
                  ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions" );
     }
@@ -464,12 +464,12 @@ namespace math {
     // Access to internal types
     VectorT& child() { return m_vector; }
     VectorT const& child() const { return m_vector; }
-    std::vector<uint>& lookup() { return m_lookup; }
-    std::vector<uint> const& lookup() const { return m_lookup; }
-    std::vector<uint> inverse() const {
-      std::vector<uint> ilookup;
+    std::vector<unsigned>& lookup() { return m_lookup; }
+    std::vector<unsigned> const& lookup() const { return m_lookup; }
+    std::vector<unsigned> inverse() const {
+      std::vector<unsigned> ilookup;
       ilookup.resize( m_lookup.size() );
-      for ( uint i = 0; i < m_lookup.size(); i++ )
+      for ( unsigned i = 0; i < m_lookup.size(); i++ )
         ilookup[m_lookup[i]] = i;
       return ilookup;
     }
@@ -497,7 +497,7 @@ namespace math {
   template <class MatrixT>
   class MatrixReorganize : public MatrixBase<MatrixReorganize<MatrixT> > {
     MatrixT & m_matrix;
-    std::vector<uint> m_lookup;
+    std::vector<unsigned> m_lookup;
 
   public:
     typedef typename MatrixT::value_type value_type;
@@ -509,7 +509,7 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixReorganize<MatrixT> > const_iterator;
 
     // Constructor
-    explicit MatrixReorganize( MatrixT& matrix, std::vector<uint> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
+    explicit MatrixReorganize( MatrixT& matrix, std::vector<unsigned> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
       VW_ASSERT( matrix.cols()==lookup.size() &&
                  matrix.rows()==lookup.size(),
                  ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions" );
@@ -544,12 +544,12 @@ namespace math {
     // Access to internal types
     MatrixT& child() { return m_matrix; }
     MatrixT const& child() const { return m_matrix; }
-    std::vector<uint>& lookup() { return m_lookup; }
-    std::vector<uint> const& lookup() const { return m_lookup; }
-    std::vector<uint> inverse() const {
-      std::vector<uint> ilookup;
+    std::vector<unsigned>& lookup() { return m_lookup; }
+    std::vector<unsigned> const& lookup() const { return m_lookup; }
+    std::vector<unsigned> inverse() const {
+      std::vector<unsigned> ilookup;
       ilookup.resize( m_lookup.size() );
-      for ( uint i = 0; i < m_lookup.size(); i++ )
+      for ( size_t i = 0; i < m_lookup.size(); i++ )
         ilookup[m_lookup[i]] = i;
       return ilookup;
     }
@@ -586,25 +586,25 @@ namespace math {
   // User ease functions
   template <class VectorT>
   inline VectorReorganize<VectorT> reorganize( VectorBase<VectorT>& v,
-                                               std::vector<uint>& lookup ) {
+                                               std::vector<unsigned>& lookup ) {
     return VectorReorganize<VectorT>(v.impl(), lookup);
   }
 
   template <class VectorT>
   inline VectorReorganize<const VectorT> reorganize( VectorBase<VectorT> const& v,
-                                                     std::vector<uint> const& lookup ) {
+                                                     std::vector<unsigned> const& lookup ) {
     return VectorReorganize<const VectorT>(v.impl(), lookup);
   }
 
   template <class MatrixT>
   inline MatrixReorganize<MatrixT> reorganize( MatrixBase<MatrixT>& m,
-                                               std::vector<uint>& lookup ) {
+                                               std::vector<unsigned>& lookup ) {
     return MatrixReorganize<MatrixT>(m.impl(), lookup);
   }
 
   template <class MatrixT>
   inline MatrixReorganize<const MatrixT> reorganize( MatrixBase<MatrixT> const& m,
-                                                     std::vector<uint> const& lookup ) {
+                                                     std::vector<unsigned> const& lookup ) {
     return MatrixReorganize<const MatrixT>(m.impl(), lookup);
   }
 
@@ -618,8 +618,8 @@ namespace math {
   //------------------------------------------------------------------
 
   template <class ElemT>
-  std::vector<uint> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A,
-                                           uint const& sampling_rate ) {
+  std::vector<unsigned> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A,
+                                               unsigned const& sampling_rate ) {
     // First Working out the Sampling Rate (cheat to save time in
     // Bundle Adjustment where sampling rate is the number of camera
     // parameters)
@@ -654,7 +654,7 @@ namespace math {
                            make_degree_map(G));
 
     // Building new lookup chart
-    std::vector<uint> lookup_chart( A.cols() );
+    std::vector<unsigned> lookup_chart( A.cols() );
     for ( unsigned i = 0; i < inv_perm.size(); i++ )
       lookup_chart[i] = index_map[inv_perm[i]];
 
@@ -673,12 +673,12 @@ namespace math {
   // --------------------------------------------------------------
 
   template <class MatrixT>
-  Vector<uint> solve_for_skyline(MatrixBase<MatrixT> const& A) {
+  Vector<unsigned> solve_for_skyline(MatrixBase<MatrixT> const& A) {
     MatrixT const& ar = A.impl();
     unsigned rows = ar.rows();
-    Vector<uint> skyline(rows);
-    for ( uint i = 0; i < rows; i++ ) {
-      uint j = 0;
+    Vector<unsigned> skyline(rows);
+    for ( unsigned i = 0; i < rows; i++ ) {
+      unsigned j = 0;
       while ( j < i && ar(i,j) == 0 )
         j++;
       skyline[i] = j;

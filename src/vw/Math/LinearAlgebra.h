@@ -464,7 +464,7 @@ namespace math {
     typedef typename MatrixT::value_type value_type;
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
     int nr = 0;
-    for ( uint j = 0; j < S.impl().size(); j++ ) {
+    for ( unsigned j = 0; j < S.impl().size(); j++ ) {
       if ( S.impl()[j] > th )
         nr++;
     }
@@ -493,7 +493,7 @@ namespace math {
     typedef typename MatrixT::value_type value_type;
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
     int nn = A.impl().cols()-S.impl().size();
-    for ( uint j = 0; j < S.impl().size(); j++ ) {
+    for ( unsigned j = 0; j < S.impl().size(); j++ ) {
       if ( S.impl()[j] <= th )
         nn++;
     }
@@ -527,12 +527,12 @@ namespace math {
     Matrix<value_type> nullsp(A.impl().cols(),
                               nty );
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S[0]*std::numeric_limits<value_type>::epsilon() );
-    uint nn = 0;
-    for ( uint j = 0; j < A.impl().cols(); j++ ) {
+    unsigned nn = 0;
+    for ( unsigned j = 0; j < A.impl().cols(); j++ ) {
       if ( j < S.size() )
         if ( S[j] > th )
           continue;
-      for ( uint jj = 0; jj < A.impl().cols(); jj++ )
+      for ( unsigned jj = 0; jj < A.impl().cols(); jj++ )
         nullsp(jj,nn) = V[jj][j];
       nn++;
     }

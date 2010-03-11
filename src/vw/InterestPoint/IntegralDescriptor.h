@@ -104,7 +104,7 @@ namespace ip {
 
       Vector<float> result(128);
 
-      uint write_idx = 0;
+      uint32 write_idx = 0;
       float scale = ip.scale;
       float co = cos(ip.orientation);
       float si = sin(ip.orientation);
@@ -115,7 +115,7 @@ namespace ip {
       for ( std::list<Vector3>::const_iterator center = m_box_properties.begin();
             center != m_box_properties.end(); center++ ) {
 
-        uint s_write_idx = 0;
+        uint32 s_write_idx = 0;
         std::vector<Vector2> responses(18);
         // Sampling 3x3 locations
         for ( std::list<Vector2>::const_iterator offset = m_33_samp.begin();
@@ -138,7 +138,7 @@ namespace ip {
         // Fitting to histogram
         for ( std::list<Vector2>::const_iterator hist_bin = m_histogram_samp.begin();
               hist_bin != m_histogram_samp.end(); hist_bin++ ) {
-          for ( uint i = 0; i < responses.size(); i++ ) {
+          for ( size_t i = 0; i < responses.size(); i++ ) {
             double dot = dot_prod( *hist_bin, responses[i] );
             if ( dot > 0 )
               result[write_idx] += dot;
@@ -151,7 +151,7 @@ namespace ip {
       result = normalize(result);
 
       // Threshold + Normalizing for non-linear lighting
-      for ( uint i = 0; i < 128; i++ )
+      for ( uint8 i = 0; i < 128; i++ )
         if ( result[i] > 0.2 )
           result[i] = 0.2;
       result = normalize(result);

@@ -37,17 +37,17 @@ namespace math {
 
     // In this algorithm there can be multiple solutions for the F matrix
     // here we allow the user to see them
-    uint num_solutions() const { return m_solutions.size(); }
+    size_t num_solutions() const { return m_solutions.size(); }
 
-    Matrix<double> fundamental_matrix( uint which = 0 ) const {
+    Matrix<double> fundamental_matrix( size_t which = 0 ) const {
       Matrix<double> output(3,3);
       VW_ASSERT( m_nullspace.rows() == 9 && m_nullspace.cols() == 2,
                  vw::ArgumentErr() << "FundamentalMatrixFittingFunctor7::operator() must have been called once." );
-      uint current_index = 0;
+      uint8 current_index = 0;
       double a = m_solutions[which];
       double ia = 1 - a;
-      for ( uint i = 0; i < 3; i++ ) {
-        for ( uint j = 0; j < 3; j++ ) {
+      for ( uint8 i = 0; i < 3; i++ ) {
+        for ( uint8 j = 0; j < 3; j++ ) {
           output(i,j) = a*m_nullspace(current_index,0)+ia*m_nullspace(current_index,1);
           current_index++;
         }
@@ -69,7 +69,7 @@ namespace math {
 
       // Building A-Matrix
       Matrix<double> A(7,9);
-      for ( uint i = 0; i < 7; i++ ) {
+      for ( uint8 i = 0; i < 7; i++ ) {
         A(i,0) = p1[i].x()*p2[i].x();
         A(i,1) = p2[i].x()*p1[i].y();
         A(i,2) = p2[i].x();
@@ -108,7 +108,7 @@ namespace math {
       eigen(companion,roots);
 
       m_solutions.clear();
-      for ( uint i = 0; i < roots.size(); i++ ) {
+      for ( unsigned i = 0; i < roots.size(); i++ ) {
         if ( roots[i].imag() < 1e-10 && roots[i].imag() > -1e-10 ) {
           m_solutions.push_back(roots[i].real());
         }
@@ -144,7 +144,7 @@ namespace math {
       translation /= num_points;
 
       std::vector<Vector<double> > pts_int;
-      for ( uint i = 0; i < pts.size(); i++ )
+      for ( size_t i = 0; i < pts.size(); i++ )
         pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
 
       double scale = 0;
@@ -176,14 +176,14 @@ namespace math {
       Matrix<double> S_in = NormSimilarity(p1);
       Matrix<double> S_out = NormSimilarity(p2);
       std::vector<Vector<double> > input_p, output_p;
-      for ( uint i = 0; i < p1.size(); i++ ) {
+      for ( size_t i = 0; i < p1.size(); i++ ) {
         input_p.push_back( S_in*p1[i] );
         output_p.push_back( S_out*p2[i] );
       }
 
       // Linear solution
       Matrix<double> A(p1.size(),9);
-      for ( uint i = 0; i < p1.size(); i++ ) {
+      for ( size_t i = 0; i < p1.size(); i++ ) {
         A(i,0) = output_p[i][0]*input_p[i][0];
         A(i,1) = output_p[i][0]*input_p[i][1];
         A(i,2) = output_p[i][0];

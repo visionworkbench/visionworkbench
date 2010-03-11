@@ -40,7 +40,7 @@ TEST(Fundamental, 7pFittingFunctor) {
   EXPECT_EQ(fundie.rows(),3);
   EXPECT_NEAR( det(fundie), 0, 1e-10 );
   EXPECT_EQ( rank(fundie), 2 );
-  for ( uint i = 0; i < cow.num_solutions(); i++ ) {
+  for ( size_t i = 0; i < cow.num_solutions(); i++ ) {
     fundie = cow.fundamental_matrix( i );
     EXPECT_NEAR( det(fundie), 0, 1e-10 );
   }

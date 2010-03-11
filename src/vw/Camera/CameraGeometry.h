@@ -123,7 +123,7 @@ namespace camera {
         output.set_size( m_world_input.size() );
         Matrix<double,3,4> P = unflatten(x);
 
-        for ( uint i = 0; i < m_world_input.size(); i++ ) {
+        for ( uint32 i = 0; i < m_world_input.size(); i++ ) {
           Vector3 reproj = P*m_world_input[i];
           reproj /= reproj[2];
           output[i] = norm_2( subvector(m_image_output[i],0,2) - subvector(reproj,0,2) );
@@ -134,8 +134,8 @@ namespace camera {
       // Help functions
       Vector<double> flatten( Matrix<double> const& input ) const {
         Vector<double,12> output;
-        for ( uint i = 0; i < 3; i++ ) {
-          for ( uint j = 0; j < 4; j++ ) {
+        for ( uint8 i = 0; i < 3; i++ ) {
+          for ( uint8 j = 0; j < 4; j++ ) {
             output(4*i+j) = input(i,j);
           }
         }
@@ -144,8 +144,8 @@ namespace camera {
 
       Matrix<double> unflatten( Vector<double> const& input ) const {
         Matrix<double,3,4> output;
-        for ( uint i = 0; i < 3; i++ ) {
-          for ( uint j = 0; j < 4; j++ ) {
+        for ( uint8 i = 0; i < 3; i++ ) {
+          for ( uint8 j = 0; j < 4; j++ ) {
             output(i,j) = input(4*i+j);
           }
         }
