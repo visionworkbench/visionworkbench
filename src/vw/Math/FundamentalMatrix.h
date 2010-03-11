@@ -129,7 +129,7 @@ namespace math {
 
     /// This requires 8 and greater
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 8; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 8; }
 
     /// Solve for Normalization Similarity Matrix used for noise rej.
     template <class ContainerT>

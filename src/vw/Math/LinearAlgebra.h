@@ -457,9 +457,9 @@ namespace math {
   // Solve for the rank of a matrix .. using previous SVD results
   template <class MatrixT, class MatrixT2, class VectorT>
   inline int rank( MatrixBase<MatrixT> const& A,
-                   MatrixBase<MatrixT2> const& U,
+                   MatrixBase<MatrixT2> const& /*U*/,
                    VectorBase<VectorT> const& S,
-                   MatrixBase<MatrixT2> const& V,
+                   MatrixBase<MatrixT2> const& /*V*/,
                    double const& thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );

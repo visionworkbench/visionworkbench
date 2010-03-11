@@ -801,7 +801,7 @@ namespace vw {
     inline int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin().advance(m_col,0,0); }
-    inline result_type operator()( int32 i, int32 j, int32 p=0) const { return m_child(m_col,j,p); }
+    inline result_type operator()( int32 /*i*/, int32 j, int32 p=0) const { return m_child(m_col,j,p); }
 
     template <class ViewT>
     SelectColView const& operator=( ImageViewBase<ViewT> const& view ) const {
@@ -860,7 +860,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return m_child.origin().advance(0,m_row,0); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0) const { return m_child(i,m_row,p); }
+    inline result_type operator()( int32 i, int32 /*j*/, int32 p=0) const { return m_child(i,m_row,p); }
 
     template <class ViewT>
     SelectRowView const& operator=( ImageViewBase<ViewT> const& view ) const {
@@ -1140,7 +1140,7 @@ namespace vw {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+    inline result_type operator()( int32 i, int32 j, int32 /*p*/=0 ) const {
       result_type result;
       typedef typename CompoundChannelType<result_type>::type channel_type;
       for ( int32 c=0; c<CompoundNumChannels<PixelT>::value; ++c )

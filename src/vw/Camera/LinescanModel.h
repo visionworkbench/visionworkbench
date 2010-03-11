@@ -116,7 +116,7 @@ namespace camera {
     //------------------------------------------------------------------
     // Interface
     //------------------------------------------------------------------
-    virtual Vector2 point_to_pixel(Vector3 const& point) const {
+    virtual Vector2 point_to_pixel(Vector3 const& /*point*/) const {
       vw_throw( vw::NoImplErr() << "LinescanModel::point_to_pixel is not yet implemented." );
       return Vector2(); // never reached
     }

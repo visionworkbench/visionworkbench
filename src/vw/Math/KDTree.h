@@ -317,7 +317,7 @@ namespace math {
   class MaxDiffDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned unused_argument) const {
+    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned /*unused_argument*/) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
   

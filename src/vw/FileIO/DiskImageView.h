@@ -100,7 +100,7 @@ namespace vw {
 
   public:
     template <class ViewT>
-    DiskCacheHandle(ImageViewBase<ViewT> const& view, std::string const& filename) :
+    DiskCacheHandle(ImageViewBase<ViewT> const& /*view*/, std::string const& filename) :
       m_disk_image_view(filename), m_filename(filename) {
     }
 

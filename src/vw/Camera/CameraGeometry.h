@@ -25,7 +25,7 @@ namespace camera {
   struct CameraMatrixFittingFunctor {
 
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 6; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 6; }
 
     // Apply a transform to a list of vectors
     // Applies a transform matrix to a list of points;

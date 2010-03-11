@@ -407,7 +407,7 @@ namespace math {
 
     /// A transformation requires 2 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 2; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 2; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -416,7 +416,7 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-           vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
@@ -469,7 +469,7 @@ namespace math {
 
     /// A translation transformation needs 1 pair to make a fit
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const { return 1; }
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 1; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -478,7 +478,7 @@ namespace math {
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
-           vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+      vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
 
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),

@@ -129,7 +129,7 @@ namespace vw {
 
   template <class PixelT>
   inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename PixelChannelType<PixelT>::type >::type
-  alpha_channel( PixelT& pix ) {
+  alpha_channel( PixelT& /*pix*/ ) {
     return ChannelRange<PixelT>::max();
   }
 
