@@ -352,7 +352,7 @@ namespace vw
        * Returns NULL if the nodes are not connected.  If either node is
        * a direct ancestor of the other, that node is returned.
        *
-       * The algorithm is of complecity O(n * log(n)) with respect to the
+       * The algorithm is of complexity O(n * log(n)) with respect to the
        * depth of the tree.
        */
       TreeNode * last_common_ancestor(TreeNode const * node) const {
