@@ -48,7 +48,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     // Finding out our current PPD and attempting to match
     double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                              output_georef.lonlat_to_pixel(Vector2(1,0)));
-    scale_change = tile_ppd / curr_ppd;
+    double scale_change = tile_ppd / curr_ppd;
     plate_view_ref = resample( plate_view, scale_change, scale_change,
                                ZeroEdgeExtension());
     Matrix3x3 scale;
