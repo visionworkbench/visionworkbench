@@ -18,7 +18,7 @@ static const int32 lonlat_resolution = 4*256;
 
 class TestToastTransform : public CxxTest::TestSuite
 {
-  static ToastTransform get_basic_transform() {
+  static GeoReference get_basic_georef() {
     GeoReference georef;
     georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
     Matrix3x3 M;
@@ -28,8 +28,11 @@ class TestToastTransform : public CxxTest::TestSuite
     M(1,2) = 90;
     M(2,2) = 1;
     georef.set_transform(M);
+    return georef;
+  }
 
-    return ToastTransform(georef, toast_resolution);
+  static ToastTransform get_basic_transform() {
+    return ToastTransform(get_basic_georef(), toast_resolution);
   }
 public:
 
@@ -326,6 +329,51 @@ public:
       TS_ASSERT_DELTA( lonlat.x(), x, 1e-5 );
       TS_ASSERT_DELTA( lonlat.y(), y, 1e-5 );
     }
+  }
+
+  // Just make sure that forward_bbox and reverse_bbox behave
+  void test_basic_bbox_check() {
+    ToastTransform tx = get_basic_transform();
+
+    // form a bbox with the point in question at the center (PixelAsPoint, so
+    // a 1x1 box at the point in question should represent the point).
+
+    // (-90,45)
+    BBox2i in_box(lonlat_resolution/4, lonlat_resolution/8,1,1);
+    BBox2i out_box;
+    TS_ASSERT_THROWS_NOTHING(out_box = tx.forward_bbox(in_box));
+
+    TS_ASSERT_DELTA( out_box.min().x(), (toast_resolution-1)/2, 1e-5 );
+    TS_ASSERT_DELTA( out_box.min().y(), (toast_resolution-1)/4, 1e-5 );
+
+    // Lower right edge: (-180,-45)
+    in_box = BBox2(toast_resolution-1,3*(toast_resolution-1)/4,1,1);
+    TS_ASSERT_THROWS_NOTHING(out_box = tx.reverse_bbox(in_box));
+
+    TS_ASSERT_DELTA( out_box.min().x(),   lonlat_resolution,   1e-5 );
+    TS_ASSERT_DELTA( out_box.min().y(), 3*lonlat_resolution/8, 1e-5 );
+  }
+
+  // forward_bbox needs to override for the polar case. Let's make sure the
+  // polar case works for stereographic, where the poles aren't defined.
+  void test_stereographic_bbox() {
+    Datum datum("unknown", "unnamed", "Greenwich", 3376200, 3376200, 0);
+
+    GeoReference ref = get_basic_georef();
+    ref.set_stereographic(90, 0, 1, 0, 0);
+    ref.set_datum(datum);
+    ToastTransform tx(ref, toast_resolution);
+
+    // (-90,45)
+    BBox2i in_box(lonlat_resolution/4, lonlat_resolution/8,1,1);
+    BBox2i out_box;
+
+    // We mostly only care that it doesn't throw an exception, but also do a
+    // basic check to make sure it ended up inside the toast bbox.
+    TS_ASSERT_THROWS_NOTHING(out_box = tx.forward_bbox(in_box));
+
+    BBox2i global(0,0,toast_resolution,toast_resolution);
+    TS_ASSERT(global.contains(out_box));
   }
 
 };
