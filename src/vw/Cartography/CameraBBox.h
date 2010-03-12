@@ -39,6 +39,19 @@ namespace cartography {
     boost::shared_ptr<camera::CameraModel> m_camera_model;
     BBox2i m_dem_bbox;
 
+    // Provide safe interaction with DEMs that are scalar or compound
+    template <class PixelT>
+    typename boost::enable_if< IsScalar<PixelT>, double >::type
+    inline Helper( double const& x, double const& y ) const {
+      return m_dem.impl()(x,y);
+    }
+
+    template <class PixelT>
+    typename boost::enable_if< IsCompound<PixelT>, double>::type
+    inline Helper( double const& x, double const& y ) const {
+      return m_dem.impl()(x,y).v();
+    }
+
   public:
     // What is returned by evaluating the functor. In this case it is
     // the projection into the camera.
@@ -63,7 +76,7 @@ namespace cartography {
       if ( !m_dem_bbox.contains( dem_pixel_loc ) )
         return Vector2(-100,-100);
       Vector2 dem_ll_loc = m_georef.point_to_lonlat( x );
-      Vector3 dem_cart_loc = m_georef.datum().geodetic_to_cartesian( Vector3( dem_ll_loc.x(), dem_ll_loc.y(), m_dem.impl()(dem_pixel_loc.x(),dem_pixel_loc.y()) ) );
+      Vector3 dem_cart_loc = m_georef.datum().geodetic_to_cartesian( Vector3( dem_ll_loc.x(), dem_ll_loc.y(), Helper<typename DEMImageT::pixel_type >(dem_pixel_loc.x(),dem_pixel_loc.y())) );
       return m_camera_model->point_to_pixel(dem_cart_loc);
     }
   };

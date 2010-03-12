@@ -36,6 +36,19 @@ namespace cartography {
     InterpT m_interp_func;
     EdgeT m_edge_func;
 
+    // Provide safe interaction with DEMs that are scalar or compound
+    template <class PixelT>
+    typename boost::enable_if< IsScalar<PixelT>, double >::type
+    inline Helper( double const& x, double const& y ) const {
+      return m_terrain(x,y);
+    }
+
+    template <class PixelT>
+    typename boost::enable_if< IsCompound<PixelT>, double>::type
+    inline Helper( double const& x, double const& y ) const {
+      return m_terrain(x,y).v();
+    }
+
   public:
     typedef typename CameraImageT::pixel_type pixel_type;
     typedef const pixel_type result_type;
@@ -75,7 +88,7 @@ namespace cartography {
       //    converts from altitude to planetary radius.
       // 3. Convert to cartesian (xyz) coordinates.
       Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-      Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), m_terrain(i,j) ) );
+      Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
                    
       // Check for a missing DEM pixels.
       if ( is_transparent(m_terrain(i,j)) ) {
