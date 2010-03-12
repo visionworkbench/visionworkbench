@@ -39,6 +39,8 @@
 #include <vw/Core/Thread.h>
 #include <vw/Image/PixelTypes.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
 
 // GDAL is not thread-safe, so we keep a global GDAL lock (pointed to
 // by gdal_mutex_ptr, below) that we hold anytime we call into the
@@ -151,15 +153,8 @@ namespace vw {
     }
   };
 
-  static std::string file_extension( std::string const& filename ) {
-    std::string::size_type dot = filename.find_last_of('.');
-    std::string extension = filename.substr( dot );
-    boost::to_lower( extension );
-    return extension;
-  }
-
   static bool is_jp2( std::string const& filename ) {
-    std::string extension = file_extension( filename );
+    std::string extension = boost::to_lower_copy(fs::extension( filename ) );
     return (extension == ".jp2" || extension == ".j2k" || extension == ".j2c");
   }
 
@@ -169,7 +164,7 @@ namespace vw {
   struct gdal_file_format_from_filename {
     static std::list<std::string> format(std::string const& filename) {
       std::list<std::string> retval;
-      std::string ext = file_extension(filename);
+      std::string ext = boost::to_lower_copy(fs::extension(filename));
 
       if (ext == ".tif" || ext == ".tiff")        // GeoTiff
         retval.push_back("GTiff");

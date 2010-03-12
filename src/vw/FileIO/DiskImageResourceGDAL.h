@@ -35,6 +35,9 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Cache.h>
 
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+
 // Forward declarations
 class GDALDataset;
 namespace vw {
@@ -125,9 +128,7 @@ namespace vw {
                  ImageFormat const& format,
                  Vector2i block_size = Vector2i(-1,-1) )
     {
-      std::string::size_type dot = filename.find_last_of('.');
-      std::string extension = filename.substr( dot );
-      boost::to_lower(extension);
+      std::string extension = boost::to_lower_copy(boost::filesystem::extension(filename));
       if ( extension == ".tif" || extension == ".tiff" ) {
         // TIFF should use LZW by default
         Options tiff_options;

@@ -22,6 +22,8 @@
 #include <set>
 #include <map>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
 
 // For RunOnce
 #include <vw/Core/Thread.h>
@@ -122,15 +124,6 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
   register_file_type_internal(extension, disk_image_resource_type, open_func, create_func);
 }
 
-static std::string file_extension( std::string const& filename ) {
-  std::string::size_type dot = filename.find_last_of('.');
-  if (dot == std::string::npos)
-    vw_throw( vw::IOErr() << "DiskImageResource: Cannot infer file format from filename with no file extension." );
-  std::string extension = filename.substr( dot );
-  boost::to_lower( extension );
-  return extension;
-}
-
 static void register_default_file_types_impl() {
 
   if( ! open_map ) open_map = new OpenMapType();
@@ -221,8 +214,10 @@ void vw::DiskImageResource::register_default_file_types() {
 
 vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename ) {
   register_default_file_types_internal();
+  std::string extension = boost::to_lower_copy(fs::extension(filename));
+
   if( open_map ) {
-    OpenMapType::iterator i = open_map->find( file_extension( filename ) );
+    OpenMapType::iterator i = open_map->find( extension );
     if( i != open_map->end() ) {
       DiskImageResource* rsrc = i->second( filename );
       vw_out(DebugMessage,"fileio") << "Produce DiskImageResource of type: " << rsrc->type() << "\n";
@@ -234,7 +229,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
   // on it here in case none of the registered file handlers know how
   // to do the job.
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  if (vw::DiskImageResourceGDAL::gdal_has_support( file_extension(filename) ))
+  if (vw::DiskImageResourceGDAL::gdal_has_support( extension ))
     return vw::DiskImageResourceGDAL::construct_open(filename);
 #endif
 
@@ -262,7 +257,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
   register_default_file_types_internal();
   if( create_map ) {
-    CreateMapType::iterator i = create_map->find( file_extension( filename ) );
+    CreateMapType::iterator i = create_map->find( fs::extension( filename ) );
     if( i != create_map->end() )
       return i->second( filename, format );
   }
