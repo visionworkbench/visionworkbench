@@ -13,7 +13,7 @@ libgtest_la_LDFLAGS =
 
 check_LTLIBRARIES = libgtest.la
 
-AM_CPPFLAGS += -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\"" -I$(GTEST_DIR) -I$(GTEST_DIR)/include -g
+AM_CPPFLAGS += -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\"" -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include -g
 LDADD = libgtest.la
 
 # This makes sure we're using the c++ linker
