@@ -566,12 +566,12 @@ namespace vw {
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log
   /// by manipulating the Log::system_log().console_log().rule_set().
-  void set_debug_level( int log_level );
+  void set_debug_level( int log_level ) VW_DEPRECATED;
 
   /// Deprecated: Set the output stream for the system console log to
   /// an arbitrary C++ ostream.  You should use
   /// Log::system_log().set_console_stream() instead.
-  void set_output_stream( std::ostream& stream );
+  void set_output_stream( std::ostream& stream ) VW_DEPRECATED;
 
 } // namespace vw
 

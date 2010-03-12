@@ -102,10 +102,14 @@ namespace vw {
     }
     // This function is here for backwards-compatibility and is deprecated.
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
-      return interpolator(view)( view, i, j, p );
-    }
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const VW_DEPRECATED;
   };
+
+  template <class ViewT>
+  inline typename ViewT::pixel_type BilinearInterpolation::operator()( const ViewT &view, double i, double j, int32 p ) const {
+    return interpolator(view)( view, i, j, p );
+  }
+
 
   // This is broken out so that the implementation can be overridden 
   // by pixel type.  Optimized versions go at the bottom of the file 
@@ -165,10 +169,13 @@ namespace vw {
     }
     // This function is here for backwards-compatibility and is deprecated.
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const {
-      return interpolator(view)( view, i, j, p );
-    }
+    inline typename ViewT::pixel_type operator()( const ViewT &view, double i, double j, int32 p ) const VW_DEPRECATED;
   };
+
+  template <class ViewT>
+  inline typename ViewT::pixel_type BicubicInterpolation::operator()( const ViewT &view, double i, double j, int32 p ) const {
+    return interpolator(view)( view, i, j, p );
+  }
 
   // NearestPixel interpolation operator.
   struct NearestPixelInterpolation {

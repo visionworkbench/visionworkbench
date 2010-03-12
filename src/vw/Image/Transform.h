@@ -15,6 +15,7 @@
 #define __VW_IMAGE_TRANSFORM_H__
 
 // Vision Workbench
+#include <vw/Core/Features.h>
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
@@ -159,7 +160,7 @@ namespace vw {
     
     /// This function is deprecated, and provided for backwards 
     /// compatibility only.  Use reverse(BBox2i) instead.
-    BBox2i compute_input_bbox( BBox2i const& output_bbox ) const {
+    BBox2i compute_input_bbox( BBox2i const& output_bbox ) const VW_DEPRECATED {
       return reverse_bbox( output_bbox );
     }
   };
@@ -650,7 +651,7 @@ namespace vw {
     /// \cond INTERNAL
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const { 
-      BBox2i transformed_bbox = m_mapper.compute_input_bbox(bbox);
+      BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { 
