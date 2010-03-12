@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 
     // Check to see if our sync timeout has occurred.
     if (seconds_until_sync-- <= 0) {
-      std::cout << "\nAutomatic sync of index started (interval = " << sync_interval << ")\n";
+      std::cout << "\nAutomatic sync of index started (interval = " << sync_interval << " minutes).\n";
       long long sync_t0 = Stopwatch::microtime();
       g_service->sync();
       float sync_dt = float(Stopwatch::microtime() - sync_t0) / 1e6;
