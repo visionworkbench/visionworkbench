@@ -13,6 +13,7 @@
 #define __VW_CORE_DEBUGGING_H__
 
 #include <vw/Core/Log.h>
+#include <vw/Core/Features.h>
 
 #ifndef WIN32
 #include <sys/time.h>
@@ -23,23 +24,6 @@
 
 namespace vw {
 
-/// The master compile-time debugging level flag.  The default value
-/// for VW_DEBUG_LEVEL is guessed based on whether or not NDEBUG
-/// is defined if the user has not specified it explicitly.
-#ifndef VW_DEBUG_LEVEL
-#ifdef NDEBUG
-#define VW_DEBUG_LEVEL 0
-#else
-#define VW_DEBUG_LEVEL 1
-#endif
-#endif
-
-/// A quick macro for selectively disabling code in non-debug builds.
-#if VW_DEBUG_LEVEL == 0
-#define VW_DEBUG(x)
-#else
-#define VW_DEBUG(x) x
-#endif
 
   // *******************************************************************
   // Timing types and functions

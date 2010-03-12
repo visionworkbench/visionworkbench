@@ -97,6 +97,7 @@
 #include <sstream>
 #include <ostream>
 
+#include <vw/Core/Features.h>
 #include <vw/config.h>
 
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
@@ -104,12 +105,6 @@
 #define VW_IF_EXCEPTIONS(x) x
 #else
 #define VW_IF_EXCEPTIONS(x)
-#endif
-
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_NORETURN) && (VW_COMPILER_HAS_ATTRIBUTE_NORETURN==1)
-#define NORETURN __attribute__((noreturn))
-#else
-#define NORETURN
 #endif
 
 namespace vw {
@@ -274,7 +269,7 @@ namespace vw {
   /// Throws an exception via the Vision Workbench error 
   /// handling mechanism, which may not actually involvle 
   /// throwing an exception in the usual C++ sense.
-  void vw_throw( Exception const& e ) NORETURN;
+  void vw_throw( Exception const& e ) VW_NORETURN;
 
 } // namespace vw
 

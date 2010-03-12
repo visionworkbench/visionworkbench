@@ -18,6 +18,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
+#include <vw/Core/Features.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Image/ImageResource.h>
@@ -25,11 +26,6 @@
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/Manipulation.h>
 
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED) && (VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED==1)
-#define DEPRECATED __attribute__((deprecated))
-#else
-#define DEPRECATED
-#endif
 
 namespace vw {
 
@@ -105,7 +101,7 @@ namespace vw {
     //
     /// This function is called automatically when you call register_file_type
     /// the first time, so you don't need to call it manually anymore.
-    static void register_default_file_types() DEPRECATED;
+    static void register_default_file_types() VW_DEPRECATED;
 
     // Specify whether values should be rescaled when converting 
     // from one channel type to another during reads or writes. 

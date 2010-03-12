@@ -23,6 +23,7 @@
 #ifndef __VW_CORE_LOG_H__
 #define __VW_CORE_LOG_H__
 
+#include <vw/Core/Features.h>
 #include <vw/Core/Thread.h>
 
 // Boost Headers

@@ -18,16 +18,10 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/Features.h>
 
 #include <boost/algorithm/string/replace.hpp>
 
-#include <vw/config.h>
-
-#if defined(VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED) && (VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED==1)
-#define DEPRECATED __attribute__((deprecated))
-#else
-#define DEPRECATED
-#endif
 
 namespace vw {
 
@@ -156,7 +150,7 @@ namespace vw {
     }
 
   public:
-    TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) DEPRECATED;
+    TerminalProgressCallback( MessageLevel level = InfoMessage, std::string pre_progress_text = "", uint32_t precision = 0 ) VW_DEPRECATED;
 
     TerminalProgressCallback( std::string log_namespace, std::string progress_text, MessageLevel log_level = InfoMessage, uint32_t precision = 0) :
       m_level(log_level), m_namespace(log_namespace), m_pre_progress_text(progress_text), m_last_reported_progress(-1), m_precision(precision), m_step(std::pow(10., -(int32_t(precision)+2))) {
