@@ -124,11 +124,9 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("verbose", "Verbose output")
     ("debug-images,d", "Produce additional debugging images as well as the aligned image.")
     ("tile-size,t", po::value<int>(&tile_size)->default_value(2048), "Specify the tile size for detecting interest points.")
     ("output-file,o", po::value<std::string>(&output_file_name)->default_value("aligned-image.jpg"), "Specify the output filename")
-
 
     // Interest point detector options
     ("matcher-threshold,t", po::value<float>(&matcher_threshold)->default_value(0.5), "Rejects points during matching if best > matcher_threshold * second_best")
@@ -178,12 +176,6 @@ int main(int argc, char** argv) {
     std::cout << usage.str();
     return 1;
   }
-
-  // Set Vision Workbench debug output level
-  if ( vm.count("verbose") != 0 )
-    set_debug_level(DebugMessage);
-  else 
-    set_debug_level(InfoMessage);
 
   // Load the two images
   DiskImageView<PixelRGB<uint8> > left_image(input_file_names[0]);

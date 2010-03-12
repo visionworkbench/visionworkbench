@@ -290,7 +290,6 @@ int main( int argc, char *argv[] ) {
 
     po::options_description general_options("Options");
     general_options.add_options()
-      ("help,h", "Display this help message")
       ("mosaic-name,o", po::value<std::string>(&mosaic_name)->default_value("mosaic"), "Specify base output directory")
       ("output-file-type,t", po::value<std::string>(&output_file_type)->default_value("tif"), "Output file type")
       ("tile-output", "Output the leaf tiles of a quadtree, instead of a single blended image.")
@@ -301,7 +300,7 @@ int main( int argc, char *argv[] ) {
       ("ignore-alpha", "Ignore the alpha channel of the input images, and don't write an alpha channel in output.")
       ("nodata-value", po::value<float>(&nodata_value), "Pixel value to use for nodata in input and output (when there's no alpha channel)")
       ("channel-type", po::value<std::string>(&channel_type_str), "Images' channel type. One of [uint8, uint16, int16, float].")
-      ("verbose", "Verbose output");
+      ("help,h", "Display this help message");
 
     po::options_description hidden_options("");
     hidden_options.add_options()
@@ -343,10 +342,6 @@ int main( int argc, char *argv[] ) {
       std::cerr << "Error: Must specify at least one input file!" << std::endl << std::endl;
       std::cerr << usage.str();
       return 1;
-    }
-    
-    if( vm.count("verbose") ) {
-      vw::set_debug_level(vw::VerboseDebugMessage);
     }
 
     if(vm.count("tile-output")) tile_output = true;

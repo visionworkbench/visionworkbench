@@ -89,7 +89,6 @@ int main( int argc, char *argv[] ) {
   try {
     po::options_description desc("Options");
     desc.add_options()
-      ("help,h", "Display this help message")
       ("input-dir", po::value<std::string>(&mosaic_name), 
        "Explicitly specify the input directory")
       ("file-type", po::value<std::string>(&file_type)->default_value("png"), 
@@ -99,7 +98,7 @@ int main( int argc, char *argv[] ) {
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
       ("grayscale", "Process in grayscale only")
-      ("verbose", "Verbose output");
+      ("help,h", "Display this help message");
     po::positional_options_description p;
     p.add("input-dir", 1);
 
@@ -123,10 +122,6 @@ int main( int argc, char *argv[] ) {
       std::cout << "Error: Must specify one (and only one) input directory!" << std::endl;
       std::cout << desc << std::endl;
       return 1;
-    }
-
-    if( vm.count("verbose") ) {
-      set_debug_level(VerboseDebugMessage);
     }
 
     if( vm.count("draft") ) draft = true; else draft = false;

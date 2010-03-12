@@ -186,11 +186,8 @@ void save_legend() {
 
 int main( int argc, char *argv[] ) {
 
-  set_debug_level(VerboseDebugMessage-1);
-  
   po::options_description desc("Description: Produces a colorized image of a DEM \n\nUsage: colormap [options] <input file> \n\nOptions");
   desc.add_options()
-    ("help,h", "Display this help message")
     ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
     ("shaded-relief-file,s", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
@@ -200,7 +197,7 @@ int main( int argc, char *argv[] ) {
     ("moon", "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
     ("mars", "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
     ("legend", "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
-    ("verbose", "Verbose output");
+    ("help,h", "Display this help message");
   po::positional_options_description p;
   p.add("input-file", 1);
 
@@ -248,10 +245,6 @@ int main( int argc, char *argv[] ) {
 
   if( output_file_name == "" ) {
     output_file_name = prefix_from_filename(input_file_name) + "_CMAP.tif";
-  }
-
-  if( vm.count("verbose") ) {
-    set_debug_level(VerboseDebugMessage);
   }
 
   try {

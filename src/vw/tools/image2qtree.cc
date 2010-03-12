@@ -498,8 +498,6 @@ int main(int argc, char **argv) {
   po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral Options");
   general_options.add_options()
     ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
-    ("quiet,q", "Quiet output")
-    ("verbose,v", "Verbose output")
     ("help,h", "Display this help message");
 
   po::options_description input_options("Input Options");
@@ -608,16 +606,6 @@ int main(int argc, char **argv) {
 
   TerminalProgressCallback tpc( "tools.image2qtree", "");
   const ProgressCallback *progress = &tpc;
-
-  // Set a few booleans based on input values.
-  if(vm.count("verbose")) {
-    set_debug_level(VerboseDebugMessage);
-    progress = &ProgressCallback::dummy_instance();
-  }
-  else if(vm.count("quiet")) {
-    set_debug_level(WarningMessage);
-    progress = &ProgressCallback::dummy_instance();
-  }
 
   if(vm.count("terrain")) {
     terrain = true;

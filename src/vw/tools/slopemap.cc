@@ -307,8 +307,6 @@ void do_slopemap (const ::Options &opt) { //not sure what the arguments are
 
 int main( int argc, char *argv[] ) {
 
-  set_debug_level(InfoMessage);
-
   ::Options opt;
   std::string algorithm_string;
 
@@ -348,10 +346,6 @@ int main( int argc, char *argv[] ) {
   }
 
   if( opt.output_prefix == "" ) { opt.output_prefix=prefix_from_filename(opt.input_file_name); }
-
-  if( vm.count("verbose") ) {
-    set_debug_level(VerboseDebugMessage);
-  }
 
   //checking strings
 
