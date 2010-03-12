@@ -152,7 +152,7 @@ namespace platefile {
                              ResampleTransform( pow(2, level_difference), 
                                                 pow(2, level_difference) ),
                              ConstantEdgeExtension(), BilinearInterpolation() ),
-                  BBox2i(-bbox.min().x(), -bbox.min().y(), bbox.width(), bbox.height()));
+                  BBox2i(-bbox.min().x(), -bbox.min().y(), this->cols(), this->rows()));
     }
 
     template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
