@@ -187,6 +187,14 @@ public:
     TS_ASSERT( bool_trait<IsImageView>( cnv ) );
   }
 
+  void test_SeparableConvolutionView_Compound() {
+    ImageView<PixelGray<float32> > src(2,2); src(0,0)=1; src(1,0)=0.2; src(0,1)=0.3; src(1,1)=0.4;
+    std::vector<double> krn; krn.push_back(1); krn.push_back(-1);
+    SeparableConvolutionView<ImageView<PixelGray<float32> >,double,ZeroEdgeExtension> cnv( src, krn, krn );
+    PixelGray<float32> monkey = cnv(0,1);
+    TS_ASSERT( is_of_type<PixelGray<float32> >( cnv(0,0) ) );
+  }
+
   // This unit test catches a bug in the separable convolution code
   // that was causing the shift due to a crop operation to be applied
   // twice to image view operations that included two layers of edge
