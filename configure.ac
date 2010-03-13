@@ -419,7 +419,7 @@ if test $host_vendor = apple; then
 else
   AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
 fi
-AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS])
+AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [CARTOGRAPHY VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE(GUI,   [src/vw/gui],   [], no, [PLATE VW], [QT BOOST_PROGRAM_OPTIONS GL])
