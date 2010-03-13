@@ -49,7 +49,7 @@ namespace cartography {
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
     inline Helper( double const& x, double const& y ) const {
-      return m_dem.impl()(x,y).v();
+      return m_dem.impl()(x,y)[0];
     }
 
   public:
