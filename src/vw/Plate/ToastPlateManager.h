@@ -141,9 +141,11 @@ namespace platefile {
       } 
 
       // chop up the image into small chunks
-      std::vector<TileInfo> tiles = wwt_image_tiles( input_bbox, toast_tx, output_bbox, 
-                                                     m_resolution, 
-                                                     m_platefile->default_tile_size());
+      // Keep the "this"! It makes kml_image_tiles dependent on template type.
+      // http://www.parashift.com/c++-faq-lite/templates.html#faq-35.19
+      std::vector<TileInfo> tiles = this->wwt_image_tiles( input_bbox, toast_tx, output_bbox, 
+                                                           m_resolution, 
+                                                           m_platefile->default_tile_size());
 
       // Compute the affected tiles.
       BBox2i affected_tiles_bbox;

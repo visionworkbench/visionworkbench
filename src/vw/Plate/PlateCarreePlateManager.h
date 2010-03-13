@@ -36,6 +36,7 @@ namespace platefile {
   template <class PixelT>
   class PlateCarreePlateManager : public PlateManager {
 
+    //    PixelT m_fix;
     FifoWorkQueue m_queue;
 
   public:
@@ -147,8 +148,11 @@ namespace platefile {
       }
 
       // chop up the image into small chunks
-      std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, resolution,
-                                                     m_platefile->default_tile_size());
+      // Keep the "this"! It makes kml_image_tiles dependent on template type.
+      // http://www.parashift.com/c++-faq-lite/templates.html#faq-35.19
+      std::vector<TileInfo> tiles = this->kml_image_tiles( output_bbox,
+                                                           resolution,
+                                                           m_platefile->default_tile_size());
 
 
       // Compute the affected tiles.
