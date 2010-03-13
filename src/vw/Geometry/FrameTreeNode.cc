@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iterator>
 
+
 namespace vw
 {
 namespace geometry
@@ -56,7 +57,7 @@ namespace geometry
 
             assert (iter != nodes.end());
 
-            for (; iter != nodes.end(); ++iter) {
+            for (++iter; iter != nodes.end(); ++iter) {
               loc *= (*iter)->data().transform();
             }
           }
