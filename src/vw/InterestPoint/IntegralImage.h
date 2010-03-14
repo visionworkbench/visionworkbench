@@ -82,16 +82,16 @@ namespace ip {
                  Vector2i const& bottom_right ) {
     VW_DEBUG_ASSERT(top_left.x() > bottom_right.x() && top_left.y() > bottom_right.y(),
                     vw::ArgumentErr() << "Incorrect input for IntegralBlock.\n");
-    VW_DEBUG_ASSERT(top_left.x() < (unsigned)integral.cols(),
+    VW_DEBUG_ASSERT(top_left.x() < integral.cols(),
                     vw::ArgumentErr() << "x0 out of bounds. "<< integral.cols() <<" : "
                     << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(bottom_right.x() < (unsigned)integral.cols(),
+    VW_DEBUG_ASSERT(bottom_right.x() < integral.cols(),
                     vw::ArgumentErr() << "x1 out of bounds. "<< integral.cols() <<" : "
                     << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(top_left.y() < (unsigned)integral.rows(),
+    VW_DEBUG_ASSERT(top_left.y() < integral.rows(),
                     vw::ArgumentErr() << "y0 out of bounds. "<< integral.rows() <<" : "
                     << top_left << bottom_right << "\n");
-    VW_DEBUG_ASSERT(bottom_right.y() < (unsigned)integral.rows(),
+    VW_DEBUG_ASSERT(bottom_right.y() < integral.rows(),
                     vw::ArgumentErr() << "y1 out of bounds. "<< integral.rows() <<" : "
                     << top_left << bottom_right << "\n");
 

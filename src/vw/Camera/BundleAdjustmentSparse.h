@@ -150,7 +150,7 @@ namespace camera {
 
           unsigned j = measure_iter->image_id();
 
-          VW_DEBUG_ASSERT( j >=0 && j < this->m_model.num_cameras(),
+          VW_DEBUG_ASSERT( j < this->m_model.num_cameras(),
                            ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
 
           // Store jacobian values
