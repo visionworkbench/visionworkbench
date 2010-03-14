@@ -21,6 +21,7 @@
 #include <vw/Camera/BundleAdjustmentSparse.h>
 #include <vw/Camera/BundleAdjustmentRobustRef.h>
 #include <vw/Camera/BundleAdjustmentRobustSparse.h>
+#include <vw/Camera/BundleAdjustmentRobustSparseKGCP.h>
 
 // Reporter
 #include <vw/Camera/BundleAdjustReport.h>
