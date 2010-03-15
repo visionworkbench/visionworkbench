@@ -139,8 +139,6 @@ namespace camera {
       double t_dim_pixel = 2;
       // dimension of cameras
       double t_dim_cam   = 6;
-      // dimension of world points
-      double t_dim_pt    = 3;
 
       // Fletcher LM parameteres
       double dS = 0; //Predicted improvement for Fletcher modification

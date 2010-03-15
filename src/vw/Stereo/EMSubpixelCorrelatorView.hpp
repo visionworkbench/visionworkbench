@@ -353,9 +353,6 @@ namespace vw {
       bool save_states = false;
 
 
-      double debug_view_mag = 1; // not used
-
-
       // set up windows for debug views
 #ifdef USE_GRAPHICS
       ImageWindow r_window_p1_view = NULL;

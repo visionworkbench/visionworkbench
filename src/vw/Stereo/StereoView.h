@@ -47,7 +47,7 @@ namespace stereo {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int i, int j, int p=0 ) const {
+    inline result_type operator()( int i, int j, int /*p*/=0 ) const {
       double error;
       if ( is_valid(m_disparity_map(i,j)) ) {
         return m_stereo_model(Vector2( i, j ),
