@@ -14,6 +14,8 @@ using namespace vw::platefile;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/math/distributions/fisher_f.hpp>
+
 using namespace std;
 
 // --- Functions to Apply --------------------------
@@ -74,6 +76,127 @@ struct WeightedAverage : public ReduceBase<WeightedAverage> {
   }
 };
 
+// Robust Mean Implementation
+struct RobustMean : public ReduceBase<RobustMean> {
+private:
+  float smart_weighted_mean( vector<float> & weights,
+                             vector<float> const& samples,
+                             float const sign_level=0.3,
+                             float const learn_rate=0.1,
+                             float const error_tol=1e-5,
+                             int32 const max_iter=1000 ) {
+    namespace bm = boost::math;
+    switch ( samples.size() ) {
+    case 1:
+      weights[0]=1;
+      return samples[0];
+    case 2:
+      weights[0]=1;
+      weights[1]=1;
+      return (samples[0]+samples[1])/2;
+    default:
+
+      float weighted_mean;                                                                             std::vector<float> prev_wt = weights; // the previous weights
+      for (int i = 0; i < max_iter; ++i) {
+
+        // accumulation of all sums
+        float SW1 = 0;    // sum of weights
+        float SW2 = 0;    // sum of squared weights
+        float SWX = 0;    // weighted sum of samples
+        float WX2 = 0;    // weighted sum of squared data
+        for (size_t j = 0; j < samples.size(); ++j) {
+          SW1 += weights[j];
+          SW2 += weights[j]*weights[j];
+          SWX += weights[j]*samples[j];
+          WX2 += weights[j]*samples[j]*samples[j];
+        }
+
+        // weighted mean
+        weighted_mean = SWX/SW1;
+
+        float DN = SW1*WX2-SWX*SWX; // denominator
+        float v2 = SW1-SW2/SW1;     // the second degree of freedom
+        float sse_wt = 0;           // squared sum of weight differences
+        for (size_t j = 0; j < samples.size(); ++j) {
+
+          // F statistic
+          float DF = samples[j]-weighted_mean; // difference from the mean
+          float FS = (SW1*SW1-SW2)*DF*DF/DN;   // F statistic
+
+          // degree of freedom
+          float v1 = 1-weights[j]/SW1;         // the first degree of freedom
+
+          // p-value calculation
+          float p_value = 1;                   // p-value
+          if (SW1 > 1 && DN > 0) {             // basic assumptions
+            bm::fisher_f dist(v1,v2);
+            p_value = 1-cdf(dist, FS);
+          }
+
+          // gradient decent update
+          weights[j] += learn_rate*(p_value-sign_level);
+          if ( weights[j] < 0 ) weights[j] = 0; // 0.0 is lower bound of weight
+          if ( weights[j] > 1 ) weights[j] = 1; // 1.0 is upper bound of weight
+
+          // squared sum of weight differences
+          sse_wt += (weights[j]-prev_wt[j])*(weights[j]-prev_wt[j]);
+          prev_wt[j] = weights[j];              // update previous weight
+
+        }
+
+        // terminal condition: mean squared difference of weights is
+        // smaller than the tolerance
+        if ( sse_wt/weights.size() < error_tol ) break;
+      }
+
+      return  weighted_mean;
+    }
+  }
+
+public:
+  template <class PixelT>
+  inline void operator()( list<ImageView<PixelT> > const& input,
+                          list<TileHeader> const& /*input_header*/,
+                          ImageView<PixelT> & output ) {
+    uint8 num_v_channels = CompoundNumChannels<PixelT>::value-1;
+    output.set_size( input.front().cols(),
+                     input.front().rows() );
+
+    // Iterating through every pixel within a tile
+    for ( int32 ix = 0; ix < input.front().cols(); ix++ ) {
+      for ( int32 iy = 0; iy < input.front().rows(); iy++ ) {
+        vector<std::vector<float> > t_samples;
+        t_samples.resize(num_v_channels);
+        vector<float> t_weight;
+
+        // Seperating data out into vectors, only loading up data that
+        // is not empty.
+        typedef typename list<ImageView<PixelT> >::const_iterator iter_type;
+        for ( iter_type iter = input.begin();
+              iter != input.end(); iter++ ) {
+          if ( (*iter)(ix,iy)[num_v_channels] == 0 )
+            continue;
+          t_weight.push_back( float((*iter)(ix,iy)[num_v_channels])/float(ChannelRange<typename PixelChannelType<PixelT>::type>::max()) );
+          for ( uint8 iz = 0; iz < num_v_channels; iz++ )
+            t_samples[iz].push_back( (*iter)(ix,iy)[iz] );
+        }
+
+        if ( t_weight.size() == 0 ) {
+          output(ix,iy) = PixelT();
+          continue;
+        }
+
+        output(ix,iy)[num_v_channels] = ChannelRange<typename PixelChannelType<PixelT>::type>::max();
+        for ( uint8 iz = 0; iz < num_v_channels; iz++ ) {
+          vector<float> copy = t_weight;
+          output(ix,iy)[iz] = smart_weighted_mean( copy,
+                                                   t_samples[iz] );
+        }
+      } // iy - end loop
+    }   // ix - first loop
+  }     // end operator()
+};
+
 // --- Standard Terminal Argument ------------------
 
 // Standard Arguments
@@ -101,7 +224,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("start_t", po::value<int>(&opt.start_trans_id)->default_value(0), "Input starting transaction ID range.")
     ("end_t", po::value<int>(&opt.end_trans_id), "Input ending transaction ID range.")
     ("level,l", po::value<int>(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out and show the number of levels available.")
-    ("function,f", po::value<string>(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg ...]")
+    ("function,f", po::value<string>(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean]")
     ("transaction-id,t",po::value<int>(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
     ("help", "Display this help message");
 
@@ -261,6 +384,9 @@ int main( int argc, char *argv[] ) {
     if ( opt.function == "weightedavg" ) {
       WeightedAverage f;
       do_run<WeightedAverage>( opt, f );
+    } else if ( opt.function == "robustmean" ) {
+      RobustMean f;
+      do_run<RobustMean>( opt, f );
     } else {
       vw_throw( ArgumentErr() << "Unknown function, " << opt.function << "\n" );
     }
