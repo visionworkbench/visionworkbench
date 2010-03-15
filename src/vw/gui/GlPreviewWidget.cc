@@ -34,7 +34,7 @@
 using namespace vw;
 using namespace vw::gui;
 
-const std::string g_FRAGMENT_PROGRAM =  
+const std::string g_FRAGMENT_PROGRAM =
 "uniform sampler2D tex;                             \n"
 "                                                   \n"
 "uniform float gain;\n"
@@ -54,7 +54,15 @@ const std::string g_FRAGMENT_PROGRAM =
 "\n"
 "  vec4 src_tex = texture2D(tex,gl_TexCoord[0].st);\n"
 "  vec4 selected_tex = src_tex;\n"
-"  if (display_channel == 1) {\n"
+"  if ( hillshade_display > 0 ) {\n"
+"    alpha_selected = true; \n"
+"    vec4 right = texture2D(tex,gl_TexCoord[0].st+vec2(0.01,0.0));\n"
+"    vec4 bot   = texture2D(tex,gl_TexCoord[0].st+vec2(0.0,0.01));\n"
+"    vec3 normal = vec3(right.y - src_tex.y, bot.y - src_tex.y, 1000.0 );\n"
+"    vec3 light = vec3(0.5774,0.5774,0.5774);\n"
+"    float intense = dot(light,normalize(normal));\n"
+"    selected_tex = vec4(intense,intense,intense,src_tex[3]);\n"
+"  } else if (display_channel == 1) {\n"
 "    selected_tex = vec4(src_tex[0],src_tex[0],src_tex[0],1.0);\n"
 "  } else if (display_channel == 2) {\n"
 "    selected_tex = vec4(src_tex[1],src_tex[1],src_tex[1],1.0);\n"
@@ -74,7 +82,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "    }\n"
 "    gl_FragColor = final_tex; \n"
 "  } else {\n"
-"    gl_FragColor = selected_tex;    \n"
+"    gl_FragColor = selected_tex;\n"
 "  }\n"
 "}\n";
 
@@ -841,6 +849,10 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     break;
   case Qt::Key_C:  // Activate colormap
     m_use_colormap = !m_use_colormap;
+    update();
+    break;
+  case Qt::Key_H:  // Activate hillshade
+    m_hillshade_display = !m_hillshade_display;
     update();
     break;
   case Qt::Key_T:  // Activate tile boundaries
