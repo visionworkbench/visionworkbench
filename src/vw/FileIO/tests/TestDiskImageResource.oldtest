@@ -28,18 +28,18 @@ static void test_extension(string const& fn)
 
   try {
     write_image(fn, img1);
-    TS_ASSERT_THROWS_NOTHING(read_image(img2, fn));
+    read_image(img2, fn);
   } catch (vw::NoImplErr &e) {
     // this doesn't represent a test failure, just a lack of test coverage
     //TS_WARN(string("Failed to test ") + fn + " : " + e.what());
     return;
   }
 
-  TS_ASSERT_EQUALS(img1.cols()        , img2.cols());
-  TS_ASSERT_EQUALS(img1.rows()        , img2.rows());
-  TS_ASSERT_EQUALS(img1.planes()      , img2.planes());
-  TS_ASSERT_EQUALS(img1.channels()    , img2.channels());
-  TS_ASSERT_EQUALS(img1.channel_type(), img2.channel_type());
+  TSM_ASSERT_EQUALS(fn, img1.cols()        , img2.cols());
+  TSM_ASSERT_EQUALS(fn, img1.rows()        , img2.rows());
+  TSM_ASSERT_EQUALS(fn, img1.planes()      , img2.planes());
+  TSM_ASSERT_EQUALS(fn, img1.channels()    , img2.channels());
+  TSM_ASSERT_EQUALS(fn, img1.channel_type(), img2.channel_type());
 }
 
 class TestDiskImageResource : public CxxTest::TestSuite
@@ -51,16 +51,16 @@ public:
     const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
     exclude.insert(ex_list, ex_list+4);
 
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<float> >,   exclude));
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<uint8> >,   exclude));
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude));
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude));
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude));
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<float> >,   exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGB<uint8> >,   exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelRGBA<uint8> >,  exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGray<uint8> >,  exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<PixelGrayA<float> >, exclude);
 
     // there's no sane way to represent scalar images in ppm
     exclude.insert("ppm");
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude));
-    TS_ASSERT_THROWS_NOTHING(foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude));
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>,              exclude);
+    foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>,              exclude);
   }
 
   void test_read_image_rgb_png_uint8() {
