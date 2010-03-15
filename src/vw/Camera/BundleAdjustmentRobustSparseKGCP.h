@@ -505,8 +505,7 @@ namespace camera {
             inverse_cov = this->m_model.B_inverse_covariance(i);
             vector_point eps_b = this->m_model.B_initial(i)-new_b;
             double S_weight = transpose(eps_b)*inverse_cov*eps_b;
-            //new_robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
-	    new_robust_objective += S_weight;
+            new_robust_objective += S_weight;
           }
 
       //Fletcher modification
@@ -514,7 +513,10 @@ namespace camera {
       double SS = robust_objective;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
-      if (R>0){
+      abs_tol = vw::math::max(g) + vw::math::max(-g);
+      rel_tol = transpose(delta)*delta;
+
+      if ( R > 0 ) {
 
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
@@ -523,13 +525,6 @@ namespace camera {
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
                                          static_cast<vector_point>(delta_b(i)));
 
-        // Summarize the stats from this step in the iteration
-
-        //abs_tol = vw::math::max(g) + vw::math::max(-g);
-        abs_tol = 5;
-        //rel_tol = transpose(delta)*delta;
-        rel_tol = 5;
-
         if(this->m_control == 0){
           double temp = 1 - pow((2*R - 1),3);
           if (temp < 1.0/3.0)
@@ -537,27 +532,18 @@ namespace camera {
 
           this->m_lambda *= temp;
           this->m_nu = 2;
-
-        } else if (this->m_control == 1){
+        } else if (this->m_control == 1)
           this->m_lambda /= 10;
-        }
 
-        return rel_tol;
-
-      } else { // here we didn't make progress
-
-        abs_tol = vw::math::max(g) + vw::math::max(-g);
-        rel_tol = transpose(delta)*delta;
-
-        if (this->m_control == 0){
-          this->m_lambda *= this->m_nu;
-          this->m_nu*=2;
-        } else if (this->m_control == 1){
-          this->m_lambda *= 10;
-        }
-
-        return ScalarTypeLimits<double>::highest();
+        return SS-Splus;
       }
+
+      // Didn't make progress ...
+      if (this->m_control == 0){
+        this->m_lambda *= this->m_nu;
+        this->m_nu*=2;
+      } else if (this->m_control == 1)
+        this->m_lambda *= 10;
 
       return 0;
     }

@@ -447,10 +447,12 @@ namespace camera {
       // WARNING: will want to replace dS later
 
       double R = (SS - Splus)/dS; // Compute ratio
-      unsigned ret = 0;
 
-      if (R > 0){
-        ret = 1;
+      abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+      rel_tol = transpose(delta)*delta;
+
+      if (R > 0) {
+
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) -
                                          subvector(delta, num_cam_params*j, num_cam_params));
@@ -458,9 +460,6 @@ namespace camera {
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) -
                                          subvector(delta, num_cam_params*num_cameras + num_pt_params*i,
                                                    num_pt_params));
-
-        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
-        rel_tol = transpose(delta)*delta;
 
         if (this->m_control==0){
           double temp = 1 - pow((2*R - 1),3);
@@ -472,20 +471,17 @@ namespace camera {
         } else if (this->m_control == 1)
           this->m_lambda /= 10;
 
-        return rel_tol;
-
-      } else { // R <= 0
-
-        abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
-        rel_tol = transpose(delta)*delta;
-        if (this->m_control == 0){
-          this->m_lambda *= this->m_nu;
-          this->m_nu*=2;
-        } else if (this->m_control == 1)
-          this->m_lambda *= 10;
-
-        return ScalarTypeLimits<double>::highest();
+        return SS-Splus;
       }
+
+      // Didn't make progress ...
+      if (this->m_control == 0){
+        this->m_lambda *= this->m_nu;
+        this->m_nu*=2;
+      } else if (this->m_control == 1)
+        this->m_lambda *= 10;
+
+      return 0;
     }
 
   };

@@ -509,6 +509,9 @@ namespace camera {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
+      abs_tol = vw::math::max(g) + vw::math::max(-g);
+      rel_tol = transpose(delta)*delta;
+
       if ( R > 0 ) {
 
         time = new Timer("Setting Parameters",DebugMessage,"bundle_adjust");
@@ -520,10 +523,6 @@ namespace camera {
                                          static_cast<vector_point>(delta_b(i)));
         delete time;
 
-        // Summarize the stats from this step in the iteration
-        abs_tol = vw::math::max(g) + vw::math::max(-g);
-        rel_tol = transpose(delta)*delta;
-
         if ( this->m_control == 0 ) {
           double temp = 1 - pow((2*R - 1),3);
           if (temp < 1.0/3.0)
@@ -531,26 +530,18 @@ namespace camera {
 
           this->m_lambda *= temp;
           this->m_nu = 2;
-        } else if (this->m_control == 1) {
+        } else if (this->m_control == 1)
           this->m_lambda /= 10;
-        }
 
-        return rel_tol;
-
-      } else { // here we didn't make progress
-
-        abs_tol = vw::math::max(g) + vw::math::max(-g);
-        rel_tol = transpose(delta)*delta;
-
-        if ( this->m_control == 0 ) {
-          this->m_lambda *= this->m_nu;
-          this->m_nu*=2;
-        } else if ( this->m_control == 1 ) {
-          this->m_lambda *= 10;
-        }
-
-        return ScalarTypeLimits<double>::highest();
+        return SS-Splus;
       }
+
+      // Didn't make progress ...
+      if ( this->m_control == 0 ) {
+        this->m_lambda *= this->m_nu;
+        this->m_nu*=2;
+      } else if ( this->m_control == 1 )
+        this->m_lambda *= 10;
 
       return 0;
     }
