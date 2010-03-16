@@ -1,5 +1,0 @@
-#!/bin/sh
-
-g++ coregister.cc -o coregister reflectance.cc -I. -I/opt/local/include  -I /Users/anefian/opencv/cv/include -I /Users/anefian/opencv/cvaux/include -I /Users/anefian/opencv/cxcore/include -I /Users/anefian/opencv/otherlibs/highgui  -I/Users/anefian/projects/VisionWorkbench/build/include -L/opt/local/lib -L/Users/anefian/projects/VisionWorkbench/build/lib -lvwCore -lvwMath -lvwImage -lboost_thread-mt -lboost_program_options-mt -lboost_filesystem-mt -lboost_system-mt -lvwFileIO -lvwCartography -lcv -lcvaux -lcxcore -lhighgui -framework VecLib
-
-g++ reconstruct.cc albedo.cc exposure.cc shape.cc reflectance.cc shadow.cc shape_from_shading.cc index.cc camres.cc outlier.cc misc.cc weights.cc -o reconstruct -I.  -I/opt/local/include -I/opt/local/include/opencv -I/Users/anefian/projects/VisionWorkbench/build/include -L/opt/local/lib -L/Users/anefian/projects/VisionWorkbench/build/lib -lvwCore -lvwMath -lvwImage -lboost_thread-mt -lboost_program_options-mt -lboost_filesystem-mt -lboost_system-mt -lvwFileIO -lvwCartography -lcv -lcvaux -lcxcore -lhighgui -framework VecLib
