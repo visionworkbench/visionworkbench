@@ -36,6 +36,6 @@ using namespace vw::math;
 using namespace vw::cartography;
 
 #include <math.h>
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, GlobalParams globalParams);

@@ -23,9 +23,9 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reconstruct.h"
-#include "camres.h"
-#include "misc.h"
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Camres.h>
+#include <vw/Photometry/Misc.h>
 
 int save_exposure_images(std::vector<std::string> output_files, std::vector<std::string> input_files, Vector<float> image_response, time_t mt_image_response) {
 	int n=0;

@@ -12,7 +12,7 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 int save_exposure_images(std::vector<std::string> output_files, std::vector<std::string> input_files, 
 						 Vector<float> image_response, time_t mt_image_response);

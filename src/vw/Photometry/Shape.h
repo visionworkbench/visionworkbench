@@ -11,7 +11,7 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 
 

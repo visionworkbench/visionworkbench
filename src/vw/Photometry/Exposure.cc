@@ -19,10 +19,10 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reflectance.h"
-#include "reconstruct.h"
-#include "misc.h"
-#include "weights.h"
+#include <vw/Photometry/Reflectance.h>
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Misc.h>
+#include <vw/Photometry/Weights.h>
 
 //determines the best guess for the exposure time from the reflectance model
 //forces unit exposure time for the first frame

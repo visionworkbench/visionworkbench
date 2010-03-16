@@ -17,8 +17,8 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reconstruct.h"
-#include "misc.h"
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Misc.h>
 
 
 #include <string>

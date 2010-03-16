@@ -35,11 +35,11 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 
-#include "shape_from_shading.h"
-#include "shape.h"
-#include "albedo.h"
-#include "exposure.h"
-#include "reconstruct.h"
+#include <vw/Photometry/ShapeFromShading.h>
+#include <vw/Photometry/Shape.h>
+#include <vw/Photometry/Albedo.h>
+#include <vw/Photometry/Exposure.h>
+#include <vw/Photometry/Reconstruct.h>
 #include <math.h>
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3 

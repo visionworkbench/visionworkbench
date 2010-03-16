@@ -32,7 +32,7 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;

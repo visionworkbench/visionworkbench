@@ -12,7 +12,7 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 /// Erases a file suffix if one exists and returns the base string
 std::vector<std::string> derivative_filenames(std::vector<std::string> input_files, std::string const& suffix);

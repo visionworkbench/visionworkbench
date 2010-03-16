@@ -35,19 +35,19 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 
-#include "shape_from_shading.h"
-#include "shape.h"
-#include "albedo.h"
-#include "exposure.h"
-#include "reflectance.h"
-#include "reconstruct.h"
-#include "shadow.h"
-#include "index.h"
+#include <vw/Photometry/ShapeFromShading.h>
+#include <vw/Photometry/Shape.h>
+#include <vw/Photometry/Albedo.h>
+#include <vw/Photometry/Exposure.h>
+#include <vw/Photometry/Reflectance.h>
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Shadow.h>
+#include <vw/Photometry/Index.h>
 #include <math.h>
 //#include <cv.h>
 //#include <highgui.h>
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 
 /*

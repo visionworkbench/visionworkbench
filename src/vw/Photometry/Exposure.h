@@ -11,7 +11,7 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 //computes the exposure time from image, albedo and DEM
 void ComputeExposure(std::string curr_input_file, 
                      std::string curr_albedo_file,

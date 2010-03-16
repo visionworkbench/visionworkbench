@@ -30,10 +30,10 @@ using namespace std;
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reconstruct.h"
-#include "outlier.h"
-#include "exposure.h"
-#include "misc.h"
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Outlier.h>
+#include <vw/Photometry/Exposure.h>
+#include <vw/Photometry/Misc.h>
 
 void weight_images(std::vector<std::string> output_files, std::vector<std::string> input_files) {
 	for (unsigned i = 0; i < input_files.size(); ++i) {

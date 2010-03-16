@@ -12,6 +12,6 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 
 void index_images(std::vector<std::string> index_files, std::vector<std::string> input_files);

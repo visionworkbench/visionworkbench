@@ -11,7 +11,7 @@
 using namespace std;
 using namespace vw;
 
-#include "reconstruct.h"
+#include <vw/Photometry/Reconstruct.h>
 // Written by Taemin Kim
 float save_normal_images(std::vector<std::string> output_files, std::vector<std::string> realexp_files, 
 						 std::vector<std::string> realrad_files, char * exp_time_file);

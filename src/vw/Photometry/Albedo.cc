@@ -19,9 +19,9 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reconstruct.h"
-#include "reflectance.h"
-#include "weights.h"
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Reflectance.h>
+#include <vw/Photometry/Weights.h>
 
 
 float ComputeError_Albedo(float intensity, float T, float albedo, float reflectance, Vector3 xyz, Vector3 xyz_prior)

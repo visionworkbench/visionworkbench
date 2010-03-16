@@ -19,8 +19,8 @@
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-#include "reconstruct.h"
-#include "weights.h"
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Weights.h>
 
 
 float ComputeGradient_DEM(float intensity, float T, float albedo, Vector3 s, 
