@@ -44,8 +44,6 @@ using namespace vw::cartography;
 #include <vw/Photometry/Shadow.h>
 #include <vw/Photometry/Index.h>
 #include <math.h>
-//#include <cv.h>
-//#include <highgui.h>
 
 #include <vw/Photometry/Reconstruct.h>
 
