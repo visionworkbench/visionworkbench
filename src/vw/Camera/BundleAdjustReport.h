@@ -173,6 +173,9 @@ namespace camera {
           m_human_report << "\tCamera Constraint shut off!\n";
         if (!m_adjuster.gcp_constraint())
           m_human_report << "\tGCP Constraint shut off!\n";
+        m_human_both << "\nSolving for " << m_model.num_cameras()
+                     << " Cameras.\nTracking " << m_model.num_points()
+                     << " points.\n";
         m_human_both << "\nStarting Error:\n";
         generic_readings();
       }
