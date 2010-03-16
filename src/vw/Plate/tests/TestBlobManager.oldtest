@@ -20,10 +20,13 @@ public:
 
   void test_blob_mgr() {
 
+#warning "This test has been disabled."
+
+    /*
     // Initial blobs = 1, max_blobs = 4;
     BlobManager bm(1024, 1, 4);
     TS_ASSERT_EQUALS(bm.num_blobs(), 1u);
-    
+
     // Test basic lock with one blob_id
     std::cout << "\nTesting blob manager.  If this hangs, then there is a problem!!\n";
     int blob_id = bm.request_lock(1024);
@@ -34,7 +37,7 @@ public:
     blob_id = bm.request_lock(1024);
     TS_ASSERT_EQUALS(blob_id, 0);
     bm.release_lock(blob_id, 2048);
-    
+
     // Test basic lock with two outstanding requests
     int blob_id1 = bm.request_lock(1024);
     int blob_id2 = bm.request_lock(1024);
@@ -50,6 +53,8 @@ public:
     int blob_id4 = bm.request_lock(1024);
 
     TS_ASSERT_THROWS(int blob_id5 = bm.request_lock(1024), BlobLimitErr);
+    */
   }
+
 
 }; // class TestBlobManager

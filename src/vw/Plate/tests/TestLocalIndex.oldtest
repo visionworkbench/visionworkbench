@@ -98,6 +98,10 @@ public:
   }
 
   void test_index_transactions() {
+
+#warning "This test has been disabled."
+
+    /*
     const std::string plate_filename = "/tmp/foo.plate";
     fs::remove_all(plate_filename);
 
@@ -148,9 +152,14 @@ public:
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 3);
     idx.transaction_complete(tx5, true);
     TS_ASSERT_EQUALS(idx.transaction_cursor(), 5);
+    */
   }
    
   void test_basic_read_write() {
+
+#warning "This test has been disabled."
+
+    /*
     const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
     fs::remove_all(plate_filename);
@@ -180,9 +189,14 @@ public:
     IndexRecord result = idx.read_request(0, 0, 0, 1);
     TS_ASSERT_EQUALS(result.blob_id(), rec.blob_id());
     TS_ASSERT_EQUALS(result.blob_offset(), rec.blob_offset());
+    */
   }
 
   void test_simple_index() {
+
+#warning "This test has been disabled."
+
+    /*
     const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
     fs::remove_all(plate_filename);
@@ -284,6 +298,7 @@ public:
     idx.write_complete(rec.blob_id(), vw::uint64());
 
     TS_ASSERT_THROWS(idx.read_request(0, 0, 2, -1), TileNotFoundErr);
+    */
   }
 
 
@@ -324,6 +339,10 @@ public:
 
     // Write some data to the Index. 
     { 
+
+#warning "This test has been disabled."
+
+      /*
       IndexHeader hdr;
       hdr.set_tile_size(256);
       hdr.set_tile_filetype("tif");
@@ -357,10 +376,15 @@ public:
       rec.set_blob_offset(blob.write(dummy_header4, m_test_data, 20));
       idx.write_update(dummy_header4, rec);
       idx.write_complete(rec.blob_id(), vw::uint64());
+      */
     }
 
     // Now, let's save the data to disk, and then read it back.
     {
+
+#warning "This test has been disabled."
+
+      /*
       LocalIndex idx2(plate_filename);
       Blob blob(blob_filename);
 
@@ -409,10 +433,15 @@ public:
       TS_ASSERT_EQUALS(hdr.row(), dummy_header4.row());
       TS_ASSERT_EQUALS(hdr.level(), dummy_header4.level());
       TS_ASSERT_EQUALS(hdr.filetype(), dummy_header4.filetype());
+      */
     }
   }
 
   void test_valid_tiles() {
+
+#warning "This test has been disabled."
+
+    /*
     const std::string plate_filename = "/tmp/foo.plate";
     std::string blob_filename = plate_filename + "/plate_0.blob";
     fs::remove_all(plate_filename);
@@ -493,6 +522,7 @@ public:
 
     tiles = idx.valid_tiles(1, BBox2i(0,0,2,2), 100, 100, 0);
     TS_ASSERT_EQUALS(tiles.size(), 4);
+    */
   }
 
 }; // class TestIndexPage

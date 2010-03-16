@@ -7,7 +7,7 @@
 
 #include <cxxtest/TestSuite.h>
 
-#include <vw/Plate/Amqp.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/IndexService.h>
