@@ -1,0 +1,259 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+#include <gtest/gtest.h>
+
+#include <vw/Math/Vector.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Math/LinearAlgebra.h>
+#include <test/Helpers.h>
+
+#include <vw/Camera/PinholeModel.h>
+#include <vw/Camera/BundleAdjust.h>
+
+// This test is for non robust bundle adjustment.
+
+using namespace vw;
+using namespace vw::camera;
+
+// Building a Model
+// ------------------------
+class TestBAModel : public camera::BundleAdjustmentModelBase< TestBAModel, 6, 3 > {
+
+  typedef Vector<double, 6> camera_vector_t;
+  typedef Vector<double, 3> point_vector_t;
+
+  std::vector< boost::shared_ptr<PinholeModel> > m_cameras;
+  boost::shared_ptr<ControlNetwork> m_cnet;
+  std::vector<camera_vector_t> a, a_initial;
+  std::vector<point_vector_t> b, b_initial;
+  int m_num_pixel_observations;
+
+public:
+  // Constructor
+  TestBAModel( std::vector< boost::shared_ptr<PinholeModel> > const& cameras,
+               boost::shared_ptr<ControlNetwork> network ) : m_cameras(cameras), m_cnet(network) {
+
+    // Compute the number of observations from the bundle.
+    m_num_pixel_observations = 0;
+    for (unsigned i = 0; i < network->size(); ++i)
+      m_num_pixel_observations += (*network)[i].size();
+
+    // Setting up the A vectors
+    a.resize( m_cameras.size() );
+    a_initial.resize( a.size() );
+    for ( unsigned j = 0; j < m_cameras.size(); j++ ) {
+      a[j] = camera_vector_t();
+      a_initial[j] = a[j];
+    }
+
+    // Setting up the B vectors
+    b.resize( m_cnet->size() );
+    b_initial.resize( b.size() );
+    for ( unsigned i = 0; i < m_cnet->size(); i++ ) {
+      b[i] = (*m_cnet)[i].position();
+      b_initial[i] = b[i];
+    }
+
+  }
+
+  // -- REQUIRED STUFF ---------------------------------------
+
+  // Access to the cameras
+  Vector2 operator() ( unsigned /*i*/, unsigned j,
+                       camera_vector_t const& a_j,
+                       point_vector_t const& b_i ) const {
+    // Quaternions are the last half of this equation
+    AdjustedCameraModel cam( m_cameras[j],
+                             subvector(a_j,0,3),
+                             math::euler_to_quaternion(a_j[3],a_j[4],a_j[5],"xyz") );
+
+    return cam.point_to_pixel( b_i );
+  }
+
+  inline Matrix<double,6,6> A_inverse_covariance( unsigned /*j*/ ) {
+    Matrix<double,6,6> result;
+    result.set_identity();
+    result *= 2;
+    return result;
+  }
+  inline Matrix<double,3,3> B_inverse_covariance( unsigned /*i*/ ) {
+    Matrix<double,3,3> result;
+    result.set_identity();
+    result *= 2;
+    return result;
+  }
+
+  unsigned num_cameras() const { return a.size(); }
+  unsigned num_points() const { return b.size(); }
+  camera_vector_t A_parameters( int j ) const { return a[j]; }
+  point_vector_t B_parameters( int i ) const { return b[i]; }
+  camera_vector_t A_initial( int j ) const { return a_initial[j]; }
+  point_vector_t B_initial( int i ) const { return b_initial[i]; }
+  unsigned num_pixel_observations() const { return m_num_pixel_observations; }
+  void set_A_parameters(int j, camera_vector_t const& a_j) { a[j] = a_j; }
+  void set_B_parameters(int i, point_vector_t const& b_i) { b[i] = b_i; }
+
+  boost::shared_ptr<ControlNetwork> control_network(void) {
+    return m_cnet; }
+};
+
+// Generating Data
+// ----------------------
+
+// Function for surface
+inline float surface_func( float const& x, float const& y ) {
+  return 4*sin( 10*x*y );
+}
+
+// Generate Camera data
+inline void generate_camera_data( std::vector<boost::shared_ptr<PinholeModel> > & cameras,
+                                  boost::shared_ptr<ControlNetwork> & cnet ) {
+  Matrix<double,3,3> pose1 = math::euler_to_rotation_matrix(M_PI-0.01,0,
+                                                            0.212,"xyz");
+  Matrix<double,3,3> pose2 = math::euler_to_rotation_matrix(0.001,M_PI+0.003,
+                                                            0.7,"xyz");
+  Matrix<double,3,3> pose3 = math::euler_to_rotation_matrix(M_PI+0.002,0.01,
+                                                            1.4,"xyz");
+
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(-10,-12,20), pose1, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(-17,19,22), pose2, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(0,0,19), pose3, 500, 450, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(21,-17,21), pose1, 600, 600, 500, 500) ) );
+  cameras.push_back( boost::shared_ptr<PinholeModel>( new PinholeModel(Vector3(12,10,18), pose2, 600, 600, 500, 500) ) );
+
+  BBox2i image(0,0,1000,1000);
+  cnet = boost::shared_ptr<ControlNetwork>( new ControlNetwork("Test case:") );
+
+  for ( int i = -10; i <= 10; i += 2 ) {
+    for ( int j = -10; j <= 10; j += 3 ) {
+      Vector3 position(i,j,surface_func(i,j));
+
+      ControlPoint cpoint( ControlPoint::TiePoint );
+      cpoint.set_position( position );
+      cpoint.set_sigma( Vector3(2,2,2) );
+
+      for ( uint ci = 0; ci < cameras.size(); ci++ ) {
+        Vector2i pixel = cameras[ci]->point_to_pixel( position );
+        if ( image.contains(pixel) ) {
+          ControlMeasure cmeasure( pixel[0], pixel[1],
+                                   1, 1, ci );
+          cpoint.add_measure( cmeasure );
+        }
+      }
+      cnet->add_control_point( cpoint );
+    }
+  }
+}
+
+// Tests
+// -----------------------
+
+TEST( BundleAdjustment, RefNullResponse ) {
+  std::vector<boost::shared_ptr<PinholeModel> > cameras;
+  boost::shared_ptr<ControlNetwork> cnet;
+  generate_camera_data( cameras, cnet );
+
+  TestBAModel model( cameras, cnet );
+  BundleAdjustmentRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+  // Running BA
+  double abs_tol = 1e10, rel_tol = 1e10;
+  for ( uint i = 0; i < 5; i++ )
+    adjuster.update(abs_tol,rel_tol);
+
+  std::ostringstream ostr;
+
+  // Checking solutions
+  Vector<double,6> zero_vector;
+  for ( uint i = 0; i < 5; i++ ) {
+    Vector<double> solution = model.A_parameters(i);
+    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
+  }
+}
+
+TEST( BundleAdjustment, SparseNullResponse ) {
+  std::vector<boost::shared_ptr<PinholeModel> > cameras;
+  boost::shared_ptr<ControlNetwork> cnet;
+  generate_camera_data( cameras, cnet );
+
+  TestBAModel model( cameras, cnet );
+  BundleAdjustmentSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+  // Running BA
+  double abs_tol = 1e10, rel_tol = 1e10;
+  for ( uint i = 0; i < 5; i++ )
+    adjuster.update(abs_tol,rel_tol);
+
+  std::ostringstream ostr;
+
+  // Checking solutions
+  Vector<double,6> zero_vector;
+  for ( uint i = 0; i < 5; i++ ) {
+    Vector<double> solution = model.A_parameters(i);
+    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
+  }
+}
+
+TEST( BundleAdjustment, CompareSpareRef ) {
+  std::vector<boost::shared_ptr<PinholeModel> > cameras;
+  boost::shared_ptr<ControlNetwork> cnet;
+  generate_camera_data( cameras, cnet );
+
+  // Corrupting cameras a bit
+  cameras[0]->set_camera_center( cameras[0]->camera_center() +
+                                 Vector3(1.2,0,-1) );
+  cameras[1]->set_camera_center( cameras[1]->camera_center() +
+                                 Vector3(0.5,2,1) );
+  cameras[2]->set_camera_center( cameras[2]->camera_center() +
+                                 Vector3(-0.2,-1,3.0) );
+  cameras[3]->set_camera_pose( cameras[3]->camera_pose() +
+                               math::euler_to_quaternion(0.1,-0.1,0.0,"xyz") );
+  for ( uint i = 0; i < cnet->size(); i++ ) {
+    if ( i % 2 ) {
+      (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(-1,0.5,-0.7) );
+    } else {
+      (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(0.4,-1.5,0.3) );
+    }
+  }
+
+  std::vector<Vector<double> > ref_solution;
+  std::vector<Vector<double> > spr_solution;
+
+  { // Performing Ref BA
+    TestBAModel model( cameras, cnet );
+    BundleAdjustmentRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 10; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      ref_solution.push_back( model.A_parameters(i) );
+  }
+
+  { // Performing Sparse BA
+    TestBAModel model( cameras, cnet );
+    BundleAdjustmentSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 10; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      spr_solution.push_back( model.A_parameters(i) );
+  }
+
+  // Comparison
+  for ( uint i = 0; i < 5; i++ )
+    EXPECT_VECTOR_NEAR( ref_solution[i],
+                        spr_solution[i],
+                        1e-3 );
+}
