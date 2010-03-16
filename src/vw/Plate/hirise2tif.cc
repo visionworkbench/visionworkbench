@@ -566,7 +566,7 @@ int main( int argc, char *argv[] ) {
 
   std::cout << "Generating output GeoTIFF..." << std::endl;
   DiskImageResourceGDAL::Options gdal_options;
-  gdal_options["COMPRESS"] = "NONE";
+  gdal_options["COMPRESS"] = "LZW";
   gdal_options["BIGTIFF"]  = "YES";
 
   std::cout << "NAME: " << output_file_name << std::endl;
