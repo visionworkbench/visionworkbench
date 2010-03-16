@@ -30,7 +30,7 @@ endif
 AM_CPPFLAGS = @VW_CPPFLAGS@ @PKG_BOOST_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
-SUBDIRS = . tests
+SUBDIRS = .
 
 includedir = $(prefix)/include/vw/Photometry
 

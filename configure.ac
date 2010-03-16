@@ -519,7 +519,6 @@ AC_CONFIG_FILES([                       \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
   src/vw/Photometry/Makefile            \
-  src/vw/Photometry/tests/Makefile      \
   src/vw/Python/vw/Makefile             \
   src/vw/Python/Makefile                \
 ])
