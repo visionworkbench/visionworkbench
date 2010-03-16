@@ -43,28 +43,28 @@ void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, Globa
 {
   DiskImageView<PixelMask<PixelGray<uint8> > > originalImage(origfile);
   ImageView<PixelMask<PixelGray<uint8> > > shadowImage(originalImage.cols(), originalImage.rows());
-  
+
 
   GeoReference originalGeo;
   read_georeference(originalGeo, origfile);
- 
+
   for (unsigned k=0; k < originalImage.rows(); ++k) {
       for (unsigned l=0; l < originalImage.cols(); ++l) {
 
-	
+
          Vector2 sample_pix(l,k);
-        
+
          if ( is_valid(originalImage(l,k)) ) {
            shadowImage(l, k) = 0;
            if (originalImage(l, k) < globalParams.shadowThresh){
                shadowImage(l, k) = 255;
-	   }
-	 }
+           }
+         }
 
       }
     }
 
-    write_georeferenced_image(shadowMapFile, 
+    write_georeferenced_image(shadowMapFile,
                               channel_cast<uint8>(shadowImage),
                               originalGeo, TerminalProgressCallback("{Core}","Processing:"));
 }

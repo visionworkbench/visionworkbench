@@ -58,7 +58,7 @@ typedef struct modelParams{
 
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
-//must be part of shape.cc 
+//must be part of shape.cc
 Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
 float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
 

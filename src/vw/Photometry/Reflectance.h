@@ -46,11 +46,11 @@ float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal)
 float computeLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
 float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewerPos, Vector3 xyz,  Vector3 normal, float B_0, float L);
 float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz,  Vector3 normal);
-float computeImageReflectance(std::string input_img_file, std::string DEM_file, std::string shadow_file, 
-			      modelParams input_img_params, std::string output_img_file, GlobalParams globalParams);
+float computeImageReflectance(std::string input_img_file, std::string DEM_file, std::string shadow_file,
+                              modelParams input_img_params, std::string output_img_file, GlobalParams globalParams);
 float ComputeReflectance(Vector3 normal, Vector3 xyz, modelParams input_img_params, GlobalParams globalParams);
-float computeImageReflectance(std::string input_img_file, std::string overlap_img_file, 
-                              std::string DEM_file, 
-                              std::string shadow_file, std::string overlap_shadow_file, 
+float computeImageReflectance(std::string input_img_file, std::string overlap_img_file,
+                              std::string DEM_file,
+                              std::string shadow_file, std::string overlap_shadow_file,
                               modelParams input_img_params, modelParams overlap_img_params,
                               std::string output_img_file, GlobalParams globalParams);
