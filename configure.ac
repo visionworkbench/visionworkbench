@@ -418,6 +418,8 @@ AX_MODULE(CARTOGRAPHY,   [src/vw/Cartography],   [libvwCartography.la],   yes, [
 AX_MODULE(HDR,           [src/vw/HDR],           [libvwHDR.la],           yes, [CAMERA VW], [LAPACK])
 AX_MODULE(STEREO,        [src/vw/Stereo],        [libvwStereo.la],        yes, [CAMERA VW])
 AX_MODULE(GEOMETRY,      [src/vw/Geometry],      [libvwGeometry.la],      yes, [VW])
+AX_MODULE(PHOTOMETRY,    [src/vw/Photometry],    [],                       no, [CARTOGRAPHY VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS])
+
 if test $host_vendor = apple; then
   AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL],               [CG])
 else
@@ -445,6 +447,7 @@ AM_CONDITIONAL(MAKE_MODULE_HDR, [test "$MAKE_MODULE_HDR" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_PHOTOMETRY, [test "$MAKE_MODULE_PHOTOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS, [test "$MAKE_MODULE_TOOLS" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PLATE, [test "$MAKE_MODULE_PLATE" = "yes"])
@@ -515,6 +518,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Geometry/tests/Makefile        \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
+  src/vw/Photometry/Makefile            \
+  src/vw/Photometry/tests/Makefile      \
   src/vw/Python/vw/Makefile             \
   src/vw/Python/Makefile                \
 ])
