@@ -52,6 +52,7 @@ typedef struct modelParams{
   int *maxVerDistArray;
   int *horCenterLineDEM;
   int *maxVerDistArrayDEM;
+  string infoFilename;
   //Vector2 center2D;
   //float maxDistance;
 };
