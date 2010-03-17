@@ -27,9 +27,11 @@ using namespace boost;
 
 
 static bool cpu_is_big_endian() {
-  union { vw::uint16 number; vw::uint8 bytes[2]; } short_endian_check;
-  short_endian_check.number = 1;
-  return (vw::uint8(short_endian_check.number) == short_endian_check.bytes[1]);
+#if VW_BYTE_ORDER == VW_BIG_ENDIAN
+  return true;
+#else
+  return false;
+#endif
 }
 
 void vw::DiskImageResourcePDS::treat_invalid_data_as_alpha() {
