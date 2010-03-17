@@ -85,7 +85,7 @@ void InitImageMosaic(std::string input_img_file,
 
     printf("image mosaic initialization\n");
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -130,7 +130,7 @@ void InitImageMosaic(std::string input_img_file,
     }
 
     //update the initial image mosaic
-    for (i = 0; i < overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_files.size(); i++){
 
       printf("overlap_img = %s\n", overlap_img_files[i].c_str());
 
@@ -231,7 +231,7 @@ void InitImageMosaicByBlocks(std::string input_img_file,
     int horBlockSize = 500;
     int verBlockSize = 500;
 
-    unsigned i, j, l, k, lb, kb;
+    int i, l, k, lb, kb;
     int x,y;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
@@ -289,7 +289,7 @@ void InitImageMosaicByBlocks(std::string input_img_file,
          printf ("done with initialization block index %d %d\n", kb, lb);
 
          //update the initial image mosaic
-         for (i = 0; i < overlap_img_files.size(); i++){
+         for (i = 0; i < (int)overlap_img_files.size(); i++){
 
            printf("overlap_img = %s\n", overlap_img_files[i].c_str());
 
@@ -405,7 +405,7 @@ void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
 {
 
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -424,7 +424,7 @@ void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
 
     Vector3 xyz;
     Vector3 xyz_prior;
-    int x, y;
+    //int x, y;
 
 
     //initialize the nominator and denomitor images
@@ -467,7 +467,7 @@ void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
 
 
     //update from the overlapping images
-    for (i = 0; i < overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_files.size(); i++){
 
       printf("overlap_img = %s\n", overlap_img_files[i].c_str());
 
@@ -567,7 +567,7 @@ void InitAlbedoMap( std::string input_img_file,
                     GlobalParams globalParams)
 {
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -662,7 +662,7 @@ void InitAlbedoMap( std::string input_img_file,
     }
 
 
-    for (i = 0; i < overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_files.size(); i++){
 
       printf("overlap_img = %s\n", overlap_img_files[i].c_str());
 
@@ -819,7 +819,7 @@ void InitAlbedoMap( std::string input_img_file,
 
 
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -938,7 +938,7 @@ void InitAlbedoMap( std::string input_img_file,
 
 
     //update from the overlapping images
-    for (i = 0; i < overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_files.size(); i++){
 
       printf("overlap_img = %s\n", overlap_img_files[i].c_str());
       //printf("sun pos = %f %f %f\n",
@@ -1095,7 +1095,7 @@ void InitAlbedoMap( std::string input_img_file,
 
 
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -1198,7 +1198,7 @@ void InitAlbedoMap( std::string input_img_file,
 
 
     //update from the overlapping images
-    for (i = 0; i < overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_files.size(); i++){
 
       DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
       GeoReference overlap_geo;
