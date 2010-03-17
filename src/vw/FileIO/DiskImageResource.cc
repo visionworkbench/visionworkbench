@@ -125,73 +125,77 @@ static void register_default_file_types_impl() {
   if( ! open_map ) open_map = new OpenMapType();
   if( ! create_map ) create_map = new CreateMapType();
 
+// Let's cut the verbosity of this func just a bit.
+#define REGISTER(ext, driver) register_file_type_internal( ext, vw::DiskImageResource ## driver::type_static(), &vw::DiskImageResource ## driver::construct_open, &vw::DiskImageResource ## driver::construct_create );
+
   // Give GDAL precedence in reading PDS images when this is supported.
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".img") &&
       vw::DiskImageResourceGDAL::gdal_has_support(".pds") &&
       vw::DiskImageResourceGDAL::gdal_has_support(".lbl")) {
-    register_file_type_internal( ".img", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-    register_file_type_internal( ".pds", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-    register_file_type_internal( ".lbl", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+
+    REGISTER(".img", GDAL)
+    REGISTER(".pds", GDAL)
+    REGISTER(".lbl", GDAL)
   } else {
 #endif
-  register_file_type_internal( ".img", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
-  register_file_type_internal( ".pds", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
-  register_file_type_internal( ".lbl", vw::DiskImageResourcePDS::type_static(), &vw::DiskImageResourcePDS::construct_open, &vw::DiskImageResourcePDS::construct_create );
+  REGISTER(".img", PDS)
+  REGISTER(".pds", PDS)
+  REGISTER(".lbl", PDS)
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   }
 #endif
 
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-  register_file_type_internal( ".png", vw::DiskImageResourcePNG::type_static(), &vw::DiskImageResourcePNG::construct_open, &vw::DiskImageResourcePNG::construct_create );
+  REGISTER(".png", PNG)
 #elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".png"))
-    register_file_type_internal( ".png", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".png", GDAL)
   else
     vw::vw_throw(vw::IOErr() << "GDAL does not have PNG support.");
 #endif
 
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
-  register_file_type_internal( ".jpg", vw::DiskImageResourceJPEG::type_static(), &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
-  register_file_type_internal( ".jpeg", vw::DiskImageResourceJPEG::type_static(), &vw::DiskImageResourceJPEG::construct_open, &vw::DiskImageResourceJPEG::construct_create );
+  REGISTER(".jpg", JPEG)
+  REGISTER(".jpeg", JPEG)
 #elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".jpg"))
-    register_file_type_internal( ".jpg", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".jpg", GDAL)
   if (vw::DiskImageResourceGDAL::gdal_has_support(".jpeg"))
-    register_file_type_internal( ".jpeg", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".jpeg", GDAL)
 #endif
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".jp2"))
-    register_file_type_internal(".jp2", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".jp2", GDAL)
   if (vw::DiskImageResourceGDAL::gdal_has_support(".j2k"))
-    register_file_type_internal(".j2k", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".j2k", GDAL)
 #endif
 
 // This is a little hackish but it makes it so libtiff acts as a proper fallback
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".tif") && vw::DiskImageResourceGDAL::gdal_has_support(".tiff")) {
-    register_file_type_internal( ".tif", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
-    register_file_type_internal( ".tiff", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
+    REGISTER(".tif", GDAL)
+    REGISTER(".tiff", GDAL)
   } else {
 #endif
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
-    register_file_type_internal( ".tif", vw::DiskImageResourceTIFF::type_static(), &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
-    register_file_type_internal( ".tiff", vw::DiskImageResourceTIFF::type_static(), &vw::DiskImageResourceTIFF::construct_open, &vw::DiskImageResourceTIFF::construct_create );
+    REGISTER(".tif", TIFF)
+    REGISTER(".tiff", TIFF)
 #endif
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   }
 #endif
 
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  register_file_type_internal( ".exr", vw::DiskImageResourceOpenEXR::type_static(), &vw::DiskImageResourceOpenEXR::construct_open, &vw::DiskImageResourceOpenEXR::construct_create );
+  REGISTER(".exr", OpenEXR)
 #endif
 
   // Filetypes that are always supported
-  register_file_type_internal( ".pbm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
-  register_file_type_internal( ".pgm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
-  register_file_type_internal( ".ppm", vw::DiskImageResourcePBM::type_static(), &vw::DiskImageResourcePBM::construct_open, &vw::DiskImageResourcePBM::construct_create );
-
+  REGISTER(".pbm", PBM)
+  REGISTER(".pgm", PBM)
+  REGISTER(".ppm", PBM)
+#undef REGISTER
 }
 
 // Kill this function eventually.. it's marked as deprecated now.
