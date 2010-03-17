@@ -83,7 +83,6 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 // --------------------------------------------------------------------------
 
 int main( int argc, char *argv[] ) {
-
   std::string url;
   std::string tile_filetype;
   std::string output_mode;
@@ -101,7 +100,7 @@ int main( int argc, char *argv[] ) {
     ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
     ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
+    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
     ("debug", "Display helpful debugging messages.")
@@ -326,8 +325,8 @@ int main( int argc, char *argv[] ) {
       }
     }
 
-  }  catch (vw::Exception &e) {
-    vw_out(1) << "An error occured: " << e.what() << "\n";
+  } catch (vw::Exception &e) {
+    vw_out() << "A vision workbench error occured: " << e.what() << "\n";
     exit(1);
   }
   

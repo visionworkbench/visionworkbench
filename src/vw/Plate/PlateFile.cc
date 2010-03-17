@@ -64,6 +64,7 @@ PlateFile::PlateFile(std::string url) {
 PlateFile::PlateFile(std::string url, std::string type, std::string description,
                      int tile_size, std::string tile_filetype, 
                      PixelFormatEnum pixel_format, ChannelTypeEnum channel_type) {
+
   IndexHeader hdr;
   hdr.set_type(type);
   hdr.set_description(description);

@@ -363,6 +363,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       (*this)["Rotation"]           = "0";
       (*this)["Sparse"]             = "True";
       (*this)["ElevationModel"]     = "True";
+      (*this)["MeanRadius"]         = "3396000";
       (*this)["StockSet"]           = "False";
 
       (*this)["Name"]         = layer.description;

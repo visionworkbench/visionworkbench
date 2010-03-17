@@ -451,7 +451,6 @@ int main( int argc, char *argv[] ) {
 
   std::vector<std::string> image_files;
   std::string output_file_name;
-  std::string output_file_type;
   unsigned cache_size;
   std::string wkt_gray, wkt_color;
   std::string ullr_gray, ullr_color;
@@ -477,7 +476,6 @@ int main( int argc, char *argv[] ) {
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("file-type", po::value<std::string>(&output_file_type)->default_value("auto"), "Output file type")
     ("alpha", "Output an alpha-masked geotiff");
 
   po::options_description hidden_options("");
@@ -531,8 +529,14 @@ int main( int argc, char *argv[] ) {
   ImageComposite<PixelRGBA<uint8> > composite;
   GeoReference master_georef = georefs.gray_georef;
 
+  // Set options for JP2 decoding.
+  DiskImageResourceGDAL::Options jp2_options;
+  jp2_options["JP2KAK_THREADS"] = "2";
+  jp2_options["GDAL_CACHEMAX"]  = "512";
+
   // Add the grayscale image
   DiskImageResourceGDAL *gray_rsrc = new DiskImageResourceGDAL( image_files[0] );
+  
   composite.insert( per_pixel_filter( DiskImageView<uint16>( gray_rsrc ), 
                                       uint16_to_rgba8(stats.min_gray,stats.max_gray) ), 0, 0 );
 

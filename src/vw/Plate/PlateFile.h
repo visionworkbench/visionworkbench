@@ -275,7 +275,13 @@ namespace platefile {
     /// in the plate file.
     template <class ViewT>
     void write_update(ImageViewBase<ViewT> const& view, 
-                      int col, int row, int level, int transaction_id) {      
+                      int col, int row, int level, int transaction_id,
+                      std::string filetype = "") {
+
+      // Parse filetype argument.  An empty string means that we
+      // should use the default_file_type().
+      if (filetype.size() == 0)
+        filetype = this->default_file_type();
 
       if (!m_write_blob)
         vw_throw(BlobIoErr() << "Error issuing write_update().  No blob file open.  "
@@ -287,10 +293,24 @@ namespace platefile {
       write_header.set_row(row);
       write_header.set_level(level);
       write_header.set_transaction_id(transaction_id);
-      write_header.set_filetype(this->default_file_type());
+      
+      if (this->default_file_type() == "auto") {
+
+        // This specialization saves us TONS of space by storing
+        // opaque tiles as jpgs.  However it does come at a small cost
+        // of having to conduct this extra check to see if the tile is
+        // opaque or not.
+        if ( is_opaque(view.impl()) ) {
+          write_header.set_filetype("jpg");
+        } else {
+          write_header.set_filetype("png");
+        }
+      } else {
+        write_header.set_filetype(filetype);
+      }
 
       // 1. Write data to temporary file. 
-      TemporaryTileFile tile(view, this->default_file_type());
+      TemporaryTileFile tile(view, write_header.filetype());
       std::string tile_filename = tile.file_name();
 
       // 3. Create a blob and call write_from_file(filename).  Returns
@@ -310,8 +330,21 @@ namespace platefile {
     /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
     /// tile location. Use the filetype to identify the data later.
     void write_update(const boost::shared_array<uint8> data, uint64 data_size,
-                      int col, int row, int level, int transaction_id) {
+                      int col, int row, int level, int transaction_id,
+                      std::string filetype = "") {
 
+      // Parse filetype argument.  An empty string means that we
+      // should use the default_file_type().
+      if (filetype.size() == 0)
+        filetype = this->default_file_type();
+
+      // Quick sanity check.
+      if (filetype == "auto") {
+        vw_throw(NoImplErr() << "write_update() does not support writing un-typed " 
+                 << "data arrays for filetype \'auto\'.\n");
+      }
+
+        
       if (!m_write_blob)
         vw_throw(BlobIoErr() << "Error issuing write_update(). No blob file open. "
                              << "Are you sure your ran write_request()?");
@@ -322,7 +355,7 @@ namespace platefile {
       write_header.set_row(row);
       write_header.set_level(level);
       write_header.set_transaction_id(transaction_id);
-      write_header.set_filetype(this->default_file_type());
+      write_header.set_filetype(filetype);
 
       // 1. Write the data into the blob
       int64 blob_offset = m_write_blob->write(write_header, data, data_size);
