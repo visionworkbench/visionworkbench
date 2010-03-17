@@ -86,6 +86,11 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
 
 boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 
+  // Strip off any trailing slashes to make sure we aren't
+  // accidentally misparsing a platefile name.
+  if (filename[filename.size()-1] == '/')
+    filename.erase(filename.size()-1, 1);
+
   try {
 
     // If ends in .plate, then assume platefile.
