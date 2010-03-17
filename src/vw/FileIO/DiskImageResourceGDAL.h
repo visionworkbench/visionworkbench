@@ -71,7 +71,6 @@ namespace vw {
     DiskImageResourceGDAL( std::string const& filename )
       : DiskImageResource( filename )
     {
-      m_convert_jp2 = false;
       open( filename );
     }
 
@@ -80,7 +79,6 @@ namespace vw {
                            Vector2i block_size = Vector2i(-1,-1) )
       : DiskImageResource( filename )
     {
-      m_convert_jp2 = false;
       create( filename, format, block_size );
     }
 
@@ -90,7 +88,6 @@ namespace vw {
                            Options const& options )
       : DiskImageResource( filename )
     {
-      m_convert_jp2 = false;
       create( filename, format, block_size, options );
     }
 
@@ -166,7 +163,6 @@ namespace vw {
 
     std::string m_filename;
     boost::shared_ptr<GDALDataset> m_write_dataset_ptr;
-    bool m_convert_jp2;
     std::vector<PixelRGBA<uint8> > m_palette;
     Vector2i m_blocksize;
     Options m_options;

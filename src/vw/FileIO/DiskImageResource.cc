@@ -40,10 +40,6 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #endif
 
-#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1
-#include <vw/FileIO/DiskImageResourceJP2.h>
-#endif
-
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
 #include <vw/FileIO/DiskImageResourceTIFF.h>
 #endif
@@ -165,16 +161,7 @@ static void register_default_file_types_impl() {
     register_file_type_internal( ".jpeg", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
 #endif
 
-#if defined(VW_HAVE_PKG_JPEG2K) && VW_HAVE_PKG_JPEG2K==1 && 0
-  // A file with a .jp2 extension is a full fledged JPEG2000 image
-  // with acquisition metadata. A file with a .j2k extension has only
-  // the "raw" encoded image, with image encoding and size specified
-  // in a small header. A file with a .jpf extension is a full fledged
-  // JPEG2000 image with acquisition and (possibly) GML metadata.
-  register_file_type_internal(".jp2", vw::DiskImageResourceJP2::type_static(), &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create );
-  register_file_type_internal(".j2k", vw::DiskImageResourceJP2::type_static(), &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create );
-  register_file_type_internal(".jpf", vw::DiskImageResourceJP2::type_static(), &vw::DiskImageResourceJP2::construct_open, &vw::DiskImageResourceJP2::construct_create );
-#elif defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   if (vw::DiskImageResourceGDAL::gdal_has_support(".jp2"))
     register_file_type_internal(".jp2", vw::DiskImageResourceGDAL::type_static(), &vw::DiskImageResourceGDAL::construct_open, &vw::DiskImageResourceGDAL::construct_create );
   if (vw::DiskImageResourceGDAL::gdal_has_support(".j2k"))

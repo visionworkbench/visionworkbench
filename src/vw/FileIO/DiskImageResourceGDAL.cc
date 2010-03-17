@@ -22,7 +22,6 @@
 #ifdef VW_HAVE_PKG_GDAL
 
 #include <vw/FileIO/DiskImageResourceGDAL.h>
-#include <vw/FileIO/JP2.h>
 
 // GDAL Headers
 #include "gdal.h"
@@ -81,28 +80,6 @@ vw::Cache& vw::DiskImageResourceGDAL::gdal_cache() {
 
 namespace {
 
-  bool has_gmljp2(vw::JP2File* f)
-  {
-    vw::JP2Box* b;
-    vw::JP2Box* b2;
-    vw::JP2SuperBox::JP2BoxIterator pos;
-    bool retval = false;
-
-    while((b = f->find_box(0x61736F63 /*"asoc"*/, &pos)))
-    {
-      // GMLJP2 outer Association box must contain a Label box (with label "gml.data")
-      // as its first sub-box
-      b2 = ((vw::JP2SuperBox*)b)->find_box(0);
-      if(b2 && b2->box_type() == 0x6C626C20 /*"lbl\040"*/ && strncmp((char*)(((vw::JP2DataBox*)b2)->data()), "gml.data", ((vw::JP2DataBox*)b2)->bytes_dbox()) == 0)
-      {
-        retval = true;
-        break;
-      }
-    }
-
-    return retval;
-  }
-
   class GdalCloseDatasetDeleter {
   public:
     void operator()(GDALDataset *dataset) {
@@ -153,11 +130,6 @@ namespace vw {
     }
   };
 
-  static bool is_jp2( std::string const& filename ) {
-    std::string extension = boost::to_lower_copy(fs::extension( filename ) );
-    return (extension == ".jp2" || extension == ".j2k" || extension == ".j2c");
-  }
-
   // GDAL Support many file formats not specifically enabled here.
   // Consult http://www.remotesensing.org/gdal/formats_list.html for a
   // list of available formats.
@@ -176,10 +148,10 @@ namespace vw {
         retval.push_back("EHdr");
       else if (ext == ".jpg" || ext == ".jpeg")   // JPEG JFIF
         retval.push_back("JPEG");
-      else if (is_jp2(filename)) {                // JPEG 2000
-        retval.push_back("JP2KAK");               // Kakadu 
-        retval.push_back("JP2ECW");
-        retval.push_back("JPEG2000");
+      else if (ext == ".jp2" || ext == ".j2k" || ext == ".j2c") {
+        retval.push_back("JP2KAK");               // kakadu
+        retval.push_back("JPEG2000");             // jasper
+        retval.push_back("JP2ECW");               // ecwj2k
       }
       else if (ext == ".png")                     // PNG
         retval.push_back("PNG");
@@ -254,66 +226,6 @@ namespace vw {
     return bool(ret.first);
   }
 
-  static void convert_jp2(std::string const& filename) {
-    uint8* d_original = 0;
-    uint8* d_converted = 0;
-    FILE* fp;
-    uint64 nbytes_read, nbytes_converted, nbytes_written;
-    uint64 i;
-    int c;
-    bool has_gml;
-    int retval;
-
-    if (!(fp = fopen(filename.c_str(), "r")))
-      vw_throw( IOErr() << "convert_jp2: Failed to read " << filename << "." );
-
-    for (nbytes_read = 0; fgetc(fp) != EOF; nbytes_read++) /* seek */;
-    rewind(fp);
-
-    d_original = new uint8[nbytes_read];
-
-    for (i = 0; i < nbytes_read && (c = fgetc(fp)) != EOF; d_original[i] = (uint8)c, i++) /* seek */;
-
-    if (!(i == nbytes_read  && fgetc(fp) == EOF))
-      vw_throw( IOErr() << "convert_jp2: Size of " << filename << " has changed." );
-
-    fclose(fp);
-
-    JP2File f(d_original, nbytes_read);
-    //f.print();
-    has_gml = has_gmljp2(&f);
-    retval = f.convert_to_jpx();
-    if (retval != 0)
-      vw_throw( IOErr() << " ; ; ; ; convert_jp2: Failed to convert " << filename << " to jp2-compatible jpx." );
-    if (has_gml) {
-      JP2ReaderRequirementsList req;
-      // 67 is the (standard) requirement number for GMLJP2
-      req.push_back(std::make_pair(67, false));
-      retval = f.add_requirements(req);
-      if (retval != 0)
-        vw_throw( IOErr() << "convert_jp2: Failed to add GMLJP2 requirement to jp2-compatible jpx " << filename << "." );
-    }
-    //f.print();
-
-    nbytes_converted = f.bytes();
-    d_converted = new uint8[nbytes_converted];
-    f.serialize(d_converted);
-
-    if (!(fp = fopen(filename.c_str(), "w")))
-      vw_throw( IOErr() << "convert_jp2: Failed to open " << filename << " for writing." );
-
-    nbytes_written = fwrite(d_converted, 1, nbytes_converted, fp);
-
-    fclose(fp);
-
-    if (nbytes_written != nbytes_converted)
-      vw_throw( IOErr() << "convert_jp2: Failed to write " << filename << "." );
-
-    if (d_original)
-      delete[] d_original;
-    if (d_converted)
-      delete[] d_converted;
-  }
   /// \endcond
 
   boost::shared_ptr<GDALDataset> GdalDatasetGenerator::generate() const {
@@ -630,10 +542,6 @@ namespace vw {
       }
     }
 
-    //FIXME: if we allow partial writes, m_convert_jp2 should probably only be set on complete writes
-    if (is_jp2(m_filename))
-      m_convert_jp2 = true;
-
     delete [] reinterpret_cast<uint8*>(dst.data);
   }
 
@@ -655,8 +563,6 @@ namespace vw {
     if (m_write_dataset_ptr) {
       Mutex::Lock lock(*gdal_mutex_ptr);
       m_write_dataset_ptr.reset();
-      if (m_convert_jp2)
-        convert_jp2(m_filename);
     }
   }
 
