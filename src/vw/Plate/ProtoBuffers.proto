@@ -76,6 +76,7 @@ message IndexHeader {
 message IndexRecord {
   optional int32 blob_id = 1 [default = -1];
   optional uint64 blob_offset = 2 [default = 0];
+  optional string filetype = 3 [default = "png"];
 }
 
 // ----------------------------------------------------------------------
@@ -128,15 +129,6 @@ message IndexPageRequest {
   required int32 level = 5;
 }
 
-// message IndexMultiReadRequest {
-//   required int32 platefile_id = 1;
-//   required int32 col = 3;
-//   required int32 row = 4;
-//   required int32 level = 5;
-//   required int32 begin_transaction_id = 6;
-//   required int32 end_transaction_id = 7;
-// }
-
 message IndexWriteRequest {
   required int32 platefile_id = 1;
 }
@@ -177,18 +169,6 @@ message IndexTransactionFailed {
 message IndexTransactionCursorRequest {
   required int32 platefile_id = 1;
 }
-
-// message IndexValidTilesRequest {
-//   required int32 platefile_id = 1;
-//   required int32 level = 2;
-//   required int32 region_col = 3;
-//   required int32 region_row = 4;
-//   required int32 region_width = 5;
-//   required int32 region_height = 6;
-//   required int32 begin_transaction_id = 7;
-//   required int32 end_transaction_id = 8;
-//   required int32 min_num_matches = 9;
-// }
 
 message IndexNumLevelsRequest {
   required int32 platefile_id = 1;

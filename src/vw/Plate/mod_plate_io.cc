@@ -272,9 +272,9 @@ int handle_image(request_rec *r, const std::string& url) {
 
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
-  if (index.index->tile_filetype() == "png")
+  if (idx_record.filetype() == "png")
     r->content_type = "image/png";
-  else if (index.index->tile_filetype() == "jpg")
+  else if (idx_record.filetype() == "jpg")
     r->content_type = "image/jpg";
   else
     r->content_type = "application/octet-stream";

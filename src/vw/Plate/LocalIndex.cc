@@ -387,6 +387,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
        IndexRecord rec;
        rec.set_blob_id(current_blob_id);
        rec.set_blob_offset(iter.current_base_offset());
+       rec.set_filetype(hdr.filetype());
        this->write_update(hdr, rec);
        tpc.report_progress(float(iter.current_base_offset()) / blob.size());
        ++iter;

@@ -125,12 +125,11 @@ std::string vw::platefile::PlateFile::read_to_file(std::string const& base_name,
     blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
     read_blob.reset(new Blob(blob_filename.str(), true));
   }
-  TileHeader header = read_blob->read_header<TileHeader>(record.blob_offset());
   
   // 3. Choose a temporary filename and call BlobIO
   // read_as_file(filename, offset, size) [ offset, size from
   // IndexRecord ]
-  filename += "." + header.filetype();
+  filename += "." + record.filetype();
   read_blob->read_to_file(filename, record.blob_offset());
   
   // 4. Return the name of the file

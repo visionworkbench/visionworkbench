@@ -110,10 +110,10 @@ namespace platefile {
           // std::cout << "\t  Load " << tile_x << " " << tile_y 
           //           << " @ " << m_current_level << "\n";
           ImageView<PixelT> tile;
-          IndexRecord rec;
+          //          IndexRecord rec;
           try {
-            // transaction_id = -1 returns the latest tile available
-            rec = m_platefile->read_record(tile_x, tile_y, m_current_level, -1);
+            // // transaction_id = -1 returns the latest tile available
+            // rec = m_platefile->read_record(tile_x, tile_y, m_current_level, -1);
 
             // transaction_id = -1 returns the latest tile available
             m_platefile->read(tile, tile_x, tile_y, m_current_level, -1);

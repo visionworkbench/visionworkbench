@@ -63,7 +63,7 @@ struct Identity : public FilterBase<Identity> {
   inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
     ImageView<PixelRGBA<double> > tile;
     TileHeader hdr = input.read(tile, col, row, level, transaction_id);
-    output.write_update(tile, col, row, level, transaction_id, hdr.filetype());
+    output.write_update(tile, col, row, level, transaction_id);
   }
 };
 
