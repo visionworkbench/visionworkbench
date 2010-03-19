@@ -446,7 +446,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
     const std::string filetype = e.second.index->index_header().tile_filetype();
     // WWT can only handle jpg and png
-    if (filetype != "jpg" && filetype != "png") {
+    if (filetype != "jpg" && filetype != "png" && filetype != "auto") {
       vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
       continue;
     }
