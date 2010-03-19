@@ -80,6 +80,52 @@ public:
     // STEP 1 : PARSE RANGE STRING
 
     if (range_string.size() == 0) {
+      std::cout << "Error: you must specify pixel ranges using --range...\n";
+      exit(1);
+    }      
+
+    // If the range string is not empty, we attempt to parse the
+    // two parameters out from the range string.
+    tokenizer tokens(range_string, sep);
+    tokenizer::iterator tok_iter = tokens.begin();
+    
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    min_gray = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    max_gray = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    min_i = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    max_i = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    min_r = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+      
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    max_r = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    min_b = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+
+    if (tok_iter == tokens.end()) this->error("stats", range_string);
+    max_b = boost::lexical_cast<int>(*tok_iter);
+    ++tok_iter;
+      
+    if (tok_iter != tokens.end()) this->error("snapshot", range_string);
+
+    if (min_gray == min_i && min_gray == min_r && min_gray == min_b && 
+        max_gray == max_i && max_gray == max_r && max_gray == max_b) {
+      std::cout << "\t--> The color ranges all match, which is not likely.  Double checking the color ranges...\n";
 
       min_gray=1024;
       max_gray=0; 
@@ -90,7 +136,7 @@ public:
       min_b=1024;
       max_b=0;
 
-      int filter = 128;
+      int filter = 64;
       std::cout << "Scanning IRB image for autoscaling..." << std::endl;
       DiskImageView<PixelRGB<uint16> > image( color_filename );
       ImageView<PixelRGB<uint16> > stripe( image.cols(), filter );
@@ -159,46 +205,6 @@ public:
         progress.report_finished();
       }
 
-    } else {
-
-      // If the range string is not empty, we attempt to parse the
-      // two parameters out from the range string.
-      tokenizer tokens(range_string, sep);
-      tokenizer::iterator tok_iter = tokens.begin();
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      min_gray = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      max_gray = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      min_i = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      max_i = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      min_r = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      max_r = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      min_b = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens.end()) this->error("stats", range_string);
-      max_b = boost::lexical_cast<int>(*tok_iter);
-      ++tok_iter;
-      
-      if (tok_iter != tokens.end()) this->error("snapshot", range_string);
     }
   }
 };
@@ -481,7 +487,7 @@ int main( int argc, char *argv[] ) {
     ("stats", po::value<std::string>(&stats_string), 
      "where arg = <gray_min>,<gray_max>;<ir_min>,<ir_max>;<red_min>,<red_max>;<bg_min>,<bg_max>")
     ("rgb", "Compute \"true\" color using the RGB algorithm rather than the straight-forward IRB color scheme.")
-    ("uniform-stretch", "Stretch each color channel independently.")
+    ("uniform-stretch", "Stretch all color channels using the same range.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Cache size, in megabytes")
     ("gdal-cache", po::value<unsigned>(&gdal_cache_size)->default_value(256), "GDAL internal cache size, in megabytes")
     ("help", "Display this help message");
