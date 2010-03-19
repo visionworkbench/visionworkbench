@@ -241,90 +241,100 @@ public:
 
     // If we don't have a full complement of command line options,
     // then we fall back to reading georeferences from the files.
-    if (gray_wkt.size() == 0 && color_wkt.size() == 0 && 
-        gray_ullr.size() == 0 && color_ullr.size() == 0) {
-
-      std::cout << "\t--> Reading georeferences from input images.\n";
-
+    if (gray_wkt.size() == 0 && color_wkt.size() == 0) {
+      std::cout << "\t-->Reading georeferences from input images.\n";
       read_georeference( gray_georef, gray_filename );
       read_georeference( color_georef, color_filename );
-      
-    } else {
 
+    } else {
       std::cout << "\t--> Parsing georeferences from the command line.\n";
 
-      // Initialize the georef objects using the well known text
-      // strings supplied on the command line.
-      gray_georef.set_wkt(gray_wkt);
-      color_georef.set_wkt(color_wkt);
+      if (gray_wkt.size() != 0 && gray_ullr.size() != 0) {
+        
+        // Initialize the georef objects using the well known text
+        // strings supplied on the command line.
+        gray_georef.set_wkt(gray_wkt);
 
-      // Parse through the ullr strings to extract upper left and
-      // lower right coordinates.
-      Vector2 ul_gray, ul_color, lr_gray, lr_color;
+        // Parse through the ullr strings to extract upper left and
+        // lower right coordinates.
+        Vector2 ul_gray, lr_gray;
 
-      // Gray
-      tokenizer tokens_gray(gray_ullr, sep);
-      tokenizer::iterator tok_iter = tokens_gray.begin();
-      if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-      ul_gray[0] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
+        // Gray
+        tokenizer tokens_gray(gray_ullr, sep);
+        tokenizer::iterator tok_iter = tokens_gray.begin();
+        if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
+        ul_gray[0] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+        
+        if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
+        ul_gray[1] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
 
-      if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-      ul_gray[1] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
+        if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
+        lr_gray[0] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
 
-      if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-      lr_gray[0] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
+        if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
+        lr_gray[1] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+        if (tok_iter != tokens_gray.end()) this->error("ullr-gray", gray_ullr);
+        
+        // Now use the ullr bounds to construct proper georeference information.
+        Matrix3x3 T_gray;
+        T_gray.set_identity();
+        boost::shared_ptr<DiskImageResource> gray_rsrc(DiskImageResource::open(gray_filename));
 
-      if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-      lr_gray[1] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
-      if (tok_iter != tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-
-      // Color
-      tokenizer tokens_color(color_ullr, sep);
-      tok_iter = tokens_color.begin();
-      if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
-      ul_color[0] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
-      ul_color[1] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
-      lr_color[0] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
-
-      if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
-      lr_color[1] = boost::lexical_cast<float>(*tok_iter);
-      ++tok_iter;
-      if (tok_iter != tokens_color.end()) this->error("ullr-color", color_ullr);
-
-      // Now use the ullr bounds to construct proper georeference information.
-      Matrix3x3 T_gray, T_color;
-      T_gray.set_identity();
-      T_color.set_identity();
+        T_gray(0,0) = (lr_gray[0] - ul_gray[0]) / gray_rsrc->cols();
+        T_gray(1,1) = (lr_gray[1] - ul_gray[1]) / gray_rsrc->rows();
+        T_gray(0,2) = ul_gray[0];
+        T_gray(1,2) = ul_gray[1];
+        std::cout << "T_GRAY=" << T_gray << "\n";
       
-      boost::shared_ptr<DiskImageResource> gray_rsrc(DiskImageResource::open(gray_filename));
-      boost::shared_ptr<DiskImageResource> color_rsrc(DiskImageResource::open(color_filename));
+        gray_georef.set_transform(T_gray);
+      } 
 
-      T_gray(0,0) = (lr_gray[0] - ul_gray[0]) / gray_rsrc->cols();
-      T_gray(1,1) = (lr_gray[1] - ul_gray[1]) / gray_rsrc->rows();
-      T_gray(0,2) = ul_gray[0];
-      T_gray(1,2) = ul_gray[1];
+      if (color_wkt.size() != 0 && color_ullr.size() != 0) {
 
-      T_color(0,0) = (lr_color[0] - ul_color[0]) / color_rsrc->cols();
-      T_color(1,1) = (lr_color[1] - ul_color[1]) / color_rsrc->rows();
-      T_color(0,2) = ul_color[0];
-      T_color(1,2) = ul_color[1];
+        // Initialize the georef objects using the well known text
+        // strings supplied on the command line.
+        color_georef.set_wkt(color_wkt);
 
-      std::cout << "T_GRAY=" << T_gray << "\n";
-      std::cout << "T_COLOR=" << T_color << "\n";
-      
-      gray_georef.set_transform(T_gray);
-      color_georef.set_transform(T_color);
+        // Parse through the ullr strings to extract upper left and
+        // lower right coordinates.
+        Vector2 ul_color, lr_color;
+
+        // Color
+        tokenizer tokens_color(color_ullr, sep);
+        tokenizer::iterator tok_iter = tokens_color.begin();
+        if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
+        ul_color[0] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+
+        if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
+        ul_color[1] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+        
+        if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
+        lr_color[0] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+        
+        if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
+        lr_color[1] = boost::lexical_cast<float>(*tok_iter);
+        ++tok_iter;
+        if (tok_iter != tokens_color.end()) this->error("ullr-color", color_ullr);
+
+        Matrix3x3 T_color;
+        T_color.set_identity();
+        boost::shared_ptr<DiskImageResource> color_rsrc(DiskImageResource::open(color_filename));
+
+        T_color(0,0) = (lr_color[0] - ul_color[0]) / color_rsrc->cols();
+        T_color(1,1) = (lr_color[1] - ul_color[1]) / color_rsrc->rows();
+        T_color(0,2) = ul_color[0];
+        T_color(1,2) = ul_color[1];
+        std::cout << "T_COLOR=" << T_color << "\n";
+
+        color_georef.set_transform(T_color);
+      }
 
     }
   }
@@ -529,10 +539,12 @@ int main( int argc, char *argv[] ) {
   ImageComposite<PixelRGBA<uint8> > composite;
   GeoReference master_georef = georefs.gray_georef;
 
-  // Set options for JP2 decoding.
-  DiskImageResourceGDAL::Options jp2_options;
-  jp2_options["JP2KAK_THREADS"] = "2";
-  jp2_options["GDAL_CACHEMAX"]  = "512";
+  // Set options for JP2 decoding.  
+  //
+  // TODO: These aren't used yet. We don't have a way of passing them into GDAL...
+  // DiskImageResourceGDAL::Options jp2_options;
+  // jp2_options["JP2KAK_THREADS"] = "2";
+  // jp2_options["GDAL_CACHEMAX"]  = "512";
 
   // Add the grayscale image
   DiskImageResourceGDAL *gray_rsrc = new DiskImageResourceGDAL( image_files[0] );
@@ -541,18 +553,20 @@ int main( int argc, char *argv[] ) {
                                       uint16_to_rgba8(stats.min_gray,stats.max_gray) ), 0, 0 );
 
   // Add the color image
-  DiskImageResourceGDAL *color_rsrc = new DiskImageResourceGDAL( image_files[1] );
-  Vector2 position = 
-    master_georef.lonlat_to_pixel( georefs.color_georef.pixel_to_lonlat( Vector2() ) );
-  std::cout << "\t--> Adding color image at " << position << std::endl;
-  composite.insert( per_pixel_filter( DiskImageView<PixelRGB<uint16> >( color_rsrc ), 
-                                      rgb16_to_rgba8(stats.min_i,stats.max_i,
-                                                     stats.min_r,stats.max_r,
-                                                     stats.min_b,stats.max_b,
-                                                     vm.count("rgb"), 
-                                                     vm.count("uniform-stretch")) ),
-                    math::impl::_round(position.x()), math::impl::_round(position.y()) );
-  
+  if (image_files.size() == 2) {
+    DiskImageResourceGDAL *color_rsrc = new DiskImageResourceGDAL( image_files[1] );
+    Vector2 position = 
+      master_georef.lonlat_to_pixel( georefs.color_georef.pixel_to_lonlat( Vector2() ) );
+    std::cout << "\t--> Adding color image at " << position << std::endl;
+    composite.insert( per_pixel_filter( DiskImageView<PixelRGB<uint16> >( color_rsrc ), 
+                                        rgb16_to_rgba8(stats.min_i,stats.max_i,
+                                                       stats.min_r,stats.max_r,
+                                                       stats.min_b,stats.max_b,
+                                                       vm.count("rgb"), 
+                                                       vm.count("uniform-stretch")) ),
+                      math::impl::_round(position.x()), math::impl::_round(position.y()) );
+  }
+
   // Update the georeference
   BBox2i pixel_bbox = composite.bbox();
   Vector2 offset = master_georef.pixel_to_point( pixel_bbox.min() ) - master_georef.pixel_to_point( Vector2() );
