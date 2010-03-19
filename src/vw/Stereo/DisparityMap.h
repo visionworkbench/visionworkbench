@@ -15,6 +15,7 @@
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Transform.h>
 
 // For the PixelDisparity math.
 #include <boost/operators.hpp>
@@ -403,6 +404,27 @@ namespace stereo {
     return view_type(disparity_map.impl(),PixelIndexView(disparity_map),
                      func_type(transform));
   }
+
+  // DisparityTransform image transform functor
+  //
+  // Used to transform an image by using a disparity map
+  // Given Left I. + Disparity I. = Right Image :
+  // transform( right_image, DisparityTransform(DisparityI)) will
+  // project the right image into the perspective of the left.
+  class DisparityTransform : public TransformBase<DisparityTransform> {
+    ImageViewRef<PixelMask<Vector2f> > m_offset_image;
+  public:
+    template <class DisparityT>
+    DisparityTransform(ImageViewBase<DisparityT> const& offset_image)
+    : m_offset_image(offset_image.impl()) {}
+
+    inline Vector2 reverse(const Vector2 &p ) const {
+      PixelMask<Vector2f> offset =  m_offset_image(p.x(),p.y());
+      if ( !is_valid(offset) )
+        return Vector2(-1,p.y());
+      return p + offset.child();
+    }
+  };
 
 }}    // namespace vw::stereo
 
