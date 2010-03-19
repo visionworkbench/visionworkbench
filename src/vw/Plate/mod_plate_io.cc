@@ -275,7 +275,7 @@ int handle_image(request_rec *r, const std::string& url) {
   if (idx_record.filetype() == "png")
     r->content_type = "image/png";
   else if (idx_record.filetype() == "jpg")
-    r->content_type = "image/jpg";
+    r->content_type = "image/jpeg";
   else
     r->content_type = "application/octet-stream";
 
