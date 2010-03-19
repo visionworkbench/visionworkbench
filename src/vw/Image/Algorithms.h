@@ -302,12 +302,17 @@ namespace vw {
   void grassfire( ImageViewBase<SourceT> const& src, ImageView<OutputT>& dst ) {
     int32 cols = src.impl().cols(), rows = src.impl().rows();
     dst.set_size( cols, rows );
-    typename SourceT::pixel_accessor srow = src.impl().origin();
-    typename ImageView<OutputT>::pixel_accessor drow = dst.origin();
+
+    typedef typename SourceT::pixel_accessor src_accessor;
+    typedef typename ImageView<OutputT>::pixel_accessor dst_accessor;
+
+    src_accessor srow = src.impl().origin();
+    dst_accessor drow = dst.origin();
     const typename SourceT::pixel_type zero = typename SourceT::pixel_type();
+
     { // First row
-      typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<OutputT>::pixel_accessor dcol = drow;
+      src_accessor scol = srow;
+      dst_accessor dcol = drow;
       for( int32 col=cols; col; --col ) {
         *dcol = ((*scol)==zero)?0:1;
         scol.next_col();
@@ -317,15 +322,15 @@ namespace vw {
       drow.next_row();
     }
     for( int32 row=rows-2; row; --row ) {
-      typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<OutputT>::pixel_accessor dcol = drow;
+      src_accessor scol = srow;
+      dst_accessor dcol = drow;
       *dcol = ((*scol)==zero)?0:1;
       scol.next_col();
       dcol.next_col();
       for( int32 col=cols-2; col; --col ) {
         if( (*scol)==zero ) (*dcol)=0;
         else {
-          typename ImageView<OutputT>::pixel_accessor s1 = dcol, s2 = dcol;
+          dst_accessor s1 = dcol, s2 = dcol;
           (*dcol) = 1 + std::min( *(s1.prev_col()), *(s2.prev_row()) );
         }
         scol.next_col();
@@ -336,8 +341,8 @@ namespace vw {
       drow.next_row();
     }
     { // Last row
-      typename SourceT::pixel_accessor scol = srow;
-      typename ImageView<OutputT>::pixel_accessor dcol = drow;
+      src_accessor scol = srow;
+      dst_accessor dcol = drow;
       for( int32 col=cols; col; --col ) {
         *dcol = ((*scol)==zero)?0:1;
         scol.next_col();
@@ -346,10 +351,10 @@ namespace vw {
     }
     drow.advance(cols-2,-1);
     for( int32 row=rows-2; row; --row ) {
-      typename ImageView<OutputT>::pixel_accessor dcol = drow;
+      dst_accessor dcol = drow;
       for( int32 col=cols-2; col; --col ) {
         if( (*dcol)!=0 ) {
-          typename ImageView<OutputT>::pixel_accessor s1 = dcol, s2 = dcol;
+          dst_accessor s1 = dcol, s2 = dcol;
           int32 m = std::min( *(s1.next_col()), *(s2.next_row()) );
           if( m < *dcol ) *dcol = m + 1;
         }
@@ -436,7 +441,7 @@ namespace vw {
   }
 
   template <class ImageT>
-  bool is_opaque_helper( ImageT const& image, false_type ) {
+  bool is_opaque_helper( ImageT const& /*image*/, false_type ) {
     return true;
   }
 
