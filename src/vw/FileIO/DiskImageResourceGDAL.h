@@ -95,6 +95,7 @@ namespace vw {
 
     /// Returns the type of disk image resource.
     static std::string type_static() { return "GDAL"; }
+    static void set_gdal_cache_size(int size);  // Set GDAL cache size in bytes
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }

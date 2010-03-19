@@ -466,6 +466,11 @@ namespace vw {
     return Vector2i(cols(),rows());
   }
 
+  /// Set gdal's internal cache size (in bytes)
+  void DiskImageResourceGDAL::set_gdal_cache_size(int size) {
+    GDALSetCacheMax(size);
+  }
+
   /// Read the disk image into the given buffer.
   void DiskImageResourceGDAL::read( ImageBuffer const& dest, BBox2i const& bbox ) const
   {

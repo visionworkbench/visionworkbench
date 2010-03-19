@@ -462,6 +462,7 @@ int main( int argc, char *argv[] ) {
   std::vector<std::string> image_files;
   std::string output_file_name;
   unsigned cache_size;
+  unsigned gdal_cache_size;
   std::string wkt_gray, wkt_color;
   std::string ullr_gray, ullr_color;
   std::string stats_string;
@@ -481,7 +482,8 @@ int main( int argc, char *argv[] ) {
      "where arg = <gray_min>,<gray_max>;<ir_min>,<ir_max>;<red_min>,<red_max>;<bg_min>,<bg_max>")
     ("rgb", "Compute \"true\" color using the RGB algorithm rather than the straight-forward IRB color scheme.")
     ("uniform-stretch", "Stretch each color channel independently.")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(768), "Cache size, in megabytes")
+    ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Cache size, in megabytes")
+    ("gdal-cache", po::value<unsigned>(&gdal_cache_size)->default_value(256), "GDAL internal cache size, in megabytes")
     ("help", "Display this help message");
 
   po::options_description output_options("Output Options");
@@ -519,6 +521,7 @@ int main( int argc, char *argv[] ) {
   }
 
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
+  DiskImageResourceGDAL::set_gdal_cache_size( gdal_cache_size*1024*1024 );
 
   // Compute (or parse from input) image statistics.
   ImageStats stats(stats_string, image_files[0], image_files[1]);  
