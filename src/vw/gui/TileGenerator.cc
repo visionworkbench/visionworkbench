@@ -230,6 +230,16 @@ void HttpDownloadThread::response_header_received( const QHttpResponseHeader & r
   if (request_iter != m_requests.end()) {
     RequestBuffer &buf = request_iter->second;
     buf.status = resp.statusCode();
+    if (resp.contentType() == "image/png")
+      buf.file_type = "png";
+    else if (resp.contentType() == "image/jpeg" || resp.contentType() == "image/jpg")
+      buf.file_type = "jpg";
+    else if (resp.contentType() == "image/tiff" || resp.contentType() == "image/tif")
+      buf.file_type = "tif";
+    else if (resp.contentType() == "text/html") {
+      /* do nothing... this is likely a 404 */
+    } else 
+      vw_out() << "WARNING: unrecognized content-type: " << resp.contentType().toStdString() << "\n";
   }
 }
 
@@ -270,14 +280,21 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
     // Now read the image out of the tempfile and save the decoded
     // pixels as the result.
     try {
-      //      ImageView<PixelRGBA<uint8> > vw_image = temp_tile_file.read<PixelRGBA<uint8> >();
-      ImageView<PixelRGBA<int16> > vw_image = temp_tile_file.read<PixelRGBA<int16> >();
-      //      std::cout << "\t --> Center pixel value: " << vw_image(vw_image.cols()/2, 
-      //                                                             vw_image.rows()/2) << "\n";
-      buf.result = channel_cast_rescale<float>(vw_image);
+      boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(temp_filename));
+      if (rsrc->channel_type() == VW_CHANNEL_UINT8) {
+        ImageView<PixelRGBA<uint8> > vw_image = temp_tile_file.read<PixelRGBA<uint8> >();
+        buf.result = channel_cast_rescale<float>(vw_image);
+      } else if (rsrc->channel_type() == VW_CHANNEL_UINT16) {
+        ImageView<PixelRGBA<int16> > vw_image = temp_tile_file.read<PixelRGBA<int16> >();
+        buf.result = channel_cast_rescale<float>(vw_image);
+      } else {
+        vw_out() << "WARNING: Image contains unsupported channel type: " 
+                 << rsrc->channel_type() << "\n";
+      }
       buf.finished = true;
     } catch (IOErr &e) {
-      vw_out(WarningMessage) << "Could not read data from temporary file: " << temp_filename << "\n";
+      vw_out(WarningMessage) << "Could not read data from temporary file: " 
+                             << temp_filename << "\n";
       buf.finished = true;
     }
   }
