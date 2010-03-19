@@ -71,6 +71,7 @@ double lcc_parallel1, lcc_parallel2;
 int aspect_ratio=1;
 int global_resolution=0;
 bool terrain=false;
+float nodata=0;
 
 // For image stretching.
 float lo_value = ScalarTypeLimits<float>::highest();
@@ -283,6 +284,9 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   for(unsigned i=0; i < image_files.size(); i++) {
     GeoTransform geotx( georeferences[i], output_georef );
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( image_files[i] );
+
+    if( vm.count("nodata") )
+      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(nodata)));
 
     bool global = boost::trim_copy(georeferences[i].proj4_str())=="+proj=longlat" &&
       fabs(georeferences[i].lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
@@ -507,7 +511,8 @@ int main(int argc, char **argv) {
     ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
     ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
-    ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].");
+    ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].")
+    ("nodata",po::value<float>(&nodata),"Set the input's nodata value so that it will be transparent in output");
 
   po::options_description output_options("Output Options");
   output_options.add_options()
