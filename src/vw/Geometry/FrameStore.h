@@ -130,6 +130,7 @@ namespace geometry
 
     /**
      * Get cloned extras object from Frame.
+     * The caller takes ownership of the returned object.
      * If no extras are associated with the Frame, a NULL-pointer
      * is returned.
      * The frame argument is required to be non-NULL, otherwise
