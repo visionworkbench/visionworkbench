@@ -531,7 +531,7 @@ namespace math {
     }
 
     // Extract a percentile
-    ValT quantile( double const& arg ) {
+    ValT quantile( double const& arg ) const {
       double q;
 
       // if ( m_buffer_idx > 0 ) update();
@@ -549,9 +549,16 @@ namespace math {
     }
 
     // Predefine functions
-    ValT median( void ) { return quantile(0.5); }
-    ValT first_quartile( void ) { return quantile(0.25); }
-    ValT third_quartile( void ) { return quantile(0.75); }
+    ValT median( void ) const { return quantile(0.5); }
+    ValT first_quartile( void ) const { return quantile(0.25); }
+    ValT third_quartile( void ) const { return quantile(0.75); }
+    ValT approximate_mean( void ) const {
+      ValT mean = 0;
+      for ( float i = 0.1; i <= 1.01; i+=0.1 ) {
+        mean += ( quantile(i) + quantile(i-0.1) ) / 2.0;
+      }
+      return mean / 10.0;
+    }
   };
 
 } // namespace math

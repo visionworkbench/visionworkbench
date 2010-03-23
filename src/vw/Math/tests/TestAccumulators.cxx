@@ -46,6 +46,7 @@ TEST(Accumulators, CDF_triangular) {
   EXPECT_NEAR( cdf.median(), 51.833, 1.0 );
   EXPECT_NEAR( cdf.first_quartile(), 39.6, 2.0 );
   EXPECT_NEAR( cdf.third_quartile(), 61.3, 2.0 );
+  EXPECT_NEAR( cdf.approximate_mean(), 50, 1.0 );
 }
 
 TEST(Accumulators, Median) {
