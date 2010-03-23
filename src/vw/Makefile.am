@@ -71,6 +71,7 @@ endif
 
 if MAKE_MODULE_PHOTOMETRY
 photometry_subdirs = Photometry
+photometry_headers = Photometry.h
 endif
 
 if MAKE_MODULE_PLATE
@@ -93,7 +94,7 @@ include_HEADERS = $(core_headers) $(math_headers) $(image_headers)	\
 	$(fileio_headers) $(camera_headers) $(mosaic_headers)		\
 	$(stereo_headers) $(cartography_headers) $(gpu_headers)		\
 	$(interestpoint_headers) $(hdr_headers) $(geometry_headers)	\
-	vw.h config.h
+	$(photometry_headers) vw.h config.h
 
 SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)		\
 	$(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)		\
