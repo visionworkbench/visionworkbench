@@ -49,7 +49,7 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
               std::vector<std::string> overlap_DEM_files,  std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
 {
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
     GeoReference input_DEM_geo;
@@ -62,13 +62,13 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
     ImageView<PixelGray<float> > norm(input_DEM_image.cols(), input_DEM_image.rows());
 
     float avgStdDevDEM = 0.0;
-    int numTiles = overlap_img_params.size()+1;
+    //int numTiles = overlap_img_params.size()+1;
     Vector<float, 5> meanDEMOffset;
     Vector<float, 5> numDEMSamples;
 
     //initialize  mean_DEM-image, var2_DEM_image and numSamples
-    for (k = 0 ; k < input_DEM_image.rows(); ++k) {
-        for (l = 0; l < input_DEM_image.cols(); ++l) {
+    for (k = 0 ; k < (int)input_DEM_image.rows(); ++k) {
+      for (l = 0; l < (int)input_DEM_image.cols(); ++l) {
 
            mean_DEM_image(l, k) = -10000;
            numSamples(l, k) = 0;
@@ -101,7 +101,7 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
     }
 
 
-    for (i = 0; i < overlap_DEM_files.size(); i++){
+    for (i = 0; i < (int)overlap_DEM_files.size(); i++){
 
       printf("DEM = %s\n", overlap_DEM_files[i].c_str());
 
@@ -218,7 +218,7 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
                         GlobalParams globalParams)
 {
 
-    unsigned i, l, k;
+    int i, l, k;
 
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
     GeoReference input_DEM_geo;
@@ -233,8 +233,8 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
     float avgStdDevDEM;
 
     //initialize  mean_DEM-image, var2_DEM_image and numSamples
-    for (k = 0 ; k < input_DEM_image.rows(); ++k) {
-        for (l = 0; l < input_DEM_image.cols(); ++l) {
+    for (k = 0 ; k < (int)input_DEM_image.rows(); ++k) {
+      for (l = 0; l < (int)input_DEM_image.cols(); ++l) {
 
            mean_DEM_image(l, k) = -10000;
            numSamples(l, k) = 0;
@@ -262,7 +262,7 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
     }
 
 
-    for (i = 0; i < overlap_DEM_files.size(); i++){
+    for (i = 0; i < (int)overlap_DEM_files.size(); i++){
 
       printf("DEM = %s\n", overlap_DEM_files[i].c_str());
 
@@ -394,8 +394,8 @@ void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
 
     ImageView<PixelGray<float> > out_dem_image(prior_dem_image.cols(), prior_dem_image.rows());
 
-    for (unsigned k=0; k < curr_image.rows(); ++k) {
-      for (unsigned l=0; l < curr_image.cols(); ++l) {
+    for (int k=0; k < (int)curr_image.rows(); ++k) {
+      for (int l=0; l < (int)curr_image.cols(); ++l) {
 
          Vector2 curr_sample_pix(l,k);
 

@@ -103,7 +103,7 @@ std ::vector<Vector3> ReadSunPosition(char *filename, int numEntries)
   fp = fopen(filename, "r");
   float x, y, z;
 
-  for (unsigned int i = 0; i < numEntries; i++){
+  for (int i = 0; i < numEntries; i++){
        char *imgFilename = new char[500];
        fscanf(fp, "%s %f %f %f\n", imgFilename, &x, &y, &z);
        printf("%s %f %f %f\n", imgFilename, x, y, z);
@@ -129,7 +129,7 @@ std ::vector<Vector3> ReadSpacecraftPosition(char *filename, int numEntries)
   fp = fopen(filename, "r");
   float x, y, z;
 
-  for (unsigned int i = 0; i < numEntries; i++){
+  for (int i = 0; i < numEntries; i++){
        fscanf(fp, "%s %f %f %f\n", filename, &x, &y, &z);
        spacecraftPositions[i][0] = x;
        spacecraftPositions[i][1] = y;
@@ -138,6 +138,7 @@ std ::vector<Vector3> ReadSpacecraftPosition(char *filename, int numEntries)
   fclose(fp);
   return spacecraftPositions;
 }
+
 /*
 //computes the cosine of the light direction and the normal to the Moon
 //Vector3  sunpos: the 3D coordinates of the Sun relative to the center of the Moon
@@ -446,7 +447,7 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
                               std::string shadow_file, modelParams input_img_params,
                               std::string output_img_file, GlobalParams globalParams)
 {
-   unsigned i, l, k;
+   int l, k;
    int count = 0;
    float avg_reflectance = 0.0;
 
@@ -474,8 +475,8 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
     //interpolate(image, BilinearInterpolation());
 
     //initialize the nominator and denomitor images
-    for (k = 0 ; k < input_img.rows(); ++k) {
-        for (l = 0; l < input_img.cols(); ++l) {
+    for (k = 0 ; k < (int)input_img.rows(); ++k) {
+      for (l = 0; l < (int)input_img.cols(); ++l) {
 
            Vector2 input_image_pix(l,k);
 
@@ -558,7 +559,7 @@ float computeImageReflectance(std::string input_img_file, std::string overlap_im
                               modelParams input_img_params, modelParams overlap_img_params,
                               std::string output_img_file, GlobalParams globalParams)
 {
-   unsigned i, l, k;
+   int l, k;
    int count = 0;
    float avg_reflectance = 0.0;
    float overlap_avg_reflectance = 0.0;
@@ -603,8 +604,8 @@ float computeImageReflectance(std::string input_img_file, std::string overlap_im
     //end
 
     //initialize the nominator and denomitor images
-    for (k = 0 ; k < input_img.rows(); ++k) {
-        for (l = 0; l < input_img.cols(); ++l) {
+    for (k = 0 ; k < (int)input_img.rows(); ++k) {
+      for (l = 0; l < (int)input_img.cols(); ++l) {
 
            Vector2 input_image_pix(l,k);
 

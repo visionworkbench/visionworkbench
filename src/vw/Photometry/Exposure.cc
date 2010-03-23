@@ -78,9 +78,9 @@ std ::vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries
   std::vector<float> exposureTimeVector(numEntries);
 
   fp = fopen(exposureFilename.c_str(), "r");
-  float x, y, z;
 
-  for (unsigned int i = 0; i < numEntries; i++){
+
+  for (int i = 0; i < numEntries; i++){
        char *filename = new char[500];
        float exposureTime;
        fscanf(fp, "%s %f\n", filename, &exposureTime);
@@ -115,8 +115,8 @@ void ComputeExposure(std::string curr_input_file,
     float delta_nominator = 0.0;
     float delta_denominator = 0.0;
 
-    for (unsigned k=0; k < curr_image.rows(); ++k) {
-      for (unsigned l=0; l < curr_image.cols(); ++l) {
+    for (int k=0; k < (int)curr_image.rows(); ++k) {
+      for (int l=0; l < (int)curr_image.cols(); ++l) {
 
          Vector2 curr_sample_pix(l,k);
 
@@ -168,8 +168,8 @@ void ComputeExposure(std::string curr_input_file,
     float delta_nominator = 0.0;
     float delta_denominator = 0.0;
 
-    for (unsigned k=0; k < curr_image.rows(); ++k) {
-      for (unsigned l=0; l < curr_image.cols(); ++l) {
+    for (int k=0; k < (int)curr_image.rows(); ++k) {
+      for (int l=0; l < (int)curr_image.cols(); ++l) {
 
          Vector2 curr_sample_pix(l,k);
 
@@ -245,7 +245,7 @@ void ComputeExposure(std::string curr_input_file,
 }
 
 
-
+/*
 //--------------------------------------------------------------------------------------------------------------------------------------------------------
 // Functions by Taemin Kim
 // Written by Taemin Kim
@@ -268,8 +268,8 @@ Vector<float> save_exposure_times(char * output_file, std::vector<std::string> r
                 DiskImageView<PixelMask<PixelGray<float> > > tm_response(response_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > tm_radiance(radiance_files[i]);
                 float sum_radiance = 0, sum_response = 0;
-                for (unsigned x=0; x<tm_response.cols(); ++x)
-                        for (unsigned y=0; y<tm_response.rows(); ++y)
+                for (int x=0; x<(int)tm_response.cols(); ++x)
+		  for (int y=0; y<(int)tm_response.rows(); ++y)
                                 if ( is_valid(tm_response(x,y)) ) {
                                         sum_response += tm_response(x,y)/inverse_weight(index(x,y));
                                         sum_radiance += tm_radiance(x,y)/inverse_weight(index(x,y));
@@ -372,5 +372,5 @@ float normalize_exposures(std::vector<std::string> input_files, char * exp_time_
 
         return scaling_factor;
 }
-
+*/
 

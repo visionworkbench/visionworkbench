@@ -103,12 +103,12 @@ void save_binary_file(T * ptr, size_t count, const char * filename) {
 Vector<uint8> load_inverse_weight(char * input_file, int num) {
         Vector<uint8> inverse_weight(num);
         float buffer[SIZE_OF_BUFFER];
-        FILE *fp;
+        //FILE *fp;
 
         struct stat file_stat;
         if ( stat(input_file, &file_stat) ) {
                 std::cout << "Generate inverse weight to  " << input_file << std::endl;
-                for (unsigned i = 0; i < num; ++i) {
+                for (int i = 0; i < num; ++i) {
                         inverse_weight(i) = 1;
                         for (unsigned j = 0; j < 8; ++j)
                                 inverse_weight(i) += (0x01 & (i>>j));
@@ -121,7 +121,7 @@ Vector<uint8> load_inverse_weight(char * input_file, int num) {
         } else {
                 std::cout << "Reading inverse weight from " << input_file << std::endl;
                 load_binary_file(buffer, num, input_file);
-                for (unsigned i = 0; i < num; ++i) inverse_weight(i) = buffer[i];
+                for (int i = 0; i < num; ++i) inverse_weight(i) = buffer[i];
                 Vector<int> tmp = inverse_weight;
                 std::cout << tmp << std::endl;
         }
@@ -159,8 +159,8 @@ ImageView<PixelMask<PixelGray<float> > > interpolate_image(std::string input_fil
         ImageView<PixelMask<PixelGray<float> > > tm_image(index.cols(), index.rows());
         ImageViewRef<PixelMask<PixelGray<float> > > interp = interpolate(image, BilinearInterpolation());
 
-        for (unsigned x=0; x<index.cols(); ++x)
-                for (unsigned y=0; y<index.rows(); ++y)
+        for (int x=0; x<(int)index.cols(); ++x)
+	  for (int y=0; y<(int)index.rows(); ++y)
                         if ( is_valid(index(x,y)) && ( uint8(index(x,y)) & mask )) {
                                 Vector2 subpix = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(Vector2(x,y)));
                                 tm_image(x,y) = interp(subpix[0], subpix[1]);
@@ -181,8 +181,8 @@ Vector<float> save_image_histograms(char * output_file, std::vector<std::string>
                 DiskImageView<PixelMask<PixelGray<uint8> > > image(input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > index(index_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int x=0; x<(int)image.cols(); ++x)
+		  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) image_histogram(image(x,y)) += weight(x,y)/inverse_weight(index(x,y));
 
                 for (unsigned k = 0; k < DYNAMIC_RANGE; ++k) buffer[k] = image_histogram(k);
@@ -252,8 +252,8 @@ Matrix<unsigned long> save_residual_histogram(char * output_file, std::vector<st
         for (unsigned i = 0; i < input_files.size(); ++i) {
                 DiskImageView<PixelMask<PixelGray<float> > > image(input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > radiance(uintrad_files[i]);
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int x=0; x<(int)image.cols(); ++x)
+		  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         radiance_estimate = uint8(image(x,y)/exposure_times[i]);
                                         ++histo(radiance(x,y),radiance_estimate);
@@ -281,8 +281,8 @@ Matrix<unsigned long> save_residual_histogram(char * output_file, std::vector<st
                 DiskImageView<PixelMask<PixelGray<float> > > image(input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > radiance(uintrad_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int x=0; x<(int)image.cols(); ++x)
+		     for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         radiance_estimate = uint8(image(x,y)/exposure_times[i]);
                                         histo(radiance(x,y),radiance_estimate) += weight(x,y);
@@ -313,8 +313,8 @@ Vector<float> save_logexp_histogram(char * output_file, std::vector<std::string>
                 DiskImageView<PixelMask<PixelGray<uint8> > > index(index_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > radiance(radiance_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int x=0; x<(int)image.cols(); ++x)
+		  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         sensor_exposure = radiance(x,y)*exposure_times[i];
                                         image_histogram(image(x,y)) += weight(x,y)*log(sensor_exposure)/inverse_weight(index(x,y));

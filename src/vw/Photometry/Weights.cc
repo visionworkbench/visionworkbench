@@ -145,11 +145,11 @@ int* ComputeImageCenterLine(std::string input_img_file, int **r_maxDistArray)
 
     printf("file=%s\n",input_img_file.c_str());
     //initialize  output_img, and numSamples
-    for (k = 0 ; k < input_img.rows(); ++k) {
+    for (k = 0 ; k < (int)input_img.rows(); ++k) {
 
         minVal = input_img.cols();
         maxVal = 0;
-        for (l = 0; l < input_img.cols(); ++l) {
+        for (l = 0; l < (int)input_img.cols(); ++l) {
 
            Vector2 input_image_pix(l,k);
 
@@ -198,7 +198,7 @@ int* ComputeImageHorCenterLine(std::string input_img_file, int **r_maxDistArray)
 
         minVal = input_img.rows();
         maxVal = 0;
-        for (l = 0; l < input_img.rows(); ++l) {
+        for (l = 0; l < (int)input_img.rows(); ++l) {
 
            Vector2 input_image_pix(l,k);
 

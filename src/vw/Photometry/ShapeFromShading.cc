@@ -45,8 +45,8 @@ ImageView<PixelGray<double> > softNormalize(ImageView<PixelGray<double> > image,
         }
 
         mean = mean / count;
-        for(int x = 0; x < image.cols(); x++){
-                for(int y = 0; y < image.rows(); y++){
+        for(int x = 0; x < (int)image.cols(); x++){
+	  for(int y = 0; y < (int)image.rows(); y++){
                         double pix = image(x,y);
                         if( !isnan(pix) && !isinf(pix) ){
                                 sigma += square(pix-mean);
@@ -131,7 +131,7 @@ void readBinaryImage(ImageView<PixelGray<double> > image, char* filename){
 void lossfun_accuracy(double * loss, ImageView<PixelGray<double> > *d_loss_dem, ImageView<PixelGray<double> > *image_predicted,  ImageView<PixelGray<double> > * image, ImageView<PixelGray<double> > * dem, ImageView<PixelGray<double> > * init_dem, ImageView<PixelGray<double> > * albedo, Vector<double, 3> * light_direction){
 
         Vector<double, 3> normal1, normal2;
-        double h, ih, hx, hy, hxy, ldotn1, ldotn2, ldotn, im, pred, L1, L2, L3, d1, dx1, dy1, dd1, dx2, dy2, dxy2, dd2, mult_sub, mult1, mult2, a, diff, diff_sq, sigma_sq;
+        double h, ih, hx, hy, hxy, ldotn1, ldotn2, /*ldotn,*/ im, pred, L1, L2, L3, d1, dx1, dy1, dd1, dx2, dy2, dxy2, dd2, mult_sub, mult1, mult2, a, diff, diff_sq, sigma_sq;
 
         (*loss) = 0.; // compute a running tally of the loss
         (*d_loss_dem) = 0*(*d_loss_dem); // Clear the gradient

@@ -48,8 +48,8 @@ void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, Globa
   GeoReference originalGeo;
   read_georeference(originalGeo, origfile);
 
-  for (unsigned k=0; k < originalImage.rows(); ++k) {
-      for (unsigned l=0; l < originalImage.cols(); ++l) {
+  for (int k=0; k < (int)originalImage.rows(); ++k) {
+    for (int l=0; l < (int)originalImage.cols(); ++l) {
 
 
          Vector2 sample_pix(l,k);
