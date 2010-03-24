@@ -179,8 +179,12 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if( output_prefix == "" )
+  if( output_prefix == "" ) {
     output_prefix = prefix_from_filename(plate_file_name);
+    int indx = output_prefix.rfind("/");
+    if ( indx > 0 )
+      output_prefix = output_prefix.substr(indx+1);
+  }
 
   // Open the plate file
   try {
