@@ -39,11 +39,11 @@ typedef struct GlobalParams{
 };
 
 typedef struct modelParams{
-  float exposureTime;
-  Vector2 cameraParams;
+  float   exposureTime;
+  Vector2 cameraParams; //currently not used
   Vector3 sunPosition; //relative to the center of the Moon
   Vector3 spacecraftPosition;//relative to the center of the Moon
-  Vector2 rescalingParams;
+  Vector2 rescalingParams; //currently not used
   int *centerLine;
   int *maxDistArray;
   int *centerLineDEM;
@@ -53,6 +53,14 @@ typedef struct modelParams{
   int *horCenterLineDEM;
   int *maxVerDistArrayDEM;
   string infoFilename;
+  string DEMFilename;
+  string meanDEMFilename;
+  string var2DEMFilename;
+  string reliefFilename;
+  string shadowFilename;
+  string errorFilename;
+  string inputFilename;
+  string outputFilename;
   //Vector2 center2D;
   //float maxDistance;
 };

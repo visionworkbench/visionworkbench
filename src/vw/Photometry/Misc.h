@@ -14,6 +14,24 @@ using namespace vw;
 
 #include <vw/Photometry/Reconstruct.h>
 
+//subsamples a geo referenced tiff image by two 
+void subsample_image(std::string output_file, std::string input_file);
+
+// Given two images and two georeferences, this function picks a set
+// of matching pixel samples between the two images.  It rejects
+// pixels that are not valid, and it should probably also reject
+// pixels that are near saturation (though it does not yet!).
+template <class ViewT>
+std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1, 
+                                   ImageViewBase<ViewT> const& image2,
+                                   GeoReference const& geo1,
+                                   GeoReference const& geo2,
+                                   int num_samples,
+                                   std::string const& DEM_file, 
+                                   std::vector<Vector3> *normalArray,
+                                   std::vector<Vector3> *xyzArray );
+
+
 /// Erases a file suffix if one exists and returns the base string
 std::vector<std::string> derivative_filenames(std::vector<std::string> input_files, std::string const& suffix);
 void error_small_buffer(const char * file_name, unsigned entry_size);
