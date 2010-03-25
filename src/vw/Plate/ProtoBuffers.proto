@@ -76,7 +76,7 @@ message IndexHeader {
 message IndexRecord {
   optional int32 blob_id = 1 [default = -1];
   optional uint64 blob_offset = 2 [default = 0];
-  optional string filetype = 3 [default = "png"];
+  optional string filetype = 3 [default = "default_to_index"];
 }
 
 // ----------------------------------------------------------------------

@@ -270,6 +270,7 @@ int handle_image(request_rec *r, const std::string& url) {
 
   // ---------------- Return the image ------------------
 
+  mod_plate().logger(VerboseDebugMessage) << "Figuring out mime content type from filetype " << idx_record.filetype() << std::endl;
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
   if (idx_record.filetype() == "png")

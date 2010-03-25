@@ -269,6 +269,8 @@ vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int 
              << " was greater than the max level (" << m_levels.size() << ").");
   
   IndexRecord rec = m_levels[level]->get(col, row,  transaction_id, exact_transaction_match);
+  if (rec.filetype() == "default_to_index")
+      rec.set_filetype(this->tile_filetype());
   return rec;
 }
 
