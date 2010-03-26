@@ -40,17 +40,6 @@ std::string input_file_name, output_file_name = "", shaded_relief_file_name;
 float nodata_value;
 float min_val = 0, max_val = 0;
 
-// Useful functions
-
-/// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(index, result.size());
-  return result;
-}
-
 // Colormap function
 class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<float> > > {
 
@@ -244,7 +233,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( output_file_name == "" ) {
-    output_file_name = prefix_from_filename(input_file_name) + "_CMAP.tif";
+    output_file_name = (input_file_name) + "_CMAP.tif";
   }
 
   try {

@@ -23,13 +23,8 @@ using namespace vw::ip;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
-}
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
 
 template <class ImageT, class ValueT>
 void draw_line( ImageViewBase<ImageT>& image,
@@ -201,7 +196,7 @@ int main(int argc, char** argv) {
   for (unsigned i = 0; i < input_file_names.size(); ++i) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
-    std::string file_prefix = prefix_from_filename(input_file_names[i]);
+    std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
     DiskImageResource *image_rsrc = DiskImageResource::open( input_file_names[i] );
     DiskImageView<PixelGray<float> > image(image_rsrc);
 
@@ -327,7 +322,7 @@ int main(int argc, char** argv) {
     // Write Debug image
     if (vm.count("debug-image")) {
       std::string output_file_name =
-        prefix_from_filename(input_file_names[i]) + "_debug.jpg";
+        file_prefix + "_debug.jpg";
       write_debug_image( output_file_name,
                          input_file_names[i],
                          ip );

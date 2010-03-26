@@ -13,6 +13,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
@@ -27,14 +28,6 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::stereo;
-
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
-}
 
 int main( int argc, char *argv[] ) {
   try {
@@ -102,12 +95,11 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    if ( fs::exists( prefix_from_filename( left_file_name ) + "__" +
-                     prefix_from_filename( right_file_name ) + ".match" ) ) {
+    std::string match_filename = fs::path( left_file_name ).replace_extension().string() + "__" + fs::path( right_file_name ).stem() + ".match";
+    if ( fs::exists( match_filename ) ) {
       vw_out() << "Found a match file. Using it to pre-align images.\n";
       std::vector<ip::InterestPoint> matched_ip1, matched_ip2;
-      ip::read_binary_match_file( prefix_from_filename( left_file_name ) + "__" +
-                                  prefix_from_filename( right_file_name ) + ".match",
+      ip::read_binary_match_file( match_filename,
                                   matched_ip1, matched_ip2 );
       std::vector<Vector3> ransac_ip1 = ip::iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = ip::iplist_to_vectorlist(matched_ip2);

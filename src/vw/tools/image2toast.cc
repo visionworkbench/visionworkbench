@@ -24,15 +24,6 @@ using namespace vw;
 using namespace vw::cartography;
 using namespace vw::mosaic;
 
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(index, result.size());
-  return result;
-}
-
 int main(int argc, char **argv) {
 
   std::string output_file_name;
@@ -88,7 +79,7 @@ int main(int argc, char **argv) {
   }
 
   if( output_file_name == "" )
-    output_file_name = prefix_from_filename(image_files[0]) + ".toast";
+    output_file_name = fs::path(image_files[0]).replace_extension("toast").string();
 
   if( tile_size <= 0 || tile_size != pow(2.,floor(log((double)tile_size)/log(2.))) ) {
     std::cerr << "Error: The tile size must be a power of two!  (You specified: " << tile_size << ")" << std::endl << std::endl;

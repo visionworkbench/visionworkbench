@@ -23,13 +23,8 @@ using namespace vw::ip;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
-}
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
 
 // Duplicate matches for any given interest point probably indicate a
 // poor match, so we cull those out here.
@@ -150,8 +145,8 @@ int main(int argc, char** argv) {
 
       // Read each file off disk
       std::vector<InterestPoint> ip1, ip2;
-      ip1 = read_binary_ip_file(prefix_from_filename(input_file_names[i])+".vwip");
-      ip2 = read_binary_ip_file(prefix_from_filename(input_file_names[j])+".vwip");
+      ip1 = read_binary_ip_file(fs::path(input_file_names[i]).replace_extension("vwip").string() );
+      ip2 = read_binary_ip_file(fs::path(input_file_names[j]).replace_extension("vwip").string() );
       vw_out() << "Matching between " << input_file_names[i] << " (" << ip1.size() << " points) and " << input_file_names[j] << " (" << ip2.size() << " points).\n";
 
       std::vector<InterestPoint> matched_ip1, matched_ip2;
@@ -212,14 +207,14 @@ int main(int argc, char** argv) {
       }
 
       std::string output_filename =
-        prefix_from_filename(input_file_names[i]) + "__" +
-        prefix_from_filename(input_file_names[j]) + ".match";
+        fs::path(input_file_names[i]).replace_extension().string() + "__" +
+        fs::path(input_file_names[j]).stem() + ".match";
       write_binary_match_file(output_filename, final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
         std::string matchimage_filename =
-          prefix_from_filename(input_file_names[i]) + "__" +
-          prefix_from_filename(input_file_names[j]) + ".png";
+          fs::path(input_file_names[i]).replace_extension().string() + "__" +
+          fs::path(input_file_names[j]).stem() + ".png";
         write_match_image(matchimage_filename,
                           input_file_names[i], input_file_names[j],
                           final_ip1, final_ip2);

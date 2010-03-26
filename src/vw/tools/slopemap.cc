@@ -18,21 +18,21 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
-#include <boost/program_options.hpp>
 #include <vw/FileIO/DiskImageView.h>
 
 /*
 Implements modified versions of finite difference opt.algorithms + fitting a plane to 9 points of a 3x3 window
 */
 
+#include <boost/program_options.hpp>
 namespace po = boost::program_options;
+
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
-
-//Global variables
-double pi=4*atan(1.0);
 
 enum Algorithm { HORN, SA, FH, PLANEFIT };
 
@@ -45,15 +45,6 @@ struct Options {
   Algorithm algorithm;
   bool spherically_defined;
 };
-
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result=filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
-}
 
 //basic utilities
 
@@ -70,8 +61,8 @@ Vector3 pixel_to_cart (Vector2 pos, DiskImageView<ImageT> img, GeoReference GR) 
 }
 
 double dist_from_2pi(double n) {
-  if( fabs(n+2*pi) < fabs(n) ) return n+2*pi;
-  if( fabs(n-2*pi) < fabs(n) ) return n-2*pi;
+  if( fabs(n+2*M_PI) < fabs(n) ) return n+2*M_PI;
+  if( fabs(n-2*M_PI) < fabs(n) ) return n-2*M_PI;
   return n;
 }
 
@@ -96,12 +87,12 @@ Vector2 gradient_aspect_from_normals(Vector3 center_normal, Vector3 plane_normal
   if(dotprod2<-1) { dotprod2=-1; aspect=0;}
 
   if( dot_prod((cross_prod(north_projected,surface_normal_on_sphere_tangent_plane)),center_normal) < 0)
-    aspect=pi+aspect;
+    aspect=M_PI+aspect;
   else
-    aspect=pi-aspect;
+    aspect=M_PI-aspect;
 
-  if(aspect>=2*pi)
-    aspect=aspect-2*pi;
+  if(aspect>=2*M_PI)
+    aspect=aspect-2*M_PI;
   return Vector2(aspect,gradient_angle);
 }
 
@@ -111,10 +102,10 @@ Vector2 gradient_aspect_from_dx_dy(double& dx, double& dy) {
   double gradient_angle=atan(gradient);
   //aspect: dy/dx=tan(angle)
   double aspect=atan(dy/dx);
-  if(dx<0) aspect=aspect+pi;
-  aspect=2*pi-aspect+pi/2;
-  if(aspect<0) aspect=2*pi+aspect;
-  if(aspect>=2*pi) aspect=aspect-2*pi*(int)(aspect/2/pi);
+  if(dx<0) aspect=aspect+M_PI;
+  aspect=2*M_PI-aspect+M_PI/2;
+  if(aspect<0) aspect=2*M_PI+aspect;
+  if(aspect>=2*M_PI) aspect=aspect-2*M_PI*(int)(aspect/2/M_PI);
   return Vector2(aspect,gradient_angle);
 }
 
@@ -188,8 +179,8 @@ Vector2 uneven_grid (const ::Options& opt, int x, int y, DiskImageView<ImageT> i
         } else {
           rises(ct,0)=(img(x+i,y+j)-img(x,y));
           Vector2 neighbor_lonlat=GR.pixel_to_lonlat(Vector2(x+i,y+j));
-          runs(ct,0)=(neighbor_lonlat[1]-lonlat[1])*pi/180.0;
-          runs(ct,1)=dist_from_2pi(neighbor_lonlat[0]-lonlat[0])*pi/180.0;
+          runs(ct,0)=(neighbor_lonlat[1]-lonlat[1])*M_PI/180.0;
+          runs(ct,1)=dist_from_2pi(neighbor_lonlat[0]-lonlat[0])*M_PI/180.0;
         }
         ct++;
       }
@@ -210,8 +201,8 @@ Vector2 uneven_grid (const ::Options& opt, int x, int y, DiskImageView<ImageT> i
 
   if(opt.spherically_defined) {
     double rho=norm_2(center);
-    double phi=lon/180.0*pi;
-    double theta=(-lat+90.0)/180.0*pi;
+    double phi=lon/180.0*M_PI;
+    double theta=(-lat+90.0)/180.0*M_PI;
     double dtheta=ans(0,0);
     double dphi=-ans(1,0);
     return gradient_aspect_from_dtheta_dphi(rho, theta, phi, dtheta, dphi, center);
@@ -285,14 +276,14 @@ void do_slopemap (const ::Options &opt) { //not sure what the arguments are
 
       if(opt.output_aspect)   aspect(x,y) = res(0);
       if(opt.output_gradient) gradient_angle(x,y) = res(1);
-      if(opt.output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*fabs(pi-res(0)));//(res(1)/pi*2)*fabs(pi-res(0)));
+      if(opt.output_pretty)   pretty(x,y) = PixelHSV<double>(res(0),res(1),(res(1))+0.2*fabs(M_PI-res(0)));//(res(1)/M_PI*2)*fabs(M_PI-res(0)));
      }
   }
   ImageView<PixelRGB<uint8> > pretty2;
 
   if(opt.output_pretty) {
-    select_channel(pretty,0)=normalize(select_channel(pretty,0),0,2*pi,0,1);
-    select_channel(pretty,1)=normalize(select_channel(pretty,1),0,pi/2,0.1,1);
+    select_channel(pretty,0)=normalize(select_channel(pretty,0),0,2*M_PI,0,1);
+    select_channel(pretty,1)=normalize(select_channel(pretty,1),0,M_PI/2,0.1,1);
     select_channel(pretty,2)=normalize(select_channel(pretty,2),0.3,0.6);
 
     pretty2=pixel_cast_rescale<PixelRGB<uint8> >( copy(pretty) );
@@ -345,7 +336,8 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if( opt.output_prefix == "" ) { opt.output_prefix=prefix_from_filename(opt.input_file_name); }
+  if( opt.output_prefix == "" )
+    opt.output_prefix=fs::path(opt.input_file_name).replace_extension().string();
 
   //checking strings
 

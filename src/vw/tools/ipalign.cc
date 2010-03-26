@@ -26,26 +26,12 @@ using namespace vw::ip;
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
+
 #define MAX_POINTS_TO_DRAW 1000
 
 // ------------------------------------------------------------------
-
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(index, result.size());
-  return result;
-}
-
-/// Erases a file suffix if one exists and returns the base string
-static std::string suffix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(0, index);
-  return result;
-}
 
 // Draw the interest points and write as an image.
 template <class ViewT>
@@ -208,11 +194,11 @@ int main(int argc, char** argv) {
     if (!vm.count("single-scale")) {
       ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator);
       ip1 = detect_interest_points(left_image, detector);
-      ip2 = detect_interest_points(right_image, detector); 
+      ip2 = detect_interest_points(right_image, detector);
     } else {
       InterestPointDetector<LogInterestOperator> detector(interest_operator);
       ip1 = detect_interest_points(left_image, detector);
-      ip2 = detect_interest_points(right_image, detector); 
+      ip2 = detect_interest_points(right_image, detector);
     }
   } else {
     std::cout << "Unknown interest operator: " << interest_operator << ".  Options are : [ Harris, LoG ]\n";
@@ -221,11 +207,11 @@ int main(int argc, char** argv) {
   vw_out() << "\t Found " << ip1.size() << " and " << ip2.size() << " points in the left and right image respectively.\n";
 
   // Write out images with interest points marked
-  std::string prefix = prefix_from_filename(output_file_name);
-  std::string suffix = suffix_from_filename(output_file_name);
+  std::string prefix = fs::path(output_file_name).replace_extension().string();
+  std::string suffix = fs::path(output_file_name).extension();
   if (vm.count("debug-images")) {
-    write_point_image(prefix + "-PL" + suffix, left_image, ip1);
-    write_point_image(prefix + "-PR" + suffix, right_image, ip2);
+    write_point_image(prefix + "-PL." + suffix, left_image, ip1);
+    write_point_image(prefix + "-PR." + suffix, right_image, ip2);
   }
 
   // Generate descriptors for interest points.
@@ -262,18 +248,18 @@ int main(int argc, char** argv) {
   // Write out the putative point correspondence image
   if (vm.count("debug-images"))
     write_match_image(prefix+"-putative-match" + suffix, left_image, right_image, matched_ip1, matched_ip2);
-  
+
   // RANSAC is used to fit a similarity transform between the
   // matched sets of points
   std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
   std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
   Matrix<double> align_matrix;
-  if (vm.count("homography")) 
-    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1, 
+  if (vm.count("homography"))
+    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1,
 				    vw::math::HomographyFittingFunctor(),
 				    vw::math::InterestPointErrorMetric());
   else
-    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1, 
+    align_matrix = vw::math::ransac(ransac_ip2, ransac_ip1,
 				    vw::math::AffineFittingFunctor(),
 				    vw::math::InterestPointErrorMetric());
 
@@ -282,7 +268,7 @@ int main(int argc, char** argv) {
   // Write out the aligned pair of images
   ImageViewRef<PixelRGB<uint8> > aligned_image = transform(right_image, HomographyTransform(align_matrix),
                                                            left_image.cols(), left_image.rows());
-  write_image(output_file_name, aligned_image); 
+  write_image(output_file_name, aligned_image);
 
   return 0;
 }

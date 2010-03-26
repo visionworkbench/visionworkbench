@@ -25,6 +25,7 @@
 
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem/path.hpp>
 namespace po = boost::program_options;
 
 #include <vw/Core/Cache.h>
@@ -79,15 +80,6 @@ float hi_value = ScalarTypeLimits<float>::lowest();
 
 // Function pointers for computing resolution.
 std::map<std::string, vw::int32 (*)(const GeoTransform&, const Vector2&)> str_to_resolution_fn_map;
-
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(index, result.size());
-  return result;
-}
 
 // Fill the maps for converting input strings to function pointers.
 static void fill_input_maps() {
@@ -595,7 +587,7 @@ int main(int argc, char **argv) {
   }
 
   if( output_file_name == "" )
-    output_file_name = prefix_from_filename(image_files[0]);
+    output_file_name = fs::path(image_files[0]).replace_extension().string();
 
   if( tile_size <= 0 ) {
     std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ")." << std::endl << std::endl;

@@ -20,6 +20,9 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
+
 #include <vw/Math/EulerAngles.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
@@ -42,20 +45,9 @@ double azimuth, elevation, scale;
 double nodata_value;
 double blur_sigma;
 
-
-
 // Allows FileIO to correctly read/write these pixel types
 namespace vw {
   template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
-}
-
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1) 
-    result.erase(index, result.size());
-  return result;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -205,8 +197,6 @@ void do_hillshade(po::variables_map const& vm) {
 
 int main( int argc, char *argv[] ) {
 
-  set_debug_level(InfoMessage);
-
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
     ("help,h", "Display this help message")
@@ -243,7 +233,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( output_file_name == "" ) {
-    output_file_name = prefix_from_filename(input_file_name) + "_HILLSHADE.tif";
+    output_file_name = fs::path(input_file_name).replace_extension().string() + "_HILLSHADE.tif";
   }
 
   try {
