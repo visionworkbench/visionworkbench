@@ -52,7 +52,7 @@ void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::stri
  
     string input_DEM_file = input_img_params.DEMFilename;
     string mean_DEM_file = input_img_params.meanDEMFilename;
-    string var2_DEM_file = input_img_params.meanDEMFilename;
+    string var2_DEM_file = input_img_params.var2DEMFilename;
 
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file); 
     GeoReference input_DEM_geo;
