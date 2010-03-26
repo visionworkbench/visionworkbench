@@ -21,12 +21,16 @@ void InitImageMosaic(std::string input_img_file,
                      std::vector<std::string> overlap_img_files,
                      std::vector<modelParams> overlap_img_params,
                      GlobalParams globalParams);
-
+/*
 void InitImageMosaicByBlocks(std::string input_img_file,
                              modelParams input_img_params,
                              std::string shadow_file,
                              std::string output_img_file,
                              std::vector<std::string> overlap_img_files,
+                             std::vector<modelParams> overlap_img_params,
+                             GlobalParams globalParams);
+*/
+void InitImageMosaicByBlocks(modelParams input_img_params,
                              std::vector<modelParams> overlap_img_params,
                              GlobalParams globalParams);
 

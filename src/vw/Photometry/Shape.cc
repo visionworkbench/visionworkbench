@@ -43,12 +43,17 @@ float ComputeError_DEM(float intensity, float T, float albedo, float reflectance
 }
 
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file, modelParams input_img_params, 
-              std::vector<std::string> overlap_DEM_files,  std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
+void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file,*/ modelParams input_img_params, 
+              /*std::vector<std::string> overlap_DEM_files,*/  std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
 {
 
-    unsigned i, l, k;
-    
+    int i; 
+    unsigned l, k;
+ 
+    string input_DEM_file = input_img_params.DEMFilename;
+    string mean_DEM_file = input_img_params.meanDEMFilename;
+    string var2_DEM_file = input_img_params.meanDEMFilename;
+
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file); 
     GeoReference input_DEM_geo;
     read_georeference(input_DEM_geo, input_DEM_file);
@@ -103,14 +108,18 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
 	}
     }
 
-
-    for (i = 0; i < overlap_DEM_files.size(); i++){
+    for (i = 0; i < (int) overlap_img_params.size(); i++){
+    //for (i = 0; i < overlap_DEM_files.size(); i++){
       
-      printf("DEM = %s\n", overlap_DEM_files[i].c_str());
-
-      DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_DEM_files[i]); 
+      //printf("DEM = %s\n", overlap_DEM_files[i].c_str());
+      //DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_DEM_files[i]); 
+      //GeoReference overlap_DEM_geo;
+      //read_georeference(overlap_DEM_geo, overlap_DEM_files[i]); 
+      
+      printf("DEM = %s\n", overlap_img_params[i].DEMFilename.c_str());
+      DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_img_params[i].DEMFilename); 
       GeoReference overlap_DEM_geo;
-      read_georeference(overlap_DEM_geo, overlap_DEM_files[i]);
+      read_georeference(overlap_DEM_geo, overlap_img_params[i].DEMFilename);
 
      
       ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(), 
@@ -202,15 +211,12 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
     printf("totalNumSamples = %d, meanDEM = %f, avgStdDevDEM = %f\n", totalNumSamples, meanDEM, avgStdDevDEM);
 
     //compute the mean DEM offset from each DEM tile to mean
-
-    //print the average standard dev for DEM and the mean offsets
-    for (i = 0; i < overlap_img_params.size()+1; i++){
-        //printf("before meanDEMoffset[%d] = %f, meanDEM = %f, numDEMSamples = %d\n", i, meanDEMOffset[i], meanDEM, numDEMSamples[i]);
+    for (i = 0; i < (int)overlap_img_params.size()+1; i++){
         meanDEMOffset[i] = meanDEMOffset[i]/numDEMSamples[i] - meanDEM;
         printf("meanDEMoffset[%d] = %f\n", i, meanDEMOffset[i]);
     }
   
-    /*
+    
     write_georeferenced_image(mean_DEM_file, 
                               //channel_cast<float>(mean_DEM_image),
                               mean_DEM_image,
@@ -221,10 +227,9 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
                               channel_cast<uint8>(clamp(var2_DEM_image,0.0,255.0)),
                               //var2_DEM_image,
                               input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
-    */
+    
 
     //write the meanDEMOffset and avgStdDevDEM to file
-    //printf("write info file\n");
     FILE *fp = fopen(input_img_params.infoFilename.c_str(),"w");
     fprintf(fp, "%f %f %f %f %f\n", meanDEMOffset[0], meanDEMOffset[1], meanDEMOffset[2], meanDEMOffset[3], avgStdDevDEM);
     fclose(fp);

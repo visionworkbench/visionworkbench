@@ -218,16 +218,21 @@ void InitImageMosaic(std::string input_img_file,
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
 
 }
-void InitImageMosaicByBlocks(std::string input_img_file,
+void InitImageMosaicByBlocks(/*std::string input_img_file,*/
                              modelParams input_img_params,
-                             std::string shadow_file,
-                             std::string output_img_file,
-                             std::vector<std::string> overlap_img_files,
+                             /*std::string shadow_file,
+			       std::string output_img_file,*/
+                             /*std::vector<std::string> overlap_img_files,*/
                              std::vector<modelParams> overlap_img_params,
                              GlobalParams globalParams)
 {
 
     printf("image mosaic by block initialization\n");
+
+    string input_img_file = input_img_params.inputFilename;
+    string shadow_file = input_img_params.shadowFilename;
+    string output_img_file = input_img_params.outputFilename;
+
     int horBlockSize = 500;
     int verBlockSize = 500;
 
@@ -289,14 +294,18 @@ void InitImageMosaicByBlocks(std::string input_img_file,
          printf ("done with initialization block index %d %d\n", kb, lb);
 
          //update the initial image mosaic
-         for (i = 0; i < (int)overlap_img_files.size(); i++){
+         //for (i = 0; i < (int)overlap_img_files.size(); i++){
+         for (i = 0; i < (int)overlap_img_params.size(); i++){
 
-           printf("overlap_img = %s\n", overlap_img_files[i].c_str());
+           //printf("overlap_img = %s\n", overlap_img_files[i].c_str());
+           printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
 
-           DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
+           //DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
+           DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
            GeoReference overlap_geo;
-           read_georeference(overlap_geo, overlap_img_files[i]);
-
+           //read_georeference(overlap_geo, overlap_img_files[i]);
+           read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
+           
            ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                          ConstantEdgeExtension()),
                                                                                          BilinearInterpolation());
@@ -370,7 +379,7 @@ void InitImageMosaicByBlocks(std::string input_img_file,
                }
            }
          }
-         printf("done coputed the final init value\n");
+         printf("done computed the final init value\n");
          /*
          //TODO: compute the image variance (standard deviation)
          for (k = 0 ; k < input_img.rows(); ++k) {
