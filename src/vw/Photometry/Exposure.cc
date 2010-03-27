@@ -95,12 +95,15 @@ std ::vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries
 
 
 //computes the exposure time for image mosaicing (no reflectance model)
-void ComputeExposure(std::string curr_input_file,
-                     std::string curr_albedo_file,
+void ComputeExposure(/*std::string curr_input_file,
+		     std::string curr_albedo_file,*/
                      modelParams *currModelParams,
                      GlobalParams globalParams)
 {
 
+
+    string curr_input_file = currModelParams->inputFilename;
+    string curr_albedo_file = currModelParams->outputFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_image(curr_input_file);
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_albedo(curr_albedo_file);

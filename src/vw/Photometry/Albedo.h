@@ -33,11 +33,14 @@ void InitImageMosaicByBlocks(std::string input_img_file,
 void InitImageMosaicByBlocks(modelParams input_img_params,
                              std::vector<modelParams> overlap_img_params,
                              GlobalParams globalParams);
-
+/*
 void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
                        std::vector<std::string> overlap_img_files,
                        modelParams input_img_params, std::vector<modelParams> overlap_img_params,
                        std::vector<std::string> overlapShadowFileArray, std::string output_img_file,
+                       GlobalParams globalParams);
+*/
+void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> overlap_img_params,
                        GlobalParams globalParams);
 
 //albedo mosaic functions

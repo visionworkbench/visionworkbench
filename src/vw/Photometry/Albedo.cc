@@ -406,15 +406,23 @@ void InitImageMosaicByBlocks(/*std::string input_img_file,*/
 
 //updates the image mosaic
 //author: Ara Nefian
+/*
 void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
                        std::vector<std::string> overlap_img_files,
                        modelParams input_img_params, std::vector<modelParams> overlap_img_params,
                        std::vector<std::string> overlapShadowFileArray, std::string output_img_file,
                        GlobalParams globalParams)
+*/
+void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> overlap_img_params,
+                       GlobalParams globalParams)
 {
 
 
     int i, l, k;
+
+    string input_img_file = input_img_params.inputFilename;
+    string shadow_file = input_img_params.shadowFilename;
+    string output_img_file = input_img_params.outputFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -433,9 +441,7 @@ void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
 
     Vector3 xyz;
     Vector3 xyz_prior;
-    //int x, y;
-
-
+  
     //initialize the nominator and denomitor images
     for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
@@ -476,15 +482,20 @@ void UpdateImageMosaic(std::string input_img_file, std::string shadow_file,
 
 
     //update from the overlapping images
-    for (i = 0; i < (int)overlap_img_files.size(); i++){
+    //for (i = 0; i < (int)overlap_img_files.size(); i++){
+    for (i = 0; i < (int)overlap_img_params.size(); i++){
+      
+      //printf("overlap_img = %s\n", overlap_img_files[i].c_str());
+      printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
 
-      printf("overlap_img = %s\n", overlap_img_files[i].c_str());
-
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
+      //DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
       GeoReference overlap_geo;
-      read_georeference(overlap_geo, overlap_img_files[i]);
+      //read_georeference(overlap_geo, overlap_img_files[i]);
+      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapShadowFileArray[i]);
+      //DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapShadowFileArray[i]);
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
 
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),

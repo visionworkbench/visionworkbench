@@ -549,10 +549,7 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
 
 
 //computes a reflectance image
-//return the average reflectance in the overlaping area with an adjacent image
 //author: Ara Nefian
-
-
 float computeImageReflectance(std::string input_img_file, std::string overlap_img_file,
                               std::string DEM_file,
                               std::string shadow_file, std::string overlap_shadow_file,

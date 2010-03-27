@@ -19,11 +19,16 @@ void ComputeExposure(std::string curr_input_file,
                      modelParams *currModelParams,
                      GlobalParams globalParams);
 
-
+/*
 //used for mosaicking, with no reflectance model
 void ComputeExposure(std::string curr_input_file,
                      std::string curr_albedo_file,
                      modelParams *currModelParams,
+                     GlobalParams globalParams);
+*/
+
+//used for mosaicking, with no reflectance model
+void ComputeExposure(modelParams *currModelParams,
                      GlobalParams globalParams);
 
 void AppendExposureInfoToFile(string exposureFilename, string currInputFile, modelParams currModelParams);
