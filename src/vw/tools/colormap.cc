@@ -20,6 +20,9 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem/path.hpp>
+namespace fs = boost::filesystem;
+
 #include <vw/Core/Functors.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
@@ -233,7 +236,7 @@ int main( int argc, char *argv[] ) {
   }
 
   if( output_file_name == "" ) {
-    output_file_name = (input_file_name) + "_CMAP.tif";
+    output_file_name = fs::path(input_file_name).replace_extension().string() + "_CMAP.tif";
   }
 
   try {
