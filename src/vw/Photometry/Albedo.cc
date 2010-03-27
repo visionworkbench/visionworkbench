@@ -39,41 +39,6 @@ float ComputeGradient_Albedo(float T, float reflectance)
   return grad;
 }
 
-//input_img_file is the original image
-//output_img_file is the brightness compensated image file with invalid values for shadow
-//this is also the filename of the output image where shadows are added
-//
-void AddShadows(std::string input_img_file,  std::string output_img_file, std::string shadow_file)
-{
-    DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
-    GeoReference input_img_geo;
-    read_georeference(input_img_geo, input_img_file);
-
-    DiskImageView<PixelMask<PixelGray<uint8> > >  output_img(output_img_file);
-
-    DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
-
-    ImageView<PixelMask<PixelGray<uint8> > > r_img (input_img.cols(), input_img.rows());
-    int l,k;
-    //initialize  output_img, and numSamples
-    for (k = 0 ; k < input_img.rows(); ++k) {
-        for (l = 0; l < input_img.cols(); ++l) {
-          if ( (is_valid(input_img(l,k))) && (shadowImage(l,k) == 255)  ){
-              r_img(l,k) = (uint8)(input_img(l,k));
-          }
-          else{
-              r_img(l,k) = (uint8)(output_img(l,k));
-          }
-        }
-    }
-
-    //write in the previous DEM
-    write_georeferenced_image(output_img_file,
-                              channel_cast<uint8>(r_img),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
-
-}
-
 void InitImageMosaic(std::string input_img_file,
                      modelParams input_img_params,
                      std::string shadow_file,

@@ -35,6 +35,7 @@ using namespace vw::cartography;
 #include <vw/Photometry/Exposure.h>
 #include <vw/Photometry/Misc.h>
 
+#if 0
 void weight_images(std::vector<std::string> output_files, std::vector<std::string> input_files) {
         for (unsigned i = 0; i < input_files.size(); ++i) {
                 if (  fs::exists(output_files[i]) ) {
@@ -1005,3 +1006,4 @@ void save_outlier_images(std::vector<std::string> output_files, std::vector<std:
 }
 
 
+#endif

@@ -61,10 +61,12 @@ float ComputeError_Exposure(float intensity, float T, float albedo, float reflec
   return error;
 }
 
-void AppendExposureInfoToFile(string exposureFilename, string currInputFile, modelParams currModelParams)
+//void AppendExposureInfoToFile(string exposureFilename, string currInputFile, modelParams currModelParams)
+void AppendExposureInfoToFile(string exposureFilename, modelParams currModelParams)
 {
   FILE *fp;
-
+  string currInputFile = currModelParams.inputFilename;
+ 
   fp = fopen(exposureFilename.c_str(), "a");
 
   fprintf(fp, "%s %f\n", currInputFile.c_str(), currModelParams.exposureTime);
@@ -247,133 +249,4 @@ void ComputeExposure(std::string curr_input_file,
 
 }
 
-
-/*
-//--------------------------------------------------------------------------------------------------------------------------------------------------------
-// Functions by Taemin Kim
-// Written by Taemin Kim
-void save_exposure_times(char * output_file, Vector<float> exposure_times) {
-        std::cout << "Writing exposure times to " << output_file << std::endl;
-
-        float buffer[SIZE_OF_BUFFER];
-        for (unsigned i = 0; i < exposure_times.size(); ++i) buffer[i] = exposure_times(i);
-        save_binary_file(buffer,exposure_times.size(),output_file);
-}
-
-Vector<float> save_exposure_times(char * output_file, std::vector<std::string> radiance_files, std::vector<std::string> response_files,
-                                                                  std::vector<std::string> index_files, char * weight_file) {
-        Vector<float> exposure_times(response_files.size());
-        Vector<uint8> inverse_weight = load_inverse_weight(weight_file, 256);
-
-        std::cout << std::endl << "Estimating exposure times." << std::endl;
-        for (unsigned i = 0; i < response_files.size(); ++i) {
-                DiskImageView<PixelMask<PixelGray<uint8> > > index(index_files[i]);
-                DiskImageView<PixelMask<PixelGray<float> > > tm_response(response_files[i]);
-                DiskImageView<PixelMask<PixelGray<float> > > tm_radiance(radiance_files[i]);
-                float sum_radiance = 0, sum_response = 0;
-                for (int x=0; x<(int)tm_response.cols(); ++x)
-		  for (int y=0; y<(int)tm_response.rows(); ++y)
-                                if ( is_valid(tm_response(x,y)) ) {
-                                        sum_response += tm_response(x,y)/inverse_weight(index(x,y));
-                                        sum_radiance += tm_radiance(x,y)/inverse_weight(index(x,y));
-                                }
-                exposure_times[i] = sum_response/sum_radiance;
-                std::cout << i << ": " << exposure_times[i] << ", s " << sum_radiance << " ";
-        }
-        std::cout << std::endl;
-
-        float buffer[SIZE_OF_BUFFER];
-        for (unsigned i = 0; i < response_files.size(); ++i) buffer[i] = exposure_times(i);
-        save_binary_file(buffer,response_files.size(),output_file);
-
-        return exposure_times;
-}
-
-// Written by Taemin Kim
-// Preserve output_files if output_files is modified later than input_files and exposure_times.
-Vector<float> save_exposure_times(char * output_file, std::vector<std::string> radiance_files, std::vector<std::string> response_files,
-                                  std::vector<std::string> index_files, std::vector<std::string> weight_files, char * weight_file) {
-
-        Vector<float> exposure_times(response_files.size());
-        Vector<uint8> inverse_weight = load_inverse_weight(weight_file, 256);
-
-        std::cout << std::endl << "Estimating exposure times." << std::endl;
-        for (unsigned i = 0; i < response_files.size(); ++i) {
-                DiskImageView<PixelMask<PixelGray<uint8> > > index(index_files[i]);
-                DiskImageView<PixelMask<PixelGray<float> > > response(response_files[i]);
-                DiskImageView<PixelMask<PixelGray<float> > > radiance(radiance_files[i]);
-                DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
-                ImageView<PixelMask<PixelGray<float> > > tm_response = weight*response;
-                ImageView<PixelMask<PixelGray<float> > > tm_radiance = weight*radiance;
-                float sum_radiance = 0, sum_response = 0;
-                for (unsigned x=0; x<tm_response.cols(); ++x)
-                        for (unsigned y=0; y<tm_response.rows(); ++y)
-                                if ( is_valid(tm_response(x,y)) ) {
-                                        sum_response += tm_response(x,y)/inverse_weight(index(x,y));
-                                        sum_radiance += tm_radiance(x,y)/inverse_weight(index(x,y));
-                                }
-                exposure_times[i] = sum_response/sum_radiance;
-                std::cout << i << ": " << exposure_times[i] << ", s " << sum_radiance << " ";
-        }
-        std::cout << std::endl;
-
-        float buffer[SIZE_OF_BUFFER];
-        for (unsigned i = 0; i < response_files.size(); ++i) buffer[i] = exposure_times(i);
-        save_binary_file(buffer,response_files.size(),output_file);
-
-        return exposure_times;
-}
-
-Vector<float> load_exposure_times(char * input_file, int num) {
-        Vector<float> exposure_times(num);
-        float buffer[SIZE_OF_BUFFER];
-        FILE *fp;
-
-        struct stat file_stat;
-        if ( stat(input_file, &file_stat) ) {
-                std::cout << "Writing uniform exposure times to  " << input_file << std::endl;
-                for (unsigned i = 0; i < num; ++i) {
-                        exposure_times(i) = 1;
-                        buffer[i] = 1;
-                }
-                save_binary_file(buffer,num,input_file);
-        } else {
-                std::cout << "Reading exposure times from " << input_file << std::endl;
-                load_binary_file(buffer, num, input_file);
-                for (unsigned i = 0; i < num; ++i) exposure_times(i) = buffer[i];
-                std::cout << exposure_times << std::endl;
-        }
-
-        return exposure_times;
-}
-
-// Preserve output_files if output_files is modified later than input_files and exposure_times.
-float normalize_exposures(std::vector<std::string> input_files, char * exp_time_file) {
-        float max_value = 0, scaling_factor;
-        float lo, hi;
-        struct stat input_stat, output_stat, exp_time_stat;
-        for (int i = 0; i < input_files.size(); ++i) {
-                DiskImageView<PixelMask<PixelGray<float> > > image(input_files[i]);
-                std::cout << " Checking " << i << "th radiance image: " << input_files[i] << "." << std::endl;
-                min_max_channel_values(image, lo, hi);
-                std::cout << " Max: " << hi << ", " << "Min: " << lo << "." << std::endl;
-                if (max_value < hi) max_value = hi;
-        }
-
-        scaling_factor = (DYNAMIC_RANGE-1)/max_value;
-        for (int i = 0; i < input_files.size(); ++i) {
-                GeoReference geo;
-                read_georeference(geo, input_files[i]);
-                std::cout << " Scaling " << i << "th radiance image: " << input_files[i] << " by " << scaling_factor << "." << std::endl;
-                DiskImageView<PixelMask<PixelGray<float> > > image(input_files[i]);
-                ImageView<PixelMask<PixelGray<float> > > tm_image = scaling_factor*image;
-                write_georeferenced_image(input_files[i], tm_image, geo, TerminalProgressCallback("{Core}","Processing:"));
-         }
-        Vector<float> exposure_times = load_exposure_times(exp_time_file, input_files.size());
-        exposure_times /= scaling_factor;
-        save_exposure_times(exp_time_file, exposure_times);
-
-        return scaling_factor;
-}
-*/
 
