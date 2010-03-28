@@ -11,27 +11,29 @@
 
 if MAKE_MODULE_IMAGE
 
-TestPixelMath_SOURCES             = TestPixelMath.oldtest
-TestPixelTypes_SOURCES            = TestPixelTypes.oldtest
-TestImageView_SOURCES             = TestImageView.oldtest
-TestImageViewRef_SOURCES          = TestImageViewRef.oldtest
-TestManipulation_SOURCES          = TestManipulation.oldtest
-TestPerPixelViews_SOURCES         = TestPerPixelViews.oldtest
-TestPerPixelAccessorViews_SOURCES = TestPerPixelAccessorViews.oldtest
-TestImageMath_SOURCES             = TestImageMath.oldtest
-TestEdgeExtension_SOURCES         = TestEdgeExtension.oldtest
-TestInterpolation_SOURCES         = TestInterpolation.oldtest
-TestConvolution_SOURCES           = TestConvolution.oldtest
-TestFilter_SOURCES                = TestFilter.oldtest
-TestTransform_SOURCES             = TestTransform.oldtest
-TestAlgorithms_SOURCES            = TestAlgorithms.oldtest
-TestStatistics_SOURCES            = TestStatistics.oldtest
-TestImageResource_SOURCES         = TestImageResource.oldtest
+TestAlgorithms_SOURCES            = TestAlgorithms.cxx
+TestConvolution_SOURCES           = TestConvolution.cxx
+TestEdgeExtension_SOURCES         = TestEdgeExtension.cxx
+TestFilter_SOURCES                = TestFilter.cxx
+TestImageMath_SOURCES             = TestImageMath.cxx
+TestImageResource_SOURCES         = TestImageResource.cxx
+TestImageView_SOURCES             = TestImageView.cxx
+TestImageViewRef_SOURCES          = TestImageViewRef.cxx
+TestInterpolation_SOURCES         = TestInterpolation.cxx
+TestManipulation_SOURCES          = TestManipulation.cxx
+TestPerPixelAccessorViews_SOURCES = TestPerPixelAccessorViews.cxx
+TestPerPixelViews_SOURCES         = TestPerPixelViews.cxx
+TestPixelMath_SOURCES             = TestPixelMath.cxx
+TestPixelTypes_SOURCES            = TestPixelTypes.cxx
+TestStatistics_SOURCES            = TestStatistics.cxx
+TestTransform_SOURCES             = TestTransform.cxx
 
-TESTS = TestPixelMath TestPixelTypes TestImageView TestImageViewRef		\
-	TestManipulation TestPerPixelViews TestPerPixelAccessorViews		\
-	TestImageMath TestEdgeExtension TestInterpolation TestConvolution	\
-	TestFilter TestTransform TestAlgorithms TestStatistics TestImageResource
+
+TESTS = TestAlgorithms TestConvolution TestEdgeExtension TestFilter        \
+        TestImageMath TestImageResource TestImageView TestImageViewRef     \
+        TestInterpolation TestManipulation TestPerPixelAccessorViews       \
+        TestPerPixelViews TestPixelMath TestPixelTypes TestStatistics      \
+        TestTransform
 
 include $(top_srcdir)/config/instantiate.am
 
@@ -45,7 +47,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@
 
 check_PROGRAMS = $(TESTS)
-CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
-include $(top_srcdir)/config/tests_old.am
+include $(top_srcdir)/config/tests.am
