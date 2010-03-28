@@ -18,6 +18,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelMath.h>
 
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
 #define HAS_EXCEPTIONS(x) x
