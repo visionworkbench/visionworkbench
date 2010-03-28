@@ -13,17 +13,21 @@ using namespace vw;
 
 #include <vw/Photometry/Reconstruct.h>
 //computes the exposure time from image, albedo and DEM
+/*
 void ComputeExposure(std::string curr_input_file,
                      std::string curr_albedo_file,
                      std::string DEM_file,
                      modelParams *currModelParams,
                      GlobalParams globalParams);
-
-//used for mosaicking, with no reflectance model
+*/
 void ComputeExposure(modelParams *currModelParams,
                      GlobalParams globalParams);
 
-//void AppendExposureInfoToFile(string exposureFilename, string currInputFile, modelParams currModelParams);
+//used for mosaicking, with no reflectance model
+void ComputeExposureAlbedo(modelParams *currModelParams,
+                           GlobalParams globalParams);
+
+
 void AppendExposureInfoToFile(string exposureFilename, modelParams currModelParams);
 vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries);
 

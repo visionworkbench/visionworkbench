@@ -442,15 +442,21 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
 //computes a reflectance image
 //author: Ara Nefian
 
-//TO DO: change this function to return the average reflectance with only one neighbor
+ /*
 float computeImageReflectance(std::string input_img_file, std::string DEM_file,
                               std::string shadow_file, modelParams input_img_params,
                               std::string output_img_file, GlobalParams globalParams)
+ */
+float computeImageReflectance(modelParams input_img_params, GlobalParams globalParams)
 {
-   int l, k;
-   int count = 0;
-   float avg_reflectance = 0.0;
+    int l, k;
+    int count = 0;
+    float avg_reflectance = 0.0;
 
+    string input_img_file = input_img_params.inputFilename; 
+    string DEM_file = input_img_params.meanDEMFilename;
+    string shadow_file = input_img_params.shadowFilename;
+    string output_img_file = input_img_params.reliefFilename;;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -550,16 +556,26 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
 
 //computes a reflectance image
 //author: Ara Nefian
+/*
 float computeImageReflectance(std::string input_img_file, std::string overlap_img_file,
                               std::string DEM_file,
                               std::string shadow_file, std::string overlap_shadow_file,
                               modelParams input_img_params, modelParams overlap_img_params,
                               std::string output_img_file, GlobalParams globalParams)
+*/
+float computeImageReflectance(modelParams input_img_params, modelParams overlap_img_params, GlobalParams globalParams)
 {
-   int l, k;
-   int count = 0;
-   float avg_reflectance = 0.0;
-   float overlap_avg_reflectance = 0.0;
+    int l, k;
+    int count = 0;
+    float avg_reflectance = 0.0;
+    float overlap_avg_reflectance = 0.0;
+
+    string input_img_file = input_img_params.inputFilename;
+    string overlap_img_file = overlap_img_params.inputFilename;
+    string DEM_file = input_img_params.meanDEMFilename;
+    string shadow_file = input_img_params.shadowFilename;
+    string overlap_shadow_file = overlap_img_params.shadowFilename;
+    string output_img_file = input_img_params.reliefFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
