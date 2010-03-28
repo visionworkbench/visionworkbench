@@ -17,6 +17,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Image/PixelTypeInfo.h>
 
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
 #define HAS_EXCEPTIONS(x) x
@@ -70,6 +71,15 @@ using namespace ::testing;
 #define ASSERT_COMPLEX_MATRIX_NEAR(val1, val2, delta)\
   ASSERT_PRED_FORMAT2(vw::test::MatrixHelper<std::complex<double> >(vw::test::NearImpl(#delta, delta)), val1, val2)
 
+
+#define EXPECT_PIXEL_NEAR(val1, val2, delta)\
+  EXPECT_PRED_FORMAT2(vw::test::PixelNearHelper(#delta, delta), val1, val2)
+#define ASSERT_PIXEL_NEAR(val1, val2, delta)\
+  ASSERT_PRED_FORMAT2(vw::test::PixelNearHelper(#delta, delta), val1, val2)
+#define EXPECT_PIXEL_EQ(val1, val2)\
+  EXPECT_PRED_FORMAT2(vw::test::PixelEqHelper(), val1, val2)
+#define ASSERT_PIXEL_EQ(val1, val2)\
+  ASSERT_PRED_FORMAT2(vw::test::PixelEqHelper(), val1, val2)
 
 template <typename ElemT>
 inline double value_diff(const ElemT& a, const ElemT& b) {
@@ -199,7 +209,102 @@ class ULPEq {
     }
 };
 
-}} // namespace vw::test
+class PixelNearHelper {
+  NearImpl p;
 
+ public:
+  PixelNearHelper(const char *dexpr, double delta ) : p(dexpr,delta) {}
+
+  template <class PixelT>
+  AssertionResult operator()( const char* ename, const char* aname,
+                              PixelMathBase<PixelT> const& expected,
+                              PixelMathBase<PixelT> const& actual ) {
+    Message msg;
+    bool failed = false;
+
+    for ( int i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
+      const std::string idx = "["+stringify(i)+"]";
+      AssertionResult ret = p( ename+idx, aname+idx,
+                               expected.impl()(i), actual.impl()(i));
+
+      if (!ret) {
+        if (failed)
+          msg << "\n";
+        failed = true;
+        msg << ret.failure_message();
+      }
+    }
+
+    if (failed)
+      return AssertionFailure(msg);
+    return AssertionSuccess();
+  }
+};
+
+template <typename ElemT>
+inline AssertionResult comp_helper( const std::string& ename, const std::string& aname,
+                                    const ElemT& expected, const ElemT& actual ) {
+  return ::testing::internal::CmpHelperEQ(ename.c_str(), aname.c_str(), expected, actual);
+}
+
+template <>
+inline AssertionResult comp_helper<float>( const std::string& ename, const std::string& aname,
+                                           const float& expected, const float& actual ) {
+  return ::testing::internal::CmpHelperFloatingPointEQ<float>(ename.c_str(), aname.c_str(), expected, actual);
+}
+
+template <>
+inline AssertionResult comp_helper<double>( const std::string& ename, const std::string& aname,
+                                            const double& expected, const double& actual ) {
+  return ::testing::internal::CmpHelperFloatingPointEQ<double>(ename.c_str(), aname.c_str(), expected, actual);
+}
+
+template <>
+inline AssertionResult comp_helper<uint8>( const std::string& ename, const std::string& aname,
+                                           const uint8& expected, const uint8& actual ) {
+
+  if ( expected == actual )
+    return AssertionSuccess();
+
+  Message msg;
+  msg << "Value of: " << aname << "\n"
+      << "  Actual: " << int(actual) << "\n"
+      << "Expected: " << ename << "\n"
+      << "Which is: " << int(expected) << "\n";
+  return AssertionFailure(msg);
+}
+
+class PixelEqHelper {
+
+ public:
+  PixelEqHelper() {}
+
+  template <class PixelT>
+  AssertionResult operator()( const char* ename, const char* aname,
+                              PixelMathBase<PixelT> const& expected,
+                              PixelMathBase<PixelT> const& actual ) {
+    Message msg;
+    bool failed = false;
+
+    for ( int i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
+      const std::string idx = "["+stringify(i)+"]";
+      AssertionResult ret = comp_helper( ename+idx, aname+idx,
+                                         expected.impl()(i), actual.impl()(i) );
+
+      if (!ret) {
+        if (failed)
+          msg << "\n";
+        failed = true;
+        msg << ret.failure_message();
+      }
+    }
+
+    if (failed)
+      return AssertionFailure(msg);
+    return AssertionSuccess();
+  }
+};
+
+}} // namespace vw::test
 
 #endif
