@@ -15,8 +15,8 @@ using namespace vw;
 
 class TestTask : public Task {
 
-  TestTask(TestTask& copy) {}
-  void operator=(TestTask& copy) {}
+  TestTask(TestTask& /*copy*/) {}
+  void operator=(TestTask& /*copy*/) {}
   public:
   int m_value;
   bool terminate;
@@ -53,8 +53,6 @@ TEST(ThreadPool, Basic) {
   ASSERT_EQ( 0, task2->value() );
   ASSERT_EQ( 0, task3->value() );
 
-  set_debug_level(VerboseDebugMessage);
-
   FifoWorkQueue queue(4);
   queue.add_task(task1);
   queue.add_task(task2);
@@ -89,7 +87,6 @@ TEST(ThreadPool, LimitedThreads) {
   ASSERT_EQ( 0, task2->value() );
   ASSERT_EQ( 0, task3->value() );
 
-  set_debug_level(VerboseDebugMessage);
   FifoWorkQueue queue(2);
   queue.add_task(task1);
   queue.add_task(task2);
@@ -125,7 +122,6 @@ TEST(ThreadPool, SpawnNewTasks) {
   ASSERT_EQ( 0, task2->value() );
   ASSERT_EQ( 0, task3->value() );
 
-  set_debug_level(VerboseDebugMessage);
   FifoWorkQueue queue(8);
   queue.add_task(task1);
   queue.add_task(task2);
@@ -133,8 +129,6 @@ TEST(ThreadPool, SpawnNewTasks) {
 
   // Give the tasks a chance to start up...
   Thread::sleep_ms(100);
-
-  set_debug_level(VerboseDebugMessage);
 
   EXPECT_EQ( 1, task1->value() );
   EXPECT_EQ( 1, task2->value() );
@@ -178,12 +172,9 @@ TEST(ThreadPool, OrderedWorkQueue) {
   ASSERT_EQ( 0, task2->value() );
   ASSERT_EQ( 0, task3->value() );
 
-  set_debug_level(VerboseDebugMessage);
   OrderedWorkQueue queue(8);
   queue.add_task(task1, 2);
   queue.add_task(task2, 1);
-
-  set_debug_level(VerboseDebugMessage);
 
   ASSERT_EQ( 0, task1->value() );
   ASSERT_EQ( 0, task2->value() );
