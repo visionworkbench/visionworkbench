@@ -33,6 +33,45 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
 
 
 /// Erases a file suffix if one exists and returns the base string
+static std::string prefix_from_filename(std::string const& filename) {
+        std::string result = filename;
+        int index = result.rfind(".");
+        if (index != -1)
+                result.erase(index, result.size());
+        return result;
+}
+
+/// Erases a file suffix if one exists and returns the base string less3 characters
+static std::string prefix_less3_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(index-3, result.size()+3);
+  return result;
+}
+
+/// Erases a file suffix if one exists and returns the base string less3 characters
+static std::string sufix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind("/");
+  if (index != -1) 
+    result.erase(0, index);
+  return result;
+}
+
+/*
+static std::string prefix_from_filename(std::string const& filename);
+static std::string prefix_less3_from_filename(std::string const& filename);
+ /// Erases a file suffix if one exists and returns the base string less3 characters
+static std::string sufix_from_filename(std::string const& filename);
+*/
+
+
+//reads the tiff DEM into a 3D coordinate
+//pos is a Vector2 of pixel coordinates, GR is georeference 
+template <class ViewT> Vector3 pixel_to_cart (Vector2 pos, ImageViewBase<ViewT> const& img,  GeoReference GR);
+
+/// Erases a file suffix if one exists and returns the base string
 std::vector<std::string> derivative_filenames(std::vector<std::string> input_files, std::string const& suffix);
 void error_small_buffer(const char * file_name, unsigned entry_size);
 template <class T>

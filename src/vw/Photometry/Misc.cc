@@ -225,7 +225,7 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   }
   return result;
 }
-
+/*
 /// Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
         std::string result = filename;
@@ -234,6 +234,35 @@ static std::string prefix_from_filename(std::string const& filename) {
                 result.erase(index, result.size());
         return result;
 }
+
+/// Erases a file suffix if one exists and returns the base string less3 characters
+static std::string prefix_less3_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind(".");
+  if (index != -1) 
+    result.erase(index-3, result.size()+3);
+  return result;
+}
+
+/// Erases a file suffix if one exists and returns the base string less3 characters
+static std::string sufix_from_filename(std::string const& filename) {
+  std::string result = filename;
+  int index = result.rfind("/");
+  if (index != -1) 
+    result.erase(0, index);
+  return result;
+}
+*/
+//reads the tiff DEM into a 3D coordinate
+//pos is a Vector2 of pixel coordinates, GR is georeference 
+template <class ViewT>
+Vector3 pixel_to_cart (Vector2 pos, ImageViewBase<ViewT> const& img,  GeoReference GR) {
+    Vector2 loc_longlat2=GR.point_to_lonlat(GR.pixel_to_point(pos));
+    Vector3 loc_longlat3(loc_longlat2(0),loc_longlat2(1),img((int)pos[0],(int)pos[1]));
+    Vector3 loc_cartesian=GR.datum().geodetic_to_cartesian(loc_longlat3);
+    return loc_cartesian;
+}
+
 
 /// Erases a file suffix if one exists and returns the base string
 std::vector<std::string> derivative_filenames(std::vector<std::string> input_files, std::string const& suffix) {
