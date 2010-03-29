@@ -39,17 +39,11 @@ void UpdateAlbedoMosaic(modelParams input_img_params,
                          std::vector<modelParams> overlap_img_params,
                          GlobalParams globalParams);
 
-void ComputeAlbedoErrorMap(std::string input_img_file,
-                           std::string DEM_file,
-                           std::string shadow_file,
-                           std::string albedo_file,
-                           std::vector<std::string> overlap_img_files,
-                           modelParams input_img_params,
-                           std::vector<modelParams> overlap_img_params,
-                           std::vector<std::string> overlapShadowFileArray,
-                           std::string error_img_file,
-                           GlobalParams globalParams,
-                           float *avgError, int *totalNumSamples);
+void ComputeReconstructionErrorMap(modelParams input_img_params,
+                                   std::vector<modelParams> overlap_img_params,
+                                   GlobalParams globalParams,
+                                   float *avgError, int *totalNumSamples);
+
 
 
 
