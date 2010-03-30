@@ -8,10 +8,14 @@
 namespace vw {
 namespace camera {
 
-void build_control_network( ControlNetwork& cnet,
-                            std::vector<boost::shared_ptr<vw::camera::CameraModel> > const& camera_models,
-                            std::vector<std::string> const& image_files,
-                            int min_matches = 30 );
+  void build_control_network( ControlNetwork& cnet,
+                              std::vector<boost::shared_ptr<vw::camera::CameraModel> > const& camera_models,
+                              std::vector<std::string> const& image_files,
+                              int min_matches = 30 );
+
+  void add_ground_control_points( ControlNetwork& cnet,
+                                  std::vector<std::string> const& image_files,
+                                  std::vector<std::string> const& gcp_files );
 
 }}
 
