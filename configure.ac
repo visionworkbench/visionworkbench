@@ -426,6 +426,7 @@ else
   AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
 fi
 AX_MODULE(PLATE, [src/vw/Plate], [libvwPlate.la], no, [CARTOGRAPHY VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS])
+AX_MODULE(BUNDLEADJUSTMENT, [src/vw/BundleAdjustment], [libvwBundleAdjustment.la], no, [CAMERA CARTOGRAPHY INTERESTPOINT STEREO VW])
 
 AX_MODULE(TOOLS, [src/vw/tools], [], yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE(GUI,   [src/vw/gui],   [], no, [PLATE VW], [QT BOOST_PROGRAM_OPTIONS GL])
@@ -448,6 +449,7 @@ AM_CONDITIONAL(MAKE_MODULE_STEREO, [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU, [test "$MAKE_MODULE_GPU" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY, [test "$MAKE_MODULE_GEOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PHOTOMETRY, [test "$MAKE_MODULE_PHOTOMETRY" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS, [test "$MAKE_MODULE_TOOLS" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GUI, [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PLATE, [test "$MAKE_MODULE_PLATE" = "yes"])
@@ -521,6 +523,8 @@ AC_CONFIG_FILES([                       \
   src/vw/Photometry/Makefile            \
   src/vw/Python/vw/Makefile             \
   src/vw/Python/Makefile                \
+  src/vw/BundleAdjustment/Makefile      \
+  src/vw/BundleAdjustment/tests/Makefile \
 ])
 
 AC_OUTPUT

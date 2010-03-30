@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjustmentBase.h
+/// \file AdjustBase.h
 ///
 /// This is the generic outline for code that performs bundle
 /// adjustment. This provides a template for the interface with the
@@ -13,13 +13,13 @@
 /// this, like reference impl, sparse impl, and a research impl. This also
 /// contains all the code for cost functions.
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUSTMENT_BASE_H__
-#define __VW_CAMERA_BUNDLE_ADJUSTMENT_BASE_H__
+#ifndef __VW_BUNDLEADJUSTMENT_ADJUST_BASE_H__
+#define __VW_BUNDLEADJUSTMENT_ADJUST_BASE_H__
 
-#include <vw/Camera/BundleAdjustModelBase.h>
+#include <vw/BundleAdjustment/ModelBase.h>
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   // ROBUST COST FUNCTION
   //----------------------------------------------------------------
@@ -210,7 +210,7 @@ namespace camera {
   // This is a base class for the item which actually performs the
   //bundle adjustment calculations.
   template <class BundleAdjustModelT, class RobustCostT>
-  class BundleAdjustmentBase {
+  class AdjustBase {
 
   protected:
     boost::shared_ptr<ControlNetwork> m_control_net;
@@ -230,10 +230,10 @@ namespace camera {
 
   public:
     // Constructor
-    BundleAdjustmentBase( BundleAdjustModelT &model,
-                          RobustCostT const& robust_cost_func,
-                          bool use_camera_constraint=true,
-                          bool use_gcp_constraint=true ) :
+    AdjustBase( BundleAdjustModelT &model,
+                RobustCostT const& robust_cost_func,
+                bool use_camera_constraint=true,
+                bool use_gcp_constraint=true ) :
     m_model(model), m_robust_cost_func(robust_cost_func),
       m_use_camera_constraint(use_camera_constraint),
       m_use_gcp_constraint(use_gcp_constraint) {
@@ -323,12 +323,12 @@ namespace camera {
     // This is called repeatedly
     double update( double &abs_tol,
                    double &rel_tol ) {
-      vw_throw( vw::NoImplErr() << "Programmer needs to implement BundleAdjustmentBase::update()" );
+      vw_throw( vw::NoImplErr() << "Programmer needs to implement AdjustBase::update()" );
       return 0;
     }
 
   };
 
-}} // namespace vw::camera
+}} // namespace vw::ba
 
-#endif//__VW_CAMERA_BUNDLE_ADJUSTMENT_BASE_H__
+#endif//__VW_BUNDLEADJUSTMENT_ADJUST_BASE_H__

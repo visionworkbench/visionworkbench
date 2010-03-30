@@ -9,8 +9,8 @@
 ///
 /// Report option for Bundle Adjustment
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUST_REPORT_H_
-#define __VW_CAMERA_BUNDLE_ADJUST_REPORT_H_
+#ifndef __VW_BUNDLEADJUSTMENT_REPORT_H_
+#define __VW_BUNDLEADJUSTMENT_REPORT_H_
 
 // STL
 #include <string>
@@ -25,7 +25,7 @@
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/FileIO/KML.h>
-#include <vw/Camera/ControlNetwork.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 
 // Boost
 #include <boost/algorithm/string.hpp>
@@ -56,7 +56,7 @@
 //    110 - Write Debug Jacobian Matrix (massive human readable)
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   // Posix time is not fully supported in the version of Boost for RHEL
   // Workstation 4
@@ -476,4 +476,4 @@ namespace camera {
 
 }} // End namespace
 
-#endif//__VW_CAMERA_BUNDLE_ADJUST_REPORT_H_
+#endif//__VW_BUNDLEADJUSTMENT_REPORT_H_

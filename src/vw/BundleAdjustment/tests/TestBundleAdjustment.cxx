@@ -12,16 +12,17 @@
 #include <test/Helpers.h>
 
 #include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/BundleAdjust.h>
+#include <vw/BundleAdjustment.h>
 
 // This test is for non robust bundle adjustment.
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::ba;
 
 // Building a Model
 // ------------------------
-class TestBAModel : public camera::BundleAdjustmentModelBase< TestBAModel, 6, 3 > {
+class TestBAModel : public ba::ModelBase< TestBAModel, 6, 3 > {
 
   typedef Vector<double, 6> camera_vector_t;
   typedef Vector<double, 3> point_vector_t;
@@ -158,7 +159,7 @@ TEST( BundleAdjustment, RefNullResponse ) {
   generate_camera_data( cameras, cnet );
 
   TestBAModel model( cameras, cnet );
-  BundleAdjustmentRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+  AdjustRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
@@ -181,7 +182,7 @@ TEST( BundleAdjustment, SparseNullResponse ) {
   generate_camera_data( cameras, cnet );
 
   TestBAModel model( cameras, cnet );
-  BundleAdjustmentSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+  AdjustSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
@@ -225,7 +226,7 @@ TEST( BundleAdjustment, CompareSpareRef ) {
 
   { // Performing Ref BA
     TestBAModel model( cameras, cnet );
-    BundleAdjustmentRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+    AdjustRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
     // Running BA
     double abs_tol = 1e10, rel_tol = 1e10;
@@ -239,7 +240,7 @@ TEST( BundleAdjustment, CompareSpareRef ) {
 
   { // Performing Sparse BA
     TestBAModel model( cameras, cnet );
-    BundleAdjustmentSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+    AdjustSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
     // Running BA
     double abs_tol = 1e10, rel_tol = 1e10;

@@ -8,8 +8,8 @@
 /// \file ControlNetwork.h
 ///
 
-#ifndef __VW_CAMERA_CONTROL_NETWORK_H__
-#define __VW_CAMERA_CONTROL_NETWORK_H__
+#ifndef __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__
+#define __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__
 
 // STL
 #include <string>
@@ -24,7 +24,7 @@
 #include <boost/algorithm/string.hpp>
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   enum ControlStorageFmt { FmtBinary, FmtIsisPvl };
 
@@ -397,6 +397,6 @@ namespace camera {
   void read_pvl_property( std::ostringstream& ostr,
                           std::vector< std::string >& tokens );
 
-}} // namespace vw::camera
+}} // namespace vw::ba
 
-#endif // __VW_CAMERA_CONTROL_NETWORK_H__
+#endif // __VW_BUNDLEADJUSTMENT_CONTROL_NETWORK_H__

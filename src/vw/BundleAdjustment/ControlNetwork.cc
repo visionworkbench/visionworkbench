@@ -8,7 +8,7 @@
 /// \file ControlNetwork.cc
 ///
 
-#include <vw/Camera/ControlNetwork.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 
 // Time Headers
 #include <boost/thread/xtime.hpp>
@@ -31,7 +31,7 @@ inline std::string current_posix_time_string() {
 }
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   ////////////////////////////
   // Control Measure        //

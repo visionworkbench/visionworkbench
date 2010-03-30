@@ -19,15 +19,15 @@
 // be created from a camera relations network and the opposite is also
 // true.
 
-#ifndef __VW_CAMERA_RELATIONS_H__
-#define __VW_CAMERA_RELATIONS_H__
+#ifndef __VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__
+#define __VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__
 
 #include <vw/Math/Matrix.h>
-#include <vw/Camera/ControlNetwork.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/InterestPoint/InterestData.h>
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   // Feature Base
   template <class ImplT>
@@ -157,4 +157,4 @@ namespace camera {
 
 }}
 
-#endif//__VW_CAMERA_RELATIONS_H__
+#endif//__VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__

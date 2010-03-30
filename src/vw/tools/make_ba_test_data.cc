@@ -134,8 +134,8 @@ namespace fs = boost::filesystem;
 #include <boost/random.hpp>
 
 #include <vw/Camera/CAHVORModel.h>
-#include <vw/Camera/BundleAdjustmentSparse.h>
-#include <vw/Camera/BundleAdjustReport.h>
+#include <vw/BundleAdjustment/AdjustSparse.h>
+#include <vw/BundleAdjustment/BundleAdjustReport.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Math.h>
 #include <vw/Math/EulerAngles.h>
@@ -144,6 +144,7 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::ba;
 
 using vw::stereo::StereoModel;
 using std::cout;

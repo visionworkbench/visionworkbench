@@ -10,8 +10,8 @@
 /// Classes used to define the bundle adjustment problem. Every
 /// program implementing BA, must implement one of these.
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUST_MODEL_BASE_H__
-#define __VW_CAMERA_BUNDLE_ADJUST_MODEL_BASE_H__
+#ifndef __VW_BUNDLEADJUSTMENT_MODEL_BASE_H__
+#define __VW_BUNDLEADJUSTMENT_MODEL_BASE_H__
 
 // Standard
 #include <string>
@@ -19,19 +19,19 @@
 // Vision Workbench
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
-#include <vw/Camera/ControlNetwork.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/Core/Log.h>
 
 // Boost
 #include <boost/smart_ptr.hpp>
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   // CRTP Base class for Bundle Adjustment functors.
   //---------------------------------------------------------
   template <class ImplT, unsigned CameraParamsN, unsigned PointParamsN>
-  class BundleAdjustmentModelBase {
+  class ModelBase {
   public:
     static const unsigned camera_params_n = CameraParamsN;
     static const unsigned point_params_n = PointParamsN;
@@ -122,10 +122,10 @@ namespace camera {
     void gcp_errors( std::vector<double>& x ) {
       impl().gcp_errors(x); }
     boost::shared_ptr<ControlNetwork> control_network(void) {
-      vw_throw( vw::NoImplErr() << "Programmer needs to implement BundleAdjustmentModelBase::control_network()\n" );
+      vw_throw( vw::NoImplErr() << "Programmer needs to implement ModelBase::control_network()\n" );
     }
   };
 
-}} // namespace vw::camera
+}} // namespace vw::ba
 
-#endif//__VW_CAMERA_BUNDLE_ADJUST_MODEL_BASE_H__
+#endif//__VW_BUNDLEADJUSTMENT_MODEL_BASE_H__

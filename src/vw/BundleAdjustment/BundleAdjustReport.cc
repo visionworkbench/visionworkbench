@@ -5,11 +5,11 @@
 // __END_LICENSE__
 
 
-#include <vw/Camera/BundleAdjustReport.h>
+#include <vw/BundleAdjustment/BundleAdjustReport.h>
 namespace fs = boost::filesystem;
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   void write_kml_styles( KMLFile& kml ) {
     // GCP Placemark Style

@@ -8,10 +8,10 @@
 /// \file CameraRelation.cc
 ///
 
-#include <vw/Camera/CameraRelation.h>
+#include <vw/BundleAdjustment/CameraRelation.h>
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   // Implementations for specific features
   ControlMeasure
@@ -54,7 +54,7 @@ namespace camera {
     // image twice.
     int spiral_error_count = 0;
     {
-      TerminalProgressCallback progress("asp","Assembly:  ");
+      TerminalProgressCallback progress("ba","Assembly:  ");
       progress.report_progress(0);
       for ( uint32 i = 0; i < crn.size() - 1; i++ ) {
         progress.report_progress(float(i)/float(crn.size()-1));
@@ -119,7 +119,7 @@ namespace camera {
       } // end of iteration over camera nodes
       progress.report_finished();
       if ( spiral_error_count != 0 )
-        vw_out(WarningMessage,"camera") << "\t"
+        vw_out(WarningMessage,"ba") << "\t"
                                         << spiral_error_count
                                         << " control points removed due to spiral errors.\n";
     }

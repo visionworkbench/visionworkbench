@@ -5,14 +5,14 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjustmentRobustRef.h
+/// \file AdjustRobustRef.h
 ///
 /// Reference implementation of robust bundle adjustment. Very slow!
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_REF_H__
-#define __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_REF_H__
+#ifndef __VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_REF_H__
+#define __VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_REF_H__
 
-#include <vw/Camera/BundleAdjustmentBase.h>
+#include <vw/BundleAdjustment/AdjustBase.h>
 #include <vw/Math/LinearAlgebra.h>
 
 // Boost
@@ -38,23 +38,23 @@
 
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   template <class BundleAdjustModelT, class RobustCostT>
-  class BundleAdjustmentRobustRef : public BundleAdjustmentBase<BundleAdjustModelT,RobustCostT> {
+  class AdjustRobustRef : public AdjustBase<BundleAdjustModelT,RobustCostT> {
 
     // Need to save S for covariance calculations
     boost::shared_ptr<math::Matrix<double> > m_S;
 
   public:
 
-    BundleAdjustmentRobustRef( BundleAdjustModelT & model,
-                         RobustCostT const& robust_cost_func,
-                         bool use_camera_constraint=true,
-                         bool use_gcp_constraint=true ) :
-    BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
-                                                          use_camera_constraint,
-                                                          use_gcp_constraint ) {}
+    AdjustRobustRef( BundleAdjustModelT & model,
+                     RobustCostT const& robust_cost_func,
+                     bool use_camera_constraint=true,
+                     bool use_gcp_constraint=true ) :
+    AdjustBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
+                                                use_camera_constraint,
+                                                use_gcp_constraint ) {}
 
     Matrix<double> S() { return *m_S; }
     void set_S(math::Matrix<double> S) {
@@ -408,4 +408,4 @@ namespace camera {
 
 }}
 
-#endif//__VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_REF_H__
+#endif//__VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_REF_H__

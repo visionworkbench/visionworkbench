@@ -5,17 +5,17 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjustmentSparse.h
+/// \file AdjustSparse.h
 ///
 /// Sparse implementation of bundle adjustment. Fast yo!
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUSTMENT_SPARSE_H__
-#define __VW_CAMERA_BUNDLE_ADJUSTMENT_SPARSE_H__
+#ifndef __VW_BUNDLEADJUSTMENT_ADJUST_SPARSE_H__
+#define __VW_BUNDLEADJUSTMENT_ADJUST_SPARSE_H__
 
 // Vision Workbench
-#include <vw/Camera/BundleAdjustmentBase.h>
 #include <vw/Math/MatrixSparseSkyline.h>
 #include <vw/Core/Debugging.h>
+#include <vw/BundleAdjustment/AdjustBase.h>
 
 // Boost
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -35,10 +35,10 @@
 #endif
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   template <class BundleAdjustModelT, class RobustCostT>
-  class BundleAdjustmentSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
+  class AdjustSparse : public AdjustBase<BundleAdjustModelT, RobustCostT> {
 
     math::MatrixSparseSkyline<double> m_S;
     std::vector<unsigned> m_ideal_ordering;
@@ -47,13 +47,13 @@ namespace camera {
 
   public:
 
-    BundleAdjustmentSparse( BundleAdjustModelT & model,
-                            RobustCostT const& robust_cost_func,
-                            bool use_camera_constraint=true,
-                            bool use_gcp_constraint=true) :
-    BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
-                                                          use_camera_constraint,
-                                                          use_gcp_constraint ) {
+    AdjustSparse( BundleAdjustModelT & model,
+                  RobustCostT const& robust_cost_func,
+                  bool use_camera_constraint=true,
+                  bool use_gcp_constraint=true) :
+    AdjustBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
+                                                use_camera_constraint,
+                                                use_gcp_constraint ) {
       m_found_ideal_ordering = false;
     }
 
@@ -139,7 +139,7 @@ namespace camera {
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W
       // matrix.
-      time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "bundle_adjust");
+      time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba");
       unsigned i = 0;
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
 
@@ -196,7 +196,7 @@ namespace camera {
 
       // set initial lambda, and ignore if the user has touched it
       if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
-        time = new Timer("Solving for Lambda:", DebugMessage, "bundle_adjust");
+        time = new Timer("Solving for Lambda:", DebugMessage, "ba");
         double max = 0.0;
         for (unsigned i = 0; i < U.size(); ++i)
           for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
@@ -213,7 +213,7 @@ namespace camera {
       }
 
       // Add in the camera position and pose constraint terms and covariances.
-      time = new Timer("Solving for Camera and GCP error:",DebugMessage,"bundle_adjust");
+      time = new Timer("Solving for Camera and GCP error:",DebugMessage,"ba");
       if ( this->m_use_camera_constraint )
         for ( unsigned j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov;
@@ -244,7 +244,7 @@ namespace camera {
       delete time;
 
       // flatten both epsilon_b and epsilon_a into a vector
-      time = new Timer("Flatten eps_a, eps_b, and augmenting with lambda",DebugMessage,"bundle_adjust");
+      time = new Timer("Flatten eps_a, eps_b, and augmenting with lambda",DebugMessage,"ba");
       for (unsigned j = 0; j < U.size(); j++){
         subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
         current_g_length += num_cam_params;
@@ -278,7 +278,7 @@ namespace camera {
       // Create the 'e' vector in S * delta_a = e.  The first step is
       // to "flatten" our block structure to a vector that contains
       // scalar entries.
-      time = new Timer("Create special e vector", DebugMessage, "bundle_adjust");
+      time = new Timer("Create special e vector", DebugMessage, "ba");
       Vector<double> e(this->m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
       for (unsigned j = 0; j < epsilon_a.size(); ++j) {
         subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) =
@@ -307,7 +307,7 @@ namespace camera {
       delete time;
 
       // --- BUILD SPARSE, SOLVE A'S UPDATE STEP -------------------------
-      time = new Timer("Build Sparse", DebugMessage, "bundle_adjust");
+      time = new Timer("Build Sparse", DebugMessage, "ba");
 
       // The S matrix is a m x m block matrix with blocks that are
       // camera_params_n x camera_params_n in size.  It has a sparse
@@ -380,7 +380,7 @@ namespace camera {
 
       // Computing ideal ordering
       if (!m_found_ideal_ordering) {
-        time = new Timer("Solving Cuthill-Mckee", DebugMessage, "bundle_adjust");
+        time = new Timer("Solving Cuthill-Mckee", DebugMessage, "ba");
         m_ideal_ordering = cuthill_mckee_ordering(S,num_cam_params);
         math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
         m_ideal_skyline = solve_for_skyline(mod_S);
@@ -389,7 +389,7 @@ namespace camera {
         delete time;
       }
 
-      time = new Timer("Solve Delta A", DebugMessage, "bundle_adjust");
+      time = new Timer("Solve Delta A", DebugMessage, "ba");
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
@@ -405,7 +405,7 @@ namespace camera {
       // --- SOLVE B'S UPDATE STEP ---------------------------------
 
       // Back Solving for Delta B
-      time = new Timer("Solve Delta B", DebugMessage, "bundle_adjust");
+      time = new Timer("Solve Delta B", DebugMessage, "ba");
       boost_sparse_vector<vector_point > delta_b(this->m_model.num_points());
 
       i = 0;
@@ -439,7 +439,7 @@ namespace camera {
       // -------------------------------
       // Compute the update error vector and predicted change
       // -------------------------------
-      time = new Timer("Solve for Updated Error", DebugMessage, "bundle_adjust");
+      time = new Timer("Solve for Updated Error", DebugMessage, "ba");
       i = 0;
       double new_error_total = 0;
       for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
@@ -514,7 +514,7 @@ namespace camera {
 
       if ( R > 0 ) {
 
-        time = new Timer("Setting Parameters",DebugMessage,"bundle_adjust");
+        time = new Timer("Setting Parameters",DebugMessage,"ba");
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
@@ -548,6 +548,6 @@ namespace camera {
 
   };
 
-}} // namespace vw::camera
+}} // namespace vw::ba
 
-#endif//__VW_CAMERA_BUNDLE_ADJUSTMENT_SPARSE_H__
+#endif//__VW_BUNDLEADJUSTMENT_ADJUST_SPARSE_H__

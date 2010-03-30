@@ -18,12 +18,12 @@ namespace fs = boost::filesystem;
 
 // VisionWorkbench
 #include <vw/Math.h>
-#include <vw/Camera/ControlNetwork.h>
+#include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/InterestPoint/InterestData.h>
 
 using namespace vw;
 using namespace vw::ip;
-using namespace vw::camera;
+using namespace vw::ba;
 
 #if VW_BOOST_VERSION < 103400
 std::istream& operator>>(std::istream& is, fs::path& p) {

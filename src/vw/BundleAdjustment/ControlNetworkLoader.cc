@@ -1,12 +1,12 @@
 // __BEGIN_LICENSE__
 // __END_LICENSE__
 
-#include <vw/Camera/ControlNetworkLoader.h>
+#include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 
 using namespace vw;
-using namespace vw::camera;
+using namespace vw::ba;
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
@@ -24,10 +24,10 @@ struct ContainsEqualIP {
   }
 };
 
-void vw::camera::build_control_network( ControlNetwork& cnet,
-                                        std::vector<boost::shared_ptr<vw::camera::CameraModel> > const& camera_models,
-                                        std::vector<std::string> const& image_files,
-                                        int min_matches ) {
+void vw::ba::build_control_network( ControlNetwork& cnet,
+                                    std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                    std::vector<std::string> const& image_files,
+                                    int min_matches ) {
   cnet.clear();
 
   // 1.) Build CRN (pop on cameras)
@@ -40,7 +40,7 @@ void vw::camera::build_control_network( ControlNetwork& cnet,
 
   // 2.) Load up matches into CRN
   {
-    TerminalProgressCallback progress("camera","Match Files: ");
+    TerminalProgressCallback progress("ba","Match Files: ");
     progress.report_progress(0);
     int32 num_load_rejected = 0, num_loaded = 0;
     for ( unsigned i = 0; i < image_files.size(); ++i ) {
@@ -56,14 +56,14 @@ void vw::camera::build_control_network( ControlNetwork& cnet,
         std::vector<ip::InterestPoint> ip1, ip2;
         ip::read_binary_match_file( match_filename, ip1, ip2 );
         if ( int( ip1.size() ) < min_matches ) {
-          vw_out(VerboseDebugMessage,"camera") << "\t" << match_filename << "    "
-                                               << i << " <-> " << j << " : "
-                                               << ip1.size() << " matches. [rejected]\n";
+          vw_out(VerboseDebugMessage,"ba") << "\t" << match_filename << "    "
+                                           << i << " <-> " << j << " : "
+                                           << ip1.size() << " matches. [rejected]\n";
           num_load_rejected += ip1.size();
         } else {
-          vw_out(VerboseDebugMessage,"camera") << "\t" << match_filename << "    "
-                                               << i << " <-> " << j << " : "
-                                               << ip1.size() << " matches.\n";
+          vw_out(VerboseDebugMessage,"ba") << "\t" << match_filename << "    "
+                                           << i << " <-> " << j << " : "
+                                           << ip1.size() << " matches.\n";
           num_loaded += ip1.size();
 
           typedef boost::shared_ptr< IPFeature > f_ptr;
@@ -97,8 +97,8 @@ void vw::camera::build_control_network( ControlNetwork& cnet,
     }   // end i for loop
     progress.report_finished();
     if ( num_load_rejected != 0 ) {
-      vw_out(WarningMessage,"camera") << "\tDidn't load " << num_load_rejected << " matches due to inadequacy.\n";
-      vw_out(WarningMessage,"camera") << "\tLoaded " << num_loaded << " matches.\n";
+      vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected << " matches due to inadequacy.\n";
+      vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
     }
   }
 
@@ -107,7 +107,7 @@ void vw::camera::build_control_network( ControlNetwork& cnet,
 
   // 4.) Triangulating Positions
   {
-    TerminalProgressCallback progress("asp", "Triangulating:");
+    TerminalProgressCallback progress("ba", "Triangulating:");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
     for ( ControlNetwork::iterator cpoint = cnet.begin();
@@ -151,15 +151,15 @@ void vw::camera::build_control_network( ControlNetwork& cnet,
 
 }
 
-void vw::camera::add_ground_control_points( ControlNetwork& cnet,
-                                            std::vector<std::string> const& image_files,
-                                            std::vector<std::string> const& gcp_files ) {
+void vw::ba::add_ground_control_points( ControlNetwork& cnet,
+                                        std::vector<std::string> const& image_files,
+                                        std::vector<std::string> const& gcp_files ) {
   // Creating a version of image_files that doesn't contain the path
   std::vector<std::string> pathless_image_files;
   for ( unsigned i = 0; i < image_files.size(); i++ )
     pathless_image_files.push_back(fs::path(image_files[i]).filename());
 
-  TerminalProgressCallback progress("camera", "Grnd Control:");
+  TerminalProgressCallback progress("ba", "Grnd Control:");
   progress.report_progress(0);
   float inc_progress = 1.0/gcp_files.size();
   for ( std::vector<std::string>::const_iterator gcp_name = gcp_files.begin();
@@ -175,8 +175,8 @@ void vw::camera::add_ground_control_points( ControlNetwork& cnet,
     std::vector<std::string> measure_cameras;
     Vector3 world_location, world_sigma;
 
-    vw_out(VerboseDebugMessage,"camera") << "\tLoading \"" << *gcp_name
-                                         << "\".\n";
+    vw_out(VerboseDebugMessage,"ba") << "\tLoading \"" << *gcp_name
+                                     << "\".\n";
     int count = 0;
     std::ifstream ifile( (*gcp_name).c_str() );
     while (!ifile.eof()) {
@@ -199,8 +199,8 @@ void vw::camera::add_ground_control_points( ControlNetwork& cnet,
 
     // Building Control Point
     Vector3 xyz = cartography::lon_lat_radius_to_xyz(world_location);
-    vw_out(VerboseDebugMessage,"camera") << "\t\tLocation: "
-                                         << xyz << std::endl;
+    vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
+                                     << xyz << std::endl;
     ControlPoint cpoint(ControlPoint::GroundControlPoint);
     cpoint.set_position(xyz[0],xyz[1],xyz[2]);
     cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
@@ -217,11 +217,11 @@ void vw::camera::add_ground_control_points( ControlNetwork& cnet,
           break;
       }
       if ( camera_index == image_files.size() ) {
-        vw_out(WarningMessage,"camera") << "\t\tWarning: no image found matching "
-                                        << *m_iter_name << std::endl;
+        vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+                                    << *m_iter_name << std::endl;
       } else {
-        vw_out(DebugMessage,"camera") << "\t\tAdded Measure: " << *m_iter_name
-                                      << " #" << camera_index << std::endl;
+        vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
+                                  << " #" << camera_index << std::endl;
         ControlMeasure cm( (*m_iter_loc).x(), (*m_iter_loc).y(),
                            1.0, 1.0, camera_index );
         cpoint.add_measure( cm );

@@ -102,12 +102,12 @@ namespace fs = boost::filesystem;
 
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/BundleAdjust.h>
-#include <vw/Camera/BundleAdjustReport.h>
+#include <vw/BundleAdjustment.h>
 #include <vw/Math.h>
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::ba;
 
 #include <cstdlib>
 #include <iostream>
@@ -536,7 +536,7 @@ void write_adjustments(std::string const& filename, Vector3 const& position_corr
 
 /* {{{ BundleAdjustmentModel */
 // Bundle adjustment functor
-class BundleAdjustmentModel : public camera::BundleAdjustmentModelBase<BundleAdjustmentModel, 6, 3> {
+class BundleAdjustmentModel : public ba::ModelBase<BundleAdjustmentModel, 6, 3> {
 
 /* {{{ private members */
   typedef Vector<double,6> camera_vector_t;
@@ -1011,27 +1011,27 @@ int main(int argc, char* argv[]) {
   // Run bundle adjustment according to user-specified type
   switch (config.bundle_adjustment_type) {
     case REF:
-      adjust_bundles<BundleAdjustmentRef<BundleAdjustmentModel, L2Error>, L2Error >
+      adjust_bundles<AdjustRef<BundleAdjustmentModel, L2Error>, L2Error >
         (ba_model, L2Error(), config, "Reference");
       break;
     case SPARSE:
-      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, L2Error>, L2Error >
+      adjust_bundles<AdjustSparse<BundleAdjustmentModel, L2Error>, L2Error >
         (ba_model, L2Error(), config, "Sparse");
       break;
     case SPARSE_HUBER:
-      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, HuberError>, HuberError >
+      adjust_bundles<AdjustSparse<BundleAdjustmentModel, HuberError>, HuberError >
         (ba_model, HuberError(config.huber_param), config, "Sparse Huber");
       break;
     case SPARSE_CAUCHY:
-      adjust_bundles<BundleAdjustmentSparse<BundleAdjustmentModel, CauchyError>, CauchyError >
+      adjust_bundles<AdjustSparse<BundleAdjustmentModel, CauchyError>, CauchyError >
         (ba_model, CauchyError(config.cauchy_param), config, "Sparse Cauchy");
       break;
     case ROBUST_REF:
-      adjust_bundles<BundleAdjustmentRobustRef<BundleAdjustmentModel, L2Error>, L2Error >
+      adjust_bundles<AdjustRobustRef<BundleAdjustmentModel, L2Error>, L2Error >
         (ba_model, L2Error(), config, "Robust Reference");
       break;
     case ROBUST_SPARSE:
-      adjust_bundles<BundleAdjustmentRobustSparse<BundleAdjustmentModel, L2Error>, L2Error >
+      adjust_bundles<AdjustRobustSparse<BundleAdjustmentModel, L2Error>, L2Error >
         (ba_model, L2Error(), config, "Robust Sparse");
       break;
   }
@@ -1039,7 +1039,7 @@ int main(int argc, char* argv[]) {
   // Do covariance calculation:
   // a. set lambda = 0
   // b. run bundle adjustment for one iteration
-  // c. run adjuster.covCalc() 
+  // c. run adjuster.covCalc()
   //        covCalc will return a vector (length = numCameras)
   //        of 6x6 covariance matrices
   //        (may need to do this inside adjust_bundles, in which

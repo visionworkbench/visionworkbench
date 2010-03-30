@@ -5,15 +5,15 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjustmentSparse.h
+/// \file AdjustRobustSparseKGCP.h
 ///
-/// Robust Sparse implementation of bundle adjustment. Fast yo!
+/// Robust Sparse implementation of bundle adjustment that (K)eeps (GCP)s
 
-#ifndef __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_SPARSE_H__
-#define __VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_SPARSE_H__
+#ifndef __VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_SPARSE_KGCP_H__
+#define __VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_SPARSE_KGCP_H__
 
 // Vision Workbench
-#include <vw/Camera/BundleAdjustmentBase.h>
+#include <vw/BundleAdjustment/AdjustBase.h>
 #include <vw/Math/MatrixSparseSkyline.h>
 
 // Boost
@@ -34,10 +34,10 @@
 #endif
 
 namespace vw {
-namespace camera {
+namespace ba {
 
   template <class BundleAdjustModelT, class RobustCostT>
-  class BundleAdjustmentRobustSparse : public BundleAdjustmentBase<BundleAdjustModelT, RobustCostT> {
+  class AdjustRobustSparseKGCP : public AdjustBase<BundleAdjustModelT, RobustCostT> {
 
     math::MatrixSparseSkyline<double> m_S;
     std::vector<unsigned> m_ideal_ordering;
@@ -46,13 +46,13 @@ namespace camera {
 
   public:
 
-    BundleAdjustmentRobustSparse( BundleAdjustModelT & model,
-                                  RobustCostT const& robust_cost_func,
-                                  bool use_camera_constraint=true,
-                                  bool use_gcp_constraint=true) :
-    BundleAdjustmentBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
-                                                          use_camera_constraint,
-                                                          use_gcp_constraint ) {
+    AdjustRobustSparseKGCP( BundleAdjustModelT & model,
+                            RobustCostT const& robust_cost_func,
+                            bool use_camera_constraint=true,
+                            bool use_gcp_constraint=true) :
+    AdjustBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
+                                                use_camera_constraint,
+                                                use_gcp_constraint ) {
       m_found_ideal_ordering = false;
     }
 
@@ -139,8 +139,6 @@ namespace camera {
       double t_dim_pixel = 2;
       // dimension of cameras
       double t_dim_cam   = 6;
-      // dimension of world points
-      double t_dim_pt    = 3;
 
       // Fletcher LM parameteres
       double dS = 0; //Predicted improvement for Fletcher modification
@@ -148,7 +146,7 @@ namespace camera {
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W
       // matrix.
-      vw_out(DebugMessage, "bundle_adjustment") << "Image Error: " << std::endl;
+      vw_out(DebugMessage, "ba") << "Image Error: " << std::endl;
       unsigned i = 0;
 
       double robust_objective = 0.0;
@@ -253,11 +251,14 @@ namespace camera {
             D.set_identity();
 
             vector_point eps_b = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
-            double S_weight = transpose(eps_b) * inverse_cov * eps_b;
-            double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
-            robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
-            V(i) +=  mu_weight*transpose(D) * inverse_cov * D;
-            epsilon_b(i) += mu_weight*transpose(D) * inverse_cov * eps_b;
+            //double S_weight = 
+            //double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
+            //robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
+            robust_objective += transpose(eps_b) * inverse_cov * eps_b;
+            //V(i) +=  mu_weight*transpose(D) * inverse_cov * D;
+            V(i) += transpose(D) * inverse_cov * D;
+            //epsilon_b(i) += mu_weight*transpose(D) * inverse_cov * eps_b;
+            epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
           }
         }
 
@@ -502,7 +503,7 @@ namespace camera {
             inverse_cov = this->m_model.B_inverse_covariance(i);
             vector_point eps_b = this->m_model.B_initial(i)-new_b;
             double S_weight = transpose(eps_b)*inverse_cov*eps_b;
-            new_robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
+            new_robust_objective += S_weight;
           }
 
       //Fletcher modification
@@ -521,9 +522,6 @@ namespace camera {
         for (unsigned i=0; i<this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
                                          static_cast<vector_point>(delta_b(i)));
-
-        //abs_tol = 5; // Why did we do this?
-        //rel_tol = 5;
 
         if(this->m_control == 0){
           double temp = 1 - pow((2*R - 1),3);
@@ -550,6 +548,6 @@ namespace camera {
 
   };
 
-}} // namespace vw::camera
+}} // namespace vw::ba
 
-#endif//__VW_CAMERA_BUNDLE_ADJUSTMENT_ROBUST_SPARSE_H__
+#endif//__VW_BUNDLEADJUSTMENT_ADJUST_ROBUST_SPARSE_KGCP_H__
