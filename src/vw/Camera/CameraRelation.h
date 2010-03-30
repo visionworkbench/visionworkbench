@@ -51,7 +51,7 @@ namespace camera {
         typedef typename std::list<f_ptr>::iterator list_it;
         for ( list_it iter = m_connections.begin();
               iter != m_connections.end(); iter++ ) {
-          if ( **iter == *con )
+          if ( (*iter).get() == con.get() ) // Compare pointers only
             return;
         }
       }
