@@ -103,15 +103,25 @@ const char* is_platefile_id(const char* arg) {
   return NULL;
 }
 
+const char* is_servername(const char* arg) {
+  if (!arg)
+    return "Expected a servername: cannot be null";
+  if (strncmp(arg, "http", 4) != 0)
+    return "Expected a servername: it should probably begin with http";
+  return NULL;
+}
+
 ADD_STRING_CONFIG(rabbit_ip, is_ip_address);
 ADD_STRING_CONFIG(index_exchange, is_bare_exchange);
 ADD_STRING_CONFIG(dem_id, is_platefile_id);
+ADD_STRING_CONFIG(servername, is_servername);
 
 
 static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
   AP_INIT_TAKE1("PlateIndexExchange", handle_index_exchange, NULL, RSRC_CONF, "The rabbitmq exchange on which to look for the index server"),
   AP_INIT_TAKE1("PlateDemID",         handle_dem_id,         NULL, RSRC_CONF, "The platefile ID of the DEM layer to use"),
+  AP_INIT_TAKE1("PlateServerName",    handle_servername,     NULL, RSRC_CONF, "The servername to use for the server in the WTML"),
   AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
   { NULL }
 };
@@ -121,6 +131,7 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   conf->rabbit_ip      = "127.0.0.1";
   conf->index_exchange = DEV_INDEX_BARE;
   conf->dem_id         = NULL;
+  conf->servername     = NULL;
   conf->rules = apr_array_make(p, 8, sizeof(rule_entry));
   return conf;
 }

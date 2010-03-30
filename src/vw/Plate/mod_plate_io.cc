@@ -108,6 +108,22 @@ class PlateModule {
       return m_conf->dem_id;
     }
 
+    std::string get_servername(request_rec* r) const {
+      if (m_conf->servername)
+        return m_conf->servername;
+
+      std::ostringstream prefix;
+      prefix << ap_http_scheme(r) << "://" << ap_get_server_name(r);
+
+      // XXX: This is dumb. You can't seem to get apache to report a different default port
+      unsigned port = ap_get_server_port(r);
+
+      if (!ap_is_default_port(port, r))
+        prefix << ":" << port;
+
+      return prefix.str();
+    }
+
   private:
     boost::shared_ptr<AmqpRpcClient> m_client;
     boost::shared_ptr<IndexService>  m_index_service;
@@ -435,13 +451,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   typedef std::pair<int32, PlateModule::IndexCacheEntry> id_cache;
 
-  std::ostringstream prefix;
-  prefix << ap_http_scheme(r) << "://" << ap_get_server_name(r);
-
-  unsigned port = ap_get_server_port(r);
-
-  if (!ap_is_default_port(port, r))
-      prefix << ":" << port;
+  std::string servername = mod_plate().get_servername(r);
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
 
@@ -452,7 +462,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
       continue;
     }
 
-    WTMLImageSet img(prefix.str(), "/wwt/p/", "/static/", mod_plate().get_dem(), e.second);
+    WTMLImageSet img(servername, "/wwt/p/", "/static/", mod_plate().get_dem(), e.second);
     if (r->args) {
       img["Url"]          += std::string("?") + r->args;
       img["ThumbnailUrl"] += std::string("?") + r->args;
