@@ -45,8 +45,8 @@ int save_exposure_images(std::vector<std::string> output_files, std::vector<std:
                 read_georeference(geo, input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > image(input_files[i]);
                 ImageView<PixelMask<PixelGray<float> > > tm_image(image.cols(), image.rows());
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int32 x=0; x<image.cols(); ++x)
+                        for (int32 y=0; y<image.rows(); ++y)
                                 if ( is_valid(image(x,y)) )
                                         tm_image(x,y) = image_response(image(x,y));
 
@@ -97,8 +97,8 @@ int save_exposure_images(std::vector<std::string> output_files, std::vector<std:
         GeoReference geo;
         float buffer[DYNAMIC_RANGE];
         Vector<float> image_response(DYNAMIC_RANGE);
-        struct stat input_stat, output_stat, camre_stat;
-        for (int i = 0; i < input_files.size(); ++i) {
+        struct stat /*input_stat,*/ output_stat, camre_stat;
+        for (size_t i = 0; i < input_files.size(); ++i) {
                 if ( !stat(camre_files[i].c_str(), &camre_stat) ) {
                         if ( !stat(output_files[i].c_str(), &output_stat) ) {
                                 if ( difftime(output_stat.st_mtime, camre_stat.st_mtime) > 0 ) {
@@ -123,8 +123,8 @@ int save_exposure_images(std::vector<std::string> output_files, std::vector<std:
                 read_georeference(geo, input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > image(input_files[i]);
                 ImageView<PixelMask<PixelGray<float> > > tm_image(image.cols(), image.rows());
-                for (unsigned x=0; x<image.cols(); ++x)
-                        for (unsigned y=0; y<image.rows(); ++y)
+                for (int32 x=0; x<image.cols(); ++x)
+                        for (int32 y=0; y<image.rows(); ++y)
                                 if ( is_valid(image(x,y)) )
                                         tm_image(x,y) = image_response(image(x,y));
 

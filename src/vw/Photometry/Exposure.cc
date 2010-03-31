@@ -47,7 +47,7 @@ float ComputeGradient_Exposure(float T, float albedo)
 }
 
 //Ara Nefian
-float ComputeError_Exposure(float intensity, float T, float albedo, float reflectance, Vector3 xyz, Vector3 xyz_prior)
+float ComputeError_Exposure(float intensity, float T, float albedo, float reflectance, Vector3 /*xyz*/, Vector3 /*xyz_prior*/)
 {
   float error;
   error = (intensity-T*albedo*reflectance);
@@ -98,7 +98,7 @@ std ::vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries
 
 //computes the exposure time for image mosaicing (no reflectance model)
 void ComputeExposure(modelParams *currModelParams,
-                     GlobalParams globalParams)
+                     GlobalParams /*globalParams*/)
 {
 
 

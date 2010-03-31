@@ -23,8 +23,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/Weights.h>
 
 
-float ComputeGradient_DEM(float intensity, float T, float albedo, Vector3 s,
-                          Vector3 p, Vector3 p_left, Vector3 p_top, Vector3 xyz_prior)
+float ComputeGradient_DEM(float /*intensity*/, float T, float albedo, Vector3 s,
+                          Vector3 p, Vector3 p_left, Vector3 p_top, Vector3 /*xyz_prior*/)
 {
   float grad;
   float temp  = (p[2]-p_left[2])*(p[2]-p_left[2]) + (p[2]-p_top[2])*(p[2]-p_top[2]) + 1;
@@ -35,7 +35,7 @@ float ComputeGradient_DEM(float intensity, float T, float albedo, Vector3 s,
   return grad;
 }
 
-float ComputeError_DEM(float intensity, float T, float albedo, float reflectance, Vector3 xyz, Vector3 xyz_prior)
+float ComputeError_DEM(float intensity, float T, float albedo, float reflectance, Vector3 /*xyz*/, Vector3 xyz_prior)
 {
   float error;
   error = (intensity-T*albedo*reflectance) + (xyz_prior[2]-xyz_prior[2]);
@@ -407,13 +407,11 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
 }
 */
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file, 
-                        modelParams input_img_params, std::vector<std::string> overlap_DEM_files,  
-                        std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
+void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*/, std::string var2_DEM_file, 
+                        modelParams input_img_params, std::vector<std::string> overlap_DEM_files,
+                        std::vector<modelParams> /*overlap_img_params*/, GlobalParams /*globalParams*/)
 {
 
-    int i, l, k;
-    
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file); 
     GeoReference input_DEM_geo;
     read_georeference(input_DEM_geo, input_DEM_file);
@@ -435,8 +433,8 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
 
 
     //initialize  mean_DEM-image, var2_DEM_image and numSamples
-    for (k = 0 ; k < (int)input_DEM_image.rows(); ++k) {
-      for (l = 0; l < (int)input_DEM_image.cols(); ++l) {
+    for (int32 k = 0 ; k < input_DEM_image.rows(); ++k) {
+      for (int32 l = 0; l < input_DEM_image.cols(); ++l) {
 
            numSamples(l, k) = 0;
            Vector2 input_DEM_pix(l,k);
@@ -449,7 +447,7 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
 	}
     }
 
-    for (i = 0; i < (int)overlap_DEM_files.size(); i++){
+    for (size_t i = 0; i < overlap_DEM_files.size(); i++){
       
       printf("DEM = %s\n", overlap_DEM_files[i].c_str());
 
@@ -462,8 +460,8 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
                                                                               ConstantEdgeExtension()), 
                                                                               BilinearInterpolation());
       
-      for (k = 0 ; k < (int)input_DEM_image.rows(); ++k) {
-        for (l = 0; l < (int)input_DEM_image.cols(); ++l) {
+      for (int32 k = 0 ; k < input_DEM_image.rows(); ++k) {
+        for (int32 l = 0; l < input_DEM_image.cols(); ++l) {
            
           Vector2 input_DEM_pix(l,k);
          
@@ -493,8 +491,8 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
     //compute mean and variance
     int totalNumSamples = 0;
     avgStdDevDEM = 0.0;
-    for (k = 0 ; k < (int)input_DEM_image.rows(); ++k) {
-      for (l = 0; l < (int)input_DEM_image.cols(); ++l) {
+    for (int32 k = 0 ; k < input_DEM_image.rows(); ++k) {
+      for (int32 l = 0; l < input_DEM_image.cols(); ++l) {
 	 if (numSamples(l,k)!=0){
 	   
             var2_DEM_image(l, k) = var2_DEM_image(l, k)/numSamples(l,k) - mean_DEM_image(l, k)*mean_DEM_image(l,k);
@@ -503,7 +501,7 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
             var2_DEM_image(l, k) = sqrt((float)var2_DEM_image(l,k));
             avgStdDevDEM = avgStdDevDEM + var2_DEM_image(l,k)/numSamples(l,k);
             totalNumSamples++;
-	 } 
+	 }
        }
     }
   
@@ -514,10 +512,10 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string mean_DEM_file, s
                               //channel_cast<float>(var2_DEM_image),
                               channel_cast<uint8>(clamp(var2_DEM_image,0.0,255.0)),
                               //var2_DEM_image,
-                              input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_DEM_geo, TerminalProgressCallback("photometry","Processing:"));
     
     
-    //write_georeferenced_image(output_file, tm_image, geo1, TerminalProgressCallback());          
+    //write_georeferenced_image(output_file, tm_image, geo1, TerminalProgressCallback());
 }
 
 

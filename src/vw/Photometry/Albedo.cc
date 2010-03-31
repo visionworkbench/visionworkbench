@@ -24,7 +24,7 @@ using namespace vw::cartography;
 #include <vw/Photometry/Weights.h>
 
 
-float ComputeError_Albedo(float intensity, float T, float albedo, float reflectance, Vector3 xyz, Vector3 xyz_prior)
+float ComputeError_Albedo(float intensity, float T, float albedo, float reflectance, Vector3 /*xyz*/, Vector3 /*xyz_prior*/)
 {
   float error;
   error = (intensity-T*albedo*reflectance);

@@ -201,7 +201,7 @@ float computeLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vecto
 //Vector3  sunpos: the 3D coordinates of the Sun relative to the center of the Moon
 //Vector2 lon_lat is a 2D vector. First element is the longitude and the second the latitude
 //author Ara Nefian
-float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal)
+float computeReflectanceFromNormal(Vector3 /*sunPos*/, Vector3 /*xyz*/, Vector3 /*normal*/)
 {
   float reflectance;
 

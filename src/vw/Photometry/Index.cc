@@ -46,7 +46,7 @@ std::vector<float> build_histogram(ImageViewBase<ViewT> const& view) {
         }
 
         // Renormalize the histogram values
-        for (int32 i=0; i< result.size(); ++i)
+        for (size_t i=0; i< result.size(); ++i)
                 result[i] /= num_valid;
 
         return result;
@@ -70,8 +70,8 @@ void index_image(std::string index_file, std::string input_file, uint8 mask) {
         DiskImageView<PixelMask<PixelGray<uint8> > > index(index_file);
         ImageView<PixelMask<PixelGray<uint8> > > tm_index = index;
 
-        for (unsigned x=0; x<index.cols(); ++x)
-                for (unsigned y=0; y<index.rows(); ++y)
+        for (int32 x=0; x<index.cols(); ++x)
+                for (int32 y=0; y<index.rows(); ++y)
                         if ( is_valid(index(x,y)) ) {
                                 Vector2 subpix = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(Vector2(x,y)));
                                 int i=int(subpix[0]);
@@ -83,7 +83,7 @@ void index_image(std::string index_file, std::string input_file, uint8 mask) {
 }
 
 void index_images(std::vector<std::string> index_files, std::vector<std::string> input_files) {
-        for (unsigned i = 0; i < input_files.size(); ++i) {
+        for (size_t i = 0; i < input_files.size(); ++i) {
                 struct stat index_stat;
                 if ( stat(index_files[i].c_str(), &index_stat) ) {
                         GeoReference geo1;
@@ -95,14 +95,14 @@ void index_images(std::vector<std::string> index_files, std::vector<std::string>
                         std::cout << " " << i << "th index image: " << index_files[i] << " is created." << std::endl;
                         write_georeferenced_image(index_files[i], index, geo1, TerminalProgressCallback("{Core}","Processing:"));
 
-                        int jmin = (i>4) ? i-4: 0;
-                        for (int j = jmin; j<i; ++j) {
+                        size_t jmin = (i>4) ? i-4: 0;
+                        for (size_t j = jmin; j<i; ++j) {
                                 std::cout << "(" << i << "," << j << ") " << index_files[i].c_str() << " = " << input_files[i].c_str() << " & " << input_files[j].c_str() << std::endl;
                                 index_image(index_files[i], input_files[j], 0x01 << j-i+4);
                         }
 
-                        int jmax = ((i+5)<input_files.size()) ? i+5: input_files.size();
-                        for (int j = i+1; j<jmax; ++j) {
+                        size_t jmax = ((i+5)<input_files.size()) ? i+5: input_files.size();
+                        for (size_t j = i+1; j<jmax; ++j) {
                                 std::cout << "(" << i << "," << j << ") " << index_files[i].c_str() << " = " << input_files[i].c_str() << " & " << input_files[j].c_str() << std::endl;
                                 index_image(index_files[i], input_files[j], 0x10 << j-i-1);
                         }
