@@ -46,7 +46,7 @@ ImageView<PixelGray<double> > softNormalize(ImageView<PixelGray<double> > image,
 
         mean = mean / count;
         for(int x = 0; x < (int)image.cols(); x++){
-	  for(int y = 0; y < (int)image.rows(); y++){
+          for(int y = 0; y < (int)image.rows(); y++){
                         double pix = image(x,y);
                         if( !isnan(pix) && !isinf(pix) ){
                                 sigma += square(pix-mean);

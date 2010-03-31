@@ -266,7 +266,7 @@ void InitImageMosaicByBlocks(modelParams input_img_params,
            GeoReference overlap_geo;
            //read_georeference(overlap_geo, overlap_img_files[i]);
            read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
-           
+
            ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                          ConstantEdgeExtension()),
                                                                                          BilinearInterpolation());
@@ -395,7 +395,7 @@ void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> ov
 
     Vector3 xyz;
     Vector3 xyz_prior;
-  
+
     //initialize the nominator and denomitor images
     for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
@@ -438,7 +438,7 @@ void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> ov
     //update from the overlapping images
     //for (i = 0; i < (int)overlap_img_files.size(); i++){
     for (i = 0; i < (int)overlap_img_params.size(); i++){
-      
+
       //printf("overlap_img = %s\n", overlap_img_files[i].c_str());
       printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
 
@@ -536,9 +536,9 @@ void InitAlbedoMosaic(modelParams input_img_params,
                       std::vector<modelParams> overlap_img_params,
                       GlobalParams globalParams)
 {
-    
+
     int i, l, k;
-    string input_img_file = input_img_params.inputFilename;                
+    string input_img_file = input_img_params.inputFilename;
     string DEM_file = input_img_params.DEMFilename;
     string shadow_file = input_img_params.shadowFilename;
     string output_img_file = input_img_params.outputFilename;
@@ -798,10 +798,10 @@ void InitAlbedoMosaic(modelParams input_img_params,
     string DEM_file = input_img_params.meanDEMFilename;
     string shadow_file = input_img_params.shadowFilename;
     string output_img_file = input_img_params.reliefFilename;
-    
+
     //vector<modelParams> overlap_img_params;
     //vector<std::string> overlapShadowFileArray;
-               
+
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
     read_georeference(input_img_geo, input_img_file);
@@ -1068,7 +1068,7 @@ void ComputeReconstructionErrorMap(modelParams input_img_params,
 {
 
     int i, l, k;
-    
+
     string input_img_file = input_img_params.inputFilename;
     string DEM_file = input_img_params.meanDEMFilename;
     string shadow_file = input_img_params.shadowFilename;
@@ -1184,7 +1184,7 @@ void ComputeReconstructionErrorMap(modelParams input_img_params,
 
       DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(/*overlapShadowFileArray[i]*/overlap_img_params[i].shadowFilename);
 
-   
+
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),
                                                                                     BilinearInterpolation());

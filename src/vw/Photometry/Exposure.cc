@@ -66,7 +66,7 @@ void AppendExposureInfoToFile(string exposureFilename, modelParams currModelPara
 {
   FILE *fp;
   string currInputFile = currModelParams.inputFilename;
- 
+
   fp = fopen(exposureFilename.c_str(), "a");
 
   fprintf(fp, "%s %f\n", currInputFile.c_str(), currModelParams.exposureTime);
@@ -158,7 +158,7 @@ void ComputeExposureAlbedo(modelParams *currModelParams, GlobalParams globalPara
     string curr_input_file = currModelParams->inputFilename;
     string curr_albedo_file = currModelParams->outputFilename;
     string DEM_file = currModelParams->meanDEMFilename;
-                 
+
 
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_image(curr_input_file);
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_albedo(curr_albedo_file);

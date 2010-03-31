@@ -51,40 +51,40 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 
-//subsamples a geo referenced tiff image by two 
+//subsamples a geo referenced tiff image by two
 void subsample_image(std::string output_file, std::string input_file) {
-	GeoReference geo;
-	read_georeference(geo, input_file);
-        DiskImageView<PixelMask<PixelGray<uint8> > >  image(input_file); 
-	int cols = (image.cols()+1)/2, rows = (image.rows()+1)/2;
-	ImageView<PixelMask<PixelGray<uint8> > > tm_image(cols, rows);
+        GeoReference geo;
+        read_georeference(geo, input_file);
+        DiskImageView<PixelMask<PixelGray<uint8> > >  image(input_file);
+        int cols = (image.cols()+1)/2, rows = (image.rows()+1)/2;
+        ImageView<PixelMask<PixelGray<uint8> > > tm_image(cols, rows);
 
-      
-        ImageViewRef<PixelMask<PixelGray<uint8> > >  interp = interpolate(edge_extend(image.impl(), 
-                                                                         ConstantEdgeExtension()), 
+
+        ImageViewRef<PixelMask<PixelGray<uint8> > >  interp = interpolate(edge_extend(image.impl(),
+                                                                         ConstantEdgeExtension()),
                                                                          BilinearInterpolation());
-       
-	int x, y;
 
-	for (x=0; x<cols; ++x){
-	  for (y=0; y<rows; ++y){
-	      //if ( is_valid(image(2*x,2*y)) || is_valid(image(2*x+1,2*y)) || is_valid(image(2*x,2*y+1)) || is_valid(image(2*x+1,2*y+1)) ) {
-	      //if (is_valid(image(2*x,2*y)) && is_valid(image(2*x+1,2*y)) && is_valid(image(2*x,2*y+1)) && is_valid(image(2*x+1,2*y+1)) ) {
-	    if ( is_valid(interp(2*x+0.5, 2*y+0.5)) ){
-		  tm_image(x,y) = interp(2*x+0.5, 2*y+0.5);
-	      } 
+        int x, y;
+
+        for (x=0; x<cols; ++x){
+          for (y=0; y<rows; ++y){
+              //if ( is_valid(image(2*x,2*y)) || is_valid(image(2*x+1,2*y)) || is_valid(image(2*x,2*y+1)) || is_valid(image(2*x+1,2*y+1)) ) {
+              //if (is_valid(image(2*x,2*y)) && is_valid(image(2*x+1,2*y)) && is_valid(image(2*x,2*y+1)) && is_valid(image(2*x+1,2*y+1)) ) {
+            if ( is_valid(interp(2*x+0.5, 2*y+0.5)) ){
+                  tm_image(x,y) = interp(2*x+0.5, 2*y+0.5);
+              }
               else{
-		  tm_image(x,y).invalidate();
-	      }
+                  tm_image(x,y).invalidate();
+              }
             }
-	}
-	
-	Matrix<double> H = geo.transform();
-	H(0,0) *= 2;
-	H(1,1) *= 2;
-	geo.set_transform(H);
-	
-	write_georeferenced_image(output_file, tm_image, geo, TerminalProgressCallback("{Core}","Processing:"));
+        }
+
+        Matrix<double> H = geo.transform();
+        H(0,0) *= 2;
+        H(1,1) *= 2;
+        geo.set_transform(H);
+
+        write_georeferenced_image(output_file, tm_image, geo, TerminalProgressCallback("{Core}","Processing:"));
 }
 
 
@@ -93,27 +93,27 @@ void subsample_image(std::string output_file, std::string input_file) {
 // pixels that are not valid, and it should probably also reject
 // pixels that are near saturation (though it does not yet!).
 template <class ViewT>
-std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1, 
+std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
                                    ImageViewBase<ViewT> const& image2,
                                    GeoReference const& geo1,
                                    GeoReference const& geo2,
                                    int num_samples,
-                                   std::string const& DEM_file, 
+                                   std::string const& DEM_file,
                                    std::vector<Vector3> *normalArray,
                                    std::vector<Vector3> *xyzArray ) {
   int sample = 0;
   int numtries = 0;
   std::vector<Vector4> result;
-  
+
   // Random numbers
   srandom((unsigned int) clock());
   float rand_max = pow(2.0,31)-1;
-  
-  ImageViewRef<typename ViewT::pixel_type> interp_image1 = interpolate(edge_extend(image1.impl(), 
-                                                                       ConstantEdgeExtension()), 
+
+  ImageViewRef<typename ViewT::pixel_type> interp_image1 = interpolate(edge_extend(image1.impl(),
+                                                                       ConstantEdgeExtension()),
                                                                        BilinearInterpolation());
-  ImageViewRef<typename ViewT::pixel_type> interp_image2 = interpolate(edge_extend(image2.impl(), 
-                                                                       ConstantEdgeExtension()), 
+  ImageViewRef<typename ViewT::pixel_type> interp_image2 = interpolate(edge_extend(image2.impl(),
+                                                                       ConstantEdgeExtension()),
                                                                        BilinearInterpolation());
 
   // This block of code samples the images comprehensively, adding a
@@ -122,7 +122,7 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   //   for (unsigned i=0; i < interp_image1.cols(); ++i) {
   //     Vector2 sample_pix1(i,j);
   //     Vector2 sample_pix2 = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(sample_pix1));
-      
+
   //     // Check to see whether these pixels are valid
   //     typename ViewT::pixel_type pix1 = interp_image1(sample_pix1[0], sample_pix1[1]);
   //     typename ViewT::pixel_type pix2 = interp_image2(sample_pix2[0], sample_pix2[1]);
@@ -136,18 +136,18 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   //     ++numtries;
   //   }
   // }
-  
+
 
   //added by Ara to support DEMs - START
-  DiskImageView<PixelGray<float> >  dem_image(DEM_file); 
+  DiskImageView<PixelGray<float> >  dem_image(DEM_file);
   GeoReference GR;
   read_georeference(GR, DEM_file);
   //added by Ara to support DEMs - END
 
   // This block of code samples the images randomly, gathering up to
-  // num_samples samples from the images. 
+  // num_samples samples from the images.
   while (sample < num_samples && numtries < num_samples*10) {
-    
+
     Vector2 sample_pix1(float(random())/rand_max * image1.impl().cols(),
                         float(random())/rand_max * image1.impl().rows());
     Vector2 sample_pix2 = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(sample_pix1));
@@ -155,14 +155,14 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
     Vector2 sample_pix_dem = GR.lonlat_to_pixel(geo1.pixel_to_lonlat(sample_pix1));
 
     Vector2 lonlat = geo1.pixel_to_lonlat(sample_pix1);
-   
+
     // Check to see whether these pixels are valid
     typename ViewT::pixel_type pix1 = interp_image1(sample_pix1[0], sample_pix1[1]);
     typename ViewT::pixel_type pix2 = interp_image2(sample_pix2[0], sample_pix2[1]);
     if ( is_valid(pix1) && is_valid(pix2) ) {
 
        //result.push_back(Vector4(pix1[0],pix2[0],lonlat[0],lonlat[1]));
-       
+
        int x = (int)sample_pix_dem[0];
        int y = (int)sample_pix_dem[1];
 
@@ -170,57 +170,57 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
            x = 0;
        }
        if (x > dem_image.cols()-1){
-	   x = dem_image.cols()-1; 
+           x = dem_image.cols()-1;
        }
        if (y < 0){
            y = 0;
        }
        if (y > dem_image.rows()-1){
-	   y = dem_image.rows()-1; 
+           y = dem_image.rows()-1;
        }
-      
+
        Vector3 longlat3(lonlat(0),lonlat(1),(dem_image)(x, y));
        Vector3 xyz = geo1.datum().geodetic_to_cartesian(longlat3);
-       
+
        Vector2 sample_pix_dem_left;
        sample_pix_dem_left(0) = x-1;
        if (sample_pix_dem_left(0) < 0){
-	  sample_pix_dem_left(0) = 0;
-	  //break;
+          sample_pix_dem_left(0) = 0;
+          //break;
        }
        sample_pix_dem_left(1) = y;
        lonlat = GR.pixel_to_lonlat(sample_pix_dem_left);
-    
+
        Vector3 longlat3_left(lonlat(0),lonlat(1),(dem_image)(sample_pix_dem_left(0), sample_pix_dem_left(1)));
        Vector3 xyz_left = geo1.datum().geodetic_to_cartesian(longlat3_left);
-       
+
        Vector2 sample_pix_dem_top;
        sample_pix_dem_top(0) = x;
        sample_pix_dem_top(1) = y-1;
        if (sample_pix_dem_top(1) < 0){
-	 sample_pix_dem_top(1) = 0;
-	 //break;
+         sample_pix_dem_top(1) = 0;
+         //break;
        }
 
-       lonlat = GR.pixel_to_lonlat(sample_pix_dem_top);     
+       lonlat = GR.pixel_to_lonlat(sample_pix_dem_top);
        Vector3 longlat3_top(lonlat(0),lonlat(1),(dem_image)(sample_pix_dem_top(0), sample_pix_dem_top(1)));
        Vector3 xyz_top = geo1.datum().geodetic_to_cartesian(longlat3_top);
-       
-       
+
+
 
        Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
 
        //printf("normal:%f %f %f\n", normal(0), normal(1), normal(2));
        //printf("%f %f %f\n", loc_longlat3(0), loc_longlat3(1), loc_longlat3(2));
-       
+
        result.push_back(Vector4(pix1[0],pix2[0],lonlat[0],lonlat[1]));
-        
+
        normalArray->push_back(normal);
        xyzArray->push_back(xyz);
-       
+
        ++sample;
        //      std::cout << result[result.size()-1][0] << " " << result[result.size()-1][1] << "\n";
-    } 
+    }
     ++numtries;
   }
   return result;
@@ -239,7 +239,7 @@ static std::string prefix_from_filename(std::string const& filename) {
 static std::string prefix_less3_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index-3, result.size()+3);
   return result;
 }
@@ -248,13 +248,13 @@ static std::string prefix_less3_from_filename(std::string const& filename) {
 static std::string sufix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind("/");
-  if (index != -1) 
+  if (index != -1)
     result.erase(0, index);
   return result;
 }
 */
 //reads the tiff DEM into a 3D coordinate
-//pos is a Vector2 of pixel coordinates, GR is georeference 
+//pos is a Vector2 of pixel coordinates, GR is georeference
 template <class ViewT>
 Vector3 pixel_to_cart (Vector2 pos, ImageViewBase<ViewT> const& img,  GeoReference GR) {
     Vector2 loc_longlat2=GR.point_to_lonlat(GR.pixel_to_point(pos));
@@ -364,7 +364,7 @@ ImageView<PixelMask<PixelGray<float> > > interpolate_image(std::string input_fil
         ImageViewRef<PixelMask<PixelGray<float> > > interp = interpolate(image, BilinearInterpolation());
 
         for (int x=0; x<(int)index.cols(); ++x)
-	  for (int y=0; y<(int)index.rows(); ++y)
+          for (int y=0; y<(int)index.rows(); ++y)
                         if ( is_valid(index(x,y)) && ( uint8(index(x,y)) & mask )) {
                                 Vector2 subpix = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(Vector2(x,y)));
                                 tm_image(x,y) = interp(subpix[0], subpix[1]);
@@ -386,7 +386,7 @@ Vector<float> save_image_histograms(char * output_file, std::vector<std::string>
                 DiskImageView<PixelMask<PixelGray<uint8> > > index(index_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
                 for (int x=0; x<(int)image.cols(); ++x)
-		  for (int y=0; y<(int)image.rows(); ++y)
+                  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) image_histogram(image(x,y)) += weight(x,y)/inverse_weight(index(x,y));
 
                 for (unsigned k = 0; k < DYNAMIC_RANGE; ++k) buffer[k] = image_histogram(k);
@@ -457,7 +457,7 @@ Matrix<unsigned long> save_residual_histogram(char * output_file, std::vector<st
                 DiskImageView<PixelMask<PixelGray<float> > > image(input_files[i]);
                 DiskImageView<PixelMask<PixelGray<uint8> > > radiance(uintrad_files[i]);
                 for (int x=0; x<(int)image.cols(); ++x)
-		  for (int y=0; y<(int)image.rows(); ++y)
+                  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         radiance_estimate = uint8(image(x,y)/exposure_times[i]);
                                         ++histo(radiance(x,y),radiance_estimate);
@@ -486,7 +486,7 @@ Matrix<unsigned long> save_residual_histogram(char * output_file, std::vector<st
                 DiskImageView<PixelMask<PixelGray<uint8> > > radiance(uintrad_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
                 for (int x=0; x<(int)image.cols(); ++x)
-		     for (int y=0; y<(int)image.rows(); ++y)
+                     for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         radiance_estimate = uint8(image(x,y)/exposure_times[i]);
                                         histo(radiance(x,y),radiance_estimate) += weight(x,y);
@@ -518,7 +518,7 @@ Vector<float> save_logexp_histogram(char * output_file, std::vector<std::string>
                 DiskImageView<PixelMask<PixelGray<float> > > radiance(radiance_files[i]);
                 DiskImageView<PixelMask<PixelGray<float> > > weight(weight_files[i]);
                 for (int x=0; x<(int)image.cols(); ++x)
-		  for (int y=0; y<(int)image.rows(); ++y)
+                  for (int y=0; y<(int)image.rows(); ++y)
                                 if ( is_valid(image(x,y)) ) {
                                         sensor_exposure = radiance(x,y)*exposure_times[i];
                                         image_histogram(image(x,y)) += weight(x,y)*log(sensor_exposure)/inverse_weight(index(x,y));
