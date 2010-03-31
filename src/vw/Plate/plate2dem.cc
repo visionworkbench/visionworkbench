@@ -26,6 +26,8 @@ std::string plate_file_name;
 int west = 0, east = 0, north = 0, south = 0;
 int tile_size, tile_size_deg = 0;
 double tile_ppd = 0;
+std::string output_datum;
+bool pds_dem_mode = false;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -41,6 +43,9 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
 
   PlateCarreePlateManager<PixelT> pm(platefile);
   cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
+  cartography::Datum datum;
+  datum.set_well_known_datum( output_datum );
+  output_georef.set_datum( datum );
 
   PlateView<PixelT> plate_view(plate_file_name);
   ImageViewRef<PixelT> plate_view_ref = plate_view;
@@ -118,14 +123,23 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
       output_filename << "S.tif";
 
     ImageView<PixelT> cropped_view = crop(plate_view_ref, crop_bboxes[i]);
+    DiskImageResourceGDAL::Options gdal_options;
+    gdal_options["COMPRESS"] = "LZW";
     if( ! is_transparent(cropped_view) ) {
-      DiskImageResourceGDAL::Options gdal_options;
-      gdal_options["COMPRESS"] = "LZW";
-      DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
-                                 Vector2i(256,256), gdal_options);
-      write_georeference(rsrc, tile_georef);
-      write_image(rsrc, cropped_view,
-                  TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+      if ( pds_dem_mode ) {
+        ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
+        DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
+                                   Vector2i(256,256), gdal_options);
+        write_georeference(rsrc, tile_georef);
+        write_image(rsrc, dem_image,
+                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+      } else {
+        DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
+                                   Vector2i(256,256), gdal_options);
+        write_georeference(rsrc, tile_georef);
+        write_image(rsrc, cropped_view,
+                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+      }
     }
   }
 }
@@ -142,6 +156,8 @@ int main( int argc, char *argv[] ) {
     ("tile-size-px,t", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
     ("tile-size-deg,d", po::value<int>(&tile_size_deg), "Specify the size of each output dem in degrees.")
     ("tile-px-per-degree,p", po::value<double>(&tile_ppd), "Specify the output tiles' pixel per degrees.")
+    ("output-datum", po::value<std::string>(&output_datum)->default_value("WGS84"), "Specify the output datum to use, [WGS84, WGS72, D_MOON, D_MARS]")
+    ("export-pds-dem", "Export using int16 channel value with a -32767 nodata value")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -167,6 +183,8 @@ int main( int argc, char *argv[] ) {
     std::cout << usage.str();
     return 0;
   }
+
+  pds_dem_mode = vm.count("export-pds-dem") > 0;
 
   if( vm.count("help") ) {
     std::cout << usage.str();
