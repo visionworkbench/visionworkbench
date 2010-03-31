@@ -28,6 +28,7 @@ int tile_size, tile_size_deg = 0;
 double tile_ppd = 0;
 std::string output_datum;
 bool pds_dem_mode = false;
+bool pds_imagery_mode = false;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
@@ -133,6 +134,13 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
         write_georeference(rsrc, tile_georef);
         write_image(rsrc, dem_image,
                     TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+      } else if ( pds_imagery_mode ) {
+        ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = apply_mask(alpha_to_mask(channel_cast_rescale<uint8>(cropped_view)),0);
+        DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
+                                   Vector2i(256,256), gdal_options);
+        write_georeference(rsrc, tile_georef);
+        write_image(rsrc, dem_image,
+                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
       } else {
         DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
                                    Vector2i(256,256), gdal_options);
@@ -158,6 +166,7 @@ int main( int argc, char *argv[] ) {
     ("tile-px-per-degree,p", po::value<double>(&tile_ppd), "Specify the output tiles' pixel per degrees.")
     ("output-datum", po::value<std::string>(&output_datum)->default_value("WGS84"), "Specify the output datum to use, [WGS84, WGS72, D_MOON, D_MARS]")
     ("export-pds-dem", "Export using int16 channel value with a -32767 nodata value")
+    ("export-pds-imagery", "Export using uint8 channel value with a 0 nodata value")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -185,6 +194,7 @@ int main( int argc, char *argv[] ) {
   }
 
   pds_dem_mode = vm.count("export-pds-dem") > 0;
+  pds_imagery_mode = vm.count("export-pds-imagery") > 0;
 
   if( vm.count("help") ) {
     std::cout << usage.str();
