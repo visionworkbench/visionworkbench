@@ -166,3 +166,11 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
   DemFilesystem writer(base_output_name);
   make_toast_dem_tile(writer, *platefile, col, row, level, transaction_id);
 }
+
+boost::shared_array<uint8> vw::platefile::toast_dem_null_tile(uint64& output_tile_size) {
+
+    boost::shared_array<uint8> null_tile(new uint8[tile_bytes]);
+    memset(null_tile.get(), 0, tile_bytes);
+    output_tile_size = tile_bytes;
+    return null_tile;
+}

@@ -82,11 +82,14 @@ struct ToastDem : public FilterBase<ToastDem> {
 
     vw_out(InfoMessage, "plate.tools.plate2plate") << "Creating null tiles for a level difference of " << level_difference << std::endl;
 
+    uint64 bytes;
+    boost::shared_array<uint8> null_tile = toast_dem_null_tile(bytes);
+
     for (int level = 0; level < level_difference; ++level) {
       int region_size = 1 << level;
       for (int col = 0; col < region_size; ++col)
         for (int row = 0; row < region_size; ++row)
-          create_uniform_tile(0, output, col, row, level, transaction_id);
+          output.write_update(null_tile, bytes, col, row, level, transaction_id);
     }
   }
 
@@ -97,7 +100,7 @@ struct ToastDem : public FilterBase<ToastDem> {
   struct DemWriter : public ToastDemWriter {
     PlateFile& platefile;
     DemWriter(PlateFile& output) : platefile(output) { }
-    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
+    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
       platefile.write_update(data, data_size, dem_col, dem_row, dem_level, transaction_id);
     }
   };
@@ -188,11 +191,8 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     std::list<BBox2i> boxes1 = bbox_tiles(full_region, subdivided_region_size, subdivided_region_size);
 
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
-      //      vw_out() << "\t--> " << region1 << "\n";
       std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
-        // vw_out() << "\t--> " << "[" << tile.transaction_id() << "]  " 
-        //         << tile.col() << " " << tile.row() << " @ " << tile.level() << "\n";
         filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
       }
     }
