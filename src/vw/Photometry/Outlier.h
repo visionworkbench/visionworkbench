@@ -1,3 +1,15 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Outlier.h
+
+#ifndef __VW_PHOTOMETRY_OUTLIER_H__
+#define __VW_PHOTOMETRY_OUTLIER_H__
+
 #include <iostream>
 #include <fstream>
 #include <vw/Image.h>
@@ -20,3 +32,5 @@ float save_normal_images(std::vector<std::string> output_files, std::vector<std:
 void weight_images(std::vector<std::string> output_files, std::vector<std::string> input_files);
 
 #endif
+
+#endif//__VW_PHOTOMETRY_OUTLIER_H__

@@ -4,6 +4,10 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+/// \file Shadow.h
+
+#ifndef __VW_PHOTOMETRY_SHADOW_H__
+#define __VW_PHOTOMETRY_SHADOW_H__
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -41,3 +45,5 @@ using namespace vw::cartography;
 //void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, GlobalParams globalParams);
 void ComputeSaveShadowMap( ModelParams input_img_params, GlobalParams globalParams);
 void AddShadows(std::string input_img_file,  std::string output_img_file, std::string shadow_file);
+
+#endif//__VW_PHOTOMETRY_SHADOW_H__

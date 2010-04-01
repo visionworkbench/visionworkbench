@@ -1,3 +1,15 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Exposure.h
+
+#ifndef __VW_PHOTOMETRY_EXPOSURE_H__
+#define __VW_PHOTOMETRY_EXPOSURE_H__
+
 #include <iostream>
 #include <fstream>
 #include <vw/Image.h>
@@ -31,5 +43,4 @@ void ComputeExposureAlbedo(ModelParams *currModelParams,
 void AppendExposureInfoToFile(string exposureFilename, ModelParams currModelParams);
 vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries);
 
-
-
+#endif//__VW_PHOTOMETRY_EXPOSURE_H__

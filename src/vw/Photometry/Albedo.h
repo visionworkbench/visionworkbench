@@ -1,3 +1,15 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Albedo.h
+
+#ifndef __VW_PHOTOMETRY_ALBEDO_H__
+#define __VW_PHOTOMETRY_ALBEDO_H__
+
 #include <iostream>
 #include <fstream>
 #include <vw/Image.h>
@@ -44,9 +56,4 @@ void ComputeReconstructionErrorMap(ModelParams input_img_params,
                                    GlobalParams globalParams,
                                    float *avgError, int *totalNumSamples);
 
-
-
-
-
-
-
+#endif//__VW_PHOTOMETRY_ALBEDO_H__

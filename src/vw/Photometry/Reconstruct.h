@@ -1,5 +1,14 @@
-#ifndef RECONSTRUCT_H
-#define RECONSTRUCT_H
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Reconstruct.h
+
+#ifndef __VW_PHOTOMETRY_RECONSTRUCT_H__
+#define __VW_PHOTOMETRY_RECONSTRUCT_H__
 
 #define NO_REFL 0
 #define LAMBERT 1
@@ -66,36 +75,9 @@ typedef struct ModelParams {
 };
 
 // Generic Ostream options for Debugging
-std::ostream& operator<<( std::ostream& os, GlobalParams const& global ) {
-  os << "-- Global Params --\n";
-  os << " ReflectanceType: " << global.reflectanceType
-     << " SlopeType: " << global.slopeType << "\n";
-  os << " Shadow threshold: " << global.shadowThresh << "\n";
+std::ostream& operator<<( std::ostream& os, GlobalParams const& global );
 
-  os << " ExposureInfoFilename : " << global.exposureInfoFilename << "\n";
-  os << " SpacecraftPosFilename : " << global.spacecraftPosFilename << "\n";
-  os << " SunPosFilename : " << global.sunPosFilename << "\n";
-
-  return os;
-}
-
-std::ostream& operator<<( std::ostream& os, ModelParams const& model ) {
-  os << "-- Model Params --\n";
-  os << " Exposure Time: " << model.exposureTime << "\n";
-  os << " Sun Position : " << model.sunPosition << "\n";
-  os << " Spacecraft Position : " << model.spacecraftPosition << "\n";
-  os << " Info File : " << model.infoFilename << "\n";
-  os << " DEMFilename : " << model.DEMFilename << "\n";
-  os << " meanDEMFilename : " << model.meanDEMFilename << "\n";
-  os << " var2DEMFilename : " << model.var2DEMFilename << "\n";
-  os << " reliefFilename  : " << model.reliefFilename << "\n";
-  os << " shadowFilename  : " << model.shadowFilename << "\n";
-  os << " errorFilename   : " << model.errorFilename << "\n";
-  os << " inputFilename   : " << model.inputFilename << "\n";
-  os << " outputFilename  : " << model.outputFilename << "\n";
-
-  return os;
-}
+std::ostream& operator<<( std::ostream& os, ModelParams const& model );
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
 //must be part of shape.cc
@@ -111,4 +93,4 @@ float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal)
 Vector<uint8> load_inverse_weight(char * input_file, int num);
 // Written by Taemin Kim - END
 
-#endif /* RECONSTRUCT_H */
+#endif//__VW_PHOTOMETRY_RECONSTRUCT_H__

@@ -11,13 +11,13 @@
 
 if MAKE_MODULE_PHOTOMETRY
 
-include_HEADERS = Albedo.h Camres.h Exposure.h Index.h Misc.h Outlier.h \
-				  Reconstruct.h Reflectance.h Shadow.h ShapeFromShading.h \
-				  Shape.h Weights.h
+include_HEADERS = Albedo.h Camres.h Exposure.h Index.h Misc.h Outlier.h   \
+                  Reconstruct.h Reflectance.h Shadow.h ShapeFromShading.h \
+                  Shape.h Weights.h
 
 libvwPhotometry_la_SOURCES = Albedo.cc Camres.cc Exposure.cc Index.cc Misc.cc \
-						  Outlier.cc Reflectance.cc Shadow.cc Shape.cc \
-						  ShapeFromShading.cc Weights.cc
+                  Outlier.cc Reflectance.cc Shadow.cc Shape.cc                \
+                  ShapeFromShading.cc Weights.cc Reconstruct.cc
 
 lib_LTLIBRARIES = libvwPhotometry.la
 

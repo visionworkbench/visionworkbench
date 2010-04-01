@@ -1,3 +1,15 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Misc.h
+
+#ifndef __VW_PHOTOMETRY_MISC_H__
+#define __VW_PHOTOMETRY_MISC_H__
+
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
@@ -95,3 +107,5 @@ float total_loglike(Vector<float> coeffs, Vector<float> image_histogram, Vector<
 void convert_real2image(std::string input_file, std::string output_file, float ub, float lb = 0.0);
 void convert_real2images(std::vector<std::string> input_files, std::vector<std::string> output_files, float ub, float lb = 0.0);
 void convert_real2images(std::vector<std::string> input_files, std::vector<std::string> output_files, bool bNormalized = false);
+
+#endif//__VW_PHOTOMETRY_MISC_H__

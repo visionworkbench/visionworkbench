@@ -1,9 +1,14 @@
 // __BEGIN_LICENSE__
-// Copyright (C) 2006, 2007 United States Government as represented by
+// Copyright (C) 2006-2010 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
 // __END_LICENSE__
 
+
+/// \file Reflectance.h
+
+#ifndef __VW_PHOTOMETRY_REFLECTANCE_H__
+#define __VW_PHOTOMETRY_REFLECTANCE_H__
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -58,3 +63,5 @@ float computeImageReflectance(std::string input_img_file, std::string overlap_im
                               std::string output_img_file, GlobalParams globalParams);
 */
 float computeImageReflectance(ModelParams input_img_params, ModelParams overlap_img_params, GlobalParams globalParams);
+
+#endif//__VW_PHOTOMETRY_REFLECTANCE_H__

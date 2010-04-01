@@ -1,3 +1,15 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+/// \file Camres.h
+
+#ifndef __VW_PHOTOMETRY_CAMRES_H__
+#define __VW_PHOTOMETRY_CAMRES_H__
+
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
@@ -20,3 +32,5 @@ Vector<float> save_exposure_images(std::vector<std::string> output_files, std::v
                                                                    const char * input_file);
 int save_exposure_images(std::vector<std::string> output_files, std::vector<std::string> input_files,
                                                  std::vector<std::string> camre_files);
+
+#endif//__VW_PHOTOMETRY_CAMRES_H__

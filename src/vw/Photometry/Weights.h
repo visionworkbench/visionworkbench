@@ -4,6 +4,10 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+/// \file Weights.h
+
+#ifndef __VW_PHOTOMETRY_WEIGHTS_H__
+#define __VW_PHOTOMETRY_WEIGHTS_H__
 
 #include <vw/Math/Vector.h>
 #include <string>
@@ -14,3 +18,5 @@ int* ComputeImageHorCenterLine(std::string input_img_file, int **r_maxDistArray)
 int* ComputeDEMHorCenterLine(std::string input_DEM_file, int **r_maxDistArray);
 float ComputeLineWeights(Vector2 pix, int *centerLine, int *maxDistArray);
 float ComputeLineWeightsV(Vector2 pix, int *centerLine, int *maxDistArray);
+
+#endif//__VW_PHOTOMETRY_WEIGHTS_H__
