@@ -15,6 +15,7 @@
 
 #include <vw/Image/Interpolation.h>
 #include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/IntegralImage.h>
 #include <deque>
 
 namespace vw {
