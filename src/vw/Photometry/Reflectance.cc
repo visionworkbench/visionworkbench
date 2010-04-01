@@ -94,48 +94,51 @@ Vector3 get_normal(Vector2 lon_lat){
 //reads the 3D position of the Sun in Moon centric cordinates
 //char *filename: the filename with the sun positions (sunposition.txt)
 //int numEntres: number of entries in the sun position file
-//author: Ara Nefian
-std ::vector<Vector3> ReadSunPosition(char *filename, int numEntries)
-{
+std::vector<Vector3> ReadSunPosition( std::string const& filename,
+                                      int const& numEntries ) {
   std::vector<Vector3> sunPositions(numEntries);
 
-  FILE *fp;
-  fp = fopen(filename, "r");
-  float x, y, z;
-
-  for (int i = 0; i < numEntries; i++){
-       char *imgFilename = new char[500];
-       fscanf(fp, "%s %f %f %f\n", imgFilename, &x, &y, &z);
-       printf("%s %f %f %f\n", imgFilename, x, y, z);
-       sunPositions[i][0] = x;
-       sunPositions[i][1] = y;
-       sunPositions[i][2] = z;
-       delete imgFilename;
+  std::ifstream infile( filename.c_str() );
+  if ( infile.is_open() ) {
+    for ( int i = 0; i < numEntries; i++ ) {
+      if ( !infile.good() )
+        vw_throw( IOErr() << "Sun Position file does not have enough entries for the "
+                  << numEntries << " requested." );
+      std::string imgname;
+      infile >> imgname >> sunPositions[i][0]
+             >> sunPositions[i][1] >> sunPositions[i][2];
+    }
+  } else {
+    vw_throw( IOErr() << "Unable to open Sun Position file: " << filename );
   }
+  infile.close();
 
-  fclose(fp);
   return sunPositions;
 }
 
 //reads the 3D position of the Spacecraft in Moon centric cordinates
 //char *filename: the filename with the sun positions (sunposition.txt)
 //int numEntres: number of entries in the sun position file
-//author: Ara Nefian
-std ::vector<Vector3> ReadSpacecraftPosition(char *filename, int numEntries)
+std ::vector<Vector3> ReadSpacecraftPosition(std::string const& filename,
+                                             int const& numEntries)
 {
   std::vector<Vector3> spacecraftPositions(numEntries);
 
-  FILE *fp;
-  fp = fopen(filename, "r");
-  float x, y, z;
-
-  for (int i = 0; i < numEntries; i++){
-       fscanf(fp, "%s %f %f %f\n", filename, &x, &y, &z);
-       spacecraftPositions[i][0] = x;
-       spacecraftPositions[i][1] = y;
-       spacecraftPositions[i][2] = z;
+  std::ifstream infile( filename.c_str() );
+  if ( infile.is_open() ) {
+    for ( int i = 0; i < numEntries; i++ ) {
+      if ( !infile.good() )
+        vw_throw( IOErr() << "Spacecraft Position file does not have enough entries for the "
+                  << numEntries << " requested." );
+      std::string imgname;
+      infile >> imgname >> spacecraftPositions[i][0]
+             >> spacecraftPositions[i][1] >> spacecraftPositions[i][2];
+    }
+  } else {
+    vw_throw( IOErr() << "Unable to open Spacecraft Position file: " << filename );
   }
-  fclose(fp);
+  infile.close();
+
   return spacecraftPositions;
 }
 

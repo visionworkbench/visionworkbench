@@ -45,8 +45,12 @@ using namespace vw::cartography;
 
 Vector3 computeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3);
 Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
-std ::vector<Vector3> ReadSunPosition(char *filename, int numEntries);
-std ::vector<Vector3> ReadSpacecraftPosition(char *filename, int numEntries);
+
+std::vector<Vector3> ReadSunPosition(std::string const& filename,
+                                     int const& numEntries);
+std::vector<Vector3> ReadSpacecraftPosition(std::string const& filename,
+                                            int const& numEntries);
+
 float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
 float computeLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
 float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewerPos, Vector3 xyz,  Vector3 normal, float B_0, float L);
