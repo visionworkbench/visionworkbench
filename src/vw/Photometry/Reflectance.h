@@ -17,55 +17,42 @@
 #endif
 
 #include <string>
-#include <fstream>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
-
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-#include <vw/Math.h>
+#include <vw/Math/Vector.h>
 
 #include <vw/Photometry/Reconstruct.h>
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-#include <math.h>
 
-Vector3 computeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3);
-Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
+namespace vw {
+namespace photometry {
 
-std::vector<Vector3> ReadSunPosition(std::string const& filename,
-                                     int const& numEntries);
-std::vector<Vector3> ReadSpacecraftPosition(std::string const& filename,
-                                            int const& numEntries);
+  Vector3 computeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3);
+  Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
 
-float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
-float computeLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
-float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewerPos, Vector3 xyz,  Vector3 normal, float B_0, float L);
-float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz,  Vector3 normal);
-//float computeImageReflectance(std::string input_img_file, std::string DEM_file, std::string shadow_file,
-//                              ModelParams input_img_params, std::string output_img_file, GlobalParams globalParams);
-float computeImageReflectance(ModelParams input_img_params, GlobalParams globalParams);
-float ComputeReflectance(Vector3 normal, Vector3 xyz, ModelParams input_img_params, GlobalParams globalParams);
-/*
-float computeImageReflectance(std::string input_img_file, std::string overlap_img_file,
-                              std::string DEM_file,
-                              std::string shadow_file, std::string overlap_shadow_file,
-                              ModelParams input_img_params, ModelParams overlap_img_params,
-                              std::string output_img_file, GlobalParams globalParams);
-*/
-float computeImageReflectance(ModelParams input_img_params, ModelParams overlap_img_params, GlobalParams globalParams);
+  std::vector<Vector3> ReadSunPosition(std::string const& filename,
+                                       int const& numEntries);
+  std::vector<Vector3> ReadSpacecraftPosition(std::string const& filename,
+                                              int const& numEntries);
+
+  float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
+  float computeLambertianReflectanceFromNormal(Vector3 sunPos,
+                                               Vector3 xyz, Vector3 normal);
+  float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos,
+                                                    Vector3 viewerPos,
+                                                    Vector3 xyz,
+                                                    Vector3 normal,
+                                                    float B_0, float L);
+  float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos,
+                                                    Vector3 viewPos,
+                                                    Vector3 xyz,
+                                                    Vector3 normal);
+  float computeImageReflectance(ModelParams input_img_params,
+                                GlobalParams globalParams);
+  float ComputeReflectance(Vector3 normal, Vector3 xyz,
+                           ModelParams input_img_params,
+                           GlobalParams globalParams);
+  float computeImageReflectance(ModelParams input_img_params,
+                                ModelParams overlap_img_params,
+                                GlobalParams globalParams);
+
+}}
 
 #endif//__VW_PHOTOMETRY_REFLECTANCE_H__

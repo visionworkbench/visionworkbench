@@ -1,52 +1,44 @@
 #include <iostream>
 #include <fstream>
-#include <vw/Image.h>
-#include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelMask.h>
-#include <vw/Image/MaskViews.h>
-#include <vw/FileIO.h>
-#include <math.h>
-#include <time.h>
-
-//using namespace std;
-//using namespace vw;
 
 #include <vw/Core.h>
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-#include <vw/Cartography.h>
 #include <vw/Math.h>
+#include <vw/Cartography.h>
+
 using namespace vw;
-using namespace vw::math;
 using namespace vw::cartography;
+
+#include <vw/Photometry/Albedo.h>
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Reflectance.h>
 #include <vw/Photometry/Weights.h>
 
+using namespace vw::photometry;
 
-float ComputeError_Albedo(float intensity, float T, float albedo, float reflectance, Vector3 /*xyz*/, Vector3 /*xyz_prior*/)
-{
+float ComputeError_Albedo(float intensity, float T,
+                          float albedo, float reflectance,
+                          Vector3 /*xyz*/, Vector3 /*xyz_prior*/) {
   float error;
   error = (intensity-T*albedo*reflectance);
   return error;
 }
 
-float ComputeGradient_Albedo(float T, float reflectance)
-{
+float ComputeGradient_Albedo(float T, float reflectance) {
   float grad;
   grad = T*reflectance;
 
   return grad;
 }
 
-void InitImageMosaic(std::string input_img_file,
-                     ModelParams input_img_params,
-                     std::string shadow_file,
-                     std::string output_img_file,
-                     std::vector<std::string> overlap_img_files,
-                     std::vector<ModelParams> overlap_img_params,
-                     GlobalParams globalParams)
-{
+void vw::photometry::InitImageMosaic(std::string input_img_file,
+                                     ModelParams input_img_params,
+                                     std::string shadow_file,
+                                     std::string output_img_file,
+                                     std::vector<std::string> overlap_img_files,
+                                     std::vector<ModelParams> overlap_img_params,
+                                     GlobalParams globalParams) {
 
     printf("image mosaic initialization\n");
 
@@ -180,19 +172,19 @@ void InitImageMosaic(std::string input_img_file,
     //write in the previous DEM
     write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_img_geo, TerminalProgressCallback("photometry","Processing:"));
 
 }
-void InitImageMosaicByBlocks(ModelParams input_img_params,
-                             std::vector<ModelParams> overlap_img_params,
-                             GlobalParams globalParams)
-{
+
+void vw::photometry::InitImageMosaicByBlocks(ModelParams input_img_params,
+                                             std::vector<ModelParams> overlap_img_params,
+                                             GlobalParams globalParams) {
 
     printf("image mosaic by block initialization\n");
 
-    string input_img_file = input_img_params.inputFilename;
-    string shadow_file = input_img_params.shadowFilename;
-    string output_img_file = input_img_params.outputFilename;
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string output_img_file = input_img_params.outputFilename;
 
     int horBlockSize = 500;
     int verBlockSize = 500;
@@ -360,23 +352,20 @@ void InitImageMosaicByBlocks(ModelParams input_img_params,
     //write in the previous DEM
     write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_img_geo, TerminalProgressCallback("photometry","Processing:"));
 
 }
 
-
 //updates the image mosaic
 //author: Ara Nefian
-void UpdateImageMosaic(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params,
-                       GlobalParams globalParams)
-{
-
-
+void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
+                                       std::vector<ModelParams> overlap_img_params,
+                                       GlobalParams globalParams) {
     int i, l, k;
 
-    string input_img_file = input_img_params.inputFilename;
-    string shadow_file = input_img_params.shadowFilename;
-    string output_img_file = input_img_params.outputFilename;
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string output_img_file = input_img_params.outputFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -517,31 +506,28 @@ void UpdateImageMosaic(ModelParams input_img_params, std::vector<ModelParams> ov
        }
     }
 
-
-
     //write the output (albedo) image
-     write_georeferenced_image(output_img_file,
+    write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_img_geo, TerminalProgressCallback("photometry","Processing:"));
 
 }
 
-//----------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 //Below are the functions for albedo reconstruction
-//----------------------------------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------
 
 //initializes the albedo mosaic
-
-void InitAlbedoMosaic(ModelParams input_img_params,
-                      std::vector<ModelParams> overlap_img_params,
-                      GlobalParams globalParams)
-{
+void
+vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
+                                 std::vector<ModelParams> overlap_img_params,
+                                 GlobalParams globalParams) {
 
     int i, l, k;
-    string input_img_file = input_img_params.inputFilename;
-    string DEM_file = input_img_params.DEMFilename;
-    string shadow_file = input_img_params.shadowFilename;
-    string output_img_file = input_img_params.outputFilename;
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string DEM_file = input_img_params.DEMFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string output_img_file = input_img_params.outputFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -635,8 +621,6 @@ void InitAlbedoMosaic(ModelParams input_img_params,
        }
     }
 
-
-    //for (i = 0; i < (int)overlap_img_files.size(); i++){
     for (i = 0; i < (int)overlap_img_params.size(); i++){
       /*
       printf("overlap_img = %s\n", overlap_img_files[i].c_str());
@@ -787,17 +771,16 @@ void InitAlbedoMosaic(ModelParams input_img_params,
 //input_files[i], input_files[i-1], output_files[i], output_files[i-1]
 //writes the current albedo of the current image in the area of overlap with the previous mage
 //writes the previous albedo in the area of overlap with the current image
-
- void UpdateAlbedoMosaic(ModelParams input_img_params,
-                         std::vector<ModelParams> overlap_img_params,
-                         GlobalParams globalParams)
-{
+void
+vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
+                                   std::vector<ModelParams> overlap_img_params,
+                                   GlobalParams globalParams) {
     int i, l, k;
 
-    string input_img_file = input_img_params.inputFilename;
-    string DEM_file = input_img_params.meanDEMFilename;
-    string shadow_file = input_img_params.shadowFilename;
-    string output_img_file = input_img_params.reliefFilename;
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string DEM_file = input_img_params.meanDEMFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string output_img_file = input_img_params.reliefFilename;
 
     //vector<ModelParams> overlap_img_params;
     //vector<std::string> overlapShadowFileArray;
@@ -1053,7 +1036,7 @@ void InitAlbedoMosaic(ModelParams input_img_params,
     //write the output (albedo) image
      write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_img_geo, TerminalProgressCallback("photometry","Processing:"));
 
 
 }
@@ -1061,19 +1044,19 @@ void InitAlbedoMosaic(ModelParams input_img_params,
 //writes the current albedo of the current image in the area of overlap with the previous mage
 //writes the previous albedo in the area of overlap with the current image
 
-void ComputeReconstructionErrorMap(ModelParams input_img_params,
-                                   std::vector<ModelParams> overlap_img_params,
-                                   GlobalParams globalParams,
-                                   float *avgError, int *totalNumSamples)
-{
+void
+vw::photometry::ComputeReconstructionErrorMap(ModelParams input_img_params,
+                                              std::vector<ModelParams> overlap_img_params,
+                                              GlobalParams globalParams,
+                                              float *avgError, int *totalNumSamples) {
 
     int i, l, k;
 
-    string input_img_file = input_img_params.inputFilename;
-    string DEM_file = input_img_params.meanDEMFilename;
-    string shadow_file = input_img_params.shadowFilename;
-    string albedo_file = input_img_params.outputFilename;
-    string error_img_file = input_img_params.errorFilename;
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string DEM_file = input_img_params.meanDEMFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string albedo_file = input_img_params.outputFilename;
+    std::string error_img_file = input_img_params.errorFilename;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
@@ -1293,7 +1276,7 @@ void ComputeReconstructionErrorMap(ModelParams input_img_params,
     //write the output (standard deviation of the reconstructed albedo) image
     write_georeferenced_image(error_img_file,
                               channel_cast<uint8>(clamp(error_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              input_img_geo, TerminalProgressCallback("photometry}","Processing:"));
 
 
 }

@@ -9,9 +9,11 @@
 ///
 
 #include <vw/Photometry/Reconstruct.h>
+using namespace vw::photometry;
 
 // Generic Ostream options for Debugging
-std::ostream& operator<<( std::ostream& os, GlobalParams const& global ) {
+std::ostream& vw::photometry::operator<<( std::ostream& os,
+                                          GlobalParams const& global ) {
   os << "-- Global Params --\n";
   os << " ReflectanceType: " << global.reflectanceType
      << " SlopeType: " << global.slopeType << "\n";
@@ -24,7 +26,8 @@ std::ostream& operator<<( std::ostream& os, GlobalParams const& global ) {
   return os;
 }
 
-std::ostream& operator<<( std::ostream& os, ModelParams const& model ) {
+std::ostream& vw::photometry::operator<<( std::ostream& os,
+                                          ModelParams const& model ) {
   os << "-- Model Params --\n";
   os << " Exposure Time: " << model.exposureTime << "\n";
   os << " Sun Position : " << model.sunPosition << "\n";

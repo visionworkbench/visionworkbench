@@ -11,20 +11,12 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <iostream>
 #include <string>
-#include <fstream>
+
 #include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -32,7 +24,6 @@ namespace fs = boost::filesystem;
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 using namespace vw;
-using namespace vw::math;
 using namespace vw::cartography;
 
 #include <vw/Photometry/ShapeFromShading.h>
@@ -43,9 +34,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Shadow.h>
 #include <vw/Photometry/Index.h>
-#include <math.h>
-
-#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Weights.h>
+using namespace vw::photometry;
 
 
 /*
@@ -130,8 +120,9 @@ float ComputeWeights(Vector2 pix, Vector2 C, float maxDistance)
 }
 */
 
-int* ComputeImageCenterLine(std::string input_img_file, int **r_maxDistArray)
-{
+int*
+vw::photometry::ComputeImageCenterLine(std::string input_img_file,
+                                       int **r_maxDistArray) {
 
     //compute the center of the image
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
@@ -179,8 +170,9 @@ int* ComputeImageCenterLine(std::string input_img_file, int **r_maxDistArray)
 }
 
 
-int* ComputeImageHorCenterLine(std::string input_img_file, int **r_maxDistArray)
-{
+int*
+vw::photometry::ComputeImageHorCenterLine(std::string input_img_file,
+                                          int **r_maxDistArray) {
 
     //compute the center of the image
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
@@ -226,8 +218,9 @@ int* ComputeImageHorCenterLine(std::string input_img_file, int **r_maxDistArray)
 }
 
 
-int* ComputeDEMCenterLine(std::string input_DEM_file, int **r_maxDistArray)
-{
+int*
+vw::photometry::ComputeDEMCenterLine(std::string input_DEM_file,
+                                     int **r_maxDistArray) {
 
     //compute the center of the image
     DiskImageView<PixelGray<float> >   input_DEM(input_DEM_file);
@@ -270,53 +263,52 @@ int* ComputeDEMCenterLine(std::string input_DEM_file, int **r_maxDistArray)
    return centerLine;
 }
 
-int* ComputeDEMHorCenterLine(std::string input_DEM_file, int **r_maxDistArray)
-{
+int*
+vw::photometry::ComputeDEMHorCenterLine(std::string input_DEM_file,
+                                        int **r_maxDistArray) {
+  //compute the center of the image
+  DiskImageView<PixelGray<float> >   input_DEM(input_DEM_file);
 
-    //compute the center of the image
-    DiskImageView<PixelGray<float> >   input_DEM(input_DEM_file);
+  int k, l;
 
-    int k, l;
+  int *centerLine = new int[input_DEM.cols()];
+  int *maxDistArray = new int[input_DEM.cols()];
 
-    int *centerLine = new int[input_DEM.cols()];
-    int *maxDistArray = new int[input_DEM.cols()];
+  int minVal, maxVal;
 
-    int minVal, maxVal;
+  printf("file=%s\n",input_DEM_file.c_str());
+  //initialize  output_img, and numSamples
+  for (k = 0 ; k < input_DEM.cols(); ++k) {
 
-    printf("file=%s\n",input_DEM_file.c_str());
-    //initialize  output_img, and numSamples
-    for (k = 0 ; k < input_DEM.cols(); ++k) {
+    minVal = input_DEM.rows();
+    maxVal = 0;
+    for (l = 0; l < input_DEM.rows(); ++l) {
 
-        minVal = input_DEM.rows();
-        maxVal = 0;
-        for (l = 0; l < input_DEM.rows(); ++l) {
-
-           if ( input_DEM(l,k) != -10000 ) {
-             if (l < minVal){
-                 minVal = l;
-             }
-             if (l > maxVal){
-                 maxVal = l;
-             }
-          }
+      if ( input_DEM(l,k) != -10000 ) {
+        if (l < minVal){
+          minVal = l;
+        }
+        if (l > maxVal){
+          maxVal = l;
+        }
       }
-      centerLine[k] = (minVal + maxVal)/2;
-      maxDistArray[k] = maxVal - minVal;
-      if (maxDistArray[k] < 0){
-          maxDistArray[k]=0;
-      }
-      printf("cl[%d] = %d, maxDist[%d] = %d\n", k, centerLine[k], k, maxDistArray[k]);
-   }
+    }
+    centerLine[k] = (minVal + maxVal)/2;
+    maxDistArray[k] = maxVal - minVal;
+    if (maxDistArray[k] < 0){
+      maxDistArray[k]=0;
+    }
+    printf("cl[%d] = %d, maxDist[%d] = %d\n", k, centerLine[k], k, maxDistArray[k]);
+  }
 
-
-
-   *r_maxDistArray = maxDistArray;
-   return centerLine;
+  *r_maxDistArray = maxDistArray;
+  return centerLine;
 }
 
-
-float ComputeLineWeights(Vector2 pix, int *centerLine, int *maxDistArray)
-{
+float
+vw::photometry::ComputeLineWeights(Vector2 pix,
+                                   int *centerLine,
+                                   int *maxDistArray) {
   int maxDist = maxDistArray[(int)pix[1]]/2.0;
   int center = centerLine[(int)pix[1]];
   float dist = fabs((int)pix[0]-center);
@@ -334,8 +326,10 @@ float ComputeLineWeights(Vector2 pix, int *centerLine, int *maxDistArray)
   return weight;
 }
 
-float ComputeLineWeightsV(Vector2 pix, int *centerLine, int *maxDistArray)
-{
+float
+vw::photometry::ComputeLineWeightsV(Vector2 pix,
+                                    int *centerLine,
+                                    int *maxDistArray) {
   int maxDist = maxDistArray[(int)pix[0]]/2.0;
   int center = centerLine[(int)pix[0]];
   float dist = fabs((int)pix[1]-center);

@@ -8,6 +8,8 @@
 #include <math.h>
 #include <time.h>
 
+#include <vw/Photometry/ShapeFromShading.h>
+
 using namespace std;
 using namespace vw;
 
@@ -339,7 +341,8 @@ double image_sum( ImageView<PixelGray<double> > *im ){
 }
 
 // Does conjugate gradient descent on the DEM, keeping all else fixed.
-void optimize_conjugate_gradient(ImageView<PixelGray<double> > *image_predicted,  ImageView<PixelGray<double> > *image, ImageView<PixelGray<double> > *dem,
+void
+vw::photometry::optimize_conjugate_gradient(ImageView<PixelGray<double> > *image_predicted,  ImageView<PixelGray<double> > *image, ImageView<PixelGray<double> > *dem,
                                  ImageView<PixelGray<double> > *init_dem, ImageView<PixelGray<double> > *albedo, Vector<double, 3> *light_direction){
 
         int MAX_ITERS = 100000;

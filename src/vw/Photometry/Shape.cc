@@ -1,15 +1,7 @@
 #include <iostream>
-#include <fstream>
-#include <vw/Image.h>
-#include <vw/Image/PixelMath.h>
-#include <vw/Image/PixelMask.h>
-#include <vw/Image/MaskViews.h>
-#include <vw/FileIO.h>
+
 #include <math.h>
 #include <time.h>
-
-//using namespace std;
-//using namespace vw;
 
 #include <vw/Core.h>
 #include <vw/Image.h>
@@ -17,15 +9,17 @@
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 using namespace vw;
-using namespace vw::math;
 using namespace vw::cartography;
+
+#include <vw/Photometry/Shape.h>
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Weights.h>
+using namespace vw::photometry;
 
-
-float ComputeGradient_DEM(float /*intensity*/, float T, float albedo, Vector3 s,
-                          Vector3 p, Vector3 p_left, Vector3 p_top, Vector3 /*xyz_prior*/)
-{
+float ComputeGradient_DEM(float /*intensity*/, float T,
+                          float albedo, Vector3 s,
+                          Vector3 p, Vector3 p_left,
+                          Vector3 p_top, Vector3 /*xyz_prior*/) {
   float grad;
   float temp  = (p[2]-p_left[2])*(p[2]-p_left[2]) + (p[2]-p_top[2])*(p[2]-p_top[2]) + 1;
   float temp1 = (p[2]-p_left[2])*s[0]+(p[2]-p_top[2])*s[1] +s[2];
@@ -35,208 +29,209 @@ float ComputeGradient_DEM(float /*intensity*/, float T, float albedo, Vector3 s,
   return grad;
 }
 
-float ComputeError_DEM(float intensity, float T, float albedo, float reflectance, Vector3 /*xyz*/, Vector3 xyz_prior)
-{
+float ComputeError_DEM(float intensity, float T, float albedo,
+                       float reflectance, Vector3 /*xyz*/, Vector3 xyz_prior) {
   float error;
   error = (intensity-T*albedo*reflectance) + (xyz_prior[2]-xyz_prior[2]);
   return error;
 }
 
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file,*/ ModelParams input_img_params,
-              /*std::vector<std::string> overlap_DEM_files,*/  std::vector<ModelParams> overlap_img_params, GlobalParams globalParams)
-{
+void vw::photometry::InitDEM( ModelParams input_img_params,
+                              std::vector<ModelParams> overlap_img_params,
+                              GlobalParams globalParams) {
 
-    int i;
-    unsigned l, k;
+  int i;
+  unsigned l, k;
 
-    string input_DEM_file = input_img_params.DEMFilename;
-    string mean_DEM_file = input_img_params.meanDEMFilename;
-    string var2_DEM_file = input_img_params.var2DEMFilename;
+  std::string input_DEM_file = input_img_params.DEMFilename;
+  std::string mean_DEM_file = input_img_params.meanDEMFilename;
+  std::string var2_DEM_file = input_img_params.var2DEMFilename;
 
-    DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
-    GeoReference input_DEM_geo;
-    read_georeference(input_DEM_geo, input_DEM_file);
+  DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
+  GeoReference input_DEM_geo;
+  read_georeference(input_DEM_geo, input_DEM_file);
 
-    ImageView<PixelGray<float> > mean_DEM_image(input_DEM_image.cols(), input_DEM_image.rows());
-    ImageView<PixelMask<PixelGray<float> > >var2_DEM_image(input_DEM_image.cols(), input_DEM_image.rows());
+  ImageView<PixelGray<float> > mean_DEM_image(input_DEM_image.cols(), input_DEM_image.rows());
+  ImageView<PixelMask<PixelGray<float> > >var2_DEM_image(input_DEM_image.cols(), input_DEM_image.rows());
 
-    ImageView<PixelGray<int> > numSamples(input_DEM_image.cols(), input_DEM_image.rows());
-    ImageView<PixelGray<float> > norm(input_DEM_image.cols(), input_DEM_image.rows());
+  ImageView<PixelGray<int> > numSamples(input_DEM_image.cols(), input_DEM_image.rows());
+  ImageView<PixelGray<float> > norm(input_DEM_image.cols(), input_DEM_image.rows());
 
 
-    int numTiles = overlap_img_params.size()+1;
-    float *meanDEMOffset = new float[numTiles];
-    int *numDEMSamples = new int[numTiles];
-    for (i = 0; i < numTiles; i++){
-        numDEMSamples[i] = 0;
+  int numTiles = overlap_img_params.size()+1;
+  float *meanDEMOffset = new float[numTiles];
+  int *numDEMSamples = new int[numTiles];
+  for (i = 0; i < numTiles; i++){
+    numDEMSamples[i] = 0;
+  }
+
+  //initialize  mean_DEM-image, var2_DEM_image and numSamples
+  for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
+    for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
+
+      mean_DEM_image(l, k) = -10000;
+      numSamples(l, k) = 0;
+      Vector2 input_DEM_pix(l,k);
+
+      if ( input_DEM_image(l,k) != -10000 ) {
+
+        if (globalParams.useWeights == 0){
+          mean_DEM_image(l, k) = (float)input_DEM_image(l,k);
+          var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k);
+          numSamples(l, k) = 1;
+
+          meanDEMOffset[0] = meanDEMOffset[0] + (float)input_DEM_image(l,k);
+          numDEMSamples[0] = numDEMSamples[0] + 1;
+        }
+        else{
+          float weight = ComputeLineWeights(input_DEM_pix, input_img_params.centerLineDEM, input_img_params.maxDistArrayDEM);
+          mean_DEM_image(l, k) = (float)input_DEM_image(l,k)*weight;
+          var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k);
+          numSamples(l, k) = 1;
+          norm(l, k) = weight;
+
+          meanDEMOffset[0] = meanDEMOffset[0] + (float)input_DEM_image(l,k);
+          numDEMSamples[0] = numDEMSamples[0] + 1;
+        }
+        //meanDEM = meanDEM + mean_DEM_image(l,k);
+        //totalNumSamples++;
+
+      }
+
     }
+  }
 
-    //initialize  mean_DEM-image, var2_DEM_image and numSamples
+  for (i = 0; i < (int) overlap_img_params.size(); i++){
+    //for (i = 0; i < overlap_DEM_files.size(); i++){
+
+    //printf("DEM = %s\n", overlap_DEM_files[i].c_str());
+    //DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_DEM_files[i]);
+    //GeoReference overlap_DEM_geo;
+    //read_georeference(overlap_DEM_geo, overlap_DEM_files[i]);
+
+    printf("DEM = %s\n", overlap_img_params[i].DEMFilename.c_str());
+    DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_img_params[i].DEMFilename);
+    GeoReference overlap_DEM_geo;
+    read_georeference(overlap_DEM_geo, overlap_img_params[i].DEMFilename);
+
+
+    ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
+                                                                                        ConstantEdgeExtension()),
+                                                                            BilinearInterpolation());
+
     for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
       for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
 
-           mean_DEM_image(l, k) = -10000;
-           numSamples(l, k) = 0;
-           Vector2 input_DEM_pix(l,k);
+        Vector2 input_DEM_pix(l,k);
 
-           if ( input_DEM_image(l,k) != -10000 ) {
+        if ( input_DEM_image(l,k) != -10000 ) {
+
+          //check for overlap between the output image and the input DEM image
+          Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(input_DEM_geo.pixel_to_lonlat(input_DEM_pix));
+          int x = (int)overlap_dem_pix[0];
+          int y = (int)overlap_dem_pix[1];
+
+          //check for valid DEM coordinates
+          if ((x>=0) && (x < overlap_DEM_image.cols()) && (y>=0) && (y< overlap_DEM_image.rows())){
+
+            if ( overlap_DEM_image(x, y) != -10000 ) {
 
               if (globalParams.useWeights == 0){
-                  mean_DEM_image(l, k) = (float)input_DEM_image(l,k);
-                  var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k);
-                  numSamples(l, k) = 1;
+                mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y);
+                var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y);
+                numSamples(l, k) = (int)numSamples(l, k) + 1;
 
-                  meanDEMOffset[0] = meanDEMOffset[0] + (float)input_DEM_image(l,k);
-                  numDEMSamples[0] = numDEMSamples[0] + 1;
+                meanDEMOffset[i+1] = meanDEMOffset[i+1] + (float)interp_overlap_DEM_image(x, y);
+                numDEMSamples[i+1] = numDEMSamples[i+1] + 1;
               }
               else{
-                  float weight = ComputeLineWeights(input_DEM_pix, input_img_params.centerLineDEM, input_img_params.maxDistArrayDEM);
-                  mean_DEM_image(l, k) = (float)input_DEM_image(l,k)*weight;
-                  var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k);
-                  numSamples(l, k) = 1;
-                  norm(l, k) = weight;
+                float weight = ComputeLineWeights(overlap_dem_pix, overlap_img_params[i].centerLineDEM, overlap_img_params[i].maxDistArrayDEM);
+                mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*weight;
+                var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y);
+                numSamples(l, k) = (int)numSamples(l, k) + 1;
+                norm(l, k) = norm(l,k) + weight;
 
-                  meanDEMOffset[0] = meanDEMOffset[0] + (float)input_DEM_image(l,k);
-                  numDEMSamples[0] = numDEMSamples[0] + 1;
+                meanDEMOffset[i+1] = meanDEMOffset[i+1] + (float)interp_overlap_DEM_image(x, y);
+                numDEMSamples[i+1] = numDEMSamples[i+1] + 1;
               }
               //meanDEM = meanDEM + mean_DEM_image(l,k);
               //totalNumSamples++;
-
-           }
-
-        }
-    }
-
-    for (i = 0; i < (int) overlap_img_params.size(); i++){
-    //for (i = 0; i < overlap_DEM_files.size(); i++){
-
-      //printf("DEM = %s\n", overlap_DEM_files[i].c_str());
-      //DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_DEM_files[i]);
-      //GeoReference overlap_DEM_geo;
-      //read_georeference(overlap_DEM_geo, overlap_DEM_files[i]);
-
-      printf("DEM = %s\n", overlap_img_params[i].DEMFilename.c_str());
-      DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_img_params[i].DEMFilename);
-      GeoReference overlap_DEM_geo;
-      read_georeference(overlap_DEM_geo, overlap_img_params[i].DEMFilename);
-
-
-      ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
-                                                                              ConstantEdgeExtension()),
-                                                                              BilinearInterpolation());
-
-      for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
-        for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
-
-          Vector2 input_DEM_pix(l,k);
-
-          if ( input_DEM_image(l,k) != -10000 ) {
-
-              //check for overlap between the output image and the input DEM image
-              Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(input_DEM_geo.pixel_to_lonlat(input_DEM_pix));
-              int x = (int)overlap_dem_pix[0];
-              int y = (int)overlap_dem_pix[1];
-
-              //check for valid DEM coordinates
-              if ((x>=0) && (x < overlap_DEM_image.cols()) && (y>=0) && (y< overlap_DEM_image.rows())){
-
-                if ( overlap_DEM_image(x, y) != -10000 ) {
-
-                     if (globalParams.useWeights == 0){
-                         mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y);
-                         var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y);
-                         numSamples(l, k) = (int)numSamples(l, k) + 1;
-
-                         meanDEMOffset[i+1] = meanDEMOffset[i+1] + (float)interp_overlap_DEM_image(x, y);
-                         numDEMSamples[i+1] = numDEMSamples[i+1] + 1;
-                     }
-                     else{
-                         float weight = ComputeLineWeights(overlap_dem_pix, overlap_img_params[i].centerLineDEM, overlap_img_params[i].maxDistArrayDEM);
-                         mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*weight;
-                         var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y);
-                         numSamples(l, k) = (int)numSamples(l, k) + 1;
-                         norm(l, k) = norm(l,k) + weight;
-
-                         meanDEMOffset[i+1] = meanDEMOffset[i+1] + (float)interp_overlap_DEM_image(x, y);
-                         numDEMSamples[i+1] = numDEMSamples[i+1] + 1;
-                     }
-                     //meanDEM = meanDEM + mean_DEM_image(l,k);
-                     //totalNumSamples++;
-                  }
-              }
+            }
           }
         }
       }
     }
+  }
 
 
-    //compute mean and variance
-    float avgStdDevDEM = 0.0;
-    float meanDEM = 0.0;
-    int totalNumSamples = 0;
+  //compute mean and variance
+  float avgStdDevDEM = 0.0;
+  float meanDEM = 0.0;
+  int totalNumSamples = 0;
 
-    for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
-      for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
+  for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
+    for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
 
-            if ((globalParams.useWeights == 0) && (numSamples(l,k)!=0)){
-               mean_DEM_image(l, k) = mean_DEM_image(l, k)/numSamples(l,k);
-            }
-
-            if ((globalParams.useWeights == 1) && (norm(l,k)!=0)){
-               mean_DEM_image(l, k) = mean_DEM_image(l, k)/norm(l,k);
-            }
-
-            if ((numSamples(l,k)!=0)){
-               var2_DEM_image(l, k) = var2_DEM_image(l, k)/numSamples(l,k)- mean_DEM_image(l, k)*mean_DEM_image(l,k);
-               if (var2_DEM_image(l,k) < 0){
-                  //printf("var2(%d, %d) =%f\n", l, k,(float)var2_DEM_image(l,k));
-                  var2_DEM_image(l,k) = 0.0;
-               }
-               //var2_DEM_image(l, k) = 0.02*(float)var2_DEM_image(l,k);
-
-               //compute the DEM standard deviation
-               var2_DEM_image(l, k) = sqrt((float)var2_DEM_image(l,k));
-               avgStdDevDEM = avgStdDevDEM + var2_DEM_image(l,k);
-               meanDEM = meanDEM + mean_DEM_image(l,k);
-               totalNumSamples++;
-            }
-
+      if ((globalParams.useWeights == 0) && (numSamples(l,k)!=0)){
+        mean_DEM_image(l, k) = mean_DEM_image(l, k)/numSamples(l,k);
       }
+
+      if ((globalParams.useWeights == 1) && (norm(l,k)!=0)){
+        mean_DEM_image(l, k) = mean_DEM_image(l, k)/norm(l,k);
+      }
+
+      if ((numSamples(l,k)!=0)){
+        var2_DEM_image(l, k) = var2_DEM_image(l, k)/numSamples(l,k)- mean_DEM_image(l, k)*mean_DEM_image(l,k);
+        if (var2_DEM_image(l,k) < 0){
+          //printf("var2(%d, %d) =%f\n", l, k,(float)var2_DEM_image(l,k));
+          var2_DEM_image(l,k) = 0.0;
+        }
+        //var2_DEM_image(l, k) = 0.02*(float)var2_DEM_image(l,k);
+
+        //compute the DEM standard deviation
+        var2_DEM_image(l, k) = sqrt((float)var2_DEM_image(l,k));
+        avgStdDevDEM = avgStdDevDEM + var2_DEM_image(l,k);
+        meanDEM = meanDEM + mean_DEM_image(l,k);
+        totalNumSamples++;
+      }
+
     }
+  }
 
-    //compute the meanDEM and avgStdDevDEM
-    meanDEM = meanDEM/totalNumSamples;
-    avgStdDevDEM = avgStdDevDEM/totalNumSamples;
-    printf("totalNumSamples = %d, meanDEM = %f, avgStdDevDEM = %f\n", totalNumSamples, meanDEM, avgStdDevDEM);
+  //compute the meanDEM and avgStdDevDEM
+  meanDEM = meanDEM/totalNumSamples;
+  avgStdDevDEM = avgStdDevDEM/totalNumSamples;
+  printf("totalNumSamples = %d, meanDEM = %f, avgStdDevDEM = %f\n", totalNumSamples, meanDEM, avgStdDevDEM);
 
-    //compute the mean DEM offset from each DEM tile to mean
-    for (i = 0; i < (int)overlap_img_params.size()+1; i++){
-        meanDEMOffset[i] = meanDEMOffset[i]/numDEMSamples[i] - meanDEM;
-        printf("meanDEMoffset[%d] = %f\n", i, meanDEMOffset[i]);
-    }
-
-
-    write_georeferenced_image(mean_DEM_file,
-                              //channel_cast<float>(mean_DEM_image),
-                              mean_DEM_image,
-                              input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
-
-    write_georeferenced_image(var2_DEM_file,
-                              //channel_cast<float>(var2_DEM_image),
-                              channel_cast<uint8>(clamp(var2_DEM_image,0.0,255.0)),
-                              //var2_DEM_image,
-                              input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
+  //compute the mean DEM offset from each DEM tile to mean
+  for (i = 0; i < (int)overlap_img_params.size()+1; i++){
+    meanDEMOffset[i] = meanDEMOffset[i]/numDEMSamples[i] - meanDEM;
+    printf("meanDEMoffset[%d] = %f\n", i, meanDEMOffset[i]);
+  }
 
 
-    //write the meanDEMOffset and avgStdDevDEM to file
-    FILE *fp = fopen(input_img_params.infoFilename.c_str(),"w");
-    fprintf(fp, "%f %f %f %f %f\n", meanDEMOffset[0], meanDEMOffset[1], meanDEMOffset[2], meanDEMOffset[3], avgStdDevDEM);
-    fclose(fp);
+  write_georeferenced_image(mean_DEM_file,
+                            //channel_cast<float>(mean_DEM_image),
+                            mean_DEM_image,
+                            input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
 
-    delete meanDEMOffset;
-    delete numDEMSamples;
+  write_georeferenced_image(var2_DEM_file,
+                            //channel_cast<float>(var2_DEM_image),
+                            channel_cast<uint8>(clamp(var2_DEM_image,0.0,255.0)),
+                            //var2_DEM_image,
+                            input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
+
+
+  //write the meanDEMOffset and avgStdDevDEM to file
+  FILE *fp = fopen(input_img_params.infoFilename.c_str(),"w");
+  fprintf(fp, "%f %f %f %f %f\n", meanDEMOffset[0], meanDEMOffset[1], meanDEMOffset[2], meanDEMOffset[3], avgStdDevDEM);
+  fclose(fp);
+
+  delete meanDEMOffset;
+  delete numDEMSamples;
 }
+
 /*
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
 void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file, ModelParams input_img_params,
@@ -406,11 +401,15 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
 
 }
 */
+
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*/, std::string var2_DEM_file,
-                        ModelParams input_img_params, std::vector<std::string> overlap_DEM_files,
-                        std::vector<ModelParams> /*overlap_img_params*/, GlobalParams /*globalParams*/)
-{
+void DetectDEMOutliers( std::string input_DEM_file,
+                        std::string /*mean_DEM_file*/,
+                        std::string var2_DEM_file,
+                        ModelParams input_img_params,
+                        std::vector<std::string> overlap_DEM_files,
+                        std::vector<ModelParams> /*overlap_img_params*/,
+                        GlobalParams /*globalParams*/) {
 
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
     GeoReference input_DEM_geo;
@@ -419,7 +418,6 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*
     DiskImageView<PixelGray<float> >  mean_DEM_image(input_DEM_file);
 
     ImageView<PixelMask<PixelGray<float> > >var2_DEM_image(input_DEM_image.cols(), input_DEM_image.rows());
-
     ImageView<PixelGray<int> > numSamples(input_DEM_image.cols(), input_DEM_image.rows());
 
     float avgStdDevDEM;
@@ -522,21 +520,20 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*
 //input_files[i], input_files[i-1], output_files[i], output_files[i-1]
 //writes the albedo of the current image in the area of overlap with the previous mage
 //writes the previous image in the area of overal with the current image
-void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
-                    std::string prior_DEM_file,  std::string output_DEM_file,
-                    ModelParams currModelParams, ModelParams prevModelParams)
-{
+void vw::photometry::ComputeSaveDEM(std::string curr_input_file,
+                                    std::string prev_input_file,
+                                    std::string prior_DEM_file,
+                                    std::string output_DEM_file,
+                                    ModelParams currModelParams,
+                                    ModelParams prevModelParams) {
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_image(curr_input_file);
     DiskImageView<PixelMask<PixelGray<uint8> > > prev_image(prev_input_file);
-
 
     GeoReference prev_geo, curr_geo;
     read_georeference(prev_geo, prev_input_file);
     read_georeference(curr_geo, curr_input_file);
 
     float prevSunCorrection, currSunCorrection;
-
-
 
     printf("exposure_time = %f, a_rescale = %f, b_rescale = %f\n",
             currModelParams.exposureTime, currModelParams.rescalingParams[0], currModelParams.rescalingParams[1]);
@@ -607,8 +604,7 @@ void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
 
                  prevSunCorrection = -computeReflectanceFromNormal(prevModelParams.sunPosition, xyz,  normal);
 
-                 float intensity;
-                 float albedo;
+                 float intensity, albedo;
 
                  Vector3 xyz_prior;
                  float curr_grad = ComputeGradient_DEM(intensity, currModelParams.exposureTime, albedo, currModelParams.sunPosition, xyz, xyz_left, xyz_top, xyz_prior);
@@ -635,7 +631,7 @@ void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
 
     write_georeferenced_image(output_DEM_file,
                               channel_cast<uint8>(clamp(out_dem_image,0.0,255.0)),
-                              curr_geo, TerminalProgressCallback("{Core}","Processing:"));
+                              curr_geo, TerminalProgressCallback("photometry","Processing:"));
 
 
 }

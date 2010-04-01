@@ -12,11 +12,22 @@
 #include <vw/Math/Vector.h>
 #include <string>
 
-int* ComputeImageCenterLine(std::string input_img_file, int **r_maxDistArray);
-int* ComputeDEMCenterLine(std::string input_DEM_file, int **r_maxDistArray);
-int* ComputeImageHorCenterLine(std::string input_img_file, int **r_maxDistArray);
-int* ComputeDEMHorCenterLine(std::string input_DEM_file, int **r_maxDistArray);
-float ComputeLineWeights(Vector2 pix, int *centerLine, int *maxDistArray);
-float ComputeLineWeightsV(Vector2 pix, int *centerLine, int *maxDistArray);
+namespace vw {
+namespace photometry {
+
+  int* ComputeImageCenterLine(std::string input_img_file,
+                              int **r_maxDistArray);
+  int* ComputeDEMCenterLine(std::string input_DEM_file,
+                            int **r_maxDistArray);
+  int* ComputeImageHorCenterLine(std::string input_img_file,
+                                 int **r_maxDistArray);
+  int* ComputeDEMHorCenterLine(std::string input_DEM_file,
+                               int **r_maxDistArray);
+  float ComputeLineWeights(Vector2 pix, int *centerLine,
+                           int *maxDistArray);
+  float ComputeLineWeightsV(Vector2 pix, int *centerLine,
+                            int *maxDistArray);
+
+}} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_WEIGHTS_H__

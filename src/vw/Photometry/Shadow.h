@@ -16,34 +16,17 @@
 #endif
 
 #include <string>
-#include <fstream>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <boost/operators.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
-
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-#include <vw/Math.h>
-using namespace vw;
-using namespace vw::math;
-using namespace vw::cartography;
-
-#include <math.h>
 #include <vw/Photometry/Reconstruct.h>
 
-//void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, GlobalParams globalParams);
-void ComputeSaveShadowMap( ModelParams input_img_params, GlobalParams globalParams);
-void AddShadows(std::string input_img_file,  std::string output_img_file, std::string shadow_file);
+namespace vw {
+namespace photometry {
+
+  void ComputeSaveShadowMap( ModelParams input_img_params,
+                             GlobalParams globalParams);
+  void AddShadows(std::string input_img_file,
+                  std::string output_img_file,
+                  std::string shadow_file);
+
+}} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_SHADOW_H__
