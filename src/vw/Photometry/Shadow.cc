@@ -40,7 +40,7 @@ using namespace vw::cartography;
 
 
 //void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, GlobalParams globalParams)
-void ComputeSaveShadowMap( modelParams input_img_params, GlobalParams globalParams)
+void ComputeSaveShadowMap( ModelParams input_img_params, GlobalParams globalParams)
 {
 
   string shadowMapFile = input_img_params.shadowFilename;

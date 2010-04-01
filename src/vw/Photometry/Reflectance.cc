@@ -309,7 +309,7 @@ float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPo
   return reflectance;
 }
 
-float ComputeReflectance(Vector3 normal, Vector3 xyz, modelParams input_img_params, GlobalParams globalParams)
+float ComputeReflectance(Vector3 normal, Vector3 xyz, ModelParams input_img_params, GlobalParams globalParams)
 {
   float input_img_reflectance;
 
@@ -339,7 +339,7 @@ float ComputeReflectance(Vector3 normal, Vector3 xyz, modelParams input_img_para
 //computes a reflectance image
 //author: Ara Nefian
 float computeImageReflectance(std::string input_img_file, std::string DEM_file,
-                             modelParams input_img_params, std::string output_img_file)
+                             ModelParams input_img_params, std::string output_img_file)
 {
    unsigned i, l, k;
    int count = 0;
@@ -444,10 +444,10 @@ float computeImageReflectance(std::string input_img_file, std::string DEM_file,
 
  /*
 float computeImageReflectance(std::string input_img_file, std::string DEM_file,
-                              std::string shadow_file, modelParams input_img_params,
+                              std::string shadow_file, ModelParams input_img_params,
                               std::string output_img_file, GlobalParams globalParams)
  */
-float computeImageReflectance(modelParams input_img_params, GlobalParams globalParams)
+float computeImageReflectance(ModelParams input_img_params, GlobalParams globalParams)
 {
     int l, k;
     int count = 0;
@@ -560,10 +560,10 @@ float computeImageReflectance(modelParams input_img_params, GlobalParams globalP
 float computeImageReflectance(std::string input_img_file, std::string overlap_img_file,
                               std::string DEM_file,
                               std::string shadow_file, std::string overlap_shadow_file,
-                              modelParams input_img_params, modelParams overlap_img_params,
+                              ModelParams input_img_params, ModelParams overlap_img_params,
                               std::string output_img_file, GlobalParams globalParams)
 */
-float computeImageReflectance(modelParams input_img_params, modelParams overlap_img_params, GlobalParams globalParams)
+float computeImageReflectance(ModelParams input_img_params, ModelParams overlap_img_params, GlobalParams globalParams)
 {
     int l, k;
     int count = 0;

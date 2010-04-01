@@ -38,7 +38,7 @@ typedef struct GlobalParams{
     int maxPrevOverlappingImages;
 };
 
-typedef struct modelParams{
+typedef struct ModelParams {
   float   exposureTime;
   Vector2 cameraParams; //currently not used
   Vector3 sunPosition; //relative to the center of the Moon
@@ -65,12 +65,42 @@ typedef struct modelParams{
   //float maxDistance;
 };
 
+// Generic Ostream options for Debugging
+std::ostream& operator<<( std::ostream& os, GlobalParams const& global ) {
+  os << "-- Global Params --\n";
+  os << " ReflectanceType: " << global.reflectanceType
+     << " SlopeType: " << global.slopeType << "\n";
+  os << " Shadow threshold: " << global.shadowThresh << "\n";
+
+  os << " ExposureInfoFilename : " << global.exposureInfoFilename << "\n";
+  os << " SpacecraftPosFilename : " << global.spacecraftPosFilename << "\n";
+  os << " SunPosFilename : " << global.sunPosFilename << "\n";
+
+  return os;
+}
+
+std::ostream& operator<<( std::ostream& os, ModelParams const& model ) {
+  os << "-- Model Params --\n";
+  os << " Exposure Time: " << model.exposureTime << "\n";
+  os << " Sun Position : " << model.sunPosition << "\n";
+  os << " Spacecraft Position : " << model.spacecraftPosition << "\n";
+  os << " Info File : " << model.infoFilename << "\n";
+  os << " DEMFilename : " << model.DEMFilename << "\n";
+  os << " meanDEMFilename : " << model.meanDEMFilename << "\n";
+  os << " var2DEMFilename : " << model.var2DEMFilename << "\n";
+  os << " reliefFilename  : " << model.reliefFilename << "\n";
+  os << " shadowFilename  : " << model.shadowFilename << "\n";
+  os << " errorFilename   : " << model.errorFilename << "\n";
+  os << " inputFilename   : " << model.inputFilename << "\n";
+  os << " outputFilename  : " << model.outputFilename << "\n";
+
+  return os;
+}
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
 //must be part of shape.cc
 Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
 float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
-
 
 // Written by Taemin Kim - START
 #define DYNAMIC_RANGE  256

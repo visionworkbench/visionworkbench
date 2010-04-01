@@ -6,9 +6,9 @@
 
 
 /// \file Photometry.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Photometry.
-/// 
+///
 #ifndef __VW_PHOTOMETRY_H__
 #define __VW_PHOTOMETRY_H__
 
@@ -26,4 +26,4 @@
 #include <vw/Photometry/Weights.h>
 
 #endif // __VW_PHOTOMETRY_H__
- 
+

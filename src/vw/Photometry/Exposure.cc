@@ -61,8 +61,8 @@ float ComputeError_Exposure(float intensity, float T, float albedo, float reflec
   return error;
 }
 
-//void AppendExposureInfoToFile(string exposureFilename, string currInputFile, modelParams currModelParams)
-void AppendExposureInfoToFile(string exposureFilename, modelParams currModelParams)
+//void AppendExposureInfoToFile(string exposureFilename, string currInputFile, ModelParams currModelParams)
+void AppendExposureInfoToFile(string exposureFilename, ModelParams currModelParams)
 {
   FILE *fp;
   string currInputFile = currModelParams.inputFilename;
@@ -97,7 +97,7 @@ std ::vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries
 
 
 //computes the exposure time for image mosaicing (no reflectance model)
-void ComputeExposure(modelParams *currModelParams,
+void ComputeExposure(ModelParams *currModelParams,
                      GlobalParams /*globalParams*/)
 {
 
@@ -149,10 +149,10 @@ void ComputeExposure(modelParams *currModelParams,
 void ComputeExposure(std::string curr_input_file,
                      std::string curr_albedo_file,
                      std::string DEM_file,
-                     modelParams *currModelParams,
+                     ModelParams *currModelParams,
                      GlobalParams globalParams)
 */
-void ComputeExposureAlbedo(modelParams *currModelParams, GlobalParams globalParams)
+void ComputeExposureAlbedo(ModelParams *currModelParams, GlobalParams globalParams)
 {
 
     string curr_input_file = currModelParams->inputFilename;

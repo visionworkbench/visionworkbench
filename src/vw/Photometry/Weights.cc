@@ -352,7 +352,7 @@ float ComputeLineWeightsV(Vector2 pix, int *centerLine, int *maxDistArray)
   //printf("i = %d, j = %d, weight = %f\n", (int)pix[1], (int)pix[0], weight);
   return weight;
 }
-float ComputeWeightsVH(Vector2 pix, modelParams imgParams)
+float ComputeWeightsVH(Vector2 pix, ModelParams imgParams)
 {
   float weightV = ComputeLineWeightsV(pix, imgParams.horCenterLine, imgParams.maxVerDistArray);
   float weightH = ComputeLineWeights(pix, imgParams.centerLine, imgParams.maxDistArray);

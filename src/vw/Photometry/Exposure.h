@@ -17,18 +17,18 @@ using namespace vw;
 void ComputeExposure(std::string curr_input_file,
                      std::string curr_albedo_file,
                      std::string DEM_file,
-                     modelParams *currModelParams,
+                     ModelParams *currModelParams,
                      GlobalParams globalParams);
 */
-void ComputeExposure(modelParams *currModelParams,
+void ComputeExposure(ModelParams *currModelParams,
                      GlobalParams globalParams);
 
 //used for mosaicking, with no reflectance model
-void ComputeExposureAlbedo(modelParams *currModelParams,
+void ComputeExposureAlbedo(ModelParams *currModelParams,
                            GlobalParams globalParams);
 
 
-void AppendExposureInfoToFile(string exposureFilename, modelParams currModelParams);
+void AppendExposureInfoToFile(string exposureFilename, ModelParams currModelParams);
 vector<float> ReadExposureInfoFile(string exposureFilename, int numEntries);
 
 

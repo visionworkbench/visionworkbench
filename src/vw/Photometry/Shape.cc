@@ -43,8 +43,8 @@ float ComputeError_DEM(float intensity, float T, float albedo, float reflectance
 }
 
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file,*/ modelParams input_img_params,
-              /*std::vector<std::string> overlap_DEM_files,*/  std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
+void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file,*/ ModelParams input_img_params,
+              /*std::vector<std::string> overlap_DEM_files,*/  std::vector<ModelParams> overlap_img_params, GlobalParams globalParams)
 {
 
     int i;
@@ -239,8 +239,8 @@ void InitDEM( /*std::string input_DEM_file, std::string mean_DEM_file, std::stri
 }
 /*
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
-void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file, modelParams input_img_params,
-              std::vector<std::string> overlap_DEM_files,  std::vector<modelParams> overlap_img_params, GlobalParams globalParams)
+void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string var2_DEM_file, ModelParams input_img_params,
+              std::vector<std::string> overlap_DEM_files,  std::vector<ModelParams> overlap_img_params, GlobalParams globalParams)
 {
 
     int i, l, k;
@@ -408,8 +408,8 @@ void InitDEM( std::string input_DEM_file, std::string mean_DEM_file, std::string
 */
 //initializes the DEM file by getting the average DEM values in the overlapping areas of consecutive DEM files.
 void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*/, std::string var2_DEM_file,
-                        modelParams input_img_params, std::vector<std::string> overlap_DEM_files,
-                        std::vector<modelParams> /*overlap_img_params*/, GlobalParams /*globalParams*/)
+                        ModelParams input_img_params, std::vector<std::string> overlap_DEM_files,
+                        std::vector<ModelParams> /*overlap_img_params*/, GlobalParams /*globalParams*/)
 {
 
     DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
@@ -524,7 +524,7 @@ void DetectDEMOutliers( std::string input_DEM_file, std::string /*mean_DEM_file*
 //writes the previous image in the area of overal with the current image
 void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
                     std::string prior_DEM_file,  std::string output_DEM_file,
-                    modelParams currModelParams, modelParams prevModelParams)
+                    ModelParams currModelParams, ModelParams prevModelParams)
 {
     DiskImageView<PixelMask<PixelGray<uint8> > > curr_image(curr_input_file);
     DiskImageView<PixelMask<PixelGray<uint8> > > prev_image(prev_input_file);

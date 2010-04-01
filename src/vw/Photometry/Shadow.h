@@ -39,5 +39,5 @@ using namespace vw::cartography;
 #include <vw/Photometry/Reconstruct.h>
 
 //void ComputeSaveShadowMap(std::string origfile, std::string shadowMapFile, GlobalParams globalParams);
-void ComputeSaveShadowMap( modelParams input_img_params, GlobalParams globalParams);
+void ComputeSaveShadowMap( ModelParams input_img_params, GlobalParams globalParams);
 void AddShadows(std::string input_img_file,  std::string output_img_file, std::string shadow_file);

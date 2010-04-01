@@ -40,11 +40,11 @@ float ComputeGradient_Albedo(float T, float reflectance)
 }
 
 void InitImageMosaic(std::string input_img_file,
-                     modelParams input_img_params,
+                     ModelParams input_img_params,
                      std::string shadow_file,
                      std::string output_img_file,
                      std::vector<std::string> overlap_img_files,
-                     std::vector<modelParams> overlap_img_params,
+                     std::vector<ModelParams> overlap_img_params,
                      GlobalParams globalParams)
 {
 
@@ -183,8 +183,8 @@ void InitImageMosaic(std::string input_img_file,
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
 
 }
-void InitImageMosaicByBlocks(modelParams input_img_params,
-                             std::vector<modelParams> overlap_img_params,
+void InitImageMosaicByBlocks(ModelParams input_img_params,
+                             std::vector<ModelParams> overlap_img_params,
                              GlobalParams globalParams)
 {
 
@@ -367,7 +367,7 @@ void InitImageMosaicByBlocks(modelParams input_img_params,
 
 //updates the image mosaic
 //author: Ara Nefian
-void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> overlap_img_params,
+void UpdateImageMosaic(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params,
                        GlobalParams globalParams)
 {
 
@@ -532,8 +532,8 @@ void UpdateImageMosaic(modelParams input_img_params, std::vector<modelParams> ov
 
 //initializes the albedo mosaic
 
-void InitAlbedoMosaic(modelParams input_img_params,
-                      std::vector<modelParams> overlap_img_params,
+void InitAlbedoMosaic(ModelParams input_img_params,
+                      std::vector<ModelParams> overlap_img_params,
                       GlobalParams globalParams)
 {
 
@@ -788,8 +788,8 @@ void InitAlbedoMosaic(modelParams input_img_params,
 //writes the current albedo of the current image in the area of overlap with the previous mage
 //writes the previous albedo in the area of overlap with the current image
 
- void UpdateAlbedoMosaic(modelParams input_img_params,
-                         std::vector<modelParams> overlap_img_params,
+ void UpdateAlbedoMosaic(ModelParams input_img_params,
+                         std::vector<ModelParams> overlap_img_params,
                          GlobalParams globalParams)
 {
     int i, l, k;
@@ -799,7 +799,7 @@ void InitAlbedoMosaic(modelParams input_img_params,
     string shadow_file = input_img_params.shadowFilename;
     string output_img_file = input_img_params.reliefFilename;
 
-    //vector<modelParams> overlap_img_params;
+    //vector<ModelParams> overlap_img_params;
     //vector<std::string> overlapShadowFileArray;
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
@@ -1061,8 +1061,8 @@ void InitAlbedoMosaic(modelParams input_img_params,
 //writes the current albedo of the current image in the area of overlap with the previous mage
 //writes the previous albedo in the area of overlap with the current image
 
-void ComputeReconstructionErrorMap(modelParams input_img_params,
-                                   std::vector<modelParams> overlap_img_params,
+void ComputeReconstructionErrorMap(ModelParams input_img_params,
+                                   std::vector<ModelParams> overlap_img_params,
                                    GlobalParams globalParams,
                                    float *avgError, int *totalNumSamples)
 {
