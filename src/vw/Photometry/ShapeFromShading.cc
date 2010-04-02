@@ -8,6 +8,7 @@
 #include <math.h>
 #include <time.h>
 
+#include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/ShapeFromShading.h>
 
 using namespace std;
@@ -25,9 +26,23 @@ double LOSS_VOLUME_MULT = 0.0005;
 double LOSS_VOLUME_SIGMA = 0;
 
 
-
+//=================================================================================
+//below is Jon's code 
 template <class T> T square(const T& x) { return x*x; }
 template <class T> T sign(const T& x) { return (x > 0) - (x < 0); }
+
+//call function for the update of the height map. main call function for shape from shading
+void
+vw::photometry::UpdateHeightMap(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params, GlobalParams globalParams)
+{  
+    std::string input_img_file = input_img_params.inputFilename;
+    std::string shadow_file = input_img_params.shadowFilename;
+    std::string output_img_file = input_img_params.outputFilename;
+    
+    //TO DO: upsample the DEM to match the resolution of the DRG
+}
+
+
 
 // Normalizes an image such the visible range is within n_sigma standard deviations
 ImageView<PixelGray<double> > softNormalize(ImageView<PixelGray<double> > image, double n_sigma){

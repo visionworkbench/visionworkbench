@@ -12,9 +12,12 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Math/Vector.h>
+#include <vw/Photometry/Reconstruct.h>
 
 namespace vw {
 namespace photometry {
+  
+  void UpdateHeightMap(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params, GlobalParams globalParams);
 
   // Does conjugate gradient descent on the DEM, keeping all else fixed.
   void optimize_conjugate_gradient(ImageView<PixelGray<double> > *image_predicted,
