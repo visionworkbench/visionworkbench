@@ -13,8 +13,9 @@ if MAKE_MODULE_BUNDLEADJUSTMENT
 
 TestBundleAdjustment_SOURCES      = TestBundleAdjustment.cxx
 TestControlNetwork_SOURCES        = TestControlNetwork.cxx
+TestCameraRelation_SOURCES        = TestCameraRelation.cxx
 
-TESTS = TestBundleAdjustment TestControlNetwork
+TESTS = TestBundleAdjustment TestControlNetwork TestCameraRelation
 
 include $(top_srcdir)/config/instantiate.am
 

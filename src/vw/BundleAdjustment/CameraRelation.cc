@@ -25,7 +25,21 @@ namespace ba {
   JFeature::control_measure() const {
     return ControlMeasure( m_location[0], m_location[1],
                            m_scale[0],    m_scale[1],
-                           m_point_id );
+                           m_camera_id );
+  }
+
+  std::ostream& operator<<( std::ostream& os, IPFeature const& feat ) {
+    os << "IPFeature( (" << feat.m_ip.x << "," << feat.m_ip.y << ")@"
+       << feat.m_camera_id << " links "
+       << feat.m_connections.size() << " )";
+    return os;
+  }
+
+  std::ostream& operator<<( std::ostream& os, JFeature const& feat ) {
+    os << "JFeature( " << feat.m_point_id << " " << feat.m_location
+       << "@" << feat.m_camera_id << " links "
+       << feat.m_connections.size() << " )";
+    return os;
   }
 
   // Camera Relation Network
@@ -35,8 +49,39 @@ namespace ba {
   }
 
   template <class FeatureT>
-  void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& /*cnet*/ ) {
-    vw_throw( NoImplErr() << "Not Finished Yet!" );
+  void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& cnet ) {
+    typedef boost::shared_ptr<FeatureT> f_ptr;
+    m_nodes.clear();
+
+    for ( uint32 cp_i = 0; cp_i < cnet.size(); cp_i++ ) {
+      std::vector<f_ptr> features_added;
+      // Building up features to be added and linking to camera nodes
+      for ( ControlPoint::const_iterator cmiter = cnet[cp_i].begin();
+            cmiter != cnet[cp_i].end(); cmiter++ ) {
+        // Seeing if a camera node exists for this measure
+        if ( unsigned(cmiter->image_id()) >= this->size() ) {
+          for ( uint32 i = this->size();
+                i <= unsigned(cmiter->image_id()); i++ ) {
+            this->add_node( CameraNode<FeatureT>( i, "" ) );
+          }
+        }
+
+        // Appending to list
+        features_added.push_back( f_ptr( new FeatureT(*cmiter, cp_i) ) );
+
+        // Attaching to camera node
+        (*this)[cmiter->image_id()].relations.push_back( features_added.back() );
+      }
+
+      // Doubly Linking features together
+      for ( uint32 i = 0; i < features_added.size() - 1; i++ ) {
+        for ( uint32 j = i+1; j < features_added.size(); j++ ) {
+          features_added[i]->connection( features_added[j], false );
+          features_added[j]->connection( features_added[i], false );
+        }
+      }
+
+    } // end for through control points
   }
 
   template <class FeatureT>
@@ -113,7 +158,8 @@ namespace ba {
           }
 
           // 6.) Did you pass? Sweet you're in the gang!
-          if ( cpoint.size() > 1 )
+          //     - CPoints with only a single measure are GCPs
+          if ( cpoint.size() > 0 )
             cnet.add_control_point( cpoint );
         } // end of iteration over relations
       } // end of iteration over camera nodes

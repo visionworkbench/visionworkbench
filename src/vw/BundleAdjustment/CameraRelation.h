@@ -77,7 +77,8 @@ namespace ba {
         }
       }
     }
-    // Interface to create Control Measure
+
+    // Interface to aid conversion with Control Network
     ControlMeasure control_measure() const { return impl().control_measure(); }
   };
 
@@ -87,12 +88,24 @@ namespace ba {
     typedef boost::shared_ptr<IPFeature> f_ptr;
     ip::InterestPoint m_ip;
 
+    // Standard Constructor
     IPFeature ( ip::InterestPoint const& ip,
                 uint32 const& id ) :
     FeatureBase<IPFeature>(id), m_ip(ip) {}
+    // For building from control networks
+    IPFeature ( ControlMeasure const& cmeas,
+                uint32 const& /*point_id*/ ) :
+    FeatureBase<IPFeature>( cmeas.image_id() ) {
+      m_ip = ip::InterestPoint( cmeas.position()[0],
+                                cmeas.position()[1],
+                                cmeas.sigma()[0] );
+    }
+
     std::string type() { return "IP"; }
     ControlMeasure control_measure() const;
   };
+
+  std::ostream& operator<<( std::ostream& os, IPFeature const& feat );
 
   // Jacobian Feature
   // - Intended for internal use in BA
@@ -104,11 +117,22 @@ namespace ba {
     Vector2f m_location;
     Vector2f m_scale;
 
-    JFeature ( uint32 const& i, uint32 const& j ) :
-    FeatureBase<JFeature>(j), m_point_id(i) {}
+    // Standard Constructor
+    JFeature ( uint32 const& point_id, uint32 const& camera_id ) :
+    FeatureBase<JFeature>(camera_id), m_point_id(point_id) {}
+    // For building from control networks
+    JFeature ( ControlMeasure const& cmeas,
+               uint32 const& point_id ) :
+    FeatureBase<JFeature>( cmeas.image_id() ), m_point_id(point_id) {
+      m_location = cmeas.position();
+      m_scale = cmeas.sigma();
+    }
+
     std::string type() { return "J"; }
     ControlMeasure control_measure() const;
   };
+
+  std::ostream& operator<<( std::ostream& os, JFeature const& feat );
 
   // Camera Relation Class
   template <class FeatureT>
