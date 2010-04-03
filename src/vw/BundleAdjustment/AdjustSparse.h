@@ -367,7 +367,7 @@ namespace ba {
 
       // Back Solving for Delta B
       time = new Timer("Solve Delta B", DebugMessage, "ba");
-      Vector<double> delta_b( this->m_model.num_points() );
+      Vector<double> delta_b( this->m_model.num_points() * num_pt_params );
       {
         // delta_b = inverse(V)*( epsilon_b - sum_across_cam( WijT * delta_aj ) )
 
