@@ -111,8 +111,9 @@ namespace ba {
   // - Intended for internal use in BA
   struct JFeature : public FeatureBase<JFeature> {
     typedef boost::shared_ptr<JFeature> f_ptr;
-    Matrix<double> m_a_jacobian;
-    Matrix<double> m_b_jacobian;
+
+    Matrix<double> m_w, m_y; // W = product of Jacobians, Y = product of W
+
     uint32 m_point_id;
     Vector2f m_location;
     Vector2f m_scale;

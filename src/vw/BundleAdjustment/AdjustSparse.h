@@ -16,6 +16,7 @@
 #include <vw/Math/MatrixSparseSkyline.h>
 #include <vw/Core/Debugging.h>
 #include <vw/BundleAdjustment/AdjustBase.h>
+#include <vw/BundleAdjustment/CameraRelation.h>
 
 // Boost
 #include <boost/numeric/ublas/matrix_sparse.hpp>
@@ -40,10 +41,27 @@ namespace ba {
   template <class BundleAdjustModelT, class RobustCostT>
   class AdjustSparse : public AdjustBase<BundleAdjustModelT, RobustCostT> {
 
+    // Common Types
+    typedef Matrix<double, 2, BundleAdjustModelT::camera_params_n> matrix_2_camera;
+    typedef Matrix<double, 2, BundleAdjustModelT::point_params_n> matrix_2_point;
+    typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> matrix_camera_camera;
+    typedef Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> matrix_point_point;
+    typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> matrix_camera_point;
+    typedef Vector<double,BundleAdjustModelT::camera_params_n> vector_camera;
+    typedef Vector<double,BundleAdjustModelT::point_params_n> vector_point;
+
     math::MatrixSparseSkyline<double> m_S;
     std::vector<unsigned> m_ideal_ordering;
     Vector<unsigned> m_ideal_skyline;
     bool m_found_ideal_ordering;
+    CameraRelationNetwork<JFeature> m_crn;
+    typedef CameraNode<JFeature>::iterator crn_iter;
+
+    // Reused structures
+    std::vector< matrix_camera_camera > U;
+    std::vector< matrix_point_point > V, V_inverse;
+    std::vector< vector_camera > epsilon_a;
+    std::vector< vector_point > epsilon_b;
 
   public:
 
@@ -53,7 +71,11 @@ namespace ba {
                   bool use_gcp_constraint=true) :
     AdjustBase<BundleAdjustModelT,RobustCostT>( model, robust_cost_func,
                                                 use_camera_constraint,
-                                                use_gcp_constraint ) {
+                                                use_gcp_constraint ),
+      U( this->m_model.num_cameras() ), V( this->m_model.num_points() ),
+      V_inverse( this->m_model.num_points() ),
+      epsilon_a( this->m_model.num_cameras() ), epsilon_b( this->m_model.num_points() ) {
+      m_crn.read_controlnetwork( *(this->m_control_net).get() );
       m_found_ideal_ordering = false;
     }
 
@@ -99,39 +121,18 @@ namespace ba {
 
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
-      // Jacobian Matrices and error values
-      typedef Matrix<double, 2, BundleAdjustModelT::camera_params_n> matrix_2_camera;
-      typedef Matrix<double, 2, BundleAdjustModelT::point_params_n> matrix_2_point;
-      boost_sparse_matrix< matrix_2_camera  > A(this->m_model.num_points(), this->m_model.num_cameras());
-      boost_sparse_matrix< matrix_2_point > B(this->m_model.num_points(), this->m_model.num_cameras());
-      boost_sparse_matrix<Vector2> epsilon(this->m_model.num_points(), this->m_model.num_cameras());
-      boost_sparse_matrix<Vector2> new_epsilon(this->m_model.num_points(), this->m_model.num_cameras());
-
-      // Intermediate Matrices and vectors
-      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::camera_params_n> matrix_camera_camera;
-      typedef Matrix<double,BundleAdjustModelT::point_params_n,BundleAdjustModelT::point_params_n> matrix_point_point;
-      typedef Matrix<double,BundleAdjustModelT::camera_params_n,BundleAdjustModelT::point_params_n> matrix_camera_point;
-      boost_sparse_vector< matrix_camera_camera > U(this->m_model.num_cameras());
-      boost_sparse_vector< matrix_point_point > V(this->m_model.num_points());
-      boost_sparse_matrix< matrix_camera_point > W(this->m_model.num_cameras(), this->m_model.num_points());
-
-      // Copies of Intermediate Marices
-      typedef Vector<double,BundleAdjustModelT::camera_params_n> vector_camera;
-      typedef Vector<double,BundleAdjustModelT::point_params_n> vector_point;
-      boost_sparse_vector< vector_camera > epsilon_a(this->m_model.num_cameras());
-      boost_sparse_vector< vector_point > epsilon_b(this->m_model.num_points());
-      boost_sparse_matrix< matrix_camera_point > Y(this->m_model.num_cameras(), this->m_model.num_points());
+      // Reseting the values for U and V
+      for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ ) {
+        U[j] = matrix_camera_camera();
+        epsilon_a[j] = vector_camera();
+      }
+      for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+        V[i] = matrix_point_point();
+        epsilon_b[i] = vector_point();
+      }
 
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_pt_params = BundleAdjustModelT::point_params_n;
-
-      unsigned delta_length = U.size() * num_cam_params + V.size() * num_pt_params;
-
-      Vector<double> g(delta_length);
-      unsigned current_g_length = 0;
-
-      Vector<double> delta(delta_length);
-      unsigned current_delta_length = 0;
 
       // Fletcher LM parameteres
       double dS = 0; //Predicted improvement for Fletcher modification
@@ -140,58 +141,42 @@ namespace ba {
       // matrices A & B, as well as the error matrix and the W
       // matrix.
       time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba");
-      unsigned i = 0;
+
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
+      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+        for ( crn_iter fiter = m_crn[j].begin();
+              fiter != m_crn[j].end(); fiter++ ) {
 
-      for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-           iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = iter->begin();
-             measure_iter != iter->end(); ++measure_iter) {
-
-          unsigned j = measure_iter->image_id();
-
-          VW_DEBUG_ASSERT( j < this->m_model.num_cameras(),
-                           ArgumentErr() << "BundleAdjustment::update() : image index out of bounds.");
-
-          // Store jacobian values
-          A(i,j) = this->m_model.A_jacobian(i,j,this->m_model.A_parameters(j),
-                                            this->m_model.B_parameters(i));
-          B(i,j) = this->m_model.B_jacobian(i,j,this->m_model.A_parameters(j),
-                                            this->m_model.B_parameters(i));
-
+          matrix_2_camera A = this->m_model.A_jacobian( (**fiter).m_point_id, j,
+                                                        this->m_model.A_parameters(j),
+                                                        this->m_model.B_parameters((**fiter).m_point_id) );
+          matrix_2_point B = this->m_model.B_jacobian( (**fiter).m_point_id, j,
+                                                       this->m_model.A_parameters(j),
+                                                       this->m_model.B_parameters((**fiter).m_point_id) );
           // Apply robust cost function weighting
-          Vector2 unweighted_error = measure_iter->dominant() -
-            this->m_model(i,j,this->m_model.A_parameters(j),this->m_model.B_parameters(i));
+          Vector2 error = (**fiter).m_location -
+            this->m_model((**fiter).m_point_id,j,this->m_model.A_parameters(j),
+                          this->m_model.B_parameters((**fiter).m_point_id));
 
-          double mag = norm_2(unweighted_error);
+          double mag = norm_2(error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          epsilon(i,j) = unweighted_error * weight;
+          error *= weight;
 
           Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = measure_iter->sigma();
-          Vector2 epsilon_inst = epsilon(i,j);
+          Vector2 pixel_sigma = (**fiter).m_scale;
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
-          error_total += .5 * transpose(epsilon_inst) *
-            inverse_cov * epsilon_inst;
+          error_total += .5 * transpose(error) *
+            inverse_cov * error;
 
-          // Store intermediate values
-          U(j) += transpose(static_cast< matrix_2_camera >(A(i,j))) *
-            inverse_cov * static_cast< matrix_2_camera >(A(i,j));
-          V(i) += transpose(static_cast< matrix_2_point >(B(i,j))) *
-            inverse_cov * static_cast< matrix_2_point >(B(i,j));
-          W(j,i) = transpose(static_cast< matrix_2_camera >(A(i,j))) *
-            inverse_cov * static_cast< matrix_2_point >(B(i,j));
-
-          epsilon_a(j) += transpose(static_cast< matrix_2_camera >(A(i,j))) *
-            inverse_cov * epsilon_inst;
-          epsilon_b(i) += transpose(static_cast< matrix_2_point >(B(i,j))) *
-            inverse_cov * epsilon_inst;
-
+          // Storing intermediate values
+          U[j] += transpose(A) * inverse_cov * A;
+          V[(**fiter).m_point_id] += transpose(B) * inverse_cov * B;
+          epsilon_a[j] += transpose(A) * inverse_cov * error;
+          epsilon_b[(**fiter).m_point_id] += transpose(B) * inverse_cov * error;
+          (**fiter).m_w = transpose(A) * inverse_cov * B;
         }
-        ++i;
       }
-
       delete time;
 
       // set initial lambda, and ignore if the user has touched it
@@ -200,13 +185,13 @@ namespace ba {
         double max = 0.0;
         for (unsigned i = 0; i < U.size(); ++i)
           for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
-            if (fabs(static_cast<matrix_camera_camera>(U(i))(j,j)) > max)
-              max = fabs(static_cast<matrix_camera_camera>(U(i))(j,j));
+            if (fabs(U[i](j,j)) > max)
+              max = fabs(U[i](j,j));
           }
         for (unsigned i = 0; i < V.size(); ++i)
           for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-            if ( fabs(static_cast<matrix_point_point>(V(i))(j,j)) > max)
-              max = fabs(static_cast<matrix_point_point>(V(i))(j,j));
+            if ( fabs(V[i](j,j)) > max)
+              max = fabs(V[i](j,j));
           }
         this->m_lambda = max * 1e-10;
         delete time;
@@ -218,12 +203,10 @@ namespace ba {
         for ( unsigned j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
-          matrix_camera_camera C;
-          C.set_identity();
-          U(j) += transpose(C) * inverse_cov * C;
+          U[j] += inverse_cov;
           vector_camera eps_a = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
           error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
-          epsilon_a(j) += transpose(C) * inverse_cov * eps_a;
+          epsilon_a[j] += inverse_cov * eps_a;
         }
 
       // Add in the 3D point position constraint terms and
@@ -234,26 +217,15 @@ namespace ba {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
-            matrix_point_point D;
-            D.set_identity();
-            V(i) +=  transpose(D) * inverse_cov * D;
+            V[i] += inverse_cov;
             vector_point eps_b = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
             error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
-            epsilon_b(i) += transpose(D) * inverse_cov * eps_b;
+            epsilon_b[i] += inverse_cov * eps_b;
           }
       delete time;
 
       // flatten both epsilon_b and epsilon_a into a vector
-      time = new Timer("Flatten eps_a, eps_b, and augmenting with lambda",DebugMessage,"ba");
-      for (unsigned j = 0; j < U.size(); j++){
-        subvector(g, current_g_length, num_cam_params) = static_cast<vector_camera>(epsilon_a(j));
-        current_g_length += num_cam_params;
-      }
-      for (unsigned i = 0; i < V.size(); i++){
-        subvector(g, current_g_length, num_pt_params) = static_cast<vector_point>(epsilon_b(i));
-        current_g_length += num_pt_params;
-      }
-
+      time = new Timer("Augmenting with lambda",DebugMessage,"ba");
       //e at this point should be -g_a
 
       // "Augment" the diagonal entries of the U and V matrices with
@@ -262,16 +234,16 @@ namespace ba {
         matrix_camera_camera u_lambda;
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
-        for ( i = 0; i < U.size(); ++i )
-          U(i) += u_lambda;
+        for ( uint32 i = 0; i < U.size(); ++i )
+          U[i] += u_lambda;
       }
 
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
-        for ( i = 0; i < V.size(); ++i )
-          V(i) += v_lambda;
+        for ( uint32 i = 0; i < V.size(); ++i )
+          V[i] += v_lambda;
       }
       delete time;
 
@@ -282,28 +254,29 @@ namespace ba {
       Vector<double> e(this->m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
       for (unsigned j = 0; j < epsilon_a.size(); ++j) {
         subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) =
-          static_cast<vector_camera>(epsilon_a(j));
+          epsilon_a[j];
       }
 
-      //Second Pass.  Compute Y and finish constructing e.
-      i = 0;
-      for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-           iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin();
-             measure_iter != (*iter).end(); ++measure_iter) {
-          unsigned j = measure_iter->image_id();
+      // Compute V inverse
+      for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+        Matrix<double> V_temp = V[i];
+        chol_inverse( V_temp );
+        V_inverse[i] = V_temp;
+      }
 
+      // Compute Y and finish constructing e.
+      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+        for ( crn_iter fiter = m_crn[j].begin();
+              fiter != m_crn[j].end(); fiter++ ) {
           // Compute the blocks of Y
-          Matrix<double> V_temp = static_cast<matrix_point_point>(V(i));
-          chol_inverse(V_temp);
-          Y(j,i) = static_cast<matrix_camera_point>(W(j,i)) * transpose(V_temp) * V_temp;
-
-          // "Flatten the block structure to compute 'e'.
-          vector_camera temp = static_cast<matrix_camera_point>(Y(j,i))*static_cast<vector_point>(epsilon_b(i));
-          subvector(e, j*num_cam_params, num_cam_params) -= temp;
+          (**fiter).m_y = (**fiter).m_w * transpose(V_inverse[(**fiter).m_point_id])
+            * V_inverse[ (**fiter).m_point_id ];
+          // Flatten the block structure to compute 'e'
+          subvector(e, j*num_cam_params, num_cam_params) -= (**fiter).m_y
+            * epsilon_b[ (**fiter).m_point_id ];
         }
-        ++i;
       }
+
       delete time;
 
       // --- BUILD SPARSE, SOLVE A'S UPDATE STEP -------------------------
@@ -316,60 +289,51 @@ namespace ba {
       // below.
       math::MatrixSparseSkyline<double> S(this->m_model.num_cameras()*num_cam_params,
                                           this->m_model.num_cameras()*num_cam_params);
-      i = 0;
-      for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-           iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin();
-             j_measure_iter != (*iter).end(); ++j_measure_iter) {
-          unsigned j = j_measure_iter->image_id();
+      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+        { // Filling in diagonal
+          matrix_camera_camera S_jj;
 
-          for (typename ControlPoint::const_iterator k_measure_iter = (*iter).begin();
-               k_measure_iter != (*iter).end(); ++k_measure_iter) {
-            unsigned k = k_measure_iter->image_id();
+          // Iterate across all features seen by the camera
+          for ( crn_iter fiter = m_crn[j].begin();
+                fiter != m_crn[j].end(); fiter++ ) {
+            S_jj -= (**fiter).m_y*transpose((**fiter).m_w);
+          }
 
-            // Compute the block entry...
-            matrix_camera_camera temp = -static_cast< matrix_camera_point >(Y(j,i)) *
-              transpose( static_cast<matrix_camera_point>(W(k,i)) );
-            // ... and "flatten" this matrix into the scalar entries of S
-            for (unsigned aa = 0; aa < num_cam_params; ++aa) {
-              for (unsigned bb = 0; bb < num_cam_params; ++bb) {
-                // FIXME: This if clause is required at the moment to
-                // ensure that we do not use the += on the symmetric
-                // entries of the SparseSkylineMatrix.  These
-                // symmetric entries are shallow, hence this code
-                // would add the value twice if we're not careful
-                // here.
-                if (k*num_cam_params + bb <=
-                    j*num_cam_params + aa) {
-                  S(j*num_cam_params + aa,
-                    k*num_cam_params + bb) += temp(aa,bb);
+          // Augmenting Diagonal
+          S_jj += U[j];
 
-                  //  S_old(j*BundleAdjustModelT::camera_params_n + aa,
-                  //  k*BundleAdjustModelT::camera_params_n + bb) += temp_old(aa,bb);
-
-                }
-              }
+          // Loading into sparse matrix
+          uint32 offset = j * num_cam_params;
+          for ( uint32 aa = 0; aa < num_cam_params; aa++ ) {
+            for ( uint32 bb = aa; bb < num_cam_params; bb++ ) {
+              S( offset+bb, offset+aa ) = S_jj(aa,bb);  // Transposing
             }
           }
         }
-        ++i;
-      }
 
-      // Augment the diagonal entries S(i,i) with U(i)
-      for (unsigned i = 0; i < this->m_model.num_cameras(); ++i) {
-        // ... and "flatten" this matrix into the scalar entries of S
-        for (unsigned aa = 0; aa < num_cam_params; ++aa) {
-          for (unsigned bb = 0; bb < num_cam_params; ++bb) {
-            // FIXME: This if clause is required at the moment to
-            // ensure that we do not use the += on the symmetric
-            // entries of the SparseSkylineMatrix.  These
-            // symmetric entries are shallow, hence this code
-            // would add the value twice if we're not careful
-            // here.
-            if (i*num_cam_params + bb <=
-                i*num_cam_params + aa) {
-              S(i*num_cam_params + aa,
-                i*num_cam_params + bb) += static_cast<matrix_camera_camera>(U(i))(aa,bb);
+        { // Filling in off diagonal
+          for ( uint32 k = j+1; k < m_crn.size(); k++ ) {
+            matrix_camera_camera S_jk;
+
+            // Iterate across all features seens by this camera and k
+            for ( crn_iter f_j_iter = m_crn[j].begin();
+                  f_j_iter != m_crn[j].end(); f_j_iter++ ) {
+              for ( crn_iter f_k_iter = (**f_j_iter).m_connections.begin();
+                    f_k_iter != (**f_j_iter).m_connections.end(); f_k_iter++ ) {
+                if ( (**f_k_iter).m_camera_id == k ) {
+                  S_jk -= (**f_j_iter).m_y
+                    * transpose((**f_k_iter).m_w);
+                  continue;
+                }
+              }
+            } // done iteration through features
+
+            // Loading into sparse matrix
+            // - if it seems we are loading in oddly, it's because the sparse
+            //   matrix is row major.
+            if ( S_jk != matrix_camera_camera() ) {
+              submatrix( S, k*num_cam_params, j*num_cam_params,
+                         num_cam_params, num_cam_params ) = transpose(S_jk);
             }
           }
         }
@@ -399,81 +363,74 @@ namespace ba {
       delta_a = reorganize(delta_a, modified_S.inverse());
       delete time;
 
-      // Save S; used for covariance calculations
-      subvector(delta, current_delta_length, e.size()) = delta_a;
-      current_delta_length += e.size();
       // --- SOLVE B'S UPDATE STEP ---------------------------------
 
       // Back Solving for Delta B
       time = new Timer("Solve Delta B", DebugMessage, "ba");
-      boost_sparse_vector<vector_point > delta_b(this->m_model.num_points());
+      Vector<double> delta_b( this->m_model.num_points() );
+      {
+        // delta_b = inverse(V)*( epsilon_b - sum_across_cam( WijT * delta_aj ) )
 
-      i = 0;
-      for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-           iter != this->m_control_net->end(); ++iter) {
-
-        vector_point temp;
-        for (typename ControlPoint::const_iterator j_measure_iter = (*iter).begin();
-             j_measure_iter != (*iter).end(); ++j_measure_iter) {
-          unsigned j = j_measure_iter->image_id();
-
-          temp += transpose( static_cast<matrix_camera_point>(W(j,i)) ) *
-            subvector( delta_a, j*num_cam_params, num_cam_params );
+        // Building right half, sum( WijT * delta_aj )
+        std::vector< vector_point > right_delta_b( this->m_model.num_points() );
+        for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+          for ( crn_iter fiter = m_crn[j].begin();
+                fiter != m_crn[j].end(); fiter++ ) {
+            right_delta_b[ (**fiter).m_point_id ] += transpose( (**fiter).m_w ) *
+              subvector( delta_a, j*num_cam_params, num_cam_params );
+          }
         }
 
-        Vector<double> delta_temp = static_cast<vector_point>(epsilon_b(i)) - temp;
-
-        Matrix<double> hessian = static_cast<matrix_point_point>(V(i));
-        solve(delta_temp, hessian);
-        delta_b(i) = delta_temp;
-
-        subvector(delta, current_delta_length, num_pt_params) = delta_temp;
-        current_delta_length += num_pt_params;
-
-        ++i;
+        // Solving for delta b
+        for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+          Vector<double> delta_temp = epsilon_b[i] - right_delta_b[i];
+          Matrix<double> hessian = V[i];
+          solve( delta_temp, hessian );
+          subvector( delta_b, i*num_pt_params, num_pt_params ) = delta_temp;
+        }
       }
       delete time;
 
-      dS = .5 * transpose(delta) *(this->m_lambda * delta + g);
+      dS = 0;
+      for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ )
+        dS += transpose(subvector(delta_a,j*num_cam_params,num_cam_params))
+          * ( this->m_lambda * subvector(delta_a,j*num_cam_params,num_cam_params) +
+              epsilon_a[j] );
+      for ( uint32 i = 0; i < this->m_model.num_points(); i++ )
+        dS += transpose(subvector(delta_b,i*num_pt_params,num_pt_params))
+          * ( this->m_lambda * subvector(delta_b,i*num_pt_params,num_pt_params) +
+              epsilon_b[i] );
+      dS *= 0.5;
 
       // -------------------------------
       // Compute the update error vector and predicted change
       // -------------------------------
       time = new Timer("Solve for Updated Error", DebugMessage, "ba");
-      i = 0;
       double new_error_total = 0;
-      for (typename ControlNetwork::const_iterator iter = this->m_control_net->begin();
-           iter != this->m_control_net->end(); ++iter) {
-        for (typename ControlPoint::const_iterator measure_iter = (*iter).begin();
-             measure_iter != (*iter).end(); ++measure_iter) {
-
-          unsigned j = measure_iter->image_id();
-
+      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+        for ( crn_iter fiter = m_crn[j].begin();
+              fiter != m_crn[j].end(); fiter++ ) {
           // Compute error vector
           vector_camera new_a = this->m_model.A_parameters(j) +
-            subvector(delta_a, num_cam_params*j, num_cam_params);
-          Vector<double> del_a = subvector(delta_a, num_cam_params*j, num_cam_params);
-
-          vector_point new_b = this->m_model.B_parameters(i) +
-            static_cast<vector_point>(delta_b(i));
+            subvector( delta_a, num_cam_params*j, num_cam_params );
+          vector_point new_b = this->m_model.B_parameters((**fiter).m_point_id) +
+            subvector( delta_b, num_pt_params*(**fiter).m_point_id, num_pt_params );
 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = measure_iter->dominant() -
-            this->m_model(i,j,new_a,new_b);
-          double mag = norm_2(unweighted_error);
-          double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          new_epsilon(i,j) = weight * unweighted_error;
+          Vector2 error = (**fiter).m_location -
+            this->m_model((**fiter).m_point_id,j,new_a,new_b);
+          double mag = norm_2( error );
+          double weight = sqrt( this->m_robust_cost_func(mag)) / mag;
+          error *= weight;
 
           Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = measure_iter->sigma();
-          Vector2 epsilon_inst = new_epsilon(i,j);
+          Vector2 pixel_sigma = (**fiter).m_scale;
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
 
-          new_error_total += .5 * transpose(epsilon_inst) *
-            inverse_cov * epsilon_inst;
+          new_error_total += .5 * transpose(error) *
+            inverse_cov * error;
         }
-        ++i;
       }
 
       // Camera Constraints
@@ -496,7 +453,7 @@ namespace ba {
                ControlPoint::GroundControlPoint) {
 
             vector_point new_b = this->m_model.B_parameters(i) +
-              static_cast<vector_point>(delta_b(i));
+              subvector( delta_b, num_pt_params*i, num_pt_params );
             vector_point eps_b = this->m_model.B_initial(i)-new_b;
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
@@ -509,18 +466,29 @@ namespace ba {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
-      abs_tol = vw::math::max(g) + vw::math::max(-g);
-      rel_tol = transpose(delta)*delta;
+      {
+        double gvec_max = -1e30, gvec_nmax = -1e30;
+        for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ ) {
+          gvec_max = std::max( gvec_max, vw::math::max(epsilon_a[j]) );
+          gvec_nmax = std::max( gvec_nmax, vw::math::max(-epsilon_a[j]) );
+        }
+        for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+          gvec_max = std::max( gvec_max, vw::math::max(epsilon_b[i]) );
+          gvec_nmax = std::max( gvec_nmax, vw::math::max(-epsilon_b[i]) );
+        }
+        abs_tol = gvec_max + gvec_nmax;
+      }
+      rel_tol = transpose(delta_a)*delta_a + transpose(delta_b)*delta_b;
 
       if ( R > 0 ) {
 
         time = new Timer("Setting Parameters",DebugMessage,"ba");
-        for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
+        for (unsigned j = 0; j < this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
-        for (unsigned i=0; i<this->m_model.num_points(); ++i)
+        for (unsigned i = 0; i < this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
-                                         static_cast<vector_point>(delta_b(i)));
+                                         subvector(delta_b, num_pt_params*i,num_pt_params));
         delete time;
 
         if ( this->m_control == 0 ) {
