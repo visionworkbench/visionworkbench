@@ -25,6 +25,7 @@
 #include <vw/Math/Matrix.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/InterestPoint/InterestData.h>
+#include <map>
 
 namespace vw {
 namespace ba {
@@ -41,6 +42,11 @@ namespace ba {
 
     typedef boost::shared_ptr<ImplT> f_ptr;
     std::list<f_ptr> m_connections;
+    std::map<uint32,f_ptr> m_map; // Alternative access compared to
+    // connections. This should only be used after spiral error detection has
+    // been performed. Map can used to find quickly the feature that belongs
+    // to a camera specific camera.
+
     uint32 m_camera_id;
 
     // Returns a string identifying feature type
@@ -76,6 +82,13 @@ namespace ba {
           (*iter)->list_connections( listing );
         }
       }
+    }
+    void build_map( void ) {
+      m_map.clear();
+      typedef typename std::list<f_ptr>::const_iterator list_it;
+      for ( list_it fiter = m_connections.begin();
+            fiter != m_connections.end(); fiter++ )
+        m_map[ (**fiter).m_camera_id ] = *fiter;
     }
 
     // Interface to aid conversion with Control Network
@@ -139,11 +152,15 @@ namespace ba {
   template <class FeatureT>
   struct CameraNode {
     typedef boost::shared_ptr<FeatureT> f_ptr;
-    int id;
+    uint32 id;
     std::string name;
     std::list<f_ptr> relations;
+    std::multimap< uint32, f_ptr> map; // Provides alternative access
+    // to links inside the elements in relations. It's keyed by all
+    // cameras. Example for using this map is for looking via equal_range(x)
+    // to find all features in this camera that connect to camera x.
 
-    CameraNode ( int tid, std::string tname ) :
+    CameraNode ( uint32 tid, std::string tname ) :
     id(tid), name(tname) {}
 
     // Iterator access (saves a section for me the monkey)
@@ -175,6 +192,7 @@ namespace ba {
 
     // Complex functions
     void add_node( cnode const& node );
+    void build_map( void );
     void read_controlnetwork( ControlNetwork const& cnet );
     void write_controlnetwork( ControlNetwork & cnet ) const;
 

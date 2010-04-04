@@ -311,30 +311,31 @@ namespace ba {
           }
         }
 
-        { // Filling in off diagonal
-          for ( uint32 k = j+1; k < m_crn.size(); k++ ) {
-            matrix_camera_camera S_jk;
+        // Filling in off diagonal
+        for ( uint32 k = j+1; k < m_crn.size(); k++ ) {
+          typedef boost::shared_ptr<JFeature> f_ptr;
+          typedef std::multimap< uint32, f_ptr >::iterator mm_iterator;
+          std::pair< mm_iterator, mm_iterator > feature_range;
+          feature_range = m_crn[j].map.equal_range( k );
 
-            // Iterate across all features seens by this camera and k
-            for ( crn_iter f_j_iter = m_crn[j].begin();
-                  f_j_iter != m_crn[j].end(); f_j_iter++ ) {
-              for ( crn_iter f_k_iter = (**f_j_iter).m_connections.begin();
-                    f_k_iter != (**f_j_iter).m_connections.end(); f_k_iter++ ) {
-                if ( (**f_k_iter).m_camera_id == k ) {
-                  S_jk -= (**f_j_iter).m_y
-                    * transpose((**f_k_iter).m_w);
-                  continue;
-                }
-              }
-            } // done iteration through features
+          // Iterating through all features in camera j that have
+          // connections to camera k.
+          matrix_camera_camera S_jk;
+          bool found = false;
+          for ( mm_iterator f_j_iter = feature_range.first;
+                f_j_iter != feature_range.second; f_j_iter++ ) {
+            f_ptr f_k = (*f_j_iter).second->m_map[k];
+            found = true;
+            S_jk -= (*f_j_iter).second->m_y *
+              transpose( (*f_k).m_w );
+          }
 
-            // Loading into sparse matrix
-            // - if it seems we are loading in oddly, it's because the sparse
-            //   matrix is row major.
-            if ( S_jk != matrix_camera_camera() ) {
-              submatrix( S, k*num_cam_params, j*num_cam_params,
-                         num_cam_params, num_cam_params ) = transpose(S_jk);
-            }
+          // Loading into sparse matrix
+          // - if it seems we are loading in oddly, it's because the sparse
+          //   matrix is row major.
+          if ( found ) {
+            submatrix( S, k*num_cam_params, j*num_cam_params,
+                       num_cam_params, num_cam_params ) = transpose(S_jk);
           }
         }
       }

@@ -49,6 +49,34 @@ namespace ba {
   }
 
   template <class FeatureT>
+  void CameraRelationNetwork<FeatureT>::build_map( void ) {
+    typedef boost::shared_ptr<FeatureT> f_ptr;
+    typedef typename std::list<f_ptr>::iterator list_it;
+    typedef typename std::list<f_ptr>::const_iterator list_cit;
+    typedef typename std::map<uint32,f_ptr>::const_iterator map_cit;
+
+    for ( uint32 j = 0; j < m_nodes.size(); j++ ) {
+      // Building maps for all features
+      for ( list_it fiter = m_nodes[j].relations.begin();
+            fiter != m_nodes[j].relations.end(); fiter++ ) {
+        (**fiter).build_map();
+      }
+
+      // Finally building multimap
+      m_nodes[j].map.clear();
+      // Iterating through all features within this camera
+      for ( list_cit fiter = m_nodes[j].relations.begin();
+            fiter != m_nodes[j].relations.end(); fiter++ ) {
+        // Iterating through all features that our feature connects to
+        for ( map_cit miter = (**fiter).m_map.begin();
+              miter != (**fiter).m_map.end(); miter++ ) {
+          m_nodes[j].map.insert( std::pair<uint32,f_ptr>( (*miter).first, *fiter  ) );
+        }
+      } // end iterating through this camera's features
+    }   // end iterating through cameras
+  }
+
+  template <class FeatureT>
   void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& cnet ) {
     typedef boost::shared_ptr<FeatureT> f_ptr;
     m_nodes.clear();
@@ -82,6 +110,9 @@ namespace ba {
       }
 
     } // end for through control points
+
+    // setting up maps
+    this->build_map();
   }
 
   template <class FeatureT>
