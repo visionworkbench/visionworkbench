@@ -150,14 +150,53 @@ inline void generate_camera_data( std::vector<boost::shared_ptr<PinholeModel> > 
   }
 }
 
-// Tests
-// -----------------------
+// Standard test that provides perfect data
+class NullTest : public ::testing::Test {
+protected:
+  NullTest() {}
 
-TEST( BundleAdjustment, RefNullResponse ) {
+  virtual void SetUp() {
+    generate_camera_data( cameras, cnet );
+  }
+
   std::vector<boost::shared_ptr<PinholeModel> > cameras;
   boost::shared_ptr<ControlNetwork> cnet;
-  generate_camera_data( cameras, cnet );
+};
 
+// Test that provides corrupted data
+class ComparisonTest : public ::testing::Test {
+protected:
+  ComparisonTest() {}
+
+  virtual void SetUp() {
+    generate_camera_data( cameras, cnet );
+
+    // Corrupting cameras a bit
+    cameras[0]->set_camera_center( cameras[0]->camera_center() +
+                                   Vector3(1.2,0,-1) );
+    cameras[1]->set_camera_center( cameras[1]->camera_center() +
+                                   Vector3(0.5,2,1) );
+    cameras[2]->set_camera_center( cameras[2]->camera_center() +
+                                   Vector3(-0.2,-1,3.0) );
+    cameras[3]->set_camera_pose( cameras[3]->camera_pose() +
+                                 math::euler_to_quaternion(0.1,-0.1,0.0,"xyz") );
+    for ( uint i = 0; i < cnet->size(); i++ ) {
+      if ( i % 2 ) {
+        (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(-1,0.5,-0.7) );
+      } else {
+        (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(0.4,-1.5,0.3) );
+      }
+    }
+  }
+
+  std::vector<boost::shared_ptr<PinholeModel> > cameras;
+  boost::shared_ptr<ControlNetwork> cnet;
+};
+
+
+// Null Tests
+// -----------------------
+TEST_F( NullTest, AdjustRef ) {
   TestBAModel model( cameras, cnet );
   AdjustRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
@@ -166,8 +205,6 @@ TEST( BundleAdjustment, RefNullResponse ) {
   for ( uint i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
-  std::ostringstream ostr;
-
   // Checking solutions
   Vector<double,6> zero_vector;
   for ( uint i = 0; i < 5; i++ ) {
@@ -176,11 +213,7 @@ TEST( BundleAdjustment, RefNullResponse ) {
   }
 }
 
-TEST( BundleAdjustment, SparseNullResponse ) {
-  std::vector<boost::shared_ptr<PinholeModel> > cameras;
-  boost::shared_ptr<ControlNetwork> cnet;
-  generate_camera_data( cameras, cnet );
-
+TEST_F( NullTest, AdjustSparse ) {
   TestBAModel model( cameras, cnet );
   AdjustSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
@@ -189,7 +222,22 @@ TEST( BundleAdjustment, SparseNullResponse ) {
   for ( uint i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
-  std::ostringstream ostr;
+  // Checking solutions
+  Vector<double,6> zero_vector;
+  for ( uint i = 0; i < 5; i++ ) {
+    Vector<double> solution = model.A_parameters(i);
+    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
+  }
+}
+
+TEST_F( NullTest, AdjustRobustRef ) {
+  TestBAModel model( cameras, cnet );
+  AdjustRobustRef< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+  // Running BA
+  double abs_tol = 1e10, rel_tol = 1e10;
+  for ( uint i = 0; i < 5; i++ )
+    adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
@@ -199,28 +247,43 @@ TEST( BundleAdjustment, SparseNullResponse ) {
   }
 }
 
-TEST( BundleAdjustment, CompareSpareRef ) {
-  std::vector<boost::shared_ptr<PinholeModel> > cameras;
-  boost::shared_ptr<ControlNetwork> cnet;
-  generate_camera_data( cameras, cnet );
+TEST_F( NullTest, AdjustRobustSparse ) {
+  TestBAModel model( cameras, cnet );
+  AdjustRobustSparse< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
 
-  // Corrupting cameras a bit
-  cameras[0]->set_camera_center( cameras[0]->camera_center() +
-                                 Vector3(1.2,0,-1) );
-  cameras[1]->set_camera_center( cameras[1]->camera_center() +
-                                 Vector3(0.5,2,1) );
-  cameras[2]->set_camera_center( cameras[2]->camera_center() +
-                                 Vector3(-0.2,-1,3.0) );
-  cameras[3]->set_camera_pose( cameras[3]->camera_pose() +
-                               math::euler_to_quaternion(0.1,-0.1,0.0,"xyz") );
-  for ( uint i = 0; i < cnet->size(); i++ ) {
-    if ( i % 2 ) {
-      (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(-1,0.5,-0.7) );
-    } else {
-      (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(0.4,-1.5,0.3) );
-    }
+  // Running BA
+  double abs_tol = 1e10, rel_tol = 1e10;
+  for ( uint i = 0; i < 5; i++ )
+    adjuster.update(abs_tol,rel_tol);
+
+  // Checking solutions
+  Vector<double,6> zero_vector;
+  for ( uint i = 0; i < 5; i++ ) {
+    Vector<double> solution = model.A_parameters(i);
+    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
+}
 
+TEST_F( NullTest, AdjustRobustSparseKGCP ) {
+  TestBAModel model( cameras, cnet );
+  AdjustRobustSparseKGCP< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
+
+  // Running BA
+  double abs_tol = 1e10, rel_tol = 1e10;
+  for ( uint i = 0; i < 5; i++ )
+    adjuster.update(abs_tol,rel_tol);
+
+  // Checking solutions
+  Vector<double,6> zero_vector;
+  for ( uint i = 0; i < 5; i++ ) {
+    Vector<double> solution = model.A_parameters(i);
+    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
+  }
+}
+
+// Comparison Tests
+// -----------------------
+TEST_F( ComparisonTest, Ref_VS_Sparse ) {
   std::vector<Vector<double> > ref_solution;
   std::vector<Vector<double> > spr_solution;
 
@@ -256,5 +319,91 @@ TEST( BundleAdjustment, CompareSpareRef ) {
   for ( uint i = 0; i < 5; i++ )
     EXPECT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
+                        1e-3 );
+}
+
+// For whatever reason .. RobustRef and RobustSparse diverge
+// quickly. This is probably do to unwise application of floats or
+// arithmetic ordering.
+TEST_F( ComparisonTest, RobustRef_VS_RobustSparse ) {
+  std::vector<Vector<double> > ref_solution;
+  std::vector<Vector<double> > spr_solution;
+
+  { // Performing Ref BA
+    TestBAModel model( cameras, cnet );
+    AdjustRobustRef< TestBAModel, L2Error > adjuster( model, L2Error(),
+                                                      false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 2; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      ref_solution.push_back( model.A_parameters(i) );
+  }
+
+  { // Performing Sparse BA
+    TestBAModel model( cameras, cnet );
+    AdjustRobustSparse< TestBAModel, L2Error > adjuster( model, L2Error(),
+                                                         false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 2; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      spr_solution.push_back( model.A_parameters(i) );
+  }
+
+  // Comparison
+  for ( uint i = 0; i < 5; i++ )
+    EXPECT_VECTOR_NEAR( ref_solution[i],
+                        spr_solution[i],
+                        1e-2 );
+}
+
+TEST_F( ComparisonTest, RobustSparse_VS_RobustSparseKGCP ) {
+  std::vector<Vector<double> > spr_solution;
+  std::vector<Vector<double> > sprkgcp_solution;
+
+  { // Performing Ref BA
+    TestBAModel model( cameras, cnet );
+    AdjustRobustSparse< TestBAModel, L2Error > adjuster( model, L2Error(),
+                                                      false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 2; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      spr_solution.push_back( model.A_parameters(i) );
+  }
+
+  { // Performing Sparse BA
+    TestBAModel model( cameras, cnet );
+    AdjustRobustSparseKGCP< TestBAModel, L2Error > adjuster( model,
+                                                             L2Error(),
+                                                             false, false);
+
+    // Running BA
+    double abs_tol = 1e10, rel_tol = 1e10;
+    for ( unsigned i = 0; i < 2; i++ )
+      adjuster.update(abs_tol,rel_tol);
+
+    // Storing result
+    for ( uint i = 0; i < 5; i++ )
+      sprkgcp_solution.push_back( model.A_parameters(i) );
+  }
+
+  // Comparison
+  for ( uint i = 0; i < 5; i++ )
+    EXPECT_VECTOR_NEAR( spr_solution[i],
+                        sprkgcp_solution[i],
                         1e-3 );
 }

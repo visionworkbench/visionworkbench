@@ -121,7 +121,7 @@ namespace ba {
 
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
-      // Reseting the values for U and V
+      // Reseting the values for U, V, epsilon
       for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ ) {
         U[j] = matrix_camera_camera();
         epsilon_a[j] = vector_camera();
@@ -134,29 +134,26 @@ namespace ba {
       unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
       unsigned num_pt_params = BundleAdjustModelT::point_params_n;
 
-      // Fletcher LM parameteres
-      double dS = 0; //Predicted improvement for Fletcher modification
-
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W
       // matrix.
       time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba");
-
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
       for ( uint32 j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
+          uint32 i = (**fiter).m_point_id;
 
-          matrix_2_camera A = this->m_model.A_jacobian( (**fiter).m_point_id, j,
+          matrix_2_camera A = this->m_model.A_jacobian( i, j,
                                                         this->m_model.A_parameters(j),
-                                                        this->m_model.B_parameters((**fiter).m_point_id) );
-          matrix_2_point B = this->m_model.B_jacobian( (**fiter).m_point_id, j,
+                                                        this->m_model.B_parameters(i) );
+          matrix_2_point B = this->m_model.B_jacobian( i, j,
                                                        this->m_model.A_parameters(j),
-                                                       this->m_model.B_parameters((**fiter).m_point_id) );
+                                                       this->m_model.B_parameters(i) );
           // Apply robust cost function weighting
           Vector2 error = (**fiter).m_location -
-            this->m_model((**fiter).m_point_id,j,this->m_model.A_parameters(j),
-                          this->m_model.B_parameters((**fiter).m_point_id));
+            this->m_model(i,j,this->m_model.A_parameters(j),
+                          this->m_model.B_parameters(i) );
 
           double mag = norm_2(error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
@@ -171,31 +168,13 @@ namespace ba {
 
           // Storing intermediate values
           U[j] += transpose(A) * inverse_cov * A;
-          V[(**fiter).m_point_id] += transpose(B) * inverse_cov * B;
+          V[i] += transpose(B) * inverse_cov * B;
           epsilon_a[j] += transpose(A) * inverse_cov * error;
-          epsilon_b[(**fiter).m_point_id] += transpose(B) * inverse_cov * error;
+          epsilon_b[i] += transpose(B) * inverse_cov * error;
           (**fiter).m_w = transpose(A) * inverse_cov * B;
         }
       }
       delete time;
-
-      // set initial lambda, and ignore if the user has touched it
-      if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
-        time = new Timer("Solving for Lambda:", DebugMessage, "ba");
-        double max = 0.0;
-        for (unsigned i = 0; i < U.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
-            if (fabs(U[i](j,j)) > max)
-              max = fabs(U[i](j,j));
-          }
-        for (unsigned i = 0; i < V.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-            if ( fabs(V[i](j,j)) > max)
-              max = fabs(V[i](j,j));
-          }
-        this->m_lambda = max * 1e-10;
-        delete time;
-      }
 
       // Add in the camera position and pose constraint terms and covariances.
       time = new Timer("Solving for Camera and GCP error:",DebugMessage,"ba");
@@ -224,7 +203,24 @@ namespace ba {
           }
       delete time;
 
-      // flatten both epsilon_b and epsilon_a into a vector
+      // set initial lambda, and ignore if the user has touched it
+      if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
+        time = new Timer("Solving for Lambda:", DebugMessage, "ba");
+        double max = 0.0;
+        for (unsigned i = 0; i < U.size(); ++i)
+          for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
+            if (fabs(U[i](j,j)) > max)
+              max = fabs(U[i](j,j));
+          }
+        for (unsigned i = 0; i < V.size(); ++i)
+          for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
+            if ( fabs(V[i](j,j)) > max)
+              max = fabs(V[i](j,j));
+          }
+        this->m_lambda = max * 1e-10;
+        delete time;
+      }
+
       time = new Timer("Augmenting with lambda",DebugMessage,"ba");
       //e at this point should be -g_a
 
@@ -261,7 +257,7 @@ namespace ba {
       for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
         Matrix<double> V_temp = V[i];
         chol_inverse( V_temp );
-        V_inverse[i] = V_temp;
+        V_inverse[i] = transpose(V_temp)*V_temp;
       }
 
       // Compute Y and finish constructing e.
@@ -269,8 +265,7 @@ namespace ba {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
           // Compute the blocks of Y
-          (**fiter).m_y = (**fiter).m_w * transpose(V_inverse[(**fiter).m_point_id])
-            * V_inverse[ (**fiter).m_point_id ];
+          (**fiter).m_y = (**fiter).m_w * V_inverse[(**fiter).m_point_id];
           // Flatten the block structure to compute 'e'
           subvector(e, j*num_cam_params, num_cam_params) -= (**fiter).m_y
             * epsilon_b[ (**fiter).m_point_id ];
@@ -392,7 +387,8 @@ namespace ba {
       }
       delete time;
 
-      dS = 0;
+      //Predicted improvement for Fletcher modification
+      double dS = 0;
       for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ )
         dS += transpose(subvector(delta_a,j*num_cam_params,num_cam_params))
           * ( this->m_lambda * subvector(delta_a,j*num_cam_params,num_cam_params) +
