@@ -82,3 +82,33 @@ TEST(Euler, euler_angle_zxy) {
     }
   }
 }
+
+TEST(Euler, quat_euler_xyz) {
+  for ( unsigned x = 0; x < 360; x+= 60 ) {
+    for ( unsigned y = 0; y < 360; y+= 60 ) {
+      for ( unsigned z = 0; z < 360; z+= 60 ) {
+        Vector3 euler_start( x,y,z );
+        euler_start *= M_PI/180.0;
+        Quaternion<double> q = euler_xyz_to_quaternion( euler_start );
+        Quaternion<double> qalt = euler_to_quaternion( euler_start[0],
+                                                       euler_start[1],
+                                                       euler_start[2],
+                                                       "xyz" );
+        EXPECT_NEAR( fabs(q[0]), fabs(qalt[0]), 1e-8 );
+        EXPECT_NEAR( fabs(q[1]), fabs(qalt[1]), 1e-8 );
+        EXPECT_NEAR( fabs(q[2]), fabs(qalt[2]), 1e-8 );
+        EXPECT_NEAR( fabs(q[3]), fabs(qalt[3]), 1e-8 );
+
+        Vector3 euler_fin = quaternion_to_euler_xyz( q );
+
+        Matrix3x3 rot_start = euler_to_rotation_matrix( euler_start[0],
+                                                 euler_start[1],
+                                                 euler_start[2], "xyz" );
+        Matrix3x3 rot_end = euler_to_rotation_matrix( euler_fin[0],
+                                               euler_fin[1],
+                                               euler_fin[2], "xyz" );
+        EXPECT_MATRIX_NEAR( rot_start, rot_end, 1e-8 );
+      }
+    }
+  }
+}
