@@ -182,20 +182,11 @@ int main( int argc, char *argv[] ) {
     exit(1);
   }
 
-
   // Set the debug level
   if (vm.count("debug")) {
     g_debug = true;
   } else {
     g_debug = false;
-  }
-
-  // Choose an appropriate default file type
-  if (!vm.count("file-type")) {
-    if (channel_type == VW_CHANNEL_FLOAT32)
-      tile_filetype = "tif";
-    else 
-      tile_filetype = "png";
   }
   
   if (vm.count("transaction-id") && image_files.size() != 1) {
@@ -227,7 +218,7 @@ int main( int argc, char *argv[] ) {
 
       // Check to see if the image exists.
       if ( !fs::exists(image_files[i]) ) {
-        vw_out() << "Error: could not image file named \"" << image_files[i] << "\"";
+        vw_out() << "Error: could not open image file named \"" << image_files[i] << "\"";
         exit(1);
       }
 
@@ -235,14 +226,14 @@ int main( int argc, char *argv[] ) {
 
       // Load the pixel type, channel type, and nodata value, and
       // georeferencing info for this image.
-      DiskImageResource *rsrc = DiskImageResource::open(image_files[i]);
+      boost::shared_ptr<DiskImageResource> rsrc( DiskImageResource::open(image_files[i]) );
       
       double nodata_value = 0;
       bool has_nodata_value = false;
       if ( rsrc->has_nodata_value() ) {
         has_nodata_value = true;
         nodata_value = rsrc->nodata_value();
-        std::cout << "\t    Extracted nodata value from file: " << nodata_value << ".\n";
+        std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
       }
 
       // Load the georef.  If none is found, assume Plate Caree.
@@ -259,12 +250,12 @@ int main( int argc, char *argv[] ) {
         M(2,2) = 1;
         georef.set_transform( M );
       }
-      delete rsrc;
 
       // Dispatch to the compositer based on the pixel type of this mosaic.
-      switch(platefile->pixel_format()) {
+      switch(rsrc->pixel_format()) {
+      case VW_PIXEL_GRAY:
       case VW_PIXEL_GRAYA:
-        switch(platefile->channel_type()) {
+        switch(rsrc->channel_type()) {
         case VW_CHANNEL_UINT8:  
         case VW_CHANNEL_UINT16:  
           if (has_nodata_value)
@@ -278,7 +269,7 @@ int main( int argc, char *argv[] ) {
           break;
         case VW_CHANNEL_INT16:  
           if (has_nodata_value)
-            do_mosaic(platefile, 
+            do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]), 
                                                 nodata_value)),
                       image_files[i], transaction_id_override, georef, output_mode);
@@ -287,13 +278,13 @@ int main( int argc, char *argv[] ) {
                       image_files[i], transaction_id_override, georef, output_mode);
           break;
         case VW_CHANNEL_FLOAT32:
-          if (has_nodata_value)
+          if (has_nodata_value) {
             do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
-                                                nodata_value)),
+                      mask_to_alpha(channel_cast<int16>(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
+                                                                    nodata_value))),
                       image_files[i], transaction_id_override, georef, output_mode);
-          else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(image_files[i]),
+          } else
+            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]),
                       image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
@@ -302,8 +293,9 @@ int main( int argc, char *argv[] ) {
         }
         break;
 
+      case VW_PIXEL_RGB:
       case VW_PIXEL_RGBA:
-        switch(platefile->channel_type()) {
+        switch(rsrc->channel_type()) {
         case VW_CHANNEL_UINT8:  
           if (has_nodata_value)
             do_mosaic(platefile, 
@@ -324,6 +316,7 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
     }
+
 
   } catch (vw::Exception &e) {
     vw_out() << "A vision workbench error occured: " << e.what() << "\n";

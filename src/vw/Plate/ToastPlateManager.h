@@ -88,7 +88,7 @@ namespace platefile {
                 int transaction_id_override, cartography::GeoReference const& georef, 
                 bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
-
+      
       // Compute the pyramid level at which to store this image.  The
       // number of required levels is broken down so that the very top
       // of the pyramid covers the entire globe and has a size of

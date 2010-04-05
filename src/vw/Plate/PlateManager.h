@@ -89,7 +89,6 @@ namespace platefile {
                                         << m_tile_info.j << " " << m_tile_info.i 
                                         << " @ level " <<  m_level << "]    BBox: " 
                                         << m_tile_info.bbox << "\n";
-
       // XXX: Remove me!  I'm for debugging only!
 
       // if ( (m_tile_info.i == 255 && m_tile_info.j == 255) || 
@@ -114,9 +113,40 @@ namespace platefile {
       // channel to save space in the placefile.  This will require a
       // view that strips off the alpha channel.
       //      m_platefile->write_request();
-      m_platefile->write_update(tile, 
-                                m_tile_info.i, m_tile_info.j, 
-                                m_level, m_transaction_id);
+
+      switch(m_platefile->pixel_format()) {
+      case VW_PIXEL_GRAYA:
+        switch(m_platefile->channel_type()) {
+        case VW_CHANNEL_UINT8:  
+        case VW_CHANNEL_UINT16:  
+          m_platefile->write_update(pixel_cast<PixelGrayA<uint8> >(tile), 
+                                    m_tile_info.i, m_tile_info.j, 
+                                    m_level, m_transaction_id);
+          break;
+        case VW_CHANNEL_INT16:  
+          m_platefile->write_update(pixel_cast<PixelGrayA<int16> >(tile), 
+                                    m_tile_info.i, m_tile_info.j, 
+                                    m_level, m_transaction_id);
+          break;
+        default:
+          vw_throw(NoImplErr() << "Unsupported GrayA channel type in PlateManager.\n");
+        }
+        break;
+      case VW_PIXEL_RGBA:
+        switch(m_platefile->channel_type()) {
+        case VW_CHANNEL_UINT8:  
+          m_platefile->write_update(pixel_cast<PixelRGBA<uint8> >(tile), 
+                                    m_tile_info.i, m_tile_info.j, 
+                                    m_level, m_transaction_id);
+          break;
+        default:
+          vw_throw(NoImplErr() << "Unsupported RGBA channel type in PlateManager.\n");
+        }
+        break;
+      default:
+        vw_throw(NoImplErr() << "Unsupported pixel type in PlateManager.\n");
+      }
+
       //      m_platefile->write_complete();
       m_progress.report_incremental_progress(1.0);
     }

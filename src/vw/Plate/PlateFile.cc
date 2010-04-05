@@ -91,13 +91,20 @@ PlateFile::PlateFile(std::string url, std::string type, std::string description,
       m_index = Index::construct_create(url, hdr);
       vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
 
+      // Check to make sure we've selected a sane file type
+      if ((channel_type == VW_CHANNEL_FLOAT32 && tile_filetype == "png") ||
+          (channel_type == VW_CHANNEL_FLOAT32 && tile_filetype == "jpg"))
+        vw_out(WarningMessage, "plate") << "Constructing 32-bit floating point platefile " 
+                                        << "with a non-32-bit file-type (" 
+                                        << tile_filetype << ").\n";
+
       // However, if it does exist, then we attempt to open the
       // platefile that is stored there.
     } else {
 
       m_index = Index::construct_open(url);
       vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
-
+     
     }
   }
       
