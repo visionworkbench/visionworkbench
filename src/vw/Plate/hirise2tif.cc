@@ -284,7 +284,7 @@ public:
         lr_gray[1] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
         if (tok_iter != tokens_gray.end()) this->error("ullr-gray", gray_ullr);
-        
+
         // Now use the ullr bounds to construct proper georeference information.
         Matrix3x3 T_gray;
         T_gray.set_identity();
@@ -294,8 +294,15 @@ public:
         T_gray(1,1) = (lr_gray[1] - ul_gray[1]) / gray_rsrc->rows();
         T_gray(0,2) = ul_gray[0];
         T_gray(1,2) = ul_gray[1];
-        std::cout << "T_GRAY=" << T_gray << "\n";
+
+        // Check to make sure that the longitude is within the range
+        // [-180, 180].
+        if (T_gray(0,2) > 180)
+          T_gray(0,2) -= 360;
+        if (T_gray(0,2) < -180)
+          T_gray(0,2) += 360;
       
+        std::cout << "T_GRAY=" << T_gray << "\n";
         gray_georef.set_transform(T_gray);
       } 
 
@@ -337,8 +344,16 @@ public:
         T_color(1,1) = (lr_color[1] - ul_color[1]) / color_rsrc->rows();
         T_color(0,2) = ul_color[0];
         T_color(1,2) = ul_color[1];
-        std::cout << "T_COLOR=" << T_color << "\n";
 
+
+        // Check to make sure that the longitude is within the range
+        // [-180, 180].
+        if (T_color(0,2) > 180)
+          T_color(0,2) -= 360;
+        if (T_color(0,2) < -180)
+          T_color(0,2) += 360;
+
+        std::cout << "T_COLOR=" << T_color << "\n";
         color_georef.set_transform(T_color);
       }
 
@@ -590,8 +605,8 @@ int main( int argc, char *argv[] ) {
   // Prepare the composite
   composite.set_draft_mode( true );
   composite.prepare();
-
-  std::cout << "Generating output GeoTIFF..." << std::endl;
+  
+  std::cout << "\t--> Generating output GeoTIFF.  Size = " << composite.cols() << " x " << composite.rows() << "\n";
   DiskImageResourceGDAL::Options gdal_options;
   gdal_options["COMPRESS"] = "LZW";
   gdal_options["BIGTIFF"]  = "YES";
@@ -602,14 +617,14 @@ int main( int argc, char *argv[] ) {
     DiskImageResourceGDAL output_resource( output_file_name, format, 
                                            Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
-    std::cout << "Retaining alpha channel!" << std::endl;
+    std::cout << "\t--> Retaining alpha channel!" << std::endl;
     write_image( output_resource, composite, TerminalProgressCallback("plate.tools.hirise2tif", "") );
   } else {
     format.pixel_format = VW_PIXEL_RGB;
     DiskImageResourceGDAL output_resource( output_file_name, format, 
                                            Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
-    std::cout << "Replacing alpha with black!" << std::endl;
+    std::cout << "\t--> Replacing alpha with black!" << std::endl;
     write_image( output_resource, per_pixel_filter(composite,&rgba8_to_rgb8), 
                  TerminalProgressCallback("plate.tools.hirise2tif", "") );
   }

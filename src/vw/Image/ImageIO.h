@@ -308,6 +308,10 @@ namespace vw {
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
 
+        vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/[" 
+                                       << resource.rows() << " " << resource.cols()
+                                       << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
+
         // Update the progress callback.
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
