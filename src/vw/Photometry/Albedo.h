@@ -18,11 +18,7 @@ namespace vw {
 namespace photometry {
 
   //image mosaic functions
-  void InitImageMosaic(std::string input_img_file,
-                       ModelParams input_img_params,
-                       std::string shadow_file,
-                       std::string output_img_file,
-                       std::vector<std::string> overlap_img_files,
+  void InitImageMosaic(ModelParams input_img_params,
                        std::vector<ModelParams> overlap_img_params,
                        GlobalParams globalParams);
 
@@ -43,6 +39,7 @@ namespace photometry {
                           std::vector<ModelParams> overlap_img_params,
                           GlobalParams globalParams);
 
+  //reconstruction error functions
   void ComputeReconstructionErrorMap(ModelParams input_img_params,
                                      std::vector<ModelParams> overlap_img_params,
                                      GlobalParams globalParams,

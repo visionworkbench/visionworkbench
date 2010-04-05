@@ -8,11 +8,17 @@
 #include <math.h>
 #include <time.h>
 
-#include <vw/Photometry/Reconstruct.h>
-#include <vw/Photometry/ShapeFromShading.h>
+#include <vw/Core.h>
+#include <vw/Cartography.h>
+#include <vw/Math.h>
 
 using namespace std;
 using namespace vw;
+using namespace vw::cartography;
+
+#include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/ShapeFromShading.h>
+using namespace vw::photometry;
 
 enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
 double LOSS_ACCURACY_MULT = 1;
@@ -26,23 +32,39 @@ double LOSS_VOLUME_MULT = 0.0005;
 double LOSS_VOLUME_SIGMA = 0;
 
 
-//=================================================================================
-//below is Jon's code 
 template <class T> T square(const T& x) { return x*x; }
 template <class T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
-//call function for the update of the height map. main call function for shape from shading
-void
-vw::photometry::UpdateHeightMap(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params, GlobalParams globalParams)
-{  
-    std::string input_img_file = input_img_params.inputFilename;
-    std::string shadow_file = input_img_params.shadowFilename;
-    std::string output_img_file = input_img_params.outputFilename;
-    
-    //TO DO: upsample the DEM to match the resolution of the DRG
+void ComputeCosEDerivative()
+{
+}
+void ComputeCosIDerivative()
+{
+}
+void ComputeReliefDerivative()
+{
 }
 
+//call function for the update of the height map. main call function for shape from shading
+void
+vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
+{  
+    std::string inputImgFilename = inputImgParams.inputFilename;//the original DRG
+    std::string shadowFilename = inputImgParams.shadowFilename; //shadow map
+    std::string outputImgFilename = inputImgParams.outputFilename; //albedo map
+    std::string meanDEMFilename = inputImgParams.meanDEMFilename; //original mean DEM
+    
+    DiskImageView<PixelGray<float> >  meanDEM(meanDEMFilename);
+    GeoReference DEM_geo;
+    read_georeference(DEM_geo, meanDEMFilename);
+    
+    //write in the updated DEM
+    //write_georeferenced_image(meanDEMFilename, meanDEM,
+    //                          DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+}
 
+//=================================================================================
+//below is Jon's code 
 
 // Normalizes an image such the visible range is within n_sigma standard deviations
 ImageView<PixelGray<double> > softNormalize(ImageView<PixelGray<double> > image, double n_sigma){
