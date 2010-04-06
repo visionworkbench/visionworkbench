@@ -121,6 +121,7 @@ struct Options {
   string filetype;
   PixelFormatEnum pixel_format;
   ChannelTypeEnum channel_type;
+  int bottom_level;
 
   string filter;
 
@@ -133,12 +134,13 @@ VW_DEFINE_EXCEPTION(Usage, Exception);
 void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description options("Options");
   options.add_options()
-    ("output-name,o",    po::value(&opt.output_name), "Specify the URL of the input platefile.")
-    ("input-name,i",     po::value(&opt.input_name),  "Specify the URL of the output platefile.")
-    ("file-type",        po::value(&opt.filetype),    "Output file type")
-    ("mode",             po::value(&opt.mode),        "Output mode [toast, kml]")
-    ("tile-size",        po::value(&opt.tile_size),   "Output size, in pixels")
-    ("filter",           po::value(&opt.filter),      "Filters to run")
+    ("output-name,o",    po::value(&opt.output_name),  "Specify the URL of the input platefile.")
+    ("input-name,i",     po::value(&opt.input_name),   "Specify the URL of the output platefile.")
+    ("file-type",        po::value(&opt.filetype),     "Output file type")
+    ("mode",             po::value(&opt.mode),         "Output mode [toast, kml]")
+    ("tile-size",        po::value(&opt.tile_size),    "Output size, in pixels")
+    ("filter",           po::value(&opt.filter),       "Filters to run")
+    ("bottom-level",     po::value(&opt.bottom_level), "Bottom level to process")
     ("help,h",           "Display this help message.");
 
   po::variables_map vm;
@@ -180,8 +182,10 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
 
-  for (int level = 0; level < input.num_levels(); ++level) {
-    vw_out(InfoMessage) << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
+  int bottom_level = min(input.num_levels(), opt.bottom_level+1);
+
+  for (int level = 0; level < bottom_level; ++level) {
+    vw_out(InfoMessage) << "Processing level " << level << " of " << bottom_level-1 << std::endl;
     TerminalProgressCallback tpc("plate.plate2plate.progress", "");
     vw::Timer timer( "Processing time in seconds" );
 
