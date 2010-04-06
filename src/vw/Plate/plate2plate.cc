@@ -183,7 +183,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
   for (int level = 0; level < input.num_levels(); ++level) {
     vw_out(InfoMessage) << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
     TerminalProgressCallback tpc("plate.plate2plate.progress", "");
-    vw::Timer::Timer( "Processed in" );
+    vw::Timer timer( "Processing time in seconds" );
 
     // The entire region contains 2^level tiles.
     int32 region_size = 1 << level;
