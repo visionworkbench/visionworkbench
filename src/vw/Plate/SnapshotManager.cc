@@ -5,8 +5,8 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/PlateManager.h>    // for bbox_tiles()...
 #include <vw/Plate/SnapshotManager.h>
+#include <vw/Plate/TileManipulation.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Image/ImageView.h>
 #include <set>

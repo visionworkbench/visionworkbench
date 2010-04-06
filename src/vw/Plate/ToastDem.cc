@@ -85,9 +85,6 @@ bool vw::platefile::make_toast_dem_tile(
   int dst_level = src_level + level_difference;
   int dst_region_offset = 1 << level_difference;
 
-  //ImageView<PixelT> resample_img_from_level(const ImageView<PixelT> &src_tile, int src_col, int src_row,
-  //                                          int src_level, int dst_col, int dst_row, int dst_level)
-
   // Reduce heap pressure by allocating this up here and reusing
   boost::shared_array<uint8> data(new uint8[tile_bytes]);
 

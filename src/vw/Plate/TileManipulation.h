@@ -36,6 +36,7 @@ namespace platefile {
 
     // Scale up and interpolate the src_tile, then crop out the
     // subtile that we need.
+    // XXX: ConstantEdgeExtension? It shouldn't ever go outside the box. Maybe NoEdgeExtension?
       return crop(
           transform(src_tile, ResampleTransform(scaling_factor, scaling_factor),
                     ConstantEdgeExtension(), BilinearInterpolation()),
