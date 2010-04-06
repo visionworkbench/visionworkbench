@@ -178,25 +178,32 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   filter.init(output, input, transaction_id);
 
+  VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
+
   for (int level = 0; level < input.num_levels(); ++level) {
-    std::cout << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
+    vw_out(InfoMessage) << "Processing level " << level << " of " << input.num_levels()-1 << std::endl;
+    TerminalProgressCallback tpc("plate.plate2plate.progress", "");
+    vw::Timer::Timer( "Processed in" );
 
     // The entire region contains 2^level tiles.
-    int region_size = 1 << level;
-    int subdivided_region_size = region_size / 16;
-    if (subdivided_region_size < 1024) subdivided_region_size = 1024;
+    int32 region_size = 1 << level;
 
-    BBox2i full_region(0,0,region_size,region_size);
+    double step = 1./(region_size*region_size);
+    tpc.print_progress();
 
-    std::list<BBox2i> boxes1 = bbox_tiles(full_region, subdivided_region_size, subdivided_region_size);
+    for (int32 i = 0; i < region_size; ++i) {
+      for (int32 j = 0; j < region_size; ++j) {
+        std::list<TileHeader> tiles;
+        try {
+          tiles = input.search_by_location(i, j, level, 0, std::numeric_limits<int>::max());
+        } catch (const TileNotFoundErr&) { continue; }
 
-    BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
-      std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
-      BOOST_FOREACH( const TileHeader& tile, tiles ) {
-        filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
+        BOOST_FOREACH(const TileHeader& tile, tiles)
+          filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
+        tpc.report_incremental_progress(step);
       }
     }
-
+    tpc.report_finished();
     output.sync();
   }
 
