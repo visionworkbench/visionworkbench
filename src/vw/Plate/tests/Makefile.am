@@ -11,16 +11,17 @@
 
 if MAKE_MODULE_PLATE
 
-TestBlobManager_SOURCES  = TestBlobManager.oldtest
-TestBlobIO_SOURCES       = TestBlobIO.oldtest
-TestBlobIterator_SOURCES = TestBlobIterator.oldtest
-TestIndexPage_SOURCES        = TestIndexPage.oldtest
+TestBlobManager_SOURCES       = TestBlobManager.oldtest
+TestBlobIO_SOURCES            = TestBlobIO.oldtest
+TestBlobIterator_SOURCES      = TestBlobIterator.oldtest
+TestIndexPage_SOURCES         = TestIndexPage.oldtest
 TestLocalIndex_SOURCES        = TestLocalIndex.oldtest
-TestAmqp_SOURCES        = TestAmqp.oldtest
-#TestPlateIndexServer_SOURCES        = TestPlateIndexServer.oldtest
+TestAmqp_SOURCES              = TestAmqp.oldtest
+TestTileManipulation_SOURCES  = TestTileManipulation.oldtest
+#TestPlateIndexServer_SOURCES = TestPlateIndexServer.oldtest
 
-TESTS = TestBlobManager TestBlobIO TestBlobIterator TestLocalIndex	\
-	TestIndexPage TestAmqp
+TESTS = TestBlobManager TestBlobIO TestBlobIterator TestLocalIndex \
+		TestIndexPage TestAmqp TestTileManipulation
 
 #include $(top_srcdir)/config/instantiate.am
 
