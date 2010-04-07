@@ -111,7 +111,7 @@ Makefile.in
 /src/vw/FileIO/tests/tmp.tif
 /src/vw/Geometry/tests/TestSpatialTree
 /src/vw/Geometry/tests/TestSphere
-/src/vw/GPU/StandardShaders.cc
+/src/vw/GPU/Shaders.cc
 /src/vw/GPU/tests/TestGPU_Algorithms
 /src/vw/GPU/tests/TestGPU_EdgeExtend
 /src/vw/GPU/tests/TestGPU_Filter
