@@ -1,4 +1,4 @@
-*** RELEASE 2.0 ***
+*** RELEASE 2.0.0, 7 APRIL 2010 ***
 
 CORE
  - Add Stopwatch ability to pull CPU time or Calendar time.
@@ -72,7 +72,7 @@ STEREO
    speed improvements.
  - Add valid_pad technique that minimizes the cuts into the disparity that
    happen from the pyramid correlator.
- - Add Disparity Transform; it transform an image by using a Disparity Map.
+ - Add Disparity Transform; it transforms an image by using a Disparity Map.
 
 INTEREST POINT
  - Add Scaled Gradient Descriptor, a new custom and fast descriptor.
@@ -95,14 +95,13 @@ TOOLS
 BUILD
  - Add dependency on Boost Graph library.
  - Switch a large number of tests to use Google Test.
- - Enable silent build (if you have automake 1.11. use --disable-silent-rules
-   or make V=1 to revert).
+ - Enable silent build (use --disable-silent-rules or make V=1 to revert).
  - Disable static libraries by default (use --enable-static to revert)
- - Rework Boost detection. Again.
+ - Rework Boost detection. Again. Ad infinitum?
  - Add support for autoconf 2.65.
  - Fix support for really old autoconf.
  - Fix TIFF-inside-GDAL detection.
- - Made it easier to enable Google perftools like TCMALLOC.
+ - Add support for enabling Google perftools' tcmalloc and libprofiler.
  - Many FreeBSD fixes. VW should compile on FreeBSD now thanks to Steve Wills!
 
 MISC
@@ -111,6 +110,9 @@ MISC
  - Some functions that the comments marked as deprecated will also throw
    compiler warnings now if you use them.
 
+
+
+================================================================================
 *** RELEASE 2.0_beta4, 26 OCTOBER 2009 ***
 
 CORE
