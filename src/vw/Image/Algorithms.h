@@ -466,7 +466,7 @@ namespace vw {
   }
 
   template <class ImageT>
-  bool is_transparent_helper( ImageT const& image, false_type ) {
+  bool is_transparent_helper( ImageT const& /*image*/, false_type ) {
     return false;
   }
 

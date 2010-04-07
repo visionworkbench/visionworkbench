@@ -29,6 +29,26 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace platefile {
 
+
+    /// Compute the bounding boxes for [ tile_size x tile_size ] tiles
+    /// to generate for an image with image_bbox in a TOAST
+    /// projection space that is [ resolution x resolution ] pixels in
+    /// size.
+    ///
+    /// NOTE: Tiles in the TOAST projection overlap with their
+    /// neighbors ( the last row and last column of pixels is the same
+    /// as the top row and left column of the next images.)  This
+    /// means that these bounding boxes are a little funny.  This
+    /// function computes those bounding boxes for the tiles at the
+    /// bottom of the pyramid so that there is the proper amount of
+    /// overlap.
+    ///
+    /// TODO: This function is slow and not very smart -- it computes
+    /// all possible bounding boxes before selecting down to the
+    /// possible handful that overlap with the image_bbox.  It could
+    /// be made to go MUCH faster by being smart about its search.
+    std::vector<TileInfo> kml_image_tiles( BBox2i const& image_bbox,
+                                           int32 const tile_size);
   // -------------------------------------------------------------------------
   //                            PLATE MANAGER
   // -------------------------------------------------------------------------
@@ -55,27 +75,6 @@ namespace platefile {
         cartography::output::kml::get_output_georeference(resolution,resolution);
       return output_georef;
     }
-
-    /// Compute the bounding boxes for [ tile_size x tile_size ] tiles
-    /// to generate for an image with image_bbox in a TOAST
-    /// projection space that is [ resolution x resolution ] pixels in
-    /// size.
-    ///
-    /// NOTE: Tiles in the TOAST projection overlap with their
-    /// neighbors ( the last row and last column of pixels is the same
-    /// as the top row and left column of the next images.)  This
-    /// means that these bounding boxes are a little funny.  This
-    /// function computes those bounding boxes for the tiles at the
-    /// bottom of the pyramid so that there is the proper amount of
-    /// overlap.
-    ///
-    /// TODO: This function is slow and not very smart -- it computes
-    /// all possible bounding boxes before selecting down to the
-    /// possible handful that overlap with the image_bbox.  It could
-    /// be made to go MUCH faster by being smart about its search.
-    std::vector<TileInfo> kml_image_tiles( BBox2i const& image_bbox,
-                                           int32 const resolution,
-                                           int32 const tile_size);
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -150,10 +149,7 @@ namespace platefile {
       // chop up the image into small chunks
       // Keep the "this"! It makes kml_image_tiles dependent on template type.
       // http://www.parashift.com/c++-faq-lite/templates.html#faq-35.19
-      std::vector<TileInfo> tiles = this->kml_image_tiles( output_bbox,
-                                                           resolution,
-                                                           m_platefile->default_tile_size());
-
+      std::vector<TileInfo> tiles = kml_image_tiles( output_bbox, m_platefile->default_tile_size());
 
       // Compute the affected tiles.
       BBox2i affected_tiles_bbox;
@@ -215,8 +211,48 @@ namespace platefile {
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
-    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
+    void generate_mipmap_tile(int col, int row, int level, int transaction_id) const {
 
+      // Create an image large enough to store all of the child nodes
+      int tile_size = m_platefile->default_tile_size();
+      ImageView<PixelT> super(2*tile_size, 2*tile_size);
+
+      // Iterate over the children, gathering them and (recursively)
+      // regenerating them if necessary.
+      for( int j=0; j<2; ++j ) {
+        for( int i=0; i<2; ++i ) {
+          try {
+            int child_col = 2*col+i;
+            int child_row = 2*row+j;
+            vw_out(VerboseDebugMessage, "platefile") << "Reading tile "
+              << child_col << " " << child_row
+              << " @  " << (level+1) << "\n";
+            ImageView<PixelT> child;
+            m_platefile->read(child, child_col, child_row, level+1,
+                transaction_id, true); // exact_transaction_match == true
+            crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child;
+          } catch (TileNotFoundErr &e) {
+            // If that fails, then there is no tile.  Do nothing to this quadrant of super.
+          }
+        }
+      }
+
+      // We subsample after blurring with a standard 2x2 box filter.
+      std::vector<float> kernel(2);
+      kernel[0] = kernel[1] = 0.5;
+
+      ImageView<PixelT> new_tile = subsample( separable_convolution_filter( super,
+            kernel,
+            kernel,
+            1, 1,
+            ConstantEdgeExtension() ), 2);
+
+      if (!is_transparent(new_tile)) {
+        vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row
+          << " @ " << level << "\n";
+        m_platefile->write_update(new_tile, col, row, level, transaction_id);
+      }
+    }
   };
 
 
