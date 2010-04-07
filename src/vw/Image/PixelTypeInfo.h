@@ -427,6 +427,13 @@ namespace vw {
     typedef const PIXELT<NewChT,SizeN> type;                 \
   }
 
+#define VW_ALPHA_PIXEL_TRAITS(opaque, alpha) \
+  template <class T> struct PixelHasAlpha<alpha<T> > : true_type {};                  \
+  template <class T> struct PixelWithAlpha<opaque<T> >    { typedef alpha<T> type; }; \
+  template <class T> struct PixelWithAlpha<alpha<T> >     { typedef alpha<T> type; }; \
+  template <class T> struct PixelWithoutAlpha<alpha<T> >  { typedef opaque<T> type; } \
+
+
   // Forward pixel type declarations for complex pixel types
   template <class ChannelT> class PixelGray;
   template <class ChannelT> class PixelGrayA;
