@@ -192,7 +192,7 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 # distribution options
 ##################################################
 
-AX_ARG_WITH(dist-remove-modules, [Python Geometry gui], [mk am-set], [remove certain modules from the distribution])
+AX_ARG_WITH(dist-remove-modules, [Python Geometry gui Photometry Plate], [mk am-set], [remove certain modules from the distribution])
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.

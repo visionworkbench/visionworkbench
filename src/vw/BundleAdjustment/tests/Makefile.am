@@ -17,8 +17,6 @@ TestCameraRelation_SOURCES        = TestCameraRelation.cxx
 
 TESTS = TestBundleAdjustment TestControlNetwork TestCameraRelation
 
-include $(top_srcdir)/config/instantiate.am
-
 endif
 
 ########################################################################
