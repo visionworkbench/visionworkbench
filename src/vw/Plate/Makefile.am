@@ -26,14 +26,14 @@ include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  LocalIndex.h RemoteIndex.h PlateFile.h		\
 		  AmqpConnection.h PlateManager.h SnapshotManager.h	\
 		  ToastPlateManager.h PlateCarreePlateManager.h		\
-		  PlateView.h RpcServices.h IndexService.h		\
+		  PlateView.h RpcServices.h IndexService.h WMSService.h		\
 		  PagedIndex.h IndexPage.h ToastDem.h			\
 		  TileManipulation.h
 nodist_include_HEADERS = $(protocol_headers)
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
-			IndexService.cc AmqpConnection.cc		\
+			IndexService.cc WMSService.cc AmqpConnection.cc		\
 			PlateManager.cc SnapshotManager.cc		\
 			ToastPlateManager.cc				\
 			PlateCarreePlateManager.cc PagedIndex.cc	\
@@ -68,6 +68,12 @@ if ENABLE_EXCEPTIONS
 
 index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
+
+wms_server_SOURCES = wms_server.cc
+wms_server_LDADD = $(PLATE_LOCAL_LIBS)
+
+wms_client_SOURCES = wms_client.cc
+wms_client_LDADD = $(PLATE_LOCAL_LIBS)
 
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
@@ -111,10 +117,10 @@ plate2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 platereduce_SOURCES = platereduce.cc
 platereduce_LDADD   = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = tiles2plate plate2tiles image2plate snapshot		\
-	       rebuild_index index_server index_client amqp_perftest	\
-	       index_perftest rpc_tool lustre_torture hirise2tif	\
-	       plate2plate plate2dem platereduce
+bin_PROGRAMS = tiles2plate plate2tiles image2plate snapshot						\
+							 rebuild_index index_server index_client amqp_perftest	\
+							 index_perftest rpc_tool lustre_torture hirise2tif			\
+							 plate2plate plate2dem platereduce wms_server wms_client
 
 endif
 

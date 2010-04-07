@@ -28,13 +28,15 @@ namespace platefile {
     typedef PixelT result_type;
     typedef ProceduralPixelAccessor<PlateView> pixel_accessor;
 
-    PlateView(std::string url) {
-      
-      // Open the platefile
-      m_platefile.reset( new PlateFile(url) );
-      vw_out(InfoMessage, "plate") << "PlateView -- opened platefile \"" << url << "\"\n";
-      m_current_level = m_platefile->num_levels()-1;
-    }
+    PlateView(std::string url)
+      : m_platefile( new PlateFile(url) ),
+        m_current_level(m_platefile->num_levels()-1)
+    { }
+
+    PlateView(boost::shared_ptr<PlateFile> plate)
+      : m_platefile( plate ),
+        m_current_level(m_platefile->num_levels()-1)
+    { }
 
     // Standard ImageView interface methods
     int32 cols() const { 
