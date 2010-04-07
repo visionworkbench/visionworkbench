@@ -1,6 +1,128 @@
-*** RELEASE 2.0_beta5 ***
+*** RELEASE 2.0 ***
+
+CORE
+ - Added Stopwatch ability to pull CPU time or Calendar time.
+ - Added name() method to VW exceptions to stringify the exception type.
+ - .vwrc settings file now defines the tmp directory that VW should use.
+ - Fixed mutex lock inside timed_wait().
+ - Added thread-safe queue.
+ - Removed TerminationHandler, it was a bad idea.
+ - Warning and Error messages automatically go to console now with a
+   prepend of their type.
+ - ProgressBars uses log infrastructure again. Progress bars automatically
+   go into *.progress namespace. ProgressBars are also fixed to fit inside
+   80 characters.
+ - Log Message Level 0 is again an ErrorMessage and not an InfoMessage.
+ - Added limited wildcard evaluation of log namespace.
+ - Added Features.h for ifdef style macros.
+
+MATH
+ - Extended AffineFittingFunctor, SimilarityFittingFunctor,
+   TranslationRotationFittingFunctor, and TranslationFittingFunctor to work
+   in N-dimensions.
+ - Added Homogeneous error metric.
+ - Added CDFAccumulator.
+ - SparseSkylineMatrix converted to MatrixSparseSkyline and is now a child of
+   our MatrixBase class.
+ - Added VectorReorganize and MatrixReorganize, that remap objects based on a
+   look up slide.
+ - Added Cuthill Mckee ordering algorithm, useful for MatrixSparseSkyline.
+ - Added Fundamental Matrix solvers.
+ - Renamed Null to Nullspace. Added Rank and Nullity matrix operations.
+ - Removed excessive logging inside LevenbergMarquardt, improves speed.
+ - Added efficent algorithms for converting XYZ euler angles to quaternion.
+
 IMAGE
  - Fix rounding bug with premultipliying (bugfix from William Rucklidge)
+ - Added alpha_to_mask() function.
+ - PixelWithAlpha will still return if input already has alpha channel.
+
+FILEIO
+ - DiskCacheView can use alternative tmp directory.
+ - register_default_file_types is now deprecated. This is now handled
+   internally.
+ - LZW compression is used by default for TIFFs inside DiskImageResourceGDAL.
+ - Removed redundant ImageBuffer code.
+ - Removed custom JP2 code as GDAL does a better job.
+ - Added method to set GDAL cache size.
+
+CAMERA
+ - Fixed incorrect rotation inside AdjustCameraModel.
+ - PinholeModel now excepts camera projection matrix as an input.
+ - Added CameraMatrix fitting functor that attempts to solve for camera
+   projection matrix.
+
+BUNDLE ADJUSTMENT
+ - Seperated out Bundle Adjustment code away from the Camera Module.
+ - Removed all virtual functions and forced to be entirely CRTP.
+ - Added timers into internals that are available at DebugMessage level in
+   namespace 'ba'.
+ - Added RobustSparseKGCP, a robust BA that doesn't deweight Ground
+   Control Points.
+ - Added Camera Relation Network, a new perspective of Control Network. Allows
+   for a Camera major organization.
+ - Added efficient ControlNetworkLoader.
+ - Refactored Sparse Bundle Adjustment to reduce speed by half and to build
+   sparse matrix more efficiently.
+
+CARTOGRAPHY
+ - Improved CameraBBox to work with meters per pixel on projection plane.
+ - Added D_MOON and D_MARS datums as well known datums.
+
+MOSAIC
+ - Added gigapan viewer support inside image2qtree.
+
+GEOMETRY
+ - Added FrameStore object that tracks a graph of transforms.
+
+STEREO
+ - EM subpixel switches between Newton method and Gauss-Newton for
+   speed improvement.
+ - Added valid_pad technique that minimizes the cuts into the disparity
+   that happen from the pyramid correlator.
+ - Removed excessive use of Pow inside OptimizedCorrelator.
+ - Added Disparity Transform; it transform an image by using a Disparity Map.
+
+INTREST POINT
+ - Added Scaled Gradient Descriptor, a new custom and fast descriptor.
+ - Added OBALoG detector code with help from KSU.
+ - Added BoxFilterView which allows for arbitraury box filter application
+   ( and example would be to implement SURF )
+ - Added IntegralDescriptor type for descriptors that use Integral Images.
+ - Added Scaled Gradient Descriptor 2, which is a simple descriptor that uses
+   Integral Images for calculation.
+
+TOOLS
+ - Ipfind culling fix for threaded detection.
+ - Correlate tool modified to mimick Ames Stereo Pipeline's stereo.
+ - All tools accept -h as an alternative to help.
+ - Slopemap's options moved into struct.
+ - Ipfind now has a gain setting that provide a standard interface to all
+   alogrithms' thresholds.
+ - Fix nodata value detection inside colormap.
+ - Remove calls to set system cache.
+ - Added grassfirealpha program that provides a grassfire image in the alpha
+   channel.
+ - Added catch for Boost Program Options errors.
+
+BUILD
+ - Added dependency to Boost Graph library.
+ - Switch a large number of tests to use Google Test.
+ - Enabled silent build by default.
+ - Disabled static libraries by default.
+ - Added fix for old autotools incorrect includes. Fixes errors
+   like m4/m4/fixups.m4 not found.
+ - Enforcing strict m4 programming inside build system
+ - Reworked Boost detection.
+ - Fixed no-undefined break on BSD systems.
+ - Fixed support for autoconf 2.65.
+ - Fixed TIFF inside GDAL detection.
+ - Made it easier to enable Google PerfTools like TCMALLOC.
+
+MISC
+ - Added GDB 7.0+ pretty pointers for select VW types
+ - In general, we've removed a lot of warning through out VW.
+ - Enforcing use of standard C++ headers.
 
 *** RELEASE 2.0_beta4, 26 OCTOBER 2009 ***
 
