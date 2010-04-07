@@ -17,7 +17,7 @@ EXTRA_DIST = config/rules.mak config.options.example docs \
 			 scripts/relicense.pl scripts/templates.js thirdparty/m4/.keep \
 			 scripts/create-test.sh thirdparty/gtest/src/* thirdparty/gtest/include/* \
 			 thirdparty/gtest/COPYING thirdparty/gtest/CONTRIBUTORS thirdparty/gtest/README \
-			 scripts/python/vw/*.py scripts/python/vw/gdb/*.py
+			 scripts/python/vw/*.py scripts/python/vw/gdb/*.py autogen
 
 ########################################################################
 # special top-level rules
