@@ -33,9 +33,6 @@ TEST(Fundamental, 7pFittingFunctor) {
 
   Fundamental7FittingFunctor cow;
   Matrix<double> fundie = cow(ip1,ip2);
-  std::cout << "F_7p = " << fundie << "\n";
-  std::cout << "rank(F_7p) = " << rank(fundie) << "\n";
-  std::cout << "det(F_7p) = " << det(fundie) << "\n";
   EXPECT_EQ(fundie.cols(),3);
   EXPECT_EQ(fundie.rows(),3);
   EXPECT_NEAR( det(fundie), 0, 1e-10 );

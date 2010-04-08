@@ -11,7 +11,6 @@
 #include <vw/config.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/PixelMask.h>
 
 #include <test/Helpers.h>
 
@@ -214,45 +213,35 @@ TEST( PixelMath, COPYSIGN ) { TEST_BINARY_MATH_FUNCTION(copysign,3.0,-2.0,-3.0);
 TEST( PixelMath, FDIM ) { TEST_BINARY_MATH_FUNCTION(fdim,3.0,2.0,1.0);
   TEST_BINARY_MATH_FUNCTION(fdim,2.0,3.0,0.0); }
 
+#define ASSERT_PRESERVED_TYPE( op ) \
+  ASSERT_TRUE( is_of_type<ToyType<float> >( op(ToyType<float>(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<double> >( op(ToyType<double>(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<long double> >( op(ToyType<long double>(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<int> >( op(ToyType<int>(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<float> >( op(ToyType<std::complex<float> >(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<double> >( op(ToyType<std::complex<double> >(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<long double> >( op(ToyType<std::complex<long double> >(1)) ) ); \
+  ASSERT_TRUE( is_of_type<ToyType<int> >( op(ToyType<std::complex<int> >(1)) ) );
+
 TEST( PixelMath, Real ) {
   ToyType<double> ar(1.0);
   ToyType<std::complex<double> > ac(std::complex<double>(2,3));
   EXPECT_EQ( real(ToyType<double>(1.0))[0], 1.0 );
   EXPECT_EQ( real(ToyType<std::complex<double> >(std::complex<double>(2,3)))[0], 2.0 );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( real(ToyType<float>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( real(ToyType<double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( real(ToyType<long double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<int> >( real(ToyType<int>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( real(ToyType<std::complex<float> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( real(ToyType<std::complex<double> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( real(ToyType<std::complex<long double> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<int> >( real(ToyType<std::complex<int> >(1)) ) );
+  ASSERT_PRESERVED_TYPE( real );
 }
 
 TEST( PixelMath, Imaginary ) {
   EXPECT_EQ( imag(ToyType<double>(1.0))[0], 0.0 );
   EXPECT_EQ( imag(ToyType<std::complex<double> >(std::complex<double>(2,3)))[0], 3.0 );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( imag(ToyType<float>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( imag(ToyType<double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( imag(ToyType<long double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<int> >( imag(ToyType<int>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( imag(ToyType<std::complex<float> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( imag(ToyType<std::complex<double> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( imag(ToyType<std::complex<long double> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<int> >( imag(ToyType<std::complex<int> >(1)) ) );
+  ASSERT_PRESERVED_TYPE( imag );
 }
 
 TEST( PixelMath, Abs ) {
   EXPECT_EQ( abs(ToyType<double>(1.0))[0], 1.0 );
   EXPECT_EQ( abs(ToyType<double>(-1.0))[0], 1.0 );
   EXPECT_NEAR( abs(ToyType<std::complex<double> >(std::complex<double>(3,4)))[0], 5.0, 0.00001 );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( abs(ToyType<float>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( abs(ToyType<double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( abs(ToyType<long double>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<int> >( abs(ToyType<int>(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<float> >( abs(ToyType<std::complex<float> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<double> >( abs(ToyType<std::complex<double> >(1)) ) );
-  ASSERT_TRUE( is_of_type<ToyType<long double> >( abs(ToyType<std::complex<long double> >(1)) ) );
+  ASSERT_PRESERVED_TYPE( abs );
 }
 
 TEST( PixelMath, Conj ) {
@@ -296,64 +285,3 @@ TEST( PixelMath, ValArgHypotFunctor ) {
   EXPECT_NEAR( vw::math::ValArgHypotFunctor<ToyType<double> >(x)(y)[0], hypot(x[0],y[0]), 1e-8 );
 }
 
-TEST( PixelMath, MaskedArithmetic ) {
-  typedef PixelRGB<uint8> Px;
-  typedef PixelMask<Px > MPx;
-  MPx a(1,2,3), b(2,3,4);
-  MPx i;
-
-  // Valid + valid
-  MPx test = a + b;
-  EXPECT_PIXEL_EQ( test.child(), Px(3,5,7) );
-  EXPECT_TRUE( is_valid(test) );
-
-  // Valid + invalid
-  test = a + i;
-  EXPECT_PIXEL_EQ( test.child(), Px(1,2,3) );
-  EXPECT_FALSE( is_valid(test) );
-
-  // Invalid + invalid
-  test = i + i;
-  EXPECT_PIXEL_EQ( test.child(), Px(0,0,0) );
-  EXPECT_FALSE( is_valid(test) );
-
-  // Valid + scalar
-  test = a;
-  test += 25;
-  EXPECT_PIXEL_EQ( test.child(), Px(26,27,28) );
-  EXPECT_TRUE( is_valid( test ) );
-
-  // Invalid + scalar
-  test = i;
-  test += 24;
-  EXPECT_PIXEL_EQ( test.child(), Px(24,24,24) );
-  EXPECT_FALSE( is_valid( test ) );
-}
-
-TEST( PixelMath, FloatMaskArithmetic ) {
-  typedef PixelRGB<float> Px;
-  typedef PixelMask<Px > MPx;
-  MPx rgb(1,2,3);
-  PixelMask<float> g = 2;
-  PixelMask<float> invalid;
-  PixelMask<float> invalid2 = 1;
-  invalid2.invalidate();
-
-  // Test binary compound operations
-  MPx test = rgb * g;
-  EXPECT_PIXEL_EQ( test.child(), Px(2,4,6) );
-  EXPECT_TRUE( is_valid(test) );
-
-  // Test binary in-place operations
-  test *= g;
-  EXPECT_PIXEL_EQ( test.child(), Px(4,8,12) );
-  EXPECT_TRUE( is_valid(test) );
-
-  test *= invalid;
-  EXPECT_PIXEL_EQ( test.child(), Px(0,0,0) );
-  EXPECT_FALSE( is_valid(test) );
-
-  test = rgb*invalid2;
-  EXPECT_PIXEL_EQ( test.child(), Px(1,2,3) );
-  EXPECT_FALSE( is_valid(test) );
-}

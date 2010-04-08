@@ -58,16 +58,12 @@ Makefile.in
 /src/vw/*/tests/TestInstantiateFree
 
 # Generated files from the old tests
-/src/vw/Camera/tests/*.cxx
 /src/vw/Cartography/tests/*.cxx
 /src/vw/FileIO/tests/*.cxx
 /src/vw/Geometry/tests/*.cxx
 /src/vw/HDR/tests/*.cxx
-/src/vw/Image/tests/*.cxx
-/src/vw/InterestPoint/tests/*.cxx
 /src/vw/Mosaic/tests/*.cxx
 /src/vw/Plate/tests/*.cxx
-/src/vw/Stereo/tests/*.cxx
 
 # Everything else
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment

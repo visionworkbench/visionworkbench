@@ -56,12 +56,13 @@ namespace vw {
     /// are considered valid.
     template <class T>
     PixelMask( T const& pix) {
-      m_child = pix;
+      m_child = ChildT(pix);
       m_valid = ChannelRange<channel_type>::max();
     }
 
     /// Conversion from other PixelMask<> types.
-    template <class OtherT> explicit PixelMask( PixelMask<OtherT> other ) {
+    template <class T>
+    PixelMask( PixelMask<T> other ) {
       // We let the child's built-in conversions do their work here.
       // This will fail if there is no conversion defined from
       // OtherT to ChildT.
@@ -156,7 +157,7 @@ namespace vw {
   template <class ChildT>
   bool is_transparent(PixelMask<ChildT> const& pixel) { return !pixel.valid(); }
 
-  // Overload for the pixel transparency traits class.  
+  // Overload for the pixel transparency traits class.
   template <class ChildT>
   bool is_opaque(PixelMask<ChildT> const& pixel) { return pixel.valid(); }
 
@@ -234,6 +235,9 @@ namespace vw {
   struct CompoundChannelCast<PixelMask<OldT>, const NewChT> {
     typedef const PixelMask<typename CompoundChannelCast<OldT,NewChT>::type> type;
   };
+  template <class T> struct IsMasked : public boost::false_type::type {};
+  template <class T> struct IsMasked<PixelMask<T> > : public boost::true_type::type {};
+
 
   // Computes the mean value of a compound PixelMask<> type.  Not
   // especially efficient.
@@ -613,12 +617,19 @@ namespace vw {
     }
   };
 
+
   // *******************************************************************
-  // The PixelMath specialization
+  // The Pixel Math specialization for math against PixelMask<Scalar>
+  //
+  // Yet this should specifically not do PixelMask<scalar> against
+  // PixelMask<scalar> as that becomes an ambiguous call against the
+  // normal math operators.
   // *******************************************************************
-#define VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(func,ftor)                               \
-  template <class PixelT, class ScalarT>                                               \
-  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+#define VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(func,ftor)                                \
+  template <class PixelT, class ScalarT>                                                \
+    typename boost::enable_if< boost::mpl::and_<boost::mpl::and_<IsScalar<ScalarT>, IsMasked<PixelT> >, \
+                               boost::mpl::not_<boost::is_same<PixelT,PixelMask<ScalarT> > > >, \
+                               typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
   inline func( PixelMathBase<PixelT> const& pixel, PixelMask<ScalarT> masked_scalar ) { \
     if (!masked_scalar.valid()) {                                                       \
       PixelT px = pixel.impl();                                                         \
@@ -631,7 +642,9 @@ namespace vw {
 
 #define VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(func,ftor)                                \
   template <class PixelT, class ScalarT>                                                \
-  typename boost::enable_if< IsScalar<ScalarT>, typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
+    typename boost::enable_if< boost::mpl::and_<boost::mpl::and_<IsScalar<ScalarT>, IsMasked<PixelT> >, \
+                               boost::mpl::not_<boost::is_same<PixelT,PixelMask<ScalarT> > > >, \
+                               typename CompoundResult<ftor<ScalarT>,PixelT>::type >::type \
   inline func( PixelMask<ScalarT> masked_scalar, PixelMathBase<PixelT> const& pixel ) { \
     if (!masked_scalar.valid()) {                                                       \
       PixelT px = pixel.impl();                                                         \
@@ -644,7 +657,7 @@ namespace vw {
 
 #define VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(func,ftor)                                 \
   template <class PixelT, class ScalarT>                                                 \
-  typename boost::enable_if< IsScalar<ScalarT>, PixelT&>::type                           \
+    typename boost::enable_if< boost::mpl::and_<IsScalar<ScalarT>, IsMasked<PixelT> >, PixelT&>::type \
   inline func( PixelMathBase<PixelT>& pixel, PixelMask<ScalarT> masked_scalar ) {        \
     if (!masked_scalar.valid())                                                          \
       pixel.impl().invalidate();                                                         \
@@ -663,6 +676,8 @@ namespace vw {
   VW_PIXEL_MASK_MATH_BINARY_PS_FUNCTION(operator /, vw::ArgValQuotientFunctor)
   VW_PIXEL_MASK_MATH_BINARY_SP_FUNCTION(operator /, vw::ValArgQuotientFunctor)
   VW_PIXEL_MASK_MATH_BINARY_IS_FUNCTION(operator /=, vw::ArgValInPlaceQuotientFunctor)
+
+
 
 } // namespace vw
 

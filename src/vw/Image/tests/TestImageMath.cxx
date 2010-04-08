@@ -28,201 +28,147 @@ static bool has_pixel_type( T2 ) {
   return boost::is_same<T1,typename T2::pixel_type>::value;
 }
 
+// BINARY OPERATION TEST
+template <class PixelT>
+class ImageBinaryMathTest : public ::testing::Test {
+protected:
+  ImageBinaryMathTest() {}
+
+  virtual void SetUp() {
+    image_a.set_size(2,2);
+    image_a(0,0)=PixelT(1); image_a(1,0)=PixelT(2);
+    image_a(0,1)=PixelT(3); image_a(1,1)=PixelT(4);
+    image_b.set_size(2,2);
+    image_b(0,0)=PixelT(0); image_b(1,0)=PixelT(3);
+    image_b(0,1)=PixelT(2); image_b(1,1)=PixelT(9);
+  }
+
+  ImageView<PixelT> image_a, image_b;
+};
+
+#define IMAGE_EXPECT_EQ( image, a, b, c, d ) \
+  EXPECT_EQ( image(0,0), a );  \
+  EXPECT_EQ( image(1,0), b );  \
+  EXPECT_EQ( image(0,1), c );  \
+  EXPECT_EQ( image(1,1), d );
+
 TEST( ImageMath, Negation ) {
   ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
 
   ImageView<double> im2 = -im1;
-  EXPECT_EQ( im2(0,0), -1 );
-  EXPECT_EQ( im2(1,0), -2 );
-  EXPECT_EQ( im2(0,1), -3 );
-  EXPECT_EQ( im2(1,1), -4 );
+  IMAGE_EXPECT_EQ( im2, -1, -2, -3, -4 );
 
   // Test the traits
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( -im1 ) );
 }
 
-TEST( ImageMath, Sum ) {
-  ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
-  ImageView<double> im2(2,2); im2(0,0)=0; im2(1,0)=3; im2(0,1)=2; im2(1,1)=9;
-
-  ImageView<double> im3 = im1 + im2;
-  EXPECT_EQ( im3(0,0), 1 );
-  EXPECT_EQ( im3(1,0), 5 );
-  EXPECT_EQ( im3(0,1), 5 );
-  EXPECT_EQ( im3(1,1), 13 );
-
-  im3 = im1 + 2;
-  EXPECT_EQ( im3(0,0), 3 );
-  EXPECT_EQ( im3(1,0), 4 );
-  EXPECT_EQ( im3(0,1), 5 );
-  EXPECT_EQ( im3(1,1), 6 );
-
-  im3 = 1 + im1;
-  EXPECT_EQ( im3(0,0), 2 );
-  EXPECT_EQ( im3(1,0), 3 );
-  EXPECT_EQ( im3(0,1), 4 );
-  EXPECT_EQ( im3(1,1), 5 );
-
-  im3 += im1;
-  EXPECT_EQ( im3(0,0), 3 );
-  EXPECT_EQ( im3(1,0), 5 );
-  EXPECT_EQ( im3(0,1), 7 );
-  EXPECT_EQ( im3(1,1), 9 );
-
+typedef ImageBinaryMathTest<double> BinaryDoubleMath;
+TEST_F( BinaryDoubleMath, Sum ) {
+  ImageView<double> im3 = image_a + image_b;
+  IMAGE_EXPECT_EQ( im3, 1, 5, 5, 13 );
+  im3 = image_a + 2;
+  IMAGE_EXPECT_EQ( im3, 3, 4, 5, 6 );
+  im3 = 1 + image_a;
+  IMAGE_EXPECT_EQ( im3, 2, 3, 4, 5 );
+  im3 += image_a;
+  IMAGE_EXPECT_EQ( im3, 3, 5, 7, 9 );
   im3 += 2;
-  EXPECT_EQ( im3(0,0), 5 );
-  EXPECT_EQ( im3(1,0), 7 );
-  EXPECT_EQ( im3(0,1), 9 );
-  EXPECT_EQ( im3(1,1), 11 );
-
-  (im3 += 2) += 2;
-  EXPECT_EQ( im3(0,0), 9 );
-  EXPECT_EQ( im3(1,0), 11 );
-  EXPECT_EQ( im3(0,1), 13 );
-  EXPECT_EQ( im3(1,1), 15 );
-
-  crop(im3,0,1,2,1) -= 2;
-  EXPECT_EQ( im3(0,0), 9 );
-  EXPECT_EQ( im3(1,0), 11 );
-  EXPECT_EQ( im3(0,1), 11 );
-  EXPECT_EQ( im3(1,1), 13 );
+  IMAGE_EXPECT_EQ( im3, 5, 7, 9, 11 );
+  (im3 += 2 ) += 2;
+  IMAGE_EXPECT_EQ( im3, 9, 11, 13, 15 );
+  crop(im3,0,1,2,1) += 2;
+  IMAGE_EXPECT_EQ( im3, 9, 11, 15, 17 );
 
   // Test the traits
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( im1 + im2 ) );
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( image_a + image_b ) );
 }
 
-TEST( ImageMath, Difference ) {
-  ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
-  ImageView<double> im2(2,2); im2(0,0)=0; im2(1,0)=3; im2(0,1)=2; im2(1,1)=9;
 
-  ImageView<double> im3 = im1 - im2;
-  EXPECT_EQ( im3(0,0), 1 );
-  EXPECT_EQ( im3(1,0), -1 );
-  EXPECT_EQ( im3(0,1), 1 );
-  EXPECT_EQ( im3(1,1), -5 );
-
-  im3 = im1 - 2;
-  EXPECT_EQ( im3(0,0), -1 );
-  EXPECT_EQ( im3(1,0), 0 );
-  EXPECT_EQ( im3(0,1), 1 );
-  EXPECT_EQ( im3(1,1), 2 );
-
-  im3 = 1 - im1;
-  EXPECT_EQ( im3(0,0), 0 );
-  EXPECT_EQ( im3(1,0), -1 );
-  EXPECT_EQ( im3(0,1), -2 );
-  EXPECT_EQ( im3(1,1), -3 );
-
-  im3 -= im1;
-  EXPECT_EQ( im3(0,0), -1 );
-  EXPECT_EQ( im3(1,0), -3 );
-  EXPECT_EQ( im3(0,1), -5 );
-  EXPECT_EQ( im3(1,1), -7 );
-
+TEST_F( BinaryDoubleMath, Difference ) {
+  ImageView<double> im3 = image_a - image_b;
+  IMAGE_EXPECT_EQ( im3, 1, -1, 1, -5 );
+  im3 = image_a - 2;
+  IMAGE_EXPECT_EQ( im3, -1, 0, 1, 2 );
+  im3 = 1 - image_a;
+  IMAGE_EXPECT_EQ( im3, 0, -1, -2, -3 );
+  im3 -= image_a;
+  IMAGE_EXPECT_EQ( im3, -1, -3, -5, -7 );
   im3 -= 2;
-  EXPECT_EQ( im3(0,0), -3 );
-  EXPECT_EQ( im3(1,0), -5 );
-  EXPECT_EQ( im3(0,1), -7 );
-  EXPECT_EQ( im3(1,1), -9 );
-
+  IMAGE_EXPECT_EQ( im3, -3, -5, -7, -9 );
   (im3 -= 2 ) -= 2;
-  EXPECT_EQ( im3(0,0), -7 );
-  EXPECT_EQ( im3(1,0), -9 );
-  EXPECT_EQ( im3(0,1), -11 );
-  EXPECT_EQ( im3(1,1), -13 );
+  IMAGE_EXPECT_EQ( im3, -7, -9, -11, -13 );
 
   // Test the traits
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( im1 - im2 ) );
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( image_a - image_b ) );
 }
 
-TEST( ImageMath, Product ) {
-  ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
-  ImageView<double> im2(2,2); im2(0,0)=0; im2(1,0)=3; im2(0,1)=2; im2(1,1)=9;
-
-  ImageView<double> im3 = im1 * im2;
-  EXPECT_EQ( im3(0,0), 0 );
-  EXPECT_EQ( im3(1,0), 6 );
-  EXPECT_EQ( im3(0,1), 6 );
-  EXPECT_EQ( im3(1,1), 36 );
-
-  im3 = im1 * 2;
-  EXPECT_EQ( im3(0,0), 2 );
-  EXPECT_EQ( im3(1,0), 4 );
-  EXPECT_EQ( im3(0,1), 6 );
-  EXPECT_EQ( im3(1,1), 8 );
-
-  im3 = 3 * im1;
-  EXPECT_EQ( im3(0,0), 3 );
-  EXPECT_EQ( im3(1,0), 6 );
-  EXPECT_EQ( im3(0,1), 9 );
-  EXPECT_EQ( im3(1,1), 12 );
-
-  im3 *= im1;
-  EXPECT_EQ( im3(0,0), 3 );
-  EXPECT_EQ( im3(1,0), 12 );
-  EXPECT_EQ( im3(0,1), 27 );
-  EXPECT_EQ( im3(1,1), 48 );
-
+TEST_F( BinaryDoubleMath, Product ) {
+  ImageView<double> im3 = image_a * image_b;
+  IMAGE_EXPECT_EQ( im3, 0, 6, 6, 36 );
+  im3 = image_a * 2;
+  IMAGE_EXPECT_EQ( im3, 2, 4, 6, 8 );
+  im3 = 3 * image_a;
+  IMAGE_EXPECT_EQ( im3, 3, 6, 9, 12 );
+  im3 *= image_a;
+  IMAGE_EXPECT_EQ( im3, 3, 12, 27, 48 );
   im3 *= 0.5;
-  EXPECT_EQ( im3(0,0), 1.5 );
-  EXPECT_EQ( im3(1,0), 6 );
-  EXPECT_EQ( im3(0,1), 13.5 );
-  EXPECT_EQ( im3(1,1), 24 );
-
-  (im3 *= 2) *= 2;
-
-  EXPECT_EQ( im3(0,0), 6 );
-  EXPECT_EQ( im3(1,0), 24 );
-  EXPECT_EQ( im3(0,1), 54 );
-  EXPECT_EQ( im3(1,1), 96 );
+  IMAGE_EXPECT_EQ( im3, 1.5, 6, 13.5, 24 );
+  (im3 *= 2 ) *= 2;
+  IMAGE_EXPECT_EQ( im3, 6, 24, 54, 96 );
 
   // Test the traits
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( im1 * im2 ) );
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( image_a * image_b ) );
 }
 
-TEST( ImageMath, Quotient ) {
-  ImageView<double> im1(2,2); im1(0,0)=1; im1(1,0)=2; im1(0,1)=3; im1(1,1)=4;
-  ImageView<double> im2(2,2); im2(0,0)=1; im2(1,0)=4; im2(0,1)=2; im2(1,1)=8;
-
-  ImageView<double> im3 = im1 / im2;
-  EXPECT_EQ( im3(0,0), 1 );
-  EXPECT_EQ( im3(1,0), 0.5 );
-  EXPECT_EQ( im3(0,1), 1.5 );
-  EXPECT_EQ( im3(1,1), 0.5 );
-
-  im3 = im1 / 2;
-  EXPECT_EQ( im3(0,0), 0.5 );
-  EXPECT_EQ( im3(1,0), 1 );
-  EXPECT_EQ( im3(0,1), 1.5 );
-  EXPECT_EQ( im3(1,1), 2 );
-
-  im3 = 2 / im2;
-  EXPECT_EQ( im3(0,0), 2 );
-  EXPECT_EQ( im3(1,0), 0.5 );
-  EXPECT_EQ( im3(0,1), 1 );
-  EXPECT_EQ( im3(1,1), 0.25 );
-
-  im3 /= im2;
-  EXPECT_EQ( im3(0,0), 2 );
-  EXPECT_EQ( im3(1,0), 0.125 );
-  EXPECT_EQ( im3(0,1), 0.5 );
-  EXPECT_EQ( im3(1,1), 0.03125 );
-
+TEST_F( BinaryDoubleMath, Quotient ) {
+  ImageView<double> im3 = image_a / image_b;
+  IMAGE_EXPECT_EQ( im3, 0, (2.0/3.0), 1.5, (4.0/9.0) );
+  im3 = image_a / 2;
+  IMAGE_EXPECT_EQ( im3, 0.5, 1, 1.5, 2 );
+  im3 = 2 / image_b;
+  IMAGE_EXPECT_EQ( im3, 0, (2.0/3.0), 1, (2.0/9.0) );
+  im3 /= image_b;
+  IMAGE_EXPECT_EQ( im3, 0, (2.0/9.0), 0.5, (2.0/81) );
   im3 /= 0.5;
-  EXPECT_EQ( im3(0,0), 4 );
-  EXPECT_EQ( im3(1,0), 0.25 );
-  EXPECT_EQ( im3(0,1), 1 );
-  EXPECT_EQ( im3(1,1), 0.0625 );
-
-  (im3 /= 0.5) /= 0.5;
-  EXPECT_EQ( im3(0,0), 16 );
-  EXPECT_EQ( im3(1,0), 1 );
-  EXPECT_EQ( im3(0,1), 4 );
-  EXPECT_EQ( im3(1,1), 0.25 );
+  IMAGE_EXPECT_EQ( im3, 0, (4.0/9.0), 1, (4.0/81) );
+  (im3 /= 1.0/9 ) /= 1.0/9;
+  IMAGE_EXPECT_EQ( im3, 0, 36, 81, 4 );
 
   // Test the traits
-  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( im1 / im2 ) );
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( image_a / image_b ) );
 }
+
+typedef ImageBinaryMathTest<PixelMask<double> > BinaryMaskedDoubleMath;
+TEST_F( BinaryMaskedDoubleMath, Sum ) {
+
+  ImageView<PixelMask<double> > im3 = image_a + image_b;
+  IMAGE_EXPECT_EQ( im3, 1, 5, 5, 13 );
+  im3 = image_a + 2;
+  IMAGE_EXPECT_EQ( im3, 3, 4, 5, 6 );
+  im3 = 1 + image_a;
+  IMAGE_EXPECT_EQ( im3, 2, 3, 4, 5 );
+  im3 += image_a;
+  IMAGE_EXPECT_EQ( im3, 3, 5, 7, 9 );
+  im3 += 2;
+  IMAGE_EXPECT_EQ( im3, 5, 7, 9, 11 );
+  ( im3 += 2 ) -= 3;
+  IMAGE_EXPECT_EQ( im3, 4, 6, 8, 10 );
+
+  ASSERT_TRUE( is_valid( im3(0,0) ) );
+
+  im3 += ImageView<PixelMask<double> >(2,2); // All pixel should be invalid.
+  ASSERT_FALSE( is_valid( im3(0,0) ) );
+}
+
+#define ASSERT_PRESERVED_TYPE( op ) \
+  ASSERT_TRUE( has_pixel_type<float>( op(ImageView<float>()) ) ); \
+  ASSERT_TRUE( has_pixel_type<double>( op(ImageView<double>()) ) ); \
+  ASSERT_TRUE( has_pixel_type<long double>( op(ImageView<long double>()) ) ); \
+  ASSERT_TRUE( has_pixel_type<int>( op(ImageView<int>()) ) ); \
+  ASSERT_TRUE( has_pixel_type<float>( op(ImageView<std::complex<float> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<double>( op(ImageView<std::complex<double> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<long double>( op(ImageView<std::complex<long double> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<int>( op(ImageView<std::complex<int> >()) ) );
 
 TEST( ImageMath, Real ) {
   ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
@@ -230,14 +176,7 @@ TEST( ImageMath, Real ) {
   EXPECT_EQ( real(im).rows(), im.rows()  );
   EXPECT_EQ( real(im).planes(), im.planes()  );
   EXPECT_EQ( real(im)(0,0), 1.0 );
-  ASSERT_TRUE( has_pixel_type<float>( real(ImageView<float>()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( real(ImageView<double>()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( real(ImageView<long double>()) ) );
-  ASSERT_TRUE( has_pixel_type<int>( real(ImageView<int>()) ) );
-  ASSERT_TRUE( has_pixel_type<float>( real(ImageView<std::complex<float> >()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( real(ImageView<std::complex<double> >()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( real(ImageView<std::complex<long double> >()) ) );
-  ASSERT_TRUE( has_pixel_type<int>( real(ImageView<std::complex<int> >()) ) );
+  ASSERT_PRESERVED_TYPE( real );
 }
 
 TEST( ImageMath, Imag ) {
@@ -247,14 +186,7 @@ TEST( ImageMath, Imag ) {
   EXPECT_EQ( imag(im).rows(), im.rows()  );
   EXPECT_EQ( imag(im).planes(), im.planes()  );
   EXPECT_EQ( imag(im)(0,0), 2.0 );
-  ASSERT_TRUE( has_pixel_type<float>( imag(ImageView<float>()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( imag(ImageView<double>()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( imag(ImageView<long double>()) ) );
-  ASSERT_TRUE( has_pixel_type<int>( imag(ImageView<int>()) ) );
-  ASSERT_TRUE( has_pixel_type<float>( imag(ImageView<std::complex<float> >()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( imag(ImageView<std::complex<double> >()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( imag(ImageView<std::complex<long double> >()) ) );
-  ASSERT_TRUE( has_pixel_type<int>( imag(ImageView<std::complex<int> >()) ) );
+  ASSERT_PRESERVED_TYPE( imag );
 }
 
 TEST( ImageMath, Abs ) {
@@ -263,13 +195,7 @@ TEST( ImageMath, Abs ) {
   EXPECT_EQ( abs(im).rows(), im.rows()  );
   EXPECT_EQ( abs(im).planes(), im.planes()  );
   EXPECT_NEAR( abs(im)(0,0), 2.23607, 1e-5 );
-  ASSERT_TRUE( has_pixel_type<float>( abs(ImageView<float>()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( abs(ImageView<double>()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( abs(ImageView<long double>()) ) );
-  ASSERT_TRUE( has_pixel_type<int>( abs(ImageView<int>()) ) );
-  ASSERT_TRUE( has_pixel_type<float>( abs(ImageView<std::complex<float> >()) ) );
-  ASSERT_TRUE( has_pixel_type<double>( abs(ImageView<std::complex<double> >()) ) );
-  ASSERT_TRUE( has_pixel_type<long double>( abs(ImageView<std::complex<long double> >()) ) );
+  ASSERT_PRESERVED_TYPE( abs );
 }
 
 TEST( ImageMath, Conj ) {
@@ -406,7 +332,6 @@ TEST( ImageMath, CEIL ) { TEST_UNARY_MATH_FUNCTION(ceil,1.5,2.0);
   TEST_UNARY_MATH_FUNCTION(ceil,-1.5,-1.0); }
 TEST( ImageMath, FLOOR ) { TEST_UNARY_MATH_FUNCTION(floor,1.5,1.0);
   TEST_UNARY_MATH_FUNCTION(floor,-1.5,-2.0); }
-
 TEST( ImageMath, ATAN2 ) { TEST_BINARY_MATH_FUNCTION(atan2,2.0,1.0,1.10715); }
 TEST( ImageMath, POW ) { TEST_BINARY_MATH_FUNCTION(pow,3.0,2.0,9.0); }
 
