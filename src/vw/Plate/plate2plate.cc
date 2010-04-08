@@ -194,7 +194,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     int subdivided_region_size = region_size / 32;
     if (subdivided_region_size < 1) subdivided_region_size = 1;
 
-    double step = pow(subdivided_region_size/float(region_size),2.0);
+    double step = pow(subdivided_region_size/double(region_size),2.0);
     tpc.print_progress();
 
     BBox2i full_region(0,0,region_size,region_size);
