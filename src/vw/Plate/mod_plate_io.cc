@@ -412,7 +412,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
       o << ">" << std::endl;
 
       BOOST_FOREACH( const std::string& key, child_keys ) {
-        o << "\t<" << key << ">" << (*this)[key] << "</" << key << ">" << std::endl;
+        o << "\t<" << key << "><![CDATA[" << (*this)[key] << "]]></" << key << ">" << std::endl;
       }
       o << "</ImageSet>" << std::endl;
     }
@@ -455,16 +455,26 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
   std::string servername = mod_plate().get_servername(r);
 
+  QueryMap query;
+  query_to_map(query, r->args);
+  bool show_all_layers =  mapget(query, "all_layers", false);
+
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
 
     const std::string filetype = e.second.index->index_header().tile_filetype();
     // WWT can only handle jpg and png
-    if (filetype != "jpg" && filetype != "png" && filetype != "auto") {
-      vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
-      continue;
+    if (!show_all_layers) {
+        if (filetype != "jpg" && filetype != "png" && filetype != "auto") {
+            vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
+            continue;
+        }
     }
 
-    WTMLImageSet img(servername, "/wwt/p/", "/static/", mod_plate().get_dem(), e.second);
+    std::string dem_id = mapget(query, "override_dem", std::string());
+    if (dem_id.empty())
+        dem_id = mod_plate().get_dem();
+
+    WTMLImageSet img(servername, "/wwt/p/", "/static/", dem_id, e.second);
     if (r->args) {
       img["Url"]          += std::string("?") + r->args;
       img["ThumbnailUrl"] += std::string("?") + r->args;
