@@ -476,9 +476,13 @@ int handle_wtml(request_rec *r, const std::string& url) {
 
     WTMLImageSet img(servername, "/wwt/p/", "/static/", dem_id, e.second);
     if (r->args) {
-      img["Url"]          += std::string("?") + r->args;
-      img["ThumbnailUrl"] += std::string("?") + r->args;
-      img["DemUrl"]       += std::string("?") + r->args;
+        // & needs to be escaped in xml attributes. Rather than deal with that,
+        // replace it with ; (which is equivalent).
+        std::string args = std::string("?") + std::string(r->args);
+        boost::replace_all(args, "&", ";");
+      img["Url"]          += args;
+      img["ThumbnailUrl"] += args;
+      img["DemUrl"]       += args;
     }
     img.serializeToOstream(out);
   }
