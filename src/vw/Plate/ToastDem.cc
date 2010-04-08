@@ -88,25 +88,38 @@ bool vw::platefile::make_toast_dem_tile(
   // Reduce heap pressure by allocating this up here and reusing
   boost::shared_array<uint8> data(new uint8[tile_bytes]);
 
+  // Iterate over the 64 subtiles.
   for (int v = 0; v < dst_region_offset; ++v) {
     for (int u = 0; u < dst_region_offset; ++u) {
       int dst_col = col * dst_region_offset + u;
       int dst_row = row * dst_region_offset + v;
 
-      ImageView<Pixel> dst_img = resample_img_from_level(src_tile,
-                                                         col, row, src_level,
-                                                         dst_col, dst_row, dst_level);
+      float slice_cols = (float(src_tile.cols())-1.0) / dst_region_offset;
+      float slice_rows = (float(src_tile.rows())-1.0) / dst_region_offset;
 
+      float subtile_base_col = slice_cols * u;
+      float subtile_base_row = slice_rows * v;
+
+      // Create an interpolation view to sample from.
+      InterpolationView<ImageView<Pixel>, 
+        BilinearInterpolation> interp_img(src_tile, 
+                                          BilinearInterpolation());
+      
       // Iterate over the triangle vertex arrays above, writing the DEM
       // values in INTEL byte order to disk.
+       // std::cout << "--> " << u << " " << v << " -- " 
+       //           << subtile_base_col << " " << subtile_base_row << "\n";
       for (int32 i = 0; i < num_toast_indices; ++i) {
-        float u_sample_index = float(u_toast_indices[i]) / 32.0 * (dst_img.cols() - 1);
-        float v_sample_index = float(v_toast_indices[i]) / 32.0 * (dst_img.rows() - 1);
+        float u_sample_index = float(u_toast_indices[i]) * slice_cols / 32.0;
+        float v_sample_index = float(v_toast_indices[i]) * slice_rows / 32.0;
 
-        I16 value;
+        // std::cout << "[" << (subtile_base_col + u_sample_index) << " " 
+        //           << (subtile_base_row + v_sample_index) << "]   ";
 
         // TODO: Think about what to do if the pixel has alpha!
-        value.i16 = dst_img( u_sample_index, v_sample_index ).v();
+        I16 value;
+        value.i16 = interp_img( subtile_base_col + u_sample_index, 
+                                subtile_base_row + v_sample_index ).v();
 #if VW_BYTE_ORDER == VW_BIG_ENDIAN
         // spec for toast dem files says "intel" byte order (little-endian)
         // so if we're on big endian, swap them.
@@ -117,6 +130,7 @@ bool vw::platefile::make_toast_dem_tile(
         // write msb
         data[i*2+1] = value.u8[1];
       }
+      // std::cout << "\n";
 
       // We've batched a dem tile worth of data. Call the writer.
       writer(data, tile_bytes, dst_col, dst_row, dst_level, transaction_id);
