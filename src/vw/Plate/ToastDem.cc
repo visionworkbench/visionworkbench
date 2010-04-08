@@ -94,16 +94,14 @@ bool vw::platefile::make_toast_dem_tile(
       int dst_row = row * dst_region_offset + v;
 
       ImageView<Pixel> dst_img = resample_img_from_level(src_tile,
-                                       col,     row, src_level,
-                                   dst_col, dst_row, dst_level);
+                                                         col, row, src_level,
+                                                         dst_col, dst_row, dst_level);
 
       // Iterate over the triangle vertex arrays above, writing the DEM
       // values in INTEL byte order to disk.
       for (int32 i = 0; i < num_toast_indices; ++i) {
-        float u_sample_index = u * ((dst_img.cols() - 1) / float(dst_region_offset)) +
-          float(u_toast_indices[i]) / 32.0 * (dst_img.cols() - 1) / float(dst_region_offset);
-        float v_sample_index = v * ((dst_img.rows() - 1) / float(dst_region_offset)) +
-          float(v_toast_indices[i]) / 32.0 * (dst_img.rows() - 1) / float(dst_region_offset);
+        float u_sample_index = float(u_toast_indices[i]) / 32.0 * (dst_img.cols() - 1);
+        float v_sample_index = float(v_toast_indices[i]) / 32.0 * (dst_img.rows() - 1);
 
         I16 value;
 
