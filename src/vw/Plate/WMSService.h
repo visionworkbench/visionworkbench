@@ -10,7 +10,7 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/WMSMessages.pb.h>
 #include <google/protobuf/service.h>
 
 namespace vw {

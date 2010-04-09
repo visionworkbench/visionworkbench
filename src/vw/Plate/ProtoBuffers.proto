@@ -292,31 +292,3 @@ service IndexService {
   rpc LogRequest (IndexLogRequest) returns (RpcNullMessage);
 
 }
-
-//message WMSCapRequest {
-//}
-//
-//message WMSCapResponse {
-//}
-
-message BBoxContainer {
-  required float origin_x = 1;
-  required float origin_y = 2;
-  required float width    = 3;
-  required float height   = 4;
-}
-
-message WMSTileRequest {
-  required int32 platefile_id   = 1;
-  required BBoxContainer lonlat = 2;
-  required BBoxContainer pixels = 3;
-}
-
-message WMSTileResponse {
-  required string filename = 1;
-}
-
-service WMSService {
-  //rpc ListRequest (WMSCapRequest) returns (WMSCapResponse);
-  rpc GetTile (WMSTileRequest) returns (WMSTileResponse);
-}

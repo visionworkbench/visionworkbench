@@ -6,17 +6,13 @@
 
 
 //// Vision Workbench
+#include <vw/Plate/WMSMessages.pb.h>
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/common.h>
 
-#include <boost/scoped_ptr.hpp>
-#include <boost/foreach.hpp>
-
 #include <boost/program_options.hpp>
-#include <boost/filesystem.hpp>
 namespace po = boost::program_options;
-namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::platefile;
