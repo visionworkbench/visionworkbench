@@ -44,6 +44,15 @@ namespace {
   bool select_helper(int fd, vw::int32 timeout, const std::string& context);
   bool vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             vw::int32 timeout, const std::string& context);
+
+  amqp_rpc_reply_t vw_get_rpc_reply(const amqp_connection_state_t state) {
+#if defined(VW_RABBITMQ_VOID_RPC_REPLY) && VW_RABBITMQ_VOID_RPC_REPLY == 0
+    return amqp_get_rpc_reply(state);
+#else
+    return amqp_get_rpc_reply();
+#endif
+  }
+
 }
 
 AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
@@ -101,7 +110,7 @@ AmqpChannel::AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel)
 
   m_channel = m_conn->get_channel(channel);
   amqp_channel_open(m_conn->m_state.get(), m_channel);
-  die_on_amqp_error(amqp_rpc_reply, "Opening channel");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Opening channel");
 
 }
 
@@ -116,7 +125,7 @@ void AmqpChannel::exchange_declare(std::string const& exchange_name,
   Mutex::Lock lock(m_conn->m_state_mutex);
   amqp_exchange_declare(m_conn->m_state.get(), m_channel, amqp_string(exchange_name),
                         amqp_string(exchange_type), 0, durable, auto_delete, amqp_table_t());
-  die_on_amqp_error(amqp_rpc_reply, "Declaring Exchange");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Declaring Exchange");
 }
 
 void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
@@ -125,7 +134,7 @@ void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
 
   amqp_queue_declare(m_conn->m_state.get(), m_channel, amqp_string(queue_name), 0,
                      durable, exclusive, auto_delete, amqp_table_t());
-  die_on_amqp_error(amqp_rpc_reply, "Declaring queue");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Declaring queue");
 }
 
 void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchange,
@@ -134,7 +143,7 @@ void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchan
 
   amqp_queue_bind(m_conn->m_state.get(), m_channel, amqp_string(queue),
                   amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
-  die_on_amqp_error(amqp_rpc_reply, "Binding queue");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Binding queue");
 }
 
 void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exchange,
@@ -143,7 +152,7 @@ void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exch
 
   amqp_queue_unbind(m_conn->m_state.get(), m_channel, amqp_string(queue),
                     amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
-  die_on_amqp_error(amqp_rpc_reply, "Unbinding queue");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Unbinding queue");
 }
 
 void AmqpChannel::basic_publish(ByteArray const& message,
@@ -272,7 +281,7 @@ boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& qu
   amqp_basic_consume_ok_t *reply =
     amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
 
-  die_on_amqp_error(amqp_rpc_reply, "Starting Consumer");
+  die_on_amqp_error(vw_get_rpc_reply(m_conn->m_state.get()), "Starting Consumer");
 
   boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
   boost::shared_ptr<vw::Thread> thread(new vw::Thread(task));
