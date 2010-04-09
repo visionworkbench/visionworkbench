@@ -131,10 +131,14 @@ namespace platefile {
         // std::cout << "\t--> [ " << current_hdr.transaction_id() << " ]  " 
         //           << current_hdr.col() << " " << current_hdr.row()
         //           << " @ " << current_hdr.level() << "\n";
+
+        ImageView<PixelT> new_tile(m_platefile->default_tile_size(), 
+                                   m_platefile->default_tile_size());
         
         // Tile access is highly localized during snapshotting, so it
-        // speeds things up considerably to cache them here.
-        ImageView<PixelT> new_tile;
+        // speeds things up considerably to cache them here.  We check
+        // the cache first and then read the tile from the platefile
+        // if nothing is found.
         if ( !(this->restore_tile(new_tile, current_hdr.col(), current_hdr.row(), 
                                   current_hdr.level(), current_hdr.transaction_id())) ) {
           try {
@@ -144,17 +148,33 @@ namespace platefile {
                             current_hdr.col(), current_hdr.row(), 
                             current_hdr.level(), current_hdr.transaction_id(),
                             true); // exact_transaction_match
-            this->save_tile(new_tile, current_hdr.col(), current_hdr.row(), 
-                            current_hdr.level(), current_hdr.transaction_id());
           } catch (BlobIoErr &e) {
             // If we get a BlobIO error, that's bad news, but not worth
             // killing the snapshot for.  Instead we log the error here and move
             // onto the next location.
             std::ostringstream ostr;
-            ostr << "WARNING: error reading tile from blob: " << e.what();
+            ostr << "WARNING: a BlobIoErr occured while reading tile [" << current_hdr.col() 
+                 << " " << current_hdr.row() << "] @ " << current_hdr.level() 
+                 << " (t_id = " << current_hdr.transaction_id() << "): " << e.what();
             m_platefile->log(ostr.str());
+            vw_out(ErrorMessage) << ostr.str() << "\n";
             continue;
+          } catch (IOErr &e) {
+            // If we get a BlobIO error, that's bad news, but not worth
+            // killing the snapshot for.  Instead we log the error here and move
+            // onto the next location.
+            std::ostringstream ostr;
+            ostr << "WARNING: an IOErr occurred while reading tile [" << current_hdr.col() 
+                 << " " << current_hdr.row() << "] @ " << current_hdr.level() 
+                 << " (t_id = " << current_hdr.transaction_id() << "): " << e.what();
+            m_platefile->log(ostr.str());
+            vw_out(ErrorMessage) << ostr.str() << "\n";
+            continue;            
           }
+
+          // Save the tile to the read cache.
+          this->save_tile(new_tile, current_hdr.col(), current_hdr.row(), 
+                          current_hdr.level(), current_hdr.transaction_id());
 
         }
         
