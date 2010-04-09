@@ -158,7 +158,6 @@ namespace platefile {
                  << " (t_id = " << current_hdr.transaction_id() << "): " << e.what();
             m_platefile->log(ostr.str());
             vw_out(ErrorMessage) << ostr.str() << "\n";
-            continue;
           } catch (IOErr &e) {
             // If we get a BlobIO error, that's bad news, but not worth
             // killing the snapshot for.  Instead we log the error here and move
@@ -169,7 +168,6 @@ namespace platefile {
                  << " (t_id = " << current_hdr.transaction_id() << "): " << e.what();
             m_platefile->log(ostr.str());
             vw_out(ErrorMessage) << ostr.str() << "\n";
-            continue;            
           }
 
           // Save the tile to the read cache.
