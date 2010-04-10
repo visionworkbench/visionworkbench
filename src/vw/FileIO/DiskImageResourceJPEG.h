@@ -14,7 +14,6 @@
 
 #include <cstdio>
 #include <string>
-#include <csetjmp>
 #include <boost/shared_ptr.hpp>
 
 #include <vw/FileIO/DiskImageResource.h>

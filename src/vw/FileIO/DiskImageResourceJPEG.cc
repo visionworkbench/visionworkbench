@@ -17,57 +17,27 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vector>
-#include <boost/scoped_array.hpp>
-
-// Non-local error return
-// NOTE: To maintain the stack in the presence of
-// setjmp/longjump and C++, You cannot create something (with a destructor) on
-// the stack and then allow it to longjmp. Therefore, every stack allocation
-// needs a setjmp after it. It also makes sense, for sane backtrace purposes,
-// to put a setjmp in every function that can longjmp, so the backtrace
-// originates from that function.
-#include <csetjmp>
-
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>
 
+#include <vector>
+#include <boost/scoped_array.hpp>
+
 using namespace vw;
-
-static const size_t ERROR_MSG_SIZE = 256;
-
-extern "C" {
-#include <jpeglib.h>
-  struct vw_jpeg_error_mgr {
-    struct jpeg_error_mgr pub;
-    jmp_buf error_return;
-    char error_msg[ERROR_MSG_SIZE];
-  };
-}
 
 int DiskImageResourceJPEG::default_subsampling_factor = 1;
 float DiskImageResourceJPEG::default_quality = 0.95f;
 
-// This class and the following method are part of the structure for
-// taking control of error handling from the JPEG library.  Here we
-// are overriding the default error handling method with one of our
-// own that vw_throws an exception.
-static void vw_jpeg_error_handler (j_common_ptr cinfo)
+extern "C" {
+#include <jpeglib.h>
+static void vw_jpeg_error_exit(j_common_ptr cinfo)
 {
-  // cinfo->err really points to a my_error_mgr struct, so coerce
-  // pointer and return to the last location where setjmp() was
-  // called.
-  vw_jpeg_error_mgr *mgr = reinterpret_cast<vw_jpeg_error_mgr*>(cinfo->err);
   char buffer[JMSG_LENGTH_MAX];
-
-  (*cinfo->err->format_message) (cinfo, buffer);
-
-  mgr->error_msg[0] = 0; // prep for strncat
-  strncat(mgr->error_msg, buffer, ERROR_MSG_SIZE);
-
-  longjmp(((vw_jpeg_error_mgr*)(cinfo->err))->error_return, 1);
+  (*cinfo->err->format_message)(cinfo, buffer);
+  jpeg_destroy(cinfo);
+  vw_throw( IOErr() << "DiskImageResourceJPEG error: " << buffer );
 }
-
+}
 
 /* A struct to handle the data for jpeglib's internals. Have to use it so
  * we can hide the various types from our own header file, which is not
@@ -79,9 +49,7 @@ class DiskImageResourceJPEG::vw_jpeg_decompress_context
   // variables.
   DiskImageResourceJPEG *outer;
 
-  // Error context. JPEG uses longjmp() to break out of things when there's
-  // an error.
-  vw_jpeg_error_mgr jerr;
+  jpeg_error_mgr jerr;
 
 public:
   int current_line;
@@ -92,15 +60,13 @@ public:
   vw_jpeg_decompress_context(DiskImageResourceJPEG *outer) : outer(outer)
   {
     current_line = -1;
-    ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
 
     // Set the position of the input stream at zero. Create a new decompress
     // context.
     fseek(outer->m_file_ptr, outer->m_byte_offset, SEEK_SET);
-    decompress_ctx.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
 
-    if (setjmp(jerr.error_return))
-      vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+    decompress_ctx.err = jpeg_std_error(&jerr);
+    jerr.error_exit = &vw_jpeg_error_exit;
 
     jpeg_create_decompress(&decompress_ctx);
     jpeg_stdio_src(&decompress_ctx, outer->m_file_ptr);
@@ -165,10 +131,6 @@ public:
 
   ~vw_jpeg_decompress_context()
   {
-    // Set up error handling.
-    if (setjmp(jerr.error_return))
-      vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
-
     if(current_line >= 0) {
       jpeg_abort_decompress(&decompress_ctx);
       jpeg_destroy_decompress(&decompress_ctx);
@@ -197,11 +159,6 @@ public:
   */
   void advance(size_t lines)
   {
-    // Set up error handling.  If the JPEG library encounters an error,
-    // it will return here and vw_throw an exception.
-    if(setjmp(jerr.error_return))
-      vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occured. " << jerr.error_msg );
-
     for(size_t i=0; i < lines; i++)
     {
       jpeg_read_scanlines(&decompress_ctx, scanline, 1);
@@ -375,15 +332,10 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
 
   // Set up the JPEG data structures
   jpeg_compress_struct cinfo;
+  jpeg_error_mgr jerr;
 
-  // Set up error handling.  If the JPEG library encounters an error,
-  // it will return here and vw_throw an exception.
-  vw_jpeg_error_mgr jerr;
-  cinfo.err = jpeg_std_error((jpeg_error_mgr*)&jerr);
-  ((jpeg_error_mgr*)&jerr)->error_exit = vw_jpeg_error_handler;
-
-  if (setjmp(jerr.error_return))
-    vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
+  cinfo.err = jpeg_std_error(&jerr);
+  jerr.error_exit = &vw_jpeg_error_exit;
 
   jpeg_create_compress(&cinfo);
   jpeg_stdio_dest(&cinfo, (FILE*)m_file_ptr);
@@ -418,9 +370,6 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
   // Set up the image buffer and convert the data into this buffer
   boost::scoped_array<uint8> buf( new uint8[cinfo.image_width*cinfo.input_components*cinfo.image_height] );
   ImageBuffer dst(m_format, buf.get());
-
-  if (setjmp(jerr.error_return))
-    vw_throw( IOErr() << "DiskImageResourceJPEG: A libjpeg error occurred. " << jerr.error_msg );
 
   convert( dst, src, m_rescale );
 
