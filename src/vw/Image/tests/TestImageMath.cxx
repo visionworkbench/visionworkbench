@@ -160,6 +160,24 @@ TEST_F( BinaryMaskedDoubleMath, Sum ) {
   ASSERT_FALSE( is_valid( im3(0,0) ) );
 }
 
+TEST_F( BinaryMaskedDoubleMath, Quotient ) {
+  ImageView<PixelMask<double> > im3 = image_a / image_b;
+  IMAGE_EXPECT_EQ( im3, 0, 2.0/3.0, 1.5, 4.0/9.0 );
+  im3 = image_a / 2;
+  IMAGE_EXPECT_EQ( im3, 0.5, 1, 1.5, 2 );
+  im3 = 2 / image_b;
+  IMAGE_EXPECT_EQ( im3, 0, 2.0/3.0, 1, 2.0/9.0 );
+  im3 /= image_b;
+  IMAGE_EXPECT_EQ( im3, 0, 2.0/9.0, 0.5, 2.0/81 );
+  im3 /= 0.5;
+  IMAGE_EXPECT_EQ( im3, 0, 4.0/9.0, 1, 4.0/81 );
+  (im3 /= 1.0/9 ) /= 1.0/9;
+  IMAGE_EXPECT_EQ( im3, 0, 36, 81, 4 );
+
+  // Test the traits
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( image_a / image_b ) );
+}
+
 #define ASSERT_PRESERVED_TYPE( op ) \
   ASSERT_TRUE( has_pixel_type<float>( op(ImageView<float>()) ) ); \
   ASSERT_TRUE( has_pixel_type<double>( op(ImageView<double>()) ) ); \

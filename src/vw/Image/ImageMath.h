@@ -14,7 +14,7 @@
 /// The binary functions can operate either on two images (with the
 /// same pixel type and dimensions) or on an image and a scalar.  The
 /// following operators are currently supported:
-/// 
+///
 ///  - <TT>-</TT> image
 ///  - image <TT>+</TT> image
 ///  - image <TT>+=</TT> image
@@ -52,6 +52,7 @@
 #include <vw/config.h>
 #include <vw/Core/Functors.h>
 #include <vw/Image/PerPixelViews.h>
+#include <vw/Image/PixelMask.h>
 
 namespace vw {
 
@@ -72,6 +73,13 @@ namespace vw {
     return BinaryPerPixelView<Image1T,Image2T,ftor>( image1.impl(), image2.impl() );       \
   }
 
+#define VW_IMAGE_MATH_BINARY_II_FUNCTION_ENABLE_IF( cond, func, ftor )  \
+  template <class Image1T, class Image2T>                               \
+  typename boost::enable_if_c< cond, BinaryPerPixelView<Image1T,Image2T,ftor> >::type \
+  inline func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
+    return BinaryPerPixelView<Image1T,Image2T,ftor>( image1.impl(), image2.impl() );       \
+  }
+
 #define VW_IMAGE_MATH_BINARY_IS_FUNCTION(func,ftor)                     \
   template <class ImageT, class ScalarT>                                \
   typename boost::disable_if< IsImageView<ScalarT>, UnaryPerPixelView<ImageT,ftor<ScalarT> > >::type \
@@ -79,9 +87,25 @@ namespace vw {
     return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
   }
 
+#define VW_IMAGE_MATH_BINARY_IS_FUNCTION_ENABLE_IF( cond, func, ftor )  \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::enable_if_c< cond && !IsImageView<ScalarT>::value,    \
+    UnaryPerPixelView<ImageT,ftor<ScalarT> > >::type                    \
+  inline func( ImageViewBase<ImageT> const& image, ScalarT scalar ) {   \
+    return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
+  }
+
 #define VW_IMAGE_MATH_BINARY_SI_FUNCTION(func,ftor)                     \
   template <class ImageT, class ScalarT>                                \
   typename boost::disable_if< IsImageView<ScalarT>, UnaryPerPixelView<ImageT,ftor<ScalarT> > >::type \
+  inline func( ScalarT scalar, ImageViewBase<ImageT> const& image ) {   \
+    return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
+  }
+
+#define VW_IMAGE_MATH_BINARY_SI_FUNCTION_ENABLE_IF( cond, func, ftor )  \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::enable_if_c< cond && !IsImageView<ScalarT>::value,    \
+    UnaryPerPixelView<ImageT,ftor<ScalarT> > >::type                    \
   inline func( ScalarT scalar, ImageViewBase<ImageT> const& image ) {   \
     return UnaryPerPixelView<ImageT,ftor<ScalarT> >( image.impl(), ftor<ScalarT>(scalar) ); \
   }
@@ -94,6 +118,20 @@ namespace vw {
   }                                                                     \
   template <class Image1T, class Image2T>                               \
   inline Image1T const& func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
+    for_each_pixel( image1, image2, ftor() );                           \
+    return image1.impl();                                               \
+  }
+
+#define VW_IMAGE_MATH_BINARY_IP_II_FUNCTION_ENABLE_IF( cond, func, ftor ) \
+  template <class Image1T, class Image2T>                               \
+  typename boost::enable_if_c< cond, Image1T& >::type                   \
+  inline func( ImageViewBase<Image1T>& image1, ImageViewBase<Image2T> const& image2 ) { \
+    for_each_pixel( image1, image2, ftor() );                           \
+    return image1.impl();                                               \
+  }                                                                     \
+  template <class Image1T, class Image2T>                               \
+  typename boost::enable_if_c< cond, Image1T const& >::type             \
+  inline func( ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2 ) { \
     for_each_pixel( image1, image2, ftor() );                           \
     return image1.impl();                                               \
   }
@@ -112,6 +150,19 @@ namespace vw {
     return image.impl();                                                \
   }
 
+#define VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION_ENABLE_IF( cond, func, ftor ) \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::enable_if_c< cond && !IsImageView<ScalarT>::value, ImageT& >::type \
+  inline func( ImageViewBase<ImageT>& image, ScalarT scalar ) {         \
+    for_each_pixel( image, ftor<ScalarT>(scalar) );                     \
+    return image.impl();                                                \
+  }                                                                     \
+  template <class ImageT, class ScalarT>                                \
+  typename boost::enable_if_c< cond && !IsImageView<ScalarT>::value, ImageT const& >::type \
+  inline func( ImageViewBase<ImageT> const& image, ScalarT scalar ) {   \
+    for_each_pixel( image, ftor<ScalarT>(scalar) );                     \
+    return image.impl();                                                \
+  }
 
   // *******************************************************************
   // Default mathematical operator overlaods
@@ -166,16 +217,20 @@ namespace vw {
   VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator *=, vw::ArgValInPlaceProductFunctor)
 
   /// Quotient of two images.
-  VW_IMAGE_MATH_BINARY_II_FUNCTION(operator /, vw::ArgArgSafeQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_II_FUNCTION_ENABLE_IF( !IsMasked<typename Image2T::pixel_type>::value, operator /, vw::ArgArgSafeQuotientFunctor )
+
+  VW_IMAGE_MATH_BINARY_II_FUNCTION_ENABLE_IF( IsMasked<typename Image2T::pixel_type>::value, operator /, vw::ArgArgMaskedSafeQuotientFunctor )
 
   /// Quotient of an image and a scalar.
   VW_IMAGE_MATH_BINARY_IS_FUNCTION(operator /, vw::ArgValSafeQuotientFunctor)
 
   /// Quotient of a scalar and an image.
-  VW_IMAGE_MATH_BINARY_SI_FUNCTION(operator /, vw::ValArgSafeQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION_ENABLE_IF( !IsMasked<typename ImageT::pixel_type>::value, operator /, vw::ValArgSafeQuotientFunctor )
+  VW_IMAGE_MATH_BINARY_SI_FUNCTION_ENABLE_IF( IsMasked<typename ImageT::pixel_type>::value, operator /, vw::ValArgMaskedSafeQuotientFunctor )
 
   /// In-place quotient of two images.
-  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION(operator /=, vw::ArgArgInPlaceSafeQuotientFunctor)
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION_ENABLE_IF( !IsMasked<typename Image2T::pixel_type>::value, operator /=, vw::ArgArgInPlaceSafeQuotientFunctor )
+  VW_IMAGE_MATH_BINARY_IP_II_FUNCTION_ENABLE_IF( IsMasked<typename Image2T::pixel_type>::value, operator /=, vw::ArgArgInPlaceMaskedSafeQuotientFunctor )
 
   /// In-place quotient of an image and a scalar.
   VW_IMAGE_MATH_BINARY_IP_IS_FUNCTION(operator /=, vw::ArgValInPlaceSafeQuotientFunctor)
@@ -340,12 +395,12 @@ namespace vw {
   VW_IMAGE_MATH_UNARY_FUNCTION(imag, vw::math::ArgImagFunctor)
 
   /// Computes the absolute value of each pixel in an image.
-  /// If the source image is complex then the resulting image has the 
+  /// If the source image is complex then the resulting image has the
   /// corresponding real pixel type.
   VW_IMAGE_MATH_UNARY_FUNCTION(abs, vw::math::ArgAbsFunctor)
 
   /// Computes the complex conjugate of each pixel in an image.
-  /// If the source image is real then this function effectively performs 
+  /// If the source image is real then this function effectively performs
   /// no operation.
   VW_IMAGE_MATH_UNARY_FUNCTION(conj, vw::math::ArgConjFunctor)
 

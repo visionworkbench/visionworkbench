@@ -519,6 +519,21 @@ TEST( PixelTypes, PixelMask ) {
     EXPECT_EQ( test[0] , 5 );
     EXPECT_EQ( test[1] , 255 );
 
+    {
+      PixelMask<float> foo(5);
+      PixelMask<float> bar(foo);
+      EXPECT_EQ( foo[0], 5 );
+      EXPECT_EQ( bar[0], 5 );
+    }
+
+    {
+      PixelMask<PixelRGB<float> > foo(0);
+      EXPECT_TRUE( is_valid(foo) );
+      EXPECT_EQ( foo[0], 0 );
+      EXPECT_EQ( foo[1], 0 );
+      EXPECT_EQ( foo[2], 0 );
+    }
+
     // Downcast back to vw::uint8
     vw::uint8 bar = test;
     EXPECT_EQ( bar , 5 );
@@ -530,8 +545,8 @@ TEST( PixelTypes, PixelMask ) {
     // The following lines should fail to compile ( throwing a boost
     // static assert error... ) because you should not be able to
     // downcast from a PixelRGB<> to a uint8.
-    //       PixelMask<PixelRGB<uint8> > downcast_test(4,2,6);
-    //       bar = downcast_test;
+    //PixelMask<PixelRGB<uint8> > downcast_test(4,2,6);
+    //bar = downcast_test;
   }
 
   // Check for pixel transparency
