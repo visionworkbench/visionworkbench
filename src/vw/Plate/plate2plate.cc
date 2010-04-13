@@ -28,11 +28,11 @@ struct FilterBase {
   inline ImplT& impl()             { return static_cast<ImplT&>(*this); }
   inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-  inline void init(PlateFile& output, const PlateFile& input, int transaction_id) {
-    return impl().init(output, input, transaction_id);
+  inline void init(PlateFile& output, const PlateFile& input, int output_transaction_id) {
+    return impl().init(output, input, output_transaction_id);
   }
-  inline void fini(PlateFile& output, const PlateFile& input, int transaction_id) {
-    return impl().fini(output, input, transaction_id);
+  inline void fini(PlateFile& output, const PlateFile& input, int output_transaction_id) {
+    return impl().fini(output, input, output_transaction_id);
   }
 
 #   define lookup(name, type) type name(type data) const { return impl().name(data); }
@@ -43,8 +43,8 @@ struct FilterBase {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
-    impl()(output, input, col, row, level, transaction_id);
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
+    impl()(output, input, col, row, level, input_transaction_id, output_transaction_id);
   }
 };
 
@@ -60,10 +60,10 @@ struct Identity : public FilterBase<Identity> {
   inline void init(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_request(); }
   inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_complete(); }
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
     ImageView<PixelRGBA<double> > tile;
-    TileHeader hdr = input.read(tile, col, row, level, transaction_id);
-    output.write_update(tile, col, row, level, transaction_id);
+    TileHeader hdr = input.read(tile, col, row, level, input_transaction_id);
+    output.write_update(tile, col, row, level, output_transaction_id);
   }
 };
 
@@ -74,7 +74,7 @@ struct ToastDem : public FilterBase<ToastDem> {
   PixelFormatEnum pixel_format(PixelFormatEnum) const { return VW_PIXEL_SCALAR; }
   ChannelTypeEnum channel_type(ChannelTypeEnum) const { return VW_CHANNEL_UINT8; }
 
-  inline void init(PlateFile& output, const PlateFile& input, int transaction_id) {
+  inline void init(PlateFile& output, const PlateFile& input, int output_transaction_id) {
     output.write_request();
 
     // Write null tiles for the levels we don't have data for
@@ -89,7 +89,7 @@ struct ToastDem : public FilterBase<ToastDem> {
       int region_size = 1 << level;
       for (int col = 0; col < region_size; ++col)
         for (int row = 0; row < region_size; ++row)
-          output.write_update(null_tile, bytes, col, row, level, transaction_id);
+          output.write_update(null_tile, bytes, col, row, level, output_transaction_id);
     }
   }
 
@@ -100,14 +100,17 @@ struct ToastDem : public FilterBase<ToastDem> {
   struct DemWriter : public ToastDemWriter {
     PlateFile& platefile;
     DemWriter(PlateFile& output) : platefile(output) { }
-    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 transaction_id) const {
-      platefile.write_update(data, data_size, dem_col, dem_row, dem_level, transaction_id);
+    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size, 
+                           int32 dem_col, int32 dem_row, 
+                           int32 dem_level, int32 output_transaction_id) const {
+      platefile.write_update(data, data_size, dem_col, dem_row, 
+                             dem_level, output_transaction_id);
     }
   };
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
     DemWriter writer(output);
-    make_toast_dem_tile(writer, input, col, row, level, transaction_id);
+    make_toast_dem_tile(writer, input, col, row, level, input_transaction_id, output_transaction_id);
   }
 };
 
@@ -148,8 +151,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     po::store( po::command_line_parser( argc, argv ).options(options).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
-    vw_throw(Usage() << "Error parsing input:\n\t"
-             << e.what() << "\n" << options );
+    vw_throw(Usage() << "Error parsing input:\n\t" << e.what() << "\n" << options );
   }
 
   if (opt.output_name.empty() || opt.input_name.empty() || opt.filter.empty())
@@ -175,10 +177,10 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     opt.channel_type = filter.channel_type(input.channel_type());
 
   PlateFile output(opt.output_name, opt.mode, opt.description, opt.tile_size, opt.filetype, opt.pixel_format, opt.channel_type);
+  
+  int output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
 
-  int transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
-
-  filter.init(output, input, transaction_id);
+  filter.init(output, input, output_transaction_id);
 
   VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
 
@@ -208,20 +210,21 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
         << "boxes:"    << boxes1.size() << std::endl;
 
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
-      std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
+      std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, 
+                                                           input.transaction_cursor(), true);
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
-        filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
+        filter(output, input, tile.col(), tile.row(), tile.level(), 
+               tile.transaction_id(), output_transaction_id);
       }
       tpc.report_incremental_progress(step);
     }
-
     tpc.report_finished();
     output.sync();
   }
 
-  filter.fini(output, input, transaction_id);
+  filter.fini(output, input, output_transaction_id);
 
-  output.transaction_complete(transaction_id, true);
+  output.transaction_complete(output_transaction_id, true);
 }
 
 // Blah blah boilerplate

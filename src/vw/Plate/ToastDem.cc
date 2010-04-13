@@ -40,9 +40,11 @@ namespace {
 }
 
 // returns false if the type didn't exist and was skipped (not necessarily an error!)
-bool vw::platefile::make_toast_dem_tile(
-    const ToastDemWriter& writer,
-    const PlateFile& platefile, int32 col, int32 row, int32 level, int32 transaction_id) {
+bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
+                                        const PlateFile& platefile, 
+                                        int32 col, int32 row, int32 level, 
+                                        int32 input_transaction_id,
+                                        int32 output_transaction_id) {
 
   typedef PixelGrayA<int16> Pixel;
 
@@ -73,7 +75,7 @@ bool vw::platefile::make_toast_dem_tile(
   ImageView<Pixel> src_tile;
   try {
     // Read the tile & prepare the interpolation view for sampling it.
-    platefile.read(src_tile, col, row, level, transaction_id);
+    platefile.read(src_tile, col, row, level, input_transaction_id);
   } catch (TileNotFoundErr &e) {
     // Do nothing if the tile does not exist
     return false;
@@ -133,7 +135,7 @@ bool vw::platefile::make_toast_dem_tile(
       // std::cout << "\n";
 
       // We've batched a dem tile worth of data. Call the writer.
-      writer(data, tile_bytes, dst_col, dst_row, dst_level, transaction_id);
+      writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
     }
   }
   return true;
@@ -173,7 +175,8 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
                                         int32 transaction_id) {
 
   DemFilesystem writer(base_output_name);
-  make_toast_dem_tile(writer, *platefile, col, row, level, transaction_id);
+  make_toast_dem_tile(writer, *platefile, col, row, level, 
+                      transaction_id, 0); // output_transaction_id doesn't matter here.
 }
 
 boost::shared_array<uint8> vw::platefile::toast_dem_null_tile(uint64& output_tile_size) {
