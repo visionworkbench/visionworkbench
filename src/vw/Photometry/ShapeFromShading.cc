@@ -86,7 +86,23 @@ float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgP
 
   float cosEDeriv = ComputeCosEDerivative(); 
   float cosIDeriv = ComputeCosIDerivative(); 
-  float L = 1;
+  
+  //Alfred McEwen's model
+  float A = -0.019;
+  float B =  0.000242;//0.242*1e-3;
+  float C = -0.00000146;//-1.46*1e-6;
+  
+  float cos_alpha = dot_prod(sunDirection,viewDirection);
+
+  if ((cos_alpha > 1)||(cos_alpha< -1)){
+      printf("cos_alpha error\n");
+  }
+
+  float rad_alpha = acos(cos_alpha);
+  float deg_alpha = rad_alpha*180/3.141592;
+
+  float L = 1.0 + A*deg_alpha + B*deg_alpha*deg_alpha + C*deg_alpha*deg_alpha*deg_alpha;
+  
   reliefDeriv = cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0));
   return reliefDeriv;
 }
