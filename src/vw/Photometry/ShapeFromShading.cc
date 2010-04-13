@@ -68,11 +68,26 @@ float ComputeCosIDerivative()
   float cosIDeriv = 0;
   return cosIDeriv; 
 }
-float ComputeReliefDerivative()
+float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgParams)
 {
+  float reliefDeriv;
+  Vector3 sunPos = inputImgParams.sunPosition;
+  Vector3 viewPos = inputImgParams.spacecraftPosition;
+                                                                          
+  //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
+  // sun coordinates relative to the xyz point on the Moon surface
+  Vector3 sunDirection = normalize(sunPos-xyz);
+  float mu_0 = dot_prod(sunDirection,normal);
 
-  float reliefDeriv = 0;
-  reliefDeriv = ComputeCosIDerivative() * ComputeCosEDerivative();
+  //compute  /mu = cosine of the angle between the viewer direction and the surface normal.
+  // viewer coordinates relative to the xyz point on the Moon surface
+  Vector3 viewDirection = normalize(viewPos-xyz);
+  float mu = dot_prod(viewDirection,normal);
+
+  float cosEDeriv = ComputeCosEDerivative(); 
+  float cosIDeriv = ComputeCosIDerivative(); 
+  float L = 1;
+  reliefDeriv = cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0));
   return reliefDeriv;
 }
 float ComputeReconstructError(float intensity, float T, float albedo,
@@ -169,7 +184,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  float relief;
 		  relief = ComputeReflectance(normal, xyz, inputImgParams, globalParams);
               
-		  float reconstructDerivative = ComputeReliefDerivative()*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+		  float reconstructDerivative = ComputeReliefDerivative(xyz, normal, inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
 		  float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), relief);
 		  rhs(k*16+l, k*16+l) = reconstructDerivative*reconstructError;
 		  lhs(k*16+l) = reconstructDerivative*reconstructDerivative;
