@@ -12,6 +12,19 @@
 #include <vw/Cartography.h>
 #include <vw/Math.h>
 
+
+#include <vw/Math/Matrix.h>
+
+#include <vw/Math/LinearAlgebra.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Photometry/Reflectance.h>
+#include <vw/Photometry/Weights.h>
+
+#include <cmath>
+//#include <ctime>
+
 using namespace std;
 using namespace vw;
 using namespace vw::cartography;
@@ -35,16 +48,39 @@ double LOSS_VOLUME_SIGMA = 0;
 template <class T> T square(const T& x) { return x*x; }
 template <class T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
-void ComputeCosEDerivative()
+float ComputeNormalXDerivative()
 {
+  float normalXDeriv = 0;
+  return normalXDeriv; 
 }
-void ComputeCosIDerivative()
+float ComputeNormalYDerivative()
 {
+  float normalYDeriv = 0;
+  return normalYDeriv; 
 }
-void ComputeReliefDerivative()
+float ComputeCosEDerivative()
 {
+  float cosEDeriv = 0;
+  return cosEDeriv; 
 }
+float ComputeCosIDerivative()
+{
+  float cosIDeriv = 0;
+  return cosIDeriv; 
+}
+float ComputeReliefDerivative()
+{
 
+  float reliefDeriv = 0;
+  reliefDeriv = ComputeCosIDerivative() * ComputeCosEDerivative();
+  return reliefDeriv;
+}
+float ComputeReconstructError(float intensity, float T, float albedo,
+                              float reflectance) {
+  float error;
+  error = (intensity-T*albedo*reflectance); /*+ (xyz_prior[2]-xyz_prior[2]);*/
+  return error;
+}
 //call function for the update of the height map. main call function for shape from shading
 void
 vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
@@ -57,7 +93,107 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
     DiskImageView<PixelGray<float> >  meanDEM(meanDEMFilename);
     GeoReference DEM_geo;
     read_georeference(DEM_geo, meanDEMFilename);
+
+    DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadowFilename);
+    DiskImageView<PixelMask<PixelGray<uint8> > >  inputImage(inputImgFilename);
+    GeoReference inputImg_geo;
+    read_georeference(inputImg_geo, inputImgFilename);
+    DiskImageView<PixelMask<PixelGray<uint8> > >  outputImage(outputImgFilename);
+   
+    ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(meanDEM.impl(),
+                                                                                ConstantEdgeExtension()),
+                                                                                BilinearInterpolation());
+
+    Matrix<float,256,256> rhs;
+    Vector<float,256> lhs;
     
+    int horBlockSize = 16;
+    int verBlockSize = 16;
+
+    int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
+    int numVerBlocks = meanDEM.rows()/verBlockSize + 1;
+    
+    for (int kb = 0 ; kb < numVerBlocks; ++kb) {
+       for (int lb = 0; lb < numHorBlocks; ++lb) {
+
+         printf("kb = %d, lb=%d\n", kb, lb);
+
+          //initialize  output_img, numSamples and norm
+         for (int k = 0 ; k < verBlockSize; ++k) {
+           for (int l = 0; l < horBlockSize; ++l) {
+
+              int ii = kb*horBlockSize+k;
+              int jj = lb*verBlockSize+l;
+
+              if ( is_valid(inputImage(jj,ii)) ) {
+
+		Vector2 input_img_pix (jj,ii);
+              
+		Vector2 lon_lat = inputImg_geo.pixel_to_lonlat(input_img_pix);
+		Vector2 input_dem_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_pix));
+
+		int x = (int)input_dem_pix[0];
+		int y = (int)input_dem_pix[1];
+
+		Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
+		Vector3 xyz = inputImg_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
+              
+		Vector2 input_img_left_pix;
+		input_img_left_pix(0) = ii-1;
+		input_img_left_pix(1) = jj;
+
+		Vector2 input_img_top_pix;
+		input_img_top_pix(0) = ii;
+		input_img_top_pix(1) = jj-1;
+                
+                //check for valid DEM pixel value and valid left and top coordinates
+                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (interp_dem_image(x,y) != -10000)){
+
+		  //determine the 3D coordinates of the pixel left of the current pixel
+		  Vector2 input_dem_left_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_left_pix));
+		  Vector2 lon_lat_left = inputImg_geo.pixel_to_lonlat(input_img_left_pix);
+		  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
+              
+		  //Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);
+		  Vector3 xyz_left = inputImg_geo.datum().geodetic_to_cartesian(longlat3_left);
+
+		  //determine the 3D coordinates of the pixel top of the current pixel
+		  Vector2 input_dem_top_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_top_pix));
+		  Vector2 lon_lat_top = inputImg_geo.pixel_to_lonlat(input_img_top_pix);
+		  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
+		  Vector3 xyz_top = inputImg_geo.datum().geodetic_to_cartesian(longlat3_top);
+
+		  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
+		  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
+             
+		  float relief;
+		  relief = ComputeReflectance(normal, xyz, inputImgParams, globalParams);
+              
+		  float reconstructDerivative = ComputeReliefDerivative()*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+		  float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), relief);
+		  rhs(k*16+l, k*16+l) = reconstructDerivative*reconstructError;
+		  lhs(k*16+l) = reconstructDerivative*reconstructDerivative;
+		}
+	      }
+	   }
+         }
+         //solves lhs = rhs*x and stores results in lhs
+         solve_symmetric_nocopy(rhs, lhs);
+
+         //copy lhs to back meanDEM
+         for (int k = 0 ; k < verBlockSize; ++k) {
+           for (int l = 0; l < horBlockSize; ++l) {
+                int ii = kb*horBlockSize+k;
+                int jj = lb*verBlockSize+l;
+	        meanDEM(jj, ii) = lhs(k*16+l);
+	   }
+         }
+
+
+       }
+    }
+       
+
     //write in the updated DEM
     //write_georeferenced_image(meanDEMFilename, meanDEM,
     //                          DEM_geo, TerminalProgressCallback("photometry","Processing:"));
