@@ -129,6 +129,7 @@ Makefile.in
 /src/vw/Image/tests/TestImageViewRef
 /src/vw/Image/tests/TestInterpolation
 /src/vw/Image/tests/TestManipulation
+/src/vw/Image/tests/TestMaskedPixelMath
 /src/vw/Image/tests/TestPerPixelAccessorViews
 /src/vw/Image/tests/TestPerPixelViews
 /src/vw/Image/tests/TestPixelMath
@@ -179,6 +180,7 @@ Makefile.in
 /src/vw/Plate/tests/TestIndexPage
 /src/vw/Plate/tests/TestLocalIndex
 /src/vw/Plate/tests/TestPlateIndexServer
+/src/vw/Plate/tests/TestTileManipulation
 /src/vw/Plate/tiles2plate
 /src/vw/Python/vw/_*.cpp
 /src/vw/Python/vw/_*.h
