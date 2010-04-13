@@ -214,19 +214,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
       }
       tpc.report_incremental_progress(step);
     }
-    
-    // for (int32 i = 0; i < region_size; ++i) {
-    //   for (int32 j = 0; j < region_size; ++j) {
-    //     std::list<TileHeader> tiles;
-    //     try {
-    //       tiles = input.search_by_location(i, j, level, 0, std::numeric_limits<int>::max());
-    //     } catch (const TileNotFoundErr&) { continue; }
 
-    //     BOOST_FOREACH(const TileHeader& tile, tiles)
-    //       filter(output, input, tile.col(), tile.row(), tile.level(), transaction_id);
-    //     tpc.report_incremental_progress(step);
-    //   }
-    // }
     tpc.report_finished();
     output.sync();
   }

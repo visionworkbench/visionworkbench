@@ -22,18 +22,16 @@ namespace platefile {
     for (int new_row = current_row*2; new_row < current_row*2+2; ++new_row) {
       for (int new_col = current_col*2; new_col < current_col*2+2; ++new_col) {
 
-        try {
           std::list<TileHeader> tile_records;
           tile_records = platefile->search_by_location(new_col, new_row, 
                                                        tile_header.level() + 1,
                                                        tile_header.transaction_id(),
                                                        tile_header.transaction_id(),
                                                        false); // fetch_one_additional_entry
-          
+
           // If this node has child tiles, then it is not a leaf node.
-          if (tile_records.size() > 0) 
+          if (tile_records.size() > 0)
             return false;
-        } catch (TileNotFoundErr &e) { /* do nothing */ }
       }
     }
 
@@ -57,11 +55,9 @@ namespace platefile {
     // specified range so that we get any tiles that were not actually
     // composited during the last snapshot.
     std::list<TileHeader> tile_records;
-    try {
-      tile_records = m_platefile->search_by_location(current_col, current_row, current_level,
-                                                   start_transaction_id, end_transaction_id,
-                                                   true); // fetch_one_additional_entry
-    } catch (TileNotFoundErr &e) { /* do nothing */ }
+    tile_records = m_platefile->search_by_location(current_col, current_row, current_level,
+                                                 start_transaction_id, end_transaction_id,
+                                                 true); // fetch_one_additional_entry
 
     // If there are no valid tiles at this level, then there is nothing
     // further for us to do here on this branch of the recursion.  We

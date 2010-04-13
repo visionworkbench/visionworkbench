@@ -197,10 +197,9 @@ vw::platefile::IndexLevel::search_by_location(int32 col, int32 row,
                                               int32 end_transaction_id, 
                                               bool fetch_one_additional_entry) const {
 
-  VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             TileNotFoundErr() << "IndexLevel::read_headers() failed.  Invalid index [ " 
-             << col << " " << row << " @ level " << m_level << "]" );
-  
+  if (col < 0 || row < 0 || col >= 1<<m_level || row >= 1<<m_level)
+    return std::list<TileHeader>();
+
   int32 level_col = col / m_page_width;
   int32 level_row = row / m_page_height;
   

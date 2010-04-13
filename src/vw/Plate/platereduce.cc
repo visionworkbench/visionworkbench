@@ -273,13 +273,11 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
 
         // Polling for Tiles
         std::list<TileHeader> tile_records;
-        try {
-          tile_records = platefile->search_by_location(location[0],
-                                                       location[1],
-                                                       opt.level,
-                                                       opt.start_trans_id,
-                                                       opt.end_trans_id, true);
-        } catch (TileNotFoundErr &e) { /* do nothing */ }
+        tile_records = platefile->search_by_location(location[0],
+                                                     location[1],
+                                                     opt.level,
+                                                     opt.start_trans_id,
+                                                     opt.end_trans_id, true);
 
         // No Tiles? No Problem!
         if (tile_records.size() == 0)
