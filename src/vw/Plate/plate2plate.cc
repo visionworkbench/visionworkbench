@@ -202,6 +202,11 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
                                           subdivided_region_size, 
                                           subdivided_region_size);
 
+    vw_out(InfoMessage)
+        << "[region:"   << region_size << " "
+        << "subdivide:" << subdivided_region_size << " "
+        << "boxes:"    << boxes1.size() << std::endl;
+
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
       std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, std::numeric_limits<int>::max(), 1);
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
