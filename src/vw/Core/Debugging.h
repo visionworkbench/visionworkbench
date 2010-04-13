@@ -19,6 +19,18 @@
 #include <sys/time.h>
 #endif
 
+#define _VW_STRINGIFY(x) #x
+#define VW_STRINGIFY(x) _VW_STRINGIFY(x)
+
+#if defined(_WIN32)
+# define VW_CURRENT_FUNCTION __FUNCSIG__
+#elif defined(__GNUC__)
+# define VW_CURRENT_FUNCTION __PRETTY_FUNCTION__
+#else
+# define VW_CURRENT_FUNCTION (__FILE__ ":" VW_STRINGIFY(__LINE__))
+#endif
+
+
 #include <ostream>
 #include <string>
 
