@@ -12,14 +12,16 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/Debugging.h>
 
 #include <fstream>
 #include <string>
 #include <boost/shared_array.hpp>
-#include <boost/shared_ptr.hpp>
 
 using namespace vw;
-    
+
+#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
+
 // -------------------------------------------------------------------
 //                                 BLOB
 // -------------------------------------------------------------------
@@ -27,25 +29,22 @@ using namespace vw;
 /// read_blob_record()
 vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_record_size) const {
 
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_blob_record() -- "
-                                                 <<" Filename: " << m_blob_filename 
-                                                 << " Offset: " << m_fstream->tellg() << "\n";
-  
-  
+  WHEREAMI << "[Filename: " << m_blob_filename
+           << " Offset: " << m_fstream->tellg() << "]\n";
+
   // Read the blob record
   m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
-  vw_out(VerboseDebugMessage, "platefile::blob") << "         read_blob_record() --  "
-                                                 <<" blob_record_size: "
-                                                 << blob_record_size << "\n"; 
+  WHEREAMI << "[blob_record_size: " << blob_record_size << "]\n";
+
   boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
   m_fstream->read((char*)(blob_rec_data.get()), blob_record_size);
-  vw_out(VerboseDebugMessage, "platefile::blob") << "         read_blob_record() --  "
-                                                 <<" read complete.\n";
+  WHEREAMI << "read complete.\n";
+
   BlobRecord blob_record;
   bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
   if (!worked)
     vw_throw(BlobIoErr() << "read_blob_record() failed in " << m_blob_filename 
-             << " at offset " << m_fstream->tellg() << "\n");
+                         << " at offset " << m_fstream->tellg() << "\n");
   return blob_record;
 }
 
@@ -70,17 +69,14 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
              << "data from the blob file.\n");
   }
 
-  vw::vw_out(vw::VerboseDebugMessage, "plate::blob") << "Blob::read() -- read " 
-                                                     << size << " bytes at " << offset 
-                                                     << " from " << m_blob_filename << "\n";
+  WHEREAMI << "read " << size << " bytes at " << offset
+           << " from " << m_blob_filename << "\n";
   return data;
 }
 
 vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
 
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering next_base_offset() -- "
-                                                 <<" current_base_offset: " 
-                                                 <<  current_base_offset << "\n";
+  WHEREAMI << "[current_base_offset: " <<  current_base_offset << "]\n";
 
   // Seek to the requested offset and read the header and data offset
   m_fstream->seekg(current_base_offset, std::ios_base::beg);
@@ -92,8 +88,7 @@ vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
   uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
   uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
 
-  vw_out(VerboseDebugMessage, "platefile::blob") << "        next_base_offset() -- "
-                                                 <<" next_offset: " <<  next_offset << "\n";
+  WHEREAMI << "[next_offset: " <<  next_offset << "]\n";
 
   return next_offset;
 }
@@ -101,9 +96,7 @@ vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
 /// Returns the data size
 vw::uint32 vw::platefile::Blob::data_size(uint64 base_offset) const {
 
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering data_size() -- "
-                                                 <<" base_offset: " 
-                                                 <<  base_offset << "\n";
+  WHEREAMI << "[base_offset: " <<  base_offset << "]\n";
 
   // Seek to the requested offset and read the header and data offset
   m_fstream->seekg(base_offset, std::ios_base::beg);
@@ -112,9 +105,7 @@ vw::uint32 vw::platefile::Blob::data_size(uint64 base_offset) const {
   uint16 blob_record_size;
   BlobRecord blob_record = this->read_blob_record(blob_record_size);
 
-  vw_out(VerboseDebugMessage, "platefile::blob") << "         data_size() -- "
-                                                 << " result size: " 
-                                                 <<  blob_record.data_size() << "\n";
+  WHEREAMI << "[result size: " <<  blob_record.data_size() << "]\n";
 
   return blob_record.data_size();
 }
@@ -130,7 +121,7 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
     if (!m_fstream->is_open()) 
         vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");      
 
-    vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READONLY)\n";
+    WHEREAMI << filename << " (READONLY)\n";
   } else {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(), 
                                      std::ios::in | std::ios::out | std::ios::binary));
@@ -153,7 +144,7 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
     // Set up the fstream so that it throws an exception.
     m_fstream->exceptions ( std::fstream::eofbit | std::fstream::failbit | std::fstream::badbit );
 
-    vw_out(DebugMessage, "platefile::blob") << "Opened blob file: " << filename << " (READ/WRITE)\n";
+    WHEREAMI << filename << " (READ/WRITE)\n";
   }
 
   if (!m_fstream->is_open()) 
@@ -166,7 +157,7 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
 /// Destructor: make sure that we have written the end of file ptr.
 vw::platefile::Blob::~Blob() {
   this->write_end_of_file_ptr(m_end_of_file_ptr);
-  vw_out(DebugMessage, "platefile::blob") << "Closed blob file: " << m_blob_filename << "\n";
+  WHEREAMI << m_blob_filename << "\n";
 }
 
 void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename, 
@@ -231,8 +222,8 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   else if (data[0] == data[2])
     return data[0];
   else {
-    vw_out() << "\nWARNING: end of file ptr in blobfile " << m_blob_filename
-             << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
+    vw_out(ErrorMessage) << "\nWARNING: end of file ptr in blobfile " << m_blob_filename
+                         << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
     m_fstream->seekg(0, std::ios_base::end);
     return m_fstream->tellg();
   }

@@ -5,16 +5,13 @@
 // __END_LICENSE__
 
 
-#include <vw/Core/ProgressCallback.h>
 #include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/Exception.h>
-#include <vw/Plate/Blob.h>
-
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-namespace fs = boost::filesystem;
+#include <vw/Core/Debugging.h>
 
 using namespace vw;
+
+#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.pagedindex") << VW_CURRENT_FUNCTION << ": ")
 
 
 // --------------------------------------------------------------------
@@ -48,9 +45,8 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::fetch_pag
   // hasn't been created already.
   if ( !(m_cache_generators[j*m_horizontal_pages + i])) {
 
-    vw_out(DebugMessage, "platefile::PagedIndex") << "Creating cache generator for page " 
-                                                  << i << " " << j << " @ " << m_level << "\n";
-  
+    WHEREAMI << "Creating cache generator for page " << i << " " << j << " @ " << m_level << "\n";
+
     boost::shared_ptr<IndexPageGenerator> generator =
       m_page_gen_factory->create(m_level, i * m_page_width, j * m_page_height, 
                                  m_page_width, m_page_height);
@@ -111,9 +107,7 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(
   int32 level_col = col / m_page_width;
   int32 level_row = row / m_page_height;
 
-  vw_out(DebugMessage, "platefile::PagedIndex") << "IndexPage::get_page() called " 
-                                                << level_col << " " << level_row 
-                                                << " @ " << m_level << "\n";
+  WHEREAMI << "(" << level_col << " " << level_row << " @ " << m_level << ")\n";
 
   // Access the page.  This will load it into memory if necessary.
   return fetch_page(level_col, level_row);
@@ -133,9 +127,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
   int32 level_col = col / m_page_width;
   int32 level_row = row / m_page_height;
 
-  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::get() called " 
-                                                       << level_col << " " << level_row 
-                                                       << " @ " << m_level << "\n";
+  WHEREAMI << "(" << level_col << " " << level_row << " @ " << m_level << ")\n";
   
   // Access the page.  This will load it into memory if necessary.
   boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
@@ -154,10 +146,8 @@ void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
   int32 level_col = header.col() / m_page_width;
   int32 level_row = header.row() / m_page_height;
 
-  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::set() called " 
-                                                       << level_col << " " << level_row 
-                                                       << " @ " << m_level << "\n";
-  
+  WHEREAMI << "(" << level_col << " " << level_row << " @ " << m_level << ")\n";
+
   // Access the page.  This will load it into memory if necessary.
   boost::shared_ptr<IndexPage> page = fetch_page(level_col, level_row);
   page->set(header, rec);
@@ -178,11 +168,9 @@ vw::platefile::IndexLevel::search_by_region(BBox2i const& region,
   int32 max_level_col = ceilf(float(region.max().x()) / m_page_width);
   int32 max_level_row = ceilf(float(region.max().y()) / m_page_height);
 
-  vw_out(VerboseDebugMessage, "platefile::PagedIndex") << "IndexPage::search_by_region() called " 
-                                                       << "[" << min_level_col << " " 
-                                                       << min_level_row << "]"
-                                                       << " to [" << max_level_col 
-                                                       << " " << max_level_row << "]\n";
+  WHEREAMI << "[" << min_level_col << " " << min_level_row << "]"
+           << " to [" << max_level_col
+           << " " << max_level_row << "]\n";
 
   // Iterate over the pages that overlap with the region of interest.
   std::list<TileHeader> result;

@@ -6,12 +6,11 @@
 
 
 #include <vw/Plate/IndexPage.h>
+#include <vw/Core/Debugging.h>
 
 #include <boost/shared_array.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-namespace fs = boost::filesystem;
 
+#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.index") << VW_CURRENT_FUNCTION << ": ")
 
 // ----------------------------------------------------------------------
 //                            INDEX PAGE
@@ -25,21 +24,15 @@ vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row,
   // Set the size of the sparse table.
   m_sparse_table.resize(page_width*page_height);
 
-  vw_out(VerboseDebugMessage, "platefile::index") << "Opening index page [ " 
-                                                  << m_base_col << " " << m_base_row 
-                                                  << " @ " << m_level << " ]\n";
+  WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 }
 
 vw::platefile::IndexPage::~IndexPage() {
-  vw_out(VerboseDebugMessage, "platefile::index") << "Closing index page [ " 
-                                                  << m_base_col << " " << m_base_row 
-                                                  << " @ " << m_level << " ]\n";
+  WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 }
 
 void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
-  vw_out(VerboseDebugMessage, "platefile::index") << "Serializing index page [ " 
-                                                  << m_base_col << " " << m_base_row 
-                                                  << " @ " << m_level << " ]\n";
+  WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
   // Part 1: Write out the page size
   ostr.write((char*)(&m_page_width), sizeof(m_page_width));
@@ -77,9 +70,7 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
 
 void vw::platefile::IndexPage::deserialize(std::istream& istr) {
 
-  vw_out(VerboseDebugMessage, "platefile::index") << "Deserializing index page [ " 
-                                                  << m_base_col << " " << m_base_row 
-                                                  << " @ " << m_level << " ]\n";
+  WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
   // Part 1: Read the page size
   istr.read((char*)(&m_page_width), sizeof(m_page_width));
