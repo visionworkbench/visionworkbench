@@ -123,7 +123,9 @@ float ComputeReconstructError(float intensity, float T, float albedo,
   error = (intensity-T*albedo*reflectance); /*+ (xyz_prior[2]-xyz_prior[2]);*/
   return error;
 }
-//call function for the update of the height map. main call function for shape from shading
+
+
+//call function for the update of the height map. main call function for shape from shading - from multiple images
 void
 vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
 {  
@@ -148,6 +150,16 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
     Matrix<float,256,256> rhs;
     Vector<float,256> lhs;
+    //initialization
+    for (int ii = 0; ii < 256; ii++){
+         lhs(ii) = 0;
+    }
+ 
+    for (int ii = 0; ii < 256; ii++){
+      for (int jj = 0; jj < 256; jj++){
+	rhs(ii, jj) = 0.0;
+      }
+    }
     
     int horBlockSize = 16;
     int verBlockSize = 16;
@@ -155,12 +167,17 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
     int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
     int numVerBlocks = meanDEM.rows()/verBlockSize + 1;
     
+    Vector3 *normalArray = new Vector3[numVerBlocks*numHorBlocks];
+    Vector3 *xyzArray = new Vector3[numVerBlocks*numHorBlocks];
+    float   *reliefArray = new float[numVerBlocks*numHorBlocks];
+    
+
     for (int kb = 0 ; kb < numVerBlocks; ++kb) {
        for (int lb = 0; lb < numHorBlocks; ++lb) {
 
-         printf("kb = %d, lb=%d\n", kb, lb);
-
-          //initialize  output_img, numSamples and norm
+         //printf("kb = %d, lb=%d\n", kb, lb);
+        
+         //initialize  output_img, numSamples and norm
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
@@ -178,7 +195,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		int y = (int)input_dem_pix[1];
 
 		Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-		Vector3 xyz = inputImg_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
+                xyzArray[k*verBlockSize+l] = inputImg_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
               
 		Vector2 input_img_left_pix;
 		input_img_left_pix(0) = ii-1;
@@ -206,15 +223,54 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  Vector3 xyz_top = inputImg_geo.datum().geodetic_to_cartesian(longlat3_top);
 
 		  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-		  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
+                  normalArray[k*verBlockSize+l] = computeNormalFrom3DPointsGeneral(xyzArray[k*verBlockSize+l], xyz_left, xyz_top);
              
-		  float relief;
-		  relief = ComputeReflectance(normal, xyz, inputImgParams, globalParams);
-              
-		  float reconstructDerivative = ComputeReliefDerivative(xyz, normal, inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
-		  float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), relief);
-		  rhs(k*16+l, k*16+l) = reconstructDerivative*reconstructError;
-		  lhs(k*16+l) = reconstructDerivative*reconstructDerivative;
+		  reliefArray[k*verBlockSize+l] = ComputeReflectance(normalArray[k*verBlockSize+l], xyzArray[k*verBlockSize+l], inputImgParams, globalParams);
+		}
+              }
+          }
+
+          for (int k = 0 ; k < verBlockSize; ++k) {
+           for (int l = 0; l < horBlockSize; ++l) {
+
+                int ii = kb*horBlockSize+k;
+                int jj = lb*verBlockSize+l;
+
+                if ( is_valid(inputImage(jj,ii)) ) {
+                   
+                   //update from the main image   
+		   float reconstructDerivative = ComputeReliefDerivative(xyzArray[0], normalArray[0], inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+		   float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[0]);
+		   rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
+		   lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+		    
+                   //update from the overlapping images  
+                   for (int m = 0; m < (int)overlapImgParams.size(); m++){
+
+                      printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
+
+		      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
+		      GeoReference overlap_geo;
+		      read_georeference(overlap_geo, overlapImgParams[m].inputFilename);
+
+		      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapImg = interpolate(edge_extend(overlapImg.impl(),
+                                                                                                  ConstantEdgeExtension()),
+                                                                                                  BilinearInterpolation());
+
+		      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
+		      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+													  ConstantEdgeExtension()),
+                                                                                                          BilinearInterpolation());
+                    
+                    
+                      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                                                                            overlapImgParams[m])*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+		      float reconstructError = ComputeReconstructError((float)interpOverlapImg(jj, ii), overlapImgParams[m].exposureTime, 
+                                                                       (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
+		      rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
+		      lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+                    
+		  }
 		}
 	      }
 	   }
@@ -227,7 +283,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
            for (int l = 0; l < horBlockSize; ++l) {
                 int ii = kb*horBlockSize+k;
                 int jj = lb*verBlockSize+l;
-	        meanDEM(jj, ii) = lhs(k*16+l);
+	        meanDEM(jj, ii) = lhs(k*verBlockSize+l);
 	   }
          }
 
@@ -235,12 +291,14 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
        }
     }
        
+    delete normalArray; 
+    delete xyzArray;
+    delete reliefArray; 
 
     //write in the updated DEM
     //write_georeferenced_image(meanDEMFilename, meanDEM,
     //                          DEM_geo, TerminalProgressCallback("photometry","Processing:"));
 }
-
 //=================================================================================
 //below is Jon's code 
 
