@@ -122,29 +122,44 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
       // 4.1.) Building a listing of triangulation
       for ( unsigned j = 0; j < cpoint->size(); j++ ) {
         for ( unsigned k = j+1; k < cpoint->size(); k++ ) {
+          // Make sure camera centers are not equal
+          int j_cam_id = (*cpoint)[j].image_id();
+          int k_cam_id = (*cpoint)[k].image_id();
+          if ( norm_2( camera_models[j_cam_id]->camera_center( (*cpoint)[j].position() ) -
+                       camera_models[k_cam_id]->camera_center( (*cpoint)[k].position() ) ) > 1e-6 ) {
 
-          stereo::StereoModel sm( camera_models[ (*cpoint)[j].image_id() ].get(),
-                                  camera_models[ (*cpoint)[k].image_id() ].get() );
+            stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
+                                    camera_models[ k_cam_id ].get() );
 
-          if ( sm.convergence_angle( (*cpoint)[j].position(),
-                                     (*cpoint)[k].position() ) >
-               min_convergence_angle ) {
-            positions.push_back( sm( (*cpoint)[j].position(),
-                                     (*cpoint)[k].position(),
-                                     error ) );
-            error_sum += error;
+            if ( sm.convergence_angle( (*cpoint)[j].position(),
+                                       (*cpoint)[k].position() ) >
+                 min_convergence_angle ) {
+              positions.push_back( sm( (*cpoint)[j].position(),
+                                       (*cpoint)[k].position(),
+                                       error ) );
+              error_sum += error;
+            }
           }
-
         }
       }
 
       // 4.2.) Summing, Averaging, and Storing
-      error_sum /= positions.size();
-      Vector3 position_avg;
-      for ( unsigned j = 0; j < positions.size(); j++ )
-        position_avg += positions[j]/positions.size();
+      if ( positions.size() == 0 ) {
+        vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
+        // At the very least we can provide a point that is some
+        // distance out from the camera center and is in the 'general'
+        // area.
+        int j = (*cpoint)[0].image_id();
+        cpoint->set_position( camera_models[j]->camera_center((*cpoint)[j].position()) +
+                              camera_models[j]->pixel_to_vector((*cpoint)[j].position())*10 );
+      } else {
+        error_sum /= positions.size();
+        Vector3 position_avg;
+        for ( unsigned j = 0; j < positions.size(); j++ )
+          position_avg += positions[j]/positions.size();
+        cpoint->set_position( position_avg );
+      }
 
-      cpoint->set_position( position_avg );
     }
     progress.report_finished();
   }

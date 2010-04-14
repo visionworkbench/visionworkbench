@@ -147,17 +147,21 @@ namespace ba {
           matrix_2_camera A = this->m_model.A_jacobian( i, j,
                                                         this->m_model.A_parameters(j),
                                                         this->m_model.B_parameters(i) );
+
           matrix_2_point B = this->m_model.B_jacobian( i, j,
                                                        this->m_model.A_parameters(j),
                                                        this->m_model.B_parameters(i) );
+
           // Apply robust cost function weighting
           Vector2 error = (**fiter).m_location -
             this->m_model(i,j,this->m_model.A_parameters(j),
                           this->m_model.B_parameters(i) );
 
-          double mag = norm_2(error);
-          double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          error *= weight;
+          if ( error != Vector2() ) {
+            double mag = norm_2(error);
+            double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
+            error *= weight;
+          }
 
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (**fiter).m_scale;
