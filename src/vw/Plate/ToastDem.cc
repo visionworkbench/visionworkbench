@@ -103,9 +103,10 @@ bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
       float subtile_base_row = slice_rows * v;
 
       // Create an interpolation view to sample from.
-      InterpolationView<ImageView<Pixel>, 
-        BilinearInterpolation> interp_img(src_tile, 
-                                          BilinearInterpolation());
+      InterpolationView<EdgeExtensionView<ImageView<Pixel>, ConstantEdgeExtension>,
+        BilinearInterpolation> interp_img = interpolate(src_tile, 
+                                                        BilinearInterpolation(),
+                                                        ConstantEdgeExtension());
       
       // Iterate over the triangle vertex arrays above, writing the DEM
       // values in INTEL byte order to disk.

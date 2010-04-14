@@ -187,36 +187,45 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
   int bottom_level = min(input.num_levels(), opt.bottom_level+1);
 
   for (int level = 0; level < bottom_level; ++level) {
-    vw_out(InfoMessage) << "Processing level " << level << " of " << bottom_level-1 << std::endl;
+    vw_out(InfoMessage) << "\nProcessing level " << level << " of " << bottom_level-1 << ".  ";
     TerminalProgressCallback tpc("plate.plate2plate.progress", "");
-    vw::Timer timer( "Processing time in seconds" );
+    vw::Timer timer( "\t    Processing time in seconds" );
 
     // The entire region contains 2^level tiles.
     int32 region_size = 1 << level;
-    int subdivided_region_size = region_size / 32;
-    if (subdivided_region_size < 1) subdivided_region_size = 1;
-
-    double step = pow(subdivided_region_size/double(region_size),2.0);
-    tpc.print_progress();
+    int subdivided_region_size = 1024;
+    if (subdivided_region_size < region_size) subdivided_region_size = region_size;
 
     BBox2i full_region(0,0,region_size,region_size);
     std::list<BBox2i> boxes1 = bbox_tiles(full_region, 
                                           subdivided_region_size, 
                                           subdivided_region_size);
 
-    vw_out(InfoMessage)
-        << "[region:"   << region_size << " "
-        << "subdivide:" << subdivided_region_size << " "
-        << "boxes:"    << boxes1.size() << std::endl;
+    vw_out(InfoMessage) << "Region"   << full_region << " has " << boxes1.size() << " bboxes\n";
 
+    float region_counter = 0;
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
+      std::cout << "\n\t--> Sub-region: " << region1 << "\n";
       std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, 
                                                            input.transaction_cursor(), true);
+      //      if (tiles.size() > 0)
+      //      std::cout << "\t--> Region " << region1 << " has " << tiles.size() << " tiles.\n";
+      std::ostringstream ostr;
+      ostr << "\t    Converting " << tiles.size() << " tiles: ";
+      tpc.set_progress_text(ostr.str());
+      SubProgressCallback sub_progress(tpc, 
+                                       region_counter / boxes1.size(),
+                                       (region_counter+1.0) / boxes1.size());
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
+        // ++n;
+        // if (n % 100 == 0)
+        //   std::cout << "n = " << n << "  --  "<< tile.col() << " " << tile.row() << " " << tile.level() << " " << tile.transaction_id() << "\n";
         filter(output, input, tile.col(), tile.row(), tile.level(), 
                tile.transaction_id(), output_transaction_id);
+        sub_progress.report_incremental_progress(1.0/tiles.size());
       }
-      tpc.report_incremental_progress(step);
+      sub_progress.report_finished();
+      region_counter++;
     }
     tpc.report_finished();
     output.sync();
