@@ -141,8 +141,6 @@ namespace ba {
       double t_dim_pixel = 2;
       // dimension of cameras
       double t_dim_cam   = 6;
-      // dimension of world points
-      double t_dim_pt    = 3;
 
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W

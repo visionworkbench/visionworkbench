@@ -143,14 +143,17 @@ namespace ba {
                                       this->m_model.A_parameters(camera_idx),
                                       this->m_model.B_parameters(i));
           double mag = norm_2(unweighted_error);
-          double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          subvector(epsilon,2*idx,2) = unweighted_error * weight;
+          if ( mag != 0 ) {
+            double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
+            subvector(epsilon,2*idx,2) = unweighted_error * weight;
+          } else {
+            subvector(epsilon,2*idx,2) = unweighted_error;
+          }
 
-          // Fill in the entries of the sigma matrix with the uncertainty of the observations.
+          // Fill in the entries of the sigma matrix with the
+          // uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*this->m_control_net)[i][m].sigma();
-
-
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
