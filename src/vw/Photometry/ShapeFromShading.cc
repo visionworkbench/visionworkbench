@@ -29,6 +29,7 @@ using namespace std;
 using namespace vw;
 using namespace vw::cartography;
 
+#include <math.h>
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
@@ -58,14 +59,22 @@ float ComputeNormalYDerivative()
   float normalYDeriv = 0;
   return normalYDeriv; 
 }
-float ComputeCosEDerivative()
+float ComputeCosEDerivative(Vector3 normal, Vector3 sunPos, Vector3 normalDerivative)
 {
   float cosEDeriv = 0;
+  float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
+  float denominator = normalNorm*sqrt(normalNorm);
+  float nominator = (-normalDerivative(0)*sunPos(0)-normalDerivative(1)*sunPos(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*sunPos(0) -normal(1)*sunPos(1) + sunPos(2));
+  cosEDeriv = nominator/denominator;
   return cosEDeriv; 
 }
-float ComputeCosIDerivative()
+float ComputeCosIDerivative(Vector3 normal, Vector3 viewPos, Vector3 normalDerivative)
 {
   float cosIDeriv = 0;
+  float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
+  float denominator = normalNorm*sqrt(normalNorm);
+  float nominator = (-normalDerivative(0)*viewPos(0)-normalDerivative(1)*viewPos(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*viewPos(0) -normal(1)*viewPos(1) + viewPos(2));
+  cosIDeriv = nominator/denominator;
   return cosIDeriv; 
 }
 float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgParams)
@@ -73,7 +82,9 @@ float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgP
   float reliefDeriv;
   Vector3 sunPos = inputImgParams.sunPosition;
   Vector3 viewPos = inputImgParams.spacecraftPosition;
-                                                                          
+  //TO DO :compute the elements of the normal derivative
+  Vector3 normalDerivative;
+                                                                        
   //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
   // sun coordinates relative to the xyz point on the Moon surface
   Vector3 sunDirection = normalize(sunPos-xyz);
@@ -84,8 +95,8 @@ float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgP
   Vector3 viewDirection = normalize(viewPos-xyz);
   float mu = dot_prod(viewDirection,normal);
 
-  float cosEDeriv = ComputeCosEDerivative(); 
-  float cosIDeriv = ComputeCosIDerivative(); 
+  float cosEDeriv = ComputeCosEDerivative(normal, viewPos, normalDerivative); 
+  float cosIDeriv = ComputeCosIDerivative(normal, sunPos, normalDerivative); 
   
   //Alfred McEwen's model
   float A = -0.019;
