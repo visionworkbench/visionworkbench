@@ -236,23 +236,26 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                 int ii = kb*horBlockSize+k;
                 int jj = lb*verBlockSize+l;
 
+                Vector2 input_img_pix(jj,ii);
+
                 if ( is_valid(inputImage(jj,ii)) ) {
                    
-                   //update from the main image   
-		   float reconstructDerivative = ComputeReliefDerivative(xyzArray[0], normalArray[0], inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
-		   float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[0]);
-		   rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
-		   lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
-		    
+                   //update from the main image        
+		  if (shadowImage(jj, ii) == 0){    
+		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+		      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
+		      rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
+		      lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+		   } 
+
                    //update from the overlapping images  
                    for (int m = 0; m < (int)overlapImgParams.size(); m++){
 
                       printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
 
 		      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
-		      GeoReference overlap_geo;
-		      read_georeference(overlap_geo, overlapImgParams[m].inputFilename);
-
+		      GeoReference overlapImg_geo;
+		      read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
 		      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapImg = interpolate(edge_extend(overlapImg.impl(),
                                                                                                   ConstantEdgeExtension()),
                                                                                                   BilinearInterpolation());
@@ -262,14 +265,23 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 													  ConstantEdgeExtension()),
                                                                                                           BilinearInterpolation());
                     
-                    
-                      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
-                                                                            overlapImgParams[m])*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-		      float reconstructError = ComputeReconstructError((float)interpOverlapImg(jj, ii), overlapImgParams[m].exposureTime, 
-                                                                       (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
-		      rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
-		      lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
-                    
+                      //determine the corresponding pixel in the overlaping image
+                      Vector2 overlap_pix = overlapImg_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_pix));
+                      int x = (int)overlap_pix[0];
+                      int y = (int)overlap_pix[1];
+                      
+                      //compute and update matrix for non shadow pixels
+                      if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){    
+           
+			 float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                                                                               overlapImgParams[m])*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+
+			 float reconstructError = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
+                                                                          (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
+
+			 rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
+			 lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+		     }
 		  }
 		}
 	      }
