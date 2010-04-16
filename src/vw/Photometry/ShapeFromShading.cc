@@ -49,6 +49,7 @@ double LOSS_VOLUME_SIGMA = 0;
 template <class T> T square(const T& x) { return x*x; }
 template <class T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
+
 float ComputeNormalXDerivative()
 {
   float normalXDeriv = 0;
@@ -58,6 +59,19 @@ float ComputeNormalYDerivative()
 {
   float normalYDeriv = 0;
   return normalYDeriv; 
+}
+
+//compute the elements of the normal derivative
+Vector3 ComputeNormalDerivative(int flag)
+{
+  Vector3 normalDerivative;
+  if (flag == 0){ //wrt z_{i,j}
+  }
+  if (flag == 1){ //wrt z_{i-1,j}
+  }
+  if (flag == 2){ ////wrt z_{i,j-1}
+  }
+  return normalDerivative;
 }
 float ComputeCosEDerivative(Vector3 normal, Vector3 sunPos, Vector3 normalDerivative)
 {
@@ -77,13 +91,13 @@ float ComputeCosIDerivative(Vector3 normal, Vector3 viewPos, Vector3 normalDeriv
   cosIDeriv = nominator/denominator;
   return cosIDeriv; 
 }
-float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgParams)
+float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgParams, int flag)
 {
   float reliefDeriv;
   Vector3 sunPos = inputImgParams.sunPosition;
   Vector3 viewPos = inputImgParams.spacecraftPosition;
-  //TO DO :compute the elements of the normal derivative
-  Vector3 normalDerivative;
+
+  Vector3 normalDerivative = ComputeNormalDerivative(flag);
                                                                         
   //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
   // sun coordinates relative to the xyz point on the Moon surface
@@ -150,14 +164,16 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
     Matrix<float,256,256> rhs;
     Vector<float,256> lhs;
+    Matrix<float, 256, 256> jacobian;
+    Vector<float, 256> errorVector;
     //initialization
     for (int ii = 0; ii < 256; ii++){
-         lhs(ii) = 0;
+         errorVector(ii) = 0;
     }
  
     for (int ii = 0; ii < 256; ii++){
       for (int jj = 0; jj < 256; jj++){
-	rhs(ii, jj) = 0.0;
+	jacobian(ii, jj) = 0.0;
       }
     }
     
@@ -245,13 +261,18 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                    //update from the main image        
 		  if (shadowImage(jj, ii) == 0){    
                       float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
-		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
-		      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
-		      rhs(l_index, l_index) = rhs(l_index, l_index) + reconstructDerivative*reconstructError*weight;
-                      //TO DO: add the appropriate values
-                      rhs(l_index, l_index-1) = rhs(l_index, l_index-1) +  0;
-                      rhs(l_index-1, l_index) =  rhs(l_index-1, l_index) +  0;
-		      lhs(l_index) = lhs(l_index) + reconstructDerivative*reconstructDerivative*weight;
+
+		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
+                      jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
+
+                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
+
+                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
+
+                      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
+                      errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 		   } 
 
                    //update from the overlapping images  
@@ -280,17 +301,20 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                       if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){    
                          float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
 
-			 float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
-                                                                               overlapImgParams[m])*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-
 			 float reconstructError = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
                                                                           (float)outputImage(jj, ii), reliefArray[l_index]);
+                         errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 
-			 rhs(l_index, l_index) = rhs(l_index, l_index) + reconstructDerivative*reconstructError*weight;
-                          //TO DO: add the appropriate values
-                         rhs(l_index, l_index-1) = rhs(l_index, l_index-1) +  0;
-                         rhs(l_index-1, l_index) =  rhs(l_index-1, l_index) +  0;
-			 lhs(l_index) = lhs(l_index) + reconstructDerivative*reconstructDerivative*weight;
+                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+                                                                               overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+                         jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
+                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+										  overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+                         jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
+                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+										   overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+                         jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
+                         
 		     }
 		  }
 		}
@@ -298,6 +322,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	   }
          }
          //solves lhs = rhs*x and stores results in lhs
+         rhs = transpose(jacobian)*jacobian;
+         lhs = jacobian*errorVector;
          solve_symmetric_nocopy(rhs, lhs);
 
          //copy lhs to back meanDEM
