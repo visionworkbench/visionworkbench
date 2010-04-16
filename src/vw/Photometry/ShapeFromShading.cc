@@ -236,16 +236,22 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                 int ii = kb*horBlockSize+k;
                 int jj = lb*verBlockSize+l;
 
+                int l_index = k*verBlockSize+l;
+
                 Vector2 input_img_pix(jj,ii);
 
                 if ( is_valid(inputImage(jj,ii)) ) {
                    
                    //update from the main image        
 		  if (shadowImage(jj, ii) == 0){    
+                      float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
 		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
-		      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
-		      rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
-		      lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+		      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
+		      rhs(l_index, l_index) = rhs(l_index, l_index) + reconstructDerivative*reconstructError*weight;
+                      //TO DO: add the appropriate values
+                      rhs(l_index, l_index-1) = rhs(l_index, l_index-1) +  0;
+                      rhs(l_index-1, l_index) =  rhs(l_index-1, l_index) +  0;
+		      lhs(l_index) = lhs(l_index) + reconstructDerivative*reconstructDerivative*weight;
 		   } 
 
                    //update from the overlapping images  
@@ -272,15 +278,19 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                       
                       //compute and update matrix for non shadow pixels
                       if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){    
-           
-			 float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                         float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+
+			 float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
                                                                                overlapImgParams[m])*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
 
 			 float reconstructError = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
-                                                                          (float)outputImage(jj, ii), reliefArray[k*verBlockSize+l]);
+                                                                          (float)outputImage(jj, ii), reliefArray[l_index]);
 
-			 rhs(k*verBlockSize+l, k*verBlockSize+l) = rhs(k*verBlockSize+l, k*verBlockSize+l) + reconstructDerivative*reconstructError;
-			 lhs(k*verBlockSize+l) = lhs(k*verBlockSize+l) + reconstructDerivative*reconstructDerivative;
+			 rhs(l_index, l_index) = rhs(l_index, l_index) + reconstructDerivative*reconstructError*weight;
+                          //TO DO: add the appropriate values
+                         rhs(l_index, l_index-1) = rhs(l_index, l_index-1) +  0;
+                         rhs(l_index-1, l_index) =  rhs(l_index-1, l_index) +  0;
+			 lhs(l_index) = lhs(l_index) + reconstructDerivative*reconstructDerivative*weight;
 		     }
 		  }
 		}
@@ -293,9 +303,10 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
          //copy lhs to back meanDEM
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
+                int l_index = k*verBlockSize+l;
                 int ii = kb*horBlockSize+k;
                 int jj = lb*verBlockSize+l;
-	        meanDEM(jj, ii) = lhs(k*verBlockSize+l);
+	        meanDEM(jj, ii) = lhs(l_index);
 	   }
          }
 
