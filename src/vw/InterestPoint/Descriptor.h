@@ -39,7 +39,8 @@ namespace ip {
     // descriptor field of the interest points using the
     // compute_descriptor() method provided by the subclass.
     template <class ViewT>
-    void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
+    void operator() ( ImageViewBase<ViewT> const& image,
+                      InterestPointList& points ) {
 
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
@@ -53,15 +54,15 @@ namespace ip {
         // Next, we pass the support region and the interest point to
         // the descriptor generator ( compute_descriptor() ) supplied
         // by the subclass.
-        i->descriptor = impl().compute_descriptor(support);
+        i->descriptor.set_size( impl().descriptor_size() );
+        impl().compute_descriptor( support, i->begin(), i->end() );
       }
-
     }
 
     // Default suport size ( i.e. descriptor window)
-    int support_size( void ) {
-      return 41;
-    }
+    int support_size( void ) { return 41; }
+    // Default descriptor(vector) length
+    int descriptor_size( void ) { return 128; }
 
     /// Get the size x size support region around an interest point,
     /// rescaled by the scale factor and rotated by the specified
@@ -97,19 +98,27 @@ namespace ip {
   /// in illumination.
   struct PatchDescriptorGenerator : public DescriptorGeneratorBase<PatchDescriptorGenerator> {
 
-    template <class ViewT>
-    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
-      Vector<float> result;
-      result.set_size(support.impl().cols() * support.impl().rows());
-
-      for (int j = 0; j < support.impl().rows(); j++)
+    template <class ViewT, class IterT>
+    void compute_descriptor( ImageViewBase<ViewT> const& support,
+                             IterT first, IterT last ) const {
+      double sqr_length = 0;
+      IterT fill = first;
+      for (int j = 0; j < support.impl().rows(); j++) {
         for (int i = 0; i < support.impl().cols(); i++) {
           PixelGray<float> pix(support.impl()(i,j));
-          result(j*support.impl().cols() + i) = pix.v();
+          //result(j*support.impl().cols() + i) = pix.v();
+          *fill = pix.v();
+          sqr_length += (*fill)*(*fill);
+          fill++;
         }
-
-      return normalize(result);
+      }
+      // Normalizing
+      sqr_length = sqrt(sqr_length);
+      for ( ; first != last; first++ )
+        *first /= sqr_length;
     }
+
+    int descriptor_size( void ) { return 41*41; }
   };
 
   // An implementation of PCA-SIFT
@@ -129,10 +138,12 @@ namespace ip {
     }
 
 
-    template <class ViewT>
-    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
+    template <class ViewT, class IterT>
+    void compute_descriptor( ImageViewBase<ViewT> const& support,
+                             IterT first, IterT last) const {
 
-      Vector<float> result(pca_basis.cols());
+      for ( IterT fill = first; fill != last; fill++ )
+        *fill = 0;
 
       // compute normalization constant (sum squares)
       double norm_const = 0;
@@ -150,14 +161,17 @@ namespace ip {
         for (int i = 0; i < support.impl().cols(); i++) {
           norm_pixel = support.impl()(i,j).v()/norm_const - pca_avg(index);
 
+          IterT fill = first;
           for (unsigned k = 0; k < pca_basis.cols(); k++) {
-            result[k] += norm_pixel * pca_basis(index,k);
+            *fill += norm_pixel * pca_basis(index,k);
+            fill++;
           }
           ++index;
         }
       }
-      return result;
     }
+
+    int descriptor_size( void ) { return pca_basis.cols(); }
   };
 
   // A Simple Scaled Gradient descriptor that reduces the number of elements
@@ -169,16 +183,17 @@ namespace ip {
     static const uint32 box_size[5];
     static const uint32 box_half[5];
 
-    template <class ViewT>
-    Vector<float> compute_descriptor (ImageViewBase<ViewT> const& support) const {
-      Vector<float> result(180);
+    template <class ViewT, class IterT>
+    void compute_descriptor(ImageViewBase<ViewT> const& support,
+                            IterT first, IterT last) const {
 
       typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
       ImageView<channel_type> iimage = IntegralImage(support);
 
-      uint8 write_idx = 0;
+      double sqr_length = 0;
 
       // Iterate through scales
+      IterT fill = first;
       for ( uint8 s = 0; s < 5; s++ ) {
         float inv_bh2 = 1 / float(box_half[s]*box_half[s]);
 
@@ -213,17 +228,27 @@ namespace ip {
                                                              2*box_half[s]) );
 
             // 5.) Pulling out gradients
-            result[write_idx] = (minor_quad[0] - minor_quad[2])*inv_bh2; write_idx++;
-            result[write_idx] = (minor_quad[1] - minor_quad[3])*inv_bh2; write_idx++;
-            result[write_idx] = (minor_quad[0] - minor_quad[1])*inv_bh2; write_idx++;
-            result[write_idx] = (minor_quad[2] - minor_quad[3])*inv_bh2; write_idx++;
+            *fill = (minor_quad[0] - minor_quad[2])*inv_bh2;
+            sqr_length += (*fill)*(*fill); fill++;
+            *fill = (minor_quad[1] - minor_quad[3])*inv_bh2;
+            sqr_length += (*fill)*(*fill); fill++;
+            *fill = (minor_quad[0] - minor_quad[1])*inv_bh2;
+            sqr_length += (*fill)*(*fill); fill++;
+            *fill = (minor_quad[2] - minor_quad[3])*inv_bh2;
+            sqr_length += (*fill)*(*fill); fill++;
           } // end j
         } // end i
       } // end s
-      return normalize(result);
+      VW_DEBUG_ASSERT( fill == last, LogicErr() << "Allocated Vector size does not appear to match code's expectations." );
+
+      // Normalizing
+      sqr_length = sqrt(sqr_length);
+      for ( ; first != last; first++ )
+        (*first) /= sqr_length;
     }
 
     int support_size( void ) { return 42; }
+    int descriptor_size( void ) { return 180; }
   };
 
 }} // namespace vw::ip

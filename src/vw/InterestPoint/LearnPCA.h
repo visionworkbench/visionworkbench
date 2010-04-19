@@ -44,11 +44,11 @@ public:
     column = start_column;
   }
   
-  template <class ViewT>
-    vw::Vector<float> compute_descriptor (vw::ImageViewBase<ViewT> const& support) {
-    // Create dummy return vector
-    vw::Vector<float> result;
-    
+  template <class ViewT, class IterT>
+  void compute_descriptor (vw::ImageViewBase<ViewT> const& support,
+                           IterT /*first*/, IterT /*last*/ ) {
+    // This secretly does not create a descriptor
+
     int support_squared = support.impl().cols() * support.impl().rows();
 
     double norm_const = 0.0;
@@ -69,10 +69,9 @@ public:
 
     // Increment column number for next call to compute_descriptor
     column++;
-
-    return result;
   }
 
+  int descriptor_size( void ) { return 0; }
 };
 
 class LearnPCA {
@@ -155,7 +154,7 @@ public:
   }
 
   void runPCA() {
-    std::cout << "Running PCA on training data" << std::endl;
+  std::cout << "Running PCA on training data" << std::endl;
 
     // Compute average
     std::cout << "  Computing average" << std::endl;

@@ -71,7 +71,9 @@ namespace ip {
     descriptor_type descriptor;
 
     const_iterator begin() const { return descriptor.begin(); }
+    iterator begin() { return descriptor.begin(); }
     const_iterator end() const { return descriptor.end(); }
+    iterator end() { return descriptor.end(); }
 
     int size() const { return descriptor.size(); }
     float operator[] (int index) { return descriptor[index]; }
