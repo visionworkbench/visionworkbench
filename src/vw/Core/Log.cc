@@ -117,16 +117,18 @@ std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) {
     if(m_multi_ostreams.find( Thread::id() ) == m_multi_ostreams.end())
       m_multi_ostreams[ Thread::id() ] = boost::shared_ptr<multi_ostream>(new multi_ostream);
 
+    boost::shared_ptr<multi_ostream>& stream = m_multi_ostreams[ Thread::id() ];
+
     // Reset and add the console log output...
-    m_multi_ostreams[ Thread::id() ]->clear();
-    m_multi_ostreams[ Thread::id() ]->add(m_console_log->operator()(log_level, log_namespace));
+    stream->clear();
+    stream->add(m_console_log->operator()(log_level, log_namespace));
 
     // ... and the rest of the active log streams.
     std::vector<boost::shared_ptr<LogInstance> >::iterator iter = m_logs.begin();
     for (;iter != m_logs.end(); ++iter)
-      m_multi_ostreams[ Thread::id() ]->add((*iter)->operator()(log_level,log_namespace));
+      stream->add((*iter)->operator()(log_level,log_namespace));
 
-    return *m_multi_ostreams[ Thread::id() ];
+    return *stream;
   }
 }
 
