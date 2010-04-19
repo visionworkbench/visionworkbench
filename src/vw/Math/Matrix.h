@@ -306,6 +306,16 @@ namespace math {
       for( ; i!=end(); ++i ) *i = ElemT();
     }
 
+    /// Constructs a matrix whose first 9 elements are as given.
+    Matrix( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5,
+            ElemT e6, ElemT e7, ElemT e8, ElemT e9 ) {
+      BOOST_STATIC_ASSERT( RowsN*ColsN >= 4 );
+      iterator i=begin();
+      *(i++)=e1; *(i++)=e2; *(i++)=e3; *(i++)=e4;
+      *(i++)=e5; *(i++)=e6; *(i++)=e7; *(i++)=e8; *(i++)=e9;
+      for( ; i!=end(); ++i ) *i = ElemT();
+    }
+
     /// Constructs a matrix from given densely-packed row-mjor data.
     /// This constructor copies the data.  If you wish to make a
     /// shallow proxy object instead, see vw::MatrixProxy.

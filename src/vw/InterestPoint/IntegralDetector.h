@@ -21,6 +21,78 @@
 namespace vw {
 namespace ip {
 
+  /// Getting Orientation. This method of finding orientation is the
+  /// same as described in SURF papers.
+  template <class IntegralT>
+  struct AssignOrientation {
+    IntegralT integral;
+    AssignOrientation( ImageViewBase<IntegralT> const& image ) : integral(image.impl()) {}
+
+    void operator()( InterestPoint& ip ) {
+      typedef std::vector<typename IntegralT::pixel_type> Measures;
+      Measures h_response(169);
+      Measures v_response(169);
+      Measures angle(169);
+      int m = 0;
+
+      typedef InterpolationView<EdgeExtensionView< IntegralT, ConstantEdgeExtension>, BilinearInterpolation> WrappedType;
+      WrappedType wrapped_integral = interpolate(integral.impl());
+
+      for ( int i = -6; i <= 6; i++ ) {
+        for ( int j = -6; j <= 6; j++ ) {
+          float distance_2 = i*i+j*j;
+
+          // Check if the location is within the radius of 6
+          if ( distance_2 > 36 )
+            continue;
+          float weight = exp(-distance_2/8)/5.0133;
+
+          Vector2 location = Vector2(ip.ix,ip.iy) +
+            ip.scale*Vector2(i,j);
+          h_response[m] = weight*HHaarWavelet( wrapped_integral,
+                                               location[0],
+                                             location[1],
+                                               ip.scale*4 );
+          v_response[m] = weight*VHaarWavelet( wrapped_integral,
+                                               location[0],
+                                               location[1],
+                                               ip.scale*4 );
+          angle[m] = atan2( v_response[m],
+                            h_response[m] );
+          m++;
+        }
+      }
+
+      // Fitting a slice to find response
+      static const float pi_6 = M_PI/6.0;
+      static const float two_pi = 2*M_PI;
+      float sumx, sumy;
+      float mod, greatest_mod=0;
+      float greatest_ori=0;
+      for ( float a = 0; a < two_pi; a += 0.5 ) {
+        sumx = sumy = 0;
+        for ( int idx = 0; idx < m; idx++ ) {
+          // Is it in my slice
+          if ( (angle[idx] > a - pi_6 && angle[idx] < a + pi_6 ) ||
+               (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6 ) ||
+               (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6 ) ) {
+            sumx += h_response[idx];
+            sumy += v_response[idx];
+          }
+        }
+
+        mod = sumx*sumx+sumy*sumy;
+        if ( mod > greatest_mod ) {
+          greatest_mod = mod;
+          greatest_ori = atan2(sumy,sumx);
+        }
+      }
+
+      ip.orientation = greatest_ori;
+    }
+  };
+
+  // IntegralInterestPointDetector
   template <class InterestT>
   class IntegralInterestPointDetector : public InterestDetectorBase<IntegralInterestPointDetector<InterestT> > {
 
@@ -140,8 +212,8 @@ namespace ip {
       { // Assign orientations
         vw_out(DebugMessage, "interest_point") << "\tAssigning Orientations... ";
         Timer t("elapsed time", DebugMessage, "interest_point");
-        assign_orientations( new_points,
-                             integral_image );
+        std::for_each( new_points.begin(), new_points.end(),
+                       AssignOrientation<ImageT >( integral_image ) );
       }
 
       return new_points;
@@ -196,85 +268,9 @@ namespace ip {
           pos++;
       }
     }
-
-    template <class IntegralT>
-    inline void assign_orientations( InterestPointList& points,
-                                     IntegralT const& integral ) const {
-      for ( InterestPointList::iterator i = points.begin();
-            i != points.end(); ++i ) {
-
-        // Assigning Orientation Here
-        get_orientation( *i,integral );
-      }
-    }
   };
 
-  /// Getting Orientation. This method of finding orientation is the same as described in SURF papers.
-  template <class IntegralT>
-  void get_orientation( InterestPoint& ip,
-                        ImageViewBase<IntegralT> const& integral ) {
-    typedef std::vector<typename IntegralT::pixel_type> Measures;
-    Measures h_response(169);
-    Measures v_response(169);
-    Measures angle(169);
-    int m = 0;
-
-    typedef InterpolationView<EdgeExtensionView< IntegralT, ConstantEdgeExtension>, BilinearInterpolation> WrappedType;
-    WrappedType wrapped_integral = interpolate(integral.impl());
-
-    for ( int i = -6; i <= 6; i++ ) {
-      for ( int j = -6; j <= 6; j++ ) {
-        float distance_2 = i*i+j*j;
-
-        // Check if the location is within the radius of 6
-        if ( distance_2 > 36 )
-          continue;
-        float weight = exp(-distance_2/8)/5.0133;
-
-        Vector2 location = Vector2(ip.ix,ip.iy) +
-          ip.scale*Vector2(i,j);
-        h_response[m] = weight*HHaarWavelet( wrapped_integral,
-                                             location[0],
-                                             location[1],
-                                             ip.scale*4 );
-        v_response[m] = weight*VHaarWavelet( wrapped_integral,
-                                             location[0],
-                                             location[1],
-                                             ip.scale*4 );
-        angle[m] = atan2( v_response[m],
-                          h_response[m] );
-        m++;
-      }
-    }
-
-    // Fitting a slice to find response
-    static const float pi_6 = M_PI/6.0;
-    static const float two_pi = 2*M_PI;
-    float sumx, sumy;
-    float mod, greatest_mod=0;
-    float greatest_ori=0;
-    for ( float a = 0; a < two_pi; a += 0.5 ) {
-      sumx = sumy = 0;
-      for ( int idx = 0; idx < m; idx++ ) {
-        // Is it in my slice
-        if ( (angle[idx] > a - pi_6 && angle[idx] < a + pi_6 ) ||
-             (angle[idx] + two_pi > a - pi_6 && angle[idx] + two_pi < a + pi_6 ) ||
-             (angle[idx] - two_pi > a - pi_6 && angle[idx] - two_pi < a + pi_6 ) ) {
-          sumx += h_response[idx];
-          sumy += v_response[idx];
-        }
-      }
-
-      mod = sumx*sumx+sumy*sumy;
-      if ( mod > greatest_mod ) {
-        greatest_mod = mod;
-        greatest_ori = atan2(sumy,sumx);
-      }
-    }
-
-    ip.orientation = greatest_ori;
-  }
-
+  
 }} // end vw::ip
 
 #endif//__VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__

@@ -48,8 +48,7 @@ namespace ip {
       for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
 
         // First we compute the support region based on the interest point
-        ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())),
-                                                           impl().support_size() );
+        ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
 
         // Next, we pass the support region and the interest point to
         // the descriptor generator ( compute_descriptor() ) supplied
@@ -66,28 +65,22 @@ namespace ip {
 
     /// Get the size x size support region around an interest point,
     /// rescaled by the scale factor and rotated by the specified
-    /// angle.
+    /// angle. Also, delay raster until assigment.
     template <class ViewT>
-    inline ImageView<typename ViewT::pixel_type> get_support( float x, float y, float scale, float ori,
-                                                              ImageViewBase<ViewT> const& source, int size) {
+    inline TransformView<InterpolationView<EdgeExtensionView<ViewT, ZeroEdgeExtension>, BilinearInterpolation>, AffineTransform>
+    get_support( InterestPoint const& pt,
+                 ImageViewBase<ViewT> const& source) {
 
-      float half_size = ((float)(size - 1)) / 2.0f;
-      float scaling = 1.0f / scale;
+      float half_size = ((float)(impl().support_size() - 1)) / 2.0f;
+      float scaling = 1.0f / pt.scale;
+      double c=cos(-pt.orientation), s=sin(-pt.orientation);
 
       return transform(source.impl(),
-                       compose(TranslateTransform(half_size, half_size),
-                               compose(ResampleTransform(scaling, scaling),
-                                       RotateTransform(-ori),
-                                       TranslateTransform(-x, -y))),
-                       size, size );
-    }
-
-    /// Get the support region around an interest point, scaled and
-    /// rotated appropriately.
-    template <class ViewT>
-    inline ImageView<typename ViewT::pixel_type>
-    get_support( InterestPoint const& pt, ImageViewBase<ViewT> const& source, int size ) {
-      return get_support(pt.x, pt.y, pt.scale, pt.orientation, source.impl(), size);
+                       AffineTransform( Matrix2x2(scaling*c, -scaling*s,
+                                                  scaling*s, scaling*c),
+                                        Vector2(scaling*(s*pt.y-c*pt.x)+half_size,
+                                                -scaling*(s*pt.x+c*pt.y)+half_size) ),
+                       impl().support_size(), impl().support_size() );
     }
 
   };

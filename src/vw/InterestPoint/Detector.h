@@ -423,8 +423,6 @@ namespace ip {
           }
         }
 
-        // TODO: record history
-
         // Find extrema in interest image
         vw_out(DebugMessage, "interest_point") << "\tFinding extrema... ";
         InterestPointList new_points;
