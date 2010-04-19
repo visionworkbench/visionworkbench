@@ -636,7 +636,9 @@ void optimize_check_gradient(ImageView<PixelGray<double> > *image_predicted,  Im
 
         for(int x = 0; x < (*image).cols(); x++){
                 for(int y = 0; y < (*image).rows(); y++){
-                        if(!(isnan( (*image)(x,y) ) || isnan( (*dem)(x,y) ) || isnan( (*albedo)(x,y) ) )){
+                        if(!(isnan( double((*image)(x,y)) ) ||
+                             isnan( double((*dem)(x,y)) ) ||
+                             isnan( double((*albedo)(x,y)) ) ) ){
                                 bak = (*dem)(x,y);
 
                                 (*dem)(x,y) = (*dem)(x,y) + eps;
