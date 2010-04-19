@@ -149,15 +149,18 @@ contourgen_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CAIROMM_CPPFLAGS@
 contourgen_LDADD = $(COMMON_LIBS) @PKG_CAIROMM_LIBS@
 endif
 
+if MAKE_MODULE_MOSAIC
+doc_generate_progs = doc-generate
 doc_generate_SOURCES = doc-generate.cc
 doc_generate_LDADD   = @PKG_VW_LIBS@ @PKG_MOSAIC_LIBS@
+endif
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(interestpoint_progs) $(mosaic_progs)            \
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
                $(cnet_editor_progs) $(contourgen_progs)
 
-noinst_PROGRAMS      = doc-generate $(batest_progs)
+noinst_PROGRAMS      = $(doc_generate_progs) $(batest_progs)
 dist_noinst_SCRIPTS  = ba_unit_test run_ba_tests
 
 endif
