@@ -321,3 +321,16 @@ TEST(Log, FlushAndNewline) {
   log(InfoMessage) << s6;
   EXPECT_EQ(s1 + s2 + s3 + s4 + s5 + s6, stream.str());
 }
+
+TEST(LogDeathTest, MakeSureDeathTestsWork) {
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+  LogInstance log(std::cerr, false);
+  EXPECT_EXIT(log(ErrorMessage) << "Rawr" << std::flush; exit(12), ::testing::ExitedWithCode(12), "Rawr");
+}
+
+// This test is tied to bug #199. Which is still a bug.
+TEST(LogDeathTest, DISABLED_FlushOnExit) {
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+  LogInstance log(std::cerr, false);
+  EXPECT_EXIT(log(ErrorMessage) << "Rawr"; exit(12), ::testing::ExitedWithCode(12), "Rawr");
+}
