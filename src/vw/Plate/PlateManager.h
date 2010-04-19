@@ -85,9 +85,9 @@ namespace platefile {
       
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
-      vw_out(DebugMessage, "platefile") << std::cout << "\t    Generating tile: [ " 
+      vw_out(DebugMessage, "platefile") << "\t    Generating tile: [ "
                                         << m_tile_info.j << " " << m_tile_info.i 
-                                        << " @ level " <<  m_level << "]    BBox: " 
+                                        << " @ level " <<  m_level << "]    BBox: "
                                         << m_tile_info.bbox << "\n";
       // XXX: Remove me!  I'm for debugging only!
 
