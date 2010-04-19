@@ -29,6 +29,29 @@ namespace fs = boost::filesystem;
 
 namespace vw {
 namespace platefile {
+    // Compute the bounding boxes for [ tile_size x tile_size ] tiles
+    // to generate for an image with image_bbox in a TOAST
+    // projection space that is [ resolution x resolution ] pixels in
+    // size.
+
+    // NOTE: Tiles in the TOAST projection overlap with their
+    // neighbors ( the last row and last column of pixels is the same
+    // as the top row and left column of the next images.)  This
+    // means that these bounding boxes are a little funny.  This
+    // function computes those bounding boxes for the tiles at the
+    // bottom of the pyramid so that there is the proper amount of
+    // overlap.
+
+    // TODO: This function is slow and not very smart -- it computes
+    // all possible bounding boxes before selecting down to the
+    // possible handful that overlap with the tile_bbox.  It could
+    // be made to go MUCH faster by being smart about its search.
+    std::vector<TileInfo> wwt_image_tiles( BBox2i const& input_bbox,
+                                           cartography::ToastTransform const& toast_tx,
+                                           BBox2i const& tile_bbox,
+                                           int32 const resolution,
+                                           int32 const tile_size);
+
 
   // -------------------------------------------------------------------------
   //                            PLATE MANAGER
@@ -52,31 +75,6 @@ namespace platefile {
     typedef std::list<CacheEntry> cache_t;
     mutable cache_t m_cache;  
 
-    // Private methods
-    
-    // Compute the bounding boxes for [ tile_size x tile_size ] tiles
-    // to generate for an image with image_bbox in a TOAST
-    // projection space that is [ resolution x resolution ] pixels in
-    // size.
-    
-    // NOTE: Tiles in the TOAST projection overlap with their
-    // neighbors ( the last row and last column of pixels is the same
-    // as the top row and left column of the next images.)  This
-    // means that these bounding boxes are a little funny.  This
-    // function computes those bounding boxes for the tiles at the
-    // bottom of the pyramid so that there is the proper amount of
-    // overlap.
-    
-    // TODO: This function is slow and not very smart -- it computes
-    // all possible bounding boxes before selecting down to the
-    // possible handful that overlap with the tile_bbox.  It could
-    // be made to go MUCH faster by being smart about its search.
-    std::vector<TileInfo> wwt_image_tiles( BBox2i const& input_bbox,
-                                           cartography::ToastTransform const& toast_tx,
-                                           BBox2i const& tile_bbox, 
-                                           int32 const resolution,
-                                           int32 const tile_size);
- 
  public:
   
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile) : 
@@ -141,11 +139,9 @@ namespace platefile {
       } 
 
       // chop up the image into small chunks
-      // Keep the "this"! It makes kml_image_tiles dependent on template type.
-      // http://www.parashift.com/c++-faq-lite/templates.html#faq-35.19
-      std::vector<TileInfo> tiles = this->wwt_image_tiles( input_bbox, toast_tx, output_bbox, 
-                                                           m_resolution, 
-                                                           m_platefile->default_tile_size());
+      std::vector<TileInfo> tiles = wwt_image_tiles( input_bbox, toast_tx, output_bbox,
+                                                     m_resolution,
+                                                     m_platefile->default_tile_size());
 
       // Compute the affected tiles.
       BBox2i affected_tiles_bbox;

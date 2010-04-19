@@ -8,15 +8,14 @@
 #include <vw/Plate/ToastPlateManager.h>
 using namespace vw::platefile;
 using namespace vw;
+using std::vector;
 
-template <class PixelT>
-std::vector<TileInfo> ToastPlateManager<PixelT>::wwt_image_tiles( BBox2i const& input_bbox,
-                                           cartography::ToastTransform const& toast_tx,
-                                           BBox2i const& tile_bbox,
-                                           int32 const /*resolution*/,
-                                           int32 const tile_size) {
-  std::vector<TileInfo> result;
-      
+vector<TileInfo> vw::platefile::wwt_image_tiles(
+    BBox2i const& input_bbox, cartography::ToastTransform const& toast_tx,
+    BBox2i const& tile_bbox, int32 const /*resolution*/, int32 const tile_size) {
+
+  vector<TileInfo> result;
+
   // There's no point in starting the search before there is good
   // image data, so we adjust the start point here.
   int32 minx = int(floor(tile_bbox.min().x() / (tile_size-1)) * (tile_size-1));
@@ -186,7 +185,7 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
   // the usual 2x2 box filter.  The following 5-pixel kernel was
   // optimized to avoid the extra blurring associated with using
   // a kernel wider than 2 pixels.  Math was involved.
-  std::vector<float> kernel(5);
+  vector<float> kernel(5);
   kernel[0] = kernel[4] = -0.0344;
   kernel[1] = kernel[3] = 0.2135;
   kernel[2] = 0.6418;
@@ -214,12 +213,6 @@ namespace vw {
 namespace platefile {
 
 #define VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PIXELT)                 \
-  template std::vector<TileInfo>                                        \
-  ToastPlateManager<PIXELT >::wwt_image_tiles( BBox2i const& input_bbox,\
-                            cartography::ToastTransform const& toast_tx,\
-                            BBox2i const& tile_bbox,                    \
-                            int32 const resolution,                     \
-                            int32 const tile_size);                     \
   template void                                                         \
   ToastPlateManager<PIXELT >::generate_mipmap_tile(int col,             \
                                                    int row,             \
