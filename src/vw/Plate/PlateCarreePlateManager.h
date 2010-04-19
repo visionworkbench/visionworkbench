@@ -165,10 +165,11 @@ namespace platefile {
       int transaction_id = m_platefile->transaction_request(description,
                                                             transaction_id_override);
 
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n"
-                << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
-                << "\t    Transaction ID: " << transaction_id << "\n"
-                << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
+      vw_out(InfoMessage, "platefile")
+        << "\t    Rasterizing " << tiles.size() << " image tiles.\n"
+        << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
+        << "\t    Transaction ID: " << transaction_id << "\n"
+        << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.

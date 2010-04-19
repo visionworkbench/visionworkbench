@@ -75,8 +75,6 @@ IndexServiceImpl::IndexServiceRecord IndexServiceImpl::get_index_record_for_plat
 
 IndexServiceImpl::IndexServiceImpl(std::string root_directory) : 
   m_root_directory( fs::system_complete(root_directory).string() ) {
-  
-  std::cout << "Starting Index Service\n";
 
   // Search for all platefiles in the given root_directory.  A
   // platefile is any directory ending in *.plate.

@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
   signal(SIGINT,  sig_unexpected_shutdown);
   signal(SIGUSR1, sig_sync);
 
-  std::cout << "\n\n";
+  std::cout << "Starting index server\n\n";
   long long t0 = Stopwatch::microtime();
 
   long long sync_interval_seconds = uint64(sync_interval * 60);

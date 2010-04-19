@@ -73,11 +73,11 @@ PlateFile::PlateFile(std::string url, std::string type, std::string description,
   hdr.set_pixel_format(pixel_format);
   hdr.set_channel_type(channel_type);
 
-  std::cout << "platefile: " << url << "\n";
+  vw_out(DebugMessage, "platefile") << "platefile: " << url << "\n";
   if (url.find("pf://") == 0) {
 
     // Remote 
-    std::cout << "Constructing new remote platefile : " << url << "\n";
+    vw_out(DebugMessage, "platefile") << "Constructing new remote platefile : " << url << "\n";
     m_index = Index::construct_create(url, hdr);
     vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
 

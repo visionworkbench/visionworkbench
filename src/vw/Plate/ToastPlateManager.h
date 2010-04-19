@@ -118,10 +118,11 @@ namespace platefile {
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = toast_tx.forward_bbox(input_bbox);
 
-      std::cout << "\t    Placing image at level " << pyramid_level 
-                << " with bbox " << output_bbox << "\n"
-                << "\t    (Total TOAST resolution at this level =  " 
-                << m_resolution << " pixels.)\n";
+      vw_out(InfoMessage, "platefile")
+        << "\t    Placing image at level " << pyramid_level
+        << " with bbox " << output_bbox << "\n"
+        << "\t    (Total TOAST resolution at this level =  "
+        << m_resolution << " pixels.)\n";
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view = 
@@ -157,10 +158,11 @@ namespace platefile {
       int transaction_id = m_platefile->transaction_request(description, 
                                                             transaction_id_override);
 
-      std::cout << "\t    Rasterizing " << tiles.size() << " image tiles.\n" 
-                << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
-                << "\t    Transaction ID: " << transaction_id << "\n"
-                << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
+      vw_out(InfoMessage, "platefile")
+        << "\t    Rasterizing " << tiles.size() << " image tiles.\n"
+        << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
+        << "\t    Transaction ID: " << transaction_id << "\n"
+        << "\t    Affected tiles @ root: " << affected_tiles_bbox << "\n";
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
