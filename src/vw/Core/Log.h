@@ -221,11 +221,10 @@ namespace vw {
     }
 
     virtual std::streamsize xsputn(const CharT* s, std::streamsize num) {
+      Mutex::Lock lock(m_mutex);
       buffer_type& buffer = m_buffers[ Thread::id() ];
-      {
-        Mutex::Lock lock(m_mutex);
-        std::copy(s, s + num, std::back_inserter<buffer_type>( buffer ));
-      }
+
+      std::copy(s, s + num, std::back_inserter<buffer_type>( buffer ));
 
       // This is a bit of a hack that forces a sync whenever the
       // character string *ends* with a newline, thereby flushing the
@@ -235,19 +234,24 @@ namespace vw {
 
         if ( buffer[last_char_position] == '\n' ||
              buffer[last_char_position] == '\r' )
-          sync();
+          locked_sync(buffer);
       }
       return num;
     }
 
-    virtual int sync() {
-      Mutex::Lock lock(m_mutex);
-      if(!m_buffers[ Thread::id() ].empty() && m_out ) {
-        m_out->sputn(&m_buffers[ Thread::id() ][0], static_cast<std::streamsize>(m_buffers[ Thread::id() ].size()));
+    // You must call this with the lock already held!
+    int locked_sync(buffer_type& buffer) {
+      if(!buffer.empty() && m_out ) {
+        m_out->sputn(&buffer[0], static_cast<std::streamsize>(buffer.size()));
         m_out->pubsync();
-        m_buffers[ Thread::id() ].clear();
+        buffer.clear();
       }
       return 0;
+    }
+
+    virtual int sync() {
+      Mutex::Lock lock(m_mutex);
+      return locked_sync(m_buffers[ Thread::id() ]);
     }
 
   public:
