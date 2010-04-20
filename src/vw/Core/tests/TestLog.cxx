@@ -87,19 +87,61 @@ TEST(Log, MultiStream) {
 
 TEST(Log, RuleSet) {
   LogRuleSet rs;
-  // LogRuleSet comes with a default rule for "console"
   rs.clear();
 
-  rs.add_rule(vw::InfoMessage, "console");
-  rs.add_rule(vw::VerboseDebugMessage, "foo");
-  rs.add_rule(vw::EveryMessage, "Bar");
+  // *   matches anything
+  // *.a matches [first.a, second.a]
+  // a   matches just a (ie, no namespace)
+  // a.* matches [a, a.first, a.first.second]
 
-  EXPECT_FALSE( rs(vw::InfoMessage+1, "console"));
-  EXPECT_TRUE(  rs(vw::InfoMessage, "console"));
-  EXPECT_FALSE( rs(vw::VerboseDebugMessage+1, "foo"));
-  EXPECT_TRUE(  rs(vw::VerboseDebugMessage, "foo"));
-  EXPECT_TRUE(  rs(vw::VerboseDebugMessage+1, "BAR"));
-  EXPECT_TRUE(  rs(vw::VerboseDebugMessage, "BAR"));
+  rs.add_rule(InfoMessage, "console");
+  rs.add_rule(VerboseDebugMessage, "verbose");
+  rs.add_rule(EveryMessage, "every");
+
+  rs.add_rule(EveryMessage, "unqual");
+  rs.add_rule(EveryMessage, "prefix.*");
+  rs.add_rule(EveryMessage, "*.suffix");
+
+  const MessageLevel v = VerboseDebugMessage;
+
+  EXPECT_FALSE( rs(InfoMessage+1, "console"));
+  EXPECT_TRUE(  rs(InfoMessage, "console"));
+  EXPECT_FALSE( rs(v+1, "verbose"));
+  EXPECT_TRUE(  rs(v, "verbose"));
+  EXPECT_TRUE(  rs(v+1, "every"));
+  EXPECT_TRUE(  rs(v, "every"));
+
+  EXPECT_TRUE( rs(v, "unqual"));
+  EXPECT_FALSE(rs(v, "unqual.foo"));
+  EXPECT_TRUE( rs(v, "prefix"));
+  EXPECT_TRUE( rs(v, "prefix.foo"));
+  EXPECT_FALSE(rs(v, "foo.prefix"));
+  EXPECT_FALSE(rs(v, "foo.prefix.bar"));
+  EXPECT_FALSE(rs(v, "suffix"));
+  EXPECT_TRUE( rs(v, "foo.suffix"));
+  EXPECT_TRUE( rs(v, "foo.bar.suffix"));
+  EXPECT_FALSE(rs(v, "suffix.foo"));
+  EXPECT_FALSE(rs(v, "bar.suffix.foo"));
+  EXPECT_FALSE(rs(v, "foo.falsesuffix"));
+  EXPECT_FALSE(rs(v,  "falseprefix"));
+  EXPECT_FALSE(rs(v,  "falseprefix.foo"));
+  EXPECT_FALSE(rs(v,  "prefixfalse.foo"));
+
+  LogRuleSet all;
+  all.add_rule(EveryMessage, "*");
+  all.add_rule(ErrorMessage, "console");
+  all.add_rule(WarningMessage, "off");
+
+  EXPECT_FALSE(all(v, "console"));
+  EXPECT_TRUE( all(v, "any"));
+  EXPECT_FALSE(all(v, "off"));
+  EXPECT_TRUE( all(v, "any.all"));
+}
+
+TEST(Log, RuleSetIllegal) {
+  LogRuleSet rs;
+  EXPECT_THROW(rs.add_rule(VerboseDebugMessage, "*.foo.*"), vw::ArgumentErr);
+  EXPECT_THROW(rs.add_rule(VerboseDebugMessage, "foo.*.bar"), vw::ArgumentErr);
 }
 
 TEST(Log, BasicLogging) {
@@ -213,8 +255,8 @@ TEST(Log, SystemLog) {
 TEST(Log, ProgressCallback) {
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
-           boost::bind(&set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
+           boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
   TerminalProgressCallback pc( "test", "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
@@ -234,8 +276,8 @@ TEST(Log, ProgressCallback) {
 TEST(Log, HiresProgressCallback) {
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
-           boost::bind(&set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
+           boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
   TerminalProgressCallback pc( "test", "\tTesting: ", InfoMessage, 2);
   for (int i = 0; i < 10000; ++i) {
@@ -257,11 +299,11 @@ TEST(Log, ProgressHide) {
 
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
-           boost::bind(&set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
+           boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
   // Progress bars hidden
-  vw_log().console_log().rule_set().add_rule(0, "*.progress");
+  vw_log().console_log().rule_set().add_rule(vw::NoMessage, "*.progress");
 
   // Can't see progress bar
   TerminalProgressCallback pc( "test", "Rawr:" );

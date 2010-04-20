@@ -136,3 +136,100 @@ vw::Log& vw::vw_log() {
   system_log_once.run( init_system_log );
   return *system_log_ptr;
 }
+
+vw::LogRuleSet::LogRuleSet( LogRuleSet const& copy_log) {
+  m_rules = copy_log.m_rules;
+}
+
+vw::LogRuleSet& vw::LogRuleSet::operator=( LogRuleSet const& copy_log) {
+  m_rules = copy_log.m_rules;
+  return *this;
+}
+
+
+vw::LogRuleSet::LogRuleSet() { }
+vw::LogRuleSet::~LogRuleSet() { }
+
+void vw::LogRuleSet::add_rule(int log_level, std::string log_namespace) {
+  ptrdiff_t count = std::count(log_namespace.begin(), log_namespace.end(), '*');
+  if (count > 1)
+    vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: only one wildcard is supported.");
+
+  if (count == 1 && *(log_namespace.begin()) != '*'
+                 && *(log_namespace.end()-1) != '*')
+    vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: wildcards must be at the beginning or end of a rule");
+
+  Mutex::Lock lock(m_mutex);
+  m_rules.push_front(rule_type(log_level, boost::to_lower_copy(log_namespace)));
+}
+
+void vw::LogRuleSet::clear() {
+  Mutex::Lock lock(m_mutex);
+  m_rules.clear();
+}
+
+namespace {
+  bool wildcard_match(const std::string& pattern, const std::string& str) {
+    // Rules:
+    // *   matches anything
+    // *.a matches [first.a, second.a]
+    // a   matches just a (ie, no namespace)
+    // a.* matches [a, a.first, a.first.second]
+    //
+
+    if (pattern == "*")
+      return true;
+
+    // If there's no wildcard, just do a comparison.
+    size_t idx = pattern.find("*");
+    if (idx == std::string::npos)
+      return (pattern == str);
+
+    // There's a wildcard. Try to expand it.
+    if (idx == 0) {
+      // leading *. it's a suffix rule.
+      return boost::ends_with(str, pattern.substr(1));
+    } else {
+      // add_rule above verifies that the wildcard is first or last, so this
+      // one must be last.
+      if (pattern.size() > 1 && pattern[idx-1] == '.')
+        if (str == pattern.substr(0, idx-1))
+          return true;
+      return boost::starts_with(str, pattern.substr(0, idx));
+    }
+
+    return false;
+  }
+}
+
+// You can overload this method from a subclass to change the
+// behavior of the LogRuleSet.
+bool vw::LogRuleSet::operator() (int log_level, std::string log_namespace) {
+  Mutex::Lock lock(m_mutex);
+
+  std::string lower_namespace = boost::to_lower_copy(log_namespace);
+
+  for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
+    const int&         rule_lvl = it->first;
+    const std::string& rule_ns  = it->second;
+
+    // first rule that matches the namespace spec is applied.
+
+    if (!wildcard_match(rule_ns, lower_namespace) )
+      continue;
+
+    if (rule_lvl == vw::EveryMessage)
+      return true;
+
+    return log_level <= rule_lvl;
+  }
+
+  if (log_level <= vw::InfoMessage)
+    if (log_namespace == "console" || wildcard_match("*.progress", lower_namespace))
+      return true;
+
+  // We reach this line if all of the rules have failed, in
+  // which case we return a NULL stream, which will result in
+  // nothing being logged.
+  return false;
+}

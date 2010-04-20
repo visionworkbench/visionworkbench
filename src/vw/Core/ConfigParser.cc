@@ -29,6 +29,7 @@ namespace {
     static MapType name_map;
 
     if (name_map.empty()) {
+      name_map["NoMessage"]           = NoMessage;
       name_map["InfoMessage"]         = InfoMessage;
       name_map["ErrorMessage"]        = ErrorMessage;
       name_map["WarningMessage"]      = WarningMessage;

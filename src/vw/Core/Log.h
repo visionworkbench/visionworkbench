@@ -52,6 +52,7 @@ namespace vw {
 
   // Lower number -> higher priority
   enum MessageLevel {
+    NoMessage = -1,
     ErrorMessage = 0,
     WarningMessage = 10,
     InfoMessage = 20,
@@ -325,97 +326,25 @@ namespace vw {
     Mutex m_mutex;
 
     // Help functions
-    inline bool has_leading_wildcard( std::string const& exp ) {
-      size_t index = exp.rfind("*");
-      if ( index == std::string::npos )
-        return false;
-      return size_t(exp.size())-1 > index;
-    }
-
-    inline std::string after_wildcard( std::string const& exp ) {
-      int index = exp.rfind("*");
-      if ( index != -1 ) {
-        index++;
-        return exp.substr(index,exp.size()-index);
-      }
-      return "";
-    }
+    bool has_leading_wildcard( std::string const& exp );
+    std::string after_wildcard( std::string const& exp );
 
   public:
-
-    // Ensure Copyable semantics
-    LogRuleSet( LogRuleSet const& copy_log) {
-      m_rules = copy_log.m_rules;
-    }
-
-    LogRuleSet& operator=( LogRuleSet const& copy_log) {
-      m_rules = copy_log.m_rules;
-      return *this;
-    }
-
-
     // by default, the LogRuleSet is set up to pass "console" messages
-    // at level vw::WarningMessage or higher priority.
-    LogRuleSet() {
-      m_rules.push_back(rule_type(vw::InfoMessage, "console"));
-    }
+    // at level vw::InfoMessage or higher priority.
+    LogRuleSet();
+    virtual ~LogRuleSet();
 
-    virtual ~LogRuleSet() {}
+    // Ensure Copyable semantics (Mutex is not copyable)
+    LogRuleSet( LogRuleSet const& copy_log);
+    LogRuleSet& operator=( LogRuleSet const& copy_log);
 
-    void add_rule(int log_level, std::string log_namespace) {
-      Mutex::Lock lock(m_mutex);
-      m_rules.push_front(rule_type(log_level, boost::to_lower_copy(log_namespace)));
-    }
-
-    void clear() {
-      Mutex::Lock lock(m_mutex);
-      m_rules.clear();
-    }
+    void add_rule(int log_level, std::string log_namespace);
+    void clear();
 
     // You can overload this method from a subclass to change the
     // behavior of the LogRuleSet.
-    virtual bool operator() (int log_level, std::string log_namespace) {
-      Mutex::Lock lock(m_mutex);
-
-      std::string lower_namespace = boost::to_lower_copy(log_namespace);
-
-      for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
-
-        // Pass through rule for complete wildcard
-        if ( (*it).second == "*" &&
-             ( (*it).first == vw::EveryMessage ||
-               log_level <= (*it).first ) )
-          return true;
-
-        // For explicit matching on namespace
-        if ( (*it).second == lower_namespace ) {
-          if ( log_level <= (*it).first )
-            return true;
-          else
-            return false;
-        }
-
-        // Evaluation of half wild card
-        if ( has_leading_wildcard( (*it).second )  &&
-             boost::iends_with(lower_namespace,after_wildcard((*it).second)) ) {
-          if ( log_level <= (*it).first )
-            return true;
-          else
-            return false;
-        }
-      }
-
-      // Progress bars get a free ride at InfoMessage level unless a
-      // rule above modifies that.
-      if ( boost::iends_with(lower_namespace,".progress") &&
-           log_level == vw::InfoMessage )
-        return true;
-
-      // We reach this line if all of the rules have failed, in
-      // which case we return a NULL stream, which will result in
-      // nothing being logged.
-      return false;
-    }
+    virtual bool operator() (int log_level, std::string log_namespace);
   };
 
 
