@@ -65,7 +65,9 @@ TEST(Settings, Override) {
   EXPECT_EQ( 223u, vw_settings().system_cache_size() );
 }
 
-TEST(Settings, OldVWrc) {
+TEST(SettingsDeathTest, OldVWrc) {
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+
   const char *conf = "\n\
                       logfile console\n\
                       40 *\n";
@@ -73,6 +75,5 @@ TEST(Settings, OldVWrc) {
   Settings s;
   std::istringstream stream(conf);
 
-  // This should print a warning, but not throw an exception
-  parse_config(stream, s);
+  EXPECT_EXIT(parse_config(stream, s); exit(251);, ::testing::ExitedWithCode(251), "Could not parse config file");
 }
