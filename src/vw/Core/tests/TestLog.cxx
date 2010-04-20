@@ -36,9 +36,9 @@ struct TestLogTask {
   TestLogTask(LogInstance &log, std::string ns) : m_terminate(false), m_log(log), m_ns(ns) {}
 
   void operator()() {
-    const std::string start("Start " + vw::stringify(Thread::id()) + "\n"),
-                        tick("Tick " + vw::stringify(Thread::id()) + "\n"),
-                        stop("Stop " + vw::stringify(Thread::id()) + "\n");
+    const std::string start("Start " + stringify(Thread::id()) + "\n"),
+                        tick("Tick " + stringify(Thread::id()) + "\n"),
+                        stop("Stop " + stringify(Thread::id()) + "\n");
 
     m_log(InfoMessage,m_ns) << start;
 
@@ -64,8 +64,8 @@ TEST(Log, MultiStream) {
   const static char no_string[]  = "==>You should not see this message.\n";
   const static char yes_string[] = "==>You should see this message twice.\n";
 
-  vw::null_ostream null_strm;
-  vw::multi_ostream multi_strm;
+  null_ostream null_strm;
+  multi_ostream multi_strm;
 
   std::ostringstream log;
 
@@ -115,10 +115,10 @@ TEST(Log, MultiThreadLog) {
   std::ostringstream stream;
 
   LogInstance log(stream, false);
-  log.rule_set().add_rule(vw::EveryMessage, "log test");
+  log.rule_set().add_rule(EveryMessage, "log test");
 
   typedef boost::shared_ptr<TestLogTask> TheTask;
-  typedef boost::shared_ptr<vw::Thread>  TheThread;
+  typedef boost::shared_ptr<Thread>  TheThread;
   std::vector<std::pair<TheTask, TheThread> > threads(100);
 
   for (size_t i = 0; i < threads.size(); ++i) {
@@ -181,13 +181,13 @@ TEST(Log, SystemLog) {
   raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
            boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
-  vw_log().console_log().rule_set().add_rule(vw::EveryMessage, "test");
+  vw_log().console_log().rule_set().add_rule(EveryMessage, "test");
 
   vw_out() << "\tTesting system log (first call)\n";
   vw_out(InfoMessage,"test") << "\tTesting system log (second call)\n";
 
   boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
-  new_log->rule_set().add_rule(vw::EveryMessage, "test");
+  new_log->rule_set().add_rule(EveryMessage, "test");
   vw_log().add(new_log);
   vw_out(InfoMessage,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
 
@@ -213,8 +213,8 @@ TEST(Log, SystemLog) {
 TEST(Log, ProgressCallback) {
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
-           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
+           boost::bind(&set_output_stream, boost::ref(std::cout)));
 
   TerminalProgressCallback pc( "test", "\tTesting: ");
   for (double i = 0; i < 1.0; i+=0.01) {
@@ -228,16 +228,16 @@ TEST(Log, ProgressCallback) {
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
-  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
 }
 
 TEST(Log, HiresProgressCallback) {
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
-           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
+           boost::bind(&set_output_stream, boost::ref(std::cout)));
 
-  TerminalProgressCallback pc( "test", "\tTesting: ", vw::InfoMessage, 2);
+  TerminalProgressCallback pc( "test", "\tTesting: ", InfoMessage, 2);
   for (int i = 0; i < 10000; ++i) {
     pc.report_progress(i/10000.0);
     if (i % 50 == 0)
@@ -250,15 +250,15 @@ TEST(Log, HiresProgressCallback) {
   size_t last_line_idx = out.rfind("\r");
   EXPECT_EQ( 80u, out.size()-last_line_idx-2 );
   EXPECT_TRUE(boost::iends_with(out, std::string("***] Complete!\n")));
-  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), vw::ArgumentErr );
+  EXPECT_THROW(TerminalProgressCallback("monkey","monkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkeymonkey"), ArgumentErr );
 }
 
 TEST(Log, ProgressHide) {
 
   std::ostringstream sstr;
 
-  raii fix(boost::bind(&vw::set_output_stream, boost::ref(sstr)),
-           boost::bind(&vw::set_output_stream, boost::ref(std::cout)));
+  raii fix(boost::bind(&set_output_stream, boost::ref(sstr)),
+           boost::bind(&set_output_stream, boost::ref(std::cout)));
 
   // Progress bars hidden
   vw_log().console_log().rule_set().add_rule(0, "*.progress");
