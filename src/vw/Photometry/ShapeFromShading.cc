@@ -62,14 +62,23 @@ float ComputeNormalYDerivative()
 }
 
 //compute the elements of the normal derivative
-Vector3 ComputeNormalDerivative(int flag)
+Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 xyzLEFT)
 {
   Vector3 normalDerivative;
   if (flag == 0){ //wrt z_{i,j}
+     normalDerivative(0) = xyzLEFT(1)-xyzTOP(1); //dn_x/dz_{ij}
+     normalDerivative(1) = xyzTOP(0) - xyzLEFT(0); //dn_y/dz_{ij}
+     normalDerivative(2) = 0; //dnz_dz_{ij}
   }
-  if (flag == 1){ //wrt z_{i-1,j}
+  if (flag == 1){ //wrt z_{i-1,j} //LEFT
+     normalDerivative(0) = xyzTOP(1) - xyz(1); //dn_x/dz_{i-1, j}
+     normalDerivative(1) = xyz(0) - xyzTOP(0); //dn_y/dz_{i-1,j}
+     normalDerivative(2) = 0; //dnz_dz_{i-1,j}
   }
-  if (flag == 2){ ////wrt z_{i,j-1}
+  if (flag == 2){ //wrt z_{i,j-1}
+     normalDerivative(0) = xyz(1)-xyzLEFT(1); //dn_x/dz_{i, j-1}
+     normalDerivative(1) = xyzLEFT(0) - xyz(0); //dn_y/dz_{i,j-1}
+     normalDerivative(2) = 0; //dnz_dz_{i,j-1}
   }
   return normalDerivative;
 }
@@ -91,13 +100,13 @@ float ComputeCosIDerivative(Vector3 normal, Vector3 viewPos, Vector3 normalDeriv
   cosIDeriv = nominator/denominator;
   return cosIDeriv; 
 }
-float ComputeReliefDerivative(Vector3 xyz, Vector3 normal, ModelParams inputImgParams, int flag)
+float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector3 normal, ModelParams inputImgParams, int flag)
 {
   float reliefDeriv;
   Vector3 sunPos = inputImgParams.sunPosition;
   Vector3 viewPos = inputImgParams.spacecraftPosition;
-
-  Vector3 normalDerivative = ComputeNormalDerivative(flag);
+ 
+  Vector3 normalDerivative = ComputeNormalDerivative(flag, xyz, xyzTOP, xyzLEFT);
                                                                         
   //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
   // sun coordinates relative to the xyz point on the Moon surface
@@ -185,6 +194,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
     
     Vector3 *normalArray = new Vector3[numVerBlocks*numHorBlocks];
     Vector3 *xyzArray = new Vector3[numVerBlocks*numHorBlocks];
+    Vector3 *xyzTOPArray = new Vector3[numVerBlocks*numHorBlocks];
+    Vector3 *xyzLEFTArray = new Vector3[numVerBlocks*numHorBlocks];
     float   *reliefArray = new float[numVerBlocks*numHorBlocks];
     
 
@@ -231,12 +242,14 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
               
 		  //Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);
 		  Vector3 xyz_left = inputImg_geo.datum().geodetic_to_cartesian(longlat3_left);
+                  xyzLEFTArray[k*verBlockSize+l] = xyz_left;
 
 		  //determine the 3D coordinates of the pixel top of the current pixel
 		  Vector2 input_dem_top_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_top_pix));
 		  Vector2 lon_lat_top = inputImg_geo.pixel_to_lonlat(input_img_top_pix);
 		  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
 		  Vector3 xyz_top = inputImg_geo.datum().geodetic_to_cartesian(longlat3_top);
+                  xyzTOPArray[k*verBlockSize+l] = xyz_top;
 
 		  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
                   normalArray[k*verBlockSize+l] = computeNormalFrom3DPointsGeneral(xyzArray[k*verBlockSize+l], xyz_left, xyz_top);
@@ -262,13 +275,13 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  if (shadowImage(jj, ii) == 0){    
                       float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
 
-		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
+		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
                       jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
 
-                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
                       jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
 
-                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
                       jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
 
                       float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
@@ -305,13 +318,13 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                                                                           (float)outputImage(jj, ii), reliefArray[l_index]);
                          errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 
-                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
                                                                                overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
-                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
 										  overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
-                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index], normalArray[l_index], 
+                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
 										   overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
                          
@@ -342,6 +355,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
        
     delete normalArray; 
     delete xyzArray;
+    delete xyzLEFTArray;
+    delete xyzTOPArray;
     delete reliefArray; 
 
     //write in the updated DEM
