@@ -22,10 +22,9 @@ OSX users who don't have this, they can use:
 Here's an outline for downloading RabbitMQ C and installing
 
  cd (YOUR BUILD DIRECTORY HERE)
- hg clone -r default http://hg.rabbitmq.com/rabbitmq-c
- hg clone -r default http://hg.rabbitmq.com/rabbitmq-codegen ...
-      rabbitmq-c/codegen
- cd rabbitmq-c
+ hg clone -r librabbitmq-0.1-amqp_0_8 http://hg.rabbitmq.com/rabbitmq-c src
+ hg clone -r default http://hg.rabbitmq.com/rabbitmq-codegen src/codegen
+ cd src
  autoreconf -fvi
  ./configure --prefix=(YOUR INSTALL DIRECTORY HERE)
  make PYTHON=python
