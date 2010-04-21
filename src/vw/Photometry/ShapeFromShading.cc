@@ -82,24 +82,17 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
   }
   return normalDerivative;
 }
-float ComputeCosEDerivative(Vector3 normal, Vector3 sunPos, Vector3 normalDerivative)
+//computes the cosine derivative wrt to the height map of the angle between two vectors stored in variables normal and direction 
+float ComputeCosDerivative(Vector3 normal, Vector3 direction, Vector3 normalDerivative)
 {
   float cosEDeriv = 0;
   float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
   float denominator = normalNorm*sqrt(normalNorm);
-  float nominator = (-normalDerivative(0)*sunPos(0)-normalDerivative(1)*sunPos(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*sunPos(0) -normal(1)*sunPos(1) + sunPos(2));
+  float nominator = (-normalDerivative(0)*direction(0)-normalDerivative(1)*direction(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*direction(0) -normal(1)*direction(1) + normal(2)*direction(2));
   cosEDeriv = nominator/denominator;
   return cosEDeriv; 
 }
-float ComputeCosIDerivative(Vector3 normal, Vector3 viewPos, Vector3 normalDerivative)
-{
-  float cosIDeriv = 0;
-  float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
-  float denominator = normalNorm*sqrt(normalNorm);
-  float nominator = (-normalDerivative(0)*viewPos(0)-normalDerivative(1)*viewPos(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*viewPos(0) -normal(1)*viewPos(1) + viewPos(2));
-  cosIDeriv = nominator/denominator;
-  return cosIDeriv; 
-}
+
 float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector3 normal, ModelParams inputImgParams, int flag)
 {
   float reliefDeriv;
@@ -118,9 +111,9 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
   Vector3 viewDirection = normalize(viewPos-xyz);
   float mu = dot_prod(viewDirection,normal);
 
-  float cosEDeriv = ComputeCosEDerivative(normal, viewPos, normalDerivative); 
-  float cosIDeriv = ComputeCosIDerivative(normal, sunPos, normalDerivative); 
-  
+  float cosEDeriv = ComputeCosDerivative(normal, viewPos, normalDerivative); 
+  float cosIDeriv = ComputeCosDerivative(normal, sunPos, normalDerivative); 
+
   //Alfred McEwen's model
   float A = -0.019;
   float B =  0.000242;//0.242*1e-3;
