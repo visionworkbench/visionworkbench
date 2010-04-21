@@ -505,7 +505,13 @@ CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
     fs::path file = *iter;
     // If no parent path is provided for camera files, assume we read them from
     // the data directory
-    if (!file.has_branch_path()) file = dir / file;
+#if (BOOST_VERSION >= 103600)
+    if (!file.has_parent_path())
+#else
+    if (!file.has_branch_path())
+#endif
+    { file = dir / file; }
+
     vw_out(VerboseDebugMessage) << "\t" << file << endl;
     boost::shared_ptr<PinholeModel> cam(new PinholeModel());
     cam->read_file(file.string());
