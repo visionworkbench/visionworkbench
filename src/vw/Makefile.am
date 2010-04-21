@@ -106,7 +106,7 @@ SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)              \
         $(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)         \
         $(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs)     \
         $(photometry_subdirs) $(plate_subdirs) $(bundleadjustment_subdirs) \
-        $(tools_subdirs) $(gui_subdirs) $(python_subdirs)
+        $(gui_subdirs) $(python_subdirs) $(tools_subdirs)
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =
