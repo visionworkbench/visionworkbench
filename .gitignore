@@ -12,6 +12,7 @@
 *.pb.h
 /.vimrc.local
 /vw.tags
+/tags
 /build
 /INSTALL
 
