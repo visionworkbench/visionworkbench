@@ -45,6 +45,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "uniform int display_channel;  // 0 = RGBA, 1 = R, 2 = G, 3 = B, 4 = A\n"
 "uniform int colorize_display;\n"
 "uniform int hillshade_display;\n"
+"uniform int current_level;\n"
 "\n"
 "void main() { \n"
 "  bool alpha_selected = false; \n"
@@ -58,7 +59,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "    alpha_selected = true; \n"
 "    vec4 right = texture2D(tex,gl_TexCoord[0].st+vec2(0.01,0.0));\n"
 "    vec4 bot   = texture2D(tex,gl_TexCoord[0].st+vec2(0.0,0.01));\n"
-"    vec3 normal = vec3(right.y - src_tex.y, bot.y - src_tex.y, 1000.0 );\n"
+"    vec3 normal = vec3(right.y - src_tex.y, bot.y - src_tex.y, 10000.0 / float(current_level*current_level) );\n"
 "    vec3 light = vec3(0.5774,0.5774,0.5774);\n"
 "    float intense = dot(light,normalize(normal));\n"
 "    selected_tex = vec4(intense,intense,intense,src_tex[3]);\n"
@@ -393,6 +394,8 @@ void GlPreviewWidget::drawImage() {
   glUniform1i(colorize_display_loc,m_colorize_display);
   GLint hillshade_display_loc = glGetUniformLocation(m_glsl_program,"hillshade_display");
   glUniform1i(hillshade_display_loc,m_hillshade_display);
+  GLint current_level_loc = glGetUniformLocation(m_glsl_program,"current_level");
+  glUniform1i(current_level_loc,m_current_level);
   glUseProgram(0);
   
   // Set the background color and viewport.
