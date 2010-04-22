@@ -128,6 +128,11 @@ namespace platefile {
                                     m_tile_info.i, m_tile_info.j, 
                                     m_level, m_transaction_id);
           break;
+        case VW_CHANNEL_FLOAT32:
+          m_platefile->write_update(pixel_cast<PixelGrayA<float32> >(tile),
+                                    m_tile_info.i, m_tile_info.j,
+                                    m_level, m_transaction_id);
+          break;
         default:
           vw_throw(NoImplErr() << "Unsupported GrayA channel type in PlateManager.\n");
         }
