@@ -50,11 +50,12 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
 
   PlateView<PixelT> plate_view(plate_file_name);
   ImageViewRef<PixelT> plate_view_ref = plate_view;
+  double scale_change = 1;
   if ( tile_ppd > 0 ) {
     // Finding out our current PPD and attempting to match
     double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                              output_georef.lonlat_to_pixel(Vector2(1,0)));
-    double scale_change = tile_ppd / curr_ppd;
+    scale_change = tile_ppd / curr_ppd;
     plate_view_ref = resample( plate_view, scale_change, scale_change,
                                ZeroEdgeExtension());
     Matrix3x3 scale;
@@ -98,6 +99,13 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     crop_bboxes[i].min() += output_bbox.min();
     crop_bboxes[i].max() += output_bbox.min();
 
+    { // Checking to see if this section is transparent
+      std::list<TileHeader> theaders =
+        plate_view.search_for_tiles( crop_bboxes[i] / scale_change );
+      if (theaders.size() == 0 )
+        continue;
+    }
+
     cartography::GeoReference tile_georef = output_georef;
     Vector2 top_left_ll = output_georef.pixel_to_lonlat(crop_bboxes[i].min());
     Matrix3x3 T = tile_georef.transform();
@@ -126,29 +134,29 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     ImageView<PixelT> cropped_view = crop(plate_view_ref, crop_bboxes[i]);
     DiskImageResourceGDAL::Options gdal_options;
     gdal_options["COMPRESS"] = "LZW";
-    if( ! is_transparent(cropped_view) ) {
-      if ( pds_dem_mode ) {
-        ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
-        DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
-                                   Vector2i(256,256), gdal_options);
-        write_georeference(rsrc, tile_georef);
-        write_image(rsrc, dem_image,
-                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
-      } else if ( pds_imagery_mode ) {
-        ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = apply_mask(alpha_to_mask(channel_cast_rescale<uint8>(cropped_view)),0);
-        DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
-                                   Vector2i(256,256), gdal_options);
-        write_georeference(rsrc, tile_georef);
-        write_image(rsrc, dem_image,
-                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
-      } else {
-        DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
-                                   Vector2i(256,256), gdal_options);
-        write_georeference(rsrc, tile_georef);
-        write_image(rsrc, cropped_view,
-                    TerminalProgressCallback( "plate.tools", "\t    Writing: "));
-      }
+
+    if ( pds_dem_mode ) {
+      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
+      DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
+                                 Vector2i(256,256), gdal_options);
+      write_georeference(rsrc, tile_georef);
+      write_image(rsrc, dem_image,
+                  TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+    } else if ( pds_imagery_mode ) {
+      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = apply_mask(alpha_to_mask(channel_cast_rescale<uint8>(cropped_view)),0);
+      DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
+                                 Vector2i(256,256), gdal_options);
+      write_georeference(rsrc, tile_georef);
+      write_image(rsrc, dem_image,
+                  TerminalProgressCallback( "plate.tools", "\t    Writing: "));
+    } else {
+      DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
+                                 Vector2i(256,256), gdal_options);
+      write_georeference(rsrc, tile_georef);
+      write_image(rsrc, cropped_view,
+                  TerminalProgressCallback( "plate.tools", "\t    Writing: "));
     }
+
   }
 }
 
