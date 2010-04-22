@@ -244,7 +244,7 @@ void vw::platefile::PagedIndex::sync() {
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::PagedIndex::page_request(int col, int row, int level) const {
   if (level < 0 || level >= int(m_levels.size()))
-    vw_throw(ArgumentErr() << "Requested page at " << level 
+    vw_throw(TileNotFoundErr() << "Requested page at " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   return m_levels[level]->get_page(col, row);
 }
@@ -252,7 +252,7 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::PagedIndex::page_requ
 vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int row, int level, 
                                  int transaction_id, bool exact_transaction_match) {
   if (level < 0 || level >= int(m_levels.size()))
-    vw_throw(ArgumentErr() << "Requested tile at level " << level 
+    vw_throw(TileNotFoundErr() << "Requested tile at level " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   
   IndexRecord rec = m_levels[level]->get(col, row,  transaction_id, exact_transaction_match);
