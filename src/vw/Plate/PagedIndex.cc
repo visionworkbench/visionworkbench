@@ -101,7 +101,7 @@ void vw::platefile::IndexLevel::sync() {
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(int col, int row) const {
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             TileNotFoundErr() << "IndexLevel::get_page() failed.  Invalid index [ " 
+             ArgumentErr() << "IndexLevel::get_page() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -121,7 +121,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
                                                           bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             TileNotFoundErr() << "IndexLevel::get() failed.  Invalid index [ " 
+             ArgumentErr() << "IndexLevel::get() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -140,7 +140,7 @@ void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
 
   VW_ASSERT( header.col() >= 0 && header.row() >= 0 && 
              header.col() < pow(2,m_level) && header.row() < pow(2,m_level), 
-             TileNotFoundErr() << "IndexLevel::set() failed.  Invalid index [ " 
+             ArgumentErr() << "IndexLevel::set() failed.  Invalid index [ " 
              << header.col() << " " << header.row() << " @ level " << m_level << "]" );
   
   int32 level_col = header.col() / m_page_width;
@@ -244,7 +244,7 @@ void vw::platefile::PagedIndex::sync() {
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::PagedIndex::page_request(int col, int row, int level) const {
   if (level < 0 || level >= int(m_levels.size()))
-    vw_throw(TileNotFoundErr() << "Requested page at " << level 
+    vw_throw(ArgumentErr() << "Requested page at " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   return m_levels[level]->get_page(col, row);
 }
@@ -252,7 +252,7 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::PagedIndex::page_requ
 vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int row, int level, 
                                  int transaction_id, bool exact_transaction_match) {
   if (level < 0 || level >= int(m_levels.size()))
-    vw_throw(TileNotFoundErr() << "Requested tile at level " << level 
+    vw_throw(ArgumentErr() << "Requested tile at level " << level 
              << " was greater than the max level (" << m_levels.size() << ").");
   
   IndexRecord rec = m_levels[level]->get(col, row,  transaction_id, exact_transaction_match);

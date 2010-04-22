@@ -114,7 +114,7 @@ void vw::platefile::IndexPage::deserialize(std::istream& istr) {
 void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
   VW_ASSERT( header.col() >= 0 && header.row() >= 0,
-             TileNotFoundErr() << "IndexPage::set() failed.  Column and row indices must be positive.");
+             ArgumentErr() << "IndexPage::set() failed.  Column and row indices must be positive.");
 
   int32 page_col = header.col() % m_page_width;
   int32 page_row = header.row() % m_page_height;
@@ -174,7 +174,7 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
                                                          bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0,
-             TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
+             ArgumentErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
 
   // Compute page_col and row
   int32 page_col = col % m_page_width;
@@ -321,13 +321,13 @@ vw::platefile::IndexPage::search_by_location(int col, int row,
 
   // Basic bounds checking
   VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height, 
-            TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index [" 
+            ArgumentErr() << "IndexPage::read_headers() failed.  Invalid index [" 
             << page_col << " " << page_row << "]");
 
   // Check first to make sure that there are actually tiles at this location.
-  if (!m_sparse_table.test(page_row*m_page_width + page_col)) 
-    vw_throw(TileNotFoundErr() << "No tiles were found at this location.\n");
-    
+  if (!m_sparse_table.test(page_row*m_page_width + page_col))
+    return std::list<TileHeader>();
+
   // If there are, then we apply the transaction_id filters to select the requested ones.
   std::list<vw::platefile::TileHeader> results;
   multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
