@@ -252,7 +252,9 @@ namespace vw {
 
     virtual int sync() {
       Mutex::Lock lock(m_mutex);
-      return locked_sync(m_buffers[ Thread::id() ]);
+      if (m_buffers.count(Thread::id()))
+        return locked_sync(m_buffers[ Thread::id() ]);
+      return 0;
     }
 
   public:
