@@ -106,7 +106,7 @@ namespace vw {
 
     ~DiskCacheHandle() {
       vw_out(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
-      unlink(m_filename.c_str());
+      boost::filesystem::remove( m_filename );
     }
 
     inline const DiskImageView<PixelT>& view() const { return m_disk_image_view; }
