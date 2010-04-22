@@ -28,8 +28,8 @@ public:
     TS_ASSERT_THROWS( IndexRecord r = page.get(0,0,0), TileNotFoundErr );
     TS_ASSERT_THROWS( IndexRecord r = page.get(1024,0,0), TileNotFoundErr );
     TS_ASSERT_THROWS( IndexRecord r = page.get(0,1024,0), TileNotFoundErr );
-    TS_ASSERT_THROWS( IndexRecord r = page.get(-1,0,0), TileNotFoundErr );
-    TS_ASSERT_THROWS( IndexRecord r = page.get(0,-1,0), TileNotFoundErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(-1,0,0), ArgumentErr );
+    TS_ASSERT_THROWS( IndexRecord r = page.get(0,-1,0), ArgumentErr );
     TS_ASSERT_EQUALS(page.sparse_size(), 0);
 
     // Try setting and then fetching an entry.
