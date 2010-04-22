@@ -101,7 +101,7 @@ void vw::platefile::IndexLevel::sync() {
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(int col, int row) const {
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             ArgumentErr() << "IndexLevel::get_page() failed.  Invalid index [ " 
+             TileNotFoundErr() << "IndexLevel::get_page() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -121,7 +121,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
                                                           bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level), 
-             ArgumentErr() << "IndexLevel::get() failed.  Invalid index [ " 
+             TileNotFoundErr() << "IndexLevel::get() failed.  Invalid index [ " 
              << col << " " << row << " @ level " << m_level << "]" );
   
   int32 level_col = col / m_page_width;
@@ -140,7 +140,7 @@ void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
 
   VW_ASSERT( header.col() >= 0 && header.row() >= 0 && 
              header.col() < pow(2,m_level) && header.row() < pow(2,m_level), 
-             ArgumentErr() << "IndexLevel::set() failed.  Invalid index [ " 
+             TileNotFoundErr() << "IndexLevel::set() failed.  Invalid index [ " 
              << header.col() << " " << header.row() << " @ level " << m_level << "]" );
   
   int32 level_col = header.col() / m_page_width;
