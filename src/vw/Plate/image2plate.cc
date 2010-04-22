@@ -280,11 +280,11 @@ int main( int argc, char *argv[] ) {
         case VW_CHANNEL_FLOAT32:
           if (has_nodata_value) {
             do_mosaic(platefile,
-                      mask_to_alpha(channel_cast<int16>(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
-                                                                    nodata_value))),
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
+                                                nodata_value)),
                       image_files[i], transaction_id_override, georef, output_mode);
           } else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]),
+            do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(image_files[i]),
                       image_files[i], transaction_id_override, georef, output_mode);
           break;
         default:
