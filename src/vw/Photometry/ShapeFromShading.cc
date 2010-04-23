@@ -66,18 +66,18 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
 {
   Vector3 normalDerivative;
   if (flag == 0){ //wrt z_{i,j}
-     normalDerivative(0) = xyzLEFT(1)-xyzTOP(1); //dn_x/dz_{ij}
-     normalDerivative(1) = xyzTOP(0) - xyzLEFT(0); //dn_y/dz_{ij}
+     normalDerivative(0) = -xyzLEFT(1)+xyzTOP(1); //dn_x/dz_{ij}
+     normalDerivative(1) = -xyzTOP(0)+xyzLEFT(0); //dn_y/dz_{ij}
      normalDerivative(2) = 0; //dnz_dz_{ij}
   }
   if (flag == 1){ //wrt z_{i-1,j} //LEFT
-     normalDerivative(0) = xyzTOP(1) - xyz(1); //dn_x/dz_{i-1, j}
-     normalDerivative(1) = xyz(0) - xyzTOP(0); //dn_y/dz_{i-1,j}
+     normalDerivative(0) = -xyzTOP(1) + xyz(1); //dn_x/dz_{i-1, j}
+     normalDerivative(1) = -xyz(0) + xyzTOP(0); //dn_y/dz_{i-1,j}
      normalDerivative(2) = 0; //dnz_dz_{i-1,j}
   }
   if (flag == 2){ //wrt z_{i,j-1}
-     normalDerivative(0) = xyz(1)-xyzLEFT(1); //dn_x/dz_{i, j-1}
-     normalDerivative(1) = xyzLEFT(0) - xyz(0); //dn_y/dz_{i,j-1}
+     normalDerivative(0) = -xyz(1)+xyzLEFT(1); //dn_x/dz_{i, j-1}
+     normalDerivative(1) = -xyzLEFT(0) + xyz(0); //dn_y/dz_{i,j-1}
      normalDerivative(2) = 0; //dnz_dz_{i,j-1}
   }
   return normalDerivative;
@@ -89,7 +89,7 @@ float ComputeCosDerivative(Vector3 normal, Vector3 direction, Vector3 normalDeri
   float cosEDeriv = 0;
   float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
   float denominator = normalNorm*sqrt(normalNorm);
-  float nominator = (-normalDerivative(0)*direction(0)-normalDerivative(1)*direction(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(-normal(0)*direction(0) -normal(1)*direction(1) + normal(2)*direction(2));
+  float nominator = (normalDerivative(0)*direction(0)+normalDerivative(1)*direction(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(normal(0)*direction(0) + normal(1)*direction(1) + normal(2)*direction(2));
   cosEDeriv = nominator/denominator;
   return cosEDeriv; 
 }
