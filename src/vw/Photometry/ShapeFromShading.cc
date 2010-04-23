@@ -82,7 +82,8 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
   }
   return normalDerivative;
 }
-//computes the cosine derivative wrt to the height map of the angle between two vectors stored in variables normal and direction 
+//computes the cosine derivative wrt to the height map of the angle between two vectors stored in variables normal and direction
+//direction vector is normalized 
 float ComputeCosDerivative(Vector3 normal, Vector3 direction, Vector3 normalDerivative)
 {
   float cosEDeriv = 0;
@@ -130,7 +131,7 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
 
   float L = 1.0 + A*deg_alpha + B*deg_alpha*deg_alpha + C*deg_alpha*deg_alpha*deg_alpha;
   
-  reliefDeriv = cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0));
+  reliefDeriv = (1-L)*cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0));
   return reliefDeriv;
 }
 float ComputeReconstructError(float intensity, float T, float albedo,
@@ -268,16 +269,25 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  if (shadowImage(jj, ii) == 0){    
                       float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
 
-		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
+		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
+                                                                            xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                                                                            inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
                       jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
 
-                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
+                                                                               xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                                                                               inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      
                       jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
 
-                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
+                                                                                xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+                                                                                inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
                       jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
 
-                      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
+                      float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, 
+                                                                       (float)outputImage(jj, ii), reliefArray[l_index]);
+
                       errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 		   } 
 
@@ -311,13 +321,16 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                                                                           (float)outputImage(jj, ii), reliefArray[l_index]);
                          errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 
-                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
+                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],
+                                                                               xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
                                                                                overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
-                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
+                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],
+                                                                                  xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
 										  overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
-                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[k*verBlockSize+l],xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
+                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[k*verBlockSize+l],
+                                                                                   xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
 										   overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
                          
