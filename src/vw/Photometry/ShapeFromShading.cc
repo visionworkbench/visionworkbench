@@ -202,8 +202,11 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
-              int ii = kb*horBlockSize+k;
-              int jj = lb*verBlockSize+l;
+	      int ii = kb*verBlockSize+k; //row index for the entire image
+              int jj = lb*horBlockSize+l; //col index for the entire image
+
+              //local index in the vector that describes the block image; assumes row-wise concatenation.
+              int l_index = k*horBlockSize+l; 
 
               if ( is_valid(inputImage(jj,ii)) ) {
 
@@ -216,7 +219,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		int y = (int)input_dem_pix[1];
 
 		Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-                xyzArray[k*verBlockSize+l] = inputImg_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
+                xyzArray[l_index] = inputImg_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
               
 		Vector2 input_img_left_pix;
 		input_img_left_pix(0) = ii-1;
@@ -233,58 +236,61 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  Vector2 input_dem_left_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_left_pix));
 		  Vector2 lon_lat_left = inputImg_geo.pixel_to_lonlat(input_img_left_pix);
 		  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-              
-		  //Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);
 		  Vector3 xyz_left = inputImg_geo.datum().geodetic_to_cartesian(longlat3_left);
-                  xyzLEFTArray[k*verBlockSize+l] = xyz_left;
+                  xyzLEFTArray[l_index] = xyz_left;
 
 		  //determine the 3D coordinates of the pixel top of the current pixel
 		  Vector2 input_dem_top_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_top_pix));
 		  Vector2 lon_lat_top = inputImg_geo.pixel_to_lonlat(input_img_top_pix);
 		  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
 		  Vector3 xyz_top = inputImg_geo.datum().geodetic_to_cartesian(longlat3_top);
-                  xyzTOPArray[k*verBlockSize+l] = xyz_top;
+                  xyzTOPArray[l_index] = xyz_top;
 
 		  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-                  normalArray[k*verBlockSize+l] = computeNormalFrom3DPointsGeneral(xyzArray[k*verBlockSize+l], xyz_left, xyz_top);
-             
-		  reliefArray[k*verBlockSize+l] = ComputeReflectance(normalArray[k*verBlockSize+l], xyzArray[k*verBlockSize+l], inputImgParams, globalParams);
+                  normalArray[l_index] = computeNormalFrom3DPointsGeneral(xyzArray[l_index], xyz_left, xyz_top);
+            
+		  reliefArray[l_index] = ComputeReflectance(normalArray[l_index], xyzArray[l_index], inputImgParams, globalParams);
 		}
               }
           }
 
+	  //compute the jacobian and the error vector
           for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
-                int ii = kb*horBlockSize+k;
-                int jj = lb*verBlockSize+l;
+                int ii = kb*verBlockSize+k; //row index for the entire image
+                int jj = lb*horBlockSize+l; //col index for the entire image
 
-                int l_index = k*verBlockSize+l;
+                //local index in the vector that describes the block image; assumes row-wise concatenation.
+                int l_index = k*horBlockSize+l; 
 
                 Vector2 input_img_pix(jj,ii);
 
                 if ( is_valid(inputImage(jj,ii)) ) {
                    
                    //update from the main image        
-		  if (shadowImage(jj, ii) == 0){    
+		  if (shadowImage(jj, ii) == 0){
+		      float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;     
                       float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
 
-		      float reconstructDerivative = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
-                                                                            xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
+		      reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                                                                            xyzTOPArray[l_index], normalArray[l_index], 
                                                                             inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
                       jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
 
-                      float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
-                                                                               xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
-                                                                               inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+                      if (l_index > 0){
+			reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                                                                           xyzTOPArray[l_index], normalArray[l_index], 
+                                                                           inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
                       
-                      jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
-
-                      float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[k*verBlockSize+l], xyzLEFTArray[k*verBlockSize+l],
-                                                                                xyzTOPArray[k*verBlockSize+l], normalArray[k*verBlockSize+l], 
-                                                                                inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
-                      jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
-
+			jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
+		      }
+                      if (l_index > horBlockSize-1){
+			reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                                                                            xyzTOPArray[l_index], normalArray[l_index], 
+                                                                            inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+			jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-horBlockSize, l_index) + reconstructDerivativeLEFT*weight;
+		      }
                       float reconstructError = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, 
                                                                        (float)outputImage(jj, ii), reliefArray[l_index]);
 
@@ -316,24 +322,29 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                       //compute and update matrix for non shadow pixels
                       if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){    
                          float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+                         float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;    
 
 			 float reconstructError = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
                                                                           (float)outputImage(jj, ii), reliefArray[l_index]);
                          errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
 
-                         float reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],
-                                                                               xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
-                                                                               overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+                         reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                                                                         xyzTOPArray[l_index], normalArray[l_index], 
+                                                                         overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
-                         float reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[k*verBlockSize+l],
-                                                                                  xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
-										  overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-                         jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
-                         float reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[k*verBlockSize+l],
-                                                                                   xyzTOPArray[k*verBlockSize+l], normalArray[l_index], 
+
+                         if(l_index > 0){
+			   reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                                                                            xyzTOPArray[l_index], normalArray[l_index], 
+									    overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+			   jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
+                         }
+                         if(l_index > horBlockSize-1){
+			   reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[l_index],
+                                                                             xyzTOPArray[l_index], normalArray[l_index], 
 										   overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-                         jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-16, l_index) + reconstructDerivativeLEFT*weight;
-                         
+			   jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-horBlockSize, l_index) + reconstructDerivativeLEFT*weight;
+                         }
 		     }
 		  }
 		}
@@ -346,11 +357,14 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
          solve_symmetric_nocopy(rhs, lhs);
 
          //copy lhs to back meanDEM
+         //TO DO: FIX THIS!!!
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
-                int l_index = k*verBlockSize+l;
-                int ii = kb*horBlockSize+k;
-                int jj = lb*verBlockSize+l;
+                
+                int ii = kb*verBlockSize+k; //row index for the entire image
+                int jj = lb*horBlockSize+l; //col index for the entire image
+                //local index in the vector that describes the block image; assumes row-wise concatenation.
+                int l_index = k*horBlockSize+l; 
 	        meanDEM(jj, ii) = lhs(l_index);
 	   }
          }
