@@ -125,6 +125,7 @@ struct Options {
   PixelFormatEnum pixel_format;
   ChannelTypeEnum channel_type;
   int bottom_level;
+  bool skim_mode;
 
   string filter;
 
@@ -142,8 +143,9 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("file-type",        po::value(&opt.filetype),     "Output file type")
     ("mode",             po::value(&opt.mode),         "Output mode [toast, kml]")
     ("tile-size",        po::value(&opt.tile_size),    "Output size, in pixels")
-    ("filter",           po::value(&opt.filter),       "Filters to run")
+    ("filter",           po::value(&opt.filter),       "Filters to run [identity, toast_dem]")
     ("bottom-level",     po::value(&opt.bottom_level), "Bottom level to process")
+    ("skim-last-id-only", "Only process the last transaction id from the input")
     ("help,h",           "Display this help message.");
 
   po::variables_map vm;
@@ -154,8 +156,12 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     vw_throw(Usage() << "Error parsing input:\n\t" << e.what() << "\n" << options );
   }
 
-  if (opt.output_name.empty() || opt.input_name.empty() || opt.filter.empty())
-    vw_throw(Usage() << options);
+  opt.skim_mode = vm.count("skim-last-id-only");
+
+  if (opt.output_name.empty() || opt.input_name.empty())
+    vw_throw(Usage() << "Requires input and output defined!\n" << options);
+  if ( opt.filter.empty() )
+    vw_throw(Usage() << "Requires filter to be defined!\n" << options);
 }
 
 template <typename FilterT>
@@ -206,8 +212,13 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     float region_counter = 0;
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {
       std::cout << "\n\t--> Sub-region: " << region1 << "\n";
-      std::list<TileHeader> tiles = input.search_by_region(level, region1, 0, 
-                                                           input.transaction_cursor(), true);
+      std::list<TileHeader> tiles;
+      if ( !opt.skim_mode )
+        tiles = input.search_by_region(level, region1, 0,
+                                       input.transaction_cursor(), true);
+      else
+        tiles = input.search_by_region(level, region1, -1, -1, true);
+
       //      if (tiles.size() > 0)
       //      std::cout << "\t--> Region " << region1 << " has " << tiles.size() << " tiles.\n";
       std::ostringstream ostr;
