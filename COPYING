@@ -11,19 +11,16 @@ DISTRIBUTES, MODIFIES OR REDISTRIBUTES THE SUBJECT SOFTWARE, AS DEFINED
 HEREIN, OR ANY PART THEREOF, IS, BY THAT ACTION, ACCEPTING IN FULL THE
 RESPONSIBILITIES AND OBLIGATIONS CONTAINED IN THIS AGREEMENT.
 
-Government Agency: National Aeronautics and Space Administration (NASA)
+Government Agency: NASA Ames Research Center
 Government Agency Original Software Designation: ARC-15761-1
-Government Agency Original Software Title: NASA Vision Workbench
-User Registration Requested.  Please Contact POC.
-Government Agency Point of Contact for Original Software:
+Government Agency Original Software Title: Vision Workbench v2
+User Registration Requested.  Please Visit http://opensource.arc.nasa.gov/
+Government Agency Point of Contact for Original Software: Terry Fong
 
-  Terrence W. Fong
-  Laurence J. Edwards
-  NASA Ames Research Center
-  Mail Stop 269-3, Moffett Field, CA, 94035
-  vision-workbench-owner@lists.nasa.gov
 
-1. DEFINITIONS
+
+DEFINITIONS
+
 
 A. "Contributor" means Government Agency, as the developer of
    the Original Software, and any entity that makes a
@@ -50,8 +47,8 @@ F. "Modification" means any alteration of, including addition
    constitute a Modification.
 G. "Original Software" means the computer software first
    released under this Agreement by Government Agency with
-   Government Agency designation ARC-15761-1 and
-   entitled "NASA Vision Workbench", including source code, object
+   Government Agency designation NASA Ames Research Center and
+   entitled Vision Workbench v2, including source code, object
    code and accompanying documentation, if any.
 H. "Recipient" means anyone who acquires the Subject Software
    under this Agreement, including all Contributors.
@@ -66,7 +63,7 @@ L. "Subject Software" means the Original Software,
 M. "Use" means the application or employment of the Subject
    Software for any purpose.
 
-    2. GRANT OF RIGHTS
+    1. GRANT OF RIGHTS
 
             A. Under Non-Patent Rights: Subject to the terms and conditions
                of this Agreement, each Contributor, with respect to its own
@@ -108,7 +105,7 @@ M. "Use" means the application or employment of the Subject
                must be under the same terms and conditions of this
                Agreement.
 
-    3. OBLIGATIONS OF RECIPIENT
+    2. OBLIGATIONS OF RECIPIENT
 
             A. Distribution or Redistribution of the Subject Software must
                be made under this Agreement except for additions covered
@@ -128,9 +125,9 @@ M. "Use" means the application or employment of the Subject
             B. Each Recipient must ensure that the following copyright
                notice appears prominently in the Subject Software:
 
-               Copyright (C) 2006 United States Government as represented by the
-               Administrator of the National Aeronautics and Space Administration
-               (NASA).  All Rights Reserved.
+               Copyright (C) 2006-2010 United States Government as represented by
+               the Administrator of the National Aeronautics and Space Administration.
+               All Rights Reserved.
 
 
             C. Each Contributor must characterize its alteration of the
@@ -163,13 +160,13 @@ M. "Use" means the application or employment of the Subject
 
             F. In an effort to track usage and maintain accurate records of
                the Subject Software, each Recipient, upon receipt of the
-               Subject Software, is requested to provide Government Agency, by e-mail to the
-               Government Agency Point of Contact listed in clause 5.F., the
-               following information: Recipient's name and organization.  Recipient's name and
+               Subject Software, is requested to register with Government
+               Agency by visiting the following website:
+               http://opensource.arc.nasa.gov/.   Recipient's name and
                personal information shall be used for statistical purposes
                only. Once a Recipient makes a Modification available, it is
-               requested that the Recipient inform Government Agency, by e-mail to the
-               Government Agency Point of Contact listed in clause 5.F., how to access the Modification.
+               requested that the Recipient inform Government Agency at the
+               web site provided above how to access the Modification.
 
             G. Each Contributor represents that that its Modification is
                believed to be Contributor's original creation and does not
@@ -207,7 +204,7 @@ M. "Use" means the application or employment of the Subject
                be issued.  Nothing granted herein provides any such export
                license.
 
-    4. DISCLAIMER OF WARRANTIES AND LIABILITIES; WAIVER AND INDEMNIFICATION
+    3. DISCLAIMER OF WARRANTIES AND LIABILITIES; WAIVER AND INDEMNIFICATION
 
             A. No Warranty: THE SUBJECT SOFTWARE IS PROVIDED "AS IS" WITHOUT
                ANY WARRANTY OF ANY KIND, EITHER EXPRESSED, IMPLIED, OR
@@ -240,7 +237,7 @@ M. "Use" means the application or employment of the Subject
                IMMEDIATE, UNILATERAL TERMINATION OF THIS AGREEMENT.
 
 
-    5. GENERAL TERMS
+    4. GENERAL TERMS
 
             A. Termination: This Agreement and the rights granted hereunder
                will terminate automatically if a Recipient fails to comply
@@ -276,11 +273,8 @@ M. "Use" means the application or employment of the Subject
                all terms and conditions herein.
 
             F. Point of Contact: Any Recipient contact with Government
-               Agency is to be directed to the designated representatives as
+               Agency is to be directed to the designated representative as
                follows:
 
-  Terrence W. Fong
-  Laurence J. Edwards
-  NASA Ames Research Center
-  Mail Stop 269-3, Moffett Field, CA, 94035
-  vision-workbench-owner@lists.nasa.gov
+               Terry Fong
+               Terry.Fong@nasa.gov
