@@ -207,17 +207,17 @@ namespace vw {
     // streambuf.  In practice, characters are fed in batches using
     // xputn() below.
     virtual int_type overflow(int_type c) {
-      {
-        Mutex::Lock lock(m_mutex);
-        if(!traits::eq_int_type(c, traits::eof())) {
-          m_buffers[ Thread::id() ].push_back(c);
-        }
+      Mutex::Lock lock(m_mutex);
+      buffer_type& buffer = m_buffers[ Thread::id() ];
+
+      if(!traits::eq_int_type(c, traits::eof())) {
+        buffer.push_back(c);
       }
 
       // If the last character is a newline or cairrage return, then
       // we force a call to sync().
       if ( c == '\n' || c == '\r' )
-        sync();
+        locked_sync(buffer);
       return traits::not_eof(c);
     }
 
