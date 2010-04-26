@@ -529,9 +529,9 @@ void PlateModule::connect_index() {
 
   m_client.reset( new AmqpRpcClient(conn, exchange, m_queue_name, "index") );
 
-  // Needs to respond in five seconds
-  m_client->timeout(1000);
-  m_client->tries(5);
+  // Total possible wait is timeout*tries
+  m_client->timeout(m_conf->index_timeout);
+  m_client->tries(m_conf->index_tries);
 
   m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
   m_client->bind_service(m_index_service, m_queue_name);

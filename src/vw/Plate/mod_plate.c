@@ -75,12 +75,25 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
     (void)null; \
     plate_config *cfg = get_plate_config_mutable(cmd->server);\
     cfg->key = arg;\
-    const char *error = check(arg);\
+    const char *error = check(cfg->key);\
     if (error)\
       return error;\
     ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);\
     return NULL;\
   }
+
+#define ADD_INT_CONFIG(key, check) \
+  static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
+    plate_config *cfg = get_plate_config_mutable(cmd->server);\
+    cfg->key = atoi(arg);\
+    const char *error = check(cfg->key);\
+    if (error)\
+      return error;\
+    ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);\
+    return NULL;\
+  }
+
+
 
 const char* is_ip_address(const char* arg) {
     // really stupid heuristic
@@ -119,10 +132,18 @@ const char* is_servername(const char* arg) {
   return NULL;
 }
 
+const char* is_gt_zero(int arg) {
+  if (arg < 1)
+    return "Expected a number greater than zero";
+  return NULL;
+}
+
 ADD_STRING_CONFIG(rabbit_ip, is_ip_address);
 ADD_STRING_CONFIG(index_exchange, is_bare_exchange);
 ADD_STRING_CONFIG(dem_id, is_platefile_id);
 ADD_STRING_CONFIG(servername, is_servername);
+ADD_INT_CONFIG(index_timeout, is_gt_zero);
+ADD_INT_CONFIG(index_tries, is_gt_zero);
 
 
 static const command_rec my_cmds[] = {
@@ -131,6 +152,8 @@ static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateDemID",         handle_dem_id,         NULL, RSRC_CONF, "The platefile ID of the DEM layer to use"),
   AP_INIT_TAKE1("PlateServerName",    handle_servername,     NULL, RSRC_CONF, "The servername to use for the server in the WTML"),
   AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
+  AP_INIT_TAKE1("PlateIndexTimeout",  handle_index_timeout,  NULL, RSRC_CONF, "How long to wait for the index_server to respond"),
+  AP_INIT_TAKE1("PlateIndexTries",    handle_index_tries,    NULL, RSRC_CONF, "How many times to try talking to the index_server"),
   { NULL }
 };
 
@@ -143,6 +166,8 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   conf->index_exchange = DEV_INDEX_BARE;
   conf->dem_id         = NULL;
   conf->servername     = NULL;
+  conf->index_timeout  = 3000;
+  conf->index_tries    = 3;
   conf->rules = apr_array_make(p, 8, sizeof(rule_entry));
   return conf;
 }

@@ -28,6 +28,8 @@ typedef struct {
   const char *index_exchange;
   const char *dem_id;
   const char *servername;
+  int index_timeout;
+  int index_tries;
   apr_array_header_t *rules; // This holds rule_entries
 } plate_config;
 
