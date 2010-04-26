@@ -154,7 +154,7 @@ the true location of the point $O$.
 classes take and return coordinates that are {\em not} homogeneous.
 That is, coordinates do not need to augmented with an additional
 homogeneous scaling element before being passed to camera module
-routines (e.g. a 2D vector $(325, 206)$ in cartesian coordinates is
+routines (e.g. a 2D vector $(325, 206)$ in Cartesian coordinates is
 often represented as $(325, 206, 1)$ in homogeneous coordinates).
 Homogeneous coordinates have certain advantages in projective geometry
 (e.g. they allow a translation of the coordinates to be encoded as a
@@ -175,7 +175,7 @@ The list of built-in models are summarized in Table
 \ref{tab:camera-models}.  The following sections describes the two
 basic classes of built-in camera model: those that model pinhole
 cameras (where the imager is a 2D array of pixels), and those that
-model linescan cameras (where the imager is a 1D line of pixels).
+model line-scan cameras (where the imager is a 1D line of pixels).
 
 \begin{table}[tdp]
 \begin{center}
@@ -184,9 +184,9 @@ model linescan cameras (where the imager is a 1D line of pixels).
 {\em Camera Model} & {\em Header File} & {\em Imager Type} & {\em Details}\\
 \hline CAHV         & {\tt CAHVModel.h} & Pinhole     & Basic pinhole camera model \\
 CAHVOR       & {\tt CAHVORModel.h} & Pinhole     & Models lens distortion\\
-Linescane     & {\tt LinescanCameraModel.h} & Linescan & Generic Linescan Model \\
-Linear Pushbroom    & {\tt LinearPushbroomModel.h} & Linescan & Assumes linear flight path \\
-Orbiting Pushbroom & {\tt OrbitingPushbroomModel.h} & Linescan & Models curvature of orbit \\
+Line-scan     & {\tt LinescanCameraModel.h} & Line-scan & Generic Line-scan Model \\
+Linear Push-broom    & {\tt LinearPushbroomModel.h} & Line-scan & Assumes linear flight path \\
+Orbiting Push-broom & {\tt OrbitingPushbroomModel.h} & Line-scan & Models curvature of orbit \\
 \hline
 \end{tabular}
 \end{center}
@@ -222,7 +222,7 @@ First, they can construct the object by directly supplying four
 
 Alternatively, users seeking to use the CAHV class as a general purpose pinhole
 camera model may find it easier to use the more verbose constructor
-wherein the camera extrinsics and intrinsics are explicitly supplied.
+wherein the camera extrinsic and intrinsics are explicitly supplied.
 
 \begin{verbatim}
   double focal_length;
@@ -245,9 +245,9 @@ camera lens.
 Refer the Doxygen-generated API documentation for more information
 about constructing CAHV and CAHVOR camera models.
 
-\subsection{Linescan Cameras}
+\subsection{Line-scan Cameras}
 
-Linescan imagers capture images using a sensor containing a
+Line-scan imagers capture images using a sensor containing a
 1-dimensional array of pixels.  The image is formed by capturing
 successive scan-lines as the camera platform is rotated or moved.  For
 example, a flat-bed scanner or photocopier is a familiar example of
@@ -256,40 +256,40 @@ direction along the document, composing the final image by
 concatenating several thousand adjacent 1-dimensional images taken at
 evenly spaced positions.
 
-Linescan sensors are fairly uncommon in commercial camera systems, but
+Line-scan sensors are fairly uncommon in commercial camera systems, but
 they appear frequently on satellites that capture photographs of
 terrain from orbit.  The orbital motion of the satellite is used in
 much the same way as the motion of the sensor in the photocopier; the
 {\em across-track} dimension of the image corresponds to the
 projection of 3D points through the lens onto the sensor, and the
-along-track dimension of the image corresponds to successive scanlines
+along-track dimension of the image corresponds to successive scan lines
 taken at different times as the satellite moves.
 
 \begin{figure}[tbp]
 \begin{center}
   \includegraphics[width=6in]{images/linescan_geometry.pdf}
  \end{center}
-  \caption{Geometry of the Linescan Camera Model.}
+  \caption{Geometry of the Line-scan Camera Model.}
   \label{fig:linescan-geometry}
 \end{figure}
 
-The geometry of the linescan imager is subtly different from the
+The geometry of the line-scan imager is subtly different from the
 geometry of the pinhole camera.  See Figure
 \ref{fig:linescan-geometry}.  Although there is still a center of
 projection created by the camera's optics (and points are still imaged
 using a perspective projection in the across-track direction), this
 point moves as the camera moves, and as a result, the along-track
-position of a pixel in a linescan image is purely a function of the
+position of a pixel in a line-scan image is purely a function of the
 position and orientation of the camera; both a function of time.  The
 orientation of the image (in the sense that $u$ indexes the columns of
 an image and $v$ indexes its rows) must be chosen consistent with
 Figure \ref{fig:linescan-geometry} when working with
 \verb#LinescanModel# and its relatives.
 
-In the special case where the motion of the linescan sensor is linear
+In the special case where the motion of the line-scan sensor is linear
 and its orientation is fixed, the projection of the points onto the
 image in the along-track direction is orthographic.  These assumptions
-are the basis for the {\em Linear Pushbroom Model}, which can be found
+are the basis for the {\em Linear Push-broom Model}, which can be found
 in the header file \verb#<vw/Camera/LinearPushbroomModel.h>#.  If you
 are interested in understanding this model in detail, we recommend you
 read the excellent paper by Gupta and Hartly \cite{gupta97}.
@@ -297,8 +297,8 @@ read the excellent paper by Gupta and Hartly \cite{gupta97}.
 If you must relax the assumption about a linear flight path somewhat
 to allow sensor pose to vary and the camera motion to lie along a
 curve (as is common with orbiting camera systems), the {\em Orbiting
-  Pushbroom Model} is an appropriate choice.  In the Orbiting
-Pushbroom model, the user supplies a series of evenly spaced samples
+  Push-broom Model} is an appropriate choice.  In the Orbiting
+Push-broom model, the user supplies a series of evenly spaced samples
 of position and orientation and specifies the time interval (in
 seconds) between samples.  A sparse set of samples is sufficient for
 this model: interpolation occurs for points in between the supplied
@@ -326,7 +326,7 @@ Digital cameras store data about the settings used to take a picture
 in the image file according to the EXIF standard \cite{exif}. EXIF
 data is stored using the Image File Directory system described in the
 TIFF 6.0 standard.  EXIF tags such as {\tt FNumber} and
-{\tt ExposureTime} can be useful for radiometrically calibrating your
+{\tt Exposure Time} can be useful for radiometrically calibrating your
 camera images.  Unfortunately the standard is redundant and often
 poorly supported by camera manufacturers (for example, many hide the
 ISO setting in the maker note instead of storing it in the

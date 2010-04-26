@@ -288,9 +288,9 @@ Function & Description & Function & Description \\ \hline \hline
 \verb#sqrt# & Square root, $\sqrt{x}$ & \verb#pow# & Power function, $x^y$ \\ \hline
 \hline
 \verb#asinh# & Inverse hyperbolic sine, $\sinh^{-1} x$ & \verb#acosh# & Inverse hyperbolic cosine, $\cosh^{-1} x$ \\ \hline
-\verb#atanh# & Inverse hyberbolic tangent, $\tanh^{-1} x$ & \verb#cbrt# & Cube root, $\sqrt[3]{x}$ \\ \hline
+\verb#atanh# & Inverse hyperbolic tangent, $\tanh^{-1} x$ & \verb#cbrt# & Cube root, $\sqrt[3]{x}$ \\ \hline
 \verb#exp2# & Base-2 exponential, $2^x$ & \verb#expm1# & Exponential minus 1, $e^x-1$ \\ \hline
-\verb#log2# & Base-2 logarithm, $\log_2 x$ & \verb#log1p# & Lograithm of one-plus, $\ln (1+x)$ \\ \hline
+\verb#log2# & Base-2 logarithm, $\log_2 x$ & \verb#log1p# & Logarithm of one-plus, $\ln (1+x)$ \\ \hline
 \verb#tgamma# & Gamma function, $\Gamma(x)$ & \verb#lgamma# & Log of Gamma function, $\ln |\Gamma(x)|$ \\ \hline
 \verb#hypot# & Hypotenuse, $\sqrt{x^2+y^2}$ & \verb#copysign# & Sign-copying function \\ \hline
 \verb#round# & Rounding function & \verb#trunc# & Floating-point truncation \\ \hline
@@ -448,18 +448,18 @@ Function & Description \\ \hline \hline
 \verb#vector *= scalar# & Scalar product assignment \\ \hline
 \verb#vector /= scalar# & Scalar quotient assignment \\ \hline
 \hline
-\verb#elem_sum(vector,vector)# & Elementwise vector sum (same as \verb#+# operator) \\ \hline
-\verb#elem_sum(vector,scalar)# & Elementwise sum of a vector and a scalar \\ \hline
-\verb#elem_sum(scalar,vector)# & Elementwise sum of a scalar and a vector \\ \hline
-\verb#elem_diff(vector,vector)# & Elementwise vector difference (same as \verb#-# operator) \\ \hline
-\verb#elem_diff(vector,scalar)# & Elementwise difference of a vector and a scalar \\ \hline
-\verb#elem_diff(scalar,vector)# & Elementwise difference of a scalar and a vector \\ \hline
-\verb#elem_prod(vector,vector)# & Elementwise product of two vectors \\ \hline
-\verb#elem_prod(vector,scalar)# & Elementwise vector product (same as \verb#*# operator) \\ \hline
-\verb#elem_prod(scalar,vector)# & Elementwise vector product (same as \verb#*# operator) \\ \hline
-\verb#elem_quot(vector,vector)# & Elementwise quotient of two vectors \\ \hline
-\verb#elem_quot(vector,scalar)# & Elementwise quotient (same as \verb#/# operator) \\ \hline
-\verb#elem_quot(scalar,vector)# & Elementwise quotient of a scalar and a vector \\ \hline
+\verb#elem_sum(vector,vector)# & Element-wise vector sum (same as \verb#+# operator) \\ \hline
+\verb#elem_sum(vector,scalar)# & Element-wise sum of a vector and a scalar \\ \hline
+\verb#elem_sum(scalar,vector)# & Element-wise sum of a scalar and a vector \\ \hline
+\verb#elem_diff(vector,vector)# & Element-wise vector difference (same as \verb#-# operator) \\ \hline
+\verb#elem_diff(vector,scalar)# & Element-wise difference of a vector and a scalar \\ \hline
+\verb#elem_diff(scalar,vector)# & Element-wise difference of a scalar and a vector \\ \hline
+\verb#elem_prod(vector,vector)# & Element-wise product of two vectors \\ \hline
+\verb#elem_prod(vector,scalar)# & Element-wise vector product (same as \verb#*# operator) \\ \hline
+\verb#elem_prod(scalar,vector)# & Element-wise vector product (same as \verb#*# operator) \\ \hline
+\verb#elem_quot(vector,vector)# & Element-wise quotient of two vectors \\ \hline
+\verb#elem_quot(vector,scalar)# & Element-wise quotient (same as \verb#/# operator) \\ \hline
+\verb#elem_quot(scalar,vector)# & Element-wise quotient of a scalar and a vector \\ \hline
 \hline
 \verb#norm_1(vector)# & 1-norm of a vector, i.e. $\sum |v_i|$ \\ \hline
 \verb#norm_2(vector)# & Euclidean 2-norm of a vector, i.e. $\sqrt{\sum v_i^2}$ \\ \hline
@@ -478,7 +478,7 @@ Function & Description \\ \hline \hline
 The \verb#Vector# classes support the standard mathematical operations
 of vector addition and subtraction and scalar multiplication and
 division via the usual C++ operators.  They also support the a range
-of elementwise mathematical operations, such as adding a scalar to
+of element-wise mathematical operations, such as adding a scalar to
 each element or multiplying the corresponding elements of two vectors,
 via functions of the form \verb#elem_*#.  There are a number of vector
 norms and related functions, as well as a vector dot product and cross
@@ -618,18 +618,18 @@ Function & Description \\ \hline \hline
 \verb#matrix * vector# & Matrix-vector product \\ \hline
 \verb#vector * matrix# & Vector-matrix product \\ \hline
 \hline
-\verb#elem_sum(matrix,matrix)# & Elementwise matrix sum (same as \verb#+# operator) \\ \hline
-\verb#elem_sum(matrix,scalar)# & Elementwise sum of a matrix and a scalar \\ \hline
-\verb#elem_sum(scalar,matrix)# & Elementwise sum of a scalar and a matrix \\ \hline
-\verb#elem_diff(matrix,matrix)# & Elementwise matrix difference (same as \verb#-# operator) \\ \hline
-\verb#elem_diff(matrix,scalar)# & Elementwise difference of a matrix and a scalar \\ \hline
-\verb#elem_diff(scalar,matrix)# & Elementwise difference of a scalar and a matrix \\ \hline
-\verb#elem_prod(matrix,matrix)# & Elementwise product of two matrices \\ \hline
-\verb#elem_prod(matrix,scalar)# & Elementwise matrix product (same as \verb#*# operator) \\ \hline
-\verb#elem_prod(scalar,matrix)# & Elementwise matrix product (same as \verb#*# operator) \\ \hline
-\verb#elem_quot(matrix,matrix)# & Elementwise quotient of two matrixs \\ \hline
-\verb#elem_quot(matrix,scalar)# & Elementwise quotient (same as \verb#/# operator) \\ \hline
-\verb#elem_quot(scalar,matrix)# & Elementwise quotient of a scalar and a matrix \\ \hline
+\verb#elem_sum(matrix,matrix)# & Element-wise matrix sum (same as \verb#+# operator) \\ \hline
+\verb#elem_sum(matrix,scalar)# & Element-wise sum of a matrix and a scalar \\ \hline
+\verb#elem_sum(scalar,matrix)# & Element-wise sum of a scalar and a matrix \\ \hline
+\verb#elem_diff(matrix,matrix)# & Element-wise matrix difference (same as \verb#-# operator) \\ \hline
+\verb#elem_diff(matrix,scalar)# & Element-wise difference of a matrix and a scalar \\ \hline
+\verb#elem_diff(scalar,matrix)# & Element-wise difference of a scalar and a matrix \\ \hline
+\verb#elem_prod(matrix,matrix)# & Element-wise product of two matrices \\ \hline
+\verb#elem_prod(matrix,scalar)# & Element-wise matrix product (same as \verb#*# operator) \\ \hline
+\verb#elem_prod(scalar,matrix)# & Element-wise matrix product (same as \verb#*# operator) \\ \hline
+\verb#elem_quot(matrix,matrix)# & Element-wise quotient of two matrixes \\ \hline
+\verb#elem_quot(matrix,scalar)# & Element-wise quotient (same as \verb#/# operator) \\ \hline
+\verb#elem_quot(scalar,matrix)# & Element-wise quotient of a scalar and a matrix \\ \hline
 \hline
 \verb#norm_1(matrix)# & Matrix 1-norm \\ \hline
 \verb#norm_2(matrix)# & Matrix 2-norm \\ \hline
@@ -649,7 +649,7 @@ Function & Description \\ \hline \hline
 
 Once you've made one or more matrices you can use a wide range of 
 mathematical operator and functions to manipulate them.  The 
-standard C++ operators, elementwise math functions, and a number 
+standard C++ operators, element-wise math functions, and a number 
 of other functions similar to those for vectors are supported.  A 
 list of the matrix math functions is given in Table~\ref{tbl:matrix-functions}.
 Notice that some of these functions also operate with vectors: 
@@ -823,7 +823,7 @@ shows the built-in interpolation types.
 Type & Description \\ \hline \hline
 \verb#NearestPixelInterpolation# & Use the nearest integer valued pixel location \\ \hline
 \verb#Bilinear Interpolation# & Linearly interpolation based on the four nearest pixel values \\ \hline
-\verb#Bicubic Interpolation# & Quadritic interpolation based on the nine nearest pixel values \\ \hline
+\verb#Bicubic Interpolation# & Quadratic interpolation based on the nine nearest pixel values \\ \hline
 \end{tabular}
 \caption{The Vision Workbench Interpolation Modes.}
 \label{tbl:interpolation-modes}
@@ -998,7 +998,7 @@ in question.
 Finally, we would like to point out the existence of the
 \verb#RadialTransformAdaptor# class.  This class is useful when it is
 easier or more natural to describe a transformation in terms of polar
-coordinates $[r,\theta]$ instead of the usual cartesian coordinates
+coordinates $[r,\theta]$ instead of the usual Cartesian coordinates
 $[u, v]$.
 
 To use \verb#RadialTransformAdaptor#, you write your transform functor
@@ -1020,8 +1020,8 @@ equal to the distance from the center to the left edge of the image.
 \section{Pixel Mask}
 
 At this point is best to introduce a new pixel type,
-\verb#PixelMask#. It was convientantly hidden from the previous
-chapter as it is not exactly just another pixel type. It does infact
+\verb#PixelMask#. It was conveniently hidden from the previous
+chapter as it is not exactly just another pixel type. It does in fact
 though still have that same blue collar past of the others from
 Table~\ref{tbl:pixel-types} and that means all operations the previous
 Pixel types could do, \verb#PixelMask# can do as
@@ -1046,7 +1046,7 @@ this. Yet it has one ability that an alpha channel does not. The state
 of a \verb#PixelMask# being invalid is quite like the 'T' virus from
 \emph{Resident Evil} fame. It spreads to all other \verb#PixelMask#s
 it is operated with. Meaning that given an image that has bad
-pixels in it, they can be labelled as invalid and will remain so
+pixels in it, they can be labeled as invalid and will remain so
 through all operations.
 
 A \verb#PixelMask# passes all of it access functions on to its inner
@@ -1085,7 +1085,7 @@ Table~\ref{tbl:pixel-mask-image-ops}.
 \begin{table}[htb]\begin{centering}
 \begin{tabular}{|c|p{5 in}|} \hline
 Function & Description \\ \hline \hline
-\verb#create_mask(im,s)# & Given a non \verb#PixelMask# view \verb#im#, returns an \verb#ImageView# of type \verb#PixelMask#. Pixels of valud \verb#s# are listed as invalid. \\ \hline 
+\verb#create_mask(im,s)# & Given a non \verb#PixelMask# view \verb#im#, returns an \verb#ImageView# of type \verb#PixelMask#. Pixels of valid \verb#s# are listed as invalid. \\ \hline 
 \verb#create_mask(im,lo,hi)# & As previously, except \verb#lo# and \verb#hi# describe the valid pixel range. Pixels outside of that range are listed as invalid. \\ \hline
 \verb#apply_mask(im,s)# & This removes the \verb#PixelMask# type, and replaces invalid pixels with a value \verb#s#. \\ \hline
 \verb#copy_mask(im,mask)# & Copies an image \verb#mask#'s transparency on to an image \verb#im# of non-\verb#PixelMask# type. \\ \hline

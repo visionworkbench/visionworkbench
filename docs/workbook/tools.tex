@@ -1,6 +1,6 @@
 \chapter{Tools}\label{ch:tools}
 
-VisionWorkbench has various tools that are handy for working with graphics. The tools can be found in the \verb#VisionWorkbench/src/vw/tools# folder.
+Vision Workbench has various tools that are handy for working with graphics. The tools can be found in the \verb#VisionWorkbench/src/vw/tools# folder.
 
 \section{{\tt colormap}}\label{sec:colormap}
 
@@ -39,7 +39,7 @@ disparities between the images. Again the Stereo Module demos results
 that can be created with \verb#correlate# in Figure
 \ref{fig:disparity-example}.
 
-All commands to \verb#correlate# must be explict (as there are no
+All commands to \verb#correlate# must be explicit (as there are no
 positional inputs). An example of using the tool is given below.
 
 \begin{verbatim}
@@ -100,7 +100,7 @@ Option & Description \\ \hline \hline
 \verb#--help# & Display a help message\\ \hline
 \verb#--input-file arg# & Explicitly specify the input file\\ \hline
 \verb#-o [ --output-file ] arg# & Specify the output file\\ \hline
-\verb#-a [ --azimuth ] arg (=0)# & Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.\\ \hline
+\verb#-a [ --azimuth ] arg (=0)# & Sets the direction that the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.\\ \hline
 \verb#-e [ --elevation ] arg (=45)# & Set the elevation of the light source (in degrees)\\ \hline
 \verb#-s [ --scale ] arg (=0)# & Set the scale of a pixel (in the same units as the DTM height values\\ \hline
 \verb#--nodata-value arg# & Remap the DEM default value to the min altitude value\\ \hline
@@ -262,7 +262,7 @@ The \verb#ipfind# tool processes images for interest points. Interest points are
 
 The \verb#--interest-operator# option allows for the user to change the algorithm used to detect interest points. \verb#[LoG]# is the simplest and also the slowest, but is often pretty reliable. All method work to some extent by identify points where the image gradients all point inwardly as on a hill. They also identify the polar opposite, all gradients pointing away.
 
-The \verb#--descriptor-genetator# option allows for the user to change the algorithm use to describe an interest point. Interest points are described so that they may have a unique identity so that they maybe located in different images. \verb#[patch]# is the simplist descriptor, as it is actually the image cropped around an interest point. 
+The \verb#--descriptor-genetator# option allows for the user to change the algorithm use to describe an interest point. Interest points are described so that they may have a unique identity so that they maybe located in different images. \verb#[patch]# is the simplest descriptor, as it is actually the image cropped around an interest point. 
 
 The result of \verb#ipfind# is a special file called a \emph{Vision Workbench interest point file}, and it has the extension \verb#.vwip#. The \emph{Interest Point Module} (Chapter~\ref{ch:interestpoint-module}) contains routines that can open and process such files.
 
@@ -278,23 +278,23 @@ Usage: \verb#ipfind [options] <image files>...#. Other command line arguments ar
 \hline
 Option & Description \\ \hline \hline
 \verb#--help# & Display this table\\ \hline
-\verb#--num-threads arg (=0)# & Set the number of theads for interest point detection. Setting the num\_threads to zero causes ipfind to use the visionworkbench default number of threads.\\ \hline
+\verb#--num-threads arg (=0)# & Set the number of threads for interest point detection. Setting the num\_threads to zero causes ipfind to use the vision workbench default number of threads.\\ \hline
 \verb#-t [ --tile-size ] arg (=2048)# & Specify the tile size for processing interest points. (Useful when working with large images).\\ \hline
 \verb#-l [ --lowe]# & Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.\\ \hline
 \verb#-d [ --debug-image ]# & Write out debug images. This will highlight the found interest points.\\ \hline
 \verb#--interest-operator arg (=LoG)# & Choose an interest point metric from [LoG, Harris].\\ \hline
 \verb#--log-threshold arg (=0.03)# & Sets the threshold for the Laplacian of Gaussian interest operator.\\ \hline
 \verb#--harris-threshold arg (=1e-5)# & Sets the threshold for the Harris interest operator.\\ \hline
-\verb#--max-points arg (=0)# & Sets the maximum number of interest points you want returned. The most \"interesting\" poibts are selected.\\ \hline
+\verb#--max-points arg (=0)# & Sets the maximum number of interest points you want returned. The most \"interesting\" points are selected.\\ \hline
 \verb#--single-scale# & Turn off scale-invariant interest point detection. This option only searches for interest points in the first octave of the scale space. This means faster operation at a cost of quality.\\ \hline
 \verb#--descriptor-generator arg (=patch)# & Choose a descriptor generator from [patch,pca].\\ \hline
 \end{longtable}
 
 
 \section{{\tt ipmatch}}\label{sec:ipmatch}
-The \verb#ipmatch# tool processes images for interest points and matches them across images pair wise. It exactly one step longer than the \verb#ipfind# tool. This tool will load up the images and their corresponding \verb#.vwip# files and will run a matching algorithm looking for interest points with similair descriptors. If a corresponding \verb#.vwip# file can not be found for an input image, \verb#ipmatch# will actually call \verb#ipfind# using the default settings to create a interest point file.
+The \verb#ipmatch# tool processes images for interest points and matches them across images pair wise. It exactly one step longer than the \verb#ipfind# tool. This tool will load up the images and their corresponding \verb#.vwip# files and will run a matching algorithm looking for interest points with similar descriptors. If a corresponding \verb#.vwip# file can not be found for an input image, \verb#ipmatch# will actually call \verb#ipfind# using the default settings to create a interest point file.
 
-To filter out mismatched interest points, a RANSAC method is used. The fitting functor used to determine if a match is valid or not can be selected via the \verb#--ransac-constraint# option. The options available are transform matrices with varing degrees of freedom.
+To filter out mismatched interest points, a RANSAC method is used. The fitting functor used to determine if a match is valid or not can be selected via the \verb#--ransac-constraint# option. The options available are transform matrices with varying degrees of freedom.
 
 The result of \verb#ipmatch# is a special file called a \emph{Vision Workbench match file}, and it has the extension \verb#.vwip#. The \emph{Interest Point Module} (Chapter~\ref{ch:interestpoint-module}) contains routines that can open and process such files.
 
@@ -340,7 +340,7 @@ Usage: \verb#slopemap [options] <input file>#. Other command line arguments are 
 \hline
 Options & Description\\ \hline \hline
 \verb#--help# & Display this help message\\ \hline
-\verb#--input file arg# & Explcitly specify the input file\\ \hline
+\verb#--input file arg# & Explicitly specify the input file\\ \hline
 \verb#-o [ --output-prefix ]# & Output prefix\\ \hline
 \verb#--no-aspect# & Do not output aspect (\verb#[output-prefix]_aspect.tif#)\\ \hline
 \verb#--no-gradient# & Do not output gradient (\verb#[output-prefix]_gradient.tif#)\\ \hline

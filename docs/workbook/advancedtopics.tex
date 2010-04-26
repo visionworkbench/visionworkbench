@@ -39,16 +39,16 @@ And this:
 \end{verbatim}
 
 For simple operations such as addition, the introduction of a
-temporary image like this can be terribly inneficient because it
+temporary image like this can be terribly inefficient because it
 causes a large, image-sized block of memory to be allocated and
 deallocated, and it requires a second pass over the data.  
 
 It is more efficient to allocate a single temporary
 \verb#PixelGray<uint8>#; using it as you iterate over the image
 computing the result one pixel at a time.  This is how a hand-coded
-implementation would be written by a cognisant programmer.
+implementation would be written by a cognizant programmer.
 
-To avoid such enefficiencies, the Vision Workbench resorts to {\em
+To avoid such inefficiencies, the Vision Workbench resorts to {\em
   lazy evaluation}; postponing operations on {\em Views} until the
 last possible moment before the result is needed.  For example,
 applying the addition operator to a pair of images does not
@@ -87,7 +87,7 @@ containing a sum object plus an image, and so on.  In this fashion, a
 series of image processing operations builds up a {\em View Tree} that
 can represent an extensive chain of operations.  The tree of
 operations are collapsed into the inner loop when they are rasterized,
-allowing the compiler to efficiently allocate small tempories.
+allowing the compiler to efficiently allocate small temporaries.
 Rasterization is also an opportunity to make decisions about how to
 optimize the image processing operations.  For example, it may
 actually be {\em more} efficient in some cases to introduce an entire
