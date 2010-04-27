@@ -15,7 +15,6 @@
 // will be disabled by default.  Re-enable them if you want to do some
 // plateindex_server testing. -mbroxton
 
-#include <cxxtest/TestSuite.h>
 
 #include <vw/Plate/Index.h>
 

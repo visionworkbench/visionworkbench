@@ -11,17 +11,16 @@
 
 if MAKE_MODULE_PLATE
 
-TestBlobManager_SOURCES       = TestBlobManager.oldtest
-TestBlobIO_SOURCES            = TestBlobIO.oldtest
-TestBlobIterator_SOURCES      = TestBlobIterator.oldtest
-TestIndexPage_SOURCES         = TestIndexPage.oldtest
-TestLocalIndex_SOURCES        = TestLocalIndex.oldtest
-TestAmqp_SOURCES              = TestAmqp.oldtest
-TestTileManipulation_SOURCES  = TestTileManipulation.oldtest
-#TestPlateIndexServer_SOURCES = TestPlateIndexServer.oldtest
+TestBlobManager_SOURCES       = TestBlobManager.cxx
+TestBlobIO_SOURCES            = TestBlobIO.cxx
+TestIndexPage_SOURCES         = TestIndexPage.cxx
+TestLocalIndex_SOURCES        = TestLocalIndex.cxx
+TestAmqp_SOURCES              = TestAmqp.cxx
+TestTileManipulation_SOURCES  = TestTileManipulation.cxx
+#TestPlateIndexServer_SOURCES = TestPlateIndexServer.cxx
 
-TESTS = TestBlobManager TestBlobIO TestBlobIterator TestLocalIndex \
-		TestIndexPage TestAmqp TestTileManipulation
+TESTS = TestBlobManager TestBlobIO TestLocalIndex \
+        TestIndexPage TestAmqp TestTileManipulation
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -31,11 +30,11 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
+AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@ @PKG_PLATE_LIBS@
 
 check_PROGRAMS = $(TESTS)
-CLEANFILES = $(TESTS:%=%.cxx)
+CLEANFILES =
 
 include $(top_srcdir)/config/rules.mak
-include $(top_srcdir)/config/tests_old.am
+include $(top_srcdir)/config/tests.am

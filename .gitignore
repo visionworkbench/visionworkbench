@@ -64,7 +64,6 @@ Makefile.in
 /src/vw/Geometry/tests/*.cxx
 /src/vw/HDR/tests/*.cxx
 /src/vw/Mosaic/tests/*.cxx
-/src/vw/Plate/tests/*.cxx
 
 # Everything else
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment
