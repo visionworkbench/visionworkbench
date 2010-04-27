@@ -64,9 +64,6 @@ namespace platefile {
     /// Returns the metadata (i.e. BlobRecord) for a blob entry.
     BlobRecord read_blob_record(uint16 &blob_record_size) const;
 
-    /// Returns the binary data for an entry starting at base_offset.
-    boost::shared_array<uint8> read_data(vw::uint64 base_offset);
-
     // End-of-file point manipulation.
     void write_end_of_file_ptr(uint64 ptr);
     uint64 read_end_of_file_ptr() const;
@@ -211,6 +208,9 @@ namespace platefile {
       return header;
     }
 
+    /// Returns the binary data for an entry starting at base_offset.
+    boost::shared_array<uint8> read_data(vw::uint64 base_offset, vw::uint64& data_size);
+
     /// Returns the parameters necessary to call sendfile(2)
     void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);
 
@@ -273,7 +273,7 @@ namespace platefile {
 
 
     /// Read data out of the blob and save it as its own file on disk.
-    void read_to_file(std::string dest_file, vw::int64 offset);
+    void read_to_file(std::string dest_file, vw::uint64 offset);
 
     /// Write the data file to disk, and the concatenate it into the data blob.
     template <class ProtoBufT>

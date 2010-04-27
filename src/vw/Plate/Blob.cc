@@ -49,18 +49,18 @@ vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_rec
 }
 
 /// read_data()
-boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset) {
+boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset, vw::uint64& data_size) {
 
-  vw::uint64 offset, size;
+  vw::uint64 offset;
   std::string dontcare;
 
-  read_sendfile(base_offset, dontcare, offset, size);
+  read_sendfile(base_offset, dontcare, offset, data_size);
 
   // Allocate an array of the appropriate size to read the data.
-  boost::shared_array<uint8> data(new uint8[size]);
+  boost::shared_array<uint8> data(new uint8[data_size]);
 
   m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read((char*)(data.get()), size);
+  m_fstream->read((char*)(data.get()), data_size);
 
   // Throw an exception if the read operation failed (after clearing the error bit)
   if (m_fstream->fail()) {
@@ -69,7 +69,7 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
              << "data from the blob file.\n");
   }
 
-  WHEREAMI << "read " << size << " bytes at " << offset
+  WHEREAMI << "read " << data_size << " bytes at " << offset
            << " from " << m_blob_filename << "\n";
   return data;
 }
@@ -230,9 +230,9 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
 }
 
 /// Read data out of the blob and save it as its own file on disk.
-void vw::platefile::Blob::read_to_file(std::string dest_file, int64 offset) {
-  boost::shared_array<uint8> data = this->read_data(offset);
-  uint32 size = this->data_size(offset);
+void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
+  uint64 size;
+  boost::shared_array<uint8> data = this->read_data(offset, size);
 
   // Open the dest_file and write to it.
   std::ofstream ostr(dest_file.c_str(), std::ios::binary);
