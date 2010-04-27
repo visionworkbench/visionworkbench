@@ -37,6 +37,18 @@ namespace vw {
 
 using namespace ::testing;
 
+#ifndef TEST_SRCDIR
+#error TEST_SRCDIR is not defined! Define it before including this header.
+#endif
+
+// Create a temporary filename that is unlinked when constructed and destructed
+class UnlinkName : public std::string {
+  public:
+    UnlinkName() {}
+    UnlinkName(std::string base, std::string directory=TEST_SRCDIR);
+    ~UnlinkName();
+};
+
 #define EXPECT_MATRIX_NEAR(val1, val2, delta)\
   EXPECT_PRED_FORMAT2(vw::test::MatrixHelper<double>(vw::test::NearImpl(#delta, delta)), val1, val2)
 #define ASSERT_MATRIX_NEAR(val1, val2, delta)\
