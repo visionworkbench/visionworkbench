@@ -93,7 +93,7 @@ namespace platefile {
       // Iterator methods.  The boost iterator facade takes these and
       // uses them to construct normal iterator methods.
       bool equal (iterator const& iter) const { 
-        return (m_current_base_offset >= iter.m_current_base_offset); 
+        return (m_current_base_offset == iter.m_current_base_offset);
       }
 
       void increment() { 
