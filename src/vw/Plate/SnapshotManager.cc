@@ -56,8 +56,8 @@ namespace platefile {
     // composited during the last snapshot.
     std::list<TileHeader> tile_records;
     tile_records = m_platefile->search_by_location(current_col, current_row, current_level,
-                                                 start_transaction_id, end_transaction_id,
-                                                 true); // fetch_one_additional_entry
+                                                   start_transaction_id, end_transaction_id,
+                                                   true); // fetch_one_additional_entry
 
     // If there are no valid tiles at this level, then there is nothing
     // further for us to do here on this branch of the recursion.  We
@@ -75,6 +75,10 @@ namespace platefile {
 
       if (current_level == target_level || is_leaf(m_platefile, *iter) ) {
 
+        // std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
+        //           << " [ " << iter->transaction_id() << " ]  " 
+        //           << iter->col() << " " << iter->row() << "\n";
+        
         // We always add any valid tiles at the target_level, since
         // they should always be included in the composite.
         //
@@ -91,6 +95,55 @@ namespace platefile {
     // If we have reached the target level, then we use the
     // accumulated tiles to generate a snapshot for this tile.
     if (current_level == target_level) {
+
+      // Cull out "extra" extra tiles.  We need to do this here
+      // because *each* search_by_location() call above can
+      // potentially return it's own additional tile, and we only need
+      // the most recent additional tile in the stack to include in the composite.
+      std::map<int32, TileHeader>::iterator cull_iter = composite_tiles.begin();
+      int extra_tid_id = -1;
+      int extra_tid_level = 0;
+      while (cull_iter != composite_tiles.end()) {
+
+        // We prioritize "extra" tiles at higher levels (rather than
+        // higher transaction ids) here because snapshots with higher
+        // tranaction ids might have actually occured at lower levels
+        // in the mosaic.
+        if (cull_iter->second.level() > extra_tid_level) {
+          extra_tid_id = cull_iter->first;
+          extra_tid_level = cull_iter->second.level();
+        }
+
+        // The rest of the tiles are not "extra," so we stop searching
+        // for extras here.
+        if (cull_iter->first >= start_transaction_id)
+          break;
+
+        ++cull_iter;
+      }
+      
+      if (extra_tid_id != -1) {
+        cull_iter  = composite_tiles.begin();
+        while (cull_iter != composite_tiles.end()) {
+          std::map<int32, TileHeader>::iterator current_iter = cull_iter;
+          ++cull_iter;
+
+          // Once again, we are only interested in considering "extra"
+          // tiles here, and not any that actually fall wihin the
+          // valid range.
+          if (current_iter->first >= start_transaction_id)
+            break;
+          
+          // Delete any "extra" extra tiles, keeping only one that is
+          // the best match for this snapshot.
+          if (current_iter->first != extra_tid_id) {
+            vw_out(DebugMessage, "plate::snapshot") 
+              << "Culling extra tile that falls outside of transaction range: " 
+              << current_iter->first << " @ " << current_iter->second.level() << "\n";
+            composite_tiles.erase(current_iter);
+          }
+        }
+      }
 
       // Check to see if the second entry is the start_transaction_id.
       // If this is the case, then we can safely skip the first tile
@@ -123,11 +176,6 @@ namespace platefile {
            iter != composite_tiles.rend(); ++iter) {
 
         TileHeader &current_hdr = iter->second;
-
-        // std::cout << "\t--> [ " << current_hdr.transaction_id() << " ]  " 
-        //           << current_hdr.col() << " " << current_hdr.row()
-        //           << " @ " << current_hdr.level() << "\n";
-
         ImageView<PixelT> new_tile(m_platefile->default_tile_size(), 
                                    m_platefile->default_tile_size());
         
@@ -155,7 +203,7 @@ namespace platefile {
             m_platefile->log(ostr.str());
             vw_out(ErrorMessage) << ostr.str() << "\n";
           } catch (IOErr &e) {
-            // If we get a BlobIO error, that's bad news, but not worth
+            // If we get a IoErr error, that's bad news, but not worth
             // killing the snapshot for.  Instead we log the error here and move
             // onto the next location.
             std::ostringstream ostr;
@@ -191,6 +239,7 @@ namespace platefile {
           new_tile = resample_img_from_level(
                       new_tile, current_hdr.col(), current_hdr.row(), current_hdr.level(),
                       current_col, current_row, target_level);
+          
 
         }
 
@@ -219,16 +268,21 @@ namespace platefile {
                                                  << current_row << " @ " << current_level 
                                                  << "  [ " << num_composited << " ]\n";
         //---
-
-        // for (unsigned j = 0; j < composite_tile.rows(); ++j) {
-        //   for (unsigned i = 0; i < composite_tile.cols(); ++i) {
-        //     composite_tile(i,j)[0] *= -1;
+        
+        // // for testing purposes
+        // std::cout << "Writing dummy tiles " << current_col << " " << current_row << " @ " << current_level << " for t_id = " << write_transaction_id << "\n";
+        // ImageView<PixelRGBA<uint8> > test_tile(256,256);
+        // for (int j = 0; j < test_tile.rows(); ++j) {
+        //   for (int i = 0; i < test_tile.cols(); ++i) {
+        //     if (abs(i-j) < 10) 
+        //       test_tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
         //   }
         // }
 
+
         m_platefile->write_update(composite_tile, 
-                                current_col, current_row, current_level,
-                                write_transaction_id);
+                                  current_col, current_row, current_level,
+                                  write_transaction_id);
         return 1;
       } else {
         return 0;
