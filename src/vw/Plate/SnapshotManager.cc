@@ -70,14 +70,11 @@ namespace platefile {
     // transaction_ids will be overwritten by new tile records.  In
     // this fashion, we build up a list of the highest resolution
     // valid tiles in order of transaction id.
+
     for (std::list<TileHeader>::iterator iter = tile_records.begin();
          iter != tile_records.end(); ++iter) {
 
       if (current_level == target_level || is_leaf(m_platefile, *iter) ) {
-
-        // std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
-        //           << " [ " << iter->transaction_id() << " ]  " 
-        //           << iter->col() << " " << iter->row() << "\n";
         
         // We always add any valid tiles at the target_level, since
         // they should always be included in the composite.
@@ -86,7 +83,18 @@ namespace platefile {
         // only interested in leaf nodes.  All others will have higher
         // resolution tiles available as their children that we should
         // use instead.
-        composite_tiles[iter->transaction_id()] = *iter;
+        //
+        // We also avoid adding the tile at start_transaction_id if it
+        // is not at the current level.  A tile of this type is part
+        // of the previous snapshot, but at a higher level.
+        if ( !(int(iter->transaction_id()) == start_transaction_id && int(iter->level()) != target_level)) {
+
+          // std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
+          //           << " [ " << iter->transaction_id() << " ]  " 
+          //           << iter->col() << " " << iter->row() << " @ " << iter->level() << "\n";
+
+          composite_tiles[iter->transaction_id()] = *iter;
+        }
 
       }
       
@@ -137,11 +145,12 @@ namespace platefile {
           // Delete any "extra" extra tiles, keeping only one that is
           // the best match for this snapshot.
           if (current_iter->first != extra_tid_id) {
-            vw_out(DebugMessage, "plate::snapshot") 
-              << "Culling extra tile that falls outside of transaction range: " 
-              << current_iter->first << " @ " << current_iter->second.level() << "\n";
+            //            vw_out(DebugMessage, "plate::snapshot") 
+            //   << "Culling extra tile that falls outside of transaction range: " 
+            //   << current_iter->first << " @ " << current_iter->second.level() << "\n";
             composite_tiles.erase(current_iter);
           }
+
         }
       }
 
@@ -269,7 +278,7 @@ namespace platefile {
                                                  << "  [ " << num_composited << " ]\n";
         //---
         
-        // // for testing purposes
+        // for testing purposes
         // std::cout << "Writing dummy tiles " << current_col << " " << current_row << " @ " << current_level << " for t_id = " << write_transaction_id << "\n";
         // ImageView<PixelRGBA<uint8> > test_tile(256,256);
         // for (int j = 0; j < test_tile.rows(); ++j) {
