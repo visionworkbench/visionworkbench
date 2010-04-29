@@ -15,12 +15,10 @@ using namespace vw::math;
 static const double DELTA = 1e-5;
 
 TEST(Accumulators, CDF_cauchy) {
-
-
-  boost::minstd_rand random_gen(42u);
-  random_gen.seed(0);
+  boost::mt19937 random_gen(42);
   boost::cauchy_distribution<double> cauchy(35,80);
-  boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
+  boost::variate_generator<boost::mt19937&,
+    boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
   { // Default settings
     CDFAccumulator<double> cdf;
@@ -43,10 +41,10 @@ TEST(Accumulators, CDF_cauchy) {
 }
 
 TEST(Accumulators, CDF_triangular) {
-  boost::minstd_rand random_gen(42u);
-  random_gen.seed(0);
+  boost::mt19937 random_gen(42);
   boost::triangle_distribution<double> triangular(10,60,80);
-  boost::variate_generator<boost::minstd_rand, boost::triangle_distribution<double> > generator(random_gen, triangular);
+  boost::variate_generator<boost::mt19937&,
+    boost::triangle_distribution<double> > generator(random_gen, triangular);
 
   { // Default settings
     CDFAccumulator<double> cdf;
@@ -73,10 +71,10 @@ TEST(Accumulators, CDF_triangular) {
 TEST(Accumulators, Median) {
   MedianAccumulator<double> median;
 
-  boost::minstd_rand random_gen(42u);
-  random_gen.seed(0);
+  boost::mt19937 random_gen(42);
   boost::cauchy_distribution<double> cauchy(35,80);
-  boost::variate_generator<boost::minstd_rand, boost::cauchy_distribution<double> > generator(random_gen, cauchy);
+  boost::variate_generator<boost::mt19937&,
+    boost::cauchy_distribution<double> > generator(random_gen, cauchy);
 
   for ( uint16 i = 0; i < 50000; i++ )
     median( generator() );
