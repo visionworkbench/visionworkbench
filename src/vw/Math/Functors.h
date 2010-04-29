@@ -439,8 +439,7 @@ namespace math {
   // Taken from Numerical Recipes (3rd E) pg 435
   template <class ValT>
   class CDFAccumulator : public ReturnFixedType<void> {
-    const int m_buffersize;
-    int m_num_quantiles, m_buffer_idx;
+    int m_buffersize, m_num_quantiles, m_buffer_idx;
     long m_num_samples; // nq, nd, nt
     std::vector<double> m_cdf, m_sample_buf, m_quantile;
     double m_q0, m_qm;  // quantile min and max;
@@ -508,43 +507,39 @@ namespace math {
 
   public:
     CDFAccumulator( int const& buffersize = 1000,
-                    int const& quantiles = 251) :
-    m_buffersize(buffersize), m_num_quantiles(quantiles), m_buffer_idx(0), m_num_samples(0), m_cdf(quantiles), m_sample_buf(buffersize), m_quantile(quantiles), m_q0(1e99), m_qm(-1e99) {
+                    int const& quantiles = 251) {
+      this->resize( buffersize, quantiles );
+    }
 
-      // Want odd number
-      if ( !(251%2) ) {
+    // Allow user to change post constructor (see ChannelAccumulator)
+    void resize( int const& buffersize = 1000,
+                 int const& quantiles = 251 ) {
+      m_buffersize = buffersize;
+      m_buffer_idx = m_num_samples = 0;
+      m_sample_buf.resize( m_buffersize );
+      m_q0 = 1e99; m_qm = -1e99;
+      m_num_quantiles = quantiles;
+      if ( !(quantiles%2) )
         m_num_quantiles++;
-        m_quantile.resize(m_num_quantiles);
-        m_cdf.resize(m_num_quantiles);
-      }
+      m_quantile.resize(m_num_quantiles);
+      m_cdf.resize(m_num_quantiles);
 
       // Setting a generic cdf to start things off, where 80% of the
       // distribution is in the middle third.
       int third = m_num_quantiles/3;
       int third2 = third*2;
-      float slope = 10.0 / float(third);
-      float first_tertile_gain = 1.0 - slope;
+      double slope = 10.0 / double(third);
+      double first_tertile_gain = 1.0 - slope;
 
       // Filling middle
       for ( int j = third; j <= third2; j++ )
-        m_cdf[j] = 0.8*(float(j-third)/float(third2-third))+0.1;
+        m_cdf[j] = 0.8*(double(j-third)/double(third2-third))+0.1;
       // Filling first tertile
       for ( int j = third-1; j >= 0; j-- )
         m_cdf[j] = first_tertile_gain*m_cdf[j+1];
       // Filling third tertile
       for ( int j = third2+1; j < m_num_quantiles; j++ )
         m_cdf[j] = 1.0 - first_tertile_gain*(1.0-m_cdf[j-1]);
-
-      /*
-      // Setting a general purpose cdf
-      // TODO: HANDLE DIFFERENT SIZED QUANTILES
-      for ( int j = 85; j <= 165; j++)
-        m_cdf[j] = float((j-75))/100.0;
-      for ( int j = 84; j >= 0; j-- ) {
-        m_cdf[j] = 0.87191909*m_cdf[j+1];
-        m_cdf[m_num_quantiles-j-1] = 1.0 - m_cdf[j];
-      }
-      */
     }
 
     // User update function. (Bundles Data)
