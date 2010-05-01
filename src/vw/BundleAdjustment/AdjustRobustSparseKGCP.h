@@ -189,7 +189,7 @@ namespace ba {
         for (unsigned j = 0; j < U.size(); ++j) {
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
-          vector_camera eps_a = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
+          vector_camera eps_a = this->m_model.A_target(j)-this->m_model.A_parameters(j);
           double S_weight = transpose(eps_a) * inverse_cov * eps_a;
           double mu_weight = (t_df + t_dim_cam)/(t_df + S_weight);
           U[j] += mu_weight * inverse_cov;
@@ -205,7 +205,7 @@ namespace ba {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
-            vector_point eps_b = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
+            vector_point eps_b = this->m_model.B_target(i)-this->m_model.B_parameters(i);
             V[i] += inverse_cov;
             robust_objective += transpose(eps_b) * inverse_cov * eps_b;
             epsilon_b[i] += inverse_cov * eps_b;
@@ -447,7 +447,7 @@ namespace ba {
           // note the signs here: should be +
           vector_camera new_a = this->m_model.A_parameters(j) +
             subvector(delta_a, num_cam_params*j, num_cam_params);
-          vector_camera eps_a = this->m_model.A_initial(j)-new_a;
+          vector_camera eps_a = this->m_model.A_target(j)-new_a;
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
           double S_weight = transpose(eps_a) * inverse_cov * eps_a;
@@ -461,7 +461,7 @@ namespace ba {
             // note the signs here: should be +
             vector_point new_b = this->m_model.B_parameters(i) +
               subvector( delta_b, num_pt_params*i, num_pt_params );
-            vector_point eps_b = this->m_model.B_initial(i)-new_b;
+            vector_point eps_b = this->m_model.B_target(i)-new_b;
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
             double S_weight = transpose(eps_b)*inverse_cov*eps_b;

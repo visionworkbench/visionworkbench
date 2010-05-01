@@ -207,7 +207,7 @@ namespace ba {
           Matrix<double> id( num_cam_params, num_cam_params );
           id.set_identity();
 
-          Vector<double> unweighted_error = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
+          Vector<double> unweighted_error = this->m_model.A_target(j)-this->m_model.A_parameters(j);
 
           double S_weight = transpose(unweighted_error) * (this->m_model.A_inverse_covariance(j)) * unweighted_error;
           double mu_weight = (t_df + t_dim_cam)/(t_df + S_weight);
@@ -242,7 +242,7 @@ namespace ba {
             Matrix<double> id(num_pt_params,num_pt_params);
             id.set_identity();
 
-            Vector<double> unweighted_error = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
+            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
             // Here the J is modified exactly as J was
             double S_weight = transpose(unweighted_error) * this->m_model.B_inverse_covariance(i) * unweighted_error;
             double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
@@ -340,7 +340,7 @@ namespace ba {
         for (unsigned j=0; j < num_cameras; ++j) {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
 
-          Vector<double> unweighted_error = this->m_model.A_initial(j)- (this->m_model.A_parameters(j) - cam_delta);
+          Vector<double> unweighted_error = this->m_model.A_target(j)- (this->m_model.A_parameters(j) - cam_delta);
 
           double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
 
@@ -354,7 +354,7 @@ namespace ba {
           if ((*(this->m_control_net))[i].type() == ControlPoint::GroundControlPoint) {
             Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
-            Vector<double> unweighted_error = this->m_model.B_initial(i)-(this->m_model.B_parameters(i) - pt_delta);
+            Vector<double> unweighted_error = this->m_model.B_target(i)-(this->m_model.B_parameters(i) - pt_delta);
 
             double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
 

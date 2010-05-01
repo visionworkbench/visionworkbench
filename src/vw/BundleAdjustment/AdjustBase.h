@@ -287,7 +287,7 @@ namespace ba {
         for (unsigned j=0; j < num_cameras; ++j)
           subvector(epsilon,
                     2*m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = m_model.A_initial(j)-m_model.A_parameters(j);
+                    num_cam_params) = m_model.A_target(j)-m_model.A_parameters(j);
 
       // .. and the position of the 3D points to epsilon ...
       if (m_use_gcp_constraint) {
@@ -297,7 +297,7 @@ namespace ba {
             subvector( epsilon,
                        2*m_model.num_pixel_observations() + num_cameras*num_cam_params +
                        idx*num_pt_params,
-                       num_pt_params) = m_model.B_initial(i)-m_model.B_parameters(i);
+                       num_pt_params) = m_model.B_target(i)-m_model.B_parameters(i);
             ++idx;
           }
       }

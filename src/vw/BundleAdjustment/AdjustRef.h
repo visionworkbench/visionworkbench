@@ -172,7 +172,7 @@ namespace ba {
                     j*num_cam_params,
                     num_cam_params,
                     num_cam_params) = id;
-          Vector<double> unweighted_error = this->m_model.A_initial(j)-this->m_model.A_parameters(j);
+          Vector<double> unweighted_error = this->m_model.A_target(j)-this->m_model.A_parameters(j);
           subvector(epsilon,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     num_cam_params) = unweighted_error;
@@ -194,7 +194,7 @@ namespace ba {
                       num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params,
                       num_pt_params) = id;
-            Vector<double> unweighted_error = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
+            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
             subvector(epsilon,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
                       idx*num_pt_params,
@@ -304,7 +304,7 @@ namespace ba {
                     j*num_cam_params,
                     num_cam_params,
                     num_cam_params) = id;
-          Vector<double> unweighted_error = this->m_model.A_initial(j) -
+          Vector<double> unweighted_error = this->m_model.A_target(j) -
             this->m_model.A_parameters(j);
           subvector(epsilon,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
@@ -327,7 +327,7 @@ namespace ba {
                       num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params,
                       num_pt_params) = id;
-            Vector<double> unweighted_error = this->m_model.B_initial(i)-this->m_model.B_parameters(i);
+            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
             subvector(epsilon,
                       2*this->m_model.num_pixel_observations() +
                       num_cameras*num_cam_params + idx*num_pt_params,
@@ -421,7 +421,7 @@ namespace ba {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
           subvector(new_epsilon,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = this->m_model.A_initial(j)-
+                    num_cam_params) = this->m_model.A_target(j)-
             (this->m_model.A_parameters(j)-cam_delta);
         }
 
@@ -435,7 +435,7 @@ namespace ba {
             subvector(new_epsilon,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
                       idx*num_pt_params,
-                      num_pt_params) = this->m_model.B_initial(i)-
+                      num_pt_params) = this->m_model.B_target(i)-
               (this->m_model.B_parameters(i)-pt_delta);
             ++idx;
           }

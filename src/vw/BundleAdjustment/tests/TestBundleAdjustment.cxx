@@ -29,8 +29,8 @@ class TestBAModel : public ba::ModelBase< TestBAModel, 6, 3 > {
 
   std::vector< boost::shared_ptr<PinholeModel> > m_cameras;
   boost::shared_ptr<ControlNetwork> m_cnet;
-  std::vector<camera_vector_t> a, a_initial;
-  std::vector<point_vector_t> b, b_initial;
+  std::vector<camera_vector_t> a, a_target;
+  std::vector<point_vector_t> b, b_target;
   int m_num_pixel_observations;
 
 public:
@@ -45,18 +45,18 @@ public:
 
     // Setting up the A vectors
     a.resize( m_cameras.size() );
-    a_initial.resize( a.size() );
+    a_target.resize( a.size() );
     for ( unsigned j = 0; j < m_cameras.size(); j++ ) {
       a[j] = camera_vector_t();
-      a_initial[j] = a[j];
+      a_target[j] = a[j];
     }
 
     // Setting up the B vectors
     b.resize( m_cnet->size() );
-    b_initial.resize( b.size() );
+    b_target.resize( b.size() );
     for ( unsigned i = 0; i < m_cnet->size(); i++ ) {
       b[i] = (*m_cnet)[i].position();
-      b_initial[i] = b[i];
+      b_target[i] = b[i];
     }
 
   }
@@ -92,8 +92,8 @@ public:
   unsigned num_points() const { return b.size(); }
   camera_vector_t A_parameters( int j ) const { return a[j]; }
   point_vector_t B_parameters( int i ) const { return b[i]; }
-  camera_vector_t A_initial( int j ) const { return a_initial[j]; }
-  point_vector_t B_initial( int i ) const { return b_initial[i]; }
+  camera_vector_t A_target( int j ) const { return a_target[j]; }
+  point_vector_t B_target( int i ) const { return b_target[i]; }
   unsigned num_pixel_observations() const { return m_num_pixel_observations; }
   void set_A_parameters(int j, camera_vector_t const& a_j) { a[j] = a_j; }
   void set_B_parameters(int i, point_vector_t const& b_i) { b[i] = b_i; }
