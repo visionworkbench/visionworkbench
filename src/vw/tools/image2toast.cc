@@ -100,7 +100,8 @@ int main(int argc, char **argv) {
     images.push_back(image);
 
     GeoReference georef;
-    read_georeference( georef, DiskImageResourceGDAL(image_files[i]) );
+    DiskImageResourceGDAL diskrsrc(image_files[i]);
+    read_georeference( georef, diskrsrc );
     if( georef.transform() == identity_matrix<3>() ) {
       std::cout << "No georeferencing info found for " << image_files[i] << ".  Assuming global plate carree." << std::endl;
       Matrix3x3 M;

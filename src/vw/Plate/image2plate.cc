@@ -238,7 +238,10 @@ int main( int argc, char *argv[] ) {
 
       // Load the georef.  If none is found, assume Plate Caree.
       GeoReference georef;
-      read_georeference( georef, DiskImageResourceGDAL( image_files[i] ) );
+      {
+        DiskImageResourceGDAL diskrsrc( image_files[i] );
+        read_georeference( georef, diskrsrc );
+      }
       if( georef.transform() == identity_matrix<3>() ) {
         std::cout << "\t    No georeferencing info found for " << image_files[i]
                   << ".  Assuming global plate carree." << std::endl;
