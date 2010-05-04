@@ -21,7 +21,7 @@ namespace mosaic {
 
   struct KMLQuadTreeConfigData;
 
-  class KMLQuadTreeConfig {
+  class KMLQuadTreeConfig : private boost::noncopyable {
   public:
     KMLQuadTreeConfig();
 
@@ -52,10 +52,6 @@ namespace mosaic {
     // be safely bound to the quadtree callbacks in colsures even if 
     // this config object goes out of scope.
     boost::shared_ptr<KMLQuadTreeConfigData> m_data;
-
-    // This object is non-copyable for now.
-    KMLQuadTreeConfig(KMLQuadTreeConfig const&);
-    KMLQuadTreeConfig& operator=(KMLQuadTreeConfig const&);
   };
 
 } // namespace mosaic

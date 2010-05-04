@@ -121,18 +121,15 @@ namespace platefile {
 
   // A scoped temporary file object that store a tile under /tmp.  The
   // file is destroyed when this object is deleted.
-  class TemporaryTileFile {
+  class TemporaryTileFile : private boost::noncopyable {
 
     std::string m_filename;
 
-    // Define these as private methods to enforce TemporaryTileFile'
-    // non-copyable semantics.
+    // No default constructor
     TemporaryTileFile() {}
-    TemporaryTileFile(TemporaryTileFile const&) {}
-    TemporaryTileFile& operator=(TemporaryTileFile const&) { return *this; }
-  
+
   public:
-    
+
     /// Generate a unique filename ( usually in /tmp, though this can
     /// be overridden using vw_settings().tmp_directory() ).
     static std::string unique_tempfile_name(std::string file_extension);

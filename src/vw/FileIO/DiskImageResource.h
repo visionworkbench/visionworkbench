@@ -34,7 +34,9 @@ namespace vw {
   // *******************************************************************
 
   /// Base class from which specific file handlers derive.
-  class DiskImageResource : public ImageResource {
+  /// Noncopyable because every impl is noncopyable
+  class DiskImageResource : public ImageResource,
+                            private boost::noncopyable {
   public:
 
     virtual ~DiskImageResource() {};

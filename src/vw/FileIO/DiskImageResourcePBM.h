@@ -60,8 +60,6 @@ namespace vw {
     static void default_to_ascii(bool ascii);
 
   private:
-    DiskImageResourcePBM(DiskImageResourcePBM&);
-    DiskImageResourcePBM& operator=(DiskImageResourcePBM&);
     std::streampos m_image_data_position;
     std::string m_magic;
     int32 m_max_value;

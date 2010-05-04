@@ -21,16 +21,12 @@ namespace mosaic {
 
   struct GigapanQuadTreeConfigData;
 
-  class GigapanQuadTreeConfig {
+  class GigapanQuadTreeConfig : private boost::noncopyable {
     // The implementation is stored in a shared pointer so that it can 
     // be safely bound to the quadtree callbacks in colsures even if 
     // this config object goes out of scope.
     boost::shared_ptr<GigapanQuadTreeConfigData> m_data;
 
-    // This object is non-copyable for now.
-    GigapanQuadTreeConfig(GigapanQuadTreeConfig const&);
-    GigapanQuadTreeConfig& operator=(GigapanQuadTreeConfig const&);
-    
   public:
     GigapanQuadTreeConfig();
 

@@ -337,7 +337,8 @@ namespace vw {
     LogRuleSet();
     virtual ~LogRuleSet();
 
-    // Ensure Copyable semantics (Mutex is not copyable)
+    // Ensure Copyable semantics (Mutex is not copyable, so we create our own
+    // mutex and copy the internal rules)
     LogRuleSet( LogRuleSet const& copy_log);
     LogRuleSet& operator=( LogRuleSet const& copy_log);
 
@@ -354,15 +355,11 @@ namespace vw {
   //                         LogInstance
   // -------------------------------------------------------
   //
-  class LogInstance {
+  class LogInstance : private boost::noncopyable {
     PerThreadBufferedStream<char> m_log_stream;
     std::ostream *m_log_ostream_ptr;
     bool m_prepend_infostamp;
     LogRuleSet m_rule_set;
-
-    // Ensure non-copyable semantics
-    LogInstance( LogInstance const& );
-    LogInstance& operator=( LogInstance const& );
 
   public:
 
@@ -403,7 +400,7 @@ namespace vw {
   /// Log::system_log() static method, which access a singleton
   /// instance of the system log class.  You should not need to create
   /// a log object yourself.
-  class Log {
+  class Log : private boost::noncopyable {
 
     // Pointers to various log instances that are currently being
     // managed by the system log.
@@ -426,10 +423,6 @@ namespace vw {
     // ostream, we don't know how long the thread will use it before
     // it can be safely de-allocated.
     std::map<int, boost::shared_ptr<multi_ostream> > m_multi_ostreams;
-
-    // Ensure non-copyable semantics
-    Log( Log const& );
-    Log& operator=( Log const& );
 
   public:
 

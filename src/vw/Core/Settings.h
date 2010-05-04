@@ -35,7 +35,7 @@ namespace vw {
   /// static vw_settings() function below, which returns a singleton
   /// instance of the system settings class.  You should _not_ need to
   /// create a settings object yourself!!!!
-  class Settings {
+  class Settings : private boost::noncopyable {
 
     // Vision Workbench Global Settings
     int m_default_num_threads;
@@ -56,10 +56,6 @@ namespace vw {
     Mutex m_rc_time_mutex;
     Mutex m_rc_file_mutex;
     Mutex m_settings_mutex;
-
-    // Ensure non-copyable semantics
-    Settings( Settings const& );
-    Settings& operator=( Settings const& );
 
   public:
 

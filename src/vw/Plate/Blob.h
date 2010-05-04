@@ -54,8 +54,8 @@ namespace platefile {
   //                                 BLOB
   // -------------------------------------------------------------------
 
-  class Blob {
-  
+  class Blob : boost::noncopyable {
+
     std::string m_blob_filename;
     boost::shared_ptr<std::fstream> m_fstream;
     uint64 m_end_of_file_ptr;
@@ -67,10 +67,6 @@ namespace platefile {
     // End-of-file point manipulation.
     void write_end_of_file_ptr(uint64 ptr);
     uint64 read_end_of_file_ptr() const;
-
-    // Enforce uncopyable semantics
-    Blob( Blob const& );
-    Blob& operator=( Blob const& );    
 
   public:
 
@@ -107,20 +103,8 @@ namespace platefile {
     public:
       
       // Constructors
-      iterator( Blob &blob, uint64 base_offset ) : m_blob(blob),
-                                                   m_current_base_offset(base_offset) {}
-      
-      // The compiler does not like the default copy constructor and 
-      // assignment operators when using the m_view variable, for some 
-      // reason, so we override them here.
-      iterator( iterator const& cpy ) : m_blob(cpy.m_blob),
-                                        m_current_base_offset(cpy.m_current_base_offset) {}
-      
-      iterator& operator=( iterator const &cpy ) {
-        m_blob = cpy.m_blob;
-        m_current_base_offset = cpy.m_current_base_offset;
-        return *this;
-      }
+      iterator( Blob &blob, uint64 base_offset )
+        : m_blob(blob), m_current_base_offset(base_offset) {}
 
       uint64 current_base_offset() const { return m_current_base_offset; }
       uint32 current_data_size() const { return m_blob.data_size(m_current_base_offset); }
