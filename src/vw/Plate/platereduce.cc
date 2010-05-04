@@ -96,7 +96,8 @@ private:
       return (samples[0]+samples[1])/2;
     default:
 
-      float weighted_mean;                                                                             std::vector<float> prev_wt = weights; // the previous weights
+      float weighted_mean = 0;
+      std::vector<float> prev_wt = weights; // the previous weights
       for (int i = 0; i < max_iter; ++i) {
 
         // accumulation of all sums
