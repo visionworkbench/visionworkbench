@@ -50,17 +50,6 @@ template <class T> T square(const T& x) { return x*x; }
 template <class T> T sign(const T& x) { return (x > 0) - (x < 0); }
 
 
-float ComputeNormalXDerivative()
-{
-  float normalXDeriv = 0;
-  return normalXDeriv; 
-}
-float ComputeNormalYDerivative()
-{
-  float normalYDeriv = 0;
-  return normalYDeriv; 
-}
-
 //compute the elements of the normal derivative
 Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 xyzLEFT)
 {
@@ -185,18 +174,18 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
     int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
     int numVerBlocks = meanDEM.rows()/verBlockSize + 1;
-    
+    printf("numVerBlocks = %d, numHorBlocks = %d\n", numVerBlocks, numHorBlocks);
+
     Vector3 *normalArray = new Vector3[numVerBlocks*numHorBlocks];
     Vector3 *xyzArray = new Vector3[numVerBlocks*numHorBlocks];
     Vector3 *xyzTOPArray = new Vector3[numVerBlocks*numHorBlocks];
     Vector3 *xyzLEFTArray = new Vector3[numVerBlocks*numHorBlocks];
     float   *reliefArray = new float[numVerBlocks*numHorBlocks];
     
-
     for (int kb = 0 ; kb < numVerBlocks; ++kb) {
        for (int lb = 0; lb < numHorBlocks; ++lb) {
 
-         //printf("kb = %d, lb=%d\n", kb, lb);
+         printf("kb = %d, lb=%d, numVerBlocks = %d, numHorBlocks = %d\n", kb, lb, numVerBlocks, numHorBlocks);
         
          //initialize  output_img, numSamples and norm
          for (int k = 0 ; k < verBlockSize; ++k) {
@@ -204,9 +193,19 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
 	      int ii = kb*verBlockSize+k; //row index for the entire image
               int jj = lb*horBlockSize+l; //col index for the entire image
+              printf("ii = %d, jj = %d\n", ii, jj);
 
               //local index in the vector that describes the block image; assumes row-wise concatenation.
               int l_index = k*horBlockSize+l; 
+              
+              /*
+              Vector2 dem_pix;
+              dem_pix[0] = ii;
+              dem_pix[1] = jj; 
+              Vector2 input_img_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(dem_pix));
+              int x = (int)overlap_pix[0];
+              int y = (int)overlap_pix[1];
+	      */
 
               if ( is_valid(inputImage(jj,ii)) ) {
 
@@ -252,10 +251,12 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		  reliefArray[l_index] = ComputeReflectance(normalArray[l_index], xyzArray[l_index], inputImgParams, globalParams);
 		}
               }
-          }
-
-	  //compute the jacobian and the error vector
-          for (int k = 0 ; k < verBlockSize; ++k) {
+	   } //for l
+	 } //for k
+         printf ("done stage 1\n");
+        
+	 //compute the jacobian and the error vector
+         for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
                 int ii = kb*verBlockSize+k; //row index for the entire image
@@ -264,18 +265,32 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                 //local index in the vector that describes the block image; assumes row-wise concatenation.
                 int l_index = k*horBlockSize+l; 
 
+                //this is the small DRG and the large DEM. needs a fix.
                 Vector2 input_img_pix(jj,ii);
-
-                if ( is_valid(inputImage(jj,ii)) ) {
-                   
-                   //update from the main image        
-		  if (shadowImage(jj, ii) == 0){
-		      float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;     
-                      float weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
+                 
+                //printf("jj = %d, ii = %d\n", jj, ii);
+  
+                //update from the main image        
+	        if (is_valid(inputImage(jj,ii)) && (shadowImage(jj, ii) == 0)){
+		      float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;
+                              
+                      float weight;
+                      if (globalParams.useWeights == 1){
+                          weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
+		      }
+                      else{
+			  weight = 1.0;
+                      }
+                      printf("xyz(m) = %f %f %f\n", xyzArray[l_index][0], xyzArray[l_index][1], xyzArray[l_index][2]);
+                      printf("xyzLEFT(m) = %f %f %f\n", xyzLEFTArray[l_index][0], xyzLEFTArray[l_index][1], xyzLEFTArray[l_index][2]);
+                      printf("xyzTOP(m) = %f %f %f\n", xyzTOPArray[l_index][0], xyzTOPArray[l_index][1], xyzTOPArray[l_index][2]);
+                      printf("normal(m) = %f %f %f\n", normalArray[l_index][0], normalArray[l_index][1], normalArray[l_index][2]);
 
 		      reconstructDerivative = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
-                                                                            xyzTOPArray[l_index], normalArray[l_index], 
-                                                                            inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;		    	   
+                                                                      xyzTOPArray[l_index], normalArray[l_index], 
+                                                                      inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+
+                      printf("recDer = %f, expT = %f\n",  reconstructDerivative, inputImgParams.exposureTime);		    	   
                       jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
 
                       if (l_index > 0){
@@ -295,10 +310,25 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                                                                        (float)outputImage(jj, ii), reliefArray[l_index]);
 
                       errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
-		   } 
+		}//if !shadowImage 
+	   }//l
+	  }//k
+          
+          printf("done stage 2\n");
+	 
+	  
+          for (int k = 0 ; k < verBlockSize; ++k) {
+           for (int l = 0; l < horBlockSize; ++l) {
 
-                   //update from the overlapping images  
-                   for (int m = 0; m < (int)overlapImgParams.size(); m++){
+                int ii = kb*verBlockSize+k; //row index for the entire image
+                int jj = lb*horBlockSize+l; //col index for the entire image
+
+                //local index in the vector that describes the block image; assumes row-wise concatenation.
+                int l_index = k*horBlockSize+l; 
+
+                Vector2 input_img_pix(jj,ii);
+                //update from the overlapping images  
+                for (int m = 0; m < (int)overlapImgParams.size(); m++){
 
                       printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
 
@@ -333,31 +363,57 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                                                                          overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
                          jacobian(l_index, l_index) =  jacobian(l_index, l_index) + reconstructDerivative*weight;
 
-                         if(l_index > 0){
-			   reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+                         if (l_index > 0){
+			     reconstructDerivativeTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
                                                                             xyzTOPArray[l_index], normalArray[l_index], 
 									    overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-			   jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
+			     jacobian(l_index-1, l_index) =  jacobian(l_index-1, l_index) + reconstructDerivativeTOP*weight;
                          }
-                         if(l_index > horBlockSize-1){
-			   reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[l_index],
+                         if (l_index > horBlockSize-1){
+			    reconstructDerivativeLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[l_index],
                                                                              xyzTOPArray[l_index], normalArray[l_index], 
 										   overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
-			   jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-horBlockSize, l_index) + reconstructDerivativeLEFT*weight;
+			    jacobian(l_index-horBlockSize, l_index) =  jacobian(l_index-horBlockSize, l_index) + reconstructDerivativeLEFT*weight;
                          }
-		     }
-		  }
-		}
-	      }
+		      }
+		}//m
+	    }//l
+	 }//k
+	 printf("done stage 3\n");
+	 
+	  /*
+         //print the jacobian
+         for (int row = 0; row< 256; row++){
+	   for (int col = 0; col < 256; col++){
+	     printf("%f ", jacobian(row, col));
 	   }
-         }
+           printf("\n");
+	 }
+	  */
+         //print the error vector
+         
          //solves lhs = rhs*x and stores results in lhs
          rhs = transpose(jacobian)*jacobian;
          lhs = jacobian*errorVector;
-         solve_symmetric_nocopy(rhs, lhs);
+         try {
+                solve_symmetric_nocopy(rhs,lhs);
+                printf("Ghertanc\n");
+         } catch (ArgumentErr &/*e*/) {
+                //             std::cout << "Error @ " << x << " " << y << "\n";
+                //             std::cout << "Exception caught: " << e.what() << "\n";
+                //             std::cout << "PRERHS: " << pre_rhs << "\n";
+                //             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+                //             std::cout << "RHS: " << rhs << "\n";
+                //             std::cout << "LHS: " << lhs << "\n\n";
+                //             std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+                //             exit(0);
+	   printf("Error\n");
+         }
+
+         //solve_symmetric_nocopy(rhs, lhs);
 
          //copy lhs to back meanDEM
-         //TO DO: FIX THIS!!!
+
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
                 
@@ -368,10 +424,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	        meanDEM(jj, ii) = lhs(l_index);
 	   }
          }
-
-
-       }
-    }
+       }//lb
+    }//kb
        
     delete normalArray; 
     delete xyzArray;

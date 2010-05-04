@@ -36,7 +36,7 @@ namespace photometry {
 
     float exposureInitRefValue;
     int exposureInitRefIndex;
-
+    int updateAlbedo, updateExposure, updateHeight;
     int useWeights;
     int maxNumIter;
     int computeErrors;
