@@ -191,23 +191,25 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
-	      int ii = kb*verBlockSize+k; //row index for the entire image
-              int jj = lb*horBlockSize+l; //col index for the entire image
-              printf("ii = %d, jj = %d\n", ii, jj);
+	     int ii = kb*verBlockSize+k; //row index for the entire image
+             int jj = lb*horBlockSize+l; //col index for the entire image
+             //printf("ii = %d, jj = %d, width = %d, height = %d\n", ii, jj, meanDEM.cols(), meanDEM.rows());
 
-              //local index in the vector that describes the block image; assumes row-wise concatenation.
-              int l_index = k*horBlockSize+l; 
+             if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
               
-              /*
-              Vector2 dem_pix;
-              dem_pix[0] = ii;
-              dem_pix[1] = jj; 
-              Vector2 input_img_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(dem_pix));
-              int x = (int)overlap_pix[0];
-              int y = (int)overlap_pix[1];
-	      */
+	       //local index in the vector that describes the block image; assumes row-wise concatenation.
+	       int l_index = k*horBlockSize+l; 
+              
+	       /*
+		 Vector2 dem_pix;
+		 dem_pix[0] = ii;
+		 dem_pix[1] = jj; 
+		 Vector2 input_img_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(dem_pix));
+		 int x = (int)overlap_pix[0];
+		 int y = (int)overlap_pix[1];
+	       */
 
-              if ( is_valid(inputImage(jj,ii)) ) {
+	       if ( is_valid(inputImage(jj,ii)) ) {
 
 		Vector2 input_img_pix (jj,ii);
               
@@ -250,17 +252,20 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
             
 		  reliefArray[l_index] = ComputeReflectance(normalArray[l_index], xyzArray[l_index], inputImgParams, globalParams);
 		}
-              }
+	       }
+	     }
 	   } //for l
 	 } //for k
          printf ("done stage 1\n");
-        
+     
 	 //compute the jacobian and the error vector
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
-                int ii = kb*verBlockSize+k; //row index for the entire image
-                int jj = lb*horBlockSize+l; //col index for the entire image
+             int ii = kb*verBlockSize+k; //row index for the entire image
+             int jj = lb*horBlockSize+l; //col index for the entire image
+             
+             if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
 
                 //local index in the vector that describes the block image; assumes row-wise concatenation.
                 int l_index = k*horBlockSize+l; 
@@ -272,15 +277,15 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
   
                 //update from the main image        
 	        if (is_valid(inputImage(jj,ii)) && (shadowImage(jj, ii) == 0)){
-		      float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;
+		   float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;
                               
-                      float weight;
-                      if (globalParams.useWeights == 1){
+                   float weight;
+                   if (globalParams.useWeights == 1){
                           weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
-		      }
-                      else{
+		   }
+                   else{
 			  weight = 1.0;
-                      }
+                   }
                       printf("xyz(m) = %f %f %f\n", xyzArray[l_index][0], xyzArray[l_index][1], xyzArray[l_index][2]);
                       printf("xyzLEFT(m) = %f %f %f\n", xyzLEFTArray[l_index][0], xyzLEFTArray[l_index][1], xyzLEFTArray[l_index][2]);
                       printf("xyzTOP(m) = %f %f %f\n", xyzTOPArray[l_index][0], xyzTOPArray[l_index][1], xyzTOPArray[l_index][2]);
@@ -310,18 +315,21 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                                                                        (float)outputImage(jj, ii), reliefArray[l_index]);
 
                       errorVector(l_index) = errorVector(l_index) + reconstructError*weight;
-		}//if !shadowImage 
+		}//if !shadowImage
+	     } 
 	   }//l
 	  }//k
           
           printf("done stage 2\n");
-	 
-	  
+
+	  //#if 0
           for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
 
-                int ii = kb*verBlockSize+k; //row index for the entire image
-                int jj = lb*horBlockSize+l; //col index for the entire image
+             int ii = kb*verBlockSize+k; //row index for the entire image
+             int jj = lb*horBlockSize+l; //col index for the entire image
+
+             if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
 
                 //local index in the vector that describes the block image; assumes row-wise concatenation.
                 int l_index = k*horBlockSize+l; 
@@ -330,7 +338,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                 //update from the overlapping images  
                 for (int m = 0; m < (int)overlapImgParams.size(); m++){
 
-                      printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
+		  //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
 
 		      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
 		      GeoReference overlapImg_geo;
@@ -350,7 +358,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                       int y = (int)overlap_pix[1];
                       
                       //compute and update matrix for non shadow pixels
-                      if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){    
+                      if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+    
                          float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
                          float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;    
 
@@ -377,10 +386,11 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                          }
 		      }
 		}//m
+	     }
 	    }//l
 	 }//k
 	 printf("done stage 3\n");
-	 
+	 //#endif
 	  /*
          //print the jacobian
          for (int row = 0; row< 256; row++){
@@ -416,12 +426,15 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
          for (int k = 0 ; k < verBlockSize; ++k) {
            for (int l = 0; l < horBlockSize; ++l) {
-                
-                int ii = kb*verBlockSize+k; //row index for the entire image
-                int jj = lb*horBlockSize+l; //col index for the entire image
+            
+             int ii = kb*verBlockSize+k; //row index for the entire image
+             int jj = lb*horBlockSize+l; //col index for the entire image
+    
+             if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
                 //local index in the vector that describes the block image; assumes row-wise concatenation.
                 int l_index = k*horBlockSize+l; 
 	        meanDEM(jj, ii) = lhs(l_index);
+	     }
 	   }
          }
        }//lb
