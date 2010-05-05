@@ -94,7 +94,7 @@ namespace vw {
 
 
   template <class PixelT>
-  class DiskCacheHandle {
+    class DiskCacheHandle : private boost::noncopyable {
     DiskImageView<PixelT> m_disk_image_view;
     std::string m_filename;
 
