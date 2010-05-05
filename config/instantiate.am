@@ -5,9 +5,9 @@
 # __END_LICENSE__
 
 
-if ENABLE_TEST_COVERAGE
-dist_TestInstantiateRecord_SOURCES = TestInstantiateRecord.oldtest TestInstantiateRecordList.hh
-dist_TestInstantiateFree_SOURCES   = TestInstantiateFree.oldtest TestInstantiateFreeList.hh
-dist_noinst_DATA = TestInstantiateExclusion.txt
-TESTS+=TestInstantiateRecord TestInstantiateFree
-endif
+#if ENABLE_TEST_COVERAGE
+#dist_TestInstantiateRecord_SOURCES = TestInstantiateRecord.oldtest TestInstantiateRecordList.hh
+#dist_TestInstantiateFree_SOURCES   = TestInstantiateFree.oldtest TestInstantiateFreeList.hh
+#dist_noinst_DATA = TestInstantiateExclusion.txt
+#TESTS+=TestInstantiateRecord TestInstantiateFree
+#endif

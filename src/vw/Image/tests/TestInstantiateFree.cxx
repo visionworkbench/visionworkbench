@@ -170,7 +170,4 @@ struct FuncT : ReturnFixedType<PixelT> {
 
 #include "TestInstantiateFreeList.hh"
 
-class TestInstantiateImageFree : public CxxTest::TestSuite
-{
-  public: void test_inst() {}
-};
+TEST(InstantiateImageFree, Inst) {}
