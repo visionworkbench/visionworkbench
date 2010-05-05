@@ -201,9 +201,9 @@ TEST( PinholeModel, ProjectiveMatrix ) {
   // Create Measurements used to solve for camera matrix
   std::vector<Vector<double> > world_m, image_m;
   boost::minstd_rand random_gen(42u);
-  random_gen.seed((unsigned int)(::time(0)));
   boost::normal_distribution<double> normal(0,20);
-  boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
+  boost::variate_generator<boost::minstd_rand&,
+    boost::normal_distribution<double> > generator( random_gen, normal );
   for ( uint8 i = 0; i < 6; i++ ) {
     Vector3 point( generator(), generator(), generator()+60.0 );
     world_m.push_back( Vector4(point[0],point[1],point[2],1) );

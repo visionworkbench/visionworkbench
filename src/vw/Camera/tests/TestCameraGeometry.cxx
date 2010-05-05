@@ -25,9 +25,9 @@ TEST( CameraGeometry, PinholeLinearSolve ) {
 
   // Building random measurements
   boost::minstd_rand random_gen(42u);
-  random_gen.seed((unsigned int)(::time(0)));
   boost::normal_distribution<double> normal(0,20);
-  boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
+  boost::variate_generator<boost::minstd_rand&,
+    boost::normal_distribution<double> > generator( random_gen, normal );
   for ( uint8 i = 0; i < 6; i++ ) {
     Vector3 point( generator(), generator(), generator()+60.0 );
     world_m.push_back( Vector4(point[0],point[1],point[2],1) );
@@ -56,22 +56,22 @@ TEST( CameraGeometry, PinholeIterSolve ) {
   Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
 
   // Create an imaginary 1000x1000 pixel imager
-  PinholeModel pinhole( Vector3(0,4,-10),
+  PinholeModel pinhole( Vector3(0,4,-30),
                         pose, 600, 700,
-                        500, 500,
+                        300, 300,
                         NullLensDistortion() );
   std::vector<Vector<double> > world_m, image_m;
 
   // Building random measurements
   {
-    boost::minstd_rand random_gen(42u);
-    random_gen.seed((unsigned int)(::time(0)));
-    boost::normal_distribution<double> normal(0,20);
-    boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
+    boost::minstd_rand random_gen(13u);
+    boost::uniform_real<double> uniform(0,600);
+    boost::variate_generator<boost::minstd_rand&,
+      boost::uniform_real<double> > generator( random_gen, uniform );
     for ( uint8 i = 0; i < 50; i++ ) {
-      Vector3 point( generator(), generator(), generator()+60.0 );
+      Vector2 pixel( generator(), generator() );
+      Vector3 point = pinhole.camera_center() + (generator()/6+30) * pinhole.pixel_to_vector(pixel);
       world_m.push_back( Vector4(point[0],point[1],point[2],1) );
-      Vector2 pixel = pinhole.point_to_pixel(point);
       image_m.push_back( Vector3(pixel[0],pixel[1],1) );
     }
   }
@@ -79,13 +79,14 @@ TEST( CameraGeometry, PinholeIterSolve ) {
   // Adding Noise
   {
     boost::minstd_rand random_gen(42u);
-    random_gen.seed((unsigned int)(::time(0)));
-    boost::normal_distribution<double> normal(0,1.0);
-    boost::variate_generator<boost::minstd_rand, boost::normal_distribution<double> > generator( random_gen, normal );
+    boost::normal_distribution<double> normal(0,0.3);
+    boost::variate_generator<boost::minstd_rand&,
+      boost::normal_distribution<double> > generator( random_gen, normal );
     for ( uint8 i = 0; i < 50; i++ ) {
-      world_m[i][0] += generator();
-      world_m[i][1] += generator();
-      world_m[i][2] += generator();
+      Vector4 noise(generator(),generator(),generator(),0);
+      if ( norm_2(noise) > 1 )
+        noise /= norm_2(noise);
+      world_m[i] += noise;
     }
   }
 
@@ -99,7 +100,7 @@ TEST( CameraGeometry, PinholeIterSolve ) {
   for ( uint8 i = 0; i < 50; i++ ) {
     Vector3 p_result = P*world_m[i];
     p_result /= p_result[2];
-    EXPECT_VECTOR_NEAR( p_result, image_m[i], 1e-1 );
+    EXPECT_VECTOR_NEAR( image_m[i], p_result, 10 );
   }
 }
 
