@@ -9,6 +9,7 @@
 # sources
 ########################################################################
 ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
+LCOV_ARGS = --ignore-errors graph --follow
 
 SUBDIRS = src
 
@@ -48,11 +49,11 @@ endif
 
 all-local:
 if ENABLE_TEST_COVERAGE
-	$(LCOV) --follow --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
-	$(LCOV) --follow -e vw-base.trace '*/src/vw/*' -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/tests/*'  -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/tools/*'  -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/gui/*'    -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) $(LCOV_ARGS) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tests/*'  -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tools/*'  -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/gui/*'    -o vw-base.trace
 endif
 
 check-local:
@@ -60,28 +61,30 @@ check-local:
 	@echo All tests passed successfully!
 	@echo ==============================
 if ENABLE_TEST_COVERAGE
-	$(LCOV) --follow --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
-	$(LCOV) --follow -e vw-test.trace '*/src/vw/*' -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/tests/*'  -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/tools/*'  -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/gui/*'    -o vw-test.trace
-	$(LCOV) --follow -a vw-base.trace -a vw-test.trace -o vw.trace
+	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tests/*'  -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tools/*'  -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/gui/*'    -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -a vw-base.trace -a vw-test.trace -o vw.trace
 	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 endif
 
+# This is a combination of the coverage stuff in all-local and check-local (so
+# you can re-run coverage without rerunning tests)
 coverage:
-	$(LCOV) --follow --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
-	$(LCOV) --follow -e vw-base.trace '*/src/vw/*' -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/tests/*'  -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/tools/*'  -o vw-base.trace
-	$(LCOV) --follow -r vw-base.trace '*/gui/*'    -o vw-base.trace
-	$(LCOV) --follow --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
-	$(LCOV) --follow -e vw-test.trace '*/src/vw/*' -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/tests/*'  -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/tools/*'  -o vw-test.trace
-	$(LCOV) --follow -r vw-test.trace '*/gui/*'    -o vw-test.trace
-	$(LCOV) --follow -a vw-base.trace -a vw-test.trace -o vw.trace
+	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(LCOV) $(LCOV_ARGS) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tests/*'  -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tools/*'  -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/gui/*'    -o vw-base.trace
+	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tests/*'  -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tools/*'  -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/gui/*'    -o vw-test.trace
+	$(LCOV) $(LCOV_ARGS) -a vw-base.trace -a vw-test.trace -o vw.trace
 	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
 
