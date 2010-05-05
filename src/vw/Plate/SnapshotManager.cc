@@ -89,9 +89,9 @@ namespace platefile {
         // of the previous snapshot, but at a higher level.
         if ( !(int(iter->transaction_id()) == start_transaction_id && int(iter->level()) != target_level)) {
 
-          // std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
-          //           << " [ " << iter->transaction_id() << " ]  " 
-          //           << iter->col() << " " << iter->row() << " @ " << iter->level() << "\n";
+          std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
+                    << " [ " << iter->transaction_id() << " ]  " 
+                    << iter->col() << " " << iter->row() << " @ " << iter->level() << "\n";
 
           composite_tiles[iter->transaction_id()] = *iter;
         }
@@ -113,6 +113,11 @@ namespace platefile {
       int extra_tid_level = 0;
       while (cull_iter != composite_tiles.end()) {
 
+        // The rest of the tiles are not "extra," so we stop searching
+        // for extras here.
+        if (cull_iter->first >= start_transaction_id)
+          break;
+
         // We prioritize "extra" tiles at higher levels (rather than
         // higher transaction ids) here because snapshots with higher
         // tranaction ids might have actually occured at lower levels
@@ -121,11 +126,6 @@ namespace platefile {
           extra_tid_id = cull_iter->first;
           extra_tid_level = cull_iter->second.level();
         }
-
-        // The rest of the tiles are not "extra," so we stop searching
-        // for extras here.
-        if (cull_iter->first >= start_transaction_id)
-          break;
 
         ++cull_iter;
       }
@@ -145,9 +145,9 @@ namespace platefile {
           // Delete any "extra" extra tiles, keeping only one that is
           // the best match for this snapshot.
           if (current_iter->first != extra_tid_id) {
-            //            vw_out(DebugMessage, "plate::snapshot") 
-            //   << "Culling extra tile that falls outside of transaction range: " 
-            //   << current_iter->first << " @ " << current_iter->second.level() << "\n";
+            vw_out(DebugMessage, "plate::snapshot") 
+              << "Culling extra tile that falls outside of transaction range: " 
+              << current_iter->first << " @ " << current_iter->second.level() << "\n";
             composite_tiles.erase(current_iter);
           }
 
@@ -279,14 +279,14 @@ namespace platefile {
         //---
         
         // for testing purposes
-        // std::cout << "Writing dummy tiles " << current_col << " " << current_row << " @ " << current_level << " for t_id = " << write_transaction_id << "\n";
-        // ImageView<PixelRGBA<uint8> > test_tile(256,256);
-        // for (int j = 0; j < test_tile.rows(); ++j) {
-        //   for (int i = 0; i < test_tile.cols(); ++i) {
-        //     if (abs(i-j) < 10) 
-        //       test_tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
-        //   }
-        // }
+        std::cout << "Writing dummy tiles " << current_col << " " << current_row << " @ " << current_level << " for t_id = " << write_transaction_id << "\n";
+        ImageView<PixelRGBA<uint8> > test_tile(256,256);
+        for (int j = 0; j < test_tile.rows(); ++j) {
+          for (int i = 0; i < test_tile.cols(); ++i) {
+            if (abs(i-j) < 10) 
+              test_tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
+          }
+        }
 
 
         m_platefile->write_update(composite_tile, 
