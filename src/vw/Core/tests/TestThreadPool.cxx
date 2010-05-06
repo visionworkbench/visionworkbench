@@ -13,10 +13,8 @@
 
 using namespace vw;
 
-class TestTask : public Task {
+class TestTask : public Task, private boost::noncopyable {
 
-  TestTask(TestTask& /*copy*/) {}
-  void operator=(TestTask& /*copy*/) {}
   public:
   int m_value;
   bool terminate;
