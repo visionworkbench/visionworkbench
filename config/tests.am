@@ -10,11 +10,11 @@ GTEST_DIR = $(top_srcdir)/thirdparty/gtest
 libgtest_la_SOURCES = $(GTEST_DIR)/src/gtest-all.cc $(top_srcdir)/src/test/test_main.cc
 # this empty assignment prevents AM_LDFLAGS from applying to libgtest
 libgtest_la_LDFLAGS =
-libgtest_la_LIBADD = $(PKG_BOOST_FILESYSTEM_LIBS)
+libgtest_la_LIBADD = @PKG_CORE_LIBS@ $(PKG_BOOST_FILESYSTEM_LIBS)
 
 check_LTLIBRARIES = libgtest.la
 
-AM_CPPFLAGS += -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\"" -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include -g
+AM_CPPFLAGS += -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\"" -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include -g @PKG_CORE_CPPFLAGS@
 LDADD = libgtest.la
 
 # This makes sure we're using the c++ linker
