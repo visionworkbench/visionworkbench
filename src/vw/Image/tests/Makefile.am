@@ -28,12 +28,13 @@ TestPixelTypes_SOURCES            = TestPixelTypes.cxx
 TestStatistics_SOURCES            = TestStatistics.cxx
 TestTransform_SOURCES             = TestTransform.cxx
 TestMaskedPixelMath_SOURCES       = TestMaskedPixelMath.cxx
+TestMaskViews_SOURCES             = TestMaskViews.cxx
 
 TESTS = TestAlgorithms TestConvolution TestEdgeExtension TestFilter        \
         TestImageMath TestImageResource TestImageView TestImageViewRef     \
         TestInterpolation TestManipulation TestPerPixelAccessorViews       \
         TestPerPixelViews TestPixelMath TestPixelTypes TestStatistics      \
-        TestTransform TestMaskedPixelMath
+        TestTransform TestMaskedPixelMath TestMaskViews
 
 include $(top_srcdir)/config/instantiate.am
 

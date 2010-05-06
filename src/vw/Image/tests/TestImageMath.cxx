@@ -261,21 +261,6 @@ TEST( ImageMath, MaskMath ) {
   for ( int i = 0; i < 2; i++ )
     ASSERT_TRUE( image(i,0) == .25 );
 
-  ASSERT_TRUE( is_valid(image(0,0)) );
-  ASSERT_FALSE( is_valid(image(1,0)) );
-  image = invert_mask( image );
-  ASSERT_FALSE( is_valid(image(0,0)) );
-  ASSERT_TRUE( is_valid(image(1,0)) );
-  image = invert_mask( image );
-  ASSERT_TRUE( is_valid(image(0,0)) );
-  ASSERT_FALSE( is_valid(image(1,0)) );
-  image = validate_mask( image );
-  ASSERT_TRUE( is_valid(image(0,0)) );
-  ASSERT_TRUE( is_valid(image(1,0)) );
-  image = invalidate_mask( image );
-  ASSERT_FALSE( is_valid(image(0,0)) );
-  ASSERT_FALSE( is_valid(image(1,0)) );
-
   for ( int i = 0; i < 2; i++ )
     EXPECT_EQ( image(i,0), .25 );
 }
