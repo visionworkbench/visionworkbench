@@ -9,7 +9,7 @@
 # sources
 ########################################################################
 ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
-LCOV_ARGS = --ignore-errors graph --follow
+LCOV_ARGS = --ignore-errors graph,gcov --follow --compat-libtool
 
 SUBDIRS = src
 
@@ -18,7 +18,7 @@ EXTRA_DIST = config/rules.mak config.options.example docs \
 			 scripts/relicense.pl scripts/templates.js thirdparty/m4/.keep \
 			 scripts/create-test.sh thirdparty/gtest/src/* thirdparty/gtest/include/* \
 			 thirdparty/gtest/COPYING thirdparty/gtest/CONTRIBUTORS thirdparty/gtest/README \
-			 scripts/python/vw/*.py scripts/python/vw/gdb/*.py autogen
+			 scripts/python/vw/*.py scripts/python/vw/gdb/*.py autogen scripts/.lcovrc
 
 ########################################################################
 # special top-level rules
@@ -47,46 +47,56 @@ if DIST_REMOVE_MODULES
 	( cd $(distdir) && autoreconf && touch src/vw/config.h.pre.in && rm -rf autom4te.cache )
 endif
 
-all-local:
-if ENABLE_TEST_COVERAGE
-	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
-	$(LCOV) $(LCOV_ARGS) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tests/*'  -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tools/*'  -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/gui/*'    -o vw-base.trace
-endif
-
 check-local:
 	@echo ==============================
 	@echo All tests passed successfully!
 	@echo ==============================
-if ENABLE_TEST_COVERAGE
-	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tests/*'  -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tools/*'  -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/gui/*'    -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -a vw-base.trace -a vw-test.trace -o vw.trace
-	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
-	@echo "Generated code coverage report in $(top_srcdir)/coverage"
-endif
 
-# This is a combination of the coverage stuff in all-local and check-local (so
-# you can re-run coverage without rerunning tests)
-coverage:
-	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench-Base' --directory $(top_srcdir) --output-file vw-base.trace --initial
-	$(LCOV) $(LCOV_ARGS) -e vw-base.trace '*/src/vw/*' -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tests/*'  -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/tools/*'  -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-base.trace '*/gui/*'    -o vw-base.trace
-	$(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -e vw-test.trace '*/src/vw/*' -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tests/*'  -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/tools/*'  -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -r vw-test.trace '*/gui/*'    -o vw-test.trace
-	$(LCOV) $(LCOV_ARGS) -a vw-base.trace -a vw-test.trace -o vw.trace
-	$(GENHTML) -o $(top_srcdir)/coverage vw.trace
+.gcno.stamp: .FORCE
+	$(MAKE) $(AM_MAKEFLAGS) STAMPFILE=$@ STAMPPATTERN='*.gcno' copy-timestamp
+
+.gcda.stamp: .FORCE
+	$(MAKE) $(AM_MAKEFLAGS) STAMPFILE=$@ STAMPPATTERN='*.gcda' copy-timestamp
+
+#This strange HOME bit is so lcov finds the config file we have in the scripts dir.
+vw-base.trace: .gcno.stamp
+	rm -f $@
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-base.trace --initial
+	$(MAKE) $(AM_MAKEFLAGS) TRACEFILE=vw-base.trace coverage-filter
+
+vw-test.trace: .gcda.stamp
+	rm -f $@
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) --capture --test-name 'Vision-Workbench' --directory $(top_srcdir) --output-file vw-test.trace
+	$(MAKE) $(AM_MAKEFLAGS) TRACEFILE=vw-test.trace coverage-filter
+
+vw.trace: vw-base.trace vw-test.trace
+	rm -f $@
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -a vw-base.trace -a vw-test.trace -o vw.trace
+
+$(top_srcdir)/coverage/index.html: vw.trace
+	rm -rf $(top_srcdir)/coverage
+	HOME=$(top_srcdir)/scripts $(GENHTML) --demangle-cpp -o $(top_srcdir)/coverage vw.trace
 	@echo "Generated code coverage report in $(top_srcdir)/coverage"
+
+coverage: $(top_srcdir)/coverage/index.html
+
+# The tracefiles can get really big. This removes unnecessary data from them.
+coverage-filter:
+	rm -f $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -e $(TRACEFILE)     '*/src/vw/*' -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tests/*'  -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tools/*'  -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/gui/*'    -o $(TRACEFILE).tmp
+	mv $(TRACEFILE).tmp $(TRACEFILE)
+	rm -f $(TRACEFILE).tmp
+
+# This copies the timestamp of the newest file that matches STAMPPATERN to the
+# timestamp of STAMPFILE
+copy-timestamp:
+	@test -f $(STAMPFILE) || touch -t 197001010001 $(STAMPFILE)
+	@find $(top_srcdir)/src/vw \( -name '$(STAMPPATTERN)' -a -newer $(STAMPFILE) \) \
+		-a -exec test {} -nt $(STAMPFILE) \; \
+	    -a -exec touch -r {} $(STAMPFILE) \;
 
 distclean-local:
 	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
@@ -134,7 +144,10 @@ all-headers:
 one-ctags-file:
 	ctags -R --languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*' . --exclude='' thirdparty/cxxtest/cxxtest/TestSuite.h thirdparty/gtest
 
-.PHONY: coverage push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file
+.PHONY: push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file copy-timestamp coverage-filter
+
+# This rule is like .PHONY except it doesn't apply recursively to rules that depend on phony rules
+.FORCE:
 
 ########################################################################
 # general

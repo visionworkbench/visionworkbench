@@ -1,0 +1,14 @@
+# Specify coverage rate limits (in %) for classifying file entries
+# HI:   hi_limit <= rate <= 100         graph color: green
+# MED: med_limit <= rate <  hi_limit    graph color: orange
+# LO:         0  <= rate <  med_limit   graph color: red
+genhtml_hi_limit = 75
+genhtml_med_limit = 33
+
+# Include function coverage data display (can be disabled by the
+# --no-func-coverage option of genhtml)
+genhtml_function_coverage = 0
+
+# Include branch coverage data display (can be disabled by the
+# --no-branch-coverage option of genhtml)
+genhtml_branch_coverage = 0

@@ -15,6 +15,9 @@
 /tags
 /build
 /INSTALL
+/*.trace
+/.gcno.stamp
+/.gcda.stamp
 
 # Autotools Stuff
 Makefile
