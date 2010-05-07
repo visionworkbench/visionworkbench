@@ -360,7 +360,14 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                       //compute and update matrix for non shadow pixels
                       if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){
     
-                         float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+			 //float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+                         float weight;
+                         if (globalParams.useWeights == 1){
+                             weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+		         }
+                         else{
+			     weight = 1.0;
+                         }
                          float reconstructDerivative, reconstructDerivativeLEFT, reconstructDerivativeTOP;    
 
 			 float reconstructError = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
