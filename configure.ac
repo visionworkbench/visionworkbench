@@ -161,31 +161,29 @@ AX_ARG_ENABLE(qt-qmake,      yes, [none],            [Allow qmake detection of Q
 
 # Check for --enable-test-coverate and add appropriate flags for gcc
 if test "$ENABLE_TEST_COVERAGE" = "yes"; then
-  AX_TRY_CPPFLAGS([-fprofile-arcs],  [ENABLE_TEST_COVERAGE=yes], [ENABLE_TEST_COVERAGE=no])
-  AX_TRY_CPPFLAGS([-ftest-coverage], [],                         [ENABLE_TEST_COVERAGE=no])
-
-  if test "$ENABLE_TEST_COVERAGE" = "yes"; then
-    echo "*** Enabling test coverage and debugging, and disabling optimization ***"
-
-    dnl These two are necessary and already tested for
-    CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-
-    dnl try to un-inline as much as possible
-    AX_TRY_CPPFLAGS([-fno-default-inline],               [CXXFLAGS="$CXXFLAGS -fno-default-inline"])
-    AX_TRY_CPPFLAGS([-fno-inline],                       [CXXFLAGS="$CXXFLAGS -fno-inline"])
-    AX_TRY_CPPFLAGS([-fno-inline-small-functions],       [CXXFLAGS="$CXXFLAGS -fno-inline-small-functions"])
-    AX_TRY_CPPFLAGS([-fno-inline-functions],             [CXXFLAGS="$CXXFLAGS -fno-inline-functions"])
-    AX_TRY_CPPFLAGS([-fno-inline-functions-called-once], [CXXFLAGS="$CXXFLAGS -fno-inline-functions-called-once"])
-    AX_TRY_CPPFLAGS([-fkeep-inline-functions],           [CXXFLAGS="$CXXFLAGS -fkeep-inline-functions"])
-
-    LDFLAGS="$LDFLAGS -lgcov"
-    ENABLE_OPTIMIZE=no
-    ENABLE_DEBUG=yes
-
-    if test "${CXX/ccache//}" != "$CXX"; then
-      AC_MSG_ERROR([compiler CXX ($CXX) appears to be ccache, which breaks test-coverage])
-    fi
+  if CCACHE_CC=echo $CXX i_am_really_ccache 2>&AS_MESSAGE_LOG_FD | grep -q i_am_really_ccache ; then
+    AC_MSG_ERROR([compiler CXX ($CXX) appears to be ccache, which breaks test-coverage])
   fi
+
+  AX_TRY_CPPFLAGS([-fprofile-arcs],  [], [AC_MSG_ERROR([test coverage requires -fprofile-arcs])])
+  AX_TRY_CPPFLAGS([-ftest-coverage], [], [AC_MSG_ERROR([test coverage requires -ftest-coverage])])
+
+  echo "*** Enabling test coverage and debugging, and disabling optimization ***"
+
+  dnl These two are necessary and already tested for
+  CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
+
+  dnl try to un-inline as much as possible
+  AX_TRY_CPPFLAGS([-fno-default-inline],               [CXXFLAGS="$CXXFLAGS -fno-default-inline"])
+  AX_TRY_CPPFLAGS([-fno-inline],                       [CXXFLAGS="$CXXFLAGS -fno-inline"])
+  AX_TRY_CPPFLAGS([-fno-inline-small-functions],       [CXXFLAGS="$CXXFLAGS -fno-inline-small-functions"])
+  AX_TRY_CPPFLAGS([-fno-inline-functions],             [CXXFLAGS="$CXXFLAGS -fno-inline-functions"])
+  AX_TRY_CPPFLAGS([-fno-inline-functions-called-once], [CXXFLAGS="$CXXFLAGS -fno-inline-functions-called-once"])
+  AX_TRY_CPPFLAGS([-fkeep-inline-functions],           [CXXFLAGS="$CXXFLAGS -fkeep-inline-functions"])
+
+  LDFLAGS="$LDFLAGS -lgcov"
+  ENABLE_OPTIMIZE=no
+  ENABLE_DEBUG=yes
 fi
 
 # Files test-coverage and profile-arcs generate

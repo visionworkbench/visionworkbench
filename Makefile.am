@@ -83,10 +83,11 @@ coverage: $(top_srcdir)/coverage/index.html
 # The tracefiles can get really big. This removes unnecessary data from them.
 coverage-filter:
 	rm -f $(TRACEFILE).tmp
-	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -e $(TRACEFILE)     '*/src/vw/*' -o $(TRACEFILE).tmp
-	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tests/*'  -o $(TRACEFILE).tmp
-	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tools/*'  -o $(TRACEFILE).tmp
-	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/gui/*'    -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -e $(TRACEFILE)     '*/src/vw/*'              -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tests/*'               -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/tools/*'               -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/gui/*'                 -o $(TRACEFILE).tmp
+	HOME=$(top_srcdir)/scripts $(LCOV) $(LCOV_ARGS) -r $(TRACEFILE).tmp '*/src/vw/Plate/google/*' -o $(TRACEFILE).tmp
 	mv $(TRACEFILE).tmp $(TRACEFILE)
 	rm -f $(TRACEFILE).tmp
 
