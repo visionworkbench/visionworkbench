@@ -80,10 +80,7 @@ namespace ip {
 
 
   template <class ViewT, class DetectorT>
-  class InterestPointDetectionTask : public Task {
-    // Disable copyable semantics
-    InterestPointDetectionTask(InterestPointDetectionTask& copy) {}
-    void operator=(InterestPointDetectionTask& copy) {}
+  class InterestPointDetectionTask : public Task, private boost::noncopyable {
 
     ViewT m_view;
     DetectorT& m_detector;
@@ -359,9 +356,8 @@ namespace ip {
   /// This assumes that the detector works properly over different
   /// choices of scale.
   template <class InterestT>
-  class ScaledInterestPointDetector : public InterestDetectorBase<ScaledInterestPointDetector<InterestT> > {
-
-    ScaledInterestPointDetector(ScaledInterestPointDetector<InterestT> const& copy) {}
+  class ScaledInterestPointDetector : public InterestDetectorBase<ScaledInterestPointDetector<InterestT> >,
+                                      private boost::noncopyable {
 
   public:
     // TODO: choose number of octaves based on image size

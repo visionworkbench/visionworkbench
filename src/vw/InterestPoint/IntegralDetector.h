@@ -94,10 +94,8 @@ namespace ip {
 
   // IntegralInterestPointDetector
   template <class InterestT>
-  class IntegralInterestPointDetector : public InterestDetectorBase<IntegralInterestPointDetector<InterestT> > {
-
-    // Disable Copy
-    IntegralInterestPointDetector(IntegralInterestPointDetector<InterestT> const& copy){}
+  class IntegralInterestPointDetector : public InterestDetectorBase<IntegralInterestPointDetector<InterestT> >,
+                                        private boost::noncopyable {
 
   public:
     static const int IP_DEFAULT_SCALES = 8;
