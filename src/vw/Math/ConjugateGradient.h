@@ -74,10 +74,10 @@ namespace math{
   public:
     ConstantStepSize( double stepsize ) : stepsize(stepsize) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& func, 
+    typename FuncT::domain_type operator()( FuncT const& /*func*/,
                                             typename FuncT::domain_type const& pos,
-                                            typename FuncT::result_type const& val,
-                                            typename FuncT::gradient_type const& grad,
+                                            typename FuncT::result_type const& /*val*/,
+                                            typename FuncT::gradient_type const& /*grad*/,
                                             typename FuncT::gradient_type const& dir ) const {
       return pos + stepsize * dir;
     }

@@ -17,8 +17,6 @@
 
 // Boost
 #include <boost/program_options.hpp>
-using namespace boost;
-namespace po = boost::program_options;
 
 // Forward declarations
 class QAction;
@@ -35,10 +33,10 @@ namespace gui {
 
     std::string m_filename;
     float m_nodata_value;
-    po::variables_map const& m_vm;
+    boost::program_options::variables_map const& m_vm;
 
   public:
-    MainWindow(std::string filename, float nodata_value, int transaction_id, bool do_normalize, po::variables_map const& vm);
+    MainWindow(std::string filename, float nodata_value, int transaction_id, bool do_normalize, boost::program_options::variables_map const& vm);
     virtual ~MainWindow() {}
 
   private slots:

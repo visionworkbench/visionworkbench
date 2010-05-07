@@ -493,8 +493,8 @@ vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point) co
 // that image warping will be necessary in order to use the new
 // models.
 vw::camera::CAHVModel vw::camera::linearize_camera( vw::camera::CAHVORModel const& camera_model,
-                                                    int32 cahvor_image_width, int32 cahvor_image_height,
-                                                    int32 cahv_image_width, int32 cahv_image_height ) {
+                                                    vw::int32 cahvor_image_width, vw::int32 cahvor_image_height,
+                                                    vw::int32 cahv_image_width,   vw::int32 cahv_image_height ) {
 
   unsigned int minfov = 1; // set to 0 if you do not want to minimize to a common field of view
   unsigned int i;

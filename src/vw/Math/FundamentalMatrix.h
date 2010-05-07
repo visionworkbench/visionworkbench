@@ -31,7 +31,7 @@ namespace math {
     std::vector<double> m_solutions;
 
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& example) const {
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const {
       return 7;
     }
 

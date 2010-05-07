@@ -177,7 +177,7 @@ namespace vw {
   // Unary no-operation functor
   struct NoOpFunctor : ReturnFixedType<void> {
     template <class ArgT>
-    inline void operator()( ArgT const& arg ) const {}
+    inline void operator()( ArgT const& /*arg*/ ) const {}
   };
 
   // Unary identity functor

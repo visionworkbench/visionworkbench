@@ -191,7 +191,7 @@ namespace vw {
   // This is a no-op by default, but it actually calls px.validate()
   // for PixelMask<> types.
   template <class PixelT>
-  inline void toggle(PixelT &pixel) { return; }
+  inline void toggle(PixelT &/*pixel*/) { return; }
 
   template <class ChildPixelT>
   inline void toggle(PixelMask<ChildPixelT> &pixel) { pixel.toggle(); }

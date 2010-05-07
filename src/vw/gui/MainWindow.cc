@@ -22,6 +22,7 @@ using namespace vw::gui;
 #include <vw/Image/PixelMask.h>
 
 #include <sstream>
+namespace po = boost::program_options;
 
 MainWindow::MainWindow(std::string input_filename,
                        float nodata_value,

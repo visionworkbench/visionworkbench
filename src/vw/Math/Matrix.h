@@ -621,7 +621,7 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve = false ) {
+    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix proxy." );
     }
@@ -741,7 +741,7 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve = false ) {
+    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix proxy." );
     }
@@ -869,7 +869,7 @@ namespace math {
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve = false ) {
+    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix transpose." );
     }

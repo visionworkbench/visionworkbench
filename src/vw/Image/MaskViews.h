@@ -44,10 +44,10 @@ namespace vw {
     // Helper to access only specific types of pixels
     template <bool CompoundB, class Arg1T, class Arg2T>
     struct Helper {
-      static inline bool greater_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+      static inline bool greater_than( Arg1T const& /*arg1*/, Arg2T const& /*arg2*/ ) {
         return true;
       }
-      static inline bool less_than( Arg1T const& arg1, Arg2T const& arg2 ) {
+      static inline bool less_than( Arg1T const& /*arg1*/, Arg2T const& /*arg2*/ ) {
         return true;
       }
     };

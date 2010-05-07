@@ -73,7 +73,7 @@ namespace ip {
     // A floating point scale provided will invoke OBALoG trying to
     // tailor a box filter for that scale.
     template <class DataT>
-    inline void operator() (DataT& data, float scale) const {
+    inline void operator() (DataT& /*data*/, float /*scale*/) const {
       vw_throw( NoImplErr() << "OBALoG Box Filter creation on the fly has not been implemented\n" );
     }
 

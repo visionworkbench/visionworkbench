@@ -107,9 +107,9 @@ namespace ip {
   /// - filter_size = size of window for calculation
   template <class PixelT>
   inline PixelT
-  XFirstDerivative( ImageView<PixelT> const& integral,
-                    int const& x, int const& y,
-                    unsigned const& filter_size ) {
+  XFirstDerivative( ImageView<PixelT> const& /*integral*/,
+                    int const& /*x*/, int const& /*y*/,
+                    unsigned const& /*filter_size*/ ) {
     vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
     PixelT derivative = 0;
     return derivative;
@@ -152,9 +152,9 @@ namespace ip {
   /// - filter_size = size of window for calculation
   template <class PixelT>
   inline PixelT
-  YFirstDerivative( ImageView<PixelT> const& integral,
-                    int const& x, int const& y,
-                    unsigned const& filter_size ) {
+  YFirstDerivative( ImageView<PixelT> const& /*integral*/,
+                    int const& /*x*/, int const& /*y*/,
+                    unsigned const& /*filter_size*/ ) {
     vw_throw( vw::NoImplErr() << "First derivative filter has not been implemented yet\n" );
     PixelT derivative = 0;
     return derivative;
