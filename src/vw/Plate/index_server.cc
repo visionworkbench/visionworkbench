@@ -109,11 +109,9 @@ int main(int argc, char** argv) {
     return 1;
   }
 
-  std::string queue_name = AmqpRpcClient::UniqueQueueName("index_server");
-
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(hostname, port) );
   boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, exchange_name, 
-                                                             queue_name, vm.count("debug")) );
+                                                             "index_server", vm.count("debug")) );
   g_service.reset( new IndexServiceImpl(root_directory) );
   server->bind_service(g_service, "index");
 

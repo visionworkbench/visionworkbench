@@ -120,11 +120,9 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
 }
 
 void run(const Options& opt) {
-  std::string queue_name = AmqpRpcClient::UniqueQueueName("wms_server");
-
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(opt.rabbit_hostname, opt.rabbit_port) );
   boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, opt.exchange_name,
-                                                             queue_name, opt.debug) );
+                                                             "wms_server", opt.debug) );
   g_service.reset( new WMSServiceImpl(opt.platefile_root, opt.cache_root) );
   server->bind_service(g_service, "wms");
 
