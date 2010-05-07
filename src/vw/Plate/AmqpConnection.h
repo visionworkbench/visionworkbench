@@ -34,6 +34,12 @@ namespace platefile {
   VW_DEFINE_EXCEPTION(AMQPTimeout, AMQPErr);
   VW_DEFINE_EXCEPTION(AMQPEof,     AMQPErr);
 
+  // These are specified by the spec. They indicate that the server forcibly
+  // closed the connection or channel. The channel or connection must be
+  // recreated to recover.
+  VW_DEFINE_EXCEPTION(AMQPConnectionErr, AMQPErr);
+  VW_DEFINE_EXCEPTION(AMQPChannelErr,    AMQPErr);
+
   // This exception denotes a potentially desynchronizing AMQP error. Only
   // recovery mechanism is to recreate the connection.
   VW_DEFINE_EXCEPTION(AMQPAssertion, AMQPErr);
@@ -75,6 +81,9 @@ namespace platefile {
     private:
       boost::shared_ptr<AmqpConnection> m_conn;
       int16 m_channel;
+      // if we get a channel exception, the channel is closed.
+      bool is_open;
+      void check_error(amqp_rpc_reply_t x, const std::string& context);
 
     public:
       AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel = -1);

@@ -21,16 +21,34 @@ using namespace vw::platefile;
 #define QUEUE "unittest_queue"
 #define ROUTING_KEY "unittest"
 
-TEST(AMQP, BasicIO) {
-  boost::shared_ptr<AmqpConnection> conn;
-  try {
-    conn.reset(new AmqpConnection());
-  } catch (const IOErr& e) {
-#warning Need a better solution for this
-    // If we can't open the AMQP socket, treat this as a disabled test.
-    std::cerr << "Could not open AMQP socket. Test disabled." << std::endl;
+
+class AMQPTest : public ::testing::Test {
+  protected:
+    typedef boost::shared_ptr<AmqpConnection> Connection;
+    typedef boost::shared_ptr<AmqpRpcServer> Server;
+    typedef boost::shared_ptr<AmqpRpcClient> Client;
+    typedef boost::shared_ptr<google::protobuf::Service> Service;
+
+    Connection doconn(std::string const& hostname = "localhost", int port = 5672) {
+      Connection c;
+      try {
+        c.reset(new AmqpConnection(hostname, port));
+      } catch (const IOErr& e) {
+        // If we can't open the AMQP socket, treat this as a disabled test.
+        // XXX: This is icky. We need a way to disable tests at runtime (or mock AMQP)
+        std::cerr << "Could not open AMQP socket. Test disabled." << std::endl;
+        c.reset();
+      }
+      return c;
+    }
+
+};
+
+TEST_F(AMQPTest, BasicIO) {
+  Connection conn = doconn();
+  if (!conn)
     return;
-  }
+
   AmqpChannel chan(conn);
 
   chan.exchange_declare(EXCHANGE, "direct", true, false);
@@ -64,23 +82,16 @@ TEST(AMQP, BasicIO) {
   EXPECT_EQ(request.level(), response.level());
 }
 
-TEST(AMQP, RPCSerialization) {
-  boost::shared_ptr<AmqpConnection> c1, c2;
-  try {
-    c1.reset( new AmqpConnection() );
-    c2.reset( new AmqpConnection() );
-  } catch (const IOErr& e) {
-#warning Need a better solution for this
-    std::cerr << "Could not open AMQP socket. Test disabled." << std::endl;
-    // If we can't open the AMQP socket, treat this as a disabled test.
+TEST_F(AMQPTest, RPCSerialization) {
+  Connection c1 = doconn(), c2 = doconn();
+  if (!c1 || !c2)
     return;
-  }
 
-  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(c1, EXCHANGE, QUEUE"1") );
-  boost::shared_ptr<AmqpRpcClient> client( new AmqpRpcClient(c2, EXCHANGE, QUEUE"2", "server") );
+  Server server( new AmqpRpcServer(c1, EXCHANGE, QUEUE"1") );
+  Client client( new AmqpRpcClient(c2, EXCHANGE, QUEUE"2", "server") );
 
-  boost::shared_ptr<google::protobuf::Service> srv_s( new IndexServiceImpl(TEST_SRCDIR) );
-  boost::shared_ptr<google::protobuf::Service> srv_c( new IndexService::Stub(client.get() ) );
+  Service srv_s( new IndexServiceImpl(TEST_SRCDIR) );
+  Service srv_c( new IndexService::Stub(client.get() ) );
 
   server->bind_service(srv_s, "server");
   client->bind_service(srv_c, "client");
@@ -93,4 +104,33 @@ TEST(AMQP, RPCSerialization) {
 
   EXPECT_EQ(r1.type(), r2.type());
   EXPECT_EQ(r1.ByteSize(), r2.ByteSize());
+}
+
+TEST_F(AMQPTest, ChannelFailure) {
+  Connection c1 = doconn(), c2 = doconn();
+  if (!c1 || !c2)
+    return;
+
+  AmqpChannel ch1(c1), ch2(c2);
+  EXPECT_NO_THROW(ch1.queue_declare(QUEUE, false, true, true));
+
+  // Declare another queue on another connection with the same name
+  EXPECT_THROW(ch2.queue_declare(QUEUE, false, true, true), AMQPChannelErr);
+
+  // All further accesses to the illegal channel should be poisoned
+  EXPECT_THROW(ch2.queue_declare(QUEUE".super-unique", false, true, true), AMQPChannelErr);
+
+  // But the connection still be okay, and we should be able to grab another channel on it
+  AmqpChannel ch3(c2);
+  EXPECT_NO_THROW(ch3.queue_declare(QUEUE".unique1", false, true, true));
+}
+
+TEST_F(AMQPTest, SharedQueueServer) {
+  Connection c1 = doconn(), c2 = doconn();
+
+  Server server1( new AmqpRpcServer(c1, EXCHANGE, QUEUE) ),
+         server2;
+
+  // Use the same queue twice. It should fail, since we're using exclusive queues
+  EXPECT_THROW(server2.reset( new AmqpRpcServer(c2, EXCHANGE, QUEUE) ), AMQPChannelErr);
 }

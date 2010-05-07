@@ -17,56 +17,34 @@
 namespace vw {
 namespace platefile {
 
-  /// PlateFileErr exception
-  ///
   /// This is the base class for all platefile exceptions.
-  ///
   VW_DEFINE_EXCEPTION(PlatefileErr, Exception);
 
-  /// TileNotFound exception
-  ///
   /// This exception is thrown by the Tree and Index classes whenever
   /// a tile is requested that does not exist.  It is frequently
   /// caught by higher level classes like PlateFile when they are
   /// trying to determine whether a tile exists or not.
-  ///
   VW_DEFINE_EXCEPTION(TileNotFoundErr, PlatefileErr);
 
-  /// InvalidPlatefileErr exception
-  ///
   /// This exception is thrown by the IndexService when there is an
   /// attempt to access or operate on a platefile that has not been
   /// opened, and is not being tracked by the system.
-  ///
   VW_DEFINE_EXCEPTION(InvalidPlatefileErr, PlatefileErr);
 
-  /// BlobLimitErr exception 
-  ///
   /// This exception is thrown whenever the maximum number of blobs is
   /// reached.  This shouldn't ever really happen in practice unless
   /// something is wrong.
-  ///
   VW_DEFINE_EXCEPTION(BlobLimitErr, PlatefileErr);
 
-  /// BlobIoErr exception 
-  ///
-  /// This exception is thrown whenever the maximum number of blobs is
-  /// reached.  This shouldn't ever really happen in practice unless
-  /// something is wrong.
-  ///
+  /// This exception is thrown when something bad happens while reading or
+  /// writing a blob.
   VW_DEFINE_EXCEPTION(BlobIoErr, PlatefileErr);
 
-  /// InvalidPlatefileErr exception 
-  ///
   /// This exception is thrown by the IndexService when an error
   /// occurs while attempting to create a new platefile.
-  ///
   VW_DEFINE_EXCEPTION(PlatefileCreationErr, PlatefileErr);
 
-  /// InvalidPlatefileErr exception
-  ///
-  /// This exception is thrown when an unexpect RPC error occurs.
-  ///
+  /// This exception is thrown when an unexpected RPC error occurs.
   VW_DEFINE_EXCEPTION(RpcErr, PlatefileErr);
 
 }} // namespace vw::platefile
