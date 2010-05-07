@@ -12,6 +12,7 @@
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::test;
 
 TEST( CAHVORModel, PointDerivatives ) {
   CAHVORModel cahvor;
@@ -122,6 +123,7 @@ TEST( CAHVORModel, StringRead ) {
 
 TEST( CAHVORModel, StringWriteRead ) {
   CAHVORModel c;
+  UnlinkName file("StringWriteRead.txt");
 
   c.C = Vector3(76,-34,20);
   c.A = normalize(Vector3(1,2,3));
@@ -129,9 +131,9 @@ TEST( CAHVORModel, StringWriteRead ) {
   c.V = Vector3(345,900,157);
   c.O = normalize(Vector3(2,3,4));
   c.R = Vector3(1,-1,1);
-  c.write(TEST_SRCDIR"/cahvor2.txt");
+  c.write(file);
 
-  CAHVORModel c2(TEST_SRCDIR"/cahvor2.txt");
+  CAHVORModel c2(file);
 
   EXPECT_VECTOR_NEAR( c2.C, c.C, 1e-5 );
   EXPECT_VECTOR_NEAR( c2.A, c.A, 1e-5 );

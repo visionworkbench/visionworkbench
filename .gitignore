@@ -72,7 +72,6 @@ Makefile.in
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment
 /src/vw/BundleAdjustment/tests/TestCameraRelation
 /src/vw/BundleAdjustment/tests/TestControlNetwork
-/src/vw/Camera/tests/cahvor2.txt
 /src/vw/Camera/tests/TestCAHVModel
 /src/vw/Camera/tests/TestCAHVORModel
 /src/vw/Camera/tests/TestCameraGeometry
@@ -95,7 +94,6 @@ Makefile.in
 /src/vw/Core/tests/TestThread
 /src/vw/Core/tests/TestThreadPool
 /src/vw/Core/tests/TestThreadQueue
-/src/vw/Core/tests/test_vwrc
 /src/vw/FileIO/tests/cropped.mural.*
 /src/vw/FileIO/tests/mural.tif
 /src/vw/FileIO/tests/rwtest.*
@@ -132,6 +130,7 @@ Makefile.in
 /src/vw/Image/tests/TestImageViewRef
 /src/vw/Image/tests/TestInterpolation
 /src/vw/Image/tests/TestManipulation
+/src/vw/Image/tests/TestMaskViews
 /src/vw/Image/tests/TestMaskedPixelMath
 /src/vw/Image/tests/TestPerPixelAccessorViews
 /src/vw/Image/tests/TestPerPixelViews

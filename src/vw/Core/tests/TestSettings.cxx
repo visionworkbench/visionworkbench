@@ -15,6 +15,7 @@
 #include <test/Helpers.h>
 
 using namespace vw;
+using namespace vw::test;
 
 TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
 
@@ -41,12 +42,13 @@ TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
       VerboseDebugMessage = *             \n\
       ";
 
-  std::ofstream ostr(TEST_SRCDIR"/test_vwrc");
+  UnlinkName file("test_vwrc");
+  std::ofstream ostr(file.c_str());
   ostr << conf;
   ostr.close();
 
   // Test to see if the settings were correctly read in
-  vw_settings().set_rc_filename(TEST_SRCDIR"/test_vwrc");
+  vw_settings().set_rc_filename(file);
   EXPECT_EQ( 20, vw_settings().default_num_threads() );
   EXPECT_EQ( 623u, vw_settings().system_cache_size() );
 
