@@ -58,19 +58,19 @@ namespace platefile {
       vw::Mutex m_state_mutex;
       std::set<int16> m_used_channels;
 
-      /// Allocates a communications channel number. Meant to be called by
-      ///     AmqpChannel's constructor. Grab the m_state_mutex BEFORE you call this.
-      /// @param channel Request a specific channel number. -1 for don't care.
-      //                 Requesting a particular one will throw if it's already used.
-      int16 get_channel(int16 channel = -1);
-
-      friend class AmqpChannel;
-      friend class AmqpConsumeTask;
-
     public:
       /// Open a new connection to the AMQP server.  This connection
       /// terminates automatically when this object is destroyed.
       AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
+
+      vw::Mutex& get_mutex(AmqpConnectionState** state);
+
+      /// Allocates a communications channel number. Meant to be called by
+      ///     AmqpChannel's constructor. Grab the mutex BEFORE you call this.
+      /// @param channel Request a specific channel number. -1 for don't care.
+      //                 Requesting a particular one will throw if it's already used.
+      int16 get_channel(int16 channel = -1);
+
 
       /// Closes the AMQP connection and destroys this object.
       ~AmqpConnection();

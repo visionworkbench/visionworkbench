@@ -93,6 +93,11 @@ AmqpConnection::~AmqpConnection() {
   }
 }
 
+vw::Mutex& AmqpConnection::get_mutex(AmqpConnectionState** state) {
+  *state = m_state.get();
+  return m_state_mutex;
+}
+
 // CALL THIS WITH THE m_state_mutex LOCK ALREADY HELD.
 int16 AmqpConnection::get_channel(int16 channel) {
   if (channel == -1) {
@@ -125,19 +130,22 @@ void AmqpChannel::check_error(amqp_rpc_reply_t x, const std::string& context) {
 AmqpChannel::AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel)
     : m_conn(conn), is_open(false) {
 
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
 
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   m_channel = m_conn->get_channel(channel);
-  amqp_channel_open(m_conn->m_state.get(), m_channel);
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "opening channel");
+
+  amqp_channel_open(state, m_channel);
+  check_error(vw_get_rpc_reply(state), "opening channel");
   is_open = true;
 }
 
 AmqpChannel::~AmqpChannel() {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   if (is_open) {
     try {
-      die_on_amqp_error(amqp_channel_close(m_conn->m_state.get(), m_channel, AMQP_REPLY_SUCCESS), "closing connection");
+      die_on_amqp_error(amqp_channel_close(state, m_channel, AMQP_REPLY_SUCCESS), "closing connection");
     } catch (const AMQPErr& e) {
       vw_out(ErrorMessage, "plate.AMQP")
         << "Caught AMQPErr in " << VW_CURRENT_FUNCTION << ": "
@@ -149,71 +157,77 @@ AmqpChannel::~AmqpChannel() {
 void AmqpChannel::exchange_declare(std::string const& exchange_name,
                                    std::string const& exchange_type,
                                    bool durable, bool auto_delete) {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
-  amqp_exchange_declare(m_conn->m_state.get(), m_channel, amqp_string(exchange_name),
+  amqp_exchange_declare(state, m_channel, amqp_string(exchange_name),
                         amqp_string(exchange_type), 0, durable, auto_delete, amqp_table_t());
 
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "declaring exchange");
+  check_error(vw_get_rpc_reply(state), "declaring exchange");
 }
 
 void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
                                 bool exclusive, bool auto_delete) {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
-  amqp_queue_declare(m_conn->m_state.get(), m_channel, amqp_string(queue_name), 0,
+  amqp_queue_declare(state, m_channel, amqp_string(queue_name), 0,
                      durable, exclusive, auto_delete, amqp_table_t());
 
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "declaring queue");
+  check_error(vw_get_rpc_reply(state), "declaring queue");
 }
 
 void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchange,
                              std::string const& routing_key) {
-  Mutex::Lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
-  amqp_queue_bind(m_conn->m_state.get(), m_channel, amqp_string(queue),
+  amqp_queue_bind(state, m_channel, amqp_string(queue),
                   amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
 
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "binding queue");
+  check_error(vw_get_rpc_reply(state), "binding queue");
 }
 
 void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exchange,
                                std::string const& routing_key) {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
-  amqp_queue_unbind(m_conn->m_state.get(), m_channel, amqp_string(queue),
+  amqp_queue_unbind(state, m_channel, amqp_string(queue),
                     amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
 
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "unbinding queue");
+  check_error(vw_get_rpc_reply(state), "unbinding queue");
 }
 
 void AmqpChannel::basic_publish(ByteArray const& message,
                                 std::string const& exchange, std::string const& routing_key) {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
   amqp_bytes_t raw_data;
   raw_data.len   = message.size();
   raw_data.bytes = const_cast<void*>(reinterpret_cast<const void*>(message.begin()));
 
-  int ret = amqp_basic_publish(m_conn->m_state.get(), m_channel, amqp_string(exchange),
+  int ret = amqp_basic_publish(state, m_channel, amqp_string(exchange),
                                amqp_string(routing_key), 0, 0, NULL, raw_data);
   die_on_error(ret, "doing a basic.publish");
 }
 
 bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) {
 
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
   ASSERT_CHANNEL_OPEN();
 
   amqp_rpc_reply_t reply;
   while (true) {
-    amqp_maybe_release_buffers(m_conn->m_state.get());
-    reply = amqp_basic_get(m_conn->m_state.get(), m_channel, amqp_string(queue), 1);
+    amqp_maybe_release_buffers(state);
+    reply = amqp_basic_get(state, m_channel, amqp_string(queue), 1);
     check_error(reply, "doing a basic.get");
 
     if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
@@ -227,7 +241,7 @@ bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) 
                              << amqp_method_name(reply.reply.id));
   }
 
-  message = read_content(m_conn->m_state.get());
+  message = read_content(state);
   return true;
 }
 
@@ -261,8 +275,9 @@ class AmqpConsumeTask {
         // This isn't totally safe, because technically the socket could be
         // changed from under us. That would break so much of the rest of the
         // library, though, that I'm not too worried.
-        Mutex::Lock(m_conn->m_state_mutex);
-        fd = amqp_get_sockfd(m_conn->m_state.get());
+        amqp_connection_state_t state;
+        Mutex::Lock lock(m_conn->get_mutex(&state));
+        fd = amqp_get_sockfd(state);
       }
 
       while (go) {
@@ -276,15 +291,16 @@ class AmqpConsumeTask {
         SharedByteArray msg;
         {
           // Okay, we should have some data. Lock!
-          Mutex::Lock(m_conn->m_state_mutex);
+          amqp_connection_state_t state;
+          Mutex::Lock lock(m_conn->get_mutex(&state));
 
           // XXX: Calling maybe_release a lot keeps our memory usage down, but
           // perhaps we don't need to call it so often. Not clear on tradeoff.
-          amqp_maybe_release_buffers(m_conn->m_state.get());
+          amqp_maybe_release_buffers(state);
 
           while (1) {
             if (!go) return;
-            if (vw_simple_wait_frame(m_conn->m_state.get(), &method, 1000, "Waiting for a method frame"))
+            if (vw_simple_wait_frame(state, &method, 1000, "Waiting for a method frame"))
               break;
           }
 
@@ -294,7 +310,7 @@ class AmqpConsumeTask {
 
           // Grab the rest of the message (if there is any)
           if (amqp_method_has_content(method.payload.method.id))
-            msg = read_content(m_conn->m_state.get());
+            msg = read_content(state);
         }
 
         // We got some data. Release the lock and call the callback if it was a delivery.
@@ -314,12 +330,13 @@ class AmqpConsumeTask {
 
 boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& queue,
                                                            boost::function<void (SharedByteArray)> callback) {
-  Mutex::Lock lock(m_conn->m_state_mutex);
+  amqp_connection_state_t state;
+  Mutex::Lock lock(m_conn->get_mutex(&state));
 
   amqp_basic_consume_ok_t *reply =
-    amqp_basic_consume(m_conn->m_state.get(), m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
+    amqp_basic_consume(state, m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
 
-  check_error(vw_get_rpc_reply(m_conn->m_state.get()), "starting consumer");
+  check_error(vw_get_rpc_reply(state), "starting consumer");
 
   boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
   boost::shared_ptr<vw::Thread> thread(new vw::Thread(task));
