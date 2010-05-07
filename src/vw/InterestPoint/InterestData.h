@@ -110,7 +110,7 @@ namespace ip {
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
     InterestPointList return_val;
-    for (InterestPointList::iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
+    for (InterestPointList::const_iterator i = interest_points.begin(); i != interest_points.end(); ++i) {
       if (bbox.contains(Vector<RealT,2>(RealT((*i).x), RealT((*i).y))))
         return_val.push_back(*i);
     }
