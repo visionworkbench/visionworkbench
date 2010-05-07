@@ -424,15 +424,8 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
 
   int32 max_channels = std::max( src_channels, dst_channels );
 
-#ifdef _MSC_VER
-  std::vector<uint8> src_buf_vec(max_channels*src_chstride);
-  uint8 *src_buf = &src_buf_vec[0];
-  std::vector<uint8> dst_buf_vec(max_channels*dst_chstride);
-  uint8 *dst_buf = &dst_buf_vec[0];
-#else
-  uint8 src_buf[max_channels*src_chstride];
-  uint8 dst_buf[max_channels*dst_chstride];
-#endif
+  boost::scoped_array<uint8> src_buf(new uint8[max_channels*src_chstride]);
+  boost::scoped_array<uint8> dst_buf(new uint8[max_channels*dst_chstride]);
 
   uint8 *src_ptr_p = (uint8*)src.data;
   uint8 *dst_ptr_p = (uint8*)dst.data;
@@ -448,12 +441,12 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
         uint8 *src_ptr = src_ptr_c;
         uint8 *dst_ptr = dst_ptr_c;
         if( unpremultiply_src ) {
-          unpremultiply_src_func( src_ptr, src_buf, src_channels );
-          src_ptr = src_buf;
+          unpremultiply_src_func( src_ptr, src_buf.get(), src_channels );
+          src_ptr = src_buf.get();
         }
         else if( premultiply_src ) {
-          premultiply_src_func( src_ptr, src_buf, src_channels );
-          src_ptr = src_buf;
+          premultiply_src_func( src_ptr, src_buf.get(), src_channels );
+          src_ptr = src_buf.get();
         }
  
         // Copy/convert, unrolling the common multi-channel cases
@@ -488,9 +481,9 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
         }
         else if( average ) {
           for( int32 ch=0; ch<3; ++ch ) {
-            conv_func( src_ptr+ch*src_chstride, dst_buf+ch*dst_chstride );
+            conv_func( src_ptr+ch*src_chstride, dst_buf.get()+ch*dst_chstride );
           }
-          avg_func( dst_buf, dst_ptr, 3 );
+          avg_func( dst_buf.get(), dst_ptr, 3 );
         }
         if( copy_alpha ) {
           conv_func( src_ptr+(src_channels-1)*src_chstride, dst_ptr+(dst_channels-1)*dst_chstride );

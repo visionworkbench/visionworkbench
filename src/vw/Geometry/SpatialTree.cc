@@ -50,7 +50,7 @@ namespace {
 
   using namespace vw::geometry;
 
-  void split_node(SpatialTree::SpatialTreeNode* node, int num_quadrants, SpatialTree::BBoxT quadrant_bboxes[]) {
+  void split_node(SpatialTree::SpatialTreeNode* node, int num_quadrants, const boost::scoped_array<SpatialTree::BBoxT>& quadrant_bboxes) {
     node->m_is_split = true;
     for (int i = 0; i < num_quadrants; i++) {
       node->m_quadrant[i] = new SpatialTree::SpatialTreeNode(num_quadrants);
@@ -58,7 +58,7 @@ namespace {
     }
   }
 
-  void split_bbox(SpatialTree::BBoxT &bbox, int num_quadrants, SpatialTree::BBoxT quadrant_bboxes[]) {
+  void split_bbox(SpatialTree::BBoxT &bbox, int num_quadrants, boost::scoped_array<SpatialTree::BBoxT>& quadrant_bboxes) {
     using namespace ::vw::math::vector_containment_comparison;
     SpatialTree::VectorT center = bbox.center();
     SpatialTree::VectorT diagonal_vec = bbox.size() * 0.5;
@@ -599,7 +599,7 @@ namespace {
 
       if (m_create_children && !state.tree_node->is_split()) {
         if (m_max_create_level < 0 || state.level < (unsigned int)m_max_create_level) {
-          SpatialTree::BBoxT quadrant_bboxes[state.num_quadrants];
+          boost::scoped_array<SpatialTree::BBoxT> quadrant_bboxes(new SpatialTree::BBoxT[state.num_quadrants]);
 
           split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
           // Check to see if new bbox would fit in a child quad... if so create
@@ -721,7 +721,7 @@ namespace {
         }
       }
       else if (!state.list_elem->forced_this_level) {
-        SpatialTree::BBoxT quadrant_bboxes[state.num_quadrants];
+        boost::scoped_array<SpatialTree::BBoxT> quadrant_bboxes(new SpatialTree::BBoxT[state.num_quadrants]);
         split_bbox(state.tree_node->bounding_box(), state.num_quadrants, quadrant_bboxes);
         for (i = 0; i < state.num_quadrants; i++) {
           if (quadrant_bboxes[i].contains(state.list_elem->prim->bounding_box())) {
@@ -842,7 +842,7 @@ namespace geometry {
       double f = prod(tree_node->bounding_box().size()) / prod(m_root_node->bounding_box().size());
       if (f > (double)(m_num_quadrants + 1) / 2) {
         // we have the parent (volume is m_num_quadrants times greater)
-        BBoxT quadrant_bboxes[m_num_quadrants];
+        boost::scoped_array<BBoxT> quadrant_bboxes(new BBoxT[m_num_quadrants]);
         split_bbox(tree_node->bounding_box(), m_num_quadrants, quadrant_bboxes);
         split_node(tree_node, m_num_quadrants, quadrant_bboxes);
         for (i = 0; i < m_num_quadrants; i++) {
@@ -899,7 +899,7 @@ namespace geometry {
             // determine whether the primitive should have forced_this_level set
             list_elem->forced_this_level = false;
             if (!tree_node->is_split()) {
-              BBoxT quadrant_bboxes[m_num_quadrants];
+              boost::scoped_array<BBoxT> quadrant_bboxes(new BBoxT[m_num_quadrants]);
               split_bbox(tree_node->bounding_box(), m_num_quadrants, quadrant_bboxes);
               for (int i = 0; i < m_num_quadrants; i++) {
                 if (quadrant_bboxes[i].contains(list_elem->prim->bounding_box())) {
