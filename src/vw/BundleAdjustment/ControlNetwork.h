@@ -106,12 +106,18 @@ namespace ba {
       return m_pixels_dominant ? Vector2(m_col,m_row) : Vector2(m_focalplane_x,m_focalplane_y);
     }
     void set_dominant( double x, double y ) {
-      m_pixels_dominant ? m_col : m_focalplane_x = x;
-      m_pixels_dominant ? m_row : m_focalplane_y = y;
+      if ( m_pixels_dominant ) {
+        m_col = x; m_row = y;
+      } else {
+        m_focalplane_x = x; m_focalplane_y = y;
+      }
     }
     void set_dominant( Vector2 location ) {
-      m_pixels_dominant ? m_col : m_focalplane_x = location[0];
-      m_pixels_dominant ? m_row : m_focalplane_y = location[1];
+      if ( m_pixels_dominant ) {
+        m_col = x; m_row = y;
+      } else {
+        m_focalplane_x = x; m_focalplane_y = y;
+      }
     }
     bool is_pixels_dominant() { return m_pixels_dominant; }
     void set_pixels_dominant( bool state ) { m_pixels_dominant = state; }
