@@ -114,9 +114,9 @@ namespace ba {
     }
     void set_dominant( Vector2 location ) {
       if ( m_pixels_dominant ) {
-        m_col = x; m_row = y;
+        m_col = location[0]; m_row = location[1];
       } else {
-        m_focalplane_x = x; m_focalplane_y = y;
+        m_focalplane_x = location[0]; m_focalplane_y = location[1];
       }
     }
     bool is_pixels_dominant() { return m_pixels_dominant; }
