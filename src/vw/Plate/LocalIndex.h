@@ -51,14 +51,13 @@ namespace platefile {
   //                       LOCAL INDEX PAGE GENERATOR
   // ----------------------------------------------------------------------
 
-  // IndexPageGenerator loads a index page from disk.
+  // loads a index page from disk.
   class LocalPageGenerator : public PageGeneratorBase {
     std::string m_filename;
     int m_level, m_base_col, m_base_row;
     int m_page_width, m_page_height;
 
   public:
-    typedef IndexPage value_type;
     LocalPageGenerator( std::string filename, int level, int base_col, int base_row, 
                         int page_width, int page_height );
     virtual ~LocalPageGenerator() {}
@@ -78,8 +77,8 @@ namespace platefile {
       m_plate_filename(plate_filename) {}
     virtual ~LocalPageGeneratorFactory() {}
 
-    virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
-                                                         int page_width, int page_height);
+    virtual boost::shared_ptr<PageGeneratorBase> create(int level, int base_col, int base_row,
+                                                        int page_width, int page_height);
   };
 
   // -------------------------------------------------------------------

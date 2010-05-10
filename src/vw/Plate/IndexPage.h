@@ -128,42 +128,21 @@ namespace platefile {
   /// Subclasess of PageGeneratorBase load and unload index pages.
   class PageGeneratorBase {
   public:
+    typedef IndexPage value_type;
+    virtual size_t size() const { return 1; }
     virtual ~PageGeneratorBase() {};
     virtual boost::shared_ptr<IndexPage> generate() const = 0;
   };
 
-  /// The sole purpose of the IndexPageGenerator class is to hold a
-  /// pointer to an instance of the PageGeneratorBase class.  This is
-  /// necessary because the VW caching system doesn't store the
-  /// generator as a pointer, which prevents us from using the caching
-  /// system to store polymorphic index generator types.  So, although
-  /// it ain't pretty, this is really necessary for now.
-  class IndexPageGenerator {
-    boost::shared_ptr<PageGeneratorBase> m_page_gen;
-
-  public:
-    typedef IndexPage value_type;
-
-    IndexPageGenerator(boost::shared_ptr<PageGeneratorBase> page_gen) : 
-      m_page_gen(page_gen) {}
-
-    size_t size() const { return 1; }
-
-    /// Generate an IndexPage.  If no file exists with the name
-    /// m_filename, then an empty IndexPage is generated.
-    boost::shared_ptr<IndexPage> generate() const {
-      return m_page_gen->generate();
-    }
-  };
-
   // PageGeneratorFactory is the base class for entities that can
-  // generate PageGenerators.  
+  // generate PageGenerators.
   class PageGeneratorFactory {
-    
+
   public:
     virtual ~PageGeneratorFactory() {}
-    virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
-                                                         int page_width, int page_height) = 0;
+    virtual boost::shared_ptr<PageGeneratorBase>
+      create(int level, int base_col, int base_row,
+             int page_width, int page_height) = 0;
   };
 
 }} // namespace vw::platefile

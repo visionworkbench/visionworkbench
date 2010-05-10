@@ -116,10 +116,10 @@
                                                           m_page_width, m_page_height) );
  }
 
- boost::shared_ptr<IndexPageGenerator> LocalPageGeneratorFactory::create(int level, 
-                                                                         int base_col, 
-                                                                         int base_row, 
-                                                                         int page_width, 
+ boost::shared_ptr<PageGeneratorBase> LocalPageGeneratorFactory::create(int level,
+                                                                         int base_col,
+                                                                         int base_row,
+                                                                         int page_width,
                                                                          int page_height) {
    // Generate a filename
    std::ostringstream filename;
@@ -129,14 +129,12 @@
             << "/" << base_row
             << "/" << base_col;
 
-   // Create the proper type of page generator.
-   boost::shared_ptr<LocalPageGenerator> page_gen;
-   page_gen.reset( new LocalPageGenerator(filename.str(),
-                                          level, base_col, base_row,
-                                          page_width, page_height) );
+  // Create the proper type of page generator.
+  boost::shared_ptr<PageGeneratorBase> page_gen(
+    new LocalPageGenerator(filename.str(), level, base_col, base_row,
+                           page_width, page_height) );
 
-   // Wrap it in tho IndexPageGenerator class and return it.
-   return boost::shared_ptr<IndexPageGenerator>( new IndexPageGenerator(page_gen) );
+   return page_gen;
  }
 
  // -------------------------------------------------------------------

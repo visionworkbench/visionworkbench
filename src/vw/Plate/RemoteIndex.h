@@ -50,7 +50,6 @@ namespace platefile {
   //                       REMOTE INDEX PAGE GENERATOR
   // ----------------------------------------------------------------------
 
-  // IndexPageGenerator loads a index page from disk.
   class RemotePageGenerator : public PageGeneratorBase {
     int m_platefile_id;
     boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
@@ -59,7 +58,6 @@ namespace platefile {
     int m_page_width, m_page_height;
 
   public:
-    typedef IndexPage value_type;
     RemotePageGenerator( int platefile_id, 
                          boost::shared_ptr<AmqpRpcClient> rpc_controller,
                          boost::shared_ptr<IndexService> index_service,
@@ -87,8 +85,8 @@ namespace platefile {
       m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
       m_index_service(index_service) {}
     virtual ~RemotePageGeneratorFactory() {}
-    virtual boost::shared_ptr<IndexPageGenerator> create(int level, int base_col, int base_row, 
-                                                         int page_width, int page_height);
+    virtual boost::shared_ptr<PageGeneratorBase> create(int level, int base_col, int base_row,
+                                                        int page_width, int page_height);
   };
 
   // -------------------------------------------------------------------

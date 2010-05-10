@@ -9,6 +9,8 @@
 #include <vw/Plate/Exception.h>
 #include <vw/Core/Debugging.h>
 
+#include <boost/foreach.hpp>
+
 using namespace vw;
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.pagedindex") << VW_CURRENT_FUNCTION << ": ")
@@ -34,68 +36,45 @@ vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> pa
   // load_cache_handle().
   int pages = m_horizontal_pages * m_vertical_pages;
   m_cache_handles.resize(pages);
-  m_cache_generators.resize(pages);
-
 }
 
 boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::fetch_page(int i, int j) const {
   Mutex::Lock lock(m_cache_mutex);
 
+  size_t idx = j*m_horizontal_pages + i;
+
   // We may need to actually create the page's cache handle if it
   // hasn't been created already.
-  if ( !(m_cache_generators[j*m_horizontal_pages + i])) {
+  if ( !m_cache_handles[idx].attached() ) {
 
     WHEREAMI << "Creating cache generator for page " << i << " " << j << " @ " << m_level << "\n";
 
-    boost::shared_ptr<IndexPageGenerator> generator =
-      m_page_gen_factory->create(m_level, i * m_page_width, j * m_page_height, 
+    boost::shared_ptr<PageGeneratorBase> generator =
+      m_page_gen_factory->create(m_level, i * m_page_width, j * m_page_height,
                                  m_page_width, m_page_height);
-      m_cache_generators[j*m_horizontal_pages + i] = generator;
-      m_cache_handles[j*m_horizontal_pages + i] = m_cache.insert( *generator );
-
+      m_cache_handles[idx] = m_cache.insert( generator );
   }
 
-  return m_cache_handles[j*m_horizontal_pages + i];
+  return m_cache_handles[idx];
 }
 
 
 vw::platefile::IndexLevel::~IndexLevel() {
   Mutex::Lock lock(m_cache_mutex);
 
-  // We need to free the cache handles first before other things
-  // (especially the generators) get unallocated.
-  for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
-    if (m_cache_generators[i]) 
-      m_cache_handles[i].reset();
-  }
-
+  // Make sure the handles drop out of cache
+  BOOST_FOREACH( handle_t& h, m_cache_handles )
+    h.reset();
 }
 
 void vw::platefile::IndexLevel::sync() {
   Mutex::Lock lock(m_cache_mutex);
-  
-  // Write the index page to disk by calling it's sync() method.
-  //
-  // Note: the size of m_cache_handles and m_cache_generators does not
-  // change once it's set in the constructor of IndexLevel, so it's
-  // safe here to place m_cache_mutex _inside_ the loop.  This allows
-  // synchronization operations to be interleaved with fetch()
-  // operations, thus preventing the index_server from blocking when
-  // it periodically syncs the cache to disk.
-  //
-  for (unsigned i = 0; i < m_cache_handles.size(); ++i) {
-    if (m_cache_generators[i]) {
-      
-      if (m_cache_handles[i].valid()) {
-        //        std::cout << "Handle " << i << " was VALID...\n";
-        boost::shared_ptr<IndexPage> page = m_cache_handles[i];
-        page->sync();
-      } else {
-        //        std::cout << "Handle " << i << " was INVALID...\n";
-      }
-    }
-  }
 
+  // Write the index pages to disk by calling their sync() methods.
+  BOOST_FOREACH( handle_t& h, m_cache_handles ) {
+    if (h.attached() && h.valid())
+      h->sync();
+  }
 }
 
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.

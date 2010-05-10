@@ -180,23 +180,22 @@ vw::platefile::RemotePageGenerator::generate() const {
                                                           m_page_width, m_page_height) );
 }
 
-boost::shared_ptr<IndexPageGenerator> RemotePageGeneratorFactory::create(int level, 
-                                                                         int base_col, 
-                                                                         int base_row, 
-                                                                         int page_width, 
-                                                                         int page_height) {
+boost::shared_ptr<PageGeneratorBase> RemotePageGeneratorFactory::create(int level,
+                                                                        int base_col,
+                                                                        int base_row,
+                                                                        int page_width,
+                                                                        int page_height) {
   VW_ASSERT(m_platefile_id != -1 && m_rpc_controller && m_index_service,
             LogicErr() << "Error: RemotePageGeneratorFactory has not yet been initialized.");
 
   // Create the proper type of page generator.
-  boost::shared_ptr<RemotePageGenerator> page_gen;
-  page_gen.reset( new RemotePageGenerator(m_platefile_id, m_rpc_controller,
-                                          m_index_service,
-                                          level, base_col, base_row,
-                                          page_width, page_height) );
-  
-  // Wrap it in tho IndexPageGenerator class and return it.
-  return boost::shared_ptr<IndexPageGenerator>( new IndexPageGenerator(page_gen) );
+  boost::shared_ptr<PageGeneratorBase> page_gen(
+    new RemotePageGenerator(m_platefile_id, m_rpc_controller,
+                            m_index_service,
+                            level, base_col, base_row,
+                            page_width, page_height) );
+
+  return page_gen;
 }
 
 // ----------------------------------------------------------------------
