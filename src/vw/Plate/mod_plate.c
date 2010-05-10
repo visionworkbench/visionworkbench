@@ -14,6 +14,9 @@ static void plate_register_hooks(apr_pool_t *p)
 {
   int threaded;
 
+  // warning go away
+  (void)p;
+
   if (ap_mpm_query(AP_MPMQ_IS_THREADED, &threaded) != APR_SUCCESS) {
     fprintf(stderr, "mod_plate could not query mpm: we have a problem. Refusing to register!");
     return;
@@ -31,6 +34,9 @@ static void plate_register_hooks(apr_pool_t *p)
 
 static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level, const char* name) {
   // if an exception is thrown from inside this function (anywhere) it will crash at throw-time.
+
+  // warning go away
+  (void)cfg;
 
   int level;
 
@@ -65,6 +71,8 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
 
 #define ADD_STRING_CONFIG(key, check) \
   static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
+    /* warning go away*/ \
+    (void)null; \
     plate_config *cfg = get_plate_config_mutable(cmd->server);\
     cfg->key = arg;\
     const char *error = check(arg);\
@@ -127,6 +135,9 @@ static const command_rec my_cmds[] = {
 };
 
 static void* create_plate_config(apr_pool_t* p, server_rec* s) {
+  // warning go away
+  (void)s;
+
   plate_config* conf = (plate_config*)apr_pcalloc(p, sizeof(plate_config));
   conf->rabbit_ip      = "127.0.0.1";
   conf->index_exchange = DEV_INDEX_BARE;
