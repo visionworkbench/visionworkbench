@@ -29,7 +29,6 @@ namespace ip {
 
   /// Harris Corner interest operator
   class HarrisInterestOperator {
-    static const float DEFAULT_INTEREST_THRESHOLD;
     double m_k, m_threshold;
 
   public:
@@ -83,9 +82,6 @@ namespace ip {
     }
   };
 
-  const float HarrisInterestOperator::DEFAULT_INTEREST_THRESHOLD = 0.03;
-
-
   /// Type traits for Harris interest
   template <> struct InterestPeakType <HarrisInterestOperator> { static const int peak_type = IP_MAX; };
 
@@ -106,8 +102,6 @@ namespace ip {
 
   /// Log interest functor
   class LogInterestOperator {
-
-    static const float DEFAULT_INTEREST_THRESHOLD;
     double m_threshold;
 
   public:
@@ -134,8 +128,6 @@ namespace ip {
       return (fabs(pt.interest) > m_threshold);
     }
   };
-
-  const float LogInterestOperator::DEFAULT_INTEREST_THRESHOLD = 0.03;
 
   /// Type traits for Log interest
   template <> struct InterestPeakType <LogInterestOperator> { static const int peak_type = IP_MINMAX; };
