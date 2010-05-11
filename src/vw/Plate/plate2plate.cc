@@ -138,8 +138,8 @@ VW_DEFINE_EXCEPTION(Usage, Exception);
 void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description options("Options");
   options.add_options()
-    ("output-name,o",    po::value(&opt.output_name),  "Specify the URL of the input platefile.")
-    ("input-name,i",     po::value(&opt.input_name),   "Specify the URL of the output platefile.")
+    ("output-name,o",    po::value(&opt.output_name),  "Specify the URL of the output platefile.")
+    ("input-name,i",     po::value(&opt.input_name),   "Specify the URL of the input platefile.")
     ("file-type",        po::value(&opt.filetype),     "Output file type")
     ("mode",             po::value(&opt.mode),         "Output mode [toast, kml]")
     ("tile-size",        po::value(&opt.tile_size),    "Output size, in pixels")
