@@ -137,6 +137,10 @@
    return page_gen;
  }
 
+ std::string LocalPageGeneratorFactory::who() const {
+   return fs::basename(m_plate_filename);
+ }
+
  // -------------------------------------------------------------------
  //                            LOCAL INDEX
  // -------------------------------------------------------------------

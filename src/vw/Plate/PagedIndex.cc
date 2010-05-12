@@ -70,6 +70,14 @@ vw::platefile::IndexLevel::~IndexLevel() {
 void vw::platefile::IndexLevel::sync() {
   Mutex::Lock lock(m_cache_mutex);
 
+  vw_out(VerboseDebugMessage, "platefile.cache")
+    << "Page cache for " << m_page_gen_factory->who() << "@" << m_level << " reports "
+    << "hits["   << m_cache.hits()
+    << "] misses[" << m_cache.misses()
+    << "] evictions[" << m_cache.evictions() << "] since last sync." << std::endl;
+
+  m_cache.clear_stats();
+
   // Write the index pages to disk by calling their sync() methods.
   BOOST_FOREACH( handle_t& h, m_cache_handles ) {
     if (h.attached() && h.valid())
@@ -210,8 +218,6 @@ vw::platefile::PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> pa
 
 void vw::platefile::PagedIndex::sync() {
 
-  // We need to free the cache handles first before other things
-  // (especially the generators) get unallocated.
   for (unsigned i = 0; i < m_levels.size(); ++i) {
     m_levels[i]->sync();
   }

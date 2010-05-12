@@ -198,6 +198,12 @@ boost::shared_ptr<PageGeneratorBase> RemotePageGeneratorFactory::create(int leve
   return page_gen;
 }
 
+std::string RemotePageGeneratorFactory::who() const {
+  VW_ASSERT(m_platefile_id != -1,
+            LogicErr() << "Error: RemotePageGeneratorFactory has not yet been initialized.");
+  return vw::stringify(m_platefile_id);
+}
+
 // ----------------------------------------------------------------------
 //                             REMOTE INDEX
 // ----------------------------------------------------------------------

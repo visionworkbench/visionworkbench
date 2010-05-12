@@ -79,6 +79,8 @@ namespace platefile {
 
     virtual boost::shared_ptr<PageGeneratorBase> create(int level, int base_col, int base_row,
                                                         int page_width, int page_height);
+
+    virtual std::string who() const;
   };
 
   // -------------------------------------------------------------------
