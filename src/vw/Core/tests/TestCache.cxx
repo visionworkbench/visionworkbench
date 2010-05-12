@@ -145,3 +145,81 @@ TEST(Cache, Types) {
   // shared_ptr should not have copied
   EXPECT_EQ(0, *h2);
 }
+
+TEST(Cache, Stats) {
+  typedef Cache::Handle<BlockGenerator> handle_t;
+
+  // Cache can hold 2 items
+  vw::Cache cache(2*sizeof(handle_t::value_type));
+
+  handle_t h[3] = {
+    cache.insert(BlockGenerator(1, 0)),
+    cache.insert(BlockGenerator(1, 1)),
+    cache.insert(BlockGenerator(1, 2))};
+
+  EXPECT_EQ(0, cache.hits());
+  EXPECT_EQ(0, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+
+  // miss
+  EXPECT_EQ(0, *h[0]);
+
+  EXPECT_EQ(0, cache.hits());
+  EXPECT_EQ(1, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+
+  // hit
+  EXPECT_EQ(0, *h[0]);
+
+  EXPECT_EQ(1, cache.hits());
+  EXPECT_EQ(1, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+
+  // miss
+  EXPECT_EQ(1, *h[1]);
+
+  EXPECT_EQ(1, cache.hits());
+  EXPECT_EQ(2, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+
+  // hit
+  EXPECT_EQ(1, *h[1]);
+
+  EXPECT_EQ(2, cache.hits());
+  EXPECT_EQ(2, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+
+  // miss, eviction
+  EXPECT_EQ(2, *h[2]);
+
+  EXPECT_EQ(2, cache.hits());
+  EXPECT_EQ(3, cache.misses());
+  EXPECT_EQ(1, cache.evictions());
+
+  // hit
+  EXPECT_EQ(2, *h[2]);
+
+  EXPECT_EQ(3, cache.hits());
+  EXPECT_EQ(3, cache.misses());
+  EXPECT_EQ(1, cache.evictions());
+
+  // hit
+  EXPECT_EQ(1, *h[1]);
+
+  EXPECT_EQ(4, cache.hits());
+  EXPECT_EQ(3, cache.misses());
+  EXPECT_EQ(1, cache.evictions());
+
+  // miss, eviction
+  EXPECT_EQ(0, *h[0]);
+
+  EXPECT_EQ(4, cache.hits());
+  EXPECT_EQ(4, cache.misses());
+  EXPECT_EQ(2, cache.evictions());
+
+  cache.clear_stats();
+
+  EXPECT_EQ(0, cache.hits());
+  EXPECT_EQ(0, cache.misses());
+  EXPECT_EQ(0, cache.evictions());
+}

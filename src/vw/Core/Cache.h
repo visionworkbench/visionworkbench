@@ -56,6 +56,7 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/FundamentalTypes.h>
 
 #include <boost/shared_ptr.hpp>
 #include <typeinfo>
@@ -154,9 +155,11 @@ namespace vw {
       }
       
       value_type const& value() {
+        bool hit = true;
         Mutex::Lock line_lock(m_mutex);
         if( !m_value ) {
           m_generation_count++;
+          hit = false;
           VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; )
           {
             Mutex::Lock cache_lock(cache().m_mutex);
@@ -170,6 +173,10 @@ namespace vw {
         {
           Mutex::Lock cache_lock(cache().m_mutex);
           CacheLineBase::validate();
+          if (hit)
+            cache().m_hits++;
+          else
+            cache().m_misses++;
         }
         return m_value;
       }
@@ -192,6 +199,7 @@ namespace vw {
     CacheLineBase *m_first_valid, *m_last_valid, *m_first_invalid;
     size_t m_size, m_max_size;
     Mutex m_mutex;
+    vw::uint64 m_hits, m_misses, m_evictions;
 
     void allocate( size_t size );
     void deallocate( size_t size );
@@ -241,7 +249,10 @@ namespace vw {
       }
     };
 
-    Cache( size_t max_size ) : m_first_valid(0), m_last_valid(0), m_first_invalid(0), m_size(0), m_max_size(max_size) {}
+    Cache( size_t max_size ) :
+      m_first_valid(0), m_last_valid(0), m_first_invalid(0),
+      m_size(0), m_max_size(max_size),
+      m_hits(0), m_misses(0), m_evictions(0) {}
 
     template <class GeneratorT>
     Handle<GeneratorT> insert( GeneratorT const& generator ) {
@@ -252,6 +263,14 @@ namespace vw {
 
     void resize( size_t size );
     size_t max_size() { return m_max_size; }
+
+    uint64 hits() const { return m_hits; }
+    uint64 misses() const { return m_misses; }
+    uint64 evictions() const {return m_evictions; }
+    void clear_stats() {
+      Mutex::Lock cache_lock(m_mutex);
+      m_hits = m_misses = m_evictions = 0;
+    }
   };
 
   /// Use this method to return a reference to the Vision Workbench

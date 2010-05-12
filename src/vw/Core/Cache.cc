@@ -34,6 +34,7 @@ void vw::Cache::allocate( size_t size ) {
       break;
     }
     m_last_valid->invalidate();
+    m_evictions++;
   }
   m_size += size;
   VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
