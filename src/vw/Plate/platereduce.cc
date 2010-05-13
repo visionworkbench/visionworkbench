@@ -265,7 +265,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
 
   TerminalProgressCallback tpc("plate.platereduce", "Processing");
   double inc_tpc = 1.0/float(workunits.size());
-  BOOST_FOREACH(BBox2i workunit, workunits) {
+  BOOST_FOREACH( const BBox2i& workunit, workunits) {
     tpc.report_incremental_progress(inc_tpc);
     for ( int ix = 0; ix < workunit.width(); ix++ ) {
       for ( int iy = 0; iy < workunit.height(); iy++ ) {
@@ -286,7 +286,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
 
         // Loading images
         std::list<ImageView<PixelT> > tiles;
-        BOOST_FOREACH( TileHeader tile, tile_records ) {
+        BOOST_FOREACH( const TileHeader& tile, tile_records ) {
           ImageView<PixelT> new_tile;
           platefile->read( new_tile, location[0],
                            location[1], opt.level,
@@ -328,7 +328,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   std::list<BBox2i> workunits = bbox_tiles(full_region,4,4);
   std::list<BBox2i> mworkunits;
   int count = 0;
-  BOOST_FOREACH(BBox2i c, workunits) {
+  BOOST_FOREACH(const BBox2i& c, workunits) {
     if (count==opt.num_jobs)
       count=0;
     if (count==opt.job_id)

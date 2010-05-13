@@ -169,10 +169,10 @@ namespace math {
 
       // Converting to a container that is used internally.
       std::vector<Vector<double> > input, output;
-      BOOST_FOREACH( ContainerT p, p1 ) {
+      BOOST_FOREACH( const ContainerT& p, p1 ) {
         input.push_back( Vector3( p[0], p[1], p[2] ) );
       }
-      BOOST_FOREACH( ContainerT p, p2 ) {
+      BOOST_FOREACH( const ContainerT& p, p2 ) {
         output.push_back( Vector3( p[0], p[1], p[2] ) );
       }
 

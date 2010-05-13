@@ -46,13 +46,13 @@ namespace camera {
 
       Vector<double> translation;
       translation.set_size(dimension-1);
-      BOOST_FOREACH( ContainerT p, pts ) {
+      BOOST_FOREACH( const ContainerT& p, pts ) {
         translation += subvector(p,0,dimension-1);
       }
       translation /= num_points;
 
       double scale = 0;
-      BOOST_FOREACH( ContainerT p, pts ) {
+      BOOST_FOREACH( const ContainerT& p, pts ) {
         Vector<double> delta = subvector(p,0,dimension-1) - translation;
         scale += norm_2(delta);
       }
@@ -167,10 +167,10 @@ namespace camera {
 
       // Converting to internal format
       std::vector<Vector<double> > input, output;
-      BOOST_FOREACH( ContainerT p, p1 ) {
+      BOOST_FOREACH( const ContainerT& p, p1 ) {
         input.push_back( Vector4( p[0], p[1], p[2], p[3] ) );
       }
-      BOOST_FOREACH( ContainerT p, p2 ) {
+      BOOST_FOREACH( const ContainerT& p, p2 ) {
         output.push_back( Vector3( p[0], p[1], p[2] ) );
       }
 
