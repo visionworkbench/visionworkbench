@@ -21,7 +21,7 @@ namespace math {
 // (lacking standard installation of lapack headers) is to use the type most
 // appropriate for the bloodline.
 
-#if (defined(VW_HAVE_PKG_INTEL_LAPACK)       && VW_HAVE_PKG_INTEL_LAPACK==1)
+#if (defined(VW_HAVE_PKG_INTEL_LAPACK) && VW_HAVE_PKG_INTEL_LAPACK==1)
 #  include <mkl_lapack.h>
 // MKL headers pollute the macro space. #define P4 breaks boost. Clean up after Intel.
 #  undef ITP
@@ -35,6 +35,9 @@ namespace math {
 #  undef P4P
 #  undef P4M
    typedef MKL_INT f77_int;
+#elif (defined(VW_HAVE_PKG_APPLE_LAPACK) && VW_HAVE_PKG_APPLE_LAPACK==1)
+#  include <vecLib/clapack.h>
+   typedef __CLPK_integer f77_int;
 #else
 #  if (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
       (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
