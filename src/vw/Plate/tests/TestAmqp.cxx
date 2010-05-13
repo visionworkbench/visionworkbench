@@ -33,7 +33,7 @@ class AMQPTest : public ::testing::Test {
       Connection c;
       try {
         c.reset(new AmqpConnection(hostname, port));
-      } catch (const IOErr& e) {
+      } catch (const AMQPErr& e) {
         // If we can't open the AMQP socket, treat this as a disabled test.
         // XXX: This is icky. We need a way to disable tests at runtime (or mock AMQP)
         std::cerr << "Could not open AMQP socket. Test disabled." << std::endl;
@@ -127,6 +127,9 @@ TEST_F(AMQPTest, ChannelFailure) {
 
 TEST_F(AMQPTest, SharedQueueServer) {
   Connection c1 = doconn(), c2 = doconn();
+
+  if (!c1 || !c2)
+    return;
 
   Server server1( new AmqpRpcServer(c1, EXCHANGE, QUEUE) ),
          server2;
