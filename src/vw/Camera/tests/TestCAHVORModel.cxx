@@ -114,6 +114,7 @@ TEST( CAHVORModel, StringRead ) {
   Vector3 R = Vector3(1,-1,1);
 
   EXPECT_VECTOR_NEAR( C, c.C, 1e-5 );
+
   EXPECT_VECTOR_NEAR( A, c.A, 1e-5 );
   EXPECT_VECTOR_NEAR( H, c.H, 1e-5 );
   EXPECT_VECTOR_NEAR( V, c.V, 1e-5 );
@@ -136,9 +137,12 @@ TEST( CAHVORModel, StringWriteRead ) {
   CAHVORModel c2(file);
 
   EXPECT_VECTOR_NEAR( c2.C, c.C, 1e-5 );
+  EXPECT_VECTOR_NEAR( c2.C, c.camera_center(), 1e-5 );
   EXPECT_VECTOR_NEAR( c2.A, c.A, 1e-5 );
   EXPECT_VECTOR_NEAR( c2.H, c.H, 1e-5 );
   EXPECT_VECTOR_NEAR( c2.V, c.V, 1e-5 );
   EXPECT_VECTOR_NEAR( c2.O, c.O, 1e-5 );
   EXPECT_VECTOR_NEAR( c2.R, c.R, 1e-5 );
+
+  EXPECT_STREQ( "CAHVOR", c2.type().c_str() );
 }

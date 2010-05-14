@@ -32,6 +32,7 @@ Quaternion<double> pose(0,0,0,1);
                           pose,
                           position,
                           velocity);
+ EXPECT_STREQ( "LinearPushbroom", cam.type().c_str() );
 
  Vector3 camera_center, pointing_vector;
  pointing_vector = cam.pixel_to_vector(Vector2(0,0));

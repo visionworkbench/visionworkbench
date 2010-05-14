@@ -45,6 +45,7 @@ TEST( PinholeModel, StandardConstruct ) {
                      Vector2(500,1000), 1e-6);
   EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,10,10)),
                      Vector2(500,0), 1e-6);
+  EXPECT_STREQ( "Pinhole", pinhole.type().c_str() );
 }
 
 TEST( PinholeModel, CoordinateFrame ) {

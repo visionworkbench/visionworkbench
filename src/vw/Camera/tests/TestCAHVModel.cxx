@@ -61,6 +61,7 @@ TEST( CAHVModel, PinholeConversion ) {
                         pose, 2000, 2000, 3, -1 );
 
   CAHVModel test_c(pinhole);
+  EXPECT_STREQ( "CAHV", test_c.type().c_str() );
   CAHVModel test_d;
   test_d = pinhole;
 
