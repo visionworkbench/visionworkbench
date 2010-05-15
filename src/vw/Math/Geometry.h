@@ -265,7 +265,7 @@ namespace math {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute affine transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
 
 
@@ -349,7 +349,7 @@ namespace math {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute similarity transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute similarity transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
@@ -421,7 +421,7 @@ namespace math {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute translation rotation transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute translation rotation transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.
@@ -483,7 +483,7 @@ namespace math {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute translation transformation.  p1 and p2 are not the same size." );
-      VW_ASSERT( p1.size() != 0 && p1.size() >= min_elements_needed_for_fit(p1[0]),
+      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
                  vw::ArgumentErr() << "Cannot compute translation transformation.  Insufficient data.\n");
 
       // Compute the center of mass of each collection of points.

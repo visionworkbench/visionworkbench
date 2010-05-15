@@ -144,7 +144,7 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
       }
 
       // 4.2.) Summing, Averaging, and Storing
-      if ( positions.size() == 0 ) {
+      if ( positions.empty() ) {
         vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
         // At the very least we can provide a point that is some
         // distance out from the camera center and is in the 'general'

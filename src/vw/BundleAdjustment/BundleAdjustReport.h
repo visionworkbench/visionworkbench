@@ -301,7 +301,7 @@ namespace ba {
 
       // Statistics gathering for ground control points
       double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0;
-      if ( gcp_errors.size() != 0 ) {
+      if (!gcp_errors.empty()) {
         min_gcp = *(std::min_element(gcp_errors.begin(),
                                      gcp_errors.end()));
         max_gcp = *(std::max_element(gcp_errors.begin(),
@@ -330,7 +330,7 @@ namespace ba {
                    << std::endl;
       if (!m_adjuster.camera_constraint())
         m_human_both << "\t[NOTE: Camera Constraint Shutoff!]\n";
-      if (gcp_errors.size() != 0 )
+      if (!gcp_errors.empty())
         m_human_both << "\tGCP [min: " << min_gcp << " mean: " << mean_gcp
                      << " max: " << max_gcp << " dev: " << stddev_gcp << "] "
                      << m_model.gcp_unit() << std::endl;

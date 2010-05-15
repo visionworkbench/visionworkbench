@@ -187,7 +187,7 @@ namespace stereo {
 
             // For debugging: this saves the disparity map at various
             // pyramid levels to disk.
-            if (m_debug_prefix.size() != 0) {
+            if (!m_debug_prefix.empty()) {
               std::ostringstream ostr;
               ostr << "-" << bbox.min().x() << "-" << bbox.max().x()
                    << "_" << bbox.min().y() << "-" << bbox.max().y() << "-";

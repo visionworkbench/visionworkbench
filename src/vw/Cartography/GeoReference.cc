@@ -278,7 +278,7 @@ namespace cartography {
     // If the file contains no projection related information, we
     // supply proj.4 with a "default" interpretation that the file
     // is in geographic (unprojected) coordinates.
-    if (output_strings.size() == 0) 
+    if (output_strings.empty())
       set_proj4_projection_str("+proj=longlat");
     else
       set_proj4_projection_str(strm.str());

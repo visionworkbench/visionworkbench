@@ -73,7 +73,7 @@ void CachedTextureRenderer::process_allocation_requests() {
   
   boost::shared_ptr<TextureRequest> r;
   
-  while (m_requests.size() != 0) {
+  while (!m_requests.empty()) {
     r = m_requests.front();
     m_requests.pop_front();
     r->process_request();
@@ -102,7 +102,7 @@ public:
       boost::shared_ptr<TextureRecord> r;
       {
         vw::Mutex::Lock lock(m_request_mutex);
-        if (m_requests.size() != 0) {
+        if (!m_requests.empty()) {
           r = m_requests.front();
           m_requests.pop_front();
           found = true;

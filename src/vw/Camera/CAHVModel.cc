@@ -45,7 +45,7 @@ namespace camera {
   /// from the file.  The file may contain either CAHV parameters or
   /// pinhole camera parameters.
   CAHVModel::CAHVModel(std::string const& filename) {
-    if (filename.size() == 0)
+    if (filename.empty())
       vw_throw( IOErr() << "CAHVModel: null file name passed to constructor." );
     
     if (boost::ends_with(filename, ".cahv"))

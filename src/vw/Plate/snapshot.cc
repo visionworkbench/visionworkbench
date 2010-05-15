@@ -65,7 +65,7 @@ public:
 
     // STEP 1 : PARSE RANGE STRING
 
-    if (range_string.size() == 0) {
+    if (range_string.empty()) {
       std::cout << "Error: You must specify a transaction_id range "
                 << "with the --range option.\n";
       exit(1);
@@ -91,7 +91,7 @@ public:
 
     // STEP 2 : PARSE REGION STRING
     
-    if (region_string.size() == 0) {
+    if (region_string.empty()) {
 
       // If the region string is empty, then the user has not
       // specified the region.  We record this by setting the level to
@@ -278,7 +278,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if (url.size() == 0) {
+  if (url.empty()) {
     std::cout << usage.str();
     return 1;
   }

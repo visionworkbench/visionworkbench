@@ -58,7 +58,7 @@ static void write_match_image(std::string out_file_name,
                               std::vector<InterestPoint> matched_ip1,
                               std::vector<InterestPoint> matched_ip2) {
   // Skip image pairs with no matches.
-  if (matched_ip1.size() == 0)
+  if (matched_ip1.empty())
     return;
 
   DiskImageView<PixelRGB<uint8> > src1(file1);

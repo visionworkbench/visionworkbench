@@ -66,17 +66,15 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
       BBox2i parent_region = *iter;
       parent_region.min() *= 2;
       parent_region.max() *= 2;
-      std::list<TileHeader> valid_tile_records = m_platefile->search_by_region(level+1, 
-                                                                               parent_region,
-                                                                               transaction_id,
-                                                                               transaction_id, 
-                                                                               1);
+      std::list<TileHeader> valid_tile_records =
+        m_platefile->search_by_region(level+1, parent_region,
+                                      transaction_id, transaction_id, 1);
 
       // Debugging:
       // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1) 
       //           << "   found " << valid_tile_records.size() << "\n";
 
-      if (valid_tile_records.size() != 0) {
+      if (!valid_tile_records.empty()) {
 
         // Once we compute the valid tiles at the parent level, we
         // translate that back down into valid tiles at this level.

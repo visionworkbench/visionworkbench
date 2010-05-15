@@ -79,10 +79,10 @@ public:
 
     // STEP 1 : PARSE RANGE STRING
 
-    if (range_string.size() == 0) {
+    if (range_string.empty()) {
       std::cout << "Error: you must specify pixel ranges using --range...\n";
       exit(1);
-    }      
+    }
 
     // If the range string is not empty, we attempt to parse the
     // two parameters out from the range string.
@@ -247,7 +247,7 @@ public:
 
     // If we don't have a full complement of command line options,
     // then we fall back to reading georeferences from the files.
-    if (gray_wkt.size() == 0 && color_wkt.size() == 0) {
+    if (gray_wkt.empty() && color_wkt.empty()) {
       std::cout << "\t-->Reading georeferences from input images.\n";
       read_georeference( gray_georef, gray_filename );
       read_georeference( color_georef, color_filename );
@@ -255,7 +255,7 @@ public:
     } else {
       std::cout << "\t--> Parsing georeferences from the command line.\n";
 
-      if (gray_wkt.size() != 0 && gray_ullr.size() != 0) {
+      if (!gray_wkt.empty() && !gray_ullr.empty()) {
         
         // Initialize the georef objects using the well known text
         // strings supplied on the command line.
@@ -306,7 +306,7 @@ public:
         gray_georef.set_transform(T_gray);
       } 
 
-      if (color_wkt.size() != 0 && color_ullr.size() != 0) {
+      if (!color_wkt.empty() && !color_ullr.empty()) {
 
         // Initialize the georef objects using the well known text
         // strings supplied on the command line.

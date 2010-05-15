@@ -79,6 +79,7 @@ Makefile.in
 /src/vw/Camera/tests/TestLinearPushbroomModel
 /src/vw/Camera/tests/TestPinholeModel
 /src/vw/Camera/tests/TestPinholeModelCalibrate
+/src/vw/Camera/tests/TestAdjustedCamera
 /src/vw/Cartography/tests/TestGeoReference
 /src/vw/Cartography/tests/TestGeoTransform
 /src/vw/Cartography/tests/TestPointImageManipulation

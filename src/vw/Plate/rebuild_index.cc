@@ -60,7 +60,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if (filename.size() == 0) {
+  if (filename.empty()) {
     std::cout << usage.str();
     return 1;
   }

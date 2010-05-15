@@ -197,7 +197,7 @@ namespace ba {
       }
 
       // Processing statement
-      if ( tokens.size() == 0 )
+      if ( tokens.empty() )
         continue;
 
       if ( tokens[0] == "End_Group" )     // End of Control Group
@@ -426,7 +426,7 @@ namespace ba {
       }
 
       // Processing statement
-      if ( tokens.size() == 0 )
+      if ( tokens.empty() )
         continue;
 
       if ( tokens[0] == "End_Object" )     // End of Control Point
@@ -678,7 +678,7 @@ namespace ba {
       }
 
       // Processing statement
-      if ( tokens.size() == 0 )
+      if ( tokens.empty() )
         continue;
 
       if ( tokens[0] == "End" )        // End of file

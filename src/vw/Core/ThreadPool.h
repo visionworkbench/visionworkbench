@@ -159,7 +159,8 @@ namespace vw {
       // While there are available threads, farm out the tasks from
       // the task generator
       boost::shared_ptr<Task> task;
-      while (m_available_thread_ids.size() != 0 && (task = this->get_next_task()) ) {
+      while ( !m_available_thread_ids.empty() &&
+              (task = this->get_next_task()) ) {
         int next_available_thread_id = m_available_thread_ids.front();
         m_available_thread_ids.pop_front();
 
@@ -233,9 +234,9 @@ namespace vw {
       this->notify();
     }
 
-    virtual boost::shared_ptr<Task> get_next_task() { 
+    virtual boost::shared_ptr<Task> get_next_task() {
       Mutex::Lock lock(m_mutex);
-      if (m_queued_tasks.size() == 0) 
+      if (m_queued_tasks.empty())
         return boost::shared_ptr<Task>();
 
       boost::shared_ptr<Task> task = m_queued_tasks.front();
@@ -276,14 +277,14 @@ namespace vw {
       Mutex::Lock lock(m_mutex);
 
       // If there are no tasks available, we return the NULL task.
-      if (m_queued_tasks.size() == 0) 
+      if (m_queued_tasks.empty())
         return boost::shared_ptr<Task>();
 
       std::map<int, boost::shared_ptr<Task> >::iterator iter = m_queued_tasks.begin();
 
       // If the next task does not have the expected index, we
       // return the NULL task.
-      if ((*iter).first != m_next_index) 
+      if ((*iter).first != m_next_index)
         return boost::shared_ptr<Task>();
 
      

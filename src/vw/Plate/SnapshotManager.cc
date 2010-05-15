@@ -62,7 +62,7 @@ namespace platefile {
     // If there are no valid tiles at this level, then there is nothing
     // further for us to do here on this branch of the recursion.  We
     // return immediately.
-    if (tile_records.size() == 0)
+    if (tile_records.empty())
       return 0;
 
     // Insert the TileHeaders for this level into the composite_tiles

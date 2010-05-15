@@ -102,7 +102,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     { // Checking to see if this section is transparent
       std::list<TileHeader> theaders =
         plate_view.search_for_tiles( crop_bboxes[i] / scale_change );
-      if (theaders.size() == 0 )
+      if (theaders.empty())
         continue;
     }
 

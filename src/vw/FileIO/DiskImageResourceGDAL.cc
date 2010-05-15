@@ -491,7 +491,7 @@ namespace vw {
       if (!dataset)
         vw_throw( LogicErr() << "DiskImageResourceGDAL::read() Could not read file. No file has been opened." );
 
-      if( m_palette.size() == 0 ) {
+      if( m_palette.empty() ) {
         for ( int32 p = 0; p < planes(); ++p ) {
           for ( int32 c = 0; c < channels(); ++c ) {
             // Only one of channels() or planes() will be nonzero.

@@ -142,7 +142,7 @@ int main( int argc, char *argv[] ) {
   if( vm.count("help") ) {
     vw_out() << usage.str() << std::endl;
     return 1;
-  } else if ( input_file_names.size() == 0 ) {
+  } else if ( input_file_names.empty() ) {
     vw_out() << "ERROR! Require an input file.\n";
     vw_out() << "\n" << usage.str() << "\n";
     return 1;

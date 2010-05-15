@@ -137,7 +137,7 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
                                                                      transaction_id,
                                                                      transaction_id, 1);
 
-    if (tile_records.size() != 0) {
+    if (!tile_records.empty()) {
       vw_out() << "\t--> Exporting " << tile_records.size() << " tiles in " << *region_iter
                << " @ level " << level << "\n";
     }

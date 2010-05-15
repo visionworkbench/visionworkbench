@@ -182,7 +182,7 @@ public:
             t_samples[iz].push_back( (*iter)(ix,iy)[iz] );
         }
 
-        if ( t_weight.size() == 0 ) {
+        if ( t_weight.empty() ) {
           output(ix,iy) = PixelT();
           continue;
         }
@@ -281,7 +281,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
                                                      opt.end_trans_id, true);
 
         // No Tiles? No Problem!
-        if (tile_records.size() == 0)
+        if (tile_records.empty())
           continue;
 
         // Loading images
