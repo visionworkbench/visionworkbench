@@ -11,6 +11,7 @@
 *.pb.cc
 *.pb.h
 /.vimrc.local
+/.project.root
 /vw.tags
 /tags
 /build
