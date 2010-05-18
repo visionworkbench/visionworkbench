@@ -605,7 +605,11 @@ int main( int argc, char *argv[] ) {
   // Prepare the composite
   composite.set_draft_mode( true );
   composite.prepare();
-  
+
+  // Heuristic: If the image area is bigger than 100K by 100K, die before we trigger an OOM.
+  VW_ASSERT(uint64(composite.cols()) * uint64(composite.rows()) < 10000000000ULL,
+    LogicErr() << "Composite is WAY too big (" << composite.cols() << " x " << composite.rows() << "). Something's wrong!");
+
   std::cout << "\t--> Generating output GeoTIFF.  Size = " << composite.cols() << " x " << composite.rows() << "\n";
   DiskImageResourceGDAL::Options gdal_options;
   gdal_options["COMPRESS"] = "LZW";
