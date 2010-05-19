@@ -80,7 +80,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description,
                 int transaction_id_override, cartography::GeoReference const& input_georef,
-                bool mipmap_preblur, bool /*verbose*/ = false,
+                bool tweak_settings_for_terrain, bool /*verbose*/ = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
@@ -184,6 +184,7 @@ namespace platefile {
                                                                             tiles[i],
                                                                             pyramid_level,
                                                                             kml_view,
+                                                                            tweak_settings_for_terrain,
                                                                             false,
                                                                             tiles.size(),
                                                                             progress)));
@@ -198,7 +199,8 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, mipmap_preblur,
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, 
+                     (!tweak_settings_for_terrain), // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 

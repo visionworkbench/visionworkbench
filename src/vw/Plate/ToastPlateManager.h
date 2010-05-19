@@ -84,7 +84,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description, 
                 int transaction_id_override, cartography::GeoReference const& georef, 
-                bool mipmap_preblur, bool verbose = false,
+                bool tweak_settings_for_terrain, bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
       
       // Compute the pyramid level at which to store this image.  The
@@ -125,9 +125,13 @@ namespace platefile {
         << m_resolution << " pixels.)\n";
 
       // Create the output view and crop it to the proper size.
-      ImageViewRef<typename ViewT::pixel_type> toast_view = 
-        transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
-
+      ImageViewRef<typename ViewT::pixel_type> toast_view;
+      if (tweak_settings_for_terrain) {
+          std::cout << "USING BILINEAR INTERP #1...\n";
+          toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BilinearInterpolation());
+      } else {
+          toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
+      }
       if( (boost::trim_copy(georef.proj4_str())=="+proj=longlat") &&
           (fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1) &&
           (fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1) &&
@@ -135,8 +139,12 @@ namespace platefile {
           (fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1) ) {
         vw_out() << "\t--> Detected global overlay.  " 
                   << "Using cylindrical edge extension to hide the seam.\n";
-        toast_view = transform(image,toast_tx,
-                               CylindricalEdgeExtension(),BicubicInterpolation());
+        if (tweak_settings_for_terrain) {
+          toast_view = transform(image,toast_tx,
+                                 CylindricalEdgeExtension(),BilinearInterpolation());
+        } else 
+          toast_view = transform(image,toast_tx,
+                                 CylindricalEdgeExtension(),BicubicInterpolation());
       } 
 
       // chop up the image into small chunks
@@ -177,6 +185,7 @@ namespace platefile {
                                                                             tiles[i], 
                                                                             pyramid_level, 
                                                                             toast_view, 
+                                                                            tweak_settings_for_terrain,
                                                                             verbose, // verbose
                                                                             tiles.size(),
                                                                             progress)));
@@ -191,7 +200,8 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, mipmap_preblur,
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, 
+                     !tweak_settings_for_terrain, // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 
