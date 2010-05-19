@@ -433,10 +433,10 @@ namespace vw {
 
   template <class ImageT>
   bool is_opaque_helper( ImageT const& image, true_type ) {
-    typename PixelChannelType<typename ImageT::pixel_type>::type maxval = ChannelRange<typename ImageT::pixel_type>::max();
     for( int32 y=0; y<image.rows(); ++y )
       for( int32 x=0; x<image.cols(); ++x )
-        if( image(x,y)[PixelNumChannels<typename ImageT::pixel_type>::value-1] < maxval ) return false;
+        if( ! (is_opaque( image(x,y) ) ) )
+          return false;
     return true;
   }
 
@@ -477,6 +477,32 @@ namespace vw {
     return is_transparent_helper( image.impl(), typename PixelHasAlpha<typename ImageT::pixel_type>::type() );
   }
 
+
+  // *******************************************************************
+  // clear_nonopaque_pixels()
+  //
+  // This filter is useful for eliminating fringe effects along the
+  // edges of images with some transparent or nodata values that have
+  // be transformed with bilinear or bicubic interpolation.
+  // *******************************************************************
+  template <class PixelT>
+  class ClearNonOpaqueFunctor: public UnaryReturnSameType {
+  public:
+    ClearNonOpaqueFunctor() {}
+
+    PixelT operator()( PixelT const& value ) const {
+      if (is_opaque(value)) return value;
+      else return PixelT();
+    }
+  };
+
+  /// Zero out any pixels that aren't completely opaque. 
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,ClearNonOpaqueFunctor<typename ImageT::pixel_type> >
+  inline clear_nonopaque_pixels( ImageViewBase<ImageT> const& image ) {
+    typedef ClearNonOpaqueFunctor<typename ImageT::pixel_type> func_type;
+    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func_type() );
+  }
 
   // *******************************************************************
   // image_blocks()

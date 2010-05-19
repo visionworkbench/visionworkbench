@@ -154,6 +154,17 @@ TEST( Algorithms, TransparentOpaque ) {
   im3(0,0) = Px(.7,1); im3(1,0) = Px(0,1);
   EXPECT_FALSE( is_transparent(im3) );
   EXPECT_TRUE( is_opaque(im3) );
+
+  ImageView<Px> im4(2,1);
+  im4(0,0) = Px(.7,0.5); im4(1,0) = Px(1.0,0.5);
+  EXPECT_FALSE( is_transparent(im4) );
+  EXPECT_FALSE( is_opaque(im4) );
+
+  EXPECT_FALSE( is_transparent(im4(0,0)) );
+  EXPECT_FALSE( is_opaque(im4(0,0)) );
+
+  EXPECT_FALSE( is_transparent(im4(1,0)) );
+  EXPECT_FALSE( is_opaque(im4(1,0)) );
 }
 
 TEST( Algorithms, ImageBlocks ) {

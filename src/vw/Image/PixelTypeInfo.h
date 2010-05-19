@@ -117,7 +117,7 @@ namespace vw {
 
   template <class PixelT>
   inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::enable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
-  is_opaque(PixelT const& pixel) { return pixel.a(); }
+  is_opaque(PixelT const& pixel) { return pixel.a() == ChannelRange<PixelT>::max(); }
 
   template <class PixelT>
   inline typename boost::enable_if< typename IsScalarOrCompound<PixelT>::type, typename boost::disable_if<typename PixelHasAlpha<PixelT>::type, bool>::type>::type
