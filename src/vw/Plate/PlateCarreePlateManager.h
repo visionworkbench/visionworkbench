@@ -80,7 +80,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description,
                 int transaction_id_override, cartography::GeoReference const& input_georef,
-                bool /*verbose*/ = false,
+                bool mipmap_preblur, bool /*verbose*/ = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
@@ -198,7 +198,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, mipmap_preblur,
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 
@@ -212,7 +212,7 @@ namespace platefile {
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
-    void generate_mipmap_tile(int col, int row, int level, int transaction_id) const {
+    void generate_mipmap_tile(int col, int row, int level, int transaction_id, bool preblur) const {
 
       // Create an image large enough to store all of the child nodes
       int tile_size = m_platefile->default_tile_size();
@@ -242,11 +242,16 @@ namespace platefile {
       std::vector<float> kernel(2);
       kernel[0] = kernel[1] = 0.5;
 
-      ImageView<PixelT> new_tile = subsample( separable_convolution_filter( super,
-            kernel,
-            kernel,
-            1, 1,
-            ConstantEdgeExtension() ), 2);
+      ImageView<PixelT> new_tile;
+      if (preblur) {
+        new_tile = subsample( separable_convolution_filter( super,
+                                                            kernel,
+                                                            kernel,
+                                                            1, 1,
+                                                            ConstantEdgeExtension() ), 2);
+      } else {
+        new_tile = subsample( super, 2 );
+      }
 
       if (!is_transparent(new_tile)) {
         vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row

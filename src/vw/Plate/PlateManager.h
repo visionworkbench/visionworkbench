@@ -49,13 +49,17 @@ namespace platefile {
     //           to be mipmapped at starting_level.  Use to specify affected tiles.
     //   transaction_id -- transaction id to use when reading/writing tiles
     //
-    void mipmap(int starting_level, BBox2i const& bbox, int transaction_id,
+    void mipmap(int starting_level, BBox2i const& bbox, int transaction_id, bool preblur,
                 const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  It is left to a
     /// subclass of PlateManager to implement.
-    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const = 0;
+    ///
+    /// Set preblur to false if you want straight decimation during
+    /// mipmapping. Otherwise you will get a nice, low-pass filtered
+    /// version in the mipmap.
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id, bool preblur) const = 0;
 
   };    
 

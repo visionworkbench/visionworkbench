@@ -53,7 +53,8 @@ template <class ViewT>
 void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
                ImageViewBase<ViewT> const& view,
                std::string filename, int transaction_id_override, 
-               GeoReference const& georef, std::string output_mode) {
+               GeoReference const& georef, std::string output_mode, 
+               bool mipmap_preblur) {
 
   std::ostringstream status_str;
   status_str << "\t    " << filename << " : ";
@@ -63,7 +64,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
       new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
 
-    pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
+    pm->insert(view.impl(), filename, transaction_id_override, georef, mipmap_preblur, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 
   }  else if (output_mode == "equi")  {
@@ -71,7 +72,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     boost::shared_ptr<PlateCarreePlateManager<typename ViewT::pixel_type> > pm(
       new PlateCarreePlateManager<typename ViewT::pixel_type> (platefile) );
 
-    pm->insert(view.impl(), filename, transaction_id_override, georef, g_debug,
+    pm->insert(view.impl(), filename, transaction_id_override, georef, mipmap_preblur, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
     
   }
@@ -103,6 +104,7 @@ int main( int argc, char *argv[] ) {
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
+    ("terrain", "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
     ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
@@ -188,6 +190,12 @@ int main( int argc, char *argv[] ) {
   } else {
     g_debug = false;
   }
+
+  // Set the debug level
+  bool mipmap_preblur = true;
+  if (vm.count("terrain")) {
+    mipmap_preblur = false;
+  } 
   
   if (vm.count("transaction-id") && image_files.size() != 1) {
     std::cout << "Error: you cannot override the transaction-id while processing multiple images with " << argv[0] << ".\n";
@@ -265,30 +273,36 @@ int main( int argc, char *argv[] ) {
             do_mosaic(platefile, 
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
                                                 nodata_value)),
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           else
             do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           break;
         case VW_CHANNEL_INT16:  
           if (has_nodata_value)
             do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]), 
                                                 nodata_value)),
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           else
             do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           break;
         case VW_CHANNEL_FLOAT32:
           if (has_nodata_value) {
             do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
                                                 nodata_value)),
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           } else
             do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           break;
         default:
           vw_out() << "Image contains a channel type not supported by image2plate.\n";
@@ -304,10 +318,12 @@ int main( int argc, char *argv[] ) {
             do_mosaic(platefile, 
                       pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
                                                                               nodata_value))),
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef,
+                      output_mode, mipmap_preblur);
           else
             do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, output_mode);
+                      image_files[i], transaction_id_override, georef, 
+                      output_mode, mipmap_preblur);
           break;
         default:
           vw_out() << "Platefile contains a channel type not supported by image2plate.\n";

@@ -10,7 +10,8 @@
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox, 
-                                         int transaction_id, const ProgressCallback &progress_callback) const {
+                                         int transaction_id, bool preblur, 
+                                         const ProgressCallback &progress_callback) const {
 
 
   // Adjust the size of the bbox for the first mipmapping level, which
@@ -95,7 +96,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
 
         for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
           for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
-            this->generate_mipmap_tile(i,j,level,transaction_id);
+            this->generate_mipmap_tile(i,j,level,transaction_id, preblur);
             sub_sub_progress.report_incremental_progress(1.0/(trimmed_region.width() * trimmed_region.height()));
           }
         }

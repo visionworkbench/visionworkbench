@@ -73,28 +73,26 @@ namespace platefile {
 
     for (std::list<TileHeader>::iterator iter = tile_records.begin();
          iter != tile_records.end(); ++iter) {
-
+      
+      // We always add any valid tiles at the target_level, since
+      // they should always be included in the composite.
+      //
+      // When adding tiles that may need to be supersampled, we are
+      // only interested in leaf nodes.  All others will have higher
+      // resolution tiles available as their children that we should
+      // use instead.
       if (current_level == target_level || is_leaf(m_platefile, *iter) ) {
         
-        // We always add any valid tiles at the target_level, since
-        // they should always be included in the composite.
-        //
-        // When adding tiles that may need to be supersampled, we are
-        // only interested in leaf nodes.  All others will have higher
-        // resolution tiles available as their children that we should
-        // use instead.
-        //
         // We also avoid adding the tile at start_transaction_id if it
         // is not at the current level.  A tile of this type is part
         // of the previous snapshot, but at a higher level.
-        if ( !(int(iter->transaction_id()) == start_transaction_id && int(iter->level()) != target_level)) {
+        if ( !(int(iter->transaction_id()) == start_transaction_id && int(iter->level()) != target_level) ) {
 
           // std::cout << "Adding tile @ " << iter->transaction_id() << " : " 
           //           << " [ " << iter->transaction_id() << " ]  " 
           //           << iter->col() << " " << iter->row() << " @ " << iter->level() << "\n";
-
           composite_tiles[iter->transaction_id()] = *iter;
-        }
+        } 
 
       }
       
@@ -165,6 +163,9 @@ namespace platefile {
         std::map<int32, TileHeader>::iterator second_tid_iter = lowest_tid_iter;
         ++second_tid_iter;
         if (int(second_tid_iter->first) == start_transaction_id) {
+          vw_out(DebugMessage, "plate::snapshot") 
+            << "Culling tile that was already part of the last snapshot: " 
+            << lowest_tid_iter->first << " @ " << lowest_tid_iter->second.level() << "\n";
           composite_tiles.erase(lowest_tid_iter);
         } 
       }
@@ -368,7 +369,7 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction
   for (int level = 0; level < m_platefile->num_levels(); ++level) {    
 
     // For debugging:
-    //    for (int level = 11; level < 12; ++level) {    
+    // for (int level = 0; level < 10; ++level) {    
 
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().

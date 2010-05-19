@@ -84,7 +84,7 @@ namespace platefile {
     template <class ViewT>
     void insert(ImageViewBase<ViewT> const& image, std::string const& description, 
                 int transaction_id_override, cartography::GeoReference const& georef, 
-                bool verbose = false,
+                bool mipmap_preblur, bool verbose = false,
                 const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
       
       // Compute the pyramid level at which to store this image.  The
@@ -126,7 +126,7 @@ namespace platefile {
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view = 
-        transform(image,toast_tx, ZeroEdgeExtension(),BicubicInterpolation());
+        transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
 
       if( (boost::trim_copy(georef.proj4_str())=="+proj=longlat") &&
           (fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1) &&
@@ -191,7 +191,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, mipmap_preblur,
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
 
@@ -205,7 +205,7 @@ namespace platefile {
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  
-    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id) const;
+    virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id, bool preblur) const;
 
     ImageView<PixelT> fetch_child_tile(int x, int y, int level, int transaction_id) const;
   };

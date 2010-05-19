@@ -162,7 +162,9 @@ ImageView<PixelT> ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int 
 
 template <class PixelT>
 void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row, 
-                                                                    int level, int transaction_id) const {
+                                                                    int level, 
+                                                                    int transaction_id, 
+                                                                    bool preblur) const {
 
   // Create an image large enough to store all of the child nodes
   int tile_size = m_platefile->default_tile_size();
@@ -190,11 +192,21 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
   kernel[1] = kernel[3] = 0.2135;
   kernel[2] = 0.6418;
   
-  ImageView<PixelT> new_tile = subsample( crop( separable_convolution_filter( super, 
-                                                                              kernel, 
-                                                                              kernel, 
-                                                                              NoEdgeExtension() ),
-                                                tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
+  ImageView<PixelT> new_tile;
+  if (preblur) {
+
+    new_tile = subsample( crop( separable_convolution_filter( super, 
+                                                              kernel, 
+                                                              kernel, 
+                                                              NoEdgeExtension() ),
+                                tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
+
+  } else {
+
+    new_tile = subsample( crop( super, 
+                                tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
+
+  }
 
   if (!is_transparent(new_tile)) {
     vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row 
@@ -217,7 +229,8 @@ namespace platefile {
   ToastPlateManager<PIXELT >::generate_mipmap_tile(int col,             \
                                                    int row,             \
                                                    int level,           \
-                                                   int transaction_id) const; \
+                                                   int transaction_id,  \
+                                                   bool preblur) const; \
   template ImageView<PIXELT >                                           \
   ToastPlateManager<PIXELT >::fetch_child_tile(int col,                 \
                                                int row,                 \
