@@ -627,64 +627,85 @@ TEST(LinearAlgebra, RankAndNullspace) {
   EXPECT_EQ( rank(magic), 3 );  // It's square yo
   EXPECT_EQ( nullity(magic), 0 );
 
-  // Common example of nullspace
-  Matrix<double> cow(2,4);
-  cow(0,0) = -1; cow(0,1) = 1; cow(0,2) = 2; cow(0,3) = 4;
-  cow(1,0) = 2;  cow(1,1) = 0; cow(1,2) = 1; cow(1,3) = -7;
+  { // Common example of nullspace
+    Matrix<double> cow(2,4);
+    cow(0,0) = -1; cow(0,1) = 1; cow(0,2) = 2; cow(0,3) = 4;
+    cow(1,0) = 2;  cow(1,1) = 0; cow(1,2) = 1; cow(1,3) = -7;
 
-  nullsp = nullspace(cow);
-  EXPECT_EQ( nullsp.cols(), 2u );
-  EXPECT_EQ( nullsp.rows(), 4u );
-  EXPECT_NEAR( nullsp(0,0), 0.1704, 1e-4 );
-  EXPECT_NEAR( nullsp(3,1), 0.2542, 1e-4 );
-  EXPECT_NEAR( nullsp(2,1), -0.1147, 1e-4 );
+    nullsp = nullspace(cow);
+    EXPECT_EQ( nullsp.cols(), 2u );
+    EXPECT_EQ( nullsp.rows(), 4u );
 
-  EXPECT_EQ( rank(cow), 2 );
-  EXPECT_EQ( nullity(cow), 2 );
+    Vector<double> definition_check;
+    definition_check = cow*select_col(nullsp,0);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-8 );
+    definition_check = cow*select_col(nullsp,1);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-8 );
 
-  // Data that threw an error in the past
-  float monkey_data[63] = {
-    148291,148852,187,537654,539688,678,793,796,1,
-    1.60418e+06,958416,974,1.67335e+06,999744,1016,1647,984,1,
-    1.09336e+06,835077,753,1.5972e+06,1.2199e+06,1100,1452,1109,1,
-    371148,156024,394,303324,127512,322,942,396,1,
-    94659,64357,139,234945,159735,345,681,463,1,
-    945260,125330,755,192808,25564,154,1252,166,1,
-    391777,206916,401,430857,227556,441,977,516,1
-  };
+    EXPECT_EQ( rank(cow), 2 );
+    EXPECT_EQ( nullity(cow), 2 );
+  }
 
-  MatrixProxy<float> monkey( monkey_data, 7, 9 );
-  nullsp = nullspace(monkey);
-  EXPECT_EQ( nullsp.cols(), 2u );
-  EXPECT_EQ( nullsp.rows(), 9u );
-  EXPECT_EQ( rank(monkey), 7 );
-  EXPECT_EQ( nullity(monkey), 2 );
+  { // Data that threw an error in the past
+    float monkey_data[63] = {
+      148291,148852,187,537654,539688,678,793,796,1,
+      1.60418e+06,958416,974,1.67335e+06,999744,1016,1647,984,1,
+      1.09336e+06,835077,753,1.5972e+06,1.2199e+06,1100,1452,1109,1,
+      371148,156024,394,303324,127512,322,942,396,1,
+      94659,64357,139,234945,159735,345,681,463,1,
+      945260,125330,755,192808,25564,154,1252,166,1,
+      391777,206916,401,430857,227556,441,977,516,1
+    };
 
-  nullsp = nullspace(transpose(monkey));
-  EXPECT_EQ( nullsp.cols(), 0u );
-  EXPECT_EQ( nullsp.rows(), 0u );
-  EXPECT_EQ( rank(transpose(monkey)), 7 );
-  EXPECT_EQ( nullity(transpose(monkey)), 0 );
+    MatrixProxy<float> monkey( monkey_data, 7, 9 );
+    nullsp = nullspace(monkey);
+    EXPECT_EQ( nullsp.cols(), 2u );
+    EXPECT_EQ( nullsp.rows(), 9u );
+    EXPECT_EQ( rank(monkey), 7 );
+    EXPECT_EQ( nullity(monkey), 2 );
 
-  // More Data that threw an error in the past
-  double shark_data[63] = {
-    1.36483e+06,846250,1354,687456,426250,682,1008,625,1,
-    1.28992e+06,750141,1323,607425,353241,623,975,567,1,
-    1.2395e+06,710892,1302,572152,328146,601,952,546,1,
-    1.26153e+06,792550,1310,636543,399905,661,963,605,1,
-    1.23405e+06,740430,1299,593750,356250,625,950,570,1,
-    1.22094e+06,799748,1292,637875,417825,675,945,619,1,
-    1.15748e+06,708400,1265,562725,344400,615,915,560,1
-  };
+    Vector<double> definition_check;
+    definition_check = monkey*select_col(nullsp,0);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-1 );
+    definition_check = monkey*select_col(nullsp,1);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-1 );
 
-  MatrixProxy<double> shark( shark_data, 7, 9 );
-  nullsp = nullspace(shark);
-  EXPECT_EQ( nullsp.cols(), 2u );
-  EXPECT_EQ( nullsp.rows(), 9u );
-  EXPECT_EQ( rank(shark), 7 );
-  EXPECT_EQ( nullity(shark), 2);
-  EXPECT_NEAR( nullsp(0,0), 2.7327e-5, 1e-8);
-  EXPECT_NEAR( nullsp(8,1), 0.99999, 1e-3);
-  EXPECT_NEAR( nullsp(4,0), 1.2509449e-5, 1e-9);
-  EXPECT_NEAR( nullsp(4,1), 3.2397e-7, 1e-9);
+    nullsp = nullspace(transpose(monkey));
+    EXPECT_EQ( nullsp.cols(), 0u );
+    EXPECT_EQ( nullsp.rows(), 0u );
+    EXPECT_EQ( rank(transpose(monkey)), 7 );
+    EXPECT_EQ( nullity(transpose(monkey)), 0 );
+  }
+
+  {  // More Data that threw an error in the past
+    double shark_data[63] = {
+      1.36483e+06,846250,1354,687456,426250,682,1008,625,1,
+      1.28992e+06,750141,1323,607425,353241,623,975,567,1,
+      1.2395e+06,710892,1302,572152,328146,601,952,546,1,
+      1.26153e+06,792550,1310,636543,399905,661,963,605,1,
+      1.23405e+06,740430,1299,593750,356250,625,950,570,1,
+      1.22094e+06,799748,1292,637875,417825,675,945,619,1,
+      1.15748e+06,708400,1265,562725,344400,615,915,560,1
+    };
+
+    MatrixProxy<double> shark( shark_data, 7, 9 );
+    nullsp = nullspace(shark);
+    EXPECT_EQ( nullsp.cols(), 2u );
+    EXPECT_EQ( nullsp.rows(), 9u );
+
+    Vector<double> definition_check;
+    definition_check = shark*select_col(nullsp,0);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-5 );
+    definition_check = shark*select_col(nullsp,1);
+    for ( uint i = 0; i < definition_check.size(); i++ )
+      EXPECT_NEAR( 0, definition_check(i), 1e-5 );
+
+    EXPECT_EQ( rank(shark), 7 );
+    EXPECT_EQ( nullity(shark), 2);
+  }
 }
