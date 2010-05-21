@@ -1,11 +1,14 @@
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
 
 #include <vw/FileIO.h>
 #include <vw/Image.h>
 #include <vw/Math.h>
 #include <vw/Cartography.h>
 using namespace vw;
+
+#include <boost/program_options.hpp>
+#include <boost/type_traits.hpp>
+#include <boost/utility/enable_if.hpp>
+namespace po = boost::program_options;
 
 // Function for highlighting spots of data
 template<class PixelT>
@@ -42,9 +45,18 @@ public:
   CosineTransFunc() {}
 
   template <class ArgT>
-  inline ArgT operator()( ArgT const& value ) const {
-    return range_type::max()*((1.0-cos(float(value)/float(range_type::max())*M_PI))/2.0);;
-    //return (1-cos(value*M_PI))/2;
+  inline typename boost::enable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
+  operator()( ArgT const& value ) const {
+    return range_type::max()*((1.0-cos(value/float(range_type::max())*M_PI))/2.0);
+  }
+
+  template <class ArgT>
+  inline typename boost::disable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
+  operator()( ArgT const& value ) const {
+    ArgT result = range_type::max()*((1.0-cos(float(value)/float(range_type::max())*M_PI))/2.0);
+    if ( result == 0 && value != 0 )
+      result = 1;
+    return result;
   }
 };
 
@@ -68,14 +80,22 @@ create_alpha( ImageViewBase<Image1T> const& image1,
   return BinaryPerPixelView<Image1T, Image2T, func_type >(image1.impl(), image2.impl(), func_type());
 }
 
+struct Options {
+  Options() : nodata(-1) {}
+  // Input
+  std::vector<std::string> input_files;
+  double nodata;
+};
+
 // Operation code for data that uses nodata
 template <class PixelT>
-void grassfire_nodata( std::string input, typename CompoundChannelType<PixelT>::type nodata,
+void grassfire_nodata( Options& opt,
+                       std::string input,
                        std::string output ) {
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
-  ImageView<int32> distance = grassfire(notnodata(input_image,nodata));
+  ImageView<int32> distance = grassfire(notnodata(input_image,opt.nodata));
   int32 max = max_pixel_value( distance );
   vw_out() << "\tMax distance: " << max << "\n";
   typedef typename CompoundChannelType<PixelT>::type inter_type;
@@ -88,8 +108,9 @@ void grassfire_nodata( std::string input, typename CompoundChannelType<PixelT>::
 
 // Same as above but modified for alpha input
 template <class PixelT>
-void grassfire_already_alpha( std::string input,
-                              std::string output ) {
+void grassfire_alpha( Options& /*opt*/,
+                      std::string input,
+                      std::string output ) {
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
@@ -104,128 +125,117 @@ void grassfire_already_alpha( std::string input,
                                          TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
-// Standard interface
-int main( int argc, char *argv[] ) {
-  std::vector<std::string> input_file_names;
-  float nodata_value;
-
-  po::options_description general_options("Options");
+// Handling input
+void handle_arguments( int argc, char *argv[], Options& opt ) {
+  po::options_description general_options("");
   general_options.add_options()
-    ("nodata-value", po::value<float>(&nodata_value), "Value that is no data in input image. Not used if input has alpha.")
+    ("nodata-value", po::value<double>(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
     ("help,h", "Display this help message");
 
-  po::options_description hidden_options("");
-  hidden_options.add_options()
-    ("input-files", po::value<std::vector<std::string> >(&input_file_names));
+  po::options_description positional("");
+  positional.add_options()
+    ("input-files", po::value<std::vector<std::string> >(&opt.input_files));
 
-  po::options_description options("Allowed Options");
-  options.add(general_options).add(hidden_options);
+  po::positional_options_description positional_desc;
+  positional_desc.add("input-files", -1);
 
-  po::positional_options_description p;
-  p.add("input-files", -1);
-
-  std::ostringstream usage;
-  usage << "Usage: " << argv[0] << "[options] <image-files> ... " << std::endl << std::endl;
-  usage << general_options << std::endl;
+  po::options_description all_options;
+  all_options.add(general_options).add(positional);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << usage.str();
-    return 1;
+    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << general_options );
   }
 
-  if( vm.count("help") ) {
-    vw_out() << usage.str() << std::endl;
+  std::ostringstream usage;
+  usage << "Usage: " << argv[0] << " [options] <image-files>\n";
+
+  if ( vm.count("help") )
+    vw_throw( ArgumentErr() << usage.str() << general_options );
+  if ( opt.input_files.empty() )
+    vw_throw( ArgumentErr() << "Missing input files!\n"
+              << usage.str() << general_options );
+}
+
+int main( int argc, char *argv[] ) {
+
+  Options opt;
+  try {
+    handle_arguments( argc, argv, opt );
+
+    BOOST_FOREACH( const std::string& input, opt.input_files ) {
+
+      // Determining the format of the input
+      DiskImageResource *rsrc = DiskImageResource::open(input);
+      ChannelTypeEnum channel_type = rsrc->channel_type();
+      PixelFormatEnum pixel_format = rsrc->pixel_format();
+      delete rsrc;
+
+      vw_out() << "Loading: " << input << "\n";
+      size_t pt_idx = input.rfind(".");
+      std::string output = input.substr(0,pt_idx)+"_grass" +
+        input.substr(pt_idx,input.size()-pt_idx);
+
+      switch (pixel_format) {
+      case VW_PIXEL_GRAY:
+        switch (channel_type) {
+        case VW_CHANNEL_UINT8:
+          grassfire_nodata<PixelGray<uint8> >(opt,input,output); break;
+        case VW_CHANNEL_INT16:
+          grassfire_nodata<PixelGray<int16> >(opt,input,output); break;
+        case VW_CHANNEL_UINT16:
+          grassfire_nodata<PixelGray<uint16> >(opt,input,output); break;
+        default:
+          grassfire_nodata<PixelGray<float32> >(opt,input,output); break;
+        }
+        break;
+      case VW_PIXEL_GRAYA:
+        switch (channel_type) {
+        case VW_CHANNEL_UINT8:
+          grassfire_alpha<PixelGrayA<uint8> >(opt,input,output); break;
+        case VW_CHANNEL_INT16:
+          grassfire_alpha<PixelGrayA<int16> >(opt,input,output); break;
+        case VW_CHANNEL_UINT16:
+          grassfire_alpha<PixelGrayA<uint16> >(opt,input,output); break;
+        default:
+          grassfire_alpha<PixelGrayA<float32> >(opt,input,output); break;
+        }
+        break;
+      case VW_PIXEL_RGB:
+        switch (channel_type) {
+        case VW_CHANNEL_UINT8:
+          grassfire_nodata<PixelRGB<uint8> >(opt,input,output); break;
+        case VW_CHANNEL_INT16:
+          grassfire_nodata<PixelRGB<int16> >(opt,input,output); break;
+        case VW_CHANNEL_UINT16:
+          grassfire_nodata<PixelRGB<uint16> >(opt,input,output); break;
+        default:
+          grassfire_nodata<PixelRGB<float32> >(opt,input,output); break;
+        }
+        break;
+      default:
+        switch (channel_type) {
+        case VW_CHANNEL_UINT8:
+          grassfire_alpha<PixelRGBA<uint8> >(opt,input,output); break;
+        case VW_CHANNEL_INT16:
+          grassfire_alpha<PixelRGBA<int16> >(opt,input,output); break;
+        case VW_CHANNEL_UINT16:
+          grassfire_alpha<PixelRGBA<uint16> >(opt,input,output); break;
+        default:
+          grassfire_alpha<PixelRGBA<float32> >(opt,input,output); break;
+        }
+        break;
+      }
+    } // end FOREACH
+  } catch ( const ArgumentErr& e ) {
+    vw_out() << e.what() << std::endl;
     return 1;
-  } else if ( input_file_names.empty() ) {
-    vw_out() << "ERROR! Require an input file.\n";
-    vw_out() << "\n" << usage.str() << "\n";
+  } catch ( const Exception& e ) {
+    std::cerr << "Error: " << e.what() << std::endl;
     return 1;
   }
-
-  // iterate through input files
-  for ( size_t i = 0; i < input_file_names.size(); i++ ) {
-
-    // First determine the format of the input
-    DiskImageResource *first_resource = DiskImageResource::open(input_file_names[i]);
-    ChannelTypeEnum channel_type = first_resource->channel_type();
-    PixelFormatEnum pixel_format = first_resource->pixel_format();
-    delete first_resource;
-
-    vw_out() << "Loading: " << input_file_names[i] << "\n";
-    size_t pt_idx = input_file_names[i].rfind(".");
-    std::string output_file = input_file_names[i].substr(0,pt_idx)+"_grass"+input_file_names[i].substr(pt_idx,input_file_names[i].size()-pt_idx);
-
-    switch (pixel_format) {
-    case VW_PIXEL_GRAY:
-      switch (channel_type) {
-      case VW_CHANNEL_UINT8:
-        grassfire_nodata<PixelGray<uint8> >(input_file_names[i],
-                                            nodata_value,output_file); break;
-      case VW_CHANNEL_INT16:
-        grassfire_nodata<PixelGray<int16> >(input_file_names[i],
-                                            nodata_value,output_file); break;
-      case VW_CHANNEL_UINT16:
-        grassfire_nodata<PixelGray<uint16> >(input_file_names[i],
-                                             nodata_value,output_file); break;
-      default:
-        grassfire_nodata<PixelGray<float32> >(input_file_names[i],
-                                              nodata_value,output_file); break;
-      }
-      break;
-    case VW_PIXEL_GRAYA:
-      switch (channel_type) {
-      case VW_CHANNEL_UINT8:
-        grassfire_already_alpha<PixelGrayA<uint8> >(input_file_names[i],
-                                                    output_file); break;
-      case VW_CHANNEL_INT16:
-        grassfire_already_alpha<PixelGrayA<int16> >(input_file_names[i],
-                                                    output_file); break;
-      case VW_CHANNEL_UINT16:
-        grassfire_already_alpha<PixelGrayA<uint16> >(input_file_names[i],
-                                                     output_file); break;
-      default:
-        grassfire_already_alpha<PixelGrayA<float32> >(input_file_names[i],
-                                                      output_file); break;
-      }
-      break;
-    case VW_PIXEL_RGB:
-      switch (channel_type) {
-      case VW_CHANNEL_UINT8:
-        grassfire_nodata<PixelRGB<uint8> >(input_file_names[i],
-                                            nodata_value,output_file); break;
-      case VW_CHANNEL_INT16:
-        grassfire_nodata<PixelRGB<int16> >(input_file_names[i],
-                                            nodata_value,output_file); break;
-      case VW_CHANNEL_UINT16:
-        grassfire_nodata<PixelRGB<uint16> >(input_file_names[i],
-                                             nodata_value,output_file); break;
-      default:
-        grassfire_nodata<PixelRGB<float32> >(input_file_names[i],
-                                              nodata_value,output_file); break;
-      }
-      break;
-    default:
-      switch (channel_type) {
-      case VW_CHANNEL_UINT8:
-        grassfire_already_alpha<PixelRGBA<uint8> >(input_file_names[i],
-                                                   output_file); break;
-      case VW_CHANNEL_INT16:
-        grassfire_already_alpha<PixelRGBA<int16> >(input_file_names[i],
-                                                   output_file); break;
-      case VW_CHANNEL_UINT16:
-        grassfire_already_alpha<PixelRGBA<uint16> >(input_file_names[i],
-                                                    output_file); break;
-      default:
-        grassfire_already_alpha<PixelRGBA<float32> >(input_file_names[i],
-                                                     output_file); break;
-      }
-      break;
-    }
-  } // end of looping through files
 }
