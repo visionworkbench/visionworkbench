@@ -36,9 +36,18 @@ inline notnodata( ImageViewBase<ImageT> const& image, NoDataT nodata ) {
   return UnaryPerPixelView<ImageT,func_type>( image.impl(), func );
 }
 
-// Cosine Transfer Function
+// Linear Transfer Function
+class LinearTransFunc : public vw::UnaryReturnSameType {
+public:
+  LinearTransFunc() {}
+
+  template <class ArgT>
+  ArgT operator()( ArgT const& value ) const { return value; }
+};
+
+// Cosine Transfer Function (this tracks 180 degrees with level at high and low)
 template <class PixelT>
-class CosineTransFunc: public vw::UnaryReturnSameType {
+class CosineTransFunc : public vw::UnaryReturnSameType {
   typedef typename CompoundChannelType<PixelT>::type channel_type;
   typedef ChannelRange<channel_type> range_type;
 public:
@@ -54,6 +63,30 @@ public:
   inline typename boost::disable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
   operator()( ArgT const& value ) const {
     ArgT result = range_type::max()*((1.0-cos(float(value)/float(range_type::max())*M_PI))/2.0);
+    if ( result == 0 && value != 0 )
+      result = 1;
+    return result;
+  }
+};
+
+// 90 degree Cosine transfer function ( high slope at beginning and low slope at end )
+template <class PixelT>
+class Cosine90TransFunc : public vw::UnaryReturnSameType {
+  typedef typename CompoundChannelType<PixelT>::type channel_type;
+  typedef ChannelRange<channel_type> range_type;
+public:
+  Cosine90TransFunc() {}
+
+  template <class ArgT>
+  inline typename boost::enable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
+  operator()( ArgT const& value ) const {
+    return range_type::max()*(-cos(value/float(range_type::max())*(M_PI/2.0) + M_PI/2.0));
+  }
+
+  template <class ArgT>
+  inline typename boost::disable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
+  operator()( ArgT const& value ) const {
+    ArgT result = range_type::max()*(-cos(float(value)/float(range_type::max())*(M_PI/2.0) + M_PI/2.0));
     if ( result == 0 && value != 0 )
       result = 1;
     return result;
@@ -85,6 +118,7 @@ struct Options {
   // Input
   std::vector<std::string> input_files;
   double nodata;
+  std::string filter;
 };
 
 // Operation code for data that uses nodata
@@ -101,14 +135,25 @@ void grassfire_nodata( Options& opt,
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
   ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
-  ImageViewRef<typename PixelWithAlpha<PixelT>::type> result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+  ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
+
+  if ( opt.filter == "linear" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
+  } else if ( opt.filter == "cosine" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+  } else if ( opt.filter == "cosine90" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>()));
+  } else {
+    vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
+  }
+
   cartography::write_georeferenced_image(output, result, georef,
                                          TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
 
 // Same as above but modified for alpha input
 template <class PixelT>
-void grassfire_alpha( Options& /*opt*/,
+void grassfire_alpha( Options& opt,
                       std::string input,
                       std::string output ) {
   cartography::GeoReference georef;
@@ -120,7 +165,18 @@ void grassfire_alpha( Options& /*opt*/,
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
   ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
-  ImageViewRef<PixelT> result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+  ImageViewRef<PixelT> result;
+
+  if ( opt.filter == "linear" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
+  } else if ( opt.filter == "cosine" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+  } else if ( opt.filter == "cosine90" ) {
+    result = create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>()));
+  } else {
+    vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
+  }
+
   cartography::write_georeferenced_image(output, result, georef,
                                          TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
@@ -129,7 +185,8 @@ void grassfire_alpha( Options& /*opt*/,
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
-    ("nodata-value", po::value<double>(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
+    ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
+    ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("help,h", "Display this help message");
 
   po::options_description positional("");
@@ -153,6 +210,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
 
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " [options] <image-files>\n";
+  boost::to_lower( opt.filter );
 
   if ( vm.count("help") )
     vw_throw( ArgumentErr() << usage.str() << general_options );
