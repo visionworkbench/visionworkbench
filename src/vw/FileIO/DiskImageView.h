@@ -27,6 +27,8 @@
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #endif
 
+#include <boost/filesystem/operations.hpp>
+
 namespace vw {
 
   /// A view of an image on disk.
