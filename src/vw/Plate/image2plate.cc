@@ -94,6 +94,7 @@ int main( int argc, char *argv[] ) {
   float jpeg_quality;
   int png_compression;
   unsigned cache_size;
+  double nodata_value = 0;
   std::vector<std::string> image_files;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
@@ -101,6 +102,7 @@ int main( int argc, char *argv[] ) {
     ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
     ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
     ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
+    ("nodata-value", po::value<double>(&nodata_value), "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
     ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95), "JPEG quality factor (0.0 to 1.0)")
@@ -232,12 +234,16 @@ int main( int argc, char *argv[] ) {
       // georeferencing info for this image.
       boost::shared_ptr<DiskImageResource> rsrc( DiskImageResource::open(image_files[i]) );
       
-      double nodata_value = 0;
       bool has_nodata_value = false;
-      if ( rsrc->has_nodata_value() ) {
+      if (vm.count("nodata-value")) {
+        has_nodata_value = true;
+        std::cout << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
+      } else if ( rsrc->has_nodata_value() ) {
         has_nodata_value = true;
         nodata_value = rsrc->nodata_value();
         std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+      } else {
+        nodata_value = 0;
       }
 
       // Load the georef.  If none is found, assume Plate Caree.

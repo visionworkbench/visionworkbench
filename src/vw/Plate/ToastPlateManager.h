@@ -127,7 +127,6 @@ namespace platefile {
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view;
       if (tweak_settings_for_terrain) {
-          std::cout << "USING BILINEAR INTERP #1...\n";
           toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BilinearInterpolation());
       } else {
           toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
