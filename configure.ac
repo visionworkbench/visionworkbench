@@ -293,10 +293,7 @@ AX_PKG_ONE_OF(GL,
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
 
-AX_PKG_ONE_OF(GDAL,
-    GDAL_PLAIN,  [AX_PKG(GDAL_PLAIN, [], [-lgdal], [gdal.h])],
-    GDAL_UBUNTU, [AX_PKG(GDAL_UBUNTU, [],[-lgdal], [gdal/gdal.h])]
-)
+AX_PKG(GDAL, [], [-lgdal], [gdal.h])
 
 # GDAL requires tiff support, but it can be internal or external.
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
