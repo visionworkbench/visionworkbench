@@ -302,6 +302,10 @@ namespace camera {
     // This performs a camera matrix decomposition and rewrites most variables
     void set_camera_matrix( Matrix<double,3,4> const& p );
 
+    Matrix<double,3,4> camera_matrix( void ) {
+      return m_camera_matrix;
+    }
+
   private:
     /// This must be called whenever camera parameters are modified.
     void rebuild_camera_matrix();
