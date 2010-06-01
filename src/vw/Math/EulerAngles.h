@@ -57,7 +57,7 @@ namespace math {
     return e;
   }
 
-  // Return the rotation matrix for the rotation about the x-axis
+  // Return the rotation matrix for the rotation about the y-axis
   inline vw::Matrix<double,3,3> rotation_y_axis(double theta) {
     vw::Matrix<double,3,3> e;
     e.set_identity();
@@ -68,7 +68,7 @@ namespace math {
     return e;
   }
 
-  // Return the rotation matrix for the rotation about the x-axis
+  // Return the rotation matrix for the rotation about the z-axis
   inline vw::Matrix<double,3,3> rotation_z_axis(double theta) {
     vw::Matrix<double,3,3> e;
     e.set_identity();
