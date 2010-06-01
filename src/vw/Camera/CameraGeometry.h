@@ -21,8 +21,20 @@
 namespace vw {
 namespace camera {
 
+  struct CameraMatrixErrorMetric {
+    template <class RelationT, class ContainerT>
+    double operator()( RelationT const& H,
+                       ContainerT const& p1,
+                       ContainerT const& p2 ) const {
+      Vector<double> projection = H*p1;
+      projection /= projection[2];
+      return norm_2(p2-projection);
+    }
+  };
+
   // This fitting functor fits a 3x4 camera matrix P
   struct CameraMatrixFittingFunctor {
+    typedef vw::Matrix<double> result_type;
 
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 6; }
