@@ -17,45 +17,76 @@
 using namespace vw;
 using namespace vw::platefile;
 
+#include <boost/filesystem/path.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
-// Global variables
-std::string output_prefix;
-std::string plate_file_name;
-int west = 0, east = 0, north = 0, south = 0;
-int tile_size, tile_size_deg = 0;
-double tile_ppd = 0;
-std::string output_datum;
-bool pds_dem_mode = false;
-bool pds_imagery_mode = false;
+struct Options {
+  Options() : west(0), east(0), north(0), south(0), tile_size(0),
+              tile_size_deg(0), pds_dem_mode(false), pds_imagery_mode(false) {}
 
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index, result.size());
-  return result;
+  // Input for project file
+  std::string plate_file_name;
+
+  // Settings
+  int west, east, north, south, tile_size, tile_size_deg;
+  double tile_ppd;
+  bool pds_dem_mode, pds_imagery_mode;
+
+  // Output
+  std::string output_datum, output_prefix;
+};
+
+// ConvertToPDSImagery
+//  .. coverts an image into the range of 1-254 where 0 is invalid and 255 is reserved.
+template <class PixelT>
+class ConvertToPDSImagery : public ReturnFixedType<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type,uint8>::type> {
+  typedef typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type,uint8>::type return_type;
+  typedef typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type,double>::type return_double_type;
+  typedef typename CompoundChannelType<PixelT>::type input_channel_type;
+public:
+  return_type operator()( PixelT value ) const {
+    if ( is_transparent(value) ) {
+      return return_type();
+    } else {
+      return_double_type result
+        = channel_cast<double>(non_alpha_channels(value))*253.0/ChannelRange<input_channel_type>::max();
+      for ( uint8 i = 0; i < CompoundNumChannels<return_double_type>::value; i++ ) {
+        if (result[i] < 0)
+          result[i] = 0;
+        if (result[i] > 253)
+          result[i] = 253;
+      }
+      return channel_cast<uint8>(result)+1;
+    }
+  }
+};
+
+template <class ImageT>
+UnaryPerPixelView<ImageT, ConvertToPDSImagery<typename ImageT::pixel_type> >
+inline convert_to_pds_imagery( ImageViewBase<ImageT> const& image ) {
+  typedef ConvertToPDSImagery<typename ImageT::pixel_type> func_type;
+  return UnaryPerPixelView<ImageT, func_type>( image.impl(), func_type() );
 }
 
 template <class PixelT>
-void do_tiles(boost::shared_ptr<PlateFile> platefile) {
+void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
   PlateCarreePlateManager<PixelT> pm(platefile);
   cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
   cartography::Datum datum;
-  datum.set_well_known_datum( output_datum );
+  datum.set_well_known_datum( opt.output_datum );
   output_georef.set_datum( datum );
 
-  PlateView<PixelT> plate_view(plate_file_name);
+  PlateView<PixelT> plate_view(opt.plate_file_name);
   ImageViewRef<PixelT> plate_view_ref = plate_view;
   double scale_change = 1;
-  if ( tile_ppd > 0 ) {
+  if ( opt.tile_ppd > 0 ) {
     // Finding out our current PPD and attempting to match
     double curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                              output_georef.lonlat_to_pixel(Vector2(1,0)));
-    scale_change = tile_ppd / curr_ppd;
+    scale_change = opt.tile_ppd / curr_ppd;
     plate_view_ref = resample( plate_view, scale_change, scale_change,
                                ZeroEdgeExtension());
     Matrix3x3 scale;
@@ -68,30 +99,30 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                       output_georef.lonlat_to_pixel(Vector2(1,0)));
   }
-  std::cout << "Converting " << plate_file_name << " to " << output_prefix << "\n";
+  std::cout << "Converting " << opt.plate_file_name << " to " << opt.output_prefix << "\n";
   std::cout << output_georef << "\n";
 
   // Get the output georeference.
   vw::BBox2i output_bbox;
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(west, north)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(east, north)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(west, south)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(east, south)));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.north)));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.north)));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.south)));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.south)));
   std::cout << "\t--> Output bbox: " << output_bbox << "\n";
 
-  if ( tile_size_deg > 0 ) {
-    if ( tile_ppd > 0 ) {
-      tile_size = tile_size_deg * tile_ppd;
+  if ( opt.tile_size_deg > 0 ) {
+    if ( opt.tile_ppd > 0 ) {
+      opt.tile_size = opt.tile_size_deg * opt.tile_ppd;
     } else {
       // User must have specified out to be sized in degrees
-      tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
-                         output_georef.lonlat_to_pixel(Vector2(tile_size_deg,0)));
+      opt.tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
+                             output_georef.lonlat_to_pixel(Vector2(opt.tile_size_deg,0)));
     }
   }
 
   // Compute the bounding box for each tile.
   std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view_ref, output_bbox),
-                                                 tile_size, tile_size);
+                                                 opt.tile_size, opt.tile_size);
 
   for (unsigned i = 0; i < crop_bboxes.size(); ++i) {
     // The crop bboxes start at (0,0), and we want them to start at
@@ -119,7 +150,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
               << tile_georef.transform() << "\n";
 
     std::ostringstream output_filename;
-    output_filename << output_prefix << "_"
+    output_filename << opt.output_prefix << "_"
                     << abs(round(top_left_ll[0]));
     if ( top_left_ll[0] < 0 )
       output_filename << "W_";
@@ -135,15 +166,15 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
     DiskImageResourceGDAL::Options gdal_options;
     gdal_options["COMPRESS"] = "LZW";
 
-    if ( pds_dem_mode ) {
+    if ( opt.pds_dem_mode ) {
       ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
       write_georeference(rsrc, tile_georef);
       write_image(rsrc, dem_image,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
-    } else if ( pds_imagery_mode ) {
-      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = apply_mask(alpha_to_mask(channel_cast_rescale<uint8>(cropped_view)),0);
+    } else if ( opt.pds_imagery_mode ) {
+      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = convert_to_pds_imagery( cropped_view );
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
       write_georeference(rsrc, tile_georef);
@@ -160,73 +191,70 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile) {
   }
 }
 
-int main( int argc, char *argv[] ) {
-
+void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("Chops platefile into georeferenced squares.\n\nGeneral Options");
   general_options.add_options()
-    ("output-prefix,o", po::value<std::string>(&output_prefix), "Specify the base output directory")
-    ("west,w", po::value<int>(&west)->default_value(-180), "Specify west edge of the region to extract (deg).")
-    ("east,e", po::value<int>(&east)->default_value(180), "Specify east edge of the region to extract (deg).")
-    ("north,n", po::value<int>(&north)->default_value(90), "Specify north edge of the region to extract (deg).")
-    ("south,s", po::value<int>(&south)->default_value(-90), "Specify south edge of the region to extract (deg).")
-    ("tile-size-px,t", po::value<int>(&tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
-    ("tile-size-deg,d", po::value<int>(&tile_size_deg), "Specify the size of each output dem in degrees.")
-    ("tile-px-per-degree,p", po::value<double>(&tile_ppd), "Specify the output tiles' pixel per degrees.")
-    ("output-datum", po::value<std::string>(&output_datum)->default_value("WGS84"), "Specify the output datum to use, [WGS84, WGS72, D_MOON, D_MARS]")
+    ("output-prefix,o", po::value(&opt.output_prefix), "Specify the base output directory")
+    ("west,w", po::value(&opt.west)->default_value(-180), "Specify west edge of the region to extract (deg).")
+    ("east,e", po::value(&opt.east)->default_value(180), "Specify east edge of the region to extract (deg).")
+    ("north,n", po::value(&opt.north)->default_value(90), "Specify north edge of the region to extract (deg).")
+    ("south,s", po::value(&opt.south)->default_value(-90), "Specify south edge of the region to extract (deg).")
+    ("tile-size-px,t", po::value(&opt.tile_size)->default_value(4096), "Specify the size of each output dem in pixels.")
+    ("tile-size-deg,d", po::value(&opt.tile_size_deg), "Specify the size of each output dem in degrees.")
+    ("tile-px-per-degree,p", po::value(&opt.tile_ppd), "Specify the output tiles' pixel per degrees.")
+    ("output-datum", po::value(&opt.output_datum)->default_value("WGS84"), "Specify the output datum to use, [WGS84, WGS72, D_MOON, D_MARS]")
     ("export-pds-dem", "Export using int16 channel value with a -32767 nodata value")
     ("export-pds-imagery", "Export using uint8 channel value with a 0 nodata value")
     ("help", "Display this help message");
 
-  po::options_description hidden_options("");
-  hidden_options.add_options()
-    ("plate-file", po::value<std::string>(&plate_file_name));
+  po::options_description positional("");
+  positional.add_options()
+    ("plate-file", po::value(&opt.plate_file_name));
 
-  po::options_description options("Allowed Options");
-  options.add(general_options).add(hidden_options);
+  po::positional_options_description positional_desc;
+  positional_desc.add("plate-file", 1);
 
-  po::positional_options_description p;
-  p.add("plate-file", -1);
-
-  std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <filename>..." <<std::endl << std::endl;
-  usage << general_options << std::endl;
+  po::options_description all_options;
+  all_options.add(general_options).add(positional);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n\n";
-    std::cout << usage.str();
-    return 0;
+    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << general_options );
   }
 
-  pds_dem_mode = vm.count("export-pds-dem") > 0;
-  pds_imagery_mode = vm.count("export-pds-imagery") > 0;
+  std::ostringstream usage;
+  usage << "Usage: " << argv[0] << " <platefile-url> <optional project settings> \n";
 
-  if( vm.count("help") ) {
-    std::cout << usage.str();
-    return 0;
-  }
+  if ( vm.count("help") )
+    vw_throw( ArgumentErr() << usage.str() << general_options );
+  if ( opt.plate_file_name.empty() )
+    vw_throw( ArgumentErr() << "Missing input platefile!\n"
+              << usage.str() << general_options );
 
-  if( vm.count("plate-file") != 1 ) {
-    std::cerr << "Error: must specify an input platefile!" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
+  opt.pds_dem_mode = vm.count("export-pds-dem");
+  opt.pds_imagery_mode = vm.count("export-pds-imagery");
 
-  if( output_prefix == "" ) {
-    output_prefix = prefix_from_filename(plate_file_name);
-    int indx = output_prefix.rfind("/");
+  if( opt.output_prefix == "" ) {
+    opt.output_prefix = fs::path(opt.plate_file_name).stem();
+    int indx = opt.output_prefix.rfind("/");
     if ( indx > 0 )
-      output_prefix = output_prefix.substr(indx+1);
+      opt.output_prefix = opt.output_prefix.substr(indx+1);
   }
+}
 
-  // Open the plate file
+int main( int argc, char *argv[] ) {
+
+  Options opt;
   try {
-    boost::shared_ptr<PlateFile> platefile(new PlateFile(plate_file_name));
+    handle_arguments( argc, argv, opt );
 
-    std::cout << "Opened " << plate_file_name << ".     Depth: "
+    boost::shared_ptr<PlateFile> platefile(new PlateFile(opt.plate_file_name));
+
+    std::cout << "Opened " << opt.plate_file_name << ".     Depth: "
               << platefile->num_levels() << " levels.\n";
 
     PixelFormatEnum pixel_format = platefile->pixel_format();
@@ -236,13 +264,13 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:
-        do_tiles<PixelGrayA<uint8> >(platefile);
+        do_tiles<PixelGrayA<uint8> >(platefile, opt);
         break;
       case VW_CHANNEL_INT16:
-        do_tiles<PixelGrayA<int16> >(platefile);
+        do_tiles<PixelGrayA<int16> >(platefile, opt);
         break;
       case VW_CHANNEL_FLOAT32:
-        do_tiles<PixelGrayA<float32> >(platefile);
+        do_tiles<PixelGrayA<float32> >(platefile, opt);
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -253,7 +281,7 @@ int main( int argc, char *argv[] ) {
     default:
       switch(channel_type) {
       case VW_CHANNEL_UINT8:
-        do_tiles<PixelRGBA<uint8> >(platefile);
+        do_tiles<PixelRGBA<uint8> >(platefile, opt);
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
@@ -261,7 +289,17 @@ int main( int argc, char *argv[] ) {
       break;
     }
 
-  } catch (vw::Exception &e) {
-    std::cout << "An error occurred: " << e.what() << "\nExiting.\n\n";
+  } catch ( const ArgumentErr& e ) {
+    vw_out() << e.what() << std::endl;
+    return 1;
+  } catch ( const Exception& e ) {
+    std::cerr << "VW Error: " << e.what() << std::endl;
+    return 1;
+  } catch ( const std::bad_alloc& e ) {
+    std::cerr << "Error: Ran out of Memory!" << std::endl;
+    return 1;
+  } catch ( const std::exception& e ) {
+    std::cerr << "Error: " << e.what() <<  std::endl;
+    return 1;
   }
 }
