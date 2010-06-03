@@ -96,6 +96,7 @@ int main( int argc, char *argv[] ) {
   unsigned cache_size;
   double nodata_value = 0;
   std::vector<std::string> image_files;
+  double user_spherical_datum;
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
@@ -109,6 +110,9 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
     ("terrain", "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
+    ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-spherical-datum", po::value<double>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
     ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
@@ -251,6 +255,40 @@ int main( int argc, char *argv[] ) {
       {
         DiskImageResourceGDAL diskrsrc( image_files[i] );
         read_georeference( georef, diskrsrc );
+
+        if(vm.count("force-lunar-datum")) {
+          const double LUNAR_RADIUS = 1737400;
+          vw_out() << "\t--> Using standard lunar spherical datum: "
+                   << LUNAR_RADIUS << "\n";
+          cartography::Datum datum("D_MOON",
+                                   "MOON",
+                                   "Reference Meridian",
+                                   LUNAR_RADIUS,
+                                   LUNAR_RADIUS,
+                                   0.0);
+          georef.set_datum(datum);
+        } else if(vm.count("force-mars-datum")) {
+          const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
+          vw_out() << "\t--> Using standard MOLA spherical datum: "
+                   << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
+          cartography::Datum datum("D_MARS",
+                                   "MARS",
+                                   "Reference Meridian",
+                                   MOLA_PEDR_EQUATORIAL_RADIUS,
+                                   MOLA_PEDR_EQUATORIAL_RADIUS,
+                                   0.0);
+          georef.set_datum(datum);
+        } else if(vm.count("force-spherical-datum")) {
+          vw_out() << "\t--> Using user-supplied spherical datum: "
+                   << user_spherical_datum << "\n";
+          cartography::Datum datum("USER SUPPLIED DATUM",
+                                   "SPHERICAL DATUM",
+                                   "Reference Meridian",
+                                   user_spherical_datum,
+                                   user_spherical_datum,
+                                   0.0);
+          georef.set_datum(datum);
+        }
       }
       if( georef.transform() == identity_matrix<3>() ) {
         std::cout << "\t    No georeferencing info found for " << image_files[i]

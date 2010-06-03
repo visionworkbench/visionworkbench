@@ -73,6 +73,7 @@ int aspect_ratio=1;
 int global_resolution=0;
 bool terrain=false;
 float nodata=0;
+double user_spherical_datum=0;
 
 // For image stretching.
 float lo_value = ScalarTypeLimits<float>::highest();
@@ -178,6 +179,16 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                                "Reference Meridian",
                                MOLA_PEDR_EQUATORIAL_RADIUS,
                                MOLA_PEDR_EQUATORIAL_RADIUS,
+                               0.0);
+      input_georef.set_datum(datum);
+    } else if(vm.count("force-spherical-datum")) {
+      vw_out() << "\t--> Using user-supplied spherical datum: "
+                << user_spherical_datum << "\n";
+      cartography::Datum datum("USER SUPPLIED DATUM",
+                               "SPHERICAL DATUM",
+                               "Reference Meridian",
+                               user_spherical_datum,
+                               user_spherical_datum,
                                0.0);
       input_georef.set_datum(datum);
     }
@@ -501,6 +512,7 @@ int main(int argc, char **argv) {
     ("force-wgs84", "Use WGS84 as the input images' geographic coordinate systems, even if they're not (old behavior)")
     ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-spherical-datum", po::value<float)(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
     ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
     ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
     ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].")
