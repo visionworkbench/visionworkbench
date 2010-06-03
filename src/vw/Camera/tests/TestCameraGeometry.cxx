@@ -93,7 +93,7 @@ TEST_F( CameraGeometryTest, IteratorSolve ) {
   }
 }
 
-TEST_F( CameraGeometryTest, RansacSolve ) {
+TEST_F( CameraGeometryTest, DISABLED_RansacSolve ) {
   // Add some extra wrong data points
   // 10% are just completely wrong
   for ( uint i=0,j=0; i < 5 && j <50; i++, j+=10 ) {
