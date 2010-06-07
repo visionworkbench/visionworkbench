@@ -21,7 +21,7 @@
 #else // Linux
 #include <GL/gl.h>
 #include <GL/glu.h>
-#endif 
+#endif
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/Thread.h>
@@ -65,10 +65,10 @@ namespace gui {
     // These are defined in the subclass: vwv_GlPreviewWidget
     virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile) = 0;
     virtual void deallocate_texture(GLuint texture_id) = 0;
-  
+
     virtual ~CachedTextureRenderer() { m_requests.clear(); }
 
-    virtual void request_allocation(boost::shared_ptr<TextureRecordBase> texture_record, 
+    virtual void request_allocation(boost::shared_ptr<TextureRecordBase> texture_record,
                                     boost::shared_ptr<ViewImageResource> tile);
 
     virtual void request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record);
@@ -87,9 +87,9 @@ namespace gui {
 
   class GlTextureHandle : public GlTextureHandleBase {
     boost::shared_ptr<TextureRecordBase> m_record;
-  
+
   public:
-    GlTextureHandle(boost::shared_ptr<TileGenerator> generator, 
+    GlTextureHandle(boost::shared_ptr<TileGenerator> generator,
                     TileLocator tile_info,
                     boost::shared_ptr<TextureRecordBase> record) : m_record(record) {
 
@@ -101,7 +101,7 @@ namespace gui {
       // For debugging:
       //
       // std::ostringstream ostr;
-      // ostr << "debug_" << record->lod << "_" << record->bbox.min().x() << "_" 
+      // ostr << "debug_" << record->lod << "_" << record->bbox.min().x() << "_"
       //      << record->bbox.min().y() << ".tif";
       // vw::write_image(ostr.str(), tile);
 
@@ -109,16 +109,16 @@ namespace gui {
       // texture on the graphics card.  This will be done on the next
       // rendering pass.
       m_record->requestor->request_allocation( record, tile );
-      vw::vw_out(vw::VerboseDebugMessage, "gui") << "GlTextureHandle requesting allocation (" 
-                                                 << m_record->texture_id << ") -- [ " 
-                                                 << tile_info.col << " " << tile_info.row 
+      vw::vw_out(vw::VerboseDebugMessage, "gui") << "GlTextureHandle requesting allocation ("
+                                                 << m_record->texture_id << ") -- [ "
+                                                 << tile_info.col << " " << tile_info.row
                                                  << " ] @ " << tile_info.level << "\n";
     }
 
     virtual GLuint texture_id() const { return m_record->texture_id; }
 
     virtual ~GlTextureHandle() {
-      vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation (" 
+      vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation ("
                                           << m_record->texture_id << ")\n";
 
       // Send a request to the OpenGL thread to deallocate this
@@ -138,9 +138,9 @@ namespace gui {
 
   public:
     typedef GlTextureHandleBase value_type;
-  
+
     GlTextureGenerator( boost::shared_ptr<TileGenerator> const& generator,
-                        TileLocator const& tile_info, 
+                        TileLocator const& tile_info,
                         boost::shared_ptr<TextureRecordBase> record) :
       m_tile_generator( generator ), m_tile_info(tile_info), m_record(record) {
     }
@@ -149,9 +149,9 @@ namespace gui {
       int size =  m_tile_generator->tile_size()[0] * m_tile_generator->tile_size()[1];
       return size;
     }
-  
+
     boost::shared_ptr<GlTextureHandleBase> generate() const {
-      return boost::shared_ptr<GlTextureHandleBase> ( 
+      return boost::shared_ptr<GlTextureHandleBase> (
           new GlTextureHandle(m_tile_generator, m_tile_info, m_record) );
     }
   };
@@ -175,7 +175,7 @@ namespace gui {
     // in LOD so that we can immediately begin serving tiles at the
     // new level of detail.  We keep track of the previous LOD here.
     int m_previous_level;
-  
+
     // Communication to/from the texture caching thread is handled using
     // a pair of request queues.  These queues are locked with a mutex.
     std::list<boost::shared_ptr<TextureRecord> > m_requests;
@@ -212,13 +212,10 @@ namespace gui {
     // is available*.  If the texture is not available, this function
     // will add it to the queue to be rendered by the texture fetch
     // thread and return 0 immediately.
-    GLuint get_texture_id(vw::gui::TileLocator const& tile_info, 
+    GLuint get_texture_id(vw::gui::TileLocator const& tile_info,
                           CachedTextureRenderer* requestor);
   };
 
 }} // namespace vw::gui
 
 #endif // __VW_GUI_TEXTURE_CACHE_H__
-
-
-
