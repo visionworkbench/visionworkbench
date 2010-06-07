@@ -109,17 +109,17 @@ namespace gui {
       // texture on the graphics card.  This will be done on the next
       // rendering pass.
       m_record->requestor->request_allocation( record, tile );
-      vw::vw_out(vw::VerboseDebugMessage, "gui") << "GlTextureHandle requesting allocation ("
-                                                 << m_record->texture_id << ") -- [ "
-                                                 << tile_info.col << " " << tile_info.row
-                                                 << " ] @ " << tile_info.level << "\n";
+      vw_out(vw::VerboseDebugMessage, "gui") << "GlTextureHandle requesting allocation ("
+                                             << m_record->texture_id << ") -- [ "
+                                             << tile_info.col << " " << tile_info.row
+                                             << " ] @ " << tile_info.level << "\n";
     }
 
     virtual GLuint texture_id() const { return m_record->texture_id; }
 
     virtual ~GlTextureHandle() {
-      vw::vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation ("
-                                          << m_record->texture_id << ")\n";
+      vw_out(vw::VerboseDebugMessage) << "-> GlTextureHandle requesting decallocation ("
+                                      << m_record->texture_id << ")\n";
 
       // Send a request to the OpenGL thread to deallocate this
       // texture on the next rendering pass.
@@ -146,7 +146,7 @@ namespace gui {
     }
 
     size_t size() const {
-      int size =  m_tile_generator->tile_size()[0] * m_tile_generator->tile_size()[1];
+      int size =  m_tile_generator->tile_size()[0] * m_tile_generator->tile_size()[1] * num_channels(m_tile_generator->pixel_format()) * channel_size(m_tile_generator->channel_type());
       return size;
     }
 

@@ -140,10 +140,9 @@ vw::gui::GlTextureCache::GlTextureCache(boost::shared_ptr<TileGenerator> tile_ge
   m_tile_generator(tile_generator) {
 
   // Create the texture cache
-  int gl_texture_cache_size = 128 * 1024 * 1024 * 4; // Use 128-MB of
-                                                     // texture cache
-                                                     // assuming an 8-bit
-                                                     // RGBA image.
+  int gl_texture_cache_size = 256 * 1024 * 1024; // Use 128-MB of
+                                                 // texture cache
+
   m_gl_texture_cache_ptr = new vw::Cache( gl_texture_cache_size );
 
   // Start the texture fetch thread
