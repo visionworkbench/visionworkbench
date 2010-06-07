@@ -183,14 +183,17 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
   // Interate over entries.
   multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
-  
+
+  if ( entries.begin() == entries.end() )
+    vw_throw(TileNotFoundErr() << "No Tiles exist at this location.\n");
+
   // A transaction ID of -1 indicates that we should return the most
   // recent tile (which is the first entry in the list, since it is
   // sorted from most recent to least recent), regardless of its
   // transaction id.
-  if (transaction_id == -1 && it != entries.end())
+  if (transaction_id == -1)
     return (*it).second;
-  
+
   // Otherwise, we search through the entries in the list, looking for
   // the requested t_id.  Note: this search is O(n), so it can be slow
   // if there are a lot of entries and the entry you are looking for
@@ -207,7 +210,7 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
     }
     ++it;
   }
-  
+
   // If we reach this point, then there are no entries before
   // the given transaction_id, so we return an empty (and invalid) record.
   vw_throw(TileNotFoundErr() << "Tiles exist at this location, " 
