@@ -33,6 +33,7 @@ struct Options {
   int west, east, north, south, tile_size, tile_size_deg;
   double tile_ppd;
   bool pds_dem_mode, pds_imagery_mode;
+  int level;
 
   // Output
   std::string output_datum, output_prefix;
@@ -74,12 +75,16 @@ template <class PixelT>
 void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
   PlateCarreePlateManager<PixelT> pm(platefile);
-  cartography::GeoReference output_georef = pm.georeference(platefile->num_levels()-1);
+  cartography::GeoReference output_georef;
+  output_georef = pm.georeference(platefile->num_levels()-1);
+
   cartography::Datum datum;
   datum.set_well_known_datum( opt.output_datum );
   output_georef.set_datum( datum );
 
   PlateView<PixelT> plate_view(opt.plate_file_name);
+  if ( opt.level != -1 )
+    plate_view.set_level( opt.level );
   ImageViewRef<PixelT> plate_view_ref = plate_view;
   double scale_change = 1;
   if ( opt.tile_ppd > 0 ) {
@@ -195,6 +200,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("Chops platefile into georeferenced squares.\n\nGeneral Options");
   general_options.add_options()
     ("output-prefix,o", po::value(&opt.output_prefix), "Specify the base output directory")
+    ("level,l", po::value(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out at show the number of levels available.")
     ("west,w", po::value(&opt.west)->default_value(-180), "Specify west edge of the region to extract (deg).")
     ("east,e", po::value(&opt.east)->default_value(180), "Specify east edge of the region to extract (deg).")
     ("north,n", po::value(&opt.north)->default_value(90), "Specify north edge of the region to extract (deg).")
