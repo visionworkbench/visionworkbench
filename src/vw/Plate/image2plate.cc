@@ -334,9 +334,17 @@ int main( int argc, char *argv[] ) {
           break;
         case VW_CHANNEL_FLOAT32:
           if (has_nodata_value) {
+            // This tangled mess of image views is a little
+            // convoluted.  It remaps the nodata value for floating
+            // point DEMs to -32767 and then casts the pixels to int16
+            // before creating the alpha mask.  This works fine for
+            // DEMs that should be stored as 16-bit int's in a
+            // platefile, but will break any other type of floating
+            // point data.  So, beware!
             do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
-                                                nodata_value)),
+                      mask_to_alpha(create_mask(channel_cast<int16>(remap_pixel_value(DiskImageView<PixelGray<float32> >(image_files[i]), 
+                                                                                      PixelGray<float>(nodata_value), 
+                                                                                      PixelGray<float>(-32767))), -32767)),
                       image_files[i], transaction_id_override, georef, 
                       output_mode, vm.count("terrain"));
           } else

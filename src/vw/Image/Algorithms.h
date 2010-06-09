@@ -505,6 +505,37 @@ namespace vw {
   }
 
   // *******************************************************************
+  // remap_pixel_value()
+  //
+  // This filter can be used to map one pixel value to another.  This
+  // can be useful in many situations, for example when you need to
+  // remap the nodata value used in a DEM.
+  // *******************************************************************
+  template <class PixelT>
+  class RemapPixelFunctor: public UnaryReturnSameType {
+    typename PixelChannelType<PixelT>::type m_src_val, m_dst_val;
+  public:
+    RemapPixelFunctor(typename PixelChannelType<PixelT>::type src_val,
+                      typename PixelChannelType<PixelT>::type dst_val) :
+      m_src_val(src_val), m_dst_val(dst_val) {}
+
+    PixelT operator()( PixelT const& value ) const {
+      if (value == m_src_val) return m_dst_val;
+      else return value;
+    }
+  };
+
+  /// Zero out any pixels that aren't completely opaque. 
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,RemapPixelFunctor<typename ImageT::pixel_type> >
+  inline remap_pixel_value( ImageViewBase<ImageT> const& image, 
+                            typename PixelChannelType<typename ImageT::pixel_type>::type src_val,
+                            typename PixelChannelType<typename ImageT::pixel_type>::type dst_val) {
+    typedef RemapPixelFunctor<typename ImageT::pixel_type> func_type;
+    return UnaryPerPixelView<ImageT,func_type>( image.impl(), func_type(src_val, dst_val) );
+  }
+
+  // *******************************************************************
   // image_blocks()
   // *******************************************************************
 
