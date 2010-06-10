@@ -126,7 +126,7 @@ if test "$APXS" != "false"; then
   APR_CONFIG=`$APXS -q APR_CONFIG`
   APU_CONFIG=`$APXS -q APU_CONFIG`
   APXS_CFLAGS="$APXS_CFLAGS `$APR_CONFIG --cppflags --includes` `$APU_CONFIG --includes`"
-  APXS_LDFLAGS="$APXS_CFLAGS `$APR_CONFIG --ldflags --libs` `$APU_CONFIG --ldflags --libs`"
+  APXS_LDFLAGS="$APXS_LDFLAGS `$APR_CONFIG --ldflags --libs` `$APU_CONFIG --ldflags --libs`"
   APXS_DEFAULT_INSTALLDIR="`$APXS -q LIBEXECDIR`"
 
   AX_ARG_WITH(apxs_installdir, [], [mk], [Set apache module install dir])
