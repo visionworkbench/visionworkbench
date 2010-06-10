@@ -30,7 +30,9 @@ typedef struct {
   const char *servername;
   int index_timeout;
   int index_tries;
+  int unknown_resync;
   apr_array_header_t *rules; // This holds rule_entries
+  apr_table_t *alias;        // key is name, value is id, an int stored as a const char*
 } plate_config;
 
 const plate_config* get_plate_config(const server_rec* s);

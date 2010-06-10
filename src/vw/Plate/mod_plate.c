@@ -69,6 +69,25 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
   return NULL;
 }
 
+static const char* handle_alias(cmd_parms* cmd, void* cfg, const char* name, const char* id) {
+  plate_config *conf = get_plate_config_mutable(cmd->server);
+
+  // warning go away
+  (void)cfg;
+
+  intptr_t id_i = atoi(id);
+  if (id_i == 0)
+    return "Illegal platefile id: 0";
+
+  // XXX: intptr_t guarantees that a pointer can be cast to it and back without
+  // changing it, but it doesn't guarantee that an intptr_t can be cast to a
+  // pointer and back without changing it. So this code is technically
+  // undefined. Sigh.
+  apr_table_setn(conf->alias, name, (const char*)id_i);
+
+  return NULL;
+}
+
 #define ADD_STRING_CONFIG(key, check) \
   static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
     /* warning go away*/ \
@@ -84,6 +103,8 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
 
 #define ADD_INT_CONFIG(key, check) \
   static const char* handle_ ## key(cmd_parms* cmd, void* null, const char* arg) {\
+    /* warning go away*/ \
+    (void)null; \
     plate_config *cfg = get_plate_config_mutable(cmd->server);\
     cfg->key = atoi(arg);\
     const char *error = check(cfg->key);\
@@ -93,7 +114,15 @@ static const char* handle_rule(cmd_parms* cmd, void* cfg, const char* raw_level,
     return NULL;\
   }
 
-
+#define ADD_FLAG_CONFIG(key)\
+  static const char* handle_ ## key(cmd_parms* cmd, void* null, int on) {\
+    /* warning go away*/ \
+    (void)null; \
+    plate_config *cfg = get_plate_config_mutable(cmd->server);\
+    cfg->key = on ? 1 : 0;\
+    ap_set_module_config(cmd->server->module_config, &plate_module, (void*)cfg);\
+    return NULL;\
+  }
 
 const char* is_ip_address(const char* arg) {
     // really stupid heuristic
@@ -144,7 +173,7 @@ ADD_STRING_CONFIG(dem_id, is_platefile_id);
 ADD_STRING_CONFIG(servername, is_servername);
 ADD_INT_CONFIG(index_timeout, is_gt_zero);
 ADD_INT_CONFIG(index_tries, is_gt_zero);
-
+ADD_FLAG_CONFIG(unknown_resync);
 
 static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
@@ -154,6 +183,8 @@ static const command_rec my_cmds[] = {
   AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
   AP_INIT_TAKE1("PlateIndexTimeout",  handle_index_timeout,  NULL, RSRC_CONF, "How long to wait for the index_server to respond"),
   AP_INIT_TAKE1("PlateIndexTries",    handle_index_tries,    NULL, RSRC_CONF, "How many times to try talking to the index_server"),
+  AP_INIT_TAKE2("PlateAlias",         handle_alias,          NULL, RSRC_CONF, "Name-to-platefile_id mappings"),
+  AP_INIT_FLAG("PlateUnknownResync",  handle_unknown_resync, NULL, RSRC_CONF, "Should we resync the platefile list when someone asks for an unknown one?"),
   { NULL }
 };
 
@@ -168,7 +199,9 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   conf->servername     = NULL;
   conf->index_timeout  = 3000;
   conf->index_tries    = 3;
-  conf->rules = apr_array_make(p, 8, sizeof(rule_entry));
+  conf->rules = apr_array_make(p, 2, sizeof(rule_entry));
+  conf->alias = apr_table_make(p, 4);
+  conf->unknown_resync = 1;
   return conf;
 }
 

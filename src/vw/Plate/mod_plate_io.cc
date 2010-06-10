@@ -92,7 +92,51 @@ class PlateModule {
 
     typedef std::map<int32, IndexCacheEntry> IndexCache;
 
-    const IndexCache& get_index() const { return index_cache; }
+    const IndexCache& get_index_cache() const { return index_cache; }
+
+    const IndexCacheEntry& get_index(const std::string& id_str) const {
+      int id;
+      PlateModule::IndexCache::const_iterator index_i;
+
+      try {
+        id = boost::lexical_cast<int>(id_str);
+      } catch (const boost::bad_lexical_cast&) {
+        id = 0;
+      }
+
+      // try it as an id (unless it's clearly wrong)
+      if (id != 0) {
+        index_i = index_cache.find(id);
+        if (index_i != index_cache.end())
+          return index_i->second;
+      }
+
+      // Try it as an alias
+      {
+        int id2 = reinterpret_cast<intptr_t>(apr_table_get(m_conf->alias, id_str.c_str()));
+        if (id2) {
+          logger(VerboseDebugMessage) << "Alias " << id_str << " resolved to " << id2 << std::endl;
+          index_i = index_cache.find(id2);
+          if (index_i != index_cache.end()) {
+            return index_i->second;
+          }
+        }
+      }
+
+      if (!m_conf->unknown_resync)
+        vw_throw(BadRequest() << "No such platefile [no resync] [id = " << id_str << "]");
+
+      // If we get an unknown platefile, resync just to make sure
+      logger(WarningMessage) << "Platefile [" << id_str << "] not in platefile cache. Resyncing." << std::endl;
+      sync_index_cache();
+
+      index_i = index_cache.find(id);
+      if (index_i == index_cache.end())
+        vw_throw(BadRequest() << "No such platefile [after resync] [id = " << id_str << "]");
+
+      return index_i->second;
+    }
+
     const boost::shared_ptr<Blob> get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const;
     void sync_index_cache() const;
 
@@ -219,7 +263,7 @@ struct raii {
 // ---------------------------------------------------
 
 int handle_image(request_rec *r, const std::string& url) {
-  static const boost::regex match_regex("/(\\d+)/(\\d+)/(\\d+)/(\\d+)\\.(\\w+)$");
+  static const boost::regex match_regex("/(\\w+)/(\\d+)/(\\d+)/(\\d+)\\.(\\w+)$");
 
   boost::smatch match;
   if (!boost::regex_search(url, match, match_regex))
@@ -234,31 +278,22 @@ int handle_image(request_rec *r, const std::string& url) {
   //logger(VerboseDebugMessage) << "Request Headers: " << std::endl;
   //apr_table_do(log_headers, 0, r->headers_in, NULL);
 
-  int id    = boost::lexical_cast<int>(match[1]),
-      level = boost::lexical_cast<int>(match[2]),
+  const std::string& sid = match[1];
+
+  int level = boost::lexical_cast<int>(match[2]),
       col   = boost::lexical_cast<int>(match[3]),
       row   = boost::lexical_cast<int>(match[4]);
   std::string format = boost::lexical_cast<std::string>(match[5]);
 
-  mod_plate().logger(DebugMessage) << "Request Image: id["  << id
+  mod_plate().logger(DebugMessage) << "Request Image: id["  << sid
                                    << "] level["  << level
                                    << "] col["    << col
                                    << "] row["    << row
                                    << "] format[" << format << "]" << std::endl;
 
-  PlateModule::IndexCache::const_iterator index_i = mod_plate().get_index().find(id);
+  const PlateModule::IndexCacheEntry& index = mod_plate().get_index(sid);
 
-  if (index_i == mod_plate().get_index().end()) {
-    // If we get an unknown platefile, resync just to make sure
-    mod_plate().logger(WarningMessage) << "Platefile not in platefile cache. Resyncing." << std::endl;
-    mod_plate().sync_index_cache();
-
-    index_i = mod_plate().get_index().find(id);
-    if (index_i == mod_plate().get_index().end())
-      vw_throw(BadRequest() << "No such platefile [id = " << id << "]");
-  }
-
-  const PlateModule::IndexCacheEntry& index = index_i->second;
+  int id = index.index->index_header().platefile_id();
 
   // --------------  Access Plate Index -----------------
 
@@ -459,7 +494,7 @@ int handle_wtml(request_rec *r, const std::string& url) {
   query_to_map(query, r->args);
   bool show_all_layers =  mapget(query, "all_layers", false);
 
-  BOOST_FOREACH( const id_cache& e, mod_plate().get_index() ) {
+  BOOST_FOREACH( const id_cache& e, mod_plate().get_index_cache() ) {
 
     const std::string filetype = e.second.index->index_header().tile_filetype();
     // WWT can only handle jpg and png
@@ -499,15 +534,15 @@ PlateModule::PlateModule(const server_rec *s)
   // Disable the config file
   vw::vw_settings().set_rc_filename("");
 
+  int i;
+
   LogRuleSet rules;
   if (m_conf->rules->nelts == 0)
     rules.add_rule(DebugMessage, "plate.apache");
   else {
-    ssize_t i;
-    rule_entry *entry = reinterpret_cast<rule_entry*>(m_conf->rules->elts);
     for (i = 0; i < m_conf->rules->nelts; ++i) {
+      rule_entry *entry = reinterpret_cast<rule_entry*>(&m_conf->rules->elts[i]);
       rules.add_rule(entry->level, entry->name);
-      entry++;
     }
   }
 

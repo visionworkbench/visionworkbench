@@ -17,10 +17,14 @@ TestIndexPage_SOURCES         = TestIndexPage.cxx
 TestLocalIndex_SOURCES        = TestLocalIndex.cxx
 TestAmqp_SOURCES              = TestAmqp.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
-#TestPlateIndexServer_SOURCES = TestPlateIndexServer.cxx
+TestModPlate_SOURCES          = TestModPlate.cxx
 
-TESTS = TestBlobManager TestBlobIO TestLocalIndex \
-        TestIndexPage TestAmqp TestTileManipulation
+TESTS = TestBlobManager TestBlobIO TestLocalIndex TestIndexPage TestAmqp \
+		TestTileManipulation TestModPlate
+
+if MAKE_MODPLATE
+MORE_FLAGS = -DVW_HAVE_APACHE=1
+endif
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -30,8 +34,8 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @VW_CPPFLAGS@
-AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@ @PKG_PLATE_LIBS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ @APXS_CFLAGS@ $(MORE_FLAGS)
+AM_LDFLAGS  = @VW_LDFLAGS@ @APXS_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@ @PKG_PLATE_LIBS@
 
 check_PROGRAMS = $(TESTS)
 CLEANFILES =
