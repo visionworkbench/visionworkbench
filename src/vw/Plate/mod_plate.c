@@ -203,6 +203,22 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   conf->alias = apr_table_make(p, 4);
   conf->unknown_resync = 1;
   return conf;
+  // This is the default config file
+#if 0
+  PlateRabbitMQIP 127.0.0.1
+  PlateIndexExchange index
+  PlateLogRule DebugMessage plate.apache
+  PlateIndexTimeout 3000
+  PlateIndexTries 3
+  PlateUnknownResync on
+#endif
+
+// these keys not set by default, but here are examples of possible valid ones
+#if 0
+  PlateDemID 123456789
+  PlateServerName http://198.10.124.50
+  PlateAlias hirise 123456789
+#endif
 }
 
 plate_config* get_plate_config_mutable(server_rec* s) {
