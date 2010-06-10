@@ -585,7 +585,7 @@ int PlateModule::operator()(request_rec *r) const {
 
   if (!m_conf->dem_id) {
     logger(ErrorMessage) << "You forgot to set PlateDemID in the apache config. Refusing to proceed." << std::endl;
-    return DECLINED;
+    return HTTP_INTERNAL_SERVER_ERROR;
   }
 
   std::string url(r->path_info);
