@@ -21,6 +21,9 @@ using namespace vw::platefile;
 #define QUEUE "unittest_queue"
 #define ROUTING_KEY "unittest"
 
+const std::string default_hostname = "localhost";
+const int default_port = 5672;
+
 
 class AMQPTest : public ::testing::Test {
   protected:
@@ -29,9 +32,17 @@ class AMQPTest : public ::testing::Test {
     typedef boost::shared_ptr<AmqpRpcClient> Client;
     typedef boost::shared_ptr<google::protobuf::Service> Service;
 
-    Connection doconn(std::string const& hostname = "localhost", int port = 5672) {
+    Connection doconn(std::string hostname = "", int port = -1) {
       Connection c;
       try {
+        if (hostname.empty()) {
+          const char *val = getenv("AMQP_TEST_HOSTNAME");
+          hostname = val ? std::string(val) : default_hostname;
+        }
+        if (port == -1) {
+          const char *val = getenv("AMQP_TEST_PORT");
+          port = val ? atoi(val) : default_port;
+        }
         c.reset(new AmqpConnection(hostname, port));
       } catch (const AMQPErr& e) {
         // If we can't open the AMQP socket, treat this as a disabled test.
