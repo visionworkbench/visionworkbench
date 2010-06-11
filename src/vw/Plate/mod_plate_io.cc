@@ -98,41 +98,48 @@ class PlateModule {
       int id;
       PlateModule::IndexCache::const_iterator index_i;
 
+      std::ostringstream msg_name;
+
+      msg_name << "lookup: " << id_str;
       try {
         id = boost::lexical_cast<int>(id_str);
       } catch (const boost::bad_lexical_cast&) {
         id = 0;
       }
+      msg_name << " parsed as " << id;
 
       // try it as an id (unless it's clearly wrong)
       if (id != 0) {
         index_i = index_cache.find(id);
-        if (index_i != index_cache.end())
+        if (index_i != index_cache.end()) {
+          logger(VerboseDebugMessage) << msg_name.str() << std::endl;
           return index_i->second;
+        }
       }
 
       // Try it as an alias
       {
         int id2 = reinterpret_cast<intptr_t>(apr_table_get(m_conf->alias, id_str.c_str()));
         if (id2) {
-          logger(VerboseDebugMessage) << "Alias " << id_str << " resolved to " << id2 << std::endl;
+          msg_name << " resolved as alias to " << id2;
           index_i = index_cache.find(id2);
           if (index_i != index_cache.end()) {
+            logger(VerboseDebugMessage) << msg_name.str() << std::endl;
             return index_i->second;
           }
         }
       }
 
       if (!m_conf->unknown_resync)
-        vw_throw(BadRequest() << "No such platefile [no resync] [id = " << id_str << "]");
+        vw_throw(BadRequest() << "No such platefile (no resync) for " << msg_name.str());
 
-      // If we get an unknown platefile, resync just to make sure
-      logger(WarningMessage) << "Platefile [" << id_str << "] not in platefile cache. Resyncing." << std::endl;
+      // If we get an unknown platefile (and we're allowed to do so) resync just to make sure
+      logger(WarningMessage) << "Platefile [" << msg_name.str() << "] not in platefile cache. Resyncing." << std::endl;
       sync_index_cache();
 
       index_i = index_cache.find(id);
       if (index_i == index_cache.end())
-        vw_throw(BadRequest() << "No such platefile [after resync] [id = " << id_str << "]");
+        vw_throw(BadRequest() << "No such platefile (after resync) for " << msg_name.str());
 
       return index_i->second;
     }
