@@ -130,7 +130,7 @@ class PlateModule {
         }
       }
 
-      if (!m_conf->unknown_resync)
+      if (!allow_resync())
         vw_throw(BadRequest() << "No such platefile (no resync) for " << msg_name.str());
 
       // If we get an unknown platefile (and we're allowed to do so) resync just to make sure
@@ -157,6 +157,10 @@ class PlateModule {
 
     std::string get_dem() const {
       return m_conf->dem_id;
+    }
+
+    bool allow_resync() const {
+        return m_conf->unknown_resync;
     }
 
     std::string get_servername(request_rec* r) const {
@@ -476,7 +480,8 @@ int handle_wtml(request_rec *r, const std::string& url) {
   if (r->header_only)
     return OK;
 
-  mod_plate().sync_index_cache();
+  if (mod_plate().allow_resync())
+    mod_plate().sync_index_cache();
 
   apache_stream out(r);
   mod_plate().logger(DebugMessage) << "Served WTML[" << filename << "]" << std::endl;
@@ -555,8 +560,6 @@ PlateModule::PlateModule(const server_rec *s)
 
   // And log to stderr, which will go to the apache error log
   vw_log().set_console_stream(std::cerr, rules, true);
-
-  logger(DebugMessage) << "child startup" << std::endl;
 }
 
 void PlateModule::connect_index() {
@@ -581,6 +584,8 @@ void PlateModule::connect_index() {
   m_connected = true;
   logger(DebugMessage) << "child connected to rabbitmq[" << m_conf->rabbit_ip
                        << "] exchange[" << exchange << "]" << std::endl;
+
+  mod_plate().sync_index_cache();
 }
 
 PlateModule::~PlateModule() {}
