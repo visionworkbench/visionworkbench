@@ -254,9 +254,6 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
 
   vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile_name
                                << "\"   ID: " << m_platefile_id << "\n";
-
-  vw_out() << "Opened remote platefile \"" << platefile_name
-            << "\"   ID: " << m_platefile_id << "  ( " << this->num_levels() << " levels )\n";
 }
 
 /// Constructor (for creating a new Index)
