@@ -32,26 +32,28 @@ namespace po = boost::program_options;
 #include <vw/HDR/LocalToneMap.h>
 
 #include <iostream>
-#include <vector>
 
+using std::cout;
+using std::endl;
+using std::string;
 using namespace vw;
 using namespace vw::hdr;
 
 int main( int argc, char *argv[] ) {
   try {
-    std::string input_filename, output_filename, curve_file;
+    string input_filename, output_filename, curve_file;
     float bias, gamma;
     int bit_depth;
 
     po::options_description desc("Options");
     desc.add_options()
       ("help,h", "Display this help message")
-      ("input-filename", po::value<std::string>(&input_filename), "Specify the input filename.")
-      ("output-filename,o", po::value<std::string>(&output_filename)->default_value("tonemap.png"), "Specify the output filename.")
+      ("input-filename", po::value<string>(&input_filename), "Specify the input filename.")
+      ("output-filename,o", po::value<string>(&output_filename)->default_value("tonemap.png"), "Specify the output filename.")
       ("bias,b", po::value<float>(&bias)->default_value(vw::hdr::DRAGO_DEFAULT_BIAS), "Drago Tonemapping Parameter.  (The default of 0.85 works well for most images)")
       ("gamma,g", po::value<float>(&gamma)->default_value(2.2), "Apply a gamma correction to the tonemapped image.")
       ("bit-depth", po::value<int>(&bit_depth)->default_value(8), "Select a bit depth (8, 16, 32, or 64  [selecting 32 or 64 bit saves as IEE float if supported]")
-      ("curves-for-raw-image,c", po::value<std::string>(&curve_file), "Read the curve lookup tables to a file on disk.  Only use this option if you are processing a raw image from a camera and you have a curves file to match.  You need not specify this option if you are processing a HDR luminance image.");
+      ("curves-for-raw-image,c", po::value<string>(&curve_file), "Read the curve lookup tables to a file on disk.  Only use this option if you are processing a raw image from a camera and you have a curves file to match.  You need not specify this option if you are processing a HDR luminance image.");
 
     po::positional_options_description p;
     p.add("input-filename", 1);
@@ -62,13 +64,13 @@ int main( int argc, char *argv[] ) {
     po::notify( vm );
     
     if( vm.count("help") ) {
-      std::cout << desc << std::endl;
+      cout << desc << endl;
       return 1;
     }
     
     if( vm.count("input-filename") != 1 ) {
-      std::cout << "Usage: " << argv[0] << " <input filename>\n";
-      std::cout << desc << std::endl;
+      cout << "Usage: " << argv[0] << " <input filename>\n";
+      cout << desc << endl;
       return 1;
     }
     
