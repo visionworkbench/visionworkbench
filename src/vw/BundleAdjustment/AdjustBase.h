@@ -17,6 +17,7 @@
 #define __VW_BUNDLEADJUSTMENT_ADJUST_BASE_H__
 
 #include <vw/BundleAdjustment/ModelBase.h>
+#include <boost/foreach.hpp>
 
 namespace vw {
 namespace ba {

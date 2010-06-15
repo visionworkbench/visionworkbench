@@ -467,19 +467,12 @@ namespace ba {
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
 
-      {
-        double gvec_max = -1e30, gvec_nmax = -1e30;
-        for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ ) {
-          gvec_max = std::max( gvec_max, vw::math::max(epsilon_a[j]) );
-          gvec_nmax = std::max( gvec_nmax, vw::math::max(-epsilon_a[j]) );
-        }
-        for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
-          gvec_max = std::max( gvec_max, vw::math::max(epsilon_b[i]) );
-          gvec_nmax = std::max( gvec_nmax, vw::math::max(-epsilon_b[i]) );
-        }
-        abs_tol = gvec_max + gvec_nmax;
-      }
-      rel_tol = transpose(delta_a)*delta_a + transpose(delta_b)*delta_b;
+      rel_tol = -1e30;
+      BOOST_FOREACH( vector_camera const& a, epsilon_a )
+        rel_tol = std::max( rel_tol, math::max( abs( a ) ) );
+      BOOST_FOREACH( vector_point const& b, epsilon_b )
+        rel_tol = std::max( rel_tol, math::max( abs( b ) ) );
+      abs_tol = Splus;
 
       if ( R > 0 ) {
 

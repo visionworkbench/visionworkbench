@@ -369,8 +369,8 @@ namespace ba {
       double dS = .5 * transpose(delta)*(this->m_lambda*delta + epsilon);
       double R = (robust_objective - new_objective)/dS;
 
-      abs_tol = vw::math::max(epsilon) + vw::math::max(-epsilon);
-      rel_tol = transpose(delta)*delta;
+      rel_tol = math::max(abs(epsilon));
+      abs_tol = new_objective;
 
       if ( R > 0 ) {
 

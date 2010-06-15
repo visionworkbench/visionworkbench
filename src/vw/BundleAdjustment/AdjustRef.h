@@ -333,8 +333,8 @@ namespace ba {
 
       double R = (SS - Splus)/dS; // Compute ratio
 
-      abs_tol = vw::math::max(epsilon) + vw::math::max(-epsilon);
-      rel_tol = transpose(delta)*delta;
+      rel_tol = math::max(abs(epsilon) );
+      abs_tol = Splus;
 
       if (R > 0) {
 
