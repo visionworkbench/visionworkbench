@@ -69,6 +69,16 @@ Makefile.in
 /src/vw/HDR/tests/*.cxx
 /src/vw/Mosaic/tests/*.cxx
 
+# Documentation intermediates
+docs/workbook/*.aux
+docs/workbook/*.pdf
+docs/workbook/*.png
+docs/workbook/images/*.jpg
+docs/workbook/images/Walker.qtree
+docs/workbook/workbook.out
+docs/workbook/workbook.log
+docs/workbook/workbook.toc
+
 # Everything else
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment
 /src/vw/BundleAdjustment/tests/TestCameraRelation

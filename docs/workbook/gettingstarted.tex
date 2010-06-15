@@ -10,11 +10,13 @@ then skip ahead to Chapter~\ref{ch:workingwithimages}.
 \section{Obtaining the Vision Workbench}
 \label{sec:obtaining-vw}
 
-Most likely if you are reading this document then you already know 
-where to obtain a copy of the Vision Workbench sources if you haven't 
-obtained them already.  However, if not, a link to the most up-to-date 
-distribution will always be available from the NASA Ames open-source 
-software website, at \verb#opensource.arc.nasa.gov#.
+Most likely if you are reading this document then you already know
+where to obtain a copy of the Vision Workbench sources if you haven't
+obtained them already.  However, if not, a link to the most up-to-date
+distribution will always be available from the NASA Ames open-source
+software website, at \verb#opensource.arc.nasa.gov#. Development code
+is available through GitHub, at
+\verb#http://github.com/visionworkbench/visionworkbench#
 
 In addition to obtaining the Vision Workbench, you will also need to
 obtain and install whatever pre-requisite libraries you will need.
@@ -23,7 +25,7 @@ extensions to the standard C++ libraries that is available from
 \verb#www.boost.org#.  Many modern Linux systems come with some
 version of Boost already installed, generally in the directory
 \verb#/usr/include/boost#.  The Vision Workbench has been tested with
-Boost versions 1.32 and later.
+Boost versions 1.35 and later.
 
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|l|l|l|} \hline
@@ -35,9 +37,7 @@ JPEG    & FileIO (opt.)      & \verb#http://www.ijg.org/#                \\ \hli
 TIFF    & FileIO (opt.)      & \verb#http://www.libtiff.org/#            \\ \hline
 OpenEXR & FileIO (opt.)      & \verb#http://www.openexr.com/#            \\ \hline
 PROJ.4  & Cartography (req.) & \verb#http://www.remotesensing.org/proj/# \\ \hline
-GDAL    & Cartography (opt.) & \verb#http://www.remotesensing.org/gdal/# \\ \hline
-%GLEW    & GPU (req.)         & \verb#http://glew.sourceforge.net/#       \\ \hline
-%CG      & GPU (opt.)         & \verb#http://developer.nvidia.com/#       \\ \hline
+GDAL    & FileIO \& Cartography (opt.) & \verb#http://www.remotesensing.org/gdal/# \\ \hline
 \end{tabular}
 \caption{A summary of Vision Workbench dependencies.}
 \label{tbl:dependencies}
@@ -59,7 +59,7 @@ later if you discover that you need them.
 One dependency that is worth discussing briefly is LAPACK, which
 provides Vision Workbench with a computational linear algebra back
 end.  LAPACK is a comprehensive and widely used linear algebra support
-library in the public domain.  LAPACK also require the Basic Linear
+library in the public domain.  LAPACK also requires the Basic Linear
 Algebra Subroutines (BLAS) library, which is usually bundled with
 LAPACK.
 
@@ -76,7 +76,7 @@ users {\em do not} need to install LAPACK; machine optimized linear
 algebra support is provided by Apple's \verb#veclib# framework on Mac
 OS X.  Remember to add the \verb#-framework veclib# flag when linking
 your application against the Vision Workbench if you are using the
-functions in \verb#<vw/Math/LinearAlgebra.h># on the mac platform.
+functions in \verb#<vw/Math/LinearAlgebra.h># on the OS X platform.
 
 \section{Building the Vision Workbench}
 
@@ -97,7 +97,7 @@ Section~\ref{sec:config-build}.
 Assuming the output of the \verb#configure# script looks good, you can
 now proceed to build the Vision Workbench itself by running
 ``\verb#make#''.  Most of the Vision Workbench is header-only, so
-``building'' the Vision Workbench should be relatively quick.  Once
+``building'' the Vision Workbench should be relatively quick. Once
 the build is complete, confirm that things are working properly by
 building and running the unit tests by typing ``\verb#make check#''.
 If there are no errors, the final step is to install the Vision
