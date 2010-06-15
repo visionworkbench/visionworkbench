@@ -96,122 +96,6 @@ namespace ba {
       return;
     }
 
-
-    // PROBABLY DELETE?
-    // ______________________________________________
-    // I'm not sure what this does
-    void debug_impl(Matrix<double> &J, Matrix<double> &sigma,
-                    Vector<double> &epsilon) {
-
-      // Here are some useful variable declarations that make the code
-      // below more readable.
-      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
-      unsigned num_pt_params = BundleAdjustModelT::point_params_n;
-      unsigned num_points = this->m_model.num_points();
-      unsigned num_model_parameters = this->m_model.num_cameras()*num_cam_params + this->m_model.num_points()*num_pt_params;
-
-      unsigned num_cameras = this->m_model.num_cameras();
-      unsigned num_ground_control_points = this->m_control_net->num_ground_control_points();
-      unsigned num_observations = 2*this->m_model.num_pixel_observations();
-      if (this->m_use_camera_constraint)
-        num_observations += num_cameras*num_cam_params;
-      if (this->m_use_gcp_constraint)
-        num_observations += num_ground_control_points*num_pt_params;
-
-      // --- SETUP STEP ----
-      // Add rows to J and epsilon for the imaged pixel observations
-      int idx = 0;
-      for (unsigned i = 0; i < this->m_control_net->size();
-           ++i) {       // Iterate over control points
-        for (unsigned m = 0; m < (*(this->m_control_net))[i].size();
-             ++m) {  // Iterate over control measures
-          int camera_idx = (*(this->m_control_net))[i][m].image_id();
-
-          Matrix<double> J_a = this->m_model.A_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this->m_model.B_parameters(i));
-          Matrix<double> J_b = this->m_model.B_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this->m_model.B_parameters(i));
-
-          // Populate the Jacobian Matrix
-          submatrix(J, 2*idx, num_cam_params*camera_idx, 2, num_cam_params) = J_a;
-          submatrix(J, 2*idx, num_cam_params*num_cameras + i*num_pt_params, 2, num_pt_params) = J_b;
-
-          // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - this->m_model(i, camera_idx,
-                                      this->m_model.A_parameters(camera_idx),
-                                      this->m_model.B_parameters(i));
-          double mag = norm_2(unweighted_error);
-          if ( mag != 0 ) {
-            double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-            subvector(epsilon,2*idx,2) = unweighted_error * weight;
-          } else {
-            subvector(epsilon,2*idx,2) = unweighted_error;
-          }
-
-          // Fill in the entries of the sigma matrix with the
-          // uncertainty of the observations.
-          Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = (*this->m_control_net)[i][m].sigma();
-          inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
-          inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
-          submatrix(sigma, 2*idx, 2*idx, 2, 2) = inverse_cov;
-
-          ++idx;
-        }
-      }
-
-      // Add rows to J and epsilon for a priori camera parameters...
-      if (this->m_use_camera_constraint)
-        for (unsigned j=0; j < num_cameras; ++j) {
-          Matrix<double> id(num_cam_params, num_cam_params);
-          id.set_identity();
-          submatrix(J,
-                    2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    j*num_cam_params,
-                    num_cam_params,
-                    num_cam_params) = id;
-          Vector<double> unweighted_error = this->m_model.A_target(j)-this->m_model.A_parameters(j);
-          subvector(epsilon,
-                    2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = unweighted_error;
-          submatrix(sigma,
-                    2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params, num_cam_params) = this->m_model.A_inverse_covariance(j);
-        }
-
-      // ... and the position of the 3D points to J and epsilon ...
-      if (this->m_use_gcp_constraint) {
-        idx = 0;
-        for (unsigned i=0; i < this->m_model.num_points(); ++i) {
-          if ((*(this->m_control_net))[i].type() == ControlPoint::GroundControlPoint) {
-            Matrix<double> id(num_pt_params,num_pt_params);
-            id.set_identity();
-            submatrix(J,2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
-                      idx*num_pt_params,
-                      num_cameras*num_cam_params + idx*num_pt_params,
-                      num_pt_params,
-                      num_pt_params) = id;
-            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
-            subvector(epsilon,
-                      2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
-                      idx*num_pt_params,
-                      num_pt_params) = unweighted_error;
-            submatrix(sigma,
-                      2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
-                      idx*num_pt_params,
-                      2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
-                      idx*num_pt_params,
-                      num_pt_params, num_pt_params) = this->m_model.B_inverse_covariance(i);
-            ++idx;
-          }
-        }
-      }
-    }
-
-
     // UPDATE IMPLEMENTATION
     //---------------------------------------------------------------
     // This is a simple, non-sparse, unoptimized implementation of LM
@@ -446,8 +330,6 @@ namespace ba {
       double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
       double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
       double dS = .5 * transpose(delta) *(this->m_lambda * delta + del_J);
-
-      // WARNING: will want to replace dS later
 
       double R = (SS - Splus)/dS; // Compute ratio
 
