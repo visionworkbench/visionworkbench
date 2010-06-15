@@ -126,11 +126,11 @@ namespace ba {
 
       // The core LM matrices and vectors
       Matrix<double> J(num_observations, num_model_parameters);   // Jacobian Matrix
-      Vector<double> epsilon(num_observations);                   // Error vector
+      Vector<double> error(num_observations);                   // Error vector
       Matrix<double> sigma(num_observations, num_observations);   // Sigma (uncertainty) matrix
 
       // --- SETUP STEP ----
-      // Add rows to J and epsilon for the imaged pixel observations
+      // Add rows to J and error for the imaged pixel observations
       int idx = 0;
       for (unsigned i = 0; i < this->m_control_net->size(); ++i) {       // Iterate over control points
         for (unsigned m = 0; m < (*(this->m_control_net))[i].size();
@@ -155,7 +155,7 @@ namespace ba {
                           this->m_model.B_parameters(i));
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          subvector(epsilon,2*idx,2) = unweighted_error * weight;
+          subvector(error,2*idx,2) = unweighted_error * weight;
 
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
@@ -178,7 +178,7 @@ namespace ba {
         this->m_lambda = 1e-10 * max;
       }
 
-      // Add rows to J and epsilon for a priori camera parameters...
+      // Add rows to J and error for a priori camera parameters...
       if ( this->m_use_camera_constraint )
         for (unsigned j=0; j < num_cameras; ++j) {
           Matrix<double> id(num_cam_params, num_cam_params);
@@ -190,7 +190,7 @@ namespace ba {
                     num_cam_params) = id;
           Vector<double> unweighted_error = this->m_model.A_target(j) -
             this->m_model.A_parameters(j);
-          subvector(epsilon,
+          subvector(error,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     num_cam_params) = unweighted_error;
           submatrix(sigma,
@@ -199,7 +199,7 @@ namespace ba {
                     num_cam_params, num_cam_params) = this->m_model.A_inverse_covariance(j);
         }
 
-      // ... and the position of the 3D points to J and epsilon ...
+      // ... and the position of the 3D points to J and error ...
       if ( this->m_use_gcp_constraint ) {
         idx = 0;
         for (unsigned i=0; i < this->m_model.num_points(); ++i) {
@@ -212,7 +212,7 @@ namespace ba {
                       num_pt_params,
                       num_pt_params) = id;
             Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
-            subvector(epsilon,
+            subvector(error,
                       2*this->m_model.num_pixel_observations() +
                       num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params) = unweighted_error;
@@ -232,7 +232,7 @@ namespace ba {
       Matrix<double> JTS = transpose(J) * sigma;
 
       // Build up the right side of the normal equation...
-      Vector<double> del_J = -1.0 * (JTS * epsilon);
+      Vector<double> epsilon = -1.0 * (JTS * error);
 
       // ... and the left side.  (Remembering to rescale the diagonal
       // entries of the approximated hessian by lambda)
@@ -248,7 +248,7 @@ namespace ba {
          hessian(i,i) +=  this->m_lambda;
 
       //Cholesky decomposition. Returns Cholesky matrix in lower left hand corner.
-      Vector<double> delta = del_J;
+      Vector<double> delta = epsilon;
 
       // Here we want to make sure that if we apply Schur methods as
       // on p. 604, we can get the same answer as in the general delta.
@@ -276,7 +276,7 @@ namespace ba {
         nsq_x += norm_2( this->m_model.B_parameters(i) );
 
       // --- EVALUATE POTENTIAL UPDATE STEP ---
-      Vector<double> new_epsilon(num_observations);                  // Error vector
+      Vector<double> new_error(num_observations);                  // Error vector
       idx = 0;
       for (unsigned i = 0; i < this->m_control_net->size(); ++i) {
         for (unsigned m = 0; m < (*this->m_control_net)[i].size(); ++m) {
@@ -293,30 +293,30 @@ namespace ba {
                           this->m_model.B_parameters(i)-pt_delta);
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
-          subvector(new_epsilon,2*idx,2) = unweighted_error * weight;
+          subvector(new_error,2*idx,2) = unweighted_error * weight;
 
           ++idx;
         }
       }
 
-      // Add rows to J and epsilon for a priori position/pose constraints...
+      // Add rows to J and error for a priori position/pose constraints...
       if (this->m_use_camera_constraint)
         for (unsigned j=0; j < num_cameras; ++j) {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
-          subvector(new_epsilon,
+          subvector(new_error,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     num_cam_params) = this->m_model.A_target(j)-
             (this->m_model.A_parameters(j)-cam_delta);
         }
 
-      // ... and the position of the 3D points to J and epsilon ...
+      // ... and the position of the 3D points to J and error ...
       if (this->m_use_gcp_constraint) {
         idx = 0;
         for (unsigned i=0; i < this->m_model.num_points(); ++i) {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i,
                                                 num_pt_params);
-            subvector(new_epsilon,
+            subvector(new_error,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
                       idx*num_pt_params,
                       num_pt_params) = this->m_model.B_target(i)-
@@ -327,13 +327,13 @@ namespace ba {
       }
 
       //Fletcher modification
-      double Splus = .5*transpose(new_epsilon) * sigma * new_epsilon; //Compute new objective
-      double SS = .5*transpose(epsilon) * sigma * epsilon;            //Compute old objective
-      double dS = .5 * transpose(delta) *(this->m_lambda * delta + del_J);
+      double Splus = .5*transpose(new_error)*sigma*new_error; //new objective
+      double SS = .5*transpose(error)*sigma*error;            //old objective
+      double dS = .5 * transpose(delta) *(this->m_lambda * delta + epsilon);
 
       double R = (SS - Splus)/dS; // Compute ratio
 
-      abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+      abs_tol = vw::math::max(epsilon) + vw::math::max(-epsilon);
       rel_tol = transpose(delta)*delta;
 
       if (R > 0) {

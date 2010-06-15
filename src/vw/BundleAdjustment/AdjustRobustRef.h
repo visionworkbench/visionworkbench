@@ -129,7 +129,7 @@ namespace ba {
       // Jacobian Matrix for Robust algorithm
       Matrix<double> J(num_observations, num_model_parameters);
       // Modified error vector for Robust algorithm
-      Vector<double> epsilon(num_observations);
+      Vector<double> error(num_observations);
       // Degrees of freedom for data (can be modified later)
       double t_df = 4;
       // dimension of pixels
@@ -144,7 +144,7 @@ namespace ba {
       double robust_objective = 0.0;
 
       // --- SETUP STEP ----
-      // Add rows to J and epsilon for the imaged pixel observations
+      // Add rows to J and error for the imaged pixel observations
 
       int idx = 0;
       // Iterate over control points
@@ -178,8 +178,8 @@ namespace ba {
           robust_objective += 0.5*(t_df + t_dim_pixel)*log(1 + S_weight/t_df);
 
 
-          // Populate the robust epsilon vector
-          subvector(epsilon,2*idx,2) = unweighted_error * sqrt(mu_weight);
+          // Populate the robust error vector
+          subvector(error,2*idx,2) = unweighted_error * sqrt(mu_weight);
 
           // Populate the robust Jacobian Matrix
           submatrix(J, 2*idx, num_cam_params*camera_idx, 2, num_cam_params) = sqrt(mu_weight)*J_a;
@@ -201,7 +201,7 @@ namespace ba {
         this->m_lambda = 1e-10 * max;
       }
 
-      // Add rows to J and epsilon for a priori camera parameters...
+      // Add rows to J and error for a priori camera parameters...
       if (this->m_use_camera_constraint)
         for ( unsigned j=0; j < num_cameras; ++j ) {
           Matrix<double> id( num_cam_params, num_cam_params );
@@ -221,8 +221,8 @@ namespace ba {
                     num_cam_params,
                     num_cam_params) = id*sqrt(mu_weight);
 
-          // Here epsilon is modified exactly as epsilon was
-          subvector(epsilon,
+          // Here error is modified exactly as error was
+          subvector(error,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     num_cam_params) = unweighted_error*sqrt(mu_weight);
 
@@ -234,7 +234,7 @@ namespace ba {
           // add the initial constraints on the regular quadratic scale
         }
 
-      // ... and the position of the 3D points to J and epsilon ...
+      // ... and the position of the 3D points to J and error ...
       if (this->m_use_gcp_constraint) {
         idx = 0;
         for (unsigned i=0; i < this->m_model.num_points(); ++i) {
@@ -254,8 +254,8 @@ namespace ba {
                       num_pt_params,
                       num_pt_params) = id*sqrt(mu_weight);
 
-            // Here epsilon is modified exactly as epsilon was
-            subvector(epsilon,
+            // Here error is modified exactly as error was
+            subvector(error,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params) = unweighted_error*sqrt(mu_weight);
 
@@ -272,7 +272,7 @@ namespace ba {
       // --- SOLVE UPDATE STEP ----------------------------------------
 
       // Build up the right side of the normal equation for robust algorithm
-      Vector<double> del_J = -1.0 * transpose(J) * sigma * epsilon;
+      Vector<double> epsilon = -1.0 * transpose(J) * sigma * error;
 
       // also build up left side for robust
       Matrix<double> hessian = transpose(J) * sigma * J;
@@ -282,7 +282,7 @@ namespace ba {
 
       // Cholesky decomposition. Returns Cholesky matrix in lower left
       // hand corner.
-      Vector<double> delta = del_J;
+      Vector<double> delta = epsilon;
 
       // Here we want to make sure that if we apply Schur methods as on p. 604, we can get the same answer as in the general delta.
       unsigned num_cam_entries = num_cam_params * num_cameras;
@@ -335,7 +335,7 @@ namespace ba {
         }
       }
 
-      // Add rows to J and epsilon for a priori position/pose constraints...
+      // Add rows to J and error for a priori position/pose constraints...
       if (this->m_use_camera_constraint)
         for (unsigned j=0; j < num_cameras; ++j) {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
@@ -347,7 +347,7 @@ namespace ba {
            new_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
         }
 
-      // ... and the position of the 3D points to J and epsilon ...
+      // ... and the position of the 3D points to J and error ...
       if (this->m_use_gcp_constraint) {
         idx = 0;
         for (unsigned i=0; i < this->m_model.num_points(); ++i) {
@@ -366,11 +366,10 @@ namespace ba {
       }
 
       //Fletcher modification for robust case
-      double dS = .5 * transpose(delta)*(this->m_lambda*delta + del_J);
-
+      double dS = .5 * transpose(delta)*(this->m_lambda*delta + epsilon);
       double R = (robust_objective - new_objective)/dS;
 
-      abs_tol = vw::math::max(del_J) + vw::math::max(-del_J);
+      abs_tol = vw::math::max(epsilon) + vw::math::max(-epsilon);
       rel_tol = transpose(delta)*delta;
 
       if ( R > 0 ) {
