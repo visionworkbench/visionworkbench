@@ -38,28 +38,28 @@ vw::camera::ExifView::ExifView(std::string const& filename) {
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(const uint16 tag, int& value) const {
+void vw::camera::ExifView::query_by_tag(ExifTag tag, int& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(const uint16 tag, double& value) const {
+void vw::camera::ExifView::query_by_tag(ExifTag tag, double& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(const uint16 tag, std::string& value) const {
+void vw::camera::ExifView::query_by_tag(ExifTag tag, std::string& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
 }
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(const uint16 tag, vw::camera::ExifDateTime& value) const {
+void vw::camera::ExifView::query_by_tag(ExifTag tag, vw::camera::ExifDateTime& value) const {
   std::string date_in_ascii;
   bool success = m_data.get_tag_value(tag, date_in_ascii);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");

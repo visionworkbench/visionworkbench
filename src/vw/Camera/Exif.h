@@ -46,112 +46,114 @@ namespace camera {
   /// can still be accessed (if stored by the camera) if their tag
   /// number in known.
   ///
-  static const uint16 EXIF_InteropIndex                = 0x0001;
-  static const uint16 EXIF_InteropVersion              = 0x0002;
-  static const uint16 EXIF_ImageWidth                  = 0x0100;
-  static const uint16 EXIF_ImageLength                 = 0x0101;
-  static const uint16 EXIF_BitsPerSample               = 0x0102;
-  static const uint16 EXIF_Compression                 = 0x0103;
-  static const uint16 EXIF_PhotometricInterpretation   = 0x0106;
-  static const uint16 EXIF_FillOrder                   = 0x010A;
-  static const uint16 EXIF_DocumentName                = 0x010D;
-  static const uint16 EXIF_ImageDescription            = 0x010E;
-  static const uint16 EXIF_Make                        = 0x010F;
-  static const uint16 EXIF_Model                       = 0x0110;
-  static const uint16 EXIF_StripOffsets                = 0x0111;
-  static const uint16 EXIF_Orientation                 = 0x0112;
-  static const uint16 EXIF_SamplesPerPixel             = 0x0115;
-  static const uint16 EXIF_RowsPerStrip                = 0x0116;
-  static const uint16 EXIF_StripByteCounts             = 0x0117;
-  static const uint16 EXIF_XResolution                 = 0x011A;
-  static const uint16 EXIF_YResolution                 = 0x011B;
-  static const uint16 EXIF_PlanarConfiguration         = 0x011C;
-  static const uint16 EXIF_ResolutionUnit              = 0x0128;
-  static const uint16 EXIF_TransferFunction            = 0x012D;
-  static const uint16 EXIF_Software                    = 0x0131;
-  static const uint16 EXIF_DateTime                    = 0x0132;
-  static const uint16 EXIF_Artist                      = 0x013B;
-  static const uint16 EXIF_WhitePoint                  = 0x013E;
-  static const uint16 EXIF_PrimaryChromaticities       = 0x013F;
-  static const uint16 EXIF_TransferRange               = 0x0156;
-  static const uint16 EXIF_JPEGProc                    = 0x0200;
-  static const uint16 EXIF_ThumbnailOffset             = 0x0201;
-  static const uint16 EXIF_ThumbnailLength             = 0x0202;
-  static const uint16 EXIF_YCbCrCoefficients           = 0x0211;
-  static const uint16 EXIF_YCbCrSubSampling            = 0x0212;
-  static const uint16 EXIF_YCbCrPositioning            = 0x0213;
-  static const uint16 EXIF_ReferenceBlackWhite         = 0x0214;
-  static const uint16 EXIF_RelatedImageWidth           = 0x1001;
-  static const uint16 EXIF_RelatedImageLength          = 0x1002;
-  static const uint16 EXIF_CFARepeatPatternDim         = 0x828D;
-  static const uint16 EXIF_CFAPattern1                 = 0x828E;
-  static const uint16 EXIF_BatteryLevel                = 0x828F;
-  static const uint16 EXIF_Copyright                   = 0x8298;
-  static const uint16 EXIF_ExposureTime                = 0x829A;
-  static const uint16 EXIF_FNumber                     = 0x829D;
-  static const uint16 EXIF_IPTC_NAA                    = 0x83BB;
-  static const uint16 EXIF_ExifOffset                  = 0x8769;
-  static const uint16 EXIF_InterColorProfile           = 0x8773;
-  static const uint16 EXIF_ExposureProgram             = 0x8822;
-  static const uint16 EXIF_SpectralSensitivity         = 0x8824;
-  static const uint16 EXIF_GPSInfo                     = 0x8825;
-  static const uint16 EXIF_ISOSpeedRatings             = 0x8827;
-  static const uint16 EXIF_OECF                        = 0x8828;
-  static const uint16 EXIF_ExifVersion                 = 0x9000;
-  static const uint16 EXIF_DateTimeOriginal            = 0x9003;
-  static const uint16 EXIF_DateTimeDigitized           = 0x9004;
-  static const uint16 EXIF_ComponentsConfiguration     = 0x9101;
-  static const uint16 EXIF_CompressedBitsPerPixel      = 0x9102;
-  static const uint16 EXIF_ShutterSpeedValue           = 0x9201;
-  static const uint16 EXIF_ApertureValue               = 0x9202;
-  static const uint16 EXIF_BrightnessValue             = 0x9203;
-  static const uint16 EXIF_ExposureBiasValue           = 0x9204;
-  static const uint16 EXIF_MaxApertureValue            = 0x9205;
-  static const uint16 EXIF_SubjectDistance             = 0x9206;
-  static const uint16 EXIF_MeteringMode                = 0x9207;
-  static const uint16 EXIF_LightSource                 = 0x9208;
-  static const uint16 EXIF_Flash                       = 0x9209;
-  static const uint16 EXIF_FocalLength                 = 0x920A;
-  static const uint16 EXIF_SubjectArea                 = 0x9214;
-  static const uint16 EXIF_MakerNote                   = 0x927C;
-  static const uint16 EXIF_UserComment                 = 0x9286;
-  static const uint16 EXIF_SubSecTime                  = 0x9290;
-  static const uint16 EXIF_SubSecTimeOriginal          = 0x9291;
-  static const uint16 EXIF_SubSecTimeDigitized         = 0x9292;
-  static const uint16 EXIF_WinXPTitle                  = 0x9C9B; // windows-only - not part of exif standard.
-  static const uint16 EXIF_WinXPComment                = 0x9C9C; // windows-only - not part of exif standard.
-  static const uint16 EXIF_WinXPAuthor                 = 0x9C9D; // windows-only - not part of exif standard.
-  static const uint16 EXIF_WinXPKeywords               = 0x9C9E; // windows-only - not part of exif standard.
-  static const uint16 EXIF_WinXPSubject                = 0x9C9F; // windows-only - not part of exif standard.
-  static const uint16 EXIF_FlashPixVersion             = 0xA000;
-  static const uint16 EXIF_ColorSpace                  = 0xA001;
-  static const uint16 EXIF_PixelXDimension             = 0xA002;
-  static const uint16 EXIF_PixelYDimension             = 0xA003;
-  static const uint16 EXIF_RelatedAudioFile            = 0xA004;
-  static const uint16 EXIF_InteroperabilityOffset      = 0xA005;
-  static const uint16 EXIF_FlashEnergy                 = 0xA20B;
-  static const uint16 EXIF_SpatialFrequencyResponse    = 0xA20C;
-  static const uint16 EXIF_FocalPlaneXResolution       = 0xA20E;
-  static const uint16 EXIF_FocalPlaneYResolution       = 0xA20F;
-  static const uint16 EXIF_FocalPlaneResolutionUnit    = 0xA210;
-  static const uint16 EXIF_SubjectLocation             = 0xA214;
-  static const uint16 EXIF_ExposureIndex               = 0xA215;
-  static const uint16 EXIF_SensingMethod               = 0xA217;
-  static const uint16 EXIF_FileSource                  = 0xA300;
-  static const uint16 EXIF_SceneType                   = 0xA301;
-  static const uint16 EXIF_CFAPattern                  = 0xA302;
-  static const uint16 EXIF_CustomRendered              = 0xA401;
-  static const uint16 EXIF_ExposureMode                = 0xA402;
-  static const uint16 EXIF_WhiteBalance                = 0xA403;
-  static const uint16 EXIF_DigitalZoomRatio            = 0xA404;
-  static const uint16 EXIF_FocalLengthIn35mmFilm       = 0xA405;
-  static const uint16 EXIF_SceneCaptureType            = 0xA406;
-  static const uint16 EXIF_GainControl                 = 0xA407;
-  static const uint16 EXIF_Contrast                    = 0xA408;
-  static const uint16 EXIF_Saturation                  = 0xA409;
-  static const uint16 EXIF_Sharpness                   = 0xA40A;
-  static const uint16 EXIF_SubjectDistanceRange        = 0xA40C;
-  static const uint16 EXIF_ImageUniqueId               = 0xA420;
+  enum ExifTag {
+    EXIF_InteropIndex                = 0x0001,
+    EXIF_InteropVersion              = 0x0002,
+    EXIF_ImageWidth                  = 0x0100,
+    EXIF_ImageLength                 = 0x0101,
+    EXIF_BitsPerSample               = 0x0102,
+    EXIF_Compression                 = 0x0103,
+    EXIF_PhotometricInterpretation   = 0x0106,
+    EXIF_FillOrder                   = 0x010A,
+    EXIF_DocumentName                = 0x010D,
+    EXIF_ImageDescription            = 0x010E,
+    EXIF_Make                        = 0x010F,
+    EXIF_Model                       = 0x0110,
+    EXIF_StripOffsets                = 0x0111,
+    EXIF_Orientation                 = 0x0112,
+    EXIF_SamplesPerPixel             = 0x0115,
+    EXIF_RowsPerStrip                = 0x0116,
+    EXIF_StripByteCounts             = 0x0117,
+    EXIF_XResolution                 = 0x011A,
+    EXIF_YResolution                 = 0x011B,
+    EXIF_PlanarConfiguration         = 0x011C,
+    EXIF_ResolutionUnit              = 0x0128,
+    EXIF_TransferFunction            = 0x012D,
+    EXIF_Software                    = 0x0131,
+    EXIF_DateTime                    = 0x0132,
+    EXIF_Artist                      = 0x013B,
+    EXIF_WhitePoint                  = 0x013E,
+    EXIF_PrimaryChromaticities       = 0x013F,
+    EXIF_TransferRange               = 0x0156,
+    EXIF_JPEGProc                    = 0x0200,
+    EXIF_ThumbnailOffset             = 0x0201,
+    EXIF_ThumbnailLength             = 0x0202,
+    EXIF_YCbCrCoefficients           = 0x0211,
+    EXIF_YCbCrSubSampling            = 0x0212,
+    EXIF_YCbCrPositioning            = 0x0213,
+    EXIF_ReferenceBlackWhite         = 0x0214,
+    EXIF_RelatedImageWidth           = 0x1001,
+    EXIF_RelatedImageLength          = 0x1002,
+    EXIF_CFARepeatPatternDim         = 0x828D,
+    EXIF_CFAPattern1                 = 0x828E,
+    EXIF_BatteryLevel                = 0x828F,
+    EXIF_Copyright                   = 0x8298,
+    EXIF_ExposureTime                = 0x829A,
+    EXIF_FNumber                     = 0x829D,
+    EXIF_IPTC_NAA                    = 0x83BB,
+    EXIF_ExifOffset                  = 0x8769,
+    EXIF_InterColorProfile           = 0x8773,
+    EXIF_ExposureProgram             = 0x8822,
+    EXIF_SpectralSensitivity         = 0x8824,
+    EXIF_GPSInfo                     = 0x8825,
+    EXIF_ISOSpeedRatings             = 0x8827,
+    EXIF_OECF                        = 0x8828,
+    EXIF_ExifVersion                 = 0x9000,
+    EXIF_DateTimeOriginal            = 0x9003,
+    EXIF_DateTimeDigitized           = 0x9004,
+    EXIF_ComponentsConfiguration     = 0x9101,
+    EXIF_CompressedBitsPerPixel      = 0x9102,
+    EXIF_ShutterSpeedValue           = 0x9201,
+    EXIF_ApertureValue               = 0x9202,
+    EXIF_BrightnessValue             = 0x9203,
+    EXIF_ExposureBiasValue           = 0x9204,
+    EXIF_MaxApertureValue            = 0x9205,
+    EXIF_SubjectDistance             = 0x9206,
+    EXIF_MeteringMode                = 0x9207,
+    EXIF_LightSource                 = 0x9208,
+    EXIF_Flash                       = 0x9209,
+    EXIF_FocalLength                 = 0x920A,
+    EXIF_SubjectArea                 = 0x9214,
+    EXIF_MakerNote                   = 0x927C,
+    EXIF_UserComment                 = 0x9286,
+    EXIF_SubSecTime                  = 0x9290,
+    EXIF_SubSecTimeOriginal          = 0x9291,
+    EXIF_SubSecTimeDigitized         = 0x9292,
+    EXIF_WinXPTitle                  = 0x9C9B, // windows-only - not part of exif standard.
+    EXIF_WinXPComment                = 0x9C9C, // windows-only - not part of exif standard.
+    EXIF_WinXPAuthor                 = 0x9C9D, // windows-only - not part of exif standard.
+    EXIF_WinXPKeywords               = 0x9C9E, // windows-only - not part of exif standard.
+    EXIF_WinXPSubject                = 0x9C9F, // windows-only - not part of exif standard.
+    EXIF_FlashPixVersion             = 0xA000,
+    EXIF_ColorSpace                  = 0xA001,
+    EXIF_PixelXDimension             = 0xA002,
+    EXIF_PixelYDimension             = 0xA003,
+    EXIF_RelatedAudioFile            = 0xA004,
+    EXIF_InteroperabilityOffset      = 0xA005,
+    EXIF_FlashEnergy                 = 0xA20B,
+    EXIF_SpatialFrequencyResponse    = 0xA20C,
+    EXIF_FocalPlaneXResolution       = 0xA20E,
+    EXIF_FocalPlaneYResolution       = 0xA20F,
+    EXIF_FocalPlaneResolutionUnit    = 0xA210,
+    EXIF_SubjectLocation             = 0xA214,
+    EXIF_ExposureIndex               = 0xA215,
+    EXIF_SensingMethod               = 0xA217,
+    EXIF_FileSource                  = 0xA300,
+    EXIF_SceneType                   = 0xA301,
+    EXIF_CFAPattern                  = 0xA302,
+    EXIF_CustomRendered              = 0xA401,
+    EXIF_ExposureMode                = 0xA402,
+    EXIF_WhiteBalance                = 0xA403,
+    EXIF_DigitalZoomRatio            = 0xA404,
+    EXIF_FocalLengthIn35mmFilm       = 0xA405,
+    EXIF_SceneCaptureType            = 0xA406,
+    EXIF_GainControl                 = 0xA407,
+    EXIF_Contrast                    = 0xA408,
+    EXIF_Saturation                  = 0xA409,
+    EXIF_Sharpness                   = 0xA40A,
+    EXIF_SubjectDistanceRange        = 0xA40C,
+    EXIF_ImageUniqueId               = 0xA420
+  };
 
   // Module Specific Exceptions
   VW_DEFINE_EXCEPTION(ExifErr, vw::Exception);
@@ -164,10 +166,10 @@ namespace camera {
 
     // Query the data by tag ID (common tags are enumerated at the top if
     // Exif.h)
-    void query_by_tag(const uint16 tag, int& value) const;
-    void query_by_tag(const uint16 tag, double& value) const;
-    void query_by_tag(const uint16 tag, std::string& value) const;
-    void query_by_tag(const uint16 tag, ExifDateTime& value) const;
+    void query_by_tag(ExifTag tag, int& value) const;
+    void query_by_tag(ExifTag tag, double& value) const;
+    void query_by_tag(ExifTag tag, std::string& value) const;
+    void query_by_tag(ExifTag tag, ExifDateTime& value) const;
 
     // Camera info
     std::string get_make() const;
