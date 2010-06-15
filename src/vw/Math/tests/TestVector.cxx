@@ -159,7 +159,7 @@ TEST(Vector, Equality) {
 }
 
 TEST(Vector, BasicMath) {
-  Vector3f v1(1,2,3), v2(2,4,4);
+  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2,-1.1,-3.3);
 
   EXPECT_EQ( Vector3f(-1, -2, -3)     , -v1 );
 
@@ -183,6 +183,8 @@ TEST(Vector, BasicMath) {
   EXPECT_EQ( Vector3f(0.5, 1, 1.5)    , elem_quot(v1, 2) );
   EXPECT_EQ( Vector3f(0.5, 1, 1.5)    , v1/2 );
   EXPECT_EQ( Vector3f(3, 1.5, 1)      , elem_quot(3, v1) );
+
+  EXPECT_EQ( Vector3f(4.2,1.1,3.3)    , abs(v3) );
 }
 
 TEST(Vector, ElemCompare) {
@@ -241,7 +243,7 @@ TEST(Vector, Funcs) {
 }
 
 TEST(Vector, Transpose) {
-  Vector3f v1(1,2,3), v2(2,4,4);
+  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2,-1.1,-3.3);
 
   EXPECT_EQ( 22  , transpose(v1)*v2 );
   EXPECT_EQ( -22 , (-transpose(v1))*v2 );
@@ -250,6 +252,7 @@ TEST(Vector, Transpose) {
   EXPECT_EQ( 44  , (2*transpose(v1))*v2 );
   EXPECT_EQ( 66  , (transpose(v1)*3)*v2 );
   EXPECT_EQ( 11  , (transpose(v1)/2)*v2 );
+  EXPECT_NEAR( 16.3, abs(transpose(v3))*v1, 1e-6 );
 }
 
 TEST(Vector, Real) {

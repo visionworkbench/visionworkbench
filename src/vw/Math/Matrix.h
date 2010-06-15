@@ -1514,6 +1514,12 @@ namespace math {
     return MatrixUnaryFunc<MatrixT, ArgNegationFunctor>( m.impl() );
   }
 
+  /// Absolute of a matrix
+  template <class MatrixT>
+  MatrixUnaryFunc<MatrixT, ArgAbsFunctor >
+  inline abs( MatrixBase<MatrixT> const& m ) {
+    return MatrixUnaryFunc<MatrixT, ArgAbsFunctor>( m.impl() );
+  }
 
   /// Elementwise sum of two matrices.
   template <class Matrix1T, class Matrix2T>

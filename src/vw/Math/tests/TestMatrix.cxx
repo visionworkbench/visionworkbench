@@ -175,6 +175,7 @@ TEST(Matrix, BasicMath) {
   Matrix2x2f m1(1,2,3,4), m2(2,1,3,-1);
 
   EXPECT_EQ(Matrix2x2f(-1,-2,-3,-4), -m1);
+  EXPECT_EQ(Matrix2x2f(2,1,3,1), abs(m2) );
 
   EXPECT_EQ( 2, elem_sum(m1,1)(0,0) );
   EXPECT_EQ( 3, elem_sum(m1,1)(0,1) );

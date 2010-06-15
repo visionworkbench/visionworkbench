@@ -20,11 +20,11 @@
 ///   Explicit expression evaluation via eval()
 ///   Printing of vectors to ostreams
 ///   Equality of vectors with or without an epsilon
-///   Vector negation, addition, subtraction
+///   Vector negation, addition, subtraction, abs
 ///   Scalar multiplication and division
 ///   Elementwise vector addition, subtraction, multiplication, and division
 ///   Elementwise scalar addition, subtraction, multiplication, and division
-///   Vector negation, addition, subtraction of transposed vectors
+///   Vector negation, addition, subtraction, abs of transposed vectors
 ///   Scalar multiplication and division of transposed vectors
 ///   Elementwise comprison operations.
 ///   Norms via norm_1(), norm_2(), norm_2_sqr(), and norm_inf()
@@ -1256,6 +1256,19 @@ namespace math {
     return transpose(-v.child());
   }
 
+  /// Absolute of an image.
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgAbsFunctor>
+  inline abs( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgAbsFunctor>( v.impl() );
+  }
+
+  /// Absolute of a transposed vector
+  template <class VectorT>
+  VectorTranspose<const VectorUnaryFunc<VectorT, ArgAbsFunctor> >
+  inline abs( VectorTranspose<VectorT> const& v ) {
+    return transpose(abs(v.child()));
+  }
 
   /// Elementwise sum of two vectors.
   template <class Vector1T, class Vector2T>
