@@ -77,6 +77,7 @@ int main( int argc, char *argv[] ) {
     // Process HDR stack using Exif tags.
     ImageView<PixelRGB<float> > hdr;
 
+    cout << "Getting Brightness Values" << endl;
     // In the absense of EXIF data or if the user has provided an
     // explicit exposure ratio, we go with that value here.
        vector<double> brightness_values;
@@ -93,6 +94,7 @@ int main( int argc, char *argv[] ) {
     for ( unsigned i=0; i < input_filenames.size(); ++i )
       images[i] = DiskImageView<PixelRGB<float> >(input_filenames[i]);
 
+    cout << "Getting Camera Curves" << endl;
     // Compute the camera curves
     CameraCurveFn curves;
     if ( vm.count("use-curves") != 0 ) 
@@ -100,14 +102,16 @@ int main( int argc, char *argv[] ) {
     else {
       curves = camera_curves(images, brightness_values);
 
+      cout << "Saving Camera Curves" << endl;
       // Write out the curves to disk as a tabulated file
       if ( vm.count("save-curves") != 0 ) {
         write_curves(curve_file, curves);
       }
     }
 
+    TerminalProgressCallback tpc( "tools.hdr_merge", "Processing");
     // Create the HDR images and write the results to the file
-    write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values) );
+    write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values), tpc);
 
   } catch (vw::Exception &e) {
     vw_out() << argv[0] << ": a Vision Workbench error occurred: \n\t"

@@ -83,22 +83,26 @@ int main( int argc, char *argv[] ) {
     // the tane mapping operator, since the tone mapping operator is
     // designed to operate on luminance values (though scale here is not important).
     if ( vm.count("curves-for-raw-image") != 0 ) {
+      cout << "Reading Camera Curves" << endl;
       CameraCurveFn curves = read_curves(curve_file);
       tone_mapped = luminance_image(tone_mapped, curves, 1.0);
     }
-    
+
+    cout << "Applying Drago tone-mapping" << endl;
     // Apply Drago tone-mapping operator.
     tone_mapped = pow(drago_tone_map(tone_mapped, bias), gamma);
-    
+
+    TerminalProgressCallback tpc( "tools.hdr_tonemap", "Processing");
+
     // Write out the result to disk.
     if (bit_depth == 8)
-      write_image(output_filename, channel_cast_rescale<uint8>(clamp(tone_mapped)));    
+      write_image(output_filename, channel_cast_rescale<uint8>(clamp(tone_mapped)), tpc);
     else if (bit_depth == 16)
-      write_image(output_filename, channel_cast_rescale<uint16>(clamp(tone_mapped)));    
+      write_image(output_filename, channel_cast_rescale<uint16>(clamp(tone_mapped)), tpc);
     else if (bit_depth == 32)
-      write_image(output_filename, channel_cast_rescale<float32>(clamp(tone_mapped)));
+      write_image(output_filename, channel_cast_rescale<float32>(clamp(tone_mapped)), tpc);
     else if (bit_depth == 64)
-      write_image(output_filename, tone_mapped);
+      write_image(output_filename, tone_mapped, tpc);
     else {
       vw_out() << "Unknown bit depth specified by user.  Please choose from the following options: [ 8, 16, 32, 64 ]\n";
       exit(1);
