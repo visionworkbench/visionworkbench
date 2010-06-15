@@ -84,7 +84,7 @@ namespace camera {
   static const uint16 EXIF_RelatedImageWidth           = 0x1001;
   static const uint16 EXIF_RelatedImageLength          = 0x1002;
   static const uint16 EXIF_CFARepeatPatternDim         = 0x828D;
-  //  static const uint16 EXIF_CFAPattern                 =  0x828E;
+  static const uint16 EXIF_CFAPattern1                 = 0x828E;
   static const uint16 EXIF_BatteryLevel                = 0x828F;
   static const uint16 EXIF_Copyright                   = 0x8298;
   static const uint16 EXIF_ExposureTime                = 0x829A;
@@ -112,11 +112,17 @@ namespace camera {
   static const uint16 EXIF_LightSource                 = 0x9208;
   static const uint16 EXIF_Flash                       = 0x9209;
   static const uint16 EXIF_FocalLength                 = 0x920A;
+  static const uint16 EXIF_SubjectArea                 = 0x9214;
   static const uint16 EXIF_MakerNote                   = 0x927C;
   static const uint16 EXIF_UserComment                 = 0x9286;
   static const uint16 EXIF_SubSecTime                  = 0x9290;
   static const uint16 EXIF_SubSecTimeOriginal          = 0x9291;
   static const uint16 EXIF_SubSecTimeDigitized         = 0x9292;
+  static const uint16 EXIF_WinXPTitle                  = 0x9C9B; // windows-only - not part of exif standard.
+  static const uint16 EXIF_WinXPComment                = 0x9C9C; // windows-only - not part of exif standard.
+  static const uint16 EXIF_WinXPAuthor                 = 0x9C9D; // windows-only - not part of exif standard.
+  static const uint16 EXIF_WinXPKeywords               = 0x9C9E; // windows-only - not part of exif standard.
+  static const uint16 EXIF_WinXPSubject                = 0x9C9F; // windows-only - not part of exif standard.
   static const uint16 EXIF_FlashPixVersion             = 0xA000;
   static const uint16 EXIF_ColorSpace                  = 0xA001;
   static const uint16 EXIF_PixelXDimension             = 0xA002;
@@ -143,8 +149,9 @@ namespace camera {
   static const uint16 EXIF_GainControl                 = 0xA407;
   static const uint16 EXIF_Contrast                    = 0xA408;
   static const uint16 EXIF_Saturation                  = 0xA409;
-  static const uint16 EXIF_Sharpness                   = 0xA40a;
-  static const uint16 EXIF_SubjectDistanceRange        = 0xA40c;
+  static const uint16 EXIF_Sharpness                   = 0xA40A;
+  static const uint16 EXIF_SubjectDistanceRange        = 0xA40C;
+  static const uint16 EXIF_ImageUniqueId               = 0xA420;
 
   // Module Specific Exceptions
   VW_DEFINE_EXCEPTION(ExifErr, vw::Exception);
