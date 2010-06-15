@@ -294,7 +294,7 @@ Function & Description & Function & Description \\ \hline \hline
 \verb#tgamma# & Gamma function, $\Gamma(x)$ & \verb#lgamma# & Log of Gamma function, $\ln |\Gamma(x)|$ \\ \hline
 \verb#hypot# & Hypotenuse, $\sqrt{x^2+y^2}$ & \verb#copysign# & Sign-copying function \\ \hline
 \verb#round# & Rounding function & \verb#trunc# & Floating-point truncation \\ \hline
-\verb#fdim# & Positive difference, $\max(x-y,0)$ & & \\ \hline
+\verb#fdim# & Positive difference, $\max(x-y,0)$ & \verb#abs# & All-type absolute value  & \\ \hline
 \end{tabular}
 \caption{The Vision Workbench image math functions, as defined in {\tt <vw/Image/ImageMath.h>}.
 The functions in the bottom section are not available under the Windows operating system.}
@@ -470,6 +470,8 @@ Function & Description \\ \hline \hline
 \verb#normalize(vector)# & The normalized form of a vector, i.e. $v/|v|$ \\ \hline
 \verb#dot_prod(vector,vector)# & Vector dot product, i.e. $u\cdot v$ \\ \hline
 \verb#cross_prod(vector,vector)# & Vector cross product, i.e. $u\times v$ \\ \hline
+\verb#abs(vector)# & Absolute value of elements in a vector, i.e. $|v_i|$ \\ \hline
+\verb#max(vector)# & Largest element within a vector \\ \hline
 \end{tabular}
 \caption{The vector math functions defined in {\tt <vw/Math/Vector.h>}.}
 \label{tbl:vector-functions}
@@ -642,6 +644,7 @@ Function & Description \\ \hline \hline
 \verb#nullspace(matrix)# & Matrix nullspace, i.e. a $\Re x$ where  $Mx=0$ \\ \hline
 \verb#rank(matrix)# & Matrix rank \\ \hline
 \verb#nullity(matrix)# & Dimension of nullspace \\ \hline
+\verb#abs(matrix)# & Absolute of a matrix, i.e. $|v_i|$ \\ \hline
 \end{tabular}
 \caption{The matrix math functions defined in {\tt <vw/Math/Matrix.h>}.}
 \label{tbl:matrix-functions}
