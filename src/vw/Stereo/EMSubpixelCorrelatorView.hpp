@@ -775,6 +775,7 @@ namespace vw {
 
 
 
+#if 0
     //image subsampling by two
     static ImageView<float> subsample_img_by_two(ImageView<float> &img)  {
 
@@ -804,6 +805,7 @@ namespace vw {
 
       return outImg;
     }
+#endif
 
     // disparity map down-sampling by two
     static ImageView<PixelMask<Vector2f> >
