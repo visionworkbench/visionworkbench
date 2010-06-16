@@ -105,8 +105,7 @@ int main(int argc, char** argv) {
   std::string interest_operator, descriptor_generator;
   float ip_gain;
   uint32 max_points;
-  int tile_size;
-  int num_threads;
+  int tile_size, num_threads;
   ImageView<double> integral;
 
   const float IDEAL_LOG_THRESHOLD = .03;
@@ -116,23 +115,23 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("num-threads", po::value<int>(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
-    ("tile-size,t", po::value<int>(&tile_size), "Specify the tile size for processing interest points. (Useful when working with large images). VW usually picks 1024 px.")
+    ("num-threads", po::value(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
+    ("tile-size,t", po::value(&tile_size), "Specify the tile size for processing interest points. (Useful when working with large images). VW usually picks 1024 px.")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
-    ("interest-operator", po::value<std::string>(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
-    ("gain,g", po::value<float>(&ip_gain)->default_value(1.0), "Increasing this number will increase that gain at which interest points are detected.")
-    ("max-points", po::value<uint32>(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
+    ("interest-operator", po::value(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
+    ("gain,g", po::value(&ip_gain)->default_value(1.0), "Increasing this number will increase the gain at which interest points are detected.")
+    ("max-points", po::value(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value<std::string>(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
+    ("descriptor-generator", po::value(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-files", po::value<std::vector<std::string> >(&input_file_names));
+    ("input-files", po::value(&input_file_names));
 
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
