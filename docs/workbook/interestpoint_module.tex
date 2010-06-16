@@ -1,6 +1,6 @@
 \chapter{{\tt Interest Point} Module}\label{ch:interestpoint-module}
 
-[{\em Note: Parts of this documentation may no longer applicable... }]
+[{\em Note: Parts of this documentation may be no longer applicable... }]
 $$
 $$
 Interest points are unique point identifiers with in an image. There
@@ -218,7 +218,7 @@ example of operations is below.
 \begin{verbatim}
   std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
   std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-  
+
   Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
   std::vector<int> indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
 \end{verbatim}
@@ -241,10 +241,10 @@ Functor & Description \\ \hline \hline
 \section{Pre-built Tools}
 
 To further help the introduction to the use of interest points,
-Vision Workbench supplies two utility programs for working with interest
-points. {\tt Ipfind} and {\tt Ipmatch} can be found built in
-Vision Workbench's build path and the source code is available in {\tt
-  <vw/tools/> }.
+Vision Workbench supplies three utility programs for working with interest
+points. These utilites can be found with the rest in
+Vision Workbench's build path; their source code is available in {\tt
+  <vw/tools/>}.
 
 \begin{figure}[h]
 \begin{center}
@@ -255,11 +255,32 @@ Vision Workbench's build path and the source code is available in {\tt
 \end{figure}
 
 The above is an example of a result that can be created with {\tt
-  Ipfind} and {\tt Ipmatch}. Here are the commands used to create it.
+  ipfind} and {\tt ipmatch}. The image shows red lines that were drawn
+between matched points. Here are the commands used to create that image..
 
 \begin{verbatim}
   ipfind left.png right.png
   ipmatch left.png right.png -r homography -d
+\end{verbatim}
+
+There is also a utility called {\tt ipalign} which can be used to
+align images using interest points. It works by finding matched points
+and then fitting an affine or homography matrix to its
+observations. The solved matrix is then used to transform the
+secondary images into the perspective of the reference or first image.
+
+\begin{figure}[h]
+\begin{center}
+  \includegraphics[width=6in]{images/aligned_images.jpg}
+\end{center}
+\caption{Example images using {\tt ipalign}. Top row shows the original. Bottom row shows after.}
+\label{fig:align_demo}
+\end{figure}
+
+Here are the commands used to create the {\tt ipalign} example.
+
+\begin{verbatim}
+  ipalign 0.jpg 1.jpg 2.jpg 3.jpg --homography
 \end{verbatim}
 
 \begin{thebibliography}{1}
@@ -267,6 +288,8 @@ The above is an example of a result that can be created with {\tt
 \bibitem{harris88} Harris, Chris, and Mike Stephens, ``A Combined
   Corner and Edge Detector,'' Proc. 4th Alvey Vision Conf., Manchester,
   pp. 147-151, 1988.
+
+\bibitem{jakkula10} Jakkula, Vinayak R., ``Efficient Feature Detection Using OBALoG: Optimized Box Approximation of Laplacian of Gaussian,'' Unpublished master's thesis, Kansas State University, 2010.
 
 \bibitem{lindeberg98} Lindeberg, Tony, ``Feature Detection with Automatic
   Scale Selection,''  Int. J. of Computer Vision, Vol. 30, number 2,
