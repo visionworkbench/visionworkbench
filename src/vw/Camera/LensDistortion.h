@@ -49,7 +49,7 @@ namespace camera {
       LensDistortion() {};
 
       virtual ~LensDistortion() {}
-      virtual Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const = 0;
+      virtual Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const;
       virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
       virtual void write(std::ostream & os) const = 0;
       virtual boost::shared_ptr<LensDistortion> copy() const = 0;
@@ -111,7 +111,7 @@ namespace camera {
     }
 
     //  Location where the given pixel would have appeared if there were no lens distortion.
-    Vector2 distorted_coordinates(const PinholeModel&, Vector2 const& p) const;
+    Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const;
     void write(std::ostream & os) const {
       os << "k1 = " << m_distortion[0] << "\n";
       os << "k2 = " << m_distortion[1] << "\n";
@@ -123,6 +123,62 @@ namespace camera {
 
     void scale( float const& scale ) {
       m_distortion *= scale;
+    }
+  };
+
+  /// Brown Conrady Distortion
+  ///
+  /// Also known as the plumb-bob distortion model as that was how it could be
+  /// solved for. This is used for 'old' camera models.
+  ///
+  /// References:
+  /// Decentering Distortion of Lenses - D.C. Brown,
+  ///   Photometric Engineering, pages 444-462, Vol. 32, No. 3, 1966
+  /// Close-Range Camera Calibration - D.C. Brown,
+  ///   Photogrammetric Engineering, pages 855-866, Vol. 37, No. 8, 1971
+  class BrownConradyDistortion : public LensDistortion {
+    Vector2 m_principal_point;
+    Vector3 m_radial_distortion;
+    Vector2 m_centering_distortion;
+    double m_centering_angle;
+  public:
+    BrownConradyDistortion( Vector<double> const& params ) {
+      VW_ASSERT( params.size() == 8,
+                 ArgumentErr() << "BrownConradyDistortion: requires constructor input of size 8.");
+      m_principal_point = subvector(params,0,2);
+      m_radial_distortion = subvector(params,2,3);
+      m_centering_distortion = subvector(params,5,2);
+      m_centering_angle = params[7];
+    }
+    BrownConradyDistortion( Vector<double> const& principal,
+                            Vector<double> const& radial,
+                            Vector<double> const& centering,
+                            double const& angle ) :
+    m_principal_point(principal), m_radial_distortion(radial),
+      m_centering_distortion(centering), m_centering_angle( angle ) {}
+    boost::shared_ptr<LensDistortion> copy() const {
+      return boost::shared_ptr<BrownConradyDistortion>(new BrownConradyDistortion(*this));
+    }
+
+    Vector<double> distortion_parameters() const {
+      Vector<double,8> output;
+      subvector(output,0,2) = m_principal_point;
+      subvector(output,2,3) = m_radial_distortion;
+      subvector(output,5,2) = m_centering_distortion;
+      output[7] = m_centering_angle;
+      return output;
+    }
+
+    Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
+
+    void write(std::ostream& os) const {
+      os << distortion_parameters() << "\n";
+    }
+
+    std::string name() const { return "BROWNCONRADY"; }
+
+    void scale( float const& /*scale*/ ) {
+      vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
     }
   };
 

@@ -11,39 +11,61 @@
 
 using namespace vw;
 
-namespace {
-  // Optimization functor for computing the undistorted coordinates
-  // using levenberg marquardt.
-  struct UndistortOptimizeFunctor : public vw::math::LeastSquaresModelBase<UndistortOptimizeFunctor> {
-    typedef Vector2 result_type;
-    typedef Vector2 domain_type;
-    typedef Matrix<double> jacobian_type;
+// Special LMA Models to figure out foward and backward ---------
 
-    const camera::PinholeModel& m_cam;
-    const camera::LensDistortion &m_distort;
-    UndistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
+// Optimization functor for computing the undistorted coordinates
+// using levenberg marquardt.
+struct UndistortOptimizeFunctor : public math::LeastSquaresModelBase<UndistortOptimizeFunctor> {
+  typedef Vector2 result_type;
+  typedef Vector2 domain_type;
+  typedef Matrix<double> jacobian_type;
 
-    inline result_type operator()( domain_type const& x ) const {
-      return m_distort.distorted_coordinates(m_cam, x);
-    }
-  };
-}
+  const camera::PinholeModel& m_cam;
+  const camera::LensDistortion &m_distort;
+  UndistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
 
-std::ostream& vw::camera::operator<<(std::ostream & os,
-                                     const camera::LensDistortion& ld) {
-  ld.write(os);
-  return os;
-}
+  inline result_type operator()( domain_type const& x ) const {
+    return m_distort.distorted_coordinates(m_cam, x);
+  }
+};
+
+struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptimizeFunctor> {
+  typedef Vector2 result_type;
+  typedef Vector2 domain_type;
+  typedef Matrix<double> jacobian_type;
+
+  const camera::PinholeModel& m_cam;
+  const camera::LensDistortion &m_distort;
+  DistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
+  inline result_type operator()( domain_type const& x ) const {
+    Vector2 result = m_distort.undistorted_coordinates(m_cam, x);
+    return result;
+  }
+};
+
+// Backup implemenations for Lens Distortion -------------------
 
 Vector2
 vw::camera::LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
   Vector2 solution =
-    vw::math::levenberg_marquardt( model, v, v, status, 0.1, 0.1 ); // tol = 0.1 pixels
-  VW_DEBUG_ASSERT( status != vw::math::optimization::eConvergedRelTolerance, PixelToRayErr() << "undistorted_coordinates: failed to converge." );
+    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6 );
+  VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "undistorted_coordinates: failed to converge." );
   return solution;
 }
+
+vw::Vector2
+vw::camera::LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+  DistortOptimizeFunctor model(cam, *this);
+  int status;
+  Vector2 solution =
+    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6 );
+  VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "distorted_coordinates: failed to converge." );
+  return solution;
+}
+
+// Specific Implementations -------------------------------------
 
 Vector2
 vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
@@ -82,3 +104,23 @@ vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel
 
   return result;
 }
+
+Vector2
+vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& /*cam*/, Vector2 const& p) const {
+  Vector2 intermediate = p - m_principal_point;
+  double r2 = norm_2( intermediate );
+  double radial = 1 + m_radial_distortion[0]*r2 +
+    m_radial_distortion[1]*r2*r2 + m_radial_distortion[2]*r2*r2*r2;
+  double tangental = m_centering_distortion[0]*r2 + m_centering_distortion[1]*r2*r2;
+  intermediate *= radial;
+  intermediate[0] -= tangental*sin(m_centering_angle);
+  intermediate[1] += tangental*cos(m_centering_angle);
+  return intermediate;
+}
+
+std::ostream& vw::camera::operator<<(std::ostream & os,
+                                     const camera::LensDistortion& ld) {
+  ld.write(os);
+  return os;
+}
+

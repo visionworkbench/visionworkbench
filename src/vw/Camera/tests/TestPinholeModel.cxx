@@ -241,3 +241,28 @@ TEST( PinholeModel, ProjectiveMatrix ) {
     EXPECT_NEAR( s_cv/s_fu, c_cv/c_fu, 1e-2 );
   }
 }
+
+TEST( PinholeModel, BrownConradyDistortion ) {
+  // First set control camera
+  Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+
+  // Create an imaginary 1000x1000 pixel imager
+  BrownConradyDistortion distortion( Vector2(-0.006,-0.002),
+                                     Vector3(-.13361854e-5,
+                                             0.52261757e-9,
+                                             -.50728336e-13),
+                                     Vector2(-.54958195e-6,
+                                             -.46089420e-10),
+                                     2.9659070 );
+  PinholeModel control_pinhole( Vector3(0,4,-10), pose, 76.054, 76.054,
+                                65, 65, distortion );
+  for ( float i = 0; i < 100; i+=4 ) {
+    for ( float j = 0; j < 100; j+=4 ) {
+      Vector2 starting_pixel( i+7, j+7 );
+      Vector3 point = control_pinhole.pixel_to_vector( starting_pixel );
+      point = 50*point + control_pinhole.camera_center();
+      Vector2 loop = control_pinhole.point_to_pixel( point );
+      EXPECT_VECTOR_NEAR(loop, starting_pixel, 2e-6 );
+    }
+  }
+}
