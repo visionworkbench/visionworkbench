@@ -268,6 +268,8 @@ TEST( PinholeModel, BrownConradyDistortion ) {
   }
 }
 
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+
 // WriteRead TEST
 class WriteReadTest : public ::testing::Test {
 protected:
@@ -327,3 +329,5 @@ TEST_F( WriteReadTest, Loop ) {
     TestReadBack( file );
   }
 }
+
+#endif

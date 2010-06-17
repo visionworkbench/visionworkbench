@@ -11,11 +11,15 @@
 
 if MAKE_MODULE_CAMERA
 
-protocol_headers = TsaiFile.pb.h
-protocol_sources = TsaiFile.pb.cc
+protocol_headers =
+protocol_sources =
 
+if HAVE_PKG_PROTOBUF
+protocol_headers += TsaiFile.pb.h
+protocol_sources += TsaiFile.pb.cc
 BUILT_SOURCES          = $(protocol_sources)
 nodist_include_HEADERS = $(protocol_headers)
+endif
 
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h       \
@@ -49,5 +53,7 @@ CLEANFILES = $(protocol_headers) $(protocol_sources)
 includedir = $(prefix)/include/vw/Camera
 
 include $(top_srcdir)/config/rules.mak
+if HAVE_PKG_PROTOBUF
 include $(top_srcdir)/thirdparty/protobuf.mak
+endif
 

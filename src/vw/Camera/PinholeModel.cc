@@ -15,12 +15,14 @@
 // For std::setprecision
 #include <iomanip>
 
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
 #include <vw/Camera/TsaiFile.pb.h>
+#endif
 
 // Reads in a file containing parameters of a pinhole model with
 // a tsai lens distortion model.
 void vw::camera::PinholeModel::read_file(std::string const& filename) {
-
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   std::fstream input( filename.c_str(), std::ios::in | std::ios::binary );
   if ( !input )
     vw_throw( IOErr() << "Pinhole::read_file: Could not open " << filename << "\n" );
@@ -66,7 +68,7 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   this->rebuild_camera_matrix();
 
   Vector<double> distortion_params( file.distortion_vector_size() );
-  for ( unsigned i = 0; i < file.distortion_vector_size(); i++ )
+  for ( int i = 0; i < file.distortion_vector_size(); i++ )
     distortion_params[i] = file.distortion_vector(i);
   if ( file.distortion_name() == "NULL" ) {
     VW_ASSERT( distortion_params.size() == 0,
@@ -81,11 +83,17 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
                IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
     m_distortion.reset( new BrownConradyDistortion(distortion_params));
   }
+#else
+  // If you hit this point, you need to install Google Protobuffers to
+  // be in order to write.
+  vw_throw( IOErr() << "Pinhole::read_file: Camera IO not supported without Google Protobuffers" );
+#endif
 }
 
 
-//   Write parameters of an exiting PinholeModel into a .tsai file for later use.
+// Write parameters of an exiting PinholeModel into a .tsai file for later use.
 void vw::camera::PinholeModel::write_file(std::string const& filename) const {
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   TsaiFile file;
   file.add_focal_length( m_fu );
   file.add_focal_length( m_fv );
@@ -114,6 +122,11 @@ void vw::camera::PinholeModel::write_file(std::string const& filename) const {
     vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
   file.SerializeToOstream( &output );
   output.close();
+#else
+  // If you hit this point, you need to install Google Protobuffers to
+  // be in order to write.
+  vw_throw( IOErr() << "Pinhole::write_file: Camera IO not supported without Google Protobuffers" );
+#endif
 }
 
 vw::Vector2 vw::camera::PinholeModel::point_to_pixel(vw::Vector3 const& point) const {
