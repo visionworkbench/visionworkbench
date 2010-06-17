@@ -439,7 +439,7 @@ for i in $PKG_VW_LIBS; do
 done
 PKG_VW_LIBS="$PKG_VW_LIBS_TEMP"
 
-AX_MODULE(CAMERA,           [src/vw/Camera],           [libvwCamera.la],           yes, [VW],        [],                 [BOOST_IOSTREAMS])
+AX_MODULE(CAMERA,           [src/vw/Camera],           [libvwCamera.la],           yes, [VW],        [PROTOBUF],         [BOOST_IOSTREAMS])
 AX_MODULE(MOSAIC,           [src/vw/Mosaic],           [libvwMosaic.la],           yes, [VW])
 AX_MODULE(INTERESTPOINT,    [src/vw/InterestPoint],    [libvwInterestPoint.la],    yes, [VW])
 AX_MODULE(CARTOGRAPHY,      [src/vw/Cartography],      [libvwCartography.la],      yes, [VW],        [PROJ4],            [GDAL])

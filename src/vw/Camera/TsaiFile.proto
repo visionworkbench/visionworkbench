@@ -1,0 +1,20 @@
+package vw.camera;
+
+message TsaiFile {
+  optional string name = 1; // Optional Description
+
+  // Intrinsic Properties of the camera
+  repeated double focal_length = 2 [packed=true];
+  repeated double center_point = 3 [packed=true];
+  repeated double u_direction =  4 [packed=true];
+  repeated double v_direction =  5 [packed=true];
+  repeated double w_direction =  6 [packed=true];
+
+  // Extrinsic Properties
+  repeated double camera_center = 7 [packed=true];
+  repeated double camera_rotation = 8 [packed=true];
+
+  // Distortion
+  optional string distortion_name = 9;
+  repeated double distortion_vector = 10 [packed=true];
+}

@@ -53,6 +53,7 @@ namespace camera {
       virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
       virtual void write(std::ostream & os) const = 0;
       virtual boost::shared_ptr<LensDistortion> copy() const = 0;
+      virtual Vector<double> distortion_parameters() const { return Vector<double>(); }
 
       virtual std::string name() const = 0;
       virtual void scale(float const& scale) = 0; // Used to scale distortion w/ image size
@@ -105,7 +106,7 @@ namespace camera {
     Vector4 m_distortion;
   public:
     TsaiLensDistortion(Vector4 params) : m_distortion(params) {}
-    Vector4 distortion_parameters() const { return m_distortion; }
+    Vector<double> distortion_parameters() const { return m_distortion; }
     boost::shared_ptr<LensDistortion> copy() const {
       return boost::shared_ptr<TsaiLensDistortion>(new TsaiLensDistortion(*this));
     }

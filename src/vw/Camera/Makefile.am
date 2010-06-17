@@ -11,6 +11,12 @@
 
 if MAKE_MODULE_CAMERA
 
+protocol_headers = TsaiFile.pb.h
+protocol_sources = TsaiFile.pb.cc
+
+BUILT_SOURCES          = $(protocol_sources)
+nodist_include_HEADERS = $(protocol_headers)
+
 if HAVE_PKG_LAPACK
 lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h       \
               OrbitingPushbroomModel.h PinholeModelCalibrate.h          \
@@ -22,7 +28,7 @@ include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h               \
              PinholeModel.h $(lsm_headers)
 
 libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
-             Exif.cc ExifData.cc LensDistortion.cc
+             Exif.cc ExifData.cc LensDistortion.cc $(protocol_sources)
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
@@ -38,8 +44,10 @@ AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ -version-info @LIBTOOL_VERSION@
 
 SUBDIRS = . tests
+CLEANFILES = $(protocol_headers) $(protocol_sources)
 
 includedir = $(prefix)/include/vw/Camera
 
 include $(top_srcdir)/config/rules.mak
+include $(top_srcdir)/thirdparty/protobuf.mak
 

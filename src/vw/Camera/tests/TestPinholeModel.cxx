@@ -23,6 +23,7 @@
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::test;
 
 TEST( PinholeModel, StandardConstruct ) {
   Matrix<double,3,3> pose;
@@ -264,5 +265,65 @@ TEST( PinholeModel, BrownConradyDistortion ) {
       Vector2 loop = control_pinhole.point_to_pixel( point );
       EXPECT_VECTOR_NEAR(loop, starting_pixel, 2e-6 );
     }
+  }
+}
+
+// WriteRead TEST
+class WriteReadTest : public ::testing::Test {
+protected:
+  WriteReadTest() {}
+
+  virtual void SetUp() {
+    // First set control camera
+    Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+    control_pinhole = PinholeModel( Vector3(0,4,-10),
+                                    pose, 600, 700,
+                                    511, 533,
+                                    NullLensDistortion() );
+     control_R =
+       control_pinhole.camera_pose().rotation_matrix();
+  }
+
+  void TestReadBack( std::string const& file ) {
+    control_pinhole.write_file( file );
+    PinholeModel read_back;
+    read_back.read_file( file );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.camera_center(),
+                             control_pinhole.camera_center() );
+    Matrix<double> read_back_R =
+      read_back.camera_pose().rotation_matrix();
+    EXPECT_MATRIX_DOUBLE_EQ( read_back_R, control_R );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_u_direction(),
+                             control_pinhole.coordinate_frame_u_direction() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_v_direction(),
+                             control_pinhole.coordinate_frame_v_direction() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_w_direction(),
+                             control_pinhole.coordinate_frame_w_direction() );
+    EXPECT_STREQ( read_back.lens_distortion()->name().c_str(),
+                  control_pinhole.lens_distortion()->name().c_str() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.lens_distortion()->distortion_parameters(),
+                             control_pinhole.lens_distortion()->distortion_parameters() );
+  }
+
+  PinholeModel control_pinhole;
+  Matrix<double> control_R;
+};
+
+TEST_F( WriteReadTest, Loop ) {
+  { // NULL Distortion
+    UnlinkName file("NullCam.tsai");
+    TestReadBack( file );
+  }
+
+  control_pinhole.set_lens_distortion( TsaiLensDistortion( Vector4(-1,2,.3,.4) ) );
+  { // TSAI Distortion
+    UnlinkName file("TsaiCam.tsai");
+    TestReadBack( file );
+  }
+
+  control_pinhole.set_lens_distortion( BrownConradyDistortion( Vector2(-1,3), Vector3(.05,1.052e-3,9.72564e-12), Vector2(-3.23415e-5,7.5271e-6), 2.345 ) );
+  { // BROWN CONRADY Distortion
+    UnlinkName file("BrownConrady.tsai");
+    TestReadBack( file );
   }
 }
