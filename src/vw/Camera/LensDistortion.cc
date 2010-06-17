@@ -9,16 +9,19 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/LevenbergMarquardt.h>
 
-namespace {
-  // Optimization functor for computing the undistorted coordinates using levenberg marquardt.
-  struct UndistortOptimizeFunctor : public vw::math::LeastSquaresModelBase<UndistortOptimizeFunctor> {
-    typedef vw::Vector2 result_type;
-    typedef vw::Vector2 domain_type;
-    typedef vw::Matrix<double> jacobian_type;
+using namespace vw;
 
-    const vw::camera::PinholeModel& m_cam;
-    const vw::camera::LensDistortion &m_distort;
-    UndistortOptimizeFunctor(const vw::camera::PinholeModel& cam, const vw::camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
+namespace {
+  // Optimization functor for computing the undistorted coordinates
+  // using levenberg marquardt.
+  struct UndistortOptimizeFunctor : public vw::math::LeastSquaresModelBase<UndistortOptimizeFunctor> {
+    typedef Vector2 result_type;
+    typedef Vector2 domain_type;
+    typedef Matrix<double> jacobian_type;
+
+    const camera::PinholeModel& m_cam;
+    const camera::LensDistortion &m_distort;
+    UndistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
 
     inline result_type operator()( domain_type const& x ) const {
       return m_distort.distorted_coordinates(m_cam, x);
@@ -26,20 +29,24 @@ namespace {
   };
 }
 
-std::ostream & vw::camera::operator<<(std::ostream & os, const vw::camera::LensDistortion& ld) {
+std::ostream& vw::camera::operator<<(std::ostream & os,
+                                     const camera::LensDistortion& ld) {
   ld.write(os);
   return os;
 }
 
-vw::Vector2 vw::camera::LensDistortion::undistorted_coordinates(const vw::camera::PinholeModel& cam, vw::Vector2 const& v) const {
+Vector2
+vw::camera::LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
-  vw::Vector2 solution = vw::math::levenberg_marquardt( model, v, v, status, 0.1, 0.1 ); // tol = 0.1 pixels
+  Vector2 solution =
+    vw::math::levenberg_marquardt( model, v, v, status, 0.1, 0.1 ); // tol = 0.1 pixels
   VW_DEBUG_ASSERT( status != vw::math::optimization::eConvergedRelTolerance, PixelToRayErr() << "undistorted_coordinates: failed to converge." );
   return solution;
 }
 
-vw::Vector2 vw::camera::TsaiLensDistortion::distorted_coordinates(const vw::camera::PinholeModel& cam, vw::Vector2 const& p) const {
+Vector2
+vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
 
   double fu, fv, cu, cv;
   cam.intrinsic_parameters(fu, fv, cu, cv);
@@ -67,7 +74,7 @@ vw::Vector2 vw::camera::TsaiLensDistortion::distorted_coordinates(const vw::came
   double by = b + r2 * y1;
 
   // Prevent divide by zero at the origin or along the x and y center line
-  vw::Vector2 result(p[0] + bx * du, p[1] + by * dv);
+  Vector2 result(p[0] + bx * du, p[1] + by * dv);
   if (p[0] == cu)
     result[0] =  p[0];
   if (p[1] == cv)
