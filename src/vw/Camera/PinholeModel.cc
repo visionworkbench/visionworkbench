@@ -46,42 +46,31 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
   VW_ASSERT( file.camera_rotation_size() == 9,
              IOErr() << "Pinhole::read_file: Unexpected size of rotation matrix." );
 
-  for ( char i = 0; i < 3; i++ ) {
-    m_u_direction[i] = file.u_direction(i);
-    m_v_direction[i] = file.v_direction(i);
-    m_w_direction[i] = file.w_direction(i);
-    m_camera_center[i] = file.camera_center(i);
-  }
+  typedef VectorProxy<double,3> Vector3P;
+  m_u_direction = Vector3P(file.mutable_u_direction()->mutable_data());
+  m_v_direction = Vector3P(file.mutable_v_direction()->mutable_data());
+  m_w_direction = Vector3P(file.mutable_w_direction()->mutable_data());
+  m_camera_center = Vector3P(file.mutable_camera_center()->mutable_data());
   m_fu = file.focal_length(0);
   m_fv = file.focal_length(1);
   m_cu = file.center_point(0);
   m_cv = file.center_point(1);
-
-  {
-    Matrix<double>::iterator iter = m_rotation.begin();
-    for ( char i = 0; i < 9; i++ ) {
-      *iter = file.camera_rotation(i);
-      iter++;
-    }
-  }
+  m_rotation = MatrixProxy<double,3,3>(file.mutable_camera_rotation()->mutable_data());
 
   this->rebuild_camera_matrix();
 
-  Vector<double> distortion_params( file.distortion_vector_size() );
-  for ( int i = 0; i < file.distortion_vector_size(); i++ )
-    distortion_params[i] = file.distortion_vector(i);
   if ( file.distortion_name() == "NULL" ) {
-    VW_ASSERT( distortion_params.size() == 0,
+    VW_ASSERT( file.distortion_vector_size() == 0,
                IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
     m_distortion.reset( new NullLensDistortion());
   } else if ( file.distortion_name() == "TSAI" ) {
-    VW_ASSERT( distortion_params.size() == 4,
+    VW_ASSERT( file.distortion_vector_size() == 4,
                IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new TsaiLensDistortion(distortion_params));
+    m_distortion.reset( new TsaiLensDistortion(VectorProxy<double,4>(file.mutable_distortion_vector()->mutable_data())));
   } else if ( file.distortion_name() == "BROWNCONRADY" ) {
-    VW_ASSERT( distortion_params.size() == 8,
+    VW_ASSERT( file.distortion_vector_size() == 8,
                IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new BrownConradyDistortion(distortion_params));
+    m_distortion.reset( new BrownConradyDistortion(VectorProxy<double,8>(file.mutable_distortion_vector()->mutable_data())));
   }
 #else
   // If you hit this point, you need to install Google Protobuffers to
