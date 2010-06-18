@@ -256,7 +256,7 @@ TEST( PinholeModel, BrownConradyDistortion ) {
                                              -.46089420e-10),
                                      2.9659070 );
   PinholeModel control_pinhole( Vector3(0,4,-10), pose, 76.054, 76.054,
-                                65, 65, distortion );
+                                57, 57, distortion );
   for ( float i = 0; i < 100; i+=4 ) {
     for ( float j = 0; j < 100; j+=4 ) {
       Vector2 starting_pixel( i+7, j+7 );

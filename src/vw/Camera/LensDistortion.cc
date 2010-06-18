@@ -106,16 +106,19 @@ vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel
 }
 
 Vector2
-vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& /*cam*/, Vector2 const& p) const {
-  Vector2 intermediate = p - m_principal_point;
-  double r2 = norm_2( intermediate );
+vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+  double fu, fv, cu, cv;
+  cam.intrinsic_parameters(fu, fv, cu, cv);
+  Vector2 offset(cu,cv);
+  Vector2 intermediate = p - m_principal_point - offset;
+  double r2 = norm_2_sqr(intermediate);
   double radial = 1 + m_radial_distortion[0]*r2 +
     m_radial_distortion[1]*r2*r2 + m_radial_distortion[2]*r2*r2*r2;
   double tangental = m_centering_distortion[0]*r2 + m_centering_distortion[1]*r2*r2;
   intermediate *= radial;
   intermediate[0] -= tangental*sin(m_centering_angle);
   intermediate[1] += tangental*cos(m_centering_angle);
-  return intermediate;
+  return intermediate+offset;
 }
 
 std::ostream& vw::camera::operator<<(std::ostream & os,
