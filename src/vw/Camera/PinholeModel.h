@@ -143,12 +143,9 @@ namespace camera {
     /// illustration in the VisionWorkbook.
     ///
 
-    PinholeModel(Vector3 camera_center,
-                 Matrix<double,3,3> rotation,
-                 double f_u, double f_v,
-                 double c_u, double c_v,
-                 Vector3 u_direction,
-                 Vector3 v_direction,
+    PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
+                 double f_u, double f_v, double c_u, double c_v,
+                 Vector3 u_direction, Vector3 v_direction,
                  Vector3 w_direction,
                  LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
                                                            m_camera_center(camera_center),
@@ -186,10 +183,8 @@ namespace camera {
     /// (0,0) is the upper left hand corner of the image and the v
     /// coordinates increase as you move down the image.
     ///
-    PinholeModel(Vector3 camera_center,
-                 Matrix<double,3,3> rotation,
-                 double f_u, double f_v,
-                 double c_u, double c_v,
+    PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
+                 double f_u, double f_v, double c_u, double c_v,
                  LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
                                                            m_camera_center(camera_center),
                                                            m_rotation(rotation),
@@ -202,8 +197,7 @@ namespace camera {
 
 
     /// Construct a basic pinhole model with no lens distortion
-    PinholeModel(Vector3 camera_center,
-                 Matrix<double,3,3> rotation,
+    PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v,
                  double c_u, double c_v) : m_distortion(DistortPtr(new NullLensDistortion)),
                                            m_camera_center(camera_center),
@@ -226,12 +220,9 @@ namespace camera {
     /// By convention, filename should end with ".tsai"
     void write_file(std::string const& filename) const;
 
-
-
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
-
 
     //  Computes the image of the point 'point' in 3D space on the
     //  image plane.  Returns a pixel location (col, row) where the
@@ -289,14 +280,18 @@ namespace camera {
 
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units
-    void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const {
-      f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
-    }
+    void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const VW_DEPRECATED;
 
-    void set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v) {
-      m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
-      rebuild_camera_matrix();
-    }
+    void set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v) VW_DEPRECATED;
+
+    Vector2 focal_length(void) const { return Vector2(m_fu,m_fv); }
+    void set_focal_length(Vector2i f, bool rebuild=true ) {
+      m_fu = f[0]; m_fv = f[1];
+      if (rebuild) rebuild_camera_matrix(); }
+    Vector2 point_offset(void) const { return Vector2(m_cu,m_cv); }
+    void set_point_offset(Vector2i c, bool rebuild=true ) {
+      m_cu = c[0]; m_cv = c[1];
+      if (rebuild) rebuild_camera_matrix(); }
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables

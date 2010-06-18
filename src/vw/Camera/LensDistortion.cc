@@ -70,46 +70,34 @@ vw::camera::LensDistortion::distorted_coordinates(const camera::PinholeModel& ca
 Vector2
 vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
 
-  double fu, fv, cu, cv;
-  cam.intrinsic_parameters(fu, fv, cu, cv);
+  Vector2 focal = cam.focal_length();
+  Vector2 offset = cam.point_offset();
 
-  double du = p[0] - cu;
-  double dv = p[1] - cv;
-
-  if (fu < 1e-300 || fv < 1e-300)
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
     return Vector2(HUGE_VAL, HUGE_VAL);
 
-  double x = du / fu;
-  double y = dv / fv;
+  Vector2 p_0 = elem_quot(p - offset, focal); // represents x and y
+  double r2 = norm_2_sqr( p_0 );
+  Vector2 distortion( m_distortion[3], m_distortion[2] );
+  Vector2 p_1 = elem_quot(distortion, p_0);
+  Vector2 p_3 = 2*elem_prod(distortion,p_0);
 
-  double x1 = m_distortion[3] / x;
-  double y1 = m_distortion[2] / y;
-
-  double r2 = x * x + y * y;
-
-  double x3 = 2.0 * m_distortion[3] * x;
-  double y3 = 2.0 * m_distortion[2] * y;
-
-  double b = r2 * (m_distortion[0] + r2 * m_distortion[1]) + x3 + y3;
-
-  double bx = b + r2 * x1;
-  double by = b + r2 * y1;
+  Vector2 b =  elem_prod(r2,p_1);
+  b = elem_sum(b,r2*(m_distortion[0] + r2 * m_distortion[1]) + sum(p_3));
 
   // Prevent divide by zero at the origin or along the x and y center line
-  Vector2 result(p[0] + bx * du, p[1] + by * dv);
-  if (p[0] == cu)
-    result[0] =  p[0];
-  if (p[1] == cv)
-    result[1] =  p[1];
+  Vector2 result = p + elem_prod(b,p - offset);
+  if (p[0] == offset[0])
+    result[0] = p[0];
+  if (p[1] == offset[1])
+    result[1] = p[1];
 
   return result;
 }
 
 Vector2
 vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
-  double fu, fv, cu, cv;
-  cam.intrinsic_parameters(fu, fv, cu, cv);
-  Vector2 offset(cu,cv);
+  Vector2 offset = cam.point_offset();
   Vector2 intermediate = p - m_principal_point - offset;
   double r2 = norm_2_sqr(intermediate);
   double radial = 1 + m_radial_distortion[0]*r2 +

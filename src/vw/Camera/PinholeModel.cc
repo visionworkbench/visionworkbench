@@ -146,6 +146,16 @@ vw::Vector3 vw::camera::PinholeModel::pixel_to_vector (vw::Vector2 const& pix) c
   return normalize( m_inv_camera_transform * p);
 }
 
+void vw::camera::PinholeModel::intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const {
+  f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
+}
+
+void vw::camera::PinholeModel::set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v) {
+  m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
+  rebuild_camera_matrix();
+}
+
+
 void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   // Solving for camera center
@@ -248,17 +258,15 @@ void vw::camera::PinholeModel::rebuild_camera_matrix() {
 // scale_camera
 //  Used to modify camera in the event to user resizes the image
 vw::camera::PinholeModel vw::camera::scale_camera(vw::camera::PinholeModel const& camera_model, float const& scale) {
-  double fu, fv, cu, cv;
-  camera_model.intrinsic_parameters(fu, fv, cu, cv);
-  fu *= scale;
-  fv *= scale;
-  cu *= scale;
-  cv *= scale;
+  Vector2 focal = camera_model.focal_length();
+  Vector2 offset = camera_model.point_offset();
+  focal *= scale;
+  offset *= scale;
   boost::shared_ptr<LensDistortion> lens = camera_model.lens_distortion()->copy();
   lens->scale( scale );
   return vw::camera::PinholeModel( camera_model.camera_center(),
                                    camera_model.camera_pose().rotation_matrix(),
-                                   fu, fv, cu, cv,
+                                   focal[0], focal[1], offset[0], offset[1],
                                    camera_model.coordinate_frame_u_direction(),
                                    camera_model.coordinate_frame_v_direction(),
                                    camera_model.coordinate_frame_w_direction(),
@@ -274,12 +282,12 @@ vw::camera::PinholeModel vw::camera::scale_camera(vw::camera::PinholeModel const
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
 vw::camera::PinholeModel vw::camera::linearize_camera(vw::camera::PinholeModel const& camera_model) {
-  double fu, fv, cu, cv;
-  camera_model.intrinsic_parameters(fu, fv, cu, cv);
+  Vector2 focal = camera_model.focal_length();
+  Vector2 offset = camera_model.point_offset();
   vw::camera::NullLensDistortion distortion;
   return vw::camera::PinholeModel(camera_model.camera_center(),
       camera_model.camera_pose().rotation_matrix(),
-      fu, fv, cu, cv,
+      focal[0], focal[1], offset[0], offset[1],
       camera_model.coordinate_frame_u_direction(),
       camera_model.coordinate_frame_v_direction(),
       camera_model.coordinate_frame_w_direction(),
@@ -287,15 +295,12 @@ vw::camera::PinholeModel vw::camera::linearize_camera(vw::camera::PinholeModel c
 }
 
 std::ostream& vw::camera::operator<<(std::ostream& str, vw::camera::PinholeModel const& model) {
-  double fu, fv, cu, cv;
-  model.intrinsic_parameters(fu, fv, cu, cv);
-
   str << "Pinhole camera: \n";
   str << "\tCamera Center: " << model.camera_center() << "\n";
   str << "\tRotation Matrix: " << model.camera_pose() << "\n";
   str << "\tIntrinsics:\n";
-  str << "\t  f_u: " << fu << "    f_v: " << fv << "\n";
-  str << "\t  c_u: " << cu << "    c_v: " << cv << "\n";
+  str << "\t  focal: " << model.focal_length() << "\n";
+  str << "\t  offset: " << model.point_offset() << "\n";
   str << model.lens_distortion() << "\n";
 
   return str;
