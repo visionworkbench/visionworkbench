@@ -271,9 +271,14 @@ namespace ba {
 
           // Apply robust cost function weighting and populate error
           // vector
-          Vector2 unweighted_error = cmeasure->dominant() -
-            m_model(i, camera_idx,m_model.A_parameters(camera_idx),
-                    m_model.B_parameters(i));
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = cmeasure->dominant() -
+              m_model(i, camera_idx,m_model.A_parameters(camera_idx),
+                      m_model.B_parameters(i));
+          } catch ( camera::PixelToRayErr &e ) {
+            vw_out(WarningMessage,"ba") << "Unable to calculate starting error for point";
+          }
           double mag = norm_2(unweighted_error);
           double weight = sqrt(m_robust_cost_func(mag))/mag;
           subvector(epsilon,2*idx,2) = unweighted_error * weight;

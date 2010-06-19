@@ -21,6 +21,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <vw/Core/Log.h>
+#include <vw/Camera/CameraModel.h>
 
 // Boost
 #include <boost/smart_ptr.hpp>
@@ -54,11 +55,18 @@ namespace ba {
     inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
                                                          Vector<double, CameraParamsN> const& a_j,
                                                          Vector<double, PointParamsN> const& b_i ) {
-      // Get nominal function value
-      Vector2 h0 = impl()(i,j,a_j,b_i);
 
       // Jacobian is #outputs x #params
       Matrix<double, 2, CameraParamsN> J;
+
+      Vector2 h0;
+      try {
+        // Get nominal function value
+        h0 = impl()(i,j,a_j,b_i);
+      } catch ( camera::PixelToRayErr &e ) {
+        // Unable to project this point into the camera, so abort!
+        return J;
+      }
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
@@ -71,8 +79,12 @@ namespace ba {
 
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
-        Vector2 hi = impl()(i,j,a_j_prime, b_i);
-        select_col(J,n) = (hi-h0)/epsilon;
+        try {
+          Vector2 hi = impl()(i,j,a_j_prime, b_i);
+          select_col(J,n) = (hi-h0)/epsilon;
+        } catch ( camera::PixelToRayErr &e ) {
+          select_col(J,n) = Vector2();
+        }
       }
 
       return J;
@@ -83,11 +95,18 @@ namespace ba {
     inline Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
                                                         Vector<double, CameraParamsN> const& a_j,
                                                         Vector<double, PointParamsN> const& b_i ) {
-      // Get nominal function value
-      Vector2 h0 = impl()(i,j,a_j, b_i);
 
       // Jacobian is #outputs x #params
       Matrix<double, 2, PointParamsN> J;
+
+      Vector2 h0;
+      try {
+        // Get nominal function value
+        h0 = impl()(i,j,a_j, b_i);
+      } catch ( camera::PixelToRayErr &e ) {
+        // Unable to project this point into the camera so abort!
+        return J;
+      }
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
@@ -100,8 +119,12 @@ namespace ba {
 
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
-        Vector2 hi = impl()(i,j,a_j,b_i_prime);
-        select_col(J,n) = (hi-h0)/epsilon;
+        try {
+          Vector2 hi = impl()(i,j,a_j,b_i_prime);
+          select_col(J,n) = (hi-h0)/epsilon;
+        } catch ( camera::PixelToRayErr &e ) {
+          select_col(J,n) = Vector2();
+        }
       }
       return J;
     }
