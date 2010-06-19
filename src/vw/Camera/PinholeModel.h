@@ -94,6 +94,12 @@ namespace camera {
     Vector3 m_v_direction;
     Vector3 m_w_direction;
 
+    // Pixel Pitch, if the above units were not in pixels this should
+    // convert it to that. For example, if distortion and focal length
+    // have been described in mm. Pixel pitch would then be described
+    // in mm/px.
+    double m_pixel_pitch;
+
     // Cached values for pixel_to_vector
     Matrix<double,3,3> m_inv_camera_transform;
 
@@ -108,7 +114,7 @@ namespace camera {
                      m_fu(1), m_fv(1), m_cu(0), m_cv(0),
                      m_u_direction(Vector3(1,0,0)),
                      m_v_direction(Vector3(0,-1,0)),
-                     m_w_direction(Vector3(0,0,1)) {
+                     m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1) {
 
       m_rotation.set_identity();
       this->rebuild_camera_matrix();
@@ -153,7 +159,8 @@ namespace camera {
                                                            m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                            m_u_direction(u_direction),
                                                            m_v_direction(v_direction),
-                                                           m_w_direction(w_direction) {
+                                                           m_w_direction(w_direction),
+                                                           m_pixel_pitch(1) {
       this->rebuild_camera_matrix();
     }
 
@@ -191,7 +198,8 @@ namespace camera {
                                                            m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                            m_u_direction(Vector3(1,0,0)),
                                                            m_v_direction(Vector3(0,-1,0)),
-                                                           m_w_direction(Vector3(0,0,1)) {
+                                                           m_w_direction(Vector3(0,0,1)),
+                                                           m_pixel_pitch(1) {
       rebuild_camera_matrix();
     }
 
@@ -205,8 +213,8 @@ namespace camera {
                                            m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                            m_u_direction(Vector3(1,0,0)),
                                            m_v_direction(Vector3(0,-1,0)),
-                                           m_w_direction(Vector3(0,0,1)) {
-
+                                           m_w_direction(Vector3(0,0,1)),
+                                           m_pixel_pitch(1) {
       rebuild_camera_matrix();
     }
 
@@ -283,18 +291,21 @@ namespace camera {
 
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units
-    void intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const VW_DEPRECATED;
-
-    void set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v) VW_DEPRECATED;
+    void intrinsic_parameters(double& f_u, double& f_v,
+                              double& c_u, double& c_v) const VW_DEPRECATED;
+    void set_intrinsic_parameters(double f_u, double f_v,
+                                  double c_u, double c_v) VW_DEPRECATED;
 
     Vector2 focal_length(void) const { return Vector2(m_fu,m_fv); }
-    void set_focal_length(Vector2i f, bool rebuild=true ) {
+    void set_focal_length(Vector2 const& f, bool rebuild=true ) {
       m_fu = f[0]; m_fv = f[1];
       if (rebuild) rebuild_camera_matrix(); }
     Vector2 point_offset(void) const { return Vector2(m_cu,m_cv); }
-    void set_point_offset(Vector2i c, bool rebuild=true ) {
+    void set_point_offset(Vector2 const& c, bool rebuild=true ) {
       m_cu = c[0]; m_cv = c[1];
       if (rebuild) rebuild_camera_matrix(); }
+    double pixel_pitch(void) const { return m_pixel_pitch; }
+    void set_pixel_pitch( double pitch ) { m_pixel_pitch = pitch; }
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables
@@ -309,16 +320,16 @@ namespace camera {
     void rebuild_camera_matrix();
   };
 
-//   /// Given two pinhole camera models, this method returns two new camera
-//   /// models that have been epipolar rectified.
-//   template <>
-//   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0,
-//                 PinholeModel<NoLensDistortion> const& src_camera1,
-//                 PinholeModel<NoLensDistortion> &dst_camera0,
-//                 PinholeModel<NoLensDistortion> &dst_camera1);
+  //   /// Given two pinhole camera models, this method returns two new camera
+  //   /// models that have been epipolar rectified.
+  //   template <>
+  //   void epipolar(PinholeModel<NoLensDistortion> const& src_camera0,
+  //                 PinholeModel<NoLensDistortion> const& src_camera1,
+  //                 PinholeModel<NoLensDistortion> &dst_camera0,
+  //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
-  PinholeModel scale_camera(PinholeModel const& camera_model, float const& scale);
-
+  PinholeModel scale_camera(PinholeModel const& camera_model,
+                            float const& scale);
   PinholeModel linearize_camera(PinholeModel const& camera_model);
 
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);

@@ -17,6 +17,7 @@
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
 #include <vw/Camera/TsaiFile.pb.h>
+using google::protobuf::RepeatedFieldBackInserter;
 #endif
 
 #include <boost/filesystem/convenience.hpp>
@@ -62,6 +63,7 @@ void vw::camera::PinholeModel::read(std::string const& filename) {
   m_cu = file.center_point(0);
   m_cv = file.center_point(1);
   m_rotation = MatrixProxy<double,3,3>(file.mutable_camera_rotation()->mutable_data());
+  m_pixel_pitch = file.pixel_pitch();
 
   this->rebuild_camera_matrix();
 
@@ -100,23 +102,24 @@ void vw::camera::PinholeModel::write(std::string const& filename) const {
   file.add_focal_length( m_fv );
   file.add_center_point( m_cu );
   file.add_center_point( m_cv );
+  file.set_pixel_pitch( m_pixel_pitch );
 
-  for ( char i = 0; i < 3; i++ ) {
-    file.add_u_direction(m_u_direction[i]);
-    file.add_v_direction(m_v_direction[i]);
-    file.add_w_direction(m_w_direction[i]);
-    file.add_camera_center(m_camera_center[i]);
-  }
+  std::copy(m_u_direction.begin(), m_u_direction.end(),
+            RepeatedFieldBackInserter(file.mutable_u_direction()));
+  std::copy(m_v_direction.begin(), m_v_direction.end(),
+            RepeatedFieldBackInserter(file.mutable_v_direction()));
+  std::copy(m_w_direction.begin(), m_w_direction.end(),
+            RepeatedFieldBackInserter(file.mutable_w_direction()));
+  std::copy(m_camera_center.begin(), m_camera_center.end(),
+            RepeatedFieldBackInserter(file.mutable_camera_center()));
 
-  for ( Matrix<double>::const_iterator iter = m_rotation.begin();
-        iter != m_rotation.end(); iter++ ) {
-    file.add_camera_rotation(*iter);
-  }
+  std::copy(m_rotation.begin(), m_rotation.end(),
+            RepeatedFieldBackInserter(file.mutable_camera_rotation()));
 
   file.set_distortion_name( m_distortion->name() );
   Vector<double> distort_vec = m_distortion->distortion_parameters();
-  for ( unsigned i = 0; i < distort_vec.size(); i++ )
-    file.add_distortion_vector(distort_vec(i));
+  std::copy(distort_vec.begin(),distort_vec.end(),
+            RepeatedFieldBackInserter(file.mutable_distortion_vector()));
 
   std::ofstream output(output_file.c_str());
   if( !output.is_open() )
@@ -133,24 +136,27 @@ void vw::camera::PinholeModel::write(std::string const& filename) const {
 vw::Vector2 vw::camera::PinholeModel::point_to_pixel(vw::Vector3 const& point) const {
 
   //  Multiply the pixel location by the camera matrix.
-  double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) + m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
-  Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) + m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
-      (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) + m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
+  double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
+    m_camera_matrix(2,2)*point(2) + m_camera_matrix(2,3);
+  Vector2 pixel = Vector2( (m_camera_matrix(0,0)*point(0) + m_camera_matrix(0,1)*point(1) +
+                            m_camera_matrix(0,2)*point(2) + m_camera_matrix(0,3)) / denominator,
+                           (m_camera_matrix(1,0)*point(0) + m_camera_matrix(1,1)*point(1) +
+                            m_camera_matrix(1,2)*point(2) + m_camera_matrix(1,3)) / denominator);
 
   //  Apply the lens distortion model
-  return m_distortion->distorted_coordinates(*this, pixel);
+  return m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
 }
 
 bool vw::camera::PinholeModel::projection_valid(Vector3 const& point) const {
   // z coordinate after extrinsic transformation
-  double z = m_extrinsics(2, 0)*point(0) + m_extrinsics(2, 1)*point(1) + m_extrinsics(2, 2)*point(2) + m_extrinsics(2,3);
+  double z = m_extrinsics(2, 0)*point(0) + m_extrinsics(2, 1)*point(1) +
+    m_extrinsics(2, 2)*point(2) + m_extrinsics(2,3);
   return z > 0;
 }
 
 vw::Vector3 vw::camera::PinholeModel::pixel_to_vector (vw::Vector2 const& pix) const {
-
   // Apply the inverse lens distortion model
-  vw::Vector2 undistorted_pix = m_distortion->undistorted_coordinates(*this, pix);
+  vw::Vector2 undistorted_pix = m_distortion->undistorted_coordinates(*this, pix*m_pixel_pitch);
 
   // Compute the direction of the ray emanating from the camera center.
   vw::Vector3 p(0,0,1);
@@ -158,11 +164,13 @@ vw::Vector3 vw::camera::PinholeModel::pixel_to_vector (vw::Vector2 const& pix) c
   return normalize( m_inv_camera_transform * p);
 }
 
-void vw::camera::PinholeModel::intrinsic_parameters(double& f_u, double& f_v, double& c_u, double& c_v) const {
+void vw::camera::PinholeModel::intrinsic_parameters(double& f_u, double& f_v,
+                                                    double& c_u, double& c_v) const {
   f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
 }
 
-void vw::camera::PinholeModel::set_intrinsic_parameters(double f_u, double f_v, double c_u, double c_v) {
+void vw::camera::PinholeModel::set_intrinsic_parameters(double f_u, double f_v,
+                                                        double c_u, double c_v) {
   m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
   rebuild_camera_matrix();
 }
