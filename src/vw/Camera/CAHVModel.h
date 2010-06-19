@@ -58,11 +58,11 @@ namespace camera {
     CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) : 
       C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
 
-    /// Initialize a CAHV model from a pinhole model 
+    /// Initialize a CAHV model from a pinhole model
     CAHVModel(PinholeModel const& pin_model) {
       //  Intrinsic parametes (in pixel units)
-      double fH, fV, Hc, Vc;
-      pin_model.intrinsic_parameters(fH, fV, Hc, Vc);    
+      Vector2 focal = pin_model.focal_length();
+      Vector2 offset = pin_model.point_offset();
 
       Vector3 u,v,w;
       pin_model.coordinate_frame(u,v,w);
@@ -74,8 +74,8 @@ namespace camera {
 
       C = pin_model.camera_center();
       A = R*w;
-      H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Vc*A;	      
+      H = focal[0]*Hvec + offset[0]*A;
+      V = focal[1]*Vvec + offset[1]*A;
     }
     
     

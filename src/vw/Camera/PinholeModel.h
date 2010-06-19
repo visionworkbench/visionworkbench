@@ -116,7 +116,7 @@ namespace camera {
 
     /// Initialize from a file on disk.
     PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)) {
-      read_file(filename);
+      read(filename);
     }
 
     /// Initialize the pinhole model with explicit parameters.
@@ -213,12 +213,15 @@ namespace camera {
     virtual std::string type() const { return "Pinhole"; }
     virtual ~PinholeModel() {}
 
-    /// Read a pinhole model from a file on disk.
-    void read_file(std::string const& filename);
+    /// Read / Write a pinhole model from a file on disk.
+    /// Files will end in format .pinhole
+    void read(std::string const& filename);
+    void write(std::string const& filename) const;
 
-    /// Write the parameters of a PinholeModel to disk.
-    /// By convention, filename should end with ".tsai"
-    void write_file(std::string const& filename) const;
+    /// DEPRECATED FILE IO
+    void read_file(std::string const& filename) VW_DEPRECATED;
+    void write_file(std::string const& filename) const VW_DEPRECATED;
+
 
     //------------------------------------------------------------------
     // Methods

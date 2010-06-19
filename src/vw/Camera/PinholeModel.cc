@@ -19,9 +19,15 @@
 #include <vw/Camera/TsaiFile.pb.h>
 #endif
 
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
+
 // Reads in a file containing parameters of a pinhole model with
 // a tsai lens distortion model.
-void vw::camera::PinholeModel::read_file(std::string const& filename) {
+void vw::camera::PinholeModel::read_file(std::string const& filename){
+  this->read(filename);
+}
+void vw::camera::PinholeModel::read(std::string const& filename) {
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   std::fstream input( filename.c_str(), std::ios::in | std::ios::binary );
   if ( !input )
@@ -82,7 +88,13 @@ void vw::camera::PinholeModel::read_file(std::string const& filename) {
 
 // Write parameters of an exiting PinholeModel into a .tsai file for later use.
 void vw::camera::PinholeModel::write_file(std::string const& filename) const {
+  write(filename);
+}
+void vw::camera::PinholeModel::write(std::string const& filename) const {
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+  std::string output_file =
+    fs::path(filename).replace_extension(".pinhole").string();
+
   TsaiFile file;
   file.add_focal_length( m_fu );
   file.add_focal_length( m_fv );
@@ -106,7 +118,7 @@ void vw::camera::PinholeModel::write_file(std::string const& filename) const {
   for ( unsigned i = 0; i < distort_vec.size(); i++ )
     file.add_distortion_vector(distort_vec(i));
 
-  std::ofstream output(filename.c_str());
+  std::ofstream output(output_file.c_str());
   if( !output.is_open() )
     vw_throw( IOErr() << "PinholeModel::write_file: Could not open file\n" );
   file.SerializeToOstream( &output );

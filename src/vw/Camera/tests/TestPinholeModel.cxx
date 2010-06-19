@@ -313,19 +313,19 @@ protected:
 
 TEST_F( WriteReadTest, Loop ) {
   { // NULL Distortion
-    UnlinkName file("NullCam.tsai");
+    UnlinkName file("NullCam.pinhole");
     TestReadBack( file );
   }
 
   control_pinhole.set_lens_distortion( TsaiLensDistortion( Vector4(-1,2,.3,.4) ) );
   { // TSAI Distortion
-    UnlinkName file("TsaiCam.tsai");
+    UnlinkName file("TsaiCam.pinhole");
     TestReadBack( file );
   }
 
   control_pinhole.set_lens_distortion( BrownConradyDistortion( Vector2(-1,3), Vector3(.05,1.052e-3,9.72564e-12), Vector2(-3.23415e-5,7.5271e-6), 2.345 ) );
   { // BROWN CONRADY Distortion
-    UnlinkName file("BrownConrady.tsai");
+    UnlinkName file("BrownConrady.pinhole");
     TestReadBack( file );
   }
 }
