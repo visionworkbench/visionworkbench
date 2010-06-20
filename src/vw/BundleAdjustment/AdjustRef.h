@@ -149,10 +149,13 @@ namespace ba {
           submatrix(J, 2*idx, num_cam_params*num_cameras + i*num_pt_params, 2, num_pt_params) = J_b;
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() -
-            this->m_model(i, camera_idx,
-                          this->m_model.A_parameters(camera_idx),
-                          this->m_model.B_parameters(i));
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (*(this->m_control_net))[i][m].dominant() -
+              this->m_model(i, camera_idx,
+                            this->m_model.A_parameters(camera_idx),
+                            this->m_model.B_parameters(i));
+          } catch ( camera::PixelToRayErr &e ) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
           subvector(error,2*idx,2) = unweighted_error * weight;
@@ -287,10 +290,13 @@ namespace ba {
                                               num_pt_params);
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = (*this->m_control_net)[i][m].dominant() -
-            this->m_model(i, camera_idx,
-                          this->m_model.A_parameters(camera_idx)-cam_delta,
-                          this->m_model.B_parameters(i)-pt_delta);
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (*this->m_control_net)[i][m].dominant() -
+              this->m_model(i, camera_idx,
+                            this->m_model.A_parameters(camera_idx)-cam_delta,
+                            this->m_model.B_parameters(i)-pt_delta);
+          } catch ( camera::PixelToRayErr &e ) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
           subvector(new_error,2*idx,2) = unweighted_error * weight;

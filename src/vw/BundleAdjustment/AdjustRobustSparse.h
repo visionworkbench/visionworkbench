@@ -160,9 +160,12 @@ namespace ba {
                                                       this->m_model.B_parameters(i));
 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = (**fiter).m_location -
-            this->m_model(i,j,this->m_model.A_parameters(j),
-                          this->m_model.B_parameters(i));
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (**fiter).m_location -
+              this->m_model(i,j,this->m_model.A_parameters(j),
+                            this->m_model.B_parameters(i));
+          } catch ( camera::PixelToRayErr &e ) {}
 
           Vector2 pixel_sigma = (**fiter).m_scale;
           Matrix2x2 inverse_cov;
@@ -430,8 +433,11 @@ namespace ba {
             subvector( delta_b, num_pt_params*i, num_pt_params );
 
           // Apply robust cost function weighting
-          Vector2 unweighted_error = (**fiter).m_location -
-            this->m_model(i,j,new_a,new_b);
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (**fiter).m_location -
+              this->m_model(i,j,new_a,new_b);
+          } catch ( camera::PixelToRayErr &e ) {}
 
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (**fiter).m_scale;

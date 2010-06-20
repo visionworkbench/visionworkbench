@@ -161,9 +161,13 @@ namespace ba {
                                                         this->m_model.B_parameters(i));
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - this->m_model(i, camera_idx,
-                                                                              this->m_model.A_parameters(camera_idx),
-                                                                              this->m_model.B_parameters(i));
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (*(this->m_control_net))[i][m].dominant() -
+              this->m_model(i, camera_idx,
+                            this->m_model.A_parameters(camera_idx),
+                            this->m_model.B_parameters(i));
+          } catch ( camera::PixelToRayErr &e ) {}
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
@@ -321,9 +325,13 @@ namespace ba {
           Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
           // Apply robust cost function weighting and populate the error vector
-          Vector2 unweighted_error = (*(this->m_control_net))[i][m].dominant() - this->m_model(i, camera_idx,
-                                                                                               this->m_model.A_parameters(camera_idx)-cam_delta,
-                                                                                               this-> m_model.B_parameters(i)-pt_delta);
+          Vector2 unweighted_error;
+          try {
+            unweighted_error = (*(this->m_control_net))[i][m].dominant() -
+              this->m_model(i, camera_idx,
+                            this->m_model.A_parameters(camera_idx)-cam_delta,
+                            this-> m_model.B_parameters(i)-pt_delta);
+          } catch ( camera::PixelToRayErr &e ) {}
           Matrix2x2 inverse_cov = submatrix(sigma, 2*idx, 2*idx, 2, 2);
 
           // Populate the S_weights, mu_weights vectors
