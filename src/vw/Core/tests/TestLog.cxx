@@ -13,6 +13,8 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/ProgressCallback.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Stopwatch.h>
 
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -377,14 +379,38 @@ TEST(Log, FlushAndNewline) {
 }
 
 TEST(LogDeathTest, MakeSureDeathTestsWork) {
-  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
   LogInstance log(std::cerr, false);
   EXPECT_EXIT(log(ErrorMessage) << "Rawr" << std::flush; exit(12), ::testing::ExitedWithCode(12), "Rawr");
 }
 
 // This test is tied to bug #199. Which is still a bug.
 TEST(LogDeathTest, DISABLED_FlushOnExit) {
-  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
   LogInstance log(std::cerr, false);
   EXPECT_EXIT(log(ErrorMessage) << "Rawr"; exit(12), ::testing::ExitedWithCode(12), "Rawr");
+}
+
+const std::string& slow(int len, const std::string& msg) {
+  sleep(len);
+  return msg;
+}
+
+// This tests whether the loggers are lazy or not (whether they evaluate their
+// arguments if they're turned off). This may never work, but here's a test for it!
+TEST(Log, DISABLED_LazyLog) {
+  std::ostringstream stream, ends;
+  ends << std::endl;
+
+  LogInstance log(stream, false);
+
+  std::string s1("A"), s2("B"), s3("C"), end(ends.str());
+
+  uint64 start = vw::Stopwatch::microtime();
+  log(InfoMessage)         << s1          << std::endl;
+  log(VerboseDebugMessage) << slow(1, s2) << std::endl;
+  log(InfoMessage)         << s3          << std::endl;
+  uint64 stop = vw::Stopwatch::microtime();
+
+  ASSERT_EQ(s1 + end + s3 + end, stream.str());
+  // the sleep inside slow() should not have run.
+  EXPECT_LT(stop-start, 200000);
 }

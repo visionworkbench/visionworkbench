@@ -16,6 +16,12 @@ int main(int argc, char **argv) {
   // Disable the user's config file
   vw::vw_settings().set_rc_filename("");
   testing::InitGoogleTest(&argc, argv);
+
+  // Default to the "threadsafe" style because we can't delete our singletons
+  // yet; this style of test launches a new process, so the singletons are
+  // fresh.
+  ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+
   return RUN_ALL_TESTS();
 }
 
