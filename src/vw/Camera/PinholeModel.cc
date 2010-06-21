@@ -321,7 +321,8 @@ std::ostream& vw::camera::operator<<(std::ostream& str, vw::camera::PinholeModel
   str << "\tIntrinsics:\n";
   str << "\t  focal: " << model.focal_length() << "\n";
   str << "\t  offset: " << model.point_offset() << "\n";
-  str << model.lens_distortion() << "\n";
+  str << "\tDistortion Model: " << model.lens_distortion()->name() << "\n";
+  str << "\t  " << *model.lens_distortion() << "\n";
 
   return str;
 }
