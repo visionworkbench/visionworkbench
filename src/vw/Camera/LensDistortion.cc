@@ -38,8 +38,7 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptim
   const camera::LensDistortion &m_distort;
   DistortOptimizeFunctor(const camera::PinholeModel& cam, const camera::LensDistortion& d) : m_cam(cam), m_distort(d) {}
   inline result_type operator()( domain_type const& x ) const {
-    Vector2 result = m_distort.undistorted_coordinates(m_cam, x);
-    return result;
+    return m_distort.undistorted_coordinates(m_cam, x);
   }
 };
 
@@ -50,7 +49,7 @@ vw::camera::LensDistortion::undistorted_coordinates(const camera::PinholeModel& 
   UndistortOptimizeFunctor model(cam, *this);
   int status;
   Vector2 solution =
-    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6 );
+    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
   VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "undistorted_coordinates: failed to converge." );
   return solution;
 }
@@ -60,7 +59,7 @@ vw::camera::LensDistortion::distorted_coordinates(const camera::PinholeModel& ca
   DistortOptimizeFunctor model(cam, *this);
   int status;
   Vector2 solution =
-    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6 );
+    math::levenberg_marquardt( model, v, v, status, 1e-6, 1e-6, 50 );
   VW_DEBUG_ASSERT( status != math::optimization::eConvergedRelTolerance, PixelToRayErr() << "distorted_coordinates: failed to converge." );
   return solution;
 }
