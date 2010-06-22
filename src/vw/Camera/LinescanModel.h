@@ -6,26 +6,26 @@
 
 
 /// \file LinescanModel.h
-/// 
+///
 /// A generic linescan camera model object
 ///
-/// 
+///
 #ifndef _VW_CAMERA_LINESCAN_MODEL_H_
 #define _VW_CAMERA_LINESCAN_MODEL_H_
 
 #include <vw/Math/Quaternion.h>
 #include <vw/Camera/CameraModel.h>
 
-namespace vw { 
+namespace vw {
 namespace camera {
 
   template <class PositionFuncT, class PoseFuncT>
-  class LinescanModel : public CameraModel { 
+  class LinescanModel : public CameraModel {
 
     // Extrinsics
     PositionFuncT m_position_func;
     PoseFuncT m_pose_func;
-    
+
     // Intrinsics
     int m_number_of_lines;
     int m_samples_per_line;
@@ -46,10 +46,10 @@ namespace camera {
     /// integration varies one each scanline of the image.  The
     /// line_integration_times vector must be equal to the
     /// number_of_lines
-    LinescanModel( int number_of_lines, 
-                   int samples_per_line, 
-                   int sample_offset, 
-                   double focal_length, 
+    LinescanModel( int number_of_lines,
+                   int samples_per_line,
+                   int sample_offset,
+                   double focal_length,
                    double along_scan_pixel_size,
                    double across_scan_pixel_size,
                    std::vector<double> const& line_times,
@@ -58,10 +58,10 @@ namespace camera {
                    PositionFuncT const& position_func,
                    PoseFuncT const& pose_func) : m_position_func(position_func),
                                                  m_pose_func(pose_func) {
-      
+
       VW_ASSERT(int(line_times.size()) == number_of_lines,
                 ArgumentErr() << "LinescanModel: number of line integration times does not match the number of scanlines.\n");
-      
+
       // Intrinsics
       m_number_of_lines = number_of_lines;
       m_samples_per_line = samples_per_line;
@@ -78,10 +78,10 @@ namespace camera {
 
     /// This version of the constructor assumes that the line
     /// integration time is consistent throughout the image.
-    LinescanModel( int number_of_lines, 
-                   int samples_per_line, 
-                   int sample_offset, 
-                   double focal_length, 
+    LinescanModel( int number_of_lines,
+                   int samples_per_line,
+                   int sample_offset,
+                   double focal_length,
                    double along_scan_pixel_size,
                    double across_scan_pixel_size,
                    double line_integration_time,
@@ -90,7 +90,7 @@ namespace camera {
                    PositionFuncT const& position_func,
                    PoseFuncT const& pose_func) : m_position_func(position_func),
                                                  m_pose_func(pose_func) {
-      
+
       // Intrinsics
       m_number_of_lines = number_of_lines;
       m_samples_per_line = samples_per_line;
@@ -98,7 +98,7 @@ namespace camera {
       m_focal_length = focal_length;
       m_along_scan_pixel_size = along_scan_pixel_size;
       m_across_scan_pixel_size = across_scan_pixel_size;
-      
+
       m_line_times.resize(number_of_lines);
       double sum = 0;
       for (int i = 0; i < number_of_lines; ++i) {
@@ -109,7 +109,7 @@ namespace camera {
       m_pointing_vec = normalize(pointing_vec);
       m_u_vec = normalize(u_vec);
     }
-    
+
     virtual ~LinescanModel() {}
     virtual std::string type() const { return "Linescan"; }
 
@@ -132,7 +132,7 @@ namespace camera {
     /// v is the downtrack (i.e., orthographic) direction
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const {
       double u = pix[0], v = pix[1];
-      
+
       // Check to make sure that this is a valid pixel
       if (int(round(v)) < 0 || int(round(v)) >= int(m_line_times.size()))
         vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
@@ -153,7 +153,7 @@ namespace camera {
 
       Quaternion<double> pose = m_pose_func(approx_line_time);
       Matrix<double,3,3> rotation_matrix = transpose(pose.rotation_matrix());
-      
+
       // The viewplane is the [pointing_vec cross u_vec] plane of the
       // camera coordinate system.  Assuming the origin of the
       // coordinate system is at the center of projection, the image
@@ -161,11 +161,11 @@ namespace camera {
       // camera coordinates is:
       double pixel_pos_u = (u + m_sample_offset) * m_across_scan_pixel_size;
       Vector<double, 3> pixel_direction = pixel_pos_u * m_u_vec + m_focal_length * m_pointing_vec;
-      
+
       // Transform to world coordinates using the rigid rotation
       return normalize(rotation_matrix * pixel_direction);
     }
-    
+
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const {
       // Check to make sure that this is a valid pixel
       if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
@@ -197,22 +197,22 @@ namespace camera {
 
       return m_pose_func(approx_line_time);
     }
-    
+
     //------------------------------------------------------------------
     // Public Methods
     //------------------------------------------------------------------
-    
-    // Accessors 
-    virtual double number_of_lines() const { return m_number_of_lines; } 
-    virtual double samples_per_line() const { return m_samples_per_line; } 
-    virtual double sample_offset() const { return m_sample_offset; } 
-    virtual double focal_length() const { return m_focal_length; } 
-    virtual double along_scan_pixel_size() const { return m_along_scan_pixel_size; } 
-    virtual double across_scan_pixel_size() const { return m_across_scan_pixel_size; } 
+
+    // Accessors
+    virtual double number_of_lines() const { return m_number_of_lines; }
+    virtual double samples_per_line() const { return m_samples_per_line; }
+    virtual double sample_offset() const { return m_sample_offset; }
+    virtual double focal_length() const { return m_focal_length; }
+    virtual double along_scan_pixel_size() const { return m_along_scan_pixel_size; }
+    virtual double across_scan_pixel_size() const { return m_across_scan_pixel_size; }
     virtual std::vector<double> line_times() const { return m_line_times; }
     virtual Vector3 camera_position(double t) const { return m_position_func(t); }
     virtual Quaternion<double> camera_pose(double t) const { return m_pose_func(t); }
-    
+
     virtual void set_number_of_lines(int val) { m_number_of_lines = val; }
     virtual void set_samples_per_line(int val) { m_samples_per_line = val; }
     virtual void set_sample_offset(int val) { m_sample_offset = val; }
@@ -220,7 +220,7 @@ namespace camera {
     virtual void set_across_scan_pixel_size(double val) {m_across_scan_pixel_size = val; }
     virtual void set_focal_length(double val) {m_focal_length = val; }
     virtual void set_line_times(std::vector<double> val) { m_line_times = val; }
-  };  
+  };
 
   /// Output stream method for printing a summary of the linear
   /// pushbroom camera model parameters.
@@ -238,7 +238,6 @@ namespace camera {
     return os;
   }
 
-}}	// namespace vw::camera
+}}      // namespace vw::camera
 
-#endif	//_VW_CAMERA_LINEARPUSHBROOM_MODEL_H_
-
+#endif  //_VW_CAMERA_LINEARPUSHBROOM_MODEL_H_

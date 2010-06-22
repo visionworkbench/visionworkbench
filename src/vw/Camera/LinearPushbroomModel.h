@@ -6,8 +6,8 @@
 
 
 /// \file LinearPushbroomModel.h
-/// 
-/// Linear pushbroom camera model object. 
+///
+/// Linear pushbroom camera model object.
 ///
 #ifndef __VW_CAMERA_LINEARPUSHBROOM_MODEL_H__
 #define __VW_CAMERA_LINEARPUSHBROOM_MODEL_H__
@@ -16,9 +16,9 @@
 #include <vw/Camera/Extrinsics.h>
 #include <vw/Math/Quaternion.h>
 
-namespace vw { 
+namespace vw {
 namespace camera {
-  
+
   class LinearPushbroomModel : public LinescanModel<LinearPositionInterpolation,
                                                     ConstantPoseInterpolation> {
 
@@ -31,23 +31,23 @@ namespace camera {
     // characteristics that differentiate the linear pushbroom model
     // from other linescan imagers.
     LinearPushbroomModel( double scan_duration,
-                          int number_of_lines, 
-                          int samples_per_line, 
-                          int sample_offset, 
-                          double focal_length, 
+                          int number_of_lines,
+                          int samples_per_line,
+                          int sample_offset,
+                          double focal_length,
                           double along_scan_pixel_size,
                           double across_scan_pixel_size,
                           Vector3 pointing_vec,
                           Vector3 u_vec,
                           Quaternion<double> const& camera_pose,
                           Vector3 const& initial_position,
-                          Vector3 const& velocity_vector) : 
+                          Vector3 const& velocity_vector) :
       LinescanModel<LinearPositionInterpolation,
-                    ConstantPoseInterpolation>::LinescanModel(number_of_lines, 
-                                                              samples_per_line, 
+                    ConstantPoseInterpolation>::LinescanModel(number_of_lines,
+                                                              samples_per_line,
                                                               sample_offset,
-                                                              focal_length, 
-                                                              along_scan_pixel_size, 
+                                                              focal_length,
+                                                              along_scan_pixel_size,
                                                               across_scan_pixel_size,
                                                               scan_duration / number_of_lines,
                                                               pointing_vec, u_vec,
@@ -56,9 +56,8 @@ namespace camera {
 
     virtual ~LinearPushbroomModel() {}
     virtual std::string type() const { return "LinearPushbroom"; }
-  };  
+  };
 
-}}	// namespace vw::camera
+}}      // namespace vw::camera
 
-#endif	//__VW_CAMERA_LINEARPUSHBROOM_MODEL_H__
-
+#endif  //__VW_CAMERA_LINEARPUSHBROOM_MODEL_H__

@@ -6,11 +6,11 @@
 
 
 /// \file CAHVORModel.h
-/// 
+///
 /// This file contains the CAHVOR pinhole camera model.  This camera
 /// model is a refinement of the \ref CAHVModel: it adds extra terms
 /// to model basic radial camera distortion.
-/// 
+///
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__
 #define __VW_CAMERAMODEL_CAHVOR_H__
 
@@ -21,7 +21,7 @@
 
 #include <string>
 
-namespace vw { 
+namespace vw {
 namespace camera {
 
   class CAHVORModel : public CameraModel {
@@ -34,13 +34,13 @@ namespace camera {
 
     /// Default constructor creates CAHVOR vectors equal to 0.
     CAHVORModel() {}
-    
+
     /// Read a CAHVOR file from disk.
     CAHVORModel(std::string const& filename);
 
     /// Initialize the CAHVOR vectors directly in the native CAHVOR format.
     CAHVORModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec,
-                Vector3 O_vec, Vector3 R_vec) : 
+                Vector3 O_vec, Vector3 R_vec) :
       C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec) {}
 
     virtual ~CAHVORModel() {}
@@ -74,19 +74,18 @@ namespace camera {
     Vector3   O;
     Vector3   R;
   };
-  
+
   /// Function to "map" the CAHVOR parameters into CAHV parameters:
   /// requires dimensions of input image and output image (usually the
   /// same) You must supply the dimensions of the CAHVOR image that
   /// you are dewarping, as well as the dimensions of the dewarped
   /// cahv image (if they differ).
-  CAHVModel linearize_camera( CAHVORModel const& camera_model, 
-                              int32 cahvor_image_width, 
+  CAHVModel linearize_camera( CAHVORModel const& camera_model,
+                              int32 cahvor_image_width,
                               int32 cahvor_image_height,
                               int32 cahv_image_width,
                               int32 cahv_image_height );
-  
-}}	// namespace vw::camera
 
-#endif	//__CAMERAMODEL_CAHVOR_H__
+}}      // namespace vw::camera
 
+#endif  //__CAMERAMODEL_CAHVOR_H__

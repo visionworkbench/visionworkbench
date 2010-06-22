@@ -6,10 +6,10 @@
 
 
 /// \file CameraTransform.h
-/// 
+///
 /// A functor and convenience functions for warping images between
 /// different camera models.
-/// 
+///
 #ifndef __VW_CAMERA_TRANSFORM_H__
 #define __VW_CAMERA_TRANSFORM_H__
 
@@ -23,16 +23,16 @@ namespace camera{
   /// vw/Transform.h to warp an image from one camera's perspective
   /// into anothers.  In particular, this can be used to remove lens
   /// distortion by transforming from a nonlinear source camera to a
-  /// linearized destination camera.  
-  /// 
-  /// NOTE: The pixel_to_vector/vector_to_pixel calling sequence only 
+  /// linearized destination camera.
+  ///
+  /// NOTE: The pixel_to_vector/vector_to_pixel calling sequence only
   /// works if both cameras have the some camera center (focal point).
   /// If the camera centers do not match it will vw_throw an exception.
   ///
-  template <class SrcCameraT, class DstCameraT> 
+  template <class SrcCameraT, class DstCameraT>
   struct CameraTransform : public TransformBase<CameraTransform<SrcCameraT, DstCameraT> > {
-    CameraTransform(SrcCameraT const& src_camera, 
-                    DstCameraT const& dst_camera) : 
+    CameraTransform(SrcCameraT const& src_camera,
+                    DstCameraT const& dst_camera) :
       m_src_camera(src_camera), m_dst_camera(dst_camera) {
     }
 
@@ -41,7 +41,7 @@ namespace camera{
     inline Vector2 reverse(const Vector2 &p) const {
       VW_ASSERT(m_src_camera.camera_center(p) == m_dst_camera.camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
-      
+
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_dst_camera.pixel_to_vector(p);
@@ -50,13 +50,13 @@ namespace camera{
       //     VectorToPixel on it
       return m_src_camera.point_to_pixel(vec+m_dst_camera.camera_center(p));
     }
-    
+
     /// This defines the transformation from coordinates in our source
     /// image to coordinatess in the target image.
     inline Vector2 forward(const Vector2 &p) const {
       VW_ASSERT(m_src_camera.camera_center(p) == m_dst_camera.camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
-      
+
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_src_camera.pixel_to_vector(p);
@@ -65,24 +65,24 @@ namespace camera{
       //     VectorToPixel on it.
       return m_dst_camera.point_to_pixel(vec+m_src_camera.camera_center(p));
     }
-       
+
   private:
     SrcCameraT m_src_camera;
     DstCameraT m_dst_camera;
   };
-  
+
   struct SmartPtrCameraTransform : public TransformBase<SmartPtrCameraTransform> {
-    SmartPtrCameraTransform(boost::shared_ptr<CameraModel> const& src_camera, 
-                            boost::shared_ptr<CameraModel> const& dst_camera) : 
+    SmartPtrCameraTransform(boost::shared_ptr<CameraModel> const& src_camera,
+                            boost::shared_ptr<CameraModel> const& dst_camera) :
       m_src_camera(src_camera), m_dst_camera(dst_camera) {
     }
-    
+
     /// This defines the transformation from coordinates in our target
     /// image back to coordinatess in the original image.
     inline Vector2 reverse(const Vector2 &p) const {
       VW_ASSERT(m_src_camera->camera_center(p) == m_dst_camera->camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
-      
+
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_dst_camera->pixel_to_vector(p);
@@ -91,13 +91,13 @@ namespace camera{
       //     VectorToPixel on it
       return m_src_camera->point_to_pixel(vec+m_dst_camera->camera_center(p));
     }
-    
+
     /// This defines the transformation from coordinates in our source
     /// image to coordinatess in the target image.
     inline Vector2 forward(const Vector2 &p) const {
       VW_ASSERT(m_src_camera->camera_center(p) == m_dst_camera->camera_center(p),
                 LogicErr() << "CameraTransformFunctor: Camera transformation require that the camera center is always the same for both cameras.");
-      
+
       // (1) Call src PixelToVector to find the vector emanating from
       //     the camera center.
       Vector3 vec = m_src_camera->pixel_to_vector(p);
@@ -106,12 +106,12 @@ namespace camera{
       //     VectorToPixel on it.
       return m_dst_camera->point_to_pixel(vec+m_src_camera->camera_center(p));
     }
-       
+
   private:
     boost::shared_ptr<CameraModel> m_src_camera;
     boost::shared_ptr<CameraModel> m_dst_camera;
   };
-  
+
 
   /// Transform an image from one camera model to another, explicitly
   /// specifying the edge extension and interpolation modes.
@@ -134,7 +134,7 @@ namespace camera{
     return transform( image, ctx, edge_func, BilinearInterpolation() );
   }
 
-  /// Transform an image from one camera model to another, using 
+  /// Transform an image from one camera model to another, using
   /// zero (black) edge-extension and bilinear interpolation.
   template <class ImageT, class SrcCameraT, class DstCameraT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, DstCameraT> >
@@ -180,7 +180,7 @@ namespace camera{
     return transform( image, ctx, ZeroEdgeExtension(), BilinearInterpolation() );
   }
 
-  
+
 
 }} // namespace vw::camera
 

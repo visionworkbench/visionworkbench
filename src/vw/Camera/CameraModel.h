@@ -75,7 +75,7 @@ namespace camera {
     virtual std::string type() const = 0;
 
     /// Returns the pose (as a quaternion) of the camera for a given
-    /// pixel.
+    /// pixel. It represents the rotation from the camera frame to world frame.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const {
       vw_throw( NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()" );
       return Quaternion<double>();

@@ -18,8 +18,8 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
     std::ifstream input(filename.c_str(), std::ifstream::in);
     input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-    vw_out(InfoMessage, "camera") << "Reading CAHVOR file: " 
-				  << filename << ".\n";
+    vw_out(InfoMessage, "camera") << "Reading CAHVOR file: "
+                                  << filename << ".\n";
 
     char r1,r2;
 
@@ -178,12 +178,12 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw:
   lambda = rr - wo;
   tau = dot_prod(lambda, lambda) / omega_2;
 
-  k1 = 1 + R(0);		//  1 + rho0
-  k3 = R(1) * tau;		//  rho1*tau
-  k5 = R(2) * tau*tau;	//  rho2*tau^2
+  k1 = 1 + R(0);                //  1 + rho0
+  k3 = R(1) * tau;              //  rho1*tau
+  k5 = R(2) * tau*tau;  //  rho2*tau^2
 
   mu = R(0) + k3 + k5;
-  u = 1.0 - mu;	// initial approximation for iterations
+  u = 1.0 - mu; // initial approximation for iterations
 
   for (i=0; i<VW_CAHVOR_MAXITER; i++) {
     u_2 = u*u;
@@ -334,12 +334,12 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix) con
   lambda = rr - wo;
   tau = dot_prod(lambda, lambda) / omega_2;
 
-  k1 = 1 + R(0);		//  1 + rho0
-  k3 = R(1) * tau;		//  rho1*tau
-  k5 = R(2) * tau*tau;	//  rho2*tau^2
+  k1 = 1 + R(0);                //  1 + rho0
+  k3 = R(1) * tau;              //  rho1*tau
+  k5 = R(2) * tau*tau;  //  rho2*tau^2
 
   mu = R(0) + k3 + k5;
-  u = 1.0 - mu;	// initial approximation for iterations
+  u = 1.0 - mu; // initial approximation for iterations
 
   for (i=0; i<VW_CAHVOR_MAXITER; i++) {
 

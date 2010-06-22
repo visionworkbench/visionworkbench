@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-// 
+//
 #include <vw/Camera/CAHVModel.h>
 #include <boost/algorithm/string.hpp>
 
@@ -31,11 +31,11 @@ namespace camera {
     //  Now create the components of the CAHV model...
     Vector3 Hvec = R*u;
     Vector3 Vvec = R*v;
-      
+
     C = pin_model.camera_center();
     A = R*w;
     H = fH*Hvec + Hc*A;
-    V = fV*Vvec + Vc*A;	      
+    V = fV*Vvec + Vc*A;
 
     return *this;
   }
@@ -47,12 +47,12 @@ namespace camera {
   CAHVModel::CAHVModel(std::string const& filename) {
     if (filename.empty())
       vw_throw( IOErr() << "CAHVModel: null file name passed to constructor." );
-    
+
     if (boost::ends_with(filename, ".cahv"))
       read_cahv(filename);
     else if (boost::ends_with(filename, ".pin"))
       read_pinhole(filename);
-    else 
+    else
       vw_throw( IOErr() << "CAHVModel: Unknown camera file suffix." );
   }
 
@@ -64,19 +64,19 @@ namespace camera {
 
   Vector3 CAHVModel::pixel_to_vector(Vector2 const& pix) const {
     Vector3 va, vb;
-    
+
     // Vertical component in a plane perpendicular to the vector
     va = V + (-(pix.y()) * A);
-    
+
     // Horizontal component in a plane perpendicular to the vector
     vb = H + (-(pix.x()) * A);
-    
+
     // Find vector
     Vector3 vec = cross_prod(va, vb);
-    
+
     // Normalize vector
     vec *= 1.0 / norm_2(vec);
-    
+
     // The vector VxH should be pointing in the same directions as A,
     // if it isn't (because we have a left handed system), flip the
     // vector.
@@ -96,14 +96,14 @@ namespace camera {
     FILE *cahvFP = fopen(filename.c_str(), "r");
     if (cahvFP == 0)
       vw_throw( IOErr() << "CAHVModel::read_cahv: Could not open file\n" );
-    
+
     char line[4096];
-    
+
     // Scan through comments
     fgets(line, sizeof(line), cahvFP);
-    while(line[0] == '#') 
+    while(line[0] == '#')
       fgets(line, sizeof(line), cahvFP);
-    
+
     if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
       vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read C vector\n" );
       fclose(cahvFP);
@@ -126,13 +126,13 @@ namespace camera {
       vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read V vector\n" );
       fclose(cahvFP);
     }
-    
+
     fclose(cahvFP);
   }
 
   void CAHVModel::read_pinhole(std::string const& filename) {
     FILE *camFP = fopen(filename.c_str(), "r");
-    
+
     if (camFP == 0)
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not open file\n" );
 
@@ -140,7 +140,7 @@ namespace camera {
     double f, fH, fV, Hc, Vc;
     Vector2 pixelSize;
     Vector3 Hvec, Vvec;
-  
+
     // Read intrinsic parameters
     fgets(line, sizeof(line), camFP);
     if (sscanf(line,"f = %lf", &f) != 1) {
@@ -188,23 +188,23 @@ namespace camera {
     // In the future, we should also read in a view matrix -- LJE
     //     double dummy
     //     if (sscanf(line, "VM = %lf %lf %lf %f %lf %lf %lf %f "
-    // 	       "%lf %lf %lf %f %lf %lf %lf %f ",
-    // 	       &Hvec(0), &Hvec(1), &Hvec(2), &dummy,
-    // 	       &Vvec(0), &Vvec(1), &Vvec(2), &dummy,
-    // 	       &A(0), &A(1), &A(2), &dummy,
-    // 	       &C(0), &C(1), &C(2), &dummy) != 16)
+    //        "%lf %lf %lf %f %lf %lf %lf %f ",
+    //        &Hvec(0), &Hvec(1), &Hvec(2), &dummy,
+    //        &Vvec(0), &Vvec(1), &Vvec(2), &dummy,
+    //        &A(0), &A(1), &A(2), &dummy,
+    //        &C(0), &C(1), &C(2), &dummy) != 16)
     //     {
     //       vw_throw( IOErr()
-    // 	<< "CAHVModel::ReadPinhole: Could not read view matrix\n" );
+    //  << "CAHVModel::ReadPinhole: Could not read view matrix\n" );
     //       fclose(camFP);
     //     }
 
     fH = f/pixelSize.x();
     fV = f/pixelSize.y();
-    
+
     H = fH*Hvec + Hc*A;
     V = fV*Vvec + Vc*A;
-    
+
     fclose(camFP);
   }
 
@@ -214,7 +214,7 @@ namespace camera {
   // slightly.  It needs another look to clean up this discrepancy,
   // which is due to the direction chosen for Hvec. -mbroxton
 
-//   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
+//   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
 //                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
 //     double fh, fv, hc, vc;
@@ -228,9 +228,9 @@ namespace camera {
 //     // Find the magnitude of the new H and V vectors (this will be the
 //     // average of the focal lengths of these cameras).
 //     f = cross_prod(src_camera0.A, src_camera0.H);
-//     g = cross_prod(src_camera1.A, src_camera1.H); 
+//     g = cross_prod(src_camera1.A, src_camera1.H);
 //     fh = (norm_2(f) + norm_2(g)) / 2.0;
-    
+
 //     f = cross_prod(src_camera0.A, src_camera0.V);
 //     g = cross_prod(src_camera1.A, src_camera1.V);
 //     fv = (norm_2(f) + norm_2(g)) / 2.0;
@@ -242,7 +242,7 @@ namespace camera {
 //     // two imagers.  This will move the epipoles to infinity.
 //     Vector3 Hvec = normalize(src_camera1.C - src_camera0.C);
 //     Vector3 Vvec = normalize(cross_prod(Hvec,A_avg));
-//     A = normalize(cross_prod(Vvec,Hvec));       
+//     A = normalize(cross_prod(Vvec,Hvec));
 
 //     std::cout << "Fh: " << fh << "   Fv: " << fv << "\n";
 //     std::cout << "Ch: " << hc << "   Cv: " << vc << "\n";
@@ -252,51 +252,51 @@ namespace camera {
 //     // determine H and V given the camera intristics and the
 //     // horizontal and vertical vectors.
 //     H = fh*Hvec + hc*A;
-//     V = fv*Vvec + vc*A;	      
+//     V = fv*Vvec + vc*A;
 
 //     dst_camera0.C = src_camera0.C;
 //     dst_camera0.A = A;
 //     dst_camera0.H = H;
 //     dst_camera0.V = V;
-    
+
 //     dst_camera1.C = src_camera1.C;
 //     dst_camera1.A = A;
 //     dst_camera1.H = H;
 //     dst_camera1.V = V;
 //   }
 
-  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1, 
+  void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
     double hs, hc, vs, vc;
     Vector3 f, g, hp, ap, app, vp;
     Vector3 a, h, v;
 
-    // Compute a common image center and scale for the two models 
+    // Compute a common image center and scale for the two models
     hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 + dot_prod(src_camera1.H, src_camera1.A) / 2.0;
     vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 + dot_prod(src_camera1.V, src_camera1.A) / 2.0;
 
     f = cross_prod(src_camera0.A, src_camera0.H);
-    g = cross_prod(src_camera1.A, src_camera1.H); 
+    g = cross_prod(src_camera1.A, src_camera1.H);
     hs = (norm_2(f) + norm_2(g)) / 2.0;
-    
+
     f = cross_prod(src_camera0.A, src_camera0.V);
     g = cross_prod(src_camera1.A, src_camera1.V);
     vs = (norm_2(f) + norm_2(g)) / 2.0;
 
-    // Use common center and scale to construct common A, H, V 
+    // Use common center and scale to construct common A, H, V
     app  = src_camera0.A + src_camera1.A;
 
     // Note the directionality of f here, for consistency later
     f = src_camera1.C - src_camera0.C;
-    g = cross_prod(app, f); // alter f (CxCy) to be         
-    f = cross_prod(g, app); // perpendicular to average A 
-    
+    g = cross_prod(app, f); // alter f (CxCy) to be
+    f = cross_prod(g, app); // perpendicular to average A
+
     if (dot_prod(f, src_camera0.H) > 0)
       hp = f * hs / (norm_2(f));
     else
       hp = -f * hs / (norm_2(f));
-    
+
     app = 0.5 * app;
     g = hp * dot_prod(app,hp) / (hs * hs);
     ap = app -g;
@@ -305,15 +305,15 @@ namespace camera {
     vp = f * vs / hs;
     f = hc * a;
     h = hp + f;
-    
+
     f = vc * a;
     v = vp + f;
-    
+
     dst_camera0.C = src_camera0.C;
     dst_camera0.A = a;
     dst_camera0.H = h;
     dst_camera0.V = v;
-    
+
     dst_camera1.C = src_camera1.C;
     dst_camera1.A = a;
     dst_camera1.H = h;
