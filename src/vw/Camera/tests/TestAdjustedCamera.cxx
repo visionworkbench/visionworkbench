@@ -8,6 +8,7 @@
 // TestPinholeModel.h
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
+#include <vw/Math/EulerAngles.h>
 
 #include <vw/Camera/PinholeModel.h>
 
@@ -49,8 +50,7 @@ TEST( AdjustedCameraModel, StandardConstruct ) {
 
 TEST( AdjustedCameraModel, AdjustedConstruct ) {
 
-  Matrix<double,3,3> pose;
-  pose.set_identity();
+  Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
 
   // Create an imaginary 1000x1000 pixel imager
   boost::shared_ptr<CameraModel> pinhole(
@@ -79,4 +79,13 @@ TEST( AdjustedCameraModel, AdjustedConstruct ) {
                       adjcam2.rotation_matrix(), 1e-5 );
   EXPECT_VECTOR_NEAR( adjcam.axis_angle_rotation(),
                       adjcam2.axis_angle_rotation(), 1e-5 );
+
+  // check enforcement that pose returns the rotation from camera
+  // frame to world frame.
+  Vector2 center_pixel(500,500);
+  Quaternion<double> center_pose =
+    adjcam2.camera_pose(center_pixel);
+  double angle_from_z =
+    acos(dot_prod(Vector3(0,0,1),inverse(center_pose).rotate(adjcam2.pixel_to_vector(center_pixel))));
+  EXPECT_LT( angle_from_z, 0.5 );
 }

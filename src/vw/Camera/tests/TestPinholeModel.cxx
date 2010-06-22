@@ -266,6 +266,15 @@ TEST( PinholeModel, BrownConradyDistortion ) {
       EXPECT_VECTOR_NEAR(loop, starting_pixel, 2e-6 );
     }
   }
+
+  // check enforcement that pose returns the rotation from camera
+  // frame to world frame.
+  Vector2 center_pixel = control_pinhole.point_offset();
+  Quaternion<double> center_pose =
+    control_pinhole.camera_pose(center_pixel);
+  double angle_from_z =
+    acos(dot_prod(Vector3(0,0,1),inverse(center_pose).rotate(control_pinhole.pixel_to_vector(center_pixel))));
+  EXPECT_LT( angle_from_z, 0.5 );
 }
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
