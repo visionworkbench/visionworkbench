@@ -121,6 +121,7 @@ struct Options {
   double nodata;
   int feather_length;
   std::string filter;
+  std::string output_format;
 };
 
 // Operation code for data that uses nodata
@@ -194,6 +195,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
     ("feather-length,f", po::value(&opt.feather_length)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
+    ("output-format", po::value(&opt.output_format)->default_value("auto"), "File format to use for output files.")
     ("help,h", "Display this help message");
 
   po::options_description positional("");
@@ -238,12 +240,21 @@ int main( int argc, char *argv[] ) {
       DiskImageResource *rsrc = DiskImageResource::open(input);
       ChannelTypeEnum channel_type = rsrc->channel_type();
       PixelFormatEnum pixel_format = rsrc->pixel_format();
+
+      // Check for nodata value in the file
+      if ( rsrc->has_nodata_value() ) {
+        opt.nodata = rsrc->nodata_value();
+        std::cout << "\t--> Extracted nodata value from file: " << opt.nodata << ".\n";
+      } 
       delete rsrc;
 
       vw_out() << "Loading: " << input << "\n";
       size_t pt_idx = input.rfind(".");
-      std::string output = input.substr(0,pt_idx)+"_grass" +
-        input.substr(pt_idx,input.size()-pt_idx);
+      std::string output = input.substr(0,pt_idx)+"_grass";
+      if (opt.output_format == "auto")
+        output += input.substr(pt_idx,input.size()-pt_idx);
+      else 
+        output += "." + opt.output_format;
 
       switch (pixel_format) {
       case VW_PIXEL_GRAY:
