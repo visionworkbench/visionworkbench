@@ -218,38 +218,50 @@ TEST(Log, MultiThreadLog) {
 
 TEST(Log, SystemLog) {
 
-  std::ostringstream sstr;
+  const std::string
+    s1("\tTesting system log (first call)"),
+    s2("\tTesting system log (second call)"),
+    s3("\tYou should see this message twice; once with the logging prefix and once without."),
+    s4("\tYou should see this message once.");
+
+  std::ostringstream sstr, sstr2;
 
   raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
            boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
 
   vw_log().console_log().rule_set().add_rule(EveryMessage, "test");
 
-  vw_out() << "\tTesting system log (first call)\n";
-  vw_out(InfoMessage,"test") << "\tTesting system log (second call)\n";
+  vw_out() << s1 << "\n";
+  vw_out(DebugMessage,"test") << s2 << "\n";
 
   boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
   new_log->rule_set().add_rule(EveryMessage, "test");
   vw_log().add(new_log);
-  vw_out(InfoMessage,"test") << "\tYou should see this message twice; once with the logging prefix and once without.\n";
+  vw_log().add(sstr2, new_log->rule_set());
+
+  vw_out(DebugMessage,"test") << s3 << "\n";
 
   vw_log().clear();
-  vw_out(InfoMessage,"test") << "\tYou should see this message once.\n";
+  vw_out(DebugMessage,"test") << s4 << "\n";
 
-  const std::string &out = sstr.str();
-  std::vector<std::string> lines;
-  boost::split(lines, out, boost::is_any_of("\n"));
+  const std::string out1 = sstr.str(), out2 = sstr2.str();
 
-  EXPECT_EQ(6u, lines.size());
-  EXPECT_EQ("\tTesting system log (first call)", lines[0]);
-  EXPECT_EQ("\tTesting system log (second call)", lines[1]);
+  std::vector<std::string> lines, lines2;
+  boost::split(lines,  out1, boost::is_any_of("\n"));
+  boost::split(lines2, out2, boost::is_any_of("\n"));
 
-  // Technically, these can arrive in any order, but in practice, it's the order the rules were added
-  EXPECT_EQ("\tYou should see this message twice; once with the logging prefix and once without.", lines[2]);
-
-  EXPECT_EQ("\tYou should see this message once.", lines[4]);
+  ASSERT_EQ(6u, lines.size());
+  EXPECT_EQ(s1, lines[0]);
+  EXPECT_EQ(s2, lines[1]);
+  // Technically, 2 and 3 can arrive in any order, but in practice, it's the order the rules were added
+  EXPECT_EQ(s3, lines[2]);
+  EXPECT_EQ(s3, lines[3].substr(35)); // remove log prefix
+  EXPECT_EQ(s4, lines[4]);
   EXPECT_EQ("", lines[5]);
 
+  ASSERT_EQ(2u, lines2.size());
+  EXPECT_EQ(s3, lines2[0].substr(35)); // remove log prefix
+  EXPECT_EQ("", lines2[1]);
 }
 
 TEST(Log, ProgressCallback) {

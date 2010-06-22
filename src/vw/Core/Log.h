@@ -441,9 +441,11 @@ namespace vw {
 
     /// Add a stream to the Log manager.  You may optionally specify a
     /// LogRuleSet.
-    void add(std::ostream &stream, LogRuleSet /*rule_set*/ = LogRuleSet()) {
+    void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet()) {
       Mutex::Lock lock(m_system_log_mutex);
-      m_logs.push_back( boost::shared_ptr<LogInstance>(new LogInstance(stream)) );
+      boost::shared_ptr<LogInstance> li(new LogInstance(stream));
+      li->rule_set() = rule_set;
+      m_logs.push_back(li);
     }
 
     // Add an already existing LogInstance to the system log manager.
