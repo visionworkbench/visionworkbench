@@ -1,4 +1,3 @@
-
 #include <vw/FileIO.h>
 #include <vw/Image.h>
 #include <vw/Math.h>
@@ -114,10 +113,13 @@ create_alpha( ImageViewBase<Image1T> const& image1,
 }
 
 struct Options {
-  Options() : nodata(-1) {}
+  Options() : nodata(-1), feather_length(0) {}
   // Input
   std::vector<std::string> input_files;
+
+  // Settings
   double nodata;
+  int feather_length;
   std::string filter;
 };
 
@@ -130,11 +132,13 @@ void grassfire_nodata( Options& opt,
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(notnodata(input_image,opt.nodata));
-  int32 max = max_pixel_value( distance );
+  int32 max = opt.feather_length;
+  if ( max < 1 )
+    max = max_pixel_value( distance );
   vw_out() << "\tMax distance: " << max << "\n";
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
-  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
+  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
   ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
 
   if ( opt.filter == "linear" ) {
@@ -160,11 +164,13 @@ void grassfire_alpha( Options& opt,
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(apply_mask(invert_mask(alpha_to_mask(input_image)),1));
-  int32 max = max_pixel_value(distance);
+  int32 max = opt.feather_length;
+  if ( max < 1 )
+    max = max_pixel_value(distance);
   vw_out() << "\tMax distance: " << max << "\n";
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
-  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*pixel_cast<float>(distance)/float(max));
+  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
   ImageViewRef<PixelT> result;
 
   if ( opt.filter == "linear" ) {
@@ -186,6 +192,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
     ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
+    ("feather-length,f", po::value(&opt.feather_length)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("help,h", "Display this help message");
 
