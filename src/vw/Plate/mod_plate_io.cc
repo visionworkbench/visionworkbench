@@ -46,9 +46,10 @@
 using namespace vw;
 using namespace vw::platefile;
 
-VW_DEFINE_EXCEPTION(PlateException, Exception);
-VW_DEFINE_EXCEPTION(BadRequest,  PlateException);
-VW_DEFINE_EXCEPTION(ServerError, PlateException);
+VW_DEFINE_EXCEPTION(PlateException,   Exception);
+VW_DEFINE_EXCEPTION(BadRequest,       PlateException);
+VW_DEFINE_EXCEPTION(ServerError,      PlateException);
+VW_DEFINE_EXCEPTION(UnknownPlatefile, PlateException);
 
 typedef std::map<std::string, std::string> QueryMap;
 
@@ -131,7 +132,7 @@ class PlateModule {
       }
 
       if (!allow_resync())
-        vw_throw(BadRequest() << "No such platefile (no resync) for " << msg_name.str());
+        vw_throw(UnknownPlatefile() << "No such platefile (no resync) for " << msg_name.str());
 
       // If we get an unknown platefile (and we're allowed to do so) resync just to make sure
       logger(WarningMessage) << "Platefile [" << msg_name.str() << "] not in platefile cache. Resyncing." << std::endl;
@@ -139,7 +140,7 @@ class PlateModule {
 
       index_i = index_cache.find(id);
       if (index_i == index_cache.end())
-        vw_throw(BadRequest() << "No such platefile (after resync) for " << msg_name.str());
+        vw_throw(UnknownPlatefile() << "No such platefile (after resync) for " << msg_name.str());
 
       return index_i->second;
     }
@@ -693,6 +694,10 @@ extern "C" int mod_plate_handler(request_rec *r) {
   } catch (const TileNotFoundErr& e) {
     // Valid format, but not there
     ap_log_rerror(APLOG_MARK, APLOG_NOTICE, 0, r,  "Tile not found: %s", e.what());
+    return HTTP_NOT_FOUND;
+  } catch (const UnknownPlatefile& e) {
+    // Valid format, but not there
+    ap_log_rerror(APLOG_MARK, APLOG_NOTICE, 0, r,  "Platefile not found: %s", e.what());
     return HTTP_NOT_FOUND;
   } catch (const ServerError& e) {
     // Something screwed up, but we controlled it
