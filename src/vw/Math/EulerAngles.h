@@ -19,7 +19,7 @@ namespace vw {
 namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
-  inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3> rotation_matrix) {
+  inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3>& rotation_matrix) {
     double omega = asin(-rotation_matrix(2,0));
     double kappa = atan2(rotation_matrix(1,0),rotation_matrix(0,0));
     double phi = atan2(rotation_matrix(2,1),rotation_matrix(2,2));
@@ -28,7 +28,7 @@ namespace math {
   }
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
-  inline Vector3 rotation_matrix_to_euler_yxz(const Matrix<double,3,3> rotation_matrix) {
+  inline Vector3 rotation_matrix_to_euler_yxz(const Matrix<double,3,3>& rotation_matrix) {
     double cos_phi = sqrt (1 - rotation_matrix(2,1) * rotation_matrix(2,1));
     double phi = atan2(rotation_matrix(2,1), cos_phi);
     double omega = atan2(-rotation_matrix(2,0), rotation_matrix(2,2));
@@ -37,7 +37,7 @@ namespace math {
   }
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
-  inline Vector3 rotation_matrix_to_euler_zxy(const Matrix<double,3,3> rotation_matrix) {
+  inline Vector3 rotation_matrix_to_euler_zxy(const Matrix<double,3,3>& rotation_matrix) {
     double sin_phi = -rotation_matrix(1,2);
     double cos_phi = sqrt (1 - sin_phi*sin_phi);
     double phi = atan2(sin_phi, cos_phi);
