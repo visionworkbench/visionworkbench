@@ -339,6 +339,8 @@ int handle_image(request_rec *r, const std::string& url) {
     r->content_type = "image/png";
   else if (idx_record.filetype() == "jpg")
     r->content_type = "image/jpeg";
+  else if (idx_record.filetype() == "tif")
+    r->content_type = "image/tiff";
   else
     r->content_type = "application/octet-stream";
 
@@ -509,9 +511,9 @@ int handle_wtml(request_rec *r, const std::string& url) {
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index_cache() ) {
 
     const std::string filetype = e.second.index->index_header().tile_filetype();
-    // WWT can only handle jpg and png
+    // WWT can only handle jpg, png, and tif
     if (!show_all_layers) {
-        if (filetype != "jpg" && filetype != "png" && filetype != "auto") {
+        if (filetype != "jpg" && filetype != "png" && filetype != "tif" && filetype != "auto") {
             vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
             continue;
         }
