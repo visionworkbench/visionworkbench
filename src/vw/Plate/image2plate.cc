@@ -113,6 +113,7 @@ int main( int argc, char *argv[] ) {
     ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("force-spherical-datum", po::value<double>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
+    ("force-float", "Force the platefile to use a channel type of float.")
     ("debug", "Display helpful debugging messages.")
     ("help", "Display this help message");
 
@@ -186,6 +187,14 @@ int main( int argc, char *argv[] ) {
     if (pixel_format == VW_PIXEL_RGB)
       pixel_format = VW_PIXEL_RGBA;
     delete rsrc;
+
+    // User override for channel type
+    if (vm.count("force-float")) {
+      std::cout << "\t--> Processing image using a 32-bit floating point channel type.\n";
+      std::cout << "\t    Overriding channel type for 32-bit float: setting it to TIFF.\n";
+      channel_type = VW_CHANNEL_FLOAT32;
+      tile_filetype = "tif";
+    }
 
   } catch (vw::Exception &e) {
     vw_out(ErrorMessage) << "An error occured: " << e.what() << "\n";
@@ -302,11 +311,23 @@ int main( int argc, char *argv[] ) {
         georef.set_transform( M );
       }
 
+      PixelFormatEnum rsrc_pixel_frmt = rsrc->pixel_format();
+      ChannelTypeEnum rsrc_channel_type = rsrc->channel_type();
+
+      // User override for channel type
+      if (vm.count("force-float")) {
+        std::cout << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
+        rsrc_channel_type = VW_CHANNEL_FLOAT32;
+        
+        // Turn off automatic rescaling when reading in images
+        DiskImageResource::set_default_rescale(false);
+      }
+
       // Dispatch to the compositer based on the pixel type of this mosaic.
-      switch(rsrc->pixel_format()) {
+      switch(rsrc_pixel_frmt) {
       case VW_PIXEL_GRAY:
       case VW_PIXEL_GRAYA:
-        switch(rsrc->channel_type()) {
+        switch(rsrc_channel_type) {
         case VW_CHANNEL_UINT8:  
         case VW_CHANNEL_UINT16:  
           if (has_nodata_value)
@@ -334,17 +355,9 @@ int main( int argc, char *argv[] ) {
           break;
         case VW_CHANNEL_FLOAT32:
           if (has_nodata_value) {
-            // This tangled mess of image views is a little
-            // convoluted.  It remaps the nodata value for floating
-            // point DEMs to -32767 and then casts the pixels to int16
-            // before creating the alpha mask.  This works fine for
-            // DEMs that should be stored as 16-bit int's in a
-            // platefile, but will break any other type of floating
-            // point data.  So, beware!
             do_mosaic(platefile,
-                      mask_to_alpha(create_mask(channel_cast<int16>(remap_pixel_value(DiskImageView<PixelGray<float32> >(image_files[i]), 
-                                                                                      PixelGray<float>(nodata_value), 
-                                                                                      PixelGray<float>(-32767))), -32767)),
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]), 
+                                                nodata_value)),
                       image_files[i], transaction_id_override, georef, 
                       output_mode, vm.count("terrain"));
           } else

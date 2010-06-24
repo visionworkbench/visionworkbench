@@ -28,8 +28,9 @@ struct FilterBase {
   inline ImplT& impl()             { return static_cast<ImplT&>(*this); }
   inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-  inline void init(PlateFile& output, const PlateFile& input, int output_transaction_id) {
-    return impl().init(output, input, output_transaction_id);
+  inline void init(PlateFile& output, const PlateFile& input, 
+                   int input_transaction_id, int output_transaction_id) {
+    return impl().init(output, input, input_transaction_id, output_transaction_id);
   }
   inline void fini(PlateFile& output, const PlateFile& input, int output_transaction_id) {
     return impl().fini(output, input, output_transaction_id);
@@ -57,7 +58,7 @@ struct Identity : public FilterBase<Identity> {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void init(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_request(); }
+  inline void init(PlateFile& output, const PlateFile& /*input*/, int /* input_transaction_id */, int /*output_transaction_id*/) { output.write_request(); }
   inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_complete(); }
 
   inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
@@ -74,22 +75,26 @@ struct ToastDem : public FilterBase<ToastDem> {
   PixelFormatEnum pixel_format(PixelFormatEnum) const { return VW_PIXEL_SCALAR; }
   ChannelTypeEnum channel_type(ChannelTypeEnum) const { return VW_CHANNEL_UINT8; }
 
-  inline void init(PlateFile& output, const PlateFile& input, int output_transaction_id) {
+  inline void init(PlateFile& output, const PlateFile& input, int input_transaction_id, int output_transaction_id) {
     output.write_request();
 
     // Write null tiles for the levels we don't have data for
     int level_difference = log(input.default_tile_size()/float(output.default_tile_size())) / log(2.) + 0.5;
 
-    vw_out(InfoMessage, "plate.tools.plate2plate") << "Creating null tiles for a level difference of " << level_difference << std::endl;
+    vw_out() << "Creating null tiles for a level difference of " << level_difference << std::endl;
 
     uint64 bytes;
     boost::shared_array<uint8> null_tile = toast_dem_null_tile(bytes);
 
     for (int level = 0; level < level_difference; ++level) {
       int region_size = 1 << level;
-      for (int col = 0; col < region_size; ++col)
-        for (int row = 0; row < region_size; ++row)
-          output.write_update(null_tile, bytes, col, row, level, output_transaction_id);
+      for (int row = 0; row < region_size; ++row) {
+        for (int col = 0; col < region_size; ++col) {
+          DemWriter writer(output);
+          make_toast_dem_tile(writer, input, col, row, level, 0, 
+                              input_transaction_id, output_transaction_id);
+        }
+      }
     }
   }
 
@@ -110,7 +115,10 @@ struct ToastDem : public FilterBase<ToastDem> {
 
   inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
     DemWriter writer(output);
-    make_toast_dem_tile(writer, input, col, row, level, input_transaction_id, output_transaction_id);
+    int level_difference = log(input.default_tile_size()/
+                               float(output.default_tile_size())) / log(2.) + 0.5;
+    make_toast_dem_tile(writer, input, col, row, level, level_difference, 
+                        input_transaction_id, output_transaction_id);
   }
 };
 
@@ -186,7 +194,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
   
   int output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
 
-  filter.init(output, input, output_transaction_id);
+  filter.init(output, input, input.transaction_cursor(), output_transaction_id);
 
   VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
 

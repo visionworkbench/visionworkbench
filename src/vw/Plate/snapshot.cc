@@ -342,6 +342,9 @@ int main( int argc, char *argv[] ) {
       case VW_CHANNEL_INT16:  
         do_snapshot<PixelGrayA<int16> >(platefile, snapshot_params);
         break;
+      case VW_CHANNEL_FLOAT32:  
+        do_snapshot<PixelGrayA<float32> >(platefile, snapshot_params);
+        break;
       default:
         vw_throw(ArgumentErr() << "Image contains a channel type not supported by snapshot.\n");
         exit(1);

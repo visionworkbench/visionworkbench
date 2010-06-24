@@ -28,10 +28,11 @@ namespace platefile {
   // than once for a given image tile)
   bool make_toast_dem_tile(const ToastDemWriter& writer,
                            const PlateFile& platefile, int32 col, int32 row, int32 level, 
+                           int32 level_difference,
                            int32 input_transaction_id, int32 output_transaction_id);
 
   void save_toast_dem_tile(std::string base_output_name, boost::shared_ptr<PlateFile> platefile,
-                           int32 col, int32 row, int32 level, int32 transaction_id);
+                           int32 col, int32 row, int32 level, int32 level_difference, int32 transaction_id);
 
   boost::shared_array<uint8> toast_dem_null_tile(uint64& output_tile_size);
 

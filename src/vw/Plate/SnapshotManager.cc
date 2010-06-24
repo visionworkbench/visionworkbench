@@ -404,6 +404,12 @@ namespace platefile {
                                                                     int start_transaction_id, 
                                                                     int end_transaction_id, 
                                                                     int write_transaction_id) const;
+  template 
+  void vw::platefile::SnapshotManager<PixelGrayA<float32> >::snapshot(int level, 
+                                                                      BBox2i const& bbox, 
+                                                                      int start_transaction_id, 
+                                                                      int end_transaction_id, 
+                                                                      int write_transaction_id) const;
   template
   void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::snapshot(int level, 
                                                                    BBox2i const& bbox, 
@@ -419,6 +425,10 @@ namespace platefile {
   void vw::platefile::SnapshotManager<PixelGrayA<int16> >::full_snapshot(int start_transaction_id, 
                                                                          int end_transaction_id, 
                                                                          int write_transaction_id) const;
+  template
+  void vw::platefile::SnapshotManager<PixelGrayA<float32> >::full_snapshot(int start_transaction_id, 
+                                                                           int end_transaction_id, 
+                                                                           int write_transaction_id) const;
   template
   void vw::platefile::SnapshotManager<PixelRGBA<uint8> >::full_snapshot(int start_transaction_id, 
                                                                          int end_transaction_id, 

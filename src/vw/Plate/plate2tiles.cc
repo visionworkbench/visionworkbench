@@ -148,10 +148,6 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
         save_toast_tile(output_name, platefile, 
                         header_iter->col(), header_iter->row(), 
                         header_iter->level(), header_iter->transaction_id());        
-      } else if (output_format == "toast_dem") {
-        save_toast_dem_tile(output_name, platefile, 
-                          header_iter->col(), header_iter->row(), 
-                          header_iter->level(), header_iter->transaction_id());
       } else if (output_format == "gigapan") {
         save_gigapan_tile(output_name, platefile, 
                           header_iter->col(), header_iter->row(), 
