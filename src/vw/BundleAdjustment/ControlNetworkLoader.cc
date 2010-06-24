@@ -129,17 +129,19 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
           if ( norm_2( camera_models[j_cam_id]->camera_center( cpoint[j].position() ) -
                        camera_models[k_cam_id]->camera_center( cpoint[k].position() ) ) > 1e-6 ) {
 
-            stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
-                                    camera_models[ k_cam_id ].get() );
+            try {
+              stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
+                                      camera_models[ k_cam_id ].get() );
 
-            if ( sm.convergence_angle( cpoint[j].position(),
-                                       cpoint[k].position() ) >
-                 min_convergence_angle ) {
-              positions.push_back( sm( cpoint[j].position(),
-                                       cpoint[k].position(),
+              if ( sm.convergence_angle( cpoint[j].position(),
+                                         cpoint[k].position() ) >
+                   min_convergence_angle ) {
+                positions.push_back( sm( cpoint[j].position(),
+                                         cpoint[k].position(),
                                        error ) );
-              error_sum += error;
-            }
+                error_sum += error;
+              }
+            } catch ( camera::PixelToRayErr e ) { /* Just let it go */ }
           }
         }
       }
@@ -151,8 +153,13 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
         // distance out from the camera center and is in the 'general'
         // area.
         int j = cpoint[0].image_id();
-        cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
-                             camera_models[j]->pixel_to_vector(cpoint[j].position())*10 );
+        try {
+          cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
+                               camera_models[j]->pixel_to_vector(cpoint[j].position())*10 );
+        } catch ( camera::PixelToRayErr e ) {
+          cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
+                               camera_models[j]->camera_pose(cpoint[j].position()).rotate(Vector3(0,0,10)) );
+        }
       } else {
         error_sum /= positions.size();
         Vector3 position_avg;
