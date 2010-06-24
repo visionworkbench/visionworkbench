@@ -48,6 +48,7 @@ void vw::photometry::ComputeSaveShadowMap( ModelParams input_img_params,
 
       if ( is_valid(originalImage(l,k)) ) {
         shadowImage(l, k) = 0;
+        //printf("shadowThresh = %d\n", globalParams.shadowThresh);
         if (originalImage(l, k) < globalParams.shadowThresh){
           shadowImage(l, k) = 255;
         }

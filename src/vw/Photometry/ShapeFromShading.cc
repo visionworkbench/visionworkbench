@@ -173,6 +173,7 @@ float ComputeReconstructError(float intensity, float T, float albedo,
   return error;
 }
 
+
 //call function for the update of the height map. main call function for shape from shading - from multiple images
 void
 vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
@@ -192,7 +193,371 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	read_georeference(inputImg_geo, inputImgFilename);
 	DiskImageView<PixelMask<PixelGray<uint8> > >  outputImage(outputImgFilename);
 	
-	ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(meanDEM.impl(),																				   ConstantEdgeExtension()),
+	ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(meanDEM.impl(),																			     ConstantEdgeExtension()),
+								        BilinearInterpolation());
+	
+	Vector<float, BlockArea> lhs;
+	Matrix<float, BlockArea, BlockArea> rhs;
+        vector<Matrix<float, BlockArea, BlockArea> >jacobianArray;
+        vector<Vector<float, BlockArea> > errorVectorArray;
+        jacobianArray.resize((int)overlapImgParams.size()+1);
+        errorVectorArray.resize((int)overlapImgParams.size()+1);
+    
+	float recDer, recDerLEFT, recDerTOP, recErr;    
+	
+	int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
+	int numVerBlocks = meanDEM.rows()/verBlockSize + 1;
+	printf("numVerBlocks = %d, numHorBlocks = %d\n", numVerBlocks, numHorBlocks);
+	
+	Vector3 *normalArray = new Vector3[numVerBlocks*numHorBlocks];
+	Vector3 *xyzArray = new Vector3[numVerBlocks*numHorBlocks];
+	Vector3 *xyzTOPArray = new Vector3[numVerBlocks*numHorBlocks];
+	Vector3 *xyzLEFTArray = new Vector3[numVerBlocks*numHorBlocks];
+	float   *reliefArray = new float[numVerBlocks*numHorBlocks];
+	
+	for (int kb = 0 ; kb < numVerBlocks; ++kb) {
+	  for (int lb = 0; lb < numHorBlocks; ++lb) {
+	     
+             printf("kb = %d, lb=%d, numVerBlocks = %d, numHorBlocks = %d\n", kb, lb, numVerBlocks, numHorBlocks);
+	     
+             int n = 0;
+	     for (int k = 0 ; k < verBlockSize; ++k){ 
+	       for (int l = 0; l < horBlockSize; ++l) {
+		  int ii = kb*verBlockSize+k; //row index for the entire image
+		  int jj = lb*horBlockSize+l; //col index for the entire image
+		  if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+		    if ( is_valid(inputImage(jj,ii)) ){ 
+                       n++; 
+		    }
+		  }
+	       }
+	     }
+
+	     if ( n < BlockArea ) {
+		  printf("kb = %d, lb=%d is skipped\n", kb, lb);
+		  continue;
+	     }		
+            
+             //initialization of the jacobian and the error vector
+             for (int m = 0; m < overlapImgParams.size()+1;m++){
+	       for (int ii = 0; ii < BlockArea; ii++) {
+		 errorVectorArray[m](ii) = 0.0;
+		 for (int jj = 0; jj < BlockArea; jj++){
+		   jacobianArray[m](ii, jj) = 0.0;
+		 }
+	       }
+	     }
+           	
+	     //initialize  output_img, numSamples and norm
+	     for (int k = 0 ; k < verBlockSize; ++k) {
+	       for (int l = 0; l < horBlockSize; ++l) {
+					
+		   int ii = kb*verBlockSize+k; //row index for the entire image
+		   int jj = lb*horBlockSize+l; //col index for the entire image
+		   //printf("ii = %d, jj = %d, width = %d, height = %d\n", ii, jj, meanDEM.cols(), meanDEM.rows());
+					
+		   if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+						
+		       //local index in the vector that describes the block image; assumes row-wise concatenation.
+		       int l_index = k*horBlockSize+l; 
+						
+						
+		       if ( is_valid(inputImage(jj,ii)) ) {
+							
+			 Vector2 input_img_pix (jj,ii);
+			 Vector2 lon_lat = inputImg_geo.pixel_to_lonlat(input_img_pix);
+			 Vector2 input_dem_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_pix));
+							
+			 int x = (int)input_dem_pix[0];
+			 int y = (int)input_dem_pix[1];
+							
+			 Vector3 lonlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
+			 xyzArray[l_index] = inputImg_geo.datum().geodetic_to_cartesian(lonlat3);//3D coordinates in the img coordinates
+              
+		         Vector2 input_img_left_pix;
+			 input_img_left_pix(0) = ii-1;
+			 input_img_left_pix(1) = jj;
+							
+			 Vector2 input_img_top_pix;
+			 input_img_top_pix(0) = ii;
+			 input_img_top_pix(1) = jj-1;
+							
+			 //check for valid DEM pixel value and valid left and top coordinates
+			 if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (interp_dem_image(x,y) != -10000)){
+								
+			    //determine the 3D coordinates of the pixel left of the current pixel
+			   Vector2 input_dem_left_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_left_pix));
+			   Vector2 lon_lat_left = inputImg_geo.pixel_to_lonlat(input_img_left_pix);
+			   Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
+			   Vector3 xyz_left = inputImg_geo.datum().geodetic_to_cartesian(longlat3_left);
+			   xyzLEFTArray[l_index] = xyz_left;
+								
+			   //determine the 3D coordinates of the pixel top of the current pixel
+			   Vector2 input_dem_top_pix = DEM_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_top_pix));
+			   Vector2 lon_lat_top = inputImg_geo.pixel_to_lonlat(input_img_top_pix);
+			   Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
+			   Vector3 xyz_top = inputImg_geo.datum().geodetic_to_cartesian(longlat3_top);
+			   xyzTOPArray[l_index] = xyz_top;
+								
+			   //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
+			   // Taemin's modification
+			   normalArray[l_index] = cross_prod(xyz_top-xyzArray[l_index], xyz_left-xyzArray[l_index]);
+			   //std::cout << "xyz_top: " << xyz_top << "xyz_left: " << xyz_left << "xyzArray[l_index] " << xyzArray[l_index] << "normalArray: " << normalArray[l_index] << std::endl;
+						       							
+			   reliefArray[l_index] = ComputeReflectance(normalize(normalArray[l_index]), xyzArray[l_index], inputImgParams, globalParams);
+			 }
+		       }
+		   }
+	       } //for l
+	     } //for k
+	     //printf ("done stage 1\n");
+			
+	     //compute the jacobian and the error vector for the inputImage
+	     for (int k = 0 ; k < verBlockSize; ++k) {
+	       for (int l = 0; l < horBlockSize; ++l) {
+					
+		 int ii = kb*verBlockSize+k; //row index for the entire image
+		 int jj = lb*horBlockSize+l; //col index for the entire image
+					
+		 if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+						
+		   //local index in the vector that describes the block image; assumes row-wise concatenation.
+		   int l_index = k*horBlockSize+l; 
+						
+		   //this is the small DRG and the large DEM. needs a fix.
+		   Vector2 input_img_pix(jj,ii);
+						
+		   //printf("jj = %d, ii = %d\n", jj, ii);
+						
+		   //update from the main image        
+		   if (is_valid(inputImage(jj,ii)) && (shadowImage(jj, ii) == 0)){
+							
+		     float weight;
+		     if (globalParams.useWeights == 1){
+		       weight = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
+		       printf("-");
+		     }	else{
+		       weight = 1.0;
+		       printf(".");
+		     }
+		     //printf("xyz(m) = %f %f %f\n", xyzArray[l_index][0], xyzArray[l_index][1], xyzArray[l_index][2]);
+		     //printf("xyzLEFT(m) = %f %f %f\n", xyzLEFTArray[l_index][0], xyzLEFTArray[l_index][1], xyzLEFTArray[l_index][2]);
+		     //printf("xyzTOP(m) = %f %f %f\n", xyzTOPArray[l_index][0], xyzTOPArray[l_index][1], xyzTOPArray[l_index][2]);
+		     //printf("normal(m) = %f %f %f\n", normalArray[l_index][0], normalArray[l_index][1], normalArray[l_index][2]);
+							
+		     recDer = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],xyzTOPArray[l_index], normalArray[l_index], 
+						      inputImgParams, 0)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;
+							
+		     jacobianArray[0](l_index, l_index) = recDer*weight;
+							
+		     if (l_index > 0){
+		       recDerTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+							   xyzTOPArray[l_index], normalArray[l_index], inputImgParams, 1)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+								
+		       jacobianArray[0](l_index, l_index-horBlockSize) = recDerTOP*weight;
+		     }
+		     if (l_index > horBlockSize-1){
+		       recDerLEFT = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+							    xyzTOPArray[l_index], normalArray[l_index], 
+							    inputImgParams, 2)*(float)outputImage(jj,ii)*inputImgParams.exposureTime;	
+		       jacobianArray[0](l_index, l_index-1) = recDerLEFT*weight;
+		     }
+		     recErr = ComputeReconstructError((float)inputImage(jj, ii), inputImgParams.exposureTime, (float)outputImage(jj, ii), reliefArray[l_index]);
+							
+		     errorVectorArray[0](l_index) = recErr*weight;
+		     //printf("recDer3 = %f %f %f recErr = %f, expT = %f\n",  recDer, recDerTOP, recDerLEFT, recErr, inputImgParams.exposureTime);		    	   
+		   }//if !shadowImage
+		 }
+
+	       }//l
+	     }//k
+   		
+	     //printf("done stage 2\n");
+			
+	     //std::cout << "Jacob2: " << jacobianArray[0] << "\n";
+
+	     //compute the jacobian and the error vector for the remaining images	
+	     //#if 0
+	     for (int k = 0 ; k < verBlockSize; ++k) {
+	       for (int l = 0; l < horBlockSize; ++l) {
+					
+		 int ii = kb*verBlockSize+k; //row index for the entire image
+		 int jj = lb*horBlockSize+l; //col index for the entire image
+					
+		 if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+						
+		   //local index in the vector that describes the block image; assumes row-wise concatenation.
+		   int l_index = k*horBlockSize+l; 
+						
+		   Vector2 input_img_pix(jj,ii);
+
+		   //update from the overlapping images  
+		   for (int m = 0; m < (int)overlapImgParams.size(); m++){
+                     //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
+							     							
+		     DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
+		     GeoReference overlapImg_geo;
+		     read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
+		     ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapImg = interpolate(edge_extend(overlapImg.impl(),ConstantEdgeExtension()),BilinearInterpolation());
+							
+		     DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
+		     ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+														     ConstantEdgeExtension()),
+													 BilinearInterpolation());
+							
+		     //determine the corresponding pixel in the overlaping image
+		     Vector2 overlap_pix = overlapImg_geo.lonlat_to_pixel(inputImg_geo.pixel_to_lonlat(input_img_pix));
+		     int x = (int)overlap_pix[0];
+		     int y = (int)overlap_pix[1];
+							
+		     //compute and update matrix for non shadow pixels
+		     if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+								
+		       //float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+		       float weight;
+		       if (globalParams.useWeights == 1){
+			  weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+			  printf("-");
+		       }else{
+			  weight = 1.0;
+			  printf(".");
+		       }
+								
+		       recErr = ComputeReconstructError((float)interpOverlapImg(x, y), overlapImgParams[m].exposureTime, 
+							(float)outputImage(jj, ii), reliefArray[l_index]);
+		       errorVectorArray[m+1](l_index) = recErr*weight;
+								
+		       recDer = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+							xyzTOPArray[l_index], normalArray[l_index], 
+							overlapImgParams[m], 0)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+		       jacobianArray[m+1](l_index, l_index) = recDer*weight;
+								
+		       if (l_index > 0){
+			 recDerTOP = ComputeReliefDerivative(xyzArray[l_index], xyzLEFTArray[l_index],
+							     xyzTOPArray[l_index], normalArray[l_index], 
+							     overlapImgParams[m], 1)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+			 jacobianArray[m+1](l_index, l_index-horBlockSize) = recDerTOP*weight;
+		       }
+		       if (l_index > horBlockSize-1){
+			 recDerLEFT = ComputeReliefDerivative(xyzArray[l_index],  xyzLEFTArray[l_index],
+							      xyzTOPArray[l_index], normalArray[l_index], 
+							      overlapImgParams[m], 2)*(float)outputImage(jj,ii)*overlapImgParams[m].exposureTime;
+			 jacobianArray[m+1](l_index, l_index-1) = recDerLEFT*weight;
+		       }
+		     }
+                     //std::cout << "Jacob3: " << jacobianArray[m+1] << "\n";
+		   }//m
+		 }
+		 //printf("recDer3 = %f %f %f recErr = %f, expT = %f\n",  recDer, 
+		 //	recDerTOP, recDerLEFT, recErr, inputImgParams.exposureTime);   	   
+	       }//l
+	     }//k
+	     //printf("done stage 3\n");
+	   
+	     //#endif
+	     /*
+			 //print the jacobian
+			 for (int row = 0; row< BlockArea; row++){
+			 for (int col = 0; col < BlockArea; col++){
+	     printf("%f ", jacobian(row, col));
+			 }
+			 printf("\n");
+			 }
+	     */
+	     //print the error vector
+			
+	     
+             			
+	     //initialization of the lhs and rhs
+	     for (int ii = 0; ii < BlockArea; ii++) {
+	       lhs(ii) = 0.0;
+	       for (int jj = 0; jj < BlockArea; jj++){
+		 rhs(ii, jj) = 0.0;
+	       }
+	     }
+
+             //compute lhs and rhs
+             for (int m = 0; m < (int)overlapImgParams.size()+1; m++){
+	        rhs = rhs + transpose(jacobianArray[m])*jacobianArray[m];
+                lhs = lhs + jacobianArray[m]*errorVectorArray[m];
+             }
+
+             //solves lhs = rhs*x and stores results in lhs
+	     try {
+	       solve_symmetric_nocopy(rhs,lhs);
+	       for (int k = 0 ; k < verBlockSize; ++k) {
+		 for (int l = 0; l < horBlockSize; ++l) {
+						
+		   int ii = kb*verBlockSize+k; //row index for the entire image
+		   int jj = lb*horBlockSize+l; //col index for the entire image
+						
+		   if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+		     //local index in the vector that describes the block image; assumes row-wise concatenation.
+		     int l_index = k*horBlockSize+l; 
+		     meanDEM(jj, ii) = meanDEM(jj, ii) + lhs(l_index);
+		   }
+		 }
+	       }
+	       printf("Go\n");
+	     } catch (ArgumentErr &/*e*/) {
+				
+	       std::cout << "Error @ (kb,lb) = (" << kb << "," << lb << ")\n";
+	       //				std::cout << "Exception caught: " << ArgumentErr.what() << "\n";
+	       //				             std::cout << "PRERHS: " << pre_rhs << "\n";
+	       //				             std::cout << "PRELHS: " << pre_lhs << "\n\n";
+	       std::cout << "RHS: " << rhs << "\n";
+	       std::cout << "LHS: " << lhs << "\n\n";
+	       //				std::cout << "DEBUG: " << rhs(0,1) << "   " << rhs(1,0) << "\n\n";
+	       printf("Error\n");
+	     }
+			
+	     //solve_symmetric_nocopy(rhs, lhs);
+			
+	     //copy lhs to back meanDEM
+			
+	  }//lb
+	}//kb
+	
+
+	delete normalArray; 
+
+	delete xyzArray;
+
+	delete xyzLEFTArray;
+
+	delete xyzTOPArray;
+
+	delete reliefArray; 
+	
+	//write in the updated DEM
+	write_georeferenced_image(meanDEMFilename, meanDEM,
+				 DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+
+}
+
+
+#if 0
+//old function to be grandfather-ed.
+//call function for the update of the height map. main call function for shape from shading - from multiple images
+void
+vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
+{  
+	std::string inputImgFilename = inputImgParams.inputFilename;//the original DRG
+	std::string shadowFilename = inputImgParams.shadowFilename; //shadow map
+	std::string outputImgFilename = inputImgParams.outputFilename; //albedo map
+	std::string meanDEMFilename = inputImgParams.meanDEMFilename; //original mean DEM
+	
+	DiskImageView<PixelGray<float> >  meanDEM(meanDEMFilename);
+	GeoReference DEM_geo;
+	read_georeference(DEM_geo, meanDEMFilename);
+	
+	DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadowFilename);
+	DiskImageView<PixelMask<PixelGray<uint8> > >  inputImage(inputImgFilename);
+	GeoReference inputImg_geo;
+	read_georeference(inputImg_geo, inputImgFilename);
+	DiskImageView<PixelMask<PixelGray<uint8> > >  outputImage(outputImgFilename);
+	
+	ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(meanDEM.impl(),																			     ConstantEdgeExtension()),
 								        BilinearInterpolation());
 	
 	Vector<float, BlockArea> lhs, errorVector;
@@ -212,8 +577,10 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	
 	for (int kb = 0 ; kb < numVerBlocks; ++kb) {
 	  for (int lb = 0; lb < numHorBlocks; ++lb) {
-	     printf("kb = %d, lb=%d, numVerBlocks = %d, numHorBlocks = %d\n", kb, lb, numVerBlocks, numHorBlocks);
-	     int n = 0;
+	     
+             printf("kb = %d, lb=%d, numVerBlocks = %d, numHorBlocks = %d\n", kb, lb, numVerBlocks, numHorBlocks);
+	     
+             int n = 0;
 	     for (int k = 0 ; k < verBlockSize; ++k){ 
 	       for (int l = 0; l < horBlockSize; ++l) {
 		  int ii = kb*verBlockSize+k; //row index for the entire image
@@ -313,7 +680,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	     } //for k
 	     printf ("done stage 1\n");
 			
-	     //compute the jacobian and the error vector
+	     //compute the jacobian and the error vector for the inputImage
 	     for (int k = 0 ; k < verBlockSize; ++k) {
 	       for (int l = 0; l < horBlockSize; ++l) {
 					
@@ -375,7 +742,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	     printf("done stage 2\n");
 			
 	     std::cout << "Jacob2: " << jacobian << "\n";
-			
+
+	     //compute the jacobian and the error vector for the remaining images	
 	     //#if 0
 	     for (int k = 0 ; k < verBlockSize; ++k) {
 	       for (int l = 0; l < horBlockSize; ++l) {
@@ -478,7 +846,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		   if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
 		     //local index in the vector that describes the block image; assumes row-wise concatenation.
 		     int l_index = k*horBlockSize+l; 
-		     meanDEM(jj, ii) = lhs(l_index);
+		     meanDEM(jj, ii) = meanDEM(jj, ii) + lhs(l_index);
 		   }
 		 }
 	       }
@@ -502,23 +870,23 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	  }//lb
 	}//kb
 	
-	printf("taemin 1\n");
+
 	delete normalArray; 
-	printf("taemin 2\n");
+
 	delete xyzArray;
-	printf("taemin 3\n");
+
 	delete xyzLEFTArray;
-	printf("taemin 4\n");
+
 	delete xyzTOPArray;
-	printf("taemin 5\n");
+
 	delete reliefArray; 
 	
 	//write in the updated DEM
-	printf("taemin 6\n");
 	write_georeferenced_image(meanDEMFilename, meanDEM,
-														DEM_geo, TerminalProgressCallback("photometry","Processing:"));
-	printf("taemin 7\n");
+				 DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+
 }
+#endif
 //=================================================================================
 //below is Jon's code 
 
