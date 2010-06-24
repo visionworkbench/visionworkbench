@@ -80,59 +80,6 @@ TEST( PinholeModel, CoordinateFrame ) {
                      Vector2(1000,500), 1e-5);
 }
 
-TEST( PinholeModel, PixelToVector ) {
-  Matrix<double,3,3> pose;
-  pose.set_identity();
-
-  // Create an imaginary 1000x1000 pixel imager
-  PinholeModel pinhole( Vector3(0,0,0), // camera center
-                        pose,           // camera pose
-                        500,500,        // fx, fy
-                        500,500,        // cx, cy
-                        NullLensDistortion());
-
-  PinholeModel pinhole2( Vector3(10,10,10), // camera center
-                         pose,              // camera pose
-                         500,500,           // fx, fy
-                         500,500,           // cx, cy
-                         NullLensDistortion());
-
-  Matrix<double,3,3> rot = vw::math::euler_to_quaternion(1.15, 0.0, -1.57, "xyz").rotation_matrix();
-  PinholeModel pinhole3(Vector3(-0.329, 0.065, -0.82),
-                        rot,
-                        605.320556640625,
-                        606.3638305664062,
-                        518.89208984375,
-                        387.5555114746094);
-
-  PinholeModel pinhole4(Vector3(-0.329, 0.065, -0.82),
-                        rot,
-                        605.320556640625,
-                        606.3638305664062,
-                        518.89208984375,
-                        387.5555114746094,
-                        TsaiLensDistortion(Vector4(-0.2796604335308075,
-                                                   0.1031486615538597,
-                                                   -0.0007824968779459596,
-                                                   0.0009675505571067333)));
-
-  Vector2 result1 = pinhole.point_to_pixel(pinhole.pixel_to_vector(Vector2(0,0))+pinhole.camera_center(Vector2(0,0)));
-  Vector2 result2 = pinhole2.point_to_pixel(pinhole2.pixel_to_vector(Vector2(0,0))+pinhole2.camera_center(Vector2(0,0)));
-  Vector2 result3 = pinhole3.point_to_pixel(pinhole3.pixel_to_vector(Vector2(0,0))+pinhole3.camera_center(Vector2(0,0)));
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-  Vector2 result4 = pinhole4.point_to_pixel(pinhole4.pixel_to_vector(Vector2(0,0))+pinhole4.camera_center(Vector2(0,0)));
-#endif
-
-  Vector2 zero_vector;
-  EXPECT_VECTOR_NEAR( result1, zero_vector, 1e-8 );
-  EXPECT_VECTOR_NEAR( result2, zero_vector, 1e-8 );
-  EXPECT_VECTOR_NEAR( result3, zero_vector, 1e-8 );
-
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
-  EXPECT_VECTOR_NEAR( result4, zero_vector, 1e-3 );
-#endif
-}
-
 TEST( PinholeModel, TsaiDistortion ) {
   // Create an imaginary 1000x1000 pixel imager
   PinholeModel pinhole( Vector3(0,0,0),                 // camera center
@@ -233,110 +180,125 @@ TEST( PinholeModel, ProjectiveMatrix ) {
       EXPECT_NEAR( solved[i], control[i], 1e-8 );
   }
   {
-    double s_fu, s_fv, s_cu, s_cv;
-    double c_fu, c_fv, c_cu, c_cv;
-    solved_pinhole.intrinsic_parameters( s_fu, s_fv, s_cu, s_cv );
-    control_pinhole.intrinsic_parameters( c_fu, c_fv, c_cu, c_cv );
-    EXPECT_NEAR( s_fv/s_fu, c_fv/c_fu, 1e-2 ); // Only accurate to 1%
-    EXPECT_NEAR( s_cu/s_fu, c_cu/c_fu, 1e-2 );
-    EXPECT_NEAR( s_cv/s_fu, c_cv/c_fu, 1e-2 );
+    Vector2 s_focal = solved_pinhole.focal_length();
+    Vector2 c_focal = control_pinhole.focal_length();
+    EXPECT_NEAR( s_focal[0]/s_focal[1],c_focal[0]/c_focal[1], 1e-2 );
+    EXPECT_VECTOR_NEAR( elem_quot(solved_pinhole.point_offset(),s_focal),
+                        elem_quot(control_pinhole.point_offset(),c_focal), 1e-2 );
   }
 }
 
-TEST( PinholeModel, BrownConradyDistortion ) {
-  // First set control camera
-  Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
+class PinholeTest : public ::testing::Test {
+protected:
+  PinholeTest() {}
 
-  // Create an imaginary 1000x1000 pixel imager
-  BrownConradyDistortion distortion( Vector2(-0.006,-0.002),
-                                     Vector3(-.13361854e-5,
-                                             0.52261757e-9,
-                                             -.50728336e-13),
-                                     Vector2(-.54958195e-6,
-                                             -.46089420e-10),
-                                     2.9659070 );
-  PinholeModel control_pinhole( Vector3(0,4,-10), pose, 76.054, 76.054,
-                                57, 57, distortion );
-  for ( float i = 0; i < 100; i+=4 ) {
-    for ( float j = 0; j < 100; j+=4 ) {
-      Vector2 starting_pixel( i+7, j+7 );
-      Vector3 point = control_pinhole.pixel_to_vector( starting_pixel );
-      point = 50*point + control_pinhole.camera_center();
-      Vector2 loop = control_pinhole.point_to_pixel( point );
-      EXPECT_VECTOR_NEAR(loop, starting_pixel, 2e-6 );
+  virtual void SetUp() {
+    expect_rot = vw::math::euler_to_rotation_matrix(1.15, 0.0, -1.57, "xyz");
+    pinhole = PinholeModel(Vector3(-0.329, 0.065, -0.82),
+                           expect_rot,
+                           605.320556640625,
+                           606.3638305664062,
+                           518.89208984375,
+                           387.5555114746094);
+  }
+
+  void projection_test(double tolerance=1e-6) {
+    Vector2 image_size = pinhole.point_offset();
+    image_size *= 2;
+    for ( unsigned x = 10; x < image_size.x(); x+=80 ) {
+      for ( unsigned y = 10; y < image_size.y(); y+=80 ) {
+          EXPECT_VECTOR_NEAR( Vector2(x,y),
+                              pinhole.point_to_pixel(pinhole.pixel_to_vector(Vector2(x,y)) +
+                                                     pinhole.camera_center(Vector2(x,y))),
+                            tolerance );
+      }
     }
   }
 
+  void readback_test(std::string const& file) {
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+    pinhole.write( file );
+    PinholeModel read_back;
+    read_back.read( file );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.camera_center(),
+                             pinhole.camera_center() );
+    Matrix<double> read_back_R =
+      read_back.camera_pose().rotation_matrix();
+    EXPECT_MATRIX_NEAR( read_back_R, expect_rot,1e-8 );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_u_direction(),
+                             pinhole.coordinate_frame_u_direction() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_v_direction(),
+                             pinhole.coordinate_frame_v_direction() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_w_direction(),
+                             pinhole.coordinate_frame_w_direction() );
+    EXPECT_STREQ( read_back.lens_distortion()->name().c_str(),
+                  pinhole.lens_distortion()->name().c_str() );
+    EXPECT_VECTOR_DOUBLE_EQ( read_back.lens_distortion()->distortion_parameters(),
+                             pinhole.lens_distortion()->distortion_parameters() );
+#endif
+  }
+
+  PinholeModel pinhole;
+  Matrix<double> expect_rot;
+};
+
+TEST_F( PinholeTest, NullLensDistortion ) {
+  projection_test();
+  UnlinkName file("NullCam.pinhole");
+  readback_test( file );
+
   // check enforcement that pose returns the rotation from camera
   // frame to world frame.
-  Vector2 center_pixel = control_pinhole.point_offset();
+  Vector2 center_pixel = pinhole.point_offset();
   Quaternion<double> center_pose =
-    control_pinhole.camera_pose(center_pixel);
+    pinhole.camera_pose(center_pixel);
   double angle_from_z =
-    acos(dot_prod(Vector3(0,0,1),inverse(center_pose).rotate(control_pinhole.pixel_to_vector(center_pixel))));
+    acos(dot_prod(Vector3(0,0,1),inverse(center_pose).rotate(pinhole.pixel_to_vector(center_pixel))));
   EXPECT_LT( angle_from_z, 0.5 );
 }
 
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-
-// WriteRead TEST
-class WriteReadTest : public ::testing::Test {
-protected:
-  WriteReadTest() {}
-
-  virtual void SetUp() {
-    // First set control camera
-    Matrix<double,3,3> pose = math::euler_to_rotation_matrix(1.3,2.0,-.7,"xyz");
-    control_pinhole = PinholeModel( Vector3(0,4,-10),
-                                    pose, 600, 700,
-                                    511, 533,
-                                    NullLensDistortion() );
-     control_R =
-       control_pinhole.camera_pose().rotation_matrix();
-  }
-
-  void TestReadBack( std::string const& file ) {
-    control_pinhole.write_file( file );
-    PinholeModel read_back;
-    read_back.read_file( file );
-    EXPECT_VECTOR_DOUBLE_EQ( read_back.camera_center(),
-                             control_pinhole.camera_center() );
-    Matrix<double> read_back_R =
-      read_back.camera_pose().rotation_matrix();
-    EXPECT_MATRIX_DOUBLE_EQ( read_back_R, control_R );
-    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_u_direction(),
-                             control_pinhole.coordinate_frame_u_direction() );
-    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_v_direction(),
-                             control_pinhole.coordinate_frame_v_direction() );
-    EXPECT_VECTOR_DOUBLE_EQ( read_back.coordinate_frame_w_direction(),
-                             control_pinhole.coordinate_frame_w_direction() );
-    EXPECT_STREQ( read_back.lens_distortion()->name().c_str(),
-                  control_pinhole.lens_distortion()->name().c_str() );
-    EXPECT_VECTOR_DOUBLE_EQ( read_back.lens_distortion()->distortion_parameters(),
-                             control_pinhole.lens_distortion()->distortion_parameters() );
-  }
-
-  PinholeModel control_pinhole;
-  Matrix<double> control_R;
-};
-
-TEST_F( WriteReadTest, Loop ) {
-  { // NULL Distortion
-    UnlinkName file("NullCam.pinhole");
-    TestReadBack( file );
-  }
-
-  control_pinhole.set_lens_distortion( TsaiLensDistortion( Vector4(-1,2,.3,.4) ) );
-  { // TSAI Distortion
-    UnlinkName file("TsaiCam.pinhole");
-    TestReadBack( file );
-  }
-
-  control_pinhole.set_lens_distortion( BrownConradyDistortion( Vector2(-1,3), Vector3(.05,1.052e-3,9.72564e-12), Vector2(-3.23415e-5,7.5271e-6), 2.345 ) );
-  { // BROWN CONRADY Distortion
-    UnlinkName file("BrownConrady.pinhole");
-    TestReadBack( file );
-  }
+TEST_F( PinholeTest, TsaiLensDistortion ) {
+  pinhole.set_lens_distortion(
+    TsaiLensDistortion(Vector4(-0.2796604335308075,
+                               0.1031486615538597,
+                               -0.0007824968779459596,
+                               0.0009675505571067333) ) );
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+  projection_test(1e-4);
+#endif
+  UnlinkName file("TsaiCam.pinhole");
+  readback_test( file );
 }
 
+TEST_F( PinholeTest, BrownConradyDistortion ) {
+  pinhole.set_lens_distortion(
+    BrownConradyDistortion(Vector2(-0.6,-0.2),
+                           Vector3(.1336185e-8,
+                                   -0.5226175e-12,
+                                   0),
+                           Vector2(.5495819e-9,
+                                   0),
+                           0.201) );
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+  projection_test(1e-4);
 #endif
+  UnlinkName file("BrownConrady.pinhole");
+  readback_test( file );
+}
+
+TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
+  Vector<double> distort_coeff(6);
+  distort_coeff[0] = 0.007646500298509824;
+  distort_coeff[1] = -0.01743067138801845;
+  distort_coeff[2] = 0.00980946292640812;
+  distort_coeff[3] = -2.98092556225311e-05;
+  distort_coeff[4] = -1.339089765674149e-05;
+  distort_coeff[5] = -1.221974557659228e-05;
+  pinhole.set_lens_distortion(
+     AdjustableTsaiLensDistortion( distort_coeff ) );
+#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+  projection_test(1e-4);
+#endif
+  UnlinkName file("AdjustedTsai.pinhole");
+  readback_test( file );
+}
