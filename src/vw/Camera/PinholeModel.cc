@@ -79,6 +79,10 @@ void vw::camera::PinholeModel::read(std::string const& filename) {
     VW_ASSERT( file.distortion_vector_size() == 8,
                IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
     m_distortion.reset( new BrownConradyDistortion(VectorProxy<double,8>(file.mutable_distortion_vector()->mutable_data())));
+  } else if ( file.distortion_name() == "AdjustableTSAI" ) {
+    VW_ASSERT( file.distortion_vector_size() > 3,
+               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
+    m_distortion.reset( new AdjustableTsaiLensDistortion(VectorProxy<double>(file.distortion_vector_size(),file.mutable_distortion_vector()->mutable_data())));
   }
 #else
   // If you hit this point, you need to install Google Protobuffers to

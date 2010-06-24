@@ -70,10 +70,7 @@ namespace camera {
     }
 
     void write(std::ostream & os) const {
-      os << "k1 = " << 0 << "\n";
-      os << "k2 = " << 0 << "\n";
-      os << "p1 = " << 0 << "\n";
-      os << "p2 = " << 0 << "\n";
+      os << "No distortion applied.\n";
     }
 
     std::string name() const { return "NULL"; }
@@ -180,6 +177,45 @@ namespace camera {
 
     void scale( float const& /*scale*/ ) {
       vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
+    }
+  };
+
+  /// Adjustable Tsai Distortion
+  ///
+  /// This is another implementation of TSAI but it supports arbitrary
+  /// number of radial coefficients ( but only on the even terms ). This
+  /// model is also different in that it's math follows what is available in
+  /// the Matlab Camera Calibration Tool Box.
+  ///
+  /// Coefficients are [r2,r4,r6, ...., t1, t2, alpha]. The last 3
+  /// elements tangential and alpha are always supplied.
+  ///
+  /// References:
+  /// http://www.vision.caltech.edu/bouguetj/calib_doc/htmls/parameters.html
+  class AdjustableTsaiLensDistortion : public LensDistortion {
+    Vector<double> m_distortion;
+  public:
+  AdjustableTsaiLensDistortion(Vector<double> params) : m_distortion(params) {
+      VW_ASSERT( params.size() > 3, ArgumentErr() << "Requires at least 4 coefficients for distortion. Last 3 are always the distortion coefficients and alpha. All leading elements are even radial distortion coefficients." );
+    }
+    Vector<double> distortion_parameters() const { return m_distortion; }
+    boost::shared_ptr<LensDistortion> copy() const {
+      return boost::shared_ptr<AdjustableTsaiLensDistortion>(new AdjustableTsaiLensDistortion(*this));
+    }
+
+    //  Location where the given pixel would have appeared if there were no lens distortion.
+    Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
+
+    void write(std::ostream & os) const {
+      os << "Radial Coeff: " << subvector(m_distortion,0,m_distortion.size()-3) << "\n";
+      os << "Tangental Coeff: " << subvector(m_distortion,m_distortion.size()-3,2) << "\n";
+      os << "Alpha: " << m_distortion[m_distortion.size()-1] << "\n";
+    }
+
+    std::string name() const { return "AdjustableTSAI"; }
+
+    void scale( float const& /*scale*/ ) {
+      vw_throw( NoImplErr() << "AdjustableTsai doesn't support scaling." );
     }
   };
 

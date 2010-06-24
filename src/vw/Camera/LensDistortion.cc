@@ -108,6 +108,39 @@ vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::Pinhol
   return intermediate+offset;
 }
 
+Vector2
+vw::camera::AdjustableTsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p )  const {
+  Vector2 focal = cam.focal_length();
+  Vector2 offset = cam.point_offset();
+
+  if (focal[0] < 1e-300 || focal[1] < 1e-300)
+    return Vector2(HUGE_VAL, HUGE_VAL);
+
+  // Create normalized coordinates
+  Vector2 p_0 = elem_quot(p - offset, focal); // represents x and y
+  double r2 = norm_2_sqr( p_0 );
+
+  // Calculating Radial effects
+  double r_n = 1, radial = 0;
+  for ( unsigned i = 0; i < m_distortion.size()-3; i++ ) {
+    r_n *= r2;
+    radial += m_distortion[i]*r_n;
+  }
+
+  // Calculating Tangential effects
+  Vector2 tangent;
+  Vector2 swap_coeff(m_distortion[m_distortion.size()-2],
+                     m_distortion[m_distortion.size()-3]);
+  tangent += elem_prod(swap_coeff,elem_sum(r2,2*elem_prod(p_0,p_0)));
+  tangent += 2*prod(p_0)*subvector(m_distortion,m_distortion.size()-3,2);
+
+  // Final normalized result
+  Vector2 result = p_0 + tangent + radial*p_0;
+
+  // Running back through intrinsic matrix (with alpha or skew)
+  return elem_prod(result+Vector2(m_distortion[m_distortion.size()-1]*result.y(),0),focal)+offset;
+}
+
 std::ostream& vw::camera::operator<<(std::ostream & os,
                                      const camera::LensDistortion& ld) {
   ld.write(os);
