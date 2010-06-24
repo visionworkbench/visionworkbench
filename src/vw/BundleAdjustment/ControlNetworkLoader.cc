@@ -10,6 +10,7 @@ using namespace vw::ba;
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
 
 struct ContainsEqualIP {
@@ -97,7 +98,8 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
     }   // end i for loop
     progress.report_finished();
     if ( num_load_rejected != 0 ) {
-      vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected << " matches due to inadequacy.\n";
+      vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
+                                  << " matches due to inadequacy.\n";
       vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
     }
   }
@@ -110,8 +112,7 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
     TerminalProgressCallback progress("ba", "Triangulating:");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
-    for ( ControlNetwork::iterator cpoint = cnet.begin();
-          cpoint != cnet.end(); cpoint++ ) {
+    BOOST_FOREACH( ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress( inc_prog );
 
       std::vector< Vector3 > positions;
@@ -120,22 +121,22 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
       const double min_convergence_angle = 5.0*M_PI/180.0;
 
       // 4.1.) Building a listing of triangulation
-      for ( unsigned j = 0; j < cpoint->size(); j++ ) {
-        for ( unsigned k = j+1; k < cpoint->size(); k++ ) {
+      for ( unsigned j = 0; j < cpoint.size(); j++ ) {
+        for ( unsigned k = j+1; k < cpoint.size(); k++ ) {
           // Make sure camera centers are not equal
-          int j_cam_id = (*cpoint)[j].image_id();
-          int k_cam_id = (*cpoint)[k].image_id();
-          if ( norm_2( camera_models[j_cam_id]->camera_center( (*cpoint)[j].position() ) -
-                       camera_models[k_cam_id]->camera_center( (*cpoint)[k].position() ) ) > 1e-6 ) {
+          int j_cam_id = cpoint[j].image_id();
+          int k_cam_id = cpoint[k].image_id();
+          if ( norm_2( camera_models[j_cam_id]->camera_center( cpoint[j].position() ) -
+                       camera_models[k_cam_id]->camera_center( cpoint[k].position() ) ) > 1e-6 ) {
 
             stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
                                     camera_models[ k_cam_id ].get() );
 
-            if ( sm.convergence_angle( (*cpoint)[j].position(),
-                                       (*cpoint)[k].position() ) >
+            if ( sm.convergence_angle( cpoint[j].position(),
+                                       cpoint[k].position() ) >
                  min_convergence_angle ) {
-              positions.push_back( sm( (*cpoint)[j].position(),
-                                       (*cpoint)[k].position(),
+              positions.push_back( sm( cpoint[j].position(),
+                                       cpoint[k].position(),
                                        error ) );
               error_sum += error;
             }
@@ -149,21 +150,20 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
         // At the very least we can provide a point that is some
         // distance out from the camera center and is in the 'general'
         // area.
-        int j = (*cpoint)[0].image_id();
-        cpoint->set_position( camera_models[j]->camera_center((*cpoint)[j].position()) +
-                              camera_models[j]->pixel_to_vector((*cpoint)[j].position())*10 );
+        int j = cpoint[0].image_id();
+        cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
+                             camera_models[j]->pixel_to_vector(cpoint[j].position())*10 );
       } else {
         error_sum /= positions.size();
         Vector3 position_avg;
         for ( unsigned j = 0; j < positions.size(); j++ )
           position_avg += positions[j]/positions.size();
-        cpoint->set_position( position_avg );
+        cpoint.set_position( position_avg );
       }
 
     }
     progress.report_finished();
   }
-
 }
 
 void vw::ba::add_ground_control_points( ControlNetwork& cnet,
