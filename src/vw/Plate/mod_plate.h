@@ -5,10 +5,15 @@
 // __END_LICENSE__
 
 
-#ifndef __VW_PLATE_MOD_PLATE_IO_H__
-#define __VW_PLATE_MOD_PLATE_IO_H__
+#ifndef __VW_PLATE_MOD_PLATE_H__
+#define __VW_PLATE_MOD_PLATE_H__
 
-#include <httpd.h>
+// forward decls
+struct server_rec;
+struct request_rec;
+struct apr_pool_t;
+struct apr_array_header_t;
+struct apr_table_t;
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +22,7 @@ extern "C" {
 int  mod_plate_handler(request_rec *r);
 int  mod_plate_status(request_rec *r, int flags);
 void mod_plate_child_init(apr_pool_t *pchild, server_rec *s);
+int  mod_plate_post_config(apr_pool_t *pconf, apr_pool_t *plog, apr_pool_t *ptemp, server_rec *s);
 
 typedef struct {
   const char *name;

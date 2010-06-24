@@ -28,8 +28,9 @@ include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  ToastPlateManager.h PlateCarreePlateManager.h		\
 		  PlateView.h RpcServices.h IndexService.h WMSService.h		\
 		  PagedIndex.h IndexPage.h ToastDem.h			\
-		  TileManipulation.h
+		  TileManipulation.h common.h
 nodist_include_HEADERS = $(protocol_headers)
+noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
 
 libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
@@ -52,7 +53,7 @@ endif
 # ----------------
 if MAKE_MODPLATE
 
-mod_plate_la_SOURCES = mod_plate.c mod_plate_io.cc
+mod_plate_la_SOURCES = mod_plate.c mod_plate_handlers.cc mod_plate_utils.cc mod_plate_core.cc
 mod_plate_la_CPPFLAGS = @APXS_CFLAGS@ @VW_CPPFLAGS@
 mod_plate_la_LIBADD = $(PLATE_LOCAL_LIBS)
 mod_plate_la_LDFLAGS = @APXS_LDFLAGS@ -module -rpath $(APXS_INSTALLDIR) -avoid-version
