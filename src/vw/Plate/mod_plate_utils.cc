@@ -106,7 +106,7 @@ vw::platefile::WTMLImageSet::WTMLImageSet(
 }
 
 const string& mapget(const std::map<string,string>& map, const std::string& key) {
-  typename std::map<string,string>::const_iterator i = map.find(key);
+  std::map<string,string>::const_iterator i = map.find(key);
   if (i == map.end())
     vw::vw_throw(vw::LogicErr() << "WTMLImageSet set up incorrectly");
   return i->second;
