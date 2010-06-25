@@ -18,7 +18,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/Camres.h>
 #include <vw/Photometry/Misc.h>
 using namespace vw::photometry;
-
+ 
+#if 0
 int
 vw::photometry::save_exposure_images(std::vector<std::string> output_files,
                                      std::vector<std::string> input_files,
@@ -137,3 +138,4 @@ vw::photometry::save_exposure_images(std::vector<std::string> output_files,
   }
   return n;
 }
+#endif

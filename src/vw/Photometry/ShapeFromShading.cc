@@ -34,8 +34,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
 
-#define horBlockSize 4
-#define verBlockSize 4
+#define horBlockSize 8 //4
+#define verBlockSize 8 //4
 #define BlockArea (horBlockSize*verBlockSize)
 
 enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
@@ -156,12 +156,14 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
   float L = 1.0 + A*rad_alpha + B*rad_alpha*rad_alpha + C*rad_alpha*rad_alpha*rad_alpha;
   	
   reliefDeriv = (mu+mu_0) ? (1-L)*cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0)) : 0;
+  /*
   if (mu_0<0 || mu<0) {
     std::cout << " sun direction " << sunDirection << " view direction " << viewDirection << " normal " << normal << std::endl;
     std::cout << " cos_alpha " << cos_alpha << " incident " << mu_0 << " emission " << mu << " L = " << L << " reliefDeriv = " << reliefDeriv << std::endl;
   } else {
 	
   }
+  */
   return reliefDeriv;
 }
 
@@ -208,13 +210,19 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
 	int numVerBlocks = meanDEM.rows()/verBlockSize + 1;
 	printf("numVerBlocks = %d, numHorBlocks = %d\n", numVerBlocks, numHorBlocks);
-	
-	Vector3 *normalArray = new Vector3[numVerBlocks*numHorBlocks];
-	Vector3 *xyzArray = new Vector3[numVerBlocks*numHorBlocks];
-	Vector3 *xyzTOPArray = new Vector3[numVerBlocks*numHorBlocks];
-	Vector3 *xyzLEFTArray = new Vector3[numVerBlocks*numHorBlocks];
-	float   *reliefArray = new float[numVerBlocks*numHorBlocks];
-	
+
+	vector<Vector3> normalArray;
+        vector<Vector3> xyzArray;
+        vector<Vector3> xyzTOPArray;
+        vector<Vector3> xyzLEFTArray;
+        vector<float> reliefArray;
+
+	normalArray.resize(numVerBlocks*numHorBlocks);
+        xyzArray.resize(numVerBlocks*numHorBlocks);
+        xyzTOPArray.resize(numVerBlocks*numHorBlocks);
+        xyzLEFTArray.resize(numVerBlocks*numHorBlocks);
+        reliefArray.resize(numVerBlocks*numHorBlocks);
+        
 	for (int kb = 0 ; kb < numVerBlocks; ++kb) {
 	  for (int lb = 0; lb < numHorBlocks; ++lb) {
 	     
@@ -412,8 +420,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 							
 		     //compute and update matrix for non shadow pixels
 		     if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (interpOverlapShadowImage(x, y) == 0)){
-								
-		       //float weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
+		
 		       float weight;
 		       if (globalParams.useWeights == 1){
 			  weight = ComputeLineWeights(overlap_pix, overlapImgParams[m].centerLine, overlapImgParams[m].maxDistArray);
@@ -517,18 +524,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 			
 	  }//lb
 	}//kb
-	
-
-	delete normalArray; 
-
-	delete xyzArray;
-
-	delete xyzLEFTArray;
-
-	delete xyzTOPArray;
-
-	delete reliefArray; 
-	
+		
 	//write in the updated DEM
 	write_georeferenced_image(meanDEMFilename, meanDEM,
 				 DEM_geo, TerminalProgressCallback("photometry","Processing:"));
@@ -667,7 +663,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 			   //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
 			   // Taemin's modification
 			   normalArray[l_index] = cross_prod(xyz_top-xyzArray[l_index], xyz_left-xyzArray[l_index]);
-			   std::cout << "xyz_top: " << xyz_top << "xyz_left: " << xyz_left << "xyzArray[l_index] " << xyzArray[l_index] << "normalArray: " << normalArray[l_index] << std::endl;
+			   //std::cout << "xyz_top: " << xyz_top << "xyz_left: " << xyz_left << "xyzArray[l_index] " << xyzArray[l_index] << "normalArray: " << normalArray[l_index] << std::endl;
 							
 			   // Ara's Original
 			   //normalArray[l_index] = computeNormalFrom3DPointsGeneral(xyzArray[l_index], xyz_left, xyz_top);
@@ -814,8 +810,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 		     }
 		   }//m
 		 }
-		 printf("recDer3 = %f %f %f recErr = %f, expT = %f\n",  recDer, 
-			recDerTOP, recDerLEFT, recErr, inputImgParams.exposureTime);		    	   
+		 //printf("recDer3 = %f %f %f recErr = %f, expT = %f\n",  recDer, 
+		 //	recDerTOP, recDerLEFT, recErr, inputImgParams.exposureTime);		    	   
 	       }//l
 	     }//k
 	     printf("done stage 3\n");

@@ -31,6 +31,9 @@ namespace photometry {
                       ModelParams currModelParams,
                       ModelParams prevModelParams );
 
+  Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
+  float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz, Vector3 normal);
+
 }} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_SHAPE_H__

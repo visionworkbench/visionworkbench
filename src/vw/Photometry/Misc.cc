@@ -24,6 +24,7 @@ using namespace vw::cartography;
 
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Misc.h>
+#include <vw/Photometry/Shape.h>
 using namespace vw::photometry;
 
 //subsamples a geo referenced tiff image by two
