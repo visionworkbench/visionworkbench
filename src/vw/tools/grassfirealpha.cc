@@ -122,6 +122,7 @@ struct Options {
   int feather_length;
   std::string filter;
   std::string output_format;
+  bool force_float;
 };
 
 // Operation code for data that uses nodata
@@ -190,12 +191,16 @@ void grassfire_alpha( Options& opt,
 
 // Handling input
 void handle_arguments( int argc, char *argv[], Options& opt ) {
+  unsigned cache_size;
+
   po::options_description general_options("");
   general_options.add_options()
     ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
     ("feather-length,f", po::value(&opt.feather_length)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("output-format", po::value(&opt.output_format)->default_value("auto"), "File format to use for output files.")
+    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Source data cache size, in megabytes")
+    ("force-float", "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
     ("help,h", "Display this help message");
 
   po::options_description positional("");
@@ -226,6 +231,15 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   if ( opt.input_files.empty() )
     vw_throw( ArgumentErr() << "Missing input files!\n"
               << usage.str() << general_options );
+
+  if ( vm.count("force-float") )
+    opt.force_float = true;
+  else
+    opt.force_float = false;
+
+  // Set the system cache size
+  vw_settings().set_system_cache_size( cache_size*1024*1024 );
+
 }
 
 int main( int argc, char *argv[] ) {
@@ -240,6 +254,16 @@ int main( int argc, char *argv[] ) {
       DiskImageResource *rsrc = DiskImageResource::open(input);
       ChannelTypeEnum channel_type = rsrc->channel_type();
       PixelFormatEnum pixel_format = rsrc->pixel_format();
+
+      // The user can elect to 
+      if (opt.force_float) {
+        std::cout << "\t--> Overriding input channel type to 32-bit float. " 
+                  << "Disabling image auto-rescaling.\n";
+        channel_type = VW_CHANNEL_FLOAT32;
+
+        // Turn off automatic rescaling when reading in images
+        DiskImageResource::set_default_rescale(false);
+      }
 
       // Check for nodata value in the file
       if ( rsrc->has_nodata_value() ) {
