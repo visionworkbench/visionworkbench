@@ -123,6 +123,7 @@ struct Options {
   std::string filter;
   std::string output_format;
   bool force_float;
+  float blur_sigma;
 };
 
 // Operation code for data that uses nodata
@@ -140,7 +141,13 @@ void grassfire_nodata( Options& opt,
   vw_out() << "\tMax distance: " << max << "\n";
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
-  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
+  ImageViewRef<inter_type> norm_dist;
+  norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
+
+  // The user may wish to blur the grassfire result before applying
+  // the transfer function.  This makes for an even smoother blend.
+  if (opt.blur_sigma > 0)
+    norm_dist = gaussian_filter(pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max))), opt.blur_sigma);
   ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
 
   if ( opt.filter == "linear" ) {
@@ -200,6 +207,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("output-format", po::value(&opt.output_format)->default_value("auto"), "File format to use for output files.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Source data cache size, in megabytes")
+    ("blur-sigma", po::value<float>(&opt.blur_sigma)->default_value(0), "Blur the grassfire result before appyling the tranfer function to create an even smoother blend.")
     ("force-float", "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
     ("help,h", "Display this help message");
 
