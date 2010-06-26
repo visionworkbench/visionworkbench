@@ -106,11 +106,11 @@ namespace platefile {
 
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile;
-      if (m_tweak_settings_for_terrain) {
-        tile = clear_nonopaque_pixels(crop(m_view, m_tile_info.bbox));
-      } else {
+      // if (m_tweak_settings_for_terrain) {
+      //   tile = clear_nonopaque_pixels(crop(m_view, m_tile_info.bbox));
+      // } else {
         tile = crop(m_view, m_tile_info.bbox);
-      }
+      // }
 
       // If this tile contains no data at all, then we bail early without
       // doing anything.

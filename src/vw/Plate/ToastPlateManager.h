@@ -127,7 +127,7 @@ namespace platefile {
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view;
       if (tweak_settings_for_terrain) {
-          toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BilinearInterpolation());
+          toast_view = transform(image,toast_tx, ZeroEdgeExtension(), NearestPixelInterpolation());
       } else {
           toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
       }
@@ -140,7 +140,7 @@ namespace platefile {
                   << "Using cylindrical edge extension to hide the seam.\n";
         if (tweak_settings_for_terrain) {
           toast_view = transform(image,toast_tx,
-                                 CylindricalEdgeExtension(),BilinearInterpolation());
+                                 CylindricalEdgeExtension(),NearestPixelInterpolation());
         } else 
           toast_view = transform(image,toast_tx,
                                  CylindricalEdgeExtension(),BicubicInterpolation());
