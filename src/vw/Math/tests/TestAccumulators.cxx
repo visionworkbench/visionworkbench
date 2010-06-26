@@ -55,6 +55,9 @@ TEST(Accumulators, CDF_triangular) {
     EXPECT_NEAR( cdf.first_quartile(), 39.6, 2.0 );
     EXPECT_NEAR( cdf.third_quartile(), 61.3, 2.0 );
     EXPECT_NEAR( cdf.approximate_mean(), 50, 1.0 );
+    EXPECT_NEAR( cdf.approximate_mean(0.05), 50, 0.5 );
+    EXPECT_NEAR( cdf.approximate_stddev(), 14.7196, 2.0 );
+    EXPECT_NEAR( cdf.approximate_stddev(0.05), 14.7196, 1.0 );
   }
   { // More quantiles == more precision
     CDFAccumulator<double> cdf(2000,500);
@@ -65,6 +68,9 @@ TEST(Accumulators, CDF_triangular) {
     EXPECT_NEAR( cdf.first_quartile(), 39.6, 1.0 );
     EXPECT_NEAR( cdf.third_quartile(), 61.3, 1.0 );
     EXPECT_NEAR( cdf.approximate_mean(), 50, 0.5 );
+    EXPECT_NEAR( cdf.approximate_mean(0.05), 50, 0.25 );
+    EXPECT_NEAR( cdf.approximate_stddev(), 14.7196, 1.0 );
+    EXPECT_NEAR( cdf.approximate_stddev(0.05), 14.7196, 0.5 );
   }
 }
 
