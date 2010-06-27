@@ -123,11 +123,12 @@ namespace ba {
 
     // Write Standard Statistics
     void write_statistics( math::CDFAccumulator<double> & cdf,
-                           std::string const& tag ) {
+                           std::string const& tag,
+                           std::string const& units) {
       cdf.update();
       m_human_both << "\t" << tag << " [mean: " << cdf.approximate_mean(0.05)
                    << " dev: " << cdf.approximate_stddev(0.05) << "] "
-                   << m_model.image_unit() << "\n";
+                   << units << "\n";
       m_human_both << "\t  cdf [" << cdf.quantile(0) << " "
                    << cdf.quantile(.25) << " "
                    << cdf.quantile(.5) << " "
@@ -272,7 +273,8 @@ namespace ba {
         image_cdf = std::for_each(image_errors.begin(),
                                   image_errors.end(),
                                   image_cdf);
-        write_statistics( image_cdf, "Image" );
+        write_statistics( image_cdf, "Image",
+                          m_model.image_unit());
       }
 
       { // Grabbing Camera Information
@@ -284,14 +286,16 @@ namespace ba {
           position_cdf = std::for_each(position_errors.begin(),
                                        position_errors.end(),
                                        position_cdf);
-          write_statistics( position_cdf, "C Pos" );
+          write_statistics( position_cdf, "C Pos",
+                            m_model.camera_position_unit());
         }
         if ( !pose_errors.empty() ) {
           math::CDFAccumulator<double> pose_cdf;
           pose_cdf = std::for_each(pose_errors.begin(),
                                    pose_errors.end(),
                                    pose_cdf);
-          write_statistics( pose_cdf, "C Rot" );
+          write_statistics( pose_cdf, "C Rot",
+                            m_model.camera_pose_unit());
         }
       }
 
@@ -303,7 +307,8 @@ namespace ba {
           gcp_cdf = std::for_each(gcp_errors.begin(),
                                   gcp_errors.end(),
                                   gcp_cdf);
-          write_statistics( gcp_cdf, "  GCP" );
+          write_statistics( gcp_cdf, "  GCP",
+                            m_model.gcp_unit());
         }
       }
     }
