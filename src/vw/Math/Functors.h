@@ -444,6 +444,43 @@ namespace math {
     std::vector<double> m_cdf, m_sample_buf, m_quantile;
     double m_q0, m_qm;  // quantile min and max;
 
+  public:
+    CDFAccumulator( int const& buffersize = 1000,
+                    int const& quantiles = 251) {
+      this->resize( buffersize, quantiles );
+    }
+
+    // Allow user to change post constructor (see ChannelAccumulator)
+    void resize( int const& buffersize = 1000,
+                 int const& quantiles = 251 ) {
+      m_buffersize = buffersize;
+      m_buffer_idx = m_num_samples = 0;
+      m_sample_buf.resize( m_buffersize );
+      m_q0 = 1e99; m_qm = -1e99;
+      m_num_quantiles = quantiles;
+      if ( !(quantiles%2) )
+        m_num_quantiles++;
+      m_quantile.resize(m_num_quantiles);
+      m_cdf.resize(m_num_quantiles);
+
+      // Setting a generic cdf to start things off, where 80% of the
+      // distribution is in the middle third.
+      int third = m_num_quantiles/3;
+      int third2 = third*2;
+      double slope = 10.0 / double(third);
+      double first_tertile_gain = 1.0 - slope;
+
+      // Filling middle
+      for ( int j = third; j <= third2; j++ )
+        m_cdf[j] = 0.8*(double(j-third)/double(third2-third))+0.1;
+      // Filling first tertile
+      for ( int j = third-1; j >= 0; j-- )
+        m_cdf[j] = first_tertile_gain*m_cdf[j+1];
+      // Filling third tertile
+      for ( int j = third2+1; j < m_num_quantiles; j++ )
+        m_cdf[j] = 1.0 - first_tertile_gain*(1.0-m_cdf[j-1]);
+    }
+
     // Merge in Bundles
     void update (void ) {
       int jd=0, jq=1;
@@ -503,43 +540,6 @@ namespace math {
       m_quantile = m_new_quantile;
       m_num_samples += m_buffer_idx;
       m_buffer_idx = 0;
-    }
-
-  public:
-    CDFAccumulator( int const& buffersize = 1000,
-                    int const& quantiles = 251) {
-      this->resize( buffersize, quantiles );
-    }
-
-    // Allow user to change post constructor (see ChannelAccumulator)
-    void resize( int const& buffersize = 1000,
-                 int const& quantiles = 251 ) {
-      m_buffersize = buffersize;
-      m_buffer_idx = m_num_samples = 0;
-      m_sample_buf.resize( m_buffersize );
-      m_q0 = 1e99; m_qm = -1e99;
-      m_num_quantiles = quantiles;
-      if ( !(quantiles%2) )
-        m_num_quantiles++;
-      m_quantile.resize(m_num_quantiles);
-      m_cdf.resize(m_num_quantiles);
-
-      // Setting a generic cdf to start things off, where 80% of the
-      // distribution is in the middle third.
-      int third = m_num_quantiles/3;
-      int third2 = third*2;
-      double slope = 10.0 / double(third);
-      double first_tertile_gain = 1.0 - slope;
-
-      // Filling middle
-      for ( int j = third; j <= third2; j++ )
-        m_cdf[j] = 0.8*(double(j-third)/double(third2-third))+0.1;
-      // Filling first tertile
-      for ( int j = third-1; j >= 0; j-- )
-        m_cdf[j] = first_tertile_gain*m_cdf[j+1];
-      // Filling third tertile
-      for ( int j = third2+1; j < m_num_quantiles; j++ )
-        m_cdf[j] = 1.0 - first_tertile_gain*(1.0-m_cdf[j-1]);
     }
 
     // User update function. (Bundles Data)

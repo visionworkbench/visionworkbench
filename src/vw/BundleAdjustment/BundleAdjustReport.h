@@ -121,6 +121,20 @@ namespace ba {
     }
 #endif
 
+    // Write Standard Statistics
+    void write_statistics( math::CDFAccumulator<double> & cdf,
+                           std::string const& tag ) {
+      cdf.update();
+      m_human_both << "\t" << tag << " [mean: " << cdf.approximate_mean(0.05)
+                   << " dev: " << cdf.approximate_stddev(0.05) << "] "
+                   << m_model.image_unit() << "\n";
+      m_human_both << "\t  cdf [" << cdf.quantile(0) << " "
+                   << cdf.quantile(.25) << " "
+                   << cdf.quantile(.5) << " "
+                   << cdf.quantile(.75) << " "
+                   << cdf.quantile(1) << "]\n";
+    }
+
   public:
     BundleAdjustReport(std::string const& name,
                        ModelType& model,
@@ -250,94 +264,48 @@ namespace ba {
 
     // Repeated sections of reporting
     void generic_readings( void ) {
-      std::vector<double> image_errors, camera_position_errors, camera_pose_errors, gcp_errors;
-
-      m_model.image_errors(image_errors);
-      m_model.camera_position_errors(camera_position_errors);
-      m_model.camera_pose_errors(camera_pose_errors);
-      m_model.gcp_errors(gcp_errors);
-
-      // Statistics gathering for image errors
-      double min_image = *(std::min_element(image_errors.begin(),
-                                            image_errors.end()));
-      double max_image = *(std::max_element(image_errors.begin(),
-                                            image_errors.end()));
-      double mean_image=0, stddev_image=0;
-      for (unsigned i = 0; i < image_errors.size(); i++ ) {
-        mean_image += image_errors[i]/double(image_errors.size());
-        stddev_image += image_errors[i]*image_errors[i]/double(image_errors.size());
-      }
-      //mean_image /= image_errors.size();
-      //stddev_image /= image_errors.size();
-      stddev_image = sqrt( stddev_image - mean_image*mean_image );
-
-      // Statistics gathering for camera_position_errors
-      double min_cam_position = *(std::min_element(camera_position_errors.begin(),
-                                                   camera_position_errors.end()));
-      double max_cam_position = *(std::max_element(camera_position_errors.begin(),
-                                                   camera_position_errors.end()));
-      double mean_cam_position=0, stddev_cam_position=0;
-      for (unsigned i = 0; i < camera_position_errors.size(); i++ ) {
-        mean_cam_position += camera_position_errors[i];
-        stddev_cam_position += camera_position_errors[i]*camera_position_errors[i];
-      }
-      mean_cam_position /= camera_position_errors.size();
-      stddev_cam_position /= camera_position_errors.size();
-      stddev_cam_position = sqrt( stddev_cam_position - mean_cam_position*mean_cam_position );
-
-      // Statistics gathering for camera_pose_errors
-      double min_cam_pose = *(std::min_element(camera_pose_errors.begin(),
-                                               camera_pose_errors.end()));
-      double max_cam_pose = *(std::max_element(camera_pose_errors.begin(),
-                                               camera_pose_errors.end()));
-      double mean_cam_pose=0, stddev_cam_pose=0;
-      for (unsigned i = 0; i < camera_pose_errors.size(); i++ ) {
-        mean_cam_pose += camera_pose_errors[i];
-        stddev_cam_pose += camera_pose_errors[i]*camera_pose_errors[i];
-      }
-      mean_cam_pose /= camera_pose_errors.size();
-      stddev_cam_pose /= camera_pose_errors.size();
-      stddev_cam_pose = sqrt( stddev_cam_pose - mean_cam_pose*mean_cam_pose );
-
-      // Statistics gathering for ground control points
-      double min_gcp=0,max_gcp=0,mean_gcp=0,stddev_gcp=0;
-      if (!gcp_errors.empty()) {
-        min_gcp = *(std::min_element(gcp_errors.begin(),
-                                     gcp_errors.end()));
-        max_gcp = *(std::max_element(gcp_errors.begin(),
-                                     gcp_errors.end()));
-        for (unsigned i = 0; i < gcp_errors.size(); i++ ) {
-          mean_gcp += gcp_errors[i];
-          stddev_gcp += gcp_errors[i]*gcp_errors[i];
-        }
-        mean_gcp /= gcp_errors.size();
-        stddev_gcp /= gcp_errors.size();
-        stddev_gcp = sqrt( stddev_gcp - mean_gcp*mean_gcp );
-      }
-
-      // Sharing now
       m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
-      m_human_both << "\tImage [min: " << min_image << " mean: " << mean_image
-                   << " max: " << max_image << " dev: " << stddev_image << "] "
-                   << m_model.image_unit() << std::endl;
-      m_human_both << "\tCam Position [min: " << min_cam_position << " mean: "
-                   << mean_cam_position << " max: " << max_cam_position
-                   << " dev: " << stddev_cam_position << "] "
-                   << m_model.camera_position_unit() << std::endl;
-      m_human_both << "\tCam Pose [min: " << min_cam_pose << " mean: "
-                   << mean_cam_pose << " max: " << max_cam_pose << " dev: "
-                   << stddev_cam_pose << "] " << m_model.camera_pose_unit()
-                   << std::endl;
-      if (!m_adjuster.camera_constraint())
-        m_human_both << "\t[NOTE: Camera Constraint Shutoff!]\n";
-      if (!gcp_errors.empty())
-        m_human_both << "\tGCP [min: " << min_gcp << " mean: " << mean_gcp
-                     << " max: " << max_gcp << " dev: " << stddev_gcp << "] "
-                     << m_model.gcp_unit() << std::endl;
-      else
-        m_human_both << "\tGCP [N/A]\n";
-      if (!m_adjuster.gcp_constraint())
-        m_human_both << "\t[NOTE: GCP Constraint Shutoff!]\n";
+      { // Grabbing Image Error information
+        std::vector<double> image_errors;
+        m_model.image_errors(image_errors);
+        math::CDFAccumulator<double> image_cdf;
+        image_cdf = std::for_each(image_errors.begin(),
+                                  image_errors.end(),
+                                  image_cdf);
+        write_statistics( image_cdf, "Image" );
+      }
+
+      { // Grabbing Camera Information
+        std::vector<double> position_errors, pose_errors;
+        m_model.camera_position_errors(position_errors);
+        m_model.camera_pose_errors(pose_errors);
+        if ( !position_errors.empty() ) {
+          math::CDFAccumulator<double> position_cdf;
+          position_cdf = std::for_each(position_errors.begin(),
+                                       position_errors.end(),
+                                       position_cdf);
+          write_statistics( position_cdf, "C Pos" );
+        }
+        if ( !pose_errors.empty() ) {
+          math::CDFAccumulator<double> pose_cdf;
+          pose_cdf = std::for_each(pose_errors.begin(),
+                                   pose_errors.end(),
+                                   pose_cdf);
+          write_statistics( pose_cdf, "C Rot" );
+        }
+      }
+
+      {
+        std::vector<double> gcp_errors;
+        m_model.gcp_errors(gcp_errors);
+        if ( !gcp_errors.empty() ) {
+          math::CDFAccumulator<double> gcp_cdf;
+          gcp_cdf = std::for_each(gcp_errors.begin(),
+                                  gcp_errors.end(),
+                                  gcp_cdf);
+          write_statistics( gcp_cdf, "  GCP" );
+        }
+      }
     }
 
     void stereo_errors( std::vector<double>& stereo_errors ) {
