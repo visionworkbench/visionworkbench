@@ -106,7 +106,8 @@ namespace ip {
   void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                               std::vector<InterestPoint> &ip2);
 
-  /// Select only the interest points that fall within the specified bounding box.
+  /// Select only the interest points that fall within the specified
+  /// bounding box.
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
     InterestPointList return_val;
@@ -116,6 +117,9 @@ namespace ip {
     }
     return return_val;
   }
+
+  /// Helpful functors
+  void remove_descriptor( InterestPoint & ip );
 
   /// ImageInterestData
   ///

@@ -67,6 +67,10 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
                                            << ip1.size() << " matches.\n";
           num_loaded += ip1.size();
 
+          // Remove descriptors from interest points
+          std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
+          std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
+
           typedef boost::shared_ptr< IPFeature > f_ptr;
           typedef std::list< f_ptr >::iterator f_itr;
 

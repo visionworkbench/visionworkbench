@@ -166,4 +166,7 @@ namespace ip {
     return result;
   }
 
+  /// Helpful functors
+  void remove_descriptor( InterestPoint & ip ) { ip.descriptor.set_size(0); }
+
 }} // namespace vw::ip
