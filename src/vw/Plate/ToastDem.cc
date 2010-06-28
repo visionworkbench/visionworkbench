@@ -74,12 +74,6 @@ namespace platefile {
       v_toast_indices = ul_lr_quadrant_v_toast_indices;
     }
 
-    // Next, we need to determine how many levels of difference there is
-    // between the image tile size and the DEM tile size.  The latter is
-    // 32x32.
-    VW_ASSERT(platefile.default_tile_size() > 32,
-              LogicErr() << "Platefile tile size must be larger than 32x32.");
-
     ImageView<PixelT> src_tile;
     try {
       // Read the tile & prepare the interpolation view for sampling it.

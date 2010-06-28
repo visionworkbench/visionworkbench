@@ -54,12 +54,16 @@ public:
   int begin_transaction_id;
   int end_transaction_id;
   int write_transaction_id;
+  bool tweak_settings_for_terrain;
   BBox2i region;
 
   // Constructor
   SnapshotParameters(std::string const& range_string, 
                      std::string const& region_string, 
-                     int const& write_transaction_id) : write_transaction_id(write_transaction_id) {
+                     int const& write_transaction_id, 
+                     bool terrain) : 
+    tweak_settings_for_terrain(terrain),
+    write_transaction_id(write_transaction_id) {
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep(",:@");
 
@@ -163,7 +167,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
                 snapshot_parameters.begin_transaction_id,
                 snapshot_parameters.end_transaction_id,
-                snapshot_parameters.write_transaction_id);
+                snapshot_parameters.write_transaction_id, 
+                snapshot_parameters.tweak_settings_for_terrain);
     
     // Release the blob id lock.
     platefile->write_complete();
@@ -194,7 +199,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // Do a full snapshot
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
-                       t_id);
+                       t_id, 
+                       snapshot_parameters.tweak_settings_for_terrain);
 
       // Release the blob id lock and note that the transaction is finished.
       platefile->write_complete();
@@ -216,7 +222,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // User-supplied transaction_id
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
-                       snapshot_parameters.write_transaction_id);
+                       snapshot_parameters.write_transaction_id, 
+                       snapshot_parameters.tweak_settings_for_terrain);
 
       // Release the blob id lock and note that the transaction is finished.
       platefile->write_complete();
@@ -246,6 +253,7 @@ int main( int argc, char *argv[] ) {
     ("transaction-id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
     ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).") 
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
+    ("terrain", "Tweak settings for terrain.")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -330,7 +338,8 @@ int main( int argc, char *argv[] ) {
     
     // Parse out the rest of the command line options into a special
     // SnapshotParameters class.
-    SnapshotParameters snapshot_params(range_string, region_string, transaction_id);
+    SnapshotParameters snapshot_params(range_string, region_string, 
+                                       transaction_id, vm.count("terrain"));
     
     // Dispatch to the compositer based on the pixel type of this mosaic.
     switch(platefile->pixel_format()) {

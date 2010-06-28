@@ -126,11 +126,11 @@ namespace platefile {
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> toast_view;
-      if (tweak_settings_for_terrain) {
-          toast_view = transform(image,toast_tx, ZeroEdgeExtension(), NearestPixelInterpolation());
-      } else {
+      // if (tweak_settings_for_terrain) {
+      //     toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BilinearInterpolation());
+      // } else {
           toast_view = transform(image,toast_tx, ZeroEdgeExtension(), BicubicInterpolation());
-      }
+      // }
       if( (boost::trim_copy(georef.proj4_str())=="+proj=longlat") &&
           (fabs(georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1) &&
           (fabs(georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1) &&
@@ -138,12 +138,13 @@ namespace platefile {
           (fabs(georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1) ) {
         vw_out() << "\t--> Detected global overlay.  " 
                   << "Using cylindrical edge extension to hide the seam.\n";
-        if (tweak_settings_for_terrain) {
-          toast_view = transform(image,toast_tx,
-                                 CylindricalEdgeExtension(),NearestPixelInterpolation());
-        } else 
+        // if (tweak_settings_for_terrain) {
+        //   toast_view = transform(image,toast_tx,
+        //                          CylindricalEdgeExtension(),BilinearInterpolation());
+        // } else {
           toast_view = transform(image,toast_tx,
                                  CylindricalEdgeExtension(),BicubicInterpolation());
+          //        }
       } 
 
       // chop up the image into small chunks

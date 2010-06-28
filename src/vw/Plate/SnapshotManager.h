@@ -64,14 +64,15 @@ namespace platefile {
     }
 
     int snapshot_helper(int current_col, 
-                         int current_row, 
-                         int current_level, 
-                         std::map<int32, TileHeader> composite_tiles,
-                         vw::BBox2i const& target_region,
-                         int target_level, 
-                         int start_transaction_id, 
-                         int end_transaction_id, 
-                         int write_transaction_id) const;
+                        int current_row, 
+                        int current_level, 
+                        std::map<int32, TileHeader> composite_tiles,
+                        vw::BBox2i const& target_region,
+                        int target_level, 
+                        int start_transaction_id, 
+                        int end_transaction_id, 
+                        int write_transaction_id, 
+                        bool tweak_settings_for_terrain) const;
 
   protected:
     boost::shared_ptr<PlateFile> m_platefile;
@@ -93,12 +94,14 @@ namespace platefile {
     //
     void snapshot(int level, BBox2i const& bbox, 
                   int start_transaction_id, int end_transaction_id, 
-                  int write_transaction_id) const;
+                  int write_transaction_id,
+                  bool tweak_settings_for_terrain) const;
 
     // Create a full snapshot of every level and every region in the mosaic.
     void full_snapshot(int start_transaction_id, 
                        int end_transaction_id, 
-                       int write_transaction_id) const;
+                       int write_transaction_id, 
+                       bool tweak_settings_for_terrain) const;
       
   };    
 
