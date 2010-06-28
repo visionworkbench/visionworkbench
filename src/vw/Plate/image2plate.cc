@@ -157,12 +157,6 @@ int main( int argc, char *argv[] ) {
   if( url == "" )
     url = prefix_from_filename(image_files[0]) + "_" + output_mode + ".plate";
 
-  if( tile_size <= 0 || tile_size != pow(2,int(log(tile_size)/log(2))) ) {
-    std::cerr << "Error: The tile size must be a power of two!  (You specified: " << tile_size << ")" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
