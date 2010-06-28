@@ -113,15 +113,16 @@ create_alpha( ImageViewBase<Image1T> const& image1,
 }
 
 struct Options {
-  Options() : nodata(-1), feather_length(0) {}
+  Options() : nodata(-1), feather_min(0), feather_max(0) {}
   // Input
   std::vector<std::string> input_files;
 
   // Settings
   double nodata;
-  int feather_length;
+  float feather_min;
+  float feather_max;
   std::string filter;
-  std::string output_format;
+  std::string output_filename;
   bool force_float;
   float blur_sigma;
 };
@@ -135,21 +136,29 @@ void grassfire_nodata( Options& opt,
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(notnodata(input_image,opt.nodata));
-  int32 max = opt.feather_length;
-  if ( max < 1 )
-    max = max_pixel_value( distance );
-  vw_out() << "\tMax distance: " << max << "\n";
+
+  // Check to see if the user has specified a feather length.  If not,
+  // then we send the feather_max to the max pixel value (which
+  // results in a full grassfire blend all the way to the center of the image.)
+  if (opt.feather_max < 1)
+    opt.feather_max = max_pixel_value( distance );
+  vw_out() << "\t--> Distance range: [ " << opt.feather_min << " " << opt.feather_max << " ]\n";
+
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
   ImageViewRef<inter_type> norm_dist;
-  norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
-
+  norm_dist = pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
+                                     clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                           0.0, opt.feather_max - opt.feather_min));
+  
   // The user may wish to blur the grassfire result before applying
   // the transfer function.  This makes for an even smoother blend.
   if (opt.blur_sigma > 0)
-    norm_dist = gaussian_filter(pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max))), opt.blur_sigma);
-  ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
+    norm_dist = gaussian_filter(pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
+                                                       clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                                             0.0, opt.feather_max - opt.feather_min)), opt.blur_sigma);
 
+  ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
   if ( opt.filter == "linear" ) {
     result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
   } else if ( opt.filter == "cosine" ) {
@@ -173,15 +182,23 @@ void grassfire_alpha( Options& opt,
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance = grassfire(apply_mask(invert_mask(alpha_to_mask(input_image)),1));
-  int32 max = opt.feather_length;
-  if ( max < 1 )
-    max = max_pixel_value(distance);
-  vw_out() << "\tMax distance: " << max << "\n";
+
+  // Check to see if the user has specified a feather length.  If not,
+  // then we send the feather_max to the max pixel value (which
+  // results in a full grassfire blend all the way to the center of the image.)
+  if (opt.feather_max < 1)
+    opt.feather_max = max_pixel_value( distance );
+  vw_out() << "\t--> Distance range: [ " << opt.feather_min << " " << opt.feather_max << " ]\n";
+
   typedef typename CompoundChannelType<PixelT>::type inter_type;
   typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
-  ImageViewRef<inter_type> norm_dist = pixel_cast<inter_type>(range_type::max()*clamp(pixel_cast<float>(distance)/float(max)));
-  ImageViewRef<PixelT> result;
 
+  ImageViewRef<inter_type> norm_dist;
+  norm_dist = pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
+                                     clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                           0.0, opt.feather_max - opt.feather_min));
+
+  ImageViewRef<PixelT> result;
   if ( opt.filter == "linear" ) {
     result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
   } else if ( opt.filter == "cosine" ) {
@@ -203,9 +220,10 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
     ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
-    ("feather-length,f", po::value(&opt.feather_length)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
+    ("feather-min", po::value(&opt.feather_min)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
+    ("feather-max,f", po::value(&opt.feather_max)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
-    ("output-format", po::value(&opt.output_format)->default_value("auto"), "File format to use for output files.")
+    ("output-filename,o", po::value(&opt.output_filename), "Filename to use for output files.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Source data cache size, in megabytes")
     ("blur-sigma", po::value<float>(&opt.blur_sigma)->default_value(0), "Blur the grassfire result before appyling the tranfer function to create an even smoother blend.")
     ("force-float", "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
@@ -282,11 +300,13 @@ int main( int argc, char *argv[] ) {
 
       vw_out() << "Loading: " << input << "\n";
       size_t pt_idx = input.rfind(".");
-      std::string output = input.substr(0,pt_idx)+"_grass";
-      if (opt.output_format == "auto")
+      std::string output;
+      if (opt.output_filename.size() != 0)
+        output = opt.output_filename;
+      else {
+        output = input.substr(0,pt_idx)+"_grass";
         output += input.substr(pt_idx,input.size()-pt_idx);
-      else 
-        output += "." + opt.output_format;
+      }
 
       switch (pixel_format) {
       case VW_PIXEL_GRAY:
