@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include "mod_plate_handlers.h"
 #include "mod_plate_core.h"
 #include "mod_plate_utils.h"
 #include "mod_plate.h"
@@ -14,6 +15,7 @@
 
 #include <httpd.h>
 #include <http_core.h>
+#include <http_protocol.h>
 #include <http_log.h>
 #include <mod_status.h>
 #include <ap_mpm.h>
@@ -26,11 +28,11 @@ using namespace vw::platefile;
 
 using std::string;
 
-int handle_image(request_rec *r, const string& url, const QueryMap& query) {
+int vw::platefile::handle_image(const ApacheRequest& r) {
   static const boost::regex match_regex("/(\\w+)/(\\d+)/(\\d+)/(\\d+)\\.(\\w+)$");
 
   boost::smatch match;
-  if (!boost::regex_search(url, match, match_regex))
+  if (!boost::regex_search(r.url, match, match_regex))
     return DECLINED;
 
   // We didn't decline. Connect!
@@ -57,8 +59,8 @@ int handle_image(request_rec *r, const string& url, const QueryMap& query) {
 
   IndexRecord idx_record;
   try {
-    int transaction_id = query.get("transaction_id", int(-1));
-    bool exact = query.get("exact", false);
+    int transaction_id = r.args.get("transaction_id", int(-1));
+    bool exact = r.args.get("exact", false);
 
     VW_ASSERT(transaction_id >= -1, BadRequest() << "Illegal transaction_id");
 
@@ -83,27 +85,27 @@ int handle_image(request_rec *r, const string& url, const QueryMap& query) {
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
   if (idx_record.filetype() == "png")
-    r->content_type = "image/png";
+    r.writer()->content_type = "image/png";
   else if (idx_record.filetype() == "jpg")
-    r->content_type = "image/jpeg";
+    r.writer()->content_type = "image/jpeg";
   else if (idx_record.filetype() == "tif")
-    r->content_type = "image/tiff";
+    r.writer()->content_type = "image/tiff";
   else
-    r->content_type = "application/octet-stream";
+    r.writer()->content_type = "application/octet-stream";
 
-  if (query.get("nocache", 0u) == 1) {
-    apr_table_set(r->headers_out, "Cache-Control", "no-cache");
+  if (r.args.get("nocache", 0u) == 1) {
+    apr_table_set(r.writer()->headers_out, "Cache-Control", "no-cache");
   }
   else {
     if (level <= 7)
-      apr_table_set(r->headers_out, "Cache-Control", "max-age=604800");
+      apr_table_set(r.writer()->headers_out, "Cache-Control", "max-age=604800");
     else
-      apr_table_set(r->headers_out, "Cache-Control", "max-age=1200");
+      apr_table_set(r.writer()->headers_out, "Cache-Control", "max-age=1200");
   }
 
   // This is as far as we can go without making the request heavyweight. Bail
   // out on a header request now.
-  if (r->header_only)
+  if (r.header_only())
     return OK;
 
   // These are the sendfile(2) parameters
@@ -126,14 +128,14 @@ int handle_image(request_rec *r, const string& url, const QueryMap& query) {
   apr_file_t *fd = 0;
   // Open the blob as an apache file with raii (so it goes away when we return)
   raii file_opener(
-      boost::bind(apr_file_open, &fd, filename.c_str(), APR_READ|APR_FOPEN_SENDFILE_ENABLED, 0, r->pool),
+      boost::bind(apr_file_open, &fd, filename.c_str(), APR_READ|APR_FOPEN_SENDFILE_ENABLED, 0, r.writer()->pool),
       boost::bind(apr_file_close, boost::ref(fd)));
 
   // Use sendfile (if available) to send the proper tile data
   size_t sent;
   apr_status_t ap_ret;
 
-  if ((ap_ret = ap_send_fd(fd, r, offset, size, &sent) != APR_SUCCESS)) {
+  if ((ap_ret = ap_send_fd(fd, r.writer(), offset, size, &sent) != APR_SUCCESS)) {
     char buf[256];
     apr_strerror(ap_ret, buf, 256);
     vw_throw(ServerError() << "ap_send_fd failed: " << buf);
@@ -141,32 +143,29 @@ int handle_image(request_rec *r, const string& url, const QueryMap& query) {
   else if (sent != size)
     vw_throw(ServerError() << "ap_send_fd: short write (expected to send " << size << " bytes, but only sent " << sent);
 
-  //logger(VerboseDebugMessage) << "Reply Headers: " << std::endl;
-  //apr_table_do(log_headers, 0, r->headers_out, NULL);
-
   return OK;
 }
 
-int handle_wtml(request_rec *r, const string& url, const QueryMap& query) {
+int vw::platefile::handle_wtml(const ApacheRequest& r) {
   static const boost::regex match_regex("/(\\w+\\.wtml)$");
 
   boost::smatch match;
-  if (!boost::regex_match(url, match, match_regex))
+  if (!boost::regex_match(r.url, match, match_regex))
     return DECLINED;
 
   mod_plate_mutable().connect_index();
 
   string filename = boost::lexical_cast<string>(match[1]);
 
-  r->content_type = "application/xml";
+  r.writer()->content_type = "application/xml";
 
-  if (r->header_only)
+  if (r.header_only())
     return OK;
 
   if (mod_plate().allow_resync())
     mod_plate().sync_index_cache();
 
-  apache_stream out(r);
+  apache_stream out(r.writer());
   mod_plate().logger(DebugMessage) << "Served WTML[" << filename << "]" << std::endl;
 
   out
@@ -177,7 +176,7 @@ int handle_wtml(request_rec *r, const string& url, const QueryMap& query) {
 
   string servername = mod_plate().get_servername();
 
-  bool show_all_layers =  query.get("all_layers", false);
+  bool show_all_layers =  r.args.get("all_layers", false);
 
   BOOST_FOREACH( const id_cache& e, mod_plate().get_index_cache() ) {
 
@@ -190,16 +189,17 @@ int handle_wtml(request_rec *r, const string& url, const QueryMap& query) {
       }
     }
 
-    string dem_id = query.get("override_dem", string());
+    string dem_id = r.args.get("override_dem", string());
     if (dem_id.empty())
       dem_id = mod_plate().get_dem();
 
     WTMLImageSet img(servername, "/wwt/p/", "/static/", dem_id, e.second.index, e.second.description);
-    if (r->args) {
-      // & needs to be escaped in xml attributes. Rather than deal with that,
-      // replace it with ; (which is equivalent).
-      string args = string("?") + safe_string_convert(r->args);
-      boost::replace_all(args, "&", ";");
+
+    // & needs to be escaped in xml attributes. Rather than deal with that,
+    // use ; as the query arg sep (yes, ; is in the spec)
+    std::string args = r.args.serialize("?", ";");
+
+    if (!args.empty()) {
       img["Url"]          += args;
       img["ThumbnailUrl"] += args;
       img["DemUrl"]       += args;

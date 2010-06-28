@@ -5,10 +5,13 @@ struct request_rec;
 
 namespace vw {
 namespace platefile {
-  class QueryMap;
-}}
 
-int handle_image(request_rec *r, const std::string& url, const vw::platefile::QueryMap& query);
-int  handle_wtml(request_rec *r, const std::string& url, const vw::platefile::QueryMap& query);
+class QueryMap;
+class ApacheRequest;
+
+int handle_image(const ApacheRequest& r);
+int  handle_wtml(const ApacheRequest& r);
+
+}} // namespace vw::platefile
 
 #endif

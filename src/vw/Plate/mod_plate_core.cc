@@ -2,13 +2,14 @@
 #include "mod_plate_utils.h"
 #include "mod_plate_handlers.h"
 
+#include <httpd.h>
+#include <apr_tables.h>
 #include <vw/Core/Settings.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/common.h>
 
-#include <httpd.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 #include <string>
@@ -162,31 +163,23 @@ void PlateModule::connect_index() {
   mod_plate().sync_index_cache();
 }
 
-int PlateModule::operator()(request_rec *r) const {
+int PlateModule::operator()(const ApacheRequest& r) const {
 
-  if (!r->path_info)
+  if (r.url.empty())
     return DECLINED;
-
-  string url = safe_string_convert(r->path_info);
-
-  // WWT will append &new to dem urls... even when there's no ?.
-  if (url.size() > 4 && url.compare(url.size()-4,4,"&new") == 0)
-    url.erase(url.size()-4);
-
-  QueryMap q(r->args);
 
   static const Handler Handlers[] = {handle_image, handle_wtml};
 
   BOOST_FOREACH(const Handler h, Handlers) {
-    int ret = h(r, url, q);
+    int ret = h(r);
     if (ret != DECLINED)
       return ret;
   }
   return DECLINED;
 }
 
-int PlateModule::status(request_rec *r, int /*flags*/) const {
-  apache_stream out(r);
+int PlateModule::status(const ApacheRequest& r, int /*flags*/) const {
+  apache_stream out(r.writer());
   out << "Moo!" << std::endl;
   return OK;
 }

@@ -13,7 +13,6 @@
 #include <map>
 
 
-struct request_rec;
 namespace vw {
 namespace platefile {
 
@@ -22,15 +21,15 @@ class Blob;
 class AmqpRpcClient;
 class IndexService;
 
-typedef boost::function<int (request_rec*, const std::string& url, const QueryMap& q)> Handler;
+typedef boost::function<int (const ApacheRequest&)> Handler;
 
 class PlateModule {
   public:
     PlateModule(const plate_config *conf);
     ~PlateModule();
     void connect_index();
-    int operator()(request_rec *r) const;
-    int status(request_rec *r, int flags) const;
+    int operator()(const ApacheRequest& r) const;
+    int status(const ApacheRequest& r, int flags) const;
 
     struct IndexCacheEntry {
       std::string shortname;

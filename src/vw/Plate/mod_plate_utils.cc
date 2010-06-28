@@ -2,6 +2,7 @@
 #include <vw/Plate/Index.h>
 
 #include <httpd.h>
+#include <http_protocol.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string/replace.hpp>
@@ -12,7 +13,10 @@
 
 using std::string;
 
-string vw::platefile::url_unquote(const string& str) {
+namespace vw {
+namespace platefile {
+
+string url_unescape(const string& str) {
   // This is sort of ugly... make sure shared_ptr deletes with free
   boost::shared_ptr<char> bytes(::strdup(str.c_str()), free);
   int ret = ap_unescape_url(bytes.get());
@@ -25,7 +29,14 @@ string vw::platefile::url_unquote(const string& str) {
   return unquoted;
 }
 
-vw::platefile::QueryMap::QueryMap(const char *query) {
+string url_escape(const string& str, apr_pool_t *pool) {
+  // this char* will be freed by apache (allocated on request pool), so don't
+  // try to free it here.
+  char *uri_s = ap_escape_uri(pool, str.c_str());
+  return std::string(uri_s);
+}
+
+QueryMap::QueryMap(const char *query, apr_pool_t *pool) : m_pool(pool) {
   if (!query || strlen(query) > MAX_QUERY_LENGTH)
     return;
 
@@ -40,14 +51,27 @@ vw::platefile::QueryMap::QueryMap(const char *query) {
       break;
     size_t eq = item.find('=', 1);
     if (eq == string::npos) {
-      (*this)[url_unquote(item)] = "";
+      m_map[url_unescape(item)] = "";
       continue;
     }
-    (*this)[url_unquote(item.substr(0, eq))] = url_unquote(item.substr(eq+1));
+    m_map[url_unescape(item.substr(0, eq))] = url_unescape(item.substr(eq+1));
   }
 }
 
-string vw::platefile::safe_string_convert(const char* in) {
+string QueryMap::serialize(const std::string& prefix, const std::string& sep) const {
+  if (m_map.empty())
+    return std::string();
+
+  std::vector<std::string> vals;
+  vals.reserve(m_map.size());
+
+  BOOST_FOREACH(const map_t::value_type& p, m_map)
+    vals.push_back(url_escape(p.first, m_pool) + "=" + url_escape(p.second, m_pool));
+
+  return prefix + boost::join(vals, sep);
+}
+
+string safe_string_convert(const char* in) {
   static const size_t MAX_STRING_LENGTH = 255;
 
   // string blows up if it's handed null, and could allocate a lot of
@@ -57,7 +81,11 @@ string vw::platefile::safe_string_convert(const char* in) {
   return string(in);
 }
 
-vw::platefile::WTMLImageSet::WTMLImageSet(
+std::streamsize apache_output::write(const char* s, std::streamsize n) {
+  return ap_rwrite(s, n, r);
+}
+
+WTMLImageSet::WTMLImageSet(
     const string& host,
     const string& data_prefix,
     const string& /*static_prefix*/,
@@ -112,7 +140,7 @@ const string& mapget(const std::map<string,string>& map, const std::string& key)
   return i->second;
 }
 
-void vw::platefile::WTMLImageSet::serializeToOstream(std::ostream& o) const {
+void WTMLImageSet::serializeToOstream(std::ostream& o) const {
   o << "<ImageSet";
   for (map_t::const_iterator i = this->begin(), end = this->end(); i != end; ++i) {
     if (child_keys.count(i->first) == 0)
@@ -125,3 +153,21 @@ void vw::platefile::WTMLImageSet::serializeToOstream(std::ostream& o) const {
   }
   o << "</ImageSet>" << std::endl;
 }
+
+ApacheRequest::ApacheRequest(request_rec* r)
+  : r(r), url(safe_string_convert(r->path_info)), args(QueryMap(r->args, r->pool)) {
+
+  // WWT will append &new to dem urls... even when there's no ?.
+  if (url.size() > 4 && url.compare(url.size()-4,4,"&new") == 0)
+    url.erase(url.size()-4);
+}
+
+bool ApacheRequest::header_only() const {
+  return r->header_only;
+}
+
+request_rec* ApacheRequest::writer() const {
+  return r;
+}
+
+}} // namespace vw::platefile
