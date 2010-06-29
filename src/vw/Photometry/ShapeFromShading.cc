@@ -34,8 +34,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
 
-#define horBlockSize 8 //4
-#define verBlockSize 8 //4
+#define horBlockSize 16 //8 //4
+#define verBlockSize 16 //8 //4
 #define BlockArea (horBlockSize*verBlockSize)
 
 enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };

@@ -71,21 +71,9 @@ namespace photometry {
   std::ostream& operator<<( std::ostream& os, GlobalParams const& global );
   std::ostream& operator<<( std::ostream& os, ModelParams const& model );
 
-  //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
-  //must be part of shape.cc
-  //Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
-  //float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz, Vector3 normal);
-  
   // Written by Taemin Kim - START
-#define DYNAMIC_RANGE  256
-#define SIZE_OF_BUFFER (DYNAMIC_RANGE*DYNAMIC_RANGE)
-  /*
-#define SIGNIFICANCE_LEVEL 1.0e-2
-#define MIN_WEIGHT 0
-
-  Vector<uint8> load_inverse_weight(char * input_file, int num);
+  #define DYNAMIC_RANGE  256
   // Written by Taemin Kim - END
-  */
 }} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_RECONSTRUCT_H__

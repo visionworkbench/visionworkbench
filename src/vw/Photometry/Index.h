@@ -16,8 +16,7 @@
 namespace vw {
 namespace photometry {
 
-  void index_images(std::vector<std::string> index_files,
-                    std::vector<std::string> input_files);
+
 
 }} // end vw::photometry
 
