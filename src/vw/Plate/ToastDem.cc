@@ -83,52 +83,60 @@ namespace platefile {
       return false;
     }
 
+    VW_ASSERT( src_tile.cols() == 257 && src_tile.rows() == 257,
+               ArgumentErr() << "Could not process " << src_tile.cols() << "x" << src_tile.rows()
+               << "tile.  Source data for toast DEM tiles must be 257x257 pixels.");
+
     int src_level = level;
-    int dst_level = src_level + level_difference;
-    int dst_region_offset = 1 << level_difference;
+    int dst_level = src_level + 3;
+    int dst_region_offset = 8;
 
     // Reduce heap pressure by allocating this up here and reusing
     static const uint64 tile_bytes = num_toast_indices*sizeof(typename PixelChannelType<PixelT>::type);
     boost::shared_array<uint8> data(new uint8[tile_bytes]);
-
+    for (unsigned i = 0; i < tile_bytes; ++i) {
+      data[i] = 0;
+    }
+    
     // Iterate over the 64 subtiles.
-    for (int v = 0; v < dst_region_offset; ++v) {
-      for (int u = 0; u < dst_region_offset; ++u) {
-        int dst_col = col * dst_region_offset + u;
-        int dst_row = row * dst_region_offset + v;
+    for (int subtile_r = 0; subtile_r < 8; ++subtile_r) {
+      for (int subtile_c = 0; subtile_c < 8; ++subtile_c) {
+        int dst_row = row * dst_region_offset + subtile_r;
+        int dst_col = col * dst_region_offset + subtile_c;
 
-        float slice_cols = (float(src_tile.cols())-1.0) / dst_region_offset;
-        float slice_rows = (float(src_tile.rows())-1.0) / dst_region_offset;
+        int u_base = subtile_c * 32;
+        int v_base = subtile_r * 32;
 
-        float subtile_base_col = slice_cols * u;
-        float subtile_base_row = slice_rows * v;
+        // For the top level tiles (where level_difference == 0), we
+        // overriede the u_base and v_base and start from the
+        // beginning of the tile.
+        if (level_difference == 0) {
+          u_base = 0;
+          v_base = 0;
+        } 
 
-        // Create an interpolation view to sample from.
-        InterpolationView<EdgeExtensionView<ImageView<PixelT>, ConstantEdgeExtension>,
-          BilinearInterpolation> interp_img = interpolate(src_tile, 
-                                                          BilinearInterpolation(),
-                                                          ConstantEdgeExtension());
-      
-        // Iterate over the triangle vertex arrays above, writing the DEM
-        // values in INTEL byte order to disk.
-        // std::cout << "--> " << u << " " << v << " -- " 
-        //           << subtile_base_col << " " << subtile_base_row << "\n";
         for (int32 i = 0; i < num_toast_indices; ++i) {
-          float u_sample_index = float(u_toast_indices[i]) * slice_cols / 32.0;
-          float v_sample_index = float(v_toast_indices[i]) * slice_rows / 32.0;
+          float u = u_base + u_toast_indices[i];
+          float v = v_base + v_toast_indices[i];
 
-          // std::cout << "[" << (subtile_base_col + u_sample_index) << " " 
-          //           << (subtile_base_row + v_sample_index) << "]   ";
-          
+          // Again for the top three levels of tiles, we do some
+          // special casing here.  We aren't doing any subtiles, so we
+          // instead create a toast dem tile from a complete image
+          // tile by decimating it.
+          if (level_difference == 0) {
+            u = u_base + u_toast_indices[i]*8;
+            v = v_base + v_toast_indices[i]*8;
+          }
+
           // Handle 16-bit integer data types
           if (sizeof(typename PixelChannelType<PixelT>::type) == 2) {
             // TODO: Think about what to do if the pixel has alpha!
             I16 value;
-            value.i16 = interp_img( subtile_base_col + u_sample_index, 
-                                    subtile_base_row + v_sample_index ).v();
-#if VW_BYTE_ORDER == VW_BIG_ENDIAN
+            value.i16 = src_tile(u,v).v();
+
             // spec for toast dem files says "intel" byte order (little-endian)
             // so if we're on big endian, swap them.
+#if VW_BYTE_ORDER == VW_BIG_ENDIAN
             std::swap(value.u8[0], value.u8[1]);
 #endif
             // write lsb
@@ -139,8 +147,8 @@ namespace platefile {
           // Handle 32-bit floating point data types
           } else if (sizeof(typename PixelChannelType<PixelT>::type) == 4) {
             F32 value;
-            value.f32 = interp_img( subtile_base_col + u_sample_index, 
-                                    subtile_base_row + v_sample_index ).v();
+            value.f32 = src_tile(u,v).v();
+
             // Write the float to the data stream
             data[i*4]   = value.u8[0];
             data[i*4+1] = value.u8[1];
@@ -148,13 +156,99 @@ namespace platefile {
             data[i*4+3] = value.u8[3];
           }
         }
-        // std::cout << "\n";
 
         // We've batched a dem tile worth of data. Call the writer.
-        writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
+        if (level_difference == 0) {
+          writer(data, tile_bytes, col, row, level, output_transaction_id);
+        } else {
+          writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
+        }
+
+      }
     }
-  }
+
     return true;
+
+    // -------------------------- OLD CODE ------------------------
+    // NOTE: This code worked a little bit more "automatically", but
+    // the interpolation that it did resulted in some unsightly
+    // hairline seams in the WWT terrain.  The above code is much more
+    // custom-built to WWT terrain generation and avoids the
+    // interpolation problem, but at the expense of generality.  (the
+    // generality is hardly really necessary here, though...)
+
+    //     int src_level = level;
+    //     int dst_level = src_level + level_difference;
+    //     int dst_region_offset = 1 << level_difference;
+
+    //     // Reduce heap pressure by allocating this up here and reusing
+    //     static const uint64 tile_bytes = num_toast_indices*sizeof(typename PixelChannelType<PixelT>::type);
+    //     boost::shared_array<uint8> data(new uint8[tile_bytes]);
+
+    //     // Iterate over the 64 subtiles.
+    //     for (int v = 0; v < dst_region_offset; ++v) {
+    //       for (int u = 0; u < dst_region_offset; ++u) {
+    //         int dst_col = col * dst_region_offset + u;
+    //         int dst_row = row * dst_region_offset + v;
+
+    //         float slice_cols = (float(src_tile.cols())-1.0) / dst_region_offset;
+    //         float slice_rows = (float(src_tile.rows())-1.0) / dst_region_offset;
+
+    //         float subtile_base_col = slice_cols * u;
+    //         float subtile_base_row = slice_rows * v;
+
+    //         // Create an interpolation view to sample from.
+    //         InterpolationView<EdgeExtensionView<ImageView<PixelT>, ConstantEdgeExtension>,
+    //           BilinearInterpolation> interp_img = interpolate(src_tile, 
+    //                                                           BilinearInterpolation(),
+    //                                                           ConstantEdgeExtension());
+      
+    //         // Iterate over the triangle vertex arrays above, writing the DEM
+    //         // values in INTEL byte order to disk.
+    //         // std::cout << "--> " << u << " " << v << " -- " 
+    //         //           << subtile_base_col << " " << subtile_base_row << "\n";
+    //         for (int32 i = 0; i < num_toast_indices; ++i) {
+    //           float u_sample_index = float(u_toast_indices[i]) * slice_cols / 32.0;
+    //           float v_sample_index = float(v_toast_indices[i]) * slice_rows / 32.0;
+
+    //           // std::cout << "[" << (subtile_base_col + u_sample_index) << " " 
+    //           //           << (subtile_base_row + v_sample_index) << "]   ";
+          
+    //           // Handle 16-bit integer data types
+    //           if (sizeof(typename PixelChannelType<PixelT>::type) == 2) {
+    //             // TODO: Think about what to do if the pixel has alpha!
+    //             I16 value;
+    //             value.i16 = interp_img( subtile_base_col + u_sample_index, 
+    //                                     subtile_base_row + v_sample_index ).v();
+    // #if VW_BYTE_ORDER == VW_BIG_ENDIAN
+    //             // spec for toast dem files says "intel" byte order (little-endian)
+    //             // so if we're on big endian, swap them.
+    //             std::swap(value.u8[0], value.u8[1]);
+    // #endif
+    //             // write lsb
+    //             data[i*2]   = value.u8[0];
+    //             // write msb
+    //             data[i*2+1] = value.u8[1];
+
+    //           // Handle 32-bit floating point data types
+    //           } else if (sizeof(typename PixelChannelType<PixelT>::type) == 4) {
+    //             F32 value;
+    //             value.f32 = interp_img( subtile_base_col + u_sample_index, 
+    //                                     subtile_base_row + v_sample_index ).v();
+    //             // Write the float to the data stream
+    //             data[i*4]   = value.u8[0];
+    //             data[i*4+1] = value.u8[1];
+    //             data[i*4+2] = value.u8[2];
+    //             data[i*4+3] = value.u8[3];
+    //           }
+    //         }
+    //         // std::cout << "\n";
+
+    //         // We've batched a dem tile worth of data. Call the writer.
+    //         writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
+    //     }
+    //   }
+    //    return true;
 }
 }} // namespace vw::platefile
 
