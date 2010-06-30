@@ -95,6 +95,7 @@ int main( int argc, char *argv[] ) {
   int png_compression;
   unsigned cache_size;
   double nodata_value = 0;
+  double nudge_x=0, nudge_y=0;
   std::vector<std::string> image_files;
   double user_spherical_datum;
 
@@ -110,6 +111,8 @@ int main( int argc, char *argv[] ) {
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
     ("terrain", "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
+    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
+    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates")
     ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
     ("force-spherical-datum", po::value<double>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
@@ -303,6 +306,14 @@ int main( int argc, char *argv[] ) {
         M(1,2) = 90.0;
         M(2,2) = 1;
         georef.set_transform( M );
+      }
+
+      // Apply nudge factors
+      if( vm.count("nudge-x") || vm.count("nudge-y") ) {
+        Matrix3x3 m = georef.transform();
+        m(0,2) += nudge_x;
+        m(1,2) += nudge_y;
+        georef.set_transform( m );
       }
 
       PixelFormatEnum rsrc_pixel_frmt = rsrc->pixel_format();
