@@ -30,9 +30,27 @@ namespace platefile {
       //      PixelT result = pixel_a * weight_a + pixel_b * weight_b * (1-weight_a); // For debugging: alpha blending
       PixelT result = pixel_a * weight_a + pixel_b * (1-weight_a);
 
+
+      // This check in necessary to make sure that NaNs and Inf, -Inf
+      // don't slip through the cracks.  This can happen sometimes
+      // when you mask out bad values, but leave the NaNs in the
+      // grayscale channel of the image.  The NaN will propagate
+      // through the computation regardless of whether they are
+      // "masked out", and appear in the output DEM.  This prevents
+      // this from ever happening!
+      if (result[0] != result[0]) {
+        return PixelT();
+      }
+      
       // Compute the new weight value as the max of the individual weight values.
       //      result.a() = weight_a + weight_b * (1-weight_a);   // For debugging: alpha blending
       result.a() = std::max(weight_a, weight_b);
+
+      // This check ensures that the data value in the snapshot is
+      // zero if the alpha value is zero.  
+      if (result.a() == 0)
+        return PixelT();
+
       return result;
     }
   };
