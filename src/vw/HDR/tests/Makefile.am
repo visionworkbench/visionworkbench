@@ -15,7 +15,7 @@ if MAKE_MODULE_HDR
 
 TESTS = #TestCameraCurve
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

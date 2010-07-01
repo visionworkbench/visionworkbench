@@ -16,10 +16,10 @@ TestGeoTransform_SOURCES           = TestGeoTransform.oldtest
 TestPointImageManipulation_SOURCES = TestPointImageManipulation.oldtest
 TestToastTransform_SOURCES         = TestToastTransform.oldtest
 
-TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation	\
-	TestToastTransform
+TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation    \
+        TestToastTransform
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

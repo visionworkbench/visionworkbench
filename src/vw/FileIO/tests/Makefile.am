@@ -19,7 +19,7 @@ TestExtTester_SOURCES         = TestExtTester.oldtest
 
 TESTS = TestDiskImageResource TestDiskImageView TestEndianness TestBlockFileIO TestExtTester
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

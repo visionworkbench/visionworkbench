@@ -13,7 +13,7 @@ if MAKE_MODULE_MOSAIC
 
 TESTS =
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

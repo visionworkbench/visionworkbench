@@ -27,7 +27,7 @@ TESTS = TestCAHVModel TestCAHVORModel TestCameraGeometry TestExifData \
         TestLinearPushbroomModel TestPinholeModel                     \
         TestPinholeModelCalibrate TestAdjustedCamera
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

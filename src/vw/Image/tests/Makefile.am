@@ -36,7 +36,7 @@ TESTS = TestAlgorithms TestConvolution TestEdgeExtension TestFilter        \
         TestPerPixelViews TestPixelMath TestPixelTypes TestStatistics      \
         TestTransform TestMaskedPixelMath TestMaskViews
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

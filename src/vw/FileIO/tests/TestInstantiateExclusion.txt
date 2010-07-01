@@ -1,1 +1,0 @@
-template void vw::write_image < ElemT > (const std::string&, const std::vector<CharT, std::allocator<_CharT> >&);

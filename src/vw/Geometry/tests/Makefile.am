@@ -14,9 +14,9 @@ if MAKE_MODULE_GEOMETRY
 TestSphere_SOURCES = TestSphere.oldtest
 TestSpatialTree_SOURCES = TestSpatialTree.oldtest
 
-TESTS = TestSphere TestSpatialTree 
+TESTS = TestSphere TestSpatialTree
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

@@ -17,7 +17,7 @@ TestDisparity_SOURCES    = TestDisparity.cxx
 
 TESTS = TestStereoModel TestDisparity # TestCorrelator
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 

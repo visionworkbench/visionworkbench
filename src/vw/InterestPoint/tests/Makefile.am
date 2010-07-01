@@ -17,7 +17,7 @@ TestBoxFilter_SOURCES = TestBoxFilter.cxx
 
 TESTS = TestMatcher TestIntegral TestBoxFilter
 
-include $(top_srcdir)/config/instantiate.am
+#include $(top_srcdir)/config/instantiate.am
 
 endif
 
