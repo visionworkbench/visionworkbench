@@ -136,15 +136,11 @@ namespace vw {
   // Only one thread can be writing to the ImageResource at any given
   // time, however several threads can be rasterizing simultaneously.
   //
-  class ThreadedBlockWriter {
+  class ThreadedBlockWriter : private boost::noncopyable {
     
     boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
     boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
     CountingSemaphore m_write_queue_limit;
-
-    // Disable copy
-    ThreadedBlockWriter(ThreadedBlockWriter& /*copy*/) {}
-    void operator=(ThreadedBlockWriter& /*copy*/) {}
 
     // ----------------------------- TASK TYPES (2) --------------------------
 
