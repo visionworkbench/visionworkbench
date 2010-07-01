@@ -21,10 +21,10 @@ namespace cartography {
 
   /// This image view projects a camera image onto a given digital
   /// elevation model.
-  /// 
+  ///
   /// This image view assumes the dimensions and georeferencing of the
   /// Terrain image (i.e. the DTM), but it assumes the pixel type of
-  /// the camera image. 
+  /// the camera image.
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
   class OrthoImageView : public ImageViewBase<OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > {
 
@@ -53,22 +53,22 @@ namespace cartography {
     typedef typename CameraImageT::pixel_type pixel_type;
     typedef const pixel_type result_type;
     typedef ProceduralPixelAccessor<OrthoImageView> pixel_accessor;
-    
+
     OrthoImageView(TerrainImageT const& terrain, GeoReference const& georef,
                    CameraImageT const& camera_image, boost::shared_ptr<vw::camera::CameraModel> camera_model,
                    InterpT const& interp_func, EdgeT const& edge_func) :
-      m_terrain(terrain), 
+      m_terrain(terrain),
       m_camera_image_ref(camera_image),
-      m_georef(georef), 
+      m_georef(georef),
       m_camera_model(camera_model),
       m_camera_image(interpolate(camera_image, m_interp_func, m_edge_func)),
-      m_interp_func(interp_func), 
+      m_interp_func(interp_func),
       m_edge_func(edge_func) {}
 
     inline int32 cols() const { return m_terrain.cols(); }
     inline int32 rows() const { return m_terrain.rows(); }
     inline int32 planes() const { return m_camera_image.planes(); }
-    
+
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
     /// Querying the point in the OrthoImageView is straight-forward.
@@ -76,25 +76,25 @@ namespace cartography {
     /// compute a 3D point corresponding to this location in the DTM.
     /// This point is then "imaged" by the camera model and the
     /// resulting pixel location is returned from the camera image.
-    inline result_type operator()( int32 i, int32 j, int p=0 ) const { 
+    inline result_type operator()( int32 i, int32 j, int p=0 ) const {
 
       // We need to convert the georefernced positions into a
       // cartesian coordinate system so that they can be imaged by the
       // camera model.  Doing so require we proceed through 3 steps:
       //
-      // 1. Convert from the projection used for the terrain into 
+      // 1. Convert from the projection used for the terrain into
       //    lon,lat,altitude.
       // 2. Add in the offset from the datum that was used, which
       //    converts from altitude to planetary radius.
       // 3. Convert to cartesian (xyz) coordinates.
       Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
       Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
-                   
+
       // Check for a missing DEM pixels.
       if ( is_transparent(m_terrain(i,j)) ) {
         return result_type();
       }
-                                        
+
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
       Vector2 pix = m_camera_model->point_to_pixel(xyz);
@@ -104,31 +104,32 @@ namespace cartography {
     /// \cond INTERNAL
     typedef OrthoImageView<typename TerrainImageT::prerasterize_type, CameraImageT, InterpT, EdgeT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return prerasterize_type( m_terrain.prerasterize(bbox), 
-                                m_georef, m_camera_image_ref, 
+      return prerasterize_type( m_terrain.prerasterize(bbox),
+                                m_georef, m_camera_image_ref,
                                 m_camera_model, m_interp_func, m_edge_func);
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
 
-  // -------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
   // Functional API
-  // -------------------------------------------------------------------------------
+  // --------------------------------------------------------------------------
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> orthoproject( ImageViewBase<TerrainImageT> const& terrain_image, 
-                                                                            GeoReference const& georef,
-                                                                            ImageViewBase<CameraImageT> const& camera_image,
-                                                                            boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                                                                            InterpT const& interp_func,
-                                                                            EdgeT const& edge_extend_func) {
+  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>
+  orthoproject( ImageViewBase<TerrainImageT> const& terrain_image,
+                GeoReference const& georef,
+                ImageViewBase<CameraImageT> const& camera_image,
+                boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                InterpT const& interp_func,
+                EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
-  
+
 } // namespace cartography
-  
+
   /// \cond INTERNAL
-  // Type traits 
+  // Type traits
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
   struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > : public true_type {};
   /// \endcond
