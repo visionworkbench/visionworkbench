@@ -6,22 +6,6 @@ import logging
 import sys
 import mimetypes
 
-_magic_cookie = None
-def sample_type(buf):
-    import magic
-    global _magic_cookie
-    if _magic_cookie is None:
-        _magic_cookie = magic.open(magic.MAGIC_MIME)
-        _magic_cookie.load()
-    typ = _magic_cookie.buffer(buf)
-    if typ is None: return None
-    return typ.split(';')[0]
-
-mimetypes.add_type('application/x-wwt-automatic', '.auto', False)
-
-def guess_type(filename):
-    return mimetypes.guess_type(filename, strict=False)[0]
-
 def parse_args():
     from optparse import OptionParser
     p = OptionParser()
@@ -38,6 +22,35 @@ def setup_logging():
     info  = logging.info
     debug = logging.debug
     warn  = logging.warning
+
+parse_args()
+setup_logging()
+
+try:
+    import magic
+    has_magic = True
+except ImportError:
+    warn('cannot load file magic module: skipping those tests!')
+    has_magic = False
+
+
+_magic_cookie = None
+def sample_type(buf):
+    if not has_magic:
+        return None
+    global _magic_cookie
+    if _magic_cookie is None:
+        _magic_cookie = magic.open(magic.MAGIC_MIME)
+        _magic_cookie.load()
+    typ = _magic_cookie.buffer(buf)
+    if typ is None: return ''
+    return typ.split(';')[0]
+
+mimetypes.add_type('application/x-wwt-automatic', '.auto', False)
+
+def guess_type(filename):
+    return mimetypes.guess_type(filename, strict=False)[0]
+
 
 
 class GetReturn(object):
@@ -87,7 +100,9 @@ class TestPlate(unittest.TestCase):
         g = guess_type(filename)
         if g != 'application/x-wwt-automatic':
             self.assertEqual(r.headers['Content-Type'], g)
-        self.assertEqual(r.headers['Content-Type'], sample_type(r.data))
+        sample = sample_type(r.data)
+        if sample is not None:
+            self.assertEqual(r.headers['Content-Type'], sample)
 
     def test_sanity(self):
         self.assertTrue(len(self.Url) > len(self.FileType))
@@ -114,16 +129,13 @@ if __name__ == '__main__':
     import new
     import xml.dom.minidom as DOM
 
-    parse_args()
-    setup_logging()
-
     suite = unittest.TestSuite()
 
     try:
         dom = DOM.parse(get(opts.wtml))
     except Exception, e:
         logging.critical('Failed to load and parse %s: %s' % (opts.wtml, e))
-        sys.exit(-1)
+        sys.exit(1)
 
     for imageset in dom.getElementsByTagName('ImageSet'):
         plate_info = dict([(k,imageset.attributes[k].value) for k in imageset.attributes.keys()])
@@ -138,4 +150,8 @@ if __name__ == '__main__':
         tests = unittest.TestLoader().loadTestsFromTestCase(klass)
         suite.addTest(tests)
 
-    sys.exit(0 if unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful() else 1)
+    success = unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
+    if success:
+        sys.exit(0)
+    else:
+        sys.exit(1)
