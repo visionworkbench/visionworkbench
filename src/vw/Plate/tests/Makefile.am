@@ -9,6 +9,8 @@
 # sources
 ########################################################################
 
+check_SCRIPTS  =
+
 if MAKE_MODULE_PLATE
 
 TestBlobManager_SOURCES       = TestBlobManager.cxx
@@ -19,8 +21,13 @@ TestAmqp_SOURCES              = TestAmqp.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 TestModPlate_SOURCES          = TestModPlate.cxx
 
-TESTS = TestBlobManager TestBlobIO TestLocalIndex TestIndexPage TestAmqp \
-		TestTileManipulation TestModPlate
+if HAVE_PYTHON
+check_SCRIPTS  += TestModPlateRegression.py
+endif
+
+check_PROGRAMS = TestBlobManager TestBlobIO TestLocalIndex TestIndexPage TestAmqp \
+				 TestTileManipulation TestModPlate
+
 
 if MAKE_MODPLATE
 MORE_FLAGS = -DVW_HAVE_APACHE=1
@@ -37,7 +44,7 @@ endif
 AM_CPPFLAGS = @VW_CPPFLAGS@ @APXS_CFLAGS@ $(MORE_FLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @APXS_LDFLAGS@ @PKG_IMAGE_LIBS@ @PKG_MATH_LIBS@ @PKG_CORE_LIBS@ @PKG_PLATE_LIBS@
 
-check_PROGRAMS = $(TESTS)
+TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 CLEANFILES =
 
 include $(top_srcdir)/config/rules.mak
