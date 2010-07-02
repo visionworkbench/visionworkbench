@@ -234,4 +234,9 @@ TEST( GeoReference, IOLoop ) {
   test_ostr << test_georeference;
   EXPECT_STREQ( boost::erase_all_copy(retn_ostr.str()," ").c_str(),
                 boost::erase_all_copy(test_ostr.str()," ").c_str() );
+
+  UnlinkName fail_filename("bird.png");
+  EXPECT_THROW( write_georeferenced_image( fail_filename, test_image,
+                                           test_georeference ),
+                NoImplErr );
 }
