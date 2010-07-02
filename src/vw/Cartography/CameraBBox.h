@@ -12,6 +12,7 @@
 #if defined(VW_HAVE_PKG_CAMERA) && (VW_HAVE_PKG_CAMERA==1)
 
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/LevenbergMarquardt.h>

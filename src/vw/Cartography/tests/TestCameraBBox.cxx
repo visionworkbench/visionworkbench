@@ -17,7 +17,9 @@ using namespace vw::cartography;
 using namespace vw::test;
 using namespace vw::camera;
 
+// Must have protobuf to be able to read camera
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+
 TEST( CameraBBox, GeospatialIntersectDatum ) {
   boost::shared_ptr<CameraModel> apollo( new PinholeModel("apollo.pinhole") );
   GeoReference moon;
@@ -53,4 +55,25 @@ TEST( CameraBBox, CameraBBoxDatum ) {
   EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(95,7), 2 );
   EXPECT_NEAR( scale, (95-86.)/sqrt(4096*4096*2), 1e-3 ); // Cam is rotated
 }
+
+TEST( CameraBBox, CameraBBoxDEM ) {
+  boost::shared_ptr<CameraModel> apollo( new PinholeModel("apollo.pinhole") );
+  GeoReference moon;
+  moon.set_well_known_geogcs("D_MOON");
+
+  ImageView<float> DEM(20,20); // DEM covering lat {10,-10} long {80,100}
+  for ( uint i = 0; i < 20; i++ )
+    for ( uint j = 0; j <20; j++ )
+      DEM(i,j) = 1000 - 10*(pow(10.-i,2.)+pow(10.-j,2));
+  Matrix<double> geotrans = vw::math::identity_matrix<3>();
+  geotrans(0,2) = 80;
+  geotrans(1,1) = -1;
+  geotrans(1,2) = 10;
+  moon.set_transform(geotrans);
+
+  BBox2 image_bbox = camera_bbox( DEM, moon, apollo, 4096, 4096 );
+  EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(87,0), 2 );
+  EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(94,6), 2 );
+}
+
 #endif
