@@ -15,9 +15,10 @@ TestGeoReference_SOURCES           = TestGeoReference.cxx
 TestGeoTransform_SOURCES           = TestGeoTransform.cxx
 TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
 TestToastTransform_SOURCES         = TestToastTransform.cxx
+TestCameraBBox_SOURCES             = TestCameraBBox.cxx
 
 TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation   \
-        TestToastTransform
+        TestToastTransform TestCameraBBox
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -28,7 +29,7 @@ endif
 ########################################################################
 
 AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
-AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CARTOGRAPHY_LIBS@
+AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CARTOGRAPHY_LIBS@ @PKG_CAMERA_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
