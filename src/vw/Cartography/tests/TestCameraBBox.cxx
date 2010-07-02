@@ -47,9 +47,10 @@ TEST( CameraBBox, CameraBBoxDatum ) {
   GeoReference moon;
   moon.set_well_known_geogcs("D_MOON");
 
-  float scale;
+  float scale; // degrees per pixel
   BBox2 image_bbox = camera_bbox( moon, apollo, 4096, 4096, scale );
   EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(86,-1), 2 );
   EXPECT_VECTOR_NEAR( image_bbox.max(), Vector2(95,7), 2 );
+  EXPECT_NEAR( scale, (95-86.)/sqrt(4096*4096*2), 1e-3 ); // Cam is rotated
 }
 #endif
