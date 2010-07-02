@@ -47,7 +47,7 @@ namespace vw {
 namespace cartography {
 
 
-  std::string GeoReference::proj4_str() const { 
+  std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
   }
 
@@ -55,7 +55,7 @@ namespace cartography {
     std::string proj4_str = m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
     return proj4_str;
   }
-  
+
   void GeoReference::init_proj() {
     m_proj_context = boost::shared_ptr<ProjContext>(new ProjContext(overall_proj4_str()));
   }
@@ -75,7 +75,7 @@ namespace cartography {
     set_geographic();
     init_proj();
   }
-  
+
   /// Takes a geodetic datum and an affine transformation matrix
   GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform) : GeoReferenceBase(datum) {
     set_transform(transform);
@@ -98,7 +98,7 @@ namespace cartography {
     m_datum = datum;
     init_proj();
   }
-  
+
   // Adjust the affine transform to the VW convention ( [0,0] is at
   // the center of upper left pixel) if file is georeferenced
   // according to the convention that [0,0] is the upper left hand
@@ -111,7 +111,7 @@ namespace cartography {
   }
 
   inline Matrix3x3 const& GeoReference::vw_native_inverse_transform() const {
-    if (m_pixel_interpretation == GeoReference::PixelAsArea) 
+    if (m_pixel_interpretation == GeoReference::PixelAsArea)
       return m_inv_shifted_transform;
     else
       return m_inv_transform;
@@ -143,7 +143,7 @@ namespace cartography {
     m_is_projected = true;
     init_proj();
   }
-  
+
   void GeoReference::set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=merc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +lat_ts=" << latitude_of_true_scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
@@ -199,7 +199,7 @@ namespace cartography {
     m_is_projected = true;
     init_proj();
   }
-  
+
   void GeoReference::set_UTM(int zone, int north) {
     std::ostringstream strm;
     strm << "+proj=utm +zone=" << zone;
@@ -210,8 +210,8 @@ namespace cartography {
     init_proj();
   }
 
-  void GeoReference::set_proj4_projection_str(std::string const& s) { 
-    m_proj_projection_str = s; 
+  void GeoReference::set_proj4_projection_str(std::string const& s) {
+    m_proj_projection_str = s;
     if (s.find("+proj=longlat") == 0)
       m_is_projected = false;
     else
@@ -239,7 +239,7 @@ namespace cartography {
     std::vector<std::string> output_strings;
     std::vector<std::string> datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-    boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
+    boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") );
     for (unsigned int i = 0; i < input_strings.size(); ++i) {
 
       // Pick out the parts of the projection string that pertain to
@@ -248,17 +248,17 @@ namespace cartography {
       // handled by interacting directly with the
       // OGRSpatialReference below. This is sort of messy, but it's
       // the easiest way to do this, as far as I can tell.
-      if ((input_strings[i].find("+proj=") == 0) || 
-          (input_strings[i].find("+x_0=") == 0) || 
+      if ((input_strings[i].find("+proj=") == 0) ||
+          (input_strings[i].find("+x_0=") == 0) ||
           (input_strings[i].find("+y_0=") == 0) ||
-          (input_strings[i].find("+lon") == 0) || 
-          (input_strings[i].find("+lat") == 0) || 
-          (input_strings[i].find("+k=") == 0) || 
-          (input_strings[i].find("+lat_ts=") == 0) || 
-          (input_strings[i].find("+ns") == 0) || 
-          (input_strings[i].find("+no_cut") == 0) || 
-          (input_strings[i].find("+h=") == 0) || 
-          (input_strings[i].find("+W=") == 0) || 
+          (input_strings[i].find("+lon") == 0) ||
+          (input_strings[i].find("+lat") == 0) ||
+          (input_strings[i].find("+k=") == 0) ||
+          (input_strings[i].find("+lat_ts=") == 0) ||
+          (input_strings[i].find("+ns") == 0) ||
+          (input_strings[i].find("+no_cut") == 0) ||
+          (input_strings[i].find("+h=") == 0) ||
+          (input_strings[i].find("+W=") == 0) ||
           (input_strings[i].find("+units=") == 0) ||
           (input_strings[i].find("+zone=") == 0)) {
         output_strings.push_back(input_strings[i]);
@@ -299,7 +299,7 @@ namespace cartography {
     OGRErr e1, e2;
     double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
     double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
-    if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) { 
+    if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) {
       datum.set_semi_major_axis(semi_major);
       datum.set_semi_minor_axis(semi_minor);
     }
@@ -308,7 +308,7 @@ namespace cartography {
     std::stringstream datum_proj4_ss;
     for(unsigned i=0; i < datum_strings.size(); i++)
       datum_proj4_ss << datum_strings[i] << ' ';
-    // Add the current proj4 string in the case that our ellipse/datum 
+    // Add the current proj4 string in the case that our ellipse/datum
     // values are empty.
     if(boost::trim_copy(datum_proj4_ss.str()) == "")
       datum_proj4_ss << datum.proj4_str();
@@ -327,7 +327,7 @@ namespace cartography {
     loc[1] = (pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2)) / denom;
     return loc;
   }
-  
+
   /// For a given location 'loc' in projected space, compute the
   /// corresponding pixel coordinates in the image.
   Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
@@ -339,13 +339,13 @@ namespace cartography {
     return pix;
   }
 
-  
+
   /// For a point in the projected space, compute the position of
   /// that point in unprojected (Geographic) coordinates (lat,lon).
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
     if ( ! m_is_projected ) return loc;
 
-    XY projected;  
+    XY projected;
     LP unprojected;
 
     projected.u = loc[0];
@@ -357,7 +357,7 @@ namespace cartography {
     // Convert from radians to degrees.
     return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
   }
-  
+
   /// Given a position in geographic coordinates (lat,lon), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
@@ -387,9 +387,9 @@ namespace cartography {
   char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
     std::vector<std::string> arg_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
-    boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") ); 
+    boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") );
 
-    char** strings = new char*[arg_strings.size()]; 
+    char** strings = new char*[arg_strings.size()];
     for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
       strings[i] = new char[2048];
       strncpy(strings[i], arg_strings[i].c_str(), 2048);
@@ -407,7 +407,7 @@ namespace cartography {
     m_proj_ptr = pj_init(num, proj_strings);
     CHECK_PROJ_INIT_ERROR(proj4_str);
 
-    for (int i = 0; i < num; i++) 
+    for (int i = 0; i < num; i++)
       delete [] proj_strings[i];
     delete [] proj_strings;
   }
@@ -417,12 +417,12 @@ namespace cartography {
   }
 
   /***************** Functions for output GeoReferences *****************/
-  namespace output {  
+  namespace output {
     GeoReference kml::get_output_georeference(int xresolution, int yresolution) {
       GeoReference r;
       r.set_pixel_interpretation(GeoReference::PixelAsArea);
 
-      // Note: the global KML pixel space extends to +/- 180 degrees 
+      // Note: the global KML pixel space extends to +/- 180 degrees
       // latitude as well as longitude.
       Matrix3x3 transform;
       transform(0,0) = 360.0 / xresolution;
@@ -439,7 +439,7 @@ namespace cartography {
       GeoReference r;
       r.set_pixel_interpretation(GeoReference::PixelAsArea);
 
-      // Note: the global TMS pixel space extends from +270 to -90 
+      // Note: the global TMS pixel space extends from +270 to -90
       // latitude, so that the lower-left hand corner is tile-
       // aligned, since TMS uses an origin in the lower left.
       Matrix3x3 transform;
