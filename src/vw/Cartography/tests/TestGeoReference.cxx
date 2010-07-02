@@ -189,3 +189,49 @@ TEST( GeoReference, UTM_to_LonLat ) {
     EXPECT_VECTOR_NEAR( check_lonlat, ll[i], 1e-5 );
   }
 }
+
+TEST( GeoReference, IOLoop ) {
+  ImageView<PixelRGB<float> > test_image(2,2);
+  test_image(0,0) = PixelRGB<float>(1,2,3);
+  test_image(0,1) = PixelRGB<float>(4,1,4);
+  test_image(1,0) = PixelRGB<float>(7,7,2);
+  test_image(1,1) = PixelRGB<float>(8,9,2);
+
+  Matrix3x3 test_transform;
+  test_transform(0,0) = 1.2; test_transform(0,1) = 3.2;
+  test_transform(1,1) = 4.5; test_transform(1,2) = 6.3;
+  test_transform(2,2) = 1; test_transform(2,1) = 0;
+
+  Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
+
+  GeoReference test_georeference( test_datum, test_transform );
+
+  UnlinkName test_filename( "georeference_test.tif" );
+  write_georeferenced_image( test_filename, test_image,
+                             test_georeference );
+
+  // Reading back in and comparing
+  GeoReference retn_georeference;
+  ImageView<PixelRGB<float> > retn_image;
+  read_georeferenced_image( retn_image, retn_georeference,
+                            test_filename );
+
+  typedef ImageView<PixelRGB<float> >::iterator iterator;
+  for ( iterator test = test_image.begin(), retn = retn_image.begin();
+        test != test_image.end(); test++, retn++ )
+    EXPECT_PIXEL_EQ( *retn, *test );
+
+  EXPECT_STREQ( boost::trim_copy(retn_georeference.proj4_str()).c_str(),
+                boost::trim_copy(test_georeference.proj4_str()).c_str() );
+  EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
+                           test_georeference.transform() );
+
+  EXPECT_STREQ( retn_georeference.gml_str().c_str(),
+                test_georeference.gml_str().c_str() );
+
+  std::ostringstream retn_ostr, test_ostr;
+  retn_ostr << retn_georeference;
+  test_ostr << test_georeference;
+  EXPECT_STREQ( boost::erase_all_copy(retn_ostr.str()," ").c_str(),
+                boost::erase_all_copy(test_ostr.str()," ").c_str() );
+}
