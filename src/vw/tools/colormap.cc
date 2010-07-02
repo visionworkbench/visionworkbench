@@ -33,7 +33,6 @@ namespace fs = boost::filesystem;
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Statistics.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/Cartography/FileIO.h>
 #include <vw/Cartography/GeoReference.h>
 
 using namespace vw;

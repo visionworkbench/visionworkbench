@@ -27,7 +27,6 @@ namespace po = boost::program_options;
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/Cartography/FileIO.h>
 #include <vw/Cartography/GeoReference.h>
 
 using namespace vw;

@@ -34,7 +34,6 @@ namespace fs = boost::filesystem;
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/FileIO.h>
 
 using namespace vw;
 

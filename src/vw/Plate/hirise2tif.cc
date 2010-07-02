@@ -32,7 +32,6 @@ namespace po = boost::program_options;
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/FileIO.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Mosaic/QuadTreeGenerator.h>
 #include <vw/Mosaic/KMLQuadTreeConfig.h>

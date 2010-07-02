@@ -11,8 +11,6 @@
 
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/FileIO.h>
-#include <vw/Cartography/Datum.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Math/Matrix.h>
