@@ -97,6 +97,7 @@ docs/workbook/workbook.toc
 /src/vw/Cartography/tests/TestGeoTransform
 /src/vw/Cartography/tests/TestPointImageManipulation
 /src/vw/Cartography/tests/TestToastTransform
+/src/vw/Cartography/tests/TestCameraBBox
 /src/vw/Core/tests/log.txt
 /src/vw/Core/tests/TestCache
 /src/vw/Core/tests/TestCompoundTypes
@@ -155,6 +156,7 @@ docs/workbook/workbook.toc
 /src/vw/InterestPoint/tests/TestBoxFilter
 /src/vw/InterestPoint/tests/TestIntegral
 /src/vw/InterestPoint/tests/TestMatcher
+/src/vw/InterestPoint/tests/TestInterestData
 /src/vw/Math/tests/TestAccumulators
 /src/vw/Math/tests/TestBBox
 /src/vw/Math/tests/TestConjugateGradient
