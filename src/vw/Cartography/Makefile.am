@@ -21,7 +21,7 @@ camerabbox_headers = CameraBBox.h
 camerabbox_sources = CameraBBox.cc
 endif
 
-include_HEADERS = FileIO.h GeoReferenceBase.h GeoReference.h            \
+include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
                   GeoTransform.h Datum.h SimplePointImageManipulation.h \
                   PointImageManipulation.h                              \
                   OrthoImageView.h GeoReferenceResourcePDS.h            \
