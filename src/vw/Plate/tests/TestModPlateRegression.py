@@ -11,7 +11,8 @@ def parse_args():
     p = OptionParser()
     p.add_option('-q', action='store_const', help='Quiet', const=logging.WARNING, dest='loglevel', default=logging.INFO)
     p.add_option('-v', action='store_const', help='Loud',  const=logging.DEBUG, dest='loglevel')
-    p.add_option('-w', dest='wtml', default='http://wwt.nasa.gov/static/wwt_mars.wtml', help='WTML to load [%default]')
+    p.add_option('-w', dest='wtml',     default='http://wwt.nasa.gov/static/wwt_mars.wtml', help='WTML to load [%default]')
+    p.add_option('-n', dest='hostport', default=None, help='Replace WTMLs listed hostport')
     global opts, args
     (opts,args) = p.parse_args()
 
@@ -143,6 +144,14 @@ if __name__ == '__main__':
             node = imageset.getElementsByTagName(elt)[0]
             if node.firstChild:
                 plate_info[elt] = node.firstChild.wholeText
+
+        if opts.hostport is not None:
+            from urlparse import urlsplit, urlunsplit
+            for key in 'Url', 'DemUrl', 'ThumbnailUrl':
+                if not key in plate_info:
+                    continue
+                p = urlsplit(plate_info[key])
+                plate_info[key] = urlunsplit((p[0], opts.hostport, p[2], p[3], p[4]))
 
         # Empty elt != nonexistent elt, but this makes other code easier
         plate_info['__getattr__'] = lambda self, name: ''
