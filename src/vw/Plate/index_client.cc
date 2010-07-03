@@ -21,6 +21,9 @@ namespace fs = boost::filesystem;
 using namespace vw;
 using namespace vw::platefile;
 
+std::string name, rabbit, exchange;
+
+
 static void null_closure() {}
 
 #if 0
@@ -60,18 +63,24 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_fil
     return *name ## _ptr; \
   }
 
-std::string queue_name() {
-  return AmqpRpcClient::UniqueQueueName("index_client");
-}
-
 struct RPC {
   boost::shared_ptr<AmqpRpcClient> client;
   boost::shared_ptr<IndexService>  service;
   RPC() {
-    boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-    client.reset(  new AmqpRpcClient(conn, DEV_INDEX, queue_name(), "index") );
+    std::string full_exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + exchange;
+    std::string queue = AmqpRpcClient::UniqueQueueName("index_client");
+
+    std::cerr << "Connecting to rabbit " << rabbit << std::endl;
+    boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(rabbit));
+
+    std::cerr << "Connecting to exchange " << full_exchange << std::endl;
+    client.reset(  new AmqpRpcClient(conn, full_exchange, queue, "index") );
+
+    std::cerr << "Creating index stub client" << std::endl;
     service.reset( new IndexService::Stub(client.get() ) );
-    client->bind_service(service, queue_name());
+
+    std::cerr << "Binding service" << std::endl;
+    client->bind_service(service, queue);
   }
 };
 
@@ -79,14 +88,17 @@ VW_DEFINE_SINGLETON(rpc, RPC);
 
 void PlateInfo(const std::string& name) {
 
-  boost::shared_ptr<Index> index = Index::construct_open(std::string("pf://index/") + name);
+  std::string index_url = std::string("pf://") + rabbit + "/" + exchange + "/" + name;
+
+  boost::shared_ptr<Index> index = Index::construct_open(index_url);
   const IndexHeader& hdr = index->index_header();
 
   vw_out() << "Platefile: "
            << "ID["          << hdr.platefile_id()      << "] "
            << "Name["        << fs::path(name).leaf()   << "] "
            << "Filename["    << index->platefile_name() << "] "
-           << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "]"
+           << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "] "
+           << "MaxLevel["    << index->num_levels()-1   << "]"
            << std::endl;
 }
 
@@ -95,6 +107,7 @@ void ListPlates() {
   IndexListRequest request;
   IndexListReply   reply;
 
+  std::cerr << "Listing plates!" << std::endl;
   rpc_mutable().service->ListRequest(rpc_mutable().client.get(), &request, &reply, google::protobuf::NewCallback(&null_closure));
 
   vw_out() << "Got Plates:" << std::endl;
@@ -106,11 +119,11 @@ void ListPlates() {
 
 int main(int argc, char** argv) {
 
-  std::string name;
-
   po::options_description general_options("Runs a query against the index manager, or a specified platefile id");
   general_options.add_options()
     ("platefile,p", po::value(&name), "Run an info request against this platefile id.")
+    ("rabbit,r",    po::value(&rabbit)->default_value("127.0.0.1"), "RabbitIP")
+    ("exchange,e",  po::value(&exchange)->default_value(DEV_INDEX_BARE), "Exchange")
     ("help", "Display this help message");
 
   po::options_description options("Allowed Options");
