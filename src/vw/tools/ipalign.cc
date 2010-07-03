@@ -37,6 +37,7 @@ struct Options {
   float matcher_threshold, detect_gain, tile_size;
   float inlier_threshold;
   bool single_scale, homography, debug_images;
+  bool save_intermediate;
 };
 
 // ------------------------------------------------------------------
@@ -145,6 +146,8 @@ void find_interest_points( std::string const& image_name,
     exit(0);
   }
   vw_out(InfoMessage) << "done.\n";
+  if ( opt.save_intermediate )
+    write_binary_ip_file(fs::path(image_name).replace_extension("vwip").string(),ip);
 }
 
 void align_images( Options & opt ) {
@@ -161,6 +164,7 @@ void align_images( Options & opt ) {
     ref_size[0] = ref_image.cols();
     ref_size[1] = ref_image.rows();
   }
+  std::string ref_name = opt.input_filenames.front();
   opt.input_filenames.erase( opt.input_filenames.begin() );
 
   // Detect IP and align all the other images
@@ -186,16 +190,27 @@ void align_images( Options & opt ) {
     std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
     Matrix<double> align_matrix;
 
+    std::vector<int> indices;
     if ( opt.homography ) {
-      align_matrix = math::ransac(ransac_ip2, ransac_ip1,
-                                  math::HomographyFittingFunctor(),
-                                  math::InterestPointErrorMetric(),
-                                  opt.inlier_threshold);
+      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), opt.inlier_threshold);
+      align_matrix = ransac(ransac_ip2,ransac_ip1);
+      indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
     } else {
-      align_matrix = math::ransac(ransac_ip2, ransac_ip1,
-                                  math::AffineFittingFunctor(),
-                                  math::InterestPointErrorMetric(),
-                                  opt.inlier_threshold);
+      math::RandomSampleConsensus<math::AffineFittingFunctor, math::InterestPointErrorMetric> ransac(math::AffineFittingFunctor(), math::InterestPointErrorMetric(), opt.inlier_threshold);
+      align_matrix = ransac(ransac_ip2,ransac_ip1);
+      indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
+    }
+
+    if ( opt.save_intermediate ) {
+      std::vector<InterestPoint> final_ip1, final_ip2;
+      for (unsigned idx=0; idx < indices.size(); ++idx) {
+        final_ip1.push_back(matched_ip1[indices[idx]]);
+        final_ip2.push_back(matched_ip2[indices[idx]]);
+      }
+      std::string output_filename =
+        fs::path(ref_name).replace_extension().string() + "__" +
+        fs::path(input_name).stem() + ".match";
+      write_binary_match_file(output_filename, final_ip1, final_ip2);
     }
 
     DiskImageView<PixelRGB<uint8> > input_image( input_name );
@@ -206,14 +221,13 @@ void align_images( Options & opt ) {
     ostr << opt.output_prefix << "_" << input_name;
     write_image(ostr.str(), aligned_image,
                 TerminalProgressCallback( "tools.ipalign", "Writing:") );
-
   }
 }
 
 // ----------------------------------------------------------------------------
 
 void handle_arguments( int argc, char* argv[], Options& opt ) {
-   po::options_description general_options("Options");
+  po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
     ("debug-images,d", "Produce additional debugging images as well as the aligned image.")
@@ -221,6 +235,7 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
      "Specify the tile size for detecting interest points.")
     ("output-prefix,o", po::value(&opt.output_prefix)->default_value("aligned"),
      "Specify the output prefix")
+    ("save-intermediate,s", "Save working VWIP and Match files")
 
     // Interest point detector options
     ("detector-gain,g", po::value(&opt.detect_gain)->default_value(1.0),
@@ -272,6 +287,7 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
   opt.single_scale = vm.count("single-scale");
   opt.homography = vm.count("homography");
   opt.debug_images = vm.count("debug-images");
+  opt.save_intermediate = vm.count("save-intermediate");
 }
 
 int main(int argc, char* argv[]) {
