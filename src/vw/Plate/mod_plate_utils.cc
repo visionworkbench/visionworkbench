@@ -123,11 +123,12 @@ WTMLImageSet::WTMLImageSet(
 
   (*this)["Url"]          = data_url + "/{1}/{2}/{3}." + hdr.tile_filetype();
   (*this)["ThumbnailUrl"] = data_url + "/0/0/0."       + hdr.tile_filetype();
-  // XXX: This is wrong for non-mars!
-  //(*this)["DemUrl"]       = host + static_prefix + "megt128/{0}/{1}/{2}";
 
+  // XXX: This is wrong for non-mars!
   (*this)["DemUrl"]       = host + data_prefix + dem_id + "/{0}/{1}/{2}.toast_dem_v1";
 
+  // This probably needs to be in the plate somewhere...
+  (*this)["Credits"]      = "";
 
   child_keys.insert("ThumbnailUrl");
   child_keys.insert("Credits");
@@ -136,7 +137,7 @@ WTMLImageSet::WTMLImageSet(
 const string& mapget(const std::map<string,string>& map, const std::string& key) {
   std::map<string,string>::const_iterator i = map.find(key);
   if (i == map.end())
-    vw::vw_throw(vw::LogicErr() << "WTMLImageSet set up incorrectly");
+    vw::vw_throw(vw::LogicErr() << "WTMLImageSet set up incorrectly (could not find required key " << key << ")");
   return i->second;
 }
 
