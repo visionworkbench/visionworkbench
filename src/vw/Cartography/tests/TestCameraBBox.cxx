@@ -20,11 +20,18 @@ using namespace vw::camera;
 // Must have protobuf to be able to read camera
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
 
-TEST( CameraBBox, GeospatialIntersectDatum ) {
-  boost::shared_ptr<CameraModel> apollo( new PinholeModel("apollo.pinhole") );
-  GeoReference moon;
-  moon.set_well_known_geogcs("D_MOON");
+class CameraBBoxTest :  public ::testing::Test {
+protected:
+  virtual void SetUp() {
+    apollo = boost::shared_ptr<CameraModel>(new PinholeModel("apollo.pinhole"));
+    moon.set_well_known_geogcs("D_MOON");
+  }
 
+  boost::shared_ptr<CameraModel> apollo;
+  GeoReference moon;
+};
+
+TEST_F( CameraBBoxTest, GeospatialIntersectDatum ) {
   for ( unsigned i = 0; i < 10; i++ ) {
     Vector2 input_image( rand()%4096, rand()%4096 );
     bool did_intersect;
@@ -44,11 +51,7 @@ TEST( CameraBBox, GeospatialIntersectDatum ) {
   }
 }
 
-TEST( CameraBBox, CameraBBoxDatum ) {
-  boost::shared_ptr<CameraModel> apollo( new PinholeModel("apollo.pinhole") );
-  GeoReference moon;
-  moon.set_well_known_geogcs("D_MOON");
-
+TEST_F( CameraBBoxTest, CameraBBoxDatum ) {
   float scale; // degrees per pixel
   BBox2 image_bbox = camera_bbox( moon, apollo, 4096, 4096, scale );
   EXPECT_VECTOR_NEAR( image_bbox.min(), Vector2(86,-1), 2 );
@@ -56,11 +59,7 @@ TEST( CameraBBox, CameraBBoxDatum ) {
   EXPECT_NEAR( scale, (95-86.)/sqrt(4096*4096*2), 1e-3 ); // Cam is rotated
 }
 
-TEST( CameraBBox, CameraBBoxDEM ) {
-  boost::shared_ptr<CameraModel> apollo( new PinholeModel("apollo.pinhole") );
-  GeoReference moon;
-  moon.set_well_known_geogcs("D_MOON");
-
+TEST_F( CameraBBoxTest, CameraBBoxDEM ) {
   ImageView<float> DEM(20,20); // DEM covering lat {10,-10} long {80,100}
   for ( uint i = 0; i < 20; i++ )
     for ( uint j = 0; j <20; j++ )
