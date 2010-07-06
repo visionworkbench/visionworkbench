@@ -408,4 +408,114 @@ TEST( EdgeExtension, Linear ) {
   EXPECT_BBOX( ee.source_bbox(im,BBox2i(2,3,2,2)), 0,1,2,2 );
 }
 
+template <class PixelT>
+class FloatingView : public ImageViewBase<FloatingView<PixelT> > {
+  int32 m_cols, m_rows, m_planes;
+public:
+  typedef PixelT pixel_type;
+  typedef PixelT result_type;
+  typedef ProceduralPixelAccessor<FloatingView> pixel_accessor;
 
+  FloatingView( int32 cols, int32 rows, int32 planes = 1 )
+    : m_cols(cols), m_rows(rows), m_planes(planes) {}
+
+  inline int32 cols() const { return m_cols; }
+  inline int32 rows() const { return m_rows; }
+  inline int32 planes() const { return m_planes; }
+
+  inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+
+  inline result_type operator()( double col, double row, double /*plane*/=0 ) const { return col*row; }
+
+  typedef FloatingView prerasterize_type;
+  inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
+  template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    vw::rasterize( prerasterize(bbox), dest, bbox );
+  }
+};
+
+namespace vw {
+template <class PixelT>
+struct IsMultiplyAccessible<FloatingView<PixelT> > : public true_type {};
+
+template <class PixelT>
+struct IsFloatingPointIndexable<FloatingView<PixelT> > : public true_type {};
+}
+
+template <class PixelT>
+FloatingView<PixelT> floating_view( PixelT const& /*value*/, int32 cols, int32 rows, int32 planes=1 ) {
+  return FloatingView<PixelT>( cols, rows, planes );
+}
+
+TEST( EdgeExtension, DISABLED_Traits ) {
+  // Test the testing image
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+                          floating_view(1.0,100,100) ) );
+  EXPECT_TRUE( bool_trait<IsMultiplyAccessible>(
+                          floating_view(1.0,100,100) ) );
+
+  // Testing traits of Edge Extension
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100), NoEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100), NoEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),ZeroEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),ZeroEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ValueEdgeExtension<float>(0.2) ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ValueEdgeExtension<float>(0.2) ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ConstantEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ConstantEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ReflectEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    ReflectEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    PeriodicEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    PeriodicEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    CylindricalEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    CylindricalEdgeExtension() ) ) );
+  EXPECT_TRUE( bool_trait<IsFloatingPointIndexable>(
+               edge_extend(floating_view(1.0,100,100),
+                                    LinearEdgeExtension() ) ) );
+  EXPECT_FALSE( bool_trait<IsMultiplyAccessible>(
+               edge_extend(floating_view(1.0,100,100),
+                                    LinearEdgeExtension() ) ) );
+
+  // Testing that Edge Extension doesn't destroy floating point access
+  EXPECT_EQ( 0.25, floating_view(1.0,100,100)(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               NoEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               ZeroEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               ValueEdgeExtension<float>(0.2) )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               ConstantEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               ReflectEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               PeriodicEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               CylindricalEdgeExtension() )(0.5,0.5) );
+  EXPECT_EQ( 0.25, edge_extend(floating_view(1.0,100,100),
+                               LinearEdgeExtension() )(0.5,0.5) );
+}
