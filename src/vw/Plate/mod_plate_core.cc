@@ -180,7 +180,13 @@ int PlateModule::operator()(const ApacheRequest& r) const {
 
 int PlateModule::status(const ApacheRequest& r, int /*flags*/) const {
   apache_stream out(r.writer());
-  out << "Moo!" << std::endl;
+
+  out << "IndexCache:<br>" << std::endl;
+  BOOST_FOREACH(const IndexCache::value_type& c, get_index_cache())
+    out << c.second.shortname << ": " << c.first << "<br>";
+
+  out << "BlobCacheSize: " << get_blob_cache().size() << "<br>";
+
   return OK;
 }
 

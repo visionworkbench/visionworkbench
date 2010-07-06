@@ -39,9 +39,18 @@ class PlateModule {
       int read_cursor;
     };
 
+    struct BlobCacheEntry {
+      boost::shared_ptr<Blob> blob;
+      int platefile_id;
+      BlobCacheEntry(boost::shared_ptr<Blob> b, int id) :
+        blob(b), platefile_id(id) {}
+    };
+
     typedef std::map<int32, IndexCacheEntry> IndexCache;
+    typedef std::map<std::string, BlobCacheEntry> BlobCache;
 
     const IndexCache& get_index_cache() const { return index_cache; }
+    const BlobCache&  get_blob_cache() const {return blob_cache; }
 
     const IndexCacheEntry& get_index(const std::string& id_str) const;
 
@@ -55,17 +64,8 @@ class PlateModule {
     std::string get_servername() const;
 
   private:
-    struct BlobCacheEntry {
-      boost::shared_ptr<Blob> blob;
-      int platefile_id;
-      BlobCacheEntry(boost::shared_ptr<Blob> b, int id) :
-        blob(b), platefile_id(id) {}
-    };
-
     boost::shared_ptr<AmqpRpcClient> m_client;
     boost::shared_ptr<IndexService>  m_index_service;
-
-    typedef std::map<std::string, BlobCacheEntry> BlobCache;
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
