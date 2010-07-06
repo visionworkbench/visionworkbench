@@ -17,15 +17,15 @@
 
 namespace vw {
  
-  typedef EdgeExtensionBase EdgeExtendBase;
-  typedef NoEdgeExtension NoEdgeExtend;
-  typedef ZeroEdgeExtension ZeroEdgeExtend;
-  typedef ConstantEdgeExtension ConstantEdgeExtend;
-  typedef PeriodicEdgeExtension PeriodicEdgeExtend;
-  typedef ReflectEdgeExtension ReflectEdgeExtend;
+  typedef EdgeExtensionBase EdgeExtendBase VW_DEPRECATED;
+  typedef NoEdgeExtension NoEdgeExtend VW_DEPRECATED;
+  typedef ZeroEdgeExtension ZeroEdgeExtend VW_DEPRECATED;
+  typedef ConstantEdgeExtension ConstantEdgeExtend VW_DEPRECATED;
+  typedef PeriodicEdgeExtension PeriodicEdgeExtend VW_DEPRECATED;
+  typedef ReflectEdgeExtension ReflectEdgeExtend VW_DEPRECATED;
 
   template <class ImageT, class ExtensionT>
-  class EdgeExtendView : public EdgeExtensionView<ImageT,ExtensionT>
+  class VW_DEPRECATED EdgeExtendView : public EdgeExtensionView<ImageT,ExtensionT>
   {
     typedef EdgeExtensionView<ImageT,ExtensionT> impl_type;
   public:
