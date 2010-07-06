@@ -189,15 +189,21 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(int platefile_id, const stri
   ostr << plate_filename << "/plate_" << blob_id << ".blob";
   const string& filename = ostr.str();
 
-  BlobCache::const_iterator blob = blob_cache.find(filename);
+  if (m_conf->use_blob_cache) {
 
-  // Check the platefile id to make sure the blob wasn't deleted and recreated
-  // with a different platefile
-  if (blob != blob_cache.end() && blob->second.platefile_id == platefile_id)
-    return blob->second.blob;
+    BlobCache::const_iterator blob = blob_cache.find(filename);
+
+    // Check the platefile id to make sure the blob wasn't deleted and recreated
+    // with a different platefile
+    if (blob != blob_cache.end() && blob->second.platefile_id == platefile_id)
+      return blob->second.blob;
+  }
 
   boost::shared_ptr<Blob> ret( new Blob(filename, true) );
-  blob_cache.insert(std::make_pair(filename, BlobCacheEntry(ret, platefile_id)));
+
+  if (m_conf->use_blob_cache)
+    blob_cache.insert(std::make_pair(filename, BlobCacheEntry(ret, platefile_id)));
+
   return ret;
 }
 

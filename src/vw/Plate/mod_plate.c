@@ -162,6 +162,7 @@ ADD_STRING_CONFIG(servername, is_servername);
 ADD_INT_CONFIG(index_timeout, is_gt_zero);
 ADD_INT_CONFIG(index_tries, is_gt_zero);
 ADD_FLAG_CONFIG(unknown_resync);
+ADD_FLAG_CONFIG(use_blob_cache);
 
 static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
@@ -173,6 +174,7 @@ static const command_rec my_cmds[] = {
   AP_INIT_TAKE1("PlateIndexTries",    handle_index_tries,    NULL, RSRC_CONF, "How many times to try talking to the index_server"),
   AP_INIT_TAKE2("PlateAlias",         handle_alias,          NULL, RSRC_CONF, "Name-to-platefile_id mappings"),
   AP_INIT_FLAG("PlateUnknownResync",  handle_unknown_resync, NULL, RSRC_CONF, "Should we resync the platefile list when someone asks for an unknown one?"),
+  AP_INIT_FLAG("PlateBlobCache",      handle_use_blob_cache, NULL, RSRC_CONF, "Should the blob cache be used?"),
   { NULL }
 };
 
@@ -190,6 +192,7 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   conf->rules = apr_array_make(p, 2, sizeof(rule_entry));
   conf->alias = apr_table_make(p, 4);
   conf->unknown_resync = 1;
+  conf->use_blob_cache = 1;
   return conf;
   // This is the default config file
 #if 0
@@ -199,6 +202,7 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   PlateIndexTimeout 3000
   PlateIndexTries 3
   PlateUnknownResync on
+  PlateBlobCache on
 #endif
 
 // these keys not set by default, but here are examples of possible valid ones

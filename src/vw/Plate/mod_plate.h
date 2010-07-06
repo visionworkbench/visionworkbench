@@ -37,6 +37,7 @@ typedef struct {
   int index_timeout;
   int index_tries;
   int unknown_resync;
+  int use_blob_cache;
   apr_array_header_t *rules; // This holds rule_entries
   apr_table_t *alias;        // key is name, value is id, an int stored as a const char*
 } plate_config;
