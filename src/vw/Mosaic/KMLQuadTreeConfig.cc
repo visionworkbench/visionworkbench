@@ -211,7 +211,8 @@ namespace mosaic {
     kml << std::setprecision(10);
 
     kml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-    kml << "<kml><Folder>\n";
+    kml << "<kml xmlns=\"http://www.opengis.net/kml/2.2\" xmlns:gx=\"http://www.google.com/kml/ext/2.2\" xmlns:kml=\"http://www.opengis.net/kml/2.2\" xmlns:atom=\"http://www.w3.org/2005/Atom\">\n";
+    kml << "<Folder>\n";
     int num_children = 0;
 
     bool root_node = ( info.name.size() == 0 );
@@ -262,7 +263,7 @@ namespace mosaic {
       num_children++;
     }
 
-    kml << "</Folder></kml>\n";
+    kml << "</Folder>\n</kml>\n";
 
     // Skip this file if there aren't any real contents
     if( num_children != 0 ) {
