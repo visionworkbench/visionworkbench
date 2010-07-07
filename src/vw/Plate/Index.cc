@@ -5,10 +5,10 @@
 // __END_LICENSE__
 
 
-#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/LocalIndex.h>
+
 using namespace vw::platefile;
 using namespace vw;
 

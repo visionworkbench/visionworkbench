@@ -9,6 +9,8 @@
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/common.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/HTTPUtils.h>
+
 using namespace vw;
 using namespace vw::platefile;
 
@@ -21,58 +23,47 @@ static void null_closure() {}
 
 // Parse a URL with the format: pf://<exchange>/<platefile name>.plate
 void parse_url(std::string const& url, std::string &hostname, int &port, 
-               std::string &exchange, std::string &platefile_name) {
+               std::string &exchange, std::string &platefile_name, QueryMap& params) {
 
-    std::string bare_exchange;
-    if (url.find("pf://") != 0) {
-      vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
-    } else {
-      std::string substr = url.substr(5);
+  Url u(url);
+  VW_ASSERT(u.scheme() == "pf",  vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
+  VW_ASSERT(u.path().size() > 1, vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
 
-      std::vector<std::string> split_vec;
-      boost::split( split_vec, substr, boost::is_any_of("/") );
+  hostname = u.hostname();
+  if (hostname.empty())
+    hostname = "localhost";
 
-      // No hostname was specified: pf://<exchange>/<platefilename>.plate
-      if (split_vec.size() == 2) {
-        hostname = "localhost"; // default to localhost
-        port = 5672;            // default rabbitmq port
+  port = u.port();
+  if (port == 0)
+    port = 5672;
 
-        bare_exchange = split_vec[0];
-        platefile_name = split_vec[1];
+  std::vector<boost::iterator_range<std::string::const_iterator> > items;
+  boost::split(items, u.path(), boost::is_any_of("/"));
+  std::string bare_exchange;
 
-      // No hostname was specified: pf://<ip address>:<port>/<exchange>/<platefilename>.plate
-      } else if (split_vec.size() == 3) {
+  VW_ASSERT(items[0].end() - items[0].begin() == 0, vw::LogicErr() << "Url parser broke on " << url);
 
-        bare_exchange = split_vec[1];
-        platefile_name = split_vec[2];
+  //XXX: This hackery is because our url format in the no-hostname case is
+  // illegal (it should be pf:///exchange). If we don't have an exchange and a
+  // platefile name in the path, assume the hostname is actually the exchange.
+  if (items.size() == 2) {
+    // No hostname was specified: pf://<exchange>/<platefilename>.plate
+    hostname = "localhost";
+    bare_exchange = u.hostname();
+    platefile_name = std::string(items[1].begin(), items[1].end());
+  } else if (items.size() == 3) {
+    // /exchange/platefile
+    bare_exchange  = std::string(items[1].begin(), items[1].end());
+    platefile_name = std::string(items[2].begin(), items[2].end());
+  } else {
+    vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url(): " << "could not parse URL string: " << url);
+  }
 
-        std::vector<std::string> host_port_vec;
-        boost::split( host_port_vec, split_vec[0], boost::is_any_of(":") );
+  params = u.query();
 
-        if (host_port_vec.size() == 1) {
-
-          hostname = host_port_vec[0];
-          port = 5672;            // default rabbitmq port
-
-        } else if (host_port_vec.size() == 2) {
-
-          hostname = host_port_vec[0];
-          port = boost::lexical_cast<int>(host_port_vec[1]);
-
-        } else {
-          vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- " 
-                   << "could not parse hostname and port from URL string: " << url);
-        }
-
-      } else {
-        vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url() -- "
-                 << "could not parse URL string: " << url);
-      }
-    }
-
-    // From here, we'll always be operating within the platefile exchange
-    // namespace... so prepend it.
-    exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + bare_exchange;
+  // From here, we'll always be operating within the platefile exchange
+  // namespace... so prepend it.
+  exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + bare_exchange;
 }
 
 // ----------------------------------------------------------------------
@@ -218,7 +209,8 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
   int port;
   std::string exchange;
   std::string platefile_name;
-  parse_url(url, hostname, port, exchange, platefile_name);
+  QueryMap params;
+  parse_url(url, hostname, port, exchange, platefile_name, params);
 
   std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
@@ -266,7 +258,8 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   int port;
   std::string exchange;
   std::string platefile_name;
-  parse_url(url, hostname, port, exchange, platefile_name);
+  QueryMap params;
+  parse_url(url, hostname, port, exchange, platefile_name, params);
 
   std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
 
