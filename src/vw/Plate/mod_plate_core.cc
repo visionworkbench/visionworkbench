@@ -230,7 +230,7 @@ void PlateModule::sync_index_cache() const {
     int32 id;
 
     try {
-      string index_url = string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_exchange + "/" + name;
+      string index_url = string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_exchange + "/" + name + "?cache_size=1";
       logger(VerboseDebugMessage) << "Trying to load index: " << index_url << std::endl;
 
       entry.index = Index::construct_open(index_url);

@@ -109,6 +109,10 @@ namespace platefile {
     /// Sync any unsaved data in the index to disk.
     virtual void sync();
 
+    virtual void set_default_cache_size(int size) {
+      m_default_cache_size = size;
+    }
+
     // ----------------------- READ/WRITE REQUESTS  ----------------------
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.

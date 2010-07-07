@@ -238,6 +238,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
                                                                                   m_rpc_controller, 
                                                                                   m_index_service));
   this->set_page_generator_factory(factory);
+  this->set_default_cache_size(params.get("cache_size", 100u));
 
   // Every time you run num_levels, it synchronizes the number of
   // local (cached) levels with the number of levels on the index
@@ -290,6 +291,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
                                                                                   m_rpc_controller, 
                                                                                   m_index_service));
   this->set_page_generator_factory(factory);
+  this->set_default_cache_size(params.get("cache_size", 100u));
 
   // Every time you run num_levels, it synchronizes the number of
   // local (cached) levels with the number of levels on the index
