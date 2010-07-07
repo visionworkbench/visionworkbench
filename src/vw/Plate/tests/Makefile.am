@@ -20,13 +20,14 @@ TestLocalIndex_SOURCES        = TestLocalIndex.cxx
 TestAmqp_SOURCES              = TestAmqp.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 TestModPlate_SOURCES          = TestModPlate.cxx
+TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
 
 if HAVE_PYTHON
 check_SCRIPTS  += TestModPlateRegression.py
 endif
 
 check_PROGRAMS = TestBlobManager TestBlobIO TestLocalIndex TestIndexPage TestAmqp \
-				 TestTileManipulation TestModPlate
+				 TestTileManipulation TestModPlate TestHTTPUtils
 
 
 if MAKE_MODPLATE

@@ -200,6 +200,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tests/TestModPlate
 /src/vw/Plate/tests/TestPlateIndexServer
 /src/vw/Plate/tests/TestTileManipulation
+/src/vw/Plate/tests/TestHTTPUtils
 /src/vw/Plate/tiles2plate
 /src/vw/Python/vw/_*.cpp
 /src/vw/Python/vw/_*.h

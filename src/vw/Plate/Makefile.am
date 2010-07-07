@@ -28,7 +28,7 @@ include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
 		  ToastPlateManager.h PlateCarreePlateManager.h		\
 		  PlateView.h RpcServices.h IndexService.h WMSService.h		\
 		  PagedIndex.h IndexPage.h ToastDem.h			\
-		  TileManipulation.h common.h
+		  TileManipulation.h common.h HTTPUtils.h
 nodist_include_HEADERS = $(protocol_headers)
 noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
 
@@ -38,7 +38,7 @@ libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
 			PlateManager.cc SnapshotManager.cc		\
 			ToastPlateManager.cc				\
 			PlateCarreePlateManager.cc PagedIndex.cc	\
-			IndexPage.cc ToastDem.cc TileManipulation.cc
+			IndexPage.cc ToastDem.cc TileManipulation.cc HTTPUtils.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@

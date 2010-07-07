@@ -16,61 +16,6 @@ using std::string;
 namespace vw {
 namespace platefile {
 
-string url_unescape(const string& str) {
-  // This is sort of ugly... make sure shared_ptr deletes with free
-  boost::shared_ptr<char> bytes(::strdup(str.c_str()), free);
-  int ret = ap_unescape_url(bytes.get());
-  if (ret != OK)
-    vw_throw(BadRequest() << "Invalid query string");
-
-  string unquoted(bytes.get());
-  boost::replace_all(unquoted, "+", " ");
-
-  return unquoted;
-}
-
-string url_escape(const string& str, apr_pool_t *pool) {
-  // this char* will be freed by apache (allocated on request pool), so don't
-  // try to free it here.
-  char *uri_s = ap_escape_uri(pool, str.c_str());
-  return std::string(uri_s);
-}
-
-QueryMap::QueryMap(const char *query, apr_pool_t *pool) : m_pool(pool) {
-  if (!query || strlen(query) > MAX_QUERY_LENGTH)
-    return;
-
-  std::vector<string> items;
-  boost::split(items, query, boost::is_any_of(";&"));
-
-  size_t found = 0;
-  BOOST_FOREACH(const string& item, items) {
-    if (item.empty())
-      continue;
-    if (found++ >= MAX_KEYS)
-      break;
-    size_t eq = item.find('=', 1);
-    if (eq == string::npos) {
-      m_map[url_unescape(item)] = "";
-      continue;
-    }
-    m_map[url_unescape(item.substr(0, eq))] = url_unescape(item.substr(eq+1));
-  }
-}
-
-string QueryMap::serialize(const std::string& prefix, const std::string& sep) const {
-  if (m_map.empty())
-    return std::string();
-
-  std::vector<std::string> vals;
-  vals.reserve(m_map.size());
-
-  BOOST_FOREACH(const map_t::value_type& p, m_map)
-    vals.push_back(url_escape(p.first, m_pool) + "=" + url_escape(p.second, m_pool));
-
-  return prefix + boost::join(vals, sep);
-}
-
 string safe_string_convert(const char* in) {
   static const size_t MAX_STRING_LENGTH = 255;
 
@@ -156,7 +101,7 @@ void WTMLImageSet::serializeToOstream(std::ostream& o) const {
 }
 
 ApacheRequest::ApacheRequest(request_rec* r)
-  : r(r), url(safe_string_convert(r->path_info)), args(QueryMap(r->args, r->pool)) {
+  : r(r), url(safe_string_convert(r->path_info)), args(QueryMap(safe_string_convert(r->args))) {
 
   // WWT will append &new to dem urls... even when there's no ?.
   if (url.size() > 4 && url.compare(url.size()-4,4,"&new") == 0)
