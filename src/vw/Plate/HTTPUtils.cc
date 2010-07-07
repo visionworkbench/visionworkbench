@@ -11,11 +11,20 @@ using std::vector;
 using namespace vw;
 
 namespace {
+  string snip(const std::string& str, size_t begin, size_t end) {
+    return string(str.begin()+begin, str.begin()+end);
+  }
   const char url_safe[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
     "0123456789"
     "_.-";
+
+  const char scheme_safe[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz"
+    "0123456789"
+    "+-.";
 
   string to_hex_formatter(const boost::iterator_range<std::string::const_iterator>& match) {
     string tmp(match.begin(), match.end());
@@ -31,6 +40,60 @@ namespace {
 
 namespace vw {
 namespace platefile {
+
+void Url::parse(const std::string& url, bool parse_query_params) {
+  boost::iterator_range<string::const_iterator> i = boost::find_token(url, !boost::is_any_of(scheme_safe));
+
+  size_t c = bool(i) ? (i.begin() - url.begin()) : 0;
+  size_t q = url.find('?', c == 0 ? 0 : c+1);
+  size_t f = url.find('#', q == string::npos ? 0 : q+1);
+
+  size_t begin = 0, end = url.size();
+
+  if (c != 0) {
+    m_scheme = boost::to_lower_copy(snip(url, begin, c));
+    begin = c+1;
+  }
+
+  if (f != string::npos) {
+    m_fragment = snip(url, f+1, end);
+    end = f;
+  }
+
+  if (q != string::npos) {
+    if (parse_query_params)
+      m_query = QueryMap(snip(url, q+1, end));
+    end = q;
+  }
+
+  if (url.substr(begin, 2) == "//")
+    begin += 2;
+
+  size_t s = url.find('/', begin);
+
+  if (s == string::npos || s > end) {
+    m_netloc = snip(url, begin, end);
+    m_path   = "";
+  } else {
+    m_netloc = snip(url, begin, s);
+    m_path   = snip(url, s, end);
+  }
+}
+
+Url::Url(const char* url, bool parse_query_params)
+  : m_scheme("file"), m_netloc(""), m_path("/"), m_fragment("") {
+  VW_ASSERT(url, ArgumentErr() << "Cannot parse empty url");
+
+  if (strlen(url) > MAX_URL_LENGTH)
+    vw_throw(ArgumentErr() << "Refusing to parse a url longer than " << MAX_URL_LENGTH);
+
+  parse(string(url), parse_query_params);
+}
+
+Url::Url(const string& url, bool parse_query_params)
+  : m_scheme("file"), m_netloc(""), m_path("/"), m_fragment("") {
+    parse(url, parse_query_params);
+}
 
 QueryMap::QueryMap(const std::string& query) {
   std::vector<string> items;

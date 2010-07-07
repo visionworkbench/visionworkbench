@@ -42,6 +42,52 @@ class QueryMap {
     }
 };
 
+class Url {
+  // Refuse to parse a url longer than this.
+  static const unsigned MAX_URL_LENGTH = 500;
+
+  std::string m_scheme, m_netloc, m_path, m_fragment;
+  QueryMap m_query;
+
+  void parse(const std::string& url, bool parse_query_params);
+
+  public:
+    // Parse a URL into 5 components:
+    // <scheme>://<netloc>/<path>?<query>#<fragment>
+    // pieces are url-decoded.
+    // Every URL is parsed as though the scheme is HTTP.
+    Url(const char* url, bool parse_query_params=true);
+    Url(const std::string& url, bool parse_query_params=true);
+
+    const std::string& scheme()   const { return m_scheme;   }
+    const std::string& netloc()   const { return m_netloc;   }
+    const std::string& path()     const { return m_path;     }
+    const QueryMap& query()       const { return m_query;    }
+    const std::string& fragment() const { return m_fragment; }
+
+    std::string hostname() const {
+      size_t f = m_netloc.find(":");
+      if (f == std::string::npos)
+        return m_netloc;
+      return m_netloc.substr(0,f);
+    }
+
+    uint16 port() const {
+      size_t f = m_netloc.find(":");
+      if (f == std::string::npos)
+        return 0;
+      return boost::lexical_cast<uint16>(m_netloc.substr(f+1));
+    }
+
+    std::string url() const {
+      return scheme() + "://"
+           + m_netloc
+           + url_escape((m_path.empty() || m_path[0] != '/' ? "/" : "") + m_path, "/")
+           + m_query.serialize()
+           + url_escape((m_fragment.empty() ? "" : "#") + m_fragment);
+    }
+};
+
 }} // namespace vw::platefile
 
 #endif
