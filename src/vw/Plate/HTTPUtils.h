@@ -65,6 +65,12 @@ class Url {
     const QueryMap& query()       const { return m_query;    }
     const std::string& fragment() const { return m_fragment; }
 
+    std::string& scheme()   { return m_scheme;   }
+    std::string& netloc()   { return m_netloc;   }
+    std::string& path()     { return m_path;     }
+    QueryMap& query()       { return m_query;    }
+    std::string& fragment() { return m_fragment; }
+
     std::string hostname() const {
       size_t f = m_netloc.find(":");
       if (f == std::string::npos)

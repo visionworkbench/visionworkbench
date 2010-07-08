@@ -91,13 +91,6 @@ TEST(HTTPUtils, PF) {
   EXPECT_EQ(0, u1.port());
   EXPECT_EQ("/exchange/platefilename.plate", u1.path());
 
-  // This is the old syntax... The exchange shows up as the hostname.
-  Url u2("pf://exchange/platefilename.plate");
-  EXPECT_EQ("pf", u2.scheme());
-  EXPECT_EQ("exchange", u2.hostname());
-  EXPECT_EQ(0, u2.port());
-  EXPECT_EQ("/platefilename.plate", u2.path());
-
   Url u3("pf://12.123.12.123:25/exchange/platefilename.plate");
   EXPECT_EQ("pf", u3.scheme());
   EXPECT_EQ("12.123.12.123", u3.hostname());
@@ -109,4 +102,11 @@ TEST(HTTPUtils, PF) {
   EXPECT_EQ("123.23.23.123", u4.hostname());
   EXPECT_EQ(0, u4.port());
   EXPECT_EQ("/exchange/platefilename.plate", u4.path());
+}
+
+TEST(HTTPUtils, Change) {
+  Url u("pf://meow/pants/cheese?rawr=foo");
+  u.netloc() = "woof";
+  u.path() = u.path() + "/append";
+  EXPECT_EQ("pf://woof/pants/cheese/append?rawr=foo", u.url());
 }
