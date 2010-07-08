@@ -11,16 +11,16 @@ AC_DEFUN([AX_COMMON_OPTIONS], [
 # Compilation options
 ##################################################
 
-AX_ARG_ENABLE(exceptions,      yes, [am-yes cpp-bool], [enable the C++ exception mechanism])
-AX_ARG_ENABLE(debug,            no, [none],            [generate debugging symbols])
-AX_ARG_ENABLE(optimize,          3, [none],            [compiler optimization level])
-AX_ARG_ENABLE(profile,          no, [none],            [generate profiling data])
-AX_ARG_ENABLE(arch-libs,        no, [none],            [force /lib64 (=64) or /lib32 (=32) instead of /lib])
-AX_ARG_ENABLE(ccache,           no, [none],            [try to use ccache, if available])
-AX_ARG_ENABLE(multi-arch,       [], [none],            [build multi-arch (universal) binaries])
-AX_ARG_ENABLE(no-undefined,     no, [none],            [set -Wl,-no-undefined (might break linking)])
-AX_ARG_ENABLE(rpath,            no, [none],            [set RPATH/RUNPATH on generated binaries])
-AX_ARG_ENABLE(as-needed,        no, [none],            [set -Wl,-as-needed (might break linking)])
+AX_ARG_ENABLE(exceptions,   yes, [am-yes cpp-bool], [enable the C++ exception mechanism])
+AX_ARG_ENABLE(debug,         no, [none],            [generate debugging symbols])
+AX_ARG_ENABLE(optimize,       3, [none],            [compiler optimization level])
+AX_ARG_ENABLE(profile,       no, [none],            [generate profiling data])
+AX_ARG_ENABLE(arch-libs,     no, [none],            [force /lib64 (=64) or /lib32 (=32) instead of /lib])
+AX_ARG_ENABLE(ccache,        no, [none],            [try to use ccache, if available])
+AX_ARG_ENABLE(multi-arch,    [], [none],            [build multi-arch (universal) binaries])
+AX_ARG_ENABLE(no-undefined,  no, [none],            [set -Wl,-no-undefined (might break linking)])
+AX_ARG_ENABLE(rpath,         no, [none],            [set RPATH/RUNPATH on generated binaries])
+AX_ARG_ENABLE(as-needed,     no, [none],            [set -Wl,-as-needed (might break linking)])
 AX_ARG_ENABLE(google-tcmalloc, yes, [none],            [Try to use google perftools' tcmalloc])
 AX_ARG_ENABLE(google-profiler,  no, [none],            [Try to use google perftools' cpu profiler])
 
