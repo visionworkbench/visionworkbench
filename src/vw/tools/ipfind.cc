@@ -121,13 +121,13 @@ int main(int argc, char** argv) {
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
-    ("interest-operator", po::value(&interest_operator)->default_value("LoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
+    ("interest-operator", po::value(&interest_operator)->default_value("OBALoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
     ("gain,g", po::value(&ip_gain)->default_value(1.0), "Increasing this number will increase the gain at which interest points are detected.")
     ("max-points", po::value(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value(&descriptor_generator)->default_value("patch"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
+    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
