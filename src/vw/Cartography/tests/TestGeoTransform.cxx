@@ -77,3 +77,23 @@ TEST( GeoTransform, UTMFarZone ) {
   EXPECT_THROW( bbox2 = geotx.reverse_bbox(BBox2i(0,0,size[0],size[1])) ,
                 vw::ArgumentErr );
 }
+
+TEST( GeoTransform, StereographicSingularity ) {
+  // Test forward bbox actually hits the limit of platecarre
+  GeoReference ll_georef, stereo_georef;
+
+  Matrix3x3 transform = math::identity_matrix<3>();
+  transform(1,1) = -1; transform(1,2) = 90;
+  ll_georef.set_transform(transform);
+
+  transform = math::identity_matrix<3>();
+  transform(0,0) = transform(1,1) = 1e4;
+  transform(0,2) = transform(1,2) = -1e6;
+  stereo_georef.set_transform(transform);
+  stereo_georef.set_stereographic(90,0,1);
+
+  GeoTransform geotx(stereo_georef, ll_georef);
+  BBox2i output, input(50,50,100,100);
+  EXPECT_NO_THROW( output = geotx.forward_bbox(input) );
+  EXPECT_NEAR( 0, output.min()[1], 2 );
+}
