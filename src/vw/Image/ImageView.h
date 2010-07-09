@@ -175,7 +175,7 @@ namespace vw {
 
     /// Adjusts the size of the image to match the dimensions of another image.
     template <class ImageT>
-    void set_size( ImageViewBase<ImageT> &img ) {
+    void set_size( const ImageViewBase<ImageT> &img ) {
       this->set_size(img.impl().cols(), img.impl().rows(), img.impl().planes());
     }
 
