@@ -149,7 +149,7 @@ namespace stereo {
 
   template <class ViewT>
   BinaryPerPixelView<ViewT, PixelIndexView, DisparityRangeMaskFunc<typename ViewT::pixel_type> >
-  disparity_range_mask( ImageViewBase<ViewT> &disparity_map,
+  disparity_range_mask( ImageViewBase<ViewT> const& disparity_map,
                         typename ViewT::pixel_type const& min,
                         typename ViewT::pixel_type const& max ) {
 
