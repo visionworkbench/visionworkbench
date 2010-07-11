@@ -23,6 +23,7 @@ AX_ARG_ENABLE(rpath,         no, [none],            [set RPATH/RUNPATH on genera
 AX_ARG_ENABLE(as-needed,     no, [none],            [set -Wl,-as-needed (might break linking)])
 AX_ARG_ENABLE(google-tcmalloc, yes, [none],            [Try to use google perftools' tcmalloc])
 AX_ARG_ENABLE(google-profiler,  no, [none],            [Try to use google perftools' cpu profiler])
+AX_ARG_ENABLE(super-inlining, no, [none],           [turn off as much inlining as possible])
 
 
 ##################################################
@@ -80,6 +81,15 @@ fi
 
 if test x"$ENABLE_AS_NEEDED" = "xyes"; then
     AX_TRY_CPPFLAGS([-Wl,-as-needed],    [OTHER_LDFLAGS="$OTHER_LDFLAGS -Wl,-as-needed"])
+fi
+
+if test x"$ENABLE_SUPER_INLINING" = "xyes"; then
+  AX_TRY_CPPFLAGS([-fno-default-inline],               [AX_CFLAGS="$AX_CFLAGS -fno-default-inline"])
+  AX_TRY_CPPFLAGS([-fno-inline],                       [AX_CFLAGS="$AX_CFLAGS -fno-inline"])
+  AX_TRY_CPPFLAGS([-fno-inline-small-functions],       [AX_CFLAGS="$AX_CFLAGS -fno-inline-small-functions"])
+  AX_TRY_CPPFLAGS([-fno-inline-functions],             [AX_CFLAGS="$AX_CFLAGS -fno-inline-functions"])
+  AX_TRY_CPPFLAGS([-fno-inline-functions-called-once], [AX_CFLAGS="$AX_CFLAGS -fno-inline-functions-called-once"])
+  AX_TRY_CPPFLAGS([-fkeep-inline-functions],           [AX_CFLAGS="$AX_CFLAGS -fkeep-inline-functions"])
 fi
 
 # Debugging

@@ -172,15 +172,6 @@ if test "$ENABLE_TEST_COVERAGE" = "yes"; then
 
   dnl These two are necessary and already tested for
   CXXFLAGS="$CXXFLAGS -fprofile-arcs -ftest-coverage"
-
-  dnl try to un-inline as much as possible
-  AX_TRY_CPPFLAGS([-fno-default-inline],               [CXXFLAGS="$CXXFLAGS -fno-default-inline"])
-  AX_TRY_CPPFLAGS([-fno-inline],                       [CXXFLAGS="$CXXFLAGS -fno-inline"])
-  AX_TRY_CPPFLAGS([-fno-inline-small-functions],       [CXXFLAGS="$CXXFLAGS -fno-inline-small-functions"])
-  AX_TRY_CPPFLAGS([-fno-inline-functions],             [CXXFLAGS="$CXXFLAGS -fno-inline-functions"])
-  AX_TRY_CPPFLAGS([-fno-inline-functions-called-once], [CXXFLAGS="$CXXFLAGS -fno-inline-functions-called-once"])
-  AX_TRY_CPPFLAGS([-fkeep-inline-functions],           [CXXFLAGS="$CXXFLAGS -fkeep-inline-functions"])
-
   LDFLAGS="$LDFLAGS -lgcov"
   ENABLE_OPTIMIZE=no
   ENABLE_DEBUG=yes
