@@ -119,11 +119,8 @@ TEST( PinholeModelCalibrate, SerializeFour ) {
     PinholeModel d;
     d.set_coordinate_frame(u, v, w);
     deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation, PinholeModelSerializeTSAI>(d, serial);
-    Vector2 d_focal, d_offst;
-    d.intrinsic_parameters(d_focal[0], d_focal[1],
-                           d_offst[0], d_offst[1]);
-    EXPECT_VECTOR_NEAR( d_focal, focal, 1e-10 );
-    EXPECT_VECTOR_NEAR( d_offst, offst, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.focal_length(), focal, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.point_offset(), offst, 1e-10 );
     EXPECT_VECTOR_NEAR( d.camera_pose().axis_angle(),
                         m.camera_pose().axis_angle(), 1e-14 );
     EXPECT_VECTOR_NEAR( d.camera_center(),
@@ -166,11 +163,8 @@ TEST( PinholeModelCalibrate, SerializeThree ) {
     PinholeModel d;
     d.set_coordinate_frame(u, v, w);
     deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation, PinholeModelSerializeTranslation>(d, serial);
-    Vector2 d_focal, d_offst;
-    d.intrinsic_parameters(d_focal[0], d_focal[1],
-                           d_offst[0], d_offst[1]);
-    EXPECT_VECTOR_NEAR( d_focal, focal, 1e-10 );
-    EXPECT_VECTOR_NEAR( d_offst, offst, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.focal_length(), focal, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.point_offset(), offst, 1e-10 );
     EXPECT_VECTOR_NEAR( d.camera_pose().axis_angle(),
                         m.camera_pose().axis_angle(), 1e-14 );
     EXPECT_VECTOR_NEAR( d.camera_center(),
@@ -209,11 +203,8 @@ TEST( PinholeModelCalibrate, SerializeTwo ) {
     PinholeModel d;
     d.set_coordinate_frame(u, v, w);
     deserialize_pinholemodel<PinholeModelSerializeIntrinsic, PinholeModelSerializeRotation>(d, serial);
-    Vector2 d_focal, d_offst;
-    d.intrinsic_parameters(d_focal[0], d_focal[1],
-                           d_offst[0], d_offst[1]);
-    EXPECT_VECTOR_NEAR( d_focal, focal, 1e-10 );
-    EXPECT_VECTOR_NEAR( d_offst, offst, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.focal_length(), focal, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.point_offset(), offst, 1e-10 );
     EXPECT_VECTOR_NEAR( d.camera_pose().axis_angle(),
                         m.camera_pose().axis_angle(), 1e-14 );
   }
@@ -248,11 +239,8 @@ TEST( PinholeModelCalibrate, SerializeOne ) {
     PinholeModel d;
     d.set_coordinate_frame(u, v, w);
     deserialize_pinholemodel<PinholeModelSerializeIntrinsic>(d, serial);
-    Vector2 d_focal, d_offst;
-    d.intrinsic_parameters(d_focal[0], d_focal[1],
-                           d_offst[0], d_offst[1]);
-    EXPECT_VECTOR_NEAR( d_focal, focal, 1e-10 );
-    EXPECT_VECTOR_NEAR( d_offst, offst, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.focal_length(), focal, 1e-10 );
+    EXPECT_VECTOR_NEAR( d.point_offset(), offst, 1e-10 );
   }
 }
 
@@ -287,12 +275,15 @@ TEST( PinholeModelCalibrate, Calibrate ) {
 
     double mean = mean_sqr_error(m, pixels, points);
 
-    // see if the optimizer improves the results; the mean error should decrease as
-    // the number of variables the optimizer gets to play with increases
-    // These tests can fail on real data depending on your srand implementation without anything being actually broken
-    // - which is why a "fake" srand/rand function pair local to this class was implemented to generate
-    // pseudo pseudo random values (i.e. sequence that is always the same) for point positions and noise -
-    // thus the test should be completely repeatable
+    // see if the optimizer improves the results; the mean error
+    // should decrease as the number of variables the optimizer gets
+    // to play with increases. These tests can fail on real data
+    // depending on your srand implementation without anything being
+    // actually broken - which is why a "fake" srand/rand function
+    // pair local to this class was implemented to generate pseudo
+    // pseudo random values (i.e. sequence that is always the same)
+    // for point positions and noise - thus the test should be
+    // completely repeatable
     {
       PinholeModel c(m);
       pinholemodel_calibrate<PinholeModelSerializeIntrinsic>(c, pixels, points, 1000);
@@ -375,11 +366,12 @@ TEST( PinholeModelCalibrate, Ransac ) {
 
   //double mean = mean_error(m, pixels, points);
 
-  // these tests verify mainly that RANSAC actually does respect the inlier_threshold value passed in
-  // (The maximum error in the image plane for a resulting camera model can be equal to inlier_threshold)
-  // and that the number of inliers is not "too small"
-
-  // play with these parameters to make the test more or less stringent and/or fast
+  // these tests verify mainly that RANSAC actually does respect the
+  // inlier_threshold value passed in (The maximum error in the image
+  // plane for a resulting camera model can be equal to
+  // inlier_threshold) and that the number of inliers is not "too
+  // small" play with these parameters to make the test more or less
+  // stringent and/or fast
   double inlier_threshold = 15;
   const unsigned ransac_inlier_threshold = 10; // how many inliers to we require
   const unsigned ransac_iter = 20; // number of ransac iterations
