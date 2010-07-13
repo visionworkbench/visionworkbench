@@ -3,14 +3,12 @@
 
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Cartography/SimplePointImageManipulation.h>
 
 using namespace vw;
 using namespace vw::ba;
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/fstream.hpp>
-#include <boost/foreach.hpp>
+
 namespace fs = boost::filesystem;
 
 struct ContainsEqualIP {
@@ -175,90 +173,4 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
     }
     progress.report_finished();
   }
-}
-
-void vw::ba::add_ground_control_points( ControlNetwork& cnet,
-                                        std::vector<std::string> const& image_files,
-                                        std::vector<std::string> const& gcp_files ) {
-  // Creating a version of image_files that doesn't contain the path
-  std::vector<std::string> pathless_image_files;
-  for ( unsigned i = 0; i < image_files.size(); i++ )
-    pathless_image_files.push_back(fs::path(image_files[i]).filename());
-
-  TerminalProgressCallback progress("ba", "Grnd Control:");
-  progress.report_progress(0);
-  float inc_progress = 1.0/gcp_files.size();
-  for ( std::vector<std::string>::const_iterator gcp_name = gcp_files.begin();
-        gcp_name != gcp_files.end(); gcp_name++ ) {
-
-    if ( !fs::exists( *gcp_name ) )
-      continue;
-
-    progress.report_incremental_progress(inc_progress);
-
-    // Data to be loaded
-    std::vector<Vector2> measure_locations;
-    std::vector<std::string> measure_cameras;
-    Vector3 world_location, world_sigma;
-
-    vw_out(VerboseDebugMessage,"ba") << "\tLoading \"" << *gcp_name
-                                     << "\".\n";
-    int count = 0;
-    std::ifstream ifile( (*gcp_name).c_str() );
-    while (!ifile.eof()) {
-      if ( count == 0 ) {
-        // First line defines position in the world
-        ifile >> world_location[0] >> world_location[1]
-              >> world_location[2] >> world_sigma[0]
-              >> world_sigma[1] >> world_sigma[2];
-      } else {
-        // Other lines define position in images
-        std::string temp_name;
-        Vector2 temp_loc;
-        ifile >> temp_name >> temp_loc[0] >> temp_loc[1];
-        measure_locations.push_back( temp_loc );
-        measure_cameras.push_back( temp_name );
-      }
-      count++;
-    }
-    ifile.close();
-
-    // Building Control Point
-    Vector3 xyz = cartography::lon_lat_radius_to_xyz(world_location);
-    vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
-                                     << xyz << std::endl;
-    ControlPoint cpoint(ControlPoint::GroundControlPoint);
-    cpoint.set_position(xyz[0],xyz[1],xyz[2]);
-    cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
-
-    // Adding measures
-    std::vector<Vector2>::iterator m_iter_loc = measure_locations.begin();
-    std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
-    while ( m_iter_loc != measure_locations.end() ) {
-      unsigned camera_index;
-      for (camera_index = 0; camera_index < image_files.size(); camera_index++ ) {
-        if ( *m_iter_name == image_files[camera_index] )
-          break;
-        else if ( *m_iter_name == pathless_image_files[camera_index])
-          break;
-      }
-      if ( camera_index == image_files.size() ) {
-        vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
-                                    << *m_iter_name << std::endl;
-      } else {
-        vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
-                                  << " #" << camera_index << std::endl;
-        ControlMeasure cm( (*m_iter_loc).x(), (*m_iter_loc).y(),
-                           1.0, 1.0, camera_index );
-        cpoint.add_measure( cm );
-      }
-      m_iter_loc++;
-      m_iter_name++;
-    }
-
-    // Appended GCP
-    cnet.add_control_point(cpoint);
-  }
-  progress.report_finished();
-
 }
