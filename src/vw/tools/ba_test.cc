@@ -514,7 +514,7 @@ CameraVector load_camera_models(std::vector<fs::path> const &camera_files,
 
     vw_out(VerboseDebugMessage) << "\t" << file << endl;
     boost::shared_ptr<PinholeModel> cam(new PinholeModel());
-    cam->read_file(file.string());
+    cam->read(file.string());
     camera_models.push_back(cam);
   }
 
