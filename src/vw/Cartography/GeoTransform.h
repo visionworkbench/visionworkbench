@@ -81,7 +81,7 @@ namespace cartography {
         ystep = y0 < y1 ? 1 : -1;
       }
 
-      Vector2i operator*() {
+      Vector2i operator*() const {
         if (steep)
           return Vector2i(y,x);
         else
@@ -97,7 +97,7 @@ namespace cartography {
         }
       }
 
-      bool is_good() { return x != x1 && y != y1; }
+      bool is_good() const { return x < x1 && y < y1; }
     };
 
     // We override forward_bbox so it understands to check if the image 
