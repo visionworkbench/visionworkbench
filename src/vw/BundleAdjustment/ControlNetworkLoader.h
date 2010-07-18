@@ -128,7 +128,7 @@ namespace ba {
                                        << "\".\n";
 
       ControlNetwork gcpcnet("");
-      cnet.read_binary(*gcpcnet_start);
+      gcpcnet.read_binary(*gcpcnet_start);
 
       BOOST_FOREACH( ControlPoint & cp, gcpcnet ) {
         bool failed_to_index = false;

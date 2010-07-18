@@ -14,8 +14,10 @@ if MAKE_MODULE_BUNDLEADJUSTMENT
 TestBundleAdjustment_SOURCES      = TestBundleAdjustment.cxx
 TestControlNetwork_SOURCES        = TestControlNetwork.cxx
 TestCameraRelation_SOURCES        = TestCameraRelation.cxx
+TestControlNetworkLoad_SOURCES    = TestControlNetworkLoad.cxx
 
-TESTS = TestBundleAdjustment TestControlNetwork TestCameraRelation
+TESTS = TestBundleAdjustment TestControlNetwork TestCameraRelation \
+        TestControlNetworkLoad
 
 endif
 
