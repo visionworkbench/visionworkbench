@@ -44,7 +44,7 @@ class QueryMap {
 
 class Url {
   // Refuse to parse a url longer than this.
-  static const unsigned MAX_URL_LENGTH = 500;
+  static const unsigned MAX_URL_LENGTH;
 
   std::string m_scheme, m_netloc, m_path, m_fragment;
   QueryMap m_query;

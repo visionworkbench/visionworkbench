@@ -41,6 +41,8 @@ namespace {
 namespace vw {
 namespace platefile {
 
+const unsigned Url::MAX_URL_LENGTH = 500;
+
 void Url::parse(const std::string& url, bool parse_query_params) {
   boost::iterator_range<string::const_iterator> i = boost::find_token(url, !boost::is_any_of(scheme_safe));
 
