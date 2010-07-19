@@ -237,19 +237,19 @@ public:
     return ImageFormat();
   }
 
-  void read( ImageBuffer &srcbuf, ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
+  void read( ImageBuffer &dstbuf, BBox2i const& bbox ) const {
     boost::scoped_array<uint8> buffer( new uint8[ bbox.width() * bbox.height() * resource.planes() * channel_size( resource.channel_type() ) ] );
-    srcbuf.data = buffer.get();
-    srcbuf.format.cols = bbox.width();
-    srcbuf.format.rows = bbox.height();
-    srcbuf.format.planes = resource.planes();
-    srcbuf.format.channel_type = resource.channel_type();
-    srcbuf.format.pixel_format = VW_PIXEL_SCALAR;
-    srcbuf.cstride = channel_size( srcbuf.format.channel_type );
-    srcbuf.rstride = srcbuf.cstride * bbox.width();
-    srcbuf.pstride = srcbuf.rstride * bbox.height();
+    dstbuf.data = buffer.get();
+    dstbuf.format.cols = bbox.width();
+    dstbuf.format.rows = bbox.height();
+    dstbuf.format.planes = resource.planes();
+    dstbuf.format.channel_type = resource.channel_type();
+    dstbuf.format.pixel_format = VW_PIXEL_SCALAR;
+    dstbuf.cstride = channel_size( dstbuf.format.channel_type );
+    dstbuf.rstride = dstbuf.cstride * bbox.width();
+    dstbuf.pstride = dstbuf.rstride * bbox.height();
     // For each requested plane...
-    for( uint32 p=0; p<uint32(srcbuf.format.planes); ++p ) {
+    for( uint32 p=0; p<uint32(dstbuf.format.planes); ++p ) {
       // Select the SDS
       ::int32 sds_id = SDselect( sd_id, plane_info[p].sds );
       if( sds_id == FAIL ) vw_throw( IOErr() << "Unable to select SDS in HDF file \"" << resource.filename() << "\"!" );
@@ -257,13 +257,13 @@ public:
       if( sds_info[plane_info[p].sds].rank == 2 ) {
         ::int32 start[2] = { bbox.min().y(), bbox.min().x() };
         ::int32 edges[2] = { bbox.height(), bbox.width() };
-        if ( SDreaddata( sds_id, start, NULL, edges, (uint8*)srcbuf.data + p*srcbuf.pstride ) == FAIL )
+        if ( SDreaddata( sds_id, start, NULL, edges, (uint8*)dstbuf.data + p*dstbuf.pstride ) == FAIL )
           vw_throw( IOErr() << "Unable to read data from HDF file \"" << resource.filename() << "\"!" );
       }
       else if( sds_info[plane_info[p].sds].rank == 3 ) {
         ::int32 start[3] = { plane_info[p].band,   bbox.min().y(), bbox.min().x() };
         ::int32 edges[3] = { 1, bbox.height(), bbox.width() };
-        if ( SDreaddata( sds_id, start, NULL, edges, (uint8*)srcbuf.data + p*srcbuf.pstride ) == FAIL )
+        if ( SDreaddata( sds_id, start, NULL, edges, (uint8*)dstbuf.data + p*dstbuf.pstride ) == FAIL )
           vw_throw( IOErr() << "Unable to read data from HDF file \"" << resource.filename() << "\"!" );
       }
       else vw_throw( IOErr() << "Invalid SDS rank in HDF file \"" << resource.filename() << "\"!" );
@@ -556,7 +556,7 @@ void vw::DiskImageResourceHDF::open( std::string const& filename ) {
 
 void vw::DiskImageResourceHDF::read( ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
   ImageBuffer srcbuf;
-  m_info->read( srcbuf, dstbuf, bbox );
+  m_info->read( srcbuf, bbox );
   convert( dstbuf, srcbuf, m_rescale );
 }
 
