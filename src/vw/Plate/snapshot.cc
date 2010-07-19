@@ -62,8 +62,8 @@ public:
                      std::string const& region_string, 
                      int const& write_transaction_id, 
                      bool terrain) : 
-    tweak_settings_for_terrain(terrain),
-    write_transaction_id(write_transaction_id) {
+    write_transaction_id(write_transaction_id),
+    tweak_settings_for_terrain(terrain) {
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep(",:@");
 
