@@ -113,8 +113,10 @@ namespace mosaic {
     int32 planes() const { return 1; }
 
     typedef PositionedImage prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return *this; }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw_throw( NoImplErr() << "PositionedImage does not support rasterize!" ); }
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& /*dest*/, BBox2i /*bbox*/ ) const {
+      vw_throw( NoImplErr() << "PositionedImage does not support rasterize!" );
+    }
   };
 
 
