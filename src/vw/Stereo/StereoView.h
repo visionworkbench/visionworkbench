@@ -47,11 +47,11 @@ namespace stereo {
 
     inline pixel_accessor origin() const { return pixel_accessor(*this); }
 
-    inline result_type operator()( int i, int j, int /*p*/=0 ) const {
+    inline result_type operator()( int i, int j, int p=0 ) const {
       double error;
-      if ( is_valid(m_disparity_map(i,j)) ) {
+      if ( is_valid(m_disparity_map(i,j,p)) ) {
         return m_stereo_model(Vector2( i, j ),
-                              Vector2( i, j )+remove_mask(m_disparity_map(i,j)),
+                              Vector2( i, j )+remove_mask(m_disparity_map(i,j,p)),
                               error );
       }
       // For missing pixels in the disparity map, we return a null 3D position.
@@ -65,10 +65,10 @@ namespace stereo {
     // diverged).
     inline double error( int i, int j, int p=0 ) const {
       double error;
-      if ( !m_disparity_map(i,j).missing() ) {
+      if ( !m_disparity_map(i,j,p).missing() ) {
         m_stereo_model(Vector2( i, j ),
-                       Vector2( i + m_disparity_map(i,j).h(),
-                                j + m_disparity_map(i,j).v() ),
+                       Vector2( i + m_disparity_map(i,j,p).h(),
+                                j + m_disparity_map(i,j,p).v() ),
                        error );
         if (error >= 0)
           return error;
