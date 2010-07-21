@@ -14,7 +14,8 @@
 
 // Boost
 #include <boost/algorithm/string.hpp>
-#include <boost/smart_ptr.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/scoped_ptr.hpp>
 
 // Forward declaration of Proj.4 things. C++ needs forward declaration of
 // typedefs so we can call it PJ instead of PJconsts. Bad if Proj ever
@@ -191,9 +192,8 @@ namespace cartography {
 
   /// A convenience function to read georeferencing information from an image file.
   inline bool read_georeference( GeoReference& georef, const std::string &filename ) {
-    DiskImageResource *r = DiskImageResource::open( filename );
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
     bool result = read_georeference( georef, *r );
-    delete r;
     return result;
   }
 
@@ -202,10 +202,9 @@ namespace cartography {
   bool read_georeferenced_image( ImageView<PixelT>& image,
                                  GeoReference& georef,
                                  const std::string &filename ) {
-    DiskImageResource *r = DiskImageResource::open( filename );
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::open( filename ));
     bool result = read_georeference( georef, *r );
     read_image( image, *r );
-    delete r;
     return result;
   }
 
@@ -221,11 +220,10 @@ namespace cartography {
                                   GeoReference const& georef,
                                   ProgressCallback const& progress_callback = ProgressCallback::dummy_instance() ) {
     vw_out(InfoMessage, "fileio") << "\tSaving image: " << filename << "\t";
-    DiskImageResource *r = DiskImageResource::create( filename, image.format() );
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create( filename, image.format() ));
     vw_out(InfoMessage, "fileio") << r->cols() << "x" << r->rows() << "x" << r->planes() << "  " << r->channels() << " channel(s)\n";
     write_georeference( *r, georef );
     write_image( *r, image, progress_callback );
-    delete r;
   }
 
   /// The following namespace contains functions that return GeoReferences
