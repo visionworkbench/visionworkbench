@@ -25,7 +25,7 @@
 namespace vw {
 namespace cartography {
 
-  void read_gdal_georeference( GeoReference& georef,
+  bool read_gdal_georeference( GeoReference& georef,
                                DiskImageResourceGDAL const& resource ) {
     boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
     if (!dataset)
@@ -62,6 +62,8 @@ namespace cartography {
               georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
         }
       }
+    } else {
+      return false;
     }
 
     // Georeference functions need not be invertible.  When we perform a reverse
@@ -78,6 +80,7 @@ namespace cartography {
         resource.filename() << " contains a non-normal georeference.  Bad things "
         "may happen: puppies dying, rainbows fading, mortage foreclosures, etc." << std::endl;
     }
+    return true;
   }
 
 

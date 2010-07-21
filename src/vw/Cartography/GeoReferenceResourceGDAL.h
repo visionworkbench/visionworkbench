@@ -17,7 +17,7 @@
 namespace vw {
 namespace cartography {
 
-  void read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
+  bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
   void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
 
 }} // namespace vw::cartography

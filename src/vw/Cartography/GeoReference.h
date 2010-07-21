@@ -187,22 +187,26 @@ namespace cartography {
   //
 
   /// Read georeferencing information from an image resource.
-  void read_georeference( GeoReference& georef, ImageResource const& resource );
+  bool read_georeference( GeoReference& georef, ImageResource const& resource );
 
   /// A convenience function to read georeferencing information from an image file.
-  inline void read_georeference( GeoReference& georef, const std::string &filename ) {
+  inline bool read_georeference( GeoReference& georef, const std::string &filename ) {
     DiskImageResource *r = DiskImageResource::open( filename );
-    read_georeference( georef, *r );
+    bool result = read_georeference( georef, *r );
     delete r;
+    return result;
   }
 
   /// A convenience function to read an image and its georeferencing information.
   template <class PixelT>
-  void read_georeferenced_image( ImageView<PixelT>& image, GeoReference& georef, const std::string &filename ) {
+  bool read_georeferenced_image( ImageView<PixelT>& image,
+                                 GeoReference& georef,
+                                 const std::string &filename ) {
     DiskImageResource *r = DiskImageResource::open( filename );
-    read_georeference( georef, *r );
+    bool result = read_georeference( georef, *r );
     read_image( image, *r );
     delete r;
+    return result;
   }
 
   /// Write georeferencing information to an image resource.  You should

@@ -158,7 +158,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GeoReference input_georef;
     bool fail_read_georef = false;
     try {
-      read_georeference( input_georef, file_resource );
+      fail_read_georef = !read_georeference( input_georef, file_resource );
     } catch ( InputErr const& e ) {
       vw_out(ErrorMessage) << "Input " << image_files[i]
                            << " has malformed georeferencing information.\n";

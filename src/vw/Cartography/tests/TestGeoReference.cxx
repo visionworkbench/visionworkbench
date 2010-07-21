@@ -213,8 +213,8 @@ TEST( GeoReference, IOLoop ) {
   // Reading back in and comparing
   GeoReference retn_georeference;
   ImageView<PixelRGB<float> > retn_image;
-  read_georeferenced_image( retn_image, retn_georeference,
-                            test_filename );
+  EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georeference,
+                                         test_filename ) );
 
   typedef ImageView<PixelRGB<float> >::iterator iterator;
   for ( iterator test = test_image.begin(), retn = retn_image.begin();

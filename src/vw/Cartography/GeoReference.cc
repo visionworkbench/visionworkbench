@@ -24,14 +24,19 @@
 #include <projects.h>
 
 
-void vw::cartography::read_georeference( vw::cartography::GeoReference& georef, vw::ImageResource const& resource ) {
+bool vw::cartography::read_georeference( vw::cartography::GeoReference& georef,
+                                         vw::ImageResource const& resource ) {
+
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  DiskImageResourceGDAL const* gdal = dynamic_cast<DiskImageResourceGDAL const*>( &resource );
+  DiskImageResourceGDAL const* gdal =
+    dynamic_cast<DiskImageResourceGDAL const*>( &resource );
   if( gdal ) return read_gdal_georeference( georef, *gdal );
 #endif
-  DiskImageResourcePDS const* pds = dynamic_cast<DiskImageResourcePDS const*>( &resource );
+
+  DiskImageResourcePDS const* pds =
+    dynamic_cast<DiskImageResourcePDS const*>( &resource );
   if( pds ) return read_pds_georeference( georef, *pds );
-  vw_throw(NoImplErr() << "This image resource does not support reading georeferencing information.");
+  return false;
 }
 
 void vw::cartography::write_georeference( vw::ImageResource& resource, vw::cartography::GeoReference const& georef ) {
