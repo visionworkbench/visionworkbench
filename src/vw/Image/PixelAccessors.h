@@ -62,15 +62,27 @@ namespace vw {
     }
 #endif
 
-    inline MemoryStridingPixelAccessor& next_col() { m_ptr += m_cstride; return *this; }
-    inline MemoryStridingPixelAccessor& prev_col() { m_ptr -= m_cstride; return *this; }
-    inline MemoryStridingPixelAccessor& next_row() { m_ptr += m_rstride; return *this; }
-    inline MemoryStridingPixelAccessor& prev_row() { m_ptr -= m_rstride; return *this; }
+    inline MemoryStridingPixelAccessor& next_col()   { m_ptr += m_cstride; return *this; }
+    inline MemoryStridingPixelAccessor& prev_col()   { m_ptr -= m_cstride; return *this; }
+    inline MemoryStridingPixelAccessor& next_row()   { m_ptr += m_rstride; return *this; }
+    inline MemoryStridingPixelAccessor& prev_row()   { m_ptr -= m_rstride; return *this; }
     inline MemoryStridingPixelAccessor& next_plane() { m_ptr += m_pstride; return *this; }
     inline MemoryStridingPixelAccessor& prev_plane() { m_ptr -= m_pstride; return *this; }
     inline MemoryStridingPixelAccessor& advance( ptrdiff_t dc, ptrdiff_t dr, ptrdiff_t dp=0 ) {
       m_ptr += dc*m_cstride + dr*m_rstride + dp*m_pstride;
       return *this;
+    }
+
+    inline MemoryStridingPixelAccessor next_col_copy()   const { MemoryStridingPixelAccessor tmp(*this); tmp.next_col();   return tmp; }
+    inline MemoryStridingPixelAccessor prev_col_copy()   const { MemoryStridingPixelAccessor tmp(*this); tmp.prev_col();   return tmp; }
+    inline MemoryStridingPixelAccessor next_row_copy()   const { MemoryStridingPixelAccessor tmp(*this); tmp.next_row();   return tmp; }
+    inline MemoryStridingPixelAccessor prev_row_copy()   const { MemoryStridingPixelAccessor tmp(*this); tmp.prev_row();   return tmp; }
+    inline MemoryStridingPixelAccessor next_plane_copy() const { MemoryStridingPixelAccessor tmp(*this); tmp.next_plane(); return tmp; }
+    inline MemoryStridingPixelAccessor prev_plane_copy() const { MemoryStridingPixelAccessor tmp(*this); tmp.prev_plane(); return tmp; }
+    inline MemoryStridingPixelAccessor advance_copy ( ptrdiff_t dc, ptrdiff_t dr, ptrdiff_t dp=0 ) const {
+      MemoryStridingPixelAccessor tmp(*this);
+      tmp.advance(dc,dr,dp);
+      return tmp;
     }
 
     inline result_type operator*() const {
@@ -111,6 +123,18 @@ namespace vw {
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
     inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int32 dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
+
+    inline ProceduralPixelAccessor next_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.next_col();   return tmp; }
+    inline ProceduralPixelAccessor prev_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_col();   return tmp; }
+    inline ProceduralPixelAccessor next_row_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.next_row();   return tmp; }
+    inline ProceduralPixelAccessor prev_row_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_row();   return tmp; }
+    inline ProceduralPixelAccessor next_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.next_plane(); return tmp; }
+    inline ProceduralPixelAccessor prev_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.prev_plane(); return tmp; }
+    inline ProceduralPixelAccessor advance_copy ( ptrdiff_t dc, ptrdiff_t dr, ptrdiff_t dp=0 ) const {
+      ProceduralPixelAccessor tmp(*this);
+      tmp.advance(dc,dr,dp);
+      return tmp;
+    }
 
     inline result_type operator*() const { return m_view(m_c,m_r,m_p); }
   };
