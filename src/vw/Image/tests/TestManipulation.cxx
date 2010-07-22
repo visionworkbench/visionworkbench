@@ -150,12 +150,12 @@ TEST( Manipulation, TransposeView ) {
   ImageView<double>::iterator im2i = im2.begin();
   TransposeView<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -233,12 +233,12 @@ TEST( Manipulation, Rotate180View ) {
   ImageView<double>::iterator im2i = im2.begin();
   Rotate180View<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -314,12 +314,12 @@ TEST( Manipulation, 90CWView ) {
   ImageView<double>::iterator im2i = im2.begin();
   Rotate90CWView<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -395,12 +395,12 @@ TEST( Manipulation, Rotate90CCWView ) {
   ImageView<double>::iterator im2i = im2.begin();
   Rotate90CCWView<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -476,12 +476,12 @@ TEST( Manipulation, FlipVertView ) {
   ImageView<double>::iterator im2i = im2.begin();
   FlipVerticalView<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -557,12 +557,12 @@ TEST( Manipulation, FlipHorzView ) {
   ImageView<double>::iterator im2i = im2.begin();
   FlipHorizontalView<ImageView<double> >::iterator rmvi = rmv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*rmvi, &*rmv.end() );
+    EXPECT_GT( rmv.end() - rmvi, 0 );
     EXPECT_EQ( *im2i, *rmvi );
     ASSERT_NO_THROW( ++rmvi );
     ++im2i;
   }
-  EXPECT_EQ( &*rmvi, &*rmv.end() );
+  EXPECT_EQ( rmv.end() - rmvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( rmv ) );
@@ -638,12 +638,12 @@ TEST( Manipulation, CropView ) {
   ImageView<double>::iterator im2i = im2.begin();
   CropView<ImageView<double> >::iterator cvi = cv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*cvi, &*cv.end() );
+    EXPECT_GT( cv.end() - cvi, 0 );
     EXPECT_EQ( *im2i, *cvi );
     ASSERT_NO_THROW( ++cvi );
     ++im2i;
   }
-  EXPECT_EQ( &*cvi, &*cv.end() );
+  EXPECT_EQ( cv.end() - cvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( cv ) );
@@ -753,12 +753,12 @@ TEST( Manipulation, SubsampleView ) {
   ImageView<double>::iterator im2i = im2.begin();
   SubsampleView<ImageView<double> >::iterator ssvi = ssv.begin();
   for ( int i=0; i<im2.cols()*im2.rows(); ++i ) {
-    EXPECT_NE( &*ssvi, &*ssv.end() );
+    EXPECT_GT( ssv.end() - ssvi, 0 );
     EXPECT_EQ( *im2i, *ssvi );
     ASSERT_NO_THROW( ++ssvi );
     ++im2i;
   }
-  EXPECT_EQ( &*ssvi, &*ssv.end() );
+  EXPECT_EQ( ssv.end() - ssvi, 0 );
 
   // Test the types
   ASSERT_TRUE( has_pixel_type<double>( ssv ) );

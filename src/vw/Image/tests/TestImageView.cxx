@@ -212,7 +212,7 @@ TEST( ImageView, PartialRasterization ) {
 }
 
 #define EXPECT_ITERATOR(I,C,R,P) \
-  { EXPECT_NE( &*I, &*im.end() ); \
+  { EXPECT_GT( im.end() - I, 0 ); \
     EXPECT_EQ( &*I, &im(C,R,P) ); \
     EXPECT_EQ( I.col(), C ); \
     EXPECT_EQ( I.row(), R ); \
@@ -240,7 +240,7 @@ TEST( ImageView, Iterator ) {
   ++i;
   EXPECT_ITERATOR( i, 1, 1, 1 );
   ++i;
-  EXPECT_EQ( &*i, &*im.end() );
+  EXPECT_EQ( im.end() - i, 0 );
 }
 
 TEST( ImageView, BoundsCheck ) {
