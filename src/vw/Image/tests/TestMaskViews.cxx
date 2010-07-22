@@ -8,7 +8,10 @@
 #include <gtest/gtest.h>
 
 #include <vw/config.h>
-#include <vw/Image.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/Algorithms.h>
 #include <test/Helpers.h>
 
 using namespace vw;
