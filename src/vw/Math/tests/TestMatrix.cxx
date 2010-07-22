@@ -283,6 +283,28 @@ TEST(Matrix, SubMatrix) {
   EXPECT_EQ( 3, m(0,1) );
   EXPECT_EQ( 3, m(1,0) );
   EXPECT_EQ( 5, m(1,1) );
+
+  m = Matrix2x2(1,2,3,4);
+  Matrix2x2f dest;
+  select_row(dest,0) = select_row(m,0);
+  EXPECT_EQ( 1, dest(0,0) );
+  EXPECT_EQ( 2, dest(0,1) );
+  EXPECT_EQ( 0, dest(1,0) );
+  EXPECT_EQ( 0, dest(1,1) );
+
+  dest = Matrix2x2f();
+  select_col(dest,0) = select_col(m,0);
+  EXPECT_EQ(1, dest(0,0) );
+  EXPECT_EQ(0, dest(0,1) );
+  EXPECT_EQ(3, dest(1,0) );
+  EXPECT_EQ(0, dest(1,1) );
+
+  dest = Matrix2x2();
+  select_col(dest,0) = select_row(m,1);
+  EXPECT_EQ(3, dest(0,0) );
+  EXPECT_EQ(0, dest(0,1) );
+  EXPECT_EQ(4, dest(1,0) );
+  EXPECT_EQ(0, dest(1,1) );
 }
 
 TEST(Matrix, Products) {
