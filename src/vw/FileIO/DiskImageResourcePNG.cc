@@ -278,8 +278,10 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   virtual ~vw_png_read_context()
   {
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    if (setjmp(err_mgr.error_return)) {
+      vw_out(ErrorMessage) << "DiskImageResourcePNG: A libpng read error occurred. " << err_mgr.error_msg;
+      return;
+    }
     png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
     m_file->close();
   }
@@ -287,7 +289,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
   void readline()
   {
     if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng read error occurred. " << err_mgr.error_msg );
     png_read_row(png_ptr, static_cast<png_bytep>(scanline.get()), NULL);
     current_line++;
   }
@@ -494,8 +496,10 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
   virtual ~vw_png_write_context()
   {
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+    if (setjmp(err_mgr.error_return)) {
+      vw_out(ErrorMessage) <<  "DiskImageResourcePNG: A libpng write error occurred. " << err_mgr.error_msg;
+      return;
+    }
     png_write_end(png_ptr, info_ptr);
     png_destroy_write_struct(&png_ptr, &info_ptr);
     m_file->close();

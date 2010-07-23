@@ -207,8 +207,9 @@ TEST( GeoReference, IOLoop ) {
   GeoReference test_georeference( test_datum, test_transform );
 
   UnlinkName test_filename( "georeference_test.tif" );
-  write_georeferenced_image( test_filename, test_image,
-                             test_georeference );
+  ASSERT_NO_THROW(
+      write_georeferenced_image( test_filename, test_image,
+                             test_georeference ));
 
   // Reading back in and comparing
   GeoReference retn_georeference;
