@@ -14,7 +14,7 @@ libgtest_la_LIBADD = @PKG_CORE_LIBS@ $(PKG_BOOST_FILESYSTEM_LIBS)
 
 check_LTLIBRARIES = libgtest.la
 
-AM_CPPFLAGS += -DTEST_SRCDIR="\"$(top_srcdir)/$(subdir)\"" -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include -g @PKG_CORE_CPPFLAGS@
+AM_CPPFLAGS += -DTEST_SRCDIR="\"$(abs_top_srcdir)/$(subdir)\"" -isystem $(GTEST_DIR) -isystem $(GTEST_DIR)/include -g @PKG_CORE_CPPFLAGS@
 LDADD = libgtest.la
 
 # This makes sure we're using the c++ linker
