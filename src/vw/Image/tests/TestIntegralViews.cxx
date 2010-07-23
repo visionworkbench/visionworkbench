@@ -84,15 +84,27 @@ TEST( IntegralViews, IntegralImage ) {
       EXPECT_EQ( (i+1) * (j+1), result(i,j)) << " at (i,j) = (" << i << "," << j << ")";
 }
 
-// | 1 1 1 1 |     | 1 2  3  4 |     | 1 1 1 1 |
-// | 1 1 1 1 |  I  | 2 4  6  8 |  B  | 1 1 1 1 |
-// | 1 1 1 1 | ->  | 3 6  9 12 | ->  | 1 1 1 1 |
-// | 1 1 1 1 |     | 4 8 12 16 |     | 1 1 1 1 |
+// | 1 1 1 1 |     | 1 2  3  4 |     | 4 6 6 4 |
+// | 1 1 1 1 |  I  | 2 4  6  8 |  B  | 6 9 9 6 |
+// | 1 1 1 1 | ->  | 3 6  9 12 | ->  | 6 9 9 6 |
+// | 1 1 1 1 |     | 4 8 12 16 |     | 4 6 6 4 |
 TEST( IntegralViews, BlockSum ) {
   image_t im(10,10);
   vw::fill(im, 1);
 
+  image_t expected(10,10);
+  vw::fill(expected, 9);
+  vw::fill(crop(expected,0,1,1,8), 6);
+  vw::fill(crop(expected,1,0,8,1), 6);
+  vw::fill(crop(expected,9,1,1,8), 6);
+  vw::fill(crop(expected,1,9,8,1), 6);
+  expected(0,0) = expected(9,9) = expected(9,0) = expected(0,9) = 4;
+
   image_t result = block_sum(im,3);
-  EXPECT_EQ(im, result);
+  for ( unsigned i = 0; i < 10; i++ ) {
+    for ( unsigned j = 0; j < 10; j++ ) {
+      EXPECT_EQ( expected(i,j), result(i,j) );
+    }
+  }
 }
 

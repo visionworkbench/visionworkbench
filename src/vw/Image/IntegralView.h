@@ -171,7 +171,7 @@ namespace vw {
       BBox2i child_bbox(bbox);
       child_bbox.expand(m_range);
 
-      typedef ImageView<typename CompoundChannelCast<typename ImageT::pixel_type,typename AccumulatorType<typename CompoundChannelType<typename ImageT::pixel_type>::type>::type>::type> SrcT;
+      typedef ImageView<typename CompoundChannelCast<pixel_type,typename AccumulatorType<typename CompoundChannelType<pixel_type>::type>::type>::type> SrcT;
 
       SrcT src = edge_extend(integral_image(m_child), child_bbox, IntegralEdgeExtension());
 
