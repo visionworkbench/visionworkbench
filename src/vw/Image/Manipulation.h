@@ -642,20 +642,9 @@ namespace vw {
       return *this;
     }
 
-    CropView& operator=( CropView const& view ) {
-      *const_cast<const CropView*>(this) = view;
-      return *this;
-    }
-
     template <class ViewT>
     CropView const& operator=( ImageViewBase<ViewT> const& view ) const {
       view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
-      return *this;
-    }
-
-    template <class ViewT>
-    CropView& operator=( ImageViewBase<ViewT> const& view ) {
-      *const_cast<const CropView*>(this) = view;
       return *this;
     }
 
@@ -803,15 +792,14 @@ namespace vw {
     inline pixel_accessor origin() const { return m_child.origin().advance(m_col,0,0); }
     inline result_type operator()( int32 /*i*/, int32 j, int32 p=0) const { return m_child(m_col,j,p); }
 
-    template <class ViewT>
-    SelectColView const& operator=( ImageViewBase<ViewT> const& view ) const {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    SelectColView const& operator=( SelectColView const& view ) const {
+      view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
       return *this;
     }
 
     template <class ViewT>
-    SelectColView& operator=( ImageViewBase<ViewT> const& view ) {
-      *const_cast<const SelectColView*>(this) = view.impl();
+    SelectColView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 
@@ -862,15 +850,14 @@ namespace vw {
 
     inline result_type operator()( int32 i, int32 /*j*/, int32 p=0) const { return m_child(i,m_row,p); }
 
-    template <class ViewT>
-    SelectRowView const& operator=( ImageViewBase<ViewT> const& view ) const {
-      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+    SelectRowView const& operator=( SelectRowView const& view ) const {
+      view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
       return *this;
     }
 
     template <class ViewT>
-    SelectRowView& operator=( ImageViewBase<ViewT> const& view ) {
-      *const_cast<const SelectRowView*>(this) = view.impl();
+    SelectRowView const& operator=( ImageViewBase<ViewT> const& view ) const {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
       return *this;
     }
 

@@ -13,6 +13,7 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/Algorithms.h>
 
 using namespace vw;
 
@@ -672,6 +673,38 @@ TEST( Manipulation, Crop ) {
   ASSERT_TRUE( bool_trait<IsMultiplyAccessible>( crop(im,1,1,1,2) ) );
 }
 
+TEST( Manipulation, CropAssignment ) {
+  ImageView<int> dest(3,3);
+  fill(dest,1);
+  ImageView<int> a(2,2);
+  a(0,0) = 1; // A|13|
+  a(0,1) = 2; //  |24|
+  a(1,0) = 3;
+  a(1,1) = 4;
+
+  crop(dest,1,1,2,2) = a;
+  EXPECT_EQ( 1, dest(0,0) );
+  EXPECT_EQ( 1, dest(1,0) );
+  EXPECT_EQ( 1, dest(2,0) );
+  EXPECT_EQ( 1, dest(0,1) );
+  EXPECT_EQ( 1, dest(1,1) );
+  EXPECT_EQ( 3, dest(2,1) );
+  EXPECT_EQ( 1, dest(0,2) );
+  EXPECT_EQ( 2, dest(1,2) );
+  EXPECT_EQ( 4, dest(2,2) );
+
+  crop(dest,1,0,2,1) = crop(a,0,1,2,1);
+  EXPECT_EQ( 1, dest(0,0) );
+  EXPECT_EQ( 2, dest(1,0) );
+  EXPECT_EQ( 4, dest(2,0) );
+  EXPECT_EQ( 1, dest(0,1) );
+  EXPECT_EQ( 1, dest(1,1) );
+  EXPECT_EQ( 3, dest(2,1) );
+  EXPECT_EQ( 1, dest(0,2) );
+  EXPECT_EQ( 2, dest(1,2) );
+  EXPECT_EQ( 4, dest(2,2) );
+}
+
 TEST( Manipulation, SubsampleView ) {
   ImageView<double> im(4,5); im(0,0)=1; im(2,0)=2; im(0,2)=3; im(2,2)=4; im(0,4)=5; im(2,4)=6;
   SubsampleView<ImageView<double> > ssv(im,2,2);
@@ -768,6 +801,39 @@ TEST( Manipulation, SelectCol ) {
   ASSERT_TRUE( bool_trait<IsMultiplyAccessible>( select_col(im,1) ) );
 }
 
+TEST( Manipulation, ColAssignment ) {
+  ImageView<int32> a(2,2), b(2,2);
+  a(0,0) = 1; // A|13| B|57|
+  a(0,1) = 2; //  |24|  |68|
+  a(1,0) = 3;
+  a(1,1) = 4;
+  b(0,0) = 5;
+  b(0,1) = 6;
+  b(1,0) = 7;
+  b(1,1) = 8;
+
+  ImageView<int32> tmp(1,2);
+  tmp(0,0) = 9;
+  tmp(0,1) = 10;
+
+  select_col(a,1) = tmp;
+  EXPECT_EQ( 1,  a(0,0) );
+  EXPECT_EQ( 9,  a(1,0) );
+  EXPECT_EQ( 2,  a(0,1) );
+  EXPECT_EQ( 10, a(1,1) );
+
+  // Remember:
+  // Matrices index (row, col)
+  // however Images index (col, row)
+
+  select_col(a, 0) = select_col(b, 0);
+  EXPECT_EQ( 5,  a(0,0) );
+  EXPECT_EQ( 9,  a(1,0) );
+  EXPECT_EQ( 6,  a(0,1) );
+  EXPECT_EQ( 10, a(1,1) );
+} 
+
+
 TEST( Manipulation, SelectRow ) {
   ImageView<double> im(2,2); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4;
   ImageView<double> im2 = select_row(im,1);
@@ -784,6 +850,34 @@ TEST( Manipulation, SelectRow ) {
   // Test the traits
   ASSERT_TRUE( bool_trait<IsMultiplyAccessible>( select_row(im,1) ) );
 }
+
+TEST( Manipulation, RowAssignment ) {
+  ImageView<int32> a(2,2), b(2,2);
+  a(0,0) = 1; // A|13| B|57|
+  a(0,1) = 2; //  |24|  |68|
+  a(1,0) = 3;
+  a(1,1) = 4;
+  b(0,0) = 5;
+  b(0,1) = 6;
+  b(1,0) = 7;
+  b(1,1) = 8;
+
+  ImageView<int32> tmp(2,1);
+  tmp(0,0) = 9;
+  tmp(1,0) = 10;
+
+  select_row(a,1) = tmp;
+  EXPECT_EQ( 1,  a(0,0) );
+  EXPECT_EQ( 3,  a(1,0) );
+  EXPECT_EQ( 9,  a(0,1) );
+  EXPECT_EQ( 10, a(1,1) );
+
+  select_row(a,0) = select_row(b, 0);
+  EXPECT_EQ( 5,  a(0,0) );
+  EXPECT_EQ( 7,  a(1,0) );
+  EXPECT_EQ( 9,  a(0,1) );
+  EXPECT_EQ( 10, a(1,1) );
+} 
 
 TEST( Manipulation, SelectPlane ) {
   ImageView<double> im(1,2,2); im(0,0,0)=1; im(0,1,0)=2; im(0,0,1)=3; im(0,1,1)=4;
