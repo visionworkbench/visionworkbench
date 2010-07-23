@@ -14,63 +14,10 @@
 
 #include <boost/utility/enable_if.hpp>
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Image/IntegralView.h>
 
 namespace vw {
 namespace ip {
-
-  /// Creates Integral Image
-  template <class ViewT>
-  inline ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type>
-  IntegralImage( ImageViewBase<ViewT> const& source ) {
-
-    typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
-
-    // Allocating space
-    ImageView<channel_type> integral( source.impl().cols()+1, source.impl().rows()+1 );
-
-    typedef typename ImageView<channel_type>::pixel_accessor dst_accessor;
-    typedef typename ViewT::pixel_accessor src_accessor;
-
-    // Zero-ing the first row and col
-    dst_accessor dest_row = integral.origin();
-    *dest_row = 0;
-    for ( int i = 1; i < integral.cols(); i++ ) {
-      dest_row.next_col();
-      *dest_row = 0;
-    }
-    dest_row = integral.origin();
-    for ( int i = 1; i < integral.rows(); i++ ) {
-      dest_row.next_row();
-      *dest_row = 0;
-    }
-
-    // Pointer and pointer offset
-    int offset = integral.cols();
-    channel_type* p;
-
-    // Now filling in integral image
-    dest_row = integral.origin();
-    dest_row.advance(1,1);
-    src_accessor src_row = source.impl().origin();
-    for ( int iy = 0; iy < source.impl().rows(); iy++ ) {
-      dst_accessor dest_col = dest_row;
-      src_accessor src_col = src_row;
-      for ( int ix = 0; ix < source.impl().cols(); ix++ ) {
-        p = &(*dest_col);
-
-        // Summing
-        *dest_col = pixel_cast<PixelGray<channel_type> >(*src_col).v() + *(p-1) + *(p-offset) - *(p-offset-1);
-
-        dest_col.next_col();
-      src_col.next_col();
-      }
-      dest_row.next_row();
-      src_row.next_row();
-    }
-
-    return integral;
-  }
 
   /// Integral Block Evaluation
   ///

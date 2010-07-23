@@ -18,6 +18,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/IntegralView.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>

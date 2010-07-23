@@ -146,9 +146,10 @@ docs/workbook/workbook.toc
 /src/vw/Image/tests/TestImageView
 /src/vw/Image/tests/TestImageViewRef
 /src/vw/Image/tests/TestInterpolation
+/src/vw/Image/tests/TestIntegralViews
 /src/vw/Image/tests/TestManipulation
-/src/vw/Image/tests/TestMaskViews
 /src/vw/Image/tests/TestMaskedPixelMath
+/src/vw/Image/tests/TestMaskViews
 /src/vw/Image/tests/TestPerPixelAccessorViews
 /src/vw/Image/tests/TestPerPixelViews
 /src/vw/Image/tests/TestPixelMath
