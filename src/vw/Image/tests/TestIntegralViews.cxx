@@ -84,6 +84,38 @@ TEST( IntegralViews, IntegralImage ) {
       EXPECT_EQ( (i+1) * (j+1), result(i,j)) << " at (i,j) = (" << i << "," << j << ")";
 }
 
+TEST( IntegralViews, IntegralEdgeExtension ) {
+  image_t im(4,4);
+  vw::fill(im, 1);
+  typedef EdgeExtensionView<image_t,IntegralEdgeExtension> result_type;
+  result_type result =
+    edge_extend(integral_image(im), IntegralEdgeExtension());
+
+  EXPECT_EQ( 0, result(-1,-1) );
+  EXPECT_EQ( 0, result(0,-1) );
+  EXPECT_EQ( 0, result(-1,0) );
+  EXPECT_EQ( 0, result(-2,-4) );
+  EXPECT_EQ( 1, result(0,0) );
+  EXPECT_EQ( 4, result(1,1) );
+  EXPECT_EQ( 9, result(2,2) );
+  EXPECT_EQ( 16, result(3,3) );
+  EXPECT_EQ( 16, result(4,4) );
+  EXPECT_EQ( 16, result(5,5) );
+  EXPECT_EQ( 12, result(2,5) );
+  EXPECT_EQ( 12, result(5,2) );
+  EXPECT_EQ( 4,  result(8,0) );
+
+  image_t prerastered = edge_extend(integral_image(im),
+                                    BBox2i(-1,-1,6,6),
+                                    IntegralEdgeExtension());
+  EXPECT_EQ( 6, prerastered.cols() );
+  EXPECT_EQ( 6, prerastered.rows() );
+  for ( unsigned i = 0; i < 6; i++ ) {
+    EXPECT_EQ( 0, prerastered(0,i) ) << " at (0," << i << ")";
+    EXPECT_EQ( 0, prerastered(i,0) ) << " at (" << i << ",0)";
+  }
+}
+
 // | 1 1 1 1 |     | 1 2  3  4 |     | 4 6 6 4 |
 // | 1 1 1 1 |  I  | 2 4  6  8 |  B  | 6 9 9 6 |
 // | 1 1 1 1 | ->  | 3 6  9 12 | ->  | 6 9 9 6 |
@@ -103,7 +135,7 @@ TEST( IntegralViews, BlockSum ) {
   image_t result = block_sum(im,3);
   for ( unsigned i = 0; i < 10; i++ ) {
     for ( unsigned j = 0; j < 10; j++ ) {
-      EXPECT_EQ( expected(i,j), result(i,j) );
+      EXPECT_EQ( expected(i,j), result(i,j) ) << " at (i,j) = (" << i << "," << j << ")";
     }
   }
 }
