@@ -42,8 +42,12 @@ namespace vw {
           return view(i,j,p);
         else if (xr == -1 || yr == -1)
           return typename ViewT::pixel_type();
+        else if (xr == 1 && yr == 0 )
+          return view(view.cols()-1,j,p);
+        else if (xr == 0 && yr == 1 )
+          return view(i,view.rows()-1,p);
         else
-          return this->operator()(view, i-1,j,p) + this->operator()(view, i,j-1,p) - this->operator()(view, i-1,j-1,p);
+          return view(view.cols()-1,view.rows()-1,p);
       }
 
       template <class ViewT>
