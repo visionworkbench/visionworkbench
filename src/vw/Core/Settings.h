@@ -42,6 +42,8 @@ namespace vw {
     bool m_default_num_threads_override;
     size_t m_system_cache_size;
     bool m_system_cache_size_override;
+    size_t m_write_pool_size;
+    bool m_write_pool_size_override;
     int m_default_tile_size;
     bool m_default_tile_size_override;
     std::string m_tmp_directory;
@@ -103,6 +105,15 @@ namespace vw {
     
     /// Set the default tile size to be used for block processing.
     void set_default_tile_size(int num);
+
+    /// Query for write pool size in number of threads
+    int write_pool_size();
+
+    /// Set the current write cache size. Write cache is only used in
+    /// block writing. In that code this number is used to determine how many
+    /// threads can be used for waiting to write. Use this number and file
+    /// cache size to define the amount of memory to be used.
+    void set_write_pool_size(int size);
 
     /// Query for the directory being used to store temporary files.
     std::string tmp_directory();

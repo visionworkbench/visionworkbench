@@ -212,7 +212,7 @@ namespace vw {
     void add_rasterize_task(boost::shared_ptr<Task> task) { m_rasterize_work_queue->add_task(task); }
 
   public:
-    ThreadedBlockWriter() : m_write_queue_limit() {
+    ThreadedBlockWriter() : m_write_queue_limit(vw_settings().write_pool_size()) {
       m_rasterize_work_queue = boost::shared_ptr<FifoWorkQueue>( new FifoWorkQueue() );
       m_write_work_queue = boost::shared_ptr<OrderedWorkQueue>( new OrderedWorkQueue(1) );
     }

@@ -162,7 +162,8 @@ vw::Settings::Settings() : m_rc_last_polltime(0),
 
   // Set defaults
   m_default_num_threads = VW_NUM_THREADS;
-  m_system_cache_size = 1024 * 1024 * 1024;   // Default cache size is 1024-MB
+  m_system_cache_size = 768 * 1024 * 1024; // Default cache size is 768-MB
+  m_write_pool_size  = 21;                 // Default pool size is 21 threads. About 252-MB for RGB f32 1024^2
   m_default_tile_size = 1024;
   m_tmp_directory = "/tmp";
 
@@ -173,6 +174,7 @@ vw::Settings::Settings() : m_rc_last_polltime(0),
   m_system_cache_size_override = false;
   m_default_tile_size_override = false;
   m_tmp_directory_override = false;
+  m_write_pool_size_override = false;
 }
 
 vw::Settings& vw::vw_settings() {
@@ -223,6 +225,21 @@ void vw::Settings::set_system_cache_size(size_t size) {
     m_system_cache_size = size;
   }
   vw_system_cache().resize(size);
+}
+
+int vw::Settings::write_pool_size(void) {
+  if (!m_write_pool_size_override)
+    reload_config();
+  Mutex::Lock lock(m_settings_mutex);
+  return m_write_pool_size;
+}
+
+void vw::Settings::set_write_pool_size(int size) {
+  {
+    Mutex::Lock lock(m_settings_mutex);
+    m_write_pool_size_override = true;
+    m_write_pool_size = size;
+  }
 }
 
 int vw::Settings::default_tile_size() { 
