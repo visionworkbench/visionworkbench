@@ -123,18 +123,19 @@ namespace vw {
   template <class ImageT>
   class BlockSumView : public ImageViewBase<BlockSumView<ImageT> > {
     ImageT m_child;
-    uint32 m_range;
+    int32 m_range;      // Odd numbered forward step
+    int32 m_back_step;  // Even numbered back step
 
     // This type can hold image pixels and sum them with minimal risk of overflow
     typedef typename CompoundChannelCast<typename ImageT::pixel_type,typename AccumulatorType<typename CompoundChannelType<typename ImageT::pixel_type>::type>::type>::type sum_t;
 
     template <typename PixelAccessorT>
-    inline sum_t sum_block(const PixelAccessorT& upper_left) const {
+    inline sum_t sum_block(const PixelAccessorT& center) const {
       return
-          *upper_left
-        + *upper_left.advance_copy(2*m_range, 2*m_range)
-        - *upper_left.advance_copy(0, 2*m_range)
-        - *upper_left.advance_copy(2*m_range, 0);
+        *center.advance_copy(-m_back_step,-m_back_step)
+        + *center.advance_copy(m_range, m_range)
+        - *center.advance_copy(-m_back_step, m_range)
+        - *center.advance_copy(m_range,-m_back_step);
     }
 
   public:
@@ -145,8 +146,8 @@ namespace vw {
     typedef ProceduralPixelAccessor<BlockSumView> pixel_accessor;
 
     BlockSumView( ImageT const& image, uint32 window_size = 3)
-      : m_child(image), m_range((window_size-1)/2) {
-        VW_ASSERT(window_size % 2 == 1, vw::LogicErr() << "BlockSumView's window_size must be odd");
+      : m_child(image), m_range((window_size-1)/2), m_back_step(m_range+1) {
+      VW_ASSERT(window_size % 2 == 1, vw::LogicErr() << "BlockSumView's window_size must be odd");
     }
 
     inline int32 cols() const { return m_child.cols(); }
@@ -173,7 +174,8 @@ namespace vw {
     inline void rasterize( DstT const& dst, BBox2i const& bbox ) const {
 
       BBox2i child_bbox(bbox);
-      child_bbox.expand(m_range);
+      child_bbox.expand(m_range);        // Expand for kernel size
+      child_bbox.min() -= Vector2i(1,1); // Expand TL because we access index -1
 
       typedef ImageView<typename CompoundChannelCast<pixel_type,typename AccumulatorType<typename CompoundChannelType<pixel_type>::type>::type>::type> SrcT;
 
@@ -183,6 +185,7 @@ namespace vw {
       typedef typename DstT::pixel_accessor DstAccessT;
 
       SrcAccessT splane = src.origin();
+      splane.advance(m_range+1,m_range+1);
       DstAccessT dplane = dst.origin();
       for( int32 p=0; p<dst.planes(); ++p ) {
         SrcAccessT srow = splane;
