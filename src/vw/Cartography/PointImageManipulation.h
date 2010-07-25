@@ -112,11 +112,12 @@ namespace cartography {
 
   // This utility function converts a DEM to a point image
   template <class ImageT>
-  BinaryPerPixelView<PixelIndexView, ImageT, DemToPointImageFunctor<typename ImageT::pixel_type> > 
+  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToPointImageFunctor<typename ImageT::pixel_type> > 
   inline dem_to_point_image(ImageViewBase<ImageT> const& dem, GeoReference georef) {
     typedef DemToPointImageFunctor<typename ImageT::pixel_type> func_type;
+    typedef BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, func_type> result_type;
     func_type func(georef);
-    return BinaryPerPixelView<PixelIndexView, ImageT, func_type>(PixelIndexView(dem), dem.impl(), func);
+    return result_type(pixel_index_view(dem), dem.impl(), func);
   }
 }} // namespace vw::cartography
 

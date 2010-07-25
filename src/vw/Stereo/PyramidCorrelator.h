@@ -167,7 +167,7 @@ namespace stereo {
           // subdivide_bboxes from rejecting subregions that may actually later get filled
           // with valid pixels at a higher scale (which helps prevent 'cutting' into the
           // disparity map)
-          ImageViewRef<uint32> valid = apply_mask(copy_mask(ConstantView<uint32>(1, disparity_map.cols(), disparity_map.rows()), disparity_map));
+          ImageViewRef<uint32> valid = apply_mask(copy_mask(constant_view<uint32>(1, disparity_map.cols(), disparity_map.rows()), disparity_map));
           ImageView<PixelMask<uint32> > valid_pad = create_mask(separable_convolution_filter(valid, x_kern, y_kern));
           
           nominal_blocks = subdivide_bboxes(disparity_map, valid_pad,

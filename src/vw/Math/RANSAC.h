@@ -43,6 +43,10 @@
 #ifndef __VW_MATH_RANSAC_H__
 #define __VW_MATH_RANSAC_H__
 
+#include <boost/random/linear_congruential.hpp>
+#include <boost/random/uniform_int.hpp>
+#include <boost/random/variate_generator.hpp>
+
 #include <vw/Math/Vector.h>
 #include <vw/Core/Log.h>
 
@@ -117,13 +121,16 @@ namespace math {
     
     /// \cond INTERNAL  
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
-    inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) const {
+    template <class GenT>
+    inline void _vw_get_n_unique_integers(GenT& gen, unsigned int size, unsigned n, int* samples) const {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
+      boost::uniform_int<> dist(0, size);
+      boost::variate_generator<GenT&, boost::uniform_int<> > vargen(gen, dist);
       
       for (unsigned i=0; i<n; ++i) {
         bool done = false;
         while (!done) {
-          samples[i] = (int)(((double)random() / (double)RAND_MAX) * size);
+          samples[i] = vargen();
           done = true;
           for (unsigned j = 0; j < i; j++) 
             if (samples[i] == samples[j]) 
@@ -191,7 +198,7 @@ namespace math {
       /////////////////////////////////////////
 
       // Seed random number generator
-      srandom((unsigned int) clock());
+      boost::rand48 gen;
 
       // This is a rough value, but it seems to produce reasonably good results.
       if (ransac_iterations == 0) 
@@ -205,7 +212,7 @@ namespace math {
       for (int iteration=0; iteration < ransac_iterations; ++iteration) {
         // Get four points at random, taking care not 
         // to select the same point twice.
-        _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
+        _vw_get_n_unique_integers(gen, p1.size(), n, random_indices.get());
 
         for (int i=0; i < n; ++i) {
           try1[i] = p1[random_indices[i]];

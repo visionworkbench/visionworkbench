@@ -155,6 +155,7 @@ docs/workbook/workbook.toc
 /src/vw/Image/tests/TestPixelTypes
 /src/vw/Image/tests/TestStatistics
 /src/vw/Image/tests/TestTransform
+/src/vw/Image/tests/TestUtilityViews
 /src/vw/InterestPoint/tests/TestBoxFilter
 /src/vw/InterestPoint/tests/TestIntegral
 /src/vw/InterestPoint/tests/TestMatcher

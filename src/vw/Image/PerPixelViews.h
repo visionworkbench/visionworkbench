@@ -18,8 +18,48 @@
 #include <boost/utility/result_of.hpp>
 
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/PixelAccessors.h>
 
 namespace vw {
+
+  // *******************************************************************
+  // PerPixelIndexView
+  // *******************************************************************
+
+  template<class FuncT>
+  class PerPixelIndexView : public ImageViewBase<PerPixelIndexView<FuncT> > {
+    FuncT m_func;
+    int32 m_cols, m_rows, m_planes;
+  public:
+    typedef typename FuncT::result_type pixel_type;
+    typedef pixel_type const result_type;
+    typedef ProceduralPixelAccessor<PerPixelIndexView> pixel_accessor;
+
+    PerPixelIndexView( FuncT func, int32 cols, int32 rows, int32 planes = 1 )
+      : m_func(func), m_cols(cols), m_rows(rows), m_planes(planes) {}
+
+    inline int32 cols() const { return m_cols; }
+    inline int32 rows() const { return m_rows; }
+    inline int32 planes() const { return m_planes; }
+
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline result_type operator()( double i, double j, int32 p = 0 ) const {
+      return m_func( i, j, p );
+    }
+
+    typedef PerPixelIndexView prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
+  };
+
+  template <class FuncT>
+  struct IsMultiplyAccessible<PerPixelIndexView<FuncT> > : public true_type {};
+
+  template <class FuncT>
+  struct IsFloatingPointIndexable<PerPixelIndexView<FuncT> > : public true_type {};
 
   // *******************************************************************
   // UnaryPerPixelView

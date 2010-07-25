@@ -103,16 +103,16 @@ namespace stereo {
   /// also removes any pixels that fall outside the bounds of
   /// the left or right mask image.
   template <class ViewT, class MaskViewT>
-  BinaryPerPixelView<ViewT, PixelIndexView, DisparityMaskFunc<typename ViewT::pixel_type,MaskViewT> >
+  BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, DisparityMaskFunc<typename ViewT::pixel_type,MaskViewT> >
   disparity_mask ( ImageViewBase<ViewT> const& disparity_map,
                    ImageViewBase<MaskViewT> const& left_mask,
                    ImageViewBase<MaskViewT> const& right_mask ) {
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
     typedef DisparityMaskFunc<typename ViewT::pixel_type,MaskViewT> func_type;
-    typedef BinaryPerPixelView<ViewT, PixelIndexView, func_type > view_type;
+    typedef BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, func_type > view_type;
     return view_type(disparity_map.impl(),
-                     PixelIndexView(disparity_map.impl()),
+                     pixel_index_view(disparity_map.impl()),
                      func_type(left_mask.impl(), right_mask.impl()));
   }
 
@@ -148,7 +148,7 @@ namespace stereo {
   };
 
   template <class ViewT>
-  BinaryPerPixelView<ViewT, PixelIndexView, DisparityRangeMaskFunc<typename ViewT::pixel_type> >
+  BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, DisparityRangeMaskFunc<typename ViewT::pixel_type> >
   disparity_range_mask( ImageViewBase<ViewT> const& disparity_map,
                         typename ViewT::pixel_type const& min,
                         typename ViewT::pixel_type const& max ) {
@@ -157,9 +157,9 @@ namespace stereo {
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
     typedef DisparityRangeMaskFunc<typename ViewT::pixel_type> func_type;
-    typedef BinaryPerPixelView<ViewT, PixelIndexView, func_type> view_type;
+    typedef BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, func_type> view_type;
     return view_type( disparity_map.impl(),
-                      PixelIndexView(disparity_map),
+                      pixel_index_view(disparity_map),
                       func_type( min, max) );
   }
 
@@ -393,15 +393,15 @@ namespace stereo {
   };
 
   template <class ViewT, class TransformT>
-  BinaryPerPixelView<ViewT, PixelIndexView, TransformDisparitiesFunc<TransformT, typename ViewT::pixel_type> >
+  BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, TransformDisparitiesFunc<TransformT, typename ViewT::pixel_type> >
   transform_disparities(ImageViewBase<ViewT> const& disparity_map, TransformT const& transform) {
 
     // Note: We use the PixelIndexView and Binary per pixel filter
     // idiom her to pass the location (in pixel coordinates) into the
     // functor along with the pixel value at that location.
     typedef TransformDisparitiesFunc<TransformT, typename ViewT::pixel_type> func_type;
-    typedef BinaryPerPixelView<ViewT, PixelIndexView, func_type > view_type;
-    return view_type(disparity_map.impl(),PixelIndexView(disparity_map),
+    typedef BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, func_type > view_type;
+    return view_type(disparity_map.impl(),pixel_index_view(disparity_map),
                      func_type(transform));
   }
 
