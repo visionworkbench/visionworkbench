@@ -330,8 +330,6 @@ public:
     WF(5, "pgm");
     WF(6, "ppm");
 
-#undef WF
-
     //ImageView<uint8> p1;
     ImageView<PixelGray<uint8> > p2,p5;
     ImageView<PixelRGB<uint8> >  p3,p6;
@@ -374,5 +372,27 @@ public:
     TS_ASSERT_EQUALS( p6(0,1).g(), 88 );
     TS_ASSERT_EQUALS( p6(0,1).b(), 87 );
   }
+
+  void test_case_insensitive() {
+    const char pr3[] = "P3 1 2 255 42 43 44 89 88 87";
+    WF(3, "ppm");
+    ImageView<PixelRGB<uint8> > p3a, p3b;
+    read_image(p3a, TEST_SRCDIR"/test_p3.ppm");
+    write_image(TEST_SRCDIR"/test_p3.PPM", p3a);
+    read_image(p3b, TEST_SRCDIR"/test_p3.PPM");
+
+    TS_ASSERT_EQUALS( p3a.cols(),   p3b.cols() );
+    TS_ASSERT_EQUALS( p3a.rows(),   p3b.rows() );
+    TS_ASSERT_EQUALS( p3a.planes(), p3b.planes() );
+    TS_ASSERT_EQUALS( p3a(0,0).r(), p3b(0,0).r() );
+    TS_ASSERT_EQUALS( p3a(0,0).g(), p3b(0,0).g() );
+    TS_ASSERT_EQUALS( p3a(0,0).b(), p3b(0,0).b() );
+    TS_ASSERT_EQUALS( p3a(0,1).r(), p3b(0,1).r() );
+    TS_ASSERT_EQUALS( p3a(0,1).g(), p3b(0,1).g() );
+    TS_ASSERT_EQUALS( p3a(0,1).b(), p3b(0,1).b() );
+
+  }
+#undef WF
+
 
 }; // class TestDiskImageResource

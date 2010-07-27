@@ -117,7 +117,7 @@ void vw::DiskImageResource::register_file_type( std::string const& extension,
   register_default_file_types_internal();
 
   // Add the file to the list
-  register_file_type_internal(extension, disk_image_resource_type, open_func, create_func);
+  register_file_type_internal(boost::to_lower_copy(extension), disk_image_resource_type, open_func, create_func);
 }
 
 static void register_default_file_types_impl() {
@@ -235,7 +235,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format, std::string const& type ) {
   register_default_file_types_internal();
   if( create_map ) {
-    CreateMapType::iterator i = create_map->find( type );
+    CreateMapType::iterator i = create_map->find( boost::to_lower_copy(type) );
     if( i != create_map->end() )
       return i->second( filename, format );
   }
@@ -248,7 +248,7 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
 vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filename, ImageFormat const& format ) {
   register_default_file_types_internal();
   if( create_map ) {
-    CreateMapType::iterator i = create_map->find( fs::extension( filename ) );
+    CreateMapType::iterator i = create_map->find( boost::to_lower_copy(fs::extension( filename )) );
     if( i != create_map->end() )
       return i->second( filename, format );
   }
