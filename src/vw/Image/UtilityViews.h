@@ -15,14 +15,30 @@
 #include <boost/smart_ptr.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/random/normal_distribution.hpp>
-#include <boost/random/uniform_01.hpp>
-#include <boost/random/variate_generator.hpp>
 
+// This is a fix for old versions of boost, the distribution uniform_01
+// was implemented with expectations of working with the variate generator.
+// instead we switch over to uniform_real as a backup solution in old boost.
+#if BOOST_VERSION <= 103800
+
+#include <boost/random/uniform_real.hpp>
+#define UNIFORM01 boost::uniform_real
+
+#else
+
+#include <boost/random/uniform_01.hpp>
+#define UNIFORM01 boost::uniform_01
+
+#endif
+
+
+#include <boost/random/variate_generator.hpp>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/PixelAccessors.h>
 #include <vw/Image/PerPixelViews.h>
 
 namespace vw {
+
 
   // *******************************************************************
   // constant_view()
@@ -112,25 +128,24 @@ namespace vw {
   struct IndexIndependentFunctor {
     typedef typename FuncT::result_type result_type;
     mutable FuncT m_func;
-    IndexIndependentFunctor(FuncT func) : m_func(func) {}
+    IndexIndependentFunctor(FuncT const& func) : m_func(func) {}
     result_type operator()(double i, double j, int32 p) const {
       return m_func();
     }
   };
 
   template <class GenT>
-  inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, boost::uniform_01<> > > >
+  inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, UNIFORM01<> > > >
   uniform_noise_view( GenT& gen, int32 cols, int32 rows, int32 planes = 1) {
-    typedef boost::variate_generator<GenT&, boost::uniform_01<> > vargen_type;
+    typedef boost::variate_generator<GenT&, UNIFORM01<> > vargen_type;
     typedef PerPixelIndexView<IndexIndependentFunctor<vargen_type> > return_type;
-    boost::uniform_01<> dist;
-    vargen_type vargen(gen, dist);
+    vargen_type vargen(gen, UNIFORM01<>());
     return return_type( IndexIndependentFunctor<vargen_type>(vargen), 
                         cols, rows, planes );
   }
 
   template <class GenT, class ImageT>
-  inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, boost::uniform_01<> > > >
+  inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, UNIFORM01<> > > >
   uniform_noise_view( GenT& gen, ImageViewBase<ImageT> const& image ) {
     return uniform_noise_view(gen,
                               image.impl().cols(),
@@ -159,6 +174,8 @@ namespace vw {
                                image.impl().rows(), 
                                image.impl().planes());
   }
+
+  #undef UNIFORM01
 
 } // namespace vw
 
