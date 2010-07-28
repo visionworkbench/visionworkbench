@@ -49,7 +49,7 @@ namespace vw {
     typedef PixelT result_type;
     result_type m_value;
     ConstantIndexFunctor(result_type const& value) : m_value(value) {}
-    result_type operator()(double i, double j, int32 p) const {
+    result_type operator()(double /*i*/, double /*j*/, int32 /*p*/) const {
       return m_value;
     }
   };
@@ -63,7 +63,7 @@ namespace vw {
 
   template <class PixelT, class ImageT>
   inline PerPixelIndexView<ConstantIndexFunctor<PixelT> >
-  constant_view( PixelT value, ImageViewBase<ImageT> const& image ) { 
+  constant_view( PixelT value, ImageViewBase<ImageT> const& image ) {
     return constant_view(value,
                          image.impl().cols(),
                          image.impl().rows(),
@@ -76,7 +76,7 @@ namespace vw {
 
   struct VectorIndexFunctor {
     typedef Vector2 result_type;
-    result_type operator()(double i, double j, int32 p) const {
+    result_type operator()(double i, double j, int32 /*p*/) const {
       return Vector2(i, j);
     }  
   };
@@ -129,7 +129,7 @@ namespace vw {
     typedef typename FuncT::result_type result_type;
     mutable FuncT m_func;
     IndexIndependentFunctor(FuncT const& func) : m_func(func) {}
-    result_type operator()(double i, double j, int32 p) const {
+    result_type operator()(double /*i*/, double /*j*/, int32 /*p*/) const {
       return m_func();
     }
   };
