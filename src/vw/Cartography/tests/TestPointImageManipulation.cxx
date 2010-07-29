@@ -29,5 +29,12 @@ TEST( PointImageManip, XYZ_to_LonLat ) {
   xyz2 = lon_lat_radius_to_xyz(lon_lat_alt,false);
 
   EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
+
+  // See if it still works if using 0-360 range
+  xyz[1] = -xyz[1];
+  lon_lat_alt = xyz_to_lon_lat_radius(xyz,true,false);
+  xyz2 = lon_lat_radius_to_xyz(lon_lat_alt);
+
+  EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
 }
 

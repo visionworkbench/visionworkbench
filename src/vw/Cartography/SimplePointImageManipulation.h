@@ -28,16 +28,17 @@ namespace cartography {
 
   class XYZtoLonLatRadFunctor : public UnaryReturnSameType {
     bool m_east_positive;
+    bool m_centered_on_zero; // Use the range [-180,180] otherwise [0,360]
   public:
-    XYZtoLonLatRadFunctor(bool east_positive = true) : m_east_positive(east_positive) {}
+    XYZtoLonLatRadFunctor(bool east_positive = true, bool centered_on_zero = true ) : m_east_positive(east_positive), m_centered_on_zero(centered_on_zero) {}
 
     template <class T>
     T operator()(T const& p) const {
-      return this->apply(p, m_east_positive);
+      return this->apply(p, m_east_positive, m_centered_on_zero);
     }
 
     template <class T>
-    static inline T apply(T const& p, bool east_positive = true)  {
+    static inline T apply(T const& p, bool east_positive = true, bool centered_on_zero = true )  {
 
       // Deal with "missing pixels"
       if (p == T()) { return p; }
@@ -53,10 +54,17 @@ namespace cartography {
         lon = atan2(-p.y(), p.x());
 
       // For consistency-sake, we always return a longitude in the range +/-180.
-      if (lon > M_PI)
-        lon -= 2*M_PI;
-      if (lon < -M_PI)
-        lon += 2*M_PI;
+      if ( centered_on_zero ) {
+        if (lon > M_PI)
+          lon -= 2*M_PI;
+        if (lon < -M_PI)
+          lon += 2*M_PI;
+      } else {
+        if ( lon < 0 )
+          lon += 2*M_PI;
+        if ( lon > 2*M_PI )
+          lon -= 2*M_PI;
+      }
 
       return T (lon * 180.0 / M_PI, lat * 180.0 / M_PI, radius);
     }
@@ -113,13 +121,16 @@ namespace cartography {
   /// image.
   template <class ImageT>
   UnaryPerPixelView<ImageT, XYZtoLonLatRadFunctor>
-  inline xyz_to_lon_lat_radius( ImageViewBase<ImageT> const& image, bool east_positive = true ) {
-    return UnaryPerPixelView<ImageT,XYZtoLonLatRadFunctor>( image.impl(), XYZtoLonLatRadFunctor(east_positive) );
+  inline xyz_to_lon_lat_radius( ImageViewBase<ImageT> const& image,
+                                bool east_positive = true, bool centered_on_zero = true ) {
+    return UnaryPerPixelView<ImageT,XYZtoLonLatRadFunctor>( image.impl(), XYZtoLonLatRadFunctor(east_positive, centered_on_zero ) );
   }
 
   template <class ElemT>
-  inline Vector<ElemT,3> xyz_to_lon_lat_radius( Vector<ElemT,3> const& xyz, bool east_positive = true ) {
-    return XYZtoLonLatRadFunctor::apply(xyz, east_positive);
+  inline Vector<ElemT,3> xyz_to_lon_lat_radius( Vector<ElemT,3> const& xyz,
+                                                bool east_positive = true,
+                                                bool centered_on_zero = true ) {
+    return XYZtoLonLatRadFunctor::apply(xyz, east_positive, centered_on_zero);
   }
 
 
