@@ -295,11 +295,16 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
 
     // Copy the pixels over into a ImageView object.
     ImageView<float> src_image(width, height, m_format.planes);
+    ImageBuffer src = src_image.buffer();
     Imf::FrameBuffer frameBuffer;
     for ( int32 nn = 0; nn < m_format.planes; ++nn ) {
-      frameBuffer.insert (channel_names[nn].c_str(), Imf::Slice (Imf::FLOAT, (char *) (&(src_image(-bbox.min().x(),-bbox.min().y(),nn))),
-                                                                 sizeof (src_image(0,0,nn)) * 1,
-                                                                 sizeof (src_image(0,0,nn)) * width, 1, 1, 0.0));
+      char* base = reinterpret_cast<char*>(&src_image(0,0,nn));
+      frameBuffer.insert(
+          channel_names[nn].c_str(),
+          Imf::Slice(Imf::FLOAT,
+                     base - (bbox.min().x()*src.cstride) - (bbox.min().y() * src.rstride),
+                     src.cstride, src.rstride, 1, 1, 0.0));
+
     }
     if (m_tiled) {
       VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
@@ -335,8 +340,8 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
   // files.  Note that we handle multi-channel images with interleaved
   // planes.  We've already ensured that either planes==1 or
   // channels==1.
-  ImageView<float> openexr_image_block( bbox.width(), bbox.height(), m_format.planes );
-  ImageBuffer dst = openexr_image_block.buffer();
+  ImageView<float> dst_image( bbox.width(), bbox.height(), m_format.planes );
+  ImageBuffer dst = dst_image.buffer();
   convert( dst, src, m_rescale );
 
   try {
@@ -344,10 +349,12 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
 
     // Build the framebuffer out of the various image channels
     for (int32 nn = 0; nn < dst.format.planes; nn++) {
-      frameBuffer.insert (m_labels[nn].c_str(),
-                          Imf::Slice (Imf::FLOAT, (char*) (&(openexr_image_block(-bbox.min()[0],-bbox.min()[1],nn))),
-                                      sizeof (openexr_image_block(0,0,nn)) * 1,
-                                      sizeof (openexr_image_block(0,0,nn)) * dst.format.cols));
+      char* base = reinterpret_cast<char*>(&dst_image(0,0,nn));
+      frameBuffer.insert(
+          m_labels[nn].c_str(),
+          Imf::Slice(Imf::FLOAT, 
+                     base - (bbox.min().x()*dst.cstride) - (bbox.min().y() * dst.rstride),
+                     dst.cstride, dst.rstride));
     }
 
     // Write the data to disk.
