@@ -74,15 +74,15 @@ namespace {
 vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
   if (m_input_file_ptr) {
     if (m_tiled)
-      delete static_cast<Imf::TiledInputFile*>(m_input_file_ptr);
+      delete reinterpret_cast<Imf::TiledInputFile*>(m_input_file_ptr);
     else 
-      delete static_cast<Imf::InputFile*>(m_input_file_ptr);
+      delete reinterpret_cast<Imf::InputFile*>(m_input_file_ptr);
   }
   if (m_output_file_ptr) {
     if (m_tiled)
-      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
     else 
-      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::OutputFile*>(m_output_file_ptr);
   }
 }
 
@@ -107,8 +107,8 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     m_input_file_ptr = new Imf::InputFile(filename.c_str());
 
     // Check to see if the file is tiled.  If it does, close the descriptor and reopen as a tiled file.
-    if (static_cast<Imf::InputFile*>(m_input_file_ptr)->header().hasTileDescription()) {
-      delete static_cast<Imf::InputFile*>(m_input_file_ptr);
+    if (reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().hasTileDescription()) {
+      delete reinterpret_cast<Imf::InputFile*>(m_input_file_ptr);
       m_input_file_ptr = new Imf::TiledInputFile(filename.c_str());
       m_tiled = true;
     } else {
@@ -116,14 +116,14 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     }
       
     // Find the width and height of the image 
-    Imath::Box2i dw = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().dataWindow();
+    Imath::Box2i dw = reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().dataWindow();
     m_format.cols  = int(dw.max.x - dw.min.x + 1);
     m_format.rows  = int(dw.max.y - dw.min.y + 1);
     
     // Determine the number of image channels 
-    Imf::ChannelList::ConstIterator iter = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().begin();
+    Imf::ChannelList::ConstIterator iter = reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().begin();
     int num_channels = 0;
-    while( iter != static_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() ) {
+    while( iter != reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().channels().end() ) {
       num_channels++;
       iter++;
     }
@@ -135,7 +135,7 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     m_format.channel_type = VW_CHANNEL_FLOAT32;
 
     if (m_tiled) {
-      Imf::TileDescription desc = static_cast<Imf::InputFile*>(m_input_file_ptr)->header().tileDescription();
+      Imf::TileDescription desc = reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header().tileDescription();
       m_block_size = Vector2i(desc.xSize, desc.ySize);
     } else {
       m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
@@ -154,9 +154,9 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
   // Close and reopen the file
   if (m_output_file_ptr) {
     if (m_tiled)
-      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
     else 
-      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::OutputFile*>(m_output_file_ptr);
   }
 
   try {
@@ -197,9 +197,9 @@ void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block)
   // Close and reopen the file
   if (m_output_file_ptr) {
     if (m_tiled)
-      delete static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
     else 
-      delete static_cast<Imf::OutputFile*>(m_output_file_ptr);
+      delete reinterpret_cast<Imf::OutputFile*>(m_output_file_ptr);
   }
 
   try {      
@@ -251,9 +251,9 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
   try {
     Imf::Header header;
     if (m_tiled) 
-      header = static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->header();
+      header = reinterpret_cast<Imf::TiledInputFile*>(m_input_file_ptr)->header();
     else 
-      header = static_cast<Imf::InputFile*>(m_input_file_ptr)->header();
+      header = reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->header();
 
     // Find the width and height of the image and set the data window
     // to the beginning of the requesed block.
@@ -305,15 +305,15 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
       VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
                 ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for read of tiled images.");
                 
-      static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
+      reinterpret_cast<Imf::TiledInputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
       int first_tile_x = bbox.min().x() / m_block_size[0];
       int first_tile_y = bbox.min().y() / m_block_size[1];
       int last_tile_x = (bbox.max().x()-1) / m_block_size[0];
       int last_tile_y = (bbox.max().y()-1) / m_block_size[1];
-      static_cast<Imf::TiledInputFile*>(m_input_file_ptr)->readTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
+      reinterpret_cast<Imf::TiledInputFile*>(m_input_file_ptr)->readTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
     } else {
-      static_cast<Imf::InputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
-      static_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min(vw::int32(bbox.min().y() + (height-1)), m_format.rows));
+      reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
+      reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min(vw::int32(bbox.min().y() + (height-1)), m_format.rows));
     }
 
     convert( dest, src_image.buffer(), m_rescale );
@@ -355,7 +355,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
       VW_ASSERT(bbox.min().x() % m_block_size[0] == 0 && bbox.min().y() % m_block_size[1] == 0,
                 ArgumentErr() << "DiskImageResourceOpenEXR: bbox corner must fall on tile boundary for writing of tiled images.");
 
-      Imf::TiledOutputFile* out = static_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
+      Imf::TiledOutputFile* out = reinterpret_cast<Imf::TiledOutputFile*>(m_output_file_ptr);
       out->setFrameBuffer (frameBuffer);
       int first_tile_x = bbox.min().x() / m_block_size[0];
       int first_tile_y = bbox.min().y() / m_block_size[1];
@@ -363,7 +363,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
       int last_tile_y = (bbox.max().y()-1) / m_block_size[1];
       out->writeTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
     } else {
-      Imf::OutputFile* out = static_cast<Imf::OutputFile*>(m_output_file_ptr);
+      Imf::OutputFile* out = reinterpret_cast<Imf::OutputFile*>(m_output_file_ptr);
       out->setFrameBuffer (frameBuffer);
       out->writePixels (bbox.height());
     }
