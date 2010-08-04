@@ -15,10 +15,9 @@ TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
 TestDiskImageView_SOURCES     = TestDiskImageView.cxx
 TestEndianness_SOURCES        = TestEndianness.cxx
 TestBlockFileIO_SOURCES       = TestBlockFileIO.cxx
-TestExtTester_SOURCES         = TestExtTester.cxx
 
 TESTS = TestDiskImageResource TestDiskImageView TestEndianness \
-        TestBlockFileIO TestExtTester
+        TestBlockFileIO
 
 #include $(top_srcdir)/config/instantiate.am
 
