@@ -6,7 +6,7 @@
 
 
 /// \file DiskImageResourcePBM.h
-/// 
+///
 /// Provides support for the Netpbm format.
 ///
 /// Supported File Types
@@ -24,15 +24,15 @@
 
 namespace vw {
 
-  class DiskImageResourcePBM : public DiskImageResource { 
+  class DiskImageResourcePBM : public DiskImageResource {
   public:
-    
+
     // Standard DiskImageResource interface:
-    
+
     DiskImageResourcePBM( std::string const& filename ); // Reading
-    
+
     DiskImageResourcePBM( std::string const& filename,
-			  ImageFormat const& format ); // Writing
+                          ImageFormat const& format ); // Writing
 
     virtual ~DiskImageResourcePBM() {}
 
@@ -41,7 +41,7 @@ namespace vw {
 
     // Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual void read(ImageBuffer const& buf, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
     virtual void flush() {}
