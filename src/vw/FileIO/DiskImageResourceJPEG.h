@@ -80,6 +80,11 @@ namespace vw {
       open(m_filename, subsample_factor);
     }
 
+    /// Set the default subsampling factor
+    static void set_default_subsample_factor(int subsample_factor) {
+      default_subsampling_factor = subsample_factor;
+    }
+
     void open( std::string const& filename,
                int subsample_factor = 1,
                size_t byte_offset = 0);
