@@ -6,8 +6,7 @@
 
 
 // TestBlockFileIO.h
-#define CXXTEST_ABORT_TEST_ON_FAIL
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 #include <string>
 #include <vw/Core/Log.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
@@ -17,15 +16,9 @@ using namespace vw::internal;
 
 static void test_extension(std::string const& fn)
 {
-  TS_TRACE(vw::stringify("Testing ") + fn);
+  std::cout << vw::stringify("Testing ") + fn << "\n";
 }
 
-class TestExtTester : public CxxTest::TestSuite
-{
-public:
-
-  void test_tester()
-  {
-    foreach_ext("rwtest", test_extension);
-  }
-}; // class TestBlockFileIO
+TEST( ExtTester, Test ) {
+  foreach_ext("rwtest", test_extension);
+}
