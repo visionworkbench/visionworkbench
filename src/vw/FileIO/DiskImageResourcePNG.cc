@@ -18,53 +18,20 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vector>
-#include <fstream>
-
-#include <png.h>
-
-// Non-local error return
-// NOTE: To maintain the stack in the presence of
-// setjmp/longjump and C++, You cannot create something (with a destructor) on
-// the stack and then allow it to longjmp. Therefore, every stack allocation
-// needs a setjmp after it. It also makes sense, for sane backtrace purposes,
-// to put a setjmp in every function that can longjmp, so the backtrace
-// originates from that function.
-#include <csetjmp>
-
+#include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Image/Manipulation.h>
-#include <vw/FileIO/DiskImageResourcePNG.h>
+
+#include <png.h>
+#include <vector>
+#include <fstream>
 
 using namespace vw;
 
-static const size_t ERROR_MSG_SIZE = 256;
-
-extern "C" {
-  struct vw_png_err_mgr {
-    jmp_buf error_return;
-    char    error_msg[ERROR_MSG_SIZE];
-  };
-}
-
-static void png_error_handler(png_structp png_ptr, png_const_charp error_msg)
+static void png_error_handler(png_structp /*png_ptr*/, png_const_charp error_msg)
 {
-  vw_png_err_mgr *mgr;
-  if (!(mgr = static_cast<vw_png_err_mgr*>(png_get_error_ptr(png_ptr))))
-  {
-    // We're in big trouble. libpng expects us not to return. Stack could be
-    // trashed, and we have nowhere to go. It's not safe to throw here. Bail out.
-    vw_out(ErrorMessage, "fileio")
-      << "Error while recovering from error in PNG handler: "
-      << error_msg << std::endl;
-    abort();
-  }
-
-  mgr->error_msg[0] = 0; // prep for strncat
-  strncat(mgr->error_msg, error_msg, ERROR_MSG_SIZE);
-
-  longjmp(mgr->error_return, 1);
+  vw_throw(IOErr() << "DiskImageResourcePNG: " << error_msg);
 }
 
 // Default PNG file creation options, and related functions.
@@ -89,6 +56,77 @@ void DiskImageResourcePNG::set_default_compression_level( int level ) {
  ********************** PNG CONTEXT STRUCTURES **************************
  **** These things encapsulate the read/write to the PNG file itself. ***
 ************************************************************************/
+
+// noncopyable because destructor frees the png_structp
+struct png_context_t : private boost::noncopyable {
+  png_structp ptr;
+  png_infop info, info_end;
+  boost::shared_ptr<std::fstream> file;
+
+  enum Mode {
+    PNG_UNINIT,
+    PNG_READ,
+    PNG_WRITE
+  };
+
+  png_context_t()
+    : ptr(0), info(0), info_end(0), m_mode(PNG_UNINIT) {}
+
+  explicit png_context_t(const char* filename, Mode m)
+    : ptr(0), info(0), info_end(0), m_mode(m)
+  {
+    VW_ASSERT(filename, ArgumentErr() << "Filename cannot be null");
+    VW_ASSERT(m != PNG_UNINIT, ArgumentErr() << "png_context_t constructed with uninitialized argument");
+
+    file.reset(new std::fstream(filename, (m == PNG_READ ? std::ios::in : std::ios::out) | std::ios_base::binary ));
+
+    if(!file || !file->is_open())
+      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open output file " << filename << ".");
+
+    ptr = create();
+    if(!ptr)
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failed to create context struct for " << (m_mode == PNG_READ ? "read." : "write."));
+
+    info = png_create_info_struct(ptr);
+    if(!info) {
+      destroy(&ptr, 0);
+      vw_throw(IOErr() << "DiskImageResourcePNG: Failed to create info struct for " << (m_mode == PNG_READ ? "read." : "write."));
+    }
+
+    if (m == PNG_READ) {
+      info_end = png_create_info_struct(ptr);
+      if(!info_end) {
+        destroy(&ptr, &info, 0);
+        vw_throw(IOErr() << "DiskImageResourcePNG: Failed to create end info struct for " << (m_mode == PNG_READ ? "read." : "write."));
+      }
+    }
+  }
+
+  ~png_context_t() VW_NOTHROW {
+    if (m_mode == PNG_UNINIT)
+      return;
+    destroy(&ptr, &info, &info_end);
+    if (file->is_open())
+      file->close();
+  }
+  private:
+  Mode m_mode;
+
+  png_structp create() const {
+    if (m_mode == PNG_READ)
+      return png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, png_error_handler, NULL);
+    else
+      return png_create_write_struct(PNG_LIBPNG_VER_STRING, 0, png_error_handler, NULL);
+  }
+
+  void destroy(png_structpp p, png_infopp info, png_infopp end_info = 0) const {
+    if (m_mode == PNG_READ)
+      png_destroy_read_struct(p, info, end_info);
+    else
+      png_destroy_write_struct(p, info);
+  }
+};
+
 // Common stuff for both the read and write contexts.
 struct DiskImageResourcePNG::vw_png_context
 {
@@ -107,23 +145,13 @@ struct DiskImageResourcePNG::vw_png_context
 protected:
   // Pointer to containing class, necessary to access some of its members.
   DiskImageResourcePNG *outer;
-
-  // Structures from libpng.
-  png_structp png_ptr;
-  png_infop info_ptr;
-
-  // Error manager to prevent libpng from calling abort()
-  mutable vw_png_err_mgr err_mgr;
-
-  // Pointer to actual file on disk. shared_ptr instead of std::auto_ptr
-  // because of problems with auto_ptr's deletion.
-  boost::shared_ptr<std::fstream> m_file;
 };
 
 // Context for reading.
 struct DiskImageResourcePNG::vw_png_read_context:
   public DiskImageResourcePNG::vw_png_context
 {
+  png_context_t ctx;
 
   // Current line we're at in the image.
   int current_line;
@@ -137,54 +165,28 @@ struct DiskImageResourcePNG::vw_png_read_context:
 
   // Open a PNG context from a file, for reading.
   vw_png_read_context(DiskImageResourcePNG *outer) :
-    vw_png_context(outer), current_line(0), comments_loaded(false)
+    vw_png_context(outer), ctx(outer->m_filename.c_str(), png_context_t::PNG_READ), current_line(0), comments_loaded(false)
   {
-    m_file.reset( new std::fstream( outer->m_filename.c_str(), std::ios_base::in | std::ios_base::binary ) );
-    if(!m_file)
-      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open input file " << outer->m_filename << ".");
-
     // Read the first 8 bytes to make sure it's actually a PNG.
     char sig[8];
-    m_file->read(sig, 8);
-    bool is_png = !png_sig_cmp((png_byte*)sig, 0, 8);
-    if(!is_png)
+    ctx.file->read(sig, 8);
+    if(png_sig_cmp((png_byte*)sig, 0, 8))
       vw_throw(IOErr() << "DiskImageResourcePNG: Input file " << outer->m_filename << " is not a valid PNG file.");
 
-    // Allocate the structures.
-    png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING,
-                                     &err_mgr, png_error_handler, NULL);
-    if(!png_ptr)
-      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
-
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if(!info_ptr) {
-      png_destroy_read_struct(&png_ptr, NULL, NULL);
-      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
-    }
-
-    end_info_ptr = png_create_info_struct(png_ptr);
-    if(!end_info_ptr) {
-      png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
-      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
-    }
-
     // Must call this as we're using fstream and not FILE*
-    png_set_read_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), read_data);
+    png_set_read_fn(ctx.ptr, reinterpret_cast<voidp>(ctx.file.get()), read_data);
 
     // Rewind to the beginning of the file.
-    png_set_sig_bytes(png_ptr, 8);
+    png_set_sig_bytes(ctx.ptr, 8);
 
     // Read in the info pointer (some stuff will get changed, and we run
     // png_read_update_info).
-    png_read_info(png_ptr, info_ptr);
+    png_read_info(ctx.ptr, ctx.info);
 
     // Set up expansion. Palette images get expanded to RGB, grayscale
     // images of less than 8 bits per channel are expanded to 8 bits per
     // channel, and tRNS chunks are expanded to alpha channels.
-    png_set_expand(png_ptr);
+    png_set_expand(ctx.ptr);
 
     // png_uint_32 is usually a long, which could be 4 or 8 bytes,
     // depending on platform. be careful.
@@ -199,7 +201,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
 //    int num_passes; // For interlacing :-(
 
     // Read up to the start of the data, and set some values.
-    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type,
+    png_get_IHDR(ctx.ptr, ctx.info, &cols, &rows, &bit_depth, &color_type,
                  &interlace_type, &compression_type, &filter_method);
 
     switch(bit_depth)
@@ -219,7 +221,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
         // swap the endianness as it reads the file.
         // (Note: this call must come AFTER png_read_info)
 #       if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
-          png_set_swap(png_ptr);
+          png_set_swap(ctx.ptr);
 #       endif
 
         break;
@@ -241,7 +243,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
       case PNG_COLOR_TYPE_PALETTE:
         channels = 3;
         outer->m_format.pixel_format = VW_PIXEL_RGB;
-        if( png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS) ) {
+        if( png_get_valid(ctx.ptr, ctx.info, PNG_INFO_tRNS) ) {
           channels++;
           outer->m_format.pixel_format = VW_PIXEL_RGBA;
         }
@@ -262,8 +264,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     else
       interlaced = false;
 
-    png_read_update_info(png_ptr, info_ptr);
-    png_get_IHDR(png_ptr, info_ptr, &cols, &rows, &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
+    png_read_update_info(ctx.ptr, ctx.info);
+    png_get_IHDR(ctx.ptr, ctx.info, &cols, &rows, &bit_depth, &color_type, &interlace_type, &compression_type, &filter_method);
 
     outer->m_format.cols = cols;
     outer->m_format.rows = rows;
@@ -273,24 +275,12 @@ struct DiskImageResourcePNG::vw_png_read_context:
     cstride = bytes_per_channel * channels;
     scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
 
-    png_start_read_image(png_ptr);
-  }
-
-  virtual ~vw_png_read_context()
-  {
-    if (setjmp(err_mgr.error_return)) {
-      vw_out(ErrorMessage) << "DiskImageResourcePNG: A libpng read error occurred. " << err_mgr.error_msg;
-      return;
-    }
-    png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
-    m_file->close();
+    png_start_read_image(ctx.ptr);
   }
 
   void readline()
   {
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng read error occurred. " << err_mgr.error_msg );
-    png_read_row(png_ptr, static_cast<png_bytep>(scanline.get()), NULL);
+    png_read_row(ctx.ptr, static_cast<png_bytep>(scanline.get()), NULL);
     current_line++;
   }
 
@@ -300,11 +290,9 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
 
     boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = static_cast<png_bytep>(dst.get()) + i * outer->m_format.cols * cstride;
-    png_read_image(png_ptr, row_pointers.get());
+    png_read_image(ctx.ptr, row_pointers.get());
     current_line = outer->m_format.rows;
   }
 
@@ -312,10 +300,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
   // Advances place in the image by line lines.
   void advance(size_t lines)
   {
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(size_t i = 0; i < lines; i++) {
-      png_read_row(png_ptr, NULL, NULL);
+      png_read_row(ctx.ptr, NULL, NULL);
       current_line++;
     }
   }
@@ -325,11 +311,11 @@ struct DiskImageResourcePNG::vw_png_read_context:
   {
     if( comments_loaded ) return;
     advance(outer->rows()-current_line);
-    png_read_end(png_ptr, end_info_ptr);
+    png_read_end(ctx.ptr, ctx.info_end);
     comments_loaded = true;
 
     png_text *text_ptr;
-    int num_comments = png_get_text(png_ptr, end_info_ptr, &text_ptr, 0);
+    int num_comments = png_get_text(ctx.ptr, ctx.info_end, &text_ptr, 0);
     comments.clear();
     for ( int i=0; i<num_comments; ++i )
     {
@@ -369,9 +355,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
 private:
-  // Structures from libpng.
-  png_infop end_info_ptr;
-
   // Function for reading data, given to PNG.
   static void read_data( png_structp png_ptr, png_bytep data, png_size_t length )
   {
@@ -384,8 +367,10 @@ private:
 struct DiskImageResourcePNG::vw_png_write_context:
   public DiskImageResourcePNG::vw_png_context
 {
+  png_context_t ctx;
+
   vw_png_write_context(DiskImageResourcePNG *outer, const DiskImageResourcePNG::Options &options):
-    vw_png_context(outer)
+    vw_png_context(outer), ctx(outer->m_filename.c_str(), png_context_t::PNG_WRITE)
   {
     // Set some needed values.
     int width     = outer->m_format.cols;
@@ -393,29 +378,10 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int channels  = num_channels(outer->m_format.pixel_format);
     int bit_depth;
 
-    m_file = boost::shared_ptr<std::fstream>( new std::fstream( outer->m_filename.c_str(), std::ios_base::out | std::ios_base::binary ) );
-    if(!m_file)
-      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open output file " << outer->m_filename << ".");
-
-    // Allocate the structures.
-    png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                     &err_mgr, png_error_handler, NULL);
-    if(!png_ptr)
-      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create read structure for file " << outer->m_filename << ".");
-
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
-
-    png_set_compression_level(png_ptr, Z_BEST_SPEED);
-
-    info_ptr = png_create_info_struct(png_ptr);
-    if(!info_ptr) {
-      png_destroy_read_struct(&png_ptr, NULL, NULL);
-      vw_throw(IOErr() << "DiskImageResourcePNG: Failure to create info structure for file " << outer->m_filename << ".");
-    }
+    png_set_compression_level(ctx.ptr, Z_BEST_SPEED);
 
     // Must call this as we're using fstream and not FILE*
-    png_set_write_fn(png_ptr, reinterpret_cast<voidp>(m_file.get()), write_data, flush_data);
+    png_set_write_fn(ctx.ptr, reinterpret_cast<voidp>(ctx.file.get()), write_data, flush_data);
 
     // anything else will be converted to UINT8
     switch (outer->m_format.channel_type) {
@@ -454,14 +420,13 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int compression_type = PNG_COMPRESSION_TYPE_DEFAULT;
     int filter_method    = PNG_FILTER_TYPE_DEFAULT;
 
-    png_set_IHDR(png_ptr, info_ptr, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
+    png_set_IHDR(ctx.ptr, ctx.info, width, height, bit_depth, color_type, interlace_type, compression_type, filter_method);
 
     if(options.using_palette && options.using_palette_indices)
     {
-      png_colorp palette = reinterpret_cast<png_colorp>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_color) ));
-      png_bytep alpha    = reinterpret_cast<png_bytep>(png_malloc( png_ptr, options.palette.cols() * sizeof(png_byte) ));
-      if (setjmp(err_mgr.error_return))
-        vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
+      png_colorp palette = reinterpret_cast<png_colorp>(png_malloc( ctx.ptr, options.palette.cols() * sizeof(png_color) ));
+      png_bytep alpha    = reinterpret_cast<png_bytep>(png_malloc( ctx.ptr, options.palette.cols() * sizeof(png_byte) ));
+
       for ( int i=0; i < int(options.palette.cols()); ++i )
       {
         palette[i].red   = options.palette(i,0).r();
@@ -469,40 +434,34 @@ struct DiskImageResourcePNG::vw_png_write_context:
         palette[i].blue  = options.palette(i,0).b();
         alpha[i]         = options.palette(i,0).a();
       }
-      png_set_PLTE( png_ptr, info_ptr, palette, options.palette.cols() );
+      png_set_PLTE( ctx.ptr, ctx.info, palette, options.palette.cols() );
       if(options.using_palette_alpha) {
-        png_set_tRNS( png_ptr, info_ptr, alpha, options.palette.cols(), 0 );
+        png_set_tRNS( ctx.ptr, ctx.info, alpha, options.palette.cols(), 0 );
         channels++;
       }
     }
 
-    png_set_compression_level(png_ptr, options.compression_level);
+    png_set_compression_level(ctx.ptr, options.compression_level);
 
     // Set up the scanline for writing.
     cstride = (bit_depth / 8) * channels;
 
     // Finally, write the info out.
-    png_write_info(png_ptr, info_ptr);
+    png_write_info(ctx.ptr, ctx.info);
 
     // If this is a little endian machine, we need to instruct PNG to
     // swap the endianness as it writes the file.
     // libpng checks bit_depth in the set_swap function, so don't bother
     // to check it here. (Note: this call must come AFTER png_write_info)
 #   if VW_BYTE_ORDER == VW_LITTLE_ENDIAN
-      png_set_swap(png_ptr);
+      png_set_swap(ctx.ptr);
 #   endif
 
   }
 
   virtual ~vw_png_write_context()
   {
-    if (setjmp(err_mgr.error_return)) {
-      vw_out(ErrorMessage) <<  "DiskImageResourcePNG: A libpng write error occurred. " << err_mgr.error_msg;
-      return;
-    }
-    png_write_end(png_ptr, info_ptr);
-    png_destroy_write_struct(&png_ptr, &info_ptr);
-    m_file->close();
+    png_write_end(ctx.ptr, ctx.info);
   }
 
   // Writes the given ImageBuffer (with the same dimensions as m_format)
@@ -512,12 +471,10 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
 
-    if (setjmp(err_mgr.error_return))
-      vw_throw( vw::IOErr() << "DiskImageResourcePNG: A libpng error occurred. " << err_mgr.error_msg );
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
 
-    png_write_image(png_ptr, row_pointers.get());
+    png_write_image(ctx.ptr, row_pointers.get());
   }
 
 private:
