@@ -81,7 +81,7 @@ struct png_context_t : private boost::noncopyable {
     file.reset(new std::fstream(filename, (m == PNG_READ ? std::ios::in : std::ios::out) | std::ios_base::binary ));
 
     if(!file || !file->is_open())
-      vw_throw(IOErr() << "DiskImageResourcePNG: Unable to open output file " << filename << ".");
+      vw_throw(ArgumentErr() << "DiskImageResourcePNG: Unable to open file " << filename << ".");
 
     ptr = create();
     if(!ptr)

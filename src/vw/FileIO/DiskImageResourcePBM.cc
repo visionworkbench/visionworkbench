@@ -38,7 +38,7 @@ namespace {
 
 // Used to skip comment lines found in file
 // Will skip all whitespace, then skip blocks delimited by # and \n, then repeat
-void skip_any_comments( fstream& f ) {
+void skip_any_comments( std::istream& f ) {
   while (isspace(f.peek()))
     f.ignore();
   while (f.peek() == '#') {
@@ -83,10 +83,10 @@ DiskImageResourcePBM::DiskImageResourcePBM( std::string const& filename, ImageFo
 // the file and that it has a sane pixel format.
 void DiskImageResourcePBM::open( std::string const& filename ) {
 
-  fstream input(filename.c_str(), fstream::in|fstream::binary);
-  input.exceptions(ifstream::failbit | ifstream::badbit);
+  ifstream input(filename.c_str(), fstream::in|fstream::binary);
 
-  if (!input) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
+  if (!input.is_open())
+    vw_throw( vw::ArgumentErr() << "DiskImageResourcePBM: Failed to open \"" << filename << "\"." );
 
   // Reading version info
   input >> m_magic;
@@ -148,10 +148,11 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PBM read." );
 
-  fstream input(m_filename.c_str(), fstream::in|fstream::binary);
-  input.exceptions(ifstream::failbit | ifstream::badbit);
+  ifstream input(m_filename.c_str(), fstream::in|fstream::binary);
 
-  if (!input) vw_throw( IOErr() << "Failed to open \"" << m_filename << "\"." );
+  if (!input.is_open())
+    vw_throw( IOErr() << "DiskImageResourcePBM: Failed to open \""
+              << m_filename << "\"." );
   input.seekg(m_image_data_position);
 
   // Reading image data

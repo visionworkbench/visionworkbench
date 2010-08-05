@@ -201,7 +201,7 @@ void DiskImageResourceJPEG::open( std::string const& filename, int subsample_fac
   // Open the file on disk
   FILE * infile;
   if ((infile = fopen(filename.c_str(), "rb")) == NULL) {
-    vw_throw( IOErr() << "Failed to open \"" << filename << "\" using libJPEG." );
+    vw_throw( ArgumentErr() << "Failed to open \"" << filename << "\" using libJPEG." );
   }
   if (byte_offset) fseek(infile, byte_offset, SEEK_SET);
 

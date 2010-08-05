@@ -7,9 +7,8 @@
 
 // TestDiskImageResource.h
 #include <gtest/gtest.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
-#include <vw/FileIO/DiskImageResourceJPEG.h>
 
 #include <vw/config.h>
 #include <vw/Image/PixelTypes.h>
@@ -204,7 +203,7 @@ TEST( DiskImageResource, TestPBM ) {
   const char pr1[] = "P1 1 2 1 0",
     pr2[] = "P2 1 2 255 12 36",
     pr3[] = "P3 1 2 255 42 43 44 89 88 87",
-    //pr4[] = "P4 1 2 \1\0",
+    pr4[] = "P4 1 2 \1\0",
     pr5[] = "P5 1 2 255 \xC\x24",
     pr6[] = "P6 1 2 255 \x2A\x2B\x2C\x59\x58\x57";
 
@@ -214,19 +213,21 @@ TEST( DiskImageResource, TestPBM ) {
     f ## x.close();                                                     \
   } while (0);
 
-  WF(1, "pbm");
+  //  WF(1, "pbm");
   WF(2, "pgm");
   WF(3, "ppm");
+  //WF(4, "pbm");
   WF(5, "pgm");
   WF(6, "ppm");
 
-  //ImageView<uint8> p1;
+  //ImageView<bool> p1, p4;
   ImageView<PixelGray<uint8> > p2, p5;
   ImageView<PixelRGB<uint8> >  p3, p6;
 
   //read_image( p1, TEST_SRCDIR"/test_p1.pbm" );
   read_image( p2, TEST_SRCDIR"/test_p2.pgm" );
   read_image( p3, TEST_SRCDIR"/test_p3.ppm" );
+  //read_image( p1, TEST_SRCDIR"/test_p4.pbm" );
   read_image( p5, TEST_SRCDIR"/test_p5.pgm" );
   read_image( p6, TEST_SRCDIR"/test_p6.ppm" );
 
@@ -263,7 +264,7 @@ TEST( DiskImageResource, TestPBM ) {
   EXPECT_EQ( p6(0,1).b(), 87 );
 }
 
-TEST( DiksImageResource, PBM_Case_Insentive ) {
+TEST( DiskImageResource, PBM_Case_Insentive ) {
   const char pr3[] = "P3 1 2 255 42 43 44 89 88 87";
   WF(3, "ppm");
   ImageView<PixelRGB<uint8> > p3a, p3b;
@@ -280,8 +281,36 @@ TEST( DiksImageResource, PBM_Case_Insentive ) {
   EXPECT_EQ( p3a(0,1).r(), p3b(0,1).r() );
   EXPECT_EQ( p3a(0,1).g(), p3b(0,1).g() );
   EXPECT_EQ( p3a(0,1).b(), p3b(0,1).b() );
-
 }
 
 #undef WF
 
+
+TEST( DiskImageResource, NonExistantFiles ) {
+  DiskImageResource *r;
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  EXPECT_THROW(r = DiskImageResourceGDAL::construct_open("nonfile.tif"),
+               vw::ArgumentErr);
+#endif
+#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+  EXPECT_THROW(r = DiskImageResourcePNG::construct_open("nonfile.png"),
+               vw::ArgumentErr);
+#endif
+#if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
+  EXPECT_THROW(r = DiskImageResourceTIFF::construct_open("nonfile.tif"),
+               vw::ArgumentErr);
+#endif
+#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+  EXPECT_THROW(r = DiskImageResourceJPEG::construct_open("nonfile.jpg"),
+               vw::ArgumentErr);
+#endif
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+  EXPECT_THROW(r = DiskImageResourceOpenEXR::construct_open("nonfile.exr"),
+               vw::ArgumentErr);
+#endif
+  EXPECT_THROW(r = DiskImageResourcePDS::construct_open("nonfile.img"),
+               vw::ArgumentErr);
+  EXPECT_THROW(r = DiskImageResourcePBM::construct_open("nonfile.pgm"),
+               vw::ArgumentErr);
+}

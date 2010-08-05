@@ -140,7 +140,8 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     } else {
       m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
     }
-
+  } catch (Iex::ErrnoExc e) {
+    vw_throw( vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
   } catch (Iex::BaseExc e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
   }

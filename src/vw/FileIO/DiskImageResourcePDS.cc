@@ -77,7 +77,9 @@ vw::PixelFormatEnum vw::DiskImageResourcePDS::planes_to_pixel_format(int32 plane
 void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 
   FILE* input_file = fopen(filename.c_str(), "r");
-  if( ! input_file ) vw_throw( vw::IOErr() << "Failed to open \"" << filename << "\"." );
+  if( !input_file )
+    vw_throw( vw::ArgumentErr() << "DiskImageResourcePDS: Failed to open \""
+              << filename << "\"." );
 
   char c_line[2048];
   int i = 0;
@@ -269,7 +271,8 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
     if (image_file.bad()) {
       image_file.open(boost::to_upper_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary); 
       if (image_file.bad()) {
-        vw_throw( vw::IOErr() << "Failed to open \"" << DiskImageResource::m_filename << "\"." );
+        vw_throw( vw::ArgumentErr() << "DiskImageResourcePDS: Failed to open \""
+                  << DiskImageResource::m_filename << "\"." );
       } 
     }
   }
