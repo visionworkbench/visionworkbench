@@ -459,22 +459,17 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
   }
 
-  virtual ~vw_png_write_context()
-  {
-    png_write_end(ctx.ptr, ctx.info);
-  }
-
   // Writes the given ImageBuffer (with the same dimensions as m_format)
   // to the file. Closing happens when the context is destroyed.
   void write(const ImageBuffer &buf) const
   {
-
     boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
 
     for(int i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
 
     png_write_image(ctx.ptr, row_pointers.get());
+    png_write_end(ctx.ptr, ctx.info);
   }
 
 private:
