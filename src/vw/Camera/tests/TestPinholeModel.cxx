@@ -13,13 +13,12 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/LinearAlgebra.h>
-#include <test/Helpers.h>
-
-#include <vw/FileIO.h>
 
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraTransform.h>
 #include <vw/Camera/CameraGeometry.h>
+
+#include <test/Helpers.h>
 
 using namespace vw;
 using namespace vw::camera;

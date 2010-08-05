@@ -9,11 +9,10 @@
 #include <gtest/gtest.h>
 #include <vw/FileIO.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
-#include <test/Helpers.h>
-
-#include <vw/config.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
+#include <vw/config.h>
+#include <test/Helpers.h>
 
 using namespace vw;
 using namespace vw::internal;

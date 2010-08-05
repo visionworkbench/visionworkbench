@@ -8,8 +8,9 @@
 #include <gtest/gtest.h>
 
 #include <vw/InterestPoint/IntegralImage.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/FileIO/DiskImageResource.h>
 
 using namespace vw;
 using namespace vw::ip;

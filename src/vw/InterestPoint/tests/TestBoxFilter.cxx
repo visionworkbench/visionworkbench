@@ -9,7 +9,7 @@
 
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/BoxFilter.h>
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
 
 using namespace vw;
 using namespace vw::ip;

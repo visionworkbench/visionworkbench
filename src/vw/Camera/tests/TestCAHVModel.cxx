@@ -6,12 +6,9 @@
 
 #include <gtest/gtest.h>
 
-#include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CAHVModel.h>
-#include <vw/Math.h>
-#include <vw/Image/Transform.h>
+#include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraTransform.h>
-#include <vw/FileIO.h>
 #include <test/Helpers.h>
 
 #include <cstdlib>

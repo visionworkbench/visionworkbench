@@ -8,8 +8,9 @@
 // TestDisparity.h
 #include <gtest/gtest.h>
 
-#include <vw/Math.h>
-#include <vw/Stereo.h>
+#include <vw/Stereo/DisparityMap.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelMask.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Transform.h>
 #include <test/Helpers.h>

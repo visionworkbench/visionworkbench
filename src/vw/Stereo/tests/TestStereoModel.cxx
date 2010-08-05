@@ -9,10 +9,9 @@
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
 
-#include <vw/Core.h>
+#include <vw/Stereo/StereoModel.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Stereo/StereoModel.h>
 #include <vw/Math/EulerAngles.h>
 
 using namespace vw;

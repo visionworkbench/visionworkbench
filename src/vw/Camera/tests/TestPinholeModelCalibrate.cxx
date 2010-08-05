@@ -7,7 +7,6 @@
 #include <gtest/gtest.h>
 
 #include <vw/Camera/PinholeModelCalibrate.h>
-#include <vw/Math.h>
 #include <test/Helpers.h>
 
 #include <cstdlib>

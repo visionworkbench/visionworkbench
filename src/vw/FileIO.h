@@ -12,6 +12,7 @@
 #ifndef __VW_FILEIO_H__
 #define __VW_FILEIO_H__
 
+#include <vw/config.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
