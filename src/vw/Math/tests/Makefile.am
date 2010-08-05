@@ -23,6 +23,7 @@ TestEuler_SOURCES                     = TestEuler.cxx
 TestParticleSwarmOptimization_SOURCES = TestParticleSwarmOptimization.cxx
 TestAccumulators_SOURCES              = TestAccumulators.cxx
 TestMatrixSparseSkyline_SOURCES       = TestMatrixSparseSkyline.cxx
+TestConjugateGradient_SOURCES         = TestConjugateGradient.cxx
 
 if HAVE_PKG_LAPACK
 
@@ -35,10 +36,10 @@ TestFundamentalMatrix_SOURCES  = TestFundamentalMatrix.cxx
 TestLinearAlgebra = TestLinearAlgebra TestGeometry TestLevenbergMarquardt TestPoseEstimation TestFundamentalMatrix
 endif
 
-TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions	\
-        TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)	\
+TESTS = TestVector TestMatrix TestQuaternion TestBBox TestFunctions     \
+        TestFunctors TestNelderMead TestKDTree $(TestLinearAlgebra)     \
         TestEuler TestParticleSwarmOptimization TestAccumulators        \
-        TestMatrixSparseSkyline
+        TestMatrixSparseSkyline TestConjugateGradient
 
 #include $(top_srcdir)/config/instantiate.am
 

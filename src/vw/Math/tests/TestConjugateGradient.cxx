@@ -6,7 +6,7 @@
 
 
 // TestConjugateGradient.h
-#include <cxxtest/TestSuite.h>
+#include <gtest/gtest.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/ConjugateGradient.h>
 
@@ -30,41 +30,24 @@ struct QuadraticFunction {
   unsigned dimension() const { return 2; }
 };
 
+TEST( ConjugateGradient, SteepestDescent ) {
+  Vector2 initial_guess(2,2);
+  int numiters = 100;
+  int max_stepsize = 1;
+  QuadraticFunction cost_functor;
+  QuadraticFunction::domain_type result = steepest_descent( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
 
-class TestConjugateGradient : public CxxTest::TestSuite
-{
-public:
+  EXPECT_NEAR(result[0], 0.1962, 1e-3);
+  EXPECT_NEAR(result[1], 0.4846, 1e-3);
+}
 
-  void test_steepest_descent()
-  {
-    //    set_debug_level(VerboseDebugMessage);
-    Vector2 initial_guess(2,2);
-    int numiters = 100;
-    int max_stepsize = 1;
-    QuadraticFunction cost_functor;
-    QuadraticFunction::domain_type result = steepest_descent( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
-//    TS_TRACE(stringify(result));
-//    TS_TRACE(stringify(cost_functor(result)))
-//    TS_TRACE(stringify(cost_functor.gradient(result)))
+TEST( ConjugateGradient, ConjugateGradient ) {
+  Vector2 initial_guess(2,2);
+  int numiters = 100;
+  int max_stepsize = 1;
+  QuadraticFunction cost_functor;
+  QuadraticFunction::domain_type result = conjugate_gradient( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
 
-    TS_ASSERT_DELTA(result[0], 0.1962, 0.001);
-    TS_ASSERT_DELTA(result[1], 0.4846, 0.001);
-  }
-
-  void test_conjugate_gradient()
-  {
-    //    set_debug_level(VerboseDebugMessage);
-    Vector2 initial_guess(2,2);
-    int numiters = 100;
-    int max_stepsize = 1;
-    QuadraticFunction cost_functor;
-    QuadraticFunction::domain_type result = conjugate_gradient( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
-//     TS_TRACE(stringify(result));
-//     TS_TRACE(stringify(cost_functor(result)));
-//     TS_TRACE(stringify(cost_functor.gradient(result)));
-
-    TS_ASSERT_DELTA(result[0], 0.1962, 0.001);
-    TS_ASSERT_DELTA(result[1], 0.4846, 0.001);
-  }
-
-}; // class TestVector
+  EXPECT_NEAR(result[0], 0.1962, 1e-3);
+  EXPECT_NEAR(result[1], 0.4846, 1e-3);
+}
