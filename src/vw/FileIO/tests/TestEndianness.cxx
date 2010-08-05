@@ -6,14 +6,19 @@
 
 
 #include <gtest/gtest.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
+#include <test/Helpers.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 
 using namespace vw;
+using namespace vw::test;
 
 TEST( Endianness, SameEndPNG ) {
   // this tests to make sure VW can read images back in in the same
   // endianness it wrote them out in
+
+  UnlinkName fn("test-png16.png");
 
   typedef PixelRGBA<uint16> P16;
 
@@ -34,9 +39,9 @@ TEST( Endianness, SameEndPNG ) {
   EXPECT_EQ(img3(1,0), pixel_cast<P16>(three));
   EXPECT_EQ(img3(1,1), pixel_cast<P16>( four));
 
-  write_image(TEST_SRCDIR"/test-png16.png", img3);
+  write_image(fn, img3);
 
-  read_image(img4, TEST_SRCDIR"/test-png16.png");
+  read_image(img4, fn);
 
   EXPECT_EQ(img4(0,0), pixel_cast<P16>(  one));
   EXPECT_EQ(img4(0,1), pixel_cast<P16>(  two));

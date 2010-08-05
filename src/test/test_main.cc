@@ -30,6 +30,11 @@ vw::test::UnlinkName::UnlinkName(std::string base, std::string directory)
   fs::remove_all(this->c_str());
 }
 
+vw::test::UnlinkName::UnlinkName(const char* base, std::string directory)
+  : std::string(directory + "/" + base) {
+  fs::remove_all(this->c_str());
+}
+
 vw::test::UnlinkName::~UnlinkName() {
   if (!this->empty())
     fs::remove_all(this->c_str());

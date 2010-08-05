@@ -5,7 +5,6 @@
 // __END_LICENSE__
 
 
-// TestDiskImageResource.h
 #include <gtest/gtest.h>
 #include <vw/FileIO/DiskImageView.h>
 

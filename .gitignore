@@ -66,7 +66,6 @@ Makefile.in
 
 # Generated files from the old tests
 /src/vw/Cartography/tests/*.cxx
-/src/vw/FileIO/tests/*.cxx
 /src/vw/Geometry/tests/*.cxx
 /src/vw/HDR/tests/*.cxx
 /src/vw/Mosaic/tests/*.cxx
@@ -111,18 +110,11 @@ docs/workbook/workbook.toc
 /src/vw/Core/tests/TestThread
 /src/vw/Core/tests/TestThreadPool
 /src/vw/Core/tests/TestThreadQueue
-/src/vw/FileIO/tests/cropped.mural.*
-/src/vw/FileIO/tests/mural.tif
-/src/vw/FileIO/tests/rwtest.*
 /src/vw/FileIO/tests/TestBlockFileIO
 /src/vw/FileIO/tests/TestDiskImageResource
 /src/vw/FileIO/tests/TestDiskImageView
 /src/vw/FileIO/tests/TestEndianness
 /src/vw/FileIO/tests/TestExtTester
-/src/vw/FileIO/tests/test-png16.png
-/src/vw/FileIO/tests/test_p*.p*
-/src/vw/FileIO/tests/tmp.png
-/src/vw/FileIO/tests/tmp.tif
 /src/vw/Geometry/tests/TestSpatialTree
 /src/vw/Geometry/tests/TestSphere
 /src/vw/GPU/Shaders.cc

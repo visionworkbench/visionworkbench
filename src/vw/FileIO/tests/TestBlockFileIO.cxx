@@ -7,46 +7,47 @@
 
 // TestBlockFileIO.h
 #include <gtest/gtest.h>
-#include <string>
 #include <vw/FileIO/DiskImageResource.h>
-
-#include <vw/Image.h>
-#include <vw/FileIO.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <test/Helpers.h>
+
+#include <boost/scoped_ptr.hpp>
+#include <string>
+
 using namespace vw;
+using namespace vw::test;
 
 #include <boost/filesystem/path.hpp>
 namespace fs = boost::filesystem;
 
-
-static void test_read_crop(const char *fn) {
-  DiskImageResource *dir = 0;
-  ASSERT_NO_THROW( dir = DiskImageResource::open( fn ) );
-
-  fs::path crop_name(fn);
-  crop_name = crop_name.branch_path() / (std::string("cropped.") + crop_name.leaf());
+static void test_read_crop(const std::string& input, const UnlinkName& output) {
+  boost::scoped_ptr<DiskImageResource> dir;
+  ASSERT_NO_THROW( dir.reset(DiskImageResource::open( input ) ) );
 
   ImageView<PixelRGB<uint8> > image;
   read_image( image, *dir, BBox2i(100,100,100,100) );
-  write_image( crop_name.string(), image );
- }
+  write_image( output, image );
+}
 
 TEST( BlockFileIO, PNG_Crop ) {
-  test_read_crop(TEST_SRCDIR"/mural.png");
+  test_read_crop(TEST_SRCDIR"/mural.png", "cropped.mural.png");
 }
 
 TEST( BlockFileIO, JPG_Crop ) {
-  test_read_crop(TEST_SRCDIR"/mural.jpg");
+  test_read_crop(TEST_SRCDIR"/mural.jpg", "cropped.mural.jpg");
 }
 
 TEST( BlockFileIO, TIF_Post_Crop ) {
-  DiskImageResource *dir = 0;
-  ASSERT_NO_THROW( dir = DiskImageResource::open( TEST_SRCDIR"/mural.png" ) );
+  UnlinkName fn1("mural.tif");
+  UnlinkName fn2("cropped.mural.tif");
+
+  boost::scoped_ptr<DiskImageResource> dir;
+  ASSERT_NO_THROW( dir.reset(DiskImageResource::open( TEST_SRCDIR"/mural.png" ) ) );
 
   ImageView<PixelRGB<uint8> > image;
   ASSERT_NO_THROW( read_image( image, *dir ) );
-  write_image( "mural.tif", image );
-  DiskImageView<PixelRGB<uint8> > div( "mural.tif" );
+  write_image( fn1, image );
+  DiskImageView<PixelRGB<uint8> > div( fn1 );
   ImageView<PixelRGB<uint8> > result = crop(div,100,100,100,100);
-  write_image( "cropped.mural.tif", result );
+  write_image(fn2, result );
 }

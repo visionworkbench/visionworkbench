@@ -46,6 +46,7 @@ class UnlinkName : public std::string {
   public:
     UnlinkName() {}
     UnlinkName(std::string base, std::string directory=TEST_SRCDIR);
+    UnlinkName(const char *base, std::string directory=TEST_SRCDIR);
     ~UnlinkName();
 };
 

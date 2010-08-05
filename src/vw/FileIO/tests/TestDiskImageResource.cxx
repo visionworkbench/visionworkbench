@@ -9,6 +9,7 @@
 #include <gtest/gtest.h>
 #include <vw/FileIO.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
+#include <test/Helpers.h>
 
 #include <vw/config.h>
 #include <vw/Image/PixelTypes.h>
@@ -16,14 +17,16 @@
 
 using namespace vw;
 using namespace vw::internal;
+using namespace vw::test;
 
 using std::string;
 using std::set;
 
 template <class PixelT>
-static void test_extension(string const& fn)
+static void test_extension(string const& fn_base)
 {
   ImageView<PixelT> img1(4,4), img2;
+  UnlinkName fn(fn_base);
 
   try {
     write_image(fn, img1);
@@ -45,21 +48,21 @@ TEST( DiskImageResource, WriteReadView ) {
   const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
   exclude.insert(ex_list, ex_list+4);
 
-  foreach_ext(TEST_SRCDIR"/rwtest",
+  foreach_ext("rwtest",
               test_extension<PixelRGB<float> >,   exclude);
-  foreach_ext(TEST_SRCDIR"/rwtest",
+  foreach_ext("rwtest",
               test_extension<PixelRGB<uint8> >,   exclude);
-  foreach_ext(TEST_SRCDIR"/rwtest",
+  foreach_ext("rwtest",
               test_extension<PixelRGBA<uint8> >,  exclude);
-  foreach_ext(TEST_SRCDIR"/rwtest",
+  foreach_ext("rwtest",
               test_extension<PixelGray<uint8> >,  exclude);
-  foreach_ext(TEST_SRCDIR"/rwtest",
+  foreach_ext("rwtest",
               test_extension<PixelGrayA<float> >, exclude);
 
   // there's no sane way to represent scalar images in ppm
   exclude.insert("ppm");
-  foreach_ext(TEST_SRCDIR"/rwtest", test_extension<uint8>, exclude);
-  foreach_ext(TEST_SRCDIR"/rwtest", test_extension<float>, exclude);
+  foreach_ext("rwtest", test_extension<uint8>, exclude);
+  foreach_ext("rwtest", test_extension<float>, exclude);
 }
 
 template <typename PixelT, int extension_i>
@@ -116,18 +119,19 @@ protected:
     image(1,0) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(36,89,79));
     image(0,1) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(190,25,34));
     image(1,1) = pixel_cast_rescale<PixelT>(PixelRGB<uint8>(23,13,189));
-    std::string filename;
+    std::string base;
     switch ( extension_i ) {
     case 0: // PNG
-      filename = "tmp.png"; break;
+      base = "tmp.png"; break;
     case 1: // TIF
-      filename = "tmp.tif"; break;
+      base = "tmp.tif"; break;
     case 2: // JPG
     default:
       DiskImageResourceJPEG::set_default_quality(1.0);
       DiskImageResourceJPEG::set_default_subsample_factor(1);
-      filename = "tmp.jpg"; break;
+      base = "tmp.jpg"; break;
     }
+    UnlinkName filename(base);
     ASSERT_NO_THROW( write_image( filename, image ) );
     ImageView<PixelT> image2;
     ASSERT_NO_THROW( read_image( image2, filename ) );
@@ -192,23 +196,26 @@ TEST_F( ReadImageRGBF32JPG, RGB_F32_JPG ) {}
 
 // These test just don't work with JPG since these images are smaller
 // than the tolerance of libjpeg.
-//typedef WriteReadImage<PixelRGB<uint8>, 2> WriteReadImageRGBU8JPG;
-//TEST_F( WriteReadImageRGBU8JPG, RGB_U8_JPG ) {}
+typedef WriteReadImage<PixelRGB<uint8>, 2> WriteReadImageRGBU8JPG;
+TEST_F( WriteReadImageRGBU8JPG, DISABLED_RGB_U8_JPG ) {}
 
-//typedef WriteReadImage<PixelRGB<float>, 2> WriteReadImageRGBF32JPG;
-//TEST_F( WriteReadImageRGBF32JPG, RGB_F32_JPG ) {}
+typedef WriteReadImage<PixelRGB<float>, 2> WriteReadImageRGBF32JPG;
+TEST_F( WriteReadImageRGBF32JPG, DISABLED_RGB_F32_JPG ) {}
 #endif
 
 TEST( DiskImageResource, TestPBM ) {
-  const char pr1[] = "P1 1 2 1 0",
+  const char
+    //pr1[] = "P1 1 2 1 0",
     pr2[] = "P2 1 2 255 12 36",
     pr3[] = "P3 1 2 255 42 43 44 89 88 87",
-    pr4[] = "P4 1 2 \1\0",
+    //pr4[] = "P4 1 2 \1\0",
     pr5[] = "P5 1 2 255 \xC\x24",
     pr6[] = "P6 1 2 255 \x2A\x2B\x2C\x59\x58\x57";
 
-#define WF(x, ext) do {                                                 \
-    std::fstream f ## x(TEST_SRCDIR"/test_p" #x "." ext, std::fstream::out|std::fstream::binary); \
+#define WF(x, ext) \
+  UnlinkName fn ## x ("/test_p" #x "." ext); \
+  do {                                                 \
+    std::fstream f ## x(fn ## x.c_str(), std::fstream::out|std::fstream::binary); \
     f ## x << pr ## x;                                                  \
     f ## x.close();                                                     \
   } while (0);
@@ -224,12 +231,12 @@ TEST( DiskImageResource, TestPBM ) {
   ImageView<PixelGray<uint8> > p2, p5;
   ImageView<PixelRGB<uint8> >  p3, p6;
 
-  //read_image( p1, TEST_SRCDIR"/test_p1.pbm" );
-  read_image( p2, TEST_SRCDIR"/test_p2.pgm" );
-  read_image( p3, TEST_SRCDIR"/test_p3.ppm" );
-  //read_image( p1, TEST_SRCDIR"/test_p4.pbm" );
-  read_image( p5, TEST_SRCDIR"/test_p5.pgm" );
-  read_image( p6, TEST_SRCDIR"/test_p6.ppm" );
+  //read_image( p1, fn1 );
+  read_image( p2, fn2 );
+  read_image( p3, fn3 );
+  //read_image( p1, fn4 );
+  read_image( p5, fn5 );
+  read_image( p6, fn6 );
 
   EXPECT_EQ( p2.cols(),   1 );
   EXPECT_EQ( p2.rows(),   2 );
@@ -266,11 +273,13 @@ TEST( DiskImageResource, TestPBM ) {
 
 TEST( DiskImageResource, PBM_Case_Insentive ) {
   const char pr3[] = "P3 1 2 255 42 43 44 89 88 87";
+  UnlinkName caps_p3("test_p3.PPM");
+
   WF(3, "ppm");
   ImageView<PixelRGB<uint8> > p3a, p3b;
-  read_image(p3a, TEST_SRCDIR"/test_p3.ppm");
-  write_image(TEST_SRCDIR"/test_p3.PPM", p3a);
-  read_image(p3b, TEST_SRCDIR"/test_p3.PPM");
+  read_image(p3a, fn3);
+  write_image(fn3, p3a);
+  read_image(p3b, fn3);
 
   EXPECT_EQ( p3a.cols(),   p3b.cols() );
   EXPECT_EQ( p3a.rows(),   p3b.rows() );
@@ -286,31 +295,31 @@ TEST( DiskImageResource, PBM_Case_Insentive ) {
 #undef WF
 
 
-TEST( DiskImageResource, NonExistantFiles ) {
-  DiskImageResource *r;
+TEST( DiskImageResource, NonExistentFiles ) {
+  boost::scoped_ptr<DiskImageResource> r;
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  EXPECT_THROW(r = DiskImageResourceGDAL::construct_open("nonfile.tif"),
+  EXPECT_THROW(r.reset(DiskImageResourceGDAL::construct_open("nonfile.tif")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-  EXPECT_THROW(r = DiskImageResourcePNG::construct_open("nonfile.png"),
+  EXPECT_THROW(r.reset(DiskImageResourcePNG::construct_open("nonfile.png")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
-  EXPECT_THROW(r = DiskImageResourceTIFF::construct_open("nonfile.tif"),
+  EXPECT_THROW(r.reset(DiskImageResourceTIFF::construct_open("nonfile.tif")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
-  EXPECT_THROW(r = DiskImageResourceJPEG::construct_open("nonfile.jpg"),
+  EXPECT_THROW(r.reset(DiskImageResourceJPEG::construct_open("nonfile.jpg")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  EXPECT_THROW(r = DiskImageResourceOpenEXR::construct_open("nonfile.exr"),
+  EXPECT_THROW(r.reset(DiskImageResourceOpenEXR::construct_open("nonfile.exr")),
                vw::ArgumentErr);
 #endif
-  EXPECT_THROW(r = DiskImageResourcePDS::construct_open("nonfile.img"),
+  EXPECT_THROW(r.reset(DiskImageResourcePDS::construct_open("nonfile.img")),
                vw::ArgumentErr);
-  EXPECT_THROW(r = DiskImageResourcePBM::construct_open("nonfile.pgm"),
+  EXPECT_THROW(r.reset(DiskImageResourcePBM::construct_open("nonfile.pgm")),
                vw::ArgumentErr);
 }
