@@ -41,6 +41,31 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const char *pszErrorMsg) {
+  vw::MessageLevel lvl;
+
+  switch(eErrClass) {
+    case CE_Debug:
+    case CE_Warning:
+      lvl = vw::WarningMessage;
+      break;
+    default:
+      lvl = vw::ErrorMessage;
+      break;
+  }
+
+  std::string msg;
+  if (pszErrorMsg)
+    msg = pszErrorMsg;
+
+  boost::replace_all(msg, "\n", " ");
+
+  if (eErrClass == CE_Fatal)
+    vw::vw_throw(vw::IOErr() << "DiskImageResourceGDAL: " << msg << " (code = " << nError << ")");
+  else
+    vw::vw_out(lvl, "fileio") << "DiskImageResourceGDAL: " << msg << " (code = " << nError << ")" << std::endl;
+}
+
 // GDAL is not thread-safe, so we keep a global GDAL lock (pointed to
 // by gdal_mutex_ptr, below) that we hold anytime we call into the
 // GDAL library itself.  Note that the mutex, along with the GDAL
@@ -57,6 +82,10 @@ namespace {
   void init_gdal() {
     gdal_cache_ptr = new vw::Cache( 200 );
     gdal_mutex_ptr = new vw::Mutex();
+
+    // Override GDAL's error handler so it doesn't print to stderr.
+    CPLSetErrorHandler(gdal_error_handler);
+
     // Register all GDAL file readers and writers and open the data set.
     GDALAllRegister();
   }
