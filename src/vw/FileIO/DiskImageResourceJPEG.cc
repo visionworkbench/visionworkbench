@@ -30,13 +30,18 @@ float DiskImageResourceJPEG::default_quality = 0.95f;
 
 extern "C" {
 #include <jpeglib.h>
-static void vw_jpeg_error_exit(j_common_ptr cinfo)
-{
+#include <jerror.h>
+}
+
+static void vw_jpeg_error_exit(j_common_ptr cinfo) {
   char buffer[JMSG_LENGTH_MAX];
   (*cinfo->err->format_message)(cinfo, buffer);
+  int msg_code = cinfo->err->msg_code;
   jpeg_destroy(cinfo);
-  vw_throw( IOErr() << "DiskImageResourceJPEG error: " << buffer );
-}
+  if ( msg_code == JERR_NO_SOI )
+    vw_throw( ArgumentErr() << "DiskImageResourceJPEG: Cannot open non-jpeg files.\n" );
+  else
+    vw_throw( IOErr() << "DiskImageResourceJPEG error: " << buffer );
 }
 
 /* A struct to handle the data for jpeglib's internals. Have to use it so

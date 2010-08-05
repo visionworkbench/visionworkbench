@@ -92,7 +92,7 @@ void DiskImageResourcePBM::open( std::string const& filename ) {
   input >> m_magic;
   if ( !(m_magic == "P6" || m_magic == "P5" || m_magic == "P4" ||
          m_magic == "P3" || m_magic == "P2" || m_magic == "P1" ) )
-    vw_throw( IOErr() << "DiskImageResourcePBM: unsupported / or incorrect magic number identifer \"" << m_magic << "\"." );
+    vw_throw( ArgumentErr() << "DiskImageResourcePBM: unsupported / or incorrect magic number identifer \"" << m_magic << "\". Possibly not PBM image." );
 
   // Getting image width, height, and max gray value.
   int32 iwidth, iheight;

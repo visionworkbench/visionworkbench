@@ -198,26 +198,26 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   }
 
   if( ! valid ) {
-    vw_throw( IOErr() << "DiskImageResourcePDS: could not find critical information in the image header." );
+    vw_throw( ArgumentErr() << "DiskImageResourcePDS: Could not find complete image header. Possibly not PDS image." );
   }
 
   m_file_is_msb_first = true;
   if (format_str == "UNSIGNED_INTEGER" ||
-      format_str == "MSB_UNSIGNED_INTEGER" || 
+      format_str == "MSB_UNSIGNED_INTEGER" ||
       format_str == "LSB_UNSIGNED_INTEGER") {
-    
+
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_UINT8; 
     else if (sample_bits_str == "16") 
       m_format.channel_type = VW_CHANNEL_UINT16; 
-    
+
     if (format_str == "LSB_UNSIGNED_INTEGER") 
       m_file_is_msb_first = false;
-    
+
   } else if (format_str == "INTEGER" ||
              format_str == "MSB_INTEGER" || 
              format_str == "LSB_INTEGER") {
-    
+
     if (sample_bits_str == "8") 
       m_format.channel_type = VW_CHANNEL_INT8; 
     else if (sample_bits_str == "16") 

@@ -171,7 +171,8 @@ struct DiskImageResourcePNG::vw_png_read_context:
     char sig[8];
     ctx.file->read(sig, 8);
     if(png_sig_cmp((png_byte*)sig, 0, 8))
-      vw_throw(IOErr() << "DiskImageResourcePNG: Input file " << outer->m_filename << " is not a valid PNG file.");
+      vw_throw(ArgumentErr() << "DiskImageResourcePNG: Input file "
+               << outer->m_filename << " is not a valid PNG file.");
 
     // Must call this as we're using fstream and not FILE*
     png_set_read_fn(ctx.ptr, reinterpret_cast<voidp>(ctx.file.get()), read_data);
