@@ -219,7 +219,7 @@ TEST( DiskImageResource, TestPBM ) {
     f ## x.close();                                                     \
   } while (0);
 
-  //  WF(1, "pbm");
+  //WF(1, "pbm");
   WF(2, "pgm");
   WF(3, "ppm");
   //WF(4, "pbm");
@@ -324,31 +324,31 @@ TEST( DiskImageResource, NonExistentFiles ) {
 }
 
 TEST( DiskImageResource, WrongFiles ) {
-  DiskImageResource *r;
+  boost::scoped_ptr<DiskImageResource> r;
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  EXPECT_THROW(r = DiskImageResourceGDAL::construct_open("TestDiskImageResource.cxx"),
+  EXPECT_THROW(r.reset(DiskImageResourceGDAL::construct_open("TestDiskImageResource.cxx")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
-  EXPECT_THROW(r = DiskImageResourcePNG::construct_open("rgb2x2.jpg"),
+  EXPECT_THROW(r.reset(DiskImageResourcePNG::construct_open("rgb2x2.jpg")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
-  EXPECT_THROW(r = DiskImageResourceTIFF::construct_open("rgb2x2.jpg"),
+  EXPECT_THROW(r.reset(DiskImageResourceTIFF::construct_open("rgb2x2.jpg")),
                vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
   // OSX 10.5 fails to catch this error.
-  //EXPECT_THROW(r = DiskImageResourceJPEG::construct_open("rgb2x2.tif"),
+  //EXPECT_THROW(r.reset(DiskImageResourceJPEG::construct_open("rgb2x2.tif")),
   //             vw::ArgumentErr);
 #endif
 #if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
-  EXPECT_THROW(r = DiskImageResourceOpenEXR::construct_open("rgb2x2.tif"),
+  EXPECT_THROW(r.reset(DiskImageResourceOpenEXR::construct_open("rgb2x2.tif")),
                vw::ArgumentErr);
 #endif
-  EXPECT_THROW(r = DiskImageResourcePDS::construct_open("rgb2x2.tif"),
+  EXPECT_THROW(r.reset(DiskImageResourcePDS::construct_open("rgb2x2.tif")),
                vw::ArgumentErr);
-  EXPECT_THROW(r = DiskImageResourcePBM::construct_open("rgb2x2.tif"),
+  EXPECT_THROW(r.reset(DiskImageResourcePBM::construct_open("rgb2x2.tif")),
                vw::ArgumentErr);
 }
