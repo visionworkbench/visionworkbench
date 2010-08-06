@@ -13,9 +13,9 @@ if MAKE_MODULE_STEREO
 
 TestStereoModel_SOURCES  = TestStereoModel.cxx
 TestDisparity_SOURCES    = TestDisparity.cxx
-# TestCorrelator_SOURCES = TestCorrelator.oldtest
+TestCorrelator_SOURCES   = TestCorrelator.cxx
 
-TESTS = TestStereoModel TestDisparity # TestCorrelator
+TESTS = TestStereoModel TestDisparity TestCorrelator
 
 #include $(top_srcdir)/config/instantiate.am
 
