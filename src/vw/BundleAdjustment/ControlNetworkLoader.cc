@@ -156,11 +156,11 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
         // area.
         int j = cpoint[0].image_id();
         try {
-          cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
-                               camera_models[j]->pixel_to_vector(cpoint[j].position())*10 );
+          cpoint.set_position( camera_models[j]->camera_center(cpoint[0].position()) +
+                               camera_models[j]->pixel_to_vector(cpoint[0].position())*10 );
         } catch ( camera::PixelToRayErr e ) {
-          cpoint.set_position( camera_models[j]->camera_center(cpoint[j].position()) +
-                               camera_models[j]->camera_pose(cpoint[j].position()).rotate(Vector3(0,0,10)) );
+          cpoint.set_position( camera_models[j]->camera_center(cpoint[0].position()) +
+                               camera_models[j]->camera_pose(cpoint[0].position()).rotate(Vector3(0,0,10)) );
         }
       } else {
         error_sum /= positions.size();
