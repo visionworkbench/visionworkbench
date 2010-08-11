@@ -305,6 +305,23 @@ TEST(Matrix, SubMatrix) {
   EXPECT_EQ(0, dest(0,1) );
   EXPECT_EQ(4, dest(1,0) );
   EXPECT_EQ(0, dest(1,1) );
+
+  // Subvector of select vector
+  /*
+  dest = Matrix3x3();
+  subvector(select_row(dest,0),0,2)[0] = 3;
+  subvector(select_row(dest,0),0,2) = Vector2(4,5);
+  subvector(select_col(dest,2),1,2) = Vector2(5,6);
+  EXPECT_EQ(4, dest(0,0));
+  EXPECT_EQ(5, dest(0,1));
+  EXPECT_EQ(0, dest(0,2));
+  EXPECT_EQ(0, dest(1,0));
+  EXPECT_EQ(0, dest(1,1));
+  EXPECT_EQ(5, dest(1,2));
+  EXPECT_EQ(0, dest(2,0));
+  EXPECT_EQ(0, dest(2,1));
+  EXPECT_EQ(6, dest(2,2));
+  */
 }
 
 TEST(Matrix, Products) {
@@ -405,6 +422,14 @@ TEST(Matrix, Transpose) {
   ASSERT_EQ( 2u, rv.size() );
   EXPECT_EQ( 1, rv(0) );
   EXPECT_EQ( 3, rv(1) );
+
+  // Mashing more unique operations
+  Matrix2x2 dest;
+  select_row(dest,0) = transpose(Vector2(4,5));
+  EXPECT_EQ(4, dest(0,0));
+  EXPECT_EQ(5, dest(0,1));
+  EXPECT_EQ(0, dest(1,0));
+  EXPECT_EQ(0, dest(1,1));
 }
 
 TEST(Matrix, Inverse) {

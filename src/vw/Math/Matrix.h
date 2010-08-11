@@ -974,10 +974,18 @@ namespace math {
       return *this;
     }
 
+    // For the transposed vctor object
+    template <class OtherT>
+    MatrixRow& operator=( VectorTranspose<OtherT> const& v ) {
+      VW_ASSERT( v.size() == size(), ArgumentErr() << "Vectors must have same size in matrix row assignment.");
+      std::copy( v.begin(), v.end(), begin() );
+      return *this;
+    }
+
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class OtherT>
-    MatrixRow& operator=( VectorNoTmp<OtherT> const& v ) { 
+    MatrixRow& operator=( VectorNoTmp<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix row assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;

@@ -925,8 +925,7 @@ namespace math {
     /// Standard copy assignment operator.
     SubVector& operator=( SubVector const& v ) {
       VW_ASSERT( v.size()==size(), ArgumentErr() << "Vectors must have same size in subvector assignment" );
-      Vector<value_type> tmp( v );
-      VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,tmp);
+      VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,v.impl());
       return *this;
     }
 
@@ -934,8 +933,7 @@ namespace math {
     template <class OtherT>
     SubVector& operator=( VectorBase<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==m_size, ArgumentErr() << "Vectors must have same size in subvector assignment" );
-      Vector<value_type> tmp( v );
-      VectorAssignImpl<SubVector,Vector<value_type> >::assign(*this,tmp);
+      VectorAssignImpl<SubVector,OtherT >::assign(*this,v.impl());
       return *this;
     }
 
