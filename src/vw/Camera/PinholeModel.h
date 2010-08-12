@@ -317,7 +317,7 @@ namespace camera {
     // This performs a camera matrix decomposition and rewrites most variables
     void set_camera_matrix( Matrix<double,3,4> const& p );
 
-    Matrix<double,3,4> camera_matrix( void ) {
+    Matrix<double,3,4> camera_matrix( void ) const {
       return m_camera_matrix;
     }
 
