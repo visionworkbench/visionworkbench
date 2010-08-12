@@ -9,6 +9,7 @@
 ///
 
 #include <vw/BundleAdjustment/ControlNetwork.h>
+#include <boost/algorithm/string.hpp>
 
 // Time Headers
 #include <boost/thread/xtime.hpp>
@@ -30,6 +31,14 @@ inline std::string current_posix_time_string() {
   return std::string(time_string);
 }
 
+inline std::string isis_style_time_string() {
+  std::string time = current_posix_time_string();
+  boost::erase_all( time, "\n" );
+  boost::trim( time );
+  boost::replace_all( time, " ", "T" );
+  return time;
+}
+
 namespace vw {
 namespace ba {
 
@@ -45,9 +54,7 @@ namespace ba {
     m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
 
     // Recording time
-    m_date_time = current_posix_time_string();
-    boost::erase_all( m_date_time, "\n" );
-    boost::erase_all( m_date_time, " " );
+    m_date_time = isis_style_time_string();
 
     m_serialNumber = "Null";
     m_description = "Null";
@@ -61,9 +68,7 @@ namespace ba {
     m_col(0), m_row(0), m_col_sigma(0), m_row_sigma(0), m_image_id(0), m_type(type) {
 
     // Recording time
-    m_date_time = current_posix_time_string();
-    boost::erase_all( m_date_time, "\n" );
-    boost::erase_all( m_date_time, " " );
+    m_date_time = isis_style_time_string();
 
     m_serialNumber = "Null";
     m_description = "Null";
@@ -161,6 +166,8 @@ namespace ba {
     f << "      Reference      = False\n";    // What is reference?
     if ( m_pixels_dominant )
       f << "      PixelsDominant = True\n";
+    else
+      f << "      PixelsDominant = False\n";
     f << "    End_Group\n";
   }
 
@@ -176,7 +183,7 @@ namespace ba {
     m_date_time = "";
     m_chooserName = "";
     m_ignore = false;
-    m_pixels_dominant = false;
+    m_pixels_dominant = true;
 
     while (1) {
       if ( f.eof() )
@@ -279,8 +286,16 @@ namespace ba {
       } else if ( tokens[0] == "Ignore" ) {
         m_ignore = true;
       } else if ( tokens[0] == "PixelsDominant" ) {
-        m_pixels_dominant = 1;
+        boost::to_lower(tokens[1]);
+        if ( tokens[1] == "false" )
+          m_pixels_dominant = 0;
+        else
+          m_pixels_dominant = 1;
       }
+      if ( m_col_sigma == 0 )
+        m_col_sigma = 1;
+      if ( m_row_sigma == 0 )
+        m_row_sigma = 1;
     }
   }
 
@@ -483,9 +498,7 @@ namespace ba {
                                  std::string descrip, std::string user_name ) :
     m_targetName(target_name), m_networkId(id), m_description(descrip), m_userName(user_name), m_type(type) {
     // Recording time
-    m_created = current_posix_time_string();
-    boost::erase_all( m_created, "\n" );
-    boost::erase_all( m_created, " " );
+    m_created = isis_style_time_string();
   }
 
   /// Add a single Control Point
@@ -536,9 +549,7 @@ namespace ba {
   void ControlNetwork::write_binary( std::string filename ) {
 
     // Recording the modified time
-    m_modified = current_posix_time_string();
-    boost::erase_all( m_modified, "\n" );
-    boost::erase_all( m_modified, " " );
+    m_modified = isis_style_time_string();
 
     // Forcing file extension type
     filename = filename.substr(0,filename.rfind("."));
@@ -597,9 +608,7 @@ namespace ba {
   /// Write an isis style control network
   void ControlNetwork::write_isis( std::string filename ) {
     // Recording the modified time
-    m_modified = current_posix_time_string();
-    boost::erase_all( m_modified, "\n" );
-    boost::erase_all( m_modified, " " );
+    m_modified = isis_style_time_string();
 
     // Forcing file extension type
     filename = filename.substr(0,filename.rfind("."));
