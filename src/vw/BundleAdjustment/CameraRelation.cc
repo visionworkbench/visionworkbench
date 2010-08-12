@@ -95,7 +95,7 @@ namespace ba {
         }
 
         // Appending to list
-        features_added.push_back( f_ptr( new FeatureT(*cmiter, cp_i) ) );
+        features_added.push_back( f_ptr( new FeatureT(*cmiter, cmiter->image_id()) ) );
 
         // Attaching to camera node
         (*this)[cmiter->image_id()].relations.push_back( features_added.back() );

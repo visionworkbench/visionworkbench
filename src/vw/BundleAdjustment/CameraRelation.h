@@ -107,8 +107,8 @@ namespace ba {
     FeatureBase<IPFeature>(id), m_ip(ip) {}
     // For building from control networks
     IPFeature ( ControlMeasure const& cmeas,
-                uint32 const& /*point_id*/ ) :
-    FeatureBase<IPFeature>( cmeas.image_id() ) {
+                uint32 const& cam_id ) :
+    FeatureBase<IPFeature>( cam_id ) {
       m_ip = ip::InterestPoint( cmeas.position()[0],
                                 cmeas.position()[1],
                                 cmeas.sigma()[0] );
