@@ -77,10 +77,16 @@ namespace cartography {
 
     // Convert from lon, lat, radius to x,y,z:
     //
-    // x = r * cos(longitude)
-    // y = r * sin(longitude)
+    // East positive:
+    // x = r * cos(latitude) * cos(longitude)
+    // y = r * cos(latitude) * sin(longitude)
     // z = r * sin(latitude)
     //
+    // West positive:
+    // x = r * cos(latitude) * cos(-longitude)
+    // y = r * cos(latitude) * sin(-longitude)
+    // z = r * sin(latitude)
+
     template <class T>
     T operator()(T const& p) const {
       return this->apply(p, m_east_positive);
