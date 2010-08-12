@@ -11,6 +11,7 @@
 #include <vw/Image/PixelMath.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PixelMask.h>
+#include <vw/Image/Interpolation.h>
 
 #include <test/Helpers.h>
 
@@ -228,6 +229,30 @@ TEST_F( MaskedScalarf32, Arithmetic ) {
   EXPECT_EQ( c.child(), 0.5 );
   c = i / b;
   EXPECT_EQ( c.child(), 0 );
+}
+
+TEST( MaskedPixelMath, PixelMaskInterpolation ) {
+  typedef PixelMask<PixelGray<float> > px_type;
+  ImageView<px_type > test(2,2);
+  test(0,0) = px_type(0);
+  test(0,1) = px_type(0);
+  test(0,0).invalidate();
+  test(0,1).invalidate();
+  test(1,0) = px_type(255);
+  test(1,0).invalidate();
+  test(1,1) = px_type(255);
+
+  InterpolationView<EdgeExtensionView<ImageView<px_type>, ConstantEdgeExtension>, BilinearInterpolation> interp_test(edge_extend(test, ConstantEdgeExtension()));
+
+  EXPECT_FALSE( is_valid( interp_test(0,0) ) );
+  EXPECT_FALSE( is_valid( interp_test(0,1) ) );
+  EXPECT_FALSE( is_valid( interp_test(1,0) ) );
+
+  EXPECT_TRUE( is_valid( interp_test(1,1) ) );
+
+  EXPECT_FALSE( is_valid( interp_test(0.5,0.5) ) );
+  EXPECT_FALSE( is_valid( interp_test(0.5,0) ) );
+  EXPECT_FALSE( is_valid( interp_test(0,0.5) ) );
 }
 
 TEST( MaskedPixelMath, MixedTypes ) {
