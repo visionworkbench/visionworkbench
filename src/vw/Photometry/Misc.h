@@ -21,6 +21,8 @@
 
 namespace vw {
 namespace photometry {
+  //upsamples a DEM by an upsampleFactor 
+  void upsample_image(std::string output_file, std::string input_file, int upsampleFactor);
 
   //subsamples a geo referenced tiff image by two
   void subsample_image(std::string output_file, std::string input_file);

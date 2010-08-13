@@ -27,6 +27,48 @@ using namespace vw::cartography;
 #include <vw/Photometry/Shape.h>
 using namespace vw::photometry;
 
+
+//upsamples a geo referenced tiff image by four- used in sfs
+
+void upsample_image(std::string output_file, std::string input_file, int upsampleFactor) {
+  GeoReference geo;
+  read_georeference(geo, input_file);
+  DiskImageView<PixelGray<float> >   image(input_file);
+
+  int cols = (image.cols())*upsampleFactor, rows = (image.rows())*upsampleFactor;
+  ImageView<PixelGray<float> >  tm_image(cols, rows);
+
+  ImageViewRef<PixelGray<float> >   interp = interpolate(edge_extend(image.impl(),
+                                                                     ConstantEdgeExtension()),
+                                                         BilinearInterpolation());
+
+  int x, y;
+
+  for (x=0; x<cols; ++x){
+    for (y=0; y<rows; ++y){
+      //if ( is_valid(image(2*x,2*y)) || is_valid(image(2*x+1,2*y)) || is_valid(image(2*x,2*y+1)) || is_valid(image(2*x+1,2*y+1)) ) {
+      //if (is_valid(image(2*x,2*y)) && is_valid(image(2*x+1,2*y)) && is_valid(image(2*x,2*y+1)) && is_valid(image(2*x+1,2*y+1)) ) {
+      float xx = x/upsampleFactor;
+      float yy = y/upsampleFactor;
+
+      if ( interp(x, y) != -10000 ){
+           tm_image(x,y) = interp(x, y);
+      }
+      else{
+           tm_image(x,y) = -10000;
+      }
+    }
+  }
+
+  Matrix<double> H = geo.transform();
+  H(0,0) /= upsampleFactor;
+  H(1,1) /= upsampleFactor;
+  geo.set_transform(H);
+
+  write_georeferenced_image(output_file, tm_image, geo, TerminalProgressCallback("photometry","Processing:"));
+}
+
+
 //subsamples a geo referenced tiff image by two
 void subsample_image(std::string output_file, std::string input_file) {
   GeoReference geo;
