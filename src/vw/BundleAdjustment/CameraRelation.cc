@@ -49,7 +49,7 @@ namespace ba {
   }
 
   template <class FeatureT>
-  void CameraRelationNetwork<FeatureT>::build_map( void ) {
+  void CameraRelationNetwork<FeatureT>::build_map() {
     typedef boost::shared_ptr<FeatureT> f_ptr;
     typedef typename std::list<f_ptr>::iterator list_it;
     typedef typename std::list<f_ptr>::const_iterator list_cit;

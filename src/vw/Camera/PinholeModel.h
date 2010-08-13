@@ -302,22 +302,22 @@ namespace camera {
     void set_intrinsic_parameters(double f_u, double f_v,
                                   double c_u, double c_v) VW_DEPRECATED;
 
-    Vector2 focal_length(void) const { return Vector2(m_fu,m_fv); }
+    Vector2 focal_length() const { return Vector2(m_fu,m_fv); }
     void set_focal_length(Vector2 const& f, bool rebuild=true ) {
       m_fu = f[0]; m_fv = f[1];
       if (rebuild) rebuild_camera_matrix(); }
-    Vector2 point_offset(void) const { return Vector2(m_cu,m_cv); }
+    Vector2 point_offset() const { return Vector2(m_cu,m_cv); }
     void set_point_offset(Vector2 const& c, bool rebuild=true ) {
       m_cu = c[0]; m_cv = c[1];
       if (rebuild) rebuild_camera_matrix(); }
-    double pixel_pitch(void) const { return m_pixel_pitch; }
+    double pixel_pitch() const { return m_pixel_pitch; }
     void set_pixel_pitch( double pitch ) { m_pixel_pitch = pitch; }
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables
     void set_camera_matrix( Matrix<double,3,4> const& p );
 
-    Matrix<double,3,4> camera_matrix( void ) const {
+    Matrix<double,3,4> camera_matrix() const {
       return m_camera_matrix;
     }
 

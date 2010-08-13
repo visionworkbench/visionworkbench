@@ -71,7 +71,7 @@ public:
     column++;
   }
 
-  int descriptor_size( void ) { return 0; }
+  int descriptor_size() { return 0; }
 };
 
 class LearnPCA {

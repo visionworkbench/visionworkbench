@@ -59,7 +59,7 @@ namespace ip {
     std::list<Vector2> m_histogram_samp;
     std::list<Vector2> m_33_samp;
 
-    SGrad2DescriptorGenerator(void) {
+    SGrad2DescriptorGenerator() {
       // Push back constant box properties
       m_box_properties.push_back(Vector3(-2,-2,1));
       m_box_properties.push_back(Vector3(2,-2,1));

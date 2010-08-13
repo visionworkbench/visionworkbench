@@ -131,10 +131,10 @@ namespace ba {
 
     // -- Report Functions -------------------------------------------
 
-    std::string image_unit( void ) { return "pixels"; }
-    std::string camera_position_unit( void ) { return "meters"; }
-    std::string camera_pose_unit( void ) { return "radians"; }
-    std::string gcp_unit( void ) { return "meters"; }
+    std::string image_unit() { return "pixels"; }
+    std::string camera_position_unit() { return "meters"; }
+    std::string camera_pose_unit() { return "radians"; }
+    std::string gcp_unit() { return "meters"; }
     // Forced on the user to define
     void image_errors( std::vector<double>& x ) {
       impl().image_errors(x); }
@@ -144,7 +144,7 @@ namespace ba {
       impl().camera_pose_errors(x); }
     void gcp_errors( std::vector<double>& x ) {
       impl().gcp_errors(x); }
-    boost::shared_ptr<ControlNetwork> control_network(void) {
+    boost::shared_ptr<ControlNetwork> control_network() {
       vw_throw( vw::NoImplErr() << "Programmer needs to implement ModelBase::control_network()\n" );
     }
   };

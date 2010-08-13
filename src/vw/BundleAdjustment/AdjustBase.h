@@ -37,8 +37,8 @@ namespace ba {
       return 2.0f * m_b_2* (sqrt(1.0f + delta_norm*delta_norm/m_b_2) - 1.0f);
     }
 
-    std::string name_tag (void) const { return "PsudeoHuberError"; }
-    double threshold(void) const { return m_b; }
+    std::string name_tag () const { return "PsudeoHuberError"; }
+    double threshold() const { return m_b; }
   };
 
   struct HuberError {
@@ -52,23 +52,23 @@ namespace ba {
         return 2*m_b*delta_norm - m_b*m_b;
     }
 
-    std::string name_tag (void) const { return "HuberError"; }
-    double threshold(void) const { return m_b; }
+    std::string name_tag () const { return "HuberError"; }
+    double threshold() const { return m_b; }
   };
 
   struct L1Error {
     double operator() (double delta_norm) { return fabs(delta_norm); }
 
-    std::string name_tag (void) const { return "L1Error"; }
-    double threshold(void) const { return 0.0; }
+    std::string name_tag () const { return "L1Error"; }
+    double threshold() const { return 0.0; }
   };
 
 
   struct L2Error {
     double operator() (double delta_norm) { return delta_norm*delta_norm; }
 
-    std::string name_tag (void) const { return "L2Error"; }
-    double threshold(void) const { return 0.0; }
+    std::string name_tag () const { return "L2Error"; }
+    double threshold() const { return 0.0; }
   };
 
   // Our Cauchy Error is missing a sigma^2 at the front of the log,
@@ -85,8 +85,8 @@ namespace ba {
       return log(1+delta_norm*delta_norm/m_sigma_2);
     }
 
-    std::string name_tag (void) const { return "CauchyError"; }
-    double threshold(void) const { return m_sigma; }
+    std::string name_tag () const { return "CauchyError"; }
+    double threshold() const { return m_sigma; }
   };
 
 

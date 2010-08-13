@@ -59,9 +59,9 @@ namespace ip {
     }
 
     // Default suport size ( i.e. descriptor window)
-    int support_size( void ) { return 41; }
+    int support_size() { return 41; }
     // Default descriptor(vector) length
-    int descriptor_size( void ) { return 128; }
+    int descriptor_size() { return 128; }
 
     /// Get the size x size support region around an interest point,
     /// rescaled by the scale factor and rotated by the specified
@@ -111,7 +111,7 @@ namespace ip {
         *first /= sqr_length;
     }
 
-    int descriptor_size( void ) { return 41*41; }
+    int descriptor_size() { return 41*41; }
   };
 
   // An implementation of PCA-SIFT
@@ -164,7 +164,7 @@ namespace ip {
       }
     }
 
-    int descriptor_size( void ) { return pca_basis.cols(); }
+    int descriptor_size() { return pca_basis.cols(); }
   };
 
   // A Simple Scaled Gradient descriptor that reduces the number of elements
@@ -240,8 +240,8 @@ namespace ip {
         (*first) /= sqr_length;
     }
 
-    int support_size( void ) { return 42; }
-    int descriptor_size( void ) { return 180; }
+    int support_size() { return 42; }
+    int descriptor_size() { return 180; }
   };
 
 }} // namespace vw::ip

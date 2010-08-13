@@ -41,7 +41,7 @@ namespace vw {
     open_kml();
   }
 
-  KMLFile::~KMLFile( void ) {
+  KMLFile::~KMLFile() {
     close_kml();
   }
 
@@ -52,7 +52,7 @@ namespace vw {
     m_output_file << m_tab << "<" << name << ">\n";
     m_tab.count++;
   }
-  void KMLFile::close_bracket( void ) {
+  void KMLFile::close_bracket() {
     m_tab.count--;
     m_output_file << m_tab << "</" << m_bracket_names.top() << ">\n";
     m_bracket_names.pop();
@@ -63,7 +63,7 @@ namespace vw {
       i--;
     }
   }
-  void KMLFile::close_all_brackets( void ) {
+  void KMLFile::close_all_brackets() {
     while ( !m_bracket_names.empty() )
       close_bracket();
   }
@@ -82,7 +82,7 @@ namespace vw {
       m_output_file << m_tab << "<description>"<< desc <<"</description>\n";
   }
 
-  void KMLFile::exit_folder(void) {
+  void KMLFile::exit_folder() {
     close_bracket();
   }
 
@@ -244,7 +244,7 @@ namespace vw {
   }
 
   // Open / Close Stuff
-  void KMLFile::open_kml( void ) {
+  void KMLFile::open_kml() {
     std::ostringstream path;
     if ( m_directory != "" )
       path << m_directory << "/";
@@ -266,7 +266,7 @@ namespace vw {
     m_output_file << m_tab << "<name>" << m_name << "</name>\n";
   }
 
-  void KMLFile::close_kml( void ) {
+  void KMLFile::close_kml() {
     if (m_output_file.is_open()) {
       if (!m_bracket_names.empty())
         vw_throw(IOErr() << "Error on close out, there seems to be an open bracket somewhere left in the kml.");

@@ -83,7 +83,7 @@ namespace ba {
         }
       }
     }
-    void build_map( void ) {
+    void build_map() {
       m_map.clear();
       typedef typename std::list<f_ptr>::const_iterator list_it;
       for ( list_it fiter = m_connections.begin();
@@ -184,7 +184,7 @@ namespace ba {
     // Iterator access
     typedef typename std::vector<cnode>::iterator iterator;
     typedef typename std::vector<cnode>::const_iterator const_iterator;
-    uint32 size( void ) const { return m_nodes.size(); }
+    uint32 size() const { return m_nodes.size(); }
     cnode& operator[]( int32 const& i ) { return m_nodes[i]; }
     iterator begin() { return m_nodes.begin(); }
     iterator end()   { return m_nodes.end();   }
@@ -193,7 +193,7 @@ namespace ba {
 
     // Complex functions
     void add_node( cnode const& node );
-    void build_map( void );
+    void build_map();
     void read_controlnetwork( ControlNetwork const& cnet );
     void write_controlnetwork( ControlNetwork & cnet ) const;
 

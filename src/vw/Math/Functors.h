@@ -482,7 +482,7 @@ namespace math {
     }
 
     // Merge in Bundles
-    void update (void ) {
+    void update() {
       int jd=0, jq=1;
       double target, told=0, tnew=0, qold, qnew;
       std::vector<double> m_new_quantile(m_num_quantiles);
@@ -570,9 +570,9 @@ namespace math {
     }
 
     // Predefine functions
-    ValT median( void ) const { return quantile(0.5); }
-    ValT first_quartile( void ) const { return quantile(0.25); }
-    ValT third_quartile( void ) const { return quantile(0.75); }
+    ValT median() const { return quantile(0.5); }
+    ValT first_quartile() const { return quantile(0.25); }
+    ValT third_quartile() const { return quantile(0.75); }
     ValT approximate_mean( double const& stepping = 0.1 ) const {
       ValT mean = 0;
       int count = 0;

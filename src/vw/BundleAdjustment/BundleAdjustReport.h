@@ -203,7 +203,7 @@ namespace ba {
     }
 
     // This is a callback from inside the loop of iterations
-    void loop_tie_in( void ) {
+    void loop_tie_in() {
       m_human_both << "[" << current_posix_time_string() << "]\tFinished Iteration "
                    << m_adjuster.iterations() << std::endl;
 
@@ -216,7 +216,7 @@ namespace ba {
       m_human_both << "\n";
     }
     // This is a callback for just exit the loop of iterations
-    void end_tie_in( void ) {
+    void end_tie_in() {
       m_human_both << "[" << current_posix_time_string()
                    << "]\tFinished Bundle Adjustment\n";
       m_human_both << "\tNumber of Iterations: "
@@ -258,13 +258,13 @@ namespace ba {
 
     }
     // This will display the current error statistics
-    std::ostream& operator() ( void ) {
+    std::ostream& operator() () {
       // These are for special comments to the report
       return m_human_both << "[" << current_posix_time_string() << "] : ";
     }
 
     // Repeated sections of reporting
-    void generic_readings( void ) {
+    void generic_readings() {
       m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
       { // Grabbing Image Error information
         std::vector<double> image_errors;
@@ -361,7 +361,7 @@ namespace ba {
         }
       }
     }
-    void triangulation_readings( void ) {
+    void triangulation_readings() {
       std::vector<double> errors, gcp_errors;
       stereo_errors( errors );
       stereo_gcp_errors( gcp_errors );
