@@ -11,7 +11,8 @@
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox, 
                                          int transaction_id, bool preblur, 
-                                         const ProgressCallback &progress_callback) const {
+                                         const ProgressCallback &progress_callback,
+                                         int stopping_level) const {
 
 
   // Adjust the size of the bbox for the first mipmapping level, which
@@ -37,7 +38,8 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
   float current_num_tiles = 0;
   sum_denom = 4.0;
   float prev_num_tiles = 0;
-  for ( int level = starting_level-1; level >= 0; --level) {
+  for ( int level = starting_level-1;
+        level >= (stopping_level >= 0 ? stopping_level : 0); --level) {
 
     // Do a little progress callback math.
     current_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
@@ -53,8 +55,8 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     int prog_counter = 0;
     for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
       SubProgressCallback sub_sub_progress(sub_progress, 
-                                           float(prog_counter)/tile_workunits.size(),
-                                           float(prog_counter+1)/tile_workunits.size());
+                                           float(prog_counter)/float(tile_workunits.size()),
+                                           float(prog_counter+1)/float(tile_workunits.size()));
       prog_counter++;
 
       // The original bbox passed into the mipmap function only serves
@@ -94,10 +96,11 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         // Debugging:
         //        vw_out() << "Generating mipmap tiles for " << trimmed_region << " @ " << level << "\n";
 
+        float inc_amt = 1.0/(trimmed_region.width() * trimmed_region.height());
         for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
           for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
             this->generate_mipmap_tile(i,j,level,transaction_id, preblur);
-            sub_sub_progress.report_incremental_progress(1.0/(trimmed_region.width() * trimmed_region.height()));
+            sub_sub_progress.report_incremental_progress(inc_amt);
           }
         }
       }
@@ -109,7 +112,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
     level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );
     level_bbox.max().x() = ceil( float(level_bbox.max().x()) / 2 );
-    level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );        
+    level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );
   }
   progress_callback.report_finished();
 }

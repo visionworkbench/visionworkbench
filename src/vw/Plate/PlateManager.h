@@ -50,7 +50,8 @@ namespace platefile {
     //   transaction_id -- transaction id to use when reading/writing tiles
     //
     void mipmap(int starting_level, BBox2i const& bbox, int transaction_id, bool preblur,
-                const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
+                const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(),
+                int stopping_level = -1) const;
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.  It is left to a
