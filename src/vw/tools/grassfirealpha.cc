@@ -61,7 +61,7 @@ public:
   template <class ArgT>
   inline typename boost::disable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
   operator()( ArgT const& value ) const {
-    ArgT result = range_type::max()*((1.0-cos(float(value)/float(range_type::max())*M_PI))/2.0);
+    ArgT result = ArgT(range_type::max()*((1.0-cos(float(value)/float(range_type::max())*M_PI))/2.0));
     if ( result == 0 && value != 0 )
       result = 1;
     return result;
@@ -85,7 +85,7 @@ public:
   template <class ArgT>
   inline typename boost::disable_if<typename boost::is_floating_point<ArgT>,ArgT>::type
   operator()( ArgT const& value ) const {
-    ArgT result = range_type::max()*(-cos(float(value)/float(range_type::max())*(M_PI/2.0) + M_PI/2.0));
+    ArgT result = ArgT(range_type::max()*(-cos(float(value)/float(range_type::max())*(M_PI/2.0) + M_PI/2.0)));
     if ( result == 0 && value != 0 )
       result = 1;
     return result;
@@ -132,10 +132,15 @@ template <class PixelT>
 void grassfire_nodata( Options& opt,
                        std::string input,
                        std::string output ) {
+  typedef typename CompoundChannelType<PixelT>::type inter_type;
+  typedef ChannelRange<inter_type> range_type;
+
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input);
   DiskImageView<PixelT> input_image(input);
-  ImageView<int32> distance = grassfire(notnodata(input_image,opt.nodata));
+  ImageView<int32> distance =
+    grassfire(notnodata(input_image,
+			inter_type(opt.nodata)));
 
   // Check to see if the user has specified a feather length.  If not,
   // then we send the feather_max to the max pixel value (which
@@ -143,9 +148,7 @@ void grassfire_nodata( Options& opt,
   if (opt.feather_max < 1)
     opt.feather_max = max_pixel_value( distance );
   vw_out() << "\t--> Distance range: [ " << opt.feather_min << " " << opt.feather_max << " ]\n";
-
-  typedef typename CompoundChannelType<PixelT>::type inter_type;
-  typedef ChannelRange<typename CompoundChannelType<PixelT>::type> range_type;
+  
   ImageViewRef<inter_type> norm_dist;
   norm_dist = pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
                                      clamp(pixel_cast<float>(distance) - opt.feather_min, 
