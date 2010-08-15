@@ -114,63 +114,64 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
     TerminalProgressCallback progress("ba", "Triangulating:");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
+    double min_angle = 5.0*M_PI/180.0;
     BOOST_FOREACH( ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress( inc_prog );
-
-      std::vector< Vector3 > positions;
-      double error = 0, error_sum = 0;
-
-      const double min_convergence_angle = 5.0*M_PI/180.0;
-
-      // 4.1.) Building a listing of triangulation
-      for ( unsigned j = 0; j < cpoint.size(); j++ ) {
-        for ( unsigned k = j+1; k < cpoint.size(); k++ ) {
-          // Make sure camera centers are not equal
-          int j_cam_id = cpoint[j].image_id();
-          int k_cam_id = cpoint[k].image_id();
-          if ( norm_2( camera_models[j_cam_id]->camera_center( cpoint[j].position() ) -
-                       camera_models[k_cam_id]->camera_center( cpoint[k].position() ) ) > 1e-6 ) {
-
-            try {
-              stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
-                                      camera_models[ k_cam_id ].get() );
-
-              if ( sm.convergence_angle( cpoint[j].position(),
-                                         cpoint[k].position() ) >
-                   min_convergence_angle ) {
-                positions.push_back( sm( cpoint[j].position(),
-                                         cpoint[k].position(),
-                                       error ) );
-                error_sum += error;
-              }
-            } catch ( camera::PixelToRayErr e ) { /* Just let it go */ }
-          }
-        }
-      }
-
-      // 4.2.) Summing, Averaging, and Storing
-      if ( positions.empty() ) {
-        vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
-        // At the very least we can provide a point that is some
-        // distance out from the camera center and is in the 'general'
-        // area.
-        int j = cpoint[0].image_id();
-        try {
-          cpoint.set_position( camera_models[j]->camera_center(cpoint[0].position()) +
-                               camera_models[j]->pixel_to_vector(cpoint[0].position())*10 );
-        } catch ( camera::PixelToRayErr e ) {
-          cpoint.set_position( camera_models[j]->camera_center(cpoint[0].position()) +
-                               camera_models[j]->camera_pose(cpoint[0].position()).rotate(Vector3(0,0,10)) );
-        }
-      } else {
-        error_sum /= positions.size();
-        Vector3 position_avg;
-        for ( unsigned j = 0; j < positions.size(); j++ )
-          position_avg += positions[j]/positions.size();
-        cpoint.set_position( position_avg );
-      }
-
+      triangulate_control_point( cpoint, camera_models, min_angle );
     }
     progress.report_finished();
+  }
+}
+
+void vw::ba::triangulate_control_point( ControlPoint& cp,
+                                        std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                        double const& minimum_angle ) {
+  std::vector< Vector3 > positions;
+  double error = 0, error_sum = 0;
+
+  // 4.1.) Building a listing of triangulation
+  for ( unsigned j = 0, k = 1; k < cp.size(); j++, k++ ) {
+    // Make sure camera centers are not equal
+    int j_cam_id = cp[j].image_id();
+    int k_cam_id = cp[k].image_id();
+    if ( norm_2( camera_models[j_cam_id]->camera_center( cp[j].position() ) -
+                 camera_models[k_cam_id]->camera_center( cp[k].position() ) ) > 1e-6 ) {
+
+      try {
+        stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
+                                camera_models[ k_cam_id ].get() );
+
+        if ( sm.convergence_angle( cp[j].position(),
+                                   cp[k].position() ) >
+             minimum_angle ) {
+          positions.push_back( sm( cp[j].position(),
+                                   cp[k].position(),
+                                   error ) );
+          error_sum += error;
+        }
+      } catch ( camera::PixelToRayErr e ) { /* Just let it go */ }
+    }
+  }
+
+  // 4.2.) Summing, Averaging, and Storing
+  if ( positions.empty() ) {
+    vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
+    // At the very least we can provide a point that is some
+    // distance out from the camera center and is in the 'general'
+    // area.
+    int j = cp[0].image_id();
+    try {
+      cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
+                       camera_models[j]->pixel_to_vector(cp[0].position())*10 );
+    } catch ( camera::PixelToRayErr e ) {
+      cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
+                       camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,10)) );
+    }
+  } else {
+    error_sum /= positions.size();
+    Vector3 position_avg;
+    for ( unsigned j = 0; j < positions.size(); j++ )
+      position_avg += positions[j]/positions.size();
+    cp.set_position( position_avg );
   }
 }

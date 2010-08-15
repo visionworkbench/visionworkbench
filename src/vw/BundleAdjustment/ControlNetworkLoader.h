@@ -21,6 +21,10 @@ namespace ba {
                               std::vector<std::string> const& image_files,
                               int min_matches = 30 );
 
+  void triangulate_control_point( ControlPoint& cp,
+                                  std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                  double const& minimum_angle );
+
   // Adds ground control points from individual GCP files to an
   // already built Control Network. The vector image_files serves as a look
   // up chart for relating image names in GCP files to CNET's internal
