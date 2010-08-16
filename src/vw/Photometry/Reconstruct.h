@@ -63,7 +63,7 @@ namespace photometry {
 
     std::string infoFilename, DEMFilename, meanDEMFilename,
       var2DEMFilename, reliefFilename, shadowFilename,
-      errorFilename, inputFilename, outputFilename,sfsDEMFilename;
+      errorFilename, inputFilename, outputFilename,sfsDEMFilename, errorHeightFilename;
 
   };
 

@@ -35,10 +35,12 @@ std::ostream& vw::photometry::operator<<( std::ostream& os,
   os << " Info File : " << model.infoFilename << "\n";
   os << " DEMFilename : " << model.DEMFilename << "\n";
   os << " meanDEMFilename : " << model.meanDEMFilename << "\n";
+  os << " sfsDEMFilename : " << model.sfsDEMFilename << "\n";
   os << " var2DEMFilename : " << model.var2DEMFilename << "\n";
   os << " reliefFilename  : " << model.reliefFilename << "\n";
   os << " shadowFilename  : " << model.shadowFilename << "\n";
   os << " errorFilename   : " << model.errorFilename << "\n";
+  os << " errorHeightFilename   : " << model.errorHeightFilename << "\n";
   os << " inputFilename   : " << model.inputFilename << "\n";
   os << " outputFilename  : " << model.outputFilename << "\n";
 

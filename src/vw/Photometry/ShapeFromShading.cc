@@ -41,6 +41,7 @@ using namespace vw::photometry;
 //#define VER_BLOCK_SIZE 16 //8 //4
 #define numJacobianRows (horBlockSize+1)*(verBlockSize+1)
 #define numJacobianCols (horBlockSize*verBlockSize)
+#define Unique "round1test"
 
 //enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
 //double LOSS_ACCURACY_MULT = 1;
@@ -396,7 +397,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
 	      if ((c >= 0) && (k > 0) && (l < horBlockSize)){   
 		float recDerTOP = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
 							  xyzTOPArray[r], normalArray[r], overlapImgParams, 2)
-		  *(float)albedoImage.impl()(jj,ii)*overlapImgParams.exposureTime;		
+		  *(float)albedoImage.impl()(jj,ii)*overlapImgParams.exposureTime;
 		jacobianArray(r, c) = recDerTOP*weight;
 	      }
 
@@ -421,13 +422,13 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 	std::string shadowFilename = inputImgParams.shadowFilename; //shadow map
 	std::string outputImgFilename = inputImgParams.outputFilename; //albedo map
 	std::string meanDEMFilename = inputImgParams.meanDEMFilename; //original mean DEM
-        std::string sfsDEMFilename = inputImgParams.sfsDEMFilename; //original mean DEM
-        
-        	
+        std::string sfsDEMFilename = inputImgParams.sfsDEMFilename; //DEM from sfs
+        std::string errorHeightFilename = inputImgParams.errorHeightFilename; //error in terms of height
+
 	DiskImageView<PixelGray<float> >  meanDEM(meanDEMFilename);
 	GeoReference DEM_geo;
 	read_georeference(DEM_geo, meanDEMFilename);
-        
+
         /*
         //upsample the meanDEM;
         int upsampleFactor = 2;
@@ -441,7 +442,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
      
         //copy meanDEM 2 sfsDEM
         sfsDEM = copy(meanDEM);
-       
+
 
 	DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadowFilename);
 	DiskImageView<PixelMask<PixelGray<uint8> > >  inputImage(inputImgFilename);
@@ -477,7 +478,22 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
         xyzArray.resize((verBlockSize+1)*(horBlockSize+1));
         xyzTOPArray.resize((verBlockSize+1)*(horBlockSize+1));
         xyzLEFTArray.resize((verBlockSize+1)*(horBlockSize+1));
-        
+
+        //josh - create image for error in terms of height and initialize to zero
+        ImageView<PixelMask<PixelGray<float> > > errorHeight(meanDEM.cols(), meanDEM.rows());
+        for (int k = 0; k < meanDEM.rows(); ++k){
+          for (int l = 0; l < meanDEM.cols(); ++l){
+            errorHeight(l, k) = 0;
+          }
+        }
+
+        //josh - text file of height values for debugging purposes
+        fstream f;
+        std::ostringstream sout;
+        sout << "height" << Unique << ".txt";
+        std::string heightFilename = sout.str();
+        f.open(heightFilename.c_str(), ios::out);
+
 	for (int kb = 0 ; kb < numVerBlocks; ++kb) {
 	  for (int lb = 0; lb < numHorBlocks; ++lb) {
 	     
@@ -593,6 +609,8 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
                      
                      //std::cout << "sfs_before( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) <<  std::endl;
 		     sfsDEM(jj, ii) = sfsDEM(jj, ii) + lhs(l_index);
+                     errorHeight(jj, ii) = lhs(l_index);
+                     f << lhs(l_index) << endl; //write error in terms of height to debug file
                      std::cout << "sfs_after( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) << ", lhs after= " << lhs(l_index) << std::endl;
              
 		   }
@@ -619,11 +637,14 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 			
 	  }//lb
 	}//kb
-		
+
+        //close text file
+        f.close();
+
 	//write in the updated DEM
 	write_georeferenced_image(sfsDEMFilename, sfsDEM,
 				 DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+	write_georeferenced_image(errorHeightFilename, errorHeight,
+				 DEM_geo, TerminalProgressCallback("photometry","Processing:"));
 
 }
-
-
