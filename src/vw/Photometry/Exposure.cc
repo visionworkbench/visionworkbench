@@ -11,6 +11,7 @@ using namespace vw::cartography;
 
 #include <vw/Photometry/Reflectance.h>
 #include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/ReconstructError.h>
 #include <vw/Photometry/Misc.h>
 #include <vw/Photometry/Weights.h>
 #include <vw/Photometry/Exposure.h>
@@ -37,22 +38,23 @@ float ComputeGradient_Exposure(float T, float albedo) {
   return grad;
 }
 
-//Ara Nefian
-float ComputeError_Exposure(float intensity, float T,
-                            float albedo, float reflectance,
-                            Vector3 /*xyz*/,
-                            Vector3 /*xyz_prior*/) {
-  float error;
-  error = (intensity-T*albedo*reflectance);
-  return error;
-}
-
-float ComputeError_Exposure(float intensity, float T,
-                            float albedo, float reflectance) {
-  float error;
-  error = (intensity-T*albedo*reflectance);
-  return error;
-}
+//josh - moved to ReconstructError.cc and renamed to ComputeError
+////Ara Nefian
+//float ComputeError_Exposure(float intensity, float T,
+//                            float albedo, float reflectance,
+//                            Vector3 /*xyz*/,
+//                            Vector3 /*xyz_prior*/) {
+//  float error;
+//  error = (intensity-T*albedo*reflectance);
+//  return error;
+//}
+//
+//float ComputeError_Exposure(float intensity, float T,
+//                            float albedo, float reflectance) {
+//  float error;
+//  error = (intensity-T*albedo*reflectance);
+//  return error;
+//}
 
 //void AppendExposureInfoToFile(string exposureFilename, string currInputFile, ModelParams currModelParams)
 void vw::photometry::AppendExposureInfoToFile(std::string exposureFilename,
@@ -117,8 +119,10 @@ void vw::photometry::ComputeExposure(ModelParams *currModelParams,
       if ( is_valid(curr_image(l,k)) ) {
 
         currReflectance = 1;
-        float error = ComputeError_Exposure((float)curr_image(l,k), currModelParams->exposureTime,
+        float error = ComputeError((float)curr_image(l,k), currModelParams->exposureTime,
                                             (float)curr_albedo(l,k), currReflectance);
+//        float error = ComputeError_Exposure((float)curr_image(l,k), currModelParams->exposureTime,
+//                                            (float)curr_albedo(l,k), currReflectance);
         float gradient = ComputeGradient_Exposure( (float)curr_albedo(l,k), currReflectance);
 
         delta_nominator = delta_nominator + error*gradient;
@@ -201,8 +205,10 @@ void vw::photometry::ComputeExposureAlbedo(ModelParams *currModelParams,
             Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
 
             currReflectance = ComputeReflectance(normal, xyz, *currModelParams, globalParams);
-            float error = ComputeError_Exposure((float)curr_image(l,k), currModelParams->exposureTime,
-                                                (float)curr_albedo(l,k), currReflectance, xyz, xyz);
+            float error = ComputeError((float)curr_image(l,k), currModelParams->exposureTime,
+                                                (float)curr_albedo(l,k), currReflectance);
+//            float error = ComputeError_Exposure((float)curr_image(l,k), currModelParams->exposureTime,
+//                                                (float)curr_albedo(l,k), currReflectance, xyz, xyz);
 
             float gradient = ComputeGradient_Exposure(currModelParams->exposureTime, (float)curr_albedo(l,k));
 

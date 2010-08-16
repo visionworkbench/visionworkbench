@@ -19,6 +19,7 @@
 #include <vw/Photometry/Misc.h>
 #include <vw/Photometry/Outlier.h>
 #include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/ReconstructError.h>
 #include <vw/Photometry/Reflectance.h>
 #include <vw/Photometry/Shadow.h>
 #include <vw/Photometry/Shape.h>

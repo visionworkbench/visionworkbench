@@ -32,6 +32,7 @@ using namespace vw::cartography;
 
 #include <math.h>
 #include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/ReconstructError.h>
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
 
@@ -41,7 +42,7 @@ using namespace vw::photometry;
 //#define VER_BLOCK_SIZE 16 //8 //4
 #define numJacobianRows (horBlockSize+1)*(verBlockSize+1)
 #define numJacobianCols (horBlockSize*verBlockSize)
-#define Unique "round1test"
+#define Unique "round2test"
 
 //enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
 //double LOSS_ACCURACY_MULT = 1;
@@ -151,13 +152,14 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
   return reliefDeriv;
 }
 
-float ComputeReconstructError(float intensity, float T, float albedo,
-                              float reflectance) {
-  float error;
-  error = (intensity-T*albedo*reflectance); /*+ (xyz_prior[2]-xyz_prior[2]);*/
-  //std::cout << "intensity " << intensity << " albedo " << albedo << " T " << T << " reflectance " << reflectance << " error "<< error << std::endl;
-  return error;
-}
+//josh - moved to ReconstructError.cc and name changed to ComputeError
+//float ComputeReconstructError(float intensity, float T, float albedo,
+//                              float reflectance) {
+//  float error;
+//  error = (intensity-T*albedo*reflectance); /*+ (xyz_prior[2]-xyz_prior[2]);*/
+//  //std::cout << "intensity " << intensity << " albedo " << albedo << " T " << T << " reflectance " << reflectance << " error "<< error << std::endl;
+//  return error;
+//}
 
 
 
@@ -308,7 +310,8 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
 
               //compute the reconstruction errors
 	      float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], inputImgParams, globalParams);
-	      float recErr = ComputeReconstructError((float)inputImage.impl()(jj, ii), inputImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);					
+      	      float recErr = ComputeError((float)inputImage.impl()(jj, ii), inputImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);					
+//              float recErr = ComputeReconstructError((float)inputImage.impl()(jj, ii), inputImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
 	      errorVectorArray(r) = recErr*weight;
               //printf("%d %f\n", r, errorVectorArray(r));
 	
@@ -403,7 +406,8 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
 
               //compute the errors
 	      float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], overlapImgParams, globalParams);
-	      float recErr = ComputeReconstructError((float)interpOverlapImage.impl()(x, y), overlapImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);					
+      	      float recErr = ComputeError((float)interpOverlapImage.impl()(x, y), overlapImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
+//              float recErr = ComputeReconstructError((float)interpOverlapImage.impl()(x, y), overlapImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
 	      errorVectorArray(r) = recErr*weight;
 
 	  }

@@ -39,11 +39,12 @@ namespace photometry {
                           std::vector<ModelParams> overlap_img_params,
                           GlobalParams globalParams);
 
+  //josh - moved to ReconstructError.h
   //reconstruction error functions
-  void ComputeReconstructionErrorMap(ModelParams input_img_params,
-                                     std::vector<ModelParams> overlap_img_params,
-                                     GlobalParams globalParams,
-                                     float *avgError, int *totalNumSamples);
+//  void ComputeReconstructionErrorMap(ModelParams input_img_params,
+//                                     std::vector<ModelParams> overlap_img_params,
+//                                     GlobalParams globalParams,
+//                                     float *avgError, int *totalNumSamples);
 
 }} // end vw::photometry
 
