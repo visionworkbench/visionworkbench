@@ -145,7 +145,10 @@ int main( int argc, char *argv[] ) {
   std::list<double>::iterator image_error = image_errors.begin();
   std::vector<bool> deleted(cnet.size(), false);
   int del_i = 0;
+  float inc_amt = 1.0/float(cnet.size());
+  TerminalProgressCallback tpc("","Clipping");
   for ( unsigned cpi = 0; cpi < cnet.size(); cpi++, del_i++ ) {
+    tpc.report_incremental_progress(inc_amt);
     for ( unsigned cmi = 0; cmi < cnet[cpi].size(); cmi++ ) {
       if ( image_error == image_errors.end() )
         vw_throw( IOErr() << "Internal overflow error" );
@@ -169,6 +172,7 @@ int main( int argc, char *argv[] ) {
       deleted[del_i] = true;
     }
   }
+  tpc.report_finished();
   vw_out() << float(clipping_count) * 100.0 / float(clipping_count + other_count)
             << "% (" << clipping_count << ") of the control measures removed.\n";
   vw_out() << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size())
