@@ -28,6 +28,7 @@
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageResource.h>
+#include <vw/Image/ImageResourceImpl.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ViewImageResource.h>
 #include <vw/Image/Manipulation.h>

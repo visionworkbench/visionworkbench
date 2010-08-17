@@ -19,7 +19,7 @@ include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
 	EdgeExtension.h Interpolation.h Convolution.h Filter.h		\
 	Filter.tcc Transform.h Statistics.h Algorithms.h EdgeExtend.h	\
 	BlockProcessor.h BlockRasterize.h UtilityViews.h Palette.h	\
-	MaskViews.h SparseImageCheck.h
+	MaskViews.h SparseImageCheck.h ImageResourceImpl.h
 
 libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc     \
 	Interpolation.cc
@@ -27,6 +27,11 @@ libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc     \
 libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
 
 lib_LTLIBRARIES = libvwImage.la
+
+if HAVE_PKG_OPENCV
+include_HEADERS += OpenCvImageResource.h
+libvwImage_la_SOURCES += OpenCvImageResource.cc
+endif
 
 endif
 
