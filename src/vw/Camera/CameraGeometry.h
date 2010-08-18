@@ -21,6 +21,15 @@
 namespace vw {
 namespace camera {
 
+  // Transform Functors
+  template <class VectorT>
+  Vector3 Convert2HomogenousVec2( VectorT const& v ) {
+    if ( v.size() == 2 )
+      return Vector3( v[0], v[1], 1 );
+    return Vector3( v[0], v[1], v[2] );
+  }
+
+  // Measurement Prep Functors
   struct SimilarityNormalizingFunctor {
     // Matrix apply functor
     template <class ContainerT>
@@ -179,7 +188,7 @@ namespace camera {
     // Interface for solving for Camera Matrix (switches between DLT
     // and Gold Standard)
     template <class ContainerT>
-    vw::Matrix<double>
+    result_type
     operator()( std::vector<ContainerT> const& p1,
                 std::vector<ContainerT> const& p2,
                 vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
@@ -199,6 +208,7 @@ namespace camera {
         output.push_back( Vector3( p[0], p[1], p[2] ) );
       }
 
+      // Normalizing
       Matrix<double> S_in = NormSimilarity( input );
       Matrix<double> S_out = NormSimilarity( output );
       std::for_each( input.begin(), input.end(),
@@ -206,12 +216,12 @@ namespace camera {
       std::for_each( output.begin(), output.end(),
                      MatrixApplyFunc<Vector<double> >( S_out ) );
 
+      Matrix<double> p;
       if ( p1.size() == min_elements_needed_for_fit(p1[0] ) ) {
         // Use DLT
         Matrix<double> P_prime = BasicDLT( input, output );
-        Matrix<double> P = inverse(S_out)*P_prime*S_in;
-        P /= P(2,3);
-        return P;
+
+        p = inverse(S_out)*P_prime*S_in;
       } else {
         Matrix<double> seed_matrix = seed_input;
 
@@ -230,10 +240,98 @@ namespace camera {
         seed_matrix = model.unflatten( result );
 
         // Denormalization
-        Matrix<double> P = inverse(S_out)*seed_matrix*S_in;
-        P /= P(2,3);
-        return P;
+        p = inverse(S_out)*seed_matrix*S_in;
       }
+
+      p /= p(2,3);
+      return p;
+    }
+  };
+
+  // Fundamental Matrix Functor
+  //
+  // Solves for 3x3 matrix which relates stereo images. Fundamental
+  // matrix ties points in first image to lines in the second image. The
+  // lines are defined be the epipole (which is the location of the first
+  // image in the perspective of the second camera (and vice versa)).
+
+  struct FundamentalMatrixErrorMetric {
+    template <class RelationT, class ContainerT>
+    double operator()( RelationT const& F,
+                       ContainerT const& p1,
+                       ContainerT const& p2 ) const {
+      return transpose(p2)*F*p1;
+    }
+  };
+
+  // Fundamental Matrix solver using normalized 8 point algorithm. (pg
+  // 282 or Algorithm 11.1 in Multiple View Geometry )
+  struct FundamentalMatrix8PFittingFunctor : public SimilarityNormalizingFunctor {
+    typedef vw::Matrix<double> result_type;
+
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 8; }
+
+    template <class ContainerT>
+    result_type
+    operator()( std::vector<ContainerT> const& p1,
+                std::vector<ContainerT> const& p2,
+                vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+
+      VW_ASSERT( p1.size() == p2.size(),
+                 vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures." );
+
+      // Converting to internal format
+      std::vector<Vector<double> > input(p1.size()), output(p2.size());
+      std::transform( p1.begin(), p1.end(), input.begin(),
+                      Convert2HomogenousVec2<ContainerT> );
+      std::transform( p2.begin(), p2.end(), output.begin(),
+                      Convert2HomogenousVec2<ContainerT> );
+
+      // Normalizing
+      Matrix<double> S_in = NormSimilarity( input );
+      Matrix<double> S_out = NormSimilarity( output );
+      std::for_each( input.begin(), input.end(),
+                     MatrixApplyFunc<Vector<double> >( S_in ) );
+      std::for_each( output.begin(), output.end(),
+                     MatrixApplyFunc<Vector<double> >( S_out ) );
+
+      // Constructing A
+      Matrix<double> A(p1.size(),9);
+      for ( size_t i = 0; i < p1.size(); i++ ) {
+        A(i,0) = output[i][0]*input[i][0];
+        A(i,1) = output[i][0]*input[i][1];
+        A(i,2) = output[i][0];
+        A(i,3) = output[i][1]*input[i][0];
+        A(i,4) = output[i][1]*input[i][1];
+        A(i,5) = output[i][1];
+        A(i,6) = input[i][0];
+        A(i,7) = input[i][1];
+        A(i,8) = 1;
+      }
+
+      VW_ASSERT( rank(A) >= 8,
+                 vw::MathErr() << "Measurements produce rank deficient A." );
+
+      // Pulling singular vector of smallest singular value of A
+      Matrix<double> n = nullspace(A);
+      Matrix3x3 F;
+      int i = 0;
+      for ( Matrix<double,3,3>::iterator it = F.begin();
+            it != F.end(); it++ ) {
+        (*it) = n(i,0);
+        i++;
+      }
+
+      // Constraint Enforcement
+      Matrix<double> U,VT;
+      Vector<double> S;
+      svd(F,U,S,VT);
+      S[2] = 0;
+      F = U*diagonal_matrix(S)*VT;
+
+      // Denormalizing
+      return transpose(S_out)*F*S_in;
     }
   };
 
