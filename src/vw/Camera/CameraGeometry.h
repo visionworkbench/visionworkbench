@@ -21,38 +21,25 @@
 namespace vw {
 namespace camera {
 
-  struct CameraMatrixErrorMetric {
-    template <class RelationT, class ContainerT>
-    double operator()( RelationT const& H,
-                       ContainerT const& p1,
-                       ContainerT const& p2 ) const {
-      Vector<double> projection = H*p1;
-      projection /= projection[2];
-      return norm_2(p2-projection);
-    }
-  };
-
-  // This fitting functor fits a 3x4 camera matrix P
-  struct CameraMatrixFittingFunctor {
-    typedef vw::Matrix<double> result_type;
-
+  struct SimilarityNormalizingFunctor {
+    // Matrix apply functor
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 6; }
+    struct MatrixApplyFunc {
+      Matrix<double> m_matrix;
+      template <class MatrixT>
+      MatrixApplyFunc( MatrixBase<MatrixT> const& m ) : m_matrix(m.impl()) {}
 
-    // Apply a transform to a list of vectors
-    // Applies a transform matrix to a list of points;
-    std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
-                                               std::vector<Vector<double> > const& pts ) const {
-      std::vector<Vector<double> > out;
-      for ( unsigned i = 0; i < pts.size(); i++ ) {
-        out.push_back( m*pts[i] );
-      }
-      return out;
-    }
+      // In-place modifier (use with for_each)
+      void operator()( ContainerT & v ) const { v = m_matrix*v; }
+
+      // Copy modifier (use with transform)
+      ContainerT operator()( ContainerT const& v ) const { return m_matrix*v; }
+    };
 
     // Solve for normalizing similarity matrix
     template <class ContainerT>
-    vw::Matrix<double> NormSimilarity( std::vector<ContainerT> const& pts ) const {
+    vw::Matrix<double>
+    NormSimilarity( std::vector<ContainerT> const& pts ) const {
       unsigned num_points = pts.size();
       unsigned dimension = pts[0].size();
 
@@ -79,6 +66,30 @@ namespace camera {
       }
       return s;
     }
+  };
+
+  // Camera Matrix Functor
+  //
+  // Solves for 3x4 matrix which describes the mapping of a pinhole
+  // camera from 3D points in the world to 2D points in an image.
+
+  struct CameraMatrixErrorMetric {
+    template <class RelationT, class ContainerT>
+    double operator()( RelationT const& H,
+                       ContainerT const& p1,
+                       ContainerT const& p2 ) const {
+      Vector<double> projection = H*p1;
+      projection /= projection[2];
+      return norm_2(p2-projection);
+    }
+  };
+
+  // This fitting functor fits a 3x4 camera matrix P
+  struct CameraMatrixFittingFunctor : public SimilarityNormalizingFunctor {
+    typedef vw::Matrix<double> result_type;
+
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 6; }
 
     // Simple linear solution
     vw::Matrix<double> BasicDLT( std::vector<Vector<double> > const& input,
@@ -165,11 +176,13 @@ namespace camera {
       }
     };
 
-    // Interface for solving for Camera Matrix (switches between DLT and Gold Standard)
+    // Interface for solving for Camera Matrix (switches between DLT
+    // and Gold Standard)
     template <class ContainerT>
-    vw::Matrix<double> operator()( std::vector<ContainerT> const& p1,
-                                   std::vector<ContainerT> const& p2,
-                                   vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+    vw::Matrix<double>
+    operator()( std::vector<ContainerT> const& p1,
+                std::vector<ContainerT> const& p2,
+                vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Camera Matrix requires equal number of input and output measures." );
       VW_ASSERT( p1.size() >= min_elements_needed_for_fit(p1[0]),
@@ -186,31 +199,28 @@ namespace camera {
         output.push_back( Vector3( p[0], p[1], p[2] ) );
       }
 
+      Matrix<double> S_in = NormSimilarity( input );
+      Matrix<double> S_out = NormSimilarity( output );
+      std::for_each( input.begin(), input.end(),
+                     MatrixApplyFunc<Vector<double> >( S_in ) );
+      std::for_each( output.begin(), output.end(),
+                     MatrixApplyFunc<Vector<double> >( S_out ) );
+
       if ( p1.size() == min_elements_needed_for_fit(p1[0] ) ) {
         // Use DLT
-        Matrix<double> S_in = NormSimilarity( input );
-        Matrix<double> S_out = NormSimilarity( output );
-        std::vector<Vector<double> > input_prime = apply_matrix( S_in, input );
-        std::vector<Vector<double> > output_prime = apply_matrix( S_out, output );
-        Matrix<double> P_prime = BasicDLT( input_prime, output_prime );
+        Matrix<double> P_prime = BasicDLT( input, output );
         Matrix<double> P = inverse(S_out)*P_prime*S_in;
         P /= P(2,3);
         return P;
       } else {
         Matrix<double> seed_matrix = seed_input;
 
-        Matrix<double> S_in = NormSimilarity( input );
-        Matrix<double> S_out = NormSimilarity( output );
-        std::vector<Vector<double> > input_prime = apply_matrix( S_in, input );
-        std::vector<Vector<double> > output_prime = apply_matrix( S_out, output );
-
         // Perform DLT if needed
         if ( seed_matrix.cols() == 0 )
-          seed_matrix = BasicDLT( input_prime, output_prime );
+          seed_matrix = BasicDLT( input, output );
 
         // Iterative solution be here
-        CameraMatrixModelLMA model( input_prime,
-                                    output_prime );
+        CameraMatrixModelLMA model( input, output );
         Vector<double> seed = model.flatten( seed_matrix );
         int status = 0;
         Vector<double> objective;
