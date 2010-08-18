@@ -1,4 +1,5 @@
 // __BEGIN_LICENSE__
+//
 // Copyright (C) 2006-2010 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
 // All Rights Reserved.
@@ -109,19 +110,6 @@ class LocalIndexTiles : public LocalIndexTest {
     rec.set_blob_offset(blob->write(hdr, test_data, test_size));
     index->write_update(hdr, rec);
     index->write_complete(rec.blob_id(), rec.blob_offset());
-  }
-
-#define check_data(expected0, expected1, actual0, actual1) do {\
-  SCOPED_TRACE("");\
-  check_data_(expected0, expected1, actual0, actual1);\
-} while(0)
-
-  // This function assumes the data are the same size. Check that first!
-  template <typename Iter1T, typename Iter2T>
-  void check_data_(Iter1T expected0, Iter1T expected1, Iter2T actual0, Iter2T actual1) {
-    ASSERT_EQ(actual1-actual0, expected1-expected0) << "Iterators represent different-sized ranges. Cannot compare.";
-    std::pair<Iter1T, Iter2T> ret = std::mismatch(expected0, expected1, actual0);
-    EXPECT_EQ(expected1, ret.first) << "data differs at index " << (ret.first - expected0);
   }
 
 #define check_tile_hdr(expected, actual) do {\
@@ -325,31 +313,31 @@ TEST_F(LocalIndexTiles, ReadWrite) {
     out_rec  = index->read_request(0, 0, 0, -1);
     out_hdr  = blob->read_header<TileHeader>(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_NO_FATAL_FAILURE(check_data(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]));
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[0], out_hdr);
 
     out_rec  = index->read_request(0, 0, 1, -1);
     out_hdr  = blob->read_header<TileHeader>(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_NO_FATAL_FAILURE(check_data(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]));
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[1], out_hdr);
 
     out_rec = index->read_request(1, 0, 1, -1);
     out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_NO_FATAL_FAILURE(check_data(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]));
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[2], out_hdr);
 
     out_rec = index->read_request(0, 1, 1, -1);
     out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_NO_FATAL_FAILURE(check_data(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]));
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[3], out_hdr);
 
     out_rec = index->read_request(1, 1, 1, -1);
     out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_NO_FATAL_FAILURE(check_data(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]));
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[4], out_hdr);
   }
 }
