@@ -194,3 +194,32 @@ TEST_F( FundamentalMatrixStaticTest, EightPointAlgorithm ) {
     EXPECT_LT( FundamentalMatrixErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 1e-6 );
   }
 }
+
+TEST_F( FundamentalMatrixStaticTest, MLAlgorithm ) {
+  boost::minstd_rand random_gen(42u);
+  boost::normal_distribution<double> normal(0,4);
+  boost::variate_generator<boost::minstd_rand&,
+    boost::normal_distribution<double> > generator( random_gen, normal );
+
+  // Adding Noise to measurements
+  for ( unsigned i = 0; i < measure1.size(); i++ ) {
+    measure1[i] += Vector2( generator(), generator() );
+    measure2[i] += Vector2( generator(), generator() );
+  }
+
+  // Creating Seed
+  Matrix<double> seed =
+    FundamentalMatrix8PFittingFunctor()( measure1, measure2 );
+
+  // Actual measurement
+  Matrix<double> F =
+    FundamentalMatrixMLFittingFunctor()( measure1, measure2, seed );
+
+  EXPECT_EQ( 2, rank(F) );
+  EXPECT_NEAR( 1, norm_frobenius(F), 0.4 );
+
+  for ( unsigned i = 0; i < measure1.size(); i++ )  {
+    EXPECT_LT( FundamentalMatrixErrorMetric()(seed, Vector3( measure1[i][0], measure1[i][1], 1), Vector3( measure2[i][0], measure2[i][1], 1) ), 0.2 );
+    EXPECT_LT( FundamentalMatrixErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 0.15 );
+  }
+}

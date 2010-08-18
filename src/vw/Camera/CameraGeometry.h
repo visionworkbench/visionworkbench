@@ -13,6 +13,7 @@
 
 #include <boost/foreach.hpp>
 
+#include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
@@ -145,8 +146,8 @@ namespace camera {
       typedef Matrix<double> jacobian_type;
 
       // Constructor
-      inline CameraMatrixModelLMA( std::vector<Vector<double> > input,
-                                   std::vector<Vector<double> > output ) :
+      inline CameraMatrixModelLMA( std::vector<Vector<double> > const& input,
+                                   std::vector<Vector<double> > const& output ) :
         m_world_input(input), m_image_output(output) {}
 
       // Evaluator
@@ -264,8 +265,8 @@ namespace camera {
     }
   };
 
-  // Fundamental Matrix solver using normalized 8 point algorithm. (pg
-  // 282 or Algorithm 11.1 in Multiple View Geometry )
+  // Fundamental Matrix solver using normalized 8 point algorithm.
+  // Page 282 or Algorithm 11.1 in Multiple View Geometry
   struct FundamentalMatrix8PFittingFunctor : public SimilarityNormalizingFunctor {
     typedef vw::Matrix<double> result_type;
 
@@ -310,28 +311,174 @@ namespace camera {
         A(i,8) = 1;
       }
 
-      VW_ASSERT( rank(A) >= 8,
-                 vw::MathErr() << "Measurements produce rank deficient A." );
+      VW_ASSERT( math::rank(A) >= 8,
+                 MathErr() << "Measurements produce rank deficient A." );
 
       // Pulling singular vector of smallest singular value of A
-      Matrix<double> n = nullspace(A);
+      Matrix<double> U,VT;
+      Vector<double> S;
+      svd(A,U,S,VT);
       Matrix3x3 F;
       int i = 0;
       for ( Matrix<double,3,3>::iterator it = F.begin();
             it != F.end(); it++ ) {
-        (*it) = n(i,0);
+        (*it) = VT(8,i);
         i++;
       }
 
       // Constraint Enforcement
-      Matrix<double> U,VT;
-      Vector<double> S;
       svd(F,U,S,VT);
       S[2] = 0;
       F = U*diagonal_matrix(S)*VT;
 
       // Denormalizing
       return transpose(S_out)*F*S_in;
+    }
+  };
+
+  // Fundamental Matrix solver using the Maximum Likelihood method
+  // Page 285 or Algorithm 11.3 in Multiple View Geometry
+  struct FundamentalMatrixMLFittingFunctor {
+    typedef vw::Matrix<double> result_type;
+
+    template <class ContainerT>
+    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 8; }
+
+    // Skew symmetric matrix or []x operation
+    template <class VectorT>
+    Matrix<double> skew_symm( VectorBase<VectorT> const& b ) const {
+      VW_ASSERT( b.impl().size() == 3,
+                 vw::ArgumentErr() << "Skew Symmetric is only elemented for 3 element vectors." );
+      VectorT const& v = b.impl();
+      Matrix3x3 skew;
+      skew(0,1) = -v[2];
+      skew(0,2) = v[1];
+      skew(1,0) = v[2];
+      skew(1,2) = -v[0];
+      skew(2,0) = -v[1];
+      skew(2,1) = v[0];
+      return skew;
+    }
+
+    template <class VectorT>
+    Vector4
+    OneSideTriangulation( Matrix<double> const& P2,
+                          VectorBase<VectorT> const& meas1,
+                          VectorBase<VectorT> const& meas2) const {
+      VectorT const& v1 = meas1.impl();
+      VectorT const& v2 = meas2.impl();
+      Matrix<double> A(4,4);
+      select_row(A,0) = Vector4(-1,0,v1[0],0);
+      select_row(A,1) = Vector4(0,-1,v1[1],0);
+      select_row(A,2) = v2[0]*select_row(P2,2)-select_row(P2,0);
+      select_row(A,3) = v2[1]*select_row(P2,2)-select_row(P2,1);
+
+      Matrix<double> U, VT;
+      Vector<double> S;
+      svd(A,U,S,VT);
+
+      Vector<double> solution = select_row(VT,3);
+      solution /= solution[3];
+      return solution;
+    }
+
+    // Non-linear solution to an over-constrained problem
+    class ProjectiveModelLMA : public math::LeastSquaresModelBase<ProjectiveModelLMA> {
+
+    public:
+      typedef Vector<double> result_type; // reprojective error
+      typedef Vector<double> domain_type; // searchspace 3n+12 variables
+      typedef Matrix<double> jacobian_type;
+
+      // Evaluator
+      inline result_type operator()( domain_type const& x )  const {
+        unsigned number_of_measures = (x.size()-12)/3;
+        Vector<double> output( number_of_measures*4 );
+
+        // Create second camera
+        Matrix<double> P2(3,4);
+        select_row(P2,0) = subvector(x,0,4);
+        select_row(P2,1) = subvector(x,4,4);
+        select_row(P2,2) = subvector(x,8,4);
+
+        // Calculate reprojection error
+        for ( unsigned i = 0, j = 12; i < number_of_measures; i++, j+= 3 ) {
+          Vector2 reprojection1(x[j]/x[j+2],x[j+1]/x[j+2]);
+          subvector(output,4*i,2) = reprojection1;
+          Vector3 reprojection2 = P2*Vector4(x[j],x[j+1],x[j+2],1);
+          reprojection2 /= reprojection2[2];
+          subvector(output,4*i+2,2) = subvector(reprojection2,0,2);
+        }
+
+        return output;
+      }
+    };
+
+    template <class ContainerT>
+    result_type
+    operator()( std::vector<ContainerT> const& p1,
+                std::vector<ContainerT> const& p2,
+                vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+
+      VW_ASSERT( p1.size() == p2.size(),
+                 vw::ArgumentErr() << "Fundamental Matrix requires equal number of input and output measures." );
+
+      // Determine if to use 8P
+      if ( p1.size() == 8 )
+        return FundamentalMatrix8PFittingFunctor()(p1,p2);
+
+      // Converting to internal format
+      std::vector<Vector<double> > input(p1.size()), output(p2.size());
+      std::transform( p1.begin(), p1.end(), input.begin(),
+                      Convert2HomogenousVec2<ContainerT> );
+      std::transform( p2.begin(), p2.end(), output.begin(),
+                      Convert2HomogenousVec2<ContainerT> );
+
+      // Getting epipole
+      Matrix<double> U, VT;
+      Vector<double> S;
+      svd(seed_input,U,S,VT);
+      Vector<double> epipole_prime = select_col(U,2);
+
+      // Seed initial camera guesses
+      Matrix<double> P2(3,4);
+      submatrix(P2,0,0,3,3) = skew_symm(epipole_prime)*seed_input;
+      select_col(P2,3) = epipole_prime;
+
+      // Solve for projective
+      ProjectiveModelLMA model;
+      Vector<double> seed(12+3*input.size());
+      subvector(seed,0,4) = select_row(P2,0);
+      subvector(seed,4,4) = select_row(P2,1);
+      subvector(seed,8,4) = select_row(P2,2);
+
+      // Triangulating
+      for ( unsigned i = 0, j = 12; i < input.size(); i++, j+=3 ) {
+        Vector4 projection = OneSideTriangulation(P2,input[i],output[i]);
+        projection /= projection[3];
+        subvector(seed,j,3) = subvector(projection,0,3);
+      }
+
+      // Setting Objective
+      Vector<double> objective(4*input.size());
+      for ( unsigned i = 0; i < input.size(); i++ ) {
+        subvector(objective,4*i,2) = subvector(input[i],0,2);
+        subvector(objective,4*i+2,2) = subvector(output[i],0,2);
+      }
+
+      int status = 0;
+      Vector<double> result =
+        levenberg_marquardt( model, seed,
+                             objective, status );
+
+      select_row(P2,0) = subvector(result,0,4);
+      select_row(P2,1) = subvector(result,4,4);
+      select_row(P2,2) = subvector(result,8,4);
+
+      Matrix<double> F =
+        skew_symm(select_col(P2,3))*submatrix(P2,0,0,3,3);
+
+      return F;
     }
   };
 
