@@ -260,7 +260,7 @@ namespace camera {
     double operator()( RelationT const& F,
                        ContainerT const& p1,
                        ContainerT const& p2 ) const {
-      return transpose(p2)*F*p1;
+      return fabs(transpose(p2)*F*p1) + fabs(transpose(p1)*transpose(F)*p2);
     }
   };
 
