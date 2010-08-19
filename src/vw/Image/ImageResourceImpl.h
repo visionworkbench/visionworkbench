@@ -15,7 +15,7 @@
 #define __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__ 1
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-# include <vw/Image/OpenCvImageResource.h>
+# include <vw/Image/ImageResourceOpenCV.h>
 #endif
 
 #undef __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__

@@ -17,9 +17,6 @@
 
 #if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV==1)
 # include <opencv/cxcore.h>
-# define HAS_OPENCV(x) x
-#else
-# define HAS_OPENCV(x) DISABLED_ ## x
 #endif
 
 using namespace vw;
@@ -54,7 +51,7 @@ TEST( ImageResource, PreMultiply ) {
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
-struct OpenCvImageResourceTest : public ::testing::Test, private boost::noncopyable {
+struct ImageResourceOpenCVTest : public ::testing::Test, private boost::noncopyable {
     typedef boost::shared_ptr<cv::Mat>             mat_t;
     typedef boost::shared_ptr<ImageResource>       wir_t;
     typedef boost::shared_ptr<const ImageResource> rir_t;
@@ -113,71 +110,71 @@ struct OpenCvImageResourceTest : public ::testing::Test, private boost::noncopya
   }
 };
 
-OpenCvImageResourceTest::in_px_t OpenCvImageResourceTest::input_data[OpenCvImageResourceTest::len] = {
+ImageResourceOpenCVTest::in_px_t ImageResourceOpenCVTest::input_data[ImageResourceOpenCVTest::len] = {
    2,  3,
   11, 13,
   23, 29,
   41, 43,
 };
 
-const OpenCvImageResourceTest::out_px_t OpenCvImageResourceTest::e_read_data[OpenCvImageResourceTest::len]  = {
+const ImageResourceOpenCVTest::out_px_t ImageResourceOpenCVTest::e_read_data[ImageResourceOpenCVTest::len]  = {
   11, 13,
   23, 29,
   73,71,
   67,61
 };
 
-const OpenCvImageResourceTest::out_px_t OpenCvImageResourceTest::e_write_data[OpenCvImageResourceTest::len]  = {
+const ImageResourceOpenCVTest::out_px_t ImageResourceOpenCVTest::e_write_data[ImageResourceOpenCVTest::len]  = {
   97,89,
    2, 3,
   11,13,
   67,61
 };
-OpenCvImageResourceTest::out_px_t OpenCvImageResourceTest::actual_data[OpenCvImageResourceTest::len];
+ImageResourceOpenCVTest::out_px_t ImageResourceOpenCVTest::actual_data[ImageResourceOpenCVTest::len];
+
+
+TEST_F(ImageResourceOpenCVTest, OpenCv_Read_Cont) {
+  mat_t m;
+  make_matrix<in_px_t>(input_data, m);
+  rir_t r(new ImageResourceOpenCV(m));
+  ImageBuffer buf = buffer(WRITE);
+
+  ASSERT_NO_THROW(r->read(buf, box(buf)));
+  EXPECT_RANGE_EQ(e_read_data+0, e_read_data+len, actual_data+0, actual_data+len);
+}
+
+TEST_F(ImageResourceOpenCVTest, OpenCv_Read_Discont) {
+  mat_t m;
+  make_matrix<in_px_t>(input_data, m);
+  make_discontinuous(m);
+
+  rir_t r(new ImageResourceOpenCV(m));
+  ImageBuffer buf = buffer(WRITE);
+
+  ASSERT_NO_THROW(r->read(buf, box(buf)));
+  EXPECT_RANGE_EQ(e_read_data+0, e_read_data+len, actual_data+0, actual_data+len);
+}
+
+TEST_F(ImageResourceOpenCVTest, OpenCv_Write_Cont) {
+  mat_t m;
+  make_matrix<out_px_t>(actual_data, m);
+  wir_t r(new ImageResourceOpenCV(m));
+  ImageBuffer buf = buffer(READ);
+
+  ASSERT_NO_THROW(r->write(buf, box(buf)));
+  EXPECT_RANGE_EQ(e_write_data+0, e_write_data+len, actual_data+0, actual_data+len);
+}
+
+TEST_F(ImageResourceOpenCVTest, OpenCv_Write_Discont) {
+  mat_t m;
+  make_matrix<out_px_t>(actual_data, m);
+  make_discontinuous(m);
+
+  wir_t r(new ImageResourceOpenCV(m));
+  ImageBuffer buf = buffer(READ);
+
+  ASSERT_NO_THROW(r->write(buf, box(buf)));
+  EXPECT_RANGE_EQ(e_write_data+0, e_write_data+len, actual_data+0, actual_data+len);
+}
 
 #endif
-
-
-TEST_F(OpenCvImageResourceTest, HAS_OPENCV(OpenCv_Read_Cont)) {
-  mat_t m;
-  make_matrix<in_px_t>(input_data, m);
-  rir_t r(new OpenCvImageResource(m));
-  ImageBuffer buf = buffer(WRITE);
-
-  ASSERT_NO_THROW(r->read(buf, box(buf)));
-  EXPECT_RANGE_EQ(e_read_data+0, e_read_data+len, actual_data+0, actual_data+len);
-}
-
-TEST_F(OpenCvImageResourceTest, HAS_OPENCV(OpenCv_Read_Discont)) {
-  mat_t m;
-  make_matrix<in_px_t>(input_data, m);
-  make_discontinuous(m);
-
-  rir_t r(new OpenCvImageResource(m));
-  ImageBuffer buf = buffer(WRITE);
-
-  ASSERT_NO_THROW(r->read(buf, box(buf)));
-  EXPECT_RANGE_EQ(e_read_data+0, e_read_data+len, actual_data+0, actual_data+len);
-}
-
-TEST_F(OpenCvImageResourceTest, HAS_OPENCV(OpenCv_Write_Cont)) {
-  mat_t m;
-  make_matrix<out_px_t>(actual_data, m);
-  wir_t r(new OpenCvImageResource(m));
-  ImageBuffer buf = buffer(READ);
-
-  ASSERT_NO_THROW(r->write(buf, box(buf)));
-  EXPECT_RANGE_EQ(e_write_data+0, e_write_data+len, actual_data+0, actual_data+len);
-}
-
-TEST_F(OpenCvImageResourceTest, HAS_OPENCV(OpenCv_Write_Discont)) {
-  mat_t m;
-  make_matrix<out_px_t>(actual_data, m);
-  make_discontinuous(m);
-
-  wir_t r(new OpenCvImageResource(m));
-  ImageBuffer buf = buffer(READ);
-
-  ASSERT_NO_THROW(r->write(buf, box(buf)));
-  EXPECT_RANGE_EQ(e_write_data+0, e_write_data+len, actual_data+0, actual_data+len);
-}

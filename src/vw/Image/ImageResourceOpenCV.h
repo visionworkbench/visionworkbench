@@ -21,7 +21,7 @@ namespace cv {class Mat;}
 
 namespace vw {
 
-class OpenCvImageResource : public ImageResource {
+class ImageResourceOpenCV : public ImageResource {
   private:
     ImageFormat m_format;
     boost::shared_ptr<cv::Mat> m_matrix;
@@ -34,9 +34,9 @@ class OpenCvImageResource : public ImageResource {
 
   public:
 
-    OpenCvImageResource(boost::shared_ptr<cv::Mat> matrix);
+    ImageResourceOpenCV(boost::shared_ptr<cv::Mat> matrix);
 
-    virtual ~OpenCvImageResource() {};
+    virtual ~ImageResourceOpenCV() {};
 
     virtual int32 cols() const {
       return m_format.cols;

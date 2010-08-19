@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 #define __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__ 1
-#include <vw/Image/OpenCvImageResource.h>
+#include <vw/Image/ImageResourceOpenCV.h>
 #undef  __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 
 #include <vw/Core/Debugging.h>
@@ -19,7 +19,7 @@ namespace {
 
 namespace vw {
 
-bool OpenCvImageResource::contiguous_roi(const BBox2i& bbox) const {
+bool ImageResourceOpenCV::contiguous_roi(const BBox2i& bbox) const {
   // if the opencv data is contiguous, do it the easy way. It's contiguous if:
   //  1) The data is from a single row (opencv guarantees this, only rows can have gaps), or
   //  2) Rows are contiguous (isContinuous) and the roi spans all columns
@@ -31,7 +31,7 @@ bool OpenCvImageResource::contiguous_roi(const BBox2i& bbox) const {
          && bbox.width() == m_format.cols;
 }
 
-ImageFormat OpenCvImageResource::identify() const {
+ImageFormat ImageResourceOpenCV::identify() const {
   ImageFormat fmt;
   fmt.cols = m_matrix->cols;
   fmt.rows = m_matrix->rows;
@@ -45,7 +45,7 @@ ImageFormat OpenCvImageResource::identify() const {
     case 5:  fmt.pixel_format = VW_PIXEL_GENERIC_5_CHANNEL; break;
     case 6:  fmt.pixel_format = VW_PIXEL_GENERIC_6_CHANNEL; break;
     default:
-      vw_throw(ArgumentErr() << "OpenCvImageResource: Too many channels ("
+      vw_throw(ArgumentErr() << "ImageResourceOpenCV: Too many channels ("
                              << m_matrix->channels() << ") in input matrix");
   }
 
@@ -58,20 +58,20 @@ ImageFormat OpenCvImageResource::identify() const {
     case CV_32F: fmt.channel_type = VW_CHANNEL_FLOAT32; break;
     case CV_64F: fmt.channel_type = VW_CHANNEL_FLOAT64; break;
     default:
-      vw_throw(ArgumentErr() << "OpenCvImageResource: Unknown channel type "
+      vw_throw(ArgumentErr() << "ImageResourceOpenCV: Unknown channel type "
                              << m_matrix->depth() << " in input matrix");
   }
   return fmt;
 }
 
-OpenCvImageResource::OpenCvImageResource(boost::shared_ptr<cv::Mat> matrix)
+ImageResourceOpenCV::ImageResourceOpenCV(boost::shared_ptr<cv::Mat> matrix)
   : m_matrix(matrix)
 {
   VW_ASSERT(!m_matrix->empty(), ArgumentErr() << VW_CURRENT_FUNCTION << ": Matrix must be allocated already.");
   m_format = identify();
 }
 
-void OpenCvImageResource::read( ImageBuffer const& dst_buf, BBox2i const& bbox ) const {
+void ImageResourceOpenCV::read( ImageBuffer const& dst_buf, BBox2i const& bbox ) const {
   VW_ASSERT(dst_buf.format.cols == bbox.width() && dst_buf.format.rows == bbox.height(),
       LogicErr()    << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
   VW_ASSERT(bbox.min().x() >= 0 && bbox.min().y() >= 0 && bbox.max().x() <= m_format.cols && bbox.max().y() <= m_format.rows,
@@ -97,7 +97,7 @@ void OpenCvImageResource::read( ImageBuffer const& dst_buf, BBox2i const& bbox )
   convert(dst_buf, src_buf, false);
 }
 
-void OpenCvImageResource::write( ImageBuffer const& src_buf, BBox2i const& bbox ) {
+void ImageResourceOpenCV::write( ImageBuffer const& src_buf, BBox2i const& bbox ) {
   VW_ASSERT(src_buf.format.cols == bbox.width() && src_buf.format.rows == bbox.height(),
       LogicErr()    << VW_CURRENT_FUNCTION << ": Source buffer has wrong dimensions!" );
   VW_ASSERT(bbox.min().x() >= 0 && bbox.min().y() >= 0 && bbox.max().x() <= m_format.cols && bbox.max().y() <= m_format.rows,

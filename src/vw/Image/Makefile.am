@@ -29,8 +29,8 @@ libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
 lib_LTLIBRARIES = libvwImage.la
 
 if HAVE_PKG_OPENCV
-include_HEADERS += OpenCvImageResource.h
-libvwImage_la_SOURCES += OpenCvImageResource.cc
+include_HEADERS += ImageResourceOpenCV.h
+libvwImage_la_SOURCES += ImageResourceOpenCV.cc
 endif
 
 endif
