@@ -11,7 +11,6 @@ import sys
 import gdb
 
 # Reminder: All globals that don't begin with _ are imported!
-
 try:
     if not hasattr(sys, 'argv'):
         sys.argv = ['gdb']
@@ -21,6 +20,11 @@ except ImportError:
     def noop():
         pass
     _ipshell = noop
+
+def resolve(obj):
+    if obj is None:
+        return None
+    return gdb.default_visualizer(obj)
 
 class _Basic(object):
     def __init__(self, typename, val):
@@ -38,11 +42,8 @@ class CRTP(_Basic):
     @staticmethod
     def can_use(val):
         new = val.cast(val.type.template_argument(0))
-        for lookup in gdb.pretty_printers:
-            use = lookup(new)
-            if use is not None:
-                return True
-        return False
+        get = resolve(new)
+        return get is not None
 
     def to_string(self):
         return self.val.cast(self.val.type.template_argument(0))
@@ -155,7 +156,17 @@ class BBox(_Basic):
     def display_hint(self):
         return 'map'
     def children(self):
+        min = resolve(self.val['m_min'])
+        max = resolve(self.val['m_max'])
+        def calc(idx):
+            try:
+                return max.get_ptr()[idx] - min.get_ptr()[idx]
+            except RuntimeError, e:
+                return 'Failed to calc: %s' % e
+
         return iter([
-            ('', 'min'),   ('', self.val['m_min']),
-            ('', 'max'),   ('', self.val['m_max']),
+            ('', 'min'),    ('', min.val),
+            ('', 'max'),    ('', max.val),
+            ('', 'width'),  ('', calc(0)),
+            ('', 'height'), ('', calc(1)),
         ])

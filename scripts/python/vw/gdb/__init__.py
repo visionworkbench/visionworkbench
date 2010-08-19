@@ -14,6 +14,11 @@ import sys
 
 from vw.gdb import types
 
+DEBUG = False
+def dprint(str):
+    if DEBUG:
+        print str
+
 try:
     if not hasattr(sys, 'argv'):
         sys.argv = ['gdb']
@@ -30,6 +35,7 @@ pretty_printers_dict = None
 def register_handler(types):
     for t in types:
         pretty_printers_dict[re.compile(t.PATTERN)] = t
+        dprint('Registered %s for %s' % (t.__name__, t.PATTERN))
 
 def build_dictionary():
     global pretty_printers_dict
@@ -64,12 +70,13 @@ def lookup(val):
         m = function.search(typename)
         if m:
             handler = pretty_printers_dict[function]
+            dprint('Matched %s for %s' % (handler.__name__, typename))
             if hasattr(handler, 'can_use'):
                 if not handler.can_use(val):
                     return None
             return handler(typename, val)
 
-    # Cannot find a pretty printer.  Return None.
+    # Cannot find a pretty printer.
     return None
 
 def register(obj):
