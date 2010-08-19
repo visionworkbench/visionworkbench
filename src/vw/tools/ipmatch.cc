@@ -16,6 +16,7 @@
 #include <vw/FileIO.h>
 #include <vw/Math.h>
 #include <vw/Mosaic/ImageComposite.h>
+#include <vw/Camera/CameraGeometry.h>
 
 using namespace vw;
 using namespace vw::ip;
@@ -92,15 +93,15 @@ int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   double matcher_threshold;
   std::string ransac_constraint;
-  int inlier_threshold;
+  float inlier_threshold;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
     ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.6), "Threshold for the interest point matcher.")
     ("non-kdtree", "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
-    ("ransac-constraint,r", po::value<std::string>(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, or none].")
-    ("inlier-threshold,i", po::value<int>(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
+    ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
+    ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
     ("debug-image,d", "Write out debug images.");
 
   po::options_description hidden_options("");
@@ -187,11 +188,16 @@ int main(int argc, char** argv) {
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
+        } else if (ransac_constraint == "fundamental") {
+          math::RandomSampleConsensus<camera::FundamentalMatrix8PFittingFunctor, camera::FundamentalMatrixDistanceErrorMetric> ransac( camera::FundamentalMatrix8PFittingFunctor(), camera::FundamentalMatrixDistanceErrorMetric(), inlier_threshold );
+          Matrix<double> F(ransac(ransac_ip1,ransac_ip2));
+          std::cout << "\t--> Fundamental: " << F << "\n";
+          indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "none") {
           for ( unsigned i = 0; i < matched_ip1.size(); ++i )
             indices.push_back(i);
         } else {
-          std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, or none]\n";
+          std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
           exit(0);
         }
       } catch (vw::math::RANSACErr &e) {
