@@ -42,7 +42,7 @@ using namespace vw::photometry;
 //#define VER_BLOCK_SIZE 16 //8 //4
 #define numJacobianRows (horBlockSize+1)*(verBlockSize+1)
 #define numJacobianCols (horBlockSize*verBlockSize)
-#define Unique "round3test"
+#define Unique "nostage3_oldreflectance_meandem"
 
 //enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
 //double LOSS_ACCURACY_MULT = 1;
@@ -547,28 +547,29 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
       //printf("done stage 2\n");
 
 
-      for (int m = 0; m < (int)overlapImgParams.size(); m++){
+//      for (int m = 0; m < (int)overlapImgParams.size(); m++){
+//
+//        //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
+//
+//        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
+//        GeoReference overlapImg_geo;
+//        read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
+//        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
+//
+//        //GeoTransform trans(overlapImg_geo, inputImg_geo);
+//        //transform(overlapImg, trans);
+//
+//        ComputeBlockJacobianOverlap(inputImage, inputImg_geo,
+//            overlapImg, overlapImg_geo,
+//            shadowImage, overlapShadowImage,
+//            outputImage, kb, lb,
+//            inputImgParams, overlapImgParams[m], globalParams,
+//            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
+//            jacobianArray[m+1], errorVectorArray[m+1]);
+//
+//      }
 
-        //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
-
-        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
-        GeoReference overlapImg_geo;
-        read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
-        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
-
-        //GeoTransform trans(overlapImg_geo, inputImg_geo);
-        //transform(overlapImg, trans);
-
-        ComputeBlockJacobianOverlap(inputImage, inputImg_geo,
-            overlapImg, overlapImg_geo,
-            shadowImage, overlapShadowImage,
-            outputImage, kb, lb,
-            inputImgParams, overlapImgParams[m], globalParams,
-            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
-            jacobianArray[m+1], errorVectorArray[m+1]);
-
-      }
-
+      //printf("done stage 3\n");
 
       //reset the right hand side - square matrix of size BlockArea x BlockArea: rhs = J^T x J
       for (int ii = 0; ii < numJacobianCols; ii++) {
@@ -636,10 +637,17 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
   //close text file
   f.close();
 
+  //adjust file names so that successive runs don't overwrite old files (debugging)
+  sfsDEMFilename.resize(sfsDEMFilename.size()-4);
+  errorHeightFilename.resize(errorHeightFilename.size()-4);
+
+  sfsDEMFilename = sfsDEMFilename + Unique + ".tif";
+  errorHeightFilename = errorHeightFilename + Unique + ".tif";
+
   //write in the updated DEM
   write_georeferenced_image(sfsDEMFilename, sfsDEM,
       DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+  //write in the error in terms of height
   write_georeferenced_image(errorHeightFilename, errorHeight,
       DEM_geo, TerminalProgressCallback("photometry","Processing:"));
-
 }
