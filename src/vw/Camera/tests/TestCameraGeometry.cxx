@@ -180,7 +180,7 @@ TEST_F( FundamentalMatrixStaticTest, SanityCheck ) {
   // EGT guess is worse because they perform denormalization out of
   // step against Hartley's recommendation.
   for ( unsigned i = 0; i < measure1.size(); i++ )  {
-    EXPECT_LT( FundamentalMatrixErrorMetric()(expected_F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 7 );
+    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(expected_F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 7 );
   }
 }
 
@@ -191,7 +191,7 @@ TEST_F( FundamentalMatrixStaticTest, EightPointAlgorithm ) {
   EXPECT_NEAR( 1, norm_frobenius(F), 0.1 );
 
   for ( unsigned i = 0; i < measure1.size(); i++ )  {
-    EXPECT_LT( FundamentalMatrixErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 1e-6 );
+    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 1e-6 );
   }
 }
 
@@ -219,7 +219,7 @@ TEST_F( FundamentalMatrixStaticTest, MLAlgorithm ) {
   EXPECT_NEAR( 1, norm_frobenius(F), 0.4 );
 
   for ( unsigned i = 0; i < measure1.size(); i++ )  {
-    EXPECT_LT( FundamentalMatrixErrorMetric()(seed, Vector3( measure1[i][0], measure1[i][1], 1), Vector3( measure2[i][0], measure2[i][1], 1) ), 0.2 );
-    EXPECT_LT( FundamentalMatrixErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 0.15 );
+    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(seed, Vector3( measure1[i][0], measure1[i][1], 1), Vector3( measure2[i][0], measure2[i][1], 1) ), 0.2 );
+    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 0.15 );
   }
 }

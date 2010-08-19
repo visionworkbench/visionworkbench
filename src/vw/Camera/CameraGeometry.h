@@ -256,12 +256,22 @@ namespace camera {
   // lines are defined be the epipole (which is the location of the first
   // image in the perspective of the second camera (and vice versa)).
 
-  struct FundamentalMatrixErrorMetric {
+  struct FundamentalMatrixSampsonErrorMetric {
     template <class RelationT, class ContainerT>
     double operator()( RelationT const& F,
                        ContainerT const& p1,
                        ContainerT const& p2 ) const {
       return fabs(transpose(p2)*F*p1) + fabs(transpose(p1)*transpose(F)*p2);
+    }
+  };
+
+  struct FundamentalMatrixDistanceErrorMetric {
+    template <class RelationT, class ContainerT>
+    double operator()( RelationT const& F,
+                       ContainerT const& p1,
+                       ContainerT const& p2 ) const {
+      Vector3 line = F*p1;
+      return fabs(dot_prod(line,p2))/norm_2(subvector(line,0,2));
     }
   };
 
@@ -322,7 +332,7 @@ namespace camera {
       int i = 0;
       for ( Matrix<double,3,3>::iterator it = F.begin();
             it != F.end(); it++ ) {
-        (*it) = VT(8,i);
+        (*it) = VT(VT.rows()-1,i);
         i++;
       }
 
