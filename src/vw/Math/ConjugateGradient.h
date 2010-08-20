@@ -85,28 +85,31 @@ namespace math{
 
 
   class ArmijoStepSize {
-    double initial_stepsize, beta, sigma;
+    double m_initial_stepsize, m_beta, m_sigma;
+    static const int m_max_iterations = 1000;
   public:
     ArmijoStepSize( double initial_stepsize=1.0, double beta=0.1, double sigma=0.001 )
-      : initial_stepsize(initial_stepsize), beta(beta), sigma(sigma) {}
+      : m_initial_stepsize(initial_stepsize), m_beta(beta), m_sigma(sigma) {}
     template <class FuncT>
     typename FuncT::domain_type operator()( FuncT const& func, 
                                             typename FuncT::domain_type const& pos,
                                             typename FuncT::result_type const& val,
                                             typename FuncT::gradient_type const& grad,
                                             typename FuncT::gradient_type const& dir ) const {
-      double stepsize = initial_stepsize;
-      double thresh = sigma*initial_stepsize*dot_prod(grad,dir);
+      double stepsize = m_initial_stepsize;
+      double thresh = m_sigma*m_initial_stepsize*dot_prod(grad,dir);
+      int count = 0;
       while( true ) {
         typename FuncT::domain_type new_pos = pos + stepsize * dir;
         typename FuncT::result_type new_val = func(new_pos);
-        if( new_val - val <= thresh ) return new_pos;
+        if( new_val - val <= thresh || count > m_max_iterations ) return new_pos;
         //if( ( stepsize < 1e-20 && val-new_val > 0 ) || stepsize < 1e-40 ) {
         //  vw_out(DebugMessage, "math") << "ArmijoStepSize punting!  (slope=" << dot_prod(grad,dir) << ", delta=" << (new_val-val) << ", thresh=" << thresh << ")" << std::endl;
         //  return new_pos;
         //}
-        stepsize *= beta;
-        thresh *= beta;
+        stepsize *= m_beta;
+        thresh *= m_beta;
+	count++;
       }
     }
   };
