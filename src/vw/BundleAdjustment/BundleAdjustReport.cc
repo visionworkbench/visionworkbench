@@ -78,14 +78,16 @@ namespace ba {
         desc << "&lt;h2&gt;Ground Control Point&lt;/h2&gt;";
         desc << "&lt;b&gt;Lon:&lt;/b&gt; " << llr.x() << " deg&lt;br&gt;";
         desc << "&lt;b&gt;Lat:&lt;/b&gt; " << llr.y() << " deg&lt;br&gt;";
-        desc << "&lt;b&gt;Rad:&lt;/b&gt; " << llr.z() << " m&lt;br&gt;";
+        desc << "&lt;b&gt;Rad:&lt;/b&gt; " << std::setprecision(12)
+             << llr.z() << " m&lt;br&gt;";
 
         // Images viewing
         desc << "&lt;h3&gt;Viewed by:&lt;/h3&gt;&lt;ol&gt;";
         for ( ControlPoint::const_iterator measure = (*iter).begin();
               measure != (*iter).end(); ++measure ) {
           desc << "&lt;li&gt;" << "[" << (*measure).image_id() << "] "
-               << (*measure).serial() << "&lt;/li&gt;";
+               << (*measure).serial() << " ( " << measure->position()[0] << ", "
+               << measure->position()[1] <<  " ) " << "&lt;/li&gt;";
         }
         desc << "&lt;/ol&gt;";
 
