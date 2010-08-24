@@ -124,7 +124,22 @@ namespace platefile {
       cartography::GeoTransform kml_tx( input_georef, output_georef );
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = kml_tx.forward_bbox(input_bbox);
-      output_bbox.crop( BBox2i(0,0,resolution,resolution) );
+
+      // Correct bbox so it puts everything inside the [-180,180]
+      if ( output_bbox.min()[0] >= resolution ) {
+        output_bbox.min()[0] -= resolution;
+        output_bbox.max()[0] -= resolution;
+      }
+      if ( output_bbox.min()[0] < 0 ) {
+        output_bbox.min()[0] += resolution;
+        output_bbox.max()[0] += resolution;
+      }
+      if ( output_bbox.max()[0] >= resolution ) {
+        output_bbox.min()[0] = 0;
+        output_bbox.max()[0] = resolution;
+      }
+      // Clip it if it's outside our latitude range
+      output_bbox.crop(BBox2i(0,resolution/4,resolution,3*resolution/4));
 
       vw_out() << "\t    Placing image at level " << pyramid_level
                << " with bbox " << output_bbox << "\n"
@@ -133,18 +148,8 @@ namespace platefile {
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> kml_view =
-        transform(image,kml_tx, ZeroEdgeExtension(),BicubicInterpolation());
-
-      if( input_georef.proj4_str()=="+proj=longlat" &&
-          fabs(input_georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-          fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
-          fabs(input_georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-          fabs(input_georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1 ) {
-        vw_out() << "\t--> Detected global overlay.  "
-                 << "Using cylindrical edge extension to hide the seam.\n";
-        kml_view = transform(image,kml_tx,
-                             CylindricalEdgeExtension(), BicubicInterpolation());
-      }
+        transform(image,kml_tx, CylindricalEdgeExtension(),
+                  BicubicInterpolation());
 
       // chop up the image into small chunks
       // Keep the "this"! It makes kml_image_tiles dependent on template type.
