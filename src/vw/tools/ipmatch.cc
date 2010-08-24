@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
           std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
           exit(0);
         }
-      } catch (vw::math::RANSACErr &e) {
+      } catch (vw::math::RANSACErr const& e ) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
         continue;
       }
