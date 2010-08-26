@@ -36,13 +36,13 @@ using namespace vw::cartography;
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
 
-#define horBlockSize 16 //8 //4
-#define verBlockSize 16 //8 //4
+#define horBlockSize 8 //8 //4
+#define verBlockSize 8 //8 //4
 //#define HOR_BLOCK_SIZE 16 //8 //4
 //#define VER_BLOCK_SIZE 16 //8 //4
 #define numJacobianRows (horBlockSize+1)*(verBlockSize+1)
 #define numJacobianCols (horBlockSize*verBlockSize)
-#define Unique "nostage3_oldreflectance_meandem"
+#define Unique "8x8_newcode_olddem_jacobmatcompare"
 
 //enum LossType { GAUSSIAN, CAUCHY, EXPONENTIAL };
 //double LOSS_ACCURACY_MULT = 1;
@@ -77,15 +77,15 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
     normalDerivative(1) = xyzTOP(0) - xyzLEFT(0); //dn_y/dz_{ij}
     normalDerivative(2) = 0; //dnz_dz_{ij}
   }
-  if (flag == 1){ //wrt z_{i-1,j} //LEFT
-    normalDerivative(0) = xyzTOP(1) - xyz(1); //dn_x/dz_{i-1, j}
-    normalDerivative(1) = xyz(0) - xyzTOP(0); //dn_y/dz_{i-1,j}
-    normalDerivative(2) = 0; //dnz_dz_{i-1,j}
+  if (flag == 1){ //wrt z_{i,j-1} //LEFT
+    normalDerivative(0) = xyzTOP(1) - xyz(1); //dn_x/dz_{i, j-1}
+    normalDerivative(1) = xyz(0) - xyzTOP(0); //dn_y/dz_{i, j-1}
+    normalDerivative(2) = 0; //dnz_dz_{i, j-1}
   }
-  if (flag == 2){ //wrt z_{i,j-1}//TOP
-    normalDerivative(0) = xyz(1) - xyzLEFT(1); //dn_x/dz_{i, j-1}
-    normalDerivative(1) = xyzLEFT(0) - xyz(0); //dn_y/dz_{i,j-1}
-    normalDerivative(2) = 0; //dnz_dz_{i,j-1}
+  if (flag == 2){ //wrt z_{i-1,j}//TOP
+    normalDerivative(0) = xyz(1) - xyzLEFT(1); //dn_x/dz_{i-1, j}
+    normalDerivative(1) = xyzLEFT(0) - xyz(0); //dn_y/dz_{i-1, j}
+    normalDerivative(2) = 0; //dnz_dz_{i-1, j}
   }
 
   return normalDerivative;
@@ -183,8 +183,8 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
   for (int k = 0 ; k < eVerBlockSize; ++k) {
     for (int l = 0; l < eHorBlockSize; ++l) {
 
-      int ii = kb*(eVerBlockSize)+k; //row index for the entire image
-      int jj = lb*(eHorBlockSize)+l; //col index for the entire image
+      int ii = kb*(verBlockSize)+k; //row index for the entire image
+      int jj = lb*(horBlockSize)+l; //col index for the entire image
       //printf("ii = %d, jj = %d, width = %d, height = %d\n", ii, jj, dem.impl().cols(), dem.impl().rows());
 
       if ((ii < drg.impl().rows()) && (jj < drg.impl().cols())){
@@ -200,12 +200,12 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
           xyzArray[l_index] = drgGeo.datum().geodetic_to_cartesian(lonlat3);//3D coordinates in the img coordinates
 
           Vector2 input_img_left_pix;
-          input_img_left_pix(0) = ii-1;
-          input_img_left_pix(1) = jj;
+          input_img_left_pix(0) = jj-1;
+          input_img_left_pix(1) = ii;
 
           Vector2 input_img_top_pix;
-          input_img_top_pix(0) = ii;
-          input_img_top_pix(1) = jj-1;
+          input_img_top_pix(0) = jj;
+          input_img_top_pix(1) = ii-1;
 
           //check for valid DEM pixel value and valid left and top coordinates
           if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (dem.impl()(jj,ii) != -10000)){
@@ -496,6 +496,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
 
       int n = 0;
 
+      //josh - shouldn't we check the extended image for valid points?
       for (int k = 0 ; k < verBlockSize; ++k){
         for (int l = 0; l < horBlockSize; ++l) {
           int ii = kb*verBlockSize+k; //row index for the entire image
@@ -547,27 +548,38 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
       //printf("done stage 2\n");
 
 
-//      for (int m = 0; m < (int)overlapImgParams.size(); m++){
-//
-//        //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
-//
-//        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
-//        GeoReference overlapImg_geo;
-//        read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
-//        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
-//
-//        //GeoTransform trans(overlapImg_geo, inputImg_geo);
-//        //transform(overlapImg, trans);
-//
-//        ComputeBlockJacobianOverlap(inputImage, inputImg_geo,
-//            overlapImg, overlapImg_geo,
-//            shadowImage, overlapShadowImage,
-//            outputImage, kb, lb,
-//            inputImgParams, overlapImgParams[m], globalParams,
-//            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
-//            jacobianArray[m+1], errorVectorArray[m+1]);
-//
-//      }
+      for (int m = 0; m < (int)overlapImgParams.size(); m++){
+
+        //printf("overlap_img = %s\n", overlapImgParams[m].inputFilename.c_str());
+
+        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapImg(overlapImgParams[m].inputFilename);
+        GeoReference overlapImg_geo;
+        read_georeference(overlapImg_geo, overlapImgParams[m].inputFilename);
+        DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapImgParams[m].shadowFilename);
+
+        //GeoTransform trans(overlapImg_geo, inputImg_geo);
+        //transform(overlapImg, trans);
+
+        ComputeBlockJacobianOverlap(inputImage, inputImg_geo,
+            overlapImg, overlapImg_geo,
+            shadowImage, overlapShadowImage,
+            outputImage, kb, lb,
+            inputImgParams, overlapImgParams[m], globalParams,
+            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
+            jacobianArray[m+1], errorVectorArray[m+1]);
+
+      }
+
+      //print the jacobian
+      for (int row = 0; row< numJacobianRows; row++){
+        //std::cout << row << ": ";
+        for (int col = 0; col < numJacobianCols; col++){
+            f << jacobianArray[0](row,col) << ",";
+        }
+        f << endl;
+      }
+      f << endl;
+      f << endl;
 
       //printf("done stage 3\n");
 
@@ -606,7 +618,7 @@ vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelPar
               //std::cout << "sfs_before( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) <<  std::endl;
               sfsDEM(jj, ii) = sfsDEM(jj, ii) + lhs(l_index);
               errorHeight(jj, ii) = lhs(l_index);
-              f << lhs(l_index) << endl; //write error in terms of height to debug file
+              //f << lhs(l_index) << endl; //write error in terms of height to debug file
               std::cout << "sfs_after( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) << ", lhs after= " << lhs(l_index) << std::endl;
 
             }
