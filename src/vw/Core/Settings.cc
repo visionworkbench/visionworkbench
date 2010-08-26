@@ -201,11 +201,12 @@ void vw::Settings::set_default_num_threads(unsigned num) {
     if ( num == 0 ) {
       // Reset state
       m_default_num_threads_override = false;
+      m_default_num_threads = VW_NUM_THREADS;
     } else {
       m_default_num_threads_override = true;
       m_default_num_threads = num;
     }
-  } 
+  }
 
   if ( num == 0 )
     reload_config();
