@@ -76,12 +76,12 @@ namespace platefile {
       return output_georef;
     }
 
-    /// Add an image to the plate file.
+    /// Add an image to the plate file. Returns used transaction id.
     template <class ViewT>
-    void insert(ImageViewBase<ViewT> const& image, std::string const& description,
-                int transaction_id_override, cartography::GeoReference const& input_georef,
-                bool tweak_settings_for_terrain, bool /*verbose*/ = false,
-                const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
+    int insert_impl(ImageViewBase<ViewT> const& image, std::string const& description,
+                    int transaction_id_override, cartography::GeoReference const& input_georef,
+                    bool tweak_settings_for_terrain,
+                    const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
 
       // We build the ouput georeference from the input image's
       // georeference by copying the datum.
@@ -125,20 +125,7 @@ namespace platefile {
       BBox2i input_bbox = BBox2i(0,0,image.impl().cols(),image.impl().rows());
       BBox2i output_bbox = kml_tx.forward_bbox(input_bbox);
 
-      // Correct bbox so it puts everything inside the [-180,180]
-      if ( output_bbox.min()[0] >= resolution ) {
-        output_bbox.min()[0] -= resolution;
-        output_bbox.max()[0] -= resolution;
-      }
-      if ( output_bbox.min()[0] < 0 ) {
-        output_bbox.min()[0] += resolution;
-        output_bbox.max()[0] += resolution;
-      }
-      if ( output_bbox.max()[0] >= resolution ) {
-        output_bbox.min()[0] = 0;
-        output_bbox.max()[0] = resolution;
-      }
-      // Clip it if it's outside our latitude range
+      // Clip it if it's outside our latlon range
       output_bbox.crop(BBox2i(0,resolution/4,resolution,3*resolution/4));
 
       vw_out() << "\t    Placing image at level " << pyramid_level
@@ -148,8 +135,19 @@ namespace platefile {
 
       // Create the output view and crop it to the proper size.
       ImageViewRef<typename ViewT::pixel_type> kml_view =
-        transform(image,kml_tx, CylindricalEdgeExtension(),
+        transform(image,kml_tx, ZeroEdgeExtension(),
                   BicubicInterpolation());
+
+      if( input_georef.proj4_str()=="+proj=longlat" &&
+          fabs(input_georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
+          fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - image.impl().cols()) < 1 &&
+          fabs(input_georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
+          fabs(input_georef.lonlat_to_pixel(Vector2(0,-90)).y() - image.impl().rows()) < 1 ) {
+        vw_out() << "\t--> Detected global overlay.  "
+                 << "Using cylindrical edge extension to hide the seam.\n";
+        kml_view = transform(image,kml_tx,
+                             CylindricalEdgeExtension(), BicubicInterpolation());
+      }
 
       // chop up the image into small chunks
       // Keep the "this"! It makes kml_image_tiles dependent on template type.
@@ -215,6 +213,62 @@ namespace platefile {
       // Notify the index that this transaction is complete.  Do not
       // update the read cursor (false).
       m_platefile->transaction_complete(transaction_id, false);
+      return transaction_id;
+    }
+
+    /// Add an image to the plate file. Safe at longitude boundaries
+    template <class ViewT>
+    void insert(ImageViewBase<ViewT> const& image, std::string const& description,
+                int transaction_id_override, cartography::GeoReference const& input_georef,
+                bool tweak_settings_for_terrain, bool /*verbose*/ = false,
+                const ProgressCallback &progress = ProgressCallback::dummy_instance()) {
+
+      // First .. correct input transform if need be.
+      cartography::GeoReference input_mod_georef = input_georef;
+      if ( boost::contains(input_mod_georef.proj4_str(),"+proj=longlat") ) {
+        Matrix3x3 transform = input_mod_georef.transform();
+        // Correct if it is so far right it is not visible.
+        if ( transform(0,2) > 180 )
+          transform(0,2) -= 360;
+        // Correct if it is so far left it is not visible.
+        if ( input_georef.pixel_to_lonlat(Vector2(image.impl().cols()-1,0))[0] < -180.0 )
+          transform(0,2) += 360;
+        input_mod_georef.set_transform(transform);
+      }
+
+      if ( input_georef.pixel_to_lonlat(Vector2())[0] < -180 &&
+           input_georef.pixel_to_lonlat(Vector2(image.impl().cols()-1,0))[0] > -180 ) {
+        // Input left side
+        int transaction_id =
+          insert_impl(image, description, transaction_id_override,
+                      input_mod_georef, tweak_settings_for_terrain,
+                      progress);
+        // Input right side
+        Matrix3x3 transform = input_mod_georef.transform();
+        transform(0,2) += 360;
+        input_mod_georef.set_transform(transform);
+        insert_impl(image, description, transaction_id,
+                    input_mod_georef, tweak_settings_for_terrain,
+                    progress);
+      } else if ( input_georef.pixel_to_lonlat(Vector2())[0] < 180 &&
+                  input_georef.pixel_to_lonlat(Vector2(image.impl().cols()-1,0))[0] > 180 ) {
+        // Input right side
+        int transaction_id =
+          insert_impl(image, description, transaction_id_override,
+                      input_mod_georef, tweak_settings_for_terrain,
+                      progress);
+        // Input left side
+        Matrix3x3 transform = input_mod_georef.transform();
+        transform(0,2) -= 360;
+        input_mod_georef.set_transform(transform);
+        insert_impl(image, description, transaction_id,
+                    input_mod_georef, tweak_settings_for_terrain,
+                    progress);
+      } else {
+        insert_impl(image, description, transaction_id_override,
+                    input_mod_georef, tweak_settings_for_terrain,
+                    progress);
+      }
     }
 
     /// This function generates a specific mipmap tile at the given
