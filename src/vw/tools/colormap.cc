@@ -47,16 +47,16 @@ class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<float> > > {
 
 public:
   ColormapFunc() {}
-  
+
   template <class PixelT>
   PixelMask<PixelRGB<float> > operator() (PixelT const& pix) const {
-    if (is_transparent(pix)) 
+    if (is_transparent(pix))
       return PixelMask<PixelRGB<float> >();
-    
+
     float val = compound_select_channel<const float&>(pix,0);
     if (val > 1.0) val = 1.0;
     if (val < 0.0) val = 0.0;
-    
+
     Vector2 red_range(3/8.0, 1.0);
     Vector2 green_range(2/8.0, 6/8.0);
     Vector2 blue_range(0.0, 5/8.0);
@@ -70,34 +70,34 @@ public:
     float blue = 0;
 
     // Red
-    if (val >= red_range[0] && val <= red_range[0]+red_span/3) 
+    if (val >= red_range[0] && val <= red_range[0]+red_span/3)
       red = (val-red_range[0])/(red_span/3);
-    if (val >= red_range[0]+red_span/3 && val <= red_range[0]+2*red_span/3) 
+    if (val >= red_range[0]+red_span/3 && val <= red_range[0]+2*red_span/3)
       red = 1.0;
-    if (val >= red_range[0]+2*red_span/3 && val <= red_range[1]) 
+    if (val >= red_range[0]+2*red_span/3 && val <= red_range[1])
       red = 1-((val-(red_range[0]+2*red_span/3))/(red_span/3));
 
     // Blue
-    if (val >= blue_range[0] && val <= blue_range[0]+blue_span/3) 
+    if (val >= blue_range[0] && val <= blue_range[0]+blue_span/3)
       blue = (val-blue_range[0])/(blue_span/3);
-    if (val >= blue_range[0]+blue_span/3 && val <= blue_range[0]+2*blue_span/3) 
+    if (val >= blue_range[0]+blue_span/3 && val <= blue_range[0]+2*blue_span/3)
       blue = 1.0;
-    if (val >= blue_range[0]+2*blue_span/3 && val <= blue_range[1]) 
+    if (val >= blue_range[0]+2*blue_span/3 && val <= blue_range[1])
       blue = 1-((val-(blue_range[0]+2*blue_span/3))/(blue_span/3));
 
      // Green
-    if (val >= green_range[0] && val <= green_range[0]+green_span/3) 
+    if (val >= green_range[0] && val <= green_range[0]+green_span/3)
       green = (val-green_range[0])/(green_span/3);
-    if (val >= green_range[0]+green_span/3 && val <= green_range[0]+2*green_span/3) 
+    if (val >= green_range[0]+green_span/3 && val <= green_range[0]+2*green_span/3)
       green = 1.0;
-    if (val >= green_range[0]+2*green_span/3 && val <= green_range[1]) 
+    if (val >= green_range[0]+2*green_span/3 && val <= green_range[1])
       green = 1-((val-(green_range[0]+2*green_span/3))/(green_span/3));
 
     return PixelRGB<float> ( red, green, blue );
   }
 };
-  
-template <class ViewT> 
+
+template <class ViewT>
 UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view) {
   return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc());
 }
@@ -118,7 +118,7 @@ void do_colorized_dem(po::variables_map const& vm) {
   } else if ( disk_dem_rsrc->has_nodata_value() ) {
     nodata_value = disk_dem_rsrc->nodata_value();
     vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
-  } 
+  }
 
   // Compute min/max
   DiskImageView<PixelT> disk_dem_file(input_file_name);
@@ -161,7 +161,7 @@ void do_colorized_dem(po::variables_map const& vm) {
 void save_legend() {
   min_val = 0.0;
   max_val = 1.0;
-  
+
   ImageView<PixelGray<float> > img(200, 500);
   for (int j = 0; j < img.rows(); ++j) {
     float val = float(j) / img.rows();
@@ -169,7 +169,7 @@ void save_legend() {
       img(i,j) = val;
     }
   }
-  
+
   ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(img);
   write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
 }
@@ -217,7 +217,7 @@ int main( int argc, char *argv[] ) {
   // This is a reasonable range of elevation values to cover global
   // lunar topography.
   if( vm.count("moon") ) {
-    min_val = -8499;  
+    min_val = -8499;
     max_val = 10208;
   }
 
