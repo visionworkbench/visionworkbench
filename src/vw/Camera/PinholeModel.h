@@ -250,18 +250,23 @@ namespace camera {
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
 
     virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const {
-      return m_camera_center; };
+      return m_camera_center;
+    };
     void set_camera_center(Vector3 const& position) {
-      m_camera_center = position; rebuild_camera_matrix(); }
+      m_camera_center = position; rebuild_camera_matrix();
+    }
 
     // Pose is a rotation which moves a vector in camera coordinates
     // into world coordinates.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const {
-  return Quaternion<double>(m_rotation); }
+      return Quaternion<double>(m_rotation);
+    }
     void set_camera_pose(Quaternion<double> const& pose) {
-      m_rotation = pose.rotation_matrix(); rebuild_camera_matrix(); }
+      m_rotation = pose.rotation_matrix(); rebuild_camera_matrix();
+    }
     void set_camera_pose(Matrix<double,3,3> const& pose) {
-      m_rotation = pose; rebuild_camera_matrix(); }
+      m_rotation = pose; rebuild_camera_matrix();
+    }
 
     //  u_direction, v_direction, and w_direction define how the coordinate
     //  system of the camera relate to the directions in the image:
@@ -305,11 +310,13 @@ namespace camera {
     Vector2 focal_length() const { return Vector2(m_fu,m_fv); }
     void set_focal_length(Vector2 const& f, bool rebuild=true ) {
       m_fu = f[0]; m_fv = f[1];
-      if (rebuild) rebuild_camera_matrix(); }
+      if (rebuild) rebuild_camera_matrix();
+    }
     Vector2 point_offset() const { return Vector2(m_cu,m_cv); }
     void set_point_offset(Vector2 const& c, bool rebuild=true ) {
       m_cu = c[0]; m_cv = c[1];
-      if (rebuild) rebuild_camera_matrix(); }
+      if (rebuild) rebuild_camera_matrix();
+    }
     double pixel_pitch() const { return m_pixel_pitch; }
     void set_pixel_pitch( double pitch ) { m_pixel_pitch = pitch; }
 
