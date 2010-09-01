@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 /// \file CameraModel.h
 ///
 /// This file contains the abstract base class from which all camera

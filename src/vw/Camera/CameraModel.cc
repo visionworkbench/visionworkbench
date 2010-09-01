@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 #include <vw/Camera/CameraModel.h>
 
 using namespace vw;

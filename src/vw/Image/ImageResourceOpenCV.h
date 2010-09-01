@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 // ImageResource to read/write OpenCV in-memory images. Do not include this
 // header directly.
 

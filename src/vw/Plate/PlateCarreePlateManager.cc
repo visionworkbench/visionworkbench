@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 #include <vw/Plate/PlateCarreePlateManager.h>
 using namespace vw::platefile;
 using namespace vw;

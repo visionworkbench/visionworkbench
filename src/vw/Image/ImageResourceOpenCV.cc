@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 #define __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__ 1
 #include <vw/Image/ImageResourceOpenCV.h>
 #undef  __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__

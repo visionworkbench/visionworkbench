@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 #include <vw/Core/Log.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Math/EulerAngles.h>

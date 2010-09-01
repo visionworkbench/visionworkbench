@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+
 #include <gtest/gtest.h>
 
 #include <vw/Math/Vector.h>
