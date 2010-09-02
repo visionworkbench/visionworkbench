@@ -124,3 +124,4 @@ CLEANFILES = config.h.pre.in~
 includedir = $(prefix)/include/vw
 
 include $(top_srcdir)/config/rules.mak
+DISTCLEANFILES += config.h

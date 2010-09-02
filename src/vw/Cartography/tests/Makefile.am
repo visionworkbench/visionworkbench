@@ -33,6 +33,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_CARTOGRAPHY_LIBS@ @PKG_CAMERA_LIBS@
 
 check_PROGRAMS = $(TESTS)
+EXTRA_DIST = apollo.pinhole
 
 include $(top_srcdir)/config/rules.mak
 include $(top_srcdir)/config/tests.am

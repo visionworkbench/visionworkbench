@@ -14,11 +14,13 @@ if MAKE_MODULE_CAMERA
 protocol_headers =
 protocol_sources =
 
+include_HEADERS =
+
 if HAVE_PKG_PROTOBUF
 protocol_headers += TsaiFile.pb.h
 protocol_sources += TsaiFile.pb.cc
-BUILT_SOURCES          = $(protocol_sources)
-nodist_include_HEADERS = $(protocol_headers)
+BUILT_SOURCES   = $(protocol_sources)
+include_HEADERS += $(protocol_headers)
 endif
 
 if HAVE_PKG_LAPACK
@@ -27,7 +29,7 @@ lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h       \
               LensDistortion.h CameraGeometry.h
 endif
 
-include_HEADERS = CameraModel.h CAHVModel.h CAHVORModel.h               \
+include_HEADERS += CameraModel.h CAHVModel.h CAHVORModel.h               \
              CameraTransform.h Exif.h ExifData.h BayerFilter.h          \
              PinholeModel.h $(lsm_headers)
 
@@ -50,6 +52,7 @@ AM_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 SUBDIRS = . tests
 CLEANFILES = $(protocol_headers) $(protocol_sources)
+EXTRA_DIST = TsaiFile.proto
 
 includedir = $(prefix)/include/vw/Camera
 

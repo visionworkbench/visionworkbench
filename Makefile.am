@@ -9,16 +9,33 @@
 # sources
 ########################################################################
 ACLOCAL_AMFLAGS = -I m4 -I thirdparty/m4
+DISTCHECK_CONFIGURE_FLAGS = --enable-ccache
 LCOV_ARGS = --ignore-errors graph,gcov --follow --compat-libtool
 
 SUBDIRS = src
 
-EXTRA_DIST = config/rules.mak config.options.example docs \
-			 thirdparty/cxxtest INSTALLGUIDE scripts/include-graph.py \
-			 scripts/relicense.pl scripts/templates.js thirdparty/m4/.keep \
-			 scripts/create-test.sh thirdparty/gtest/src/* thirdparty/gtest/include/* \
-			 thirdparty/gtest/COPYING thirdparty/gtest/CONTRIBUTORS thirdparty/gtest/README \
-			 scripts/python/vw/*.py scripts/python/vw/gdb/*.py autogen scripts/.lcovrc
+EXTRA_DIST = \
+  autogen \
+  config.options.example \
+  config/rules.mak \
+  docs \
+  INSTALLGUIDE \
+  README.md \
+  scripts/include-graph.py \
+  scripts/.lcovrc \
+  scripts/python/vw/gdb/__init__.py \
+  scripts/python/vw/gdb/types.py \
+  scripts/python/vw/__init__.py \
+  scripts/relicense.pl \
+  thirdparty/cxxtest \
+  thirdparty/gtest/CHANGES \
+  thirdparty/gtest/CONTRIBUTORS \
+  thirdparty/gtest/COPYING \
+  thirdparty/gtest/include/gtest/gtest.h \
+  thirdparty/gtest/README \
+  thirdparty/gtest/src/gtest-all.cc \
+  thirdparty/gtest/src/gtest_main.cc
+
 
 ########################################################################
 # special top-level rules
@@ -40,11 +57,21 @@ if DIST_REMOVE_MODULES
 	for module in $(DIST_REMOVE_MODULES) ; do \
 	  rm -rf $(distdir)/src/vw/$${module} $(distdir)/src/vw/$${module}.h ; \
 	  grep -v "$${module}.*Makefile" $(distdir)/configure.ac > configure.new ; \
-	  mv configure.new $(distdir)/configure.ac ; \
+	  rebuild=0 ; \
+	  if ! diff -q $(distdir)/configure.ac configure.new ; then \
+		  mv configure.new $(distdir)/configure.ac ; \
+		  rebuild=1 ; \
+	  fi ; \
 	  grep -v "= $${module}" $(distdir)/src/vw/Makefile.am > Makefile.new ; \
-	  mv Makefile.new $(distdir)/src/vw/Makefile.am ; \
-	done
-	( cd $(distdir) && autoreconf && touch src/vw/config.h.pre.in && rm -rf autom4te.cache )
+	  if ! diff -q $(distdir)/src/vw/Makefile.am Makefile.new ; then \
+		  mv Makefile.new $(distdir)/src/vw/Makefile.am ; \
+		  rebuild=1 ; \
+	  fi ; \
+	  rm -f configure.new Makefile.new ; \
+	done ; \
+	if test x"$$rebuild" = "x1"; then \
+		( cd $(distdir) && autoreconf && touch src/vw/config.h.pre.in && rm -rf autom4te.cache ) ; \
+	fi
 endif
 
 check-local:
@@ -100,12 +127,12 @@ copy-timestamp:
 	    -a -exec touch -r {} $(STAMPFILE) \;
 
 distclean-local:
-	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
+	cd $(srcdir)/docs/workbook && $(MAKE) $(AM_MAKEFLAGS) distclean
 
 workbook: all
-	cd docs/workbook && $(MAKE) $(AM_MAKEFLAGS) workbook.pdf
+	cd $(srcdir)/docs/workbook && $(MAKE) $(AM_MAKEFLAGS) workbook.pdf
 
-doxygen: 
+doxygen:
 	cd src && doxygen
 
 doc: workbook doxygen
