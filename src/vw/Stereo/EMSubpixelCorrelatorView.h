@@ -31,7 +31,7 @@ namespace vw {
     static ImageView<PixelMask<Vector2f> >
       upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
                                int up_width, int up_height);
-    
+
     template <class ImagePixelT>
       class EMSubpixelCorrelatorView : public ImageViewBase<EMSubpixelCorrelatorView<ImagePixelT> > {
     public:
@@ -46,57 +46,57 @@ namespace vw {
 
 
       struct TfmCovarianceDisparityTo3DFunctor : public vw::ReturnFixedType<float>  {
-	float operator()(Vector<float, 3> const & u_in, Matrix<float, 3, 2> const & j_in) const {
-	  Matrix2x2 temp_1;
-	  temp_1(0,0) = u_in(0);
-	  temp_1(0,1) = u_in(1);
-	  temp_1(1,0) = u_in(1);
-	  temp_1(1,1) = u_in(2);	  
-	  Matrix3x3 temp_2 = j_in*temp_1*transpose(j_in);
-	  Vector3f s;
-	  svd(temp_2, s);
-	  //std::cout << s(0) << " " << s(1) << " " << s(2) << std::endl;
-	  return pow(s(0),.25); // svd's are eigen-values squares for symmetric matrices; std deviation is sqrt of eigen values
-	}
+        float operator()(Vector<float, 3> const & u_in, Matrix<float, 3, 2> const & j_in) const {
+          Matrix2x2 temp_1;
+          temp_1(0,0) = u_in(0);
+          temp_1(0,1) = u_in(1);
+          temp_1(1,0) = u_in(1);
+          temp_1(1,1) = u_in(2);
+          Matrix3x3 temp_2 = j_in*temp_1*transpose(j_in);
+          Vector3f s;
+          svd(temp_2, s);
+          //std::cout << s(0) << " " << s(1) << " " << s(2) << std::endl;
+          return pow(s(0),.25); // svd's are eigen-values squares for symmetric matrices; std deviation is sqrt of eigen values
+        }
       };
 
-            
+
       struct ExtractDisparityFunctor : public vw::ReturnFixedType<PixelMask<Vector2f> >  {
-	PixelMask<Vector2f> operator()(PixelMask<Vector<float, 5> > const & in) const {
-	  PixelMask<Vector2f> temp(subvector(in.child(), 0, 2));
-	  if(!in.valid()) {
-	    temp.invalidate();
-	  }
-	  return temp;
-	}
+        PixelMask<Vector2f> operator()(PixelMask<Vector<float, 5> > const & in) const {
+          PixelMask<Vector2f> temp(subvector(in.child(), 0, 2));
+          if(!in.valid()) {
+            temp.invalidate();
+          }
+          return temp;
+        }
       };
 
       struct ExtractUncertaintyFunctor : public vw::ReturnFixedType<Vector3f>  {
-	Vector3f operator()(PixelMask<Vector<float, 5> > const & in) const {
-	  Vector3f temp(subvector(in.child(), 2, 3));
-	  return temp;
-	}
+        Vector3f operator()(PixelMask<Vector<float, 5> > const & in) const {
+          Vector3f temp(subvector(in.child(), 2, 3));
+          return temp;
+        }
       };
 
       struct SpectralRadiusUncertaintyFunctor : public vw::ReturnFixedType<float> {
-	float operator()(Vector<float, 3> const & in) const {
-	  // assume a covariance matrix of the form
-	  // | a  b |
-	  // | b  c |
-	  
-	  double a = in[0];
-	  double b = in[1];
-	  double c = in[2];
-	  
-	  // compute the eigen values of the matrix
-	  double desc = sqrt(a*a + 4*b*b - 2*a*c + c*c);
-	  double e_1 = .5*(a+c - desc);
-	  double e_2 = .5*(a+c + desc);	  
-			   
-	  return sqrt(std::max<float>(e_1, e_2));
-	}
+        float operator()(Vector<float, 3> const & in) const {
+          // assume a covariance matrix of the form
+          // | a  b |
+          // | b  c |
+
+          double a = in[0];
+          double b = in[1];
+          double c = in[2];
+
+          // compute the eigen values of the matrix
+          double desc = sqrt(a*a + 4*b*b - 2*a*c + c*c);
+          double e_1 = .5*(a+c - desc);
+          double e_2 = .5*(a+c + desc);
+
+          return sqrt(std::max<float>(e_1, e_2));
+        }
       };
-      
+
       void set_pyramid_levels(int levels) { pyramid_levels = levels; }
       // EM parameter setters
       void set_kernel_size(Vector2i size) { m_kernel_size = size; }
@@ -162,17 +162,17 @@ namespace vw {
       double epsilon_inner;
       double affine_min_det;
       double affine_max_det;
-      
+
       int debug_level;
       BBox2i debug_region;
-      
+
       // private helper methods
       template <class ImageT, class DisparityT1, class DisparityT2, class AffineT>
         inline void
         m_subpixel_refine(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
-                          ImageViewBase<DisparityT1> &disparity_in, ImageViewBase<DisparityT2> &disparity_out, 
-			  ImageViewBase<AffineT> & affine_warps,
-			  BBox2i const& ROI, bool final, bool debug = false) const;
+                          ImageViewBase<DisparityT1> &disparity_in, ImageViewBase<DisparityT2> &disparity_out,
+                          ImageViewBase<AffineT> & affine_warps,
+                          BBox2i const& ROI, bool final, bool debug = false) const;
     }; // end class
 
 
