@@ -23,7 +23,7 @@ using namespace vw::camera;
 class CameraBBoxTest :  public ::testing::Test {
 protected:
   virtual void SetUp() {
-    apollo = boost::shared_ptr<CameraModel>(new PinholeModel("apollo.pinhole"));
+    apollo = boost::shared_ptr<CameraModel>(new PinholeModel(TEST_SRCDIR"/apollo.pinhole"));
     moon.set_well_known_geogcs("D_MOON");
   }
 
