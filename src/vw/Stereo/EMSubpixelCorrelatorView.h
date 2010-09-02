@@ -8,13 +8,12 @@
 #ifndef __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW__
 #define __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW__
 
-#include <vw/Image.h>
+#include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/PyramidCorrelator.h>
-#include <vw/Stereo/DisparityMap.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageView.h>
 #include <vw/Math.h>
-#include <string>
 #include <ostream>
 
 // For the PixelDisparity math.
@@ -22,15 +21,6 @@
 
 namespace vw {
   namespace stereo {
-
-    class AffineTransformOrigin;
-
-    static ImageView<float> subsample_img_by_two(ImageView<float> &img);
-    static ImageView<PixelMask<Vector2f> >
-      subsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp);
-    static ImageView<PixelMask<Vector2f> >
-      upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
-                               int up_width, int up_height);
 
     template <class ImagePixelT>
       class EMSubpixelCorrelatorView : public ImageViewBase<EMSubpixelCorrelatorView<ImagePixelT> > {

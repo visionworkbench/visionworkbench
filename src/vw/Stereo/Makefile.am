@@ -21,7 +21,7 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h		\
 	EMSubpixelCorrelatorView.hpp
 
 libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc		\
-	 Correlate.cc OptimizedCorrelator.cc
+	 Correlate.cc OptimizedCorrelator.cc EMSubpixelCorrelatorView.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 

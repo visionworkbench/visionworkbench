@@ -5,18 +5,15 @@
 // __END_LICENSE__
 
 
-#ifndef __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_CPP__
-#define __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_CPP__
+#ifndef __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_HPP__
+#define __VW_STEREO_EM_SUBPIXEL_CORRELATOR_VIEW_HPP__
 
-#include <vw/Stereo/EMSubpixelCorrelatorView.h>
 #include <vw/Stereo/AffineMixtureComponent.h>
-#include <vw/Stereo/GaussianMixtureComponent.h>
 #include <vw/Stereo/GammaMixtureComponent.h>
-#include <vw/Stereo/UniformMixtureComponent.h>
+#include <vw/Stereo/DisparityMap.h>
 
 #include <vw/Math.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <iostream>
 
 #ifdef USE_GRAPHICS
@@ -27,6 +24,17 @@ namespace vw {
   template<> struct PixelFormatID<Vector2>   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
 
   namespace stereo {
+
+    namespace detail {
+      ImageView<PixelMask<Vector2f> >
+      subsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp);
+
+      ImageView<PixelMask<Vector2f> >
+      upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
+                               int up_width, int up_height);
+    }
+
+
     inline ImageView<float> compute_spatial_weight_image(int kern_width, int kern_height, float two_sigma_sqr) {
 
       int center_pix_x = kern_width/2;
@@ -243,7 +251,7 @@ namespace vw {
         left_pyramid[i] = subsample(gaussian_filter(left_pyramid[i-1], blur_sigma_progressive), 2);
         right_pyramid[i] = subsample(gaussian_filter(right_pyramid[i-1], blur_sigma_progressive), 2);
 	
-        disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
+        disparity_map_pyramid[i] = detail::subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
         regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
       }
       
@@ -290,7 +298,7 @@ namespace vw {
           int up_width = left_pyramid[i-1].cols();
           int up_height = left_pyramid[i-1].rows();
           warps[i-1] = copy(resize(warps[i], up_width , up_height, ConstantEdgeExtension(), NearestPixelInterpolation())); //upsample affine transforms
-          disparity_map_pyramid[i-1] = copy(upsample_disp_map_by_two(disparity_map_pyramid[i], up_width, up_height));
+          disparity_map_pyramid[i-1] = copy(detail::upsample_disp_map_by_two(disparity_map_pyramid[i], up_width, up_height));
         }
         else { // here there is no next level so we refine directly to the output patch
           m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
@@ -773,182 +781,7 @@ namespace vw {
       return os;
     }
 
-
-
-#if 0
-    //image subsampling by two
-    static ImageView<float> subsample_img_by_two(ImageView<float> &img)  {
-
-      //determine the new size of the image
-      int new_width = img.cols()/2;
-      int new_height = img.rows()/2;
-
-      ImageView<float> outImg(new_width, new_height, img.planes());
-      ImageViewRef<float> interpImg = interpolate(img);
-
-      for (vw::int32 p = 0; p < outImg.planes(); p++)
-        for (vw::int32 i = 0; i < outImg.cols(); i++)
-          for (vw::int32 j = 0; j < outImg.rows(); j++)
-            outImg(i,j,p) = interpImg(2.0*i, 2.0*j, p);
-
-      #if 0
-      ImageView<float> g_img;
-      g_img = gaussian_filter(img, 1.5);
-      vw_out() << "Gaussian blurring\n";
-
-      for (vw::int32 p = 0; p < outImg.planes(); p++)
-        for (vw::int32 i = 0; i < outImg.cols(); i++)
-          for (vw::int32 j = 0; j < outImg.rows(); j++)
-            outImg(i,j,p) = g_img(2*i, 2*j, p);
-
-      #endif
-
-      return outImg;
-    }
-#endif
-
-    // disparity map down-sampling by two
-    static ImageView<PixelMask<Vector2f> >
-    subsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp)  {
-
-      // determine the new size of the image
-      int new_width = input_disp.cols()/2;
-      int new_height = input_disp.rows()/2;
-
-      ImageView<PixelMask<Vector2f> > outDisp(new_width, new_height);
-      ImageViewRef<PixelMask<Vector2f> > disp = edge_extend(input_disp, ConstantEdgeExtension() );
-
-      for (vw::int32 j = 0; j < outDisp.rows(); j++) {
-        for (vw::int32 i = 0; i < outDisp.cols(); i++) {
-
-          vw::int32 old_i = i*2;
-          vw::int32 old_j = j*2;
-
-          PixelMask<Vector2f> sum(0,0);
-          int num_valid = 0;
-
-          if ( is_valid(disp(old_i,old_j)) ) {
-            sum += disp(old_i,old_j);
-            num_valid++;
-          }
-          if ( is_valid(disp(old_i,old_j+1)) ) {
-            sum += disp(old_i,old_j+1);
-            num_valid++;
-          }
-          if ( is_valid(disp(old_i+1,old_j)) ) {
-            sum += disp(old_i+1,old_j);
-            num_valid++;
-          }
-          if ( is_valid(disp(old_i+1,old_j+1)) ) {
-            sum += disp(old_i+1,old_j+1);
-            num_valid++;
-          }
-
-          if (num_valid == 0)
-            invalidate( outDisp(i,j) );
-          else
-            outDisp(i,j) = sum/float(2*num_valid);
-        }
-      }
-
-      return outDisp;
-    }
-
-    // disparity map up-sampling by two
-    static ImageView<PixelMask<Vector2f> >
-    upsample_disp_map_by_two(ImageView<PixelMask<Vector2f> > const& input_disp,
-                             int up_width, int up_height) {
-
-      ImageView<PixelMask<Vector2f> > outDisp(up_width, up_height);
-      ImageViewRef<PixelMask<Vector2f> > disp = edge_extend(input_disp, ConstantEdgeExtension());
-
-      for (vw::int32 j = 0; j < outDisp.rows(); ++j) {
-        for (vw::int32 i = 0; i < outDisp.cols(); ++i) {
-          float x = math::impl::_floor(float(i)/2.0), y = math::impl::_floor(float(j)/2.0);
-
-          if ( i%2 == 0 && j%2 == 0) {
-            if ( !is_valid(disp(x,y)) )
-              invalidate( outDisp(i,j) );
-            else
-              outDisp(i,j) = 2 * disp(x,y);
-          }
-
-          else if (j%2 == 0) {
-            if ( !is_valid(disp(x,y)) && !is_valid(disp(x+1,y)) )
-              invalidate(outDisp(i,j));
-            else {
-              if ( is_valid(disp(x,y)) && is_valid(disp(x+1,y)) ) {
-                outDisp(i,j) = disp(x,y) + disp(x+1,y);
-              } else if ( is_valid(disp(x,y)) && !is_valid(disp(x+1,y)) ) {
-                outDisp(i,j) = 2 * disp(x,y);
-              } else if ( !is_valid(disp(x,y)) && is_valid(disp(x+1,y)) ) {
-                outDisp(i,j) = 2 * disp(x+1,y);
-              }
-            }
-          }
-
-          else if (i%2 == 0) {
-            if ( !is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) )
-              invalidate( outDisp(i,j) );
-            else {
-              if ( is_valid(disp(x,y)) && is_valid(disp(x,y+1)) ) {
-                outDisp(i,j) = disp(x,y) + disp(x,y+1);
-              } else if ( is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) ) {
-                outDisp(i,j) = 2*disp(x,y);
-              } else if ( !is_valid(disp(x,y)) && is_valid(disp(x,y+1)) ) {
-                outDisp(i,j) = 2*disp(x,y+1);
-              }
-            }
-          }
-
-          else {
-            if ( is_valid(disp(x,y)) && is_valid(disp(x,y+1)) &&
-                 is_valid(disp(x+1,y)) && is_valid(disp(x+1,y+1)) ) {
-
-              // All good pixels
-              float normx = float(i)/2.0-x, normy = float(j)/2.0-y, norm1mx = 1.0-normx, norm1my = 1.0-normy;
-              outDisp(i,j) = PixelMask<Vector2f>( 2 * (disp(x  ,y  )[0] * norm1mx*norm1my +
-                                                       disp(x+1,y  )[0] * normx*norm1my +
-                                                       disp(x  ,y+1)[0] * norm1mx*normy +
-                                                       disp(x+1,y+1)[0] * normx*normy),
-                                                  2 * (disp(x  ,y  )[1] * norm1mx*norm1my +
-                                                       disp(x+1,y  )[1] * normx*norm1my +
-                                                       disp(x  ,y+1)[1] * norm1mx*normy +
-                                                       disp(x+1,y+1)[1] * normx*normy) );
-
-            } else if ( !is_valid(disp(x,y)) && !is_valid(disp(x,y+1)) &&
-                        !is_valid(disp(x+1,y)) && !is_valid(disp(x+1,y+1)) ) {
-              // no good pixels
-              invalidate( outDisp(i,j) );
-
-            } else {
-              // some good & some bad pixels
-              //
-              // We fudge things a little bit here by picking the
-              // first good pixel.  This isn't exactly correct, but
-              // it's close enough in the handful of cases where we
-              // are near some missing pixels, and we just need an
-              // approximately valid value.  The subpixel refinement
-              // will correct any minor mistakes we introduce here.
-              if ( is_valid(disp(x,y)) ) {
-                outDisp(i,j) = 2*disp(x,y);
-              } else if ( is_valid(disp(x+1,y)) ) {
-                outDisp(i,j) = 2*disp(x+1,y);
-              } else if ( is_valid(disp(x,y+1)) ) {
-                outDisp(i,j) = 2*disp(x,y+1);
-              } else if ( is_valid(disp(x+1,y+1)) ) {
-                outDisp(i,j) = 2*disp(x+1,y+1);
-              }
-            }
-          }
-        }
-      }
-
-      return outDisp;
-    }
-
-  } // end namepsace stereo
-} // end namespace vw
+}} // namespace vw::stereo
 
 
 #endif

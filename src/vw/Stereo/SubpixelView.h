@@ -38,37 +38,6 @@ namespace stereo {
     typedef PixelMask<Vector2f> pixel_type;
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<SubpixelView> pixel_accessor;
-      
-
-    //image subsampling by two
-    ImageView<float> subsample_img_by_two(ImageView<float> &img) const {
-
-      //determine the new size of the image
-      int new_width = img.cols()/2;
-      int new_height = img.rows()/2;
-
-      ImageView<float> outImg(new_width, new_height, img.planes());
-      ImageViewRef<float> interpImg = interpolate(img);
-
-      for (vw::int32 p = 0; p < outImg.planes(); p++)
-        for (vw::int32 i = 0; i < outImg.cols(); i++)
-          for (vw::int32 j = 0; j < outImg.rows(); j++)
-            outImg(i,j,p) = interpImg(2.0*i, 2.0*j, p);
-
-      #if 0
-      ImageView<float> g_img;
-      g_img = gaussian_filter(img, 1.5);
-      vw_out() << "Gaussian blurring\n";
-
-      for (vw::int32 p = 0; p < outImg.planes(); p++)
-        for (vw::int32 i = 0; i < outImg.cols(); i++)
-          for (vw::int32 j = 0; j < outImg.rows(); j++)
-            outImg(i,j,p) = g_img(2*i, 2*j, p);
-
-      #endif
-
-      return outImg;
-    }
 
     // disparity map down-sampling by two
     ImageView<PixelMask<Vector2f> >
@@ -343,8 +312,8 @@ namespace stereo {
 
           // downsample the disparity map and the image pair
           for (int i = 1; i < pyramid_levels; i++) {
-            left_pyramid[i] = subsample_img_by_two(left_pyramid[i-1]);
-            right_pyramid[i] = subsample_img_by_two(right_pyramid[i-1]);
+            left_pyramid[i] = subsample(left_pyramid[i-1], 2);
+            right_pyramid[i] = subsample(right_pyramid[i-1], 2);
             disparity_map_pyramid[i] = subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
             regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
           }
