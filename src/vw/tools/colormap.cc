@@ -11,17 +11,16 @@
 #pragma warning(disable:4996)
 #endif
 
-#ifdef NDEBUG
-#undef NDEBUG
-#endif
-
 #include <cstdlib>
 
+#include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 #include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
 #include <boost/filesystem/path.hpp>
+#include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
+namespace po = boost::program_options;
 
 #include <vw/Core/Functors.h>
 #include <vw/Image/Algorithms.h>
@@ -37,132 +36,143 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 
-// Global variables
-std::string input_file_name, output_file_name = "", shaded_relief_file_name;
-float nodata_value;
-float min_val = 0, max_val = 0;
+struct Options {
+  // Input
+  std::string input_file_name;
+  std::string shaded_relief_file_name;
+
+  // Settings
+  std::string output_file_name, lut_file_name;
+  float nodata_value, min_val, max_val;
+  bool draw_legend;
+
+  typedef Vector<uint8,3> Vector3u;
+  typedef std::pair<std::string,Vector3u> lut_element;
+  typedef std::vector<lut_element> lut_type;
+  lut_type lut;
+  std::map<float,Vector3u> lut_map;
+};
 
 // Colormap function
-class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<float> > > {
+class ColormapFunc : public ReturnFixedType<PixelMask<PixelRGB<uint8> > > {
+  typedef std::map<float,Options::Vector3u> map_type;
+  map_type m_colormap;
 
 public:
-  ColormapFunc() {}
+  ColormapFunc( std::map<float,Options::Vector3u> const& map) : m_colormap(map) {}
 
   template <class PixelT>
-  PixelMask<PixelRGB<float> > operator() (PixelT const& pix) const {
+  PixelMask<PixelRGB<uint8> > operator() (PixelT const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelRGB<float> >();
+      return PixelMask<PixelRGB<uint8> >();
 
     float val = compound_select_channel<const float&>(pix,0);
     if (val > 1.0) val = 1.0;
     if (val < 0.0) val = 0.0;
 
-    Vector2 red_range(3/8.0, 1.0);
-    Vector2 green_range(2/8.0, 6/8.0);
-    Vector2 blue_range(0.0, 5/8.0);
+    map_type::const_iterator bot = m_colormap.upper_bound( val ); bot--;
+    map_type::const_iterator top = m_colormap.upper_bound( val );
 
-    float red_span = red_range[1] - red_range[0];
-    float blue_span = blue_range[1] - blue_range[0];
-    float green_span = green_range[1] - green_range[0];
-
-    float red = 0;
-    float green = 0;
-    float blue = 0;
-
-    // Red
-    if (val >= red_range[0] && val <= red_range[0]+red_span/3)
-      red = (val-red_range[0])/(red_span/3);
-    if (val >= red_range[0]+red_span/3 && val <= red_range[0]+2*red_span/3)
-      red = 1.0;
-    if (val >= red_range[0]+2*red_span/3 && val <= red_range[1])
-      red = 1-((val-(red_range[0]+2*red_span/3))/(red_span/3));
-
-    // Blue
-    if (val >= blue_range[0] && val <= blue_range[0]+blue_span/3)
-      blue = (val-blue_range[0])/(blue_span/3);
-    if (val >= blue_range[0]+blue_span/3 && val <= blue_range[0]+2*blue_span/3)
-      blue = 1.0;
-    if (val >= blue_range[0]+2*blue_span/3 && val <= blue_range[1])
-      blue = 1-((val-(blue_range[0]+2*blue_span/3))/(blue_span/3));
-
-     // Green
-    if (val >= green_range[0] && val <= green_range[0]+green_span/3)
-      green = (val-green_range[0])/(green_span/3);
-    if (val >= green_range[0]+green_span/3 && val <= green_range[0]+2*green_span/3)
-      green = 1.0;
-    if (val >= green_range[0]+2*green_span/3 && val <= green_range[1])
-      green = 1-((val-(green_range[0]+2*green_span/3))/(green_span/3));
-
-    return PixelRGB<float> ( red, green, blue );
+    if ( top == m_colormap.end() )
+      return PixelRGB<uint8>(bot->second[0],bot->second[1],bot->second[2]);
+    Options::Vector3u output =
+      bot->second + ((val-bot->first)/(top->first-bot->first))*(Vector3i(top->second)-Vector3i(bot->second));
+    return PixelRGB<uint8>(output[0],output[1],output[2]);
   }
 };
 
 template <class ViewT>
-UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view) {
-  return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc());
+UnaryPerPixelView<ViewT, ColormapFunc> colormap(ImageViewBase<ViewT> const& view,
+                                                std::map<float,Options::Vector3u> const& map) {
+  return UnaryPerPixelView<ViewT, ColormapFunc>(view.impl(), ColormapFunc(map));
 }
 
-// ---------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 
 template <class PixelT>
-void do_colorized_dem(po::variables_map const& vm) {
+void do_colorized_dem(Options& opt) {
   vw_out() << "Creating colorized DEM.\n";
 
   cartography::GeoReference georef;
-  cartography::read_georeference(georef, input_file_name);
+  cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
-  DiskImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
-  if (vm.count("nodata-value")) {
-    vw_out() << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
+  DiskImageResource *disk_dem_rsrc =
+    DiskImageResource::open(opt.input_file_name);
+  if (opt.nodata_value != std::numeric_limits<float>::max()) {
+    vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
   } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    nodata_value = disk_dem_rsrc->nodata_value();
-    vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+    opt.nodata_value = disk_dem_rsrc->nodata_value();
+    vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
   // Compute min/max
-  DiskImageView<PixelT> disk_dem_file(input_file_name);
-  ImageViewRef<PixelGray<float> > input_image = pixel_cast<PixelGray<float> >(select_channel(disk_dem_file,0));
-  if (min_val == 0 && max_val == 0) {
-    min_max_channel_values( create_mask( input_image, nodata_value), min_val, max_val);
-    vw_out() << "\t--> DEM color map range: [" << min_val << "  " << max_val << "]\n";
+  DiskImageView<PixelT> disk_dem_file(opt.input_file_name);
+  ImageViewRef<PixelGray<float> > input_image =
+    pixel_cast<PixelGray<float> >(select_channel(disk_dem_file,0));
+  if (opt.min_val == 0 && opt.max_val == 0) {
+    min_max_channel_values( create_mask( input_image, opt.nodata_value),
+                            opt.min_val, opt.max_val);
+    vw_out() << "\t--> DEM color map range: ["
+             << opt.min_val << "  " << opt.max_val << "]\n";
   } else {
-    vw_out() << "\t--> Using user-specified color map range: [" << min_val << "  " << max_val << "]\n";
+    vw_out() << "\t--> Using user-specified color map range: ["
+             << opt.min_val << "  " << opt.max_val << "]\n";
   }
 
-  ImageViewRef<PixelMask<PixelGray<float> > > dem;
-  if ( PixelHasAlpha<PixelT>::value ) {
-    dem = alpha_to_mask(channel_cast<float>(disk_dem_file) );
-  } else if (vm.count("nodata-value")) {
-    dem = channel_cast<float>(create_mask(input_image, nodata_value));
-  } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    dem = create_mask(input_image, nodata_value);
-  } else {
-    dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+  // Convert lut to lut_map ( converts altitudes to relative percent )
+  opt.lut_map.clear();
+  BOOST_FOREACH( Options::lut_element const& pair, opt.lut ) {
+    try {
+      if ( boost::contains(pair.first,"%") ) {
+        float key = boost::lexical_cast<float>(boost::erase_all_copy(pair.first,"%"))/100.0;
+        opt.lut_map[ key ] = pair.second;
+      } else {
+        float key = boost::lexical_cast<float>(pair.first);
+        opt.lut_map[ ( key - opt.min_val ) / ( opt.max_val - opt.min_val ) ] =
+          pair.second;
+      }
+    } catch ( boost::bad_lexical_cast const& e ) {
+      continue;
+    }
   }
+
+  // Mask input
+  ImageViewRef<PixelMask<PixelGray<float> > > dem;
+  if ( PixelHasAlpha<PixelT>::value )
+    dem = alpha_to_mask(channel_cast<float>(disk_dem_file) );
+  else if (opt.nodata_value != std::numeric_limits<float>::max())
+    dem = channel_cast<float>(create_mask(input_image, opt.nodata_value));
+  else if ( disk_dem_rsrc->has_nodata_value() )
+    dem = create_mask(input_image, opt.nodata_value);
+  else
+    dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);
+
   delete disk_dem_rsrc;
 
-  ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(normalize(dem,min_val,max_val,0,1.0));
+  // Apply colormap
+  ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
+    colormap(normalize(dem,opt.min_val,opt.max_val,0,1.0), opt.lut_map);
 
-  if (shaded_relief_file_name != "") {
-    vw_out() << "\t--> Incorporating hillshading from: " << shaded_relief_file_name << ".\n";
-    DiskImageView<PixelMask<float> > shaded_relief_image(shaded_relief_file_name);
-    ImageViewRef<PixelMask<PixelRGB<float> > > shaded_image = copy_mask(colorized_image*apply_mask(shaded_relief_image), shaded_relief_image);
-    vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
-    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(shaded_image), georef,
+  if (!opt.shaded_relief_file_name.empty()) {
+    vw_out() << "\t--> Incorporating hillshading from: "
+             << opt.shaded_relief_file_name << ".\n";
+    DiskImageView<PixelMask<float> > shaded_relief_image(opt.shaded_relief_file_name);
+    ImageViewRef<PixelMask<PixelRGB<uint8> > > shaded_image =
+      copy_mask(channel_cast<uint8>(colorized_image*apply_mask(shaded_relief_image)),
+                shaded_relief_image);
+    vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
+    write_georeferenced_image(opt.output_file_name, shaded_image, georef,
                               TerminalProgressCallback( "tools.colormap", "Writing:"));
   } else {
-    vw_out() << "Writing image color-mapped image: " << output_file_name << "\n";
-    write_georeferenced_image(output_file_name, channel_cast_rescale<uint8>(colorized_image), georef,
+    vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
+    write_georeferenced_image(opt.output_file_name, colorized_image, georef,
                               TerminalProgressCallback( "tools.colormap", "Writing:"));
   }
 }
 
-void save_legend() {
-  min_val = 0.0;
-  max_val = 1.0;
-
-  ImageView<PixelGray<float> > img(200, 500);
+void save_legend( Options const& opt) {
+  ImageView<PixelGray<float> > img(100, 500);
   for (int j = 0; j < img.rows(); ++j) {
     float val = float(j) / img.rows();
     for (int i = 0; i < img.cols(); ++i) {
@@ -170,108 +180,160 @@ void save_legend() {
     }
   }
 
-  ImageViewRef<PixelMask<PixelRGB<float> > > colorized_image = colormap(img);
+  ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
+    colormap(img, opt.lut_map);
   write_image("legend.png", channel_cast_rescale<uint8>(apply_mask(colorized_image)));
 }
 
-
-int main( int argc, char *argv[] ) {
-
-  po::options_description desc("Description: Produces a colorized image of a DEM \n\nUsage: colormap [options] <input file> \n\nOptions");
-  desc.add_options()
-    ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
-    ("shaded-relief-file,s", po::value<std::string>(&shaded_relief_file_name)->default_value(""), "Specify a shaded relief image (grayscale) to apply to the colorized image.")
-    ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
-    ("nodata-value", po::value<float>(&nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("min", po::value<float>(&min_val), "Minimum height of the color map.")
-    ("max", po::value<float>(&max_val), "Maximum height of the color map.")
+void handle_arguments( int argc, char *argv[], Options& opt ) {
+  po::options_description general_options("");
+  general_options.add_options()
+    ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
+     "Specify a shaded relief image (grayscale) to apply to the colorized image.")
+    ("output-file,o", po::value(&opt.output_file_name), "Specify the output file")
+    ("lut-file", po::value(&opt.lut_file_name), "Specify look up file for color output. It is similar to the file used by gdaldem. Without we revert to our standard LUT")
+    ("nodata-value", po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
+     "Remap the DEM default value to the min altitude value.")
+    ("min", po::value(&opt.min_val)->default_value(0), "Minimum height of the color map.")
+    ("max", po::value(&opt.max_val)->default_value(0), "Maximum height of the color map.")
     ("moon", "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
     ("mars", "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
     ("legend", "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
     ("help,h", "Display this help message");
-  po::positional_options_description p;
-  p.add("input-file", 1);
+
+  po::options_description positional("");
+  positional.add_options()
+    ("input-file", po::value(&opt.input_file_name), "Input disparity map");
+
+  po::positional_options_description positional_desc;
+  positional_desc.add("input-file", 1);
+
+  po::options_description all_options;
+  all_options.add(general_options).add(positional);
 
   po::variables_map vm;
   try {
-    po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
+    po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << desc << std::endl;
-    return 1;
+    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << general_options );
   }
 
-  if( vm.count("help") ) {
-    std::cout << desc << std::endl;
-    return 1;
-  }
+  std::ostringstream usage;
+  usage << "Usage: " << argv[0] << " [options] <input dem> \n";
 
-  if( vm.count("legend") ) {
-    std::cout << "\t--> Saving legend file to disk as \'legend.png\'\n";
-    save_legend();
-    exit(0);
+  if ( vm.count("help") )
+    vw_throw( ArgumentErr() << usage.str() << general_options );
+  if ( opt.input_file_name.empty() )
+    vw_throw( ArgumentErr() << "Missing input file!\n"
+              << usage.str() << general_options );
+  if ( vm.count("moon") ) {
+    opt.min_val = -8499;
+    opt.max_val = 10208;
   }
-
-  // This is a reasonable range of elevation values to cover global
-  // lunar topography.
-  if( vm.count("moon") ) {
-    min_val = -8499;
-    max_val = 10208;
+  if ( vm.count("mars") ) {
+    opt.min_val = -8208;
+    opt.max_val = 21249;
   }
+  if ( opt.output_file_name.empty() )
+    opt.output_file_name =
+      fs::path(opt.input_file_name).replace_extension().string()+"_CMAP.tif";
+  opt.draw_legend = vm.count("legend");
+}
 
-  // This is a reasonable range of elevation values to cover global
-  // mars topography.
-  if( vm.count("mars") ) {
-    min_val = -8208;
-    max_val = 21249;
-  }
+int main( int argc, char *argv[] ) {
 
-  if( vm.count("input-file") != 1 ) {
-    std::cout << "Error: Must specify exactly one input file!\n" << std::endl;
-    std::cout << desc << std::endl;
-    return 1;
-  }
-
-  if( output_file_name == "" ) {
-    output_file_name = fs::path(input_file_name).replace_extension().string() + "_CMAP.tif";
-  }
-
+  Options opt;
   try {
+    handle_arguments( argc, argv, opt );
+
+    // Decide legend
+    if ( opt.lut_file_name.empty() ) {
+      opt.lut.clear();
+      opt.lut.push_back( Options::lut_element("0%",   Options::Vector3u(0,0,0)) );
+      opt.lut.push_back( Options::lut_element("20.8%",Options::Vector3u(0,0,255)) );
+      opt.lut.push_back( Options::lut_element("25%",  Options::Vector3u(0,0,255)) );
+      opt.lut.push_back( Options::lut_element("37.5%",Options::Vector3u(0,191,255)) );
+      opt.lut.push_back( Options::lut_element("41.7%",Options::Vector3u(0,255,255)) );
+      opt.lut.push_back( Options::lut_element("58.3%",Options::Vector3u(255,255,51)) );
+      opt.lut.push_back( Options::lut_element("62.5%",Options::Vector3u(255,191,0)) );
+      opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,0,0)) );
+      opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,0,0)) );
+      opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(0,0,0)) );
+    } else {
+      // Read input LUT
+      typedef boost::tokenizer<> tokenizer;
+      boost::char_delimiters_separator<char> sep(false,",:");
+
+      std::ifstream lut_file( opt.lut_file_name.c_str() );
+      if ( !lut_file.is_open() )
+        vw_throw( IOErr() << "Unable to open LUT: " << opt.lut_file_name );
+      std::string line;
+      std::getline( lut_file, line );
+      while ( lut_file.good() ) {
+        tokenizer tokens(line,sep);
+        tokenizer::iterator iter = tokens.begin();
+
+        std::string key;
+        Options::Vector3u value;
+
+        try {
+          if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+          key = *iter; iter++;
+          if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+          value[0] = boost::numeric_cast<uint8>(boost::lexical_cast<int>(*iter)); iter++;
+          if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+          value[1] = boost::numeric_cast<uint8>(boost::lexical_cast<int>(*iter)); iter++;
+          if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
+          value[2] = boost::numeric_cast<uint8>(boost::lexical_cast<int>(*iter));
+        } catch ( boost::bad_lexical_cast const& e ) {
+          std::getline( lut_file, line );
+          continue;
+        }
+        opt.lut.push_back( Options::lut_element(key, value) );
+        std::getline( lut_file, line );
+      }
+      lut_file.close();
+    }
 
     // Get the right pixel/channel type.
-    DiskImageResource *rsrc = DiskImageResource::open(input_file_name);
+    DiskImageResource *rsrc = DiskImageResource::open(opt.input_file_name);
     ChannelTypeEnum channel_type = rsrc->channel_type();
     PixelFormatEnum pixel_format = rsrc->pixel_format();
     delete rsrc;
 
-
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
       switch(channel_type) {
-      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGray<uint8>   >(vm); break;
-      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(vm); break;
-      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(vm); break;
-      default:                do_colorized_dem<PixelGray<float32> >(vm); break;
+      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGray<uint8>   >(opt); break;
+      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(opt); break;
+      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(opt); break;
+      default:                do_colorized_dem<PixelGray<float32> >(opt); break;
       }
       break;
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
-      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGrayA<uint8>   >(vm); break;
-      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGrayA<int16>   >(vm); break;
-      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGrayA<uint16>  >(vm); break;
-      default:                do_colorized_dem<PixelGrayA<float32> >(vm); break;
+      case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGrayA<uint8>   >(opt); break;
+      case VW_CHANNEL_INT16:  do_colorized_dem<PixelGrayA<int16>   >(opt); break;
+      case VW_CHANNEL_UINT16: do_colorized_dem<PixelGrayA<uint16>  >(opt); break;
+      default:                do_colorized_dem<PixelGrayA<float32> >(opt); break;
       }
       break;
     default:
-      std::cout << "Error: Unsupported pixel format.  The DEM image must have only one channel.";
-      exit(0);
+      vw_throw( ArgumentErr() << "Unsupported pixel format. The DEM image must have only one channel." );
     }
-  }
-  catch( Exception& e ) {
-    std::cerr << "Error: " << e.what() << std::endl;
-  }
 
+    // Draw legend
+    if ( opt.draw_legend )
+      save_legend(opt);
+
+  } catch ( const ArgumentErr& e ) {
+    vw_out() << e.what() << std::endl;
+    return 1;
+  } catch ( const Exception& e ) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
+  }
   return 0;
 }
