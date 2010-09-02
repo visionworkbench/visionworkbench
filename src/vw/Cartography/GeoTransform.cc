@@ -13,6 +13,47 @@
 // Proj.4
 #include <projects.h>
 
+namespace {
+  class BresenhamLine {
+    vw::int32 x0, y0, x1, y1;
+    vw::int32 x, y;
+    bool steep;
+    vw::int32 deltax, deltay, error, ystep;
+  public:
+    BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
+    x0(start[0]), y0(start[1]), x1(stop[0]), y1(stop[1]), x(start[0]), y(start[1]) {
+      steep = abs(y1-y0) > abs(x1-x0);
+      if (steep) {
+        std::swap(x0,y0);
+        std::swap(x1,y1);
+      }
+      deltax = x1 - x0;
+      deltay = abs(y1-y0);
+      error = deltax / 2;
+      ystep = y0 < y1 ? 1 : -1;
+    }
+
+    vw::Vector2i operator*() const {
+      if (steep)
+        return vw::Vector2i(y,x);
+      else
+        return vw::Vector2i(x,y);
+    }
+
+    void operator++() {
+      x++;
+      error -= deltay;
+      if ( error < 0 ) {
+        y += ystep;
+        error += deltax;
+      }
+    }
+
+    bool is_good() const { return x < x1 && y < y1; }
+  };
+}
+
+
 
 namespace vw {
 namespace cartography {
@@ -74,6 +115,48 @@ namespace cartography {
     CHECK_PROJ_ERROR;
 
     return Vector2(x, y);
+  }
+
+  BBox2i GeoTransform::forward_bbox( BBox2i const& bbox ) const {
+    BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::forward_bbox(bbox);
+    BresenhamLine l1( bbox.min(), bbox.max() );
+    while ( l1.is_good() ) {
+      try {
+        r.grow( this->forward( *l1 ) );
+      } catch ( cartography::ProjectionErr const& e ) {}
+      ++l1;
+    }
+    BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
+        bbox.max() + Vector2i(-bbox.width(),0) );
+    while ( l2.is_good() ) {
+      try {
+        r.grow( this->forward( *l2 ) );
+      } catch ( cartography::ProjectionErr const& e ) {}
+      ++l2;
+    }
+
+    return grow_bbox_to_int(r);
+  }
+
+  BBox2i GeoTransform::reverse_bbox( BBox2i const& bbox ) const {
+    BBox2 r = TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction>::reverse_bbox(bbox);
+    BresenhamLine l1( bbox.min(), bbox.max() );
+    while ( l1.is_good() ) {
+      try {
+        r.grow( this->reverse( *l1 ) );
+      } catch ( cartography::ProjectionErr const& e ) {}
+      ++l1;
+    }
+    BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
+        bbox.max() + Vector2i(-bbox.width(),0) );
+    while ( l2.is_good() ) {
+      try {
+        r.grow( this->reverse( *l2 ) );
+      } catch ( cartography::ProjectionErr const& e ) {}
+      ++l2;
+    }
+
+    return grow_bbox_to_int(r);
   }
 
   void reproject_point_image(ImageView<Vector3> const& point_image,
