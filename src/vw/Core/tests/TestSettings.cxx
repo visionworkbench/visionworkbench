@@ -44,6 +44,7 @@ TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
 
   UnlinkName file("test_vwrc");
   std::ofstream ostr(file.c_str());
+  ASSERT_TRUE(ostr.is_open()) << "Could not open test config file for writing";
   ostr << conf;
   ostr.close();
 

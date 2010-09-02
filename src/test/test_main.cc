@@ -25,17 +25,26 @@ int main(int argc, char **argv) {
   return RUN_ALL_TESTS();
 }
 
-vw::test::UnlinkName::UnlinkName(std::string base, std::string directory)
+namespace vw {
+namespace test {
+
+UnlinkName::UnlinkName(const std::string& base, const std::string& directory)
   : std::string(directory + "/" + base) {
+
+  VW_ASSERT(!directory.empty(), ArgumentErr() << "An empty directory path is dangerous");
   fs::remove_all(this->c_str());
 }
 
-vw::test::UnlinkName::UnlinkName(const char* base, std::string directory)
+UnlinkName::UnlinkName(const char *base, const std::string& directory)
   : std::string(directory + "/" + base) {
+
+  VW_ASSERT(!directory.empty(), ArgumentErr() << "An empty directory path is dangerous");
   fs::remove_all(this->c_str());
 }
 
-vw::test::UnlinkName::~UnlinkName() {
+UnlinkName::~UnlinkName() {
   if (!this->empty())
     fs::remove_all(this->c_str());
 }
+
+}} // namespace vw::test

@@ -39,16 +39,16 @@ namespace vw {
 
 using namespace ::testing;
 
-#ifndef TEST_SRCDIR
-#error TEST_SRCDIR is not defined! Define it before including this header.
+#ifndef TEST_OBJDIR
+#error TEST_OBJDIR is not defined! Define it before including this header.
 #endif
 
 // Create a temporary filename that is unlinked when constructed and destructed
 class UnlinkName : public std::string {
   public:
     UnlinkName() {}
-    UnlinkName(std::string base, std::string directory=TEST_SRCDIR);
-    UnlinkName(const char *base, std::string directory=TEST_SRCDIR);
+    UnlinkName(const std::string& base, const std::string& directory=TEST_OBJDIR);
+    UnlinkName(const char *base,        const std::string& directory=TEST_OBJDIR);
     ~UnlinkName();
 };
 
