@@ -39,22 +39,6 @@ AC_SUBST([abs_top_builddir])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-dnl TODO RIGHT BEFORE RELEASE: update libtool version
-dnl if abi changes in any way:
-dnl     current++
-dnl     revision=0
-dnl     if new abi is backward-compatible:
-dnl         age += 1
-dnl     else:
-dnl         age = 0
-dnl else:
-dnl     revision++
-dnl (see http://sources.redhat.com/autobook/autobook/autobook_91.html)
-dnl
-dnl LIBTOOL_VERSION=current:revision:age
-LIBTOOL_VERSION=5:0:0
-AC_SUBST(LIBTOOL_VERSION)
-
 m4_divert_text([INIT_PREPARE], [dnl
 # load the config.options
 if test -f ./config.options; then

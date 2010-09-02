@@ -110,7 +110,7 @@ SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)              \
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =
-libvw_la_LDFLAGS= -version-info @LIBTOOL_VERSION@
+libvw_la_LDFLAGS= $(LIBTOOL_LIB_FLAGS)
 libvw_la_LIBADD = Core/libvwCore.la Math/libvwMath.la Image/libvwImage.la FileIO/libvwFileIO.la
 # This makes sure we're using the c++ linker
 nodist_EXTRA_libvw_la_SOURCES = dummy.cxx

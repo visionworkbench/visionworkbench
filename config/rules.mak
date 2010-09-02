@@ -10,6 +10,8 @@ newtest:
 
 .PHONY: newtest
 
+LIBTOOL_LIB_FLAGS = -release $(VERSION)
+
 SUFFIXES = .totallyfakeplaceholder
 include $(top_srcdir)/thirdparty/autotroll.mak
 
