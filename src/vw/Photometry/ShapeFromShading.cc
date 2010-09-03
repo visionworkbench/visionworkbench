@@ -43,8 +43,8 @@ using namespace vw::cartography;
 #include <vw/Photometry/ShapeFromShading.h>
 using namespace vw::photometry;
 
-#define horBlockSize 8 //8 //4
-#define verBlockSize 8 //8 //4
+#define horBlockSize 16 //8 //4
+#define verBlockSize 16 //8 //4
 //#define HOR_BLOCK_SIZE 16 //8 //4
 //#define VER_BLOCK_SIZE 16 //8 //4
 #define numJacobianRows (horBlockSize+1)*(verBlockSize+1)
@@ -724,6 +724,6 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
   write_georeferenced_image(sfsDEMFilename, sfsDEM,
       DEM_geo, TerminalProgressCallback("photometry","Processing:"));
   //write in the error in terms of height
-  write_georeferenced_image(errorHeightFilename, errorHeight,
-      DEM_geo, TerminalProgressCallback("photometry","Processing:"));
+  //write_georeferenced_image(errorHeightFilename, errorHeight,
+  //    DEM_geo, TerminalProgressCallback("photometry","Processing:"));
 }

@@ -77,6 +77,59 @@ struct WeightedAverage : public ReduceBase<WeightedAverage> {
   }
 };
 
+// Weighted Variance Implementation
+struct WeightedVar2 : public ReduceBase<WeightedVar2> {
+
+  template <class PixelT>
+  inline void operator()( list<ImageView<PixelT> > const& input,
+                          list<TileHeader> const& /*input_header*/,
+                          ImageView<PixelT> & var2) {
+    // Input Images will always have an alpha channel. That is a requirement of PlateFiles.
+    int num_channels = CompoundNumChannels<PixelT>::value;
+    std::vector<ImageView<float32> > sum_weighted_data; //store the mean
+    std::vector<ImageView<float32> > sum_weighted_data2; //store the variance
+
+    for ( uint8 i = 0; i < num_channels-1; i++ ){
+      sum_weighted_data.push_back(ImageView<float32>(input.front().cols(),
+                                                     input.front().rows()));
+      sum_weighted_data2.push_back(ImageView<float32>(input.front().cols(),
+                                                     input.front().rows()));
+    }
+
+    ImageView<float32> summed_weights(input.front().cols(),
+                                      input.front().rows());
+
+    // Summing multiple images
+    typedef typename list< ImageView<PixelT > >::const_iterator image_iter;
+    for ( image_iter image = input.begin();image != input.end(); image++ ) {
+      summed_weights += channel_cast<float32>(select_channel(*image,num_channels-1));
+
+      // Iterating over non alpha channels
+      for ( uint8 i = 0; i < num_channels-1; i++ ){
+        sum_weighted_data[i] += channel_cast<float32>(select_channel(*image,num_channels-1))*channel_cast<float32>(select_channel(*image,i));
+        
+        sum_weighted_data2[i] += channel_cast<float32>(select_channel(*image,num_channels-1))
+                                 *channel_cast<float32>(select_channel(*image,i))*channel_cast<float32>(select_channel(*image,i));
+      }
+    }
+
+    // Normalizing
+    for ( uint8 i = 0; i < num_channels-1; i++ ){
+      sum_weighted_data[i] /= summed_weights;
+      sum_weighted_data2[i] = sum_weighted_data2[i]/summed_weights - sum_weighted_data[i];
+    }
+
+    var2.set_size(input.front().cols(),
+                  input.front().rows());
+    for ( uint8 i = 0; i < num_channels-1; i++ )
+      select_channel(var2,i) = sum_weighted_data2[i];
+    // Setting output alpha
+    select_channel(var2,num_channels-1) = threshold(summed_weights,0,
+                                                    ChannelRange<typename PixelChannelType<PixelT>::type>::min(),
+                                                    ChannelRange<typename PixelChannelType<PixelT>::type>::max());
+  }
+};
+
 // Robust Mean Implementation
 struct RobustMean : public ReduceBase<RobustMean> {
 private:
@@ -387,6 +440,10 @@ int main( int argc, char *argv[] ) {
     } else if ( opt.function == "robustmean" ) {
       RobustMean f;
       do_run<RobustMean>( opt, f );
+    }
+    else if ( opt.function == "weightedvar2" ) {
+      WeightedVar2 f;
+      do_run<WeightedVar2>( opt, f );
     } else {
       vw_throw( ArgumentErr() << "Unknown function, " << opt.function << "\n" );
     }
