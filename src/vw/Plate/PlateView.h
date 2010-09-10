@@ -11,8 +11,6 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Core/Cache.h>
-
 #include <boost/foreach.hpp>
 
 namespace vw {

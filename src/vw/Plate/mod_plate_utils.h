@@ -11,7 +11,6 @@
 #include <vw/Core/Exception.h>
 #include <vw/Plate/HTTPUtils.h>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <boost/function.hpp>
 #include <set>

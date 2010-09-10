@@ -79,7 +79,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
   if (m_blob_locks.size() >= m_max_blobs) {
     return -1;
   } else {
-    BlobRecord rec;
+    BlobCacheRecord rec;
     m_blob_locks.push_back(rec);
     return m_blob_locks.size() - 1;
   }

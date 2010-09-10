@@ -8,10 +8,13 @@
 #ifndef __VW_PLATE_TOAST_DEM_H__
 #define __VW_PLATE_TOAST_DEM_H__
 
-#include <vw/Plate/PlateFile.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <boost/shared_array.hpp>
 
 namespace vw {
 namespace platefile {
+
+  class PlateFile;
 
   // -------------------------------------------------------------------------
   //                              TOAST DEM UTILITIES

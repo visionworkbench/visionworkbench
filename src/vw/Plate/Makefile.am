@@ -17,8 +17,8 @@ if MAKE_MODULE_PLATE
 # dependency for compile-order calculations
 PLATE_LOCAL_LIBS = libvwPlate.la @MODULE_PLATE_LIBS@
 
-protocol_headers = ProtoBuffers.pb.h WMSMessages.pb.h
-protocol_sources = ProtoBuffers.pb.cc WMSMessages.pb.cc
+protocol_headers = ProtoBuffers.pb.h
+protocol_sources = ProtoBuffers.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 
@@ -43,8 +43,8 @@ include_HEADERS =           \
   SnapshotManager.h         \
   TileManipulation.h        \
   ToastDem.h                \
-  ToastPlateManager.h       \
-  WMSService.h
+  ToastPlateManager.h
+#  WMSService.h
 
 nodist_include_HEADERS = $(protocol_headers)
 noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
@@ -67,8 +67,8 @@ libvwPlate_la_SOURCES =      \
   SnapshotManager.cc         \
   TileManipulation.cc        \
   ToastDem.cc                \
-  ToastPlateManager.cc       \
-  WMSService.cc
+  ToastPlateManager.cc
+#  WMSService.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
@@ -112,11 +112,11 @@ if ENABLE_EXCEPTIONS
 index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
 
-wms_server_SOURCES = wms_server.cc
-wms_server_LDADD = $(PLATE_LOCAL_LIBS)
-
-wms_client_SOURCES = wms_client.cc
-wms_client_LDADD = $(PLATE_LOCAL_LIBS)
+#wms_server_SOURCES = wms_server.cc
+#wms_server_LDADD = $(PLATE_LOCAL_LIBS)
+#
+#wms_client_SOURCES = wms_client.cc
+#wms_client_LDADD = $(PLATE_LOCAL_LIBS)
 
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
@@ -175,9 +175,9 @@ bin_PROGRAMS =   \
   rebuild_index  \
   rpc_tool       \
   snapshot       \
-  tiles2plate    \
-  wms_client     \
-  wms_server
+  tiles2plate
+  #wms_client
+  #wms_server
 
 endif
 

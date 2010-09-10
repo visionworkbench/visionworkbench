@@ -16,7 +16,7 @@ using namespace vw;
 //                            PLATE INDEX
 // -------------------------------------------------------------------
 
-boost::shared_ptr<Index> Index::construct_create(std::string url, IndexHeader new_index_info) {
+boost::shared_ptr<Index> Index::construct_create(std::string url, const IndexHeader& new_index_info) {
 
   // Remote index URLs start with "pf://..."
   if (url.find("pf://") == 0) {

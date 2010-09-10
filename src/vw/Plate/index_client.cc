@@ -9,6 +9,7 @@
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/common.h>
+#include <vw/Plate/Index.h>
 
 #include <boost/scoped_ptr.hpp>
 #include <boost/foreach.hpp>

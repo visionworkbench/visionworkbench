@@ -6,6 +6,7 @@
 
 
 #include <vw/Plate/PlateManager.h>
+#include <vw/Plate/TileManipulation.h>
 #include <vw/Image/Transform.h>
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.

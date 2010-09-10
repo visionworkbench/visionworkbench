@@ -8,13 +8,11 @@
 #ifndef __VW_PLATEFILE_INDEX_PAGE_H__
 #define __VW_PLATEFILE_INDEX_PAGE_H__
 
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Log.h>
-#include <vw/Math/BBox.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
-#include <vw/Plate/Exception.h>
-
 #include <vw/Plate/google/sparsetable>
+#include <vw/Math/BBox.h>
+#include <vw/Core/FundamentalTypes.h>
+
 #include <string>
 #include <list>
 

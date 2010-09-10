@@ -12,6 +12,8 @@
 #include <vw/Cartography/GeoTransform.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Image/Filter.h>
+#include <vw/Image/Algorithms.h>
 
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>

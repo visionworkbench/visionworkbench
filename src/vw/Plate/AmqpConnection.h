@@ -8,21 +8,20 @@
 #ifndef __VW_PLATE_AMQP__
 #define __VW_PLATE_AMQP__
 
-#include <string>
-#include <boost/shared_ptr.hpp>
-#include <boost/shared_array.hpp>
-#include <boost/utility.hpp>
-#include <boost/function.hpp>
-
-#include <vw/Core/Log.h>
+#include <vw/Plate/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/VarArray.h>
-#include <vw/Plate/Exception.h>
+#include <vw/Core/Thread.h>
+
+#include <amqp.h>
+
+#include <boost/shared_ptr.hpp>
+#include <boost/utility.hpp>
+#include <boost/function.hpp>
 
 #include <set>
 
-#include <amqp.h>
 
 namespace vw {
 namespace platefile {

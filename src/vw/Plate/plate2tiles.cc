@@ -5,25 +5,21 @@
 // __END_LICENSE__
 
 
-/// deplate.cc
-///
 /// Converts a plate file to a nested set of directories and tiles on
 /// disk.
 
 #include <sstream>
-
-#include <vw/Image.h>
-#include <vw/FileIO.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/PlateManager.h>    // for bbox_tiles()...
-#include <vw/Plate/ToastDem.h>
+#include <vw/Plate/TileManipulation.h>
 
 using namespace vw;
 using namespace vw::platefile;
 
 #include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
+#include <boost/filesystem/operations.hpp>
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {

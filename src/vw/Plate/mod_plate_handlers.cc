@@ -13,6 +13,7 @@
 #include <vw/Plate/common.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Index.h>
+#include <vw/Plate/Exception.h>
 
 #include <httpd.h>
 #include <http_core.h>

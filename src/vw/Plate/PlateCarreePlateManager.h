@@ -8,26 +8,20 @@
 #ifndef __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
 
-#include <vw/Image.h>
+#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageViewRef.h>
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/ToastTransform.h>
-#include <vw/Mosaic/ImageComposite.h>
-
-#include <vw/Plate/Index.h>
-#include <vw/Plate/Blob.h>
-#include <vw/Plate/PlateFile.h>
 #include <vw/Plate/PlateManager.h>
-
 #include <vector>
-#include <fstream>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-namespace fs = boost::filesystem;
+#include <sstream>
 
 namespace vw {
 namespace platefile {
+
+  class PlateFile;
+  class TileInfo;
 
 
     /// Compute the bounding boxes for [ tile_size x tile_size ] tiles

@@ -8,19 +8,18 @@
 #ifndef __VW_PLATEFILE_INDEX_H__
 #define __VW_PLATEFILE_INDEX_H__
 
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Log.h>
-#include <vw/Math/BBox.h>
-#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
-#include <vw/Plate/IndexPage.h>
-
+#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Math/BBox.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <list>
 
 #define VW_PLATE_INDEX_VERSION 3
 
 namespace vw {
 namespace platefile {
+
+  class IndexPage;
 
   // -------------------------------------------------------------------
   //                          INDEX BASE CLASS
@@ -42,7 +41,7 @@ namespace platefile {
     /// created.  All other URLs will create a local index.
     ///
     /// This method creates a new index.
-    static boost::shared_ptr<Index> construct_create(std::string url, IndexHeader new_index_info);
+    static boost::shared_ptr<Index> construct_create(std::string url, const IndexHeader& new_index_info);
 
     /// Destructor
     virtual ~Index() {}

@@ -9,16 +9,15 @@
 #define __VW_PLATE_INDEX_SERVICE_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Plate/Index.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
-
-#include <google/protobuf/service.h>
+#include <boost/shared_ptr.hpp>
 
 namespace vw {
 namespace platefile {
 
-  class IndexServiceImpl : public IndexService {
+  class Index;
 
+  class IndexServiceImpl : public IndexService {
 
     struct IndexServiceRecord {
       std::string short_plate_filename;

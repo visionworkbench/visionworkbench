@@ -7,6 +7,7 @@
 
 #include "mod_plate_utils.h"
 #include <vw/Plate/Index.h>
+#include <vw/Core/Log.h>
 
 #include <httpd.h>
 #include <http_protocol.h>

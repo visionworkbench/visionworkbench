@@ -13,7 +13,6 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
-#include <vw/Core/Exception.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <string>

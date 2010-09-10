@@ -94,23 +94,16 @@
 #ifndef __VW_PLATE_PLATEFILE_H__
 #define __VW_PLATE_PLATEFILE_H__
 
-#include <vw/Math/Vector.h>
-#include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/Core/ThreadPool.h>
-
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Exception.h>
 
-#include <vector>
-#include <fstream>
-#include <stdlib.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Math/Vector.h>
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/scoped_array.hpp>
-namespace fs = boost::filesystem;
+#include <sstream>
 
 namespace vw {
 namespace platefile {

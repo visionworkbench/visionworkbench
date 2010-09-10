@@ -34,18 +34,13 @@
 ///
 /// 
 
-#include <fstream>
-#include <string>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/shared_array.hpp>
+#include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
-
-#include <vw/Plate/ProtoBuffers.pb.h>
-
-namespace fs = boost::filesystem;
+#include <boost/shared_array.hpp>
+#include <fstream>
+#include <string>
 
 namespace vw {
 namespace platefile {

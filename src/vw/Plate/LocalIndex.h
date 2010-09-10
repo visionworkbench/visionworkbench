@@ -9,15 +9,14 @@
 #define __VW_PLATEFILE_LOCAL_INDEX_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Log.h>
 #include <vw/Image/PixelTypeInfo.h>
-
 #include <vw/Plate/PagedIndex.h>
-#include <vw/Plate/BlobManager.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
 
 namespace vw {
 namespace platefile {
+
+  class BlobManager;
+  class TileHeader;
 
   // ----------------------------------------------------------------------
   //                         LOCAL INDEX PAGE

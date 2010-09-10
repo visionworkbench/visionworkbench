@@ -6,6 +6,9 @@
 
 
 #include <vw/Plate/ToastPlateManager.h>
+#include <vw/Image/Filter.h>
+#include <vw/Image/Algorithms.h>
+
 using namespace vw::platefile;
 using namespace vw;
 using std::vector;

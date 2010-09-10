@@ -6,6 +6,7 @@
 
 
 #include <vw/Plate/SnapshotManager.h>
+#include <vw/Plate/PlateFile.h>
 #include <vw/Plate/TileManipulation.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Image/ImageView.h>

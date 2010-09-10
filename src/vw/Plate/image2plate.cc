@@ -23,7 +23,6 @@
 
 using namespace vw;
 using namespace vw::platefile;
-using namespace vw::mosaic;
 using namespace vw::cartography;
 
 #include <boost/program_options.hpp>

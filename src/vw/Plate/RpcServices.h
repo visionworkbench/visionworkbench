@@ -8,19 +8,13 @@
 #ifndef __VW_PLATE_RPC_SERVICES_H__
 #define __VW_PLATE_RPC_SERVICES_H__
 
-#include <arpa/inet.h>
-
+#include <vw/Plate/Exception.h>
+#include <vw/Plate/AmqpConnection.h>
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/ThreadQueue.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
-#include <vw/Plate/AmqpConnection.h>
-#include <vw/Plate/Exception.h>
-
+#include <vw/Core/Log.h>
 #include <google/protobuf/service.h>
-
-#include <boost/shared_array.hpp>
 
 namespace vw {
 namespace platefile {

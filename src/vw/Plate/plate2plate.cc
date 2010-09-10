@@ -6,10 +6,9 @@
 
 
 #include <vw/Plate/ToastDem.h>
-#include <vw/Plate/PlateManager.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Core.h>
-#include <boost/shared_ptr.hpp>
+#include <vw/Plate/TileManipulation.h>
+#include <vw/Core/Debugging.h>
 #include <boost/foreach.hpp>
 
 #include <boost/program_options.hpp>

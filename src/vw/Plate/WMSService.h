@@ -8,13 +8,14 @@
 #ifndef __VW_PLATE_INDEX_SERVICE_H__
 #define __VW_PLATE_INDEX_SERVICE_H__
 
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Plate/PlateFile.h>
 #include <vw/Plate/WMSMessages.pb.h>
-#include <google/protobuf/service.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <boost/shared_ptr.hpp>
 
 namespace vw {
 namespace platefile {
+
+  class PlateFile;
 
   class WMSServiceImpl : public WMSService {
 

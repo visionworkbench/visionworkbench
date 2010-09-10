@@ -8,27 +8,25 @@
 #ifndef __VW_PLATE_TOAST_PLATEMANAGER_H__
 #define __VW_PLATE_TOAST_PLATEMANAGER_H__
 
-#include <vw/Image.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
+
 #include <vw/Math/Vector.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/ToastTransform.h>
-#include <vw/Mosaic/ImageComposite.h>
 
-#include <vw/Plate/Index.h>
-#include <vw/Plate/PlateFile.h>
 #include <vw/Plate/PlateManager.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 
-#include <vector>
-#include <fstream>
-
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
 #include <boost/algorithm/string.hpp>
-namespace fs = boost::filesystem;
+#include <vector>
+#include <sstream>
 
 namespace vw {
 namespace platefile {
+
+  class PlateFile;
+
     // Compute the bounding boxes for [ tile_size x tile_size ] tiles
     // to generate for an image with image_bbox in a TOAST
     // projection space that is [ resolution x resolution ] pixels in

@@ -17,7 +17,9 @@ using namespace vw;
 using namespace vw::platefile;
 
 #include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
 namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 struct Tile {
   fs::path m_path;

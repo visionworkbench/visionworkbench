@@ -8,6 +8,9 @@
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/IndexPage.h>
+#include <vw/Plate/Index.h>
+#include <vw/Core/Log.h>
+
 using namespace vw::platefile;
 
 #include <boost/regex.hpp>

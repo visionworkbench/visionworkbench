@@ -5,18 +5,19 @@
 // __END_LICENSE__
 
 
-#include <vw/Core/Exception.h>
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/common.h>
 #include <vw/Plate/ProtoBuffers.pb.h>
 #include <vw/Plate/HTTPUtils.h>
+#include <vw/Plate/RpcServices.h>
+#include <vw/Core/Exception.h>
 
 using namespace vw;
 using namespace vw::platefile;
 
-#include <unistd.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/lexical_cast.hpp>
+#include <unistd.h>
  
 // A dummy method for passing to the RPC calls below.
 static void null_closure() {}

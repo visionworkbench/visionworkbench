@@ -10,18 +10,15 @@
 
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Cache.h>
-
 #include <vw/Plate/Index.h>
 #include <vw/Plate/IndexPage.h>
-#include <vw/Plate/BlobManager.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <vector>
-#include <string>
 #include <list>
 
 namespace vw {
 namespace platefile {
+  class TileHeader;
 
   // --------------------------------------------------------------------
   //                             INDEX LEVEL

@@ -5,199 +5,192 @@
 // __END_LICENSE__
 
 
- #include <vw/Core/ProgressCallback.h>
- #include <vw/Core/Log.h>
- #include <vw/Plate/LocalIndex.h>
- #include <vw/Plate/RemoteIndex.h>
- #include <vw/Plate/Blob.h>
- using namespace vw;
- using namespace vw::platefile;
+#include <vw/Core/ProgressCallback.h>
+#include <vw/Core/Log.h>
+#include <vw/Plate/LocalIndex.h>
+#include <vw/Plate/RemoteIndex.h>
+#include <vw/Plate/Blob.h>
+#include <vw/Plate/BlobManager.h>
 
- #include <fstream>
- #include <boost/filesystem.hpp>
- #include <boost/regex.hpp>
- #include <algorithm>
- namespace fs = boost::filesystem;
+using namespace vw;
+using namespace vw::platefile;
 
- // ----------------------------------------------------------------------
- //                         LOCAL INDEX PAGE
- // ----------------------------------------------------------------------
+#include <fstream>
+#include <boost/filesystem.hpp>
+#include <boost/regex.hpp>
+#include <algorithm>
+namespace fs = boost::filesystem;
 
- vw::platefile::LocalIndexPage::LocalIndexPage(std::string filename, 
-                                               int level, int base_col, int base_row, 
-                                               int page_width, int page_height) : 
-   IndexPage(level, base_col, base_row, page_width, page_height),
-   m_filename(filename), m_needs_saving(false) {
+LocalIndexPage::LocalIndexPage(std::string filename, int level, int base_col,
+                               int base_row, int page_width, int page_height)
+  : IndexPage(level, base_col, base_row, page_width, page_height),
+    m_filename(filename), m_needs_saving(false)
+{
+  if (fs::exists(filename)) {
+    this->deserialize();
+  }
+}
 
-   if (fs::exists(filename)) {
-     this->deserialize();
-   } 
- }
+LocalIndexPage::~LocalIndexPage() {
+  this->sync();
+}
 
- vw::platefile::LocalIndexPage::~LocalIndexPage() {
-   this->sync();
- }
+// Hijack this method momentartarily to mark the page as "dirty" by
+// setting m_needs_saving to true.
+void LocalIndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
- // Hijack this method momentartarily to mark the page as "dirty" by
- // setting m_needs_saving to true.
- void vw::platefile::LocalIndexPage::set(TileHeader const& header, IndexRecord const& record) { 
+  // First call up to the parent class and let the original code run.
+  IndexPage::set(header, record);
 
-   // First call up to the parent class and let the original code run.
-   IndexPage::set(header, record);
+  // Then, mark this page is 'dirty' so that it gets saved to disk
+  // when destroyed.
+  m_needs_saving = true;
+}
 
-   // Then, mark this page is 'dirty' so that it gets saved to disk
-   // when destroyed.
-   m_needs_saving = true;
- }
+void LocalIndexPage::sync() {
+  if (m_needs_saving) {
+    this->serialize();
+    m_needs_saving = false;
+  }
+}
 
- void vw::platefile::LocalIndexPage::sync() {
-   if (m_needs_saving) {
-     this->serialize();
-     m_needs_saving = false;
-   }
- }
+void LocalIndexPage::serialize() {
 
- void vw::platefile::LocalIndexPage::serialize() {
+  // Create the necessary directories if they do not yet exist.
+  try {
+    fs::path page_path(m_filename);
+    fs::create_directories(page_path.parent_path());
+  } catch ( fs::basic_filesystem_error<fs::path> &e ) {
+    vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
+  }
 
-   // Create the necessary directories if they do not yet exist.
-   try {
-     fs::path page_path(m_filename);
-     fs::create_directories(page_path.parent_path());
-   } catch ( fs::basic_filesystem_error<fs::path> &e ) { 
-     vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
-   }
+  std::ofstream ostr(m_filename.c_str(), std::ios::trunc);
+  if (!ostr.good())
+    vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open "
+        << m_filename << " for writing.\n");
 
-   std::ofstream ostr(m_filename.c_str(), std::ios::trunc);
-   if (!ostr.good())
-     vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " 
-              << m_filename << " for writing.\n");
+  // Call up to superclass to finish serializing.
+  IndexPage::serialize(ostr);
 
-   // Call up to superclass to finish serializing.
-   IndexPage::serialize(ostr);
+  ostr.close();
+  m_needs_saving = false;
+}
 
-   ostr.close();
-   m_needs_saving = false;
- }
+void LocalIndexPage::deserialize() {
 
- void vw::platefile::LocalIndexPage::deserialize() {
+  std::ifstream istr(m_filename.c_str());
+  if (!istr.good())
+    vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open "
+        << m_filename << " for reading.\n");
 
-   std::ifstream istr(m_filename.c_str());
-   if (!istr.good())
-     vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open " 
-              << m_filename << " for reading.\n");
+  // Call up to superclass to finish deserializing.
+  try {
+    IndexPage::deserialize(istr);
+  } catch (vw::IOErr &e) {
+    // Add more useful error reporting.
+    vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in "
+        << m_filename << ".");
+  }
 
-   // Call up to superclass to finish deserializing.
-   try {
-     IndexPage::deserialize(istr);
-   } catch (vw::IOErr &e) {
-     // Add more useful error reporting.
-     vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in " 
-              << m_filename << ".");
-   }
-
-   m_needs_saving = false;
- } 
+  m_needs_saving = false;
+}
 
  // ----------------------------------------------------------------------
  //                    LOCAL INDEX PAGE GENERATOR
  // ----------------------------------------------------------------------
 
- vw::platefile::LocalPageGenerator::LocalPageGenerator( std::string filename, 
-                                                        int level, int base_col, int base_row, 
-                                                        int page_width, int page_height) : 
-   m_filename( filename ), m_level(level), 
-   m_base_col(base_col), m_base_row(base_row),
-   m_page_width(page_width), m_page_height(page_height) {}  
+ LocalPageGenerator::LocalPageGenerator( std::string filename, int level, int base_col,
+                                         int base_row, int page_width, int page_height)
+ : m_filename( filename ), m_level(level), m_base_col(base_col), m_base_row(base_row),
+   m_page_width(page_width), m_page_height(page_height) {}
 
- boost::shared_ptr<vw::platefile::IndexPage> 
- vw::platefile::LocalPageGenerator::generate() const {
-   return boost::shared_ptr<IndexPage>(new LocalIndexPage(m_filename, m_level, 
-                                                          m_base_col, m_base_row,
-                                                          m_page_width, m_page_height) );
- }
+boost::shared_ptr<IndexPage>
+LocalPageGenerator::generate() const {
+ return boost::shared_ptr<IndexPage>(new LocalIndexPage(m_filename, m_level,
+       m_base_col, m_base_row,
+       m_page_width, m_page_height) );
+}
 
- boost::shared_ptr<PageGeneratorBase> LocalPageGeneratorFactory::create(int level,
-                                                                         int base_col,
-                                                                         int base_row,
-                                                                         int page_width,
-                                                                         int page_height) {
-   // Generate a filename
-   std::ostringstream filename;
-   filename << m_plate_filename 
-            << "/index"
-            << "/" << level 
-            << "/" << base_row
-            << "/" << base_col;
+boost::shared_ptr<PageGeneratorBase>
+LocalPageGeneratorFactory::create(int level, int base_col, int base_row, int page_width, int page_height)
+{
+  // Generate a filename
+  std::ostringstream filename;
+  filename << m_plate_filename
+    << "/index"
+    << "/" << level
+    << "/" << base_row
+    << "/" << base_col;
 
   // Create the proper type of page generator.
   boost::shared_ptr<PageGeneratorBase> page_gen(
-    new LocalPageGenerator(filename.str(), level, base_col, base_row,
-                           page_width, page_height) );
+      new LocalPageGenerator(filename.str(), level, base_col, base_row,
+        page_width, page_height) );
 
-   return page_gen;
- }
+  return page_gen;
+}
 
- std::string LocalPageGeneratorFactory::who() const {
-   return fs::basename(m_plate_filename);
- }
+std::string LocalPageGeneratorFactory::who() const {
+  return fs::basename(m_plate_filename);
+}
 
- // -------------------------------------------------------------------
- //                            LOCAL INDEX
- // -------------------------------------------------------------------
+// -------------------------------------------------------------------
+//                            LOCAL INDEX
+// -------------------------------------------------------------------
 
- // ------------------------ Private Methods --------------------------
+// ------------------------ Private Methods --------------------------
 
- std::string vw::platefile::LocalIndex::index_filename() const {
-   return m_plate_filename + "/plate.index";
- }
+std::string LocalIndex::index_filename() const {
+  return m_plate_filename + "/plate.index";
+}
 
- std::string vw::platefile::LocalIndex::log_filename() const {
-   return m_plate_filename + "/plate.log";
- }
+std::string LocalIndex::log_filename() const {
+  return m_plate_filename + "/plate.log";
+}
 
- std::vector<std::string> vw::platefile::LocalIndex::blob_filenames() const {
+std::vector<std::string> LocalIndex::blob_filenames() const {
 
-   std::vector<std::string> result;
+  std::vector<std::string> result;
 
-   if ( !fs::exists( m_plate_filename ) )
-     vw_throw(IOErr() << "LocalIndex::blob_filenames() -- could not open platefile directory.");
+  if ( !fs::exists( m_plate_filename ) )
+    vw_throw(IOErr() << "LocalIndex::blob_filenames() -- could not open platefile directory.");
 
-   // Create a regular expression for matching the pattern 'plate_<number>.blob"
-   boost::regex re;
-   re.assign("plate_\\d+\\.blob", boost::regex_constants::icase);
+  // Create a regular expression for matching the pattern 'plate_<number>.blob"
+  boost::regex re;
+  re.assign("plate_\\d+\\.blob", boost::regex_constants::icase);
 
-   fs::directory_iterator end_itr; // default construction yields past-the-end
+  fs::directory_iterator end_itr; // default construction yields past-the-end
 
-   // Iterate through the files in the platefile directory and return
-   // any that match the regex above.
-   for ( fs::directory_iterator itr( m_plate_filename ); itr != end_itr; ++itr ) {
-     if (boost::regex_match(itr->leaf(), re))
-       result.push_back(itr->leaf());
-   }
+  // Iterate through the files in the platefile directory and return
+  // any that match the regex above.
+  for ( fs::directory_iterator itr( m_plate_filename ); itr != end_itr; ++itr ) {
+    if (boost::regex_match(itr->leaf(), re))
+      result.push_back(itr->leaf());
+  }
 
-   return result;
- }
+  return result;
+}
 
- void vw::platefile::LocalIndex::save_index_file() const {
+void LocalIndex::save_index_file() const {
 
-   // First, check to make sure the platefile directory exists.
-   if ( !fs::exists( m_plate_filename ) )
-     fs::create_directory(m_plate_filename);
-   std::ofstream ofstr( this->index_filename().c_str() );
-   if (!ofstr.is_open())
-     vw_throw(IOErr() << "LocalIndex::save_index_file() -- Could not create index file for writing.");
+  // First, check to make sure the platefile directory exists.
+  if ( !fs::exists( m_plate_filename ) )
+    fs::create_directory(m_plate_filename);
+  std::ofstream ofstr( this->index_filename().c_str() );
+  if (!ofstr.is_open())
+    vw_throw(IOErr() << "LocalIndex::save_index_file() -- Could not create index file for writing.");
 
-   // Serialize the header data.
-   m_header.SerializeToOstream(&ofstr);
-   ofstr.close();
+  // Serialize the header data.
+  m_header.SerializeToOstream(&ofstr);
+  ofstr.close();
 
- }
+}
 
  // ------------------------ Public Methods --------------------------
 
  /// Create a new index.  User supplies a pre-configure blob manager.
- vw::platefile::LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
-   PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ), 
+ LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
+   PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ),
               new_index_info),  // superclass constructor
    m_plate_filename(plate_filename),
    m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
@@ -234,7 +227,7 @@
  }
 
  /// Open an existing index from a file on disk.
- vw::platefile::LocalIndex::LocalIndex(std::string plate_filename) :
+ LocalIndex::LocalIndex(std::string plate_filename) :
    PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ) ),  // superclass constructor
    m_plate_filename(plate_filename),
    m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
@@ -256,9 +249,9 @@
    ifstr.close();
 
    // Load Index Levels for PagedIndex
-   for (int level = 0; level < this->num_levels(); ++level) { 
-     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level, 
-                                                             m_page_width, m_page_height, 
+   for (int level = 0; level < this->num_levels(); ++level) {
+     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level,
+                                                             m_page_width, m_page_height,
                                                              m_default_cache_size) );
      m_levels.push_back(new_level);
    }
@@ -281,21 +274,21 @@
  ///
  ///   index_instance.log() << "some text for the log...\n";
  ///
- std::ostream& vw::platefile::LocalIndex::log () {
+ std::ostream& LocalIndex::log () {
    if (!m_log)
      vw_throw(LogicErr() << "LocalIndex::log() - attempted to write to log when the log wasn\'t open.");
    return (*m_log)(InfoMessage, "console");
  }
 
 /// Log a message to the platefile log.
-void vw::platefile::LocalIndex::log(std::string message) {
+void LocalIndex::log(std::string message) {
   this->log() << message;
 }
 
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_description,
+int32 LocalIndex::transaction_request(std::string transaction_description,
                                                      int transaction_id_override) {
 
    if (transaction_id_override != -1) {
@@ -308,7 +301,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
      int max_trans_id = std::max(m_header.transaction_write_cursor(), transaction_id_override+1);
      m_header.set_transaction_write_cursor(max_trans_id);
      this->save_index_file();
-     this->log() << "Transaction " << transaction_id_override 
+     this->log() << "Transaction " << transaction_id_override
                  << " started: " << transaction_description << "\n";
      return transaction_id_override;
 
@@ -329,7 +322,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
 
  // Once a chunk of work is complete, clients can "commit" their
  // work to the mosaic by issuing a transaction_complete method.
- void vw::platefile::LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
+ void LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
 
    // First we save (sync) the index pages to disk
    //this->sync();
@@ -346,7 +339,7 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
 
  // Once a chunk of work is complete, clients can "commit" their
  // work to the mosaic by issuing a transaction_complete method.
- void vw::platefile::LocalIndex::transaction_failed(int32 transaction_id) {
+ void LocalIndex::transaction_failed(int32 transaction_id) {
 
    // Log the failure.
    this->log() << "Transaction " << transaction_id << " FAILED.\n";
@@ -356,14 +349,14 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
  // Return the current location of the transaction cursor.  This
  // will be the last transaction id that refers to a coherent
  // version of the mosaic.
- int32 vw::platefile::LocalIndex::transaction_cursor() {
+ int32 LocalIndex::transaction_cursor() {
    return m_header.transaction_read_cursor();
  }
 
  // Load index entries by iterating through TileHeaders saved in the
  // blob file.  This function essentially rebuilds an index in memory
  // using entries that had been previously saved to disk.
- void vw::platefile::LocalIndex::rebuild_index() {
+ void LocalIndex::rebuild_index() {
 
    vw_out(InfoMessage) << "Rebuilding index: " << m_plate_filename <<"\n";
 
@@ -401,13 +394,13 @@ int32 vw::platefile::LocalIndex::transaction_request(std::string transaction_des
 // -----------------------    I/O      ----------------------
 
 /// Writing, pt. 1: Reserve a blob lock
-int vw::platefile::LocalIndex::write_request(uint64 &size) {
+int LocalIndex::write_request(uint64 &size) {
   return m_blob_manager->request_lock(size);
 }
 
 /// Writing, pt. 1: Reserve a blob lock
-void vw::platefile::LocalIndex::write_update(TileHeader const& header, IndexRecord const& record) {
-  
+void LocalIndex::write_update(TileHeader const& header, IndexRecord const& record) {
+
   // Store the number of tiles that are contained in the mosaic.
   int starting_size = m_levels.size();
 
@@ -422,8 +415,8 @@ void vw::platefile::LocalIndex::write_update(TileHeader const& header, IndexReco
   }
 }
 
-/// Writing, pt. 3: Signal the completion 
-void vw::platefile::LocalIndex::write_complete(int blob_id, uint64 blob_offset) {  
+/// Writing, pt. 3: Signal the completion
+void LocalIndex::write_complete(int blob_id, uint64 blob_offset) {
   m_blob_manager->release_lock(blob_id, blob_offset);
 }
 

@@ -5,10 +5,14 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/TileManipulation.h>
 #include <vw/Plate/ToastDem.h>
-#include <vw/Image/Interpolation.h>
+#include <vw/Plate/TileManipulation.h>
+#include <vw/Plate/PlateFile.h>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+
 using namespace vw;
+namespace fs = boost::filesystem;
 
 // ---------------------------------------------------------------------------------
 //                                WWT DEM Indices

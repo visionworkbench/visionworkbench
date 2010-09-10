@@ -8,14 +8,12 @@
 #ifndef __VW_PLATE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATEMANAGER_H__
 
-#include <vw/Plate/TileManipulation.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
-
-#include <list>
 
 namespace vw {
 namespace platefile {
+
+  class PlateFile;
 
   // The Tile Entry is used to keep track of the bounding box of
   // tiles and their location in the grid.

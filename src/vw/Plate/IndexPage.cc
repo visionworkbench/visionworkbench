@@ -6,6 +6,7 @@
 
 
 #include <vw/Plate/IndexPage.h>
+#include <vw/Plate/Exception.h>
 #include <vw/Core/Debugging.h>
 
 #include <boost/shared_array.hpp>
