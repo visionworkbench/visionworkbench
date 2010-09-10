@@ -47,13 +47,13 @@ int main( int argc, char *argv[] ) {
   usage << general_options << std::endl;
 
   po::variables_map vm;
-  try { 
+  try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
-    return 0;    
+    return 0;
   }
 
   if( vm.count("help") ) {
@@ -72,21 +72,21 @@ int main( int argc, char *argv[] ) {
   try {
 
     std::cout << "\nOpening plate file: " << url << "\n";
-    boost::shared_ptr<PlateFile> platefile = 
+    boost::shared_ptr<PlateFile> platefile =
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
-    
+
     if (vm.count("failed"))
       platefile->transaction_failed(transaction_id);
-    
+
     if (vm.count("complete"))
       platefile->transaction_complete(transaction_id,true);
 
     if (vm.count("sync"))
       platefile->sync();
-    
+
   }  catch (vw::Exception &e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
     exit(1);
   }
-  
+
 }

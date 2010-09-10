@@ -34,7 +34,7 @@ namespace platefile {
     std::vector<std::string> glob_plate_filenames(std::string const& root_directory);
     IndexServiceRecord add_index(std::string root_directory, std::string plate_filename,
                                  boost::shared_ptr<Index> index);
-      
+
     /// Fetch an IndexServiceRecord for a given platefile_id, or throw an
     /// exception if no record is found.
     IndexServiceRecord get_index_record_for_platefile_id(int platefile_id);
@@ -73,64 +73,64 @@ namespace platefile {
     virtual void ReadRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexReadRequest* request,
                              ::vw::platefile::IndexReadReply* response,
-                             ::google::protobuf::Closure* done);      
+                             ::google::protobuf::Closure* done);
 
     virtual void WriteRequest(::google::protobuf::RpcController* controller,
                               const ::vw::platefile::IndexWriteRequest* request,
                               ::vw::platefile::IndexWriteReply* response,
-                              ::google::protobuf::Closure* done);      
+                              ::google::protobuf::Closure* done);
 
     virtual void WriteUpdate(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexWriteUpdate* request,
                              ::vw::platefile::RpcNullMessage* response,
-                             ::google::protobuf::Closure* done);      
+                             ::google::protobuf::Closure* done);
 
     // Like WriteUpdate, but packetizes updates.
     virtual void MultiWriteUpdate(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexMultiWriteUpdate* request,
                              ::vw::platefile::RpcNullMessage* response,
-                             ::google::protobuf::Closure* done);      
+                             ::google::protobuf::Closure* done);
 
     virtual void WriteComplete(::google::protobuf::RpcController* controller,
                                const ::vw::platefile::IndexWriteComplete* request,
                                ::vw::platefile::RpcNullMessage* response,
-                               ::google::protobuf::Closure* done);      
+                               ::google::protobuf::Closure* done);
 
     virtual void TransactionRequest(::google::protobuf::RpcController* controller,
                                     const ::vw::platefile::IndexTransactionRequest* request,
                                     ::vw::platefile::IndexTransactionReply* response,
-                                    ::google::protobuf::Closure* done);      
+                                    ::google::protobuf::Closure* done);
 
     virtual void TransactionComplete(::google::protobuf::RpcController* controller,
                                      const ::vw::platefile::IndexTransactionComplete* request,
                                      ::vw::platefile::RpcNullMessage* response,
-                                     ::google::protobuf::Closure* done);      
+                                     ::google::protobuf::Closure* done);
 
     virtual void TransactionFailed(::google::protobuf::RpcController* controller,
                                    const ::vw::platefile::IndexTransactionFailed* request,
                                    ::vw::platefile::RpcNullMessage* response,
-                                   ::google::protobuf::Closure* done);      
+                                   ::google::protobuf::Closure* done);
 
     virtual void TransactionCursor(::google::protobuf::RpcController* controller,
                                    const ::vw::platefile::IndexTransactionCursorRequest* request,
                                    ::vw::platefile::IndexTransactionCursorReply* response,
-                                   ::google::protobuf::Closure* done);      
+                                   ::google::protobuf::Closure* done);
 
     virtual void NumLevelsRequest(::google::protobuf::RpcController* controller,
                                   const ::vw::platefile::IndexNumLevelsRequest* request,
                                   ::vw::platefile::IndexNumLevelsReply* response,
-                                  ::google::protobuf::Closure* done);      
+                                  ::google::protobuf::Closure* done);
 
     virtual void LogRequest(::google::protobuf::RpcController* controller,
                             const ::vw::platefile::IndexLogRequest* request,
                             ::vw::platefile::RpcNullMessage* response,
-                            ::google::protobuf::Closure* done);      
+                            ::google::protobuf::Closure* done);
 
     // A simple message that echos back the value that was sent.
     virtual void TestRequest(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexTestRequest* request,
                              ::vw::platefile::IndexTestReply* response,
-                             ::google::protobuf::Closure* done);      
+                             ::google::protobuf::Closure* done);
   };
 
 

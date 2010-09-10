@@ -48,7 +48,7 @@ message IndexHeader {
   // You should set these values before passing an IndexHeader along
   // to the Index::construct_create() method.
   //
-  optional uint32 tile_size = 2;     // tile width/heigh in pixels 
+  optional uint32 tile_size = 2;     // tile width/heigh in pixels
   optional string tile_filetype = 3; // file type [e.g. tif, png, or jpg]
   optional int32 pixel_format = 4;   // see vw/Image/PixelTypeInfo.h
   optional int32 channel_type = 5;   // see vw/Image/PixelTypeInfo.h
@@ -62,7 +62,7 @@ message IndexHeader {
   // should never need to set these yourself.
   //
   required int32 platefile_id = 1;   // a unique number that identifies this platefile
-  optional int32 version = 10 [default = 1];  
+  optional int32 version = 10 [default = 1];
   optional int32 transaction_read_cursor = 11 [default = 1];
   optional int32 transaction_write_cursor = 12 [default = 1];
 
@@ -153,7 +153,7 @@ message IndexWriteComplete {
 message IndexTransactionRequest {
   required int32 platefile_id = 1;
   required string description = 2;
-  required int32 transaction_id_override = 3; 
+  required int32 transaction_id_override = 3;
 }
 
 message IndexTransactionComplete {
@@ -265,7 +265,7 @@ message RpcResponseWrapper {
 }
 
 service IndexService {
-  
+
   // Basic Platefile Management
   rpc OpenRequest (IndexOpenRequest) returns (IndexOpenReply);
   rpc CreateRequest (IndexCreateRequest) returns (IndexOpenReply);

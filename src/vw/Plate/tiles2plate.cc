@@ -29,7 +29,7 @@ struct Tile {
     : m_path(path), m_col(col), m_row(row), m_level(level)
   { }
 
-  inline bool valid() { 
+  inline bool valid() {
     return ( (m_row != -1 && m_col != -1 && m_level != -1) &&
              fs::exists(m_path) );
   }
@@ -62,7 +62,7 @@ public:
       std::istringstream in(*itr);
       t.m_level = t.m_col;
       t.m_col = t.m_row;
-      if ( !(in >> t.m_row) ) 
+      if ( !(in >> t.m_row) )
         t.m_row = -1;
     }
 
@@ -77,7 +77,7 @@ public:
 
   virtual Tile decode( const fs::path &full_path ) {
     Tile t(full_path);
-    if( full_path.extension() == ".info" ) 
+    if( full_path.extension() == ".info" )
       return t;
 
     std::string tile_name = fs::path(full_path).replace_extension().leaf();
@@ -137,10 +137,10 @@ class FirstHandler : public TileHandler {
 public:
   FirstHandler() : m_have_path(false) {}
   virtual ~FirstHandler() {}
-  virtual bool operator() ( const Tile & tile ) { 
-    m_path = tile.m_path; 
-    m_have_path = true; 
-    return false; 
+  virtual bool operator() ( const Tile & tile ) {
+    m_path = tile.m_path;
+    m_have_path = true;
+    return false;
   }
   bool have_path() { return m_have_path; }
   fs::path get_path() { return m_path; }
@@ -159,13 +159,13 @@ public:
 
   virtual bool operator() ( const Tile &tile ) {
     ViewT image(tile.m_path.string());
-    std::cout << "\t--> Writing tile [ " 
+    std::cout << "\t--> Writing tile [ "
               << tile.m_col << " " << tile.m_row << " " << tile.m_level << " ] "
               << " (" << tile.m_path.leaf() << ")"
               << std::endl;
     m_platefile->write_request();
-    m_platefile->write_update(image, 
-                              tile.m_col, tile.m_row, 
+    m_platefile->write_update(image,
+                              tile.m_col, tile.m_row,
                               tile.m_level, m_write_transaction_id);
     m_platefile->write_complete();
     return true;
@@ -173,7 +173,7 @@ public:
 };
 
 template <class TileHandlerT>
-void iterate_over_tiles( fs::path &dir_path, 
+void iterate_over_tiles( fs::path &dir_path,
                          boost::shared_ptr<TilePathDecoder> &decoder,
                          TileHandlerT &handler) {
 
@@ -302,7 +302,7 @@ int main( int argc, char *argv[] ) {
                                                   pixel_format, channel_type) );
 
     std::vector<TileHeader> empty_tile_list;
-    int32 write_transaction_id = 
+    int32 write_transaction_id =
       platefile->transaction_request("Writing tiles from tile tree " + tile_directory_name, -1);
 
     switch(pixel_format) {
@@ -311,7 +311,7 @@ int main( int argc, char *argv[] ) {
       case VW_CHANNEL_UINT8: {
           PlateHandler<DiskImageView<PixelGray<uint8> > > plate_handler( platefile, write_transaction_id );
           iterate_over_tiles( tile_directory, decoder, plate_handler );
-        } 
+        }
         break;
       case VW_CHANNEL_FLOAT32: {
           PlateHandler<DiskImageView<PixelGray<float> > > plate_handler( platefile, write_transaction_id );
@@ -340,7 +340,7 @@ int main( int argc, char *argv[] ) {
       case VW_CHANNEL_UINT8: {
           PlateHandler<DiskImageView<PixelRGB<uint8> > > plate_handler( platefile, write_transaction_id );
           iterate_over_tiles( tile_directory, decoder, plate_handler );
-        } 
+        }
         break;
       default:
         vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by tiles2plate.\n");

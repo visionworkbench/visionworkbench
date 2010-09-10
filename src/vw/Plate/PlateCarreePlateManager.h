@@ -196,7 +196,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id, 
+        this->mipmap(pyramid_level, affected_tiles_bbox, transaction_id,
                      (!tweak_settings_for_terrain), // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }

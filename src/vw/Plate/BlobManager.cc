@@ -25,13 +25,13 @@ void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
 }
 
 // A method to poll for an available blob.  Returns -1 if there
-// are no blobs available.  
+// are no blobs available.
 int vw::platefile::BlobManager::get_next_available_blob() {
 
   // Move the starting point for our search forward one so that we
   // don't always return the same general set of blobs.
   increment_blob_index(m_blob_index);
-  
+
   // Blobs should only stay locked for a split second.  If they remain
   // locked for much longer than that, then there is a very good
   // chance the mosaicking client that requested the lock has died.
@@ -42,8 +42,8 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
   // If the next blob_id happens to be unlocked and not full, then we
   // return it immediately.
-  if ( !(m_blob_locks[m_blob_index].locked) && 
-       m_blob_locks[m_blob_index].current_blob_offset < m_max_blob_size) 
+  if ( !(m_blob_locks[m_blob_index].locked) &&
+       m_blob_locks[m_blob_index].current_blob_offset < m_max_blob_size)
     return m_blob_index;
 
   // If not, then we neet to search.  Set the starting point so that
@@ -58,7 +58,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
     // If we find a blob that is both unlocked and not full, then we
     // return its ID.
-    if ( !(m_blob_locks[m_blob_index].locked) && 
+    if ( !(m_blob_locks[m_blob_index].locked) &&
          m_blob_locks[m_blob_index].current_blob_offset < m_max_blob_size) {
       return m_blob_index;
     }
@@ -87,8 +87,8 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
 /// Create a new blob manager.  The max_blob_size is specified in
 /// units of megabytes.
-vw::platefile::BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) : 
-  m_max_blob_size(max_blob_size * 1024 * 1024), m_max_blobs(max_blobs), m_blob_index(0) { 
+vw::platefile::BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) :
+  m_max_blob_size(max_blob_size * 1024 * 1024), m_max_blobs(max_blobs), m_blob_index(0) {
 
   VW_ASSERT(initial_nblobs >=1, ArgumentErr() << "BlobManager: inital_nblobs must be >= 1.");
 
@@ -107,9 +107,9 @@ unsigned vw::platefile::BlobManager::num_blobs() {
   return m_blob_locks.size();
 }
 
-vw::int64 vw::platefile::BlobManager::max_blob_size() { 
+vw::int64 vw::platefile::BlobManager::max_blob_size() {
   Mutex::Lock lock(m_mutex);
-  return m_max_blob_size; 
+  return m_max_blob_size;
 }
 
 /// Request a blob to write to that has sufficient space to write at
@@ -124,14 +124,14 @@ vw::int64 vw::platefile::BlobManager::max_blob_size() {
 // here at a later date.
 int vw::platefile::BlobManager::request_lock(uint64 &size) {
   Mutex::Lock lock(m_mutex);
- 
+
   // First, we check to see if the next blob is free.  If not, we
   // wait for a release event and recheck.
   int next_available_blob = get_next_available_blob();
   if (next_available_blob == -1)
-    vw_throw(BlobLimitErr() << "Unable to create more blob files. " 
+    vw_throw(BlobLimitErr() << "Unable to create more blob files. "
              << "The blob limit has been reached.");
-  
+
   // Then we lock it, increment the blob index, and return it.
   m_blob_locks[next_available_blob].lock();
   size = m_blob_locks[next_available_blob].current_blob_offset;

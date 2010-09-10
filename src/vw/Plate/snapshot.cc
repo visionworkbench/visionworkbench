@@ -16,7 +16,7 @@
 ///  --start - Starts a new multi-part snapshot.  Returns the
 ///          transaction_id for this snapshot as a return value.
 ///
-///  --finish <transaction_id> - Finish a multi-part snapshot. 
+///  --finish <transaction_id> - Finish a multi-part snapshot.
 ///
 ///   --snapshot <t_begin>:<t_end>:<t_write>@<level> - Creates a
 ///          snapshot of the mosaic by compositing together tiles from
@@ -58,10 +58,10 @@ public:
   BBox2i region;
 
   // Constructor
-  SnapshotParameters(std::string const& range_string, 
-                     std::string const& region_string, 
-                     int const& write_transaction_id, 
-                     bool terrain) : 
+  SnapshotParameters(std::string const& range_string,
+                     std::string const& region_string,
+                     int const& write_transaction_id,
+                     bool terrain) :
     write_transaction_id(write_transaction_id),
     tweak_settings_for_terrain(terrain) {
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -88,13 +88,13 @@ public:
       if (tok_iter == tokens.end()) this->error("snapshot", range_string);
       end_transaction_id = boost::lexical_cast<int>(*tok_iter);
       ++tok_iter;
-      
+
       if (tok_iter != tokens.end()) this->error("snapshot", range_string);
 
     }
 
     // STEP 2 : PARSE REGION STRING
-    
+
     if (region_string.empty()) {
 
       // If the region string is empty, then the user has not
@@ -153,8 +153,8 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     }
 
     std::ostringstream log_description;
-    log_description << "Started multi-part snapshot (t_id = " 
-                    << snapshot_parameters.write_transaction_id 
+    log_description << "Started multi-part snapshot (t_id = "
+                    << snapshot_parameters.write_transaction_id
                     << ") -- level:" << snapshot_parameters.level
                     << " region: " << snapshot_parameters.region << "\n";
     platefile->log(log_description.str());
@@ -162,20 +162,20 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
     platefile->write_request();
-      
-    // If the user has specified a region, then we 
+
+    // If the user has specified a region, then we
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
                 snapshot_parameters.begin_transaction_id,
                 snapshot_parameters.end_transaction_id,
-                snapshot_parameters.write_transaction_id, 
+                snapshot_parameters.write_transaction_id,
                 snapshot_parameters.tweak_settings_for_terrain);
-    
+
     // Release the blob id lock.
     platefile->write_complete();
 
     std::ostringstream log_description2;
-    log_description2 << "Finished multi-part snapshot (t_id = " 
-                    << snapshot_parameters.write_transaction_id 
+    log_description2 << "Finished multi-part snapshot (t_id = "
+                    << snapshot_parameters.write_transaction_id
                     << ") -- level:" << snapshot_parameters.level
                     << " region: " << snapshot_parameters.region << "\n";
     platefile->log(log_description2.str());
@@ -199,7 +199,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // Do a full snapshot
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
-                       t_id, 
+                       t_id,
                        snapshot_parameters.tweak_settings_for_terrain);
 
       // Release the blob id lock and note that the transaction is finished.
@@ -210,9 +210,9 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
       // Use the user-supplied t_id.
       std::ostringstream transaction_description;
-      transaction_description << "Full snapshot (auto-generated t_id = " 
+      transaction_description << "Full snapshot (auto-generated t_id = "
                               << snapshot_parameters.write_transaction_id << " )";
-      int t_id = platefile->transaction_request(transaction_description.str(), 
+      int t_id = platefile->transaction_request(transaction_description.str(),
                                                 snapshot_parameters.write_transaction_id);
 
       // Grab a lock on a blob file to use for writing tiles during
@@ -222,7 +222,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // User-supplied transaction_id
       sm.full_snapshot(snapshot_parameters.begin_transaction_id,
                        snapshot_parameters.end_transaction_id,
-                       snapshot_parameters.write_transaction_id, 
+                       snapshot_parameters.write_transaction_id,
                        snapshot_parameters.tweak_settings_for_terrain);
 
       // Release the blob id lock and note that the transaction is finished.
@@ -230,7 +230,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       platefile->transaction_complete(t_id, true);
     }
   }
-           
+
 }
 
 // --------------------------------------------------------------------------
@@ -251,7 +251,7 @@ int main( int argc, char *argv[] ) {
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", "Finish a multi-part snapshot.")
     ("transaction-id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
-    ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).") 
+    ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).")
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
     ("terrain", "Tweak settings for terrain.")
     ("help", "Display this help message");
@@ -271,14 +271,14 @@ int main( int argc, char *argv[] ) {
   usage << general_options << std::endl;
 
   po::variables_map vm;
-  try { 
+  try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
     std::cout << "An error occured while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
     std::cout << usage.str();
-    return 1;    
+    return 1;
   }
 
   if( vm.count("help") ) {
@@ -296,11 +296,11 @@ int main( int argc, char *argv[] ) {
     //--------------------------- OPEN THE PLATE FILE -----------------------------
 
     std::cout << "\nOpening input plate file: " << url << "\n";
-    boost::shared_ptr<PlateFile> platefile = 
+    boost::shared_ptr<PlateFile> platefile =
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
 
     // std::cout << "\nOpening output plate file: " << output_url << "\n";
-    // boost::shared_ptr<PlateFile> output_platefile = 
+    // boost::shared_ptr<PlateFile> output_platefile =
     //   boost::shared_ptr<PlateFile>( new PlateFile(output_url,
     //                                               input_platefile->index_header().type(),
     //                                               input_platefile->index_header().description(),
@@ -316,7 +316,7 @@ int main( int argc, char *argv[] ) {
         std::cout << "You must specify a transaction-id if you use --start.\n";
         exit(1);
       }
-      
+
       int t = platefile->transaction_request(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
       vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
@@ -335,23 +335,23 @@ int main( int argc, char *argv[] ) {
     }
 
     //---------------------------- SNAPSHOT REQUEST -------------------------------
-    
+
     // Parse out the rest of the command line options into a special
     // SnapshotParameters class.
-    SnapshotParameters snapshot_params(range_string, region_string, 
+    SnapshotParameters snapshot_params(range_string, region_string,
                                        transaction_id, vm.count("terrain"));
-    
+
     // Dispatch to the compositer based on the pixel type of this mosaic.
     switch(platefile->pixel_format()) {
     case VW_PIXEL_GRAYA:
       switch(platefile->channel_type()) {
-      case VW_CHANNEL_UINT8:  
+      case VW_CHANNEL_UINT8:
         do_snapshot<PixelGrayA<uint8> >(platefile, snapshot_params);
         break;
-      case VW_CHANNEL_INT16:  
+      case VW_CHANNEL_INT16:
         do_snapshot<PixelGrayA<int16> >(platefile, snapshot_params);
         break;
-      case VW_CHANNEL_FLOAT32:  
+      case VW_CHANNEL_FLOAT32:
         do_snapshot<PixelGrayA<float32> >(platefile, snapshot_params);
         break;
       default:
@@ -362,7 +362,7 @@ int main( int argc, char *argv[] ) {
 
     case VW_PIXEL_RGBA:
       switch(platefile->channel_type()) {
-      case VW_CHANNEL_UINT8:  
+      case VW_CHANNEL_UINT8:
         do_snapshot<PixelRGBA<uint8> >(platefile, snapshot_params);
         break;
       default:
@@ -379,5 +379,5 @@ int main( int argc, char *argv[] ) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
     exit(1);
   }
-     
+
 }

@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
                                                                      queue_name, "index") );
   boost::shared_ptr<IndexService> index_service( new IndexService::Stub(rpc_controller.get() ) );
   rpc_controller->bind_service(index_service, queue_name);
-  
+
   int32 i = 0;
   while (1) {
     IndexTestRequest request;

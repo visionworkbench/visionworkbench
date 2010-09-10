@@ -50,13 +50,13 @@ int main(int argc, char** argv) {
 
   std::cout << "Opening AMQP connection.\n";
   AmqpConnection conn;
-  
+
   conn.exchange_declare("ngt", "direct", true);
   conn.basic_publish("hello there", "ngt", "jobs");
 
   conn.queue_declare("test", true, true, true);
   conn.queue_bind("test", "ngt", "jobs");
-  //  while(1) 
+  //  while(1)
     //    conn.basic_consume("test", "testtag", false);
 
   return 0;

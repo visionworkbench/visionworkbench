@@ -10,8 +10,8 @@
 #include <vw/Image/Transform.h>
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
-void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox, 
-                                         int transaction_id, bool preblur, 
+void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox,
+                                         int transaction_id, bool preblur,
                                          const ProgressCallback &progress_callback,
                                          int stopping_level) const {
 
@@ -25,7 +25,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
   level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2.0 );
   level_bbox.max().x() = ceil( float(level_bbox.max().x()+1) / 2.0 );
   level_bbox.max().y() = ceil( float(level_bbox.max().y()+1) / 2.0 );
-    
+
   // Compute the range of progress for this SubProgressCallback.  The
   // geometric sum below probably could be computed more easily, but
   // I'm tired and a little lazy at the moment.
@@ -35,7 +35,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     total_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
     sum_denom *= 4.0;
   }
-  
+
   float current_num_tiles = 0;
   sum_denom = 4.0;
   float prev_num_tiles = 0;
@@ -45,7 +45,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     // Do a little progress callback math.
     current_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
     sum_denom *= 4.0;
-    SubProgressCallback sub_progress(progress_callback, 
+    SubProgressCallback sub_progress(progress_callback,
                                      prev_num_tiles / total_num_tiles,
                                      current_num_tiles / total_num_tiles);
     prev_num_tiles = current_num_tiles;
@@ -55,7 +55,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     std::list<BBox2i> tile_workunits = bbox_tiles(level_bbox, 16, 16);
     int prog_counter = 0;
     for ( std::list<BBox2i>::iterator iter = tile_workunits.begin(); iter != tile_workunits.end(); ++iter) {
-      SubProgressCallback sub_sub_progress(sub_progress, 
+      SubProgressCallback sub_sub_progress(sub_progress,
                                            float(prog_counter)/float(tile_workunits.size()),
                                            float(prog_counter+1)/float(tile_workunits.size()));
       prog_counter++;
@@ -75,7 +75,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
                                       transaction_id, transaction_id, 1);
 
       // Debugging:
-      // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1) 
+      // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1)
       //           << "   found " << valid_tile_records.size() << "\n";
 
       if (!valid_tile_records.empty()) {
@@ -83,7 +83,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         // Once we compute the valid tiles at the parent level, we
         // translate that back down into valid tiles at this level.
         BBox2i trimmed_region;
-        for (std::list<TileHeader>::iterator trim_iter = valid_tile_records.begin(); 
+        for (std::list<TileHeader>::iterator trim_iter = valid_tile_records.begin();
              trim_iter != valid_tile_records.end(); ++trim_iter) {
           trimmed_region.grow(Vector2i(trim_iter->col()/2, trim_iter->row()/2));
         }
@@ -93,7 +93,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         // child.
         trimmed_region.max().x() += 1;
         trimmed_region.max().y() += 1;
-        
+
         // Debugging:
         //        vw_out() << "Generating mipmap tiles for " << trimmed_region << " @ " << level << "\n";
 
@@ -108,7 +108,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
       sub_sub_progress.report_finished();
     }
     sub_progress.report_finished();
-    
+
     // Adjust the size of the bbox for this level
     level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
     level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );

@@ -55,8 +55,8 @@ namespace platefile {
 
   template <class PixelT>
   bool toast_dem_tile_helper(const ToastDemWriter& writer,
-                             const PlateFile& platefile, 
-                             int32 col, int32 row, int32 level, 
+                             const PlateFile& platefile,
+                             int32 col, int32 row, int32 level,
                              int32 level_difference,
                              int32 input_transaction_id,
                              int32 output_transaction_id) {
@@ -102,7 +102,7 @@ namespace platefile {
     for (unsigned i = 0; i < tile_bytes; ++i) {
       data[i] = 0;
     }
-    
+
     // Iterate over the 64 subtiles.
     for (int subtile_r = 0; subtile_r < 8; ++subtile_r) {
       for (int subtile_c = 0; subtile_c < 8; ++subtile_c) {
@@ -118,7 +118,7 @@ namespace platefile {
         if (level_difference == 0) {
           u_base = 0;
           v_base = 0;
-        } 
+        }
 
         for (int32 i = 0; i < num_toast_indices; ++i) {
           float u = u_base + u_toast_indices[i];
@@ -204,26 +204,26 @@ namespace platefile {
 
     //         // Create an interpolation view to sample from.
     //         InterpolationView<EdgeExtensionView<ImageView<PixelT>, ConstantEdgeExtension>,
-    //           BilinearInterpolation> interp_img = interpolate(src_tile, 
+    //           BilinearInterpolation> interp_img = interpolate(src_tile,
     //                                                           BilinearInterpolation(),
     //                                                           ConstantEdgeExtension());
-      
+
     //         // Iterate over the triangle vertex arrays above, writing the DEM
     //         // values in INTEL byte order to disk.
-    //         // std::cout << "--> " << u << " " << v << " -- " 
+    //         // std::cout << "--> " << u << " " << v << " -- "
     //         //           << subtile_base_col << " " << subtile_base_row << "\n";
     //         for (int32 i = 0; i < num_toast_indices; ++i) {
     //           float u_sample_index = float(u_toast_indices[i]) * slice_cols / 32.0;
     //           float v_sample_index = float(v_toast_indices[i]) * slice_rows / 32.0;
 
-    //           // std::cout << "[" << (subtile_base_col + u_sample_index) << " " 
+    //           // std::cout << "[" << (subtile_base_col + u_sample_index) << " "
     //           //           << (subtile_base_row + v_sample_index) << "]   ";
-          
+
     //           // Handle 16-bit integer data types
     //           if (sizeof(typename PixelChannelType<PixelT>::type) == 2) {
     //             // TODO: Think about what to do if the pixel has alpha!
     //             I16 value;
-    //             value.i16 = interp_img( subtile_base_col + u_sample_index, 
+    //             value.i16 = interp_img( subtile_base_col + u_sample_index,
     //                                     subtile_base_row + v_sample_index ).v();
     // #if VW_BYTE_ORDER == VW_BIG_ENDIAN
     //             // spec for toast dem files says "intel" byte order (little-endian)
@@ -238,7 +238,7 @@ namespace platefile {
     //           // Handle 32-bit floating point data types
     //           } else if (sizeof(typename PixelChannelType<PixelT>::type) == 4) {
     //             F32 value;
-    //             value.f32 = interp_img( subtile_base_col + u_sample_index, 
+    //             value.f32 = interp_img( subtile_base_col + u_sample_index,
     //                                     subtile_base_row + v_sample_index ).v();
     //             // Write the float to the data stream
     //             data[i*4]   = value.u8[0];
@@ -259,22 +259,22 @@ namespace platefile {
 
 // returns false if the type didn't exist and was skipped (not necessarily an error!)
 bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
-                                        const PlateFile& platefile, 
-                                        int32 col, int32 row, int32 level, 
+                                        const PlateFile& platefile,
+                                        int32 col, int32 row, int32 level,
                                         int32 level_difference,
                                         int32 input_transaction_id,
                                         int32 output_transaction_id) {
 
   if (platefile.channel_type() == VW_CHANNEL_INT16) {
-    return toast_dem_tile_helper<PixelGrayA<int16> >(writer, platefile, col, row, level, 
+    return toast_dem_tile_helper<PixelGrayA<int16> >(writer, platefile, col, row, level,
                                                      level_difference,
                                                      input_transaction_id, output_transaction_id);
   } else if (platefile.channel_type() == VW_CHANNEL_FLOAT32) {
-    return toast_dem_tile_helper<PixelGrayA<float32> >(writer, platefile, col, row, level, 
+    return toast_dem_tile_helper<PixelGrayA<float32> >(writer, platefile, col, row, level,
                                                        level_difference,
                                                        input_transaction_id, output_transaction_id);
   } else {
-    std::cout << "Could not convert to toast_dem.  " 
+    std::cout << "Could not convert to toast_dem.  "
               << "Unsupported channel type in platefile: " << platefile.channel_type() << "\n";
     exit(0);
   }
@@ -312,7 +312,7 @@ namespace {
 
 void vw::platefile::save_toast_dem_tile(std::string base_output_name,
                                         boost::shared_ptr<PlateFile> platefile,
-                                        int32 col, int32 row, int32 level, 
+                                        int32 col, int32 row, int32 level,
                                         int32 level_difference,
                                         int32 transaction_id) {
 

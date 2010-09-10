@@ -22,15 +22,15 @@ namespace platefile {
 
   struct ToastDemWriter {
     virtual ~ToastDemWriter() {}
-    virtual void operator()(const boost::shared_array<uint8> data, uint64 data_size, 
-                            int32 dem_col, int32 dem_row, int32 dem_level, 
+    virtual void operator()(const boost::shared_array<uint8> data, uint64 data_size,
+                            int32 dem_col, int32 dem_row, int32 dem_level,
                             int32 output_transaction_id) const = 0;
   };
 
   // Writer is called for every DEM tile (probably will be called more
   // than once for a given image tile)
   bool make_toast_dem_tile(const ToastDemWriter& writer,
-                           const PlateFile& platefile, int32 col, int32 row, int32 level, 
+                           const PlateFile& platefile, int32 col, int32 row, int32 level,
                            int32 level_difference,
                            int32 input_transaction_id, int32 output_transaction_id);
 

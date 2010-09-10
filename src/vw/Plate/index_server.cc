@@ -110,7 +110,7 @@ int main(int argc, char** argv) {
   }
 
   boost::shared_ptr<AmqpConnection> connection( new AmqpConnection(hostname, port) );
-  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, exchange_name, 
+  boost::shared_ptr<AmqpRpcServer> server( new AmqpRpcServer(connection, exchange_name,
                                                              "index_server", vm.count("debug")) );
   g_service.reset( new IndexServiceImpl(root_directory) );
   server->bind_service(g_service, "index");
@@ -165,8 +165,8 @@ int main(int argc, char** argv) {
 
     std::cout << "[index_server] : "
               << float(queries/dt) << " qps    "
-              << float(bytes/dt)/1000.0 << " kB/sec    " 
-              << n_outstanding_messages << " outstanding messages                          \r" 
+              << float(bytes/dt)/1000.0 << " kB/sec    "
+              << n_outstanding_messages << " outstanding messages                          \r"
               << std::flush;
     sleep(1.0);
   }

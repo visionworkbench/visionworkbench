@@ -17,8 +17,8 @@
 //                            INDEX PAGE
 // ----------------------------------------------------------------------
 
-vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row, 
-                                    int page_width, int page_height) : 
+vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row,
+                                    int page_width, int page_height) :
   m_level(level), m_base_col(base_col), m_base_row(base_row),
   m_page_width(page_width), m_page_height(page_height) {
 
@@ -49,21 +49,21 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
     // Iterate over transaction_id list.
     int32 transaction_list_size = (*it).size();
     ostr.write((char*)(&transaction_list_size), sizeof(transaction_list_size));
-    
+
     multi_value_type::iterator transaction_iter = (*it).begin();
     while (transaction_iter != (*it).end()) {
-      
+
       // Save the transaction id
       int32 t_id = (*transaction_iter).first;
       ostr.write((char*)(&t_id), sizeof(t_id));
-      
+
       // Save the size of each protobuf, and then serialize it to disk.
       uint16 protobuf_size = (*transaction_iter).second.ByteSize();
       boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
       (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
       ostr.write((char*)(&protobuf_size), sizeof(protobuf_size));
       ostr.write((char*)(protobuf_bytes.get()), protobuf_size);
-    
+
       ++transaction_iter;
     }
   }
@@ -87,7 +87,7 @@ void vw::platefile::IndexPage::deserialize(std::istream& istr) {
     // Iterate over transaction_id list.
     int32 transaction_list_size;
     istr.read((char*)(&transaction_list_size), sizeof(transaction_list_size));
-    
+
     new (&(*it)) multi_value_type();
     for (int tid = 0; tid < transaction_list_size; ++tid) {
 
@@ -103,8 +103,8 @@ void vw::platefile::IndexPage::deserialize(std::istream& istr) {
       istr.read((char*)(protobuf_bytes.get()), protobuf_size);
       IndexRecord rec;
       if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
-        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry."); 
-      
+        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry.");
+
       (*it).push_back(std::pair<int32, IndexRecord>(t_id, rec));
     }
   }
@@ -141,37 +141,37 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
       // Otherwise, we search forward in the list.
       ++it;
     }
-    
+
     // If we reach this point, we are either at the end of the list,
     // or we have found the correct position.  Either way, we call
     // insert().
     entries->insert(it, p);
 
   } else {
-    
+
     // Create a new entry
     multi_value_type l;
     l.push_front(p);
     m_sparse_table[elmnt] = l;
-    
+
   }
 }
 
 /// Return the IndexRecord for a the given transaction_id at
 /// this location.  By default this routine returns the record with
 /// the greatest transaction id that is less than or equal to the
-/// requested transaction_id.  
+/// requested transaction_id.
 ///
 /// Exceptions to the above behavior:
 ///
 ///   - A transaction_id == -1 will return the most recent
 ///   transaction id.
-/// 
+///
 ///   - Setting exact_match to true forces an exact transaction_id
 ///   match.
 ///
-vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row, 
-                                                         int transaction_id, 
+vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
+                                                         int transaction_id,
                                                          bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0,
@@ -214,15 +214,15 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
 
   // If we reach this point, then there are no entries before
   // the given transaction_id, so we return an empty (and invalid) record.
-  vw_throw(TileNotFoundErr() << "Tiles exist at this location, " 
+  vw_throw(TileNotFoundErr() << "Tiles exist at this location, "
            << "but none before transaction_id = "  << transaction_id << "\n");
   return IndexRecord(); // never reached
 }
 
 
-void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::TileHeader> &results, 
+void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::TileHeader> &results,
                                                     multi_value_type const& candidates,
-                                                    int col, int row, BBox2i const& region, 
+                                                    int col, int row, BBox2i const& region,
                                                     int min_num_matches) const {
 
   // Check to see if the tile is in the specified region.
@@ -244,7 +244,7 @@ void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::Til
 /// recent tile at each valid location.  Note: there may be other
 /// tiles in the transaction range at this col/row/level, but
 /// search_by_region() only returns the first one.
-std::list<vw::platefile::TileHeader> 
+std::list<vw::platefile::TileHeader>
 vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
                                            int start_transaction_id,
                                            int end_transaction_id,
@@ -262,7 +262,7 @@ vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
         multi_value_type candidates;
 
         if (start_transaction_id == -1 && end_transaction_id == -1) {
-          
+
           // If the user has specified a transaction range of [-1, -1],
           // then we only return the last valid tile.
           if (entries.size() > 0)
@@ -272,7 +272,7 @@ vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
 
           // std::ostringstream ostr;
           // ostr << "Accumulating entries for tile ["
-          //      << (m_base_col + col) << " " << (m_base_row + row) <<  " @ " 
+          //      << (m_base_col + col) << " " << (m_base_row + row) <<  " @ "
           //      << m_level << "] with " << entries.size() << " entries -- ";
 
           // Search through the entries in the list, looking entries
@@ -294,17 +294,17 @@ vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
           // For snapshotting, we need to fetch one additional entry
           // outside of the specified range.  This next tile
           // represents the "top" tile in the mosaic for entries that
-          // may not have been part of the last snapshot.  
+          // may not have been part of the last snapshot.
           if (fetch_one_additional_entry && it != entries.end()) {
             //ostr << it->first << " ";
             candidates.push_back(*it);
           }
-          
+
           // For debugging
           // if (candidates.size() != 0)// && m_level == 10)
           //   std::cout << ostr.str() << "   ( " << candidates.size() << " )\n";
         }
-        
+
         // Do the region check.
         append_if_in_region( results, candidates, col, row, region, min_num_matches );
       }
@@ -314,18 +314,18 @@ vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
   return results;
 }
 
-std::list<vw::platefile::TileHeader> 
-vw::platefile::IndexPage::search_by_location(int col, int row, 
-                                             int start_transaction_id, 
-                                             int end_transaction_id, 
+std::list<vw::platefile::TileHeader>
+vw::platefile::IndexPage::search_by_location(int col, int row,
+                                             int start_transaction_id,
+                                             int end_transaction_id,
                                              bool fetch_one_additional_entry) const {
 
   int32 page_col = col % m_page_width;
   int32 page_row = row % m_page_height;
 
   // Basic bounds checking
-  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height, 
-            TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index [" 
+  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height,
+            TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index ["
             << page_col << " " << page_row << "]");
 
   // Check first to make sure that there are actually tiles at this location.
@@ -347,11 +347,11 @@ vw::platefile::IndexPage::search_by_location(int col, int row,
     }
     ++it;
   }
-  
+
   // For snapshotting, we need to fetch one additional entry
   // outside of the specified range.  This next tile
   // represents the "top" tile in the mosaic for entries that
-  // may not have been part of the last snapshot.  
+  // may not have been part of the last snapshot.
   if (fetch_one_additional_entry && it != entries.end()) {
     TileHeader hdr;
     hdr.set_col( m_base_col + page_col );
@@ -360,6 +360,6 @@ vw::platefile::IndexPage::search_by_location(int col, int row,
     hdr.set_transaction_id(it->first);
     results.push_back(hdr);
   }
-  
+
   return results;
 }

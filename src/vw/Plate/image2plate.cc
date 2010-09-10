@@ -39,7 +39,7 @@ bool g_debug;
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
   int index = result.rfind(".");
-  if (index != -1) 
+  if (index != -1)
     result.erase(index, result.size());
   return result;
 }
@@ -49,10 +49,10 @@ static std::string prefix_from_filename(std::string const& filename) {
 // --------------------------------------------------------------------------
 
 template <class ViewT>
-void do_mosaic(boost::shared_ptr<PlateFile> platefile, 
+void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                ImageViewBase<ViewT> const& view,
-               std::string filename, int transaction_id_override, 
-               GeoReference const& georef, std::string output_mode, 
+               std::string filename, int transaction_id_override,
+               GeoReference const& georef, std::string output_mode,
                bool tweak_settings_for_terrain) {
 
   std::ostringstream status_str;
@@ -60,10 +60,10 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 
   if (output_mode == "toast") {
 
-    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm( 
+    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm(
       new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
 
-    pm->insert(view.impl(), filename, transaction_id_override, georef, 
+    pm->insert(view.impl(), filename, transaction_id_override, georef,
                tweak_settings_for_terrain, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 
@@ -72,10 +72,10 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
     boost::shared_ptr<PlateCarreePlateManager<typename ViewT::pixel_type> > pm(
       new PlateCarreePlateManager<typename ViewT::pixel_type> (platefile) );
 
-    pm->insert(view.impl(), filename, transaction_id_override, georef, 
+    pm->insert(view.impl(), filename, transaction_id_override, georef,
                tweak_settings_for_terrain, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
-    
+
   }
 
 }
@@ -134,13 +134,13 @@ int main( int argc, char *argv[] ) {
   usage << general_options << std::endl;
 
   po::variables_map vm;
-  try { 
+  try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
-    return 0;    
+    return 0;
   }
 
   if( vm.count("help") ) {
@@ -221,9 +221,9 @@ int main( int argc, char *argv[] ) {
     exit(1);
   }
   try {
-      
+
     std::cout << "\nOpening plate file: " << url << "\n";
-    boost::shared_ptr<PlateFile> platefile = 
+    boost::shared_ptr<PlateFile> platefile =
       boost::shared_ptr<PlateFile>( new PlateFile(url, output_mode, "",
                                                   tile_size, tile_filetype,
                                                   pixel_format, channel_type));
@@ -242,7 +242,7 @@ int main( int argc, char *argv[] ) {
       // Load the pixel type, channel type, and nodata value, and
       // georeferencing info for this image.
       boost::shared_ptr<DiskImageResource> rsrc( DiskImageResource::open(image_files[i]) );
-      
+
       bool has_nodata_value = false;
       if (vm.count("nodata-value")) {
         has_nodata_value = true;
@@ -322,7 +322,7 @@ int main( int argc, char *argv[] ) {
       if (vm.count("force-float")) {
         std::cout << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
         rsrc_channel_type = VW_CHANNEL_FLOAT32;
-        
+
         // Turn off automatic rescaling when reading in images
         DiskImageResource::set_default_rescale(false);
       }
@@ -332,41 +332,41 @@ int main( int argc, char *argv[] ) {
       case VW_PIXEL_GRAY:
       case VW_PIXEL_GRAYA:
         switch(rsrc_channel_type) {
-        case VW_CHANNEL_UINT8:  
-        case VW_CHANNEL_UINT16:  
-          if (has_nodata_value)
-            do_mosaic(platefile, 
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
-                                                nodata_value)),
-                      image_files[i], transaction_id_override, georef, 
-                      output_mode, vm.count("terrain"));
-          else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, 
-                      output_mode, vm.count("terrain"));
-          break;
-        case VW_CHANNEL_INT16:  
+        case VW_CHANNEL_UINT8:
+        case VW_CHANNEL_UINT16:
           if (has_nodata_value)
             do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]), 
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
                                                 nodata_value)),
-                      image_files[i], transaction_id_override, georef, 
+                      image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, 
+            do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]),
+                      image_files[i], transaction_id_override, georef,
+                      output_mode, vm.count("terrain"));
+          break;
+        case VW_CHANNEL_INT16:
+          if (has_nodata_value)
+            do_mosaic(platefile,
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]),
+                                                nodata_value)),
+                      image_files[i], transaction_id_override, georef,
+                      output_mode, vm.count("terrain"));
+          else
+            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]),
+                      image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           break;
         case VW_CHANNEL_FLOAT32:
           if (has_nodata_value) {
             do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]), 
+                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
                                                 nodata_value)),
-                      image_files[i], transaction_id_override, georef, 
+                      image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           } else
             do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef, 
+                      image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           break;
         default:
@@ -378,16 +378,16 @@ int main( int argc, char *argv[] ) {
       case VW_PIXEL_RGB:
       case VW_PIXEL_RGBA:
         switch(rsrc->channel_type()) {
-        case VW_CHANNEL_UINT8:  
+        case VW_CHANNEL_UINT8:
           if (has_nodata_value)
-            do_mosaic(platefile, 
-                      pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]), 
+            do_mosaic(platefile,
+                      pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
                                                                               nodata_value))),
                       image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           else
-            do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]), 
-                      image_files[i], transaction_id_override, georef, 
+            do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]),
+                      image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           break;
         default:
@@ -406,5 +406,5 @@ int main( int argc, char *argv[] ) {
     vw_out() << "A vision workbench error occured: " << e.what() << "\n";
     exit(1);
   }
-  
+
 }

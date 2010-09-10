@@ -55,7 +55,7 @@ namespace platefile {
     // -------------------------- I/O ---------------------------
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand
-    /// to disk. 
+    /// to disk.
     virtual boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const = 0;
 
     /// Attempt to access a tile in the index.  Throws an
@@ -82,8 +82,8 @@ namespace platefile {
 
     /// Writing, pt. 3: Signal the completion of the write operation.
     virtual void write_complete(int blob_id, uint64 blob_offset) = 0;
-    
-    
+
+
     // ----------------------- PROPERTIES  ----------------------
 
     /// Returns a list of valid tiles that match this level, region, and
@@ -93,16 +93,16 @@ namespace platefile {
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
     virtual std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
-                                                   int start_transaction_id, 
-                                                   int end_transaction_id, 
+                                                   int start_transaction_id,
+                                                   int end_transaction_id,
                                                    int min_num_matches,
                                                    bool fetch_one_additional_entry = false) const = 0;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive of the first
     /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
-    virtual std::list<TileHeader> search_by_location(int col, int row, int level, 
-                                                     int start_transaction_id, 
+    virtual std::list<TileHeader> search_by_location(int col, int row, int level,
+                                                     int start_transaction_id,
                                                      int end_transaction_id,
                                                      bool fetch_one_additional_entry = false) const = 0;
 
@@ -133,7 +133,7 @@ namespace platefile {
     /// work to the mosaic by issuding a transaction_complete method.
     virtual void transaction_complete(int32 transaction_id, bool update_read_cursor) = 0;
 
-    // If a transaction fails, we may need to clean up the mosaic.  
+    // If a transaction fails, we may need to clean up the mosaic.
     virtual void transaction_failed(int32 transaction_id) = 0;
 
     virtual int32 transaction_cursor() = 0;

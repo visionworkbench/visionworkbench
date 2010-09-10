@@ -67,10 +67,10 @@ public:
   uint16 max_r;
   uint16 min_b;
   uint16 max_b;
-  
+
   // Constructor
-  ImageStats(std::string const& range_string, 
-             std::string const& gray_filename, 
+  ImageStats(std::string const& range_string,
+             std::string const& gray_filename,
              std::string const& color_filename) {
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -87,7 +87,7 @@ public:
     // two parameters out from the range string.
     tokenizer tokens(range_string, sep);
     tokenizer::iterator tok_iter = tokens.begin();
-    
+
     if (tok_iter == tokens.end()) this->error("stats", range_string);
     min_gray = boost::lexical_cast<int>(*tok_iter);
     ++tok_iter;
@@ -107,7 +107,7 @@ public:
     if (tok_iter == tokens.end()) this->error("stats", range_string);
     min_r = boost::lexical_cast<int>(*tok_iter);
     ++tok_iter;
-      
+
     if (tok_iter == tokens.end()) this->error("stats", range_string);
     max_r = boost::lexical_cast<int>(*tok_iter);
     ++tok_iter;
@@ -119,18 +119,18 @@ public:
     if (tok_iter == tokens.end()) this->error("stats", range_string);
     max_b = boost::lexical_cast<int>(*tok_iter);
     ++tok_iter;
-      
+
     if (tok_iter != tokens.end()) this->error("snapshot", range_string);
 
-    if (min_gray == min_i && min_gray == min_r && min_gray == min_b && 
+    if (min_gray == min_i && min_gray == min_r && min_gray == min_b &&
         max_gray == max_i && max_gray == max_r && max_gray == max_b) {
       std::cout << "\t--> The color ranges all match, which is not likely.  Double checking the color ranges...\n";
 
       min_gray=1024;
-      max_gray=0; 
-      min_i=1024; 
+      max_gray=0;
+      min_i=1024;
       max_i=0;
-      min_r=1024; 
+      min_r=1024;
       max_r=0;
       min_b=1024;
       max_b=0;
@@ -171,7 +171,7 @@ public:
         }
       }
       progress.report_finished();
-      
+
       {
         std::cout << "Scanning red image for autoscaling..." << std::endl;
         DiskImageView<uint16> image( gray_filename );
@@ -230,13 +230,13 @@ public:
   // Public variables.  You access these directly.
   cartography::GeoReference gray_georef;
   cartography::GeoReference color_georef;
-  
+
   // Constructor
-  ImageGeorefs(std::string const& gray_wkt, 
-             std::string const& color_wkt, 
-             std::string const& gray_ullr, 
-             std::string const& color_ullr, 
-             std::string const& gray_filename, 
+  ImageGeorefs(std::string const& gray_wkt,
+             std::string const& color_wkt,
+             std::string const& gray_ullr,
+             std::string const& color_ullr,
+             std::string const& gray_filename,
              std::string const& color_filename) {
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
@@ -255,7 +255,7 @@ public:
       std::cout << "\t--> Parsing georeferences from the command line.\n";
 
       if (!gray_wkt.empty() && !gray_ullr.empty()) {
-        
+
         // Initialize the georef objects using the well known text
         // strings supplied on the command line.
         gray_georef.set_wkt(gray_wkt);
@@ -270,7 +270,7 @@ public:
         if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
         ul_gray[0] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
-        
+
         if (tok_iter == tokens_gray.end()) this->error("ullr-gray", gray_ullr);
         ul_gray[1] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
@@ -300,10 +300,10 @@ public:
           T_gray(0,2) -= 360;
         if (T_gray(0,2) < -180)
           T_gray(0,2) += 360;
-      
+
         std::cout << "T_GRAY=" << T_gray << "\n";
         gray_georef.set_transform(T_gray);
-      } 
+      }
 
       if (!color_wkt.empty() && !color_ullr.empty()) {
 
@@ -325,11 +325,11 @@ public:
         if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
         ul_color[1] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
-        
+
         if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
         lr_color[0] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
-        
+
         if (tok_iter == tokens_color.end()) this->error("ullr-color", color_ullr);
         lr_color[1] = boost::lexical_cast<float>(*tok_iter);
         ++tok_iter;
@@ -390,9 +390,9 @@ class rgb16_to_rgba8 : public ReturnFixedType<PixelRGBA<uint8> > {
   double scale_overall;
   bool m_rgb, m_uniform_strech;
 public:
-  rgb16_to_rgba8( uint16 minval_ir, uint16 maxval_ir, 
-                  uint16 minval_red, uint16 maxval_red, 
-                  uint16 minval_bg, uint16 maxval_bg, 
+  rgb16_to_rgba8( uint16 minval_ir, uint16 maxval_ir,
+                  uint16 minval_red, uint16 maxval_red,
+                  uint16 minval_bg, uint16 maxval_bg,
                   bool rgb, bool uniform_stretch)
     : minval_ir(minval_ir), maxval_ir(maxval_ir), scale_ir(255.0/(maxval_ir-minval_ir)),
       minval_red(minval_red), maxval_red(maxval_red), scale_red(255.0/(maxval_red-minval_red)),
@@ -403,13 +403,13 @@ public:
       minval_overall = std::min(minval_ir, std::min(minval_red, minval_bg));
       maxval_overall = std::max(maxval_ir, std::max(maxval_red, maxval_bg));
       scale_overall =255.0/(maxval_overall-minval_overall);
-      std::cout << "\t--> Using uniform stretch for color image: [ " 
+      std::cout << "\t--> Using uniform stretch for color image: [ "
                 << minval_overall << " " << maxval_overall << " ]\n";
       minval_ir = minval_overall; maxval_ir = maxval_overall; scale_ir = scale_overall;
       minval_red = minval_overall; maxval_red = maxval_overall; scale_red = scale_overall;
       minval_bg = minval_overall; maxval_bg = maxval_overall; scale_bg = scale_overall;
     }
-    
+
     // If the user has requested RGB color, we repurpose the IR
     // channel to store the synthetic blue color information.  The
     // synthetic blue channel is created by multiplying the bg channel
@@ -419,12 +419,12 @@ public:
     if (rgb && !uniform_stretch) {
       if (2*minval_bg < minval_red * 3 / 10)
         // Handle the case where the min red is significantly larger than min bg.
-        minval_ir = 1;        
-      else 
+        minval_ir = 1;
+      else
         minval_ir = 2 * minval_bg - minval_red * 3 / 10;
       maxval_ir = 2 * maxval_bg - maxval_red * 3 / 10;
       scale_ir = 255.0/(maxval_ir-minval_ir);
-      std::cout << "\t--> Computed range for synthetic blue channel: [ " 
+      std::cout << "\t--> Computed range for synthetic blue channel: [ "
                 << minval_ir << " " << maxval_ir << " ]\n";
     }
 
@@ -433,18 +433,18 @@ public:
   PixelRGBA<uint8> operator()( PixelRGB<uint16> const& pix ) const {
     // Check for NULL pixels
     if( pix.r()==0 || pix.g()==0 || pix.b()==0 ) return PixelRGBA<uint8>();
-    
+
     PixelRGBA<uint8> result;
     if (m_rgb) {
       // This is a little confusing: scale_ir contains that scale
-      
+
       int16 synthetic_blue = 2 * pix.b() - pix.g() * 3 / 10;
       result = PixelRGBA<uint8>( (uint8)(scale_red*(pix.g()-minval_red)),      // Red
                                  (uint8)(scale_bg*(pix.b()-minval_bg)),        // Blue-Green
                                  (uint8)(scale_ir*(synthetic_blue-minval_ir)), // Synthetic Blue
                                  255 );
-      if( synthetic_blue < int16(minval_ir) ) result.b() = 0;        
-      else if( synthetic_blue > maxval_ir ) result.b() = 255; 
+      if( synthetic_blue < int16(minval_ir) ) result.b() = 0;
+      else if( synthetic_blue > maxval_ir ) result.b() = 255;
       if( pix.g() < minval_red ) result.r() = 0;
       else if( pix.g() > maxval_red ) result.r() = 255;
       if( pix.b() < minval_bg ) result.g() = 0;
@@ -490,15 +490,15 @@ int main( int argc, char *argv[] ) {
   po::options_description general_options("General Options");
   general_options.add_options()
     ("output-name,o", po::value<std::string>(&output_file_name)->default_value("output"), "Specify the base output filename")
-    ("wkt-gray", po::value<std::string>(&wkt_gray), 
+    ("wkt-gray", po::value<std::string>(&wkt_gray),
      "Specify a well-known text string for the red channel input image.")
-    ("wkt-color", po::value<std::string>(&wkt_color), 
+    ("wkt-color", po::value<std::string>(&wkt_color),
      "Specify a well-known text string for the color input image.")
-    ("ullr-gray", po::value<std::string>(&ullr_gray), 
+    ("ullr-gray", po::value<std::string>(&ullr_gray),
      "Specify a well-known text string for the red channel input image.")
-    ("ullr-color", po::value<std::string>(&ullr_color), 
+    ("ullr-color", po::value<std::string>(&ullr_color),
      "Specify a well-known text string for the color input image.")
-    ("stats", po::value<std::string>(&stats_string), 
+    ("stats", po::value<std::string>(&stats_string),
      "where arg = <gray_min>,<gray_max>;<ir_min>,<ir_max>;<red_min>,<red_max>;<bg_min>,<bg_max>")
     ("rgb", "Compute \"true\" color using the RGB algorithm rather than the straight-forward IRB color scheme.")
     ("uniform-stretch", "Stretch all color channels using the same range.")
@@ -544,7 +544,7 @@ int main( int argc, char *argv[] ) {
   DiskImageResourceGDAL::set_gdal_cache_size( gdal_cache_size*1024*1024 );
 
   // Compute (or parse from input) image statistics.
-  ImageStats stats(stats_string, image_files[0], image_files[1]);  
+  ImageStats stats(stats_string, image_files[0], image_files[1]);
   std::cout << "Pixel ranges:\n";
   std::cout << "\t-->GRAY: " << stats.min_gray << " - " << stats.max_gray << std::endl;
   std::cout << "\t-->IR:   " << stats.min_i << " - " << stats.max_i << std::endl;
@@ -552,7 +552,7 @@ int main( int argc, char *argv[] ) {
   std::cout << "\t-->BLUE: " << stats.min_b << " - " << stats.max_b << std::endl << std::endl;
 
   // Compute georeferences
-  ImageGeorefs georefs(wkt_gray, wkt_color, ullr_gray, ullr_color, 
+  ImageGeorefs georefs(wkt_gray, wkt_color, ullr_gray, ullr_color,
                        image_files[0], image_files[1]);
   std::cout << "Georeferences:\n";
   std::cout << "GRAY: " << georefs.gray_georef << std::endl;
@@ -562,7 +562,7 @@ int main( int argc, char *argv[] ) {
   ImageComposite<PixelRGBA<uint8> > composite;
   GeoReference master_georef = georefs.gray_georef;
 
-  // Set options for JP2 decoding.  
+  // Set options for JP2 decoding.
   //
   // TODO: These aren't used yet. We don't have a way of passing them into GDAL...
   // DiskImageResourceGDAL::Options jp2_options;
@@ -571,21 +571,21 @@ int main( int argc, char *argv[] ) {
 
   // Add the grayscale image
   DiskImageResourceGDAL *gray_rsrc = new DiskImageResourceGDAL( image_files[0] );
-  
-  composite.insert( per_pixel_filter( DiskImageView<uint16>( gray_rsrc ), 
+
+  composite.insert( per_pixel_filter( DiskImageView<uint16>( gray_rsrc ),
                                       uint16_to_rgba8(stats.min_gray,stats.max_gray) ), 0, 0 );
 
   // Add the color image
   if (image_files.size() == 2) {
     DiskImageResourceGDAL *color_rsrc = new DiskImageResourceGDAL( image_files[1] );
-    Vector2 position = 
+    Vector2 position =
       master_georef.lonlat_to_pixel( georefs.color_georef.pixel_to_lonlat( Vector2() ) );
     std::cout << "\t--> Adding color image at " << position << std::endl;
-    composite.insert( per_pixel_filter( DiskImageView<PixelRGB<uint16> >( color_rsrc ), 
+    composite.insert( per_pixel_filter( DiskImageView<PixelRGB<uint16> >( color_rsrc ),
                                         rgb16_to_rgba8(stats.min_i,stats.max_i,
                                                        stats.min_r,stats.max_r,
                                                        stats.min_b,stats.max_b,
-                                                       vm.count("rgb"), 
+                                                       vm.count("rgb"),
                                                        vm.count("uniform-stretch")) ),
                       math::impl::_round(position.x()), math::impl::_round(position.y()) );
   }
@@ -600,7 +600,7 @@ int main( int argc, char *argv[] ) {
     if( M(0,2) > 180 ) M(0,2) -= 360;
   }
   master_georef.set_transform( M );
-  
+
   // Prepare the composite
   composite.set_draft_mode( true );
   composite.prepare();
@@ -617,18 +617,18 @@ int main( int argc, char *argv[] ) {
   std::cout << "NAME: " << output_file_name << std::endl;
   ImageFormat format = composite.format();
   if( vm.count("alpha") ) {
-    DiskImageResourceGDAL output_resource( output_file_name, format, 
+    DiskImageResourceGDAL output_resource( output_file_name, format,
                                            Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
     std::cout << "\t--> Retaining alpha channel!" << std::endl;
     write_image( output_resource, composite, TerminalProgressCallback("plate.tools.hirise2tif", "") );
   } else {
     format.pixel_format = VW_PIXEL_RGB;
-    DiskImageResourceGDAL output_resource( output_file_name, format, 
+    DiskImageResourceGDAL output_resource( output_file_name, format,
                                            Vector2i(256,256), gdal_options );
     write_georeference( output_resource, master_georef );
     std::cout << "\t--> Replacing alpha with black!" << std::endl;
-    write_image( output_resource, per_pixel_filter(composite,&rgba8_to_rgb8), 
+    write_image( output_resource, per_pixel_filter(composite,&rgba8_to_rgb8),
                  TerminalProgressCallback("plate.tools.hirise2tif", "") );
   }
 

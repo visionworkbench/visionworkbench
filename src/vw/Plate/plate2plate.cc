@@ -34,7 +34,7 @@ struct FilterBase {
   inline ImplT& impl()             { return static_cast<ImplT&>(*this); }
   inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-  inline void init(PlateFile& output, const PlateFile& input, 
+  inline void init(PlateFile& output, const PlateFile& input,
                    int input_transaction_id, int output_transaction_id) {
     return impl().init(output, input, input_transaction_id, output_transaction_id);
   }
@@ -97,7 +97,7 @@ struct ToastDem : public FilterBase<ToastDem> {
       for (int row = 0; row < region_size; ++row) {
         for (int col = 0; col < region_size; ++col) {
           DemWriter writer(output);
-          make_toast_dem_tile(writer, input, col, row, level, 0, 
+          make_toast_dem_tile(writer, input, col, row, level, 0,
                               input_transaction_id, output_transaction_id);
         }
       }
@@ -111,10 +111,10 @@ struct ToastDem : public FilterBase<ToastDem> {
   struct DemWriter : public ToastDemWriter {
     PlateFile& platefile;
     DemWriter(PlateFile& output) : platefile(output) { }
-    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size, 
-                           int32 dem_col, int32 dem_row, 
+    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size,
+                           int32 dem_col, int32 dem_row,
                            int32 dem_level, int32 output_transaction_id) const {
-      platefile.write_update(data, data_size, dem_col, dem_row, 
+      platefile.write_update(data, data_size, dem_col, dem_row,
                              dem_level, output_transaction_id);
     }
   };
@@ -123,7 +123,7 @@ struct ToastDem : public FilterBase<ToastDem> {
     DemWriter writer(output);
     int level_difference = log(input.default_tile_size()/
                                float(output.default_tile_size())) / log(2.) + 0.5;
-    make_toast_dem_tile(writer, input, col, row, level, level_difference, 
+    make_toast_dem_tile(writer, input, col, row, level, level_difference,
                         input_transaction_id, output_transaction_id);
   }
 };
@@ -197,7 +197,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     opt.channel_type = filter.channel_type(input.channel_type());
 
   PlateFile output(opt.output_name, opt.mode, opt.description, opt.tile_size, opt.filetype, opt.pixel_format, opt.channel_type);
-  
+
   int output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
 
   filter.init(output, input, input.transaction_cursor(), output_transaction_id);
@@ -217,8 +217,8 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     if (subdivided_region_size < region_size) subdivided_region_size = region_size;
 
     BBox2i full_region(0,0,region_size,region_size);
-    std::list<BBox2i> boxes1 = bbox_tiles(full_region, 
-                                          subdivided_region_size, 
+    std::list<BBox2i> boxes1 = bbox_tiles(full_region,
+                                          subdivided_region_size,
                                           subdivided_region_size);
 
     vw_out(InfoMessage) << "Region"   << full_region << " has " << boxes1.size() << " bboxes\n";
@@ -238,14 +238,14 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
       std::ostringstream ostr;
       ostr << "\t    Converting " << tiles.size() << " tiles: ";
       tpc.set_progress_text(ostr.str());
-      SubProgressCallback sub_progress(tpc, 
+      SubProgressCallback sub_progress(tpc,
                                        region_counter / boxes1.size(),
                                        (region_counter+1.0) / boxes1.size());
       BOOST_FOREACH( const TileHeader& tile, tiles ) {
         // ++n;
         // if (n % 100 == 0)
         //   std::cout << "n = " << n << "  --  "<< tile.col() << " " << tile.row() << " " << tile.level() << " " << tile.transaction_id() << "\n";
-        filter(output, input, tile.col(), tile.row(), tile.level(), 
+        filter(output, input, tile.col(), tile.row(), tile.level(),
                tile.transaction_id(), output_transaction_id);
         sub_progress.report_incremental_progress(1.0/tiles.size());
       }

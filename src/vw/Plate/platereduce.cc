@@ -107,7 +107,7 @@ struct WeightedVar2 : public ReduceBase<WeightedVar2> {
       // Iterating over non alpha channels
       for ( uint8 i = 0; i < num_channels-1; i++ ){
         sum_weighted_data[i] += channel_cast<float32>(select_channel(*image,num_channels-1))*channel_cast<float32>(select_channel(*image,i));
-        
+
         sum_weighted_data2[i] += channel_cast<float32>(select_channel(*image,num_channels-1))
                                  *channel_cast<float32>(select_channel(*image,i))*channel_cast<float32>(select_channel(*image,i));
       }

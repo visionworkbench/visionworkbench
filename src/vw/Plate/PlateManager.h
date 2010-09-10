@@ -35,7 +35,7 @@ namespace platefile {
   public:
 
     PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
-    
+
     virtual ~PlateManager() {}
 
     // ---------------------------- MIPMAPPING --------------------------------
@@ -43,7 +43,7 @@ namespace platefile {
     // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
     //
     //   starting_level -- select the pyramid level from which to carry out mipmapping
-    //   bbox -- bounding box (in terms of tiles) containing the tiles that need 
+    //   bbox -- bounding box (in terms of tiles) containing the tiles that need
     //           to be mipmapped at starting_level.  Use to specify affected tiles.
     //   transaction_id -- transaction id to use when reading/writing tiles
     //
@@ -60,7 +60,7 @@ namespace platefile {
     /// version in the mipmap.
     virtual void generate_mipmap_tile(int col, int row, int level, int transaction_id, bool preblur) const = 0;
 
-  };    
+  };
 
   // -------------------------------------------------------------------------
   //                            WRITE PLATEFILE TASK
@@ -76,29 +76,29 @@ namespace platefile {
     bool m_tweak_settings_for_terrain;
     bool m_verbose;
     SubProgressCallback m_progress;
-      
+
   public:
-    WritePlateFileTask(boost::shared_ptr<PlateFile> platefile, 
+    WritePlateFileTask(boost::shared_ptr<PlateFile> platefile,
                        int transaction_id,
-                       TileInfo const& tile_info, 
+                       TileInfo const& tile_info,
                        int level, ImageViewBase<ViewT> const& view,
                        bool tweak_settings_for_terrain,
-                       bool verbose, int total_num_blocks, 
+                       bool verbose, int total_num_blocks,
                        const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_platefile(platefile), m_transaction_id(transaction_id),
-      m_tile_info(tile_info), m_level(level), m_view(view.impl()), 
+      m_tile_info(tile_info), m_level(level), m_view(view.impl()),
       m_tweak_settings_for_terrain(tweak_settings_for_terrain),
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
-      
+
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
       vw_out(DebugMessage, "platefile") << "\t    Generating tile: [ "
-                                        << m_tile_info.j << " " << m_tile_info.i 
+                                        << m_tile_info.j << " " << m_tile_info.i
                                         << " @ level " <<  m_level << "]    BBox: "
                                         << m_tile_info.bbox << "\n";
       // XXX: Remove me!  I'm for debugging only!
 
-      // if ( (m_tile_info.i == 255 && m_tile_info.j == 255) || 
-      //      (m_tile_info.i == 0 && m_tile_info.j == 0) ) 
+      // if ( (m_tile_info.i == 255 && m_tile_info.j == 255) ||
+      //      (m_tile_info.i == 0 && m_tile_info.j == 0) )
       //   std::cout << "Processing " << m_tile_info.bbox << "\n";
       // else
       //   return;
@@ -117,7 +117,7 @@ namespace platefile {
         m_progress.report_incremental_progress(1.0);
         return;
       }
-      
+
       // If the data is valid, we write it to the platefile.
       //
       // TODO: This is where we could strip the tile of its alpha
@@ -128,15 +128,15 @@ namespace platefile {
       switch(m_platefile->pixel_format()) {
       case VW_PIXEL_GRAYA:
         switch(m_platefile->channel_type()) {
-        case VW_CHANNEL_UINT8:  
-        case VW_CHANNEL_UINT16:  
-          m_platefile->write_update(pixel_cast<PixelGrayA<uint8> >(tile), 
-                                    m_tile_info.i, m_tile_info.j, 
+        case VW_CHANNEL_UINT8:
+        case VW_CHANNEL_UINT16:
+          m_platefile->write_update(pixel_cast<PixelGrayA<uint8> >(tile),
+                                    m_tile_info.i, m_tile_info.j,
                                     m_level, m_transaction_id);
           break;
-        case VW_CHANNEL_INT16:  
-          m_platefile->write_update(pixel_cast<PixelGrayA<int16> >(tile), 
-                                    m_tile_info.i, m_tile_info.j, 
+        case VW_CHANNEL_INT16:
+          m_platefile->write_update(pixel_cast<PixelGrayA<int16> >(tile),
+                                    m_tile_info.i, m_tile_info.j,
                                     m_level, m_transaction_id);
           break;
         case VW_CHANNEL_FLOAT32:
@@ -150,9 +150,9 @@ namespace platefile {
         break;
       case VW_PIXEL_RGBA:
         switch(m_platefile->channel_type()) {
-        case VW_CHANNEL_UINT8:  
-          m_platefile->write_update(pixel_cast<PixelRGBA<uint8> >(tile), 
-                                    m_tile_info.i, m_tile_info.j, 
+        case VW_CHANNEL_UINT8:
+          m_platefile->write_update(pixel_cast<PixelRGBA<uint8> >(tile),
+                                    m_tile_info.i, m_tile_info.j,
                                     m_level, m_transaction_id);
           break;
         default:
@@ -168,7 +168,7 @@ namespace platefile {
     }
   };
 
-  
+
 
 }} // namespace vw::plate
 
