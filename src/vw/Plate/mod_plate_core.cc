@@ -26,8 +26,6 @@ using std::string;
 namespace vw {
 namespace platefile {
 
-static void null_closure() {}
-
 PlateModule::~PlateModule() { }
 
 const PlateModule::IndexCacheEntry& PlateModule::get_index(const string& id_str) const {
@@ -229,7 +227,7 @@ void PlateModule::sync_index_cache() const {
 
   index_cache.clear();
 
-  m_index_service->ListRequest(m_client.get(), &request, &id_list, google::protobuf::NewCallback(&null_closure));
+  m_index_service->ListRequest(m_client.get(), &request, &id_list, null_callback());
 
   BOOST_FOREACH( const string& name, id_list.platefile_names() ) {
 

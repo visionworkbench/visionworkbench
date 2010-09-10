@@ -19,9 +19,6 @@ using namespace vw::platefile;
 #include <boost/lexical_cast.hpp>
 #include <unistd.h>
  
-// A dummy method for passing to the RPC calls below.
-static void null_closure() {}
-
 // Parse a URL with the format: pf://<exchange>/<platefile name>.plate
 void parse_url(std::string const& url, std::string &hostname, int &port, 
                std::string &exchange, std::string &platefile_name, QueryMap& params) {
@@ -96,8 +93,7 @@ vw::platefile::RemoteIndexPage::RemoteIndexPage(int platefile_id,
   request.set_level(level);
   IndexPageReply response;
   try {
-    m_index_service->PageRequest(m_rpc_controller.get(), &request, &response, 
-                                 google::protobuf::NewCallback(&null_closure));
+    m_index_service->PageRequest(m_rpc_controller.get(), &request, &response, null_callback());
   } catch (TileNotFoundErr &e) {
     // If the remote server doesn't have this index page, that's ok.
     // Doing nothing here will create an empty index page in this
@@ -147,8 +143,7 @@ void vw::platefile::RemoteIndexPage::flush_write_queue() {
       m_write_queue.pop();
     }
     RpcNullMessage response;
-    m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, 
-                                      google::protobuf::NewCallback(&null_closure));
+    m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, null_callback());
 
   }
 }
@@ -233,8 +228,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
   request.set_plate_name(platefile_name);
 
   IndexOpenReply response;
-  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response,
-                               google::protobuf::NewCallback(&null_closure));
+  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, null_callback());
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
@@ -286,8 +280,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   *(request.mutable_index_header()) = index_header_info;
 
   IndexOpenReply response;
-  m_index_service->CreateRequest(m_rpc_controller.get(), &request, &response, 
-                                 google::protobuf::NewCallback(&null_closure));
+  m_index_service->CreateRequest(m_rpc_controller.get(), &request, &response, null_callback());
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
@@ -324,8 +317,7 @@ int vw::platefile::RemoteIndex::write_request(uint64 &size) {
   request.set_platefile_id(m_platefile_id);
 
   IndexWriteReply response;
-  m_index_service->WriteRequest(m_rpc_controller.get(), &request, &response, 
-                                google::protobuf::NewCallback(&null_closure));
+  m_index_service->WriteRequest(m_rpc_controller.get(), &request, &response, null_callback());
   size = response.size();
   return response.blob_id();
 }
@@ -337,8 +329,7 @@ void vw::platefile::RemoteIndex::log(std::string message) {
   request.set_message(message);
 
   RpcNullMessage response;
-  m_index_service->LogRequest(m_rpc_controller.get(), &request, &response, 
-                       google::protobuf::NewCallback(&null_closure));  
+  m_index_service->LogRequest(m_rpc_controller.get(), &request, &response, null_callback());
 }
 
 /// Writing, pt. 3: Signal the completion 
@@ -356,8 +347,7 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
   request.set_blob_offset(blob_offset);
 
   RpcNullMessage response;
-  m_index_service->WriteComplete(m_rpc_controller.get(), &request, &response, 
-                                 google::protobuf::NewCallback(&null_closure));
+  m_index_service->WriteComplete(m_rpc_controller.get(), &request, &response, null_callback());
 }
 
 // This is the old valid_tiles RPC implementation.  It has been
@@ -379,8 +369,7 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
 //   request.set_min_num_matches(min_num_matches);
 
 //   IndexValidTilesReply response;
-//   m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, 
-//                               google::protobuf::NewCallback(&null_closure));
+//   m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, null_callback());
 
 //   std::list<TileHeader> results;
 //   for (int i = 0; i < response.tile_headers_size(); ++i) {
@@ -393,8 +382,7 @@ vw::int32 vw::platefile::RemoteIndex::num_levels() const {
   IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);
   IndexNumLevelsReply response;
-  m_index_service->NumLevelsRequest(m_rpc_controller.get(), &request, &response, 
-                                    google::protobuf::NewCallback(&null_closure));
+  m_index_service->NumLevelsRequest(m_rpc_controller.get(), &request, &response, null_callback());
 
   // Make sure that the local (cached) number of levels matches the
   // number of levels on the server.
@@ -450,8 +438,7 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
   request.set_transaction_id_override(transaction_id_override);
   
   IndexTransactionReply response;
-  m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, 
-                                      google::protobuf::NewCallback(&null_closure));
+  m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, null_callback());
   return response.transaction_id();
 }
 
@@ -464,8 +451,7 @@ void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id, bool
   request.set_update_read_cursor(update_read_cursor);
   
   RpcNullMessage response;
-  m_index_service->TransactionComplete(m_rpc_controller.get(), &request, &response, 
-                                       google::protobuf::NewCallback(&null_closure));
+  m_index_service->TransactionComplete(m_rpc_controller.get(), &request, &response, null_callback());
 }
 
 // If a transaction fails, we may need to clean up the mosaic.  
@@ -475,8 +461,7 @@ void vw::platefile::RemoteIndex::transaction_failed(int32 transaction_id) {
   request.set_transaction_id(transaction_id);
   
   RpcNullMessage response;
-  m_index_service->TransactionFailed(m_rpc_controller.get(), &request, &response, 
-                                     google::protobuf::NewCallback(&null_closure));
+  m_index_service->TransactionFailed(m_rpc_controller.get(), &request, &response, null_callback());
 }
 
 vw::int32 vw::platefile::RemoteIndex::transaction_cursor() {
@@ -484,8 +469,7 @@ vw::int32 vw::platefile::RemoteIndex::transaction_cursor() {
   request.set_platefile_id(m_platefile_id);
   
   IndexTransactionCursorReply response;
-  m_index_service->TransactionCursor(m_rpc_controller.get(), &request, &response, 
-                                     google::protobuf::NewCallback(&null_closure));
+  m_index_service->TransactionCursor(m_rpc_controller.get(), &request, &response, null_callback());
   return response.transaction_id();
 }
 

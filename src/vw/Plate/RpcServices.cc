@@ -15,8 +15,7 @@ using namespace vw::platefile;
 
 #include <google/protobuf/descriptor.h>
 
-// A dummy method for passing to the RPC calls below.
-static void null_closure() {}
+void vw::platefile::noop() {}
 
 // -----------------------------------------------------------------------------
 //                                AmqpRpcServer
@@ -72,8 +71,7 @@ void vw::platefile::AmqpRpcServer::run() {
         // For debugging:
         //        std::cout << "Request: " << request->DebugString() << "\n";
 
-        m_service->CallMethod(method, this, request.get(), response.get(),
-                              google::protobuf::NewCallback(&null_closure));
+        m_service->CallMethod(method, this, request.get(), response.get(), null_callback());
 
         // ---------------------------
         // Step 3 : Return the result.

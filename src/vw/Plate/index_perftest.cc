@@ -21,9 +21,6 @@ namespace po = boost::program_options;
 using namespace vw::platefile;
 using namespace vw;
 
-// A dummy method for passing to the RPC calls below.
-static void null_closure() {}
-
 // -----------------------------------------------------------------------------
 //                                  MAIN
 // -----------------------------------------------------------------------------
@@ -61,8 +58,7 @@ int main(int argc, char** argv) {
     request.set_value(i);
 
     IndexTestReply response;
-    index_service->TestRequest(rpc_controller.get(), &request, &response, 
-                               google::protobuf::NewCallback(&null_closure));
+    index_service->TestRequest(rpc_controller.get(), &request, &response, null_callback());
 
     if (i != response.value())
       std::cout << "Error: IndexTestMessage failed!\n";

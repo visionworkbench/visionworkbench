@@ -24,8 +24,6 @@ struct Options {
   int32 platefile_id;
 };
 
-static void null_closure() {}
-
 #define VW_DEFINE_SINGLETON(name, klass) \
   namespace { \
     vw::RunOnce name ## _once = VW_RUNONCE_INIT; \
@@ -78,7 +76,7 @@ void run(const Options& opt) {
   q.mutable_lonlat()->CopyFrom(adapt_bbox(BBox2(opt.west, opt.north, opt.east-opt.west, opt.south-opt.north)));
   q.mutable_pixels()->CopyFrom(adapt_bbox(BBox2(0, 0, opt.width, opt.height)));
 
-  rpc_mutable().service->GetTile(rpc_mutable().client.get(), &q, &a, google::protobuf::NewCallback(&null_closure));
+  rpc_mutable().service->GetTile(rpc_mutable().client.get(), &q, &a, null_callback());
 
   vw_out(InfoMessage) << a.filename() << std::endl;
 }

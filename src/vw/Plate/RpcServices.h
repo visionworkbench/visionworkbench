@@ -19,6 +19,12 @@
 namespace vw {
 namespace platefile {
 
+  void noop();
+
+  inline google::protobuf::Closure* null_callback() {
+    return google::protobuf::NewCallback(&noop);
+  }
+
   class NetworkMonitor {
     size_t m_total_bytes;
     int32 m_total_queries;

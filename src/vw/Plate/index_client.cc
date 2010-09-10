@@ -24,9 +24,6 @@ using namespace vw::platefile;
 
 std::string name, rabbit, exchange;
 
-
-static void null_closure() {}
-
 #if 0
 const boost::shared_ptr<Blob> PlateModule::get_blob(const std::string& plate_filename, uint32 blob_id) const {
   std::ostringstream ostr;
@@ -109,7 +106,7 @@ void ListPlates() {
   IndexListReply   reply;
 
   std::cerr << "Listing plates!" << std::endl;
-  rpc_mutable().service->ListRequest(rpc_mutable().client.get(), &request, &reply, google::protobuf::NewCallback(&null_closure));
+  rpc_mutable().service->ListRequest(rpc_mutable().client.get(), &request, &reply, null_callback());
 
   vw_out() << "Got Plates:" << std::endl;
   std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(), " "));
