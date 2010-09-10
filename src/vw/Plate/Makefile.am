@@ -14,7 +14,7 @@ lib_LTLIBRARIES =
 if MAKE_MODULE_PLATE
 
 # This is necessary because otherwise automake doesn't see vwPlate as a
-# dependency for compiler-order calculations
+# dependency for compile-order calculations
 PLATE_LOCAL_LIBS = libvwPlate.la @MODULE_PLATE_LIBS@
 
 protocol_headers = ProtoBuffers.pb.h WMSMessages.pb.h
@@ -22,23 +22,53 @@ protocol_sources = ProtoBuffers.pb.cc WMSMessages.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 
-include_HEADERS = Exception.h Blob.h BlobManager.h Index.h		\
-		  LocalIndex.h RemoteIndex.h PlateFile.h		\
-		  AmqpConnection.h PlateManager.h SnapshotManager.h	\
-		  ToastPlateManager.h PlateCarreePlateManager.h		\
-		  PlateView.h RpcServices.h IndexService.h WMSService.h		\
-		  PagedIndex.h IndexPage.h ToastDem.h			\
-		  TileManipulation.h common.h HTTPUtils.h
+include_HEADERS =           \
+  AmqpConnection.h          \
+  Blob.h                    \
+  BlobManager.h             \
+  common.h                  \
+  Exception.h               \
+  HTTPUtils.h               \
+  Index.h                   \
+  IndexPage.h               \
+  IndexService.h            \
+  LocalIndex.h              \
+  PagedIndex.h              \
+  PlateCarreePlateManager.h \
+  PlateFile.h               \
+  PlateManager.h            \
+  PlateView.h               \
+  RemoteIndex.h             \
+  RpcServices.h             \
+  SnapshotManager.h         \
+  TileManipulation.h        \
+  ToastDem.h                \
+  ToastPlateManager.h       \
+  WMSService.h
+
 nodist_include_HEADERS = $(protocol_headers)
 noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
 
-libvwPlate_la_SOURCES = Blob.cc BlobManager.cc Index.cc LocalIndex.cc	\
-			RemoteIndex.cc PlateFile.cc RpcServices.cc	\
-			IndexService.cc WMSService.cc AmqpConnection.cc		\
-			PlateManager.cc SnapshotManager.cc		\
-			ToastPlateManager.cc				\
-			PlateCarreePlateManager.cc PagedIndex.cc	\
-			IndexPage.cc ToastDem.cc TileManipulation.cc HTTPUtils.cc
+libvwPlate_la_SOURCES =      \
+  AmqpConnection.cc          \
+  Blob.cc                    \
+  BlobManager.cc             \
+  HTTPUtils.cc               \
+  Index.cc                   \
+  IndexPage.cc               \
+  IndexService.cc            \
+  LocalIndex.cc              \
+  PagedIndex.cc              \
+  PlateCarreePlateManager.cc \
+  PlateFile.cc               \
+  PlateManager.cc            \
+  RemoteIndex.cc             \
+  RpcServices.cc             \
+  SnapshotManager.cc         \
+  TileManipulation.cc        \
+  ToastDem.cc                \
+  ToastPlateManager.cc       \
+  WMSService.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
@@ -130,10 +160,24 @@ plate2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 platereduce_SOURCES = platereduce.cc
 platereduce_LDADD   = $(PLATE_LOCAL_LIBS)
 
-bin_PROGRAMS = tiles2plate plate2tiles image2plate snapshot						\
-							 rebuild_index index_server index_client amqp_perftest	\
-							 index_perftest rpc_tool lustre_torture hirise2tif			\
-							 plate2plate plate2dem platereduce wms_server wms_client
+bin_PROGRAMS =   \
+  amqp_perftest  \
+  hirise2tif     \
+  image2plate    \
+  index_client   \
+  index_perftest \
+  index_server   \
+  lustre_torture \
+  plate2dem      \
+  plate2plate    \
+  plate2tiles    \
+  platereduce    \
+  rebuild_index  \
+  rpc_tool       \
+  snapshot       \
+  tiles2plate    \
+  wms_client     \
+  wms_server
 
 endif
 
