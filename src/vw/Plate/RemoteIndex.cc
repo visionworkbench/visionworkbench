@@ -215,7 +215,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
   QueryMap params;
   parse_url(url, hostname, port, exchange, platefile_name, params);
 
-  std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
+  std::string queue_name = unique_name(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
@@ -264,7 +264,7 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   QueryMap params;
   parse_url(url, hostname, port, exchange, platefile_name, params);
 
-  std::string queue_name = AmqpRpcClient::UniqueQueueName(std::string("remote_index_") + platefile_name);
+  std::string queue_name = unique_name(std::string("remote_index_") + platefile_name);
 
   // Set up the connection to the AmqpRpcService
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));

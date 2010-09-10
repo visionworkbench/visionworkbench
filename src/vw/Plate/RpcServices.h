@@ -25,6 +25,10 @@ namespace platefile {
     return google::protobuf::NewCallback(&noop);
   }
 
+  // Returns a unique name based on the identifier
+  // (uuid built from id, hostname, pid, thread, time)
+  std::string unique_name(const std::string& identifier);
+
   class NetworkMonitor {
     size_t m_total_bytes;
     int32 m_total_queries;
@@ -213,10 +217,6 @@ namespace platefile {
                             const google::protobuf::Message* request,
                             google::protobuf::Message* response,
                             google::protobuf::Closure* done);
-
-      // Returns a good private queue name. Identifier should be something unique
-      // to the service, like "remote_index" or "mod_plate"
-      static std::string UniqueQueueName(const std::string identifier);
   };
 
 

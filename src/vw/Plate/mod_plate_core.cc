@@ -120,7 +120,7 @@ void mod_plate_init(const plate_config *conf) {
 
 PlateModule::PlateModule(const plate_config* conf)
   : m_connected(false), m_conf(conf),
-    m_queue_name(AmqpRpcClient::UniqueQueueName("mod_plate"))
+    m_queue_name(unique_name("mod_plate"))
 {
 
   // Disable the config file

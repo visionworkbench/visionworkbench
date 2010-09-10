@@ -66,7 +66,7 @@ struct RPC {
   boost::shared_ptr<IndexService>  service;
   RPC() {
     std::string full_exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + exchange;
-    std::string queue = AmqpRpcClient::UniqueQueueName("index_client");
+    std::string queue = unique_name("index_client");
 
     std::cerr << "Connecting to rabbit " << rabbit << std::endl;
     boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(rabbit));

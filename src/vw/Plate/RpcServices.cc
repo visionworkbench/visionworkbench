@@ -233,7 +233,7 @@ void vw::platefile::AmqpRpcClient::CallMethod(const google::protobuf::MethodDesc
   done->Run();
 }
 
-std::string vw::platefile::AmqpRpcClient::UniqueQueueName(const std::string identifier) {
+std::string vw::platefile::unique_name(const std::string& identifier) {
   // Start by generating a unique queue name based on our hostname, PID, and thread ID.
   char hostname[255];
   gethostname(hostname, 255);

@@ -48,7 +48,7 @@ struct RPC {
   boost::shared_ptr<AmqpRpcClient> client;
   boost::shared_ptr<WMSService>  service;
   RPC() {
-    std::string queue_name = AmqpRpcClient::UniqueQueueName("wms_client");
+    std::string queue_name = unique_name("wms_client");
 
     boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
     client.reset(  new AmqpRpcClient(conn, PLATE_EXCHANGE_NAMESPACE ".wms", queue_name, "wms") );
