@@ -73,13 +73,11 @@ namespace platefile {
       std::string m_queue;
       std::string m_routing_key;
       boost::shared_ptr<AmqpConsumer> m_consumer;
-      uint32 m_exchange_count;
-      uint32 m_next_exchange;
 
       vw::ThreadQueue<boost::shared_ptr<ByteArray> > m_incoming_messages;
 
     public:
-    AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue, uint32 exchange_count);
+    AmqpRpcEndpoint(boost::shared_ptr<AmqpConnection> conn, std::string exchange, std::string queue);
 
       virtual ~AmqpRpcEndpoint();
 
@@ -158,8 +156,8 @@ namespace platefile {
   class AmqpRpcDumbClient : public AmqpRpcEndpoint {
     public:
       AmqpRpcDumbClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange,
-                        std::string queue, uint32 exchange_count = 1) :
-        AmqpRpcEndpoint(conn, exchange, queue, exchange_count) {}
+                        std::string queue) :
+        AmqpRpcEndpoint(conn, exchange, queue) {}
 
       virtual ~AmqpRpcDumbClient() {}
 
@@ -168,8 +166,7 @@ namespace platefile {
           vw_throw(vw::ArgumentErr() << "AmqpRpcEndpoint::bind_service(): unbind your service before you start another one");
 
         m_routing_key = routing_key;
-        for (uint32 i = 0; i < m_exchange_count; ++i)
-          m_channel->queue_bind(m_queue, m_exchange + "_" + vw::stringify(i), routing_key);
+        m_channel->queue_bind(m_queue, m_exchange + "_0", routing_key);
         m_consumer = m_channel->basic_consume(m_queue, boost::bind(&vw::ThreadQueue<SharedByteArray>::push, boost::ref(m_incoming_messages), _1));
       }
   };
@@ -193,8 +190,8 @@ namespace platefile {
 
   public:
     AmqpRpcClient(boost::shared_ptr<AmqpConnection> conn, std::string exchange,
-                  std::string queue, std::string request_routing_key, uint32 exchange_count = 1) :
-      AmqpRpcEndpoint(conn, exchange, queue, exchange_count),
+                  std::string queue, std::string request_routing_key) :
+      AmqpRpcEndpoint(conn, exchange, queue),
       m_request_routing_key(request_routing_key),
       m_sequence_number(0), m_max_tries(10), m_timeout(15000) {}
 
@@ -229,8 +226,8 @@ namespace platefile {
   public:
 
     AmqpRpcServer(boost::shared_ptr<AmqpConnection> conn, std::string exchange,
-                  std::string queue, bool debug = false, uint32 exchange_count = 1) :
-      AmqpRpcEndpoint(conn, exchange, queue, exchange_count), m_terminate(false), m_debug(debug) {}
+                  std::string queue, bool debug = false) :
+      AmqpRpcEndpoint(conn, exchange, queue), m_terminate(false), m_debug(debug) {}
 
     virtual ~AmqpRpcServer() {}
 

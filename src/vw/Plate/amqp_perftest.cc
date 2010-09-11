@@ -22,11 +22,11 @@ using namespace vw;
 // --------------------------------------------------------------
 
 void run_client(std::string exchange, std::string client_queue,
-                const std::string server_queue, unsigned message_size, bool rtt, unsigned exchanges) {
+                const std::string server_queue, unsigned message_size, bool rtt) {
   std::cerr << "Running client...\n";
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-  AmqpRpcDumbClient client(conn, exchange, client_queue, exchanges);
+  AmqpRpcDumbClient client(conn, exchange, client_queue);
   client.bind_service(client_queue);
 
   int msgs = 0;
@@ -93,13 +93,13 @@ void sighandle(int sig) {
 // --------------------------------------------------------------
 
 void run_server(const std::string exchange, const std::string client_queue,
-                const std::string server_queue, unsigned message_size, bool rtt, unsigned batch, unsigned exchanges) {
+                const std::string server_queue, unsigned message_size, bool rtt, unsigned batch) {
   std::cerr << "Running server...\n";
 
   signal(SIGINT, sighandle);
 
   boost::shared_ptr<AmqpConnection> conn(new AmqpConnection());
-  AmqpRpcDumbClient server(conn, exchange, server_queue, exchanges);
+  AmqpRpcDumbClient server(conn, exchange, server_queue);
   server.bind_service(server_queue);
 
   // Set up the message
@@ -161,14 +161,12 @@ int main(int argc, char** argv) {
 
   unsigned message_size;
   unsigned batch;
-  unsigned exchanges;
 
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("client", "Act as client.")
     ("server", "Act as server.")
     ("batch",     po::value(&batch)->default_value(1), "How many messages to publish before checking for responses (server-only)")
-    ("exchanges", po::value(&exchanges)->default_value(1), "How many exchanges should we stripe across?")
     ("rtt", "Measure round trip messages/sec instead of one way messages/sec.")
     ("message-size", po::value(&message_size)->default_value(5), "Message size in bytes")
     ("help", "Display this help message");
@@ -188,11 +186,11 @@ int main(int argc, char** argv) {
 
   if( vm.count("server") )
     run_server("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
-               message_size, vm.count("rtt"), batch, exchanges);
+               message_size, vm.count("rtt"), batch);
 
   if( vm.count("client") )
     run_client("ptest_exchange", "ptest_client_queue", "ptest_server_queue",
-               message_size, vm.count("rtt"), exchanges);
+               message_size, vm.count("rtt"));
 
   return 0;
 }
