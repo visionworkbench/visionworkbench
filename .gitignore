@@ -206,6 +206,7 @@ docs/workbook/workbook.toc
 /src/vw/Stereo/tests/TestCorrelator
 /src/vw/Stereo/tests/TestDisparity
 /src/vw/Stereo/tests/TestStereoModel
+/src/vw/Stereo/tests/TestSubPixel
 /src/vw/tools/ba_test
 /src/vw/tools/ba_unit_test_data
 /src/vw/tools/bayer
