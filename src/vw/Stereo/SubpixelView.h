@@ -28,8 +28,7 @@ namespace stereo {
     // General Settings
     int m_kern_width, m_kern_height;
     bool m_do_h_subpixel, m_do_v_subpixel;
-    //bool m_do_affine_subpixel;
-    int m_do_affine_subpixel;
+    int m_which_affine_subpixel;
     PreprocFilterT m_preproc_filter;
     bool m_verbose;
 
@@ -45,8 +44,7 @@ namespace stereo {
                  int kern_width, int kern_height,
                  bool do_horizontal_subpixel,
                  bool do_vertical_subpixel,
-                 //bool do_affine_subpixel,
-                 int do_affine_subpixel,
+                 int which_affine_subpixel,
                  PreprocFilterT preproc_filter,
                  bool verbose) : m_disparity_map(disparity_map),
                                  m_left_image(left_image),
@@ -54,7 +52,7 @@ namespace stereo {
                                  m_kern_width(kern_width), m_kern_height(kern_height),
                                  m_do_h_subpixel(do_horizontal_subpixel),
                                  m_do_v_subpixel(do_vertical_subpixel),
-                                 m_do_affine_subpixel(do_affine_subpixel),
+                                 m_which_affine_subpixel(which_affine_subpixel),
                                  m_preproc_filter(preproc_filter),
                                  m_verbose(verbose) {
       // Basic assertions
@@ -117,7 +115,7 @@ namespace stereo {
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<float> left_image_patch, right_image_patch;
-      if (m_do_affine_subpixel > 1) {
+      if (m_which_affine_subpixel > 1) {
         // affine subpixel does its own pre-processing
         left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()),
                                 left_crop_bbox);
@@ -141,7 +139,7 @@ namespace stereo {
           if ( is_valid(disparity_map_patch(u,v)) )
             remove_mask(disparity_map_patch(u,v)) -= search_range.min();
 
-      switch (m_do_affine_subpixel){
+      switch (m_which_affine_subpixel){
       case 0 : // No Subpixel
         break;
       case 1 : // Parabola Subpixel
@@ -163,7 +161,8 @@ namespace stereo {
                                           m_verbose);
         break;
       default:
-        vw_throw(ArgumentErr() << "Unknown subpixel correlation type: " << m_do_affine_subpixel << ".");
+        vw_throw(ArgumentErr() << "Unknown subpixel correlation type: "
+                 << m_which_affine_subpixel << ".");
         break;
       }
 
