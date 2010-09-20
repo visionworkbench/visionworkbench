@@ -88,8 +88,6 @@ protected:
           if ( disparity_map(i,j).child() == Vector2f(3,3) )
             count_correct++;
         }
-    std::cout << "Correct Amount: "
-              << float(count_correct)/float(count_valid) << "\n";
     EXPECT_LT( success, float(count_correct)/float(count_valid) );
   }
 
