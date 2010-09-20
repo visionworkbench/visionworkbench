@@ -19,12 +19,11 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
-  template <class PreprocFilterT>
-  class SubpixelView : public ImageViewBase<SubpixelView<PreprocFilterT> > {
+  template <class PreprocFilterT, class ImageT>
+  class SubpixelView : public ImageViewBase<SubpixelView<PreprocFilterT, ImageT> > {
 
     ImageViewRef<PixelMask<Vector2f> > m_disparity_map;
-    ImageViewRef<float> m_left_image;
-    ImageViewRef<float> m_right_image;
+    ImageT m_left_image, m_right_image;
 
     // General Settings
     int m_kern_width, m_kern_height;
@@ -179,10 +178,10 @@ namespace stereo {
       return outDisp;
     }
 
-    template <class DisparityViewT, class InputViewT>
+    template <class DisparityViewT>
     SubpixelView(DisparityViewT const& disparity_map,
-                 InputViewT const& left_image,
-                 InputViewT const& right_image,
+                 ImageT const& left_image,
+                 ImageT const& right_image,
                  int kern_width, int kern_height,
                  bool do_horizontal_subpixel,
                  bool do_vertical_subpixel,
