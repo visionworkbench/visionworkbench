@@ -129,7 +129,7 @@ TEST_F( SubPixelCorrelate95Test, BayesEM95 ) {
              7, 7, true, true, 2,
              PreFilter(1.4), false );
   double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.056);
+  EXPECT_LT(error, 0.060);
 }
 
 TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
@@ -141,7 +141,7 @@ TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
              7, 7, true, true, 2,
              PreFilter(1.4), false );
   double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.127);
+  EXPECT_LT(error, 0.092);
 }
 
 TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
@@ -153,7 +153,7 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
              7, 7, true, true, 2,
              PreFilter(1.4), false );
   double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.362);
+  EXPECT_LT(error, 0.158);
 }
 
 TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
@@ -165,5 +165,5 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
              7, 7, true, true, 2,
              PreFilter(1.4), false );
   double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.748);
+  EXPECT_LT(error, 0.278);
 }
