@@ -108,10 +108,10 @@ namespace stereo {
 
       // Finally, we must adjust both bounding boxes to account for
       // the size of the kernel itself.
-      right_crop_bbox.min() -= m_kernel_size;  // Shouldn't this be kernel_size/2 ?
-      right_crop_bbox.max() += m_kernel_size;
-      left_crop_bbox.min() -=  m_kernel_size;
-      left_crop_bbox.max() +=  m_kernel_size;
+      right_crop_bbox.min() -= m_kernel_size/2;  // Shouldn't this be kernel_size/2 ?
+      right_crop_bbox.max() += m_kernel_size/2;
+      left_crop_bbox.min() -=  m_kernel_size/2;
+      left_crop_bbox.max() +=  m_kernel_size/2;
 
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
@@ -125,8 +125,8 @@ namespace stereo {
              left_crop_bbox);
       if ( !m_which_affine_subpixel ) // early exit condition?
         return crop(disparity_map_patch,
-                    BBox2i( m_kernel_size[0] - bbox.min().x(),
-                            m_kernel_size[1] - bbox.min().y(),
+                    BBox2i( m_kernel_size[0]/2 - bbox.min().x(),
+                            m_kernel_size[1]/2 - bbox.min().y(),
                             m_left_image.cols(), m_left_image.rows() ) );
 
       // Adjust the disparities to be relative to the cropped
@@ -168,8 +168,8 @@ namespace stereo {
           subpixel_correlation_affine_2d_EM(d_subpatch,
                                             l_patches[i], r_patches[i],
                                             m_kernel_size[0], m_kernel_size[1],
-                                            BBox2i(m_kernel_size[0],
-                                                   m_kernel_size[1],
+                                            BBox2i(m_kernel_size[0]/2,
+                                                   m_kernel_size[1]/2,
                                                    bbox.width(), bbox.height()),
                                             m_do_h_subpixel, m_do_v_subpixel,
                                             m_verbose);
@@ -211,7 +211,8 @@ namespace stereo {
                                           left_image_patch,
                                           right_image_patch,
                                           m_kernel_size[0], m_kernel_size[1],
-                                          BBox2i(m_kernel_size[0], m_kernel_size[1],
+                                          BBox2i(m_kernel_size[0]/2,
+                                                 m_kernel_size[1]/2,
                                                  bbox.width(), bbox.height()),
                                           m_do_h_subpixel, m_do_v_subpixel,
                                           m_verbose);
@@ -231,8 +232,8 @@ namespace stereo {
       // using the coordinates inside the bbox.  The pixels outside
       // those coordinates are invalid, and they never get accessed.
       return crop(disparity_map_patch,
-                  BBox2i( m_kernel_size[0] - bbox.min().x(),
-                          m_kernel_size[1] - bbox.min().y(),
+                  BBox2i( m_kernel_size[0]/2 - bbox.min().x(),
+                          m_kernel_size[1]/2 - bbox.min().y(),
                           m_left_image.cols(), m_left_image.rows() ) );
     }
 

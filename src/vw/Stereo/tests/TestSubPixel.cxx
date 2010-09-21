@@ -163,7 +163,7 @@ TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.078);
-  EXPECT_LE(invalid_count, 5);
+  EXPECT_LE(invalid_count, 3);
 }
 
 TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
@@ -178,7 +178,7 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   EXPECT_LT(error, 0.125);
-  EXPECT_LE(invalid_count, 4);
+  EXPECT_LE(invalid_count, 3);
 }
 
 TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
