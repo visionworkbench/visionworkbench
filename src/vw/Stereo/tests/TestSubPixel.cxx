@@ -55,13 +55,17 @@ protected:
   }
 
   template <class ViewT>
-  double check_error( ImageViewBase<ViewT> const& input ) {
+  double check_error( ImageViewBase<ViewT> const& input,
+                      int32& invalid_count ) {
     ViewT const& disparity = input.impl();
     double error = 0;
     for ( int i = 0; i < IMAGE_SIZE; i++ ) {
       float expected = stretch * float(i) + translation - i;
-      for ( int j = 0; j < IMAGE_SIZE; j++ )
+      for ( int j = 0; j < IMAGE_SIZE; j++ ) {
         error += disparity(i,j)[1] + fabs(disparity(i,j)[0] - expected);
+        if ( !is_valid(disparity(i,j)) )
+          invalid_count++;
+      }
     }
     return error / (double(IMAGE_SIZE)*double(IMAGE_SIZE));
   }
@@ -84,8 +88,11 @@ TEST_F( SubPixelCorrelate95Test, Parabola95 ) {
     SubView( starting_disp, image1, image2,
              7, 7, true, true, 1,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.336);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.341);
+  EXPECT_LE(invalid_count, 0);
 }
 
 TEST_F( SubPixelCorrelate90Test, Parabola90 ) {
@@ -94,8 +101,11 @@ TEST_F( SubPixelCorrelate90Test, Parabola90 ) {
     SubView( starting_disp, image1, image2,
              7, 7, true, true, 1,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.379);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.383);
+  EXPECT_LE(invalid_count, 0);
 }
 
 TEST_F( SubPixelCorrelate80Test, Parabola80 ) {
@@ -104,8 +114,11 @@ TEST_F( SubPixelCorrelate80Test, Parabola80 ) {
     SubView( starting_disp, image1, image2,
              7, 7, true, true, 1,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.310);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.313);
+  EXPECT_LE(invalid_count, 0);
 }
 
 TEST_F( SubPixelCorrelate70Test, Parabola70 ) {
@@ -114,8 +127,11 @@ TEST_F( SubPixelCorrelate70Test, Parabola70 ) {
     SubView( starting_disp, image1, image2,
              7, 7, true, true, 1,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.427);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.429);
+  EXPECT_LE(invalid_count, 0);
 }
 
 // Testing Bayes EM SubPixel
@@ -128,8 +144,11 @@ TEST_F( SubPixelCorrelate95Test, BayesEM95 ) {
              channel_cast_rescale<float>(image2),
              7, 7, true, true, 2,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.072);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.054);
+  EXPECT_LE(invalid_count, 0);
 }
 
 TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
@@ -140,8 +159,11 @@ TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
              channel_cast_rescale<float>(image2),
              7, 7, true, true, 2,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.087);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.078);
+  EXPECT_LE(invalid_count, 5);
 }
 
 TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
@@ -152,8 +174,11 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
              channel_cast_rescale<float>(image2),
              7, 7, true, true, 2,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.121);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.125);
+  EXPECT_LE(invalid_count, 4);
 }
 
 TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
@@ -164,6 +189,9 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
              channel_cast_rescale<float>(image2),
              7, 7, true, true, 2,
              PreFilter(1.4), false );
-  double error = check_error( disparity_map );
-  EXPECT_LT(error, 0.176);
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
+  EXPECT_LT(error, 0.198);
+  EXPECT_LE(invalid_count, 7);
 }

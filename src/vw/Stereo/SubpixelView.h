@@ -14,6 +14,7 @@
 #include <vw/Stereo/Correlate.h>
 #include <vw/Image/Filter.h>
 #include <vw/Image/Interpolation.h>
+#include <boost/type_traits/remove_reference.hpp>
 
 namespace vw {
 namespace stereo {
@@ -26,7 +27,7 @@ namespace stereo {
     ImageT m_left_image, m_right_image;
 
     // General Settings
-    int m_kern_width, m_kern_height;
+    Vector2i m_kernel_size;
     bool m_do_h_subpixel, m_do_v_subpixel;
     int m_which_affine_subpixel;
     PreprocFilterT m_preproc_filter;
@@ -49,7 +50,7 @@ namespace stereo {
                  bool verbose) : m_disparity_map(disparity_map),
                                  m_left_image(left_image),
                                  m_right_image(right_image),
-                                 m_kern_width(kern_width), m_kern_height(kern_height),
+                                 m_kernel_size(Vector2i(kern_width,kern_height)),
                                  m_do_h_subpixel(do_horizontal_subpixel),
                                  m_do_v_subpixel(do_vertical_subpixel),
                                  m_which_affine_subpixel(which_affine_subpixel),
@@ -103,50 +104,105 @@ namespace stereo {
       // search bbox will always be larger than the given left image
       // bbox, so we just make the left bbox the same size as the
       // right bbox.
-      left_crop_bbox.max() = left_crop_bbox.min() + Vector2i(right_crop_bbox.width(), right_crop_bbox.height());
+      left_crop_bbox.max() = left_crop_bbox.min() + right_crop_bbox.size();
 
       // Finally, we must adjust both bounding boxes to account for
       // the size of the kernel itself.
-      right_crop_bbox.min() -= Vector2i(m_kern_width, m_kern_height);
-      right_crop_bbox.max() += Vector2i(m_kern_width, m_kern_height);
-      left_crop_bbox.min() -= Vector2i(m_kern_width, m_kern_height);
-      left_crop_bbox.max() += Vector2i(m_kern_width, m_kern_height);
+      right_crop_bbox.min() -= m_kernel_size;  // Shouldn't this be kernel_size/2 ?
+      right_crop_bbox.max() += m_kernel_size;
+      left_crop_bbox.min() -=  m_kernel_size;
+      left_crop_bbox.max() +=  m_kernel_size;
 
       // We crop the images to the expanded bounding box and edge
       // extend in case the new bbox extends past the image bounds.
       ImageView<float> left_image_patch, right_image_patch;
-      if (m_which_affine_subpixel > 1) {
-        // affine subpixel does its own pre-processing
-        left_image_patch = crop(edge_extend(m_left_image,ZeroEdgeExtension()),
-                                left_crop_bbox);
-        right_image_patch = crop(edge_extend(m_right_image,ZeroEdgeExtension()),
-                                 right_crop_bbox);
-      } else {
-        // parabola subpixel does the same preprocessing as the pyramid correlator
-        left_image_patch = m_preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()),
-                                                 left_crop_bbox));
-        right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()),
-                                                  right_crop_bbox));
-      }
+      left_image_patch = m_preproc_filter(crop(edge_extend(m_left_image,ZeroEdgeExtension()),
+                                               left_crop_bbox));
+      right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()),
+                                                right_crop_bbox));
       ImageView<PixelMask<Vector2f> > disparity_map_patch =
         crop(edge_extend(m_disparity_map, ZeroEdgeExtension()),
              left_crop_bbox);
+      if ( !m_which_affine_subpixel ) // early exit condition?
+        return crop(disparity_map_patch,
+                    BBox2i( m_kernel_size[0] - bbox.min().x(),
+                            m_kernel_size[1] - bbox.min().y(),
+                            m_left_image.cols(), m_left_image.rows() ) );
 
       // Adjust the disparities to be relative to the cropped
       // image pixel locations
-      for (int v = 0; v < disparity_map_patch.rows(); ++v)
-        for (int u = 0; u < disparity_map_patch.cols(); ++u)
-          if ( is_valid(disparity_map_patch(u,v)) )
-            remove_mask(disparity_map_patch(u,v)) -= search_range.min();
+      PixelMask<Vector2f> disparity_patch_translation( search_range.min() );
+      disparity_map_patch -= disparity_patch_translation;
 
+      // Process subpixel in a pyramid fashion ...
+      // This hope is to fill in spots where the seed disparity
+      // has failed.
+      const int pyramid_levels = 2;
+      std::vector< ImageView<float> > l_patches, r_patches;
+      ImageView<PixelMask<Vector2f> > d_subpatch;
+      for ( int i = 0; i < pyramid_levels; i++ ) {
+        if ( i == 0 ) {
+          l_patches.push_back( subsample( gaussian_filter(left_image_patch,1.4), 2 ) );
+          r_patches.push_back( subsample( gaussian_filter(right_image_patch,1.4), 2 ) );
+          d_subpatch =
+            disparity_subsample( disparity_map_patch );
+        } else {
+          l_patches.push_back( subsample( gaussian_filter(l_patches[i-1],1.4), 2 ) );
+          r_patches.push_back( subsample( gaussian_filter(r_patches[i-1],1.4), 2 ) );
+          ImageView<PixelMask<Vector2f> > d_subpatch_buf =
+            disparity_subsample( d_subpatch );
+          d_subpatch = d_subpatch_buf;
+        }
+      }
+
+      // Now work disparity d_subpatch back up to native resolution
+      for ( int i = pyramid_levels-1; i >= 0; i-- ) {
+        switch (m_which_affine_subpixel){
+        case 1 : // Parabola Subpixel
+          subpixel_correlation_parabola(d_subpatch, l_patches[i], r_patches[i],
+                                        m_kernel_size[0], m_kernel_size[1],
+                                        m_do_h_subpixel, m_do_v_subpixel,
+                                        m_verbose);
+          break;
+        case 2: // Bayes EM  Subpixel
+          subpixel_correlation_affine_2d_EM(d_subpatch,
+                                            l_patches[i], r_patches[i],
+                                            m_kernel_size[0], m_kernel_size[1],
+                                            BBox2i(m_kernel_size[0],
+                                                   m_kernel_size[1],
+                                                   bbox.width(), bbox.height()),
+                                            m_do_h_subpixel, m_do_v_subpixel,
+                                            m_verbose);
+          break;
+        default:
+          vw_throw(ArgumentErr() << "Unknown subpixel correlation type: "
+                   << m_which_affine_subpixel << ".");
+          break;
+        }
+        BBox2i crop_bbox;
+        if ( i == 0 )
+          crop_bbox = BBox2i(0,0,left_image_patch.cols(),
+                             left_image_patch.rows());
+        else
+          crop_bbox = BBox2i(0,0,l_patches[i-1].cols(),l_patches[i-1].rows());
+        ImageView<PixelMask<Vector2f> > d_subpatch_buf =
+          crop(disparity_upsample(edge_extend(d_subpatch)),crop_bbox);
+        d_subpatch = d_subpatch_buf;
+      }
+
+
+      // Perform final subpixel correlation with intersect of integer
+      // correlators data and our upsampled pyramid data. This fills
+      // in holes and also keeps clean edges.
+      disparity_map_patch =
+        intersect_mask_and_data( disparity_map_patch,
+                                 d_subpatch );
       switch (m_which_affine_subpixel){
-      case 0 : // No Subpixel
-        break;
       case 1 : // Parabola Subpixel
         subpixel_correlation_parabola(disparity_map_patch,
                                       left_image_patch,
                                       right_image_patch,
-                                      m_kern_width, m_kern_height,
+                                      m_kernel_size[0], m_kernel_size[1],
                                       m_do_h_subpixel, m_do_v_subpixel,
                                       m_verbose);
         break;
@@ -154,8 +210,8 @@ namespace stereo {
         subpixel_correlation_affine_2d_EM(disparity_map_patch,
                                           left_image_patch,
                                           right_image_patch,
-                                          m_kern_width, m_kern_height,
-                                          BBox2i(m_kern_width, m_kern_height,
+                                          m_kernel_size[0], m_kernel_size[1],
+                                          BBox2i(m_kernel_size[0], m_kernel_size[1],
                                                  bbox.width(), bbox.height()),
                                           m_do_h_subpixel, m_do_v_subpixel,
                                           m_verbose);
@@ -167,20 +223,17 @@ namespace stereo {
       }
 
       // Undo the above adjustment
-      for (int v = 0; v < disparity_map_patch.rows(); ++v)
-        for (int u = 0; u < disparity_map_patch.cols(); ++u)
-          if ( is_valid(disparity_map_patch(u,v)) )
-            remove_mask(disparity_map_patch(u,v)) += search_range.min();
+      disparity_map_patch += disparity_patch_translation;
 
       // This may seem confusing, but we must crop here so that the
       // good pixel data is placed into the coordinates specified by
       // the bbox.  This allows rasterize to touch those pixels
       // using the coordinates inside the bbox.  The pixels outside
       // those coordinates are invalid, and they never get accessed.
-      return crop(disparity_map_patch, BBox2i(m_kern_width-bbox.min().x(),
-                                              m_kern_height-bbox.min().y(),
-                                              m_left_image.cols(),
-                                              m_left_image.rows() ));
+      return crop(disparity_map_patch,
+                  BBox2i( m_kernel_size[0] - bbox.min().x(),
+                          m_kernel_size[1] - bbox.min().y(),
+                          m_left_image.cols(), m_left_image.rows() ) );
     }
 
     template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {

@@ -59,14 +59,6 @@ namespace stereo {
     return per_pixel_filter(image.impl(), MissingPixelImageFunc<typename ViewT::pixel_type>());
   }
 
-  //  generate_mask()
-  //
-  /// HAS BEEN REMOVED. See edge_mask() in MaskViews.h
-
-  //  mask_black_pixels()
-  //
-  /// HAS BEEN REMOVED. See MaskViews.h
-
   //  disparity_mask()
   //
   //  ......formerly mask()
@@ -241,7 +233,8 @@ namespace stereo {
   // Useful routine for printing how many points have been rejected
   // using a particular RemoveOutliersFunc.
   template <class PixelT>
-  inline std::ostream& operator<<(std::ostream& os, RemoveOutliersFunc<PixelT> const& u) {
+  inline std::ostream&
+  operator<<(std::ostream& os, RemoveOutliersFunc<PixelT> const& u) {
     os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
     os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices ("
        << double(u.rejected_points())/u.total_points()*100 << "%).\n";
@@ -425,6 +418,137 @@ namespace stereo {
       return p + offset.child();
     }
   };
+
+
+  /// intersect_mask_and_data(view, mask)
+  ///
+  /// Intersects 'mask' w/ view. View's data is returned first or mask
+  template <class PixelT>
+  class IntersectPixelMaskData : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
+    typedef typename MaskedPixelType<PixelT>::type return_type;
+  public:
+    template <class MaskedPixelT>
+    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+      if ( is_valid(value) )
+        return value;
+      if ( is_valid(mask) )
+        return mask;
+      return value;
+    }
+  };
+
+  template <class ViewT, class MaskViewT>
+  BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMaskData<typename ViewT::pixel_type> >
+  intersect_mask_and_data( ImageViewBase<ViewT> const& view,
+                           ImageViewBase<MaskViewT> const& mask_view ) {
+    typedef BinaryPerPixelView<ViewT,MaskViewT,IntersectPixelMaskData<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), mask_view.impl(), IntersectPixelMaskData<typename ViewT::pixel_type>() );
+  }
+
+  // Disparity Downsample
+  template <class ImageT>
+  class DisparitySubsampleView : public ImageViewBase<DisparitySubsampleView<ImageT> > {
+    ImageT m_child;
+  public:
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename boost::remove_reference<typename ImageT::result_type>::type result_type;
+    typedef ProceduralPixelAccessor<DisparitySubsampleView<ImageT> > pixel_accessor;
+
+    DisparitySubsampleView( ImageT const& image ) : m_child(image) {}
+
+    inline int32 cols() const { return 1 + (m_child.cols()-1)/2; }
+    inline int32 rows() const { return 1 + (m_child.rows()-1)/2; }
+    inline int32 planes() const { return m_child.planes(); }
+    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+      int32 ci = i << 1; int32 cj = j << 1;
+      result_type buffer;
+      float count = 0;
+      if ( is_valid( m_child(ci,cj,p) ) ) {
+        count+=1.0; buffer += m_child(ci,cj,p);
+      }
+      if ( is_valid( m_child(ci+1,cj,p) ) ) {
+        count+=0.5; buffer += 0.5*m_child(ci+1,cj,p);
+      }
+      if ( is_valid( m_child(ci,cj+1,p) ) ) {
+        count+=0.5; buffer += 0.5*m_child(ci,cj+1,p);
+      }
+      if ( is_valid( m_child(ci-1,cj,p) ) ) {
+        count+=0.5; buffer += 0.5*m_child(ci-1,cj,p);
+      }
+      if ( is_valid( m_child(ci,cj-1,p) ) ) {
+        count+=0.5; buffer += 0.5*m_child(ci,cj-1,p);
+      }
+      if ( is_valid( m_child(ci+1,cj+1,p) ) ) {
+        count+=0.2; buffer += 0.2*m_child(ci+1,cj+1,p);
+      }
+      if ( is_valid( m_child(ci-1,cj-1,p) ) ) {
+        count+=0.2; buffer += 0.2*m_child(ci-1,cj-1,p);
+      }
+      if ( is_valid( m_child(ci-1,cj+1,p) ) ) {
+        count+=0.2; buffer += 0.2*m_child(ci-1,cj+1,p);
+      }
+      if ( is_valid( m_child(ci+1,cj-1,p) ) ) {
+        count+=0.2; buffer += 0.2*m_child(ci+1,cj-1,p);
+      }
+      if ( count > 0 ) {
+        buffer.validate();
+        return buffer / (count*2.0 );
+      }
+      return result_type();
+    }
+
+    typedef DisparitySubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const {
+      return *this; }
+    template <class DestT>
+    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
+  };
+
+  template <class ViewT>
+  DisparitySubsampleView<EdgeExtensionView<ViewT,ConstantEdgeExtension> >
+  disparity_subsample( ImageViewBase<ViewT> const& view ) {
+    return DisparitySubsampleView<EdgeExtensionView<ViewT,ConstantEdgeExtension> >( edge_extend(view.impl()) );
+  }
+
+  // Disparity Upsample
+  template <class ImageT>
+  class DisparityUpsampleView : public ImageViewBase<DisparityUpsampleView<ImageT> > {
+    ImageT m_child;
+  public:
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef typename boost::remove_reference<typename ImageT::result_type>::type result_type;
+    typedef ProceduralPixelAccessor<DisparityUpsampleView<ImageT> > pixel_accessor;
+
+    DisparityUpsampleView( ImageT const& image ) : m_child(image) {}
+
+    inline int32 cols() const { return m_child.cols()*2; }
+    inline int32 rows() const { return m_child.rows()*2; }
+    inline int32 planes() const { return m_child.planes(); }
+    inline pixel_accessor origin() const { return pixel_accessor( *this ); }
+
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
+      int32 ci = i >> 1; int32 cj = j >> 1;
+      return m_child(ci,cj,p)*2;
+    }
+
+    typedef DisparityUpsampleView<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const {
+      return *this; }
+    template <class DestT>
+    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
+  };
+
+  template <class ViewT>
+  DisparityUpsampleView<ViewT>
+  disparity_upsample( ImageViewBase<ViewT> const& view ) {
+    return DisparityUpsampleView<ViewT>( view.impl() );
+  }
 
 }}    // namespace vw::stereo
 
