@@ -920,7 +920,6 @@ namespace vw {
             float w_noise = 0.2;
             //set init params - END
 
-            //EXPECTATION - START
             float in_curr_sum_I_e_val = 0.0;
             float in_prev_sum_I_e_val = 1000000.0;
             Vector6f d_em;
@@ -930,11 +929,23 @@ namespace vw {
               float noise_norm_factor = 1.0/sqrt(2*M_PI*var2_noise);
               float plane_norm_factor = 1.0/sqrt(2*M_PI*var2_plane);
 
+              //reset lhs and rhs
+              std::fill( lhs.begin(), lhs.end(), 0.0f );
+              std::fill( rhs.begin(), rhs.end(), 0.0f );
+
+              in_curr_sum_I_e_val = 0.0;
+              float mean_noise_tmp  = 0.0;
+              float sum_gamma_noise = 0.0;
+              float sum_gamma_plane = 0.0;
+
               // Set up pixel accessors
               CropViewFAcc I_x_row = I_x.origin(), I_y_row = I_y.origin();
               CropViewTAcc left_image_patch_row = left_image_patch.origin();
+              ImageViewFAcc w_row = w.origin();
 
+              // Perform loop that does Expectation and Maximization in one go
               for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+                ImageViewFAcc w_ptr = w_row;
                 CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
                 CropViewTAcc left_image_patch_ptr = left_image_patch_row;
                 int gamma_iy = jj + kern_half_height;
@@ -952,6 +963,7 @@ namespace vw {
                   float delta_x = d_em[0] * ii + delta_x_partial;
                   float delta_y = d_em[3] * ii + delta_y_partial;
 
+                  /// Expectation
                   ChannelT interpreted_px = right_interp_image(xx,yy);
                   float temp_plane = interpreted_px -
                     (*left_image_patch_ptr) - delta_x*(*I_x_ptr) -
@@ -965,51 +977,9 @@ namespace vw {
                   float sum = plane_prob*w_plane + noise_prob*w_noise;
                   gamma_plane(gamma_ix, gamma_iy) = plane_prob*w_plane/sum;
                   gamma_noise(gamma_ix, gamma_iy) = noise_prob*w_noise/sum;
+                  // End Expectation
 
-                  I_x_ptr.next_col();
-                  I_y_ptr.next_col();
-                  left_image_patch_ptr.next_col();
-                }
-                I_x_row.next_row();
-                I_y_row.next_row();
-                left_image_patch_row.next_row();
-              }
-              //EXPECTATION - END
-
-              //MAXIMIZATION - START
-              //compute the d_em vector
-
-              //reset lhs and rhs
-              std::fill( lhs.begin(), lhs.end(), 0.0f );
-              std::fill( rhs.begin(), rhs.end(), 0.0f );
-
-              in_curr_sum_I_e_val = 0.0;
-              float mean_noise_tmp  = 0.0;
-              float sum_gamma_noise = 0.0;
-              float sum_gamma_plane = 0.0;
-
-              // Set up pixel accessors
-              ImageViewFAcc w_row = w.origin();
-              I_x_row = I_x.origin();
-              I_y_row = I_y.origin();
-              left_image_patch_row = left_image_patch.origin();
-
-              for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-                ImageViewFAcc w_ptr = w_row;
-                CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
-                CropViewTAcc left_image_patch_ptr = left_image_patch_row;
-                int gamma_iy = jj + kern_half_height;
-                float xx_partial = x_base + d[1] * jj + d[2];
-                float yy_partial = y_base + d[4] * jj + d[5];
-
-                for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-                  // First we compute the pixel offset for the right image
-                  // and the error for the current pixel.
-                  int gamma_ix = ii + kern_half_width;
-                  float xx = d[0] * ii + xx_partial;
-                  float yy = d[3] * ii + yy_partial;
-
-                  ChannelT interpreted_px = right_interp_image(xx,yy);
+                  // Maximization (computing the d_em vector)
                   float I_e_val = interpreted_px - (*left_image_patch_ptr);
                   mean_noise_tmp +=
                     interpreted_px * gamma_noise(gamma_ix, gamma_iy);
@@ -1058,13 +1028,12 @@ namespace vw {
                   rhs(4,4) += jj*jj * I_y_sqr;
                   rhs(4,5) += jj    * I_y_sqr;
                   rhs(5,5) +=         I_y_sqr;
+                  // End Maximization
 
-                  w_ptr.next_col();
                   I_x_ptr.next_col();
                   I_y_ptr.next_col();
                   left_image_patch_ptr.next_col();
                 }
-                w_row.next_row();
                 I_x_row.next_row();
                 I_y_row.next_row();
                 left_image_patch_row.next_row();
@@ -1160,8 +1129,6 @@ namespace vw {
               w_plane = sum_gamma_plane/(float)(kern_pixels);
               w_noise = sum_gamma_noise/(float)(kern_pixels);
 
-              //MAXIMIZATION - END
-
               //Termination
               float conv_error = norm_2(prev_lhs - lhs);
               d_em = d + lhs;
@@ -1177,7 +1144,7 @@ namespace vw {
               else
                 in_prev_sum_I_e_val = in_curr_sum_I_e_val;
 
-            } //em_iter end
+            } // for em_iter end
 
             d += lhs;
             if (curr_sum_I_e_val < 0)
