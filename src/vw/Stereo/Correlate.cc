@@ -158,17 +158,18 @@ namespace vw {
 
       // Fixed consts
       const unsigned M_MAX_EM_ITER = 2;
-      const float M_MIN_VAR2_PLANE = 1e-6;
-      const float M_MIN_VAR2_NOISE = 1e-6;
-      float  two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
+      //const float M_MIN_VAR2_PLANE = 1e-6;
+      //const float M_MIN_VAR2_NOISE = 1e-6;
+      const float two_sigma_sqr = 2.0*pow(float(kern_width)/5.0,2.0);
 
       VW_ASSERT( disparity_map.cols() == left_image.cols() &&
                  disparity_map.rows() == left_image.rows(),
                  ArgumentErr() << "subpixel_correlation: left image and "
                  << "disparity map do not have the same dimensions.");
 
-      ImageView<float> confidence_image(left_image.cols(),
-                                        left_image.rows());
+      // Currently unused confidence_image code
+      //ImageView<float> confidence_image(left_image.cols(),
+      //                                  left_image.rows());
 
       // Interpolated Input Images
       InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
@@ -314,8 +315,8 @@ namespace vw {
 
                   /// Expectation
                   ChannelT interpreted_px = right_interp_image(xx,yy);
-                  float temp_plane = interpreted_px -
-                    (*left_image_patch_ptr) - delta_x*(*I_x_ptr) -
+                  float I_e_val = interpreted_px - (*left_image_patch_ptr);
+                  float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
                     delta_y*(*I_y_ptr);
                   float temp_noise = interpreted_px - mean_noise;
                   float plane_prob = plane_norm_factor *
@@ -329,7 +330,6 @@ namespace vw {
                   // End Expectation
 
                   // Maximization (computing the d_em vector)
-                  float I_e_val = interpreted_px - (*left_image_patch_ptr);
                   mean_noise_tmp +=
                     interpreted_px * gamma_noise(gamma_ix, gamma_iy);
                   sum_gamma_plane += gamma_plane(gamma_ix, gamma_iy);
@@ -379,6 +379,8 @@ namespace vw {
                   rhs(5,5) +=         I_y_sqr;
                   // End Maximization
 
+                  in_curr_sum_I_e_val += I_e_val;
+
                   I_x_ptr.next_col();
                   I_y_ptr.next_col();
                   left_image_patch_ptr.next_col();
@@ -417,6 +419,7 @@ namespace vw {
               //normalize the mean of the noise
               mean_noise = mean_noise_tmp/sum_gamma_noise;
 
+              /* CURRENTLY UNUSED VARIANCE CALCULATION CODE
               //compute the variance for noise and plane
               float var2_noise_tmp  = 0.0;
               float var2_plane_tmp  = 0.0;
@@ -450,8 +453,6 @@ namespace vw {
                     delta_y*(*I_y_ptr);
                   float temp_noise = interpreted_px - mean_noise;
 
-                  in_curr_sum_I_e_val += I_e_val;
-
                   var2_noise_tmp += temp_noise*temp_noise*
                     gamma_noise(gamma_ix, gamma_iy);
                   var2_plane_tmp += temp_plane*temp_plane*
@@ -466,14 +467,13 @@ namespace vw {
                 left_image_patch_row.next_row();
               }
 
-              //added by Ara 02/11/2009
               confidence_image(x,y) = in_curr_sum_I_e_val;
-
               var2_noise = var2_noise_tmp/sum_gamma_noise;
               var2_plane = var2_plane_tmp/sum_gamma_plane;
 
               if (var2_noise < M_MIN_VAR2_NOISE) var2_noise = M_MIN_VAR2_NOISE;
               if (var2_plane < M_MIN_VAR2_PLANE) var2_plane = M_MIN_VAR2_PLANE;
+              */
 
               w_plane = sum_gamma_plane/(float)(kern_pixels);
               w_noise = sum_gamma_noise/(float)(kern_pixels);
