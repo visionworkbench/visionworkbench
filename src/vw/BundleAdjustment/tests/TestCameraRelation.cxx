@@ -26,10 +26,10 @@ protected:
   virtual void SetUp() {
     cnet = ControlNetwork( "TestCNET" );
 
-    for ( uint i = 0; i < 4; i++ ) {
+    for ( uint32 i = 0; i < 4; i++ ) {
       ControlPoint cpoint;
 
-      for ( uint j = 0; j < i+1; j++ ) {
+      for ( uint32 j = 0; j < i+1; j++ ) {
         ControlMeasure cm( 100*j+i, 100*j+i, 1, 1, j );
         cpoint.add_measure( cm );
       }
@@ -77,7 +77,7 @@ TEST_F( CircleTest, IPFeature ) {
   CameraRelationNetwork<IPFeature> crn;
   crn.read_controlnetwork( cnet );
   EXPECT_EQ( crn.size(), 4 );
-  for ( uint i = 0; i < crn.size(); i++ )
+  for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );
   EXPECT_EQ( crn[0].relations.size(), 4 );
   EXPECT_EQ( crn[1].relations.size(), 3 );
@@ -106,7 +106,7 @@ TEST_F( CircleTest, JFeature ) {
   CameraRelationNetwork<JFeature> crn;
   crn.read_controlnetwork( cnet );
   EXPECT_EQ( crn.size(), 4 );
-  for ( uint i = 0; i < crn.size(); i++ )
+  for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );
   EXPECT_EQ( crn[0].relations.size(), 4 );
   EXPECT_EQ( crn[1].relations.size(), 3 );

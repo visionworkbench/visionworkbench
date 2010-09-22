@@ -138,7 +138,7 @@ inline void generate_camera_data( std::vector<boost::shared_ptr<PinholeModel> > 
       cpoint.set_position( position );
       cpoint.set_sigma( Vector3(2,2,2) );
 
-      for ( uint ci = 0; ci < cameras.size(); ci++ ) {
+      for ( uint32 ci = 0; ci < cameras.size(); ci++ ) {
         Vector2i pixel = cameras[ci]->point_to_pixel( position );
         if ( image.contains(pixel) ) {
           ControlMeasure cmeasure( pixel[0], pixel[1],
@@ -181,7 +181,7 @@ protected:
                                    Vector3(-0.2,-1,3.0) );
     cameras[3]->set_camera_pose( cameras[3]->camera_pose() +
                                  math::euler_to_quaternion(0.1,-0.1,0.0,"xyz") );
-    for ( uint i = 0; i < cnet->size(); i++ ) {
+    for ( uint32 i = 0; i < cnet->size(); i++ ) {
       if ( i % 2 ) {
         (*cnet)[i].set_position( (*cnet)[i].position()+Vector3(-1,0.5,-0.7) );
       } else {
@@ -203,12 +203,12 @@ TEST_F( NullTest, AdjustRef ) {
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
-  for ( uint i = 0; i < 5; i++ ) {
+  for ( uint32 i = 0; i < 5; i++ ) {
     Vector<double> solution = model.A_parameters(i);
     EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
@@ -220,12 +220,12 @@ TEST_F( NullTest, AdjustSparse ) {
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
-  for ( uint i = 0; i < 5; i++ ) {
+  for ( uint32 i = 0; i < 5; i++ ) {
     Vector<double> solution = model.A_parameters(i);
     EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
@@ -237,12 +237,12 @@ TEST_F( NullTest, AdjustRobustRef ) {
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
-  for ( uint i = 0; i < 5; i++ ) {
+  for ( uint32 i = 0; i < 5; i++ ) {
     Vector<double> solution = model.A_parameters(i);
     EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
@@ -254,12 +254,12 @@ TEST_F( NullTest, AdjustRobustSparse ) {
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
-  for ( uint i = 0; i < 5; i++ ) {
+  for ( uint32 i = 0; i < 5; i++ ) {
     Vector<double> solution = model.A_parameters(i);
     EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
@@ -271,12 +271,12 @@ TEST_F( NullTest, AdjustRobustSparseKGCP ) {
 
   // Running BA
   double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     adjuster.update(abs_tol,rel_tol);
 
   // Checking solutions
   Vector<double,6> zero_vector;
-  for ( uint i = 0; i < 5; i++ ) {
+  for ( uint32 i = 0; i < 5; i++ ) {
     Vector<double> solution = model.A_parameters(i);
     EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
   }
@@ -298,7 +298,7 @@ TEST_F( ComparisonTest, Ref_VS_Sparse ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       ref_solution.push_back( model.A_parameters(i) );
   }
 
@@ -312,12 +312,12 @@ TEST_F( ComparisonTest, Ref_VS_Sparse ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       spr_solution.push_back( model.A_parameters(i) );
   }
 
   // Comparison
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     EXPECT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
                         1e-3 );
@@ -341,7 +341,7 @@ TEST_F( ComparisonTest, RobustRef_VS_RobustSparse ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       ref_solution.push_back( model.A_parameters(i) );
   }
 
@@ -356,12 +356,12 @@ TEST_F( ComparisonTest, RobustRef_VS_RobustSparse ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       spr_solution.push_back( model.A_parameters(i) );
   }
 
   // Comparison
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     EXPECT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
                         1e-2 );
@@ -382,7 +382,7 @@ TEST_F( ComparisonTest, RobustSparse_VS_RobustSparseKGCP ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       spr_solution.push_back( model.A_parameters(i) );
   }
 
@@ -398,12 +398,12 @@ TEST_F( ComparisonTest, RobustSparse_VS_RobustSparseKGCP ) {
       adjuster.update(abs_tol,rel_tol);
 
     // Storing result
-    for ( uint i = 0; i < 5; i++ )
+    for ( uint32 i = 0; i < 5; i++ )
       sprkgcp_solution.push_back( model.A_parameters(i) );
   }
 
   // Comparison
-  for ( uint i = 0; i < 5; i++ )
+  for ( uint32 i = 0; i < 5; i++ )
     EXPECT_VECTOR_NEAR( spr_solution[i],
                         sprkgcp_solution[i],
                         1e-3 );

@@ -638,10 +638,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
 
     Vector<double> definition_check;
     definition_check = cow*select_col(nullsp,0);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-8 );
     definition_check = cow*select_col(nullsp,1);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-8 );
 
     EXPECT_EQ( rank(cow), 2 );
@@ -668,10 +668,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
 
     Vector<double> definition_check;
     definition_check = monkey*select_col(nullsp,0);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-1 );
     definition_check = monkey*select_col(nullsp,1);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-1 );
 
     nullsp = nullspace(transpose(monkey));
@@ -699,10 +699,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
 
     Vector<double> definition_check;
     definition_check = shark*select_col(nullsp,0);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-5 );
     definition_check = shark*select_col(nullsp,1);
-    for ( uint i = 0; i < definition_check.size(); i++ )
+    for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-5 );
 
     EXPECT_EQ( rank(shark), 7 );

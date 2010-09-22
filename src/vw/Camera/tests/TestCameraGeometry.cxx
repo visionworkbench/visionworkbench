@@ -59,7 +59,7 @@ protected:
 
 TEST_F( CameraGeometryTest, LinearSolve ) {
   std::vector<Vector<double> > world_small, image_small;
-  for ( uint i = 0; i < 6; i++ ) {
+  for ( uint32 i = 0; i < 6; i++ ) {
     world_small.push_back( world_m[i] );
     image_small.push_back( image_m[i] );
   }
@@ -98,7 +98,7 @@ TEST_F( CameraGeometryTest, IteratorSolve ) {
 TEST_F( CameraGeometryTest, DISABLED_RansacSolve ) {
   // Add some extra wrong data points
   // 10% are just completely wrong
-  for ( uint i=0,j=0; i < 5 && j <50; i++, j+=10 ) {
+  for ( uint32 i=0,j=0; i < 5 && j <50; i++, j+=10 ) {
     world_m[j][0] = rand()%200-100;
     world_m[j][1] = rand()%200-100;
     world_m[j][2] = rand()%200;

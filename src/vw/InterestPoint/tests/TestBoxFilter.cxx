@@ -19,8 +19,8 @@ TEST( BoxFilter, ApplyBoxFilter ) {
   ImageView<float> image(3,3);
 
   float count = 0;
-  for ( uint i = 0; i < 3; i++ ) {
-    for ( uint j = 0; j < 3; j++ ) {
+  for ( uint32 i = 0; i < 3; i++ ) {
+    for ( uint32 j = 0; j < 3; j++ ) {
       image(i,j) = count;
       count++;
     }

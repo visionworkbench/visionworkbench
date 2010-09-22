@@ -61,8 +61,8 @@ TEST_F( CameraBBoxTest, CameraBBoxDatum ) {
 
 TEST_F( CameraBBoxTest, CameraBBoxDEM ) {
   ImageView<float> DEM(20,20); // DEM covering lat {10,-10} long {80,100}
-  for ( uint i = 0; i < 20; i++ )
-    for ( uint j = 0; j <20; j++ )
+  for ( uint32 i = 0; i < 20; i++ )
+    for ( uint32 j = 0; j <20; j++ )
       DEM(i,j) = 1000 - 10*(pow(10.-i,2.)+pow(10.-j,2));
   Matrix<double> geotrans = vw::math::identity_matrix<3>();
   geotrans(0,2) = 80;

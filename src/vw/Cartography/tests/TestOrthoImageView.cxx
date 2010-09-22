@@ -78,8 +78,8 @@ protected:
     moon.set_well_known_geogcs("D_MOON");
 
     DEM.set_size(20,20);
-    for ( uint i = 0; i < 20; i++ )
-      for ( uint j = 0; j <20; j++ )
+    for ( uint32 i = 0; i < 20; i++ )
+      for ( uint32 j = 0; j <20; j++ )
         DEM(i,j) = 10000 - 100*(pow(10.-i,2.)+pow(10.-j,2));
     Matrix<double> geotrans = vw::math::identity_matrix<3>();
     geotrans(0,2) = 85;

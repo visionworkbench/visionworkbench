@@ -175,7 +175,7 @@ TEST( PinholeModel, ProjectiveMatrix ) {
   {
     Quaternion<double> solved = solved_pinhole.camera_pose( Vector2() );
     Quaternion<double> control = control_pinhole.camera_pose( Vector2() );
-    for ( uint i = 0; i < 4; i ++ )
+    for ( uint32 i = 0; i < 4; i ++ )
       EXPECT_NEAR( solved[i], control[i], 1e-8 );
   }
   {

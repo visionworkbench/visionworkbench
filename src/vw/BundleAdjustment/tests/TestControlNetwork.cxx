@@ -19,10 +19,10 @@ TEST( ControlNetwork, Construction ) {
 
   ControlNetwork cnet( "TestCNET" );
 
-  for ( uint i = 0; i < 4; i++ ) {
+  for ( uint32 i = 0; i < 4; i++ ) {
     ControlPoint cpoint;
 
-    for ( uint j = 0; j < i+1; j++ ) {
+    for ( uint32 j = 0; j < i+1; j++ ) {
       ControlMeasure cm( 100, 100, 1, 1, j );
       cpoint.add_measure( cm );
     }
