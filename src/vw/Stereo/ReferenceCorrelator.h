@@ -10,6 +10,7 @@
 
 #include <vw/Core/Stopwatch.h>
 #include <vw/Stereo/Correlate.h>
+#include <vw/Stereo/CorrelateResearch.h>
 
 namespace vw {
 namespace stereo {

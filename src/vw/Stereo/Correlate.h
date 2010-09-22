@@ -10,6 +10,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageMath.h>
 #include <vw/Stereo/DisparityMap.h>
 
 #define VW_STEREO_MISSING_PIXEL -32000
@@ -236,23 +237,56 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     return best_disparity;
   }
 
-  template <class ChannelT>
-  void subpixel_correlation_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                      ImageView<ChannelT> const& left_image,
-                                      ImageView<ChannelT> const& right_image,
-                                      int kern_width, int kern_height,
-                                      bool do_horizontal_subpixel = true,
-                                      bool do_vertical_subpixel = true,
-                                      bool verbose = false);
+  inline int
+  adjust_weight_image(ImageView<float> &weight,
+                      ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
+                      ImageView<float> const& weight_template) {
 
-  template <class ChannelT>
-  void subpixel_correlation_affine_2d_bayesian(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                               ImageView<ChannelT> const& left_image,
-                                               ImageView<ChannelT> const& right_image,
-                                               int kern_width, int kern_height,
-                                               bool do_horizontal_subpixel = true,
-                                               bool do_vertical_subpixel = true,
-                                               bool verbose = false);
+    int center_pix_x = weight_template.cols()/2;
+    int center_pix_y = weight_template.rows()/2;
+    PixelMask<Vector2f> center_pix =
+      disparity_map_patch(center_pix_x, center_pix_y);
+
+    float sum = 0;
+    int num_good_pix = 0;
+    typedef ImageView<float>::pixel_accessor IViewFAcc;
+    typedef ImageView<PixelMask<Vector2f> >::pixel_accessor IViewDAcc;
+    IViewFAcc weight_row_acc = weight.origin();
+    IViewFAcc template_row_acc = weight_template.origin();
+    IViewDAcc disp_row_acc = disparity_map_patch.origin();
+    for (int j = 0; j < weight_template.rows(); ++j) {
+      IViewFAcc weight_col_acc = weight_row_acc;
+      IViewFAcc template_col_acc = template_row_acc;
+      IViewDAcc disp_col_acc = disp_row_acc;
+      for (int i = 0; i < weight_template.cols(); ++i ) {
+
+        // Mask is zero if the disparity map's pixel is missing...
+        if ( !is_valid(*disp_col_acc) )
+          *weight_col_acc = 0;
+
+        // ... otherwise we use the weight from the weight template
+        else {
+          *weight_col_acc = *template_col_acc;
+          sum += *weight_col_acc;
+          ++num_good_pix;
+        }
+
+        disp_col_acc.next_col();
+        weight_col_acc.next_col();
+        template_col_acc.next_col();
+      }
+      disp_row_acc.next_row();
+      weight_row_acc.next_row();
+      template_row_acc.next_row();
+    }
+
+    // Normalize the weight image
+    if (sum == 0)
+      vw_throw(LogicErr() << "subpixel_weight: Sum of weight image was zero.  This isn't supposed to happen!");
+    else
+      weight /= sum;
+    return num_good_pix;
+  }
 
   template <class ChannelT>
   void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,

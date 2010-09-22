@@ -11,17 +11,18 @@
 
 if MAKE_MODULE_STEREO
 
-include_HEADERS = Correlate.h ReferenceCorrelator.h		\
-	OptimizedCorrelator.h DisparityMap.h StereoModel.h	\
-	PyramidCorrelator.h StereoView.h CorrelatorView.h	\
-	SubpixelView.h EMSubpixelCorrelatorView.h 		\
-	MixtureComponent.h GammaMixtureComponent.h 		\
-	GaussianMixtureComponent.h				\
-	AffineMixtureComponent.h UniformMixtureComponent.h	\
-	EMSubpixelCorrelatorView.hpp
+include_HEADERS = Correlate.h ReferenceCorrelator.h             \
+        OptimizedCorrelator.h DisparityMap.h StereoModel.h      \
+        PyramidCorrelator.h StereoView.h CorrelatorView.h       \
+        SubpixelView.h EMSubpixelCorrelatorView.h               \
+        MixtureComponent.h GammaMixtureComponent.h              \
+        GaussianMixtureComponent.h                              \
+        AffineMixtureComponent.h UniformMixtureComponent.h      \
+        EMSubpixelCorrelatorView.hpp CorrelateResearch.h
 
-libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc		\
-	 Correlate.cc OptimizedCorrelator.cc EMSubpixelCorrelatorView.cc
+libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc            \
+        Correlate.cc OptimizedCorrelator.cc EMSubpixelCorrelatorView.cc \
+        CorrelateResearch.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 
