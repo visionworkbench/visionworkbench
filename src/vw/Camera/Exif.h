@@ -166,7 +166,7 @@ namespace camera {
 
     // Query the data by tag ID (common tags are enumerated at the top if
     // Exif.h)
-    void query_by_tag(ExifTag tag, int& value) const;
+    void query_by_tag(ExifTag tag, vw::int32& value) const;
     void query_by_tag(ExifTag tag, double& value) const;
     void query_by_tag(ExifTag tag, std::string& value) const;
     void query_by_tag(ExifTag tag, ExifDateTime& value) const;

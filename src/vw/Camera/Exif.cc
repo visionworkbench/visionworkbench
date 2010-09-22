@@ -38,7 +38,7 @@ vw::camera::ExifView::ExifView(std::string const& filename) {
 
 // Query the data by tag ID (common tags are enumerated at the top if
 // Exif.h)
-void vw::camera::ExifView::query_by_tag(ExifTag tag, int& value) const {
+void vw::camera::ExifView::query_by_tag(ExifTag tag, int32& value) const {
   bool success = m_data.get_tag_value(tag, value);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag " << tag << ".");
 }
@@ -64,7 +64,7 @@ void vw::camera::ExifView::query_by_tag(ExifTag tag, vw::camera::ExifDateTime& v
   bool success = m_data.get_tag_value(tag, date_in_ascii);
   if (!success) vw_throw(ExifErr() << "Could not read EXIF tag: " << tag << ".");
   std::istringstream in(date_in_ascii);
-  int tmp;
+  int32 tmp;
   tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_year   = tmp;
   tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_month  = tmp;
   tmp = 0; while (!isdigit(in.peek()) && !in.eof()) in.get(); in >> tmp; value.m_day    = tmp;
@@ -161,7 +161,7 @@ double vw::camera::ExifView::get_focal_length_35mm_equiv() const {
   if (focal_plane_x_resolution <= 0) vw_throw(ExifErr() << "Illegal value for FocalPlaneXResolution");
   query_by_tag(EXIF_FocalPlaneYResolution, focal_plane_y_resolution);
   if (focal_plane_y_resolution <= 0) vw_throw(ExifErr() << "Illegal value for FocalPlaneYResolution");
-  int focal_plane_resolution_unit = 2;
+  int32 focal_plane_resolution_unit = 2;
   try { query_by_tag(EXIF_FocalPlaneResolutionUnit, focal_plane_resolution_unit); } catch (ExifErr) {}
   double focal_plane_resolution_unit_in_mm = 0;
   switch (focal_plane_resolution_unit) {
@@ -194,7 +194,7 @@ vw::Vector2 vw::camera::ExifView::get_focal_length_pix() const {
     vw_throw(ExifErr() << "Illegal value for FocalPlaneXResolution");
   if ( focal_plane_res[1] <= 0 )
     vw_throw(ExifErr() << "Illegal value for FocalPlaneYResolution");
-  int focal_plane_resolution_unit = 2;
+  int32 focal_plane_resolution_unit = 2;
   try { query_by_tag(EXIF_FocalPlaneResolutionUnit, focal_plane_resolution_unit); } catch (ExifErr) {}
   double focal_plane_resolution_unit_in_mm = 0;
   switch (focal_plane_resolution_unit) {
@@ -303,7 +303,7 @@ double vw::camera::ExifView::get_average_luminance() const {
 }
 
 size_t vw::camera::ExifView::get_thumbnail_location() const {
-  int offset;
+  int32 offset;
   // query_by_tag throws if tag isn't found
   query_by_tag(vw::camera::EXIF_ThumbnailOffset, offset);
   return offset + m_data.get_exif_location();
