@@ -12,6 +12,10 @@
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 
+#if VW_HAVE_FENV_H
+#include <fenv.h>
+#endif
+
 int main(int argc, char **argv) {
   // Disable the user's config file
   vw::vw_settings().set_rc_filename("");
@@ -21,6 +25,11 @@ int main(int argc, char **argv) {
   // yet; this style of test launches a new process, so the singletons are
   // fresh.
   ::testing::FLAGS_gtest_death_test_style = "threadsafe";
+
+#if VW_HAVE_FEENABLEEXCEPT
+  if (getenv("VW_CATCH_FP_ERRORS"))
+    feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
+#endif
 
   return RUN_ALL_TESTS();
 }

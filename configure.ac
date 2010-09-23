@@ -76,11 +76,11 @@ AX_COMMON_OPTIONS
 AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
 AX_CHECK_FUNCTION_ATTRIBUTE([deprecated])
 
-# Looking for posix headers
-AC_CHECK_HEADERS([unistd.h pwd.h])
-AC_CHECK_FUNCS([getpwuid getpid])
+# Looking for headers
+AC_CHECK_HEADERS([unistd.h pwd.h fenv.h])
 
 # Find some functions
+AC_CHECK_FUNCS([getpwuid getpid feenableexcept])
 AC_CHECK_FUNCS([fabsl llabs exp2 log2 tgamma])
 
 # Look for the python stuff
