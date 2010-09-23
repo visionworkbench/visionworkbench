@@ -74,11 +74,31 @@ namespace vw {
         vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count << " / " << match_count << " matches (" << ((float)count/match_count*100) <<" percent).\n";
     }
 
-    static double find_minimum(double lt, double mid, double rt) {
-      double a = (rt+lt)*0.5-mid;
-      double b = (rt-lt)*0.5;
+    static float find_minimum(float lt, float mid, float rt) {
+      float a = (rt+lt)*0.5-mid;
+      float b = (rt-lt)*0.5;
       return -b/(2.0*a);
     }
+
+    // is_equal_elements, tells if all the elements are equal to each other
+    template <class T>
+    struct IsEqualElements {
+      bool result;
+
+      IsEqualElements() : result(true), m_comparing(false) {}
+
+      void operator()( T const& i ) {
+	if ( m_comparing ) {
+	  result = result && (*m_first_element == i);
+	} else {
+	  m_comparing = true;
+	  m_first_element = &i;
+	}
+      }
+    protected:
+      bool m_comparing;
+      T const* m_first_element;
+    };
 
     // Find the minimun of a 2d hyperbolic surface that is fit to the
     // nine points around and including the peak in the disparity map.
@@ -88,15 +108,20 @@ namespace vw {
     // The equation of the surface we are fitting is:
     //    z = ax^2 + by^2 + cxy + dx + ey + f
     template <class VectorT, class MatrixT>
-    static Vector2 find_minimum_2d(VectorBase<VectorT> &points,
-                                   MatrixBase<MatrixT> &pinvA) {
-      Vector2 offset;
+    static Vector2f find_minimum_2d(VectorBase<VectorT> &points,
+				    MatrixBase<MatrixT> &pinvA) {
+      IsEqualElements<typename VectorT::value_type> is_same =
+	std::for_each( points.impl().begin(), points.impl().end(),
+		       IsEqualElements<typename VectorT::value_type>() );
+      if ( is_same.result ) // Avoid divide zero errors later
+	return Vector2f();
+      Vector2f offset;
 
       // First, compute the parameters of the hyperbolic surface by
       // fitting the nine points in 'points' using a linear least
       // squares fit.  This process is fairly fast, since we have
       // already pre-computed the inverse of the A matrix in Ax = b.
-      Vector<double> x = pinvA * points;
+      Vector<float> x = pinvA * points;
 
       // With these parameters, we have a closed form expression for
       // the surface.  We compute the derivative, and find the point
@@ -108,9 +133,9 @@ namespace vw {
       //
       // Of course, we optimize this computation a bit by unrolling it
       // by hand beforehand.
-      double denom = 4 * x(0) * x(1) - (x(2) * x(2));
-      offset(0) = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-      offset(1) = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
+      float denom = 4 * x(0) * x(1) - (x(2) * x(2));
+      offset[0] = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
+      offset[1] = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
       return offset;
     }
 
@@ -525,6 +550,7 @@ namespace vw {
                                   bool do_horizontal_subpixel,
                                   bool do_vertical_subpixel,
                                   bool /*verbose*/) {
+      typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
 
       VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
                 left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
@@ -543,37 +569,37 @@ namespace vw {
       // we go ahead and compute the pseudoinverse of the A matrix (where
       // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
       // for the range of x = [-1:1] and y = [-1:1].
-      static double pinvA_data[] =
+      static float pinvA_data[] =
         { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
           1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
           1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
           -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
           -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
           -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };
-      MatrixProxy<double,6,9> pinvA(pinvA_data);
+      MatrixProxy<float,6,9> pinvA(pinvA_data);
       for (int r = 0; r < height; r++) {
         for (int c = 0; c < width; c++) {
           if ( !is_valid(disparity_map(c,r) ) )
             continue;
 
-          int hdisp = disparity_map(c,r)[0];
-          int vdisp = disparity_map(c,r)[1];
+          int hdisp = int(disparity_map(c,r)[0]);
+          int vdisp = int(disparity_map(c,r)[1]);
 
-          double mid = compute_soad(new_img0, new_img1,
-                                    r, c, hdisp, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
+          accum_type mid = compute_soad(new_img0, new_img1,
+					r, c, hdisp, vdisp,
+					kern_width, kern_height,
+					width, height);
 
           if (do_horizontal_subpixel && !do_vertical_subpixel) {
             // If only horizontal subpixel resolution is requested
-            double lt = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp-1, vdisp,
-                                     kern_width, kern_height,
-                                     width, height);
-            double rt = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp+1, vdisp,
-                                     kern_width, kern_height,
-                                     width, height);
+            accum_type lt = compute_soad(new_img0, new_img1,
+					 r, c, hdisp-1, vdisp,
+					 kern_width, kern_height,
+					 width, height);
+            accum_type rt = compute_soad(new_img0, new_img1,
+					 r, c, hdisp+1, vdisp,
+					 kern_width, kern_height,
+					 width, height);
 
             if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt))
               disparity_map(c,r)[0] += find_minimum(lt, mid, rt);
@@ -581,14 +607,14 @@ namespace vw {
               invalidate( disparity_map(c,r) );
           } else if (do_vertical_subpixel && !do_horizontal_subpixel) {
             // If only vertical subpixel resolution is requested
-            double up = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp, vdisp-1,
-                                     kern_width, kern_height,
-                                     width, height);
-            double dn = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp, vdisp+1,
-                                     kern_width, kern_height,
-                                     width, height);
+            accum_type up = compute_soad(new_img0, new_img1,
+					 r, c, hdisp, vdisp-1,
+					 kern_width, kern_height,
+					 width, height);
+            accum_type dn = compute_soad(new_img0, new_img1,
+					 r, c, hdisp, vdisp+1,
+					 kern_width, kern_height,
+					 width, height);
 
             if ((mid <= up && mid < dn) || (mid <= dn && mid < up))
               disparity_map(c,r)[1] += find_minimum(up, mid, dn);
@@ -606,7 +632,7 @@ namespace vw {
             //     0  3  6
             //     1  4  7
             //     2  5  8
-            Vector<float,9> points;
+            Vector<accum_type,9> points;
 
             points(0) = compute_soad(new_img0, new_img1,
                                      r, c, hdisp-1, vdisp-1,
@@ -641,7 +667,7 @@ namespace vw {
                                      r, c, hdisp+1, vdisp+1,
                                      kern_width, kern_height,
                                      width, height);
-            Vector2 offset = find_minimum_2d(points, pinvA);
+            Vector2f offset = find_minimum_2d(points, pinvA);
 
             // This prevents us from adding in large offsets for
             // poorly fit data.

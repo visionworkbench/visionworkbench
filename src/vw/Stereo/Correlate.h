@@ -12,8 +12,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Stereo/DisparityMap.h>
-
-#define VW_STEREO_MISSING_PIXEL -32000
+#include <limits.h>
 
 namespace vw {
 namespace stereo {
@@ -33,6 +32,21 @@ namespace stereo {
   template <> struct CorrelatorAccumulatorType<vw::int32>   { typedef vw::uint64  type; };
   template <> struct CorrelatorAccumulatorType<vw::float32> { typedef vw::float32 type; };
   template <> struct CorrelatorAccumulatorType<vw::float64> { typedef vw::float64 type; };
+
+  // Return type for the correlator .. remember SOAD can only return positive values
+  template <class T>
+  inline typename boost::enable_if_c<std::numeric_limits<typename CorrelatorAccumulatorType<T>::type>::has_quiet_NaN,typename CorrelatorAccumulatorType<T>::type>::type
+  CorrelatorFailureValue() {
+    typedef typename CorrelatorAccumulatorType<T>::type accum_type;
+    return std::numeric_limits<accum_type>::quiet_NaN();
+  }
+
+  template <class T>
+  inline typename boost::disable_if_c<std::numeric_limits<typename CorrelatorAccumulatorType<T>::type>::has_quiet_NaN,typename CorrelatorAccumulatorType<T>::type>::type
+  CorrelatorFailureValue() {
+    typedef typename CorrelatorAccumulatorType<T>::type accum_type;
+    return std::numeric_limits<accum_type>::max();
+  }
 
 VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
@@ -136,17 +150,20 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   /// Compute the sum of the absolute difference between a template
   /// region taken from img1 and the window centered at (c,r) in img0.
   template <class PixelT>
-  inline double compute_soad(PixelT *img0, PixelT *img1,
-                             int r, int c,                   // row and column in img0
-                             int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-                             int kern_width, int kern_height,// Kernel dimensions
-                             int width, int height) {        // Image dimensions
+  inline typename CorrelatorAccumulatorType<typename CompoundChannelType<PixelT>::type>::type
+  compute_soad(PixelT *img0, PixelT *img1,
+	       int r, int c,                   // row and column in img0
+	       int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
+	       int kern_width, int kern_height,// Kernel dimensions
+	       int width, int height) {        // Image dimensions
+    typedef typename CompoundChannelType<PixelT>::type channel_type;
+    typedef typename CorrelatorAccumulatorType<channel_type>::type accum_type;
 
     r -= kern_height/2;
     c -= kern_width/2;
     if (r<0         || c<0       || r+kern_height>=height       || c+kern_width>=width ||
         r+vdisp < 0 || c+hdisp<0 || r+vdisp+kern_height>=height || c+hdisp+kern_width>=width) {
-      return VW_STEREO_MISSING_PIXEL;
+      return CorrelatorFailureValue<PixelT>();
     }
 
     PixelT *new_img0 = img0;
@@ -155,7 +172,7 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     new_img0 += c + r*width;
     new_img1 += (c+hdisp) + (r+vdisp)*width;
 
-    typename CorrelatorAccumulatorType<typename CompoundChannelType<PixelT>::type>::type ret = 0;
+    accum_type ret = 0;
     AbsDiffCostFunc cost_fn;
     for (int rr= 0; rr< kern_height; rr++) {
      for (int cc= 0; cc< kern_width; cc++) {
@@ -164,44 +181,47 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
       new_img0 += width;
       new_img1 += width;
     }
-    return double(ret);
+    return ret;
   }
 
   /// Compute the sum of the absolute difference between a template
   /// region taken from img1 and the window centered at (c,r) in img0.
   template <class ViewT>
-  inline double compute_soad(ImageViewBase<ViewT> const& img0,
-                             ImageViewBase<ViewT> const& img1,
-                             int r, int c,                   // row and column in img0
-                             int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-                             int kern_width, int kern_height,
-                             BBox2i const& left_bbox,
-                             BBox2i const& right_bbox) {// Kernel dimensions
+  inline typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type
+  compute_soad(ImageViewBase<ViewT> const& img0,
+	       ImageViewBase<ViewT> const& img1,
+	       int r, int c,                   // row and column in img0
+	       int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
+	       int kern_width, int kern_height,
+	       BBox2i const& left_bbox,
+	       BBox2i const& right_bbox) {// Kernel dimensions
+    typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
+    typedef typename CorrelatorAccumulatorType<channel_type>::type accum_type;
 
     r -= kern_height/2;
     c -= kern_width/2;
     if ( r < left_bbox.min().y()  || c<left_bbox.min().x() ||
          r + kern_height >= left_bbox.max().y()            ||
          c + kern_width >= left_bbox.max().x() ) {
-      return VW_STEREO_MISSING_PIXEL;
+      return CorrelatorFailureValue<typename ViewT::pixel_type>();
     }
 
     if ( r + vdisp < right_bbox.min().y() ||
          c + hdisp<right_bbox.min().x()   ||
          r + vdisp+kern_height >= right_bbox.max().y() ||
          c + hdisp+kern_width >= right_bbox.max().x() ) {
-      return VW_STEREO_MISSING_PIXEL;
+      return CorrelatorFailureValue<typename ViewT::pixel_type>();
     }
 
 
-    typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type ret = 0;
+    accum_type ret = 0;
     AbsDiffCostFunc cost_fn;
     for (int rr= 0; rr< kern_height; rr++) {
      for (int cc= 0; cc< kern_width; cc++) {
        ret += cost_fn(img0.impl()(c+cc,r+rr), img1.impl()(c+cc+hdisp,r+rr+vdisp));
       }
     }
-    return double(ret);
+    return ret;
   }
 
   /// For a given set of images, compute the optimal disparity (minimum
@@ -211,22 +231,25 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   /// The left_image and right_image must have the same dimensions, but
   /// this is only checked here if debugging is enabled.
   template <class ChannelT>
-  inline PixelMask<Vector2f> compute_disparity(ImageView<ChannelT> &left_image,
-                                               ImageView<ChannelT> &right_image,
-                                               int i, int j,
-                                               int kern_width, int kern_height,
-                                               int min_h_disp, int max_h_disp,
-                                               int min_v_disp, int max_v_disp) {
+  inline PixelMask<Vector2f>
+  compute_disparity(ImageView<ChannelT> &left_image,
+		    ImageView<ChannelT> &right_image,
+		    int i, int j,
+		    int kern_width, int kern_height,
+		    int min_h_disp, int max_h_disp,
+		    int min_v_disp, int max_v_disp) {
 
-    double min_soad = 1e10;               // Impossibly large
+    typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
+    accum_type min_soad = std::numeric_limits<accum_type>::max(); // Impossibly large
     PixelMask<Vector2f> best_disparity;
     invalidate(best_disparity);
     for (int ii = min_h_disp; ii <= max_h_disp; ++ii) {
       for (int jj = min_v_disp; jj <= max_v_disp; ++jj) {
-        double soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
-                                   j, i, ii, jj,kern_width, kern_height,
-                                   left_image.cols(), left_image.rows());
-        if (soad != VW_STEREO_MISSING_PIXEL && soad < min_soad) {
+        accum_type soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
+				       j, i, ii, jj,kern_width, kern_height,
+				       left_image.cols(), left_image.rows());
+        if (soad != CorrelatorFailureValue<ChannelT>()
+	    && soad < min_soad) {
           min_soad = soad;
           validate( best_disparity );
           best_disparity[0] = ii;
