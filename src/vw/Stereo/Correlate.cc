@@ -341,13 +341,20 @@ namespace vw {
                   /// Expectation
                   ChannelT interpreted_px = right_interp_image(xx,yy);
                   float I_e_val = interpreted_px - (*left_image_patch_ptr);
+		  in_curr_sum_I_e_val += I_e_val;
                   float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
                     delta_y*(*I_y_ptr);
                   float temp_noise = interpreted_px - mean_noise;
-                  float plane_prob = plane_norm_factor *
-                    exp(-1*(temp_plane*temp_plane)/(2*var2_plane));
-                  float noise_prob = noise_norm_factor *
-                    exp(-1*(temp_noise*temp_noise)/(2*var2_noise));
+		  float plane_prob_exp = // precompute to avoid underflow
+		    -1*(temp_plane*temp_plane)/(2*var2_plane);
+		  float plane_prob =
+		    (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
+                    exp(plane_prob_exp);
+		  float noise_prob_exp =
+		    -1*(temp_noise*temp_noise)/(2*var2_noise);
+                  float noise_prob =
+		    (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
+                    exp(noise_prob_exp);
 
                   float sum = plane_prob*w_plane + noise_prob*w_noise;
                   gamma_plane(gamma_ix, gamma_iy) = plane_prob*w_plane/sum;
@@ -365,6 +372,7 @@ namespace vw {
                   // We combine the error value with the derivative and
                   // add this to the update equation.
                   float weight  = robust_weight*(*w_ptr);
+		  if ( weight < 1e-26 ) continue; // avoid underflow
                   float I_x_val = weight * (*I_x_ptr);
                   float I_y_val = weight * (*I_y_ptr);
                   float I_x_sqr = I_x_val * (*I_x_ptr);
@@ -403,8 +411,6 @@ namespace vw {
                   rhs(4,5) += jj    * I_y_sqr;
                   rhs(5,5) +=         I_y_sqr;
                   // End Maximization
-
-                  in_curr_sum_I_e_val += I_e_val;
 
                   I_x_ptr.next_col();
                   I_y_ptr.next_col();
