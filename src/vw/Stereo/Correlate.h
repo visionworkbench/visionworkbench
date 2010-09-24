@@ -322,6 +322,16 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                                          bool verbose = false);
 
   template <class ChannelT>
+  void subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
+				       ImageView<ChannelT> const& left_image,
+				       ImageView<ChannelT> const& right_image,
+				       int kern_width, int kern_height,
+				       BBox2i region_of_interest,
+				       bool do_horizontal_subpixel = true,
+				       bool do_vertical_subpixel = true,
+				       bool verbose = false);
+
+  template <class ChannelT>
   void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
                                      ImageView<ChannelT> const& left_image,
                                      ImageView<ChannelT> const& right_image,

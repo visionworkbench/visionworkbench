@@ -165,14 +165,14 @@ namespace stereo {
                                         m_verbose);
           break;
         case 2: // Bayes EM  Subpixel
-          subpixel_correlation_affine_2d_EM(d_subpatch,
-                                            l_patches[i], r_patches[i],
-                                            m_kernel_size[0], m_kernel_size[1],
-                                            BBox2i(m_kernel_size[0]/2,
-                                                   m_kernel_size[1]/2,
-                                                   bbox.width(), bbox.height()),
-                                            m_do_h_subpixel, m_do_v_subpixel,
-                                            m_verbose);
+          subpixel_optimized_affine_2d_EM(d_subpatch,
+					  l_patches[i], r_patches[i],
+					  m_kernel_size[0], m_kernel_size[1],
+					  BBox2i(m_kernel_size[0]/2,
+						 m_kernel_size[1]/2,
+						 bbox.width(), bbox.height()),
+					  m_do_h_subpixel, m_do_v_subpixel,
+					  m_verbose);
           break;
         default:
           vw_throw(ArgumentErr() << "Unknown subpixel correlation type: "
@@ -207,15 +207,15 @@ namespace stereo {
                                       m_verbose);
         break;
       case 2: // Bayes EM  Subpixel
-        subpixel_correlation_affine_2d_EM(disparity_map_patch,
-                                          left_image_patch,
-                                          right_image_patch,
-                                          m_kernel_size[0], m_kernel_size[1],
-                                          BBox2i(m_kernel_size[0]/2,
-                                                 m_kernel_size[1]/2,
-                                                 bbox.width(), bbox.height()),
-                                          m_do_h_subpixel, m_do_v_subpixel,
-                                          m_verbose);
+        subpixel_optimized_affine_2d_EM(disparity_map_patch,
+					left_image_patch,
+					right_image_patch,
+					m_kernel_size[0], m_kernel_size[1],
+					BBox2i(m_kernel_size[0]/2,
+					       m_kernel_size[1]/2,
+					       bbox.width(), bbox.height()),
+					m_do_h_subpixel, m_do_v_subpixel,
+					m_verbose);
         break;
       default:
         vw_throw(ArgumentErr() << "Unknown subpixel correlation type: "
