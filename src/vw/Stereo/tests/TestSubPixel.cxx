@@ -83,11 +83,10 @@ typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 // Testing Parabola SubPixel
 //--------------------------------------------------------------
 TEST_F( SubPixelCorrelate95Test, Parabola95 ) {
-  typedef SubpixelView<PreFilter, ImageView<uint8> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp, image1, image2,
-             7, 7, true, true, 1,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp, image1, image2,
+                     7, 7, true, true, 1,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
@@ -96,11 +95,10 @@ TEST_F( SubPixelCorrelate95Test, Parabola95 ) {
 }
 
 TEST_F( SubPixelCorrelate90Test, Parabola90 ) {
-  typedef SubpixelView<PreFilter, ImageView<uint8> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp, image1, image2,
-             7, 7, true, true, 1,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp, image1, image2,
+                     7, 7, true, true, 1,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
@@ -109,11 +107,10 @@ TEST_F( SubPixelCorrelate90Test, Parabola90 ) {
 }
 
 TEST_F( SubPixelCorrelate80Test, Parabola80 ) {
-  typedef SubpixelView<PreFilter, ImageView<uint8> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp, image1, image2,
-             7, 7, true, true, 1,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp, image1, image2,
+                     7, 7, true, true, 1,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
@@ -122,11 +119,10 @@ TEST_F( SubPixelCorrelate80Test, Parabola80 ) {
 }
 
 TEST_F( SubPixelCorrelate70Test, Parabola70 ) {
-  typedef SubpixelView<PreFilter, ImageView<uint8> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp, image1, image2,
-             7, 7, true, true, 1,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp, image1, image2,
+                     7, 7, true, true, 1,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
@@ -137,61 +133,65 @@ TEST_F( SubPixelCorrelate70Test, Parabola70 ) {
 // Testing Bayes EM SubPixel
 //--------------------------------------------------------------
 TEST_F( SubPixelCorrelate95Test, BayesEM95 ) {
-  typedef SubpixelView<PreFilter, ImageView<float> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp,
-             channel_cast_rescale<float>(image1),
-             channel_cast_rescale<float>(image2),
-             7, 7, true, true, 2,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp,
+                     channel_cast_rescale<float>(image1),
+                     channel_cast_rescale<float>(image2),
+                     7, 7, true, true, 2,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.054);
-  EXPECT_LE(invalid_count, 0);
+  //EXPECT_LT(error, 0.054);      // Use for subpixel w/o pyramid
+  //EXPECT_LE(invalid_count, 0);
+  EXPECT_LT(error, 0.35);
+  EXPECT_LE(invalid_count, 12);
 }
 
 TEST_F( SubPixelCorrelate90Test, BayesEM90 ) {
-  typedef SubpixelView<PreFilter, ImageView<float> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp,
-             channel_cast_rescale<float>(image1),
-             channel_cast_rescale<float>(image2),
-             7, 7, true, true, 2,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp,
+                     channel_cast_rescale<float>(image1),
+                     channel_cast_rescale<float>(image2),
+                     7, 7, true, true, 2,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.078);
-  EXPECT_LE(invalid_count, 3);
+  //EXPECT_LT(error, 0.078);     // Use for subpixel w/o pyramid
+  //EXPECT_LE(invalid_count, 3);
+  EXPECT_LT(error, 0.36);
+  EXPECT_LE(invalid_count, 12);
 }
 
 TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
-  typedef SubpixelView<PreFilter, ImageView<float> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp,
-             channel_cast_rescale<float>(image1),
-             channel_cast_rescale<float>(image2),
-             7, 7, true, true, 2,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp,
+                     channel_cast_rescale<float>(image1),
+                     channel_cast_rescale<float>(image2),
+                     7, 7, true, true, 2,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.125);
-  EXPECT_LE(invalid_count, 3);
+  //EXPECT_LT(error, 0.125);     // Use for subpixel w/o pyramid
+  //EXPECT_LE(invalid_count, 3);
+  EXPECT_LT(error, 0.486);
+  EXPECT_LE(invalid_count, 22);
 }
 
 TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
-  typedef SubpixelView<PreFilter, ImageView<float> > SubView;
   ImageView<PixelMask<Vector2f> > disparity_map =
-    SubView( starting_disp,
-             channel_cast_rescale<float>(image1),
-             channel_cast_rescale<float>(image2),
-             7, 7, true, true, 2,
-             PreFilter(1.4), false );
+    subpixel_refine( starting_disp,
+                     channel_cast_rescale<float>(image1),
+                     channel_cast_rescale<float>(image2),
+                     7, 7, true, true, 2,
+                     PreFilter(1.4) );
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.198);
-  EXPECT_LE(invalid_count, 7);
+  //EXPECT_LT(error, 0.198);      // Use for subpixel w/o pyramid
+  //EXPECT_LE(invalid_count, 7);
+  EXPECT_LT(error, 0.871);
+  EXPECT_LE(invalid_count, 42);
 }
