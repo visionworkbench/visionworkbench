@@ -31,6 +31,10 @@ int main(int argc, char **argv) {
     feenableexcept(FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW);
 #endif
 
+  if (getenv("VW_DEBUG")) {
+    vw::vw_log().console_log().rule_set().add_rule(vw::VerboseDebugMessage, "*");
+  }
+
   return RUN_ALL_TESTS();
 }
 
