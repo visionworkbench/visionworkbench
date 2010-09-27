@@ -301,3 +301,31 @@ TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
   UnlinkName file("AdjustedTsai.pinhole");
   readback_test( file );
 }
+
+TEST_F( PinholeTest, OldFormatReadTest ) {
+  UnlinkName filename("monkey.tsai");
+  std::ofstream filestream( filename.c_str() );
+  filestream << "fu = 54.6\n";
+  filestream << "fv = 45.3\n";
+  filestream << "cu = 3\n";
+  filestream << "cv = 5\n";
+  filestream << "u_direction = 1 0 0\n";
+  filestream << "v_direction = 0 1 0\n";
+  filestream << "w_direction = 0 0 1\n";
+  filestream << "C = 18.6 14.4 13.3\n";
+  filestream << "R = 1 0 0 0 1 0 0 0 1\n";
+  filestream << "k1 = 0.001\n";
+  filestream << "k2 = 0.001\n";
+  filestream << "p1 = 0.010\n";
+  filestream << "p2 = 1\n";
+  filestream.close();
+
+  PinholeModel monkey;
+  ASSERT_NO_THROW( monkey.read( filename ) );
+  EXPECT_VECTOR_NEAR( Vector2(54.6,45.3),
+                      monkey.focal_length(), 1e-5 );
+  EXPECT_VECTOR_NEAR( Vector2(3,5),
+                      monkey.point_offset(), 1e-5 );
+  EXPECT_VECTOR_NEAR( Vector3(18.6,14.4,13.3),
+                      monkey.camera_center(Vector2()), 1e-5 );
+}

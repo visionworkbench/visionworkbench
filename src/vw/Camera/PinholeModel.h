@@ -229,7 +229,7 @@ namespace camera {
     /// DEPRECATED FILE IO
     void read_file(std::string const& filename) VW_DEPRECATED;
     void write_file(std::string const& filename) const VW_DEPRECATED;
-
+    void read_old_file(std::string const& filename) VW_DEPRECATED;
 
     //------------------------------------------------------------------
     // Methods

@@ -24,80 +24,215 @@ using google::protobuf::RepeatedFieldBackInserter;
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+using namespace vw;
+
+// Old deprecated format of Pinhole I/O. Didn't support all distortion options.
 // Reads in a file containing parameters of a pinhole model with
-// a tsai lens distortion model.
-void vw::camera::PinholeModel::read_file(std::string const& filename){
-  this->read(filename);
-}
-void vw::camera::PinholeModel::read(std::string const& filename) {
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-  std::fstream input( filename.c_str(), std::ios::in | std::ios::binary );
-  if ( !input )
-    vw_throw( IOErr() << "Pinhole::read_file: Could not open " << filename << "\n" );
-  TsaiFile file;
-  file.ParseFromIstream( &input );
-  input.close();
+// a tsai lens distortion model. An example is provided at the end of this file.
+void camera::PinholeModel::read_old_file(std::string const& filename) {
 
-  // Making sure protobuf seems correct
-  VW_ASSERT( file.focal_length_size() == 2,
-             IOErr() << "Pinhole::read_file: Unexpected amount of focal lengths." );
-  VW_ASSERT( file.center_point_size() == 2,
-             IOErr() << "Pinhole::read_file: Unexpected amount of center points." );
-  VW_ASSERT( file.u_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of u vector." );
-  VW_ASSERT( file.v_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of v vector." );
-  VW_ASSERT( file.w_direction_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of w vector." );
-  VW_ASSERT( file.camera_center_size() == 3,
-             IOErr() << "Pinhole::read_file: Unexpected size of camera vector." );
-  VW_ASSERT( file.camera_rotation_size() == 9,
-             IOErr() << "Pinhole::read_file: Unexpected size of rotation matrix." );
+  char line[2048];
+  double fu, fv, cu, cv;
+  Vector3 u_direction, v_direction, w_direction;
+  Vector3 C;
+  Matrix3x3 R;
+  Vector4 distortion_params(0,0,0,0);
 
-  typedef VectorProxy<double,3> Vector3P;
-  m_u_direction = Vector3P(file.mutable_u_direction()->mutable_data());
-  m_v_direction = Vector3P(file.mutable_v_direction()->mutable_data());
-  m_w_direction = Vector3P(file.mutable_w_direction()->mutable_data());
-  m_camera_center = Vector3P(file.mutable_camera_center()->mutable_data());
-  m_fu = file.focal_length(0);
-  m_fv = file.focal_length(1);
-  m_cu = file.center_point(0);
-  m_cv = file.center_point(1);
-  m_rotation = MatrixProxy<double,3,3>(file.mutable_camera_rotation()->mutable_data());
-  m_pixel_pitch = file.pixel_pitch();
 
+  FILE *cam_file = fopen(filename.c_str(), "r");
+  if (cam_file == 0) vw_throw( IOErr() << "PinholeModel::read_file: Could not open file\n" );
+
+  // Read intrinsic parameters
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"fu = %lf", &fu) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x focal length\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"fv = %lf", &fv) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y focal length\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"cu = %lf", &cu) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x principal point\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"cv = %lf", &cv) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y principal point\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"u_direction = %lf %lf %lf", &u_direction(0), &u_direction(1), &u_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read u direction vector\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"v_direction = %lf %lf %lf", &v_direction(0), &v_direction(1), &v_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read v direction vector\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"w_direction = %lf %lf %lf", &w_direction(0), &w_direction(1), &w_direction(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read w direction vector\n" );
+  }
+
+  // Read extrinsic parameters
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (camera center) vector\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if ( sscanf(line, "R = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+              &R(0,0), &R(0,1), &R(0,2),
+              &R(1,0), &R(1,1), &R(1,2),
+              &R(2,0), &R(2,1), &R(2,2)) != 9 ) {
+      fclose(cam_file);
+      vw_throw( IOErr() << "PinholeModel::read_file(): Could not read rotation matrix\n" );
+  }
+
+  // Read distortion parameters.
+   fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"k1 = %lf", &distortion_params[0] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k1\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"k2 = %lf", &distortion_params[1] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k2\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"p1 = %lf", &distortion_params[2] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p1\n" );
+  }
+
+  fgets(line, sizeof(line), cam_file);
+  if (sscanf(line,"p2 = %lf", &distortion_params[3] ) != 1) {
+    fclose(cam_file);
+    vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p2\n" );
+  }
+
+  fclose(cam_file);
+
+  m_u_direction = u_direction;
+  m_v_direction = v_direction;
+  m_w_direction = w_direction;
+
+  m_fu = fu;
+  m_fv = fv;
+  m_cu = cu;
+  m_cv = cv;
+  m_camera_center = C;
+
+  m_rotation = R;
   this->rebuild_camera_matrix();
 
-  if ( file.distortion_name() == "NULL" ) {
-    VW_ASSERT( file.distortion_vector_size() == 0,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new NullLensDistortion());
-  } else if ( file.distortion_name() == "TSAI" ) {
-    VW_ASSERT( file.distortion_vector_size() == 4,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new TsaiLensDistortion(VectorProxy<double,4>(file.mutable_distortion_vector()->mutable_data())));
-  } else if ( file.distortion_name() == "BROWNCONRADY" ) {
-    VW_ASSERT( file.distortion_vector_size() == 8,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new BrownConradyDistortion(VectorProxy<double,8>(file.mutable_distortion_vector()->mutable_data())));
-  } else if ( file.distortion_name() == "AdjustableTSAI" ) {
-    VW_ASSERT( file.distortion_vector_size() > 3,
-               IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
-    m_distortion.reset( new AdjustableTsaiLensDistortion(VectorProxy<double>(file.distortion_vector_size(),file.mutable_distortion_vector()->mutable_data())));
-  }
+  if( distortion_params == Vector4(0,0,0,0))
+    m_distortion.reset(new NullLensDistortion());
+  else
+    m_distortion.reset(new TsaiLensDistortion(distortion_params));
+}
+
+
+// Reads in a file containing parameters of a pinhole model with
+// a tsai lens distortion model.
+void camera::PinholeModel::read_file(std::string const& filename) {
+  this->read(filename);
+}
+
+void camera::PinholeModel::read(std::string const& filename) {
+
+  fs::path filename_path( filename );
+  if ( filename_path.extension() == ".pinhole" ) {
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+    std::fstream input( filename.c_str(), std::ios::in | std::ios::binary );
+    if ( !input )
+      vw_throw( IOErr() << "Pinhole::read_file: Could not open " << filename << "\n" );
+    TsaiFile file;
+    if ( !file.ParseFromIstream( &input ) )
+      vw_throw( IOErr() << "Pinhole::read_file: Protocol buffer failed to parse \"" << filename << "\"\n" );
+    input.close();
+
+    // Making sure protobuf seems correct
+    VW_ASSERT( file.focal_length_size() == 2,
+               IOErr() << "Pinhole::read_file: Unexpected amount of focal lengths." );
+    VW_ASSERT( file.center_point_size() == 2,
+               IOErr() << "Pinhole::read_file: Unexpected amount of center points." );
+    VW_ASSERT( file.u_direction_size() == 3,
+               IOErr() << "Pinhole::read_file: Unexpected size of u vector." );
+    VW_ASSERT( file.v_direction_size() == 3,
+               IOErr() << "Pinhole::read_file: Unexpected size of v vector." );
+    VW_ASSERT( file.w_direction_size() == 3,
+               IOErr() << "Pinhole::read_file: Unexpected size of w vector." );
+    VW_ASSERT( file.camera_center_size() == 3,
+               IOErr() << "Pinhole::read_file: Unexpected size of camera vector." );
+    VW_ASSERT( file.camera_rotation_size() == 9,
+               IOErr() << "Pinhole::read_file: Unexpected size of rotation matrix." );
+
+    typedef VectorProxy<double,3> Vector3P;
+    m_u_direction = Vector3P(file.mutable_u_direction()->mutable_data());
+    m_v_direction = Vector3P(file.mutable_v_direction()->mutable_data());
+    m_w_direction = Vector3P(file.mutable_w_direction()->mutable_data());
+    m_camera_center = Vector3P(file.mutable_camera_center()->mutable_data());
+    m_fu = file.focal_length(0);
+    m_fv = file.focal_length(1);
+    m_cu = file.center_point(0);
+    m_cv = file.center_point(1);
+    m_rotation = MatrixProxy<double,3,3>(file.mutable_camera_rotation()->mutable_data());
+    m_pixel_pitch = file.pixel_pitch();
+
+    this->rebuild_camera_matrix();
+
+    if ( file.distortion_name() == "NULL" ) {
+      VW_ASSERT( file.distortion_vector_size() == 0,
+                 IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
+      m_distortion.reset( new NullLensDistortion());
+    } else if ( file.distortion_name() == "TSAI" ) {
+      VW_ASSERT( file.distortion_vector_size() == 4,
+                 IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
+      m_distortion.reset( new TsaiLensDistortion(VectorProxy<double,4>(file.mutable_distortion_vector()->mutable_data())));
+    } else if ( file.distortion_name() == "BROWNCONRADY" ) {
+      VW_ASSERT( file.distortion_vector_size() == 8,
+                 IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
+      m_distortion.reset( new BrownConradyDistortion(VectorProxy<double,8>(file.mutable_distortion_vector()->mutable_data())));
+    } else if ( file.distortion_name() == "AdjustableTSAI" ) {
+      VW_ASSERT( file.distortion_vector_size() > 3,
+                 IOErr() << "Pinhole::read_file: Unexpected distortion vector." );
+      m_distortion.reset( new AdjustableTsaiLensDistortion(VectorProxy<double>(file.distortion_vector_size(),file.mutable_distortion_vector()->mutable_data())));
+    }
 #else
-  // If you hit this point, you need to install Google Protobuffers to
-  // be in order to write.
-  vw_throw( IOErr() << "Pinhole::read_file: Camera IO not supported without Google Protobuffers" );
+    // If you hit this point, you need to install Google Protobuffers to
+    // be in order to write.
+    vw_throw( IOErr() << "Pinhole::write_file: Camera IO not supported without Google Protobuffers" );
 #endif
+  } else if ( filename_path.extension() == ".tsai" ) {
+    this->read_old_file( filename );
+  } else {
+    vw_throw( IOErr() << "Unknown PinholeModel filename extension \""
+              << filename_path.extension() << "\"" );
+  }
 }
 
 
 // Write parameters of an exiting PinholeModel into a .tsai file for later use.
-void vw::camera::PinholeModel::write_file(std::string const& filename) const {
+void camera::PinholeModel::write_file(std::string const& filename) const {
   write(filename);
 }
-void vw::camera::PinholeModel::write(std::string const& filename) const {
+void camera::PinholeModel::write(std::string const& filename) const {
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   std::string output_file =
     fs::path(filename).replace_extension(".pinhole").string();
@@ -138,7 +273,7 @@ void vw::camera::PinholeModel::write(std::string const& filename) const {
 #endif
 }
 
-vw::Vector2 vw::camera::PinholeModel::point_to_pixel(vw::Vector3 const& point) const {
+Vector2 camera::PinholeModel::point_to_pixel(Vector3 const& point) const {
 
   //  Multiply the pixel location by the camera matrix.
   double denominator = m_camera_matrix(2,0)*point(0) + m_camera_matrix(2,1)*point(1) +
@@ -152,36 +287,36 @@ vw::Vector2 vw::camera::PinholeModel::point_to_pixel(vw::Vector3 const& point) c
   return m_distortion->distorted_coordinates(*this, pixel)/m_pixel_pitch;
 }
 
-bool vw::camera::PinholeModel::projection_valid(Vector3 const& point) const {
+bool camera::PinholeModel::projection_valid(Vector3 const& point) const {
   // z coordinate after extrinsic transformation
   double z = m_extrinsics(2, 0)*point(0) + m_extrinsics(2, 1)*point(1) +
     m_extrinsics(2, 2)*point(2) + m_extrinsics(2,3);
   return z > 0;
 }
 
-vw::Vector3 vw::camera::PinholeModel::pixel_to_vector (vw::Vector2 const& pix) const {
+Vector3 camera::PinholeModel::pixel_to_vector (Vector2 const& pix) const {
   // Apply the inverse lens distortion model
-  vw::Vector2 undistorted_pix = m_distortion->undistorted_coordinates(*this, pix*m_pixel_pitch);
+  Vector2 undistorted_pix = m_distortion->undistorted_coordinates(*this, pix*m_pixel_pitch);
 
   // Compute the direction of the ray emanating from the camera center.
-  vw::Vector3 p(0,0,1);
+  Vector3 p(0,0,1);
   subvector(p,0,2) = undistorted_pix;
   return normalize( m_inv_camera_transform * p);
 }
 
-void vw::camera::PinholeModel::intrinsic_parameters(double& f_u, double& f_v,
-                                                    double& c_u, double& c_v) const {
+void camera::PinholeModel::intrinsic_parameters(double& f_u, double& f_v,
+                                                double& c_u, double& c_v) const {
   f_u = m_fu;  f_v = m_fv;  c_u = m_cu;  c_v = m_cv;
 }
 
-void vw::camera::PinholeModel::set_intrinsic_parameters(double f_u, double f_v,
-                                                        double c_u, double c_v) {
+void camera::PinholeModel::set_intrinsic_parameters(double f_u, double f_v,
+                                                    double c_u, double c_v) {
   m_fu = f_u;  m_fv = f_v;  m_cu = c_u;  m_cv = c_v;
   rebuild_camera_matrix();
 }
 
 
-void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
+void camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) {
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   // Solving for camera center
   Matrix<double> cam_nullsp = nullspace(p);
@@ -217,7 +352,7 @@ void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) 
   m_cv = R(1,2);
 
   if ( fabs(R(0,1)) >= 1.2 )
-    vw_out(vw::WarningMessage,"camera") << "Significant skew not modelled by pinhole camera\n";
+    vw_out(WarningMessage,"camera") << "Significant skew not modelled by pinhole camera\n";
 
   // Rebuild
   rebuild_camera_matrix();
@@ -226,7 +361,7 @@ void vw::camera::PinholeModel::set_camera_matrix( Matrix<double,3,4> const& p ) 
 #endif
 }
 
-void vw::camera::PinholeModel::rebuild_camera_matrix() {
+void camera::PinholeModel::rebuild_camera_matrix() {
 
   /// The intrinsic portion of the camera matrix is stored as
   ///
@@ -282,20 +417,22 @@ void vw::camera::PinholeModel::rebuild_camera_matrix() {
 
 // scale_camera
 //  Used to modify camera in the event to user resizes the image
-vw::camera::PinholeModel vw::camera::scale_camera(vw::camera::PinholeModel const& camera_model, float const& scale) {
+camera::PinholeModel
+camera::scale_camera(camera::PinholeModel const& camera_model,
+                     float const& scale) {
   Vector2 focal = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
   focal *= scale;
   offset *= scale;
   boost::shared_ptr<LensDistortion> lens = camera_model.lens_distortion()->copy();
   lens->scale( scale );
-  return vw::camera::PinholeModel( camera_model.camera_center(),
-                                   camera_model.camera_pose().rotation_matrix(),
-                                   focal[0], focal[1], offset[0], offset[1],
-                                   camera_model.coordinate_frame_u_direction(),
-                                   camera_model.coordinate_frame_v_direction(),
-                                   camera_model.coordinate_frame_w_direction(),
-                                   *lens );
+  return camera::PinholeModel( camera_model.camera_center(),
+                               camera_model.camera_pose().rotation_matrix(),
+                               focal[0], focal[1], offset[0], offset[1],
+                               camera_model.coordinate_frame_u_direction(),
+                               camera_model.coordinate_frame_v_direction(),
+                               camera_model.coordinate_frame_w_direction(),
+                               *lens );
 }
 
 //   /// Given two pinhole camera models, this method returns two new camera
@@ -305,12 +442,12 @@ vw::camera::PinholeModel vw::camera::scale_camera(vw::camera::PinholeModel const
 //                 PinholeModel<NoLensDistortion> const& src_camera1,
 //                 PinholeModel<NoLensDistortion> &dst_camera0,
 //                 PinholeModel<NoLensDistortion> &dst_camera1);
-
-vw::camera::PinholeModel vw::camera::linearize_camera(vw::camera::PinholeModel const& camera_model) {
+camera::PinholeModel
+camera::linearize_camera(camera::PinholeModel const& camera_model) {
   Vector2 focal = camera_model.focal_length();
   Vector2 offset = camera_model.point_offset();
-  vw::camera::NullLensDistortion distortion;
-  return vw::camera::PinholeModel(camera_model.camera_center(),
+  camera::NullLensDistortion distortion;
+  return camera::PinholeModel(camera_model.camera_center(),
       camera_model.camera_pose().rotation_matrix(),
       focal[0], focal[1], offset[0], offset[1],
       camera_model.coordinate_frame_u_direction(),
@@ -319,7 +456,8 @@ vw::camera::PinholeModel vw::camera::linearize_camera(vw::camera::PinholeModel c
       distortion);
 }
 
-std::ostream& vw::camera::operator<<(std::ostream& str, vw::camera::PinholeModel const& model) {
+std::ostream& camera::operator<<(std::ostream& str,
+                                 camera::PinholeModel const& model) {
   str << "Pinhole camera: \n";
   str << "\tCamera Center: " << model.camera_center() << "\n";
   str << "\tRotation Matrix: " << model.camera_pose() << "\n";
