@@ -11,7 +11,7 @@
 #include <vw/Plate/common.h>
 
 // Protocols
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;

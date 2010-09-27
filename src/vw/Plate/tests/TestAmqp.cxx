@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <vw/Plate/AmqpConnection.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/IndexService.h>
 #include <google/protobuf/stubs/common.h>

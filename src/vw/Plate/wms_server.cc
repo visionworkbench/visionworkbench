@@ -8,7 +8,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/AmqpConnection.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 #include <vw/Plate/common.h>
 #include <vw/Plate/RpcServices.h>
 #include <vw/Plate/WMSService.h>

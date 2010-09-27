@@ -17,8 +17,8 @@ if MAKE_MODULE_PLATE
 # dependency for compile-order calculations
 PLATE_LOCAL_LIBS = libvwPlate.la @MODULE_PLATE_LIBS@
 
-protocol_headers = ProtoBuffers.pb.h
-protocol_sources = ProtoBuffers.pb.cc
+protocol_headers = IndexService.pb.h Rpc.pb.h
+protocol_sources = IndexService.pb.cc Rpc.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 

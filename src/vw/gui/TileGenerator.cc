@@ -10,7 +10,6 @@
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/MaskViews.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
 
 #include <QUrl>
 #include <QBuffer>

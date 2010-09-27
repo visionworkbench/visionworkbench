@@ -9,7 +9,7 @@
 #define __VW_PLATE_INDEX_SERVICE_H__
 
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/IndexService.pb.h>
 #include <boost/shared_ptr.hpp>
 
 namespace vw {

@@ -13,22 +13,28 @@ check_SCRIPTS  =
 
 if MAKE_MODULE_PLATE
 
-TestBlobManager_SOURCES       = TestBlobManager.cxx
+TestAmqp_SOURCES              = TestAmqp.cxx
 TestBlobIO_SOURCES            = TestBlobIO.cxx
+TestBlobManager_SOURCES       = TestBlobManager.cxx
+TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
 TestIndexPage_SOURCES         = TestIndexPage.cxx
 TestLocalIndex_SOURCES        = TestLocalIndex.cxx
-TestAmqp_SOURCES              = TestAmqp.cxx
-TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 TestModPlate_SOURCES          = TestModPlate.cxx
-TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
+TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 
 if HAVE_PYTHON
 check_SCRIPTS  += TestModPlateRegression.py
 endif
 
-check_PROGRAMS = TestBlobManager TestBlobIO TestLocalIndex TestIndexPage TestAmqp \
-				 TestTileManipulation TestModPlate TestHTTPUtils
-
+check_PROGRAMS = \
+  TestAmqp \
+  TestBlobIO \
+  TestBlobManager \
+  TestHTTPUtils \
+  TestIndexPage \
+  TestLocalIndex \
+  TestModPlate \
+  TestTileManipulation
 
 if MAKE_MODPLATE
 MORE_FLAGS = -DVW_HAVE_APACHE=1

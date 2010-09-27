@@ -8,7 +8,7 @@
 #ifndef __VW_PLATEFILE_INDEX_H__
 #define __VW_PLATEFILE_INDEX_H__
 
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/IndexService.pb.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Math/BBox.h>
 #include <vw/Core/FundamentalTypes.h>

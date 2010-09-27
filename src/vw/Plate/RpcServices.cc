@@ -8,7 +8,7 @@
 #include <vw/Core/Exception.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/RpcServices.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 #include <vw/Core/Stopwatch.h>
 using namespace vw;
 using namespace vw::platefile;

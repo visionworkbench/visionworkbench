@@ -16,7 +16,7 @@
 #include <vw/Cartography/ToastTransform.h>
 
 #include <vw/Plate/PlateManager.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 
 #include <boost/algorithm/string.hpp>
 #include <vector>

@@ -10,7 +10,7 @@
 
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/BlobManager.h>
-#include <vw/Plate/ProtoBuffers.pb.h>
+#include <vw/Plate/Rpc.pb.h>
 
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;

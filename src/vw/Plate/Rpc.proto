@@ -1,0 +1,31 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+
+package vw.platefile;
+
+message RpcErrorInfo {
+  required string type = 1;
+  required string message = 2;
+}
+
+message RpcNullMessage {
+  optional int32 dummy = 1 [ default = 0];  // dummy parameter (empty message)
+}
+
+message RpcRequestWrapper {
+  required uint32 sequence_number = 1;
+  required string requestor = 2;
+  required string method = 3;
+  required bytes payload = 4;
+}
+
+message RpcResponseWrapper {
+  required uint32 sequence_number = 1;
+  optional bytes payload = 2;
+  required bool error = 3 [ default = false ];
+  optional RpcErrorInfo error_info = 4;
+}
