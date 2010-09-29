@@ -45,15 +45,6 @@ namespace {
   bool select_helper(int fd, vw::int32 timeout, const std::string& context);
   bool vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             vw::int32 timeout, const std::string& context);
-
-  amqp_rpc_reply_t vw_get_rpc_reply(const amqp_connection_state_t state) {
-#if defined(VW_RABBITMQ_VOID_RPC_REPLY) && VW_RABBITMQ_VOID_RPC_REPLY == 0
-    return amqp_get_rpc_reply(state);
-#else
-    return amqp_get_rpc_reply();
-#endif
-  }
-
 }
 
 AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
@@ -136,7 +127,7 @@ AmqpChannel::AmqpChannel(boost::shared_ptr<AmqpConnection> conn, int16 channel)
   m_channel = m_conn->get_channel(channel);
 
   amqp_channel_open(state, m_channel);
-  check_error(vw_get_rpc_reply(state), "opening channel");
+  check_error(amqp_get_rpc_reply(state), "opening channel");
   is_open = true;
 }
 
@@ -164,7 +155,7 @@ void AmqpChannel::exchange_declare(std::string const& exchange_name,
   amqp_exchange_declare(state, m_channel, amqp_string(exchange_name),
                         amqp_string(exchange_type), 0, durable, auto_delete, amqp_table_t());
 
-  check_error(vw_get_rpc_reply(state), "declaring exchange");
+  check_error(amqp_get_rpc_reply(state), "declaring exchange");
 }
 
 void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
@@ -176,7 +167,7 @@ void AmqpChannel::queue_declare(std::string const& queue_name, bool durable,
   amqp_queue_declare(state, m_channel, amqp_string(queue_name), 0,
                      durable, exclusive, auto_delete, amqp_table_t());
 
-  check_error(vw_get_rpc_reply(state), "declaring queue");
+  check_error(amqp_get_rpc_reply(state), "declaring queue");
 }
 
 void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchange,
@@ -188,7 +179,7 @@ void AmqpChannel::queue_bind(std::string const& queue, std::string const& exchan
   amqp_queue_bind(state, m_channel, amqp_string(queue),
                   amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
 
-  check_error(vw_get_rpc_reply(state), "binding queue");
+  check_error(amqp_get_rpc_reply(state), "binding queue");
 }
 
 void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exchange,
@@ -200,7 +191,7 @@ void AmqpChannel::queue_unbind(std::string const& queue, std::string const& exch
   amqp_queue_unbind(state, m_channel, amqp_string(queue),
                     amqp_string(exchange), amqp_string(routing_key), amqp_table_t());
 
-  check_error(vw_get_rpc_reply(state), "unbinding queue");
+  check_error(amqp_get_rpc_reply(state), "unbinding queue");
 }
 
 void AmqpChannel::basic_publish(ByteArray const& message,
@@ -336,7 +327,7 @@ boost::shared_ptr<AmqpConsumer> AmqpChannel::basic_consume(std::string const& qu
   amqp_basic_consume_ok_t *reply =
     amqp_basic_consume(state, m_channel, amqp_string(queue), amqp_string(""), 0, 1, 0);
 
-  check_error(vw_get_rpc_reply(state), "starting consumer");
+  check_error(amqp_get_rpc_reply(state), "starting consumer");
 
   boost::shared_ptr<AmqpConsumeTask> task(new AmqpConsumeTask(m_conn, m_channel, callback, queue, amqp_bytes(reply->consumer_tag)));
   boost::shared_ptr<vw::Thread> thread(new vw::Thread(task));
@@ -376,9 +367,11 @@ void die_on_amqp_error(const amqp_rpc_reply_t x, const std::string& context) {
     case AMQP_RESPONSE_NORMAL: return;
     case AMQP_RESPONSE_NONE:
       vw_throw(AMQPErr() << "missing RPC reply type while " << context);
-    case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-      vw_throw(AMQPErr() << (x.library_errno ? strerror(x.library_errno) : "(End of Stream)")
-                         << " while " << context);
+    case AMQP_RESPONSE_LIBRARY_EXCEPTION: {
+      // amqp_error_string returns a malloc'd string. use free as a custom deleter
+      boost::shared_ptr<char> error(amqp_error_string(x.library_error), free);
+      vw_throw(AMQPErr() << *error << " while " << context);
+    }
     case AMQP_RESPONSE_SERVER_EXCEPTION:
       switch (x.reply.id) {
         case AMQP_CONNECTION_CLOSE_METHOD: {
