@@ -21,8 +21,6 @@
 #endif
 
 namespace vw {
-  template<> struct PixelFormatID<Vector2>   { static const PixelFormatEnum value = VW_PIXEL_GENERIC_2_CHANNEL; };
-
   namespace stereo {
 
     namespace detail {
@@ -46,17 +44,11 @@ namespace vw {
       for (int j = 0; j < kern_height; ++j) {
         for (int i = 0; i < kern_width; ++i ) {
           weight(i,j) = exp(-1 * (pow(i-center_pix_x,2.) + pow(j-center_pix_y,2.)) / two_sigma_sqr);
-          sum = sum + weight(i,j);
+          sum += weight(i,j);
         }
       }
 
-      for (int j = 0; j < kern_height; ++j) {
-        for (int i = 0; i < kern_width; ++i ) {
-          weight(i,j) = weight(i, j)/sum;
-        }
-      }
-      
-      return weight;
+      return weight / sum;
     }
 
     template<class WeightT, class DisparityT>
