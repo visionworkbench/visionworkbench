@@ -10,6 +10,7 @@
 #include <test/Helpers.h>
 
 #include <vw/Stereo/StereoModel.h>
+#include <vw/Stereo/StereoView.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/EulerAngles.h>
@@ -80,4 +81,108 @@ TEST( StereoModel, AdjustedStereo ) {
   EXPECT_VECTOR_NEAR( point, pt2, 1e-6 );
 }
 
+TEST( StereoView, PixelMaskVec2 ) {
+  Vector3 pos1, pos2;
+  pos2 = Vector3(1,0,0);
 
+  Matrix3x3 pose1, pose2;
+  pose1.set_identity();
+  pose2.set_identity();
+
+  camera::PinholeModel pin1( Vector3(),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  camera::PinholeModel pin2( Vector3(1,0,0),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  ImageView<PixelMask<Vector2f> > disparity(3,1);
+  disparity(1,0) = PixelMask<Vector2f>( Vector2f(-1,0) );
+  disparity(2,0) = PixelMask<Vector2f>( Vector2f(-1.3,0) );
+
+  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
+  EXPECT_VECTOR_DOUBLE_EQ( pc(0,0), Vector3() );
+  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+}
+
+TEST( StereoView, Vec2 ) {
+  Vector3 pos1, pos2;
+  pos2 = Vector3(1,0,0);
+
+  Matrix3x3 pose1, pose2;
+  pose1.set_identity();
+  pose2.set_identity();
+
+  camera::PinholeModel pin1( Vector3(),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  camera::PinholeModel pin2( Vector3(1,0,0),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  ImageView<Vector2f> disparity(3,1);
+  disparity(0,0) = Vector2f(-1.5,0);
+  disparity(1,0) = Vector2f(-1,0);
+  disparity(2,0) = Vector2f(-1.3,0);
+
+  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
+  EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+}
+
+TEST( StereoView, PixelMaskFloat ) {
+  Vector3 pos1, pos2;
+  pos2 = Vector3(1,0,0);
+
+  Matrix3x3 pose1, pose2;
+  pose1.set_identity();
+  pose2.set_identity();
+
+  camera::PinholeModel pin1( Vector3(),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  camera::PinholeModel pin2( Vector3(1,0,0),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  ImageView<PixelMask<float> > disparity(3,1);
+  disparity(1,0) = PixelMask<float>(-1);
+  disparity(2,0) = PixelMask<float>(-1.3);
+
+  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
+  EXPECT_VECTOR_DOUBLE_EQ( pc(0,0), Vector3() );
+  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+}
+
+TEST( StereoView, Float ) {
+  Vector3 pos1, pos2;
+  pos2 = Vector3(1,0,0);
+
+  Matrix3x3 pose1, pose2;
+  pose1.set_identity();
+  pose2.set_identity();
+
+  camera::PinholeModel pin1( Vector3(),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  camera::PinholeModel pin2( Vector3(1,0,0),
+                             math::identity_matrix<3>(),
+                             1, 1, 1, 0);
+
+  ImageView<float> disparity(3,1);
+  disparity(0,0) = -1.5;
+  disparity(1,0) = -1;
+  disparity(2,0) = -1.3;
+
+  ImageView<Vector3> pc = stereo_triangulate( disparity, &pin1, &pin2 );
+  EXPECT_VECTOR_NEAR( pc(0,0), Vector3(-0.666,0,0.666), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(1,0), Vector3(0,0,1), 1e-2 );
+  EXPECT_VECTOR_NEAR( pc(2,0), Vector3(0.769,0,0.769), 1e-2 );
+}

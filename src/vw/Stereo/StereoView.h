@@ -20,9 +20,36 @@ namespace stereo {
   template <class DisparityImageT>
   class StereoView : public ImageViewBase<StereoView<DisparityImageT> >
   {
-  private:
     DisparityImageT m_disparity_map;
     StereoModel m_stereo_model;
+    typedef typename DisparityImageT::pixel_type dpixel_type;
+
+    template <class PixelT>
+    struct NotSingleChannel {
+      static const bool value = (1 != CompoundNumChannels<typename UnmaskedPixelType<PixelT>::type>::value);
+    };
+
+    template <class T>
+    inline typename boost::enable_if<IsScalar<T>,Vector3>::type
+    StereoModelHelper( StereoModel const& model, Vector2 const& index,
+                       T const& disparity, double& error ) const {
+      return model( index, Vector2( index[0] + disparity, index[1] ), error );
+    }
+
+    template <class T>
+    inline typename boost::enable_if_c<IsCompound<T>::value && (CompoundNumChannels<typename UnmaskedPixelType<T>::type>::value == 1),Vector3>::type
+    StereoModelHelper( StereoModel const& model, Vector2 const& index,
+                       T const& disparity, double& error ) const {
+      return model( index, Vector2( index[0] + disparity, index[1] ), error );
+    }
+
+    template <class T>
+    inline typename boost::enable_if_c<IsCompound<T>::value && (CompoundNumChannels<typename UnmaskedPixelType<T>::type>::value != 1),Vector3>::type
+    StereoModelHelper( StereoModel const& model, Vector2 const& index,
+                       T const& disparity, double& error ) const {
+      return model( index, Vector2( index[0] + disparity[0],
+                                    index[1] + disparity[1] ), error );
+    }
 
   public:
 
@@ -49,11 +76,9 @@ namespace stereo {
 
     inline result_type operator()( int i, int j, int p=0 ) const {
       double error;
-      if ( is_valid(m_disparity_map(i,j,p)) ) {
-        return m_stereo_model(Vector2( i, j ),
-                              Vector2( i, j )+remove_mask(m_disparity_map(i,j,p)),
-                              error );
-      }
+      if ( is_valid(m_disparity_map(i,j,p)) )
+        return StereoModelHelper( m_stereo_model, Vector2(i,j),
+                                  m_disparity_map(i,j,p), error );
       // For missing pixels in the disparity map, we return a null 3D position.
       return Vector3();
     }
@@ -64,19 +89,13 @@ namespace stereo {
     // stereo geometry returns a bad match (e.g. if the rays
     // diverged).
     inline double error( int i, int j, int p=0 ) const {
-      double error;
-      if ( !m_disparity_map(i,j,p).missing() ) {
-        m_stereo_model(Vector2( i, j ),
-                       Vector2( i + m_disparity_map(i,j,p).h(),
-                                j + m_disparity_map(i,j,p).v() ),
-                       error );
-        if (error >= 0)
-          return error;
-      }
-
-      // If we reach here, it means the disparity pixel or the 3D
-      // point was invalid, and we return zero for error.
-      return 0;
+      double error = 1e-10;
+      if ( is_valid(m_disparity_map(i,j,p)) )
+        StereoModelHelper( m_stereo_model, Vector2(i,j),
+                           m_disparity_map(i,j,p), error );
+      if ( error < 0 )
+        return 0;
+      return error;
     }
 
     DisparityImageT const& disparity_map() const { return m_disparity_map; }
@@ -87,6 +106,13 @@ namespace stereo {
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
+
+  template <class ImageT>
+  StereoView<ImageT> stereo_triangulate( ImageViewBase<ImageT> const& v,
+                                         vw::camera::CameraModel const* camera1,
+                                         vw::camera::CameraModel const* camera2 ) {
+    return StereoView<ImageT>( v.impl(), camera1, camera2 );
+  }
 
   // This per pixel functor applies a universe radius to a point
   // image.  Points that fall outside of the annulus specified with
