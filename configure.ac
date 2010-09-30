@@ -357,7 +357,10 @@ AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
 AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
 AX_PKG(OPENCV, [], [-lcxcore], [opencv/cxcore.h])
 
-
+old_CXXFLAGS="$CXXFLAGS"
+old_LDFLAGS="$LDFLAGS"
+CXXFLAGS="$CXXFLAGS $PKG_RABBITMQ_C_CPPFLAGS"
+LDFLAGS="$LDFLAGS $PKG_RABBITMQ_C_LIBS"
 if test x"$HAVE_PKG_RABBITMQ_C" = "xyes"; then
   AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[
     #include <stdlib.h>
@@ -370,6 +373,8 @@ if test x"$HAVE_PKG_RABBITMQ_C" = "xyes"; then
     HAVE_PKG_RABBITMQ_C="no:current version is too old"
     AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])])
 fi
+CXXFLAGS="$old_CXXFLAGS"
+LDFLAGS="$old_LDFLAGS"
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
