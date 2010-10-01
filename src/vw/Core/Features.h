@@ -8,8 +8,8 @@
 // This file contains some useful macros and definitions so they don't get
 // scattered everywhere.
 
-#ifndef __VW_CORE_MACRO_H__
-#define __VW_CORE_MACRO_H__
+#ifndef __VW_CORE_FEATURES_H__
+#define __VW_CORE_FEATURES_H__
 
 #include <vw/config.h>
 
