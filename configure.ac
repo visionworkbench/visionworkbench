@@ -36,6 +36,8 @@ AX_CONFIG_HEADER_PREFIX([src/vw/config.h], [VW_])
 dnl Fix for early autoconf that doesn't export these
 AC_SUBST([abs_top_srcdir])
 AC_SUBST([abs_top_builddir])
+AC_SUBST([abs_srcdir])
+AC_SUBST([abs_builddir])
 
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
