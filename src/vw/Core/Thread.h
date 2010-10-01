@@ -47,6 +47,8 @@
 #ifndef __VW_CORE_THREAD_H__
 #define __VW_CORE_THREAD_H__
 
+#include <vw/Core/FundamentalTypes.h>
+
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <boost/thread/xtime.hpp>
@@ -236,7 +238,7 @@ namespace vw {
     /// thread is not determined until the thread calls the id()
     /// function for the first time, so there is no guarantee that IDs
     /// will be assigned in the same order that threads are created.
-    static int id();
+    static vw::uint64 id();
 
     /// Cause the current thread to yield the remainder of its
     /// execution time to the kernel's scheduler.
