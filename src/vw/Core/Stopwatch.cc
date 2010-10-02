@@ -16,7 +16,7 @@
 #include <Windows.h>
 #else // For Linux
 #include <sys/time.h>
-#endif 
+#endif
 
 // BOOST includes
 #include <boost/thread/once.hpp>
@@ -37,24 +37,23 @@ using std::vector;
 namespace vw {
 
   // Stopwatch
-  unsigned long long Stopwatch::microtime(bool use_cpu_time) {
+  uint64 Stopwatch::microtime(bool use_cpu_time) {
 #ifdef WIN32
     if (use_cpu_time) {
       // TODO: Find the analogous function for "clock()" for windows
       throw NoImplErr();
     } else {
-      return ((long long)GetTickCount() * 1000);
+      return ((uint64)GetTickCount() * 1000);
     }
 #else
     if (use_cpu_time) {
       // XXX: This provides no useful information. On any linux system after
       // 2003 or so, the clock rate is not a constant.
-      return ((long long)clock() * 1000000 / CLOCKS_PER_SEC); 
+      return ((uint64)clock() * 1000000 / CLOCKS_PER_SEC);
     } else {
       struct timeval tv;
       gettimeofday(&tv, NULL);
-      return ((long long) tv.tv_sec * (long long) 1000000 +
-              (long long) tv.tv_usec);
+      return ((uint64)tv.tv_sec) * 1000000 + tv.tv_usec;
     }
 #endif
   }
@@ -75,27 +74,27 @@ namespace vw {
     std::ostringstream out;
     out << "StopwatchSet lifetime: " << elapsed_seconds_since_construction() << endl;
     out << "Elapsed seconds for all stopwatches:" << endl;
-    
-    for (unsigned int i= 0; i< sorted.size(); i++) {
+
+    for (size_t i= 0; i< sorted.size(); i++) {
       const std::string &name(sorted[i].first);
       const Stopwatch &sw(sorted[i].second);
 
       double elapsed = sw.elapsed_seconds();
       int n = sw.num_stops();
-      
+
       out << elapsed;
       if (n) out << " (avg " << elapsed / n << " x " << n << ")";
       out << ": " << name;
-      
+
       if (sw.is_running()) out << " (still running!)";
       out << endl;
     }
 
     return out.str();
   }
-  
+
   // Global StopwatchSet
-  
+
   namespace GlobalStopwatchSet {
     static StopwatchSet *_g_global_stopwatch_set;
     void _create() {
@@ -107,7 +106,7 @@ namespace vw {
   //
   // We want to be able to use this during globals and statics construction, so we cannot
   // assume that constructors in this file have already been called
-  
+
   StopwatchSet *global_stopwatch_set() {
     static RunOnce once = VW_RUNONCE_INIT;
     once.run(GlobalStopwatchSet::_create);

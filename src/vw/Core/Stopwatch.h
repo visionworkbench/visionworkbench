@@ -16,32 +16,33 @@
 #include <boost/shared_ptr.hpp>
 
 #include <vw/Core/Thread.h>
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 
   // Stopwatch measures time elapsed between calls to start() and stop()
-  
+
   class Stopwatch {
     struct data {
-      unsigned long long m_total_elapsed; // in microseconds
-      unsigned long long m_last_start;    // from Stopwatch::microtime
-      unsigned long m_startdepth;
-      unsigned long m_numstops;
+      uint64 m_total_elapsed; // in microseconds
+      uint64 m_last_start;    // from Stopwatch::microtime
+      uint64 m_startdepth;
+      uint64 m_numstops;
       mutable Mutex m_mutex;
       data() :  m_total_elapsed(0),
                 m_last_start(0),
                 m_startdepth(0),
                 m_numstops(0) {}
     };
-    
+
     boost::shared_ptr<data> m_data;
     bool m_use_cpu_time;
-    
+
   public:
-    static unsigned long long microtime(bool use_cpu_time = false);
-    
+    static uint64 microtime(bool use_cpu_time = false);
+
     Stopwatch(bool use_cpu_time = false) : m_data(new data()), m_use_cpu_time(use_cpu_time) {}
-    
+
     void start() {
       Mutex::Lock lock(m_data->m_mutex);
       if (!(m_data->m_startdepth++)) {
@@ -61,7 +62,7 @@ namespace vw {
       return m_data->m_startdepth != 0;
     }
 
-    unsigned long long elapsed_microseconds() const {
+    uint64 elapsed_microseconds() const {
       Mutex::Lock lock(m_data->m_mutex);
       return m_data->m_total_elapsed;
     }
@@ -70,21 +71,21 @@ namespace vw {
       return (double)elapsed_microseconds() / 1000000.;
     }
 
-    unsigned long num_stops() const {
+    uint64 num_stops() const {
       return m_data->m_numstops;
     }
-    
+
   }; // class Stopwatch
 
   // StopwatchSet is a named set of Stopwatches
   class StopwatchSet {
     mutable Mutex m_mutex;
-    unsigned long long m_construction_time;
+    uint64 m_construction_time;
 
     std::map<std::string, Stopwatch> m_stopwatches;
 
   public:
-    StopwatchSet() : 
+    StopwatchSet() :
       m_construction_time(Stopwatch::microtime()) {}
 
     // Find or create stopwatch named "name"
@@ -93,7 +94,7 @@ namespace vw {
       return m_stopwatches[name];
     }
 
-    unsigned long long elapsed_microseconds_since_construction() const {
+    uint64 elapsed_microseconds_since_construction() const {
       return Stopwatch::microtime()-m_construction_time;
     }
 
@@ -112,19 +113,19 @@ namespace vw {
   }; // class StopwatchSet
 
 
-  // 
+  //
   // Simple functions for global StopwatchSet
   //
 
   // Return the global StopwatchSet
   StopwatchSet *global_stopwatch_set();
-  
+
   // Find or create names stopwatch from the global StopwatchSet
   inline Stopwatch stopwatch_get(const std::string &name) { return global_stopwatch_set()->get(name); }
-  
+
   // Start the named stopwatch from the global StopwatchSet
   inline void stopwatch_start(const std::string &name) { stopwatch_get(name).start(); }
-  
+
   // Stop the named stopwatch from the global StopwatchSet
   inline void stopwatch_stop(const std::string &name) { stopwatch_get(name).stop(); }
 
@@ -132,7 +133,7 @@ namespace vw {
   // ScopedWatch starts a Stopwatch on construction and stops is
   //  on destruction
   //
-  
+
   class ScopedWatch {
   private:
     Stopwatch m_stopwatch;
@@ -155,7 +156,7 @@ namespace vw {
       m_stopwatch.stop();
     }
   }; // class ScopedWatch
-  
+
 } // namespace vw
 
 #endif
