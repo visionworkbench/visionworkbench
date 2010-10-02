@@ -50,11 +50,11 @@ void parse_url(std::string const& url, std::string &hostname, int &port,
     bare_exchange = u.hostname();
     platefile_name = std::string(items[1].begin(), items[1].end());
 
-    u.netloc() = hostname + ":" + vw::stringify(port);
-    u.path()   = std::string() + "/" + bare_exchange + u.path();
+    u.netloc(hostname + ":" + vw::stringify(port));
+    u.path(std::string() + "/" + bare_exchange + u.path());
 
     vw_out(WarningMessage, "plate")
-      << "Ill-formed URL [" << url << "] corrected to [" << u.url() << "]" << std::endl;
+      << "Ill-formed URL [" << url << "] corrected to [" << u << "]" << std::endl;
 
   } else if (items.size() == 3) {
     // /exchange/platefile

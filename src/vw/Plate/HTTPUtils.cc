@@ -11,21 +11,28 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/foreach.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <vector>
 
 using std::string;
 using std::vector;
 using namespace vw;
 
+namespace fs = boost::filesystem;
+
 namespace {
   string snip(const std::string& str, size_t begin, size_t end) {
     return string(str.begin()+begin, str.begin()+end);
   }
+
+  // conditionally safe
+  // +&/:;=?@
+
   const char url_safe[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz"
     "0123456789"
-    "_.-";
+    "$-_.!*'(),";
 
   const char scheme_safe[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -51,57 +58,151 @@ namespace platefile {
 const unsigned Url::MAX_URL_LENGTH = 500;
 
 void Url::parse(const std::string& url, bool parse_query_params) {
-  boost::iterator_range<string::const_iterator> i = boost::find_token(url, !boost::is_any_of(scheme_safe));
+  // iterator to the first char that's not part of the scheme
+  // That should either be the ":", or end()
+  size_t c = url.find("://", 0);
+  // iterator to the beginning of the query string (the ?) or end()
+  size_t q = url.find('?', c == string::npos ? 0 : c+1);
+  // iterator to the beginning of the fragment (the #) or end()
+  size_t f = url.find('#',
+      q != string::npos ? q+1 :
+      c != string::npos ? c+1 : 0);
 
-  size_t c = bool(i) ? (i.begin() - url.begin()) : 0;
-  size_t q = url.find('?', c == 0 ? 0 : c+1);
-  size_t f = url.find('#', q == string::npos ? 0 : q+1);
-
+  // front and back iterators
   size_t begin = 0, end = url.size();
 
-  if (c != 0) {
+  // did we find a scheme?
+  if (c != string::npos) {
+    // yes. replace the default "file" with the scheme, and move it up
     m_scheme = boost::to_lower_copy(snip(url, begin, c));
     begin = c+1;
   }
 
+  // did we find a fragment?
   if (f != string::npos) {
+    // yes. snip off the fragment and move the end forward
     m_fragment = snip(url, f+1, end);
     end = f;
   }
 
+  // did we find a query string?
   if (q != string::npos) {
+    // yes. snip it off and move the end forward
     if (parse_query_params)
       m_query = QueryMap(snip(url, q+1, end));
     end = q;
   }
 
+  // if we had a scheme, snip off the "//" portion of scheme://
   if (url.substr(begin, 2) == "//")
     begin += 2;
 
-  size_t s = url.find('/', begin);
+  if (c != string::npos) {
+    // if we found a scheme
+    // [begin, end) now contains just the netloc and the path
+    size_t s = url.find('/', begin);
 
-  if (s == string::npos || s > end) {
-    m_netloc = snip(url, begin, end);
-    m_path   = "";
+    if (s == string::npos || s > end) {
+      m_netloc = snip(url, begin, end);
+      m_path   = "";
+    } else {
+      m_netloc = snip(url, begin, s);
+      m_path   = snip(url, s, end);
+    }
   } else {
-    m_netloc = snip(url, begin, s);
-    m_path   = snip(url, s, end);
+    // if we didn't have a scheme, it's all just path now.
+    m_scheme = "file";
+    m_netloc = "";
+    m_path = snip(url, begin, end);
   }
+
+  if (m_path.empty())
+    m_path = "/";
 }
+
+Url::Url()
+  : m_scheme(""), m_netloc(""), m_path("/"), m_fragment("") {}
 
 Url::Url(const char* url, bool parse_query_params)
   : m_scheme("file"), m_netloc(""), m_path("/"), m_fragment("") {
   VW_ASSERT(url, ArgumentErr() << "Cannot parse empty url");
 
-  if (strlen(url) > MAX_URL_LENGTH)
+  size_t len = strlen(url);
+
+  if (len < 1)
+    vw_throw(ArgumentErr() << "Refusing to parse an empty url");
+
+  if (len > MAX_URL_LENGTH)
     vw_throw(ArgumentErr() << "Refusing to parse a url longer than " << MAX_URL_LENGTH);
 
-  parse(string(url), parse_query_params);
+  parse(std::string(url), parse_query_params);
 }
 
-Url::Url(const string& url, bool parse_query_params)
+Url::Url(const std::string& url, bool parse_query_params)
   : m_scheme("file"), m_netloc(""), m_path("/"), m_fragment("") {
     parse(url, parse_query_params);
+}
+void Url::scheme(const std::string& s)   { m_scheme = s; }
+void Url::netloc(const std::string& s)   { m_netloc = s; }
+void Url::fragment(const std::string& s) { m_fragment = s; }
+QueryMap& Url::query() { return m_query; }
+
+void Url::path(const std::string& s) {
+  VW_ASSERT(!s.empty(), ArgumentErr() << "Invalid path (must be non-empty)");
+  VW_ASSERT(m_scheme == "file" || s[0] == '/', ArgumentErr() << "Only file urls can be relative");
+  m_path = s;
+}
+
+Url::split_t Url::path_split() const {
+  VW_ASSERT(m_path.size() > 0, LogicErr() << "Empty Path? Should be impossible.");
+  split_t items;
+
+  if (m_path == "/") {
+    items.push_back("");
+    return items;
+  }
+
+  boost::iterator_range<std::string::const_iterator> r(m_path.begin(), m_path.end());
+  boost::split(items, r, boost::is_any_of("/"), boost::algorithm::token_compress_on);
+  return items;
+}
+
+bool Url::complete() const {
+  return !(m_scheme.empty() || m_path.empty());
+}
+
+std::string Url::hostname() const {
+  size_t f = m_netloc.find(":");
+  if (f == std::string::npos)
+    return m_netloc;
+  return m_netloc.substr(0,f);
+}
+
+uint16 Url::port() const {
+  size_t f = m_netloc.find(":");
+  if (f == std::string::npos)
+    return 0;
+  return boost::lexical_cast<uint16>(m_netloc.substr(f+1));
+}
+
+std::string Url::string() const {
+  VW_ASSERT(complete(), LogicErr() << "Cannot ask for url string before scheme and path are populated");
+  return scheme() + "://"
+    + netloc()
+    + url_escape(m_path, "/")
+    + m_query.serialize()
+    + (m_fragment.empty() ? "" : "#") + url_escape(m_fragment, "/=;");
+}
+
+std::istream& operator>>(std::istream& i, Url& val) {
+  std::string s;
+  i >> s;
+  val = Url(s);
+  return i;
+}
+
+std::ostream& operator<<(std::ostream& o, const Url& val) {
+  return (o << val.string());
 }
 
 QueryMap::QueryMap(const std::string& query) {
