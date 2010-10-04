@@ -364,14 +364,14 @@ old_LDFLAGS="$LDFLAGS"
 CXXFLAGS="$CXXFLAGS $PKG_RABBITMQ_C_CPPFLAGS"
 LDFLAGS="$LDFLAGS $PKG_RABBITMQ_C_LIBS"
 if test x"$HAVE_PKG_RABBITMQ_C" = "xyes"; then
-  AC_COMPILE_IFELSE(AC_LANG_PROGRAM([[
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
     #include <stdlib.h>
     #include <stdint.h>
     #include <amqp.h>
   ]], [[
     amqp_rpc_reply_t x;
     x.library_error;
-  ]]), [], [
+  ]])], [], [
     HAVE_PKG_RABBITMQ_C="no:current version is too old"
     AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])])
 fi
