@@ -20,6 +20,7 @@
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/ToastPlateManager.h>
 #include <vw/Plate/PlateCarreePlateManager.h>
+#include <vw/Plate/PolarStereoPlateManager.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -67,10 +68,19 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                tweak_settings_for_terrain, g_debug,
                TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 
-  }  else if (output_mode == "equi")  {
+  } else if (output_mode == "equi") {
 
     boost::shared_ptr<PlateCarreePlateManager<typename ViewT::pixel_type> > pm(
       new PlateCarreePlateManager<typename ViewT::pixel_type> (platefile) );
+
+    pm->insert(view.impl(), filename, transaction_id_override, georef,
+               tweak_settings_for_terrain, g_debug,
+               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
+
+  } else if (output_mode == "polar") {
+
+    boost::shared_ptr<PolarStereoPlateManager<typename ViewT::pixel_type> > pm(
+      new PolarStereoPlateManager<typename ViewT::pixel_type> (platefile,georef.datum()) );
 
     pm->insert(view.impl(), filename, transaction_id_override, georef,
                tweak_settings_for_terrain, g_debug,
@@ -104,7 +114,7 @@ int main( int argc, char *argv[] ) {
     ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
     ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
     ("nodata-value", po::value<double>(&nodata_value), "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi]")
+    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi, polar]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
     ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
@@ -216,8 +226,10 @@ int main( int argc, char *argv[] ) {
 
   // Create both platefile managers (we only end up using one... this
   // just makes the code a little more readable.)
-  if (output_mode != "toast" && output_mode != "equi") {
-    vw_out() << "Unknown mode type passed in using --mode: " << output_mode << ".  Exiting.\n";
+  if (output_mode != "toast" && output_mode != "equi" &&
+      output_mode != "polar" ) {
+    vw_out() << "Unknown mode type passed in using --mode: " << output_mode
+             << ".  Exiting.\n";
     exit(1);
   }
   try {

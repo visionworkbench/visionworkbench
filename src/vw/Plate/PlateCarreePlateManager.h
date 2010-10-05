@@ -175,16 +175,12 @@ namespace platefile {
       // Add each tile
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
+        typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
         m_queue.add_task(boost::shared_ptr<Task>(
-          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile,
-                                                                            transaction_id,
-                                                                            tiles[i],
-                                                                            pyramid_level,
-                                                                            kml_view,
-                                                                            tweak_settings_for_terrain,
-                                                                            false,
-                                                                            tiles.size(),
-                                                                            progress)));
+          new Job(m_platefile, transaction_id,
+                  tiles[i], pyramid_level,
+                  kml_view, tweak_settings_for_terrain,
+                  false, tiles.size(), progress)));
       }
       m_queue.join_all();
       progress.report_finished();
@@ -267,7 +263,8 @@ namespace platefile {
 
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
-    void generate_mipmap_tile(int col, int row, int level, int transaction_id, bool preblur) const {
+    void generate_mipmap_tile(int col, int row, int level,
+                              int transaction_id, bool preblur) const {
 
       // Create an image large enough to store all of the child nodes
       int tile_size = m_platefile->default_tile_size();
@@ -315,7 +312,6 @@ namespace platefile {
       }
     }
   };
-
 
 }} // namespace vw::plate
 

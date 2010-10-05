@@ -38,6 +38,7 @@ include_HEADERS =           \
   PlateFile.h               \
   PlateManager.h            \
   PlateView.h               \
+  PolarStereoPlateManager.h \
   RemoteIndex.h             \
   RpcServices.h             \
   SnapshotManager.h         \
@@ -62,6 +63,7 @@ libvwPlate_la_SOURCES =      \
   PlateCarreePlateManager.cc \
   PlateFile.cc               \
   PlateManager.cc            \
+  PolarStereoPlateManager.cc \
   RemoteIndex.cc             \
   RpcServices.cc             \
   SnapshotManager.cc         \
