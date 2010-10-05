@@ -93,15 +93,19 @@ static void fill_input_maps() {
   str_to_resolution_fn_map[std::string("gigapan-noproj")] = NULL;
 }
 
-static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource) {
-  
+static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource,
+                               bool use_nodata ) {
+
   DiskImageView<PixelRGBA<float> > min_max_file(filename);
   float new_lo, new_hi;
-  if ( file_resource.has_nodata_value() ) {
+  if ( use_nodata ) {
+    PixelRGBA<float> no_data_value( nodata );
+    min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
+  } else if ( file_resource.has_nodata_value() ) {
     PixelRGBA<float> no_data_value( file_resource.nodata_value() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
   } else {
-    min_max_channel_values( create_mask(min_max_file), new_lo, new_hi );
+    min_max_channel_values( min_max_file, new_lo, new_hi );
   }
   lo_value = std::min(new_lo, lo_value);
   hi_value = std::max(new_hi, hi_value);
@@ -153,7 +157,8 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     std::cout << "Adding file " << image_files[i] << std::endl;
     DiskImageResourceGDAL file_resource( image_files[i] );
 
-    if( vm.count("normalize") ) get_normalize_vals(image_files[i], file_resource);
+    if( vm.count("normalize") ) get_normalize_vals(image_files[i], file_resource,
+                                                   vm.count("nodata") );
 
     GeoReference input_georef;
     bool fail_read_georef = false;
