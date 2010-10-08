@@ -114,7 +114,7 @@ TEST_F( SubPixelCorrelate80Test, Parabola80 ) {
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.313);
+  EXPECT_LT(error, 0.46);
   EXPECT_LE(invalid_count, 0);
 }
 
@@ -126,7 +126,7 @@ TEST_F( SubPixelCorrelate70Test, Parabola70 ) {
   int32 invalid_count = 0;
   double error = check_error( disparity_map, invalid_count );
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
-  EXPECT_LT(error, 0.429);
+  EXPECT_LT(error, 0.45);
   EXPECT_LE(invalid_count, 0);
 }
 
@@ -176,7 +176,7 @@ TEST_F( SubPixelCorrelate80Test, BayesEM80 ) {
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   //EXPECT_LT(error, 0.125);     // Use for subpixel w/o pyramid
   //EXPECT_LE(invalid_count, 3);
-  EXPECT_LT(error, 0.486);
+  EXPECT_LT(error, 0.52);
   EXPECT_LE(invalid_count, 22);
 }
 
@@ -192,6 +192,6 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
   //std::cout << "Err: " << error << " Cnt: " << invalid_count << "\n";
   //EXPECT_LT(error, 0.198);      // Use for subpixel w/o pyramid
   //EXPECT_LE(invalid_count, 7);
-  EXPECT_LT(error, 0.871);
-  EXPECT_LE(invalid_count, 42);
+  EXPECT_LT(error, 0.9);
+  EXPECT_LE(invalid_count, 47);
 }
