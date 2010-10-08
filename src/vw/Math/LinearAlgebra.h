@@ -147,6 +147,8 @@ namespace math {
     std::vector<f77_int> iwork( 8*minmn );
     f77_int ldu = m, ldvt = minmn;
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
+    if (info < 0)
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
