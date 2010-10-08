@@ -14,15 +14,18 @@
 #define __VW_MOSAIC_TMSQUADTREECONFIG_H__
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/QuadTreeConfig.h>
 
 namespace vw {
 namespace mosaic {
 
   // This class is overkill, but is exists by analogy to others
   // like it for consistency.
-  class TMSQuadTreeConfig {
+  class TMSQuadTreeConfig : public QuadTreeConfig {
   public:
+    virtual ~TMSQuadTreeConfig() {}
     void configure( QuadTreeGenerator& qtree ) const;
+    cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 
     // Makes paths of the form "path/name/4/6/3.jpg"
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );

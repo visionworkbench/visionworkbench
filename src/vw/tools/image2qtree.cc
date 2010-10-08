@@ -252,18 +252,16 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     }
   }
 
-  if( global_resolution) total_resolution = global_resolution;
+  boost::shared_ptr<QuadTreeConfig> config = QuadTreeConfig::make(output_metadata);
+
+  if(global_resolution) total_resolution = global_resolution;
 
   // Now that we have the best resolution, we can get our output_georef.
   int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
 
-  if(output_metadata == "kml") {
-    output_georef = output::kml::get_output_georeference(xresolution,yresolution);
-    output_georef.set_datum( georeferences[0].datum() );
-  } else if(output_metadata != "none") {
-    output_georef = output::tms::get_output_georeference(total_resolution);
-    output_georef.set_datum( georeferences[0].datum() );
-  }
+  output_georef = config->output_georef(xresolution, yresolution);
+  output_georef.set_datum( georeferences[0].datum() );
+  vw_out(VerboseDebugMessage, "tool") << "Output Georef:\n" << output_georef << std::endl;
 
   // Configure the composite.
   ImageComposite<PixelT> composite;
@@ -380,44 +378,20 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   QuadTreeGenerator quadtree( composite, output_file_name );
 
-  // KML specific things.
   if( output_metadata == "kml" ) {
-    KMLQuadTreeConfig config;
-    config.set_longlat_bbox( ll_bbox );
-    config.set_max_lod_pixels( max_lod_pixels );
-    config.set_draw_order_offset( draw_order_offset );
-    config.configure( quadtree );
-
-  // TMS specific things.
-  } else if( output_metadata == "tms" ) {
-    TMSQuadTreeConfig config;
-    config.configure( quadtree );
-
-  // Uniview specific things.
+    KMLQuadTreeConfig *c2 = dynamic_cast<KMLQuadTreeConfig*>(config.get());
+    c2->set_longlat_bbox( ll_bbox );
+    c2->set_max_lod_pixels( max_lod_pixels );
+    c2->set_draw_order_offset( draw_order_offset );
   } else if( output_metadata == "uniview" ) {
-    UniviewQuadTreeConfig config( terrain );
-    config.configure( quadtree );
-
-  // Google Maps specific things.
-  } else if( output_metadata == "gmap" ) {
-    GMapQuadTreeConfig config;
-    config.configure( quadtree );
-
-  // Celestia specific things.
-  } else if ( output_metadata == "celestia" ) {
-    CelestiaQuadTreeConfig config;
-    config.configure( quadtree );
-
-  // Gigapan specific things
+    UniviewQuadTreeConfig *c2 = dynamic_cast<UniviewQuadTreeConfig*>(config.get());
+    c2->set_terrain(terrain);
   } else if ( output_metadata == "gigapan" ) {
-    GigapanQuadTreeConfig config;
-    config.set_longlat_bbox( ll_bbox );
-    config.configure( quadtree );
-
-  // Unreachable
-  } else {
-    vw_throw(LogicErr() << "Unreachable statement reached: bad value for output_metadata (value was " << output_metadata << ")");
+    GigapanQuadTreeConfig *c2 = dynamic_cast<GigapanQuadTreeConfig*>(config.get());
+    c2->set_longlat_bbox( ll_bbox );
   }
+
+  config->configure(quadtree);
 
   quadtree.set_crop_bbox(data_bbox);
   if( vm.count("crop") ) quadtree.set_crop_images(true);

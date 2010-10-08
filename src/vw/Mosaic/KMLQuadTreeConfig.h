@@ -15,15 +15,19 @@
 #define __VW_MOSAIC_KMLQUADTREECONFIG_H__
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/QuadTreeConfig.h>
 
 namespace vw {
 namespace mosaic {
 
   struct KMLQuadTreeConfigData;
 
-  class KMLQuadTreeConfig : private boost::noncopyable {
+  cartography::GeoReference kml_output_georef(uint32 xresolution, uint32 yresolution = 0);
+
+  class KMLQuadTreeConfig : public QuadTreeConfig {
   public:
     KMLQuadTreeConfig();
+    virtual ~KMLQuadTreeConfig() {}
 
     // Set the extents (in degrees) of the quadtree.
     void set_longlat_bbox( BBox2 const& bbox );
@@ -46,6 +50,8 @@ namespace mosaic {
     // function.  If you intend to override any of these, be sure to do so
     // *after* calling configure() or your changes will be overwritten.
     void configure( QuadTreeGenerator& qtree ) const;
+
+    cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 
   private:
     // The implementation is stored in a shared pointer so that it can

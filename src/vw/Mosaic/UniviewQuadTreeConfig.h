@@ -14,17 +14,20 @@
 #define __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__
 
 #include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/QuadTreeConfig.h>
 
 namespace vw {
 namespace mosaic {
 
-  class UniviewQuadTreeConfig {
+  class UniviewQuadTreeConfig : public QuadTreeConfig {
   public:
     UniviewQuadTreeConfig( bool terrain = false ) : m_terrain( terrain ) {}
+    virtual ~UniviewQuadTreeConfig() {}
 
     void set_terrain( bool terrain ) { m_terrain = terrain; }
 
     void configure( QuadTreeGenerator &qtree ) const;
+    cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
     static boost::shared_ptr<ImageResource> terrain_tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format );

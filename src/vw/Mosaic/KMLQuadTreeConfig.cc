@@ -20,6 +20,8 @@
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
+using vw::cartography::GeoReference;
+
 namespace vw {
 
   // This wrapper class intercepts premultiplied alpha data being written
@@ -115,37 +117,54 @@ namespace mosaic {
   };
 
 
-  vw::mosaic::KMLQuadTreeConfig::KMLQuadTreeConfig()
+  KMLQuadTreeConfig::KMLQuadTreeConfig()
     : m_data( new KMLQuadTreeConfigData() )
   {}
 
-  void vw::mosaic::KMLQuadTreeConfig::set_longlat_bbox( BBox2 const& bbox ) {
+  void KMLQuadTreeConfig::set_longlat_bbox( BBox2 const& bbox ) {
     m_data->m_longlat_bbox = bbox;
   }
 
-  void vw::mosaic::KMLQuadTreeConfig::set_title( std::string const& title ) {
+  void KMLQuadTreeConfig::set_title( std::string const& title ) {
     m_data->m_title = title;
   }
 
-  void vw::mosaic::KMLQuadTreeConfig::set_max_lod_pixels( int32 pixels ) {
+  void KMLQuadTreeConfig::set_max_lod_pixels( int32 pixels ) {
     m_data->m_max_lod_pixels = pixels;
   }
 
-  void vw::mosaic::KMLQuadTreeConfig::set_draw_order_offset( int32 offset ) {
+  void KMLQuadTreeConfig::set_draw_order_offset( int32 offset ) {
     m_data->m_draw_order_offset = offset;
   }
 
-  void vw::mosaic::KMLQuadTreeConfig::set_metadata( std::string const& data ) {
+  void KMLQuadTreeConfig::set_metadata( std::string const& data ) {
     m_data->m_metadata = data;
   }
 
-  void vw::mosaic::KMLQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
+  void KMLQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_cull_images( true );
     qtree.set_file_type( "auto" );
     qtree.set_image_path_func( QuadTreeGenerator::named_tiered_image_path() );
     qtree.set_metadata_func( boost::bind(&KMLQuadTreeConfigData::metadata_func,m_data,_1,_2) );
     qtree.set_branch_func( boost::bind(&KMLQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
     qtree.set_tile_resource_func( boost::bind(&KMLQuadTreeConfigData::tile_resource_func,m_data,_1,_2,_3) );
+  }
+
+  GeoReference KMLQuadTreeConfig::output_georef(uint32 xresolution, uint32 yresolution) {
+    GeoReference r;
+    r.set_pixel_interpretation(GeoReference::PixelAsArea);
+
+    // Note: the global KML pixel space extends to +/- 180 degrees
+    // latitude as well as longitude.
+    Matrix3x3 transform;
+    transform(0,0) = 360.0 / xresolution;
+    transform(0,2) = -180;
+    transform(1,1) = -360.0 / yresolution;
+    transform(1,2) = 180;
+    transform(2,2) = 1;
+    r.set_transform(transform);
+
+    return r;
   }
 
   std::string KMLQuadTreeConfigData::kml_latlonbox( BBox2 const& longlat_bbox, bool alt ) const {

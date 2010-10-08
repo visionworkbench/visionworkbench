@@ -420,43 +420,4 @@ namespace cartography {
   ProjContext::~ProjContext() {
     pj_free(m_proj_ptr);
   }
-
-  /***************** Functions for output GeoReferences *****************/
-  namespace output {
-    GeoReference kml::get_output_georeference(int xresolution, int yresolution) {
-      GeoReference r;
-      r.set_pixel_interpretation(GeoReference::PixelAsArea);
-
-      // Note: the global KML pixel space extends to +/- 180 degrees
-      // latitude as well as longitude.
-      Matrix3x3 transform;
-      transform(0,0) = 360.0 / xresolution;
-      transform(0,2) = -180;
-      transform(1,1) = -360.0 / yresolution;
-      transform(1,2) = 180;
-      transform(2,2) = 1;
-      r.set_transform(transform);
-
-      return r;
-    }
-
-    GeoReference tms::get_output_georeference(int resolution) {
-      GeoReference r;
-      r.set_pixel_interpretation(GeoReference::PixelAsArea);
-
-      // Note: the global TMS pixel space extends from +270 to -90
-      // latitude, so that the lower-left hand corner is tile-
-      // aligned, since TMS uses an origin in the lower left.
-      Matrix3x3 transform;
-      transform(0,0) = 360.0 / resolution;
-      transform(0,2) = -180;
-      transform(1,1) = -360.0 / resolution;
-      transform(1,2) = 270;
-      transform(2,2) = 1;
-      r.set_transform(transform);
-
-      return r;
-    }
-
-  } // namespace vw::cartography::output
 }} // vw::cartography

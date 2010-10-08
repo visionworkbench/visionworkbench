@@ -95,18 +95,45 @@ if MAKE_MODULE_PYTHON
 python_subdirs = Python
 endif
 
-include_HEADERS = $(core_headers) $(math_headers) $(image_headers)      \
-        $(fileio_headers) $(camera_headers) $(mosaic_headers)           \
-        $(stereo_headers) $(cartography_headers) $(gpu_headers)         \
-        $(interestpoint_headers) $(hdr_headers) $(geometry_headers)     \
-        $(photometry_headers) $(bundleadjustment_headers) vw.h config.h
+include_HEADERS = \
+  $(core_headers) \
+  $(math_headers) \
+  $(image_headers) \
+  $(fileio_headers) \
+  $(camera_headers) \
+  $(mosaic_headers) \
+  $(stereo_headers) \
+  $(cartography_headers) \
+  $(gpu_headers) \
+  $(interestpoint_headers) \
+  $(hdr_headers) \
+  $(geometry_headers) \
+  $(photometry_headers) \
+  $(bundleadjustment_headers) \
+  vw.h \
+  config.h
 
-SUBDIRS = $(core_subdirs) $(math_subdirs) $(image_subdirs)              \
-        $(fileio_subdirs) . $(camera_subdirs) $(mosaic_subdirs)         \
-        $(stereo_subdirs) $(cartography_subdirs) $(gpu_subdirs)         \
-        $(interestpoint_subdirs) $(hdr_subdirs) $(geometry_subdirs)     \
-        $(photometry_subdirs) $(plate_subdirs) $(bundleadjustment_subdirs) \
-        $(gui_subdirs) $(python_subdirs) $(tools_subdirs)
+
+SUBDIRS = \
+  $(core_subdirs) \
+  $(math_subdirs) \
+  $(image_subdirs) \
+  $(fileio_subdirs) \
+  . \
+  $(camera_subdirs) \
+  $(stereo_subdirs) \
+  $(cartography_subdirs) \
+  $(mosaic_subdirs) \
+  $(gpu_subdirs) \
+  $(interestpoint_subdirs) \
+  $(hdr_subdirs) \
+  $(geometry_subdirs) \
+  $(photometry_subdirs) \
+  $(plate_subdirs) \
+  $(bundleadjustment_subdirs) \
+  $(gui_subdirs) \
+  $(python_subdirs) \
+  $(tools_subdirs)
 
 lib_LTLIBRARIES = libvw.la
 libvw_la_SOURCES =

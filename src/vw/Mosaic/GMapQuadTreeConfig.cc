@@ -16,6 +16,7 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace mosaic {
 
+  // for gmaps, origin is upper left, advancing right and down.
   std::string GMapQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name(), fs::native );
 
@@ -43,9 +44,31 @@ namespace mosaic {
 
   void GMapQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_cull_images( true );
-    qtree.set_file_type( "auto" );
+    qtree.set_file_type( "jpg" );
     qtree.set_image_path_func( &image_path );
     qtree.set_tile_resource_func( &tile_resource );
+  }
+
+  cartography::GeoReference GMapQuadTreeConfig::output_georef(uint32 xresolution, uint32 yresolution) {
+    if (yresolution == 0)
+      yresolution = xresolution;
+
+    VW_ASSERT(xresolution == yresolution, LogicErr() << "GMap requires square pixels");
+
+    // GMercatorProjection is Mercator, -180 -> 180
+    cartography::GeoReference r;
+    r.set_pixel_interpretation(cartography::GeoReference::PixelAsArea);
+    r.set_mercator(0,0);
+
+    Matrix3x3 transform;
+    transform(0,0) = 360.0 / xresolution;
+    transform(0,2) = -180;
+    transform(1,1) = -360.0 / yresolution;
+    transform(1,2) = 180;
+    transform(2,2) = 1;
+    r.set_transform(transform);
+
+    return r;
   }
 
 } // namespace mosaic

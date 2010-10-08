@@ -231,12 +231,6 @@ namespace cartography {
   /// functions involved in doing so).
   namespace output {
     namespace kml {
-      /// Returns a georeference with an affine transformation that turns
-      /// unprojected pixel space corresponding to a standard global KML
-      /// image quad-tree to coordinates in degrees lon/lat in WGS84, and
-      /// vice versa.
-      GeoReference get_output_georeference(int xresolution, int yresolution);
-
       // Returns the number of pixels per planetary circumference,
       // rounding up to a power of two.
       template <class TransformT>
@@ -253,8 +247,6 @@ namespace cartography {
     } // namespace: vw::cartography::output::kml
 
     namespace tms {
-      GeoReference get_output_georeference(int resolution);
-
       // Returns the number of pixels per planetary circumference,
       // rounding up to a power of two.
       template <class TransformT>

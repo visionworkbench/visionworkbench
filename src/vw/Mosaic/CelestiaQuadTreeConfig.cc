@@ -47,5 +47,29 @@ namespace mosaic {
     qtree.set_cull_images( true );
   }
 
+  // TODO: Is this actually the right function for Celestia?
+  cartography::GeoReference CelestiaQuadTreeConfig::output_georef(uint32 xresolution, uint32 yresolution) {
+    if (yresolution == 0)
+      yresolution = xresolution;
+
+    VW_ASSERT(xresolution == yresolution, LogicErr() << "TMS requires square pixels");
+
+    cartography::GeoReference r;
+    r.set_pixel_interpretation(cartography::GeoReference::PixelAsArea);
+
+    // Note: the global TMS pixel space extends from +270 to -90
+    // latitude, so that the lower-left hand corner is tile-
+    // aligned, since TMS uses an origin in the lower left.
+    Matrix3x3 transform;
+    transform(0,0) = 360.0 / xresolution;
+    transform(0,2) = -180;
+    transform(1,1) = -360.0 / yresolution;
+    transform(1,2) = 270;
+    transform(2,2) = 1;
+    r.set_transform(transform);
+
+    return r;
+  }
+
 } // namespace mosaic
 } // namespace vw
