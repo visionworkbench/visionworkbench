@@ -25,6 +25,8 @@
 #include <vw/Image/SparseImageCheck.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Filter.h>
 
 
 namespace vw {
@@ -182,6 +184,10 @@ namespace mosaic {
       if( m_metadata_func ) {
         m_metadata_func( *this, info );
       }
+    }
+
+    void set_sparse_image_check(sparse_image_check_type const& func) {
+      m_sparse_image_check = func;
     }
 
     sparse_image_check_type const& sparse_image_check() const {

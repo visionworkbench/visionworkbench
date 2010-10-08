@@ -8,15 +8,14 @@
 // ImageResource to read/write OpenCV in-memory images. Do not include this
 // header directly.
 
-#ifndef __VW_IMAGE_OPENCVIMAGERESOURCE_H__
-#define __VW_IMAGE_OPENCVIMAGERESOURCE_H__
+#ifndef __VW_IMAGE_IMAGERESOURCEOPENCV_H__
+#define __VW_IMAGE_IMAGERESOURCEOPENCV_H__
 
 #ifndef __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 # error Do not include this file directly. Instead, include <vw/Image/ImageResourceImpl.h>
 #endif
 
 #include <vw/Image/ImageResource.h>
-#include <boost/noncopyable.hpp>
 
 namespace cv {class Mat;}
 
