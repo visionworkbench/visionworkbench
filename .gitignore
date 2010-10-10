@@ -115,6 +115,7 @@ docs/workbook/workbook.toc
 /src/vw/FileIO/tests/TestDiskImageView
 /src/vw/FileIO/tests/TestEndianness
 /src/vw/FileIO/tests/TestExtTester
+/src/vw/FileIO/tests/TestGDALFeatures
 /src/vw/Geometry/tests/TestSpatialTree
 /src/vw/Geometry/tests/TestSphere
 /src/vw/GPU/Shaders.cc

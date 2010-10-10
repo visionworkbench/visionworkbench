@@ -15,9 +15,10 @@ TestDiskImageResource_SOURCES = TestDiskImageResource.cxx
 TestDiskImageView_SOURCES     = TestDiskImageView.cxx
 TestEndianness_SOURCES        = TestEndianness.cxx
 TestBlockFileIO_SOURCES       = TestBlockFileIO.cxx
+TestGDALFeatures_SOURCES      = TestGDALFeatures.cxx
 
 TESTS = TestDiskImageResource TestDiskImageView TestEndianness \
-        TestBlockFileIO
+        TestBlockFileIO TestGDALFeatures
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -34,7 +35,7 @@ check_PROGRAMS = $(TESTS)
 
 EXTRA_DIST = rgb2x2.png rgb2x2.tif rgb2x2.jpg png16.png mural.png mural.jpg
 
-CLEANFILES = tmp.png tmp.tif rwtest.* test-png16.png cropped.mural.* mural.tif
+CLEANFILES = tmp.png tmp.tif rwtest.* test-png16.png cropped.mural.* mural.tif nodata.tif
 
 include $(top_srcdir)/config/rules.mak
 include $(top_srcdir)/config/tests.am
