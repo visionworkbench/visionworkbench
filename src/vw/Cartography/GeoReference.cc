@@ -379,8 +379,8 @@ namespace cartography {
     // we get edge pixels that extend slightly beyond that range (probably due
     // to pixel as area vs point) and cause Proj.4 to fail. We use HALFPI
     // rather than other incantations for pi/2 because that's what proj.4 uses.
-    if(lon_lat[1] > HALFPI)       lon_lat[1] = HALFPI;
-    else if(lon_lat[1] < -HALFPI) lon_lat[1] = -HALFPI;
+    if(unprojected.v > HALFPI)       unprojected.v = HALFPI;
+    else if(unprojected.v < -HALFPI) unprojected.v = -HALFPI;
 
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
     CHECK_PROJ_ERROR;
