@@ -6,9 +6,9 @@
 
 
 /// \file QuadTreeGenerator.h
-/// 
+///
 /// A class that generates filesystem-based quadtrees of large images.
-/// 
+///
 #ifndef __VW_MOSAIC_QUADTREEGENERATOR_H__
 #define __VW_MOSAIC_QUADTREEGENERATOR_H__
 
@@ -30,7 +30,7 @@
 namespace vw {
 namespace mosaic {
 
-  // This feature, or something like it, should be implemented better and 
+  // This feature, or something like it, should be implemented better and
   // moved somewhere into the Image module.
   template <class PixelT>
   ImageView<PixelT> box_subsample( ImageView<PixelT> const& image, Vector2i const& scale ) {
@@ -88,7 +88,7 @@ namespace mosaic {
     }
 
     void generate( const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() );
-    
+
     std::string const& get_name() const {
       return m_tree_name;
     }
@@ -103,7 +103,7 @@ namespace mosaic {
 
     void set_crop_bbox( BBox2i const& bbox ) {
       VW_ASSERT( BBox2i(Vector2i(), m_dimensions).contains(bbox),
-		 ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!" );
+                 ArgumentErr() << "Requested QuadTree bounding box exceeds source dimensions!" );
       m_crop_bbox = bbox;
     }
 
@@ -180,7 +180,7 @@ namespace mosaic {
 
     void make_tile_metadata( TileInfo const& info ) const {
       if( m_metadata_func ) {
-	m_metadata_func( *this, info );
+        m_metadata_func( *this, info );
       }
     }
 
@@ -217,100 +217,100 @@ namespace mosaic {
     template <class PixelT>
     class Processor : public ProcessorBase {
       ImageViewRef<PixelT> m_source;
-      
+
     public:
       template <class ImageT>
       Processor( QuadTreeGenerator *qtree, ImageT const& source )
-	: ProcessorBase( qtree ), m_source( source )
+        : ProcessorBase( qtree ), m_source( source )
       {}
-      
+
       void generate( BBox2i const& region_bbox, const ProgressCallback &progress_callback ) {
-	generate_branch( "", region_bbox, progress_callback );
+        generate_branch( "", region_bbox, progress_callback );
       }
 
       ImageView<PixelT> generate_branch( std::string const& name, BBox2i const& region_bbox, const ProgressCallback &progress_callback ) {
-	progress_callback.report_progress(0);
-	progress_callback.abort_if_requested();
-  
-	ImageView<PixelT> image;
-	TileInfo info;
-	info.name = name;
-	info.region_bbox = region_bbox;
+        progress_callback.report_progress(0);
+        progress_callback.abort_if_requested();
 
-	BBox2i crop_bbox(Vector2i(), qtree->get_dimensions());
-	if( ! qtree->get_crop_bbox().empty() ) crop_bbox.crop( qtree->get_crop_bbox() );
-	info.image_bbox = info.region_bbox;
-	info.image_bbox.crop( crop_bbox );
+        ImageView<PixelT> image;
+        TileInfo info;
+        info.name = name;
+        info.region_bbox = region_bbox;
 
-	if( info.image_bbox.empty() ) {
-	  if( ! (qtree->get_crop_images() || qtree->get_cull_images()) )
-	    image.set_size( qtree->get_tile_size(), qtree->get_tile_size() );
-	  return image;
-	}
-  
-	if( qtree->m_sparse_image_check && ! qtree->m_sparse_image_check(info.region_bbox) ) return image;
+        BBox2i crop_bbox(Vector2i(), qtree->get_dimensions());
+        if( ! qtree->get_crop_bbox().empty() ) crop_bbox.crop( qtree->get_crop_bbox() );
+        info.image_bbox = info.region_bbox;
+        info.image_bbox.crop( crop_bbox );
 
-	Vector2i scale = info.region_bbox.size() / qtree->m_tile_size;
- 
-	std::vector<std::pair<std::string, BBox2i> > children = qtree->m_branch_func(*qtree,info.name,info.region_bbox);
-	if( children.empty() ) {
-	  image = crop( m_source, info.image_bbox );
-	  if( info.image_bbox != info.region_bbox ) {
-	    image = edge_extend( image, info.region_bbox - info.image_bbox.min(), ZeroEdgeExtension() );
-	  }
-	  if( info.region_bbox.width() != qtree->m_tile_size || info.region_bbox.height() != qtree->m_tile_size ) {
-	    image = subsample( image, scale.x(), scale.y() );
-	  }
-	}
-	else {
-	  image.set_size(qtree->m_tile_size,qtree->m_tile_size);
-	  double total_area = (double) info.image_bbox.width() * info.image_bbox.height();
-	  for( unsigned i=0; i<children.size(); ++i ) {
-	    BBox2i image_bbox = children[i].second;
-	    image_bbox.crop( info.image_bbox );
-	    if( image_bbox.empty() ) continue;
-	    double child_area = (double) image_bbox.width() * image_bbox.height();
-	    double progress = progress_callback.progress();
-	    SubProgressCallback spc( progress_callback, progress, progress + child_area/total_area );
-	    ImageView<PixelT> child = generate_branch(children[i].first, children[i].second, spc);
-	    if( ! child ) continue;
-	    BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
-	    crop(image,dst_bbox) = box_subsample( child, elem_quot(qtree->m_tile_size,dst_bbox.size()) );
-	  }
-	}
-  
-	ImageView<PixelT> cropped_image = image;
-	if( qtree->m_crop_images || qtree->m_cull_images ) {
-	  BBox2i data_bbox = elem_quot( info.image_bbox-info.region_bbox.min(), scale );
-	  if( PixelHasAlpha<PixelT>::value )
-	    data_bbox.crop( nonzero_data_bounding_box( image ) );
-	  if( data_bbox.width() != qtree->m_tile_size || data_bbox.height() != qtree->m_tile_size ) {
-	    if( data_bbox.empty() ) cropped_image.reset();
-	    else if( qtree->m_crop_images ) {
-	      cropped_image = crop( image, data_bbox );
-	    }
-	    info.image_bbox = elem_prod(data_bbox,scale) + info.region_bbox.min();
-	  }
-	}
-  
-	if( qtree->m_file_type == "auto" ) {
-	  if( is_opaque( cropped_image ) ) info.filetype += ".jpg";
-	  else info.filetype += ".png";
-	}
-	else {
-	  info.filetype = "." + qtree->m_file_type;
-	}
-  
-	info.filepath = qtree->m_image_path_func( *qtree, info.name );
-	if( cropped_image ) {
-	  ScopedWatch sw("QuadTreeGenerator::write_tile");
-	  boost::shared_ptr<ImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
-	  write_image( *r, cropped_image );
-	}
-	if( qtree->m_metadata_func ) qtree->m_metadata_func( *qtree, info );
-  
-	progress_callback.report_progress(1);
-	return image;
+        if( info.image_bbox.empty() ) {
+          if( ! (qtree->get_crop_images() || qtree->get_cull_images()) )
+            image.set_size( qtree->get_tile_size(), qtree->get_tile_size() );
+          return image;
+        }
+
+        if( qtree->m_sparse_image_check && ! qtree->m_sparse_image_check(info.region_bbox) ) return image;
+
+        Vector2i scale = info.region_bbox.size() / qtree->m_tile_size;
+
+        std::vector<std::pair<std::string, BBox2i> > children = qtree->m_branch_func(*qtree,info.name,info.region_bbox);
+        if( children.empty() ) {
+          image = crop( m_source, info.image_bbox );
+          if( info.image_bbox != info.region_bbox ) {
+            image = edge_extend( image, info.region_bbox - info.image_bbox.min(), ZeroEdgeExtension() );
+          }
+          if( info.region_bbox.width() != qtree->m_tile_size || info.region_bbox.height() != qtree->m_tile_size ) {
+            image = subsample( image, scale.x(), scale.y() );
+          }
+        }
+        else {
+          image.set_size(qtree->m_tile_size,qtree->m_tile_size);
+          double total_area = (double) info.image_bbox.width() * info.image_bbox.height();
+          for( unsigned i=0; i<children.size(); ++i ) {
+            BBox2i image_bbox = children[i].second;
+            image_bbox.crop( info.image_bbox );
+            if( image_bbox.empty() ) continue;
+            double child_area = (double) image_bbox.width() * image_bbox.height();
+            double progress = progress_callback.progress();
+            SubProgressCallback spc( progress_callback, progress, progress + child_area/total_area );
+            ImageView<PixelT> child = generate_branch(children[i].first, children[i].second, spc);
+            if( ! child ) continue;
+            BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
+            crop(image,dst_bbox) = box_subsample( child, elem_quot(qtree->m_tile_size,dst_bbox.size()) );
+          }
+        }
+
+        ImageView<PixelT> cropped_image = image;
+        if( qtree->m_crop_images || qtree->m_cull_images ) {
+          BBox2i data_bbox = elem_quot( info.image_bbox-info.region_bbox.min(), scale );
+          if( PixelHasAlpha<PixelT>::value )
+            data_bbox.crop( nonzero_data_bounding_box( image ) );
+          if( data_bbox.width() != qtree->m_tile_size || data_bbox.height() != qtree->m_tile_size ) {
+            if( data_bbox.empty() ) cropped_image.reset();
+            else if( qtree->m_crop_images ) {
+              cropped_image = crop( image, data_bbox );
+            }
+            info.image_bbox = elem_prod(data_bbox,scale) + info.region_bbox.min();
+          }
+        }
+
+        if( qtree->m_file_type == "auto" ) {
+          if( is_opaque( cropped_image ) ) info.filetype += ".jpg";
+          else info.filetype += ".png";
+        }
+        else {
+          info.filetype = "." + qtree->m_file_type;
+        }
+
+        info.filepath = qtree->m_image_path_func( *qtree, info.name );
+        if( cropped_image ) {
+          ScopedWatch sw("QuadTreeGenerator::write_tile");
+          boost::shared_ptr<ImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
+          write_image( *r, cropped_image );
+        }
+        if( qtree->m_metadata_func ) qtree->m_metadata_func( *qtree, info );
+
+        progress_callback.report_progress(1);
+        return image;
       }
     };
 

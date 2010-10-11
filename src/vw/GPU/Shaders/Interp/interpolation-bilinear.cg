@@ -6,15 +6,15 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT image,
-	out float4 color : COLOR ) 
+        uniform samplerRECT image,
+        out float4 color : COLOR )
 {
 
    float2 coord_fract = frac(texCoord0);
 
-   color = 
-	texRECT(image, texCoord0) * (1.0 - coord_fract.x) * (1.0 - coord_fract.y) +
-	texRECT(image, texCoord0 + float2(1.0, 0.0)) * coord_fract.x * (1.0 - coord_fract.y) +
-	texRECT(image, texCoord0 + float2(0.0, 1.0)) * (1.0 - coord_fract.x) * coord_fract.y +
-	texRECT(image, texCoord0 + float2(1.0, 1.0)) * coord_fract.x * coord_fract.y;
+   color =
+        texRECT(image, texCoord0) * (1.0 - coord_fract.x) * (1.0 - coord_fract.y) +
+        texRECT(image, texCoord0 + float2(1.0, 0.0)) * coord_fract.x * (1.0 - coord_fract.y) +
+        texRECT(image, texCoord0 + float2(0.0, 1.0)) * (1.0 - coord_fract.x) * coord_fract.y +
+        texRECT(image, texCoord0 + float2(1.0, 1.0)) * coord_fract.x * coord_fract.y;
 }

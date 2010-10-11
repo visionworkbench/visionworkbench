@@ -40,24 +40,24 @@ vw::ImageView<float> load_dem_from_file(std::string file_in) {
     vw::ImageView<float> dem;
     vw::DiskImageResource *r = vw::DiskImageResource::open( file_in );
     vw::vw_out(vw::InfoMessage) << "Loading DEM from file" << std::endl;
-    vw::vw_out(vw::DebugMessage) << r->rows() 
-        << "x" << r->cols() << "x" << r->planes() 
+    vw::vw_out(vw::DebugMessage) << r->rows()
+        << "x" << r->cols() << "x" << r->planes()
         << "  " << r->channels() << " channel(s)"
-        << " type: " << r->type() 
+        << " type: " << r->type()
         << " pxfmt: " << r->pixel_format()
         << " chtype: " << r->channel_type()
         << "\n";
-    //    Read the data 
+    //    Read the data
     //tpc.set_progress_text("Status (loading image):   " );
     vw::read_image(dem, *r);
     delete r;
     return dem;
 }
 
-void read_segments_from_file(SegmentList &segment_list, 
-        std::string file_in, int &rows, int &cols) 
+void read_segments_from_file(SegmentList &segment_list,
+        std::string file_in, int &rows, int &cols)
 {
-    vw::vw_out(vw::InfoMessage) 
+    vw::vw_out(vw::InfoMessage)
         << "Reading contour segments from file: " << file_in << "\t" << std::endl;
     std::ifstream ifs;
     ifs.open(file_in.c_str(), std::ifstream::in);
@@ -70,14 +70,14 @@ void read_segments_from_file(SegmentList &segment_list,
         float ax,ay,bx,by;
         int level;
         ContourSegment seg;
-        ifs >> std::skipws >> ax >> ay >> bx >> by >> level; 
+        ifs >> std::skipws >> ax >> ay >> bx >> by >> level;
         seg.a = ContourPoint(ax,ay);
         seg.b = ContourPoint(bx,by);
         seg.level = level;
         segment_list.push_back(seg);
     }
     ifs.close();
-    vw::vw_out(vw::DebugMessage) 
+    vw::vw_out(vw::DebugMessage)
         << "\tRead " << segment_list.size() << " segments" << std::endl;
 }
 
@@ -85,20 +85,20 @@ void load_segments_into_pcs(SegmentList &segment_list, PointContourSet &cset) {
     SegmentList::iterator seglist_iter;
 
     // Load segments into PointContourSet
-    vw::vw_out(vw::InfoMessage) 
+    vw::vw_out(vw::InfoMessage)
         << "Loading segments into PointContourSet" << std::endl;
 
-    for (seglist_iter = segment_list.begin(); 
-         seglist_iter != segment_list.end(); 
+    for (seglist_iter = segment_list.begin();
+         seglist_iter != segment_list.end();
          seglist_iter++) {
         add_segment(cset, *seglist_iter);
     }
 }
 
-void fit_Bezier_curves_to_contours(PointContourSet &cset, 
-        BezierContourSet &bcset, float error) 
+void fit_Bezier_curves_to_contours(PointContourSet &cset,
+        BezierContourSet &bcset, float error)
 {
-    vw::vw_out(vw::InfoMessage) 
+    vw::vw_out(vw::InfoMessage)
         << "Fitting Bezier curves to contours" << std::endl;
     PointContourSet::iterator cset_iter;
     PointContour c;
@@ -120,12 +120,12 @@ void fit_Bezier_curves_to_contours(PointContourSet &cset,
     }
 }
 
-Cairo::RefPtr<Cairo::Context> create_png_surface(int dem_w, int dem_h, 
-        std::string image_file) 
+Cairo::RefPtr<Cairo::Context> create_png_surface(int dem_w, int dem_h,
+        std::string image_file)
 {
     vw::vw_out(vw::InfoMessage) << "Setting up PNG output surface" << std::endl;
 
-    Cairo::RefPtr<Cairo::ImageSurface> surface = 
+    Cairo::RefPtr<Cairo::ImageSurface> surface =
         Cairo::ImageSurface::create_from_png(image_file);
     Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
 
@@ -135,7 +135,7 @@ Cairo::RefPtr<Cairo::Context> create_png_surface(int dem_w, int dem_h,
     double scale_h = double(img_h)/double(dem_h);
     cr->scale(scale_w, scale_h);
 
-    vw::vw_out(vw::DebugMessage) << 
+    vw::vw_out(vw::DebugMessage) <<
         "\tDEM dimensions: " << "(" << dem_w << "x" << dem_h << ")" << std::endl
         << "\tImg dimensions: " << "(" << img_w << "x" << img_h << ")" << std::endl
         << "\tScale factors:  " << "(" << scale_w << "x" << scale_h << ")" << std::endl;
@@ -144,12 +144,12 @@ Cairo::RefPtr<Cairo::Context> create_png_surface(int dem_w, int dem_h,
     return cr;
 }
 
-Cairo::RefPtr<Cairo::Context> create_svg_surface(int width_out, int height_out, 
-        std::string file_out) 
+Cairo::RefPtr<Cairo::Context> create_svg_surface(int width_out, int height_out,
+        std::string file_out)
 {
     vw::vw_out(vw::InfoMessage) << "Setting up SVG output surface " << std::endl;
 
-    Cairo::RefPtr<Cairo::SvgSurface> surface = 
+    Cairo::RefPtr<Cairo::SvgSurface> surface =
         Cairo::SvgSurface::create(file_out, width_out, height_out);
     Cairo::RefPtr<Cairo::Context> cr = Cairo::Context::create(surface);
 
@@ -161,9 +161,9 @@ Cairo::RefPtr<Cairo::Context> create_svg_surface(int width_out, int height_out,
     return cr;
 }
 
-Cairo::RefPtr<Cairo::Context> 
-create_output_surface(std::string output_type, int cols, int rows, 
-        std::string image_file, std::string file_out) 
+Cairo::RefPtr<Cairo::Context>
+create_output_surface(std::string output_type, int cols, int rows,
+        std::string image_file, std::string file_out)
 {
     Cairo::RefPtr<Cairo::Context> cr;
     if (output_type == "png") {
@@ -188,8 +188,8 @@ void write_output_file(Cairo::RefPtr<Cairo::Context> cr,
     }
 }
 
-void draw_point_contours(PointContourSet cset, 
-        Cairo::RefPtr<Cairo::Context> cr, float nodataval) 
+void draw_point_contours(PointContourSet cset,
+        Cairo::RefPtr<Cairo::Context> cr, float nodataval)
 {
     vw::vw_out(vw::InfoMessage) << "Writing point contours to output surface\n";
     PointContourSet::iterator cset_iter;
@@ -259,7 +259,7 @@ void write_points_to_file(std::string file_out, SegmentList segment_list, int ro
     for (iter = segment_list.begin(); iter != segment_list.end(); iter++) {
         ContourSegment s = *iter;
         ofs << std::setprecision(8) << std::fixed
-            << s.a[0] << "\t" << s.a[1] << "\t" << s.b[0] << "\t" 
+            << s.a[0] << "\t" << s.a[1] << "\t" << s.b[0] << "\t"
             << s.b[1] << "\t" << s.level << std::endl;
     }
     ofs.close();
@@ -274,23 +274,23 @@ int main(int argc, char *argv[])
 
     // Parse command line options
     po::options_description opts("Allowed options");
-    opts.add_options() 
+    opts.add_options()
         ("help,?", "show help message")
         ("verbose,v", po::bool_switch(&verbose), "set verbose output")
-        ("input-type,i", po::value<std::string>()->default_value("tiff"), 
+        ("input-type,i", po::value<std::string>()->default_value("tiff"),
             "choose input type")
         ("image-file,m", po::value<std::string>()->default_value(""),
             "image file to write contours on")
-        ("output-type,o", po::value<std::string>()->default_value("svg"), 
-            "choose output type") 
-        ("no-data-value,n", po::value<float>()->default_value(-10000.0), 
+        ("output-type,o", po::value<std::string>()->default_value("svg"),
+            "choose output type")
+        ("no-data-value,n", po::value<float>()->default_value(-10000.0),
             "set \"NO DATA\" value")
-        ("contour-interval,c", po::value<int>()->default_value(100), 
+        ("contour-interval,c", po::value<int>()->default_value(100),
             "set contour interval")
     ;
 
     po::options_description hidden("Hidden options");
-    hidden.add_options() 
+    hidden.add_options()
         ("input-file", po::value<std::string>(), "input file")
         ("output-file", po::value<std::string>(), "output file")
     ;
@@ -315,7 +315,7 @@ int main(int argc, char *argv[])
     if (vm.count("input-file")) {
         file_in = vm["input-file"].as<std::string>();
     } else {
-        vw::vw_out(vw::ErrorMessage) 
+        vw::vw_out(vw::ErrorMessage)
             << "ERROR: Must specify an input file" << std::endl;
         return 1;
     }
@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
     if (vm.count("output-file")) {
         file_out = vm["output-file"].as<std::string>();
     } else {
-        vw::vw_out(vw::ErrorMessage) 
+        vw::vw_out(vw::ErrorMessage)
             << "ERROR: Must specify an output file" << std::endl;
         return 1;
     }
@@ -341,19 +341,19 @@ int main(int argc, char *argv[])
     }
 
     if (output_type != "text" && output_type != "svg" && output_type != "png") {
-        vw::vw_out(vw::ErrorMessage) 
-            << "ERROR: Output types other than \"text\", \"png\" or \"svg\" " 
+        vw::vw_out(vw::ErrorMessage)
+            << "ERROR: Output types other than \"text\", \"png\" or \"svg\" "
             << "not currently supported." << std::endl;
         return 1;
     }
 
     if (input_type != "tiff" && input_type != "text") {
-        vw::vw_out(vw::ErrorMessage) 
-            << "ERROR: Input types other than \"tiff\" or \"text\" " 
+        vw::vw_out(vw::ErrorMessage)
+            << "ERROR: Input types other than \"tiff\" or \"text\" "
             << "not currently supported." << std::endl;
         return 1;
     }
-    
+
     vw::vw_out(vw::DebugMessage) << "Input file: " << file_in << std::endl;
     vw::vw_out(vw::DebugMessage) << "Output file: " << file_out << std::endl;
     vw::vw_out(vw::DebugMessage) << "Input type: " << input_type << std::endl;
@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
     vw::vw_out(vw::DebugMessage) << "Image file: " << image_file << std::endl;
     vw::vw_out(vw::DebugMessage) << "No-data value: " << nodataval << std::endl;
     vw::vw_out(vw::DebugMessage) << "Contour interval: " << cint << std::endl;
-   
+
     // done parsing options
 
     vw::ImageView<float> dem;
@@ -380,7 +380,7 @@ int main(int argc, char *argv[])
         // 2. Run contouring algorithm on DEM
         conrec(dem, cset, cint, nodataval, segment_list);
 
-    } 
+    }
     else if (input_type == "text") {
         // read contour segments from file
         read_segments_from_file(segment_list, file_in, rows, cols);

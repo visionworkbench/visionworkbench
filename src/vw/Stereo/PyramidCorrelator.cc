@@ -32,7 +32,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelMask<Vector2f> > const& dispa
     disp_range = BBox2();
   }
 
-  if (disp_range.width()*disp_range.height() <= 4 || 
+  if (disp_range.width()*disp_range.height() <= 4 ||
       (box.width() < m_min_subregion_dim && box.height() < m_min_subregion_dim)) {
     // The bounding box is small enough.
     result.push_back(box);

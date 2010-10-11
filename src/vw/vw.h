@@ -6,11 +6,11 @@
 
 
 /// \file vw.h
-/// 
+///
 /// A convenience header that includes all the public Vision Workbench
 /// header files.  Careful: this is an awful lot of stuff, and you may
 /// want be more selective!
-/// 
+///
 #ifndef __VW_VW_H__
 #define __VW_VW_H__
 

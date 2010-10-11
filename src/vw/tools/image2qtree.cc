@@ -7,7 +7,7 @@
 
 /// \file image2geotree.cc
 ///
-/// This program takes a georeferenced image as its input, and outputs 
+/// This program takes a georeferenced image as its input, and outputs
 /// a quadtree for that image that is viewable in various terrain display
 /// programs, such as Google Earth. Currently, the program supports output
 /// in KML, TMS, Uniview, and Google Maps formats.
@@ -231,11 +231,11 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
     georeferences.push_back( input_georef );
 
-    // Right now, we only need a WGS84 output geoereference to compute 
+    // Right now, we only need a WGS84 output geoereference to compute
     // the resolution. The rest of the output info will get set later.
     GeoTransform geotx( input_georef, output_georef );
-    // Calculate the best resolution at 5 different points in the image, 
-    // as occasionally there's a singularity at the center pixel that 
+    // Calculate the best resolution at 5 different points in the image,
+    // as occasionally there's a singularity at the center pixel that
     // makes it extremely tiny (such as in pole-centered images).
     const int cols = file_resource.cols();
     const int rows = file_resource.rows();
@@ -338,7 +338,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
   } else if (output_metadata == "gigapan") {
-    total_bbox = bbox; 
+    total_bbox = bbox;
     bbox.crop( BBox2i(0,0,xresolution,yresolution) );
     ll_bbox = BBox2( -180.0 + (360.0*total_bbox.min().x())/xresolution,
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
@@ -380,7 +380,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
 
   QuadTreeGenerator quadtree( composite, output_file_name );
 
-  // KML specific things. 
+  // KML specific things.
   if( output_metadata == "kml" ) {
     KMLQuadTreeConfig config;
     config.set_longlat_bbox( ll_bbox );
@@ -413,7 +413,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     GigapanQuadTreeConfig config;
     config.set_longlat_bbox( ll_bbox );
     config.configure( quadtree );
-  
+
   // Unreachable
   } else {
     vw_throw(LogicErr() << "Unreachable statement reached: bad value for output_metadata (value was " << output_metadata << ")");
@@ -428,7 +428,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   vw_out() << "Generating " << output_metadata << " overlay..." << std::endl;
   quadtree.generate(*progress);
 
-  // This should really get moved into a metadata function for 
+  // This should really get moved into a metadata function for
   // UniviewQuadTreeConfig.
   if(output_metadata == "uniview") {
     std::string config_filename = output_file_name + ".conf";
@@ -481,7 +481,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     std::cout << "Place " << output_file_name << ".ssc" << " in Celestia's extras dir" << std::endl;
     std::cout << "Place " << output_file_name << ".ctx" << " and the output dir ("
                           << output_file_name << ") in extras/textures/hires" << std::endl;
-  } 
+  }
 }
 
 int main(int argc, char **argv) {

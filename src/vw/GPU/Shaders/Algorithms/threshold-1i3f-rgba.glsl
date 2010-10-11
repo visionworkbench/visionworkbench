@@ -32,4 +32,4 @@ void main() {
    else
       gl_FragColor.a = f2;
 }
- 
+

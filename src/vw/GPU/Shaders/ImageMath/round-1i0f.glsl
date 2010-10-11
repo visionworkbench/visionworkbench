@@ -13,7 +13,7 @@ void main() {
    if(value.r - rounded.r >= 0.5) {
       rounded.r += 1.0;
    }
-   if(value.g - rounded.g >= 0.5) { 
+   if(value.g - rounded.g >= 0.5) {
       rounded.g += 1.0;
    }
    if(value.b - rounded.b >= 0.5) {
@@ -24,4 +24,3 @@ void main() {
    }
    gl_FragColor.rgba = rounded;
 }
- 

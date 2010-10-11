@@ -449,7 +449,7 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
       GeoReference overlap_geo;
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
-  
+
       DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
 
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),

@@ -14,12 +14,12 @@ namespace vw { namespace GPU {
 
 
 //########################################################################
-//#    convolution_filter                    
+//#    convolution_filter
 //########################################################################
 
 
-GPUImageBase convolution_filter(const GPUImageBase& image, 
-			       const GPUImageBase& kernel)
+GPUImageBase convolution_filter(const GPUImageBase& image,
+                               const GPUImageBase& kernel)
 {
 // Static
   static vector<int> fAttributes(2);
@@ -33,7 +33,7 @@ GPUImageBase convolution_filter(const GPUImageBase& image,
   program->install();
   // OUTPUT
   GPUImageBase temp(image.width(), image.height(), image.format(), image.type());
-  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
   // INPUT
   program->set_input_image("image", image);
   program->set_input_image("kernel", kernel);
@@ -44,18 +44,18 @@ GPUImageBase convolution_filter(const GPUImageBase& image,
   // CleanUp State
   program->uninstall();
   ShaderInvocation_CleanupGLState();
-  
+
   return temp;
 }
 
 
 //########################################################################
-//#    seperable_convolution_filter                    
+//#    seperable_convolution_filter
 //########################################################################
 
-GPUImageBase seperable_convolution_filter(const GPUImageBase& image, 
-					       const GPUImageBase& hKernel, 
-					       const GPUImageBase& vKernel)
+GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
+                                               const GPUImageBase& hKernel,
+                                               const GPUImageBase& vKernel)
 {
 // Static
   static vector<int> fAttributes(1);
@@ -69,45 +69,45 @@ GPUImageBase seperable_convolution_filter(const GPUImageBase& image,
   int h_kernel_size = hKernel.width();
   if(h_kernel_size) {
       ShaderInvocation_SetupGLState(input->width(), input->height());
-	  // Program - Install
-	  fAttributes[0] = h_kernel_size;
-	  GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
-	  program->install();
-	  // OUTPUT
-	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	
-	  // INPUT
-	  program->set_input_image("image", *input);
-	  program->set_input_image("kernel", hKernel);
-	  program->set_input_float("halfSize", hKernel.width() / 2);
-	  // DRAW
-	  ShaderInvocation_DrawRectOneTexture(*input);
-	  program->uninstall();
-	  // SWAP Textures
-	  input = output;
-	  output = &temp2;
+          // Program - Install
+          fAttributes[0] = h_kernel_size;
+          GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
+          program->install();
+          // OUTPUT
+          glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);
+          // INPUT
+          program->set_input_image("image", *input);
+          program->set_input_image("kernel", hKernel);
+          program->set_input_float("halfSize", hKernel.width() / 2);
+          // DRAW
+          ShaderInvocation_DrawRectOneTexture(*input);
+          program->uninstall();
+          // SWAP Textures
+          input = output;
+          output = &temp2;
   }
 
 // *** STAGE 2 - Columns ***
   int v_kernel_size = vKernel.width();
   if(v_kernel_size) {
       ShaderInvocation_SetupGLState(input->width(), input->height());
-	  // Program - Install
-	  fAttributes[0] = h_kernel_size;
-	  GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
-	  program->install();
-	  // OUTPUT
-	  glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);	
-	  // INPUT
-	  program->set_input_image("image", *input);
-	  program->set_input_image("kernel", hKernel);
-	  program->set_input_float("halfSize", hKernel.width() / 2);
-	  // DRAW
-	  ShaderInvocation_DrawRectOneTexture(*input);
-	  program->uninstall();
-	  // SWAP Textures
-	  GPUImageBase* old_input = input;
-	  input = output;
-	  output = old_input;
+          // Program - Install
+          fAttributes[0] = h_kernel_size;
+          GPUProgram* program = create_gpu_program("Filter/convolution-rows", fAttributes);
+          program->install();
+          // OUTPUT
+          glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, output->target(), output->name(), 0);
+          // INPUT
+          program->set_input_image("image", *input);
+          program->set_input_image("kernel", hKernel);
+          program->set_input_float("halfSize", hKernel.width() / 2);
+          // DRAW
+          ShaderInvocation_DrawRectOneTexture(*input);
+          program->uninstall();
+          // SWAP Textures
+          GPUImageBase* old_input = input;
+          input = output;
+          output = old_input;
   }
   ShaderInvocation_CleanupGLState();
   return *input;

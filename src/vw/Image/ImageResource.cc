@@ -6,7 +6,7 @@
 
 
 /// \file ImageResource.cc
-/// 
+///
 /// Defines a run-type-typed image buffer.
 ///
 #ifdef _MSC_VER
@@ -344,9 +344,9 @@ ChannelUnpremultiplyMapEntry _unpremultiply_f64( &channel_unpremultiply_float<do
 void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale ) {
   VW_ASSERT( dst.format.cols==src.format.cols && dst.format.rows==src.format.rows,
              ArgumentErr() << "Destination buffer has wrong size." );
-  
-  // We only support a few special conversions, and the general case where 
-  // the source and destination formats are the same.  Below we assume that 
+
+  // We only support a few special conversions, and the general case where
+  // the source and destination formats are the same.  Below we assume that
   // we're doing a supported conversion, so we check first.
   if( dst.format.pixel_format != src.format.pixel_format ) {
     // We freely convert between multi-channel and multi-plane images,
@@ -386,12 +386,12 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
          ( src.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGBA ) ||
          ( dst.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && src.format.pixel_format == VW_PIXEL_RGBA ) ) {
       // Do nothing, these combinations are ok to convert.
-    } 
+    }
     // Other than that, we only support conversion between the core pixel formats
-    else if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA && 
+    else if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA &&
                src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA &&
                src.format.pixel_format!=VW_PIXEL_XYZ) ||
-             ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA && 
+             ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA &&
                dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA &&
                dst.format.pixel_format!=VW_PIXEL_XYZ) ) {
       vw_throw( ArgumentErr() << "Source and destination buffers have incompatible pixel formats ("
@@ -456,7 +456,7 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
           premultiply_src_func( src_ptr, src_buf.get(), src_channels );
           src_ptr = src_buf.get();
         }
- 
+
         // Copy/convert, unrolling the common multi-channel cases
         if( copy_length==4 ) {
           conv_func( src_ptr, dst_ptr );

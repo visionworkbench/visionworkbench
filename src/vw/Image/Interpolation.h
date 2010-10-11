@@ -6,10 +6,10 @@
 
 
 /// \file Interpolation.h
-/// 
+///
 /// Image views that can be accessed with real (floating point) pixel
 /// indices.  These image views will perform one of:
-/// 
+///
 /// - bilinear interpolation       ( BilinearInterpolation()      )
 /// - bicubic interpolation        ( BicubicInterpolation()       )
 /// - nearest pixel interpolation  ( NearestPixelInterpolaiton()  )
@@ -30,14 +30,14 @@
 namespace vw {
 
   /// \cond INTERNAL
-  // Stub classes defining common interpolation modes.  You may define 
-  // your own class similar to those that appear below.  The stub class 
-  // must functor must have an Interpolator type function that returns 
-  // the type of the interpolation functor, and a static interpolator() 
-  // function that returns the interpolator itself.  For simple 
-  // functions, the stub class and the interpolation function may be 
-  // the same class (e.g. see NearestPixelInterpolation).  This extra 
-  // level of indirection makes it possible to do more flexible 
+  // Stub classes defining common interpolation modes.  You may define
+  // your own class similar to those that appear below.  The stub class
+  // must functor must have an Interpolator type function that returns
+  // the type of the interpolation functor, and a static interpolator()
+  // function that returns the interpolator itself.  For simple
+  // functions, the stub class and the interpolation function may be
+  // the same class (e.g. see NearestPixelInterpolation).  This extra
+  // level of indirection makes it possible to do more flexible
   // template-based special-casing for optimization.
 
   /// A base class for interpolation functors that provides the
@@ -51,7 +51,7 @@ namespace vw {
   /// the number of pixels that the interpolation algorithm will need
   /// to search outside the boundaries of the image on each side.
   struct InterpolationBase {
-    static const int32 pixel_buffer = 0; 
+    static const int32 pixel_buffer = 0;
     template <class ArgsT> struct result {};
     template <class FuncT, class ViewT, class IT, class JT, class PT>
     struct result<FuncT(ViewT,IT,JT,PT)> {
@@ -59,8 +59,8 @@ namespace vw {
     };
   };
 
-  // This is broken out so that the implementation can be overridden 
-  // by pixel type.  Optimized versions go at the bottom of the file 
+  // This is broken out so that the implementation can be overridden
+  // by pixel type.  Optimized versions go at the bottom of the file
   // for clarity.
   template <class ViewT, class PixelT = typename ViewT::pixel_type>
   struct BilinearInterpolationImpl : InterpolationBase {
@@ -111,23 +111,23 @@ namespace vw {
   }
 
 
-  // This is broken out so that the implementation can be overridden 
-  // by pixel type.  Optimized versions go at the bottom of the file 
+  // This is broken out so that the implementation can be overridden
+  // by pixel type.  Optimized versions go at the bottom of the file
   // for clarity.
   template <class ViewT, class PixelT = typename ViewT::pixel_type>
   struct BicubicInterpolationImpl {
     PixelT operator()( const ViewT &view, double i, double j, int32 p ) const {
       typedef typename CompoundChannelType<PixelT>::type channel_type;
       typedef typename CompoundChannelCast<PixelT,double>::type result_type;
-      
+
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
       double normx = i-x, normy = j-y;
-      
+
       double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
       double s1 = (3*normx-5)*normx*normx+2;      double t1 = (3*normy-5)*normy*normy+2;
       double s2 = ((4-3*normx)*normx+1)*normx;    double t2 = ((4-3*normy)*normy+1)*normy;
       double s3 = (normx-1)*normx*normx;          double t3 = (normy-1)*normy*normy;
-      
+
       typename ViewT::pixel_accessor acc = view.origin().advance(x-1,y-1,p);
       result_type row =         s0*(*acc);
       acc.next_col();    row += s1*(*acc);
@@ -215,8 +215,8 @@ namespace vw {
     typedef typename ImageT::pixel_type pixel_type;
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<InterpolationView<ImageT, InterpT> > pixel_accessor;
-    
-    InterpolationView( ImageT const& image, 
+
+    InterpolationView( ImageT const& image,
                        InterpT const& /*interp_stub*/ = InterpT()) :
       m_image(image), m_interp_func(InterpT::interpolator(image)) {}
 
@@ -234,17 +234,17 @@ namespace vw {
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
     // view cannot be repeatedly accessed without incurring any
-    // additional overhead  then we should rasterize the child 
+    // additional overhead  then we should rasterize the child
     // before we proceed to rasterize ourself.
-    typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
- 				      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
- 				      InterpolationView<CropView<ImageView<pixel_type> >, InterpT> >::type prerasterize_type;
+    typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>,
+                                      InterpolationView<typename ImageT::prerasterize_type, InterpT>,
+                                      InterpolationView<CropView<ImageView<pixel_type> >, InterpT> >::type prerasterize_type;
 
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const { 
-      return prerasterize_type( image.prerasterize(bbox) ); 
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const {
+      return prerasterize_type( image.prerasterize(bbox) );
     }
-                            
+
     template <class PreRastImageT>
     prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, false_type ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), m_image.planes() );
@@ -256,22 +256,22 @@ namespace vw {
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
       int32 padded_width = bbox.width() + 2 * InterpT::pixel_buffer;
       int32 padded_height = bbox.height() + 2 * InterpT::pixel_buffer;
-      BBox2i adjusted_bbox(bbox.min().x() - InterpT::pixel_buffer, 
+      BBox2i adjusted_bbox(bbox.min().x() - InterpT::pixel_buffer,
                            bbox.min().y() - InterpT::pixel_buffer,
                            padded_width, padded_height);
       return prerasterize_helper(adjusted_bbox, m_image, typename IsMultiplyAccessible<ImageT>::type() );
     }
-  
+
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
     /// \endcond
   };
-  
+
   /// \cond INTERNAL
-  // Type traits 
+  // Type traits
   template <class ImageT, class InterpT>
   struct IsFloatingPointIndexable<InterpolationView<ImageT, InterpT> > : public true_type {};
   /// \endcond
-	
+
   template <class ImageT, class InterpT>
   class SparseImageCheck<InterpolationView<ImageT, InterpT> > {
     InterpolationView<ImageT, InterpT> const& m_view;
@@ -292,14 +292,14 @@ namespace vw {
 
   /// Use this free function to pass in an arbitrary interpolation
   /// functor.  You can use of the predefined functors at the top of
-  /// this file or use one of your own devising.  
-  /// 
+  /// this file or use one of your own devising.
+  ///
   /// This version of interpolate takes an extra argument, the edge
   /// extension functor, and it automatically edge extends the image
   /// before interpolating.  See EdgeExtension.h for a list of built-in
   /// functors.
   template <class ImageT, class InterpT, class EdgeExtensionT>
-  InterpolationView<EdgeExtensionView<ImageT,EdgeExtensionT>, InterpT> interpolate( ImageViewBase<ImageT> const& v, 
+  InterpolationView<EdgeExtensionView<ImageT,EdgeExtensionT>, InterpT> interpolate( ImageViewBase<ImageT> const& v,
                                                                                     InterpT const& interp_func,
                                                                                     EdgeExtensionT const& edge_extend_func) {
     return InterpolationView<EdgeExtensionView<ImageT, EdgeExtensionT>, InterpT>( edge_extend(v, edge_extend_func) , interp_func );
@@ -307,22 +307,22 @@ namespace vw {
 
   /// Use this free function to pass in an arbitrary interpolation
   /// functor.  You can use of the predefined functors at the top of
-  /// this file or even one of your own devising.  
-  /// 
+  /// this file or even one of your own devising.
+  ///
   /// This version of the interpolation function uses Constant edge
   /// extension by default.
-  template <class ImageT, class InterpT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT> 
+  template <class ImageT, class InterpT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT>
   interpolate( ImageViewBase<ImageT> const& v, InterpT const& interp_func) {
     return InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, InterpT>( edge_extend(v, ConstantEdgeExtension()), interp_func );
   }
 
   /// Use this free function to pass in an arbitrary interpolation
   /// functor.  You can use of the predefined functors at the top of
-  /// this file or even one of your own devising.  
-  /// 
+  /// this file or even one of your own devising.
+  ///
   /// This version of the interpolation function uses Constant edge
   /// extension by default.
-  template <class ImageT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation> 
+  template <class ImageT> InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>
   interpolate( ImageViewBase<ImageT> const& v ) {
     return InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>( edge_extend(v, ConstantEdgeExtension()), BilinearInterpolation() );
   }
@@ -352,7 +352,7 @@ namespace vw {
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
       float normx = i-x, normy = j-y;
 
-      // Compute the bicubic coefficients.  The next three bits get 
+      // Compute the bicubic coefficients.  The next three bits get
       // blurred together a bit by GCC, but total 16.9% of samples.
       __m128 a, b, c, d, s0, s1, s2, s3;
       a = _mm_set_ps1( normx );
@@ -373,7 +373,7 @@ namespace vw {
       d = _mm_mul_ps( d, b );
       c = _mm_add_ps( c, s3 );
       d = _mm_add_ps( d, s3 );
-  
+
       // Move the coefficients into place.
       v4f tmp;
       _mm_store_ps(tmp,c);
@@ -385,7 +385,7 @@ namespace vw {
 
       // Get ready to loop over the source pixels.
       acc_type acc = view.origin().advance(x-1,y-1);
-      v4f pixel1, pixel2, pixel3, pixel4;  
+      v4f pixel1, pixel2, pixel3, pixel4;
 
       // Loop over the source rows, accumulating the result;
       d = _mm_set_ps1( 0.0f );
@@ -395,7 +395,7 @@ namespace vw {
         *(PixelRGBA<float>*)(pixel2) = *acc;  acc.next_col();
         *(PixelRGBA<float>*)(pixel3) = *acc;  acc.next_col();
         *(PixelRGBA<float>*)(pixel4) = *acc;  acc.advance(-3,1);
-        
+
         // Multiply-and-add one row of pixels. 45.7% of samples.
         a = _mm_load_ps(pixel1);
         b = _mm_load_ps(pixel2);
@@ -430,7 +430,7 @@ namespace vw {
 
       // Wrap-up.  1.6% of samples.
     }
-  };  
+  };
 
 } // namespace vw
 

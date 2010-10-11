@@ -15,6 +15,6 @@ void main() {
    sum += cPixel.g;
    sum += cPixel.b;
    sum += cPixel.a;
-		
+
    gl_FragColor.r = sum;
 }

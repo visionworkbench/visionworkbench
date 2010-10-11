@@ -64,10 +64,10 @@ namespace cartography {
     Datum( std::string const& name );
     Datum( std::string const& name,
            std::string const& spheroid_name,
-	   std::string const& meridian_name,
-	   double semi_major_axis,
-	   double semi_minor_axis,
-	   double meridian_offset );
+           std::string const& meridian_name,
+           double semi_major_axis,
+           double semi_minor_axis,
+           double meridian_offset );
 
     void set_semi_major_axis(double val);
     double semi_major_axis() const;

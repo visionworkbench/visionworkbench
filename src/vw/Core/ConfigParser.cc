@@ -55,8 +55,8 @@ void vw::parse_config_file(const char* fn, vw::Settings& settings) {
   parse_config(file, settings);
 }
 
-void vw::parse_config(std::basic_istream<char>& stream, 
-		      vw::Settings& settings) {
+void vw::parse_config(std::basic_istream<char>& stream,
+                      vw::Settings& settings) {
 
   // DO NOT try to log with vw_log! It will cause a deadlock because we're
   // holding locks inside reload_config, and the loggers will call
@@ -69,8 +69,8 @@ void vw::parse_config(std::basic_istream<char>& stream,
   try {
     opts = po::parse_config_file( stream, desc );
   } catch (const po::invalid_syntax& e) {
-    std::cerr << "Could not parse config file. Ignoring. (" 
-	      << e.what() << ")" << std::endl;
+    std::cerr << "Could not parse config file. Ignoring. ("
+              << e.what() << ")" << std::endl;
   } catch (const boost::program_options::unknown_option& /*e*/) {
       // Swallow this one. We don't care about unknown options.
       vw_throw(LogicErr() << "We should be accepting all options. This shouldn't happen.");
@@ -92,18 +92,18 @@ void vw::parse_config(std::basic_istream<char>& stream,
       else if (o.string_key == "general.system_cache_size")
         settings.set_system_cache_size(boost::lexical_cast<size_t>(o.value[0]));
       else if (o.string_key == "general.default_tile_size")
-	settings.set_default_tile_size(boost::lexical_cast<int>(o.value[0]));
+        settings.set_default_tile_size(boost::lexical_cast<int>(o.value[0]));
       else if (o.string_key == "general.write_pool_size")
-	settings.set_write_pool_size(boost::lexical_cast<int>(o.value[0]));
+        settings.set_write_pool_size(boost::lexical_cast<int>(o.value[0]));
       else if (o.string_key == "general.tmp_directory")
-	settings.set_tmp_directory(o.value[0]);
+        settings.set_tmp_directory(o.value[0]);
       else if (o.string_key.compare(0, 8, "logfile ") == 0) {
         size_t sep = o.string_key.find_last_of('.');
         assert(sep != std::string::npos);
 
-	std::string logname = o.string_key.substr(8, sep-8);
-	std::string level_s = o.string_key.substr(sep+1);
-	std::string domain  = o.value[0];
+        std::string logname = o.string_key.substr(8, sep-8);
+        std::string level_s = o.string_key.substr(sep+1);
+        std::string domain  = o.value[0];
 
         //cerr << "Logname[" << logname << "] level_s[" << level_s << "] domain[" << domain << "]" << endl;
 
@@ -133,8 +133,8 @@ void vw::parse_config(std::basic_istream<char>& stream,
         continue;
       }
     } catch (const boost::bad_lexical_cast& /*e*/) {
-      std::cerr << "Could not parse line in config file near " 
-		<< o.string_key << ". skipping." << std::endl;
+      std::cerr << "Could not parse line in config file near "
+                << o.string_key << ". skipping." << std::endl;
     }
   }
 

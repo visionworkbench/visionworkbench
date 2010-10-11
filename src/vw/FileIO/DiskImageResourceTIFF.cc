@@ -6,7 +6,7 @@
 
 
 /// \file FileIO/DiskImageResourceTIFF.cc
-/// 
+///
 /// Provides support for TIFF image files.
 ///
 
@@ -62,7 +62,7 @@ namespace vw {
   };
 }
 
-/// Handle libTIFF warning conditions by outputting message text at the 
+/// Handle libTIFF warning conditions by outputting message text at the
 /// DebugMessage verbosity level.
 static void tiff_warning_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
@@ -70,7 +70,7 @@ static void tiff_warning_handler(const char* module, const char* frmt, va_list a
   vw::vw_out(vw::WarningMessage, "fileio") << "DiskImageResourceTIFF (" << (module?module:"none") << ") Warning: " << msg << std::endl;
 }
 
-/// Handle libTIFF error conditions by vw_throwing an IOErr with the 
+/// Handle libTIFF error conditions by vw_throwing an IOErr with the
 /// message text.
 /*static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
@@ -85,7 +85,7 @@ static char tiff_error_msg[VW_ERROR_BUFFER_SIZE];
 static void tiff_error_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
   vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
-  snprintf( tiff_error_msg, VW_ERROR_BUFFER_SIZE, 
+  snprintf( tiff_error_msg, VW_ERROR_BUFFER_SIZE,
     "DiskImageResourceTIFF (%s) Error: %s",
     (module?module:"none"), msg );
 }
@@ -97,8 +97,8 @@ vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename )
   m_use_compression = false;
   open( filename );
 }
-    
-vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename, 
+
+vw::DiskImageResourceTIFF::DiskImageResourceTIFF( std::string const& filename,
                                                   vw::ImageFormat const& format,
                                                   bool use_compression )
   : DiskImageResource( filename ), m_info( new DiskImageResourceInfoTIFF() ),
@@ -112,7 +112,7 @@ vw::Vector2i vw::DiskImageResourceTIFF::block_size() const {
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open
-/// the file and that it has a sane pixel format.  
+/// the file and that it has a sane pixel format.
 void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   m_info->filename = filename;
 
@@ -146,30 +146,30 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   case SAMPLEFORMAT_UINT:
     if (bits_per_sample == 8)
       m_format.channel_type = VW_CHANNEL_UINT8;
-    else if (bits_per_sample == 16) 
+    else if (bits_per_sample == 16)
       m_format.channel_type = VW_CHANNEL_UINT16;
-    else if (bits_per_sample == 32) 
+    else if (bits_per_sample == 32)
       m_format.channel_type = VW_CHANNEL_UINT32;
-    else if (bits_per_sample == 64) 
+    else if (bits_per_sample == 64)
       m_format.channel_type = VW_CHANNEL_UINT64;
     break;
   case SAMPLEFORMAT_INT:
     if (bits_per_sample == 8)
       m_format.channel_type = VW_CHANNEL_INT8;
-    else if (bits_per_sample == 16) 
+    else if (bits_per_sample == 16)
       m_format.channel_type = VW_CHANNEL_INT16;
-    else if (bits_per_sample == 32) 
+    else if (bits_per_sample == 32)
       m_format.channel_type = VW_CHANNEL_INT32;
-    else if (bits_per_sample == 64) 
+    else if (bits_per_sample == 64)
       m_format.channel_type = VW_CHANNEL_INT64;
     break;
   case SAMPLEFORMAT_IEEEFP:
-    if (bits_per_sample == 16) 
+    if (bits_per_sample == 16)
       m_format.channel_type = VW_CHANNEL_FLOAT16;
-    else if (bits_per_sample == 32) 
+    else if (bits_per_sample == 32)
       m_format.channel_type = VW_CHANNEL_FLOAT32;
-    else if (bits_per_sample == 64) 
-      m_format.channel_type = VW_CHANNEL_FLOAT64;    
+    else if (bits_per_sample == 64)
+      m_format.channel_type = VW_CHANNEL_FLOAT64;
     break;
   }
   if( ! m_format.channel_type ) {
@@ -198,7 +198,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
     default: m_format.pixel_format = VW_PIXEL_SCALAR; break;
     }
   }
-  
+
   if( TIFFIsTiled(tif) ) {
     uint32 tile_width, tile_length;
     check_retval(TIFFGetField( tif, TIFFTAG_TILEWIDTH, &tile_width ), 0);
@@ -215,7 +215,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
 }
 
 /// Bind the resource to a file for writing.
-void vw::DiskImageResourceTIFF::create( std::string const& filename, 
+void vw::DiskImageResourceTIFF::create( std::string const& filename,
                                         ImageFormat const& format )
 {
   if( format.planes!=1 && format.pixel_format!=VW_PIXEL_SCALAR )
@@ -288,7 +288,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   uint32 rows_per_strip = TIFFDefaultStripSize( tif, 0 );
   check_retval(TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, rows_per_strip), 0);
   m_info->block_size = Vector2i(cols(),rows_per_strip);
-    
+
   m_info->tif = tif;
 }
 
@@ -358,7 +358,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
   else src_buf.cstride = bpsample * nsamples / 8;
   src_buf.rstride = block_cols*src_buf.cstride;
   src_buf.pstride = block_rows*src_buf.rstride;
-    
+
   for( int block_y = bbox.min().y()/block_rows; block_y <= int((bbox.max().y()-1)/block_rows); ++block_y ) {
     for( int block_x = bbox.min().x()/block_cols; block_x <= int((bbox.max().x()-1)/block_cols); ++block_x ) {
       int block_id = block_y * blocks_per_row + block_x;
@@ -424,15 +424,15 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
           m_info->current_line++;
         }
       }
-      
+
       src_buf.data = (uint8*)buf + data_left*src_buf.cstride + data_top*src_buf.rstride;
       dest_buf.data = (uint8*)dest.data + (data_left+block_x*block_cols-bbox.min().x())*dest.cstride + (data_top+block_y*block_rows-bbox.min().y())*dest.rstride;
       src_buf.format.cols = dest_buf.format.cols = data_right-data_left;
       src_buf.format.rows = dest_buf.format.rows = data_bottom-data_top;
-      
+
       convert( dest_buf, src_buf, m_rescale );
     }
-  
+
   }
 
   _TIFFfree(buf);
@@ -445,7 +445,7 @@ void vw::DiskImageResourceTIFF::read( ImageBuffer const& dest, BBox2i const& bbo
 // Write the given buffer into the disk image.
 void vw::DiskImageResourceTIFF::write( ImageBuffer const& src, BBox2i const& bbox )
 {
-  VW_ASSERT(bbox.width() == m_format.cols, 
+  VW_ASSERT(bbox.width() == m_format.cols,
             ArgumentErr() << "DiskImageResourceTIFF: bounding box must be the same width as image.\n");
 
   // Allocate some buffer memory for the output data

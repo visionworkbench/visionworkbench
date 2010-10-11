@@ -6,10 +6,10 @@
 
 
 /// \file ToastTransform.h
-/// 
+///
 /// A transform class that transforms images from a standard
 /// cartographic projection into a TOAST projection.
-/// 
+///
 #ifndef __VW_CARTOGRAPHY_TOASTTRANSFORM_H__
 #define __VW_CARTOGRAPHY_TOASTTRANSFORM_H__
 
@@ -19,9 +19,9 @@
 // Transform.  I wouldn't necessarily call the transform itself
 // "adaptive", but it does make for a cute acronym.
 //
-// Each octant of the sphere is mapped onto one triangle of an 
-// octahedron, and this octahedron is then unfolded and mapped 
-// onto a square, like so: 
+// Each octant of the sphere is mapped onto one triangle of an
+// octahedron, and this octahedron is then unfolded and mapped
+// onto a square, like so:
 //
 //             90W
 //    +---------+---------+
@@ -52,14 +52,14 @@
 // A more complete description is available here:
 // http://research.microsoft.com/en-us/um/people/dinos/spheretoaster.pdf
 //
-// The TOAST transform is not cheap, and we work around that by using 
-// the lookup-table-based approximation capabilities of TransformView. 
-// We could get back some precision, and possibly make things even 
-// faster, by exploiting the fact that the first many iterations will 
-// be identical for nearby points.  We typically compute the reverse 
-// transform for a large number of nearby points at a time.  We could 
-// either cache the stack used in the most recent calculation, or 
-// directly expose a the ability to reverse-transform a block of 
+// The TOAST transform is not cheap, and we work around that by using
+// the lookup-table-based approximation capabilities of TransformView.
+// We could get back some precision, and possibly make things even
+// faster, by exploiting the fact that the first many iterations will
+// be identical for nearby points.  We typically compute the reverse
+// transform for a large number of nearby points at a time.  We could
+// either cache the stack used in the most recent calculation, or
+// directly expose a the ability to reverse-transform a block of
 // points at a time.
 
 #include <vw/Math/Vector.h>
@@ -87,7 +87,7 @@ namespace cartography {
     // sphere.
     Vector3 octant_point_to_unitvec(double x, double y) const;
 
-    // Maps the first octant of the unit sphere onto the unit right 
+    // Maps the first octant of the unit sphere onto the unit right
     // triangle.
     Vector2 octant_unitvec_to_point(Vector3 const& vec) const;
 
@@ -96,7 +96,7 @@ namespace cartography {
       return unitvec_to_lonlat(octant_point_to_unitvec(x, y));
     }
 
-    // Convert a lon/lat point located in octant 0 to a normalized point 
+    // Convert a lon/lat point located in octant 0 to a normalized point
     inline Vector2 octant_lonlat_to_point(double lon, double lat) const {
       return octant_unitvec_to_point(lonlat_to_unitvec(Vector2(lon,lat)));
     }
@@ -105,11 +105,11 @@ namespace cartography {
     ToastTransform(GeoReference const& georef, int32 resolution)
       : m_georef(georef), m_resolution(resolution)
     {
-      // We enable approximation of the TOAST transform by 
-      // linear interpolation into lookup tables, because it is 
-      // quite slow.  The 0.2 pixel tolerance is fairly wide; it 
-      // would be great to speed up the algorithm enough to at 
-      // least use the 0.1 pixel tolerance that is used by default 
+      // We enable approximation of the TOAST transform by
+      // linear interpolation into lookup tables, because it is
+      // quite slow.  The 0.2 pixel tolerance is fairly wide; it
+      // would be great to speed up the algorithm enough to at
+      // least use the 0.1 pixel tolerance that is used by default
       // for GeoTransform.
       set_tolerance(0.2);
     }
@@ -128,11 +128,11 @@ namespace cartography {
 
     // Attempt to expand the given bounding box in the source pixel space
     // to include any poles containd in the given bounding box in the
-    // destiation (TOAST) pixel space.  Public so it can easily be used 
+    // destiation (TOAST) pixel space.  Public so it can easily be used
     // by SparseImageCheck.
     void reverse_bbox_poles( BBox2 const& dst_bbox, BBox2 & src_bbox ) const;
 
-    // A heuristic that back-projects a line on to a conservative 
+    // A heuristic that back-projects a line on to a conservative
     // bounding box.  Used by SparseImageCheck.
     BBox2 reverse_line( Vector2 const& a, Vector2 const& b, int num_divisions ) const;
   };

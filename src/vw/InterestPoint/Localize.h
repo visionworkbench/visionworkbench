@@ -6,9 +6,9 @@
 
 
 /// \file Localize.h
-/// 
+///
 /// Functions for subpixel localization .
-/// 
+///
 #ifndef __INTERESTPOINT_LOCALIZE_H__
 #define __INTERESTPOINT_LOCALIZE_H__
 
@@ -35,7 +35,7 @@ namespace ip {
     // precompute inverse(X)
     Matrix<ElmtT,3,3> invX;
     Vector<ElmtT,3> abc;
-  
+
     // We are always fitting samples at x={-1,0,1}, to compute an offset
     // which can be added to the actual x location of the peak later.
     // This means we can precompute the inverse here, and also ensures
@@ -118,13 +118,13 @@ namespace ip {
       vw::vw_out(VerboseDebugMessage, "interest_point") << "\tLocalization correction too large\n";
       return false;
     }
-    
+
     pt.scale = octave.plane_index_to_scale((float)k0 + dp);
 
     // Return value indicates the peak is good enough to keep
     return true;
   }
 
-}} // namespace vw::ip 
+}} // namespace vw::ip
 
 #endif // __INTERESTPOINT_LOCALIZE_H__

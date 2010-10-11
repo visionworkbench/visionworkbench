@@ -15,12 +15,12 @@
 
 
 
-namespace vw { 
+namespace vw {
   namespace GPU {
-  
+
  // Math Operators
 
- // operator+    
+ // operator+
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(operator+, "ImageMath/add-II-2i0f")
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_IF(operator+, scalar, "ImageMath/add-IF-1i1f")
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(operator+, scalar, "ImageMath/add-IF-1i1f")
@@ -36,9 +36,9 @@ namespace vw {
       image = image + scalar;
       return image;
     }
-    
 
-// operator-  
+
+// operator-
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(operator-, "ImageMath/subtract-II-2i0f")
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_IF(operator-, scalar, "ImageMath/subtract-IF-1i1f")
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(operator-, scalar, "ImageMath/subtract-FI-1i1f")
@@ -90,9 +90,9 @@ namespace vw {
       return image;
     }
 
-  
-   // Math Functions 
-  
+
+   // Math Functions
+
   /// Computes the absolute value of each channel of each pixel in an image.
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(abs, "ImageMath/abs-1i0f")
   /// Computes the arccosine, \f$\cos^{-1} x\f$, of each channel of each pixel in an image.
@@ -128,9 +128,9 @@ namespace vw {
   /// Computes the base-10 logarithm, \f$\log_{10} x\f$, of each channel of each pixel in an image.
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(log10, "ImageMath/log10-1i0f")
   /// Computes the largest integer not greater than each channel of each pixel in an image.
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(trunc, "ImageMath/trunc-1i0f") 
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(trunc, "ImageMath/trunc-1i0f")
   /// Computes the nearest integer to each channel of each pixel in an image, rounding half-way cases away from zero.
-    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(round, "ImageMath/round-1i0f") 
+    GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(round, "ImageMath/round-1i0f")
   /// Computes the power function, \f$x^y\f$, of each channel of each pixel from two images.
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(pow, "ImageMath/pow-II-2i0f")
   /// Computes the given power of each channel of each pixel of an image.
@@ -144,39 +144,39 @@ namespace vw {
   /// Computes the hypotenuse, \f$\sqrt{x^2+y^2}\f$, of a scalar with each channel of each pixel of an image.
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(hypot, scalar, "ImageMath/hypot-FI-1i1f")
 
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(cosh, "ImageMath/cosh-1i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(sinh, "ImageMath/sinh-1i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(tanh, "ImageMath/tanh-1i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(acosh, "ImageMath/acosh-1i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(asinh, "ImageMath/asinh-1i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(atanh, "ImageMath/atanh-1i0f")
   ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(atan2, "ImageMath/atan2-II-2i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_IF(atan2, scalar, "ImageMath/atan2-IF-1i1f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(atan2, scalar, "ImageMath/atan2-FI-1i1f")
   ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(fdim, "ImageMath/fdim-II-2i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_IF(fdim, scalar, "ImageMath/fdim-IF-1i1f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(fdim, scalar, "ImageMath/fdim-FI-1i1f")
   ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_2i0f(copysign, "ImageMath/copysign-II-2i0f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_IF(copysign, scalar, "ImageMath/copysign-IF-1i1f")
-  /// 
+  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i1f_FI(copysign, scalar, "ImageMath/copysign-FI-1i1f")
  ///
     GENERIC_FRAGMENT_SHADER_FUNCTION_1i0f(log2, "ImageMath/log2-1i0f")
-  
+
 
   } // namespace vw
 } // namespace GPU

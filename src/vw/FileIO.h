@@ -6,9 +6,9 @@
 
 
 /// \file FileIO.h
-/// 
+///
 /// A convenience header that includes the header files in vw/FileIO.
-/// 
+///
 #ifndef __VW_FILEIO_H__
 #define __VW_FILEIO_H__
 

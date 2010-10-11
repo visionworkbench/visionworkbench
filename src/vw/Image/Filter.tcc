@@ -6,11 +6,11 @@
 
 
 /// \file Filter.tcc
-/// 
+///
 /// Two-dimensional image filter classes and functions.
-/// 
-/// These are the definitions of the non-trivial functions 
-/// and methods declared in Filter.h.  See that file for 
+///
+/// These are the definitions of the non-trivial functions
+/// and methods declared in Filter.h.  See that file for
 /// more discussion.
 ///
 #ifndef __VW_IMAGE_FILTER_TCC__
@@ -21,7 +21,7 @@
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Filter.h>
 
-/// Compute a Gaussian kernel.  The default size is seven times sigma 
+/// Compute a Gaussian kernel.  The default size is seven times sigma
 /// rounded down to the nearest odd integer, or 3, whichever is larger.
 template <class KernelT>
 void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int32 size )
@@ -37,8 +37,8 @@ void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, i
   }
   kernel.resize( size );
 
-  int32 center = size / 2; 
-  double sum = 0.0, tap; 
+  int32 center = size / 2;
+  double sum = 0.0, tap;
   const double z = 1 / (sqrt(2.0) * sigma);
 
   // Even length filter.  Off center.
@@ -63,7 +63,7 @@ void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, i
     sum += tap;
     kernel[center] = (KernelT)tap;
   }
-	
+
   // Normalize the result
   assert(sum >= 0.0);
   double norm = 1.0 / sum;
@@ -78,7 +78,7 @@ void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, i
 // of the function are present, where n is the size of the kernel.
 // Build up a Taylor expansion matrix T(i,j)=(i-halfsize)^j/j!.  The
 // rows of the inverse of this matrix are the first n differentation
-// operators; just pick the one you want.  This should get reworked 
+// operators; just pick the one you want.  This should get reworked
 // if we ever want to properly support integer arithmetic.
 template <class KernelT>
 void vw::generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, int32 size )

@@ -33,7 +33,7 @@ namespace vw { namespace GPU {
 
 
   //########################################################################
-  //#                  
+  //#
   //########################################################################
 
   enum ShaderCompilationStatusEnum  {
@@ -54,12 +54,12 @@ namespace vw { namespace GPU {
   }
 
   //########################################################################
-  //#    Class: GPUProgram  (abstract)             
+  //#    Class: GPUProgram  (abstract)
   //########################################################################
 
   class GPUProgram {
   public:
-    // Virtual	
+    // Virtual
     virtual ~GPUProgram() { }
     virtual void install() = 0;
     virtual void uninstall() = 0;
@@ -68,7 +68,7 @@ namespace vw { namespace GPU {
   };
 
   //################################################################################################################
-  //#    GLSL:    GPUVertexShader_GLSL, GPUFragmentShader_GLSL,  GPUProgram_GLSL (subclass), GPUProgramSet_GLSL (subclass)      
+  //#    GLSL:    GPUVertexShader_GLSL, GPUFragmentShader_GLSL,  GPUProgram_GLSL (subclass), GPUProgramSet_GLSL (subclass)
   //################################################################################################################
 
 
@@ -76,7 +76,7 @@ namespace vw { namespace GPU {
     GLhandleARB shader;
   public:
     bool compile(const std::string& vertexString);
-    // Inline	
+    // Inline
     GPUVertexShader_GLSL() { shader = 0; }
     ~GPUVertexShader_GLSL() { if(shader) glDeleteObjectARB(shader); }
 
@@ -89,13 +89,13 @@ namespace vw { namespace GPU {
     GLhandleARB shader;
   public:
     bool compile(const std::string& fragmentString);
-    // Inline	
+    // Inline
     GPUFragmentShader_GLSL() { shader = 0; }
     ~GPUFragmentShader_GLSL() { if(shader) glDeleteObjectARB(shader); }
 
     bool is_compiled() { return shader != 0; }
     GLhandleARB get_shader() { return shader; }
-	
+
   };
 
 
@@ -109,31 +109,31 @@ namespace vw { namespace GPU {
     ~GPUProgram_GLSL() { if(program) glDeleteObjectARB(program); }
     GLhandleARB get_program() { return program; }
     // Over-Riden
-    void install() { 
-      glUseProgramObjectARB(program); 
+    void install() {
+      glUseProgramObjectARB(program);
       bound_texture_count = 0;
     }
     void uninstall() {
-      glUseProgramObjectARB(0); 
+      glUseProgramObjectARB(0);
     }
-    void set_input_image(const char* name, const GPUImageBase& texture) { 
+    void set_input_image(const char* name, const GPUImageBase& texture) {
       glUniform1i(glGetUniformLocationARB(program, name), bound_texture_count);
       glGetError();
       glActiveTexture(GL_TEXTURE0 + bound_texture_count);
       if(glGetError() != GL_NO_ERROR)
-	throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
+        throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
       texture.bind();
       bound_texture_count++;
     }
     void set_input_float(const char* name, float value, bool is_uint8) {
       if(is_uint8) value /= 255.0;
-      glUniform1f(glGetUniformLocationARB(program, name), value);	
+      glUniform1f(glGetUniformLocationARB(program, name), value);
     }
   };
 
 
   //#############################################################################################
-  //#    CG Classes:  GPUShader_CG, GPUProgram_CG (subclass), GPUProgramSet_CG (subclass)         
+  //#    CG Classes:  GPUShader_CG, GPUProgram_CG (subclass), GPUProgramSet_CG (subclass)
   //#############################################################################################
 
 #if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
@@ -146,7 +146,7 @@ namespace vw { namespace GPU {
     // INLINE
     bool is_compiled() { return (program && cgIsProgramCompiled(program)); }
     CGprogram get_cg_program() { return program; }
-    // MEMBER  
+    // MEMBER
     GPUShader_CG();
     ~GPUShader_CG();
     bool compile_source_with_string(const char *sourceString, CGprofile profile, const char *entry, const char **args);
@@ -166,39 +166,39 @@ namespace vw { namespace GPU {
     int bound_texture_count;
   public:
     // INLINE
-    GPUProgram_CG(GPUShader_CG* inVertexShader, GPUShader_CG* inFragmentShader) 
+    GPUProgram_CG(GPUShader_CG* inVertexShader, GPUShader_CG* inFragmentShader)
       : vertexShader(inVertexShader), fragmentShader(inFragmentShader) { }
-    ~GPUProgram_CG() { 
+    ~GPUProgram_CG() {
       if(vertexShader) delete vertexShader;
-      if(fragmentShader) delete fragmentShader; 
+      if(fragmentShader) delete fragmentShader;
     }
     // Over-Riden
-    void install() { 
+    void install() {
       if(vertexShader)
-	vertexShader->install();
+        vertexShader->install();
       if(fragmentShader)
-	fragmentShader->install();
+        fragmentShader->install();
       bound_texture_count = 0;
     }
     void uninstall() {
       if(vertexShader)
-	vertexShader->uninstall();
+        vertexShader->uninstall();
       if(fragmentShader)
-	fragmentShader->uninstall();
+        fragmentShader->uninstall();
     }
-    void set_input_image(const char* name, const GPUImageBase& texture) { 
+    void set_input_image(const char* name, const GPUImageBase& texture) {
       if(vertexShader) {
-	cgGLSetTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name), texture.name());
-	cgGLEnableTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name));
+        cgGLSetTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name), texture.name());
+        cgGLEnableTextureParameter(cgGetNamedParameter(vertexShader->get_cg_program(), name));
       }
       if(fragmentShader) {
-	cgGLSetTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name), texture.name());
-	cgGLEnableTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name));
+        cgGLSetTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name), texture.name());
+        cgGLEnableTextureParameter(cgGetNamedParameter(fragmentShader->get_cg_program(), name));
       }
       glGetError();
       glActiveTexture(GL_TEXTURE0 + bound_texture_count);
       if(glGetError() != GL_NO_ERROR)
-	throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
+        throw(Exception("[GPUProgram::set_input_image] Error: Too many textures bound."));
       texture.bind();
       bound_texture_count++;
     }
@@ -214,27 +214,27 @@ namespace vw { namespace GPU {
 
 
   //#############################################################################################
-  //#    Creation Free Functions   
+  //#    Creation Free Functions
   //#############################################################################################
 
 
 
   GPUProgram* create_gpu_program(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
-				 const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
+                                 const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
   GPUProgram_GLSL* create_gpu_program_glsl_string(const std::string& fragmentString, const std::vector<int>& fragmentAttributes = std::vector<int>(),
-						  const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
+                                                  const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
   GPUProgram_GLSL* create_gpu_program_glsl(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
-					   const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
+                                           const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
 #if defined(VW_HAVE_PKG_CG) && VW_HAVE_PKG_CG==1
 
   GPUProgram_CG* create_gpu_program_cg_string(const std::string& fragmentString, const std::vector<int>& fragmentAttributes = std::vector<int>(),
-					      const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
+                                              const std::string& vertexString = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
   GPUProgram_CG* create_gpu_program_cg(const std::string& fragmentPath, const std::vector<int>& fragmentAttributes = std::vector<int>(),
-				       const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
+                                       const std::string& vertexPath = "", const std::vector<int>& vertexAttributes = std::vector<int>());
 
 #endif
 

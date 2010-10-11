@@ -525,7 +525,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixReorganize& operator=( MatrixBase<T> const& m ) { 
+    MatrixReorganize& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       Matrix<value_type> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -535,7 +535,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixReorganize& operator=( MatrixNoTmp<T> const& m ) { 
+    MatrixReorganize& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;

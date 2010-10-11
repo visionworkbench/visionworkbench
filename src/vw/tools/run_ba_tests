@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 #===============================================================================
 #
 #         FILE:  run_ba_tests
@@ -9,8 +9,8 @@
 #
 #      OPTIONS:  --help (-?)
 #                --man
-#                --num-tests (-n)      
-#                --directory (-d)      
+#                --num-tests (-n)
+#                --directory (-d)
 #                --pct_low (-l)
 #                --pct_high (-h)
 #                --bundle_adjustment_types (-b)
@@ -24,7 +24,7 @@
 #                complete documentation, or see the Perldoc section at the end
 #                of this file.
 #       AUTHOR:  Michael Styer <michael@styer.net>
-#      COMPANY:  
+#      COMPANY:
 #      VERSION:  1.0
 #      CREATED:  09/03/2009 02:24:05 PM PDT
 #     REVISION:  ---
@@ -45,12 +45,12 @@ no warnings qw(uninitialized);
 ## CONFIGURATION VARIABLES YOU CAN CHANGE
 ##
 
-## Default root directory for this test run; all synthetic data and results 
-## will be stored in subdirectories of this directory. 
+## Default root directory for this test run; all synthetic data and results
+## will be stored in subdirectories of this directory.
 ## Can override on the command line with -d or --directory.
 my $tests_root         = 'ba_tests';
 
-## Default number of tests to run. 
+## Default number of tests to run.
 ## Can override on the command line via -n or --num_tests
 my $num_tests          = 1;
 
@@ -80,7 +80,7 @@ my @ba_types = qw/sparse robust_sparse/;
 ##
 ## NB: Set these with a view to the number of tests you're running.
 ## If they are set very low or high and you aren't running many tests,
-## there may not be any results in that percentile and you'll get 
+## there may not be any results in that percentile and you'll get
 ## warnings about "uninitialized values" at line 326"
 my $percentile_low  = 25;
 my $percentile_high = 75;
@@ -117,7 +117,7 @@ my $cam_init_file  = "cam_initial.txt";
 my $cam_final_file = "cam_final.txt";
 my $cnet_deleted_index_file = "cnet_deleted";
 # must be >= 35 to generate the image errors file required for outlier removal
-my $ba_report_level = 35; 
+my $ba_report_level = 35;
 # Default values; generally these should be set by your test plan file
 my %test_config = (
     "pixel-inlier-noise-type"  => "normal",
@@ -215,11 +215,11 @@ sub read_test_plans {
     die "Error: must provide a test plan\n" unless defined $test_plan_file;
     my %test_plans = ();
 
-    open (TEST_PLAN, "<$test_plan_file") 
+    open (TEST_PLAN, "<$test_plan_file")
         or die "Error: failed opening $test_plan_file: $!\n";
     my @test_params = split(/\t/, <TEST_PLAN>);
     map { chomp; s/[^\w]$//; $test_plans{$_} = []; } @test_params;
-    while (<TEST_PLAN>) { 
+    while (<TEST_PLAN>) {
         chomp;
         my @vals = split /\t/;
         for (my $i = 0; $i <= $#vals; $i++) {
@@ -228,7 +228,7 @@ sub read_test_plans {
         $$num_test_plans++;
     }
     close TEST_PLAN;
-    
+
     return \%test_plans;
 }
 
@@ -248,8 +248,8 @@ sub run_tests {
         # create a test configuration file
         my $test_cfg_file = "$plan_dir/$ba_test_cfg";
 
-        open(CONFIG, ">$test_cfg_file") 
-            or die "Error: open $test_cfg_file failed: $!\n"; 
+        open(CONFIG, ">$test_cfg_file")
+            or die "Error: open $test_cfg_file failed: $!\n";
         foreach (sort keys %test_config) {
             print CONFIG "$_=$test_config{$_}\n";
         }
@@ -265,7 +265,7 @@ sub run_tests {
             } elsif (!-d $test_dir) {
                 die "Error: $test_dir exists and is not a directory\n";
             }
-            
+
             # create a set of test data
             my @make_data = ($make_data,
                              '-f', "$test_cfg_file",
@@ -304,7 +304,7 @@ sub run_tests {
                 } else {
                     $ba_type_arg = $ba_type;
                 }
-                # add option for outlier removal if required (defaults to 
+                # add option for outlier removal if required (defaults to
                 # removing outliers beyond 2 standard deviations)
                 if ($ba_type =~ /no_outliers$/) {
                     push(@ba_test_opts, '-M');
@@ -336,7 +336,7 @@ sub read_results {
             my @euler_mse      = ();
 
             for (my $i = 0; $i < $num_tests; $i++) {
-                print STDERR "      Test $i\n" if $verbose; 
+                print STDERR "      Test $i\n" if $verbose;
                 my $test_dir = "$plan_dir/$i";
                 my $results_dir = "$test_dir/$ba_type";
                 my $wp_true  = read_wp_results("$test_dir/$wp_true_file");
@@ -390,12 +390,12 @@ sub read_results {
                 push @wp_initial_mee, $wp_initial_mee;
                 push @wp_final_mee,   $wp_final_mee;
                 push @xyz_mee,        median_euclidean_error($xyz_final, $xyz_true);
-                push @euler_mse,      mse($euler_final, $euler_true); 
+                push @euler_mse,      mse($euler_final, $euler_true);
             }
-            $results[$t]{$ba_type} = {wp_initial => \@wp_initial_mee, 
-                                      wp_final   => \@wp_final_mee, 
-                                      xyz        => \@xyz_mee, 
-                                      euler      => \@euler_mse}; 
+            $results[$t]{$ba_type} = {wp_initial => \@wp_initial_mee,
+                                      wp_final   => \@wp_final_mee,
+                                      xyz        => \@xyz_mee,
+                                      euler      => \@euler_mse};
         }
     }
     return \@results;
@@ -415,7 +415,7 @@ sub print_raw_results {
     }
 
     for (my $plan = 0; $plan < $num_plans; $plan++) {
-        open OUT, ">$tests_root/plan${plan}_raw.txt" 
+        open OUT, ">$tests_root/plan${plan}_raw.txt"
             or die "Error: Could not open raw results file: $!\n";
         print OUT join("\t",@headers),"\n";
         my @values = ();
@@ -444,7 +444,7 @@ sub print_result_stats {
     my @headers = ('test_plan','num_tests');
     my @ba_types = keys %{$results->[0]};
     my @data_types = qw(wp_initial wp_final xyz euler);
-    my @stats = ("mean", "stddev", 
+    my @stats = ("mean", "stddev",
                  $percentile_low."pct",
                  $percentile_high."pct");
     foreach my $ba_type (@ba_types) {
@@ -473,7 +473,7 @@ sub print_result_stats {
         print RESULTS join("\t",@values),"\n";
     }
 }
- 
+
 #################################################
 ##
 ## BEGIN EXECUTION
@@ -541,7 +541,7 @@ print_raw_results($results);
 
 ## Calculate result statistics
 print_result_stats($results);
-           
+
 
 __END__
 
@@ -564,7 +564,7 @@ run_ba_tests [options] <test plan file>
 
    --pct_high | -h    Upper percentile to report in results
 
-   --bundle_adjustment_types | -b 
+   --bundle_adjustment_types | -b
                       Bundle adjustment types to run
 
 =head1 SUMMARY
@@ -615,8 +615,8 @@ One directory for each bundle adjustment type. Contains the initial and final
 parameter files generated by ba_test.
 
 =back
-   
-=head2 RESULTS 
+
+=head2 RESULTS
 
 The primary statistic generated is the mean squared error for each bundle
 adjustment type, parameter type and test plan. This is calculated for each test by

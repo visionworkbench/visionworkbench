@@ -13,4 +13,3 @@ void main() {
    vec4 e2x = pow(e, 2.0 * value);
    gl_FragColor.rgba = (e2x - 1.0) / (e2x + 1.0);
 }
- 

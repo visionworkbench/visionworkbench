@@ -26,13 +26,13 @@ namespace mosaic {
       else if( name[i]=='2' ) pos += Vector2i(0,1);
       else if( name[i]=='3' ) pos += Vector2i(1,1);
       else if( name[i]!='0' ) {
-	vw_throw( LogicErr() << "GMap output format incompatible with non-standard quadtree structure" );
+        vw_throw( LogicErr() << "GMap output format incompatible with non-standard quadtree structure" );
       }
     }
     std::ostringstream oss;
     oss << name.length() << "/" << pos.x() << "/" << pos.y();
     path /= oss.str();
-    
+
     return path.native_file_string();
   }
 

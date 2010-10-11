@@ -6,13 +6,13 @@
 
 
 /// \file DiskImageResourceHDF.cc
-/// 
+///
 /// Provides support for the HDF file format.
 ///
-/// Currently this support is very limited.  We only support reading 
-/// image data stored in SDS swaths, a la HDF-EOS.  Even that we only 
-/// support when nothing too fancy is going on.  Pretty much this has 
-/// only been tested for reading, color-correcting, and reprojecting 
+/// Currently this support is very limited.  We only support reading
+/// image data stored in SDS swaths, a la HDF-EOS.  Even that we only
+/// support when nothing too fancy is going on.  Pretty much this has
+/// only been tested for reading, color-correcting, and reprojecting
 /// true-color MODIS imagery.
 ///
 
@@ -85,7 +85,7 @@ public:
   std::vector<PlaneInfo> plane_info;
 
   DiskImageResourceInfoHDF( std::string const& filename, DiskImageResourceHDF& resource  ) : resource(resource), sd_id(FAIL) {
-    
+
     if( (sd_id = SDstart( filename.c_str(), DFACC_READ )) == FAIL )
       vw_throw( IOErr() << "Unable to open HDF file \"" << filename << "\"!" );
 
@@ -147,7 +147,7 @@ public:
       SDendaccess( id );
     }
   }
-  
+
   ~DiskImageResourceInfoHDF() {
     if( sd_id != FAIL ) SDend( sd_id );
   }

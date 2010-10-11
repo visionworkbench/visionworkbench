@@ -60,7 +60,7 @@ class ThreadQueue : private boost::noncopyable {
     int size() const {
       Mutex::Lock lock(m_mutex);
       return m_queue.size();
-    }  
+    }
 
 
     // Wait for data forever

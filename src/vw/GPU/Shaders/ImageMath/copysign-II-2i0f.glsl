@@ -23,5 +23,5 @@ void main() {
 
    gl_FragColor.rgba = value;
 }
- 
+
 

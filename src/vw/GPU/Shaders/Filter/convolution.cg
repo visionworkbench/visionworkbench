@@ -19,8 +19,8 @@ void main(
      color = float4(0.0, 0.0, 0.0, 0.0);
      for(int vKernel = 0; vKernel < vSize; vKernel++) {
         for(int hKernel = 0; hKernel < hSize; hKernel++) {
-	   float kernelValue = texRECT(kernel, float2(hKernel, vKernel)).r;
-	   color += kernelValue * texRECT(image, float2(startCoord[0] - hKernel, startCoord[1] - vKernel));
+           float kernelValue = texRECT(kernel, float2(hKernel, vKernel)).r;
+           color += kernelValue * texRECT(image, float2(startCoord[0] - hKernel, startCoord[1] - vKernel));
        }
     }
  }

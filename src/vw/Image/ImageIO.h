@@ -108,10 +108,10 @@ namespace vw {
     int m_max, m_last_job_index;
 
   public:
-    CountingSemaphore() : m_max( vw_settings().default_num_threads() ), 
+    CountingSemaphore() : m_max( vw_settings().default_num_threads() ),
                           m_last_job_index(-1) {}
     CountingSemaphore( int max ) : m_max(max), m_last_job_index(-1) {}
-      
+
     // Call to wait for a turn until the number of threads in a area
     // decrements.
     void wait( int job_index ) {
@@ -137,7 +137,7 @@ namespace vw {
   // time, however several threads can be rasterizing simultaneously.
   //
   class ThreadedBlockWriter : private boost::noncopyable {
-    
+
     boost::shared_ptr<FifoWorkQueue> m_rasterize_work_queue;
     boost::shared_ptr<OrderedWorkQueue> m_write_work_queue;
     CountingSemaphore m_write_queue_limit;
@@ -191,7 +191,7 @@ namespace vw {
       virtual void operator()() {
 
         m_write_finish_event.wait(m_index);
-        
+
         vw_out(DebugMessage, "image") << "Rasterizing block " << m_index << " at " << m_bbox << "\n";
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
@@ -201,7 +201,7 @@ namespace vw {
 
         // With rasterization complete, we queue up a request to write this block to disk.
         boost::shared_ptr<Task> write_task ( new WriteBlockTask<typename ViewT::pixel_type>( m_resource, image_block, m_bbox, m_index, m_write_finish_event ) );
-        
+
         m_parent.add_write_task(write_task, m_index);
       }
     };
@@ -304,7 +304,7 @@ namespace vw {
     for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
       for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
 
-        vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/[" 
+        vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
                                        << resource.rows() << " " << resource.cols()
                                        << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
 

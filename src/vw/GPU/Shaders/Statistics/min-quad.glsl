@@ -24,4 +24,3 @@ void main() {
 
    gl_FragColor.r = cMin;
 }
- 

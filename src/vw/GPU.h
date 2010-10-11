@@ -6,15 +6,15 @@
 
 
 /// \file GPU.h
-/// 
+///
 /// A convenience header that includes the header files in vw/GPU.
-/// 
+///
 #ifndef __VW_GPU_H__
 #define __VW_GPU_H__
 
 #include <vw/GPU/Setup.h>
 #include <vw/GPU/Utilities.h>
-#include <vw/GPU/GPUImage.h> 
+#include <vw/GPU/GPUImage.h>
 #include <vw/GPU/Algorithms.h>
 #include <vw/GPU/ImageMath.h>
 #include <vw/GPU/Filter.h>

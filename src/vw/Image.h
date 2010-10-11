@@ -6,9 +6,9 @@
 
 
 /// \file Image.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Image.
-/// 
+///
 #ifndef __VW_IMAGE_H__
 #define __VW_IMAGE_H__
 

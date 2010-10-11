@@ -25,5 +25,5 @@ using namespace vw::cartography;
 #include <vw/Photometry/Camres.h>
 #include <vw/Photometry/Misc.h>
 using namespace vw::photometry;
- 
+
 

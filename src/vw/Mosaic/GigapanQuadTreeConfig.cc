@@ -41,7 +41,7 @@ namespace mosaic {
     qtree.set_image_path_func( &image_path );
     qtree.set_cull_images( true );
     qtree.set_metadata_func( boost::bind(&GigapanQuadTreeConfigData::metadata_func,m_data,_1,_2) );
-    
+
     if (m_data->m_longlat_bbox.width() != 0 || m_data->m_longlat_bbox.height() != 0) {
       qtree.set_branch_func( boost::bind(&GigapanQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
     }
@@ -83,9 +83,9 @@ namespace mosaic {
 
   void GigapanQuadTreeConfigData::metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const {
     bool root_node = ( info.name.size() == 0 );
-    
-    
-    if ( root_node) { 
+
+
+    if ( root_node) {
       std::ostringstream json;
       fs::path file_path( info.filepath, fs::native );
       fs::path json_path = change_extension( file_path, ".json" );
@@ -97,7 +97,7 @@ namespace mosaic {
            << "}" << std::endl;
 
       fs::ofstream jsonfs(json_path);
-      jsonfs << json.str();  
+      jsonfs << json.str();
     }
   }
 } // namespace mosaic

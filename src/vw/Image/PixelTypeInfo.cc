@@ -6,7 +6,7 @@
 
 
 /// \file PixelTypeInfo.cc
-/// 
+///
 /// Functions that return information about types by ID.
 ///
 #include <vw/Image/PixelTypeInfo.h>

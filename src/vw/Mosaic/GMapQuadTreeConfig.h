@@ -6,10 +6,10 @@
 
 
 /// \file GMapQuadTreeConfig.h
-/// 
+///
 /// A configuration class that provides callbacks for
 /// QuadTreeGenerator that generate Google Maps overlays.
-/// 
+///
 #ifndef __VW_MOSAIC_GMAPQUADTREECONFIG_H__
 #define __VW_MOSAIC_GMAPQUADTREECONFIG_H__
 
@@ -18,7 +18,7 @@
 namespace vw {
 namespace mosaic {
 
-  // This class is overkill, but is exists by analogy to others 
+  // This class is overkill, but is exists by analogy to others
   // like it for consistency.
   class GMapQuadTreeConfig {
   public:

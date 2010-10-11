@@ -43,7 +43,7 @@ namespace vw {
       std::string __str__() const {
         std::ostringstream os;
         os << "BBox2i(" << self->min().x() << "," << self->min().y() << ","
-	   << self->width() << "," << self->height() << ")";
+           << self->width() << "," << self->height() << ")";
         return os.str();
       }
     }

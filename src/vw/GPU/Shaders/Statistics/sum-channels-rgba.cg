@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT image,
-	out float4 color : COLOR ) 
+        uniform samplerRECT image,
+        out float4 color : COLOR )
 {
    float4 cPixel = texRECT(image, texCoord0);
    color = cPixel.r + cPixel.g + cPixel.b + cPixel.a;

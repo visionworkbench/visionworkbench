@@ -22,13 +22,13 @@
 #include <vw/GPU/EdgeExtension.h>
 
 
-namespace vw { 
+namespace vw {
 namespace GPU {
 
   // Type is a dummy type representing 16-bit floating point precision
   // on a GPU, and is only for use as a template parameter to
   // GPUImage.
-  class float16 {};  
+  class float16 {};
 
   //############################################################################
   //                          Class: GPUImageBase
@@ -47,13 +47,13 @@ namespace GPU {
     EdgeExtensionType m_edge_extension_type;
   public:
     // Instance Functions - Ctors/Dtor
-    GPUImageBase() { 
+    GPUImageBase() {
       m_width = 0;
       m_height  = 0;
       m_texObj = NULL;
       m_isHomography = false;
     }
-    
+
     GPUImageBase(int w, int h, Tex_Format format, Tex_Type type) {
       m_xOffset = 0;
       m_yOffset = 0;
@@ -69,11 +69,11 @@ namespace GPU {
       m_height = m_texObj->height();
       m_isHomography = false;
     }
-    
-    GPUImageBase(int w, int h, Tex_Format format, Tex_Type type, 
-		 Tex_Format inputFormat, Tex_Type inputType, void* data) 
+
+    GPUImageBase(int w, int h, Tex_Format format, Tex_Type type,
+                 Tex_Format inputFormat, Tex_Type inputType, void* data)
     {
-      m_xOffset = 0; 
+      m_xOffset = 0;
       m_yOffset = 0;
       if(w ==0 || h == 0) {
         m_width = 0;
@@ -86,11 +86,11 @@ namespace GPU {
       m_width = m_texObj->width();
       m_height = m_texObj->height();
       write(0, 0, m_width, m_height, inputFormat, inputType, data);
-      m_isHomography = false; 
+      m_isHomography = false;
     }
-    
+
     ~GPUImageBase() {
-      if(m_texObj) m_texObj->release(); 
+      if(m_texObj) m_texObj->release();
     }
 
 
@@ -142,19 +142,19 @@ namespace GPU {
     void set_size(int w, int h) { m_width = w; m_height = h; } // TEMP - Make Deep Operation
 
     int cols() const { return m_width; }
-  
+
     int rows() const { return m_height; }
 
-    void reset() { 
+    void reset() {
       if(m_texObj)
         m_texObj->release();
       m_texObj = NULL;
       m_width = 0;
       m_height = 0;
     }
-  
+
     int planes() { return 1; }
-  
+
     // Instance Functions - Exclusive Interface
 
     template <class InterpT, class EdgeT>
@@ -165,7 +165,7 @@ namespace GPU {
        if(m_isHomography) {
         m_homography = homography * m_homography;
         int interpolation_quality = TraitsForInterpT<InterpT>::quality;
-        if(interpolation_quality > m_interpolation_quality) { 
+        if(interpolation_quality > m_interpolation_quality) {
           m_interpolation_quality = interpolation_quality;
           m_interpolation_string = TraitsForInterpT<InterpT>::ShaderString();
         }
@@ -173,7 +173,7 @@ namespace GPU {
       else {
         m_homography.set_size(3, 3);
         m_homography.set_identity();
-        m_homography = homography * m_homography;      
+        m_homography = homography * m_homography;
         m_isHomography = true;
         m_interpolation_quality = TraitsForInterpT<InterpT>::quality;
         m_interpolation_string = TraitsForInterpT<InterpT>::ShaderString();
@@ -183,7 +183,7 @@ namespace GPU {
       m_edge_extension_type = TraitsForEdgeT<EdgeT>::type;
     }
 
-    void rasterize_homography() const; 
+    void rasterize_homography() const;
 
     int width() const { return m_width; }
     int height() const { return m_height; }
@@ -191,22 +191,22 @@ namespace GPU {
     int real_width() const { return m_texObj->width(); }
     int real_height() const { return m_texObj->height(); }
     bool same_real_object(const GPUImageBase& other) { return false; }
- 
+
     TexObj* GetTexObj() const { return m_texObj; } // TEMP - These 3 functions are only for use in the GPUImage copy constructor
     int OffsetX() const { return m_xOffset; }
     int OffsetY() const { return m_yOffset; }
 
     void translate(int x, int y) { m_xOffset += x; m_yOffset += y; }
 
-    void write(Tex_Format inputFormat, Tex_Type inputType, void* data) 
+    void write(Tex_Format inputFormat, Tex_Type inputType, void* data)
     { m_texObj->write(m_xOffset, m_yOffset, m_width, m_height, inputFormat, inputType, data); }
 
-    void write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) 
+    void write(int x, int y, int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data)
     { m_texObj->write(x + m_xOffset, y + m_yOffset, w, h, inputFormat, inputType, data); }
 
-    void read(Tex_Format outputFormat, Tex_Type outputType, void* data) const 
+    void read(Tex_Format outputFormat, Tex_Type outputType, void* data) const
     { rasterize_homography();m_texObj->read(m_xOffset, m_yOffset, m_width, m_height, outputFormat, outputType, data); }
-    
+
     void read(int x, int y, int w, int h, Tex_Format outputFormat, Tex_Type outputType, void* data) const
     { rasterize_homography(); m_texObj->read(x + m_xOffset, y + m_yOffset, w, h, outputFormat, outputType, data); }
 
@@ -237,31 +237,31 @@ namespace GPU {
   //                                      Template Traits: TexTraitsForChannelT
   //#################################################################################################################
 
-  template <class PixelT> 
+  template <class PixelT>
   struct TexTraitsForChannelT { };
 
-  template <> 
+  template <>
   struct TexTraitsForChannelT<float> {
     static const Tex_Type gpu_type = GPU_FLOAT32;
     static const Tex_Type cpu_type = GPU_FLOAT32;
     typedef float input_type;
   };
 
-  template <> 
+  template <>
   struct TexTraitsForChannelT<float16> {
     static const Tex_Type gpu_type = GPU_FLOAT16;
     static const Tex_Type cpu_type = GPU_FLOAT32;
     typedef float input_type;
   };
 
-  template <> 
+  template <>
   struct TexTraitsForChannelT<vw::uint8> {
     static const Tex_Type gpu_type = GPU_UINT8;
     static const Tex_Type cpu_type = GPU_UINT8;
     typedef vw::uint8 input_type;
   };
 
-  ///  Template Traits: TexTraitsForPixelT 
+  ///  Template Traits: TexTraitsForPixelT
   ///
   ///  (This abstraction is required in order to consider a
   ///  GPUImage<PixelRGBA<float16> > to be convertable to
@@ -270,7 +270,7 @@ namespace GPU {
   ///  16-bit precision floating point texture format that can be used
   ///  by the GPU.)
   template <class PixelT> struct TexTraitsForPixelT { typedef PixelT imageview_t; };
- 
+
   template <> struct TexTraitsForPixelT<PixelRGBA<float16> > { typedef PixelRGBA<float> imageview_t; };
   template <> struct TexTraitsForPixelT<PixelRGB<float16> > { typedef PixelRGB<float> imageview_t; };
   template <> struct TexTraitsForPixelT<PixelGray<float16> > { typedef PixelGray<float> imageview_t; };
@@ -283,13 +283,13 @@ namespace GPU {
   template <class PixelT> class GPUImage;
 
   template <class PixelT>
-  class GPUPixel { 
+  class GPUPixel {
     TexObj* m_texObj;
     int m_xOffset;
     int m_yOffset;
   public:
     // Instance Functions - Ctors/Dtor
-    GPUPixel() { 
+    GPUPixel() {
       m_texObj = NULL;
     }
 
@@ -301,26 +301,26 @@ namespace GPU {
     }
 
     ~GPUPixel() {
-      if(m_texObj) m_texObj->release(); 
+      if(m_texObj) m_texObj->release();
     }
-  
+
     void operator=(const PixelT& pixel) {
-      m_texObj->write(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-		     GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
+      m_texObj->write(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(),
+                     GPUImage<PixelT>::get_gpu_type_for_pixelt(), (void*) &pixel);
     }
-  
+
     PixelT operator*() const {
       PixelT pixel;
-      m_texObj->read(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
+      m_texObj->read(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(),
+                    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
       return pixel;
     }
-  
-  
+
+
     operator PixelT() const {
       PixelT pixel;
-      m_texObj->read(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(), 
-		    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
+      m_texObj->read(m_xOffset, m_yOffset, 1, 1, GPUImage<PixelT>::get_format_for_pixelt(),
+                    GPUImage<PixelT>::get_gpu_type_for_pixelt(), &pixel);
       return pixel;
     }
   };
@@ -329,7 +329,7 @@ namespace GPU {
   //             Class: GPUImage<PixelT> (subclass of GPUImageBase)
   //############################################################################
   template <class PixelT>
-  class GPUImage :  public GPUImageBase { 
+  class GPUImage :  public GPUImageBase {
     friend class GPUPixel<PixelT>;
   public:
 
@@ -365,7 +365,7 @@ namespace GPU {
       m_texObj = NULL;
       m_isHomography = false;
     }
-  
+
     GPUImage(int w, int h) {
       m_xOffset = 0;
       m_yOffset = 0;
@@ -382,11 +382,11 @@ namespace GPU {
       m_height = m_texObj->height();
       m_isHomography = false;
     }
-   
+
     GPUImage(int w, int h, Tex_Format inputFormat, Tex_Type inputType, void* data) {
       m_width = w;
       m_height = h;
-      m_xOffset = 0; 
+      m_xOffset = 0;
       m_yOffset = 0;
       m_isHomography = false;
       if(w ==0 || h == 0) {
@@ -400,7 +400,7 @@ namespace GPU {
       m_texObj->retain();
       m_width = m_texObj->width();
       m_height = m_texObj->height();
-      write(0, 0, m_width, m_height,  inputFormat, inputType, data); 
+      write(0, 0, m_width, m_height,  inputFormat, inputType, data);
     }
 
     GPUImage(const ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) {
@@ -415,7 +415,7 @@ namespace GPU {
       m_width = m_texObj->width();
       m_height = m_texObj->height();
       write(0, 0, m_width, m_height, tex_format, get_cpu_type_for_pixelt(), &(image(0, 0)));
-    }  
+    }
 
 
     GPUImage(const GPUImage& cpyTex) {
@@ -448,7 +448,7 @@ namespace GPU {
       *this = (GPUImage<PixelT>&) cpyTex;
       return *this;
     }
-  
+
     GPUImage& operator=(const ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) {
       m_width = image.cols();
       m_height = image.rows();
@@ -481,7 +481,7 @@ namespace GPU {
       m_texObj->retain();
       return *this;
     }
-  
+
     const PixelT operator()(int col, int row) const {
       PixelT pixel;
       Tex_Type gpu_type = get_gpu_type_for_pixelt();
@@ -489,23 +489,23 @@ namespace GPU {
       read(col, row, 1, 1, tex_format, gpu_type, (void*) &pixel);
       return pixel;
     }
-  
+
     GPUPixel<PixelT> pixel(int col, int row) {
       return GPUPixel<PixelT>(*this, col, row);
     }
-  
+
     GPUPixel<PixelT> operator()(int col, int row) {
       return GPUPixel<PixelT>(*this, col, row);
     }
-  
+
     void write_image_view(ImageView<typename TexTraitsForPixelT<PixelT>::imageview_t>& image) const {
-      Tex_Type cpu_type =  get_cpu_type_for_pixelt(); 
+      Tex_Type cpu_type =  get_cpu_type_for_pixelt();
       image.set_size(width(), height());
       read(get_format_for_pixelt(), cpu_type, &(image(0, 0)));
     }
 
     // void rasterize(ImageView<PixelT>& image) {
-    // Tex_Type gpu_type =  get_gpu_type_for_pixelt(); 
+    // Tex_Type gpu_type =  get_gpu_type_for_pixelt();
     // read(get_format_for_pixelt(), gpu_type, &(image(0, 0)));
     // }
 

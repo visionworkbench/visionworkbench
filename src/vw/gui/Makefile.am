@@ -28,7 +28,7 @@ vwv_LDADD    = @PKG_GUI_LIBS@ @PKG_PLATE_LIBS@
 
 bin_PROGRAMS = vwv
 
-noinst_PROGRAMS = 
+noinst_PROGRAMS =
 
 endif
 

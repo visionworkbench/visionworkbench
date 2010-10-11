@@ -39,7 +39,7 @@ int main() {
   write_image( "images/hand.jpg", hand );
   lips += 1.0 - select_channel(lips,3);
   write_image( "images/lips.jpg", lips );
-    
+
   // Generate the walker quadtree
   vw::ImageView<vw::PixelRGBA<vw::float32> > walker;
   read_image( walker, "images/Walker.jpg" );

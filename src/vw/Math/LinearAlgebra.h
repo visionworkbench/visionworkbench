@@ -198,10 +198,10 @@ namespace math {
 
   /// Compute the QR decomposition of the matrix A,
   /// A = Q*R with Q an unitary matrix and R an upper triangular matrix
-  /// 
+  ///
   /// Q and R will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
-  template <class AMatrixT, class QMatrixT, class RMatrixT> 
+  template <class AMatrixT, class QMatrixT, class RMatrixT>
   inline void qrd( AMatrixT const& A, QMatrixT &Q, RMatrixT &R ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename QMatrixT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename RMatrixT::value_type>::type real_type;
@@ -225,13 +225,13 @@ namespace math {
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
     for (vw::uint32 i = 0; i < R.rows(); i++)
       for (vw::uint32 j = 0; j < R.cols(); j++)
-	R(i, j) = j >= i ? Abuf(j, i) : 0;    
+        R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
     sorgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     work.resize(lwork);
-    sorgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);    
+    sorgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
 
     VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sorgrq in argument " << -info);
 
@@ -240,10 +240,10 @@ namespace math {
 
   /// Compute the RQ decomposition of the matrix A,
   /// A = R*Q with R an upper triangular matrix and Q an unitary matrix
-  /// 
+  ///
   /// R and Q will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
-  template <class AMatrixT, class QMatrixT, class RMatrixT> 
+  template <class AMatrixT, class QMatrixT, class RMatrixT>
   inline void rqd( AMatrixT const& A, RMatrixT &R, QMatrixT &Q ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename QMatrixT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename RMatrixT::value_type>::type real_type;
@@ -269,13 +269,13 @@ namespace math {
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
     for (vw::uint32 i = 0; i < R.rows(); i++)
       for (vw::uint32 j = 0; j < R.cols(); j++)
-	R(i, j) = j >= i ? Abuf(j, i) : 0;
+        R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
     sorgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     work.resize(lwork);
-    sorgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);    
+    sorgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
 
     VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sorgrq in argument " << -info);
 

@@ -6,9 +6,9 @@
 
 
 /// \file Cartography.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Cartography.
-/// 
+///
 #ifndef __VW_CARTOGRAPHY_H__
 #define __VW_CARTOGRAPHY_H__
 
@@ -30,4 +30,4 @@
 #endif
 
 #endif // __VW_CARTOGRAPHY_H__
- 
+

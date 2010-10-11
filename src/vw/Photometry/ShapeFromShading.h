@@ -16,7 +16,7 @@
 
 namespace vw {
 namespace photometry {
-  
+
   void UpdateHeightMap(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params, GlobalParams globalParams);
 
   // Does conjugate gradient descent on the DEM, keeping all else fixed.

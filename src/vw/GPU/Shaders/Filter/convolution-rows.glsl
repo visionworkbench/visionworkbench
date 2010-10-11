@@ -14,8 +14,8 @@ void main() {
  vec2 startCoord = gl_TexCoord[0].st + vec2(halfSize, 0.0);
  vec4 sum = vec4(0.0);
  for(int vectorPos = 0; vectorPos < size; vectorPos++) {
-	float vectorValue = texture2DRect(kernel, vec2(float(vectorPos) + 0.5, 0.0)).r;
-	sum += vectorValue * (texture2DRect(image, vec2(startCoord.s - float(vectorPos), startCoord.t))).rgba;
+        float vectorValue = texture2DRect(kernel, vec2(float(vectorPos) + 0.5, 0.0)).r;
+        sum += vectorValue * (texture2DRect(image, vec2(startCoord.s - float(vectorPos), startCoord.t))).rgba;
  }
- gl_FragColor.rgba = sum; 
+ gl_FragColor.rgba = sum;
 }

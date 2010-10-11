@@ -6,7 +6,7 @@
 
 
 /// \file PixelMath.h
-/// 
+///
 /// Pixel type math base classes and supporting code.
 ///
 #ifndef __VW_IMAGE_PIXELMATH_H__

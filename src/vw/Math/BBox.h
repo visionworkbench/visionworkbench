@@ -92,9 +92,9 @@ namespace math {
   class BBoxBase {
   public:
 
-    /// Default constructor.  Constructs the ultimate empty bounding 
-    /// box, whose limits are at the opposite corners of the underlying 
-    /// numeric space.  This is a useful starting point if you intend 
+    /// Default constructor.  Constructs the ultimate empty bounding
+    /// box, whose limits are at the opposite corners of the underlying
+    /// numeric space.  This is a useful starting point if you intend
     /// to grow your bounding box to fit a collection of items.
     BBoxBase() {
       // Make sure we have a type for which we know limits
@@ -113,7 +113,7 @@ namespace math {
       }
     }
 
-    /// Constructs a bounding box with the given minimal and maximal 
+    /// Constructs a bounding box with the given minimal and maximal
     /// points.
     template <class VectorT1, class VectorT2>
     BBoxBase( VectorBase<VectorT1> const& min, VectorBase<VectorT2> const& max ) :
@@ -121,7 +121,7 @@ namespace math {
 
     /// Returns the derived implementation type.
     BBoxT& impl() { return *static_cast<BBoxT*>(this); }
-    
+
     /// Returns the derived implementation type.
     BBoxT const& impl() const { return *static_cast<BBoxT const*>(this); }
 
@@ -142,7 +142,7 @@ namespace math {
         }
       }
     }
-    
+
     /// Grows a bounding box to include the given bounding box.
     template <class BBoxT1, class RealT1, int DimN1>
     void grow( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
@@ -157,17 +157,17 @@ namespace math {
       for( unsigned i=0; i<m_min.size(); ++i ) {
         if( m_min[i] < bbox.min()[i] ) {
           if( m_max[i] < bbox.min()[i] )
-            m_min[i] = m_max[i]; 
+            m_min[i] = m_max[i];
           else
             m_min[i] = bbox.min()[i];
-	}
+        }
 
         if( m_max[i] > bbox.max()[i] ) {
           if ( m_min[i] > bbox.max()[i] )
             m_max[i] = m_min[i];
           else
             m_max[i] = bbox.max()[i];
-	}
+        }
       }
     }
 
@@ -297,7 +297,7 @@ namespace math {
   protected:
     Vector<RealT, DimN> m_min, m_max;
   };
-  
+
   /// Scales a bounding box relative to the origin.
   template <class BBoxT, class RealT, int DimN, class ScalarT>
   inline BBoxT operator*( BBoxBase<BBoxT, RealT, DimN> const& bbox, ScalarT s ) {
@@ -319,7 +319,7 @@ namespace math {
   inline BBoxT operator*( ScalarT s, BBoxBase<BBoxT, RealT, DimN> const& bbox ) {
     return bbox * s;
   }
-  
+
   /// Offsets a bounding box by the given vector.
   template <class BBoxT, class RealT, int DimN, class VectorT>
   inline BBoxT operator+( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
@@ -353,7 +353,7 @@ namespace math {
   inline bool operator!=( BBoxBase<BBoxT1,RealT1,DimN1> const& bbox1, BBoxBase<BBoxT2,RealT2,DimN2> const& bbox2 ) {
     return bbox1.min()!=bbox2.min() || bbox1.max()!=bbox2.max();
   }
-  
+
   /// Writes a bounding box to an ostream.
   template <class BBoxT, class RealT, int DimN>
   std::ostream& operator<<( std::ostream& os, BBoxBase<BBoxT,RealT,DimN> const& bbox ) {
@@ -383,13 +383,13 @@ namespace math {
   class BBox : public BBoxBase<BBox<RealT, DimN>, RealT, DimN> {
   public:
 
-    /// Default constructor.  Constructs the ultimate empty bounding 
-    /// box, whose limits are at the opposite corners of the underlying 
-    /// numeric space.  This is a useful starting point if you intend 
+    /// Default constructor.  Constructs the ultimate empty bounding
+    /// box, whose limits are at the opposite corners of the underlying
+    /// numeric space.  This is a useful starting point if you intend
     /// to grow your bounding box to fit a collection of items.
     BBox() : BBoxBase<BBox<RealT, DimN>, RealT, DimN>() {}
 
-    /// Constructs a bounding box with the given minimal and maximal 
+    /// Constructs a bounding box with the given minimal and maximal
     /// points.
     BBox( Vector<RealT, DimN> const& min, Vector<RealT, DimN> const& max ) :
       BBoxBase<BBox<RealT, DimN>, RealT, DimN>( min, max ) {}
@@ -398,8 +398,8 @@ namespace math {
     /// coordinates and dimensions.  (Only valid for 2D bouding
     /// boxes.)
     BBox( RealT minx, RealT miny, RealT width, RealT height )
-      : BBoxBase<BBox<RealT, DimN>, RealT, DimN>( 
-          Vector<RealT,2>(minx,miny), 
+      : BBoxBase<BBox<RealT, DimN>, RealT, DimN>(
+          Vector<RealT,2>(minx,miny),
           Vector<RealT,2>(minx+width,miny+height) ) {
       BOOST_STATIC_ASSERT( DimN==2 );
     }
@@ -408,8 +408,8 @@ namespace math {
     /// coordinates and dimensions.  (Only valid for 3D bouding
     /// boxes.)
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
-      : BBoxBase<BBox<RealT, DimN>, RealT, DimN>( 
-          Vector<RealT,3>(minx,miny,minz), 
+      : BBoxBase<BBox<RealT, DimN>, RealT, DimN>(
+          Vector<RealT,3>(minx,miny,minz),
           Vector<RealT,3>(minx+width,miny+height,minz+depth) ) {
       BOOST_STATIC_ASSERT( DimN==3 );
     }
@@ -418,7 +418,7 @@ namespace math {
     template <class BBoxT1, class RealT1, int DimN1>
     BBox( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox )
       : BBoxBase<BBox<RealT, DimN>, RealT, DimN>( bbox.min(), bbox.max() ) {}
-    
+
     /// Copy assignment operator.
     template <class BBoxT1, class RealT1, int DimN1>
     BBox& operator=( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
@@ -458,13 +458,13 @@ namespace math {
   class BBox<RealT, 0> : public BBoxBase<BBox<RealT, 0>, RealT, 0> {
   public:
 
-    /// Default constructor.  Constructs the ultimate empty bounding 
-    /// box, whose limits are at the opposite corners of the underlying 
-    /// numeric space.  This is a useful starting point if you intend 
+    /// Default constructor.  Constructs the ultimate empty bounding
+    /// box, whose limits are at the opposite corners of the underlying
+    /// numeric space.  This is a useful starting point if you intend
     /// to grow your bounding box to fit a collection of items.
     BBox() : BBoxBase<BBox<RealT, 0>, RealT, 0>() {}
 
-    /// Constructs a bounding box with the given minimal and maximal 
+    /// Constructs a bounding box with the given minimal and maximal
     /// points.
     BBox( Vector<RealT, 0> const& min, Vector<RealT, 0> const& max ) :
       BBoxBase<BBox<RealT, 0>, RealT, 0>( min, max ) {}
@@ -473,23 +473,23 @@ namespace math {
     /// coordinates and dimensions.  (Only valid for 2D bouding
     /// boxes.)
     BBox( RealT minx, RealT miny, RealT width, RealT height )
-      : BBoxBase<BBox<RealT, 0>, RealT, 0>( 
-          Vector<RealT,2>(minx,miny), 
+      : BBoxBase<BBox<RealT, 0>, RealT, 0>(
+          Vector<RealT,2>(minx,miny),
           Vector<RealT,2>(minx+width,miny+height) ) {}
 
     /// Constructs a 3D bounding box with the given minimal point
     /// coordinates and dimensions.  (Only valid for 3D bouding
     /// boxes.)
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
-      : BBoxBase<BBox<RealT, 0>, RealT, 0>( 
-          Vector<RealT,3>(minx,miny,minz), 
+      : BBoxBase<BBox<RealT, 0>, RealT, 0>(
+          Vector<RealT,3>(minx,miny,minz),
           Vector<RealT,3>(minx+width,miny+height,minz+depth) ) {}
 
     /// Copy constructor.
     template <class BBoxT1, class RealT1, int DimN1>
     BBox( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox )
       : BBoxBase<BBox<RealT, 0>, RealT, 0>( bbox.min(), bbox.max() ) {}
-    
+
     /// Copy assignment operator.
     template <class BBoxT1, class RealT1, int DimN1>
     BBox& operator=( BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {

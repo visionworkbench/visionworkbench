@@ -13,7 +13,7 @@
 
 namespace vw {
 namespace cartography {
-  
+
   /// The georeference class contains the mapping from image
   /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
   /// or possibly meters in a UTM grid cell, etc.).  It must also
@@ -95,7 +95,7 @@ namespace cartography {
     virtual Vector2 pixel_to_lonlat(Vector2 pix) const {
       return point_to_lonlat(pixel_to_point(pix));
     }
-    
+
     /// Given a position in geographic coordinates (lat,lon), compute
     /// the location in pixel coordinates in this image that
     /// corresponds to the given geographic coordinates.
@@ -105,7 +105,7 @@ namespace cartography {
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
-    template <class ViewT> 
+    template <class ViewT>
     BBox2 bounding_box(ImageViewBase<ViewT> const& view) const {
       BBox2 bbox;
       bbox.grow(pixel_to_point(Vector2(0,0)));
@@ -117,19 +117,19 @@ namespace cartography {
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
-    /// Note that this doesn't tell you whether the image takes the 
-    /// long path or the short path from the left longitude to the 
+    /// Note that this doesn't tell you whether the image takes the
+    /// long path or the short path from the left longitude to the
     /// right longitude.
     ///
     /// Assumption: that the projection is continuous.
-    template <class ViewT> 
+    template <class ViewT>
     BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
       BBox2 bbox;
       int x;
       int y;
       Vector2 pix;
-      
-      // As all the projections are continuous, we can just walk the 
+
+      // As all the projections are continuous, we can just walk the
       // edges to find the bounding box.
       // Walk the top & bottom (technically past the edge of pixel space) rows
       x = view.impl().rows();
@@ -144,8 +144,8 @@ namespace cartography {
           bbox.grow(pixel_to_lonlat(Vector2(x,y)));
       }
 
-      // Do we cross the north or south pole? Have to cover that case 
-      // specially. Fortunately it's easy, because (anything, 90) or 
+      // Do we cross the north or south pole? Have to cover that case
+      // specially. Fortunately it's easy, because (anything, 90) or
       // (anything, -90) will always be in the image.
       // North pole:
       pix = lonlat_to_pixel(Vector2(0, 90));

@@ -7,7 +7,7 @@
 
 /// \file vwv_GlPreviewWidget.cc
 ///
-/// The Vision Workbench image viewer. 
+/// The Vision Workbench image viewer.
 ///
 
 #ifdef __linux__
@@ -21,7 +21,7 @@
 #else // Linux
 #include <GL/gl.h>
 #include <GL/glu.h>
-#endif 
+#endif
 
 // Qt
 #include <QtGui>
@@ -105,7 +105,7 @@ void print_shader_info_log(GLuint obj)
     glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
     std::ostringstream err;
     err << "<h4>An error occured while compiling the GLSL shader:</h4><p><h5><tt>" << infoLog << "</tt></h5>";
-    QMessageBox::critical(0, "GLSL Shader Error", 
+    QMessageBox::critical(0, "GLSL Shader Error",
                             err.str().c_str());
     free(infoLog);
   }
@@ -116,39 +116,39 @@ void print_program_info_log(GLuint obj)
   GLint infologLength = 0;
   GLint charsWritten  = 0;
   char *infoLog;
-  
+
   glGetProgramiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
-  
+
   if (infologLength > 1) {
     infoLog = (char *)malloc(infologLength);
     glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
     std::ostringstream err;
     err << "<h4>An error occured while linking the GLSL program:</h4><p><h5><tt>" << infoLog << "</tt></h5>";
-    QMessageBox::critical(0, "GLSL Program Error", 
+    QMessageBox::critical(0, "GLSL Program Error",
                           err.str().c_str());
     printf("%s\n",infoLog);
     free(infoLog);
   }
 }
 
-void check_gl_errors( void ) 
-{ 
-  GLenum errCode; 
-  const GLubyte *errStr; 
-  if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) { 
-    errStr = gluErrorString( errCode ); 
+void check_gl_errors( void )
+{
+  GLenum errCode;
+  const GLubyte *errStr;
+  if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
+    errStr = gluErrorString( errCode );
     std::cout << "OpenGL ERROR (" << int(errCode) << "): " << errStr << "\n";
-  } 
-} 
+  }
+}
 
 // --------------------------------------------------------------
 //               GlPreviewWidget Public Methods
 // --------------------------------------------------------------
 
 GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt,
-                                 int transaction_id) : 
+                                 int transaction_id) :
   QGLWidget(frmt, parent) {
-  
+
   // Verify that our OpenGL formatting options stuck
   if (!QGLFormat::hasOpenGL()) {
     vw::vw_out() << "This system has no OpenGL support.\nExiting\n\n";
@@ -158,7 +158,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
     std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
   if (!format().doubleBuffer())
     std::cout << "\n\nCould not set double buffering; results will be suboptimal\n\n";
-  
+
   // Set default values
   m_nodata_value = 0;
   m_use_nodata = 0;
@@ -174,17 +174,17 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLForma
   m_colorize_display = false;
   m_hillshade_display = false;
   m_show_tile_boundaries = false;
-  
+
   // Set up shader parameters
   m_gain = 1.0;
   m_offset = 0.0;
   m_gamma = 1.0;
   m_current_transaction_id = transaction_id;
   m_exact_transaction_id_match = false;
-  
+
   // Set mouse tracking
   this->setMouseTracking(true);
-      
+
   // Set the size policy that the widget can grow or shrink and still
   // be useful.
   this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -207,13 +207,13 @@ void GlPreviewWidget::size_to_fit() {
     float width = maxdim;
     float height = maxdim/aspect;
     float extra = height - m_tile_generator->rows();
-    m_current_viewport = BBox2(Vector2(0.0, -extra/2), 
+    m_current_viewport = BBox2(Vector2(0.0, -extra/2),
                                 Vector2(width, height-extra/2));
   } else {
     float width = maxdim*aspect;
     float height = maxdim;
     float extra = width - m_tile_generator->cols();
-    m_current_viewport = BBox2(Vector2(-extra/2, 0.0), 
+    m_current_viewport = BBox2(Vector2(-extra/2, 0.0),
                                 Vector2(width-extra/2, height));
   }
   update();
@@ -244,7 +244,7 @@ void GlPreviewWidget::zoom(float scale) {
 
 GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> tile) {
   GLuint texture_id;
-  
+
   makeCurrent();
   glEnable( GL_TEXTURE_2D );
   glGenTextures(1, &(texture_id) );
@@ -252,14 +252,14 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
   glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE); 
+  glTexParameteri(GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE);
 
-  vw_out(VerboseDebugMessage, "gui") << "Allocating texture for " 
+  vw_out(VerboseDebugMessage, "gui") << "Allocating texture for "
                                      << tile->cols() << "x" << tile->rows() << " sized tile.\n";
-  
+
   // std::cout << "This image has " << tile->channels() << " channels\n";
   // std::cout << "           ond " << tile->channel_type() << " channel type\n";
-  
+
   // We save VRAM by copying the image data over in its native
   // number of channels.
   GLuint texture_pixel_type = GL_RGBA32F_ARB;
@@ -278,7 +278,7 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
     texture_pixel_type = GL_RGBA32F_ARB;
     source_pixel_type = GL_RGBA;
   } else {
-    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed."
              << " Unsupported number of channels (" << tile->channels() << ").");
   }
 
@@ -286,36 +286,36 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
   GLuint source_channel_type = GL_FLOAT;
 
   switch (tile->channel_type()) {
-  case vw::VW_CHANNEL_UINT8: 
+  case vw::VW_CHANNEL_UINT8:
     source_channel_type = GL_UNSIGNED_BYTE;
     break;
-  case vw::VW_CHANNEL_INT8: 
+  case vw::VW_CHANNEL_INT8:
     source_channel_type = GL_BYTE;
     break;
-  case vw::VW_CHANNEL_UINT16: 
+  case vw::VW_CHANNEL_UINT16:
     source_channel_type = GL_UNSIGNED_SHORT;
     break;
-  case vw::VW_CHANNEL_INT16: 
+  case vw::VW_CHANNEL_INT16:
     source_channel_type = GL_SHORT;
     break;
-  case vw::VW_CHANNEL_UINT32: 
+  case vw::VW_CHANNEL_UINT32:
     source_channel_type = GL_UNSIGNED_INT;
     break;
-  case vw::VW_CHANNEL_INT32: 
+  case vw::VW_CHANNEL_INT32:
     source_channel_type = GL_INT;
     break;
   case vw::VW_CHANNEL_FLOAT32:
     source_channel_type = GL_FLOAT;
     break;
   default:
-    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed." 
+    vw_throw(vw::ArgumentErr() << "GlPreviewWidget: allocate_texture() failed."
              << " Unsupported channel type (" << tile->channel_type() << ").");
   }
-  
-  glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type, 
-               tile->cols(), tile->rows(), 0, 
+
+  glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type,
+               tile->cols(), tile->rows(), 0,
                source_pixel_type, source_channel_type, tile->data() );
-  
+
   glBindTexture(GL_TEXTURE_2D, 0);
   glDisable( GL_TEXTURE_2D );
   return texture_id;
@@ -330,7 +330,7 @@ void GlPreviewWidget::deallocate_texture(GLuint texture_id) {
 
 // ---------------------------------------------------------
 
-void GlPreviewWidget::initializeGL() {  
+void GlPreviewWidget::initializeGL() {
 
   // Set up the texture mode to replace (rather than blend...)
   glShadeModel(GL_FLAT);
@@ -341,7 +341,7 @@ void GlPreviewWidget::initializeGL() {
   glShaderSource(m_fragment_shader, 1, &fragment_prog_ptr, NULL);
   glCompileShader(m_fragment_shader);
   print_shader_info_log(m_fragment_shader);
-  
+
   m_glsl_program = glCreateProgram();
   glAttachShader(m_glsl_program, m_fragment_shader);
   glLinkProgram(m_glsl_program);
@@ -374,7 +374,7 @@ void GlPreviewWidget::drawImage() {
   // any new texture to upload or delete from the texture cache.  If
   // there are, we perform at least one of these operations.
   this->process_allocation_requests();
-  
+
   // Activate our GLSL fragment program and set up the uniform
   // variables in the shader
   glUseProgram(m_glsl_program);
@@ -397,23 +397,23 @@ void GlPreviewWidget::drawImage() {
   GLint current_level_loc = glGetUniformLocation(m_glsl_program,"current_level");
   glUniform1i(current_level_loc,m_current_level);
   glUseProgram(0);
-  
+
   // Set the background color and viewport.
   qglClearColor(QColor(0, 25, 50)); // Bluish-green background
   //qglClearColor(QColor(0, 0, 0)); // Black background
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   glViewport(0,0,m_viewport_width,m_viewport_height);
-    
+
   // Set up the orthographic view of the scene.  The exact extent of
   // the view onto the scene depends on the current panning and zoom
   // in the UI.
   glMatrixMode(GL_PROJECTION);
   glPushMatrix();
   glLoadIdentity();
-  glOrtho(m_current_viewport.min().x(), m_current_viewport.max().x(), 
+  glOrtho(m_current_viewport.min().x(), m_current_viewport.max().x(),
           -m_current_viewport.max().y(), -m_current_viewport.min().y(),
           -1.0, 1.0);
-  
+
   // Set up the modelview matrix, and bind the image as the texture we
   // are about to use.
   glMatrixMode(GL_MODELVIEW);
@@ -422,7 +422,7 @@ void GlPreviewWidget::drawImage() {
 
   // This is required for supporting Alpha in textures.
   glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  glEnable (GL_BLEND); 
+  glEnable (GL_BLEND);
 
   // Compute the current level of detail (limit to a minimum tile
   // level of 0 and maximum size that depends on how many tiles the
@@ -450,14 +450,14 @@ void GlPreviewWidget::drawImage() {
       // future. will be generated if necessary. Note that this
       // happens outside the m_gl_mutex to avoid deadlock.
       GLuint texture_id = m_gl_texture_cache->get_texture_id(*tile_iter, this);
-      
+
       if (texture_id) {
         glUseProgram(m_glsl_program);
-      
+
         // Enable texturing and bind the texture ID
         glEnable( GL_TEXTURE_2D );
         glBindTexture( GL_TEXTURE_2D, texture_id );
-        
+
         // Set up bilinear or nearest neighbor filtering.
         if (m_bilinear_filter) {
           // When the texture area is small, bilinear filter the closest mipmap
@@ -468,20 +468,20 @@ void GlPreviewWidget::drawImage() {
           glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
           glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
         }
-        
+
         // Draw the texture onto a quad.
         qglColor(Qt::white);
         glBegin(GL_QUADS);
-        glTexCoord2d( 0.0 , 0.0); 
+        glTexCoord2d( 0.0 , 0.0);
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
-        glTexCoord2d( 0.0 , 1 ); 
+        glTexCoord2d( 0.0 , 1 );
         glVertex2d( texture_bbox.min().x() , -(texture_bbox.max().y()) );
         glTexCoord2d( 1.0 , 1.0 );
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.max().y()) );
-        glTexCoord2d( 1.0 , 0.0 ); 
+        glTexCoord2d( 1.0 , 0.0 );
         glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
         glEnd();
-        
+
         // Clean up
         glDisable( GL_TEXTURE_2D );
         glUseProgram(0);
@@ -502,9 +502,9 @@ void GlPreviewWidget::drawImage() {
           glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
           glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
           glEnd();
-        }          
+        }
 
-        
+
       } else {
         // If no texture is (yet) available, we draw a dark blue quad.
         glBegin(GL_QUADS);
@@ -531,7 +531,7 @@ void GlPreviewWidget::drawImage() {
           glVertex2d( texture_bbox.max().x() , -(texture_bbox.min().y()) );
           glVertex2d( texture_bbox.min().x() , -(texture_bbox.min().y()) );
           glEnd();
-        }          
+        }
 
       }
     }
@@ -565,16 +565,16 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
                  1,1,GL_RGBA,GL_FLOAT,&raw_pixels);
     PixelRGBA<float32> pix_value(raw_pixels[0], raw_pixels[1], raw_pixels[2], raw_pixels[3]);
     //    PixelRGBA<float32> pix_value = m_last_pixel_sample;
-    
+
     const char* pixel_name = vw::pixel_format_name(m_tile_generator->pixel_format());
     const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
     int num_channels = vw::num_channels(m_tile_generator->pixel_format());
 
     // Compute the tile location
-    int tile_x = currentImagePos.x() / 
-      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) / 
+    int tile_x = currentImagePos.x() /
+      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
       m_tile_generator->tile_size()[0];
-    int tile_y = currentImagePos.y() / 
+    int tile_y = currentImagePos.y() /
       pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
       m_tile_generator->tile_size()[1];
 
@@ -639,8 +639,8 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       round = false;
       break;
     default:
-      vw_throw( ArgumentErr() 
-                << "vwv_GlPreviewWidget() : Unrecognized or unsupported channel type (" 
+      vw_throw( ArgumentErr()
+                << "vwv_GlPreviewWidget() : Unrecognized or unsupported channel type ("
                 << m_tile_generator->channel_type() << ")." );
       return; // never reached
     }
@@ -659,7 +659,7 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
       has_alpha = true;
       num_channels -= 1;
     }
-    
+
     for (int i=0; i < num_channels; ++i) {
       if (round)
         pix_value_ostr << llroundf(pix_value[i] * scale_factor) << " ";
@@ -682,17 +682,17 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
     textDocument.setDefaultStyleSheet("* { color: #00FF00; font-family: courier, serif; font-size: 12 }");
     std::ostringstream legend_text;
     legend_text << "<p align=\"right\">" << m_legend_status << "<br>"
-                << "[ " << m_tile_generator->cols() << " x " 
-                << m_tile_generator->rows() << " @ " << m_current_level << " ] (t_id = " 
+                << "[ " << m_tile_generator->cols() << " x "
+                << m_tile_generator->rows() << " @ " << m_current_level << " ] (t_id = "
                 << m_current_transaction_id << ")<br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
-                << "Current Pixel Range: [ " << -m_offset << " " 
+                << "Current Pixel Range: [ " << -m_offset << " "
                 << ( -m_offset+(1/m_gain) ) << " ]<br>"
                 << pix_value_ostr.str() << "<br>"
                 << "</p>";
     textDocument.setHtml(legend_text.str().c_str());
     textDocument.setTextWidth(textDocument.size().width());
-  
+
     QRect rect(QPoint(0,0), textDocument.size().toSize() + QSize(2 * Padding, 2 * Padding));
     painter->translate(width() - rect.width() - Margin, height() - rect.height() - Margin);
     //     painter->setPen(QColor(255, 239, 239));
@@ -712,7 +712,7 @@ void GlPreviewWidget::updateCurrentMousePosition() {
 //             GlPreviewWidget Event Handlers
 // --------------------------------------------------------------
 
-void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) { 
+void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
   QPainter painter(this);
   drawImage();
   if (m_show_legend)
@@ -720,7 +720,7 @@ void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
   swapBuffers();
 }
 
-void GlPreviewWidget::mousePressEvent(QMouseEvent *event) { 
+void GlPreviewWidget::mousePressEvent(QMouseEvent *event) {
   m_show_legend = true;
   lastPos = event->pos();
   updateCurrentMousePosition();
@@ -735,7 +735,7 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
     float width = m_current_viewport.width();
     float height = m_current_viewport.height();
 
-    std::ostringstream s; 
+    std::ostringstream s;
     switch (m_adjust_mode) {
 
     case TransformAdjustment:
@@ -772,7 +772,7 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
 
   } else if (event->buttons() & Qt::RightButton) {
     m_gain += GLfloat(event->x() - lastPos.x()) / m_viewport_width *10;
-  } 
+  }
 
   // Regardless, we store the current position for the text legend.
   lastPos = event->pos();
@@ -800,7 +800,7 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
 
   float mag = fabs(num_ticks/scale_factor);
   float scale = 1;
-  if (num_ticks > 0) 
+  if (num_ticks > 0)
     scale = 1+mag;
   else if (num_ticks < 0)
     scale = 1-mag;
@@ -825,8 +825,8 @@ void GlPreviewWidget::leaveEvent(QEvent */*event*/) {
 
 void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
 
-  std::ostringstream s; 
-  
+  std::ostringstream s;
+
   switch (event->key()) {
   case Qt::Key_Plus:   // Increase transaction id
     m_current_transaction_id++;
@@ -923,7 +923,7 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     m_display_channel = DisplayRGBA;
     update();
     break;
-  default: 
+  default:
     QWidget::keyPressEvent(event);
   }
 }

@@ -21,7 +21,7 @@ libvwMosaic_la_SOURCES = QuadTreeGenerator.cc KMLQuadTreeConfig.cc	\
 	TMSQuadTreeConfig.cc UniviewQuadTreeConfig.cc \
 	GMapQuadTreeConfig.cc CelestiaQuadTreeConfig.cc \
   GigapanQuadTreeConfig.cc
- 
+
 libvwMosaic_la_LIBADD = @MODULE_MOSAIC_LIBS@
 
 lib_LTLIBRARIES = libvwMosaic.la

@@ -6,7 +6,7 @@
 
 
 /// \file Core/ThreadsPool.h
-/// 
+///
 /// Note: All tasks need to be of the same type, but you can have a
 /// common abstract base class if you want.
 ///
@@ -75,17 +75,17 @@ namespace vw {
       int m_thread_id;
       bool &m_should_die;
     public:
-      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task, 
+      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task,
                    int thread_id, bool &should_die) :
         m_queue(queue), m_task(initial_task), m_thread_id(thread_id), m_should_die(should_die) {}
       ~WorkerThread() {}
-      void operator()() { 
+      void operator()() {
         do {
-          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread " 
+          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread "
                                          << m_thread_id << "\n";
           (*m_task)();
           m_task->signal_finished();
-          
+
           {
             // We lock m_queue_mutex to prevent WorkQueue::notify() from running
             // until we either sucessfully have grabbed the next task, or we have
@@ -94,7 +94,7 @@ namespace vw {
             m_task = m_queue.get_next_task();
 
             if (!m_task)
-              m_queue.worker_thread_complete(m_thread_id); 
+              m_queue.worker_thread_complete(m_thread_id);
           }
         } while ( m_task && !m_should_die );
       }
@@ -124,10 +124,10 @@ namespace vw {
     // *************************************************************
     void worker_thread_complete(int worker_id) {
       m_active_workers--;
-      vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
-      
+      vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
+
       // Erase the worker thread from the list of active threads
-      VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()), 
+      VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()),
                 LogicErr() << "WorkQueue: request to terminate thread " << worker_id << ", which does not exist.");
       m_available_thread_ids.push_back(worker_id);
 
@@ -136,7 +136,7 @@ namespace vw {
     }
 
   public:
-    WorkQueue(int num_threads = vw_settings().default_num_threads() ) 
+    WorkQueue(int num_threads = vw_settings().default_num_threads() )
       : m_active_workers(0), m_max_workers(num_threads), m_should_die(false) {
       m_running_threads.resize(num_threads);
       for (int i = 0; i < num_threads; ++i)
@@ -164,26 +164,26 @@ namespace vw {
         int next_available_thread_id = m_available_thread_ids.front();
         m_available_thread_ids.pop_front();
 
-        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task, 
+        boost::shared_ptr<WorkerThread> next_worker( new WorkerThread(*this, task,
                                                                       next_available_thread_id,
                                                                       m_should_die) );
         boost::shared_ptr<Thread> thread(new Thread(next_worker));
         m_running_threads[next_available_thread_id] = thread;
         m_active_workers++;
-        vw_out(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n"; 
-      } 
+        vw_out(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
+      }
     }
 
     /// Return the max number threads that can run concurrently at any
     /// given time using this threadpool.
-    int max_threads() { 
+    int max_threads() {
       Mutex::Lock lock(m_queue_mutex);
       return m_max_workers;
     }
 
     /// Return the max number threads that can run concurrently at any
     /// given time using this threadpool.
-    int active_threads() { 
+    int active_threads() {
       Mutex::Lock lock(m_queue_mutex);
       return m_active_workers;
     }
@@ -191,7 +191,7 @@ namespace vw {
     // Join all currently running threads and wait for the task pool to be empty.
     void join_all() {
       bool finished = false;
-      
+
       // Wait for the threads to clean up the threadpool state and exit.
       while(!finished) {
         Mutex::Lock lock(m_queue_mutex);
@@ -203,7 +203,7 @@ namespace vw {
       }
     }
 
-    void kill_and_join() { 
+    void kill_and_join() {
       m_should_die = true;
       this->join_all();
     }
@@ -220,16 +220,16 @@ namespace vw {
 
     FifoWorkQueue(int num_threads = vw_settings().default_num_threads()) : WorkQueue(num_threads) {}
 
-    int size() { 
+    int size() {
       Mutex::Lock lock(m_mutex);
-      return m_queued_tasks.size(); 
+      return m_queued_tasks.size();
     }
-    
+
     // Add a task that is being tracked by a shared pointer.
-    void add_task(boost::shared_ptr<Task> task) { 
+    void add_task(boost::shared_ptr<Task> task) {
       {
         Mutex::Lock lock(m_mutex);
-        m_queued_tasks.push_back(task); 
+        m_queued_tasks.push_back(task);
       }
       this->notify();
     }
@@ -259,13 +259,13 @@ namespace vw {
       m_next_index = 0;
     }
 
-    int size() { 
+    int size() {
       Mutex::Lock lock(m_mutex);
-      return m_queued_tasks.size(); 
+      return m_queued_tasks.size();
     }
-    
+
     // Add a task that is being tracked by a shared pointer.
-    void add_task(boost::shared_ptr<Task> task, int index) { 
+    void add_task(boost::shared_ptr<Task> task, int index) {
       {
         Mutex::Lock lock(m_mutex);
         m_queued_tasks[index] = task;
@@ -273,7 +273,7 @@ namespace vw {
       this->notify();
     }
 
-    virtual boost::shared_ptr<Task> get_next_task() { 
+    virtual boost::shared_ptr<Task> get_next_task() {
       Mutex::Lock lock(m_mutex);
 
       // If there are no tasks available, we return the NULL task.
@@ -287,7 +287,7 @@ namespace vw {
       if ((*iter).first != m_next_index)
         return boost::shared_ptr<Task>();
 
-     
+
       boost::shared_ptr<Task> task = (*iter).second;
       m_queued_tasks.erase(m_queued_tasks.begin());
       m_next_index++;

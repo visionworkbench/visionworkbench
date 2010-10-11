@@ -52,8 +52,8 @@ TEST( UtilityViews, UniformNoiseView ) {
 
   // Insure gen isn't copy constructed anywhere
   EXPECT_NE(view(5, 5), view2(5, 5));
- 
-  // Insure each access gives a different value 
+
+  // Insure each access gives a different value
   EXPECT_NE(view(5, 5), view(5, 5));
 }
 
@@ -65,7 +65,7 @@ TEST( UtilityViews, GaussianNoiseView ) {
 
   // Insure gen isn't copy constructed anywhere
   EXPECT_NE(view(5, 5), view2(5, 5));
- 
-  // Insure each access gives a different value 
+
+  // Insure each access gives a different value
   EXPECT_NE(view(5, 5), view(5, 5));
 }

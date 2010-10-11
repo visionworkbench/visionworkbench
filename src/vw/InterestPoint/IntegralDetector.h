@@ -268,7 +268,7 @@ namespace ip {
     }
   };
 
-  
+
 }} // end vw::ip
 
 #endif//__VW_INTERESTPOINT_INTEGRAL_DETECTOR_H__

@@ -41,7 +41,7 @@ TEST(Geometry, HomographyFittingFunctor) {
   vw::Matrix<double> B = transpose(H*transpose(A));
 
   // Normalizing B (doesn't work otherwise)
-  for (unsigned i = 0; i < B.rows(); ++i) 
+  for (unsigned i = 0; i < B.rows(); ++i)
     submatrix(B,i,0,1,3) /= B(i,2);
 
   std::vector<Vector3> p1, p2, p1_s, p2_s;

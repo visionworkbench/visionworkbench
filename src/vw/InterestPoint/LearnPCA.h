@@ -24,10 +24,10 @@
 #include <vw/InterestPoint/MatrixIO.h>
 #include <vw/InterestPoint/VectorIO.h>
 
-#define PCA_BASIS_SIZE	20
+#define PCA_BASIS_SIZE  20
 #define MAX_POINTS_TO_DRAW 1000
 
-// Use DescriptorGeneratorBase::operator() and compute_descriptor methods to 
+// Use DescriptorGeneratorBase::operator() and compute_descriptor methods to
 // help us populate the training data matrix
 // DescriptorGeneratorBase takes care of finding the support region for
 // each interest point
@@ -43,7 +43,7 @@ public:
     data = training_data;
     column = start_column;
   }
-  
+
   template <class ViewT, class IterT>
   void compute_descriptor (vw::ImageViewBase<ViewT> const& support,
                            IterT /*first*/, IterT /*last*/ ) {
@@ -56,8 +56,8 @@ public:
     int row = 0;
     for (int j = 0; j < support.impl().rows(); j++) {
       for (int i = 0; i < support.impl().cols(); i++) {
-	(*data)(row++, column) = support.impl()(i, j);
-	norm_const += support.impl()(i, j) * support.impl()(i, j);
+        (*data)(row++, column) = support.impl()(i, j);
+        norm_const += support.impl()(i, j) * support.impl()(i, j);
       }
     }
 
@@ -89,13 +89,13 @@ private:
   int support_squared;
 
 public:
-  
+
   static const int DEFAULT_SUPPORT_SIZE = 41;
 
   LearnPCA(const std::string& pcabasis_filename,
-	   const std::string& pcaavg_filename) 
+           const std::string& pcaavg_filename)
     : basis_filename(pcabasis_filename), avg_filename(pcaavg_filename) {
-    
+
     support_squared = DEFAULT_SUPPORT_SIZE * DEFAULT_SUPPORT_SIZE;
     training_data_size = 0;
   }
@@ -105,24 +105,24 @@ public:
     vw::ImageView<T> ret(image.cols()/2, image.rows()/2);
     for (int y= 0; y< ret.rows(); y++) {
       for (int x= 0; x< ret.cols(); x++) {
-	ret(x,y) = T(
-		     (image(x*2, y*2  )/2 + image(x*2+1, y*2  )/2)/2 +
-		     (image(x*2, y*2+1)/2 + image(x*2+1, y*2+1)/2)/2);
+        ret(x,y) = T(
+                     (image(x*2, y*2  )/2 + image(x*2+1, y*2  )/2)/2 +
+                     (image(x*2, y*2+1)/2 + image(x*2+1, y*2+1)/2)/2);
       }
     }
     return ret;
   }
 
   void processImage(vw::DiskImageView<vw::PixelRGB<vw::uint8> > &dimage) {
-    
+
     float log_threshold = 0.01;
     int tile_size = 2048;
-    
+
     // *** TODO: let user choose interest point detector
     // Find interest points in image
     vw::ip::InterestPointList ipl;
 
-		// *** TODO: set this somewhere else
+                // *** TODO: set this somewhere else
     int max_x_dim = 1000;
     vw::ImageView<vw::PixelRGB<vw::uint8> > image = dimage;
     while(image.cols() > max_x_dim) {
@@ -142,10 +142,10 @@ public:
     unsigned int interest_point_index = training_data_size;
     training_data_size += ipl.size();
     training_data.set_size(support_squared, training_data_size, true);
-    
+
     // Populate training data matrix
     LearnPCADataFiller fill_matrix(&training_data, interest_point_index);
-    
+
     std::cout << "Populating training matrix" << std::endl;
     std::cout << "  Starting fill at column " << interest_point_index << std::endl;
     std::cout << "  " << ipl.size() << " interest points" << std::endl;
@@ -161,7 +161,7 @@ public:
     pca_avg.set_size(support_squared);
     for (int i = 0; i < support_squared; i++) {
       for (unsigned j = 0; j < training_data.cols(); j++) {
-	pca_avg(i) += training_data(i, j);
+        pca_avg(i) += training_data(i, j);
       }
       pca_avg(i) /= training_data.cols();
     }
@@ -170,7 +170,7 @@ public:
     std::cout << "  Subtracting average" << std::endl;
     for (int i = 0; i < support_squared; i++) {
       for (unsigned j = 0; j < training_data.cols(); j++) {
-	training_data(i, j) -= pca_avg(i);
+        training_data(i, j) -= pca_avg(i);
       }
     }
 
@@ -183,14 +183,14 @@ public:
 
     assert(E.size() >= PCA_BASIS_SIZE);
     std::cout << "  Top " << PCA_BASIS_SIZE << " singular values from " << E.size()
-	 << " total singular values" << std::endl;
+         << " total singular values" << std::endl;
     for (int i = 0; i < PCA_BASIS_SIZE; i++) {
       std::cout << "  " << i << ": " << E[i] << std::endl;
     }
 
     // Take top n eignvectors of U as PCA basis
-    vw::Matrix<float> pca_basis = submatrix(U, 0, 0, U.rows(), 
-					PCA_BASIS_SIZE);
+    vw::Matrix<float> pca_basis = submatrix(U, 0, 0, U.rows(),
+                                        PCA_BASIS_SIZE);
 
     std::cout << "pca_basis: " << pca_basis.rows() << " x " << pca_basis.cols() << std::endl;
     std::cout << "pca_avg: " << pca_avg.size() << std::endl;
@@ -201,31 +201,31 @@ public:
 
   // Draw the interest points and write as an image.
   template <class ViewT>
-  void write_point_image(std::string out_file_name, 
-			 vw::ImageViewBase<ViewT> const& src,
-			 vw::ip::InterestPointList const& points) {
+  void write_point_image(std::string out_file_name,
+                         vw::ImageViewBase<ViewT> const& src,
+                         vw::ip::InterestPointList const& points) {
 
     vw::ImageView<vw::PixelRGB<vw::uint8> > viz = vw::pixel_cast<vw::PixelRGB<vw::uint8> >(vw::channel_cast_rescale<vw::uint8>(src));
 
     // Draw points into color planes
     int n = 0;
     for (vw::ip::InterestPointList::const_iterator pt = points.begin();
-	 pt != points.end() && n < MAX_POINTS_TO_DRAW; ++pt, ++n) {
+         pt != points.end() && n < MAX_POINTS_TO_DRAW; ++pt, ++n) {
       // Draw a red line from the point outward along the orientation
       for (int r=0; r<(int)(8*(*pt).scale); ++r){
-	int i = (int)(0.5 + (*pt).x + r*cos((*pt).orientation));
-	int j = (int)(0.5 + (*pt).y + r*sin((*pt).orientation));
-	// red, green, blue
-	viz(i,j) = vw::PixelRGB<vw::uint8>(255, 0, 0);
+        int i = (int)(0.5 + (*pt).x + r*cos((*pt).orientation));
+        int j = (int)(0.5 + (*pt).y + r*sin((*pt).orientation));
+        // red, green, blue
+        viz(i,j) = vw::PixelRGB<vw::uint8>(255, 0, 0);
       }
       // Draw a green 3x3 filled square at the point to indicate center
       int i0 = (int)(0.5 + (*pt).x);
       int j0 = (int)(0.5 + (*pt).y);
       for (int j=j0-1; j<=j0+1; ++j){
-	for (int i=i0-1; i<=i0+1; ++i){
-	  // red, green, blue
-	  viz(i,j) = vw::PixelRGB<vw::uint8>(0, 255, 0);
-	}
+        for (int i=i0-1; i<=i0+1; ++i){
+          // red, green, blue
+          viz(i,j) = vw::PixelRGB<vw::uint8>(0, 255, 0);
+        }
       }
     }
 

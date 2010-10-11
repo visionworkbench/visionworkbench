@@ -6,7 +6,7 @@
 
 
 /// \file Core/Cache.h
-/// 
+///
 /// The Vision Workbench provides a thread-safe system for caching
 /// regeneratable data.  When the cache is full, the least recently
 /// used object is "invalidated" to make room for new objects.
@@ -130,14 +130,14 @@ namespace vw {
         Mutex::Lock cache_lock(cache.m_mutex);
         CacheLineBase::invalidate();
       }
-      
+
       virtual ~CacheLine() {
         Mutex::Lock cache_lock(cache().m_mutex);
         invalidate();
         VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
         remove();
       }
-      
+
       virtual void invalidate() {
         Mutex::Lock line_lock(m_mutex);
         if( ! m_value ) return;
@@ -153,7 +153,7 @@ namespace vw {
             << " (size " << (int)size() << ", gen count " << m_generation_count << ")";
         return oss.str();
       }
-      
+
       value_type const& value() {
         bool hit = true;
         Mutex::Lock line_lock(m_mutex);

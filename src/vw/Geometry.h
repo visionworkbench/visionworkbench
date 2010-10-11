@@ -6,9 +6,9 @@
 
 
 /// \file Geometry.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Geometry.
-/// 
+///
 #ifndef __VW_GEOMETRY_H__
 #define __VW_GEOMETRY_H__
 

@@ -6,7 +6,7 @@
 
 
 /// \file ImageView.h
-/// 
+///
 /// Defines the core in-memory image view type.
 ///
 #ifndef __VW_IMAGE_IMAGEVIEW_H__
@@ -66,22 +66,22 @@ namespace vw {
 
     /// Constructs an empty image with zero size.
     ImageView()
-      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), 
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
         m_rstride(0), m_pstride(0) {}
 
     /// Copy-constructs a view pointing to the same data.
-    /// Provided explicitly to clarify its precedence over 
+    /// Provided explicitly to clarify its precedence over
     /// the templatized generalized copy constructor.
     ImageView( ImageView const& other )
       : ImageViewBase<ImageView<PixelT> >(other),
-        m_data(other.m_data), m_cols(other.m_cols), 
+        m_data(other.m_data), m_cols(other.m_cols),
         m_rows(other.m_rows), m_planes(other.m_planes),
-        m_origin(other.m_origin), m_cstride(other.m_cstride), 
+        m_origin(other.m_origin), m_cstride(other.m_cstride),
         m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
 
     /// Constructs an empty image with the given dimensions.
     ImageView( int32 cols, int32 rows, int32 planes=1 )
-      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0), 
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
         m_rstride(0), m_pstride(0) {
       set_size( cols, rows, planes );
     }
@@ -122,7 +122,7 @@ namespace vw {
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride, 
+      return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride,
                              cols(), rows(), planes() );
 #else
       return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride );
@@ -137,11 +137,11 @@ namespace vw {
 #endif
       return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
     }
-  
+
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
     void set_size( int32 cols, int32 rows, int32 planes = 1 ) {
       if( cols==m_cols && rows==m_rows && planes==m_planes ) return;
-        
+
       // FIXME: We can do better than this on 64-bit machines.
       int32 size = cols*rows*planes;
       if( size==0 ) {
@@ -164,7 +164,7 @@ namespace vw {
       // true of all POD types, but there's no good way to detect
       // those.  We can only hope that the user will never use a
       // custom POD pixel type.
-      // 
+      //
       // Note that this is a copy of the fill algorithm that resides
       // in ImageAlgorithms.h, however including ImageAlgorithms.h
       // directly causes an include file cycle.
@@ -202,7 +202,7 @@ namespace vw {
       return m_data;
     }
 
-    /// Returns true if no other ImageView object is sharing 
+    /// Returns true if no other ImageView object is sharing
     /// this block of memory.
     bool unique() const {
       return (!m_data) || m_data.unique();
@@ -223,11 +223,11 @@ namespace vw {
     /// The return type of prerasterize().
     typedef ImageView prerasterize_type;
 
-    /// Prepare an ImageView to be rasterized.  Simply returns the 
+    /// Prepare an ImageView to be rasterized.  Simply returns the
     /// original image view.
     inline prerasterize_type prerasterize( BBox2i /*bbox*/ ) const { return *this; }
 
-    /// Rasterize the image view.  Simply invokes the default 
+    /// Rasterize the image view.  Simply invokes the default
     /// rasterization function.
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );

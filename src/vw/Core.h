@@ -6,9 +6,9 @@
 
 
 /// \file Core.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Core.
-/// 
+///
 #ifndef __VW_CORE_H__
 #define __VW_CORE_H__
 

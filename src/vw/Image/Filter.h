@@ -285,7 +285,7 @@ namespace vw {
 
   /// Applies a Laplacian filter to an image.  This function
   /// computes the Laplacian \f$ \nabla^2\equiv\frac{d^2}{dx^2}+\frac{d^2}{dy^2} \f$
-  /// of an image using a \f$ 3\times3 \f$ discrete differentiation 
+  /// of an image using a \f$ 3\times3 \f$ discrete differentiation
   /// kernel.  The source image is edge-exetnded using the
   /// given edge extension mode as needed.
   template <class SrcT, class EdgeT>

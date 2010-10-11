@@ -25,7 +25,7 @@ namespace GPU {
     INTERPOLATION_NEARESTPIXEL
   };
   */
-   template <class InterpT> 
+   template <class InterpT>
  struct TraitsForInterpT {
    static const char* ShaderString() {
      static const char* string = "";
@@ -33,7 +33,7 @@ namespace GPU {
    }
  };
 
-   template <> 
+   template <>
  struct TraitsForInterpT<NearestPixelInterpolation> {
    static const char* ShaderString() {
      static const char* string = "Interpolation/interpolation-nearest-pixel";
@@ -43,7 +43,7 @@ namespace GPU {
  };
 
 
-   template <> 
+   template <>
  struct TraitsForInterpT<BilinearInterpolation> {
    static const char* ShaderString() {
      static const char* string = "Interpolation/interpolation-bilinear";
@@ -52,7 +52,7 @@ namespace GPU {
    static const int quality = 2;
  };
 
-   template <> 
+   template <>
  struct TraitsForInterpT<BicubicInterpolation> {
    static const char* ShaderString() {
      static const char* string = "Interpolation/interpolation-bicubic";

@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT i1,
-	out float4 color : COLOR ) 
+        uniform samplerRECT i1,
+        out float4 color : COLOR )
 {
    color = pow(texRECT(i1, texCoord0), 1.0/3.0);
 }

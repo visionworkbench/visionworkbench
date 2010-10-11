@@ -6,9 +6,9 @@
 
 
 /// \file ImageOctave.h
-/// 
+///
 /// ImageOctave class for constructing the scale space of a source image.
-/// 
+///
 #ifndef __VW_INTERESTPOINT_IMAGEOCTAVE_H__
 #define __VW_INTERESTPOINT_IMAGEOCTAVE_H__
 
@@ -17,7 +17,7 @@
 #include <vw/Image/Filter.h>
 #include <vw/FileIO/DiskImageResource.h>
 
-// STL 
+// STL
 #include <vector>
 #include <iostream>
 
@@ -62,7 +62,7 @@ public:
   ImageOctave( ImageViewBase<ViewT_in> const& src_im, int numscales) {
     base_scale = 1;
     set_scales( numscales );
-    
+
     build_using( src_im );
   }
 
@@ -116,9 +116,9 @@ public:
     // scales in the octave
     scales.clear();
     scales.reserve(num_planes);
-    
+
     // Scales constructed by blurring.  Assume some sigma for the first one.
-    vw::vw_out(VerboseDebugMessage, "interest_point") << "\tAssuming camera_sigma " << CAMERA_SIGMA 
+    vw::vw_out(VerboseDebugMessage, "interest_point") << "\tAssuming camera_sigma " << CAMERA_SIGMA
                                     << std::endl;
     float camera_sigma = CAMERA_SIGMA;
 
@@ -144,7 +144,7 @@ public:
                                       << sigma[i] << std::endl;
       scales.push_back(ViewT(vw::gaussian_filter(scales[i-1], use_sigma)));
     }
-    
+
     return 0;
   }
 
@@ -184,7 +184,7 @@ public:
                                       << sigma[k] << std::endl;
       scales[k] = ViewT(vw::gaussian_filter(scales[k-1], use_sigma));
     }
-    
+
     return 0;
   }
 

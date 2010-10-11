@@ -6,9 +6,9 @@
 
 
 /// \file Mosaic.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Mosaic.
-/// 
+///
 #ifndef __VW_MOSAIC_H__
 #define __VW_MOSAIC_H__
 

@@ -6,9 +6,9 @@
 
 
 /// \file ImageComposte.h
-/// 
+///
 /// A view class that represents a composite mosaic of images.
-/// 
+///
 #ifndef __VW_MOSAIC_IMAGECOMPOSITE_H__
 #define __VW_MOSAIC_IMAGECOMPOSITE_H__
 
@@ -58,9 +58,9 @@ namespace mosaic {
       // I don't quite yet understand why (if?) this is the correct bounding box,
       // but bad things happen without the final "+1"s:
       BBox2i new_bbox( Vector2i( (bbox.min().x()-left)/2, (bbox.min().y()-top)/2 ),
-		       Vector2i( (bbox.min().x()-left)/2 + (bbox.width()+left+right+1)/2+1,
-				 (bbox.min().y()-top)/2 + (bbox.height()+top+bottom+1)/2+1 ) );
-      // We use vw::rasterize() here rather than ordinary assignment because it is 
+                       Vector2i( (bbox.min().x()-left)/2 + (bbox.width()+left+right+1)/2+1,
+                                 (bbox.min().y()-top)/2 + (bbox.height()+top+bottom+1)/2+1 ) );
+      // We use vw::rasterize() here rather than ordinary assignment because it is
       // faster for this particular combination of filtering and subsampling.
       ImageView<PixelT> new_image( new_bbox.width(), new_bbox.height() );
       vw::rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtension() ),
@@ -68,7 +68,7 @@ namespace mosaic {
                      new_image );
       return PositionedImage( (cols_+1)/2, (rows_+1)/2, new_image, new_bbox );
     }
-    
+
     void unpremultiply() {
       image /= select_alpha_channel( image );
     }
@@ -107,7 +107,7 @@ namespace mosaic {
       image *= edge_extend( other.image, bbox-other.bbox.min(), ZeroEdgeExtension() );
       return *this;
     }
-    
+
     int32 cols() const { return cols_; }
     int32 rows() const { return rows_; }
     int32 planes() const { return 1; }
@@ -148,7 +148,7 @@ namespace mosaic {
         return boost::shared_ptr<value_type>( new value_type(m_source) );
       }
     };
-    
+
     class GrassfireGenerator {
       ImageViewRef<pixel_type> m_source;
     public:
@@ -173,7 +173,7 @@ namespace mosaic {
       size_t size() const {
         return m_composite.sources[m_index].size() / PixelNumChannels<pixel_type>::value;
       }
-      boost::shared_ptr<value_type> generate() const { 
+      boost::shared_ptr<value_type> generate() const {
         ImageView<pixel_type> source = *m_composite.sources[m_index];
         m_composite.sources[m_index].deprioritize();
         return boost::shared_ptr<value_type>( new value_type( select_alpha_channel( source ) ) );
@@ -214,7 +214,7 @@ namespace mosaic {
 
   public:
     typedef pixel_type result_type;
-    
+
     ImageComposite() : m_draft_mode(false), m_fill_holes(false), m_reuse_masks(false), m_cache(vw_system_cache()) {}
 
     void insert( ImageViewRef<pixel_type> const& image, int x, int y );
@@ -261,7 +261,7 @@ namespace mosaic {
     }
 
     typedef ProceduralPixelAccessor<ImageComposite> pixel_accessor;
-    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }    
+    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
     typedef CropView<ImageView<PixelT> > prerasterize_type;
 
@@ -276,13 +276,13 @@ namespace mosaic {
 
     bool sparse_check( BBox2i const& bbox ) const {
       for (unsigned int i = 0; i < bboxes.size(); ++i) {
-	BBox2i src_bbox = bboxes[i];
-	src_bbox.crop(bbox);
-	if( ! src_bbox.empty() ) {
-	  if( vw::sparse_check( sourcerefs[i], src_bbox-bboxes[i].min() ) ) {
-	    return true;
-	  }
-	}
+        BBox2i src_bbox = bboxes[i];
+        src_bbox.crop(bbox);
+        if( ! src_bbox.empty() ) {
+          if( vw::sparse_check( sourcerefs[i], src_bbox-bboxes[i].min() ) ) {
+            return true;
+          }
+        }
       }
       return false;
     }
@@ -290,12 +290,12 @@ namespace mosaic {
   };
 
 } // namespace mosaic
-  
+
   // This specializes the SparseImageCheck template for the
   // ImageComposite type of ImageView.  The ImageComposite might be
   // very sparsely covered by images, so it is sometimes handy to be
   // able to check to see whether an arbitrary bbox intersects with
-  // any of the the ImageComposite's source images.  
+  // any of the the ImageComposite's source images.
   template <class PixelT>
   class SparseImageCheck<mosaic::ImageComposite<PixelT> > {
     mosaic::ImageComposite<PixelT> const& composite;
@@ -358,19 +358,19 @@ boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosa
   ImageView<pixel_type> source = copy(*m_composite.sources[m_index]);
   m_composite.sources[m_index].deprioritize();
 
-  // This is sort of a kluge: the hole-filling algorithm currently 
+  // This is sort of a kluge: the hole-filling algorithm currently
   // doesn't cope well with partially-transparent source pixels.
   if( m_composite.m_fill_holes ) source /= select_alpha_channel(source);
 
   PositionedImage<pixel_type> image_high( m_composite.view_bbox.width(), m_composite.view_bbox.height(), source, m_composite.bboxes[m_index] );
   PositionedImage<pixel_type> image_low = image_high.reduce();
   ImageView<channel_type> mask_image;
-  
+
   std::ostringstream mask_filename;
   mask_filename << "mask." << m_index << ".png";
   read_image( mask_image, mask_filename.str() );
   PositionedImage<channel_type> mask( m_composite.view_bbox.width(), m_composite.view_bbox.height(), mask_image, m_composite.bboxes[m_index] );
-  
+
   for( int l=0; l<m_composite.levels; ++l ) {
     PositionedImage<pixel_type> diff = image_high;
     if( l > 0 ) mask = mask.reduce();
@@ -457,14 +457,14 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
   for( int l=0; l<levels; ++l ) {
     if( l==0 ) bbox_pyr.push_back( patch_bbox );
     else bbox_pyr.push_back( BBox2i( Vector2i( bbox_pyr[l-1].min().x() / 2,
-					       bbox_pyr[l-1].min().y() / 2 ),
-				     Vector2i( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
-					       bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
+                                               bbox_pyr[l-1].min().y() / 2 ),
+                                     Vector2i( bbox_pyr[l-1].min().x() / 2 + ( bbox_pyr[l-1].width() + bbox_pyr[l-1].min().x() % 2 ) / 2 + 1,
+                                               bbox_pyr[l-1].min().y() / 2 + ( bbox_pyr[l-1].height() + bbox_pyr[l-1].min().y() % 2 ) / 2 + 1) ) );
     sum_pyr[l] = ImageView<pixel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
     msum_pyr[l] = ImageView<channel_type>( bbox_pyr[l].width(), bbox_pyr[l].height() );
   }
-  
-  // Compute the bounding box for source pixels that could 
+
+  // Compute the bounding box for source pixels that could
   // impact the patch.
   BBox2i padded_bbox = patch_bbox;
   for( int l=0; l<levels-1; ++l ) {
@@ -479,7 +479,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
     padded_bbox.max().x() = 2*padded_bbox.max().x();
     padded_bbox.max().y() = 2*padded_bbox.max().y();
   }
-  
+
   // Make a list of the images whose bounding boxes permit them to
   // impact the patch, prioritizing ones that are already in memory.
   std::list<unsigned> image_list;
@@ -504,10 +504,10 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
   ImageView<pixel_type> composite( sum_pyr[levels-1].cols(), sum_pyr[levels-1].rows() );
   for( int l=levels; l; --l ) {
     if( l < levels ) {
-      composite = ImageView<pixel_type>( crop( resample( composite, 2 ), 
-					       bbox_pyr[l-1].min().x()-2*bbox_pyr[l].min().x(), 
-					       bbox_pyr[l-1].min().y()-2*bbox_pyr[l].min().y(), 
-					       sum_pyr[l-1].cols(), sum_pyr[l-1].rows() ) );
+      composite = ImageView<pixel_type>( crop( resample( composite, 2 ),
+                                               bbox_pyr[l-1].min().x()-2*bbox_pyr[l].min().x(),
+                                               bbox_pyr[l-1].min().y()-2*bbox_pyr[l].min().y(),
+                                               sum_pyr[l-1].cols(), sum_pyr[l-1].rows() ) );
     }
     composite += sum_pyr[l-1] / msum_pyr[l-1];
     sum_pyr.pop_back();
@@ -523,14 +523,14 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
     ImageView<channel_type> alpha( patch_bbox.width(), patch_bbox.height() );
     for( unsigned p=0; p<sources.size(); ++p ) {
       if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
-    
+
       ImageView<channel_type> source_alpha = *alphas[p];
-    
+
       BBox2i overlap = patch_bbox;
       overlap.crop( bboxes[p] );
       for( int j=0; j<overlap.height(); ++j ) {
         for( int i=0; i<overlap.width(); ++i ) {
-          if( source_alpha( overlap.min().x()+i-bboxes[p].min().x(), overlap.min().y()+j-bboxes[p].min().y() ) > 
+          if( source_alpha( overlap.min().x()+i-bboxes[p].min().x(), overlap.min().y()+j-bboxes[p].min().y() ) >
               alpha( overlap.min().x()+i-patch_bbox.min().x(), overlap.min().y()+j-patch_bbox.min().y() ) ) {
             alpha( overlap.min().x()+i-patch_bbox.min().x(), overlap.min().y()+j-patch_bbox.min().y() ) =
               source_alpha( overlap.min().x()+i-bboxes[p].min().x(), overlap.min().y()+j-bboxes[p].min().y() );

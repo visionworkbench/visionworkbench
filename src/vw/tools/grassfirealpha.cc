@@ -147,7 +147,7 @@ void grassfire_nodata( Options& opt,
   DiskImageView<PixelT> input_image(input);
   ImageView<int32> distance =
     grassfire(notnodata(input_image,
-			inter_type(opt.nodata)));
+                        inter_type(opt.nodata)));
 
   // Check to see if the user has specified a feather length.  If not,
   // then we send the feather_max to the max pixel value (which
@@ -155,17 +155,17 @@ void grassfire_nodata( Options& opt,
   if (opt.feather_max < 1)
     opt.feather_max = max_pixel_value( distance );
   vw_out() << "\t--> Distance range: [ " << opt.feather_min << " " << opt.feather_max << " ]\n";
-  
+
   ImageViewRef<inter_type> norm_dist;
   norm_dist = pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
-                                     clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                     clamp(pixel_cast<float>(distance) - opt.feather_min,
                                            0.0, opt.feather_max - opt.feather_min));
-  
+
   // The user may wish to blur the grassfire result before applying
   // the transfer function.  This makes for an even smoother blend.
   if (opt.blur_sigma > 0)
     norm_dist = gaussian_filter(pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
-                                                       clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                                       clamp(pixel_cast<float>(distance) - opt.feather_min,
                                                              0.0, opt.feather_max - opt.feather_min)), opt.blur_sigma);
 
   ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
@@ -205,7 +205,7 @@ void grassfire_alpha( Options& opt,
 
   ImageViewRef<inter_type> norm_dist;
   norm_dist = pixel_cast<inter_type>(range_type::max() / (opt.feather_max - opt.feather_min) *
-                                     clamp(pixel_cast<float>(distance) - opt.feather_min, 
+                                     clamp(pixel_cast<float>(distance) - opt.feather_min,
                                            0.0, opt.feather_max - opt.feather_min));
 
   ImageViewRef<PixelT> result;
@@ -291,9 +291,9 @@ int main( int argc, char *argv[] ) {
       ChannelTypeEnum channel_type = rsrc->channel_type();
       PixelFormatEnum pixel_format = rsrc->pixel_format();
 
-      // The user can elect to 
+      // The user can elect to
       if (opt.force_float) {
-        std::cout << "\t--> Overriding input channel type to 32-bit float. " 
+        std::cout << "\t--> Overriding input channel type to 32-bit float. "
                   << "Disabling image auto-rescaling.\n";
         channel_type = VW_CHANNEL_FLOAT32;
 
@@ -305,7 +305,7 @@ int main( int argc, char *argv[] ) {
       if ( rsrc->has_nodata_value() ) {
         opt.nodata = rsrc->nodata_value();
         std::cout << "\t--> Extracted nodata value from file: " << opt.nodata << ".\n";
-      } 
+      }
       delete rsrc;
 
       vw_out() << "Loading: " << input << "\n";

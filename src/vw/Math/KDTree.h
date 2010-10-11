@@ -27,7 +27,7 @@
 ///      since the constraint functor has access to the record object, the functor
 ///      can be designed to access members other than a record's iterable keys.
 ///
-///      
+///
 ///  (TODO: list methods as they are implemented)
 ///
 /// Desired Functionality to Implement:
@@ -68,7 +68,7 @@
 /// subtree rooted at P fall within the hyper-rectangle bounded by
 /// lorange(P) and hirange(p)
 ///
-/// 
+///
 ///
 ///   The root's range is -infinity to infinity on each dimension, represented
 ///   as LO_Range = record of -inf, HI_Range = record of +inf.
@@ -80,9 +80,9 @@
 ///                                   |     |
 ///       L: [-inf, -inf,...,-inf]   A        B  L:   [-inf, 1, ..., -inf]
 ///       H: (+inf, 1, ... ,+inf)                     H: [+inf, +inf, .., +inf]
-///      
+///
 ///     By convention, the left has "<" and the rigt has ">="
-///    
+///
 ///     Range variables should use the typedef range_t.
 ///
 #ifndef __VW_MATH_KDTREE_H__
@@ -109,25 +109,25 @@
 #include <climits>
 
 //for printing graph
-//#include <boost/graph/breadth_first_search.hpp> 
+//#include <boost/graph/breadth_first_search.hpp>
 
 //Create custom property tags. See section 3.6 in the BGL user guide
 namespace boost{
   enum vertex_record_t{vertex_record = 511}; //A unique number
   BOOST_INSTALL_PROPERTY(vertex, record);
-  
+
   enum vertex_discriminator_t{vertex_discriminator = 512};
   BOOST_INSTALL_PROPERTY(vertex, discriminator);
-  
+
   enum vertex_LOSON_t{vertex_LOSON = 513};
   BOOST_INSTALL_PROPERTY(vertex, LOSON);
-  
+
   enum vertex_HISON_t{vertex_HISON = 514};
   BOOST_INSTALL_PROPERTY(vertex, HISON);
-  
+
   enum vertex_LORANGE_t{vertex_LORANGE = 515};
   BOOST_INSTALL_PROPERTY(vertex, LORANGE);
-  
+
   enum vertex_HIRANGE_t{vertex_HIRANGE = 516};
   BOOST_INSTALL_PROPERTY(vertex, HIRANGE);
 }
@@ -140,7 +140,7 @@ namespace math {
 
   // Function object for comparing records by their discriminator keys
   // ContainerT must be have a const_iterator
-  template<typename ContainerT> 
+  template<typename ContainerT>
   class DiscriminatorCompare {
 
     ContainerT m_pivot;
@@ -152,7 +152,7 @@ namespace math {
       : m_discriminator(discriminator){
       set_pivot(pivot);
     }
-  
+
     DiscriminatorCompare(unsigned discriminator)
       : m_discriminator(discriminator){
       set_invalid_pivot();
@@ -164,9 +164,9 @@ namespace math {
       std::advance(input_iter, m_discriminator);
       return *input_iter < *pivot_iter;
     }
-  
+
     // Binary operator. x[discriminator] < y[discriminator]
-    bool operator()(const ContainerT& x, const ContainerT& y) const {  
+    bool operator()(const ContainerT& x, const ContainerT& y) const {
       typename ContainerT::const_iterator x_iter = x.begin();
       typename ContainerT::const_iterator y_iter = y.begin();
       std::advance(x_iter, m_discriminator);
@@ -209,16 +209,16 @@ namespace math {
     RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned discriminator) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
-      
+
       DiscriminatorCompare<record_type> comparator(discriminator);
       std::sort(beg, end, comparator); //Could use partial_sort() to save time?
-    
+
       //Select the middle point as a pivot
       unsigned num_records = distance(beg, end);
       unsigned offset = (num_records / 2);
       RandomAccessIterT pivot_position = RandomAccessIterT(beg);
       std::advance(pivot_position, offset);
-  
+
       //Partition the file around pivot
       comparator.set_pivot(*pivot_position);
       return std::partition(beg, end, comparator);
@@ -244,7 +244,7 @@ namespace math {
     RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned disc) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
-      
+
       unsigned num_records = std::distance(beg, end);
       unsigned offset = rand() % num_records;
       RandomAccessIterT patition_position = beg;
@@ -285,10 +285,10 @@ namespace math {
           mean[j] /= num_points;
         }
       }
-  
+
       //Calculate the variance
       std::vector<double>::iterator v_iter, m_iter;
-  
+
       for( ; file_beg != file_end; ++file_beg){
         v_iter = variance.begin();
         m_iter = mean.begin();
@@ -298,7 +298,7 @@ namespace math {
           ++m_iter;
         }
       }
-  
+
       //identify dimension of max variance
       double max_variance = -ScalarTypeLimits<double>::highest();
       unsigned index_of_max_variance = 0;
@@ -320,7 +320,7 @@ namespace math {
     unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned /*unused_argument*/) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
-  
+
       unsigned k = std::distance( (*file_beg).begin(), (*file_beg).end() );
 
       //TODO: mins, maxes could be templated on the key type, and use
@@ -329,10 +329,10 @@ namespace math {
       std::vector<double> maxes;
       mins.assign(k,ScalarTypeLimits<double>::highest());
       maxes.assign(k,-ScalarTypeLimits<double>::highest());
- 
+
       std::vector<double> diffs;
       diffs.resize(k);
-  
+
       unsigned i;
       for( ; file_beg != file_end; ++file_beg){
         i = 0;
@@ -357,7 +357,7 @@ namespace math {
           dimension = i;
         }
       }
-      return dimension; 
+      return dimension;
     }
   };
 
@@ -387,7 +387,7 @@ namespace math {
     bool operator()(T /*record*/) const {
       return true;
     }
-      
+
     template<typename T>
     bool domains_overlap(const T& /*lowRange*/, const T& /*highRange*/ ) const {
       return true;
@@ -407,7 +407,7 @@ namespace math {
     //Constructor
     RegionRecordConstraintKD(RangeT lowRange, RangeT highRange)
       : lowRange_(lowRange), highRange_(highRange){}
-      
+
     //template<typename ForwardIterT>
     //bool operator()(ForwardIterT record_beg, ForwardIterT record_end)
     bool operator()(RangeT record) const {
@@ -424,18 +424,18 @@ namespace math {
           ++high;
 
 
-	  //check that all keys fall between lowRange_ and hiRange_
-	  /*
+          //check that all keys fall between lowRange_ and hiRange_
+          /*
             typename RangeT::iterator low = lowRange_.begin();
             typename RangeT::iterator high = highRange_.begin();
             for(  ; record_beg != record_end; ++record_beg){
-	    if( *record_beg < *low )
+            if( *record_beg < *low )
             return false;
-	    if( *record_beg > *high )
+            if( *record_beg > *high )
             return false;
-	    ++low;
-	    ++high;
-	  */
+            ++low;
+            ++high;
+          */
         }
       return true;
     }
@@ -475,7 +475,7 @@ namespace math {
     template <typename IterA, typename IterB>
     double operator()(IterA a_first, IterA a_last, IterB b_first) const {
       double distance_sq = 0;
-	  
+
       for( ; a_first != a_last; ++a_first, ++b_first){
         distance_sq += pow( (*a_first - *b_first), 2);
       }
@@ -495,9 +495,9 @@ namespace math {
     typedef typename FileT::value_type record_t;
     typedef typename record_t::const_iterator record_iter_t;
     typedef typename std::iterator_traits<record_iter_t>::value_type key_t;
-           
+
     typedef typename std::vector<key_t> range_t; //range_t should be selected to provide the operator[]
-      
+
     typedef boost::graph_traits< boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS > >::vertex_descriptor Vertex;
     //      typedef boost::graph_traits< adjacency_list<vecS, vecS, undirectedS > >::edge_descriptor Edge;
 
@@ -540,7 +540,7 @@ namespace math {
   public:
 
     ///////////////  --- KD Constructors ---  //////////////////////
-  
+
     KDTree(unsigned k) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX){
       //initialize
       initialize_property_maps();
@@ -560,7 +560,7 @@ namespace math {
       //build tree
       initialize_tree(file, ModuloDiscSelector(m_k), MedianPartitioner());
     }
-  
+
     //Specify functors to select discriminator and partition
     template<typename DiscSelector, typename Partitioner>
     KDTree(unsigned k, FileT const& file,
@@ -575,7 +575,7 @@ namespace math {
     }
 
   private:
-      
+
     //Capture the redundant initialization in the different constructors:
     void initialize_property_maps(){
       m_record_map = get(boost::vertex_record, m_kdTree);
@@ -602,11 +602,11 @@ namespace math {
       // but I'm not sure if that's necessary
       std::vector<record_t> temp_file(distance(file.begin(), file.end()));
       std::copy(file.begin(), file.end(), temp_file.begin());
-	  
+
       m_root = build_tree(temp_file.begin(), temp_file.end(), lo_range, hi_range,
                           ModuloDiscSelector(m_k), MedianPartitioner(), -1, 0);
     }
-      
+
 
     //A private class provides the needed binary predicate for the queue:
     //With this, priority_queue.top() always returns the pair of greatest distance.
@@ -616,10 +616,10 @@ namespace math {
       bool operator()(const std::pair<Vertex,T>& pairA,
                       const std::pair<Vertex,T>& pairB) const{
         return (pairA.second < pairB.second);
-      } 
+      }
     };
-      
-  public:      
+
+  public:
 
     //////////////////   --- KD Public Methods ---  /////////////////////////
 
@@ -653,7 +653,7 @@ namespace math {
     {
       return m_nearest_neighbors(query, nearest_records, m, NullRecordConstraintKD(), SafeEuclideanDistanceMetric());
     }
-      
+
     template <typename ContainerT, typename RecordConstraintT, typename DistanceMetricT>
     unsigned m_nearest_neighbors(ContainerT const& query, std::vector<record_t>& nearest_records, unsigned m = 1,
                                  RecordConstraintT recordConstraint = NullRecordConstraintKD(),
@@ -661,7 +661,7 @@ namespace math {
     {
       assert( m_k == (unsigned) std::distance(query.begin(), query.end()) );
       nearest_records.clear();
-      
+
       //Initialize the priority queue with m sentinel NIL pairs
       std::pair<Vertex, key_t> nil_pair(m_NIL, m_POSITIVE_INFINITY);
       while (!m_priority_queue.empty()){
@@ -670,18 +670,18 @@ namespace math {
       for(unsigned i = 0; i < m; ++i){
         m_priority_queue.push(nil_pair);
       }
-    
+
       //convert input into a range_t object, which is more convenient for
       //internal operations (provides the operator[])
       range_t _query(m_k);
       std::copy(query.begin(), query.end(), _query.begin());
-      
+
       nearest_neighbors(m_root, _query, m, recordConstraint, distanceMetric);
 
       //Now parse m_priority_queue into nearest_records
       unsigned num_records_found = 0;
       std::pair<Vertex, key_t> temp_pair;
-      
+
       while (!m_priority_queue.empty()){
 
         temp_pair = m_priority_queue.top();
@@ -700,7 +700,7 @@ namespace math {
 
       return num_records_found;
     }
-  
+
     //The number of vertices in the graph, less one for the NIL vertex
     unsigned size(){return num_vertices(m_kdTree)-1;}
     //The root vertex is at depth 0.
@@ -711,7 +711,7 @@ namespace math {
   private:
 
     ///////////////// --- KD Private Methods --- ////////////////////
-  
+
     /// BUILD_TREE
     //
     // Given all the records, building the k-d tree is a matter of selecting the proper discriminator
@@ -746,7 +746,7 @@ namespace math {
       //Choose discriminator and partition
       unsigned disc = discSelector(file_beg, file_end, previous_disc);
       RandomAccessIterT partition = partitioner(file_beg, file_end, disc);
-    
+
       Vertex P = add_vertex(m_kdTree);
       m_record_map[P] = *partition;
       m_discriminator_map[P] = disc;
@@ -760,11 +760,11 @@ namespace math {
       //Create low range for HISON
       range_t HISON_lo_range = lo_range;
       set_range_value(HISON_lo_range.begin(), (*partition).begin(), disc);
-            
+
       //The subtrees below P should not include P
       RandomAccessIterT one_past_partition = RandomAccessIterT(partition);
       std::advance(one_past_partition,1);
-  
+
       Vertex lo = build_tree(file_beg, partition, lo_range, LOSON_hi_range, discSelector, partitioner, disc, ++depth);
       Vertex hi = build_tree(one_past_partition, file_end, HISON_lo_range, hi_range, discSelector, partitioner, disc, ++depth);
       m_LOSON_map[P] = lo;
@@ -779,7 +779,7 @@ namespace math {
         boost::tie(ed, inserted) = add_edge(P,lo,m_kdTree);
         boost::tie(ed, inserted) = add_edge(P,hi,m_kdTree);
       */
-	  
+
       //Print out P, LOSON, HISON, discriminator, ranges
       //print__vertex(P, lo, hi);
       return P;
@@ -799,7 +799,7 @@ namespace math {
         Vertex new_vertex = add_vertex(m_kdTree);
         m_min_depth = 0;
         m_max_depth = 0;
-	  
+
         //initialize properties for new vertex
         //range_t lo_range(m_k, -ScalarTypeLimits<double>::highest());
         //range_t hi_range(m_k, ScalarTypeLimits<double>::highest());
@@ -815,10 +815,10 @@ namespace math {
 
         //BGL Edges
         /*
-	  Edge ed;
-	  bool inserted;
-	  boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL,m_kdTree);
-	  boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL,m_kdTree);
+          Edge ed;
+          bool inserted;
+          boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL,m_kdTree);
+          boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL,m_kdTree);
         */
 
         m_root = new_vertex;
@@ -826,19 +826,19 @@ namespace math {
       }
 
       unsigned disc_P = m_discriminator_map[P];
-      
+
       if( on_low_side(r, P) ){
         if( m_LOSON_map[P] == m_NIL ){
           //Insert r as P's loson:
           //remove_edge(P, m_NIL, m_kdTree); //explicit BGL edge
           Vertex new_vertex = add_vertex(m_kdTree);
           m_LOSON_map[P] = new_vertex;  //implicit edge
-	    
+
           //initialize properties for new vertex
           record_t record_P = m_record_map[P];
           range_t new_hirange = m_HIRANGE_map[P];
           set_range_value(new_hirange.begin(), record_P.begin(), disc_P);
-	    
+
           m_record_map[new_vertex] = r;
           m_discriminator_map[new_vertex] = ( (disc_P + 1) % m_k);
           m_HIRANGE_map[new_vertex] = new_hirange;
@@ -848,10 +848,10 @@ namespace math {
 
           //BGL Edges
           /*
-	    Edge ed;
-	    bool inserted;
-	    boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
-	    boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
+            Edge ed;
+            bool inserted;
+            boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
+            boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
           */
 
           //P is at depth 'depth', so P's son is at depth 'depth+1'
@@ -860,7 +860,7 @@ namespace math {
 
           if (depth+1 > m_max_depth)
             m_max_depth = depth+1;
-	  
+
           return;
         }
         //otherwise continue the recursion
@@ -877,7 +877,7 @@ namespace math {
           record_t record_P = m_record_map[P];
           range_t new_lorange = m_LORANGE_map[P];
           set_range_value(new_lorange.begin(), record_P.begin(), disc_P);
-	    
+
           m_record_map[new_vertex] = r;
           m_discriminator_map[new_vertex] = ( (disc_P + 1) % m_k);
           m_LORANGE_map[new_vertex] = new_lorange;
@@ -887,16 +887,16 @@ namespace math {
 
           //BGL Edges
           /*
-	    Edge ed;
-	    bool inserted;
-	    boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
-	    boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
+            Edge ed;
+            bool inserted;
+            boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
+            boost::tie(ed, inserted) = add_edge(new_vertex, m_NIL, m_kdTree);
           */
 
           //P is at depth 'depth', so P's son is at depth 'depth+1'
           if(depth+1 < m_min_depth)
             m_min_depth = depth+1;
-	    
+
           if (depth+1 > m_max_depth)
             m_max_depth = depth+1;
 
@@ -959,7 +959,7 @@ namespace math {
         //if (distance_to_N < distance_to_mth_best){
         std::pair<Vertex, double> temp_pair(N, distance_to_N);
         m_priority_queue.push(temp_pair);
-	  	  
+
         while(m_priority_queue.size() > m){
           m_priority_queue.pop();
         }
@@ -977,38 +977,38 @@ namespace math {
 
       int done = 0;
       if (query_key < partition_key)
-	{
-	  //query is on low side of partition at vertex N
-	  done = nearest_neighbors(loson, query, m, recordConstraint, distanceMetric);
-	  if (done == 1)
-	    return 1;
-	  //m nearest may have changed from searching loson
-	  if (!m_priority_queue.empty())
+        {
+          //query is on low side of partition at vertex N
+          done = nearest_neighbors(loson, query, m, recordConstraint, distanceMetric);
+          if (done == 1)
+            return 1;
+          //m nearest may have changed from searching loson
+          if (!m_priority_queue.empty())
             boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
-	  N_lorange[disc] = partition_key;
-	  if (bounds_overlap_ball(query, N_lorange, N_hirange, distance_to_mth_best))
-	    {
-	      //std::cout<<"Hison's Bounds Overlap Ball, check hi side too.\n";
-	      done = nearest_neighbors(hison, query, m, recordConstraint, distanceMetric);
-	      if(done == 1)
-		return 1;
-	    }
-	}else{
+          N_lorange[disc] = partition_key;
+          if (bounds_overlap_ball(query, N_lorange, N_hirange, distance_to_mth_best))
+            {
+              //std::cout<<"Hison's Bounds Overlap Ball, check hi side too.\n";
+              done = nearest_neighbors(hison, query, m, recordConstraint, distanceMetric);
+              if(done == 1)
+                return 1;
+            }
+        }else{
         //query is on the high side of the partition
         done = nearest_neighbors(hison, query, m, recordConstraint, distanceMetric);
         if (done == 1)
-	  return 1;
+          return 1;
         //m nearest may have changed from searching hison
         if (!m_priority_queue.empty())
           boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
         N_hirange[disc] = partition_key;
         if (bounds_overlap_ball(query, N_lorange, N_hirange, distance_to_mth_best))
-	  {
-	    //std::cout<<"LOson's's Bounds Overlap Ball, check lo side too.\n";
-	    done = nearest_neighbors(loson, query, m, recordConstraint, distanceMetric);
-	    if (done == 1)
-	      return 1;
-	  }
+          {
+            //std::cout<<"LOson's's Bounds Overlap Ball, check lo side too.\n";
+            done = nearest_neighbors(loson, query, m, recordConstraint, distanceMetric);
+            if (done == 1)
+              return 1;
+          }
       }
       //After checking children, the ball containing the m best may be entirely in N's range:
       boost::tie(dummy, distance_to_mth_best) = m_priority_queue.top();
@@ -1028,7 +1028,7 @@ namespace math {
     //region's bounds, and the region must be examined. (bounds_overlap_ball)
     //  If a ball fits entirely within a region that has been examined, the
     //search is finished. (ball_within_bounds)
-    
+
 
     /// Bounds Overlap Ball
     //
@@ -1045,7 +1045,7 @@ namespace math {
       //         //std::cout<<"Infinite Radius overlaps all bounds!\n";
       //         return true;
       //       }
-      
+
       //       //If any coordinate of the query is +/- infinity, then the ball overlaps no bounds
       //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
       //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
@@ -1061,12 +1061,12 @@ namespace math {
       typename range_t::const_iterator lorange_iter = lorange.begin();
       typename range_t::const_iterator hirange_iter = hirange.begin();
       for( ; iter != query.end(); ++iter, ++lorange_iter, ++hirange_iter) {
-	  
+
         if(*iter < *lorange_iter) {
           d_squared += pow( *iter - *lorange_iter, 2);
           if (d_squared > radius_squared)
             return false;
-	    
+
         } else if(*iter > *hirange_iter) {
           d_squared += pow( *iter - *hirange_iter, 2);
           if (d_squared > radius_squared)
@@ -1078,7 +1078,7 @@ namespace math {
       //d_squared < radius_squared, so no overlap
       return true;
     }
-      
+
     /// Ball Within Bounds
     //
     // Checks if a sphere of given radius fits entirely within the bounds
@@ -1092,7 +1092,7 @@ namespace math {
       //       if(fabs(radius) == m_POSITIVE_INFINITY)
       //         return false;
       //       VW_DEBUG_ASSERT(radius >= 0, ArgumentErr() << "KDTree::ball_within_bounds() radius is zero or non-positive.");
-      
+
       //       //A query with an infinite coordinate is not within any bounds
       //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
       //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
@@ -1141,7 +1141,7 @@ namespace math {
       std::advance(iterB, k);
       *iterA = *iterB;
     }
-      
+
     //Given vertex descriptors for a vertex Q, its loson P and hison R,
     //output the vertices' records, and the discriminator used
     void print_vertex(Vertex P, Vertex Q, Vertex R){
@@ -1150,15 +1150,15 @@ namespace math {
       record_t R_record = get(m_record_map, R);
       range_t P_lorange = get(m_LORANGE_map, P);
       range_t P_hirange = get(m_HIRANGE_map, P);
-      
+
       std::cout<< "\tRecord[P] : ";
-      print_record(P_record.begin(), P_record.end());  
-      
+      print_record(P_record.begin(), P_record.end());
+
       std::cout<< "\tRecord[loson] : ";
-      print_record(Q_record.begin(), Q_record.end());  
-      
+      print_record(Q_record.begin(), Q_record.end());
+
       std::cout<< "\tRecord[hison] : ";
-      print_record(R_record.begin(), R_record.end());  
+      print_record(R_record.begin(), R_record.end());
 
       std::cout<<"\tDiscrimnator[P] : " <<m_discriminator_map[P]<<"\n";
       std::cout<<"Lo-Range of Subtree rooted at P: ";
@@ -1167,7 +1167,7 @@ namespace math {
       print_record(P_hirange.begin(), P_hirange.end());
       std::cout<<"\n";
     }
-  }; //end KDTree class    
+  }; //end KDTree class
 
 
   //Display all of the records in a file.

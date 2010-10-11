@@ -152,10 +152,10 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   template <class PixelT>
   inline typename CorrelatorAccumulatorType<typename CompoundChannelType<PixelT>::type>::type
   compute_soad(PixelT *img0, PixelT *img1,
-	       int r, int c,                   // row and column in img0
-	       int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-	       int kern_width, int kern_height,// Kernel dimensions
-	       int width, int height) {        // Image dimensions
+               int r, int c,                   // row and column in img0
+               int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
+               int kern_width, int kern_height,// Kernel dimensions
+               int width, int height) {        // Image dimensions
     typedef typename CompoundChannelType<PixelT>::type channel_type;
     typedef typename CorrelatorAccumulatorType<channel_type>::type accum_type;
 
@@ -189,12 +189,12 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   template <class ViewT>
   inline typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type
   compute_soad(ImageViewBase<ViewT> const& img0,
-	       ImageViewBase<ViewT> const& img1,
-	       int r, int c,                   // row and column in img0
-	       int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-	       int kern_width, int kern_height,
-	       BBox2i const& left_bbox,
-	       BBox2i const& right_bbox) {// Kernel dimensions
+               ImageViewBase<ViewT> const& img1,
+               int r, int c,                   // row and column in img0
+               int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
+               int kern_width, int kern_height,
+               BBox2i const& left_bbox,
+               BBox2i const& right_bbox) {// Kernel dimensions
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
     typedef typename CorrelatorAccumulatorType<channel_type>::type accum_type;
 
@@ -233,11 +233,11 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   template <class ChannelT>
   inline PixelMask<Vector2f>
   compute_disparity(ImageView<ChannelT> &left_image,
-		    ImageView<ChannelT> &right_image,
-		    int i, int j,
-		    int kern_width, int kern_height,
-		    int min_h_disp, int max_h_disp,
-		    int min_v_disp, int max_v_disp) {
+                    ImageView<ChannelT> &right_image,
+                    int i, int j,
+                    int kern_width, int kern_height,
+                    int min_h_disp, int max_h_disp,
+                    int min_v_disp, int max_v_disp) {
 
     typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
     accum_type min_soad = std::numeric_limits<accum_type>::max(); // Impossibly large
@@ -246,10 +246,10 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     for (int ii = min_h_disp; ii <= max_h_disp; ++ii) {
       for (int jj = min_v_disp; jj <= max_v_disp; ++jj) {
         accum_type soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
-				       j, i, ii, jj,kern_width, kern_height,
-				       left_image.cols(), left_image.rows());
+                                       j, i, ii, jj,kern_width, kern_height,
+                                       left_image.cols(), left_image.rows());
         if (soad != CorrelatorFailureValue<ChannelT>()
-	    && soad < min_soad) {
+            && soad < min_soad) {
           min_soad = soad;
           validate( best_disparity );
           best_disparity[0] = ii;
@@ -323,13 +323,13 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
   template <class ChannelT>
   void subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-				       ImageView<ChannelT> const& left_image,
-				       ImageView<ChannelT> const& right_image,
-				       int kern_width, int kern_height,
-				       BBox2i region_of_interest,
-				       bool do_horizontal_subpixel = true,
-				       bool do_vertical_subpixel = true,
-				       bool verbose = false);
+                                       ImageView<ChannelT> const& left_image,
+                                       ImageView<ChannelT> const& right_image,
+                                       int kern_width, int kern_height,
+                                       BBox2i region_of_interest,
+                                       bool do_horizontal_subpixel = true,
+                                       bool do_vertical_subpixel = true,
+                                       bool verbose = false);
 
   template <class ChannelT>
   void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,

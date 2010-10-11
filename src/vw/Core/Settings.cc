@@ -243,7 +243,7 @@ void vw::Settings::set_write_pool_size(int size) {
   }
 }
 
-int vw::Settings::default_tile_size() { 
+int vw::Settings::default_tile_size() {
   if (!m_default_tile_size_override)
     reload_config();
   Mutex::Lock lock(m_settings_mutex);
@@ -256,7 +256,7 @@ void vw::Settings::set_default_tile_size(int num) {
   m_default_tile_size = num;
 }
 
-std::string vw::Settings::tmp_directory() { 
+std::string vw::Settings::tmp_directory() {
   if (!m_tmp_directory_override)
     reload_config();
   Mutex::Lock lock(m_settings_mutex);

@@ -23,13 +23,13 @@ namespace mosaic {
       else if( name[i]=='1' ) pos += Vector2i(1,1);
       else if( name[i]=='3' ) pos += Vector2i(1,0);
       else if( name[i]!='2' ) {
-	vw_throw(LogicErr() << "TMS output format incompatible with non-standard quadtree structure");
+        vw_throw(LogicErr() << "TMS output format incompatible with non-standard quadtree structure");
       }
     }
     std::ostringstream oss;
     oss << name.length() << "/" << pos.x() << "/" << pos.y();
     path /= oss.str();
-    
+
     return path.native_file_string();
   }
 

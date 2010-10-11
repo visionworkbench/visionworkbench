@@ -19,7 +19,7 @@ namespace vw {
 namespace cartography {
 
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
-    
+
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
     boost::shared_ptr<ProjContext> m_src_datum;
@@ -27,7 +27,7 @@ namespace cartography {
     bool m_skip_map_projection;
     bool m_skip_datum_conversion;
 
-    /* Converts between datums. The parameter 'forward' specifies whether 
+    /* Converts between datums. The parameter 'forward' specifies whether
      * we convert forward (true) or reverse (false).
     */
     Vector2 datum_convert(Vector2 const& v, bool forward) const;
@@ -62,7 +62,7 @@ namespace cartography {
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     }
 
-    // We override forward_bbox so it understands to check if the image 
+    // We override forward_bbox so it understands to check if the image
     // crosses the poles or not.
     BBox2i forward_bbox( BBox2i const& bbox ) const;
 
@@ -89,7 +89,7 @@ namespace cartography {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
       (interpolate(v, interp_func, edge_func), GeoTransform(src_georef,dst_georef));
   }
-  
+
   /// Convenience function: transform with a default interpolation
   /// scheme of bilinear interpolation.
   template <class ImageT, class EdgeT>
@@ -98,10 +98,10 @@ namespace cartography {
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef,
                     EdgeT const& edge_func ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef));
   }
-  
+
   /// Convenience function: transform with a default scheme of
   /// bilinear interpolation and zero edge extension.
   template <class ImageT>
@@ -109,7 +109,7 @@ namespace cartography {
   inline geo_transform( ImageViewBase<ImageT> const& v,
                     GeoReference const& src_georef,
                     GeoReference const& dst_georef ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef));
   }
 
@@ -143,7 +143,7 @@ namespace cartography {
                     int32 width,
                     int32 height,
                     EdgeT const& edge_func ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), edge_func), GeoTransform(src_georef,dst_georef), width, height);
   }
 
@@ -157,7 +157,7 @@ namespace cartography {
                     GeoReference const& dst_georef,
                     int32 width,
                     int32 height ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, GeoTransform>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), GeoTransform(src_georef,dst_georef), width, height);
   }
 
@@ -172,10 +172,10 @@ namespace cartography {
   /// transform you are using in the src_georef or dst_georef.
   ///
   /// Important Note: The convention here is that the Vector3 contains
-  /// the ordered triple: (longitude, latitude, altitude). 
+  /// the ordered triple: (longitude, latitude, altitude).
   void reproject_point_image(ImageView<Vector3> const& point_image,
                              GeoReference const& src_georef,
-                             GeoReference const& dst_georef); 
+                             GeoReference const& dst_georef);
 
 }} // namespace vw::cartography
 

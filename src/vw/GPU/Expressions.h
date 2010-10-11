@@ -111,11 +111,11 @@ class ShaderBuilder {
     std::stringstream shader;
     if(!isCG) {
       for(int i=0; i <= cImageIndex; i++)
-	shader << "sampler2DRect f" << i << ";\n";
+        shader << "sampler2DRect f" << i << ";\n";
       for(int i=0; i <= cFloatIndex; i++)
-	shader << "float f" << i << ";\n";
+        shader << "float f" << i << ";\n";
       for(int i=0; i <= cVectorIndex; i++)
-	shader << "vec4 f" << i << ";\n";
+        shader << "vec4 f" << i << ";\n";
       shader << "main()\n" << bodyText << ";\n" << "}\n\n" << functionsText;
     }
     printf("\n****************************************************\n%s\n\n", shader.str().c_str());
@@ -131,7 +131,7 @@ class ShaderBuilder {
 
   int BindFunction() { return ++cFunctionIndex; }
 
-  int BindImage(GPUImageBase& image) { 
+  int BindImage(GPUImageBase& image) {
     /*
     int name = image.name();
     std::map<int, int>::iterator findIter = textureBindingMap.find(name);
@@ -148,17 +148,17 @@ class ShaderBuilder {
   void BindGroup(ShaderBindings& shaderBindings) {
     int i = 0;
     for(std::list<float>::iterator iter = shaderBindings.floats.begin(); iter != shaderBindings.floats.end(); iter++, i++) {
-      int index = BindFloat(*iter); 
+      int index = BindFloat(*iter);
       if(i == 0)
-	shaderBindings.floatBindingStartIndex = index;
+        shaderBindings.floatBindingStartIndex = index;
     }
 
     i = 0;
     for(std::list<std::vector<float> >::iterator iter = shaderBindings.vectors.begin(); iter != shaderBindings.vectors.end(); iter++, i++) {
       int index = BindVector(*iter);
       if(i == 0)
-	shaderBindings.vectorBindingStartIndex = index;
-    }    
+        shaderBindings.vectorBindingStartIndex = index;
+    }
   }
 
   bool BindingComplete() {
@@ -213,7 +213,7 @@ class ShaderNode_BaseTransform : public ShaderNode_Base {
   virtual ~ShaderNode_BaseTransform() { }
 
   ShaderNode_Base* AppendInterpolateNode();
-    
+
 };
 
 
@@ -225,7 +225,7 @@ class ShaderNode_LinearTransform : public ShaderNode_BaseTransform {
   ShaderNode_LinearTransform(ShaderNode_Base* node, Matrix<float>& inHomography, ShaderNode_Accessor* interpolator = NULL);
 
   ~ShaderNode_LinearTransform() { }
-    
+
   int RecursiveBind(ShaderBuilder& shaderBuilder);
 
   void RecursiveCompose(ShaderBuilder& shaderBuilder);
@@ -341,7 +341,7 @@ class ShaderNode_PixelModifier : public ShaderNode_Base {
  */
 
 
- 
+
 
  /*
 

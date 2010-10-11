@@ -6,9 +6,9 @@
 
 
 /// \file Stereo.h
-/// 
+///
 /// A convenience header that includes the header files in vw/Stereo.
-/// 
+///
 #ifndef __VW_STEREO_H__
 #define __VW_STEREO_H__
 
@@ -23,4 +23,4 @@
 #include <vw/Stereo/EMSubpixelCorrelatorView.h>
 
 #endif // __VW_STEREO_H__
- 
+

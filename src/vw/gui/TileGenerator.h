@@ -42,9 +42,9 @@ namespace gui {
   // in the bottom (i.e. highest resolution) level of the source image
   // pyramid.
   BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level);
-  
-  std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, 
-                                       int max_level, int transaction_id, 
+
+  std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level,
+                                       int max_level, int transaction_id,
                                        bool exact_transaction_id_match);
 
   // --------------------------------------------------------------------------
@@ -64,7 +64,7 @@ namespace gui {
     virtual ChannelTypeEnum channel_type() const = 0;
     virtual Vector2i tile_size() const = 0;
     virtual int32 num_levels() const = 0;
-    
+
     // Use this method to generate the correct type of TileGenerator
     // for a given filename.
     static boost::shared_ptr<TileGenerator> create(std::string filename);
@@ -98,7 +98,7 @@ namespace gui {
   // --------------------------------------------------------------------------
   class HttpDownloadThread : public QThread {
     Q_OBJECT
-    
+
     QHttp *m_http;
     int m_current_request;
 
@@ -121,7 +121,7 @@ namespace gui {
     };
     std::map<int, RequestBuffer> m_requests;
     vw::Mutex m_mutex;
-    
+
   protected:
     void run();
   public:
@@ -145,7 +145,7 @@ namespace gui {
     bool m_download_complete;
     int m_request_id;
     HttpDownloadThread m_download_thread;
-    
+
   public:
     WebTileGenerator(std::string url, int levels);
     virtual ~WebTileGenerator() {}

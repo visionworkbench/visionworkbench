@@ -28,26 +28,26 @@
 
 /*
 // Point (and Vector) operators
-inline bool         operator==(ContourPoint a, ContourPoint b) { 
-    return (a[0] == b[0] && a[1] == b[1]) ? true : false; 
+inline bool         operator==(ContourPoint a, ContourPoint b) {
+    return (a[0] == b[0] && a[1] == b[1]) ? true : false;
 }
-inline ContourPoint operator+ (ContourPoint a, ContourPoint b) { 
-    return ContourPoint(a[0] + b[0], a[1] + b[1]); 
+inline ContourPoint operator+ (ContourPoint a, ContourPoint b) {
+    return ContourPoint(a[0] + b[0], a[1] + b[1]);
 }
-inline ContourPoint operator- (ContourPoint a, ContourPoint b) { 
-    return ContourPoint(a[0] - b[0], a[1] - b[1]); 
+inline ContourPoint operator- (ContourPoint a, ContourPoint b) {
+    return ContourPoint(a[0] - b[0], a[1] - b[1]);
 }
-inline float operator* (ContourPoint a, ContourPoint b) { 
-    return a[0] * b[0] + a[1] * b[1]; 
+inline float operator* (ContourPoint a, ContourPoint b) {
+    return a[0] * b[0] + a[1] * b[1];
 }
-inline ContourPoint operator* (ContourPoint a, float s) { 
-    return ContourPoint(a[0] * s, a[1] * s); 
+inline ContourPoint operator* (ContourPoint a, float s) {
+    return ContourPoint(a[0] * s, a[1] * s);
 }
-inline ContourPoint operator* (float s, ContourPoint a) { 
-    return ContourPoint(a[0] * s, a[1] * s); 
+inline ContourPoint operator* (float s, ContourPoint a) {
+    return ContourPoint(a[0] * s, a[1] * s);
 }
-inline float norm(ContourPoint p) { 
-    return sqrt(pow(p[0],2) + pow(p[1],2)); 
+inline float norm(ContourPoint p) {
+    return sqrt(pow(p[0],2) + pow(p[1],2));
 }
 
 inline void normalize(ContourPoint &p) {
@@ -96,16 +96,16 @@ void PointContour::splice(std::deque<Point2>::iterator position, PointContour& c
         std::deque<double>::reverse_iterator c2u_riter;
         if (position == d.begin()) {
             for (c2d_riter = c2.d.rbegin(), c2u_riter = c2.u.rbegin();
-                 c2d_riter != c2.d.rend(); 
-                 ++c2d_riter, ++c2u_riter) 
+                 c2d_riter != c2.d.rend();
+                 ++c2d_riter, ++c2u_riter)
             {
                 d.push_front(*c2d_riter);
                 u.push_front(*c2u_riter);
-            } 
+            }
         } else if (position == d.end()) {
             for (c2d_riter = c2.d.rbegin(), c2u_riter = c2.u.rbegin();
-                 c2d_riter != c2.d.rend(); 
-                 ++c2d_riter, ++c2u_riter) 
+                 c2d_riter != c2.d.rend();
+                 ++c2d_riter, ++c2u_riter)
             {
                 d.push_back(*c2d_riter);
                 u.push_back(*c2u_riter);
@@ -116,16 +116,16 @@ void PointContour::splice(std::deque<Point2>::iterator position, PointContour& c
         std::deque<double>::iterator c2u_iter;
         if (position == d.begin()) {
             for (c2d_iter = c2.d.begin(), c2u_iter = c2.u.begin();
-                 c2d_iter != c2.d.end(); 
-                 ++c2d_iter, ++c2u_iter) 
+                 c2d_iter != c2.d.end();
+                 ++c2d_iter, ++c2u_iter)
             {
                 d.push_front(*c2d_iter);
                 u.push_front(*c2u_iter);
-            } 
+            }
         } else if (position == d.end()) {
             for (c2d_iter = c2.d.begin(), c2u_iter = c2.u.begin();
-                 c2d_iter != c2.d.end(); 
-                 ++c2d_iter, ++c2u_iter) 
+                 c2d_iter != c2.d.end();
+                 ++c2d_iter, ++c2u_iter)
             {
                 d.push_back(*c2d_iter);
                 u.push_back(*c2u_iter);
@@ -161,13 +161,13 @@ bool join(PointContour& c1, PointContour& c2) {
         if (c2.size() < c1.size()) {
             c2.reverse();
             c1.splice(c1.begin(), c2);
-        } 
+        }
         else {
             c1.reverse();
             c1.splice(c1.end(), c2);
         }
     }
-    else 
+    else
         return false;
 
     return true;
@@ -188,7 +188,7 @@ bool join(PointContour& c1, PointContour& c2) {
         c1.splice(c1.d.end(), c2, true);
     else if (c1_front == c2_front)
         c1.splice(c1.d.begin(), c2, true);
-    else 
+    else
         return false;
 
     return true;
@@ -234,7 +234,7 @@ void add_segment(PointContourSet& cset, ContourSegment& s) {
 
     if (!matched) {
         // either no contours for this level, or this segment doesn't
-        // match any of the existing contours. In either case add a 
+        // match any of the existing contours. In either case add a
         // new contour for this level
         cset.insert(make_pair(level, c_new));
     }
@@ -279,7 +279,7 @@ void chord_length_parameterize(PointContour c, PointContour::iterator first, Poi
     }
 }
 
-void conrec(vw::ImageView<float>& dem, PointContourSet& cset, 
+void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
                     int cint, float nodataval,
                     std::list<ContourSegment>& seglist) {
     int m1,m2,m3,case_value;
@@ -307,8 +307,8 @@ void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
             zmax = max_nodata( max_nodata(dem(i,j),   dem(i,j+1),   nodataval),
                                max_nodata(dem(i+1,j), dem(i+1,j+1), nodataval),
                                nodataval);
-    
-            int cmin = ceil(zmin / cint) * cint;        
+
+            int cmin = ceil(zmin / cint) * cint;
             int cmax = floor(zmax / cint) * cint;
             for (c = cmin; c <= cmax; c += cint) {
                 //printf("(%d,%d) c: %d\n",i,j,c);
@@ -447,7 +447,7 @@ void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
                             //===========================================================
                             case 9:
                                 seg.a = ContourPoint(xsect(m3,m1), ysect(m3,m1));
-                                seg.b = ContourPoint(xsect(m1,m2), ysect(m1,m2)); 
+                                seg.b = ContourPoint(xsect(m1,m2), ysect(m1,m2));
                                 break;
                             default:
                                 break;
@@ -458,7 +458,7 @@ void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
             }
         }
     }
-    vw::vw_out(vw::DebugMessage, "console") 
+    vw::vw_out(vw::DebugMessage, "console")
         << "\tCONREC found " << seglist.size() << " segments" << std::endl;
 }
 

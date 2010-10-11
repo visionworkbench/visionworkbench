@@ -11,7 +11,7 @@
 #include <list>
 #include <vw/GPU/Setup.h>
 
-namespace vw { 
+namespace vw {
 namespace GPU {
 
 #define GPU_DEBUG_PRINT 0
@@ -57,7 +57,7 @@ enum Tex_Type {
      return "GPU_UINT8";
    else if(type == GPU_FLOAT16)
      return "GPU_FLOAT16";
-   else 
+   else
      return "GPU_FLOAT32";
  }
 
@@ -89,21 +89,21 @@ public:
 
   Tex_Type type() { return m_type; }
 
-  int MemorySize() { 
-    int nComponents; 
-    if(m_format == GPU_RGB) 
+  int MemorySize() {
+    int nComponents;
+    if(m_format == GPU_RGB)
       nComponents = 3;
-    else if(m_format == GPU_RGBA) 
+    else if(m_format == GPU_RGBA)
       nComponents = 4;
     else
       nComponents = 1;
     return m_width * m_height * m_type * nComponents;
   }
-  
+
   int Components() {
-    if(m_format == GPU_RGB) 
+    if(m_format == GPU_RGB)
       return 3;
-    else if(m_format == GPU_RGBA) 
+    else if(m_format == GPU_RGBA)
       return 4;
     else
       return 1;

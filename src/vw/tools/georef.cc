@@ -68,9 +68,9 @@ int main( int argc, char *argv[] ) {
     ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
     ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates")
     ("pixel-as-point", "Encode that the pixel location (0,0) is the center of the upper left hand pixel (the default, if you specify nothing, is to set the upper left hand corner of the upper left pixel as (0,0) (i.e. PixelAsArea).");
-  
+
   po::options_description hidden_options("");
-  hidden_options.add_options() 
+  hidden_options.add_options()
     ("input-file", po::value<std::string>(&input_filename));
 
   po::options_description options("Allowed Options");
@@ -151,7 +151,7 @@ int main( int argc, char *argv[] ) {
   else if( vm.count("lambert-azimuthal") ) georef.set_lambert_azimuthal(proj_lat,proj_lon);
   else if( vm.count("utm") ) georef.set_UTM( utm_zone );
 
-  if (vm.count("pixel-as-point")) 
+  if (vm.count("pixel-as-point"))
     georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   else // Default: PixelAsArea
     georef.set_pixel_interpretation(GeoReference::PixelAsArea);
@@ -165,8 +165,8 @@ int main( int argc, char *argv[] ) {
 
   vw_out() << "Writing file with Proj4 String: " << georef.proj4_str() << "\n";
 
-  // Our file readers do a better job that GDAL's of coping with large 
-  // image files in some cases, so we make a fresh DiskImageView rather 
+  // Our file readers do a better job that GDAL's of coping with large
+  // image files in some cases, so we make a fresh DiskImageView rather
   // than making an ImageResourceView of the existing GDAL resource.
 
   if (vm.count("tfw")) {

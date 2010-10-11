@@ -9,7 +9,7 @@
 ///
 /// A read-only view of a general image resource.
 ///
-/// This class no longer caches blocks.  That functionality has been 
+/// This class no longer caches blocks.  That functionality has been
 /// factored out to BlockRasterizeView.
 ///
 #ifndef __VW_IMAGE_IMAGERESOURCEVIEW_H__
@@ -34,7 +34,7 @@ namespace vw {
 
     /// The view's pixel accessor type.
     typedef ProceduralPixelAccessor<ImageResourceView<PixelT> > pixel_accessor;
-    
+
     /// Constructs an ImageResourceView of the given resource.
     ImageResourceView( boost::shared_ptr<ImageResource> resource )
       : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
@@ -52,7 +52,7 @@ namespace vw {
     }
 
     ~ImageResourceView() {}
-    
+
     /// Returns the number of columns in the image.
     inline int32 cols() const { return m_rsrc->cols(); }
 
@@ -61,7 +61,7 @@ namespace vw {
 
     /// Returns the number of planes in the image.
     inline int32 planes() const { return m_planes; }
-    
+
     /// Returns the pixel at the given position in the given plane.
     result_type operator()( int32 x, int32 y, int32 plane=0 ) const {
       Mutex::Lock lock(*m_rsrc_mutex);
@@ -72,14 +72,14 @@ namespace vw {
       read_image( buffer, *m_rsrc, BBox2i(x,y,1,1) );
       return buffer(0,0,plane);
     }
-    
+
     /// Returns a pixel_accessor pointing to the origin.
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
-    
+
     const ImageResource *resource() const { return m_rsrc.get(); }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
       ImageView<PixelT> buf( bbox.width(), bbox.height() );
       rasterize( buf, bbox );
       return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
@@ -95,17 +95,17 @@ namespace vw {
   private:
     void initialize() {
       // If the user has requested a multi-channel pixel type, but the
-      // file is a multi-plane, scalar-pixel file, we force a single-plane 
+      // file is a multi-plane, scalar-pixel file, we force a single-plane
       // interpretation.
       if (PixelNumChannels<PixelT>::value > 1 && m_rsrc->pixel_format() == VW_PIXEL_SCALAR) {
         m_planes = 1;
       }
 
       // On the other hand, the user has requested a scalar pixel type
-      // but the file has a multi-channel pixel type, then we force a 
+      // but the file has a multi-channel pixel type, then we force a
       // multi-plane interpretation.
       if (IsScalar<PixelT>::value  && m_rsrc->channels() >= 1 && m_rsrc->planes() == 1) {
-	m_planes = m_rsrc->channels();
+        m_planes = m_rsrc->channels();
       }
     }
 

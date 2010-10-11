@@ -18,13 +18,13 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace mosaic {
 
-  // A special subclass of DiskImageResourcePNG that produces the bizarro 
-  // 16-bit PNG files that Uniview uses for terrain data.  They're standard 
-  // uint16 image files, except the data is interpreted as signed int16 
+  // A special subclass of DiskImageResourcePNG that produces the bizarro
+  // 16-bit PNG files that Uniview uses for terrain data.  They're standard
+  // uint16 image files, except the data is interpreted as signed int16
   // data instead.
   class UniviewTerrainResource : public DiskImageResourcePNG {
 
-    // A convenience function to force the format hint that we 
+    // A convenience function to force the format hint that we
     // pass to DiskImageResourcePNG to be single-channel uint16
     static ImageFormat make_uint16( ImageFormat const& format ) {
       ImageFormat result = format;
@@ -39,7 +39,7 @@ namespace mosaic {
       : DiskImageResourcePNG( filename, make_uint16(format) )
     {}
 
-    // First we convert to single-channel signed int16, then we spoof that as 
+    // First we convert to single-channel signed int16, then we spoof that as
     // uint16 data and pass it along to DiskImageResourcePNG to write.
     void write( ImageBuffer const& src, BBox2i const& bbox ) {
       ImageView<PixelGray<int16> > im_buf( src.format.cols, src.format.rows );
@@ -49,7 +49,7 @@ namespace mosaic {
       DiskImageResourcePNG::write( buffer, bbox );
     }
   };
-  
+
 
   std::string UniviewQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name(), fs::native );
@@ -61,11 +61,11 @@ namespace mosaic {
       else if( name[i]=='1' ) pos += Vector2i(1,1);
       else if( name[i]=='3' ) pos += Vector2i(1,0);
       else if( name[i]!='2' ) {
-	vw_throw(LogicErr() << "Uniview output format incompatible with non-standard quadtree structure");
+        vw_throw(LogicErr() << "Uniview output format incompatible with non-standard quadtree structure");
       }
     }
     std::ostringstream oss;
-    if (name.length() == 0) 
+    if (name.length() == 0)
       oss << "global";
     else
       oss << name.length()-1 << "/" << pos.y() << "/" << pos.x();

@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-// This deprecated header file defines a number of deprecated typdefs 
+// This deprecated header file defines a number of deprecated typdefs
 // for the edge extension modes in EdgeExtension.h.
 //
 #ifndef __VW_IMAGE_EDGEEXTEND_H__
@@ -16,7 +16,7 @@
 #warning The <vw/Image/EdgeExtend.h> header is deprecated: use <vw/Image/EdgeExtension.h> instead!
 
 namespace vw {
- 
+
   typedef EdgeExtensionBase EdgeExtendBase VW_DEPRECATED;
   typedef NoEdgeExtension NoEdgeExtend VW_DEPRECATED;
   typedef ZeroEdgeExtension ZeroEdgeExtend VW_DEPRECATED;
@@ -31,19 +31,19 @@ namespace vw {
   public:
     EdgeExtendView( ImageT const& image )
       : impl_type( image ) {}
-    
+
     EdgeExtendView( ImageT const& image, ExtensionT const& extension )
       : impl_type( image, extension ) {}
-    
+
     EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows )
       : impl_type( image, xoffset, yoffset, cols, rows ) {}
-    
+
     EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows, ExtensionT const& extension )
       : impl_type( image, xoffset, yoffset, cols, rows, extension ) {}
 
     EdgeExtendView( impl_type const& other ) : impl_type( other ) {}
   };
-  
+
 } // namespace vw
 
 #endif // __VW_IMAGE_EDGEEXTEND_H__

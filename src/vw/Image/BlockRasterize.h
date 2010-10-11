@@ -6,12 +6,12 @@
 
 
 /// \file BlockRasterizeView.h
-/// 
+///
 /// Defines a wrapper view that causes an image view to be rasterized
 /// one block at a time, rather than all at once, and supports multi-
-/// threaded rasterization as well as block-level cacheing.  Even when 
-/// you don't need those features, in some situations rasterizing one 
-/// block at a time can dramatically improve performance by reducing 
+/// threaded rasterization as well as block-level cacheing.  Even when
+/// you don't need those features, in some situations rasterizing one
+/// block at a time can dramatically improve performance by reducing
 /// memory utilization.
 ///
 #ifndef __VW_IMAGE_BLOCKRASTERIZE_H__
@@ -81,7 +81,7 @@ namespace vw {
     ImageT const& child() const { return *m_child; }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), planes() );
       rasterize( buf, bbox );
       return CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
@@ -94,8 +94,8 @@ namespace vw {
 
   private:
     // These function objects are spawned to rasterize the child image.
-    // One functor is created per child thread, and they are called 
-    // in succession with bounding boxes that are each contained 
+    // One functor is created per child thread, and they are called
+    // in succession with bounding boxes that are each contained
     // within one block.
     template <class DestT>
     class RasterizeFunctor {
@@ -126,7 +126,7 @@ namespace vw {
     // Allows RasterizeFunctor to access cache-related members.
     template <class DestT> friend class RasterizeFunctor;
 
-    // These objects rasterize a full block of image data to be 
+    // These objects rasterize a full block of image data to be
     // stored in the cache.
     class BlockGenerator {
       boost::shared_ptr<ImageT> m_child;
@@ -152,8 +152,8 @@ namespace vw {
       if( m_block_size.x() <= 0 || m_block_size.y() <= 0 ) {
         const int32 default_blocksize = 2*1024*1024; // 2 megabytes
         // XXX Should the default block configuration be different for
-        // very wide images?  Either way we will guess wrong some of 
-        // the time, so advanced users will have to know what they're 
+        // very wide images?  Either way we will guess wrong some of
+        // the time, so advanced users will have to know what they're
         // doing in any case.
         int32 block_rows = default_blocksize / (planes()*cols()*sizeof(pixel_type));
         if( block_rows < 1 ) block_rows = 1;
@@ -177,7 +177,7 @@ namespace vw {
 
     Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
       if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
-        vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix 
+        vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix
                   << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")" );
       return (*m_block_table)[ix+iy*m_table_width];
     }
@@ -189,11 +189,11 @@ namespace vw {
     int32 m_num_threads;
     Cache *m_cache_ptr;
     int m_table_width, m_table_height;
-    // We store this by shared pointer so copying a BlockRasterizeView 
+    // We store this by shared pointer so copying a BlockRasterizeView
     // (i.e. to promote its scope) is not as expensive an operation.
     boost::shared_ptr<std::vector<Cache::Handle<BlockGenerator> > > m_block_table;
   };
-  
+
   template <class ImageT>
   inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads = 0 ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, false );

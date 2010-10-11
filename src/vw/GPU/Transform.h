@@ -22,7 +22,7 @@
 
 namespace vw { namespace GPU {
 
-  // fixed_homography_transform 
+  // fixed_homography_transform
 
   template <class InterpT, class EdgeT>
   inline GPUImageBase fixed_homography_transform(GPUImageBase const& image, Matrix<float>& homography, InterpT, EdgeT) {
@@ -161,14 +161,14 @@ namespace vw { namespace GPU {
  template <class InterpT, class EdgeT>
   GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, InterpT, EdgeT) {
     int new_width = (int) floor(x_scale_factor * image.cols());
-    int new_height = (int) floor(y_scale_factor * image.rows());		
+    int new_height = (int) floor(y_scale_factor * image.rows());
     return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
   template <class InterpT>
   GPUImageBase resample(GPUImageBase const& image, float x_scale_factor, float y_scale_factor, InterpT) {
     int new_width = (int) floor(x_scale_factor * image.cols());
-    int new_height = (int) floor(y_scale_factor * image.rows());		
+    int new_height = (int) floor(y_scale_factor * image.rows());
     return resample(image, x_scale_factor, y_scale_factor, new_width, new_height, InterpT(), DefaultEdgeExtension());
   }
 
@@ -249,14 +249,14 @@ namespace vw { namespace GPU {
     pt_min = h_functor.reverse(pt);  pt_max = h_functor.reverse(pt);
     for (pt[0] = 0; pt[0] < image.width(); (pt[0])++) {
       for (pt[1] = 0; pt[1] < image.height(); (pt[1])++) {
-	pt_new = h_functor.reverse(pt);
-	pt_min(0) = (pt_new(0) < pt_min(0)) ? pt_new(0) : pt_min(0);
-	pt_max(0) = (pt_new(0) > pt_max(0)) ? pt_new(0) : pt_max(0);
-	pt_min(1) = (pt_new(1) < pt_min(1)) ? pt_new(1) : pt_min(1);
-	pt_max(1) = (pt_new(1) > pt_max(1)) ? pt_new(1) : pt_max(1);
+        pt_new = h_functor.reverse(pt);
+        pt_min(0) = (pt_new(0) < pt_min(0)) ? pt_new(0) : pt_min(0);
+        pt_max(0) = (pt_new(0) > pt_max(0)) ? pt_new(0) : pt_max(0);
+        pt_min(1) = (pt_new(1) < pt_min(1)) ? pt_new(1) : pt_min(1);
+        pt_max(1) = (pt_new(1) > pt_max(1)) ? pt_new(1) : pt_max(1);
       }
     }
-    
+
     Matrix<float> h_translate(3, 3);
     h_translate.set_identity();
     h_translate(0,2) = -pt_min(0);

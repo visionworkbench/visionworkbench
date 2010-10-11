@@ -6,7 +6,7 @@
 
 
 /// \file hdr_merge.cc
-/// 
+///
 /// This is a simple example program that stitches a HDR stack into an
 /// HDR image, performs tone-mapping, and saves several versions with
 /// different post-processing applied for comparison.  Usually the
@@ -46,7 +46,7 @@ int main( int argc, char *argv[] ) {
     vector<string> input_filenames;
     string output_filename, curve_file;
     float exposure_ratio = 0;
-    
+
     po::options_description desc("Options");
     desc.add_options()
       ("help,h", "Display this help message")
@@ -58,11 +58,11 @@ int main( int argc, char *argv[] ) {
 
     po::positional_options_description p;
     p.add("input-filenames", -1);
-    
+
     po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
-    
+
     if( vm.count("help") ) {
       cout << desc << endl;
       return 1;
@@ -81,7 +81,7 @@ int main( int argc, char *argv[] ) {
     // In the absense of EXIF data or if the user has provided an
     // explicit exposure ratio, we go with that value here.
        vector<double> brightness_values;
-    if( vm.count("exposure-ratio") != 0 ) 
+    if( vm.count("exposure-ratio") != 0 )
       brightness_values = brightness_values_from_exposure_ratio(exposure_ratio, input_filenames.size());
     else
       brightness_values = brightness_values_from_exif(input_filenames);
@@ -97,7 +97,7 @@ int main( int argc, char *argv[] ) {
     cout << "Getting Camera Curves" << endl;
     // Compute the camera curves
     CameraCurveFn curves;
-    if ( vm.count("use-curves") != 0 ) 
+    if ( vm.count("use-curves") != 0 )
       curves = read_curves(curve_file);
     else {
       curves = camera_curves(images, brightness_values);

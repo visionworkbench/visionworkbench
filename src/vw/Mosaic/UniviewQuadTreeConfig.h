@@ -6,10 +6,10 @@
 
 
 /// \file UniviewQuadTreeConfig.h
-/// 
+///
 /// A configuration class that provides callbacks for
 /// QuadTreeGenerator that generate Uniview overlays.
-/// 
+///
 #ifndef __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__
 #define __VW_MOSAIC_UNIVIEWQUADTREECONFIG_H__
 

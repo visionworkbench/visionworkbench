@@ -13,7 +13,7 @@ using std::vector;
 using std::string;
 
 //########################################################################
-//#  correlation_iteration - glsl_frag strings and a free function                
+//#  correlation_iteration - glsl_frag strings and a free function
 //########################################################################
 
 const char* glsl_frag_offset_and_difference = " \
@@ -74,17 +74,17 @@ void main() { \
  } \
 }";
 
-void correlation_iteration(int dx, 
-			   int dy, 
-			   int kernalHalfSize, 
-			   const GPUImage<PixelGray<float> >& in_left,
-			   const GPUImage<PixelGray<float> >& in_right,
-			   GPUImageBase& out_left_bests,  
-			   GPUImageBase& out_right_bests)
+void correlation_iteration(int dx,
+                           int dy,
+                           int kernalHalfSize,
+                           const GPUImage<PixelGray<float> >& in_left,
+                           const GPUImage<PixelGray<float> >& in_right,
+                           GPUImageBase& out_left_bests,
+                           GPUImageBase& out_right_bests)
 {
   int width = in_left.width();
   int height = in_left.height();
-  // Temporary Images  
+  // Temporary Images
   GPUImage<PixelGray<float> > temp1(width, height);
   GPUImage<PixelGray<float> > temp2(width, height);
   GPUImageBase temp_bests;
@@ -100,7 +100,7 @@ void correlation_iteration(int dx,
     program->set_input_image("i1", in_left);
     program->set_input_image("i2", in_right);
     program->set_input_float("x_offset", -dx);
-    program->set_input_float("y_offset", -dy);   
+    program->set_input_float("y_offset", -dy);
     ShaderInvocation_DrawRectOneTexture(temp1);
   }
   // write_image("OUTPUT_TEST_Difference.png", (GPUImage<PixelGray<float> >) temp1);
@@ -125,7 +125,7 @@ void correlation_iteration(int dx,
     program->install();
     ShaderInvocation_SetOutputImage(temp2);
     program->set_input_image("i1", temp1);
-    ShaderInvocation_DrawRectOneTexture(temp2);  
+    ShaderInvocation_DrawRectOneTexture(temp2);
   }
   // *********  Stage 3 - Row Sum ***********
   {
@@ -147,7 +147,7 @@ void correlation_iteration(int dx,
     program->install();
     ShaderInvocation_SetOutputImage(temp1);
     program->set_input_image("i1", temp2);
-    ShaderInvocation_DrawRectOneTexture(temp1); 
+    ShaderInvocation_DrawRectOneTexture(temp1);
   }
   // *********  STAGE 4 L/R - Update Best Values for Left and Right ***********
   {
@@ -157,14 +157,14 @@ void correlation_iteration(int dx,
     GPUProgram* program_copy = create_gpu_program("VWGPU_Algorithms/copy-1i0f");
 
     // LEFT SIDE:
-    // Copy invalid region:    
+    // Copy invalid region:
     ShaderInvocation_SetupGLState(width, height);
     program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
     program_copy->set_input_image("i1", out_left_bests);
 
     int left_bound = dx;
-    glBegin(GL_QUADS);							  
+    glBegin(GL_QUADS);
     glTexCoord2f(0, 0);         glVertex2f(0, 0);
     glTexCoord2f(left_bound, 0);      glVertex2f(left_bound, 0);
     glTexCoord2f(left_bound, height);  glVertex2f(left_bound, height);
@@ -180,28 +180,28 @@ void correlation_iteration(int dx,
     program->set_input_float("dy", dy);
     program->set_input_float("xOffset", 0);
     program->set_input_float("yOffset", 0);
-    
-    glBegin(GL_QUADS);							  
-    glTexCoord2f(left_bound, 0);         
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(left_bound, 0);
     glVertex2f(left_bound, 0);
-    glTexCoord2f(width, 0);      
+    glTexCoord2f(width, 0);
     glVertex2f(width, 0);
-    glTexCoord2f(width, height);  
+    glTexCoord2f(width, height);
     glVertex2f(width, height);
-    glTexCoord2f(left_bound, height);     
+    glTexCoord2f(left_bound, height);
     glVertex2f(left_bound, height);
     glEnd();
-    
+
     out_left_bests = copy(temp_bests);
     // RIGHT SIDE:
-    // Copy invalid region  
+    // Copy invalid region
     ShaderInvocation_SetupGLState(width, height);
     program_copy->install();
     ShaderInvocation_SetOutputImage(temp_bests);
     program_copy->set_input_image("i1", out_right_bests);
 
-    int right_bound = width - dx - kernalHalfSize; 
-    glBegin(GL_QUADS);							  
+    int right_bound = width - dx - kernalHalfSize;
+    glBegin(GL_QUADS);
     glTexCoord2f(right_bound, 0);         glVertex2f(right_bound, 0);
     glTexCoord2f(width, 0);      glVertex2f(width, 0);
     glTexCoord2f(width, height);  glVertex2f(width, height);
@@ -217,20 +217,20 @@ void correlation_iteration(int dx,
     program->set_input_float("dy", dy);
     program->set_input_float("xOffset", dx);
     program->set_input_float("yOffset", dy);
-    
-    glBegin(GL_QUADS);							  
-    glTexCoord2f(0, 0);         
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0);
     glVertex2f(0, 0);
-    glTexCoord2f(right_bound, 0);      
+    glTexCoord2f(right_bound, 0);
     glVertex2f(right_bound, 0);
-    glTexCoord2f(right_bound, height);  
+    glTexCoord2f(right_bound, height);
     glVertex2f(right_bound, height);
-    glTexCoord2f(0, height);     
+    glTexCoord2f(0, height);
     glVertex2f(0, height);
     glEnd();
-    
+
     out_right_bests = temp_bests;
-  }			
+  }
 }
 
 //########################################################################
@@ -258,7 +258,7 @@ void main() { \
  } \
 }";
 
-GPUImageBase correlation_cross_check(float threshold, GPUImageBase best_values_left, GPUImageBase best_values_right) {  
+GPUImageBase correlation_cross_check(float threshold, GPUImageBase best_values_left, GPUImageBase best_values_right) {
   ShaderInvocation_SetupGLState(best_values_left.width(), best_values_left.height());
   static GPUProgram* program = NULL;
   if(!program)
@@ -279,69 +279,69 @@ GPUImageBase correlation_cross_check(float threshold, GPUImageBase best_values_l
 
 
 //########################################################################
-//#  stereo_correlation                   
+//#  stereo_correlation
 //########################################################################
 
 GPUImage<PixelRGB<float> > stereo_correlation(const GPUImageBase &leftImage,
-					      const GPUImageBase &rightImage,
-					      GPUImageBase* outCorrelationScores,
-					      int kernalHalfSize,
-					      int minDX,
-					      int maxDX,
-					      int minDY,
-					      int maxDY,
-					      float crossCorrThreshold)  
+                                              const GPUImageBase &rightImage,
+                                              GPUImageBase* outCorrelationScores,
+                                              int kernalHalfSize,
+                                              int minDX,
+                                              int maxDX,
+                                              int minDY,
+                                              int maxDY,
+                                              float crossCorrThreshold)
 {
   // Convolution Matrices
-  float matrix1[] = 
+  float matrix1[] =
     {   1, 2, 1,
-	2, 4, 2,
-	1, 2, 1,
-    }; 
+        2, 4, 2,
+        1, 2, 1,
+    };
   GPUImageBase gaussian_matrix(3, 3, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, matrix1);
 
-  float matrix2[] = 
+  float matrix2[] =
     {   0, -1, 0,
-	-1, 4, -1,
-	0, -1, 0,
+        -1, 4, -1,
+        0, -1, 0,
     };
   GPUImageBase laplacian_matrix(3, 3, GPU_RED, GPU_FLOAT32, GPU_RED, GPU_FLOAT32, matrix2);
   // Left Image - SLOG
   GPUImageBase temp_left = convolution_filter(leftImage, gaussian_matrix);
   temp_left = convolution_filter(temp_left, laplacian_matrix);
   temp_left = threshold(temp_left, 0, 0, 1);
-  // Right Image - SLOG  
+  // Right Image - SLOG
   GPUImageBase temp_right = convolution_filter(rightImage, gaussian_matrix);
   temp_right = convolution_filter(temp_right, laplacian_matrix);
   temp_right = threshold(temp_right, 0, 0, 1);
   // Init Best Scores
   GPUImage<PixelRGB<float> > best_values_left(leftImage.width(), leftImage.height());
-  fill(best_values_left, 1000000, 1000000, 1000000, 0); 
+  fill(best_values_left, 1000000, 1000000, 1000000, 0);
 
   GPUImage<PixelRGB<float> > best_values_right(leftImage.width(), leftImage.height());
   fill(best_values_right, 1000000, 1000000, 1000000, 0);
   // Main Loop
   for(int dx = minDX; dx <= maxDX; dx++) {
-    for(int dy = minDY; dy <= maxDY; dy++) {  
-      correlation_iteration(dx, 
-			    dy, 
-			    kernalHalfSize, 
-			    temp_left, 
-			    temp_right,
-			    best_values_left,
-			    best_values_right);
+    for(int dy = minDY; dy <= maxDY; dy++) {
+      correlation_iteration(dx,
+                            dy,
+                            kernalHalfSize,
+                            temp_left,
+                            temp_right,
+                            best_values_left,
+                            best_values_right);
 
     }
   }
   // Perform Cross-Check and Return
-  GPUImageBase best_values_cross = 
+  GPUImageBase best_values_cross =
     correlation_cross_check(crossCorrThreshold, best_values_left, best_values_right);
   return best_values_cross;
 }
 
 
 //########################################################################
-//#  main                  
+//#  main
 //########################################################################
 
 int main(int argc, char *argv[]) {
@@ -365,13 +365,13 @@ int main(int argc, char *argv[]) {
   float crossCorrThreshold = (argc >= 9) ? atof(argv[8]) : 1.0;
   string output_path_dx = (argc >= 10) ? argv[9] : "Output_DX.png";
   string output_path_dy = (argc >= 11) ? argv[10] : "";
-  string output_path_score = (argc >= 12) ? argv[11] : "";  
+  string output_path_score = (argc >= 12) ? argv[11] : "";
 
   printf("  * left_image = \'%s\'\n  * right_image = \'%s\'\n  * kernal_size = %i\n  * min_dx = %i \n\
   * max_dx = %i \n  * min_dy = %i \n  * max_dy = %i \n  * error_threshold = %f\n\
   * output_image_dx = \'%s\' \n  * output_image_dy = \'%s\' \n  * output_image_error = \'%s\' \n",
-	 left_path.c_str(), right_path.c_str(), kernalSize, minDX, maxDX, minDY, maxDY, crossCorrThreshold,
-	 output_path_dx.c_str(), output_path_dy.c_str(), output_path_score.c_str());
+         left_path.c_str(), right_path.c_str(), kernalSize, minDX, maxDX, minDY, maxDY, crossCorrThreshold,
+         output_path_dx.c_str(), output_path_dy.c_str(), output_path_score.c_str());
 
   // Init VWGPU
   gpu_init("Log_VWGPU.txt");
@@ -388,14 +388,14 @@ int main(int argc, char *argv[]) {
   }
   // Stereo Correlation
   GPUImage<PixelRGB<float> > best_values = stereo_correlation((GPUImage<PixelGray<float> >) left_image,
-							      (GPUImage<PixelGray<float> >) right_image,
-							      NULL,
-							      (int) floorf(kernalSize / 2.0),
-							      minDX,
-							      maxDX,
-							      minDY,
-							      maxDY,
-							      crossCorrThreshold);
+                                                              (GPUImage<PixelGray<float> >) right_image,
+                                                              NULL,
+                                                              (int) floorf(kernalSize / 2.0),
+                                                              minDX,
+                                                              maxDX,
+                                                              minDY,
+                                                              maxDY,
+                                                              crossCorrThreshold);
   // Slice requested channels and return as image files (RED = best_score, GREEN = best_dx, BLUE = best_dy)
   ImageView<PixelGray<float> > output_image(best_values.cols(), best_values.rows());
 

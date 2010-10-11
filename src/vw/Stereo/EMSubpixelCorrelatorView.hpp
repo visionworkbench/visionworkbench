@@ -154,7 +154,7 @@ namespace vw {
     typename EMSubpixelCorrelatorView<ImagePixelT>::prerasterize_type
     EMSubpixelCorrelatorView<ImagePixelT>::prerasterize(BBox2i bbox) const {
       vw_out(InfoMessage, "stereo") << "EMSubpixelCorrelatorView: rasterizing image block " << bbox << ".\n";
-      
+
       // Find the range of disparity values for this patch.
       // int num_good; // not used
       BBox2i search_range;
@@ -199,16 +199,16 @@ namespace vw {
       ImageView<disparity_pixel> disparity_map_patch_in;
       ImageView<result_type> disparity_map_patch_out;
 
-      
+
       left_image_patch = crop(edge_extend(m_left_image, ZeroEdgeExtension()),
                               left_crop_bbox);
       right_image_patch = crop(edge_extend(m_right_image, ZeroEdgeExtension()),
                                right_crop_bbox);
       disparity_map_patch_in = crop(edge_extend(m_course_disparity, ZeroEdgeExtension()),
-				    left_crop_bbox);
+                                    left_crop_bbox);
       disparity_map_patch_out.set_size(disparity_map_patch_in.cols(), disparity_map_patch_in.rows());
-      
-      
+
+
       // Adjust the disparities to be relative to the cropped
       // image pixel locations
       for (int v = 0; v < disparity_map_patch_in.rows(); ++v) {
@@ -222,39 +222,39 @@ namespace vw {
 
 
       double blur_sigma_progressive = .5; // 3*sigma = 1.5 pixels
-      
+
       // create the pyramid first
       std::vector<ImageView<ImagePixelT> > left_pyramid(pyramid_levels), right_pyramid(pyramid_levels);
       std::vector<BBox2i> regions_of_interest(pyramid_levels);
       std::vector<ImageView<Matrix2x2> > warps(pyramid_levels);
       std::vector<ImageView<disparity_pixel> > disparity_map_pyramid(pyramid_levels);
-      
-      
+
+
       // initialize the pyramid at level 0
       left_pyramid[0] = channels_to_planes(left_image_patch);
       right_pyramid[0] = channels_to_planes(right_image_patch);
       disparity_map_pyramid[0] = disparity_map_patch_in;
       regions_of_interest[0] = BBox2i(m_kernel_size[0], m_kernel_size[1],
                                       bbox.width(),bbox.height());
-      
+
 
       // downsample the disparity map and the image pair to initialize the intermediate levels
       for(int i = 1; i < pyramid_levels; i++) {
         left_pyramid[i] = subsample(gaussian_filter(left_pyramid[i-1], blur_sigma_progressive), 2);
         right_pyramid[i] = subsample(gaussian_filter(right_pyramid[i-1], blur_sigma_progressive), 2);
-	
+
         disparity_map_pyramid[i] = detail::subsample_disp_map_by_two(disparity_map_pyramid[i-1]);
         regions_of_interest[i] = BBox2i(regions_of_interest[i-1].min()/2, regions_of_interest[i-1].max()/2);
       }
-      
+
       // initialize warps at the lowest resolution level
       warps[pyramid_levels-1].set_size(left_pyramid[pyramid_levels-1].cols(),
-				       left_pyramid[pyramid_levels-1].rows());
+                                       left_pyramid[pyramid_levels-1].rows());
       for(int y = 0; y < warps[pyramid_levels-1].rows(); y++) {
         for(int x = 0; x < warps[pyramid_levels-1].cols(); x++) {
           warps[pyramid_levels-1](x, y).set_identity();
         }
-      }      
+      }
 
 #ifdef USE_GRAPHICS
       vw_initialize_graphics(0, NULL);
@@ -265,27 +265,27 @@ namespace vw {
         }
       }
 #endif
-      
+
       // go up the pyramid; first run refinement, then upsample result for the next level
       for(int i = pyramid_levels-1; i >=0; i--) {
         vw_out() << "processing pyramid level "
                   << i << " of " << pyramid_levels-1 << std::endl;
-        
+
         if(debug_level >= 0) {
           std::stringstream stream;
           stream << "pyramid_level_" << i << ".tif";
           write_image(stream.str(), disparity_map_pyramid[i]);
         }
-        
+
         ImageView<ImagePixelT> process_left_image = left_pyramid[i];
         ImageView<ImagePixelT> process_right_image = right_pyramid[i];
-        
+
         if(i > 0) { // in this case take refine the upsampled disparity map from the previous level,
           // and upsample for the next level
           m_subpixel_refine(edge_extend(process_left_image, ZeroEdgeExtension()), edge_extend(process_right_image, ZeroEdgeExtension()),
                             disparity_map_pyramid[i], disparity_map_pyramid[i], warps[i],
                             regions_of_interest[i], false, debug_level == i);
-          
+
           // upsample the warps and the refined map for the next level of processing
           int up_width = left_pyramid[i-1].cols();
           int up_height = left_pyramid[i-1].rows();
@@ -298,7 +298,7 @@ namespace vw {
                             regions_of_interest[i], true, debug_level == i);
         }
       }
-      
+
 #ifdef USE_GRAPHICS
       if(debug_level >= 0) {
         vw_show_image(window, .5 + select_plane(channels_to_planes(disparity_map_patch_out)/6., 0));
@@ -321,15 +321,15 @@ namespace vw {
         vw_destroy_window(window);
       }
 #endif
-      
+
       return crop(disparity_map_patch_out, BBox2i(m_kernel_size[0]-bbox.min().x(),
-						  m_kernel_size[1]-bbox.min().y(),
-						  m_left_image.cols(),
-						  m_left_image.rows()));
+                                                  m_kernel_size[1]-bbox.min().y(),
+                                                  m_left_image.cols(),
+                                                  m_left_image.rows()));
     }
 
-    
-    
+
+
 
     // m_sub_pixel_refine
     /* this actually performs the subpixel refinement */
@@ -339,10 +339,10 @@ namespace vw {
     EMSubpixelCorrelatorView<ImagePixelT>::m_subpixel_refine(ImageViewBase<ImageT> const& left_image,
                                                              ImageViewBase<ImageT> const& right_image,
                                                              ImageViewBase<DisparityT1> & disparity_in,
-							     ImageViewBase<DisparityT2> & disparity_out,
+                                                             ImageViewBase<DisparityT2> & disparity_out,
                                                              ImageViewBase<AffineT> & affine_warps,
                                                              BBox2i const& ROI, bool final, bool p_debug) const {
-      
+
       // algorithm features to enable
       bool blur_posterior = false;
       double blur_posterior_sigma = 1.5;
@@ -426,25 +426,25 @@ namespace vw {
       bool debug = false;
 
       for(y = ROI.min()[1]; y < ROI.max()[1]; y++) {
-	if(y%10 == 0 && y != 0) {
+        if(y%10 == 0 && y != 0) {
           vw_out() << "@ row " << y << ": average pixel took "
                     << 1000*pixel_timer.elapsed_seconds()/(double)num_pixels
                     << " over " <<  num_pixels << " pixels" << std::endl;
         }
         for(x = ROI.min()[0]; x < ROI.max()[0]; x++) {
-	  pos = Vector2(x, y);
-	  
-	  if(p_debug) {
-	    if(debug_region.contains(pos - ROI.min())) {
-	      debug = true;
-	    }
+          pos = Vector2(x, y);
+
+          if(p_debug) {
+            if(debug_region.contains(pos - ROI.min())) {
+              debug = true;
+            }
             else {
               debug = false;
             }
           }
-	  
+
           if(!disparity_in.impl()(x, y).valid()) { // skip missing pixels in the course map
-	    disparity_out.impl()(x, y).invalidate();
+            disparity_out.impl()(x, y).invalidate();
             continue;
           }
 
@@ -661,7 +661,7 @@ namespace vw {
               vw_out() << "P(center) = " << weights_p1(x - window_box.min().x(),  y - window_box.min().y()) << std::endl;
               vw_out() << "P_1 = " << P_1 << std::endl;
               vw_out() << "P_outlier1 = " << P_outlier1 << std::endl;
-	      
+
               affine_comp.print_status("affine.");
               if(use_left_outliers)
                 outlier_comp1.print_status("outlier1.");
@@ -706,16 +706,16 @@ namespace vw {
           pos = Vector2(x, y);
           cor_pos = affine_comp.affine_transform().reverse(pos);
           Vector2f delta = (cor_pos - pos);
-	  
-	  disparity_out.impl()(x, y).validate();
+
+          disparity_out.impl()(x, y).validate();
           disparity_out.impl()(x, y).child().x() = delta.x();
           disparity_out.impl()(x, y).child().y() = delta.y();
-	  if(disparity_out.impl()(x, y).child().size() == 5) { // if the disparity map given has space for uncertainty, output that as well
-	    disparity_out.impl()(x, y).child()(2) = affine_comp.hessian()(4, 4);
-	    disparity_out.impl()(x, y).child()(3) = affine_comp.hessian()(4, 5);
-	    disparity_out.impl()(x, y).child()(4) = affine_comp.hessian()(5, 5);
-	  }
-	  affine_warps.impl()(x, y) = affine_comp.affine_transform_mat();
+          if(disparity_out.impl()(x, y).child().size() == 5) { // if the disparity map given has space for uncertainty, output that as well
+            disparity_out.impl()(x, y).child()(2) = affine_comp.hessian()(4, 4);
+            disparity_out.impl()(x, y).child()(3) = affine_comp.hessian()(4, 5);
+            disparity_out.impl()(x, y).child()(4) = affine_comp.hessian()(5, 5);
+          }
+          affine_warps.impl()(x, y) = affine_comp.affine_transform_mat();
 
 
           if(debug) {
@@ -724,7 +724,7 @@ namespace vw {
             vw_out() << "refined warp: "
                       << affine_warps.impl()(x, y) << std::endl;
           }
-	  
+
           if(final) {
             double P_center = weights_p1(x - window_box.min().x(),  y - window_box.min().y());
             if(P_1 <= .25) { // if most pixels are outliers, set this one as missing

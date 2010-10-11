@@ -6,10 +6,10 @@
 
 
 /// \file Transform.h
-/// 
+///
 /// ImageView classes for transforming the domain of an image
 /// (image warping).
-/// 
+///
 ///
 #ifndef __VW_IMAGE_TRANSFORM_H__
 #define __VW_IMAGE_TRANSFORM_H__
@@ -28,7 +28,7 @@ static const double VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 1e10; // Ten gigapixel
 
 namespace vw {
 
-  /// A helper function to grow a floating-point bounding box 
+  /// A helper function to grow a floating-point bounding box
   /// to the smallest enclosing integer bounding box.
   inline BBox2i grow_bbox_to_int( BBox2 const bbox ) {
     return BBox2i( Vector2i( (int32)floor(bbox.min().x()), (int32)floor(bbox.min().y()) ),
@@ -44,8 +44,8 @@ namespace vw {
 
   /// The abstract base class of all transform functors.  You should
   /// not subclass Transform directly, but rather indirectly via
-  /// TransformBase or TransformHelper.  Similarly, you should not use 
-  /// Transform pointers or references directly, but rather indirectly 
+  /// TransformBase or TransformHelper.  Similarly, you should not use
+  /// Transform pointers or references directly, but rather indirectly
   /// via TransformRef.
   class Transform {
     double m_tolerance;
@@ -54,10 +54,10 @@ namespace vw {
 
     virtual ~Transform() {}
 
-    /// This defines the transformation from coordinates in the source 
-    /// image to coordinates in the destination image.  This routine is 
-    /// not actually needed to perform  the transformation itself, but 
-    /// it can be used to determine the appropriate dimensions for the 
+    /// This defines the transformation from coordinates in the source
+    /// image to coordinates in the destination image.  This routine is
+    /// not actually needed to perform  the transformation itself, but
+    /// it can be used to determine the appropriate dimensions for the
     /// output.
     virtual Vector2 forward( Vector2 const& /*point*/ ) const { vw_throw( NoImplErr() << "forward() is not implemented for this transform." ); return Vector2(); }
 
@@ -86,8 +86,8 @@ namespace vw {
   };
 
 
-  /// The CRTP base class for all transform functors.  
-  /// 
+  /// The CRTP base class for all transform functors.
+  ///
   /// Specific transform classes should derive from this class (or
   /// equivalently TransformHelper, below) rather than the abstract
   /// Transform class.  At this point the primary purposes of this
@@ -157,20 +157,20 @@ namespace vw {
       }
       return grow_bbox_to_int( transformed_bbox );
     }
-    
-    /// This function is deprecated, and provided for backwards 
+
+    /// This function is deprecated, and provided for backwards
     /// compatibility only.  Use reverse(BBox2i) instead.
     BBox2i compute_input_bbox( BBox2i const& output_bbox ) const VW_DEPRECATED {
       return reverse_bbox( output_bbox );
     }
   };
-  
-  
+
+
   /// A helper CRTP base class for transform functors.
   ///
   /// Deriving from this base class is equivalent to deriving
-  /// from TransformBase, except it allows you to conveniently 
-  /// specify the forward and reverse function type at the 
+  /// from TransformBase, except it allows you to conveniently
+  /// specify the forward and reverse function type at the
   /// same time.
   template <class ImplT, int ForwardType=DiscontinuousFunction, int ReverseType=DiscontinuousFunction>
   class TransformHelper : public TransformBase<ImplT> {
@@ -185,8 +185,8 @@ namespace vw {
   /// Transform points by applying a scaling in x and y.
   class ResampleTransform : public TransformHelper<ResampleTransform,ConvexFunction,ConvexFunction> {
     double m_xfactor, m_yfactor;
-  public:    
-    ResampleTransform( double x_scaling, double y_scaling ) : 
+  public:
+    ResampleTransform( double x_scaling, double y_scaling ) :
       m_xfactor( x_scaling ) , m_yfactor( y_scaling ) {}
 
     inline Vector2 reverse( Vector2 const& p ) const {
@@ -205,9 +205,9 @@ namespace vw {
   class TranslateTransform : public TransformHelper<TranslateTransform,ConvexFunction,ConvexFunction> {
     double m_xtrans, m_ytrans;
   public:
-    TranslateTransform(double x_translation, double y_translation) : 
+    TranslateTransform(double x_translation, double y_translation) :
       m_xtrans( x_translation ) , m_ytrans( y_translation ) {}
-                
+
     inline Vector2 reverse(const Vector2 &p) const {
       return Vector2( p(0) - m_xtrans, p(1) - m_ytrans );
     }
@@ -257,7 +257,7 @@ namespace vw {
     AffineTransform() {}
   public:
     AffineTransform( Matrix2x2 const& matrix, Vector2 const& offset ) :
-      a( matrix(0,0) ), b( matrix(0,1) ), 
+      a( matrix(0,0) ), b( matrix(0,1) ),
       c( matrix(1,0) ), d( matrix(1,1) ),
       x( offset(0) ), y( offset(1) )
     {
@@ -298,7 +298,7 @@ namespace vw {
       return Vector2( ( m_H_inverse(0,0) * p(0) + m_H_inverse(0,1) * p(1) + m_H_inverse(0,2) ) / w,
                       ( m_H_inverse(1,0) * p(0) + m_H_inverse(1,1) * p(1) + m_H_inverse(1,2) ) / w);
     }
-		
+
     inline Vector2 forward(const Vector2 &p) const {
       double w = m_H(2,0) * p(0) + m_H(2,1) * p(1) + m_H(2,2);
       return Vector2( ( m_H(0,0) * p(0) + m_H(0,1) * p(1) + m_H(0,2) ) / w,
@@ -319,7 +319,7 @@ namespace vw {
     template <class OffsetImageT>
     PointLookupTransform(ImageViewBase<OffsetImageT> const& lookup_image)
       : m_lookup_image(lookup_image.impl()) {}
-    
+
     inline Vector2 reverse(const Vector2 &p) const {
       int32 x = (int32) p.x(), y = (int32) p.y();
       VW_DEBUG_ASSERT(x>=0 && y>=0 && x<m_lookup_image.cols() && y<m_lookup_image.rows(),
@@ -341,7 +341,7 @@ namespace vw {
     template <class OffsetImageT>
     PointOffsetTransform(ImageViewBase<OffsetImageT> const& offset_image)
       : m_offset_image(offset_image.impl()) {}
-    
+
     inline Vector2 reverse(const Vector2 &p) const {
       int32 x = (int32) p.x(), y = (int32) p.y();
       VW_DEBUG_ASSERT(x>=0 && y>=0 && x<m_offset_image.cols() && y<m_offset_image.rows(),
@@ -350,9 +350,9 @@ namespace vw {
     }
   };
 
-	
+
   /// RadialTransformAdaptor image transform functor adaptor
-  /// 
+  ///
   /// This is an adaptor class that allows you to write mapping
   /// functors in polar coordinates (i.e. radius, theta).  The origin
   /// of the polar coordinate system is centered at the image center,
@@ -369,41 +369,41 @@ namespace vw {
 
   public:
 
-    RadialTransformAdaptor(ImplT const &mapping_functor, ImageViewBase<ImageT> const &image) : 
-      m_impl(mapping_functor), 
+    RadialTransformAdaptor(ImplT const &mapping_functor, ImageViewBase<ImageT> const &image) :
+      m_impl(mapping_functor),
       m_half_width(image.impl().cols()/2),
       m_half_height(image.impl().rows()/2) {
     }
 
-    inline Vector2 reverse(const Vector2 &p) const {   
+    inline Vector2 reverse(const Vector2 &p) const {
       // Convert from cartesian to polar coordinates, where we scale r
       // such that r=1.0 corresponds to image_width/2, and the origin
       // is at [image_width/2, image_height/2] in the image.
       Vector2 centered_point( p(0) - m_half_width, p(1) - m_half_height );
-      Vector2 polar_coordinates( norm_2(centered_point) / m_half_width, 
+      Vector2 polar_coordinates( norm_2(centered_point) / m_half_width,
                                  atan2(centered_point(1),centered_point(0)) );
 
       // Call out to the radial mapping functor that we have wrapped.
       Vector2 result = m_impl(polar_coordinates);
-      
+
       // Convert from polar coordinates back to cartesian coordinates
-      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width, 
+      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width,
                      m_half_width * result(0) * sin(result(1)) + m_half_height);
     }
 
     inline Vector2 forward(const Vector2 &p) const {
       Vector2 centered_point( p(0) - m_half_width, p(1) - m_half_height );
-      Vector2 polar_coordinates( norm_2(centered_point) / m_half_width, 
+      Vector2 polar_coordinates( norm_2(centered_point) / m_half_width,
                                  atan2(centered_point(1),centered_point(0)) );
       Vector2 result = m_impl.reverse(polar_coordinates);
-      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width, 
+      return Vector2(m_half_width * result(0) * cos(result(1)) + m_half_width,
                      result(0) * sin(result(1)) + m_half_height);
     }
 
     virtual FunctionType forward_type() const { return m_impl.forward_type(); }
     virtual FunctionType reverse_type() const { return m_impl.reverse_type(); }
   };
-	
+
 
   /// InverseTransform inverts a transform functor
   template <class TxT>
@@ -432,14 +432,14 @@ namespace vw {
   }
 
 
-  /// CompositionTransform image transform functor adaptor 
-  /// 
-  /// This is a wrapper class that allows you to composite two transform 
-  /// functors.  The arguments to the constructor are in the usual 
+  /// CompositionTransform image transform functor adaptor
+  ///
+  /// This is a wrapper class that allows you to composite two transform
+  /// functors.  The arguments to the constructor are in the usual
   /// function composition order.  That is, CompositionTransform(tx1,tx2)
-  /// yields a functor whose forward mapping is tx1.forward(tx2.forward(v)), 
-  /// and thus whose reverse mapping is tx2.reverse(tx1.reverse(v)).  
-  /// The usual way to construct a CompositionTransform is with the 
+  /// yields a functor whose forward mapping is tx1.forward(tx2.forward(v)),
+  /// and thus whose reverse mapping is tx2.reverse(tx1.reverse(v)).
+  /// The usual way to construct a CompositionTransform is with the
   /// compose() free function, below.
   template <class Tx1T, class Tx2T>
   class CompositionTransform : public TransformBase<CompositionTransform<Tx1T,Tx2T> >
@@ -448,11 +448,11 @@ namespace vw {
     Tx2T tx2;
   public:
     CompositionTransform( Tx1T const& tx1, Tx2T const& tx2 ) : tx1(tx1), tx2(tx2) {}
-    
+
     inline Vector2 forward( Vector2 const& p ) const {
       return tx1.forward( tx2.forward( p ) );
     }
-    
+
     inline Vector2 reverse( Vector2 const& p ) const {
       return tx2.reverse( tx1.reverse( p ) );
     }
@@ -462,7 +462,7 @@ namespace vw {
       if( f==ContinuousFunction || g==ContinuousFunction ) return ContinuousFunction;
       return ConvexFunction;
     }
-      
+
     virtual FunctionType forward_type() const { return compose_type( tx1.forward_type(), tx2.forward_type() ); }
     virtual FunctionType reverse_type() const { return compose_type( tx1.reverse_type(), tx2.reverse_type() ); }
   };
@@ -478,7 +478,7 @@ namespace vw {
 
   /// Composes three transform functors via a CompositionTransform object.
   template <class Tx1T, class Tx2T, class Tx3T>
-  CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> > 
+  CompositionTransform<Tx1T,CompositionTransform<Tx2T,Tx3T> >
   inline compose( TransformBase<Tx1T> const& tx1,
                   TransformBase<Tx2T> const& tx2,
                   TransformBase<Tx3T> const& tx3 ) {
@@ -500,9 +500,9 @@ namespace vw {
 
   /// ApproximateTransform image transform functor template.
   ///
-  /// Mimics the behavior of a given transform functor, but attempts to 
-  /// build a lookup table to linearly interpolate approimate results 
-  /// to the reverse() function for arguments within the given bounding 
+  /// Mimics the behavior of a given transform functor, but attempts to
+  /// build a lookup table to linearly interpolate approimate results
+  /// to the reverse() function for arguments within the given bounding
   /// box, to within the original transform functor's tolerance.
   template <class TransformT>
   class ApproximateTransform : public TransformT {
@@ -519,38 +519,38 @@ namespace vw {
       m_table(0,1) = TransformT::reverse(Vector2(bbox.min().x(),bbox.max().y()));
       m_table(1,1) = TransformT::reverse(bbox.max());
 
-      // Double the grid density until the worst (squared) approximation error 
+      // Double the grid density until the worst (squared) approximation error
       // is less than the allowed (squared) tolerance.
       double max_sqr_err = 0;
       double tol_sqr = TransformT::tolerance() * TransformT::tolerance();
       Vector2 origin = bbox.min(), diag = bbox.size();
       do {
-	n = 2*n-1;
-	// Fall back for unapproximatably crazy transform functions.
-	if( n>=bbox.width()|| n>=bbox.height() ) {
-	  m_table.reset();
-	  return;
-	}
-	ImageView<Vector2> prev = m_table;
-	m_table.set_size(n,n);
-	max_sqr_err = 0;
-	for( int y=0; y<n; ++y ) {
-	  for( int x=0; x<n; ++x ) {
-	    if( (y%2)==0 && (x%2==0) ) {
-	      m_table(x,y) = prev(x/2,y/2);
-	    }
-	    else {
-	      Vector2 pos = Vector2(x,y)/(n-1);
-	      m_table(x,y) = TransformT::reverse(origin+elem_prod(pos,diag));
-	      Vector2 interp;
-	      if( (y%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2+1,y/2)) / 2.0;
-	      else if( (x%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2,y/2+1)) / 2.0;
-	      else interp = (prev(x/2,y/2) + prev(x/2,y/2+1) + prev(x/2+1,y/2) + prev(x/2+1,y/2+1)) / 4.0;
-	      double sqr_err = norm_2_sqr( m_table(x,y) - interp );
-	      if( sqr_err > max_sqr_err ) max_sqr_err = sqr_err;
-	    }
-	  }
-	}
+        n = 2*n-1;
+        // Fall back for unapproximatably crazy transform functions.
+        if( n>=bbox.width()|| n>=bbox.height() ) {
+          m_table.reset();
+          return;
+        }
+        ImageView<Vector2> prev = m_table;
+        m_table.set_size(n,n);
+        max_sqr_err = 0;
+        for( int y=0; y<n; ++y ) {
+          for( int x=0; x<n; ++x ) {
+            if( (y%2)==0 && (x%2==0) ) {
+              m_table(x,y) = prev(x/2,y/2);
+            }
+            else {
+              Vector2 pos = Vector2(x,y)/(n-1);
+              m_table(x,y) = TransformT::reverse(origin+elem_prod(pos,diag));
+              Vector2 interp;
+              if( (y%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2+1,y/2)) / 2.0;
+              else if( (x%2)==0 ) interp = (prev(x/2,y/2) + prev(x/2,y/2+1)) / 2.0;
+              else interp = (prev(x/2,y/2) + prev(x/2,y/2+1) + prev(x/2+1,y/2) + prev(x/2+1,y/2+1)) / 4.0;
+              double sqr_err = norm_2_sqr( m_table(x,y) - interp );
+              if( sqr_err > max_sqr_err ) max_sqr_err = sqr_err;
+            }
+          }
+        }
       } while( max_sqr_err > tol_sqr );
     }
 
@@ -558,8 +558,8 @@ namespace vw {
       // Fall back if the function was not approximatable.
       if( ! m_table ) return TransformT::reverse( p );
 
-      // We re-implement bilinear interpolation by hand here because for 
-      // some reason the BilinearInterpolation object is exceptionally 
+      // We re-implement bilinear interpolation by hand here because for
+      // some reason the BilinearInterpolation object is exceptionally
       // slow for Vector data still.
       int n = m_table.cols() - 1;
       double px = n * (p.x() - m_bbox.min().x()) / (m_bbox.max().x() - m_bbox.min().x());
@@ -577,10 +577,10 @@ namespace vw {
       Vector2 const& m01 = m_table(ix,  iy+1);
       Vector2 const& m11 = m_table(ix+1,iy+1);
 
-      return Vector2( (m00.x()*(1-normy)+m01.x()*normy)*(1-normx) + 
-		      (m10.x()*(1-normy)+m11.x()*normy)*normx,
-		      (m00.y()*(1-normy)+m01.y()*normy)*(1-normx) + 
-		      (m10.y()*(1-normy)+m11.y()*normy)*normx );
+      return Vector2( (m00.x()*(1-normy)+m01.x()*normy)*(1-normx) +
+                      (m10.x()*(1-normy)+m11.x()*normy)*normx,
+                      (m00.y()*(1-normy)+m01.y()*normy)*(1-normx) +
+                      (m10.y()*(1-normy)+m11.y()*normy)*normx );
     }
 
     // Never re-approximate the approximation.
@@ -611,14 +611,14 @@ namespace vw {
   // class TransformView
   // ------------------------
 
-  /// An image view for transforming an image with an arbitrary mapping functor.  
+  /// An image view for transforming an image with an arbitrary mapping functor.
   template <class ImageT, class TransformT>
   class TransformView : public ImageViewBase<TransformView<ImageT,TransformT> > {
 
     ImageT m_image;
     TransformT m_mapper;
     int32 m_width, m_height;
-    
+
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef pixel_type result_type;
@@ -631,9 +631,9 @@ namespace vw {
 
     /// This constructor allows you to specify the size of the
     /// transformed image.
-    TransformView( ImageT const& view, TransformT const& mapper, int32 width, int32 height ) : 
+    TransformView( ImageT const& view, TransformT const& mapper, int32 width, int32 height ) :
       m_image(view), m_mapper(mapper), m_width(width), m_height(height) {}
-    
+
     inline int32 cols() const { return m_width; }
     inline int32 rows() const { return m_height; }
     inline int32 planes() const { return m_image.planes(); }
@@ -650,18 +650,18 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const { 
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
       BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { 
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
       if( m_mapper.tolerance() > 0.0 ) {
-	ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
-	TransformView<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height );
-	vw::rasterize( approx_view.prerasterize(bbox), dest, bbox );
+        ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
+        TransformView<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height );
+        vw::rasterize( approx_view.prerasterize(bbox), dest, bbox );
       }
       else {
-	vw::rasterize( prerasterize(bbox), dest, bbox );
+        vw::rasterize( prerasterize(bbox), dest, bbox );
       }
     }
     /// \endcond
@@ -682,16 +682,16 @@ namespace vw {
   /// compute_transformed_bbox_fast(), below.  If the bounding box
   /// exceeds preset limits, a warning will be printed out.
   template <class ViewT, class TransformT>
-  inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image, 
+  inline BBox2f compute_transformed_bbox(ImageViewBase<ViewT> const& image,
                                          TransformT const& transform_func,
                                          double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
                                          double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
     Vector2 pt;
     BBox2f bbox;
     for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++)
-      for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++) 
+      for (pt[1] = 0; pt[1] < image.impl().rows(); (pt[1])++)
         bbox.grow(transform_func.forward(pt));
-    
+
     // If the image bounding box is too large or too small, print a
     // warning message.
     if ( (bbox.width() * bbox.height()) < min_image_size ) {
@@ -714,13 +714,13 @@ namespace vw {
   /// for most transformations points on the interior of the input
   /// image will end up on the interior of the output image.
   template <class ViewT, class TransformT>
-  inline BBox2f compute_transformed_bbox_fast(ImageViewBase<ViewT> const& image, 
+  inline BBox2f compute_transformed_bbox_fast(ImageViewBase<ViewT> const& image,
                                               TransformT const& transform_func,
                                               double min_image_size = VW_DEFAULT_MIN_TRANSFORM_IMAGE_SIZE,
                                               double max_image_size = VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE) {
     Vector2 pt;
     BBox2f bbox;
-    
+
     // Top edge
     for (pt[0] = 0; pt[0] < image.impl().cols(); (pt[0])++) {
       pt[1] = 0;
@@ -744,7 +744,7 @@ namespace vw {
       pt[0] = image.impl().cols() - 1;
       bbox.grow(transform_func.forward(pt));
     }
-    
+
     // If the image bounding box is too large or too small, fall
     // back and set the size of the output image to the size of the
     // input image and print a warning message.
@@ -769,7 +769,7 @@ namespace vw {
   /// Returns a transformed image view.  The user can specify the type
   /// of interpolation and edge extension to be done by supplying the
   /// appropriate functors in the last two arguments.  For example:
-  /// 
+  ///
   /// <TT>transform(input, transform_functor, BicubicInterpolation(), ZeroEdgeExtension());</TT>
   ///
   /// See Interpolation.h and EdgeExtension.h for a list of built-in
@@ -778,31 +778,31 @@ namespace vw {
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT> >::type
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func, 
+                    TransformT const& transform_func,
                     EdgeT const& edge_func,
                     InterpT const& interp_func ) {
     return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func);
   }
-  
+
   /// Convenience function: transform with a default interpolation
   /// scheme of bilinear interpolation.
   template <class ImageT, class TransformT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func, 
+                    TransformT const& transform_func,
                     EdgeT const& edge_func ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func);
   }
-  
+
   /// Convenience function: transform with a default scheme of
   /// bilinear interpolation and zero edge extension.
   template <class ImageT, class TransformT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
                     TransformT const& transform_func ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func);
   }
 
@@ -815,7 +815,7 @@ namespace vw {
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func, 
+                    TransformT const& transform_func,
                     int32 width,
                     int32 height,
                     EdgeT const& edge_func,
@@ -830,11 +830,11 @@ namespace vw {
   template <class ImageT, class TransformT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
   inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func, 
+                    TransformT const& transform_func,
                     int32 width,
                     int32 height,
                     EdgeT const& edge_func ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), edge_func), transform_func, width, height);
   }
 
@@ -847,10 +847,10 @@ namespace vw {
                     TransformT const& transform_func,
                     int32 width,
                     int32 height ) {
-    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> 
+    return TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
       (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func, width, height);
   }
-  
+
 
   /// Transform an image and select the bounding box in the
   /// transformed space from which to take the new image.  The
@@ -858,9 +858,9 @@ namespace vw {
   /// bounding box that will fit all of the transformed pixels.
   template <class ImageT, class TransformT, class BBoxRealT, class EdgeT, class InterpT>
   CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT> >
-  inline transform( ImageViewBase<ImageT> const& v, 
-                    TransformT const& transform_func, 
-                    BBox<BBoxRealT,2> const& bbox, 
+  inline transform( ImageViewBase<ImageT> const& v,
+                    TransformT const& transform_func,
+                    BBox<BBoxRealT,2> const& bbox,
                     EdgeT const& edge_func,
                     InterpT const& interp_func ) {
     return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
@@ -873,9 +873,9 @@ namespace vw {
   /// rasterized.
   template <class ImageT, class TransformT, class BBoxRealT, class EdgeT>
   CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT> >
-  inline transform( ImageViewBase<ImageT> const& v, 
-                    TransformT const& transform_func, 
-                    BBox<BBoxRealT,2> const& bbox, 
+  inline transform( ImageViewBase<ImageT> const& v,
+                    TransformT const& transform_func,
+                    BBox<BBoxRealT,2> const& bbox,
                     EdgeT const& edge_func ) {
     return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), edge_func), transform_func), bbox);
@@ -887,8 +887,8 @@ namespace vw {
   /// determines what pixels will be rasterized.
   template <class ImageT, class TransformT, class BBoxRealT>
   CropView<TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT> >
-  inline transform( ImageViewBase<ImageT> const& v, 
-                    TransformT const& transform_func, 
+  inline transform( ImageViewBase<ImageT> const& v,
+                    TransformT const& transform_func,
                     BBox<BBoxRealT,2> const& bbox ) {
     return crop(TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TransformT>
                 (interpolate(v, BilinearInterpolation(), ZeroEdgeExtension()), transform_func), bbox);
@@ -905,10 +905,10 @@ namespace vw {
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
                    double x_scale_factor,
-                   double y_scale_factor, 
+                   double y_scale_factor,
                    EdgeT const& edge_func,
                    InterpT const& interp_func ) {
-    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor),
                      int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
                      edge_func, interp_func);
   }
@@ -916,12 +916,12 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y.
   template <class ImageT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform>
   inline resample( ImageViewBase<ImageT> const& v,
                    double x_scale_factor,
-                   double y_scale_factor, 
+                   double y_scale_factor,
                    EdgeT const& edge_func ) {
-    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor),
                      int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
                      edge_func, vw::BilinearInterpolation());
   }
@@ -929,12 +929,12 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> 
-  inline resample( ImageViewBase<ImageT> const& v, 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform>
+  inline resample( ImageViewBase<ImageT> const& v,
                    double x_scale_factor,
                    double y_scale_factor ) {
-    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor), 
-                     int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)), 
+    return transform(v, ResampleTransform(x_scale_factor, y_scale_factor),
+                     int(.5+(v.impl().cols()*x_scale_factor)), int(.5+(v.impl().rows()*y_scale_factor)),
                      vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
@@ -943,13 +943,13 @@ namespace vw {
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
-                   double scale_factor, 
+                   double scale_factor,
                    int32 output_width,
                    int32 output_height,
                    EdgeT const& edge_func,
                    InterpT const& interp_func ) {
-    return transform(v, ResampleTransform(scale_factor, scale_factor), 
-                     output_width, output_height, 
+    return transform(v, ResampleTransform(scale_factor, scale_factor),
+                     output_width, output_height,
                      edge_func, interp_func);
   }
 
@@ -958,10 +958,10 @@ namespace vw {
   template <class ImageT, class EdgeT, class InterpT>
   typename boost::disable_if<IsScalar<InterpT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
-                   double scale_factor, 
+                   double scale_factor,
                    EdgeT const& edge_func,
                    InterpT const& interp_func ) {
-    return transform(v, ResampleTransform(scale_factor, scale_factor), 
+    return transform(v, ResampleTransform(scale_factor, scale_factor),
                      int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
                      edge_func, interp_func);
   }
@@ -969,7 +969,7 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT, class EdgeT>
-  typename boost::disable_if<IsScalar<EdgeT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> >::type 
+  typename boost::disable_if<IsScalar<EdgeT>, TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, ResampleTransform> >::type
   inline resample( ImageViewBase<ImageT> const& v,
                    double scale_factor,
                    EdgeT const& edge_func ) {
@@ -981,15 +981,15 @@ namespace vw {
   /// Resample the image.  The user specifies the scaling factor in x
   /// and y and the dimensions of the output image.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform>
   inline resample( ImageViewBase<ImageT> const& v,
                    double scale_factor ) {
-    return transform(v, ResampleTransform(scale_factor, scale_factor), 
+    return transform(v, ResampleTransform(scale_factor, scale_factor),
                      int(.5+(v.impl().cols()*scale_factor)), int(.5+(v.impl().rows()*scale_factor)),
                      vw::ConstantEdgeExtension(), vw::BilinearInterpolation());
   }
 
-  
+
   // -------------------------------------------------------------------------------
   // Resize
   // -------------------------------------------------------------------------------
@@ -1002,7 +1002,7 @@ namespace vw {
                  int32 output_height,
                  EdgeT const& edge_func,
                  InterpT const& interp_func ) {
-    return transform(v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()), 
+    return transform(v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()),
                      output_width, output_height, edge_func, interp_func );
   }
 
@@ -1013,7 +1013,7 @@ namespace vw {
                  int32 output_width,
                  int32 output_height,
                  EdgeT const& edge_func ) {
-    return transform( v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()), 
+    return transform( v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()),
                       output_width, output_height, edge_func, BilinearInterpolation() );
   }
 
@@ -1023,7 +1023,7 @@ namespace vw {
   inline resize( ImageViewBase<ImageT> const& v,
                  int32 output_width,
                  int32 output_height ) {
-    return transform( v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()), 
+    return transform( v, ResampleTransform(output_width/(double)v.impl().cols(), output_height/(double)v.impl().rows()),
                       output_width, output_height, ConstantEdgeExtension(), BilinearInterpolation() );
   }
 
@@ -1049,10 +1049,10 @@ namespace vw {
   /// Translate the image.  The user specifies the offset in x
   /// and y.
   template <class ImageT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, TranslateTransform>
   inline translate( ImageViewBase<ImageT> const& v,
                     double x_offset,
-                    double y_offset, 
+                    double y_offset,
                     EdgeT const& edge_func ) {
     return transform(v, TranslateTransform(x_offset, y_offset),
                      v.impl().cols(), v.impl().rows(),
@@ -1062,8 +1062,8 @@ namespace vw {
   /// Translate the image.  The user specifies the offset in x
   /// and y.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform> 
-  inline translate( ImageViewBase<ImageT> const& v, 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, TranslateTransform>
+  inline translate( ImageViewBase<ImageT> const& v,
                     double x_offset,
                     double y_offset ) {
     return transform(v, TranslateTransform(x_offset, y_offset),
@@ -1072,7 +1072,7 @@ namespace vw {
   }
 
   /// Translate the image.  The user specifies the offset in x
-  /// and y.  This is a special optimized overload for integer 
+  /// and y.  This is a special optimized overload for integer
   /// offsets.
   template <class ImageT, class EdgeT>
   EdgeExtensionView<ImageT,EdgeT>
@@ -1084,7 +1084,7 @@ namespace vw {
   }
 
   /// Translate the image.  The user specifies the offset in x
-  /// and y.  This is a special optimized overload for integer 
+  /// and y.  This is a special optimized overload for integer
   /// offsets.
   template <class ImageT>
   EdgeExtensionView<ImageT,ZeroEdgeExtension>
@@ -1105,31 +1105,31 @@ namespace vw {
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, RotateTransform>
   inline rotate( ImageViewBase<ImageT> const& v,
                  double theta,
-		 EdgeT const& edge_func,
+                 EdgeT const& edge_func,
                  InterpT const& interp_func ) {
     return transform(v, RotateTransform(theta), /* dims */
-		     edge_func, interp_func);
+                     edge_func, interp_func);
   }
 
   /// Rotate the image.  The user specifies the angle.
   template <class ImageT, class EdgeT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, RotateTransform> 
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, RotateTransform>
   inline rotate( ImageViewBase<ImageT> const& v,
                  double theta,
-		 EdgeT const& edge_func ) {
+                 EdgeT const& edge_func ) {
     return transform(v, RotateTransform(theta),
                      edge_func, BilinearInterpolation());
   }
 
   /// Rotate the image.  The user specifies the angle.
   template <class ImageT>
-  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, RotateTransform> 
-  inline rotate( ImageViewBase<ImageT> const& v, 
-		 double theta ) {
+  TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, RotateTransform>
+  inline rotate( ImageViewBase<ImageT> const& v,
+                 double theta ) {
     return transform(v, RotateTransform(theta), /* dims */
                      ZeroEdgeExtension(), BilinearInterpolation());
   }
 
 } // namespace vw
 
-#endif // __VW_IMAGE_TRANSFORM_H__ 
+#endif // __VW_IMAGE_TRANSFORM_H__

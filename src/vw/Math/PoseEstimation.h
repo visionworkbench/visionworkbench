@@ -30,7 +30,7 @@ namespace math {
   Quaternion<float64> relative_orientation( MatrixBase<Matrix1T> const& vectors1,
                                             MatrixBase<Matrix2T> const& vectors2)
   {
-    VW_ASSERT( vectors1.impl().rows()==3 && vectors2.impl().rows()==3 && 
+    VW_ASSERT( vectors1.impl().rows()==3 && vectors2.impl().rows()==3 &&
                vectors1.impl().cols()==vectors2.impl().cols(),
                ArgumentErr( "relative_orientation(): Invalid or incompatible matrix dimensions" ) );
     Matrix4x4 M;

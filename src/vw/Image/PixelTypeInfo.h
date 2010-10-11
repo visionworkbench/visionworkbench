@@ -6,8 +6,8 @@
 
 
 /// \file PixelTypeInfo.h
-/// 
-/// Base classes, support classes, and other infrastructure 
+///
+/// Base classes, support classes, and other infrastructure
 /// to support the pixel types.
 ///
 #ifndef __VW_IMAGE_PIXELTYPEINFO_H__
@@ -25,7 +25,7 @@
 
 namespace vw {
 
-  // Forward declaration, used to disable certain pixel functions when 
+  // Forward declaration, used to disable certain pixel functions when
   // the arguments are actually images.
   template <class ImageT> struct ImageViewBase;
 
@@ -34,7 +34,7 @@ namespace vw {
   //
   // Here we provide basic pixel type manipulation classes, most of
   // which are just thin wrappers provided for backwards
-  // compatability.  We also provide tools to convert between real 
+  // compatability.  We also provide tools to convert between real
   // and complex pixel types.
   // *******************************************************************
 
@@ -59,11 +59,11 @@ namespace vw {
   // *******************************************************************
   // Pixel channel standard range computation logic
   //
-  // In some functions it is necessary to assume that the values in a 
-  // pixel span some meaningful range.  For example, when compositing 
-  // with alpha you have to know what value of alpha corresponds to 
-  // full opacity.  For floating-point types the range is generally 
-  // from zero to one.  These classes allow you to compute the range 
+  // In some functions it is necessary to assume that the values in a
+  // pixel span some meaningful range.  For example, when compositing
+  // with alpha you have to know what value of alpha corresponds to
+  // full opacity.  For floating-point types the range is generally
+  // from zero to one.  These classes allow you to compute the range
   // for an arbitrary pixel type.
   // *******************************************************************
 
@@ -94,11 +94,11 @@ namespace vw {
 
   /// A channel range computation class.  This class is templatized on
   /// the pixel type and provides to static functions, max() and min(),
-  /// that return the top and bottom of the standard range of the 
-  /// underlying channel type.  That is, max() corresponds to 1.0 in 
-  /// the floating-point world and min() corresponds to 0.0.  The value 
-  /// of min() is generally zero, *not* some negative number.  If you 
-  /// really just want to know the range of values you can store in a 
+  /// that return the top and bottom of the standard range of the
+  /// underlying channel type.  That is, max() corresponds to 1.0 in
+  /// the floating-point world and min() corresponds to 0.0.  The value
+  /// of min() is generally zero, *not* some negative number.  If you
+  /// really just want to know the range of values you can store in a
   /// given type, use std::numeric_limits instead.
   template <class T> struct ChannelRange : public ChannelRangeHelper<typename CompoundChannelType<T>::type, boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
 
@@ -157,13 +157,13 @@ namespace vw {
   // context of pixel casting and mirrors channel_cast_rescale nicely,
   // so we leave it here.
   //
-  // FIXME The _clamp version clamps to the min/max integer values of 
+  // FIXME The _clamp version clamps to the min/max integer values of
   // the destination.  This function does not work at all for floating-
-  // point destination types, and the user might expect it to clamp to 
-  // the ChannelRange instead.  Probably the _clamp behavior should be 
-  // promoted to the default behavior for integer destination types. 
-  // Anyone who is relying on channel_cast's overvlow behavior probably 
-  // deserves to lose anyway.  At the moment the only thing using this 
+  // point destination types, and the user might expect it to clamp to
+  // the ChannelRange instead.  Probably the _clamp behavior should be
+  // promoted to the default behavior for integer destination types.
+  // Anyone who is relying on channel_cast's overvlow behavior probably
+  // deserves to lose anyway.  At the moment the only thing using this
   // code is BicubicInterpolation.
   // *******************************************************************
 
@@ -290,17 +290,17 @@ namespace vw {
   // *******************************************************************
   // Pixel casting and rescaling logic.
   //
-  // We implement pixel casting indirectly through this pixel_cast<> 
-  // template so that users can easily control the behavior of casts 
-  // between user-defined and standard pixel types.  When the source 
-  // and destination channel types differ, the channel conversion is 
-  // handled separately from the pixel format conversion.  The pixel 
-  // conversion itself takes place in whichever channel space has 
-  // greater precision, and occurs via a call to the corresponding 
-  // pixel_cast function.  Thus, if the user wishes to overload the 
-  // conversion behavior between two pixel formats, they need only 
+  // We implement pixel casting indirectly through this pixel_cast<>
+  // template so that users can easily control the behavior of casts
+  // between user-defined and standard pixel types.  When the source
+  // and destination channel types differ, the channel conversion is
+  // handled separately from the pixel format conversion.  The pixel
+  // conversion itself takes place in whichever channel space has
+  // greater precision, and occurs via a call to the corresponding
+  // pixel_cast function.  Thus, if the user wishes to overload the
+  // conversion behavior between two pixel formats, they need only
   // overload it for the case when the channel types are the same.
-  // The rescaling variant, pixel_cast_rescale<>, performs a scale 
+  // The rescaling variant, pixel_cast_rescale<>, performs a scale
   // conversion when converting the channel type.
   // *******************************************************************
 
@@ -313,7 +313,7 @@ namespace vw {
       return DestT( src );
     }
   };
-  
+
   // Non-rescaling pixel cast free function
   template <class DestT, class SrcT>
   typename boost::enable_if< typename IsScalarOrCompound<SrcT>::type, DestT >::type
@@ -385,8 +385,8 @@ namespace vw {
   // A pixel type convenience macro and forward declrations.
   // *******************************************************************
 
-  /// This macro provides the appropriate specializations of 
-  /// the compound type traits classes for a new pixel type 
+  /// This macro provides the appropriate specializations of
+  /// the compound type traits classes for a new pixel type
   /// with a fixed number of channels (the common case).
 #define VW_DECLARE_PIXEL_TYPE(PIXELT,NCHANNELS)              \
   template <class ChannelT>                                  \
@@ -406,8 +406,8 @@ namespace vw {
     typedef const PIXELT<NewChT> type;                       \
   }                                                          \
 
-  /// This macro provides the appropriate specializations of 
-  /// the compound type traits classes for a new pixel type 
+  /// This macro provides the appropriate specializations of
+  /// the compound type traits classes for a new pixel type
   /// with a variable number of channels.
 #define VW_DECLARE_PIXEL_TYPE_NCHANNELS(PIXELT)              \
   template <class ChannelT, int SizeN>                       \
@@ -502,8 +502,8 @@ namespace vw {
     VW_CHANNEL_GENERIC_8_BYTE = 93,
     VW_CHANNEL_USER = 100
   };
-  
-  // PixelFormatID<> 
+
+  // PixelFormatID<>
   template <class PixelT> struct PixelFormatID { static const PixelFormatEnum value = VW_PIXEL_UNKNOWN; };
   template<> struct PixelFormatID<vw::int8>    { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
   template<> struct PixelFormatID<vw::uint8>   { static const PixelFormatEnum value = VW_PIXEL_SCALAR; };
@@ -546,7 +546,7 @@ namespace vw {
   template <class ChT> struct PixelFormatID<PixelMask<PixelLuv<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LUV_MASKED; };
   template <class ChT> struct PixelFormatID<PixelMask<PixelLab<ChT> > >   { static const PixelFormatEnum value = VW_PIXEL_LAB_MASKED; };
 
-  // ChannelTypeID<> 
+  // ChannelTypeID<>
   template <class ChannelT> struct ChannelTypeID { static const ChannelTypeEnum value = VW_CHANNEL_UNKNOWN; };
   template<> struct ChannelTypeID<vw::int8>      { static const ChannelTypeEnum value = VW_CHANNEL_INT8; };
   template<> struct ChannelTypeID<vw::uint8>     { static const ChannelTypeEnum value = VW_CHANNEL_UINT8; };

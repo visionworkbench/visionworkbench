@@ -496,7 +496,7 @@ namespace vw {
     }
   };
 
-  /// Zero out any pixels that aren't completely opaque. 
+  /// Zero out any pixels that aren't completely opaque.
   template <class ImageT>
   UnaryPerPixelView<ImageT,ClearNonOpaqueFunctor<typename ImageT::pixel_type> >
   inline clear_nonopaque_pixels( ImageViewBase<ImageT> const& image ) {
@@ -525,10 +525,10 @@ namespace vw {
     }
   };
 
-  /// Zero out any pixels that aren't completely opaque. 
+  /// Zero out any pixels that aren't completely opaque.
   template <class ImageT>
   UnaryPerPixelView<ImageT,RemapPixelFunctor<typename ImageT::pixel_type> >
-  inline remap_pixel_value( ImageViewBase<ImageT> const& image, 
+  inline remap_pixel_value( ImageViewBase<ImageT> const& image,
                             typename PixelChannelType<typename ImageT::pixel_type>::type src_val,
                             typename PixelChannelType<typename ImageT::pixel_type>::type dst_val) {
     typedef RemapPixelFunctor<typename ImageT::pixel_type> func_type;

@@ -6,8 +6,8 @@
 
 
 /// \file NelderMead.h
-/// 
-/// Non-linear optimization using a simplex method.  
+///
+/// Non-linear optimization using a simplex method.
 ///
 /// Based on Chapter 13, Section 13.1 of "The Nature of Mathematical
 /// Modelling" by Neal Gershenfeld with some inspiration from
@@ -27,10 +27,10 @@ namespace vw {
 namespace math {
 
   namespace optimization {
-    enum NM_STATUS_CODES { eNelderMeadDidNotConverge = -1, 
+    enum NM_STATUS_CODES { eNelderMeadDidNotConverge = -1,
                            eNelderMeadConvergedRelTolerance = 1 };
   }
-  
+
   template <class FuncT, class DomainT>
   class Simplex {
 
@@ -51,19 +51,19 @@ namespace math {
 
       m_vertices.insert(iter, vertex);
     }
-    
+
     // Search for the vertex in the list that had the highest function
     // evaluation value and return an iterator to that position.
     vertex_type& highest_vertex() { return m_vertices.front(); }
     vertex_type& lowest_vertex() { return m_vertices.back(); }
 
-    vertex_type pop_highest_vertex() { 
+    vertex_type pop_highest_vertex() {
       vertex_type vertex = m_vertices.front();
       m_vertices.pop_front();
       return vertex;
     }
 
-    DomainT mean_vertex_location() { 
+    DomainT mean_vertex_location() {
       vertex_iterator iter = m_vertices.begin();
       DomainT mean_location = (*iter).first;
       while ( ++iter != m_vertices.end())
@@ -77,7 +77,7 @@ namespace math {
     template <class ScaleT>
     Simplex(FuncT const& func, DomainT const seed, ScaleT const& scales) : m_func(func) {
 
-      VW_ASSERT(scales.size() == seed.size(), 
+      VW_ASSERT(scales.size() == seed.size(),
                 ArgumentErr() << "NelderMeadMinimizer: the number of scales does not match the dimensionality of the data in the seed vector.");
 
       // The seed vector sets the center vertex of the simplex and the
@@ -89,7 +89,7 @@ namespace math {
       for (unsigned i=0; i < seed.size(); ++i) {
         DomainT vertex = seed;
         vertex[i] += scales[i];
-        insert_vertex( vertex_type(vertex, m_func(vertex)) ); 
+        insert_vertex( vertex_type(vertex, m_func(vertex)) );
       }
     }
 
@@ -117,14 +117,14 @@ namespace math {
       // First, try to reflect the highest_vtx across the
       // mean_vtx. (reflect)
       DomainT new_loc = 2*mean_vtx_loc - highest_vtx.first;
-      double new_val = m_func(new_loc); 
- 
+      double new_val = m_func(new_loc);
+
       // If this is now the lowest point, we should move another step
       // in this direction because this direction is a good
       // one. (reflect & extend)
       if (new_val < lowest_vtx.second) {
         DomainT reflect_extend_loc = 3*mean_vtx_loc - 2*highest_vtx.first;
-        double reflect_extend_val = m_func(reflect_extend_loc); 
+        double reflect_extend_val = m_func(reflect_extend_loc);
 
         if (reflect_extend_val < new_val) {
           new_loc = reflect_extend_loc;
@@ -140,7 +140,7 @@ namespace math {
         new_loc = 1.5*mean_vtx_loc - 0.5*highest_vtx.first;
         new_val = m_func(new_loc);
       }
-      
+
       // If this is still worse, we try to shrinking the largest
       // vertex without reflecting it. (shrink)
       if (new_val > highest_vertex().second) {
@@ -177,8 +177,8 @@ namespace math {
   };
 
   template <class FuncT, class DomainT, class ScaleT>
-  DomainT nelder_mead( FuncT const& func, DomainT const& seed, ScaleT const& scale, 
-                       int &status, bool verbose = false, int restarts = 1, 
+  DomainT nelder_mead( FuncT const& func, DomainT const& seed, ScaleT const& scale,
+                       int &status, bool verbose = false, int restarts = 1,
                        double tolerance = 1e-16, int max_iterations = 1000) {
     DomainT result = seed;
     status = optimization::eNelderMeadConvergedRelTolerance;
@@ -195,7 +195,7 @@ namespace math {
     for (int i=0; i < restarts; ++i) {
       iterations = 0;
       Simplex<FuncT, DomainT> simplex(func, result, scale);
-      
+
       // Perform simplex updates until tolerance in reached or
       // max_iterations is reached
       double delta = simplex.update();
@@ -226,7 +226,7 @@ namespace math {
     fill(scale,1.0);
     return nelder_mead(func, seed, scale, status, verbose, restarts, tolerance, max_iterations);
   }
-  
+
 }} // namespace vw::math
 
 #endif // __VW_MATH_NELDER_MEAD_H__

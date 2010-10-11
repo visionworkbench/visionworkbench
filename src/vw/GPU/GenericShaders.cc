@@ -13,7 +13,7 @@ namespace vw { namespace GPU {
 
   // ##################### GenericFragmentShader_1i0f Members #####################
 
-  GenericFragmentShader_1i0f::GenericFragmentShader_1i0f(const char* fragmentShaderBaseName) 
+  GenericFragmentShader_1i0f::GenericFragmentShader_1i0f(const char* fragmentShaderBaseName)
   { path = fragmentShaderBaseName; }
 
 
@@ -25,7 +25,7 @@ namespace vw { namespace GPU {
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // Output
-    GPUImageBase temp; 
+    GPUImageBase temp;
     temp.copy_attributes(image1);
     ShaderInvocation_SetOutputImage(temp);
     // Input
@@ -42,20 +42,20 @@ namespace vw { namespace GPU {
 
   // ##################### GenericFragmentShader_2i0f Members #####################
 
-  GenericFragmentShader_2i0f::GenericFragmentShader_2i0f(const char* fragmentShaderBaseName) 
+  GenericFragmentShader_2i0f::GenericFragmentShader_2i0f(const char* fragmentShaderBaseName)
   { path = fragmentShaderBaseName; }
 
   GPUImageBase GenericFragmentShader_2i0f::operator()(const GPUImageBase& image1, const GPUImageBase& image2) {
     // GLState - Setup
-    ((GPUImageBase&) image1).rasterize_homography();	
-    ((GPUImageBase&) image2).rasterize_homography();	
+    ((GPUImageBase&) image1).rasterize_homography();
+    ((GPUImageBase&) image2).rasterize_homography();
     ShaderInvocation_SetupGLState(image1.width(), image1.height());
     // Program - Install
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // OUTPUT
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
     // INPUT
     program->set_input_image("i1", image1);
     program->set_input_image("i2", image2);
@@ -71,25 +71,25 @@ namespace vw { namespace GPU {
 
   // ##################### GenericFragmentShader_1i1f Members #####################
 
-  GenericFragmentShader_1i1f::GenericFragmentShader_1i1f(const char* fragmentShaderBaseName) 
-  { 
-    path = fragmentShaderBaseName; 
+  GenericFragmentShader_1i1f::GenericFragmentShader_1i1f(const char* fragmentShaderBaseName)
+  {
+    path = fragmentShaderBaseName;
   }
 
   GPUImageBase GenericFragmentShader_1i1f::operator()(const GPUImageBase& image1, float float1) {
     // GLState - Setup
-    ((GPUImageBase&) image1).rasterize_homography();	
+    ((GPUImageBase&) image1).rasterize_homography();
     ShaderInvocation_SetupGLState(image1.width(), image1.height());
     // Program - Install
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // OUTPUT
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
     // INPUT
     bool is_int8 = image1.type() == GPU_UINT8;
     program->set_input_image("i1", image1);
-    program->set_input_float("f1", float1, is_int8);	
+    program->set_input_float("f1", float1, is_int8);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
     // CleanUp State
@@ -101,7 +101,7 @@ namespace vw { namespace GPU {
 
   // ##################### GenericFragmentShader_1i2f Members #####################
 
-  GenericFragmentShader_1i2f::GenericFragmentShader_1i2f(const char* fragmentShaderBaseName) 
+  GenericFragmentShader_1i2f::GenericFragmentShader_1i2f(const char* fragmentShaderBaseName)
   { path = fragmentShaderBaseName; }
 
 
@@ -110,19 +110,19 @@ namespace vw { namespace GPU {
     static vector<int> fAttributes(1);
     static vector<int> emptyVector;
     // GLState - Setup
-    ((GPUImageBase&) image1).rasterize_homography();	
+    ((GPUImageBase&) image1).rasterize_homography();
     ShaderInvocation_SetupGLState(image1.width(), image1.height());
     // Program - Install
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // OUTPUT
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
     // INPUT
     bool is_int8 = image1.type() == GPU_UINT8;
     program->set_input_image("i1", image1);
     program->set_input_float("f1", float1, is_int8);
-    program->set_input_float("f2", float2, is_int8);		
+    program->set_input_float("f2", float2, is_int8);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
     // CleanUp State
@@ -140,20 +140,20 @@ namespace vw { namespace GPU {
 
   GPUImageBase GenericFragmentShader_1i3f::operator()(const GPUImageBase& image1, float float1, float float2, float float3) {
     // GLState - Setup
-    ((GPUImageBase&) image1).rasterize_homography();	
+    ((GPUImageBase&) image1).rasterize_homography();
     ShaderInvocation_SetupGLState(image1.width(), image1.height());
     // Program - Install
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // OUTPUT
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
     // INPUT
     bool is_int8 = image1.type() == GPU_UINT8;
     program->set_input_image("i1", image1);
     program->set_input_float("f1", float1, is_int8);
-    program->set_input_float("f2", float2, is_int8);	
-    program->set_input_float("f3", float3, is_int8);		
+    program->set_input_float("f2", float2, is_int8);
+    program->set_input_float("f3", float3, is_int8);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
     // CleanUp State
@@ -165,26 +165,26 @@ namespace vw { namespace GPU {
 
   // ##################### GenericFragmentShader_1i4f Members #####################
 
-  GenericFragmentShader_1i4f::GenericFragmentShader_1i4f(const char* fragmentShaderBaseName) 
+  GenericFragmentShader_1i4f::GenericFragmentShader_1i4f(const char* fragmentShaderBaseName)
   { path = fragmentShaderBaseName; }
 
   GPUImageBase GenericFragmentShader_1i4f::operator()(const GPUImageBase& image1, float float1, float float2, float float3, float float4) {
     // GLState - Setup
-    ((GPUImageBase&) image1).rasterize_homography();	
+    ((GPUImageBase&) image1).rasterize_homography();
     ShaderInvocation_SetupGLState(image1.width(), image1.height());
     // Program - Install
     GPUProgram* program = create_gpu_program(path);
     program->install();
     // OUTPUT
     GPUImageBase temp(image1.width(), image1.height(), image1.format(), image1.type());
-    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);	
+    glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, temp.target(), temp.name(), 0);
     // INPUT
     bool is_int8 = image1.type() == GPU_UINT8;
     program->set_input_image("i1", image1);
     program->set_input_float("f1", float1, is_int8);
-    program->set_input_float("f2", float2, is_int8);	
-    program->set_input_float("f3", float3, is_int8);	
-    program->set_input_float("f4", float4, is_int8);	
+    program->set_input_float("f2", float2, is_int8);
+    program->set_input_float("f3", float3, is_int8);
+    program->set_input_float("f4", float4, is_int8);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image1);
     // CleanUp State

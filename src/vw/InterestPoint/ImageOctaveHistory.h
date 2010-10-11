@@ -6,11 +6,11 @@
 
 
 /// \file ImageOctaveHistory.h
-/// 
+///
 /// Class for storing all of the intermediate images processed while
 /// iterating through an ImageOctave. This can be useful for generating
 /// descriptors after interest point detection has been completed.
-/// 
+///
 #ifndef __IMAGE_OCTAVE_HISTORY_H__
 #define __IMAGE_OCTAVE_HISTORY_H__
 
@@ -66,6 +66,6 @@ class ImageOctaveHistory : std::vector<std::vector<ImageT> > {
   }
 };
 
-}} // namespace vw::ip 
+}} // namespace vw::ip
 
 #endif // __IMAGE_OCTAVE_HISTORY_H__

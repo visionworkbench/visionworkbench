@@ -9,13 +9,13 @@
 ///
 /// A generic image view reference class.
 ///
-/// Most Vision Workbench image processing functions simply return 
+/// Most Vision Workbench image processing functions simply return
 /// image view objects that lazily represent the processed data.
-/// Under some circumstances it is helpful to be able to hold onto 
-/// such a processed view without rasterizing it.  Ordinarily this 
-/// requires knowing the full type of the view.  When this is not 
-/// acceptable, the \ref vw::ImageViewRef class allows you to hold 
-/// a virtualized reference to an arbitrary image view with a given 
+/// Under some circumstances it is helpful to be able to hold onto
+/// such a processed view without rasterizing it.  Ordinarily this
+/// requires knowing the full type of the view.  When this is not
+/// acceptable, the \ref vw::ImageViewRef class allows you to hold
+/// a virtualized reference to an arbitrary image view with a given
 /// pixel type.
 ///
 #ifndef __VW_IMAGE_IMAGEVIEWREF_H__
@@ -107,7 +107,7 @@ namespace vw {
     typedef ImageViewRefAccessor<PixelT> pixel_accessor;
 
     virtual ~ImageViewRefBase() {}
-    
+
     virtual int32 cols() const = 0;
     virtual int32 rows() const = 0;
     virtual int32 planes() const = 0;
@@ -148,17 +148,17 @@ namespace vw {
 
   /// A virtualized image view reference object.
   ///
-  /// This class behaves as a reference to an arbitrary image view 
-  /// with the given pixel type.  The purpose of this class is to 
-  /// hide the full type of a view behind a veil of abstraction, 
-  /// making things like run-time polymorphic behavior possible. 
-  /// The inevitable cost of this flexibility is one virtual 
-  /// function call per method invocation.  In many cases there 
-  /// are additional costs associated with not being able to 
+  /// This class behaves as a reference to an arbitrary image view
+  /// with the given pixel type.  The purpose of this class is to
+  /// hide the full type of a view behind a veil of abstraction,
+  /// making things like run-time polymorphic behavior possible.
+  /// The inevitable cost of this flexibility is one virtual
+  /// function call per method invocation.  In many cases there
+  /// are additional costs associated with not being able to
   /// perform template-based optimizations at compile time.
   ///
-  /// Like any C++ reference, you bind an ImageViewRef to a view 
-  /// using a constructor and future operations act on the bound 
+  /// Like any C++ reference, you bind an ImageViewRef to a view
+  /// using a constructor and future operations act on the bound
   /// object instead of the reference object itself.
   ///
   /// The current implementation of ImageViewRef is read-only.
@@ -211,9 +211,9 @@ namespace vw {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
 
-    // A special performance-enhancing overload for rasterizing directly into 
-    // an ImageView with the proper pixel type.  This cannot be templatized 
-    // or otherwise generalized because it calls m_view's virtual rasterize 
+    // A special performance-enhancing overload for rasterizing directly into
+    // an ImageView with the proper pixel type.  This cannot be templatized
+    // or otherwise generalized because it calls m_view's virtual rasterize
     // method.
     inline void rasterize( ImageView<PixelT> const& dest, BBox2i bbox ) const {
       m_view->rasterize( dest, bbox );

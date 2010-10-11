@@ -6,8 +6,8 @@
 
 
 /// \file CameraCurve.h
-/// 
-/// Functions for deducing the camera response curve by comparing 
+///
+/// Functions for deducing the camera response curve by comparing
 /// relative brightness values from several images of the same scene.
 ///
 #ifndef __VW_HDR_CAMERACURVE_H__
@@ -24,7 +24,7 @@
 // Number of LDR intensity pairs to sample
 const int VW_HDR_DEFAULT_NUM_PIXEL_SAMPLES = 300;
 
-namespace vw { 
+namespace vw {
 namespace hdr {
 
   /// Generate a set of brightness values based on a known ratio of
@@ -51,12 +51,12 @@ namespace hdr {
   /// Samples an image channel at the specified indices using a
   /// sample region of size kernel_size. kernel_size should be odd.
   template <class ViewT>
-  typename PixelChannelType<typename ViewT::pixel_type>::type sample_image(ImageViewBase<ViewT> const& image, 
+  typename PixelChannelType<typename ViewT::pixel_type>::type sample_image(ImageViewBase<ViewT> const& image,
                                                                            int x, int y, int channel, int kernel_size) {
-    
+
     typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
     EdgeExtensionView<ViewT, ConstantEdgeExtension> edge_extended_image(image.impl(), ConstantEdgeExtension());
-    
+
     int halfsize = kernel_size / 2;
     double average = 0;
 
@@ -73,8 +73,8 @@ namespace hdr {
   /// from one LDR image, the corresponding pixel value from a second
   /// LDR image, and the ratio of exposure between these two images.
   template <class ViewT>
-  Matrix<typename PixelChannelType<typename ViewT::pixel_type>::type> generate_ldr_intensity_pairs(std::vector<ViewT> const &images, 
-                                                                                                   std::vector<double> const &brightness_values, 
+  Matrix<typename PixelChannelType<typename ViewT::pixel_type>::type> generate_ldr_intensity_pairs(std::vector<ViewT> const &images,
+                                                                                                   std::vector<double> const &brightness_values,
                                                                                                    int num_pairs, uint32 channel,
                                                                                                    int kernel_size = 1) {
 
@@ -124,7 +124,7 @@ namespace hdr {
         ++i;
       }
     }
-    
+
     return pair_list;
   }
 
@@ -132,7 +132,7 @@ namespace hdr {
   /// from one LDR image, the corresponding pixel value from a second
   /// LDR image, and the ratio of exposure between these two images.
   template <class ViewT>
-  Matrix<typename PixelChannelType<typename ViewT::pixel_type>::type> sample_ldr_images(std::vector<ViewT> const &images, 
+  Matrix<typename PixelChannelType<typename ViewT::pixel_type>::type> sample_ldr_images(std::vector<ViewT> const &images,
                                                                                         std::vector<double> const &/*brightness_values*/,
                                                                                         int num_pairs, int channel,
                                                                                         int kernel_size = 1) {
@@ -155,11 +155,11 @@ namespace hdr {
       int rand_x = VW_HDR_GET_RAND(width);
       int rand_y = VW_HDR_GET_RAND(height);
 
-      for (unsigned j = 0; j < images.size(); ++j) 
+      for (unsigned j = 0; j < images.size(); ++j)
         pair_list(i,j) = sample_image(images[j].impl(), rand_x, rand_y, channel, kernel_size);
       ++i;
     }
-    
+
     return pair_list;
   }
 
@@ -168,7 +168,7 @@ namespace hdr {
   /// develop new camera response curve estimators in some other
   /// program, such as MATLAB.
   template <class ElemT>
-  void write_camera_pairs(std::string const& pairs_file, 
+  void write_camera_pairs(std::string const& pairs_file,
                           vw::Matrix<ElemT> const &pairs) {
     FILE* output_file = fopen(pairs_file.c_str(), "w");
     if ( !output_file ) vw_throw( IOErr() << "write_camera_pairs: failed to open file for writing." );
@@ -188,8 +188,8 @@ namespace hdr {
   class CameraCurveFn {
 
     // The lookup table stores the log luminance values for each pixel
-    // value.  
-    std::vector<Vector<double> > m_lookup_tables; 
+    // value.
+    std::vector<Vector<double> > m_lookup_tables;
 
   public:
     CameraCurveFn(std::vector<Vector<double> > const& lookup_tables) :
@@ -218,7 +218,7 @@ namespace hdr {
     typename CompoundChannelCast<PixelT, double>::type operator() (PixelT pixel_val) const {
       typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
 
-      if (CompoundNumChannels<PixelT>::value != int32(this->num_channels())) 
+      if (CompoundNumChannels<PixelT>::value != int32(this->num_channels()))
         vw_throw(ArgumentErr() << "CameraCurveFn: pixel does not have the same number of channels as there are curves.");
 
       pixel_type result;
@@ -230,21 +230,21 @@ namespace hdr {
 
     unsigned num_channels() const { return m_lookup_tables.size(); }
 
-    Vector<double> const& lookup_table(int channel) const { 
-      if (channel < 0 || (size_t)channel >= m_lookup_tables.size()) 
+    Vector<double> const& lookup_table(int channel) const {
+      if (channel < 0 || (size_t)channel >= m_lookup_tables.size())
         vw_throw(ArgumentErr() << "CameraCurveFn: unknown lookup table.");
 
-      return m_lookup_tables[channel]; 
+      return m_lookup_tables[channel];
     }
 
   };
-  
+
   /// Returns a lookup table, indexed by pixel values, that contains
   /// their corresponding log luminance values.
   Vector<double> estimate_camera_curve(vw::Matrix<double> const& pixels,
                                       std::vector<double> const& brightness_values);
 
-  /// Computes the camera curve for LDR images of the same scene. 
+  /// Computes the camera curve for LDR images of the same scene.
   ///
   /// The input to this function, 'images', is a std::vector of images
   /// sorted from darkest to brightest. Each image should be
@@ -255,19 +255,19 @@ namespace hdr {
   /// determines the size of the neighborhood that is averaged when
   /// picking corresponding points samples between LDR images.
   template <class ViewT>
-  CameraCurveFn camera_curves(std::vector<ViewT> const &images, 
+  CameraCurveFn camera_curves(std::vector<ViewT> const &images,
                               std::vector<double> brightness_values,
                               int sample_region_size = 1) {
-    
+
     int32 n_channels = PixelNumChannels<typename ViewT::pixel_type>::value;
-    
+
     // Sample each image channel
     std::vector<vw::Matrix<double> > pixels(n_channels);
     for ( int32 i = 0; i < n_channels; ++i ) {
       pixels[i] = sample_ldr_images(images, brightness_values, VW_HDR_DEFAULT_NUM_PIXEL_SAMPLES, i, sample_region_size);
     }
 
-    // Compute camera response curve for each channel. 
+    // Compute camera response curve for each channel.
     std::vector<Vector<double> > lookup_tables(n_channels);
     for ( int32 i = 0; i < n_channels; ++i ) {
       lookup_tables[i] = estimate_camera_curve(pixels[i], brightness_values);
@@ -289,7 +289,7 @@ namespace hdr {
     double m_brightness_val;
 
   public:
-    LuminanceFunc(CameraCurveFn const& curves, double brightness_val) : 
+    LuminanceFunc(CameraCurveFn const& curves, double brightness_val) :
       m_curves(curves), m_brightness_val(brightness_val) {}
 
     inline typename CompoundChannelCast<PixelT,double>::type operator()( PixelT pixel ) const {
@@ -305,7 +305,7 @@ namespace hdr {
     return UnaryPerPixelView<ImageT,LuminanceFunc<typename ImageT::pixel_type> >( image.impl(), LuminanceFunc<typename ImageT::pixel_type>(curves, brightness_val) );
   }
 
-}} // namespace vw::HDR 
+}} // namespace vw::HDR
 
 
 #endif  // __VW_HDR_CAMERACURVE_H__

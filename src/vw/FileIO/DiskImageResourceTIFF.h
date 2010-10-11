@@ -6,7 +6,7 @@
 
 
 /// \file FileIO/DiskImageResourceTIFF.h
-/// 
+///
 /// Provides support for TIFF image files.
 ///
 #ifndef __VW_FILEIO_DISKIMAGERESOUCETIFF_H__
@@ -25,18 +25,18 @@ namespace vw {
 
     DiskImageResourceTIFF( std::string const& filename );
 
-    DiskImageResourceTIFF( std::string const& filename, 
+    DiskImageResourceTIFF( std::string const& filename,
                            ImageFormat const& format,
                            bool use_compression = false );
-    
+
     virtual ~DiskImageResourceTIFF() {}
-    
+
     /// Returns the type of disk image resource.
     static std::string type_static() { return "TIFF"; }
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual Vector2i block_size() const;
 
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;

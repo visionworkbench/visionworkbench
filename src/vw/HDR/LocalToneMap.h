@@ -6,24 +6,24 @@
 
 
 /// \file LocalToneMap.h
-/// 
+///
 /// Tonemapping operators that compute the tonemapping in one small
-/// image region at a time. 
+/// image region at a time.
 ///
 /// This file implements the following tone mapping operators.
 ///
-/// 
+///
 #ifndef __VW_HDR_LOCALTONEMAP_H__
 #define __VW_HDR_LOCALTONEMAP_H__
 
 #include <vw/Image/ImageView.h>
 
-namespace vw { 
+namespace vw {
 namespace hdr {
 
-  ImageView<PixelRGB<double> > ashikhmin_tone_map(ImageView<PixelRGB<double> > hdr_image, 
+  ImageView<PixelRGB<double> > ashikhmin_tone_map(ImageView<PixelRGB<double> > hdr_image,
                                                   double threshold = 0.5);
 
-}} // namespace vw::HDR 
+}} // namespace vw::HDR
 
 #endif  // __VW_HDR_LOCALTONEMAP_H__

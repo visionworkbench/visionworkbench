@@ -57,8 +57,8 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
   // xo = (xo0,xo1,xo2), xt = (xt0,xt1,xt2), xl = (xl0,xl1,xl2)
   // normal = cross_prod(xt-xo, xl-xo);
   // normal = [(xt1-xo1)*(xl2-xo2)-(xt2-xo2)*(xl1-xo1),
-  //					 (xt2-xo2)*(xl0-xo0)-(xt0-xo0)*(xl2-xo2),
-  //					 (xt0-xo0)*(xl1-xo1)-(xt1-xo1)*(xl0-xo0)]
+  //           (xt2-xo2)*(xl0-xo0)-(xt0-xo0)*(xl2-xo2),
+  //           (xt0-xo0)*(xl1-xo1)-(xt1-xo1)*(xl0-xo0)]
   // d_n/xo2 = (xl1-xt1,xt0-xl0,0)
   // d_n/xl2 = (xt1-xo1,xo0-xt0,0)
   // d_n/xt2 = (xo1-xl1,xl0-xo0,0)
@@ -84,14 +84,14 @@ Vector3 ComputeNormalDerivative(int flag,  Vector3 xyz, Vector3 xyzTOP, Vector3 
 }
 
 //computes the cosine derivative wrt to the height map of the angle between two vectors stored in variables normal and direction
-//direction vector is normalized 
+//direction vector is normalized
 float ComputeCosDerivative(Vector3 normal, Vector3 direction, Vector3 normalDerivative)
 {
   float normalNorm = normal(0)*normal(0) + normal(1)*normal(1) + normal(2)*normal(2);
   float denominator = normalNorm*sqrt(normalNorm);
   float nominator = (normalDerivative(0)*direction(0)+normalDerivative(1)*direction(1))*normalNorm - (normalDerivative(0) + normalDerivative(1))*(normal(0)*direction(0) + normal(1)*direction(1) + normal(2)*direction(2));
   float cosEDeriv = nominator/denominator;
-  return cosEDeriv; 
+  return cosEDeriv;
 }
 
 float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector3 normal, ModelParams inputImgParams, int flag)
@@ -128,7 +128,7 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
     printf("cos_alpha error\n");
   }
 
-  float rad_alpha = acos(cos_alpha);	
+  float rad_alpha = acos(cos_alpha);
   float L = 1.0 + A*rad_alpha + B*rad_alpha*rad_alpha + C*rad_alpha*rad_alpha*rad_alpha;
 
   //reliefDeriv = (mu+mu_0) ? (1-L)*cosIDeriv + L*(cosIDeriv*(mu+mu_0)+(cosEDeriv+cosIDeriv)*mu)/((mu+mu_0)*(mu+mu_0)) : 0;
@@ -156,8 +156,8 @@ float ComputeReliefDerivative(Vector3 xyz,Vector3 xyzLEFT,Vector3 xyzTOP, Vector
 
 template <class ViewT, class ViewT1>
 void
-ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo, 
-    ImageViewBase<ViewT1> const& drg, GeoReference const &drgGeo, 
+ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo,
+    ImageViewBase<ViewT1> const& drg, GeoReference const &drgGeo,
     int kb, int lb, ModelParams modelParams, GlobalParams globalParams,
     vector<Vector3> &xyzArray, vector<Vector3> &xyzLEFTArray, vector<Vector3> &xyzTOPArray,
     vector<Vector3> &normalArray)
@@ -187,7 +187,7 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
       if ((ii < drg.impl().rows()) && (jj < drg.impl().cols())){
 
         //local index in the vector that describes the block image; assumes row-wise concatenation.
-        int l_index = k*eHorBlockSize+l; 
+        int l_index = k*eHorBlockSize+l;
 
         if ( is_valid(drg.impl()(jj,ii)) ) {
 
@@ -223,7 +223,7 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
 
             //determine the 3D coordinates of the pixel left of the current pixel
             Vector2 lon_lat_left = drgGeo.pixel_to_lonlat(input_img_left_pix);
-            Vector2 dem_left_pix = demGeo.lonlat_to_pixel(drgGeo.pixel_to_lonlat(input_img_left_pix)); 
+            Vector2 dem_left_pix = demGeo.lonlat_to_pixel(drgGeo.pixel_to_lonlat(input_img_left_pix));
             Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(dem.impl())(dem_left_pix(0), dem_left_pix(1)/*dem_left_pix*/));
             //Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(dem.impl())(input_img_left_pix(0), input_img_left_pix(1)));
             //Vector3 xyz_left = drgGeo.datum().geodetic_to_cartesian(longlat3_left);
@@ -232,7 +232,7 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
 
             //determine the 3D coordinates of the pixel top of the current pixel
             Vector2 lon_lat_top = drgGeo.pixel_to_lonlat(input_img_top_pix);
-            Vector2 dem_top_pix = demGeo.lonlat_to_pixel(drgGeo.pixel_to_lonlat(input_img_top_pix)); 
+            Vector2 dem_top_pix = demGeo.lonlat_to_pixel(drgGeo.pixel_to_lonlat(input_img_top_pix));
             Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(dem.impl())(dem_top_pix(0), dem_top_pix(1)));
             //Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(dem.impl())(input_img_top_pix(0), input_img_top_pix(1)));
             //Vector3 xyz_top = drgGeo.datum().geodetic_to_cartesian(longlat3_top);
@@ -267,17 +267,17 @@ void printJacobian( Matrix<float, numJacobianRows, numJacobianCols>  &jacobian, 
 
 template <class ViewT1, class ViewT2>
 void
-ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const &inputImageGeo, 
-    ImageViewBase<ViewT2> const& shadowImage, ImageViewBase<ViewT1> const& albedoImage, 
+ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const &inputImageGeo,
+    ImageViewBase<ViewT2> const& shadowImage, ImageViewBase<ViewT1> const& albedoImage,
     int kb, int lb, ModelParams inputImgParams, GlobalParams globalParams,
-    vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray, 
+    vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray,
     vector<Vector3> const &xyzTOPArray, vector<Vector3> const &normalArray,
     Matrix<float, numJacobianRows, numJacobianCols>  &jacobianArray,
     Vector<float, numJacobianRows>  &errorVectorArray,
     Matrix<float, numJacobianRows, numJacobianRows>  &weightsArray)
 {
 
-  int r, c; 
+  int r, c;
 
   cout<<"Compute Block Jacobian" <<endl;
   for (r = 0; r < numJacobianRows-1; r++){//last row is always zero
@@ -301,17 +301,17 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
         if ((k < verBlockSize) && (l < horBlockSize)){
 
           float recDer = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
-              xyzTOPArray[r], normalArray[r], 
+              xyzTOPArray[r], normalArray[r],
               inputImgParams, 0)
             *(float)albedoImage.impl()(jj,ii)*inputImgParams.exposureTime;
-          jacobianArray(r, c) = recDer; 
+          jacobianArray(r, c) = recDer;
         }
 
         c = k*horBlockSize + l-1;//left point
         //not computed for the first column and last row
         if ((c >= 0) && (l > 0) && ( k < verBlockSize)){
           float recDerLEFT = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
-              xyzTOPArray[r], normalArray[r], 
+              xyzTOPArray[r], normalArray[r],
               inputImgParams, 1)
             *(float)albedoImage.impl()(jj,ii)*inputImgParams.exposureTime;
           jacobianArray(r, c) = recDerLEFT;
@@ -328,9 +328,9 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
 
 
         //------------------------------------------------------------------------------------------------------------------------------------------
-        //compute the weights matrix 
+        //compute the weights matrix
         if (globalParams.useWeights == 1){
-          weightsArray(r,r) = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray); 
+          weightsArray(r,r) = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
         }
         else{
           weightsArray(r,r) = 1;
@@ -359,12 +359,12 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
 
 template <class ViewT1, class ViewT2>
 void
-ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReference const &inputImageGeo, 
-    ImageViewBase<ViewT1> const& overlapImage, GeoReference const &overlapImageGeo, 
-    ImageViewBase<ViewT2> const& shadowImage, ImageViewBase<ViewT2> const& overlapShadowImage, 
-    ImageViewBase<ViewT1> const& albedoImage, int kb, int lb, 
+ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReference const &inputImageGeo,
+    ImageViewBase<ViewT1> const& overlapImage, GeoReference const &overlapImageGeo,
+    ImageViewBase<ViewT2> const& shadowImage, ImageViewBase<ViewT2> const& overlapShadowImage,
+    ImageViewBase<ViewT1> const& albedoImage, int kb, int lb,
     ModelParams inputImgParams,  ModelParams overlapImgParams, GlobalParams globalParams,
-    vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray, 
+    vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray,
     vector<Vector3> const &xyzTOPArray, vector<Vector3> const &normalArray,
     Matrix<float, numJacobianRows, numJacobianCols> &jacobianArray,
     Vector<float, numJacobianRows> &errorVectorArray,
@@ -378,7 +378,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
       BilinearInterpolation());
 
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
-      ConstantEdgeExtension()), BilinearInterpolation()); 
+      ConstantEdgeExtension()), BilinearInterpolation());
   for (r = 0; r < numJacobianRows-1; r++){
 
     int k = r/(horBlockSize+1); //row index in the extended block
@@ -400,12 +400,12 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
       //compute and update Jacobian for non shadow pixels
       if ((x>=0) && (x < overlapImage.impl().cols()) && (y>=0) && (y< interpOverlapImage.impl().rows()) && (interpOverlapShadowImage.impl()(x, y) == 0)){
 
-        c = k*horBlockSize + l;//same point 
+        c = k*horBlockSize + l;//same point
         //not computed for the last row and last column of the extended block
         if ((k < verBlockSize) && (l < horBlockSize)){
 
           float recDer = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
-              xyzTOPArray[r], normalArray[r], 
+              xyzTOPArray[r], normalArray[r],
               overlapImgParams, 0)
             *(float)albedoImage.impl()(jj,ii)*overlapImgParams.exposureTime;
           jacobianArray(r,c) = recDer;
@@ -415,7 +415,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
         //not computed for the first column and last row
         if ((c >= 0) && (l > 0) && ( k < verBlockSize)){
           float recDerLEFT = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
-              xyzTOPArray[r], normalArray[r], 
+              xyzTOPArray[r], normalArray[r],
               overlapImgParams, 1)
             *(float)albedoImage.impl()(jj,ii)*overlapImgParams.exposureTime;
           jacobianArray(r,c) = recDerLEFT;
@@ -434,7 +434,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
         //-----------------------------------------------------------------------------------------------------------------
         //compute the weights matrix
         if (globalParams.useWeights == 1){
-          weightsArray(r,r) = ComputeLineWeights(overlap_pix, overlapImgParams.centerLine, overlapImgParams.maxDistArray); 
+          weightsArray(r,r) = ComputeLineWeights(overlap_pix, overlapImgParams.centerLine, overlapImgParams.maxDistArray);
         }
         else{
           weightsArray(r,r) = 1;
@@ -472,7 +472,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
   std::string sfsDEMFilename = inputImgParams.sfsDEMFilename; //DEM from sfs
   std::string errorHeightFilename = inputImgParams.errorHeightFilename; //error in terms of height
 
-  int numOverlapImages = overlapImgParams.size(); 
+  int numOverlapImages = overlapImgParams.size();
   //numOverlapImages = 0;//1;
 
   DiskImageView<PixelGray<float> >  meanDEM(meanDEMFilename);
@@ -549,13 +549,13 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
       int n = 0;
 
       //josh - shouldn't we check the extended image for valid points?
-      for (int k = 0 ; k < verBlockSize; ++k){ 
+      for (int k = 0 ; k < verBlockSize; ++k){
         for (int l = 0; l < horBlockSize; ++l) {
           int ii = kb*verBlockSize+k; //row index for the entire image
           int jj = lb*horBlockSize+l; //col index for the entire image
           if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
             if ( is_valid(inputImage(jj,ii)) ){
-              n++; 
+              n++;
             }
           }
         }
@@ -594,16 +594,16 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
         }
       }
 
-      //TO DO: reset xyzArray, xyzLEFT and xyzTOP 
-      ComputeBlockGeometry(interp_dem_image, DEM_geo, 
-          inputImage, inputImg_geo, kb, lb, 
+      //TO DO: reset xyzArray, xyzLEFT and xyzTOP
+      ComputeBlockGeometry(interp_dem_image, DEM_geo,
+          inputImage, inputImg_geo, kb, lb,
           inputImgParams, globalParams,
-          xyzArray, xyzLEFTArray, 
+          xyzArray, xyzLEFTArray,
           xyzTOPArray, normalArray);
 
-      ComputeBlockJacobian(inputImage, inputImg_geo, shadowImage, albedoImage, 
+      ComputeBlockJacobian(inputImage, inputImg_geo, shadowImage, albedoImage,
           kb, lb, inputImgParams, globalParams,
-          xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
+          xyzArray, xyzLEFTArray, xyzTOPArray,normalArray,
           jacobianArray[0], errorVectorArray[0], weightsArray[0]);
 
       //printJacobian(jacobianArray[0], "mujapenas.txt");
@@ -623,7 +623,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
         //determine invalid blocks in the overlap image - START
         int n = 0;
 
-        for (int k = 0 ; k < verBlockSize; ++k){ 
+        for (int k = 0 ; k < verBlockSize; ++k){
           for (int l = 0; l < horBlockSize; ++l) {
             int ii = kb*verBlockSize+k; //row index for the entire image
             int jj = lb*horBlockSize+l; //col index for the entire image
@@ -633,8 +633,8 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
             float y = overlap_pix[1];
 
             if ((x>=0) && (x < overlapImg.cols()) && (y>=0) && (y< overlapImg.rows()) && (overlapShadowImage(x, y) == 0)){
-              if ( is_valid(overlapImg(x,y)) ){ 
-                n++; 
+              if ( is_valid(overlapImg(x,y)) ){
+                n++;
               }
             }
           }
@@ -647,12 +647,12 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
 
         //determine invalid blocks in the overlap image - END
 
-        ComputeBlockJacobianOverlap(inputImage, inputImg_geo, 
+        ComputeBlockJacobianOverlap(inputImage, inputImg_geo,
             overlapImg, overlapImg_geo,
             shadowImage, overlapShadowImage,
-            albedoImage, kb, lb, 
+            albedoImage, kb, lb,
             inputImgParams, overlapImgParams[m], globalParams,
-            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray, 
+            xyzArray, xyzLEFTArray, xyzTOPArray,normalArray,
             jacobianArray[m+1], errorVectorArray[m+1], weightsArray[m+1]);
 
       }

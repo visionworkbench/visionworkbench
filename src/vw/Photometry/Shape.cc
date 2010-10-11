@@ -147,29 +147,29 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
 
   for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
     for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
-    
+
       //compute variance only where the mean DEM is valid
       if ( input_DEM_image(l,k) != -10000 ) {
 
-	if ((globalParams.useWeights == 0) && (numSamples(l,k)!=0)){
-	  mean_DEM_image(l, k) = mean_DEM_image(l, k)/numSamples(l,k);
-	  var2_DEM_image(l, k) = var2_DEM_image(l, k)/numSamples(l, k) - mean_DEM_image(l,k)*mean_DEM_image(l,k);
-	}
+        if ((globalParams.useWeights == 0) && (numSamples(l,k)!=0)){
+          mean_DEM_image(l, k) = mean_DEM_image(l, k)/numSamples(l,k);
+          var2_DEM_image(l, k) = var2_DEM_image(l, k)/numSamples(l, k) - mean_DEM_image(l,k)*mean_DEM_image(l,k);
+        }
 
-	if ((globalParams.useWeights == 1) && (norm(l,k)!=0)){
-	  mean_DEM_image(l, k) = mean_DEM_image(l, k)/norm(l,k);
-	  var2_DEM_image(l, k) = var2_DEM_image(l, k)/norm(l, k) - mean_DEM_image(l,k)*mean_DEM_image(l,k);
+        if ((globalParams.useWeights == 1) && (norm(l,k)!=0)){
+          mean_DEM_image(l, k) = mean_DEM_image(l, k)/norm(l,k);
+          var2_DEM_image(l, k) = var2_DEM_image(l, k)/norm(l, k) - mean_DEM_image(l,k)*mean_DEM_image(l,k);
           if (var2_DEM_image(l, k) < 0){ //this should never happen
-	      var2_DEM_image(l, k) = 0;
+              var2_DEM_image(l, k) = 0;
               var2_DEM_image(l, k).invalidate();
           }
-	}
+        }
       }
-     
+
     }
   }
 
-  write_georeferenced_image(mean_DEM_file,                 
+  write_georeferenced_image(mean_DEM_file,
                             mean_DEM_image,
                             input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
 

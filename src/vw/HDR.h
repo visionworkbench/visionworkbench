@@ -6,9 +6,9 @@
 
 
 /// \file HDR.h
-/// 
+///
 /// A convenience header that includes the header files in vw/HDR.
-/// 
+///
 #ifndef __VW_HDR_H__
 #define __VW_HDR_H__
 

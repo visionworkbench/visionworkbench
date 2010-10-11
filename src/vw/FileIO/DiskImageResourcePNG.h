@@ -6,7 +6,7 @@
 
 
 /// \file DiskImageResourcePNG.h
-/// 
+///
 /// Provides support for the PNG file format.
 ///
 #ifndef __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
@@ -32,22 +32,22 @@ namespace vw {
 
     DiskImageResourcePNG( std::string const& filename );
 
-    DiskImageResourcePNG( std::string const& filename, 
+    DiskImageResourcePNG( std::string const& filename,
                           ImageFormat const& format );
 
     // Additional constructor for passing in options.
     DiskImageResourcePNG( std::string const& filename,
                           ImageFormat const& format,
                           Options const& options );
-    
+
     virtual ~DiskImageResourcePNG();
-    
+
     /// Returns the type of disk image resource.
     static std::string type_static() { return "PNG"; }
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual void read(ImageBuffer const& buf, BBox2i const& bbox ) const;
 
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
@@ -113,7 +113,7 @@ namespace vw {
 
   private:
 
-    // vw_png_context is declared in the cc file, and unused elsewhere, 
+    // vw_png_context is declared in the cc file, and unused elsewhere,
     // but we have a pointer to it. So forward declare.
     struct vw_png_context;
     struct vw_png_read_context;
@@ -121,7 +121,7 @@ namespace vw {
 
     // Block reading is supported. Block writing is not
     Vector2i m_block_size;
-    
+
     mutable boost::shared_ptr<vw_png_context> m_ctx;
 
     void read_reset() const;

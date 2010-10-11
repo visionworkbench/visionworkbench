@@ -6,7 +6,7 @@
 
 
 /// \file Core/Debugging.h
-/// 
+///
 /// Types and functions to assist in debugging code.
 ///
 #ifndef __VW_CORE_DEBUGGING_H__

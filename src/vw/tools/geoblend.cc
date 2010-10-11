@@ -52,13 +52,13 @@ bool has_nodata_value = false;
 // Creates an alpha channel based on pixels with a value of zero.  The
 // first version covers scalar types.  The remaining versions cover
 // compound pixel types.
-template <class PixelT> struct AlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; }; 
+template <class PixelT> struct AlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelGray<ChannelT> > { typedef PixelGrayA<ChannelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelGrayA<ChannelT> > { typedef PixelGrayA<ChannelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGB<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
 template<class ChannelT> struct AlphaTypeFromPixelType<PixelRGBA<ChannelT> > { typedef PixelRGBA<ChannelT> type; };
 
-template <class PixelT> struct NonAlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; }; 
+template <class PixelT> struct NonAlphaTypeFromPixelType { typedef PixelGrayA<PixelT> type; };
 template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelGray<ChannelT> > { typedef PixelGray<ChannelT> type; };
 template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelGrayA<ChannelT> > { typedef PixelGray<ChannelT> type; };
 template<class ChannelT> struct NonAlphaTypeFromPixelType<PixelRGB<ChannelT> > { typedef PixelRGB<ChannelT> type; };
@@ -69,11 +69,11 @@ class NodataToMaskFunctor: public vw::UnaryReturnTemplateType<AlphaTypeFromPixel
   PixelT m_nodata_value;
 
 public:
-  NodataToMaskFunctor(typename PixelChannelType<PixelT>::type nodata_value = 0) : m_nodata_value(nodata_value) {} 
+  NodataToMaskFunctor(typename PixelChannelType<PixelT>::type nodata_value = 0) : m_nodata_value(nodata_value) {}
 
   typename AlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename AlphaTypeFromPixelType<PixelT>::type result_type;
-    if (pix == m_nodata_value) 
+    if (pix == m_nodata_value)
       return result_type();  // Mask pixel
     else
       return result_type(pix);
@@ -81,9 +81,9 @@ public:
 };
 
 template <class ViewT>
-vw::UnaryPerPixelView<ViewT, NodataToMaskFunctor<typename ViewT::pixel_type> > 
-nodata_to_mask(vw::ImageViewBase<ViewT> const& view, 
-	       typename PixelChannelType<typename ViewT::pixel_type>::type const& nodata_value = 0 ) {
+vw::UnaryPerPixelView<ViewT, NodataToMaskFunctor<typename ViewT::pixel_type> >
+nodata_to_mask(vw::ImageViewBase<ViewT> const& view,
+               typename PixelChannelType<typename ViewT::pixel_type>::type const& nodata_value = 0 ) {
   return vw::per_pixel_filter(view.impl(), NodataToMaskFunctor<typename ViewT::pixel_type>(nodata_value));
 }
 
@@ -93,11 +93,11 @@ class MaskToNodataFunctor: public vw::UnaryReturnTemplateType<NonAlphaTypeFromPi
   typedef typename PixelChannelType<PixelT>::type channel_type;
 
 public:
-  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value((channel_type)nodata_value) {} 
+  MaskToNodataFunctor(float nodata_value = 0) : m_nodata_value((channel_type)nodata_value) {}
 
   typename NonAlphaTypeFromPixelType<PixelT>::type operator() (PixelT const& pix) const {
     typedef typename NonAlphaTypeFromPixelType<PixelT>::type result_type;
-    if (is_transparent(pix)) 
+    if (is_transparent(pix))
       return result_type(m_nodata_value);
     else
       return result_type(pix);
@@ -105,7 +105,7 @@ public:
 };
 
 template <class ViewT>
-vw::UnaryPerPixelView<ViewT, MaskToNodataFunctor<typename ViewT::pixel_type> > 
+vw::UnaryPerPixelView<ViewT, MaskToNodataFunctor<typename ViewT::pixel_type> >
 mask_to_nodata(vw::ImageViewBase<ViewT> const& view, float nodata_value = 0 ) {
   return vw::per_pixel_filter(view.impl(), MaskToNodataFunctor<typename ViewT::pixel_type>(nodata_value));
 }
@@ -139,7 +139,7 @@ void do_blend() {
     GeoReference input_georef;
     read_georeference( input_georef, image_files[i] );
     DiskImageView<PixelT> source_disk_image( image_files[i] );
-    vw_out(vw::VerboseDebugMessage) << "\tTransform: " << input_georef.transform() 
+    vw_out(vw::VerboseDebugMessage) << "\tTransform: " << input_georef.transform()
                                     << "\t\tBBox: " << input_georef.bounding_box(source_disk_image) << std::endl;
 
     // Check to make sure the image has valid georeferencing
@@ -155,13 +155,13 @@ void do_blend() {
       smallest_y_scale = affine(1,1);
     }
 
-    if (affine(0,2) < smallest_x_val) 
+    if (affine(0,2) < smallest_x_val)
       smallest_x_val = affine(0,2);
 
     // Note: since the y coordinates are typically flipped in a DEM,
     // we look here for the _largest_ y value, since it corresponds to
     // the upper left hand pixel.
-    if (affine(1,2) > largest_y_val) 
+    if (affine(1,2) > largest_y_val)
       largest_y_val = affine(1,2);
 
   }
@@ -181,7 +181,7 @@ void do_blend() {
   // Take the georef from the first file (this ensures that the
   // projection and datum information is preserved...), but update the
   // affine transform.
-  GeoReference output_georef; 
+  GeoReference output_georef;
   read_georeference( output_georef, image_files[0] );
   output_georef.set_transform(output_affine);
 
@@ -201,7 +201,7 @@ void do_blend() {
     // I've hardwired this to use nearest pixel interpolation for now
     // until we have a chance to sit down and develop a better
     // strategy for intepolating and filtering in the presence of
-    // missing pixels in DEMs. -mbroxton 
+    // missing pixels in DEMs. -mbroxton
     if (has_nodata_value) {
       ImageViewRef<alpha_pixel_type> masked_source = crop( transform( nodata_to_mask(source_disk_image, (typename PixelChannelType<PixelT>::type)(nodata_value) ), trans, ZeroEdgeExtension(), NearestPixelInterpolation() ), output_bbox );
       composite.insert( channel_cast_rescale<float32>(masked_source), (int)output_bbox.min().x(), (int)output_bbox.min().y() );
@@ -305,7 +305,7 @@ int main( int argc, char *argv[] ) {
     po::options_description hidden_options("");
     hidden_options.add_options()
       ("input-files", po::value<std::vector<std::string> >(&image_files));
-    
+
     po::options_description options("Allowed Options");
     options.add(general_options).add(hidden_options);
 
@@ -332,12 +332,12 @@ int main( int argc, char *argv[] ) {
       std::cerr << usage.str() << std::endl;
       return 1;
     }
-    
+
     draft = false;
     if( vm.count("draft") ) {
       draft = true;
-    } 
-    
+    }
+
     if( vm.count("input-files") < 1 ) {
       std::cerr << "Error: Must specify at least one input file!" << std::endl << std::endl;
       std::cerr << usage.str();
@@ -351,7 +351,7 @@ int main( int argc, char *argv[] ) {
       std::cerr << usage << std::endl;
       return 1;
     }
-    
+
     if( patch_overlap>=patch_size || patch_overlap%2==1 ) {
       std::cerr << "Error: The patch overlap must be an even number nonnegative number" << std::endl;
       std::cerr << "smaller than the patch size!  (You specified " << patch_overlap << ".)" << std::endl;

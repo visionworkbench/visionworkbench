@@ -6,7 +6,7 @@
 
 
 /// \file ViewImageResource.h
-/// 
+///
 /// This ImageResource can wrap any vision workbench image view so
 /// that it can be presented as an ImageResource to other
 /// subsystems.
@@ -25,7 +25,7 @@ namespace vw {
   class ViewImageResourceBase {
   public:
     virtual ~ViewImageResourceBase() {}
-    
+
     /// Returns the number of columns in an image resource.
     virtual int32 cols() const = 0;
 
@@ -63,10 +63,10 @@ namespace vw {
       return NULL; // never reached
     }
   };
-    
+
   // Currently, the ImageView<> class is the only one that supports
-  // direct access.  
-  template<class PixelT> struct ViewDataAccessor<ImageView<PixelT> > { 
+  // direct access.
+  template<class PixelT> struct ViewDataAccessor<ImageView<PixelT> > {
     static char* data(ImageView<PixelT> const& view) { return (char*)(view.data()); }
   };
 
@@ -78,7 +78,7 @@ namespace vw {
     ViewT m_view;
 
   public:
-    ViewImageResourceImpl( ImageViewBase<ViewT> const& view ) : 
+    ViewImageResourceImpl( ImageViewBase<ViewT> const& view ) :
       m_view(view.impl()) {}
 
     virtual ~ViewImageResourceImpl() {}
@@ -129,12 +129,12 @@ namespace vw {
   public:
 
     template <class ViewT>
-    explicit ViewImageResource(ImageViewBase<ViewT> const& view, Vector2i block_size) : 
+    explicit ViewImageResource(ImageViewBase<ViewT> const& view, Vector2i block_size) :
       m_rsrc( new ViewImageResourceImpl<ViewT>(view) ), m_block_size(block_size) {}
 
     template <class ViewT>
-    explicit ViewImageResource(ImageViewBase<ViewT> const& view) : 
-      m_rsrc( new ViewImageResourceImpl<ViewT>(view) ), 
+    explicit ViewImageResource(ImageViewBase<ViewT> const& view) :
+      m_rsrc( new ViewImageResourceImpl<ViewT>(view) ),
       m_block_size(Vector2i(view.impl().cols(), view.impl().rows())) {}
 
     virtual ~ViewImageResource() {};

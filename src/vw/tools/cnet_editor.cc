@@ -188,7 +188,7 @@ int main( int argc, char *argv[] ) {
   vw_out() << "\tfile: " << delindex_file_str << "\n";
 
   std::ofstream di_out(delindex_file_str.c_str());
-  for ( size_t i = 0; i < deleted.size()-1; i++) 
+  for ( size_t i = 0; i < deleted.size()-1; i++)
     di_out << deleted[i] << " ";
   di_out << deleted[deleted.size()-1] << "\n";
   di_out.close();

@@ -6,7 +6,7 @@
 
 
 /// \file Exception.h
-/// 
+///
 /// Exception classes and related functions and macros.
 ///
 /// The Vision Workbench is intended in part to be used in flight
@@ -19,9 +19,9 @@
 /// "exception" class hierarchy which is used to describe errors and
 /// can be used even on platforms that do not support the C++
 /// exception system.
-/// 
+///
 /// The vw::Exception class serves as a base class for all VWB error
-/// types.  It is designed to make it easy to throw exceptions with 
+/// types.  It is designed to make it easy to throw exceptions with
 /// meaningful error messages.  For example, this invocation:
 ///
 ///  <TT>vw_throw( vw::Exception() << "Unable to open file \"" << filename << "\"!" );</TT>
@@ -70,7 +70,7 @@
 /// error message.  This purely cosmetic usage must be conditionally
 /// compiled like this:
 ///  #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1) )
-/// Obviously this functionality will be disabled on platforms 
+/// Obviously this functionality will be disabled on platforms
 /// that do not support exceptions.
 ///
 /// Exceptions are enabled or disabled based on the value of the
@@ -109,7 +109,7 @@
 
 namespace vw {
 
-  /// The core exception class.  
+  /// The core exception class.
   struct Exception VW_IF_EXCEPTIONS( : public std::exception )
   {
 
@@ -158,8 +158,8 @@ namespace vw {
 
     // A buffer for storing the full exception description returned by
     // the what() method, which must generate its return value from
-    // the current value of m_desc.  The what() method provides no 
-    // mechanism for freeing the returned string, and so we handle 
+    // the current value of m_desc.  The what() method provides no
+    // mechanism for freeing the returned string, and so we handle
     // allocation of that memory here, internally to the exception.
     mutable std::string m_what_buf;
   };
@@ -178,8 +178,8 @@ namespace vw {
   //
   // Exception::operator<<():
   // The streaming operator (<<) makes it possible to quickly
-  // generate error message text.  This is currently implemented 
-  // by simply forwarding invocations of this method to an 
+  // generate error message text.  This is currently implemented
+  // by simply forwarding invocations of this method to an
   // internal ostringstream.
   //
   // Exception::set():
@@ -249,7 +249,7 @@ namespace vw {
   VW_DEFINE_EXCEPTION(Aborted, Exception);
 
 
-  /// The abstract exception handler base class, which users  
+  /// The abstract exception handler base class, which users
   /// can subclass to install an alternative exception handler.
   class ExceptionHandler {
   public:
@@ -257,17 +257,17 @@ namespace vw {
     virtual ~ExceptionHandler() {}
   };
 
-  /// Sets the application-wide exception handler.  Pass zero 
-  /// as an argument to reinstate the default handler.  The 
-  /// default behavior is to throw the exception unless the 
+  /// Sets the application-wide exception handler.  Pass zero
+  /// as an argument to reinstate the default handler.  The
+  /// default behavior is to throw the exception unless the
   /// VW_ENABLE_EXCEPTIONS macro in vw/config.h was defined to 0
-  /// at build time, in which case the default behavior is to 
-  /// print the error message at the ErrorMessage level and 
+  /// at build time, in which case the default behavior is to
+  /// print the error message at the ErrorMessage level and
   /// to call abort().
   void set_exception_handler( ExceptionHandler const* eh );
 
-  /// Throws an exception via the Vision Workbench error 
-  /// handling mechanism, which may not actually involvle 
+  /// Throws an exception via the Vision Workbench error
+  /// handling mechanism, which may not actually involvle
   /// throwing an exception in the usual C++ sense.
   void vw_throw( Exception const& e ) VW_NORETURN;
 

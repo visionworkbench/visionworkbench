@@ -6,13 +6,13 @@
 
 
 /// \file PixelTypes.h
-/// 
+///
 /// Defines the standard pixel types.  Currently this includes
 /// PixelGray, PixelGrayA, PixelRGB, PixelRGBA, PixelHSV, PixelXYZ,
 /// and PixelLuv.
 ///
-/// The alpha pixel types (PixelGrayA and PixelRGBA) have 
-/// arithmetic operators defined that assume the pixels 
+/// The alpha pixel types (PixelGrayA and PixelRGBA) have
+/// arithmetic operators defined that assume the pixels
 /// are represented in pre-multiplied form.
 ///
 #ifndef __VW_IMAGE_PIXELTYPES_H__
@@ -84,8 +84,8 @@ namespace vw {
 #define VW_LAB_D65_Z_N (1.08870)
 
 
-  // This function is used in messy color space conversions 
-  // that operate internally using floating-point numbers 
+  // This function is used in messy color space conversions
+  // that operate internally using floating-point numbers
   // even when the destination channel type is integral.
   template <class T> inline T _round_if_needed( typename boost::enable_if<boost::is_floating_point<T>,double>::type v) { return v; }
   template <class T> inline T _round_if_needed( typename boost::disable_if<boost::is_floating_point<T>,double>::type v) {
@@ -101,8 +101,8 @@ namespace vw {
   // The PixelGray grayscale pixel type.
   // *******************************************************************
 
-  /// A grayscale pixel type with only one channel, the pixel's value 
-  /// or luminance.  This pixel type can be mixed reasonably freely 
+  /// A grayscale pixel type with only one channel, the pixel's value
+  /// or luminance.  This pixel type can be mixed reasonably freely
   /// with pure scalars in mathematical expressions.
   template <class ChannelT>
   class PixelGray : public PixelMathBase< PixelGray<ChannelT> >
@@ -120,7 +120,7 @@ namespace vw {
     template <class OtherT> PixelGray( PixelGray<OtherT> other ) {
       m_ch[0] = ChannelT(other[0]);
     }
-    
+
     /// Explicit conversion from PixelGrayA types.  Discards the alpha
     /// channel, which is equivalent to compositing over a black
     /// background.
@@ -190,7 +190,7 @@ namespace vw {
     /// is marked as explicit to prevent you from accidentially
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelGrayA( ChannelT v ) { 
+    explicit PixelGrayA( ChannelT v ) {
       m_ch[0]=v;
       m_ch[1]=ChannelRange<ChannelT>::max();
     }
@@ -299,26 +299,26 @@ namespace vw {
     template <class OtherT> explicit PixelRGB( PixelGray<OtherT> const& other ) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
     }
-    
+
     /// Explicit conversion from PixelGrayA types.
     template <class OtherT> explicit PixelRGB( PixelGrayA<OtherT> const& other ) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
     }
-    
+
     /// Conversion from other PixelRGB types.
     template <class OtherT> PixelRGB( PixelRGB<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
-    
+
     /// Explicit conversion from PixelRGBA types.
     template <class OtherT> explicit PixelRGB( PixelRGBA<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
       m_ch[2] = ChannelT(other[2]);
     }
-    
+
     /// Explicit conversion from PixelHSV types.
     template <class OtherT> explicit PixelRGB( PixelHSV<OtherT> const& other );
 
@@ -394,7 +394,7 @@ namespace vw {
     /// This is marked as explicit to prevent you from accidentially
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
-    explicit PixelRGBA( ChannelT const& v ) { 
+    explicit PixelRGBA( ChannelT const& v ) {
       m_ch[0]=m_ch[1]=m_ch[2]=v;
       m_ch[3]=ChannelRange<ChannelT>::max();
     }
@@ -409,13 +409,13 @@ namespace vw {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
       m_ch[3]=ChannelRange<ChannelT>::max();
     }
-    
+
     /// Explicit conversion from PixelGrayA types.
     template <class OtherT> explicit PixelRGBA( PixelGrayA<OtherT> const& other ) {
       m_ch[0] = m_ch[1] = m_ch[2] = ChannelT(other[0]);
       m_ch[3]=ChannelT(other[1]);
     }
-    
+
     /// Explicit conversion from PixelRGB types.
     template <class OtherT> explicit PixelRGBA( PixelRGB<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
@@ -424,7 +424,7 @@ namespace vw {
       m_ch[3] = ChannelRange<ChannelT>::max();
     }
 
-    /// Conversion from other PixelRGBA types.    
+    /// Conversion from other PixelRGBA types.
     template <class OtherT> PixelRGBA( PixelRGBA<OtherT> const& other ) {
       m_ch[0] = ChannelT(other[0]);
       m_ch[1] = ChannelT(other[1]);
@@ -500,11 +500,11 @@ namespace vw {
   // *******************************************************************
 
   /// A full-color HSV (hue, saturation, value) pixel type.
-  /// Note that this color space is non-linearly related to 
-  /// the usual color spaces such as RGB, and has a different 
-  /// topology as well.  Therefore many operations, such as 
-  /// pixel math and image filtering, may yield surprising 
-  /// results if you use this pixel type.  
+  /// Note that this color space is non-linearly related to
+  /// the usual color spaces such as RGB, and has a different
+  /// topology as well.  Therefore many operations, such as
+  /// pixel math and image filtering, may yield surprising
+  /// results if you use this pixel type.
   template <class ChannelT>
   class PixelHSV : public PixelMathBase< PixelHSV<ChannelT> >
   {
@@ -733,7 +733,7 @@ namespace vw {
   /// A full-color L*u*v color space pixel type.  This color space has the
   /// property that Euclidean distance between pixels is proportional to perceived
   /// color differences.  This code was adapted from code originally written
-  /// by Matt Deans, and originated from the following reference: 
+  /// by Matt Deans, and originated from the following reference:
   /// "G. Wyszecki and W. S. Stiles: Color Science: Concepts and
   /// Methods, Quantitative Data and Formulae, Wiley, New York, 1982."
   /// for details.  This transformation uses a D65 white point
@@ -808,10 +808,10 @@ namespace vw {
 
       // Set y
       if (luv.l() < VW_LUV_L_THRESH) {
-	y() = luv.l() * VW_LUV_D65_Y_N * VW_LUV_C_2;
+        y() = luv.l() * VW_LUV_D65_Y_N * VW_LUV_C_2;
       } else {
-	y() = (luv.l() + VW_LUV_L_OFFSET) / VW_LUV_C_3;
-	y() = VW_LUV_D65_Y_N * y() * y() * y();
+        y() = (luv.l() + VW_LUV_L_OFFSET) / VW_LUV_C_3;
+        y() = VW_LUV_D65_Y_N * y() * y() * y();
       }
 
       double u_prime = luv.u() / (13 * luv.l()) + VW_LUV_UN_PRIME;
@@ -874,9 +874,9 @@ namespace vw {
     m_ch[1] = luv.m_ch[1];
     m_ch[2] = luv.m_ch[2];
   }
-  
-  
-  
+
+
+
 
   // *******************************************************************
   // The PixelLab CIE 1976 L*a*b* uniform perceptual pixel type.
@@ -884,7 +884,7 @@ namespace vw {
 
   /// A full-color L*a*b* color space pixel type.  This color space has the
   /// property that Euclidean distance between pixels is proportional to perceived
-  /// color differences.  Originated from the following reference: 
+  /// color differences.  Originated from the following reference:
   /// "G. Wyszecki and W. S. Stiles: Color Science: Concepts and
   /// Methods, Quantitative Data and Formulae, Wiley, New York, 1982."
   /// for details.  This transformation uses a D65 white point
@@ -952,35 +952,35 @@ namespace vw {
   }
 
 //  namespace lab_conversions {
-//	  double lab_func(double x) {
-//		  if (x > VW_LAB_DELTA3)
-//			  return pow(x, 1.0/3.0);
-//		  else
-//			  return 7.787*x + 16.0/116.0;
-//	  }
-//	  double lab_inv_func(double x) {
-//		  if (x > VW_LAB_DELTA)
-//			  return pow(x, 3.0);
-//		  else
-//			  return (x - 16.0/116.0) * 3 * VW_LAB_DELTA2;
-//	  }
+//        double lab_func(double x) {
+//                if (x > VW_LAB_DELTA3)
+//                        return pow(x, 1.0/3.0);
+//                else
+//                        return 7.787*x + 16.0/116.0;
+//        }
+//        double lab_inv_func(double x) {
+//                if (x > VW_LAB_DELTA)
+//                        return pow(x, 3.0);
+//                else
+//                        return (x - 16.0/116.0) * 3 * VW_LAB_DELTA2;
+//        }
 //  }
-  
+
   /// Lab->XYZ conversion
   template <class ChannelT>
   template <class OtherT>
   PixelXYZ<ChannelT>::PixelXYZ( PixelLab<OtherT> const& lab ) {
-	  double f_y = (lab.l() + 16.0)/116.0;
-	  double f_x = f_y + lab.a()/500.0;
-	  double f_z = f_y - lab.b()/200.0;
-	  
-//	  y() = lab_conversions::lab_inv_func(f_y) * VW_LAB_D65_Y_N;
-//	  x() = lab_conversions::lab_inv_func(f_x) * VW_LAB_D65_X_N;
-//	  z() = lab_conversions::lab_inv_func(f_z) * VW_LAB_D65_Z_N;
-	  
-  	  y() = (f_y > VW_LAB_DELTA ? pow(f_y, 3.0) : (f_y - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Y_N;
-  	  x() = (f_x > VW_LAB_DELTA ? pow(f_x, 3.0) : (f_x - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_X_N;
-  	  z() = (f_z > VW_LAB_DELTA ? pow(f_z, 3.0) : (f_z - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Z_N;
+          double f_y = (lab.l() + 16.0)/116.0;
+          double f_x = f_y + lab.a()/500.0;
+          double f_z = f_y - lab.b()/200.0;
+
+//        y() = lab_conversions::lab_inv_func(f_y) * VW_LAB_D65_Y_N;
+//        x() = lab_conversions::lab_inv_func(f_x) * VW_LAB_D65_X_N;
+//        z() = lab_conversions::lab_inv_func(f_z) * VW_LAB_D65_Z_N;
+
+          y() = (f_y > VW_LAB_DELTA ? pow(f_y, 3.0) : (f_y - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Y_N;
+          x() = (f_x > VW_LAB_DELTA ? pow(f_x, 3.0) : (f_x - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_X_N;
+          z() = (f_z > VW_LAB_DELTA ? pow(f_z, 3.0) : (f_z - 16.0/116.0) * 3 * VW_LAB_DELTA2) * VW_LAB_D65_Z_N;
   }
 
   /// XYZ->Lab conversion
@@ -990,7 +990,7 @@ namespace vw {
     double x_xn = xyz.x() / VW_LAB_D65_X_N;
     double y_yn = xyz.y() / VW_LAB_D65_Y_N;
     double z_zn = xyz.z() / VW_LAB_D65_Z_N;
-	    
+
     if (y_yn > VW_LAB_DELTA3) {
       l() = 116.0 * pow(y_yn, 1.0/3.0) - 16;
     } else {
@@ -998,13 +998,13 @@ namespace vw {
     }
 
     a() = 500.0 * (
-		(x_xn > VW_LAB_DELTA3 ? pow(x_xn, 1.0/3.0) : 7.787*x_xn + 16.0/116.0) -
-		(y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0)
-	);
+                (x_xn > VW_LAB_DELTA3 ? pow(x_xn, 1.0/3.0) : 7.787*x_xn + 16.0/116.0) -
+                (y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0)
+        );
     b() = 200.0 * (
-		(y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0) -
-		(z_zn > VW_LAB_DELTA3 ? pow(z_zn, 1.0/3.0) : 7.787*z_zn + 16.0/116.0)
-	);
+                (y_yn > VW_LAB_DELTA3 ? pow(y_yn, 1.0/3.0) : 7.787*y_yn + 16.0/116.0) -
+                (z_zn > VW_LAB_DELTA3 ? pow(z_zn, 1.0/3.0) : 7.787*z_zn + 16.0/116.0)
+        );
   }
 
   /// Lab->RGB conversion
@@ -1030,12 +1030,12 @@ namespace vw {
     m_ch[1] = lab.m_ch[1];
     m_ch[2] = lab.m_ch[2];
   }
-  
+
   // *******************************************************************
   // The Vector mathematical vector pixel type.
   // *******************************************************************
 
-  /// Declare the standard variable-channel pixel traits for the 
+  /// Declare the standard variable-channel pixel traits for the
   /// Vector class when used as a pixel type.
   VW_DECLARE_PIXEL_TYPE_NCHANNELS(Vector);
 

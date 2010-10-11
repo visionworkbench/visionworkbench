@@ -14,4 +14,4 @@ void main() {
    vec4 value = texture2DRect(i1, gl_TexCoord[0].st);
    gl_FragColor.rgba = vec4(f2) + vec4(f3) * (value - vec4(f1));
 }
- 
+

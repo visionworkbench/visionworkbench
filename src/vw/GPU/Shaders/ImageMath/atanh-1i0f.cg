@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT i1,
-	out float4 color : COLOR ) 
+        uniform samplerRECT i1,
+        out float4 color : COLOR )
 {
    float4 value = texRECT(i1, texCoord0);
    color = 0.5 * log((value + 1.0) / (value - 1.0));

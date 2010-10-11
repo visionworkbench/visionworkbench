@@ -6,7 +6,7 @@
 
 
 /// \file FileIO/DiskImageResourceOpenEXR.h
-/// 
+///
 /// Provides support for the OpenEXR file format.
 ///
 #ifndef __VW_FILEIO_DISKIMAGERESOUCEOPENEXR_H__
@@ -29,7 +29,7 @@ namespace vw {
       open( filename );
     }
 
-    DiskImageResourceOpenEXR( std::string const& filename, 
+    DiskImageResourceOpenEXR( std::string const& filename,
                               ImageFormat const& format )
       : DiskImageResource( filename )
     {
@@ -37,15 +37,15 @@ namespace vw {
       m_output_file_ptr = 0;
       create( filename, format );
     }
-    
+
     virtual ~DiskImageResourceOpenEXR();
-    
+
     /// Returns the type of disk image resource.
     static std::string type_static() { return "OpenEXR"; }
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual Vector2i block_size() const;
     virtual void set_block_size(Vector2i const&);
 

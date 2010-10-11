@@ -51,14 +51,14 @@ typedef std::multimap<int, BezierContour > BezierContourSet;
 void add_segment(PointContourSet& cset, ContourSegment& s);
 bool join(PointContour& c1, PointContour& c2);
 vw::Vector2 tangent(const PointContour c, PointContour::iterator p);
-void chord_length_parameterize(PointContour c, 
-        PointContour::iterator first, 
+void chord_length_parameterize(PointContour c,
+        PointContour::iterator first,
         PointContour::iterator last);
 
 /*
  * Contouring functions
  */
-void conrec(vw::ImageView<float>& dem, PointContourSet& cset, 
+void conrec(vw::ImageView<float>& dem, PointContourSet& cset,
             int cint, float nodataval, std::list<ContourSegment>& seglist);
 
 

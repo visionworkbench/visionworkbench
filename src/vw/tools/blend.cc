@@ -61,8 +61,8 @@ void do_blend() {
       fs::ifstream offset( ofi->second );
       int x, y;
       offset >> x >> y;
-      std::cout << "Importing image file " << ifi->second.string() 
-		<< " at offet (" << x << "," << y << ")" << std::endl;
+      std::cout << "Importing image file " << ifi->second.string()
+                << " at offet (" << x << "," << y << ")" << std::endl;
       composite.insert( DiskImageView<PixelT>( ifi->second.string(), false ), x, y );
     }
   }
@@ -89,11 +89,11 @@ int main( int argc, char *argv[] ) {
   try {
     po::options_description desc("Options");
     desc.add_options()
-      ("input-dir", po::value<std::string>(&mosaic_name), 
+      ("input-dir", po::value<std::string>(&mosaic_name),
        "Explicitly specify the input directory")
-      ("file-type", po::value<std::string>(&file_type)->default_value("png"), 
+      ("file-type", po::value<std::string>(&file_type)->default_value("png"),
        "Output file type")
-      ("tile-size", po::value<int>(&tile_size)->default_value(256), 
+      ("tile-size", po::value<int>(&tile_size)->default_value(256),
        "Tile size, in pixels")
       ("draft", "Draft mode (no blending)")
       ("qtree", "Output in quadtree format")
@@ -128,8 +128,8 @@ int main( int argc, char *argv[] ) {
     if( vm.count("qtree") ) qtree = true; else qtree = false;
 
     if( tile_size <= 0 ) {
-      std::cerr << "Error: The tile size must be a positive number!  (You specified " 
-		<< tile_size << ".)" << std::endl;
+      std::cerr << "Error: The tile size must be a positive number!  (You specified "
+                << tile_size << ".)" << std::endl;
       std::cout << desc << std::endl;
       return 1;
     }

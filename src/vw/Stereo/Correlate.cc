@@ -88,12 +88,12 @@ namespace vw {
       IsEqualElements() : result(true), m_comparing(false) {}
 
       void operator()( T const& i ) {
-	if ( m_comparing ) {
-	  result = result && (*m_first_element == i);
-	} else {
-	  m_comparing = true;
-	  m_first_element = &i;
-	}
+        if ( m_comparing ) {
+          result = result && (*m_first_element == i);
+        } else {
+          m_comparing = true;
+          m_first_element = &i;
+        }
       }
     protected:
       bool m_comparing;
@@ -109,12 +109,12 @@ namespace vw {
     //    z = ax^2 + by^2 + cxy + dx + ey + f
     template <class VectorT, class MatrixT>
     static Vector2f find_minimum_2d(VectorBase<VectorT> &points,
-				    MatrixBase<MatrixT> &pinvA) {
+                                    MatrixBase<MatrixT> &pinvA) {
       IsEqualElements<typename VectorT::value_type> is_same =
-	std::for_each( points.impl().begin(), points.impl().end(),
-		       IsEqualElements<typename VectorT::value_type>() );
+        std::for_each( points.impl().begin(), points.impl().end(),
+                       IsEqualElements<typename VectorT::value_type>() );
       if ( is_same.result ) // Avoid divide zero errors later
-	return Vector2f();
+        return Vector2f();
       Vector2f offset;
 
       // First, compute the parameters of the hyperbolic surface by
@@ -341,19 +341,19 @@ namespace vw {
                   /// Expectation
                   ChannelT interpreted_px = right_interp_image(xx,yy);
                   float I_e_val = interpreted_px - (*left_image_patch_ptr);
-		  in_curr_sum_I_e_val += I_e_val;
+                  in_curr_sum_I_e_val += I_e_val;
                   float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
                     delta_y*(*I_y_ptr);
                   float temp_noise = interpreted_px - mean_noise;
-		  float plane_prob_exp = // precompute to avoid underflow
-		    -1*(temp_plane*temp_plane)/(2*var2_plane);
-		  float plane_prob =
-		    (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
+                  float plane_prob_exp = // precompute to avoid underflow
+                    -1*(temp_plane*temp_plane)/(2*var2_plane);
+                  float plane_prob =
+                    (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
                     exp(plane_prob_exp);
-		  float noise_prob_exp =
-		    -1*(temp_noise*temp_noise)/(2*var2_noise);
+                  float noise_prob_exp =
+                    -1*(temp_noise*temp_noise)/(2*var2_noise);
                   float noise_prob =
-		    (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
+                    (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
                     exp(noise_prob_exp);
 
                   float sum = plane_prob*w_plane + noise_prob*w_noise;
@@ -372,13 +372,13 @@ namespace vw {
                   // We combine the error value with the derivative and
                   // add this to the update equation.
                   float weight  = robust_weight*(*w_ptr);
-		  if ( weight < 1e-26 ) {
-		     // avoid underflow
-		    I_x_ptr.next_col();
-		    I_y_ptr.next_col();
-		    left_image_patch_ptr.next_col();
-		    continue;
-		  }
+                  if ( weight < 1e-26 ) {
+                     // avoid underflow
+                    I_x_ptr.next_col();
+                    I_y_ptr.next_col();
+                    left_image_patch_ptr.next_col();
+                    continue;
+                  }
                   float I_x_val = weight * (*I_x_ptr);
                   float I_y_val = weight * (*I_y_ptr);
                   float I_x_sqr = I_x_val * (*I_x_ptr);
@@ -560,13 +560,13 @@ namespace vw {
     // since they are slow.
     template<class ChannelT> void
     subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-				    ImageView<ChannelT> const& left_image,
-				    ImageView<ChannelT> const& right_image,
-				    int kern_width, int kern_height,
-				    BBox2i region_of_interest,
-				    bool do_horizontal_subpixel,
-				    bool do_vertical_subpixel,
-				    bool /*verbose*/ ) {
+                                    ImageView<ChannelT> const& left_image,
+                                    ImageView<ChannelT> const& right_image,
+                                    int kern_width, int kern_height,
+                                    BBox2i region_of_interest,
+                                    bool do_horizontal_subpixel,
+                                    bool do_vertical_subpixel,
+                                    bool /*verbose*/ ) {
       typedef Vector<float,6> Vector6f;
       typedef Matrix<float,6,6> Matrix6x6f;
       typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
@@ -724,19 +724,19 @@ namespace vw {
                   /// Expectation
                   ChannelT interpreted_px = right_interp_image(xx,yy);
                   float I_e_val = interpreted_px - (*left_image_patch_ptr);
-		  in_curr_sum_I_e_val += I_e_val;
+                  in_curr_sum_I_e_val += I_e_val;
                   float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
                     delta_y*(*I_y_ptr);
                   float temp_noise = interpreted_px - mean_noise;
-		  float plane_prob_exp = // precompute to avoid underflow
-		    -1*(temp_plane*temp_plane)/(2*var2_plane);
-		  float plane_prob =
-		    (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
+                  float plane_prob_exp = // precompute to avoid underflow
+                    -1*(temp_plane*temp_plane)/(2*var2_plane);
+                  float plane_prob =
+                    (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
                     exp(plane_prob_exp);
-		  float noise_prob_exp =
-		    -1*(temp_noise*temp_noise)/(2*var2_noise);
+                  float noise_prob_exp =
+                    -1*(temp_noise*temp_noise)/(2*var2_noise);
                   float noise_prob =
-		    (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
+                    (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
                     exp(noise_prob_exp);
 
                   float sum = plane_prob*w_plane + noise_prob*w_noise;
@@ -753,13 +753,13 @@ namespace vw {
                   // We combine the error value with the derivative and
                   // add this to the update equation.
                   float weight  = gamma_plane*(*w_ptr);
-		  if ( weight < 1e-26 ) {
-		     // avoid underflow
-		    I_x_ptr.next_col();
-		    I_y_ptr.next_col();
-		    left_image_patch_ptr.next_col();
-		    continue;
-		  }
+                  if ( weight < 1e-26 ) {
+                     // avoid underflow
+                    I_x_ptr.next_col();
+                    I_y_ptr.next_col();
+                    left_image_patch_ptr.next_col();
+                    continue;
+                  }
                   float I_x_val = weight * (*I_x_ptr);
                   float I_y_val = weight * (*I_y_ptr);
                   float I_x_sqr = I_x_val * (*I_x_ptr);
@@ -774,10 +774,10 @@ namespace vw {
                   lhs(4) += jj * I_y_val * I_e_val;
                   lhs(5) +=      I_y_val * I_e_val;
 
-		  float multipliers[3];
-		  multipliers[0] = ii*ii;
-		  multipliers[1] = ii*jj;
-		  multipliers[2] = jj*jj;
+                  float multipliers[3];
+                  multipliers[0] = ii*ii;
+                  multipliers[1] = ii*jj;
+                  multipliers[2] = jj*jj;
 
                   // Right Hand Side UL
                   rhs(0,0) += multipliers[0] * I_x_sqr;
@@ -928,20 +928,20 @@ namespace vw {
           int vdisp = int(disparity_map(c,r)[1]);
 
           accum_type mid = compute_soad(new_img0, new_img1,
-					r, c, hdisp, vdisp,
-					kern_width, kern_height,
-					width, height);
+                                        r, c, hdisp, vdisp,
+                                        kern_width, kern_height,
+                                        width, height);
 
           if (do_horizontal_subpixel && !do_vertical_subpixel) {
             // If only horizontal subpixel resolution is requested
             accum_type lt = compute_soad(new_img0, new_img1,
-					 r, c, hdisp-1, vdisp,
-					 kern_width, kern_height,
-					 width, height);
+                                         r, c, hdisp-1, vdisp,
+                                         kern_width, kern_height,
+                                         width, height);
             accum_type rt = compute_soad(new_img0, new_img1,
-					 r, c, hdisp+1, vdisp,
-					 kern_width, kern_height,
-					 width, height);
+                                         r, c, hdisp+1, vdisp,
+                                         kern_width, kern_height,
+                                         width, height);
 
             if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt))
               disparity_map(c,r)[0] += find_minimum(lt, mid, rt);
@@ -950,13 +950,13 @@ namespace vw {
           } else if (do_vertical_subpixel && !do_horizontal_subpixel) {
             // If only vertical subpixel resolution is requested
             accum_type up = compute_soad(new_img0, new_img1,
-					 r, c, hdisp, vdisp-1,
-					 kern_width, kern_height,
-					 width, height);
+                                         r, c, hdisp, vdisp-1,
+                                         kern_width, kern_height,
+                                         width, height);
             accum_type dn = compute_soad(new_img0, new_img1,
-					 r, c, hdisp, vdisp+1,
-					 kern_width, kern_height,
-					 width, height);
+                                         r, c, hdisp, vdisp+1,
+                                         kern_width, kern_height,
+                                         width, height);
 
             if ((mid <= up && mid < dn) || (mid <= dn && mid < up))
               disparity_map(c,r)[1] += find_minimum(up, mid, dn);
@@ -1042,22 +1042,22 @@ namespace vw {
                                                     bool verbose);
 
     template void subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-						  ImageView<uint8> const& left_image,
-						  ImageView<uint8> const& right_image,
-						  int kern_width, int kern_height,
-						  BBox2i region_of_interest,
-						  bool do_horizontal_subpixel,
-						  bool do_vertical_subpixel,
-						  bool verbose);
+                                                  ImageView<uint8> const& left_image,
+                                                  ImageView<uint8> const& right_image,
+                                                  int kern_width, int kern_height,
+                                                  BBox2i region_of_interest,
+                                                  bool do_horizontal_subpixel,
+                                                  bool do_vertical_subpixel,
+                                                  bool verbose);
 
     template void subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-						  ImageView<float> const& left_image,
-						  ImageView<float> const& right_image,
-						  int kern_width, int kern_height,
-						  BBox2i region_of_interest,
-						  bool do_horizontal_subpixel,
-						  bool do_vertical_subpixel,
-						  bool verbose);
+                                                  ImageView<float> const& left_image,
+                                                  ImageView<float> const& right_image,
+                                                  int kern_width, int kern_height,
+                                                  BBox2i region_of_interest,
+                                                  bool do_horizontal_subpixel,
+                                                  bool do_vertical_subpixel,
+                                                  bool verbose);
 
     template void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
                                                 ImageView<uint8> const& left_image,

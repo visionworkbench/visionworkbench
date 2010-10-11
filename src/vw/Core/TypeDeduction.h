@@ -6,15 +6,15 @@
 
 
 /// \file TypeDeduction.h
-/// 
+///
 /// Defines standard type deduction behavior.
 ///
 /// Known issues:
 ///
-/// The default type deduction behavior for compound types does not 
-/// use operation-specific specializations for the channel types. 
+/// The default type deduction behavior for compound types does not
+/// use operation-specific specializations for the channel types.
 /// Thus, for instance, SumType<A<B>,A<C>> by default reduces to
-/// A<PromoteType<B,C>> rather than A<SumType<B,C>>.  This does not 
+/// A<PromoteType<B,C>> rather than A<SumType<B,C>>.  This does not
 /// currently impact any supported channel types.
 ///
 #ifndef __VW_CORE_TYPE_DEDUCTION_H__
@@ -34,22 +34,22 @@ namespace vw {
   // ********************************************************************
   // Operator Return Type Deduction Routines
   //
-  // The following type-deduction metaprograms can be used to deduce the 
-  // return types of various operations on compound types.  This exists 
-  // and must be maintained until either C++ officially adopts the typeof 
-  // keyword (and compilers actually support it) or the BOOST folks get 
-  // their act together and agree on a single unified framework for this 
-  // sort of thing.  (In the latter case some code still needs to stay, 
+  // The following type-deduction metaprograms can be used to deduce the
+  // return types of various operations on compound types.  This exists
+  // and must be maintained until either C++ officially adopts the typeof
+  // keyword (and compilers actually support it) or the BOOST folks get
+  // their act together and agree on a single unified framework for this
+  // sort of thing.  (In the latter case some code still needs to stay,
   // but it should get reworked to fit within said framework.)
   //
-  // At the moment nothing fancy is supported.  For instance, compound 
-  // type sums are only supported when the two arguments have the same 
-  // type.  However, everything is in place to make it easy to extend 
+  // At the moment nothing fancy is supported.  For instance, compound
+  // type sums are only supported when the two arguments have the same
+  // type.  However, everything is in place to make it easy to extend
   // should the need arise.
   // ********************************************************************
 
-  // Okay, I'll be the first to admit that this is a really brain-dead 
-  // way to do this.  Nevertheless, it works and will give us a standard 
+  // Okay, I'll be the first to admit that this is a really brain-dead
+  // way to do this.  Nevertheless, it works and will give us a standard
   // against which to compare better methods later.
 #define __VW_STANDARD_ARITHMETIC_CONVERSIONS(Helper)                    \
     /* Combinations that return long double */                          \
@@ -224,12 +224,12 @@ namespace vw {
 
 
   // ********************************************************************
-  // Now we set up the default promotion behavior for general types. 
-  // This includes promotions of compound types (e.g. pixel types) 
-  // when used in operations with fundamental types.  Thus for example 
+  // Now we set up the default promotion behavior for general types.
+  // This includes promotions of compound types (e.g. pixel types)
+  // when used in operations with fundamental types.  Thus for example
   // multiplying PixelRGB<int> by float should return PixelRGB<float>.
-  // We address this by recursing on the template parameter.  Users 
-  // can explicitly specialize PromoteTypeSpecialization<> to support 
+  // We address this by recursing on the template parameter.  Users
+  // can explicitly specialize PromoteTypeSpecialization<> to support
   // custom behaviors when both arguments are custom types.
   // ********************************************************************
 
@@ -239,7 +239,7 @@ namespace vw {
   // This helper class forwards the default case to TypeDeductionHelper.
   template <class Arg1T, class Arg2T, bool Arg1IsCompound, bool Arg2IsCompound>
   struct PromoteTypeSpecializationHelper : public TypeDeductionHelper<Arg1T,Arg2T> {};
-  
+
   // Recursive behavior when Arg1T is a compound type.
   template <class Arg1T, class Arg2T>
   struct PromoteTypeSpecializationHelper<Arg1T,Arg2T,true,false> {
@@ -261,7 +261,7 @@ namespace vw {
     typedef typename boost::mpl::if_<if_same_type,is_same_type,not_same_type>::type type;
   };
 
-  // Dispatch to the appropriate helper based on which if any 
+  // Dispatch to the appropriate helper based on which if any
   // argument is a compound type.
   template <class Arg1T, class Arg2T>
   class PromoteTypeSpecialization
@@ -271,12 +271,12 @@ namespace vw {
 
   // ********************************************************************
   // Finally, we provide forwarding classes for the different operations
-  // that the user can specifically specialize in special cases if 
-  // needed.  The classes the user *uses*, such as SumType, simply 
-  // strip off any CV-qualification and forward to the appropriate 
-  // specialization type.  If the user needs to override the type 
-  // deduction behavior, they should generally do so by overriding one 
-  // of the ...Specialization classes, so that they don't have to worry 
+  // that the user can specifically specialize in special cases if
+  // needed.  The classes the user *uses*, such as SumType, simply
+  // strip off any CV-qualification and forward to the appropriate
+  // specialization type.  If the user needs to override the type
+  // deduction behavior, they should generally do so by overriding one
+  // of the ...Specialization classes, so that they don't have to worry
   // about CV-qualification themselves.
   // ********************************************************************
 

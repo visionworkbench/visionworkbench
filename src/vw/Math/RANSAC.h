@@ -6,16 +6,16 @@
 
 
 /// \file RANSAC.h
-/// 
+///
 /// Robust outlier rejection using the Random Sample Consensus
-/// (RANSAC) algorithm.  
-/// 
-/// This technique was introduced in: 
+/// (RANSAC) algorithm.
+///
+/// This technique was introduced in:
 ///
 /// Fischler, Martin A. and Bolles, Robert C. "Random Sample
 /// Consensus: a Paradigm for Model Fitting with Applications to
 /// Image Analysis and Automated Cartography" (1981)
-///  
+///
 /// This generic implementation of RANSAC requires that you supply two
 /// functors:
 ///
@@ -25,7 +25,7 @@
 ///    compute the best homography that best describes the
 ///    transformation between two sets of N-vectors, the result of the
 ///    fitting function would be an NxN matrix.
-/// 
+///
 ///    The fitting function must also provide a result_type typedef
 ///    and a method called min_elements_needed_for_fit(example), which
 ///    returns the minimum number of matching data points required to
@@ -46,7 +46,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Core/Log.h>
 
-namespace vw { 
+namespace vw {
 namespace math {
 
   VW_DEFINE_EXCEPTION(RANSACErr, Exception);
@@ -57,7 +57,7 @@ namespace math {
   struct L2NormErrorMetric {
     template <class RelationT, class ContainerT>
     double operator() (RelationT const& H,
-                       ContainerT const& p1, 
+                       ContainerT const& p1,
                        ContainerT const& p2) const {
       return vw::math::norm_2( p2 - H * p1 );
     }
@@ -67,7 +67,7 @@ namespace math {
   struct HomogeneousL2NormErrorMetric {
     template <class RelationT, class ContainerT>
     double operator() (RelationT const& H,
-                       ContainerT const& p1, 
+                       ContainerT const& p1,
                        ContainerT const& p2) const {
       Vector<double, dim+1> p1_h, p2_h;
 
@@ -82,7 +82,7 @@ namespace math {
       Vector<double, dim+1> inter_result = H*p1_h;
       // Re-normalizing. This conditional should only throw if H is
       // an homography matrix
-      if ( inter_result[dim] != 1 ) 
+      if ( inter_result[dim] != 1 )
         inter_result /= inter_result[dim];
 
       return vw::math::norm_2(p2_h - inter_result);
@@ -105,34 +105,34 @@ namespace math {
     // Returns the number of inliers for a given threshold.
     template <class ContainerT1, class ContainerT2>
     unsigned num_inliers(typename FittingFuncT::result_type const& H,
-                         std::vector<ContainerT1> const& p1, 
+                         std::vector<ContainerT1> const& p1,
                          std::vector<ContainerT2> const& p2) const {
       unsigned result = 0;
       for (unsigned i=0; i<p1.size(); i++) {
-        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
+        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
           ++result;
       }
       return result;
     }
-    
-    /// \cond INTERNAL  
-    // Utility Function: Pick N UNIQUE, random integers in the range [0, size] 
+
+    /// \cond INTERNAL
+    // Utility Function: Pick N UNIQUE, random integers in the range [0, size]
     inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) const {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
-      
+
       for (unsigned i=0; i<n; ++i) {
         bool done = false;
         while (!done) {
           samples[i] = int( (double(std::rand()) / double(RAND_MAX)) * size );
           done = true;
-          for (unsigned j = 0; j < i; j++) 
-            if (samples[i] == samples[j]) 
+          for (unsigned j = 0; j < i; j++)
+            if (samples[i] == samples[j])
               done = false;
         }
       }
     }
     /// \endcond
-    
+
   public:
 
     // Returns the list of inlier indices.
@@ -140,10 +140,10 @@ namespace math {
     void inliers(typename FittingFuncT::result_type const& H,
                  std::vector<ContainerT1> const& p1, std::vector<ContainerT2> const& p2,
                  std::vector<ContainerT1> &inliers1, std::vector<ContainerT2> &inliers2) const {
-        
+
       inliers1.clear();
       inliers2.clear();
-      
+
       for (unsigned int i=0; i<p1.size(); i++) {
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) {
           inliers1.push_back(p1[i]);
@@ -157,25 +157,25 @@ namespace math {
     std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
                                      std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
       std::vector<int> result;
-      for (unsigned int i=0; i<p1.size(); i++) 
-        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) 
+      for (unsigned int i=0; i<p1.size(); i++)
+        if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
           result.push_back(i);
       return result;
     }
 
     RandomSampleConsensus(FittingFuncT const& fitting_func, ErrorFuncT const& error_func, double inlier_threshold)
       : m_fitting_func(fitting_func), m_error_func(error_func), m_inlier_threshold(inlier_threshold) {}
-    
+
     template <class ContainerT1, class ContainerT2>
-    typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1, 
+    typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1,
                                                   std::vector<ContainerT2> const& p2,
                                                   int ransac_iterations = 0) const {
       // check consistency
-      VW_ASSERT( p1.size() == p2.size(), 
+      VW_ASSERT( p1.size() == p2.size(),
                  RANSACErr() << "RANSAC Error.  data vectors are not the same size." );
       VW_ASSERT( !p1.empty(),
                  RANSACErr() << "RANSAC Error.  Insufficient data.\n");
-      VW_ASSERT( p1.size() >= m_fitting_func.min_elements_needed_for_fit(p1[0]),  
+      VW_ASSERT( p1.size() >= m_fitting_func.min_elements_needed_for_fit(p1[0]),
                  RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting funtor. ("<<p1.size() << "/" << m_fitting_func.min_elements_needed_for_fit(p1[0]) << ")\n");
 
       unsigned inliers_max = 0;
@@ -183,7 +183,7 @@ namespace math {
       typename FittingFuncT::result_type H_max;
 
       /////////////////////////////////////////
-      // First part: 
+      // First part:
       //   1. choose N points at random
       //   2. find a fit for those N points
       //   3. check for consensus
@@ -194,7 +194,7 @@ namespace math {
       srandom((unsigned int) clock());
 
       // This is a rough value, but it seems to produce reasonably good results.
-      if (ransac_iterations == 0) 
+      if (ransac_iterations == 0)
         ransac_iterations = p1.size() * 2;
 
       int n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
@@ -203,7 +203,7 @@ namespace math {
       boost::scoped_array<int> random_indices(new int[n]);
 
       for (int iteration=0; iteration < ransac_iterations; ++iteration) {
-        // Get four points at random, taking care not 
+        // Get four points at random, taking care not
         // to select the same point twice.
         _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
 
@@ -211,10 +211,10 @@ namespace math {
           try1[i] = p1[random_indices[i]];
           try2[i] = p2[random_indices[i]];
         }
-        
+
         // Compute the fit using these samples
         H = m_fitting_func(try1, try2);
-        
+
         // Compute consensuss
         unsigned n_inliers = num_inliers(H, p1, p2);
 
@@ -224,7 +224,7 @@ namespace math {
           H_max = H;
         }
       }
-      
+
       if (inliers_max < m_fitting_func.min_elements_needed_for_fit(p1[0])) {
         vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
       }
@@ -248,18 +248,18 @@ namespace math {
       vw_out(InfoMessage, "interest_point") << "\tInliers / Total  = " << try1.size() << " / " << p1.size() << "\n\n";
       return H;
     }
-    
+
   };
 
   // Free function
   template <class ContainerT1, class ContainerT2, class FittingFuncT, class ErrorFuncT>
-  typename FittingFuncT::result_type ransac(std::vector<ContainerT1> const& p1, 
+  typename FittingFuncT::result_type ransac(std::vector<ContainerT1> const& p1,
                                             std::vector<ContainerT2> const& p2,
-                                            FittingFuncT const& fitting_func, 
+                                            FittingFuncT const& fitting_func,
                                             ErrorFuncT const& error_func,
                                             double inlier_threshold = 50) {
-    RandomSampleConsensus<FittingFuncT, ErrorFuncT> ransac_instance(fitting_func, 
-                                                                    error_func, 
+    RandomSampleConsensus<FittingFuncT, ErrorFuncT> ransac_instance(fitting_func,
+                                                                    error_func,
                                                                     inlier_threshold);
     return ransac_instance(p1,p2);
   }

@@ -6,15 +6,15 @@
 
 
 /// \file ImageViewBase.h
-/// 
+///
 /// Image view base class and default rasterization code.
-/// 
-/// This file provides the core image view functionality.  You should not 
+///
+/// This file provides the core image view functionality.  You should not
 /// need to care about this file unless you are writing your own view.
 /// First there is a templatized base class for image views, \ref vw::ImageViewBase.
-/// Then there are the default templates for several image view traits 
-/// classes.  Finally, there is the default rasterization function, 
-/// \ref vw::rasterize, which iterates over source and destination views 
+/// Then there are the default templates for several image view traits
+/// classes.  Finally, there is the default rasterization function,
+/// \ref vw::rasterize, which iterates over source and destination views
 /// copying pixels from one into the other.
 ///
 #ifndef __VW_IMAGE_IMAGEVIEWBASE_H__
@@ -34,13 +34,13 @@ namespace vw {
   // *******************************************************************
 
   /// A CRTP image view base class.
-  // Consider a function that takes a single argument, which should be 
+  // Consider a function that takes a single argument, which should be
   // an arbitrary image view.  You may not want to define it like this:
   //    template<class ImageViewT> void foo(ImageViewT& v) {...}
-  // because that will accept any type, not just an image view type.  
+  // because that will accept any type, not just an image view type.
   // Instead, to resolve ambiguities, you can define it like this:
   //    template<class T> void foo(ImageViewBase<T>& v) {...}
-  // which affords you better compile-time type checking and greater 
+  // which affords you better compile-time type checking and greater
   // function overload flexibility.
   template <class ImplT>
   struct ImageViewBase {
@@ -107,8 +107,8 @@ namespace vw {
   template <class ImageT>
   struct IsImageView : public boost::is_base_of<ImageViewBase<ImageT>,ImageT>::type {};
 
-  /// Indicates whether or not a view can be accessed multiple times 
-  /// just as efficiently as a locally-cached version.  
+  /// Indicates whether or not a view can be accessed multiple times
+  /// just as efficiently as a locally-cached version.
   template <class ImplT>
   struct IsMultiplyAccessible : public false_type {};
 
@@ -122,16 +122,16 @@ namespace vw {
     const ViewT& view = view_.impl();
     typedef typename ViewT::pixel_accessor pixel_accessor;
     pixel_accessor plane_acc = view.origin();
-    for( int32 plane = view.planes(); plane; --plane ) { 
+    for( int32 plane = view.planes(); plane; --plane ) {
       pixel_accessor row_acc = plane_acc;
       for( int32 row = 0; row<view.rows(); ++row ) {
-	progress.report_fractional_progress(row,view.rows());
+        progress.report_fractional_progress(row,view.rows());
         pixel_accessor col_acc = row_acc;
         for( int32 col = view.cols(); col; --col ) {
           func( *col_acc );
-	  col_acc.next_col();
+          col_acc.next_col();
         }
-	row_acc.next_row();
+        row_acc.next_row();
       }
       plane_acc.next_plane();
     }
@@ -158,7 +158,7 @@ namespace vw {
     typedef typename View2T::pixel_accessor pixel_accessor_2;
     pixel_accessor_1 plane_acc_1 = view1.origin();
     pixel_accessor_2 plane_acc_2 = view2.origin();
-    for( int32 plane = view1.planes(); plane; --plane ) { 
+    for( int32 plane = view1.planes(); plane; --plane ) {
       pixel_accessor_1 row_acc_1 = plane_acc_1;
       pixel_accessor_2 row_acc_2 = plane_acc_2;
       for( int32 row = view1.rows(); row; --row ) {
@@ -166,11 +166,11 @@ namespace vw {
         pixel_accessor_2 col_acc_2 = row_acc_2;
         for( int32 col = view1.cols(); col; --col ) {
           func( *col_acc_1, *col_acc_2 );
-	  col_acc_1.next_col();
-	  col_acc_2.next_col();
+          col_acc_1.next_col();
+          col_acc_2.next_col();
         }
-	row_acc_1.next_row();
-	row_acc_2.next_row();
+        row_acc_1.next_row();
+        row_acc_2.next_row();
       }
       plane_acc_1.next_plane();
       plane_acc_2.next_plane();
@@ -193,7 +193,7 @@ namespace vw {
     const View2T& view2 = view2_.impl();
     const View3T& view3 = view3_.impl();
     VW_ASSERT( view1.cols()==view2.cols() && view1.rows()==view2.rows() && view1.planes()==view2.planes() &&
-	       view1.cols()==view3.cols() && view1.rows()==view3.rows() && view1.planes()==view3.planes(),
+               view1.cols()==view3.cols() && view1.rows()==view3.rows() && view1.planes()==view3.planes(),
                ArgumentErr() << "for_each_pixel_: Image arguments must have the same dimensions." );
     typedef typename View1T::pixel_accessor pixel_accessor_1;
     typedef typename View2T::pixel_accessor pixel_accessor_2;
@@ -201,7 +201,7 @@ namespace vw {
     pixel_accessor_1 plane_acc_1 = view1.origin();
     pixel_accessor_2 plane_acc_2 = view2.origin();
     pixel_accessor_3 plane_acc_3 = view3.origin();
-    for( int32 plane = view1.planes(); plane; --plane ) { 
+    for( int32 plane = view1.planes(); plane; --plane ) {
       pixel_accessor_1 row_acc_1 = plane_acc_1;
       pixel_accessor_2 row_acc_2 = plane_acc_2;
       pixel_accessor_3 row_acc_3 = plane_acc_3;
@@ -211,13 +211,13 @@ namespace vw {
         pixel_accessor_3 col_acc_3 = row_acc_3;
         for( int32 col = view1.cols(); col; --col ) {
           func( *col_acc_1, *col_acc_2, *col_acc_3 );
-	  col_acc_1.next_col();
-	  col_acc_2.next_col();
-	  col_acc_3.next_col();
+          col_acc_1.next_col();
+          col_acc_2.next_col();
+          col_acc_3.next_col();
         }
-	row_acc_1.next_row();
-	row_acc_2.next_row();
-	row_acc_3.next_row();
+        row_acc_1.next_row();
+        row_acc_2.next_row();
+        row_acc_3.next_row();
       }
       plane_acc_1.next_plane();
       plane_acc_2.next_plane();
@@ -240,10 +240,10 @@ namespace vw {
   // *******************************************************************
 
   /// This function is called by image views that do not have special
-  /// optimized rasterization methods.  The user can also call it 
-  /// explicitly when pixel-by-pixel rasterization is preferred to 
-  /// the default optimized rasterization behavior.  This can be 
-  /// useful in some cases, such as when the views are heavily 
+  /// optimized rasterization methods.  The user can also call it
+  /// explicitly when pixel-by-pixel rasterization is preferred to
+  /// the default optimized rasterization behavior.  This can be
+  /// useful in some cases, such as when the views are heavily
   /// subsampled.
   template <class SrcT, class DestT>
   inline void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
@@ -281,7 +281,7 @@ namespace vw {
 
   /// A specialization for resizable destination views.
   ///
-  /// This function resizes the destination view prior to 
+  /// This function resizes the destination view prior to
   /// rasterization.
   /// \see vw::rasterize
   template <class SrcT, class DestT>

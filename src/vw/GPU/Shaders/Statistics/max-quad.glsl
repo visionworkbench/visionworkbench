@@ -21,6 +21,6 @@ void main() {
 
    cPixel = texture2DRect(image, coord + vec2(1.0, 1.0));
    cMax = max(cMax, cPixel.r);
-		
+
    gl_FragColor.r = cMax;
 }

@@ -7,7 +7,7 @@
 
 /// \file vwv_GlPreviewWidget.h
 ///
-/// The Vision Workbench image viewer. 
+/// The Vision Workbench image viewer.
 ///
 #ifndef __VW_GUI__PREVIEW_GL_WIDGET_H__
 #define __VW_GUI_PREVIEW_GL_WIDGET_H__
@@ -49,16 +49,16 @@ namespace gui {
     vw::Vector3 m_color;
   public:
     PointList(vw::Vector3 const& color) : m_color(color) {}
-    PointList(std::list<vw::Vector2> const& points, vw::Vector3 const& color) : 
+    PointList(std::list<vw::Vector2> const& points, vw::Vector3 const& color) :
       m_color(color) {
       this->push_back(points);
     }
-  
+
     std::list<vw::Vector2> const& points() const { return m_points; }
     vw::Vector3 color() const { return m_color; }
 
     void push_back(vw::Vector2 pt) { m_points.push_back(pt); }
-    void push_back(std::list<vw::Vector2> pts) { 
+    void push_back(std::list<vw::Vector2> pts) {
       std::list<vw::Vector2>::iterator iter  = pts.begin();
       while (iter != pts.end()) {
         m_points.push_back(*iter);
@@ -89,7 +89,7 @@ namespace gui {
     void size_to_fit();
 
   public slots:
-  
+
     // This timer is used by the Texture Fetch thread to inform the
     // GlPreviewWidget when new textures are available for drawing.
     // Timer callback is called 30 times per second.
@@ -100,9 +100,9 @@ namespace gui {
       }
     }
 
-    void set_nodata_value(float nodata_value) { 
-      m_nodata_value = nodata_value; 
-      m_use_nodata = 1; 
+    void set_nodata_value(float nodata_value) {
+      m_nodata_value = nodata_value;
+      m_use_nodata = 1;
     }
 
     void normalize() {
@@ -131,14 +131,14 @@ namespace gui {
     void enterEvent(QEvent *event);
     void leaveEvent(QEvent *event);
     void keyPressEvent(QKeyEvent *event);
-  
+
   private:
     // Drawing is driven by QPaintEvents, which call out to drawImage()
     // and drawLegend()
     void drawImage();
     void drawLegend(QPainter *painter);
     void updateCurrentMousePosition();
-  
+
     // Image & OpenGL
     GLuint m_glsl_program;
     bool m_show_legend;
@@ -155,7 +155,7 @@ namespace gui {
     PixelRGBA<float> m_last_pixel_sample;
 
     // Adjustment mode
-    enum AdjustmentMode { TransformAdjustment, GainAdjustment, 
+    enum AdjustmentMode { TransformAdjustment, GainAdjustment,
                           OffsetAdjustment, GammaAdjustment };
     AdjustmentMode m_adjust_mode;
 
@@ -171,7 +171,7 @@ namespace gui {
     vw::float32 m_image_max;
     vw::float32 m_nodata_value;
     int m_use_nodata;
-  
+
     // Image Parameters
     vw::BBox2 m_current_viewport;
     float m_gain;

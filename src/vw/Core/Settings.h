@@ -102,7 +102,7 @@ namespace vw {
 
     /// Query for the default tile size used for block processing ops.
     int default_tile_size();
-    
+
     /// Set the default tile size to be used for block processing.
     void set_default_tile_size(int num);
 
@@ -117,7 +117,7 @@ namespace vw {
 
     /// Query for the directory being used to store temporary files.
     std::string tmp_directory();
-    
+
     /// Set the directory to be used for storing temporary files.
     void set_tmp_directory(std::string const& path);
   };

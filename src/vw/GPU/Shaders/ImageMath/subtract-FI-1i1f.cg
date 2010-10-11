@@ -6,9 +6,9 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT i1,
-	uniform float f1,
-	out float4 color : COLOR ) 
+        uniform samplerRECT i1,
+        uniform float f1,
+        out float4 color : COLOR )
 {
    color = f1 - texRECT(i1, texCoord0);
 }

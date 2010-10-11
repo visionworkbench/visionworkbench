@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT image,
-	out float4 color : COLOR ) 
+        uniform samplerRECT image,
+        out float4 color : COLOR )
 {
    float2 ij = texCoord0;
    float2 xy = floor(ij);
@@ -17,30 +17,30 @@ void main(in float2 texCoord0 : TEXCOORD0,
    float2 st2 = ((4.0 - 3.0 * normxy) * normxy + 1.0) * normxy;
    float2 st3 = (normxy - 1.0) * normxy * normxy;
 
-   float4 row0 = 
-	st0.s * texRECT(image, xy + float2(-1.0, -1.0)) + 
-	st1.s * texRECT(image, xy + float2(0.0, -1.0)) + 
-	st2.s * texRECT(image, xy + float2(1.0, -1.0)) + 
-	st3.s * texRECT(image, xy + float2(2.0, -1.0));
+   float4 row0 =
+        st0.s * texRECT(image, xy + float2(-1.0, -1.0)) +
+        st1.s * texRECT(image, xy + float2(0.0, -1.0)) +
+        st2.s * texRECT(image, xy + float2(1.0, -1.0)) +
+        st3.s * texRECT(image, xy + float2(2.0, -1.0));
 
-   float4 row1 = 
-	st0.s * texRECT(image, xy + float2(-1.0, 0.0)) + 
-	st1.s * texRECT(image, xy + float2(0.0, 0.0)) + 
-	st2.s * texRECT(image, xy + float2(1.0, 0.0)) + 
-	st3.s * texRECT(image, xy + float2(2.0, 0.0));
+   float4 row1 =
+        st0.s * texRECT(image, xy + float2(-1.0, 0.0)) +
+        st1.s * texRECT(image, xy + float2(0.0, 0.0)) +
+        st2.s * texRECT(image, xy + float2(1.0, 0.0)) +
+        st3.s * texRECT(image, xy + float2(2.0, 0.0));
 
-   float4 row2 = 
-	st0.s * texRECT(image, xy + float2(-1.0, 1.0)) + 
-	st1.s * texRECT(image, xy + float2(0.0, 1.0)) + 
-	st2.s * texRECT(image, xy + float2(1.0, 1.0)) + 
-	st3.s * texRECT(image, xy + float2(2.0, 1.0));
+   float4 row2 =
+        st0.s * texRECT(image, xy + float2(-1.0, 1.0)) +
+        st1.s * texRECT(image, xy + float2(0.0, 1.0)) +
+        st2.s * texRECT(image, xy + float2(1.0, 1.0)) +
+        st3.s * texRECT(image, xy + float2(2.0, 1.0));
 
-   float4 row3 = 
-	st0.s * texRECT(image, xy + float2(-1.0, 2.0)) + 
-	st1.s * texRECT(image, xy + float2(0.0, 2.0)) + 
-	st2.s * texRECT(image, xy + float2(1.0, 2.0)) + 
-	st3.s * texRECT(image, xy + float2(2.0, 2.0));
+   float4 row3 =
+        st0.s * texRECT(image, xy + float2(-1.0, 2.0)) +
+        st1.s * texRECT(image, xy + float2(0.0, 2.0)) +
+        st2.s * texRECT(image, xy + float2(1.0, 2.0)) +
+        st3.s * texRECT(image, xy + float2(2.0, 2.0));
 
-   color = 0.25 * ((st0.t * row0) + (st1.t * row1) + (st2.t * row2) + (st3.t * row3)); 
+   color = 0.25 * ((st0.t * row0) + (st1.t * row1) + (st2.t * row2) + (st3.t * row3));
 
 }

@@ -6,9 +6,9 @@
 
 
 /// \file Convolution.h
-/// 
-/// One- and two-dimensional convolution numerical functions, and 
-/// standard and separable two-dimensional image convolution view 
+///
+/// One- and two-dimensional convolution numerical functions, and
+/// standard and separable two-dimensional image convolution view
 /// classes used by the filtering functions in \ref Filter.h.
 ///
 #ifndef __VW_IMAGE_CONVOLUTION_H__
@@ -193,7 +193,7 @@ namespace vw {
 
     /// Constructs a SeparableConvolutionView with the given image and kernels and with the origin of the kernel located at the center.
     template <class KRangeT>
-    SeparableConvolutionView( ImageT const& image, KRangeT const& ik, KRangeT const& jk, int32 ci, int32 cj, EdgeT const& edge = EdgeT() ) : 
+    SeparableConvolutionView( ImageT const& image, KRangeT const& ik, KRangeT const& jk, int32 ci, int32 cj, EdgeT const& edge = EdgeT() ) :
       m_image(image), m_i_kernel(ik.begin(),ik.end()), m_j_kernel(jk.begin(),jk.end()), m_ci(ci), m_cj(cj), m_edge(edge) {}
 
     /// Constructs a SeparableConvolutionView with the given image and kernels and with the origin of the kernel located at the point (ci,cj).
@@ -223,13 +223,13 @@ namespace vw {
           (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
           (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {
         return channel_cast_clamp_if_int<channel_type>(
-	  correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
-				 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
+          correlate_2d_at_point( m_image.origin().advance(x-ci,y-cj,p),
+                                 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
       }
       else {
-        return channel_cast_clamp_if_int<channel_type>( 
+        return channel_cast_clamp_if_int<channel_type>(
           correlate_2d_at_point( edge_extend(m_image,m_edge).origin().advance(x-ci,y-cj,p),
-				 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
+                                 m_kernel2d.origin(), m_kernel2d.cols(), m_kernel2d.rows() ) );
       }
     }
 
@@ -237,10 +237,10 @@ namespace vw {
 
     // The separable convolution view knows that it is fastest to
     // fully rasterize itself if it is about to be part of a
-    // rasterization operation with nested views.  This is actually 
-    // not the most efficient behavior: it need only rasterize one 
-    // of the two axes, and none at all if only one axis is active. 
-    // However, that is deterimined at run time and would impact 
+    // rasterization operation with nested views.  This is actually
+    // not the most efficient behavior: it need only rasterize one
+    // of the two axes, and none at all if only one axis is active.
+    // However, that is deterimined at run time and would impact
     // the prerasterize_type, so we cannot easily do that.
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
@@ -249,10 +249,10 @@ namespace vw {
       return CropView<ImageView<pixel_type> >(dest,BBox2i(-bbox.min().x(),-bbox.min().y(),
                                                           m_image.cols(), m_image.rows()) );
     }
-    
-    // In principle we could avoid rasterizing the child first if it's 
-    // MultiplyAccessible.  In practice that turns out to be a pain to 
-    // get right, and convolution is generally a much more expensive 
+
+    // In principle we could avoid rasterizing the child first if it's
+    // MultiplyAccessible.  In practice that turns out to be a pain to
+    // get right, and convolution is generally a much more expensive
     // operation than a single extra copy.
     template <class DestT>
     void rasterize( DestT const& dest, BBox2i bbox ) const {
@@ -307,7 +307,7 @@ namespace vw {
         dplane.next_plane();
       }
     }
-    
+
     /// \endcond
   };
 

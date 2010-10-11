@@ -21,7 +21,7 @@
 
 namespace vw {
 namespace photometry {
-  //upsamples a DEM by an upsampleFactor 
+  //upsamples a DEM by an upsampleFactor
   void upsample_image(std::string output_file, std::string input_file, int upsampleFactor);
 
   //subsamples a geo referenced tiff image by two
@@ -55,7 +55,7 @@ namespace photometry {
   static std::string prefix_less3_from_filename(std::string const& filename) {
     std::string result = filename;
     int index = result.rfind(".");
-    if (index != -1) 
+    if (index != -1)
       result.erase(index-3, result.size()+3);
     return result;
   }
@@ -64,18 +64,18 @@ namespace photometry {
   static std::string sufix_from_filename(std::string const& filename) {
     std::string result = filename;
     int index = result.rfind("/");
-    if (index != -1) 
+    if (index != -1)
       result.erase(0, index);
     return result;
   }
 
   //reads the tiff DEM into a 3D coordinate
-  //pos is a Vector2 of pixel coordinates, GR is georeference 
+  //pos is a Vector2 of pixel coordinates, GR is georeference
   template <class ViewT>
   Vector3 pixel_to_cart (Vector2 pos, ImageViewBase<ViewT> const& img,
                          cartography::GeoReference GR);
 
- 
+
   std::vector<std::string> parse_command_arguments(int argc, char *argv[] );
 
 

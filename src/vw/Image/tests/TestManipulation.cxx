@@ -831,7 +831,7 @@ TEST( Manipulation, ColAssignment ) {
   EXPECT_EQ( 9,  a(1,0) );
   EXPECT_EQ( 6,  a(0,1) );
   EXPECT_EQ( 10, a(1,1) );
-} 
+}
 
 
 TEST( Manipulation, SelectRow ) {
@@ -877,7 +877,7 @@ TEST( Manipulation, RowAssignment ) {
   EXPECT_EQ( 7,  a(1,0) );
   EXPECT_EQ( 9,  a(0,1) );
   EXPECT_EQ( 10, a(1,1) );
-} 
+}
 
 TEST( Manipulation, SelectPlane ) {
   ImageView<double> im(1,2,2); im(0,0,0)=1; im(0,1,0)=2; im(0,0,1)=3; im(0,1,1)=4;

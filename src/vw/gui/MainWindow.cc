@@ -7,7 +7,7 @@
 
 /// \file vwv_MainWindow.cc
 ///
-/// The Vision Workbench image viewer main window class. 
+/// The Vision Workbench image viewer main window class.
 ///
 #include <QtGui>
 #include <vw/config.h>
@@ -59,7 +59,7 @@ MainWindow::MainWindow(std::string input_filename,
   //   m_nodata_value = rsrc->nodata_value();
   //   std::cout << "\t--> Extracted nodata value from file: " << m_nodata_value << ".\n";
   //   m_preview_widget->set_nodata_value(m_nodata_value);
-  // } 
+  // }
   // delete rsrc;
 
   // if (do_normalize) {
@@ -89,7 +89,7 @@ void MainWindow::create_actions() {
 }
 
 void MainWindow::create_menus() {
-  
+
   // File Menu
   file_menu = menuBar()->addMenu(tr("&File"));
   file_menu->addAction(exit_action);
@@ -124,13 +124,13 @@ void MainWindow::about() {
              << "<p>Copyright &copy; 2008 NASA Ames Research Center</p>";
   QMessageBox::about(this, tr("About Vision Workbench Viewer"),
                      tr(about_text.str().c_str()));
-                       
+
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
 
-  std::ostringstream s; 
-  
+  std::ostringstream s;
+
   switch (event->key()) {
   case Qt::Key_Escape:  // Quit
     close();

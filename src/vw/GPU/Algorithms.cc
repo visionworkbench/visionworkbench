@@ -12,7 +12,7 @@ namespace vw { namespace GPU {
   void fill_impl(GPUImageBase& image, float red, float green, float blue, float alpha, const Rectangle2D<int>& bounds)
   {
     // GLState - Setup
-    ((GPUImageBase&) image).rasterize_homography();	
+    ((GPUImageBase&) image).rasterize_homography();
     ShaderInvocation_SetupGLState(image);
     // Program - Install
     GPUProgram* program = create_gpu_program("Algorithms/fill-1i4f");
@@ -62,8 +62,8 @@ namespace vw { namespace GPU {
     bool is_int8 = image.type() == GPU_UINT8;
     program->set_input_image("i1", image);
     program->set_input_float("f1", thresh, is_int8);
-    program->set_input_float("f2", low, is_int8);	
-    program->set_input_float("f3", high, is_int8);		
+    program->set_input_float("f2", low, is_int8);
+    program->set_input_float("f3", high, is_int8);
     // DRAW
     ShaderInvocation_DrawRectOneTexture(image);
     // CleanUp State

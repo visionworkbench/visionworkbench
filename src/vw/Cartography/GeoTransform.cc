@@ -74,8 +74,8 @@ namespace cartography {
     else
       m_skip_map_projection = false;
 
-    // This optimizes the case where the two datums are the same, 
-    // and thus we don't need to call proj to convert between them 
+    // This optimizes the case where the two datums are the same,
+    // and thus we don't need to call proj to convert between them
     // as we transform.
     if(src_datum == dst_datum) {
       m_skip_datum_conversion = true;
@@ -85,7 +85,7 @@ namespace cartography {
 
       // The source proj4 context.
       std::stringstream ss_src;
-      // We convert lat/long to lat/long regardless of what the 
+      // We convert lat/long to lat/long regardless of what the
       // source or destination georef uses.
       ss_src << "+proj=latlong " << src_datum;
       m_src_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_src.str()));
@@ -97,7 +97,7 @@ namespace cartography {
       m_dst_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_dst.str()));
       CHECK_PROJ_INIT_ERROR(ss_dst.str().c_str());
     }
-    // Because GeoTransform is typically very slow, we default to a tolerance 
+    // Because GeoTransform is typically very slow, we default to a tolerance
     // of 0.1 pixels to allow ourselves to be approximated.
     set_tolerance( 0.1 );
   }
@@ -180,6 +180,6 @@ namespace cartography {
     }
   }
 
-  
+
 }} // namespace vw::cartography
 

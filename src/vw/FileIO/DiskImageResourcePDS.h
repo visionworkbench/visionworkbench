@@ -6,7 +6,7 @@
 
 
 /// \file DiskImageResourcePDS.h
-/// 
+///
 /// Provides support for some NASA mission data from the Planetary
 /// Data System (PDS).
 ///
@@ -32,22 +32,22 @@ namespace vw {
       m_pds_data_filename = ""; // For PDS images that have a seperate file with image data.
       open( filename );
     }
-    
-    DiskImageResourcePDS( std::string const& filename, 
+
+    DiskImageResourcePDS( std::string const& filename,
                           ImageFormat const& /*format*/ )
       : DiskImageResource( filename )
     {
       vw_throw( NoImplErr() << "The PDS driver does not yet support creation of PDS files." );
     }
-    
+
     virtual ~DiskImageResourcePDS() {}
-    
+
     /// Returns the type of disk image resource.
     static std::string type_static() { return "PDS"; }
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
     virtual void flush() {}
@@ -106,7 +106,7 @@ namespace vw {
       return false;
     }
 
-    /// Configure the resource to convert data validity information 
+    /// Configure the resource to convert data validity information
     /// to an alpha channel (i.e. make missing data transparent).
     void treat_invalid_data_as_alpha();
 

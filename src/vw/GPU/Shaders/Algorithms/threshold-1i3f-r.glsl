@@ -19,4 +19,4 @@ void main() {
       gl_FragColor.r = f2;
 
 }
-  
+

@@ -6,7 +6,7 @@
 
 
 /// \file DiskImageResourcePDS.cc
-/// 
+///
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
@@ -58,7 +58,7 @@ void vw::DiskImageResourcePDS::parse_pds_header(std::vector<std::string> const& 
       trim_left(split_vector[1]);
       trim_right(split_vector[1]);
       m_header_entries[split_vector[0]] = split_vector[1];
-    } 
+    }
   }
 }
 
@@ -69,11 +69,11 @@ vw::PixelFormatEnum vw::DiskImageResourcePDS::planes_to_pixel_format(int32 plane
   case 3:  return VW_PIXEL_RGB;    break;
   case 4:  return VW_PIXEL_RGBA;   break;
   }
-  return VW_PIXEL_SCALAR; 
+  return VW_PIXEL_SCALAR;
 }
 
 /// Bind the resource to a file for reading.  Confirm that we can open
-/// the file and that it has a sane pixel format.  
+/// the file and that it has a sane pixel format.
 void vw::DiskImageResourcePDS::open( std::string const& filename ) {
 
   FILE* input_file = fopen(filename.c_str(), "r");
@@ -92,12 +92,12 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   while ( fgets(c_line, 2048, input_file) ) {
     i++;
     if ((c_line[0] == 'E' && c_line[1] == 'N' && c_line[2] == 'D' && c_line[3] != '_') ||
-        (i > MAX_PDS_HEADER_SIZE)) 
+        (i > MAX_PDS_HEADER_SIZE))
       break;
     header.push_back(std::string(c_line));
   }
   fclose(input_file);
-  
+
   // The the data into an associative contain (std::map).  Key/value
   // pairs are located by searching for strings seperated by the
   // equals sign "=".
@@ -120,7 +120,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   keys.push_back("IMAGE_LINES");
   keys.push_back("LINES");
   keys.push_back("/IMAGE/LINES");
-	
+
   valid = valid && query( keys, value );
   m_format.rows = atol(value.c_str());
 
@@ -134,7 +134,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   } else {
     m_format.planes = 1;
   }
-  
+
   // Band storage type (if not specified, we assume interleaved samples)
   keys.clear();
   keys.push_back("BAND_STORAGE_TYPE");
@@ -159,7 +159,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   keys.push_back("SAMPLE_BITS");
   std::string sample_bits_str;
   valid = valid && query( keys, sample_bits_str );
-  
+
   // Number of bytes in the PDS header (essentially the offset
   // before the image data begins.
   int record_size = 1;
@@ -169,7 +169,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   keys.push_back("HEADER_RECORD_BYTES");
   if( query( keys, value ) ) {
     record_size = atol(value.c_str());
-  }  
+  }
 
   keys.clear();
   keys.push_back("^IMAGE");
@@ -181,7 +181,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
     // filename that contains the image header.
     if (value[0] == '\"' && value[value.size()-1] == '\"') {
       vw_out(InfoMessage, "fileio") << "PDS header points to a seperate data file: " << value << ".\n";
-      m_pds_data_filename = value.substr(1,value.size()-2); 
+      m_pds_data_filename = value.substr(1,value.size()-2);
       m_image_data_offset = 0;
     } else {
       m_pds_data_filename = DiskImageResource::m_filename;
@@ -206,34 +206,34 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
       format_str == "MSB_UNSIGNED_INTEGER" ||
       format_str == "LSB_UNSIGNED_INTEGER") {
 
-    if (sample_bits_str == "8") 
-      m_format.channel_type = VW_CHANNEL_UINT8; 
-    else if (sample_bits_str == "16") 
-      m_format.channel_type = VW_CHANNEL_UINT16; 
+    if (sample_bits_str == "8")
+      m_format.channel_type = VW_CHANNEL_UINT8;
+    else if (sample_bits_str == "16")
+      m_format.channel_type = VW_CHANNEL_UINT16;
 
-    if (format_str == "LSB_UNSIGNED_INTEGER") 
+    if (format_str == "LSB_UNSIGNED_INTEGER")
       m_file_is_msb_first = false;
 
   } else if (format_str == "INTEGER" ||
-             format_str == "MSB_INTEGER" || 
+             format_str == "MSB_INTEGER" ||
              format_str == "LSB_INTEGER") {
 
-    if (sample_bits_str == "8") 
-      m_format.channel_type = VW_CHANNEL_INT8; 
-    else if (sample_bits_str == "16") 
-      m_format.channel_type = VW_CHANNEL_INT16; 
+    if (sample_bits_str == "8")
+      m_format.channel_type = VW_CHANNEL_INT8;
+    else if (sample_bits_str == "16")
+      m_format.channel_type = VW_CHANNEL_INT16;
 
-    if (format_str == "LSB_INTEGER") 
+    if (format_str == "LSB_INTEGER")
       m_file_is_msb_first = false;
-    
+
   } else {
     vw_throw( IOErr() << "DiskImageResourcePDS: Unsupported pixel type in \"" << filename << "\"." );
   }
-  
+
   // Match buffer format to band storage type
   m_format.pixel_format = planes_to_pixel_format(m_format.planes);
   if (m_format.pixel_format != VW_PIXEL_SCALAR) m_format.planes = 1;
-  
+
   vw_out(DebugMessage, "fileio")
     << "Opening PDS Image\n"
     << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n"
@@ -248,32 +248,32 @@ void vw::DiskImageResourcePDS::create( std::string const& /*filename*/,
 }
 
 /// Read the disk image into the given buffer.
-void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox ) const 
+void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox ) const
 {
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourcePDS does not support partial reads." );
   VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
              IOErr() << "Buffer has wrong dimensions in PDS read." );
-  
+
   // Re-open the file, and shift the file offset to the position of
   // the first image byte (as indicated by the PDS header).  Some PDS
   // files will have the actual data in a seperate file that is
   // pointed to by the PDS image header, so we may actually be opening
   // that file here instead of the original file that the user
-  // specified.  
+  // specified.
   //
   // NOTE: The filename encoded in the ^IMAGE tag seems to sometimes
   // differ in case from the actual data file, so we try a few
-  // different combinations here.  
+  // different combinations here.
   std::ifstream image_file(m_pds_data_filename.c_str(), std::ios::in | std::ios::binary);
   if (image_file.bad()) {
     image_file.open(boost::to_lower_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary);
     if (image_file.bad()) {
-      image_file.open(boost::to_upper_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary); 
+      image_file.open(boost::to_upper_copy(m_pds_data_filename).c_str(), std::ios::in | std::ios::binary);
       if (image_file.bad()) {
         vw_throw( vw::ArgumentErr() << "DiskImageResourcePDS: Failed to open \""
                   << DiskImageResource::m_filename << "\"." );
-      } 
+      }
     }
   }
   image_file.seekg(m_image_data_offset, std::ios::beg);
@@ -292,7 +292,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   bytes_per_pixel *= num_channels(m_format.pixel_format);
   uint8* image_data = new uint8[total_pixels * bytes_per_pixel];
   image_file.read((char*)image_data, bytes_per_pixel*total_pixels);
-    
+
   if (image_file.bad())
     vw_throw(IOErr() << "DiskImageResourcePDS: an unrecoverable error occured while reading the image data.");
 
@@ -300,7 +300,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   // machine and the endianness of the file do not match.
   if (m_format.channel_type == VW_CHANNEL_INT16 ||
       m_format.channel_type == VW_CHANNEL_UINT16) {
-    if ((cpu_is_big_endian() && !m_file_is_msb_first) || 
+    if ((cpu_is_big_endian() && !m_file_is_msb_first) ||
         (!cpu_is_big_endian() && m_file_is_msb_first) ) {
       for ( unsigned i=0; i<total_pixels*bytes_per_pixel; i+=2 ) {
         uint8 temp = image_data[i+1];
@@ -326,7 +326,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
     image_data = intermediate_data;
     delete[] temporary_ptr;
   }
-  
+
   // set up an image buffer around the PDS data.
   ImageBuffer src;
   src.data = image_data;
@@ -337,10 +337,10 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
   convert( dest, src, m_rescale );
 
   if ( m_invalid_as_alpha ) {
-    // We checked earlier that the source format is as we 
+    // We checked earlier that the source format is as we
     // expect.  Now we sanity-check the destination.
-    if( dest.format.planes == 1 && 
-        ( dest.format.pixel_format == VW_PIXEL_GRAYA || 
+    if( dest.format.planes == 1 &&
+        ( dest.format.pixel_format == VW_PIXEL_GRAYA ||
           dest.format.pixel_format == VW_PIXEL_RGBA ) ) {
       int dst_bpp = num_channels(dest.format.pixel_format) * channel_size(dest.format.channel_type);
       std::string valid_minimum_str;

@@ -12,15 +12,15 @@
 /// <i>shallow</i> views of the ImageView.  That is, they do not copy
 /// the data underneath but instead they refer to the same data,
 /// indexing and accessing it in a different way.
-/// 
+///
 /// The first collection of functions in this file perform basic
 /// transformations to the domain of the image, such as transposition,
 /// rotation by 90 degree increments, flipping, and cropping.
-/// 
-/// This file also provides views and functions that take simple 
+///
+/// This file also provides views and functions that take simple
 /// "slices" of images, returning a new view composed from individual
 /// channels or planes of the source image. These include:
-/// 
+///
 /// - select_col() : takes a single-column slice of an image
 /// - select_row() : takes a single-row slice of an image
 /// - select_plane() : takes a single-plane slice of an image
@@ -248,7 +248,7 @@ namespace vw {
   template <class ImageT>
   struct IsMultiplyAccessible<Rotate180View<ImageT> > : public IsMultiplyAccessible<ImageT> {};
   /// \endcond
-  
+
   /// Rotate an image 180 degrees.
   template <class ImageT>
   Rotate180View<ImageT> rotate_180( ImageViewBase<ImageT> const& v ) {
@@ -618,15 +618,15 @@ namespace vw {
     typedef typename ImageT::result_type result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
-    CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, int32 const width, int32 const height ) : 
+    CropView( ImageT const& image, offset_type const upper_left_i, offset_type const upper_left_j, int32 const width, int32 const height ) :
       m_child(image), m_ci(upper_left_i), m_cj(upper_left_j), m_di(width), m_dj(height) {}
 
     template<class RealT>
     CropView( ImageT const& image, BBox<RealT,2> const& bbox) :
-      m_child(image), 
-      m_ci((offset_type)(bbox.min()[0])), 
-      m_cj((offset_type)(bbox.min()[1])), 
-      m_di(int32(.5+(bbox.width()))), 
+      m_child(image),
+      m_ci((offset_type)(bbox.min()[0])),
+      m_cj((offset_type)(bbox.min()[1])),
+      m_di(int32(.5+(bbox.width()))),
       m_dj(int32(.5+(bbox.height()))) {}
 
     inline int32 cols() const { return m_di; }
@@ -667,7 +667,7 @@ namespace vw {
   /// \cond INTERNAL
   // Type traits
   template <class ImageT>
-  struct IsFloatingPointIndexable<CropView<ImageT> >  : public IsFloatingPointIndexable<ImageT> {}; 
+  struct IsFloatingPointIndexable<CropView<ImageT> >  : public IsFloatingPointIndexable<ImageT> {};
 
   template <class ImageT>
   struct IsMultiplyAccessible<CropView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
@@ -817,7 +817,7 @@ namespace vw {
   /// \endcond
 
   /// Extracts a single column of an image.  This function returns a
-  /// writeable view of a single column of a multi-column image.  
+  /// writeable view of a single column of a multi-column image.
   /// \see vw::SelectColView
   template <class ImageT>
   SelectColView<ImageT> select_col( ImageViewBase<ImageT> const& v, int32 col ) {
@@ -871,7 +871,7 @@ namespace vw {
   struct IsMultiplyAccessible<SelectRowView<ImageT> > : public IsMultiplyAccessible<ImageT> {};
 
   /// Extracts a single row of an image.  This function returns a
-  /// writeable view of a single row of a multi-row image.  
+  /// writeable view of a single row of a multi-row image.
   /// \see vw::SelectRowView
   template <class ImageT>
   SelectRowView<ImageT> select_row( ImageViewBase<ImageT> const& v, int32 row ) {
@@ -880,7 +880,7 @@ namespace vw {
 
 
   // *******************************************************************
-  // select_plane() 
+  // select_plane()
   // *******************************************************************
 
   /// Return a single plane from a multi-plane image
@@ -1003,7 +1003,7 @@ namespace vw {
 
   /// A channels-to-planes pixel accessor adaptor.
   ///
-  /// This is a special wrapper pixel accessor type, used by 
+  /// This is a special wrapper pixel accessor type, used by
   /// \ref vw::ChannelsToPlanesView, that treats the channels in a
   /// multi-channel image as planes.
   template <class ChildT>
@@ -1038,14 +1038,14 @@ namespace vw {
     typedef typename CompoundChannelType<typename ImageT::pixel_type>::type pixel_type;
     typedef typename CopyCVR<typename ImageT::result_type, pixel_type>::type result_type;
 
-    typedef typename boost::mpl::if_< IsCompound<typename ImageT::pixel_type>, 
+    typedef typename boost::mpl::if_< IsCompound<typename ImageT::pixel_type>,
                                       ChannelsToPlanesAccessor<typename ImageT::pixel_accessor>,
                                       typename ImageT::pixel_accessor >::type pixel_accessor;
-    
+
     ChannelsToPlanesView( ImageT const& image ) : m_child(image) {
       VW_ASSERT( m_child.planes()==1 , ArgumentErr() << "ChannelsToPlanesView: The image must be single plane.");
     }
-    
+
     inline int32 cols() const { return m_child.cols(); }
     inline int32 rows() const { return m_child.rows(); }
     inline int32 planes() const { return m_child.channels(); }
@@ -1092,7 +1092,7 @@ namespace vw {
   /// legacy non-Vision-Workbench code that can only support
   /// fundamental pixel types.  If you are thinking about using this
   /// function and you are not trying to interface to legacy code then
-  /// you are almost certainly doing something wrong.  
+  /// you are almost certainly doing something wrong.
   /// \see vw::ChannelsToPlanesView
   template <class ImageT>
   ChannelsToPlanesView<ImageT> channels_to_planes( ImageViewBase<ImageT> const& v ) {
@@ -1115,12 +1115,12 @@ namespace vw {
     typedef PixelT pixel_type;
     typedef PixelT result_type;
     typedef ProceduralPixelAccessor<PlanesToChannelsView> pixel_accessor;
-    
+
     PlanesToChannelsView( ImageT const& image ) : m_child(image) {
-      VW_ASSERT( m_child.channels()==1 && m_child.planes()==CompoundNumChannels<PixelT>::value, 
+      VW_ASSERT( m_child.channels()==1 && m_child.planes()==CompoundNumChannels<PixelT>::value,
                  ArgumentErr() << "PlanesToChannelsView: The image must be multi-plane, single-channel.");
     }
-    
+
     inline int32 cols() const { return m_child.cols(); }
     inline int32 rows() const { return m_child.rows(); }
     inline int32 planes() const { return 1; }
@@ -1226,7 +1226,7 @@ namespace vw {
   // channel_cast_rescale()
   // *******************************************************************
 
-  /// A pixel channel casting and rescaling functor, used by 
+  /// A pixel channel casting and rescaling functor, used by
   /// \ref channel_cast_rescale().
   template <class ChannelT>
   struct PixelChannelCastRescaleFunctor : UnaryReturnBinaryTemplateBind2nd<CompoundChannelCast,ChannelT> {
@@ -1263,7 +1263,7 @@ namespace vw {
       return weighted_rgb_to_gray( rgb, m_rw, m_gw, m_bw );
     }
   };
-  
+
 
   /// Weighted conversion from PixelRGBA to PixelGrayA using user-specified weights.
   template <class ImageT>

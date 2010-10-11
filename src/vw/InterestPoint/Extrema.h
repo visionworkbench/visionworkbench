@@ -6,9 +6,9 @@
 
 
 /// \file Extrema.h
-/// 
+///
 /// Functions for finding local extrema.
-/// 
+///
 #ifndef __INTERESTPOINT_EXTREMA_H__
 #define __INTERESTPOINT_EXTREMA_H__
 
@@ -237,13 +237,13 @@ namespace ip {
         }
       } // col j
     } // row i
-    
+
     return 0;
   }
 
   /// Find spatial/scale peaks of some type in the image octave.
   template <class DataT, class ViewT>
-  int find_peaks( InterestPointList& interest_points, 
+  int find_peaks( InterestPointList& interest_points,
                   std::vector<DataT> const& data,
                   ImageOctave<ViewT> const& octave) {
     // Check that we have a few planes of corner response function
@@ -260,7 +260,7 @@ namespace ip {
       VW_ASSERT( nrows == data[k].interest().rows(),
                  ArgumentErr() << "Planes must be the same size.\n" );
     }
-    
+
     // In this implementation, we don't want to compare plane 0 to
     // plane 1, or compare plane N to plane N-1.  Each of these has a
     // scale space plane only on one side, so we cannot bound the
@@ -281,10 +281,10 @@ namespace ip {
         } // col j
       } // row i
     } // plane k
-    
+
     return 0;
   }
 
-}} // namespace vw::ip 
+}} // namespace vw::ip
 
 #endif // __INTERESTPOINT_EXTREMA_H__

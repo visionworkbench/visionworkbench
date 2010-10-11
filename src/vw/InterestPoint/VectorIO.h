@@ -27,7 +27,7 @@ namespace vw {
   // image file; this retains the maximal amount of information.
   template <class T>
   void write_vector( const std::string &filename, vw::Vector<T> &out_vector ) {
-    
+
     // Convert the vector to an image so that we can write it using
     // write_image().  There is probably a more efficient way to do
     // this, but this is the simplest way for now.
@@ -48,13 +48,13 @@ namespace vw {
   void read_vector( vw::Vector<T>& in_vector, const std::string &filename ) {
 
     // Treat the vector as an image so we can read from it using read_image().
-    // There is probably a more efficient way to do this, but this is the 
+    // There is probably a more efficient way to do this, but this is the
     // simplest way for now.
     vw::ImageView<T> buffer_image;
     read_image(buffer_image, filename);
     VW_ASSERT(buffer_image.planes() == 1,
-	      vw::IOErr() << "read_vector: Image file must be monochromatic"
-	      << " (1 plane/channel) to be read into a vector");
+              vw::IOErr() << "read_vector: Image file must be monochromatic"
+              << " (1 plane/channel) to be read into a vector");
     vw::Vector<T> result(buffer_image.cols());
 
     for (int i = 0; i < buffer_image.cols(); i++) {

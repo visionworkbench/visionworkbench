@@ -6,7 +6,7 @@
 
 
 /// \file Core/Exception.cc
-/// 
+///
 /// Error / exception handling facilities.
 ///
 /// See Core/Exception.h for documentation.

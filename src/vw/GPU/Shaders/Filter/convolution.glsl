@@ -18,8 +18,8 @@ void main() {
 
  for(int vKernel = 0; vKernel < hSize; vKernel++) {
     for(int hKernel = 0; hKernel < vSize; hKernel++) {
-	   sum += texture2DRect(kernel, vec2(float(hKernel) + 0.001, float(vKernel) + 0.001)).r 
-			  * texture2DRect(image, vec2(startCoord.s - (float(hKernel) - 0.001), startCoord.t - (float(vKernel) - 0.001))).rgba;
+           sum += texture2DRect(kernel, vec2(float(hKernel) + 0.001, float(vKernel) + 0.001)).r
+                          * texture2DRect(image, vec2(startCoord.s - (float(hKernel) - 0.001), startCoord.t - (float(vKernel) - 0.001))).rgba;
     }
  }
  gl_FragColor.rgba = sum;

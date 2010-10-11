@@ -451,7 +451,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
   int count = 0;
   float avg_reflectance = 0.0;
 
-  std::string input_img_file = input_img_params.inputFilename; 
+  std::string input_img_file = input_img_params.inputFilename;
   std::string DEM_file = input_img_params.meanDEMFilename;
   std::string shadow_file = input_img_params.shadowFilename;
   std::string output_img_file = input_img_params.reliefFilename;;

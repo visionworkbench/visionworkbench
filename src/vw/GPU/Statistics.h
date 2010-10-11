@@ -25,18 +25,18 @@ namespace vw { namespace GPU {
     min = min_channel_value(image);
     max = max_channel_value(image);
   }
-  
+
   /// Compute the sum of the pixels of the channels of all of the planes of the image.
-  float sum_channel_value(const GPUImageBase& image); 
+  float sum_channel_value(const GPUImageBase& image);
 
   /// Compute the mean value stored in all of the channels of all of the planes of the image.
   inline float mean_channel_value(const GPUImageBase& image) {
-	return sum_channel_value(image) / (float) (image.width() * image.height() * image.num_channels());  
+        return sum_channel_value(image) / (float) (image.width() * image.height() * image.num_channels());
   }
-  
+
   /// Compute the standard deviation of the values stored in all of the channels of all of the planes of the image.
   float stddev_channel_value(const GPUImageBase& image);
- 
+
   } // namespace GPU
 } // namespace vw
 

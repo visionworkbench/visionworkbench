@@ -6,12 +6,12 @@
 
 
 /// \file Math/Functions.h
-/// 
+///
 /// Mathematical functions.
-/// 
-/// This file provides implementations of standard mathematical 
-/// functions that may not be available on all platforms.  The 
-/// full set of mathematical operators is made available for 
+///
+/// This file provides implementations of standard mathematical
+/// functions that may not be available on all platforms.  The
+/// full set of mathematical operators is made available for
 /// use in namespace vw.
 ///
 #ifndef __VW_MATH_FUNCTIONS_H__
@@ -27,26 +27,26 @@
 
 namespace vw {
 namespace math {
-  // These function implementations are defined in namespace impl 
-  // to avoid ambiguous collisions with system-defined implementations 
+  // These function implementations are defined in namespace impl
+  // to avoid ambiguous collisions with system-defined implementations
   // on platforms that provide them.
 namespace impl {
 
-  /// A special inlinable implementation of round() 
+  /// A special inlinable implementation of round()
   /// for the common case of double->int32.
   inline int32 _round( double val ) {
     if( val < 0 ) return int32(val-0.5);
     else return int32(val+0.5);
   }
 
-  /// A special inlinable implementation of round() 
+  /// A special inlinable implementation of round()
   /// for the common case of float->int32.
   inline int32 _round( float val ) {
     if( val < 0 ) return int32(val-0.5f);
     else return int32(val+0.5f);
   }
 
-  /// A special inlinable implementation of floor() 
+  /// A special inlinable implementation of floor()
   /// for the common case of double->int32.
   inline int32 _floor( double val ) {
     if( val < 0 ) {
@@ -67,9 +67,9 @@ namespace impl {
 
   double erfc(double);
 
-  /// The error function, i.e. the integral of the normal 
-  /// distribution from zero to x.  For small values of x 
-  /// we use a Taylor series expansion.  For large values 
+  /// The error function, i.e. the integral of the normal
+  /// distribution from zero to x.  For small values of x
+  /// we use a Taylor series expansion.  For large values
   /// of x we defer to erfc, below.
   inline double erf( double x ) {
     static const double two_sqrtpi= 1.128379167095513; // 2/sqrt(pi)
@@ -84,9 +84,9 @@ namespace impl {
     return two_sqrtpi * accum;
   }
 
-  /// The complementary error function, i.e. one minus the 
-  /// error function.  For large values of x we use a 
-  /// continued fraction expansion.  For small values of x 
+  /// The complementary error function, i.e. one minus the
+  /// error function.  For large values of x we use a
+  /// continued fraction expansion.  For small values of x
   /// we defer to erf, above.
   inline double erfc( double x ) {
     static const double one_sqrtpi= 0.5641895835477563; // 1/sqrt(pi)
@@ -112,7 +112,7 @@ namespace impl {
   }
 
   // Notes for future function implementations:
-  // * The asymptotic behavior of acosh(x) is ln(2x) for large x 
+  // * The asymptotic behavior of acosh(x) is ln(2x) for large x
   //   and sqrt(2(x-1)) for small x (i.e. x near 1).
   // * The asymptotic behavior of asinh(x) is also ln(2x).
 

@@ -6,32 +6,32 @@
 
 
 /// \file PerPixelAccessorViews.h
-/// 
+///
 /// Per-pixel accessor image views.
 ///
 /// To use the PerPixelAccessorView, you write a unary functor that
 /// takes a PixelAccessor as the argument to its call operator, and
 /// returns the PixelAccessor's pixel_type as the result.  The
 /// returned value can be a function computed by moving the accessor
-/// around this region of the image.  
+/// around this region of the image.
 ///
 /// In order to inform the PerPixelAccessorView of the correct level
 /// of padding for the edges, your functor must also provide a method
 /// called work_space() that provides a bounding box indicating the
 /// extent of the region around this pixel that may be accessed by the
-/// pixel accessor.  
+/// pixel accessor.
 ///
 /// An example functor would look something like this:
 ///
-///  class ExampleFunc : public UnaryReturnTemplateType<PixelTypeFromPixelAccessor> 
+///  class ExampleFunc : public UnaryReturnTemplateType<PixelTypeFromPixelAccessor>
 ///  {
 ///    BBox2i work_area() const { ... }
 ///
 ///    template <class PixelAccessorT>
-///    typename PixelAccessorT::pixel_type 
+///    typename PixelAccessorT::pixel_type
 ///    operator() (PixelAccessorT const& acc) const { ... }
 ///  };
-/// 
+///
 #ifndef __VW_IMAGE_PERPIXELACCESSORVIEWS_H__
 #define __VW_IMAGE_PERPIXELACCESSORVIEWS_H__
 
@@ -49,14 +49,14 @@ namespace vw {
   // *******************************************************************
   // UnaryPerPixelAccessorView
   // *******************************************************************
-  
+
   // Image View Class Declaration
   template <class ImageT, class FuncT>
   class UnaryPerPixelAccessorView : public ImageViewBase<UnaryPerPixelAccessorView<ImageT,FuncT> > {
     ImageT m_image;
     FuncT m_func;
   public:
-    
+
     typedef ProceduralPixelAccessor<UnaryPerPixelAccessorView> pixel_accessor;
     typedef typename boost::result_of<FuncT(typename ImageT::pixel_accessor)>::type result_type;
     typedef typename boost::remove_reference<result_type>::type pixel_type;
@@ -74,7 +74,7 @@ namespace vw {
     /// \cond INTERNAL
     // We can make an optimization here.  If the pixels in the child
     // view cannot be repeatedly accessed without incurring any
-    // additional overhead  then we should rasterize the child 
+    // additional overhead  then we should rasterize the child
     // before we proceed to rasterize ourself.
     BBox2i pad_bbox(BBox2i const& bbox) const {
       int32 padded_width = bbox.width() + m_func.work_area().width();
@@ -84,13 +84,13 @@ namespace vw {
                      padded_width, padded_height);
     }
 
-    typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>, 
+    typedef typename boost::mpl::if_< IsMultiplyAccessible<ImageT>,
                                       UnaryPerPixelAccessorView<typename ImageT::prerasterize_type, FuncT>,
                                       UnaryPerPixelAccessorView<CropView<ImageView<typename ImageT::pixel_type> >, FuncT > >::type prerasterize_type;
 
     template <class PreRastImageT>
-    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const { 
-      return prerasterize_type( image.prerasterize(this->pad_bbox(bbox)), m_func ); 
+    prerasterize_type prerasterize_helper( BBox2i bbox, PreRastImageT const& image, true_type ) const {
+      return prerasterize_type( image.prerasterize(this->pad_bbox(bbox)), m_func );
     }
 
     template <class PreRastImageT>
@@ -111,13 +111,13 @@ namespace vw {
   };
 
   template <class ViewT, class FuncT, class EdgeT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,EdgeT>, FuncT> 
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,EdgeT>, FuncT>
   per_pixel_accessor_filter(ImageViewBase<ViewT> const& image, FuncT const& func, EdgeT edge) {
     return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,EdgeT>, FuncT>(edge_extend(image.impl(), edge), func);
   }
 
   template <class ViewT, class FuncT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, FuncT> 
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, FuncT>
   per_pixel_accessor_filter(ImageViewBase<ViewT> const& image, FuncT const& func) {
     return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, FuncT>(edge_extend(image.impl(), ZeroEdgeExtension()), func);
   }

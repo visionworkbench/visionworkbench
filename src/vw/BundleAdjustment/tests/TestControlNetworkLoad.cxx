@@ -20,7 +20,7 @@ TEST( ControlNetworkLoad, LoadingGCPNET ) {
   std::vector<std::string> image_names;
   image_names.push_back("image1");
   image_names.push_back("image2");
-  
+
   // Creating GCP net
   UnlinkName gcpnet("test.cnet");
   std::list<std::string> gcpnets;
@@ -60,9 +60,9 @@ TEST( ControlNetworkLoad, LoadingGCPNET ) {
   EXPECT_TRUE( boost::filesystem::exists( gcpnets.front() ) );
   EXPECT_EQ( 1, net.size() );
   EXPECT_EQ( 1, gcpnets.size() );
-  
+
   add_ground_control_cnets( net, image_names,
-			    gcpnets.begin(), gcpnets.end() );
+                            gcpnets.begin(), gcpnets.end() );
 
   ASSERT_EQ( 2, net.size() );
   EXPECT_EQ( ControlPoint::GroundControlPoint, net[1].type() );

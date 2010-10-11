@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
 
   try {
     ExifView exif(argv[1]);
-    
+
     printf("Camera Settings:\n");
     printf("Camera make: %s\n", exif.get_make().c_str());
     printf("Camera model: %s\n", exif.get_model().c_str());

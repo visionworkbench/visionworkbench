@@ -7,7 +7,7 @@
 
 /// \file Matrix.h
 ///
-/// Provides the core Matrix<> mathematical matrix template classes.  
+/// Provides the core Matrix<> mathematical matrix template classes.
 ///
 /// Currently I believe we support:
 ///   Element access via m(i,j) and m[i][j]
@@ -72,9 +72,9 @@ namespace math {
   // A CRTP matrix base class.
   // *******************************************************************
 
-  /// A CRTP base class for matrices and matrix expressions.  
-  /// Provides a mechanism for restricting function arguments to 
-  /// matrices, and provides the various arithmetic assignment 
+  /// A CRTP base class for matrices and matrix expressions.
+  /// Provides a mechanism for restricting function arguments to
+  /// matrices, and provides the various arithmetic assignment
   /// operators and other member functions.
   template <class MatrixT>
   struct MatrixBase {
@@ -144,8 +144,8 @@ namespace math {
     // Set the entire matrix to ones
     void set_ones() {
       for( unsigned i=0; i<impl().rows(); ++i )
-	for( unsigned j=0; j<impl().cols(); ++j )
-	  impl()(i,j) = (typename MatrixT::value_type(1));
+        for( unsigned j=0; j<impl().cols(); ++j )
+          impl()(i,j) = (typename MatrixT::value_type(1));
     }
   };
 
@@ -155,8 +155,8 @@ namespace math {
   // A matrix wrapper class that disables temporaries on assignment.
   // *******************************************************************
 
-  /// A wrapper template class for matrices and matrix expressions.  
-  /// Provides a mechanism for disabling the use of temporary objects 
+  /// A wrapper template class for matrices and matrix expressions.
+  /// Provides a mechanism for disabling the use of temporary objects
   /// during matrix assignment in cases where the user deems it safe.
   template <class MatrixT>
   class MatrixNoTmp {
@@ -166,8 +166,8 @@ namespace math {
     MatrixT const& impl() const { return m_val; }
   };
 
-  /// A helper function that provides a mechanism for disabling the use 
-  /// of temporary objects during matrix assignment in cases where the 
+  /// A helper function that provides a mechanism for disabling the use
+  /// of temporary objects during matrix assignment in cases where the
   /// user deems it safe.  Use with care.
   template <class MatrixT>
   MatrixNoTmp<MatrixT> no_tmp( MatrixBase<MatrixT> const& val ) {
@@ -195,10 +195,10 @@ namespace math {
     typename MatrixT::reference_type>::type>
   {
     friend class boost::iterator_core_access;
-      
+
     MatrixT& m_matrix;
     unsigned m_row, m_col;
-      
+
     bool equal( IndexingMatrixIterator const& iter ) const {
       return m_row==iter.m_row && m_col==iter.m_col;
     }
@@ -224,9 +224,9 @@ namespace math {
         --m_col;
       }
     }
-    
+
     void advance( ptrdiff_t n ) {
-      // This safeguards against suprious division by zero troubles encountered 
+      // This safeguards against suprious division by zero troubles encountered
       // on some platforms when performing operations on degenerate matrices.
       if( m_matrix.cols() == 0 ) return;
       if( n < 0 ) {
@@ -244,7 +244,7 @@ namespace math {
     }
 
   public:
-    IndexingMatrixIterator( MatrixT& matrix, ptrdiff_t row, ptrdiff_t col ) : 
+    IndexingMatrixIterator( MatrixT& matrix, ptrdiff_t row, ptrdiff_t col ) :
       m_matrix(matrix), m_row(row), m_col(col) {}
   };
 
@@ -334,7 +334,7 @@ namespace math {
     }
 
     /// Standard copy assignment operator.
-    Matrix& operator=( Matrix const& m ) { 
+    Matrix& operator=( Matrix const& m ) {
       Matrix tmp( m );
       core_ = tmp.core_;
       return *this;
@@ -342,7 +342,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    Matrix& operator=( MatrixBase<T> const& m ) { 
+    Matrix& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       Matrix tmp( m );
       core_ = tmp.core_;
@@ -352,7 +352,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    Matrix& operator=( MatrixNoTmp<T> const& m ) { 
+    Matrix& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -394,11 +394,11 @@ namespace math {
       return &(operator()(0,0));
     }
 
-    iterator begin() { 
+    iterator begin() {
       return core_.begin();
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return core_.begin();
     }
 
@@ -452,7 +452,7 @@ namespace math {
 
     /// Constructs a matrix of the given size from given
     /// densely-packed row-mjor data.  This constructor copies the
-    /// data.  If you wish to make a shallow proxy object instead, 
+    /// data.  If you wish to make a shallow proxy object instead,
     /// see vw::MatrixProxy.
     Matrix( unsigned rows, unsigned cols, const ElemT *data )
       : core_(data,data+rows*cols), m_rows(rows), m_cols(cols) {}
@@ -545,11 +545,11 @@ namespace math {
       return &(operator()(0,0));
     }
 
-    iterator begin() { 
+    iterator begin() {
       return core_.begin();
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return core_.begin();
     }
 
@@ -566,7 +566,7 @@ namespace math {
 
   // *******************************************************************
   // class MatrixProxy<ElemT,RowsN,ColsN>
-  // A fixed-dimension matrix proxy class, treating an arbitrary block 
+  // A fixed-dimension matrix proxy class, treating an arbitrary block
   // of memory as a Matrix in packed row-major format.
   // *******************************************************************
 
@@ -588,7 +588,7 @@ namespace math {
     MatrixProxy( ElemT* ptr ) : m_ptr(ptr) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) { 
+    MatrixProxy& operator=( MatrixProxy const& m ) {
       VW_ASSERT( m.rows()==RowsN && m.cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       Matrix<ElemT,RowsN,ColsN> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -597,7 +597,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixProxy& operator=( MatrixBase<T> const& m ) { 
+    MatrixProxy& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       Matrix<ElemT,RowsN,ColsN> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -607,7 +607,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) { 
+    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==RowsN && m.impl().cols()==ColsN, ArgumentErr() << "Matrix must have dimensions " << RowsN << "x" << ColsN << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -650,11 +650,11 @@ namespace math {
       return &(operator()(0,0));
     }
 
-    iterator begin() { 
+    iterator begin() {
       return m_ptr;
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return m_ptr;
     }
 
@@ -681,7 +681,7 @@ namespace math {
 
   // *******************************************************************
   // class MatrixProxy<ElemT>
-  // A arbitrary-dimension matrix proxy class, treating an arbitrary  
+  // A arbitrary-dimension matrix proxy class, treating an arbitrary
   // block of memory as a Matrix in packed row-major format.
   // *******************************************************************
 
@@ -708,7 +708,7 @@ namespace math {
       : m_ptr(container.data()), m_rows(container.rows()), m_cols(container.cols()) {}
 
     /// Standard copy assignment operator.
-    MatrixProxy& operator=( MatrixProxy const& m ) { 
+    MatrixProxy& operator=( MatrixProxy const& m ) {
       VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       Matrix<ElemT> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -717,7 +717,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixProxy& operator=( MatrixBase<T> const& m ) { 
+    MatrixProxy& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       Matrix<ElemT> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -727,7 +727,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) { 
+    MatrixProxy& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -770,11 +770,11 @@ namespace math {
       return &(operator()(0,0));
     }
 
-    iterator begin() { 
+    iterator begin() {
       return m_ptr;
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return m_ptr;
     }
 
@@ -792,7 +792,7 @@ namespace math {
   /// object with the same element type as the channel type in the
   /// original image.
   template <class ContainerT>
-  MatrixProxy<typename ContainerT::value_type> 
+  MatrixProxy<typename ContainerT::value_type>
   matrix_proxy( ContainerT const& container ) {
     return MatrixProxy<typename ContainerT::value_type>( container );
   }
@@ -801,7 +801,7 @@ namespace math {
   /// object with the same element type as the channel type in the
   /// original image.
   template <class DataT>
-  MatrixProxy<DataT> 
+  MatrixProxy<DataT>
   matrix_proxy( DataT* data_ptr, int rows, int cols) {
     return MatrixProxy<DataT>( data_ptr, rows, cols );
   }
@@ -830,7 +830,7 @@ namespace math {
     MatrixTranspose( MatrixT& matrix ) : m_matrix(matrix) {}
 
     /// Standard copy assignment operator.
-    MatrixTranspose& operator=( MatrixTranspose const& m ) { 
+    MatrixTranspose& operator=( MatrixTranspose const& m ) {
       VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       Matrix<value_type> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -839,7 +839,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    MatrixTranspose& operator=( MatrixBase<T> const& m ) { 
+    MatrixTranspose& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       Matrix<value_type> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -849,7 +849,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    MatrixTranspose& operator=( MatrixNoTmp<T> const& m ) { 
+    MatrixTranspose& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrix must have dimensions " << rows() << "x" << cols() << "." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -857,7 +857,7 @@ namespace math {
 
     /// Returns the underlying non-transposed matrix.
     MatrixT& child() { return m_matrix; }
-    
+
     /// Returns the underlying non-transposed matrix (const overload).
     MatrixT const& child() const { return m_matrix; }
 
@@ -890,11 +890,11 @@ namespace math {
       return m_matrix(col,row);
     }
 
-    iterator begin() { 
+    iterator begin() {
       return iterator(*this,0,0);
     }
 
-    const_iterator begin() const { 
+    const_iterator begin() const {
       return const_iterator(*this,0,0);
     }
 
@@ -1115,7 +1115,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW vector expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class OtherT>
-    MatrixCol& operator=( VectorNoTmp<OtherT> const& v ) { 
+    MatrixCol& operator=( VectorNoTmp<OtherT> const& v ) {
       VW_ASSERT( v.impl().size()==size(), ArgumentErr() << "Vectors must have same size in matrix column assignment." );
       std::copy( v.impl().begin(), v.impl().end(), begin() );
       return *this;
@@ -1201,11 +1201,11 @@ namespace math {
     typedef IndexingMatrixIterator<typename boost::mpl::if_<boost::is_const<MatrixT>, const SubMatrix, SubMatrix>::type> iterator;
     typedef IndexingMatrixIterator<const SubMatrix> const_iterator;
 
-    SubMatrix( MatrixT& m, unsigned row, unsigned col, unsigned rows, unsigned cols ) : 
+    SubMatrix( MatrixT& m, unsigned row, unsigned col, unsigned rows, unsigned cols ) :
       m_matrix(m), m_row(row), m_col(col), m_rows(rows), m_cols(cols) {}
-    
+
     /// Standard copy assignment operator.
-    SubMatrix& operator=( SubMatrix const& m ) { 
+    SubMatrix& operator=( SubMatrix const& m ) {
       VW_ASSERT( m.rows()==rows() && m.cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
       Matrix<value_type> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -1214,7 +1214,7 @@ namespace math {
 
     /// Generalized assignment operator, from arbitrary VW matrix expressions.
     template <class T>
-    SubMatrix& operator=( MatrixBase<T> const& m ) { 
+    SubMatrix& operator=( MatrixBase<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
       Matrix<value_type> tmp( m );
       std::copy( tmp.begin(), tmp.end(), begin() );
@@ -1224,7 +1224,7 @@ namespace math {
     /// Temporary-free generalized assignment operator, from arbitrary VW matrix expressions.
     /// This is a performance-optimizing function to be used with caution!
     template <class T>
-    SubMatrix& operator=( MatrixNoTmp<T> const& m ) { 
+    SubMatrix& operator=( MatrixNoTmp<T> const& m ) {
       VW_ASSERT( m.impl().rows()==rows() && m.impl().cols()==cols(), ArgumentErr() << "Matrices must have same size in submatrix assignment." );
       std::copy( m.impl().begin(), m.impl().end(), begin() );
       return *this;
@@ -1288,7 +1288,7 @@ namespace math {
     FuncT func;
   public:
     typedef typename boost::result_of<FuncT(typename MatrixT::value_type)>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -1354,7 +1354,7 @@ namespace math {
     FuncT func;
   public:
     typedef typename boost::result_of<FuncT(typename Matrix1T::value_type, typename Matrix2T::value_type)>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -1398,7 +1398,7 @@ namespace math {
                FuncT const& func) : i1(i1), i2(i2), func(func) {}
     };
     typedef iterator const_iterator;
-    
+
     iterator begin() const { return iterator(m1.begin(),m2.begin(),func); }
     iterator end() const { return iterator(m1.end(),m2.end(),func); }
   };
@@ -1456,7 +1456,7 @@ namespace math {
   // *******************************************************************
   // Matrix comparison operators and functions.
   // Note that only equality and inequality operators are provided,
-  // in keeping with standard mathematical notation.  Users who want 
+  // in keeping with standard mathematical notation.  Users who want
   // particular orderings can defined those operators appropriately.
   // *******************************************************************
 
@@ -1465,7 +1465,7 @@ namespace math {
   /// equivalent with respect to the standard c++ operator==().
   template <class Matrix1T, class Matrix2T>
   inline bool operator==( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2 ) {
-    if (m1.impl().rows() != m2.impl().rows() || 
+    if (m1.impl().rows() != m2.impl().rows() ||
         m1.impl().cols() != m2.impl().cols()) { return false; }
 
     typename Matrix1T::const_iterator iter1 = m1.impl().begin();
@@ -1483,7 +1483,7 @@ namespace math {
   /// vw::math::equal().
   template <class Matrix1T, class Matrix2T>
   inline bool equal( MatrixBase<Matrix1T> const& m1, MatrixBase<Matrix2T> const& m2, double epsilon = 0 ) {
-    if (m1.impl().rows() != m2.impl().rows() || 
+    if (m1.impl().rows() != m2.impl().rows() ||
         m1.impl().cols() != m2.impl().cols()) { return false; }
 
     typename Matrix1T::const_iterator iter1 = m1.impl().begin();
@@ -1553,7 +1553,7 @@ namespace math {
 
   /// Elementwise sum of a matrix and a scalar.
   template <class MatrixT, class ScalarT>
-  typename boost::enable_if< IsScalar<ScalarT>, 
+  typename boost::enable_if< IsScalar<ScalarT>,
                              MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> > >::type
   inline elem_sum( MatrixBase<MatrixT> const& m, ScalarT s ) {
     return MatrixUnaryFunc<MatrixT, ArgValSumFunctor<ScalarT> >( m.impl(), s );
@@ -1948,8 +1948,8 @@ namespace math {
     typename MatrixT::value_type result = m.impl()(0,0);
     for ( unsigned i=0; i<rows; ++i )
       for ( unsigned j=0; j<cols; ++j )
-	if ( m.impl()(i,j) > result )
-	  result = m.impl()(i,j);
+        if ( m.impl()(i,j) > result )
+          result = m.impl()(i,j);
     return result;
   }
 
@@ -1961,8 +1961,8 @@ namespace math {
     typename MatrixT::value_type result = m.impl()(0,0);
     for ( unsigned i=0; i<rows; ++i )
       for ( unsigned j=0; j<cols; ++j )
-	if ( m.impl()(i,j) < result )
-	  result = m.impl()(i,j);
+        if ( m.impl()(i,j) < result )
+          result = m.impl()(i,j);
     return result;
   }
 
@@ -2000,7 +2000,7 @@ namespace math {
 
   public:
     typedef typename ProductType<typename MatrixT::value_type, typename VectorT::value_type>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -2077,7 +2077,7 @@ namespace math {
 
   public:
     typedef typename ProductType<typename Matrix1T::value_type, typename Matrix2T::value_type>::type value_type;
-    
+
     typedef value_type reference_type;
     typedef value_type const_reference_type;
 
@@ -2205,7 +2205,7 @@ namespace math {
       MatrixCol<Matrix<value_type> > mci(buf,i);
       MatrixRow<Matrix<value_type> > mri(buf,i);
       unsigned i_norm_inf = i + index_norm_inf( subvector(mci,i,size-i) );
-      if ( buf(i_norm_inf,i) == zero ) 
+      if ( buf(i_norm_inf,i) == zero )
         vw_throw( MathErr() << "Matrix is singular in inverse()" );
       if ( i_norm_inf != i ) {
         unsigned pbuf = pm(i);
@@ -2255,7 +2255,7 @@ namespace math {
 
 } // namespace math
 
-  // Typedefs for commonly-used static vector types and using 
+  // Typedefs for commonly-used static vector types and using
   // directives for backwards compatability.
   using math::Matrix;
   using math::MatrixBase;

@@ -200,10 +200,10 @@ namespace vw {
 
         typename ImageView<PrecisionT>::pixel_accessor weights_iter = weights.origin();
         typename ImageView<PixelT>::pixel_accessor err_iter = err.origin();
-	
+
         typename ImageView<PixelT>::pixel_accessor dx_iter = r_window_dx.origin();
         typename ImageView<PixelT>::pixel_accessor dy_iter = r_window_dy.origin();
-	
+
         fill(gradient, 0);
         hessian.set_zero();
         int i, j;
@@ -220,13 +220,13 @@ namespace vw {
             PrecisionT cache_w = *weights_iter;
             PrecisionT cache_e = *err_iter;
             PrecisionT cache_dx = *dx_iter;
-            PrecisionT cache_dy = *dy_iter;            
+            PrecisionT cache_dy = *dy_iter;
 
-	    // these are implemented directly below, but commented out here as a reference
-	    //PrecisionT cache_a = cache_dx*cache_dx;
+            // these are implemented directly below, but commented out here as a reference
+            //PrecisionT cache_a = cache_dx*cache_dx;
             //PrecisionT cache_b = cache_dx*cache_dy;
             //PrecisionT cache_c = cache_dy*cache_dy;
-	    
+
             PrecisionT cache_w_cache_e = cache_w*cache_e;
             PrecisionT cache_w_cache_a = cache_w*cache_dx*cache_dx;
             PrecisionT cache_w_cache_b = cache_w*cache_dx*cache_dy;
@@ -267,7 +267,7 @@ namespace vw {
             hessian(4, 5) += cache_w_cache_b;
 
             hessian(5, 5) += cache_w_cache_c;
-	    
+
             weights_iter.next_col();
             err_iter.next_col();
             dx_iter.next_col();
@@ -305,7 +305,7 @@ namespace vw {
         ImageView<PixelT> r_window_dx(window.width(), window.height());
         ImageView<PixelT> r_window_dy(window.width(), window.height());
 
-	Vector<PrecisionT, 6> gradient;
+        Vector<PrecisionT, 6> gradient;
         Vector<PrecisionT, 6> soln;
         Matrix<PrecisionT, 6, 6> hessian_temp;
 
@@ -339,7 +339,7 @@ namespace vw {
           // compute the transformed derivatives
           r_window_dx = crop(transform(r_image_dx, T), window);
           r_window_dy = crop(transform(r_image_dy, T), window);
-          
+
           err = r_window - l_window;
 
           inner_loop_window_timer.stop();
@@ -358,7 +358,7 @@ namespace vw {
           m_compute_gradient_hessian(gradient, hess, 0, 0,
                                      w_adj, err,
                                      r_window_dx, r_window_dy);
-                                     
+
           if(inner_loop_iter == 0) {
             initial_norm_grad = norm_2(gradient);
           }

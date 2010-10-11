@@ -6,11 +6,11 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT i1,
-	uniform float f1,  /* threshold */
-	uniform float f2,  /* low */
-	uniform float f3,  /* high */
-	out float4 color : COLOR ) 
+        uniform samplerRECT i1,
+        uniform float f1,  /* threshold */
+        uniform float f2,  /* low */
+        uniform float f3,  /* high */
+        out float4 color : COLOR )
 {
    float4 value = texRECT(i1, texCoord0);
 

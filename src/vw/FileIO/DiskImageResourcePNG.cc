@@ -533,7 +533,7 @@ DiskImageResource* DiskImageResourcePNG::construct_create( std::string const& fi
 
 void DiskImageResourcePNG::open( std::string const& /*filename*/ ) {
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_read_context( const_cast<DiskImageResourcePNG *>(this) ) );
-  
+
   // Block reading is supported, we only use it in the event of really large images.
   if ( size_t(cols()*rows()*4*3) > vw_settings().system_cache_size() )
     m_block_size = Vector2i( cols(), 128 ); // 128 seems like a good number.
@@ -647,7 +647,7 @@ void DiskImageResourcePNG::create( std::string const& filename, ImageFormat cons
   m_format = format;
 
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_write_context( const_cast<DiskImageResourcePNG *>(this), options ) );
-  
+
   // Block writing is not supported
   m_block_size = Vector2i( cols(), rows() );
 }

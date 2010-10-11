@@ -6,8 +6,8 @@
 
 
 /// \file SparseImageCheck.h
-/// 
-/// 
+///
+///
 #ifndef __VW_IMAGE_SPARSE_IMAGE_CHECK_H__
 #define __VW_IMAGE_SPARSE_IMAGE_CHECK_H__
 
@@ -25,7 +25,7 @@ namespace vw {
     SparseImageCheck(SrcViewT const& source) : m_src_bbox(0,0,source.cols(),source.rows()) {}
     bool operator() (BBox2i const& bbox) { return bbox.intersects(m_src_bbox); }
   };
-  
+
   // A helper function to make it easy to test for sparisty.
   template <class ImageT>
     bool sparse_check( ImageT const& image, BBox2i const& bbox ) {

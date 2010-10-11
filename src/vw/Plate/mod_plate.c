@@ -230,7 +230,7 @@ const plate_config* get_plate_config(const server_rec* s) {
 
 /* Dispatch list for API hooks */
 module AP_MODULE_DECLARE_DATA plate_module = {
-  STANDARD20_MODULE_STUFF, 
+  STANDARD20_MODULE_STUFF,
   NULL,                  /* create per-dir    config structures */
   NULL,                  /* merge  per-dir    config structures */
   create_plate_config,   /* create per-server config structures */

@@ -7,56 +7,56 @@
 
 /// \file Math/ConjugateGradient.h
 ///
-/// Conjugate gradient and related descent methods and line 
-/// search methods.  Note!  No stopping criteria have been 
+/// Conjugate gradient and related descent methods and line
+/// search methods.  Note!  No stopping criteria have been
 /// implemented besdies iteration count!
 ///
-/// To use these functions, you must first express your 
-/// problem in a particular form.  That form is a little 
-/// more convoluted right now than I would like.  You supply 
+/// To use these functions, you must first express your
+/// problem in a particular form.  That form is a little
+/// more convoluted right now than I would like.  You supply
 /// a cost functor that meets these requirements:
-/// * Defines a result_type that is the type returned by 
+/// * Defines a result_type that is the type returned by
 ///   evaluating the functor.  Typically float or double.
-/// * Defines a domain_type that is the type of the search 
-///   space.  Often a Vector<foo>, but can reflect other 
+/// * Defines a domain_type that is the type of the search
+///   space.  Often a Vector<foo>, but can reflect other
 ///   topologies if needed.
-/// * Defines a gradient_type corresponding to the space of 
+/// * Defines a gradient_type corresponding to the space of
 ///   tangent vectors.  Typically Vector<foo>.
 /// * Defines a method: result_type operator()( domain_type const& x ) const;
 ///   that evaluates the cost function at the given point.
 /// * Defines a method: gradient_type gradient( domain_type const& x ) const;
-///   that evaluates the gradient of the cost function at the 
+///   that evaluates the gradient of the cost function at the
 ///   given point.
-/// * Defines a method: unsigned dimension() const; that returns 
-///   the dimension of the tangent space (i.e. the dimension of 
-///   the vector returned by the gradient() method).  
+/// * Defines a method: unsigned dimension() const; that returns
+///   the dimension of the tangent space (i.e. the dimension of
+///   the vector returned by the gradient() method).
 /// * The domain_type must implement a method: domain_type domain_type::operator+( gradient_type const& g ) const;
-///   that adds a tangent vector to a position.  You get this for 
+///   that adds a tangent vector to a position.  You get this for
 ///   free if both domain_type and gradient_type are Vector<foo>.
-///   This is where you do most of the hard work if domain_type 
+///   This is where you do most of the hard work if domain_type
 ///   represents some non-trivial topological space.
-/// * The gradient_type must implement scalar multiplication on 
-///   the left.  You get this for free in the usual case when 
+/// * The gradient_type must implement scalar multiplication on
+///   the left.  You get this for free in the usual case when
 ///   gradient_type is just Vector<foo>.
 ///
-/// Once you've set up your problem in that form, just create 
-/// a functor object and a domain_type object corresponding to 
-/// your initial guess and then call the optimization function 
+/// Once you've set up your problem in that form, just create
+/// a functor object and a domain_type object corresponding to
+/// your initial guess and then call the optimization function
 /// like this:
 ///   result = conjugate_gradient( cost_functor, initial_guess, ArmijoStepSize(max_stepsize), numiters);
-/// I recommend using the Armijo step-size rule for now.  The 
-/// stepsize that you pass to the constructor should be an 
-/// over-estimate of the stepsize, i.e. of the ratio between 
+/// I recommend using the Armijo step-size rule for now.  The
+/// stepsize that you pass to the constructor should be an
+/// over-estimate of the stepsize, i.e. of the ratio between
 /// the distance travelled and the slope of the cost function.
-/// In a bundle adjustment problem where the cost function 
-/// represents the sum of a very large number of square pixel 
-/// errors the stepsize will often be quite small.  I've been 
+/// In a bundle adjustment problem where the cost function
+/// represents the sum of a very large number of square pixel
+/// errors the stepsize will often be quite small.  I've been
 /// using 1e-6 for my problem with good results.  Play around.
 ///
-/// I also offer a constant step size, which there's almost no 
-/// good reason to use, as well as a Charalambous step size rule, 
-/// which may be buggy and certainly is underperforming Armijo 
-/// for me at the moment.  I also provide a steepest_descent() 
+/// I also offer a constant step size, which there's almost no
+/// good reason to use, as well as a Charalambous step size rule,
+/// which may be buggy and certainly is underperforming Armijo
+/// for me at the moment.  I also provide a steepest_descent()
 /// method for comparison to conjugate_gradient().
 
 #ifndef __VW_MATH_CONJUGATEGRADIENT_H__
@@ -91,7 +91,7 @@ namespace math{
     ArmijoStepSize( double initial_stepsize=1.0, double beta=0.1, double sigma=0.001 )
       : m_initial_stepsize(initial_stepsize), m_beta(beta), m_sigma(sigma) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& func, 
+    typename FuncT::domain_type operator()( FuncT const& func,
                                             typename FuncT::domain_type const& pos,
                                             typename FuncT::result_type const& val,
                                             typename FuncT::gradient_type const& grad,
@@ -109,7 +109,7 @@ namespace math{
         //}
         stepsize *= m_beta;
         thresh *= m_beta;
-	count++;
+        count++;
       }
     }
   };
@@ -122,7 +122,7 @@ namespace math{
     CharalambousStepSize( double initial_stepsize=1.0, double mu=1e-3, double sigma=0.01, double gamma=1e-2 )
       : initial_stepsize(initial_stepsize), mu(mu), sigma(sigma), gamma(gamma) {}
     template <class FuncT>
-    typename FuncT::domain_type operator()( FuncT const& func, 
+    typename FuncT::domain_type operator()( FuncT const& func,
                                             typename FuncT::domain_type const& pos,
                                             typename FuncT::result_type const& val,
                                             typename FuncT::gradient_type const& grad,
@@ -188,8 +188,8 @@ namespace math{
 
   template <class FuncT, class StepT>
   typename FuncT::domain_type steepest_descent( FuncT const& func,
-                                                typename FuncT::domain_type const& seed, 
-                                                StepT const& step, 
+                                                typename FuncT::domain_type const& seed,
+                                                StepT const& step,
                                                 int numiters ) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);
@@ -206,8 +206,8 @@ namespace math{
 
   template <class FuncT, class StepT>
   typename FuncT::domain_type conjugate_gradient( FuncT const& func,
-                                                  typename FuncT::domain_type const& seed, 
-                                                  StepT const& step, 
+                                                  typename FuncT::domain_type const& seed,
+                                                  StepT const& step,
                                                   int numiters ) {
     typename FuncT::domain_type pos = seed;
     typename FuncT::result_type val = func(pos);

@@ -6,7 +6,7 @@
 
 
 /// Filter.cc
-/// 
+///
 /// Instantiations of certain filter kernel functions.
 ///
 #ifdef _MSC_VER
@@ -27,7 +27,7 @@ namespace vw {
 
   template void generate_gaussian_derivative_kernel<float>( ImageView<float>& kernel, double sigma1, int32 deriv1, double sigma2, int32 deriv2, double angle, int32 size );
   template void generate_gaussian_derivative_kernel<double>( ImageView<double>& kernel, double sigma1, int32 deriv1, double sigma2, int32 deriv2, double angle, int32 size );
-    
+
   template void generate_laplacian_of_gaussian_kernel<float>( ImageView<float>& kernel, double sigma, int32 size );
   template void generate_laplacian_of_gaussian_kernel<double>( ImageView<double>& kernel, double sigma, int32 size );
 

@@ -6,7 +6,7 @@
 
 
 /// \file DiskImageResourceJPEG.h
-/// 
+///
 /// Provides support for file formats via libJPEG.
 ///
 #ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
@@ -35,8 +35,8 @@ namespace vw {
       m_jpg_decompress_header = NULL;
       open( filename, subsample_factor, byte_offset );
     }
-    
-    DiskImageResourceJPEG( std::string const& filename, 
+
+    DiskImageResourceJPEG( std::string const& filename,
                            ImageFormat const& format )
       : DiskImageResource( filename )
     {
@@ -47,15 +47,15 @@ namespace vw {
       m_jpg_decompress_header = NULL;
       create( filename, format );
     }
-    
+
     virtual ~DiskImageResourceJPEG();
-    
+
     /// Returns the type of disk image resource.
     static std::string type_static() { return "JPEG"; }
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-    
+
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
@@ -74,7 +74,7 @@ namespace vw {
     /// values are 1, 2, 4, and 8.  Smaller scaling ratios permit
     /// significantly faster decoding since fewer pixels need to be
     /// processed and a simpler IDCT method can be used.
-    void set_subsample_factor(int subsample_factor) { 
+    void set_subsample_factor(int subsample_factor) {
       // Cloes and reopen the file with the new subsampling factor
       flush();
       open(m_filename, subsample_factor);
@@ -101,7 +101,7 @@ namespace vw {
     // Forward declare an abstraction class that contains jpeg stuff.
     class vw_jpeg_decompress_context;
     friend class vw_jpeg_decompress_context;
-    
+
     std::string m_filename;
     float m_quality;
     int m_subsample_factor;
@@ -113,16 +113,16 @@ namespace vw {
     static int default_subsampling_factor;
     static float default_quality;
 
-    /* The decompression context. We can't use an auto_ptr here because 
-     * vw_jpeg_decompress_context is forward-declared and the compiler 
-     * will not see its destructor, which means its destructor won't 
-     * actually get called :-( (See the compiler warnings when you try to 
-     * use std::auto_ptr<> here.) Boost's shared_ptr class, however, does 
+    /* The decompression context. We can't use an auto_ptr here because
+     * vw_jpeg_decompress_context is forward-declared and the compiler
+     * will not see its destructor, which means its destructor won't
+     * actually get called :-( (See the compiler warnings when you try to
+     * use std::auto_ptr<> here.) Boost's shared_ptr class, however, does
      * _not_ have this problem, and is perfectly safe to use in this case.
     */
     mutable boost::shared_ptr<vw_jpeg_decompress_context> ctx;
 
-    /* Resets the decompression context and current point in the file to 
+    /* Resets the decompression context and current point in the file to
      * the beginning.
     */
     void read_reset() const;

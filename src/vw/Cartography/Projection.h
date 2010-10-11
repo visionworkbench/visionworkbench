@@ -11,13 +11,13 @@
 namespace vw {
 namespace cartography {
 
-  /// Abstract base class for geographic projections 
+  /// Abstract base class for geographic projections
   struct GeoProjection {
     std::string name;
     std::string proj4_string;
     GeoProjection() : name("Geographic Projection"),
                       proj4_string("+proj=latlon") {}
-    virtual ~GeoProjection() {};  
+    virtual ~GeoProjection() {};
   };
 
   inline std::ostream& operator<<(std::ostream& os, const GeoProjection& projection) {
@@ -33,9 +33,9 @@ namespace cartography {
 
   /// Sinusoidal Projection
   struct SinusoidalProjection : public GeoProjection {
-    
-    SinusoidalProjection() : center_longitude(0), false_easting(0), false_northing(0) { 
-      name = "Sinusoidal Projection"; 
+
+    SinusoidalProjection() : center_longitude(0), false_easting(0), false_northing(0) {
+      name = "Sinusoidal Projection";
     }
 
     double center_longitude;
@@ -46,7 +46,7 @@ namespace cartography {
   /// Cylindrical Equal Area Projection
   struct CEAProjection : public GeoProjection {
 
-    CEAProjection() : std_p1(0), central_meridian(0), 
+    CEAProjection() : std_p1(0), central_meridian(0),
                       false_easting(0), false_northing(0) {
       name = "Cylindrical Equal-Area Projection";
     }

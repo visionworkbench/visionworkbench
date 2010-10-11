@@ -15,7 +15,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
-// For an excellent discussion of the various concepts, terms, and 
+// For an excellent discussion of the various concepts, terms, and
 // issues involved in global coordinate systems, see:
 // http://www.posc.org/Epicentre.2_2/DataModel/ExamplesofUsage/eu_cs.html
 
@@ -24,7 +24,7 @@ namespace cartography {
 
   /// A geodetic datum, i.e. a reference ellipsoid coordinate system
   /// for a planetary body.  This implementation assumes a relatively
-  /// modern notion of a datum, ie. a geocentric bi-axial ellipsoidal 
+  /// modern notion of a datum, ie. a geocentric bi-axial ellipsoidal
   /// model.
   ///
   /// To express a spherical datum, set the semi-major axis equal to
@@ -61,9 +61,9 @@ namespace cartography {
           double semi_minor_axis,
           double meridian_offset);
 
-    /// Options include: WGS84, WGS72, NAD27, or NAD83. 
+    /// Options include: WGS84, WGS72, NAD27, or NAD83.
     void set_well_known_datum(std::string const& name);
-   
+
     std::string &name() { return m_name; }
     std::string const& name() const { return m_name; }
 
@@ -104,11 +104,11 @@ namespace cartography {
 
     /// Return cartesian (ECEF) coordinates of geodetic coordinates p
     Vector3 geodetic_to_cartesian( Vector3 const& p ) const;
-    
+
     /// Return rotation matrix for converting NED vectors
     /// to ECEF vectors.
     Matrix3x3 ecef_to_ned_matrix( Vector3 const& p) const;
-  
+
     Vector3 cartesian_to_geodetic( Vector3 const& p ) const;
   };
 

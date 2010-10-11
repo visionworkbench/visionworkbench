@@ -6,10 +6,10 @@
 
 
 /// \file tonemap.cc
-/// 
+///
 /// This is a simple application that reads in an high dynamic range
 /// image on disk and tone maps it using one of the operators included
-/// in this library.  
+/// in this library.
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -58,23 +58,23 @@ int main( int argc, char *argv[] ) {
     po::positional_options_description p;
     p.add("input-filename", 1);
     p.add("output-filename", 2);
-    
+
     po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
-    
+
     if( vm.count("help") ) {
       cout << desc << endl;
       return 1;
     }
-    
+
     if( vm.count("input-filename") != 1 ) {
       cout << "Usage: " << argv[0] << " <input filename>\n";
       cout << desc << endl;
       return 1;
     }
-    
-    
+
+
     // Read in the HDR Image
     ImageViewRef<PixelRGB<double> > tone_mapped = DiskImageView<PixelRGB<double> >(input_filename);
 

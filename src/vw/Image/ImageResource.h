@@ -6,7 +6,7 @@
 
 
 /// \file ImageResource.h
-/// 
+///
 /// Defines the abstract base image resource type.
 ///
 #ifndef __VW_IMAGE_IMAGERESOURCE_H__
@@ -23,7 +23,7 @@ namespace vw {
   struct ImageBuffer;
 
 
-  /// Copies image pixel data from the source buffer to the destination 
+  /// Copies image pixel data from the source buffer to the destination
   /// buffer, converting the pixel format and channel type as required.
   void convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale=false );
 
@@ -34,7 +34,7 @@ namespace vw {
     int32 cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
-    
+
     ImageFormat()
       : cols(0), rows(0), planes(0),
         pixel_format(VW_PIXEL_UNKNOWN),
@@ -45,7 +45,7 @@ namespace vw {
 
 
   /// Base class from which specific image resources derive.
-  class ImageResource { 
+  class ImageResource {
   public:
 
     virtual ~ImageResource() {};
@@ -78,8 +78,8 @@ namespace vw {
     virtual Vector2i block_size() const { return Vector2i(cols(),rows()); }
 
     /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_block_size( Vector2i const& ) { 
-      vw_throw(NoImplErr() << "This ImageResource does not support set_block_size()."); 
+    virtual void set_block_size( Vector2i const& ) {
+      vw_throw(NoImplErr() << "This ImageResource does not support set_block_size().");
     };
 
     /// Query whether this ImageResource has a nodata value
@@ -89,8 +89,8 @@ namespace vw {
     virtual double nodata_value() const { return 0.0; }
 
     /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_nodata_value( double /*value*/ ) { 
-      vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value()."); 
+    virtual void set_nodata_value( double /*value*/ ) {
+      vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value().");
     };
 
     /// Force any changes to be written to the resource.
@@ -99,9 +99,9 @@ namespace vw {
   };
 
 
-  /// Acts as a proxy for an arbitrary ImageResource subclass, which is 
-  /// holds by shared pointer.  This makes it easy to operate on arbitrary 
-  /// image resources without having to worry about memory management and 
+  /// Acts as a proxy for an arbitrary ImageResource subclass, which is
+  /// holds by shared pointer.  This makes it easy to operate on arbitrary
+  /// image resources without having to worry about memory management and
   /// object lifetime yourself.
   class ImageResourceRef : public ImageResource {
     boost::shared_ptr<ImageResource> m_resource;
@@ -117,7 +117,7 @@ namespace vw {
       : m_resource( resource ) {}
 
     ~ImageResourceRef() {}
-    
+
     int32 cols() const { return m_resource->cols(); }
     int32 rows() const { return m_resource->rows(); }
     int32 planes() const { return m_resource->planes(); }
@@ -203,7 +203,7 @@ namespace vw {
     inline void* operator()( int32 i, int32 j, int32 p = 0 ) const {
       return ((uint8*)data) + (i*cstride + j*rstride + p*pstride);
     }
-    
+
   };
 
 } // namespace vw

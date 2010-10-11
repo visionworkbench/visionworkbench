@@ -7,7 +7,7 @@
 
 /// \file vwv_MainWindow.h
 ///
-/// The Vision Workbench image viewer main window class. 
+/// The Vision Workbench image viewer main window class.
 ///
 #ifndef __VWV_MAINWINDOW_H__
 #define __VWV_MAINWINDOW_H__

@@ -6,7 +6,7 @@
 
 
 /// \file FundamentalTypes.h
-/// 
+///
 /// Types and traits for fundamental floating point and integral types.
 ///
 #ifndef __VW_CORE_FUNDAMENTALTYPES_H__
@@ -78,15 +78,15 @@ namespace vw {
 
   /// It is often useful to know what the lowest, highest, and
   /// smallest possible value is for various scalar types (both
-  /// integers and floating point types).  
+  /// integers and floating point types).
   template <class T> struct ScalarTypeLimits {
-    static T lowest() { return boost::numeric::bounds<T>::lowest(); }   
+    static T lowest() { return boost::numeric::bounds<T>::lowest(); }
     static T highest() { return  boost::numeric::bounds<T>::highest(); }
-    static T smallest() { return boost::numeric::bounds<T>::smallest(); }   
+    static T smallest() { return boost::numeric::bounds<T>::smallest(); }
   };
-  
+
   /// Given a type, these traits classes help to determine a suitable
-  /// working type for accumulation operations or other intermediate 
+  /// working type for accumulation operations or other intermediate
   /// results that require computational headroom.
   template <class T> struct AccumulatorType {};
   template <> struct AccumulatorType<bool>        { typedef int         type; };
@@ -104,7 +104,7 @@ namespace vw {
     typedef std::complex<typename AccumulatorType<T>::type> type;
   };
 
-  /// Given a type, this traits class determines a floating-point type 
+  /// Given a type, this traits class determines a floating-point type
   /// capable of representing the same range accurately.
   template <class T> struct FloatType { typedef vw::float32 type; };
   template <> struct FloatType<vw::uint32>  { typedef vw::float64 type; };
@@ -113,27 +113,27 @@ namespace vw {
   template <> struct FloatType<vw::int64>   { typedef vw::float64 type; };
   template <> struct FloatType<vw::float64> { typedef vw::float64 type; };
 
-  /// This type computation class template computes a complex type 
-  /// with the same storage type as the argument.  (This is the 
+  /// This type computation class template computes a complex type
+  /// with the same storage type as the argument.  (This is the
   /// identity operation for complex types.)
   template <class T> struct MakeComplex { typedef std::complex<T> type; };
   template <class T> struct MakeComplex<std::complex<T> > { typedef std::complex<T> type; };
 
-  /// This type computation class template computes the real type 
+  /// This type computation class template computes the real type
   /// with the same storage type as the (possibly complex) argument.
   /// (This is the identity operation for non-complex types.)
   template <class T> struct MakeReal { typedef T type; };
   template <class T> struct MakeReal<std::complex<T> > { typedef T type; };
 
-  /// This function is used to work around the fact that sending 
-  /// a character type, the usual container for an 8-bit numeric 
-  /// type, to a C++ output stream results in the character being 
+  /// This function is used to work around the fact that sending
+  /// a character type, the usual container for an 8-bit numeric
+  /// type, to a C++ output stream results in the character being
   /// printed rather than the corresponding number.
   template <class T> inline T _numeric( T v ) { return v; }
   inline unsigned _numeric( uint8 v ) { return v; }
   inline int _numeric( int8 v ) { return v; }
 
-  /// This type function copies the cv-qualifiers and reference 
+  /// This type function copies the cv-qualifiers and reference
   /// properties of one type onto a second base type.
   template <class SrcT, class DstT>
   struct CopyCVR {
@@ -160,8 +160,8 @@ namespace vw {
 
   /// This type function returns a class type corresponding to the
   /// given type.  If the argument is already a class type then this
-  /// is just the identity function.  If the argument is a built-in 
-  /// type (such as int) then this returns the corresponding 
+  /// is just the identity function.  If the argument is a built-in
+  /// type (such as int) then this returns the corresponding
   /// FundamentalTypeClass type.
   template <class T> struct ClassType {
     typedef typename boost::mpl::if_<boost::is_class<T>,T,FundamentalTypeClass<T> >::type type;

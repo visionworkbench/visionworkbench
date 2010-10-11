@@ -78,7 +78,7 @@ namespace vw {
     typedef Vector2 result_type;
     result_type operator()(double i, double j, int32 /*p*/) const {
       return Vector2(i, j);
-    }  
+    }
   };
 
   inline PerPixelIndexView<VectorIndexFunctor>
@@ -140,7 +140,7 @@ namespace vw {
     typedef boost::variate_generator<GenT&, UNIFORM01<> > vargen_type;
     typedef PerPixelIndexView<IndexIndependentFunctor<vargen_type> > return_type;
     vargen_type vargen(gen, UNIFORM01<>());
-    return return_type( IndexIndependentFunctor<vargen_type>(vargen), 
+    return return_type( IndexIndependentFunctor<vargen_type>(vargen),
                         cols, rows, planes );
   }
 
@@ -169,9 +169,9 @@ namespace vw {
   inline PerPixelIndexView<IndexIndependentFunctor<boost::variate_generator<GenT&, boost::normal_distribution<> > > >
   gaussian_noise_view( GenT& gen, double mean, double sigma,
                        ImageViewBase<ImageT> const& image ) {
-    return gaussian_noise_view(gen, mean, sigma, 
-                               image.impl().cols(), 
-                               image.impl().rows(), 
+    return gaussian_noise_view(gen, mean, sigma,
+                               image.impl().cols(),
+                               image.impl().rows(),
                                image.impl().planes());
   }
 

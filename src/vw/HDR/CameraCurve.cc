@@ -6,8 +6,8 @@
 
 
 /// \file CameraCurve.cc
-/// 
-/// Functions for deducing the camera response curve by comparing 
+///
+/// Functions for deducing the camera response curve by comparing
 /// relative brightness values from several images of the same scene.
 
 #include <vw/Camera/Exif.h>
@@ -25,7 +25,7 @@ namespace hdr {
   /// "typical" exposure of 1/60th of a second at ISO 100 and an
   /// aperture of f/5.6 (B = 235.2 in this case)
   ///
-  /// 
+  ///
   std::vector<double> brightness_values_from_exposure_ratio(double exposure_ratio, int size) {
     const double base_brightness = 235.2; // average luminance for
                                           // 1/60th s exposure at ISO
@@ -42,7 +42,7 @@ namespace hdr {
   std::vector<double> brightness_values_from_exif(std::vector<std::string> const& filenames) {
     int num_images = filenames.size();
     std::vector<double> brightness_values(num_images);
-    
+
     for (int i = 0; i < num_images; i++) {
       vw::camera::ExifView exif(filenames[i].c_str());
       brightness_values[i] = exif.get_average_luminance();
@@ -53,12 +53,12 @@ namespace hdr {
   // A simple gaussian weighting function for use in camera curve
   // estimation (below)
   inline double gaussian_weighting_func(double x) {
-    return exp(-pow((x-0.5),2)/(0.07)); 
+    return exp(-pow((x-0.5),2)/(0.07));
   }
 
   Vector<double> estimate_camera_curve(vw::Matrix<double> const& pixels,
                                        std::vector<double> const& brightness_values) {
-    
+
     const int n = 256;                    // Create a solution with 256 points
     const int smoothing_factor = 10;      // Smoothing by a factor of 10
 
@@ -72,8 +72,8 @@ namespace hdr {
       for (unsigned j = 0; j < pixels.cols(); ++j) {
         int idx = int(pixels(i,j)*(n-1));
         double wij = gaussian_weighting_func(pixels(i,j));
-        A(k,idx) = wij;  
-        A(k,n+i) = -wij;  
+        A(k,idx) = wij;
+        A(k,n+i) = -wij;
         b(k) = wij * log(1/brightness_values[j]);
         ++k;
       }
@@ -97,7 +97,7 @@ namespace hdr {
     return subvector(x,0,n);
   }
 
-  void write_curves(std::string const& curves_file, 
+  void write_curves(std::string const& curves_file,
                     CameraCurveFn const &curves) {
 
     FILE* output_file = fopen(curves_file.c_str(), "w");
@@ -114,15 +114,15 @@ namespace hdr {
   CameraCurveFn read_curves(std::string const& curves_file) {
     FILE* input_file = fopen(curves_file.c_str(), "r");
     if ( !input_file ) vw_throw( IOErr() << "read_curves: failed to open file for reading." );
-    
+
     char c_line[10000];
-    
+
     std::vector<vw::Vector<double> > lookup_tables;
     while ( !feof(input_file) ) {
       if ( !fgets(c_line, 10000, input_file) )
         break;
       std::string line = c_line;
-      boost::trim_left(line); 
+      boost::trim_left(line);
       boost::trim_right(line);
 
       std::vector< std::string > split_vec; // #2: Search for individual values
@@ -134,7 +134,7 @@ namespace hdr {
       lookup_tables.push_back(curve);
     }
     fclose(input_file);
-    
+
     return CameraCurveFn(lookup_tables);
   }
 

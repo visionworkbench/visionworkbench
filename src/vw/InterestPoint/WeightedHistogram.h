@@ -6,9 +6,9 @@
 
 
 /// \file WeightedHistogram.h
-/// 
+///
 /// Functions for constructing histograms from pixels in a given image.
-/// 
+///
 #ifndef _WEIGHTED_HISTOGRAM_H_
 #define _WEIGHTED_HISTOGRAM_H_
 
@@ -58,7 +58,7 @@ int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
   generate_gaussian_kernel(kernel_1d, sigma, usewidth);
   int kerwidth = kernel_1d.size();
   kernel.set_size(kerwidth,kerwidth);
-  
+
   // Put in Gaussian values
   for (int j=0; j<kerwidth; j++)
     for (int i=0; i<kerwidth; i++)
@@ -153,7 +153,7 @@ int filter_1d( std::vector<T1>& vec,
   // Temp buffer large enough to hold one col of the image
   std::vector<T1> buf(numel);
   fill(buf.begin(), buf.end(), 0.0);
-  
+
   // Correlate each element with the kernel
   for (int i=0; i<numel; i++){
     // correlate elements with the kernel centered on element i
@@ -190,7 +190,7 @@ int smooth_weighted_histogram( std::vector<T>& histo,
   generate_gaussian_kernel( kernel, sigma );
   bool wrap = true;
   filter_1d( histo, kernel, wrap );
-  
+
   return 0;
 }
 
@@ -200,15 +200,15 @@ template <class T>
 void find_weighted_histogram_mode( std::vector<T> const& hist_in,
                                    std::vector<int>& mode) {
   mode.clear();
-  
+
   // Make a copy so we can destroy it in non_max_suppression as we go
   // along
   std::vector<T> hist = hist_in;
-  
+
   // Suppress points other than local maxima
   bool wrap = true;
   non_max_suppression( hist, wrap );
-  
+
   // Find max value & location.
   double max_val=0.0;
   int max_bin=0;
@@ -218,10 +218,10 @@ void find_weighted_histogram_mode( std::vector<T> const& hist_in,
       max_bin = i;
     }
   }
-  
+
   // Put max into the mode vector
   mode.push_back( max_bin );
-  
+
   // Zero the max.
   hist[max_bin] = 0;
 
@@ -245,5 +245,5 @@ void find_weighted_histogram_mode( std::vector<T> const& hist_in,
 
 }} // namespace vw::ip
 
-#endif 
+#endif
 

@@ -80,7 +80,7 @@ namespace cartography {
         result.z() = alt;
 
         return result;
-      }      
+      }
   };
 
   /// Takes an ImageView of Vector<ElemT,3> in some source projected space
@@ -112,7 +112,7 @@ namespace cartography {
 
   // This utility function converts a DEM to a point image
   template <class ImageT>
-  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToPointImageFunctor<typename ImageT::pixel_type> > 
+  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToPointImageFunctor<typename ImageT::pixel_type> >
   inline dem_to_point_image(ImageViewBase<ImageT> const& dem, GeoReference georef) {
     typedef DemToPointImageFunctor<typename ImageT::pixel_type> func_type;
     typedef BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, func_type> result_type;

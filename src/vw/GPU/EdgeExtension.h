@@ -18,15 +18,15 @@ namespace vw { namespace GPU {
     CONSTANT_EDGE_EXTENSION
   };
 
-   template <class EdgeT> 
+   template <class EdgeT>
      struct TraitsForEdgeT { };
 
-   template <> 
+   template <>
      struct TraitsForEdgeT<ZeroEdgeExtension> {
        static const EdgeExtensionType type = ZERO_EDGE_EXTENSION;
      };
 
-   template <> 
+   template <>
      struct TraitsForEdgeT<ConstantEdgeExtension> {
        static const EdgeExtensionType type = CONSTANT_EDGE_EXTENSION;
      };

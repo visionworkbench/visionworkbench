@@ -5,16 +5,16 @@
 // __END_LICENSE__
 
 
-// THIS HEADER FILE EXISTS FOR DOXYGEN ONLY!  IT DOES NOT GET 
-// INSTALLED ALONG WITH THE PACKAGE!  DO NOT PUT ANYTHING 
+// THIS HEADER FILE EXISTS FOR DOXYGEN ONLY!  IT DOES NOT GET
+// INSTALLED ALONG WITH THE PACKAGE!  DO NOT PUT ANYTHING
 // HERE THAT SERVES ANY PURPOSE OTHER THAN HELPING OUT DOXYGEN!
 
-/** 
+/**
 \mainpage Vision Workbench Core Module
 
 \section Introduction
 
-This is the automatically-generated reference documentation for the 
+This is the automatically-generated reference documentation for the
 core module of the Vision Workbench, a C++ image processing library.
 
 If in doubt, start with \ref vw::ImageView.

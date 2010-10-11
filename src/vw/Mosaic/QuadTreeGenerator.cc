@@ -24,30 +24,30 @@ namespace mosaic {
 
   std::string QuadTreeGenerator::tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
     fs::path path( qtree.get_name(), fs::native );
-    
+
     std::string rname = "r" + name;
-    
+
     for (int32 i= 0; i< (int32)rname.length() - levels_per_directory; i += levels_per_directory) {
       path /= rname.substr( i, levels_per_directory );
     }
     path /= rname;
-    
+
     return path.native_file_string();
   }
 
   std::string QuadTreeGenerator::named_tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
     fs::path path( qtree.get_name(), fs::native );
-    
+
     if( name.length() == 0 ) {
       path /= change_extension( path, "" ).leaf();
     }
     else {
       for ( int32 i=0; i<(int32)name.length() - levels_per_directory; i+=levels_per_directory ) {
-	path /= name.substr( i, levels_per_directory );
+        path /= name.substr( i, levels_per_directory );
       }
       path /= name;
     }
-    
+
     return path.native_file_string();
   }
 

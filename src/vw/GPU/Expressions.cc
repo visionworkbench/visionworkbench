@@ -23,7 +23,7 @@ namespace vw {
    //new ShaderNode_Accessor();
  }
 
-    //typedef GPUImageBase ShaderNode_Image;  
+    //typedef GPUImageBase ShaderNode_Image;
 
 // ########################################################################################################
 //                                           Base
@@ -34,13 +34,13 @@ namespace vw {
       RecursiveBind(shaderBuilder);
 
       if(!shaderBuilder.BindingComplete()) {
-	printf("[ShaderNode_BaseL::Evaluate] Shader Binding failed.\n");
-	exit(0);
+        printf("[ShaderNode_BaseL::Evaluate] Shader Binding failed.\n");
+        exit(0);
       }
       RecursiveCompose(shaderBuilder);
       if(!shaderBuilder.Complete()) {
-	printf("[ShaderNode_BaseL::Evaluate] Shader Composition failed.\n");
-	exit(0);
+        printf("[ShaderNode_BaseL::Evaluate] Shader Composition failed.\n");
+        exit(0);
       }
       return shaderBuilder.Evaluate();
     }
@@ -53,7 +53,7 @@ namespace vw {
     ShaderNode_Base* ShaderNode_BaseTransform::AppendInterpolateNode() {
       ShaderNode_Accessor* interpolator = m_interpolator.get();
       m_interpolator.release();
-      
+
       interpolator->m_input_nodes.push_back(this);
       return interpolator;
     }
@@ -135,15 +135,15 @@ namespace vw {
       stringstream str;
       str << "transform" << functionIndex;
       shaderBuilder.AppendBody(str.str());
-      // 
+      //
       previous->RecursiveCompose(shaderBuilder);
       shaderBuilder.AppendBody(",");
       // vectors
       int vectorStartIndex = shaderBindings.vectorBindingStartIndex;
       for(int i = 0; i < 3; i++) {
-	stringstream str;
-	str << "v" << vectorStartIndex + i << ",";
-	shaderBuilder.AppendBody(str.str());
+        stringstream str;
+        str << "v" << vectorStartIndex + i << ",";
+        shaderBuilder.AppendBody(str.str());
       }
       // end
       shaderBuilder.RemoveLastBodyChar();
@@ -204,7 +204,7 @@ namespace vw {
     stringstream string;
     string << "nonlinear_transform" << functionIndex;
     shaderBuilder.AppendBody(string.str());
-    // 
+    //
     previous->RecursiveCompose(shaderBuilder);
     shaderBuilder.AppendBody(",");
     // floats
@@ -237,21 +237,21 @@ namespace vw {
     for(list<ShaderNode_Base*>::iterator iter = input_nodes.begin(); iter != input_nodes.end(); iter++, i++) {
       // If input is a transform, and this isn't an interpolate node, then we need to call AppendInterpolateNode.
       if(!isInterpolateNode) {
-	ShaderNode_BaseTransform* transform = dynamic_cast<ShaderNode_BaseTransform*>(*iter);
-	if(transform) {
-	  *iter = transform->AppendInterpolateNode();
-	}
+        ShaderNode_BaseTransform* transform = dynamic_cast<ShaderNode_BaseTransform*>(*iter);
+        if(transform) {
+          *iter = transform->AppendInterpolateNode();
+        }
       }
-      
+
       // Accessor is always prerasterized, transorms are only if forceRasterize is true
       if(dynamic_cast<ShaderNode_Accessor*>(*iter) || dynamic_cast<ShaderNode_Image*>(*iter)
-	 || (forceRasterize && dynamic_cast<ShaderNode_BaseTransform*>(*iter))) {
-	m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
-	//delete (*iter);
+         || (forceRasterize && dynamic_cast<ShaderNode_BaseTransform*>(*iter))) {
+        m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
+        //delete (*iter);
       }
       else
-	m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
-	
+        m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
+
     }
     m_shader = shader;
     m_bindings = bindings;
@@ -312,7 +312,7 @@ namespace vw {
       // If input is a transform then we need to call AppendInterpolateNode.
       ShaderNode_BaseTransform* transform = dynamic_cast<ShaderNode_BaseTransform*>(*iter);
       if(transform) {
-	*iter = transform->AppendInterpolateNode();
+        *iter = transform->AppendInterpolateNode();
       }
       m_input_nodes.push_back(reinterpret_cast<ShaderNode_Base*>((*iter)->Evaluate()));
     }

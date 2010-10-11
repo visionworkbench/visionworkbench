@@ -16,7 +16,7 @@ VW_DEFINE_EXCEPTION(Level1Err, vw::Exception);
 VW_DEFINE_EXCEPTION(Level2Err, Level1Err);
 
 TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
-  
+
   // Test exception names
   Level1Err l1;
   Level2Err l2;

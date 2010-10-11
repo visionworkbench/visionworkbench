@@ -6,11 +6,11 @@
 
 
 /// \file GigapanQuadTreeConfig.h
-/// 
+///
 /// A configuration class that provides callbacks for
 /// QuadTreeGenerator that generate quadtrees for the
 /// Gigapan viewer
-/// 
+///
 #ifndef __VW_MOSAIC_GIGAPANQUADTREECONFIG_H__
 #define __VW_MOSAIC_GIGAPANQUADTREECONFIG_H__
 
@@ -22,8 +22,8 @@ namespace mosaic {
   struct GigapanQuadTreeConfigData;
 
   class GigapanQuadTreeConfig : private boost::noncopyable {
-    // The implementation is stored in a shared pointer so that it can 
-    // be safely bound to the quadtree callbacks in colsures even if 
+    // The implementation is stored in a shared pointer so that it can
+    // be safely bound to the quadtree callbacks in colsures even if
     // this config object goes out of scope.
     boost::shared_ptr<GigapanQuadTreeConfigData> m_data;
 

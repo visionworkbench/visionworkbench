@@ -12,6 +12,6 @@ void main() {
 
    vec4 cPixel = texture2DRect(image, coord);
    float sum = cPixel.r;
-		
+
    gl_FragColor.r = sum;
 }

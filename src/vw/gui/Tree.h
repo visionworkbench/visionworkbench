@@ -18,7 +18,7 @@
 namespace vw {
 namespace gui {
 
-  /// TileNotFound exception 
+  /// TileNotFound exception
   ///
   /// This exception is thrown by the Tree and Index classes whenever
   /// a tile is requested that does not exist.  It is frequently
@@ -54,19 +54,19 @@ namespace gui {
 
       if (tile_x >= pow(2, current_level) ||
           tile_y >= pow(2, current_level))
-        vw_throw(TileNotFoundErr() << "TreeNode: invalid index (" 
+        vw_throw(TileNotFoundErr() << "TreeNode: invalid index ("
                  << col << " " << row << " at level " << level << ").");
       tile_x %= 2;
       tile_y %= 2;
 
       // For debugging
-      // std::cout << "Adding at " << tile_x << " " << tile_y << "   " 
+      // std::cout << "Adding at " << tile_x << " " << tile_y << "   "
       //           << col << " " << row << "  " << level << " " << current_level << "\n";
-      if (tile_x == 0 && tile_y == 0) 
+      if (tile_x == 0 && tile_y == 0)
         return 0;
-      else if (tile_x == 1 && tile_y == 0) 
+      else if (tile_x == 1 && tile_y == 0)
         return 1;
-      else if (tile_x == 0 && tile_y == 1) 
+      else if (tile_x == 0 && tile_y == 1)
         return 2;
       else
         return 3;
@@ -82,7 +82,7 @@ namespace gui {
     // Insert the child of this node, but preserves the previous child's descendents.
     //
     void insert_child(int id, boost::shared_ptr<TreeNode> node) {
-      
+
       // First we save the old child and replace it with the new one.
       boost::shared_ptr<TreeNode> old_child = m_children[id];
       m_children[id] = node;
@@ -90,7 +90,7 @@ namespace gui {
       // Then, if the old child existed, we transfer the old child's
       // children (our grandchildren) to the new child node.
       if (old_child)
-        for (int i = 0; i < 4 ; ++i) 
+        for (int i = 0; i < 4 ; ++i)
           m_children[id]->set_child(i, old_child->child(i));
     }
 
@@ -98,7 +98,7 @@ namespace gui {
     // Search for a node at a given col, row, and level.
     ElementT search_helper(int col, int row, int level, int transaction_id, bool exact_transaction_match, int current_level) {
       // For debugging:
-      // std::cout << "Call to search_helper(" << col << " " << row << " " << level << " " 
+      // std::cout << "Call to search_helper(" << col << " " << row << " " << level << " "
       //           << transaction_id << " " << current_level << ")\n";
 
       // If we have reached the requested level, then we must be at
@@ -114,24 +114,24 @@ namespace gui {
 
       // Otherwise, we go recurse deeper into the tree....
       } else {
-        
+
         int child_id = compute_child_id(col, row, level, current_level + 1);
-        
+
         if (m_children[child_id]) {
 
           // If a branch of the tree is found, we dive deeper.
-          return m_children[child_id]->search_helper(col, row, level, 
-                                                     transaction_id, exact_transaction_match, 
+          return m_children[child_id]->search_helper(col, row, level,
+                                                     transaction_id, exact_transaction_match,
                                                      current_level + 1);
 
         } else {
           // If not, we throw an exception.
-          vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
+          vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " "
                    << current_level << "] failed at level " << current_level << "\n");
         }
       }
       // If not, we throw an exception.
-      vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " " 
+      vw_throw(TileNotFoundErr() << "Tile search [" << col << " " << row << " "
                << current_level << "] failed at level " << current_level << "\n");
     }
 
@@ -149,21 +149,21 @@ namespace gui {
       (*func)(col, row, level);
 
       // Call the function for future levels.
-      if ( this->child(0) ) 
+      if ( this->child(0) )
         this->child(0)->map_helper(func, col*2, row*2, level + 1);
 
-      if ( this->child(1) ) 
+      if ( this->child(1) )
         this->child(1)->map_helper(func, col*2+1, row*2, level + 1);
 
-      if ( this->child(2) ) 
+      if ( this->child(2) )
         this->child(2)->map_helper(func, col*2, row*2+1, level + 1);
 
-      if ( this->child(3) ) 
+      if ( this->child(3) )
         this->child(3)->map_helper(func, col*2+1, row*2+1, level + 1);
     }
 
-    void insert_helper(ElementT const& record, 
-                       int col, int row, int level, 
+    void insert_helper(ElementT const& record,
+                       int col, int row, int level,
                        int transaction_id, int current_level,
                        bool insert_at_all_levels) {
 
@@ -182,21 +182,21 @@ namespace gui {
       } else {
 
         int child_id = this->compute_child_id(col, row, level, current_level+1);
-        
+
         // If the child we need is not yet created, we create it, add
         // it as our child, and recurse down it.
         if (!m_children[child_id]) {
           boost::shared_ptr<TreeNode> node( new TreeNode(this, ElementT(), transaction_id ) );
           this->set_child(child_id, node);
         }
- 
+
         // Insert the record at this level if requested.  Right now this is mostly a
         // special feature used by the transaction_request() code in
         // LocalIndex to "prime" the tree with empty index entries.
         if (insert_at_all_levels)
           m_records[transaction_id] = record;
-        
-        m_children[child_id]->insert_helper(record, col, row, level, 
+
+        m_children[child_id]->insert_helper(record, col, row, level,
                                             transaction_id, current_level+1,
                                             insert_at_all_levels);
       }
@@ -215,7 +215,7 @@ namespace gui {
         }
     }
 
-  public: 
+  public:
 
     // ------------------------ Public Methods -----------------------------
 
@@ -237,7 +237,7 @@ namespace gui {
       m_records[transaction_id] = record;
       m_children.resize(4);
     }
-    
+
     // Return the child of this node with the 'id' according to the
     // following index scheme:
     //
@@ -251,13 +251,13 @@ namespace gui {
 
     int num_children() const {
       int n = 0;
-      for (int i = 0; i < 4; ++ i) 
+      for (int i = 0; i < 4; ++ i)
         if (m_children[i])
           ++n;
       return n;
     }
 
-    ElementT value_helper(int transaction_id, bool exact_transaction_match) { 
+    ElementT value_helper(int transaction_id, bool exact_transaction_match) {
       typename record_type::iterator it = m_records.begin();
 
       // A transaction ID of -1 indicates that we should return the
@@ -280,17 +280,17 @@ namespace gui {
 
       // If we reach this point, then there are no entries before
       // the given transaction_id, so we return an empty (and invalid) record.
-      vw_throw(TileNotFoundErr() << "Tiles exist at this location, but none before transaction_id=" 
+      vw_throw(TileNotFoundErr() << "Tiles exist at this location, but none before transaction_id="
                << transaction_id << "\n");
       return ElementT(); // never reached
     }
 
     /// Access the data member of this node.
-    ElementT value(int transaction_id, bool exact_transaction_match) { 
+    ElementT value(int transaction_id, bool exact_transaction_match) {
       return value_helper(transaction_id, exact_transaction_match);
     }
 
-    const ElementT value(int transaction_id, bool exact_transaction_match) const { 
+    const ElementT value(int transaction_id, bool exact_transaction_match) const {
       return value_helper(transaction_id, exact_transaction_match);
     }
 
@@ -308,7 +308,7 @@ namespace gui {
     // Insert an ElementT at a given position.  Intermediate nodes
     // in the tree are created (with empty ElementTs) in the tree
     // along the way, as needed.
-    void insert(ElementT const& record, int col, int row, 
+    void insert(ElementT const& record, int col, int row,
                 int level, int transaction_id,
                 bool insert_at_all_levels = false) {
       this->insert_helper(record, col, row, level, transaction_id, 0, insert_at_all_levels);

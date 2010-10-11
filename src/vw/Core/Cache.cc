@@ -6,7 +6,7 @@
 
 
 /// \file Core/Cache.cc
-/// 
+///
 /// Types and functions to assist cacheing regeneratable data.
 ///
 #include <vw/Core/Cache.h>

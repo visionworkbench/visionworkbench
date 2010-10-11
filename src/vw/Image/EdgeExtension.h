@@ -9,12 +9,12 @@
 ///
 /// Supports extension of images beyond their edges.
 ///
-/// This file provides wrapper mechanisms to procedurally extend 
-/// images beyond their edges, for use in (for example) filtering 
-/// or compositing operations.  The two main facilities provided 
-/// by this file are a function (\ref vw::edge_extend) that you 
-/// can use to manually wrap an image and a set of classes that 
-/// specify the various edge extension modes.  At the moment 
+/// This file provides wrapper mechanisms to procedurally extend
+/// images beyond their edges, for use in (for example) filtering
+/// or compositing operations.  The two main facilities provided
+/// by this file are a function (\ref vw::edge_extend) that you
+/// can use to manually wrap an image and a set of classes that
+/// specify the various edge extension modes.  At the moment
 /// there are five such classes:
 ///
 ///  - \ref vw::ZeroEdgeExtension extends an image with zeros
@@ -34,19 +34,19 @@
 #include <vw/Core/Log.h>
 
 namespace vw {
- 
+
   // *******************************************************************
   // The edge extension types
   // *******************************************************************
 
   // Here we define the edge extension modes as polymorphic functors.
   // You can extend the list of supported edge extension modes by
-  // creating a new functor type derived from EdgeExtensionBase and 
-  // implementing the function call operator, as shown in the 
+  // creating a new functor type derived from EdgeExtensionBase and
+  // implementing the function call operator, as shown in the
   // examples below.
 
-  /// A base class for the edge extension types that provides the 
-  /// common return type deduction logic in case users want to use 
+  /// A base class for the edge extension types that provides the
+  /// common return type deduction logic in case users want to use
   /// these types in a more general manner.
   struct EdgeExtensionBase {
     template <class ArgsT> struct result {};
@@ -74,7 +74,7 @@ namespace vw {
   /// all directions.
   struct ZeroEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
@@ -96,7 +96,7 @@ namespace vw {
     ValueEdgeExtension(PixelT pix) : m_pix(pix) {}
 
     template <class ViewT>
-    inline PixelT operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline PixelT operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       if( i>=0 && j>=0 && i<view.cols() && j<view.rows() )
         return view(i,j,p);
       else
@@ -111,12 +111,12 @@ namespace vw {
     }
   };
 
-  /// An edge extension type that extends the image using constant 
-  /// functions in all directions.  In other words, it returns the 
+  /// An edge extension type that extends the image using constant
+  /// functions in all directions.  In other words, it returns the
   /// nearest valid pixel.
   struct ConstantEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       return view((i<0) ? 0 : (i>=view.cols()) ? (view.cols()-1) : i,
                   (j<0) ? 0 : (j>=view.rows()) ? (view.rows()-1) : j, p);
     }
@@ -138,7 +138,7 @@ namespace vw {
   /// A periodic edge extension type.
   struct PeriodicEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       int32 d_i=i, d_j=j;
       d_i %= int(view.cols());
       if( d_i < 0 ) d_i += view.cols();
@@ -180,7 +180,7 @@ namespace vw {
   /// A cylindrical edge extension type: periodic in the x axis, constant in the y axis.
   struct CylindricalEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       int32 d_i=i;
       d_i %= int(view.cols());
       if( d_i < 0 ) d_i += view.cols();
@@ -215,7 +215,7 @@ namespace vw {
   /// A reflection edge extension type.
   struct ReflectEdgeExtension : EdgeExtensionBase {
     template <class ViewT>
-    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const { 
+    inline typename ViewT::pixel_type operator()( const ViewT &view, int32 i, int32 j, int32 p ) const {
       int32 d_i=i, d_j=j;
       if( d_i < 0 ) d_i = -d_i;
       int32 vcm1 = view.cols() - 1;
@@ -325,7 +325,7 @@ namespace vw {
   // The edge extension view
   // *******************************************************************
 
-  /// A wrapper view supporting procedural extension of an image beyond its 
+  /// A wrapper view supporting procedural extension of an image beyond its
   /// boundaries using a user-specified edge extension mode.
   template <class ImageT, class ExtensionT>
   class EdgeExtensionView : public ImageViewBase<EdgeExtensionView<ImageT,ExtensionT> >
@@ -343,13 +343,13 @@ namespace vw {
 
     EdgeExtensionView( ImageT const& image )
       : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func() {}
-    
+
     EdgeExtensionView( ImageT const& image, ExtensionT const& extension )
       : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func(extension) {}
-    
+
     EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func() {}
-    
+
     EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows, ExtensionT const& extension )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func(extension) {}
 
@@ -394,13 +394,13 @@ namespace vw {
   // *******************************************************************
 
   /// Procedurally edge-extends an image view and alters its bounding box.
-  /// This function wraps an image view in a vw::EdgeExtensionView, extending 
-  /// its definition beyond the edges of the original image according to 
-  /// the user-specified edge extension mode.  It also alters the bounding 
-  /// box, i.e. the position of the origin and the values returned by 
-  /// <B>cols()</B> and <B>rows()</B>.  The new bounding box is expressed 
+  /// This function wraps an image view in a vw::EdgeExtensionView, extending
+  /// its definition beyond the edges of the original image according to
+  /// the user-specified edge extension mode.  It also alters the bounding
+  /// box, i.e. the position of the origin and the values returned by
+  /// <B>cols()</B> and <B>rows()</B>.  The new bounding box is expressed
   /// in terms of an offset and new dimensions.  The sign of the offset is
-  /// consistent with \ref vw::crop, so if you wish to expand the image 
+  /// consistent with \ref vw::crop, so if you wish to expand the image
   /// you must specify a negative offset!
   template <class ImageT, class ExtensionT>
   EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows, ExtensionT const& extension ) {
@@ -420,17 +420,17 @@ namespace vw {
   EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), x_offset, y_offset, cols, rows );
   }
-  
+
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
-  /// It takes a bounding box object (BBox2i) as an argument and uses the default 
+  /// It takes a bounding box object (BBox2i) as an argument and uses the default
   /// vw::ConstantEdgeExtension mode.
   template <class ImageT>
   EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, BBox2i const& bbox ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height() );
   }
-  
+
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
-  /// It does not alter the bounding box of the image, but still allows access 
+  /// It does not alter the bounding box of the image, but still allows access
   /// beyond the bounding box.
   template <class ImageT, class ExtensionT>
   EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ExtensionT const& extension ) {
@@ -438,13 +438,13 @@ namespace vw {
   }
 
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
-  /// It does not alter the bounding box of the image, but still allows access 
+  /// It does not alter the bounding box of the image, but still allows access
   /// beyond the bounding box using the default vw::ConstantEdgeExtension mode.
   template <class ImageT>
   EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl() );
   }
-  
+
 } // namespace vw
 
 #endif // __VW_IMAGE_EDGEEXTENSION_H__

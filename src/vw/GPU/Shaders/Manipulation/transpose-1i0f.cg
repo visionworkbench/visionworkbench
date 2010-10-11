@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT image1,
-	out float4 color : COLOR ) 
+        uniform samplerRECT image1,
+        out float4 color : COLOR )
 {
    color = sin(texRECT(image1, texCoord0.yx));
 }

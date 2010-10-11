@@ -355,7 +355,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
       char* base = reinterpret_cast<char*>(&dst_image(0,0,nn));
       frameBuffer.insert(
           m_labels[nn].c_str(),
-          Imf::Slice(Imf::FLOAT, 
+          Imf::Slice(Imf::FLOAT,
                      base - (bbox.min().x()*dst.cstride) - (bbox.min().y() * dst.rstride),
                      dst.cstride, dst.rstride));
     }

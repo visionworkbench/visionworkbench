@@ -6,9 +6,9 @@
 
 
 /// \file BayerFilter.h
-/// 
+///
 /// This function performs a bayer pattern decoding of a grayscale image..
-/// 
+///
 #ifndef __VW_CAMERA_BAYER__
 #define __VW_CAMERA_BAYER__
 
@@ -21,7 +21,7 @@ namespace vw {
 namespace camera {
 
   template <class ViewT>
-  ImageView<PixelRGB<typename CompoundChannelType<typename ViewT::pixel_type>::type > > 
+  ImageView<PixelRGB<typename CompoundChannelType<typename ViewT::pixel_type>::type > >
   inverse_bayer_filter(ImageViewBase<ViewT > const& view_) {
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
     const EdgeExtensionView<ViewT, ZeroEdgeExtension> view = edge_extend(view_.impl(), ZeroEdgeExtension());

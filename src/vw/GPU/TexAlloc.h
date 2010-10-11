@@ -13,7 +13,7 @@
 
 #include <vw/GPU/TexObj.h>
 
-namespace vw { 
+namespace vw {
 namespace GPU {
 
   class TexAlloc {
@@ -45,7 +45,7 @@ namespace GPU {
 
   private:
   };
-  
+
 }} // namespaces vw::GPU
 
 

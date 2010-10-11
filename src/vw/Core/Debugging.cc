@@ -6,7 +6,7 @@
 
 
 /// \file Core/Debugging.cc
-/// 
+///
 /// Types and functions to assist in debugging code.
 ///
 #include <vw/Core/Debugging.h>

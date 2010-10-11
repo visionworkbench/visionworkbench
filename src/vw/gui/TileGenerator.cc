@@ -15,7 +15,7 @@
 #include <QBuffer>
 #include <QImage>
 #include <QHttp>
-#include <QByteArray> 
+#include <QByteArray>
 
 using namespace vw;
 using namespace vw::gui;
@@ -36,7 +36,7 @@ BBox2i vw::gui::tile_to_bbox(Vector2i tile_size, int col, int row, int level, in
     return result * pow(2,max_level - level);
   }
 }
-  
+
 std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level, int max_level, int transaction_id, bool exact_transaction_id_match) {
   std::list<TileLocator> results;
 
@@ -55,7 +55,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
   int tile_y = aligned_level_bbox.min().y() / tile_size[1];
   int dest_row = 0;
   while ( tile_y < aligned_level_bbox.max().y() / tile_size[1] ) {
-      
+
     int tile_x = aligned_level_bbox.min().x() / tile_size[0];
     int dest_col = 0;
     while ( tile_x < aligned_level_bbox.max().x() / tile_size[0] ) {
@@ -67,7 +67,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
       loc.transaction_id = transaction_id;
       loc.exact_transaction_id_match = exact_transaction_id_match;
       results.push_back(loc);
-        
+
       ++tile_x;
       dest_col += tile_size[0];
     }
@@ -94,20 +94,20 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
 
     // If ends in .plate, then assume platefile.
     if ( fs::extension(filename) == ".plate") {
-      
+
       return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(filename) );
-      
+
     // If begins with http://, then assume web tiles.
     } else if ( filename.find("http://") == 0) {
-      
+
       return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename,17));
-    
+
     // If testpattern, then we use the testpattern tile generator
     } else if (filename == "testpattern") {
 
       vw_out() << "\t--> Starting vwv in testpattern mode.\n";
       return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
-      
+
     // Otherwise, assume an image.
     } else {
       return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(filename) );
@@ -148,8 +148,8 @@ int TestPatternTileGenerator::cols() const { return 2048; }
 int TestPatternTileGenerator::rows() const { return 2048; }
 PixelFormatEnum TestPatternTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
 ChannelTypeEnum TestPatternTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
-Vector2i TestPatternTileGenerator::tile_size() const { 
-  return Vector2i(m_tile_size, m_tile_size); 
+Vector2i TestPatternTileGenerator::tile_size() const {
+  return Vector2i(m_tile_size, m_tile_size);
 }
 int32 TestPatternTileGenerator::num_levels() const {
   return 4;
@@ -161,9 +161,9 @@ int32 TestPatternTileGenerator::num_levels() const {
 
 HttpDownloadThread::HttpDownloadThread() {
   m_http = new QHttp(NULL);
-  connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));  
-  connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));  
-  connect(m_http, SIGNAL(responseHeaderReceived(QHttpResponseHeader)),this, SLOT(response_header_received(QHttpResponseHeader)));  
+  connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));
+  connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));
+  connect(m_http, SIGNAL(responseHeaderReceived(QHttpResponseHeader)),this, SLOT(response_header_received(QHttpResponseHeader)));
 }
 
 void HttpDownloadThread::run() {
@@ -237,7 +237,7 @@ void HttpDownloadThread::response_header_received( const QHttpResponseHeader & r
       buf.file_type = "tif";
     else if (resp.contentType() == "text/html") {
       /* do nothing... this is likely a 404 */
-    } else 
+    } else
       vw_out() << "WARNING: unrecognized content-type: " << resp.contentType().toStdString() << "\n";
   }
 }
@@ -249,7 +249,7 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
     RequestBuffer &buf = request_iter->second;
 
     if (buf.status != 404 && buf.status != 200) {
-      std::cout << "WARNING: Request " << request_id << " failed with status " << buf.status 
+      std::cout << "WARNING: Request " << request_id << " failed with status " << buf.status
                 << " for URL: " << buf.url << "\n";
       ImageView<PixelRGBA<float> > vw_image(1,1);
       vw_image(0,0) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
@@ -267,7 +267,7 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
     }
 
     // Save the data to a temporary file, and then read the image file
-    // using the Vision Workbench FileIO subsystem.  
+    // using the Vision Workbench FileIO subsystem.
     std::string temp_filename = platefile::TemporaryTileFile::unique_tempfile_name(buf.file_type);
     std::ofstream of(temp_filename.c_str());
     if ( !(of.good()) )
@@ -287,12 +287,12 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
         ImageView<PixelRGBA<int16> > vw_image = temp_tile_file.read<PixelRGBA<int16> >();
         buf.result = channel_cast_rescale<float>(vw_image);
       } else {
-        vw_out() << "WARNING: Image contains unsupported channel type: " 
+        vw_out() << "WARNING: Image contains unsupported channel type: "
                  << rsrc->channel_type() << "\n";
       }
       buf.finished = true;
     } catch (IOErr &e) {
-      vw_out(WarningMessage) << "Could not read data from temporary file: " 
+      vw_out(WarningMessage) << "Could not read data from temporary file: "
                              << temp_filename << "\n";
       buf.finished = true;
     }
@@ -300,18 +300,18 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
 }
 
 
-WebTileGenerator::WebTileGenerator(std::string url, int levels) : 
+WebTileGenerator::WebTileGenerator(std::string url, int levels) :
   m_tile_size(256), m_levels(levels), m_url(url) {
   m_download_thread.start();
 }
 
 boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
-  
+
   std::ostringstream full_url;
-  full_url << m_url << "/" << tile_info.level 
-           << "/" << tile_info.col 
+  full_url << m_url << "/" << tile_info.level
+           << "/" << tile_info.col
            << "/" << tile_info.row << ".png";
-  int request_id = m_download_thread.get(full_url.str(), 
+  int request_id = m_download_thread.get(full_url.str(),
                                          tile_info.transaction_id,
                                          tile_info.exact_transaction_id_match);
   while(!m_download_thread.result_available(request_id));
@@ -331,8 +331,8 @@ int WebTileGenerator::cols() const { return m_tile_size * pow(2,m_levels-1); }
 int WebTileGenerator::rows() const { return m_tile_size * pow(2,m_levels-1); }
 PixelFormatEnum WebTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
 ChannelTypeEnum WebTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
-Vector2i WebTileGenerator::tile_size() const { 
-  return Vector2i(m_tile_size, m_tile_size); 
+Vector2i WebTileGenerator::tile_size() const {
+  return Vector2i(m_tile_size, m_tile_size);
 }
 int32 WebTileGenerator::num_levels() const {
   return m_levels;
@@ -345,7 +345,7 @@ int32 WebTileGenerator::num_levels() const {
 PlatefileTileGenerator::PlatefileTileGenerator(std::string platefile_name) :
   m_platefile(new vw::platefile::PlateFile(platefile_name)) {
   m_num_levels = m_platefile->num_levels();
-  std::cout << "\t--> Loading platefile \"" << platefile_name << "\" with " 
+  std::cout << "\t--> Loading platefile \"" << platefile_name << "\" with "
             << m_num_levels << " levels.\n";
 }
 
@@ -444,7 +444,7 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
   ImageView<PixelT> tile(1,1);
   try {
 
-    platefile->read(tile, tile_info.col, tile_info.row, 
+    platefile->read(tile, tile_info.col, tile_info.row,
                     tile_info.level, tile_info.transaction_id,
                     tile_info.exact_transaction_id_match);
 
@@ -452,7 +452,7 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
 
     ImageView<PixelRGBA<uint8> > blank_tile(1,1);
     blank_tile(0,0) = PixelRGBA<uint8>(0, 20, 0, 255);
-    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );    
+    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );
 
   } catch (vw::IOErr &e) {
 
@@ -464,12 +464,12 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
 
 boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
 
-  vw_out(DebugMessage, "gui") << "Request to generate platefile tile " 
-                              << tile_info.col << " " << tile_info.row 
+  vw_out(DebugMessage, "gui") << "Request to generate platefile tile "
+                              << tile_info.col << " " << tile_info.row
                               << " @ " << tile_info.level << "\n";
-  
+
   VW_DELEGATE_BY_PIXEL_TYPE(generate_tile_impl, tile_info, m_platefile)
-    
+
   // If we get to here, then there was no support for the pixel format.
   vw_throw(NoImplErr() << "Unsupported pixel format or channel type in TileGenerator.\n");
 }
@@ -504,7 +504,7 @@ int32 PlatefileTileGenerator::num_levels() const {
 //                             IMAGE TILE GENERATOR
 // --------------------------------------------------------------------------
 
-ImageTileGenerator::ImageTileGenerator(std::string filename) : 
+ImageTileGenerator::ImageTileGenerator(std::string filename) :
   m_filename(filename), m_rsrc( DiskImageResource::open(filename) ) {
   vw_out() << "\t--> Loading image: " << filename << ".\n";
 }
@@ -513,7 +513,7 @@ ImageTileGenerator::ImageTileGenerator(std::string filename) :
 // This little template makes the code below much cleaner.
 template <class PixelT>
 boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<ImageResource> rsrc,
-                                                      BBox2i tile_bbox, 
+                                                      BBox2i tile_bbox,
                                                       int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
   rsrc->read(tile.buffer(), tile_bbox);
@@ -522,12 +522,12 @@ boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<ImageRes
 }
 
 boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocator const& tile_info) {
-  
+
   // Compute the bounding box of the image and the tile that is being
   // requested.  The bounding box of the tile depends on the pyramid
   // level we are looking at.
   BBox2i image_bbox(0,0,m_rsrc->cols(),m_rsrc->rows());
-  BBox2i tile_bbox = tile_to_bbox(this->tile_size(), tile_info.col, 
+  BBox2i tile_bbox = tile_to_bbox(this->tile_size(), tile_info.col,
                                   tile_info.row, tile_info.level, this->num_levels());
 
   // Check to make sure the image intersects the bounding box.  Print
@@ -545,73 +545,73 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
   switch (this->pixel_format()) {
   case VW_PIXEL_GRAY:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      return do_image_tilegen<PixelGray<uint8> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGray<uint8> >(m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_INT16) {
-      return do_image_tilegen<PixelGray<int16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGray<int16> >(m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
-      return do_image_tilegen<PixelGray<uint16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGray<uint16> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-      return do_image_tilegen<PixelGray<float> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGray<float> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else {
       std::cout << "This platefile has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
-  }    
+  }
   break;
 
   case VW_PIXEL_GRAYA:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      return do_image_tilegen<PixelGrayA<uint8> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGrayA<uint8> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_INT16) {
-      return do_image_tilegen<PixelGrayA<int16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGrayA<int16> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
-      return do_image_tilegen<PixelGrayA<uint16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGrayA<uint16> >(m_rsrc, tile_bbox,
                                                    tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
-      return do_image_tilegen<PixelGrayA<float> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelGrayA<float> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else {
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
       }
-      
+
     break;
 
   case VW_PIXEL_RGB:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      return do_image_tilegen<PixelRGB<uint8> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelRGB<uint8> >(m_rsrc, tile_bbox,
                                                 tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
-      return do_image_tilegen<PixelRGB<uint16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelRGB<uint16> >(m_rsrc, tile_bbox,
                                                 tile_info.level, this->num_levels());
     } else {
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
     }
-      
+
     break;
 
   case VW_PIXEL_RGBA:
     if (this->channel_type() == VW_CHANNEL_UINT8) {
-      return do_image_tilegen<PixelRGBA<uint8> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelRGBA<uint8> >(m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
-      return do_image_tilegen<PixelRGBA<uint16> >(m_rsrc, tile_bbox, 
+      return do_image_tilegen<PixelRGBA<uint16> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
     } else {
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
     }
-      
+
     break;
 
   default:

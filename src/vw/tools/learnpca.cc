@@ -11,8 +11,8 @@
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
-    std::cout << "learnpca <training image files...>" 
-	      << std::endl;
+    std::cout << "learnpca <training image files...>"
+              << std::endl;
     return 0;
   }
 

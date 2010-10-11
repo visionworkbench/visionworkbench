@@ -14,7 +14,7 @@ using std::string;
 namespace vw { namespace GPU {
 
 
-  // Globals 
+  // Globals
 
   GLuint g_framebuffer;
 
@@ -40,8 +40,8 @@ namespace vw { namespace GPU {
       loggingEnabled = true;
       gpuLogFile.open(log_path.c_str());
       if(!gpuLogFile) {
-	loggingEnabled = false;
-	throw(Exception("[gpu_init] Error creating log file."));	
+        loggingEnabled = false;
+        throw(Exception("[gpu_init] Error creating log file."));
       }
     }
     else {
@@ -82,7 +82,7 @@ namespace vw { namespace GPU {
     gpu_log("Trying to create a GL framebuffer...");
     glGenFramebuffersEXT(1, &g_framebuffer);
     gpu_log("Success\n");
-    
+
   }
 
   // gpu_cleanup
@@ -118,5 +118,5 @@ namespace vw { namespace GPU {
       gpuLogFile.flush();
     }
   }
-  
+
 } } // namespace GPU, namespace vw

@@ -32,15 +32,15 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_geocentric = false;
 
   m_meridian_offset = 0;
-  if (name == "WGS84") {        
+  if (name == "WGS84") {
     m_name = "WGS_1984";
     m_spheroid_name="WGS 84";
     m_semi_major_axis = 6378137.0;
     m_semi_minor_axis = 6356752.3;
     m_proj_str = "+ellps=WGS84 +datum=WGS84";
     return;
-  } 
-  
+  }
+
   if (name == "WGS72") {
     m_name="WGS_1972";
     m_spheroid_name="WGS 72";
@@ -48,8 +48,8 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_semi_minor_axis = 6356750.5;
     m_proj_str = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
     return;
-  } 
-  
+  }
+
   if (name == "NAD83") {
     m_name="North_American_Datum_1983";
     m_spheroid_name="GRS 1980";
@@ -93,16 +93,16 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   vw::vw_throw( vw::InputErr() << "Unknown datum string \"" << name << "\"!");
 }
 
-void vw::cartography::Datum::set_semi_major_axis(double val) { 
-  m_semi_major_axis = val;  
+void vw::cartography::Datum::set_semi_major_axis(double val) {
+  m_semi_major_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
   if (m_geocentric) strm << " +geoc";
   m_proj_str = strm.str();
 }
 
-void vw::cartography::Datum::set_semi_minor_axis(double val) { 
-  m_semi_minor_axis = val;  
+void vw::cartography::Datum::set_semi_minor_axis(double val) {
+  m_semi_minor_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
   if (m_geocentric) strm << " +geoc";
@@ -114,8 +114,8 @@ double vw::cartography::Datum::radius(double /*lon*/, double lat) const {
   // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;
-  } 
-      
+  }
+
   // Bi-axial Ellpisoid datum
   double a = m_semi_major_axis;
   double b = m_semi_minor_axis;
@@ -129,8 +129,8 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
    // Optimize in the case of spherical datum
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis;
-  } 
-  
+  }
+
   // Bi-axial Ellpisoid datum
   // http://mathworld.wolfram.com/GeocentricLatitude.html
   double a = m_semi_major_axis;
@@ -215,7 +215,7 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
-  
+
   double lat = p.y();
   if ( lat < -90 ) lat = -90;
   if ( lat > 90 ) lat = 90;
@@ -234,7 +234,7 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
 }
 
 
-// This function is based heavily on the similar 
+// This function is based heavily on the similar
 // Proj.4 function pj_Convert_Geocentric_To_Geodetic.
 vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p ) const {
   double a = m_semi_major_axis;
@@ -246,10 +246,10 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
   static const double epsilon = 1.0e-12;
   static const double epsilon2 = epsilon*epsilon;
   static const int maxiter = 30;
-  
+
   double normxy = sqrt(p.x()*p.x()+p.y()*p.y()); // distance between semi-minor axis and location
   double normp = norm_2(p);                      // distance between center and location
-  
+
   double lon=0.0, alt=0.0;
 
   // compute the longitude
@@ -262,7 +262,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
   else {
     lon = atan2(p.y(),p.x()) / (M_PI/180);
   }
-  
+
   // The following iterative algorithm was developped by
   // "Institut fur Erdmessung", University of Hannover, July 1988.
   // Internet: www.ife.uni-hannover.de
@@ -271,7 +271,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
   double rx = 1.0/sqrt(1.0-e2*(2.0-e2)*cgcl*cgcl);
   double clat = cgcl*(1.0-e2)*rx; // cos of geodetic latitude estimate
   double slat = sgcl*rx;          // sin of geodetic latitude estimate
-  
+
   // loop to find lat (in quadrature) until |lat[i]-lat[i-1]|<epsilon, roughly
   for( int i=0; i<maxiter; ++i ) {
     double ri = a/sqrt(1.0-e2*slat*slat); // radius at estimated location
@@ -286,12 +286,12 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p 
     slat = new_slat;
     if( sdlat*sdlat < epsilon2 ) break;
   }
-  
+
   return Vector3( lon - m_meridian_offset, atan(slat/fabs(clat))/(M_PI/180), alt );
 }
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
-  os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name() 
+  os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
      << "  Semi-major: " << datum.semi_major_axis()
      << "  Semi-minor: " << datum.semi_minor_axis()
      << "  Meridian: " << datum.meridian_name()

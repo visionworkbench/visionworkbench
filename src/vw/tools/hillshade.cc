@@ -60,16 +60,16 @@ namespace vw {
 // directions so that the direction of the vector in physical space
 // can be properly ascertained.  This is often contained in the (0,0)
 // and (1,1) entry of the georeference transform.
-class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3> > 
+class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3> >
 {
   double m_u_scale, m_v_scale;
 
 public:
-  ComputeNormalsFunc(double u_scale, double v_scale) : 
+  ComputeNormalsFunc(double u_scale, double v_scale) :
     m_u_scale(u_scale), m_v_scale(v_scale) {}
 
   BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
-    
+
   template <class PixelAccessorT>
   PixelMask<Vector3> operator() (PixelAccessorT const& accessor_loc) const {
     PixelAccessorT acc = accessor_loc;
@@ -88,7 +88,7 @@ public:
     if (is_transparent(*acc))
       return PixelMask<Vector3>();
     double alt3 = *acc;
-    
+
     // Form two orthogonal vectors in the plane containing the three
     // altitude points
     Vector3 n1(m_u_scale, 0, alt2-alt1);
@@ -103,7 +103,7 @@ template <class ViewT>
 UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> compute_normals(ImageViewBase<ViewT> const& image,
                                                                                                               double u_scale, double v_scale) {
   return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>(edge_extend(image.impl(), ConstantEdgeExtension()),
-                                                                                                       ComputeNormalsFunc (u_scale, v_scale)); 
+                                                                                                       ComputeNormalsFunc (u_scale, v_scale));
 }
 
 class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<double> > > {
@@ -122,7 +122,7 @@ public:
   }
 };
 
-template <class ViewT> 
+template <class ViewT>
 UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3 const& vec) {
   return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
 }
@@ -134,7 +134,7 @@ void do_hillshade(po::variables_map const& vm) {
 
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input_file_name);
-  
+
   // Select the pixel scale.
   double u_scale, v_scale;
   if (scale == 0) {
@@ -152,10 +152,10 @@ void do_hillshade(po::variables_map const& vm) {
   }
   // For debugging:
   //  std::cout << "\t--> Scale: " << u_scale << "  " << v_scale << "\n";
-  
+
   // Set the direction of the light source.
   Vector3 light_0(1,0,0);
-  Vector3 light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;  
+  Vector3 light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
 
   // Compute the surface normals
   std::cout << "Loading: " << input_file_name << ".\n";

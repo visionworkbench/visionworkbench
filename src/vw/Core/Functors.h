@@ -6,9 +6,9 @@
 
 
 /// \file Functors.h
-/// 
+///
 /// General-purpose functors and functor support code.
-/// 
+///
 /// This file provides a few mix-in base classes that you can use when
 /// writing your own polymorphic functors.  They instruct the return
 /// type deduction system about the return type of your functor in
@@ -25,7 +25,7 @@
 
 namespace vw {
 
-  /// A mix-in specifying that a functor is an unary functor 
+  /// A mix-in specifying that a functor is an unary functor
   /// whose return type is the same as its argument type.
   struct UnaryReturnSameType {
     /// \cond INTERNAL
@@ -33,12 +33,12 @@ namespace vw {
     template <class ChannelT, class FuncT>
     struct result<FuncT(ChannelT)> {
       typedef ChannelT type;
-    };    
+    };
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is a unary functor 
-  /// whose return type is determined by the given traits 
+  /// A mix-in specifying that a functor is a unary functor
+  /// whose return type is determined by the given traits
   /// template class.
   template <template<class> class ResultT>
   struct UnaryReturnTemplateType {
@@ -51,8 +51,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is a binary functor 
-  /// whose return type is determined by the given traits 
+  /// A mix-in specifying that a functor is a binary functor
+  /// whose return type is determined by the given traits
   /// template class.
   template <template<class,class> class ResultT>
   struct BinaryReturnTemplateType {
@@ -65,7 +65,7 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor always returns a 
+  /// A mix-in specifying that a functor always returns a
   /// particular type.
   template <class T>
   struct ReturnFixedType {
@@ -77,7 +77,7 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a binary functor always returns 
+  /// A mix-in specifying that a binary functor always returns
   /// the same type as its first argument.
   struct BinaryReturn1stType {
     /// \cond INTERNAL
@@ -88,7 +88,7 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a binary functor always returns 
+  /// A mix-in specifying that a binary functor always returns
   /// the same type as its second argument.
   struct BinaryReturn2ndType {
     /// \cond INTERNAL
@@ -99,8 +99,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is an unary functor 
-  /// whose return type is determined by the given binary 
+  /// A mix-in specifying that a functor is an unary functor
+  /// whose return type is determined by the given binary
   /// type function with the given first argument.
   template <template<class,class> class ResultT, class ValT>
   struct UnaryReturnBinaryTemplateBind1st {
@@ -113,8 +113,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is an unary functor 
-  /// whose return type is determined by the given binary 
+  /// A mix-in specifying that a functor is an unary functor
+  /// whose return type is determined by the given binary
   /// type function with the given second argument.
   template <template<class,class> class ResultT, class ValT>
   struct UnaryReturnBinaryTemplateBind2nd {
@@ -127,8 +127,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is a binary functor 
-  /// whose return type is determined by the given ternary 
+  /// A mix-in specifying that a functor is a binary functor
+  /// whose return type is determined by the given ternary
   /// type function with the given first argument.
   template <template<class,class,class> class ResultT, class ValT>
   struct BinaryReturnTernaryTemplateBind1st {
@@ -141,8 +141,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is an unary functor 
-  /// whose return type is determined by the given ternary 
+  /// A mix-in specifying that a functor is an unary functor
+  /// whose return type is determined by the given ternary
   /// type function with the given first and second arguments.
   template <template<class,class,class> class ResultT, class Val1T, class Val2T>
   struct UnaryReturnTernaryTemplateBind1st2nd {
@@ -155,8 +155,8 @@ namespace vw {
     /// \endcond
   };
 
-  /// A mix-in specifying that a functor is an unary functor 
-  /// whose return type is determined by the given ternary 
+  /// A mix-in specifying that a functor is an unary functor
+  /// whose return type is determined by the given ternary
   /// type function with the given first and third arguments.
   template <template<class,class,class> class ResultT, class Val1T, class Val3T>
   struct UnaryReturnTernaryTemplateBind1st3rd {
@@ -393,7 +393,7 @@ namespace vw {
   };
 
   // **** WARNING ****
-  // The syntax in all three SafeQuotient functors is carefully 
+  // The syntax in all three SafeQuotient functors is carefully
   // crafted to work around an issue with RedHat's gcc 3.2.3-56.
   // If you change this, be sure to test it on an RHEL3 box.
   // **** WARNING ****
@@ -401,7 +401,7 @@ namespace vw {
   // Safe binary quotient of two arguments
   struct ArgArgSafeQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
     template <class Arg1T, class Arg2T>
-    inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const { 
+    inline typename QuotientType<Arg1T,Arg2T>::type operator()( Arg1T const& arg1, Arg2T const& arg2 ) const {
       if( arg2==Arg2T() ) return typename QuotientType<Arg1T,Arg2T>::type();
       else return (arg1/arg2);
     }

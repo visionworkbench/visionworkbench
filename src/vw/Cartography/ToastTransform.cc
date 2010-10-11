@@ -34,9 +34,9 @@ vw::Vector3 vw::cartography::ToastTransform::lonlat_to_unitvec(vw::Vector2 const
 // sphere.  In particular, maps (0,0) onto (0,0,1), (1,0) onto
 // (1,0,0), and (0,1) onto (0,1,0).
 //
-// Operates by tesselating one octant of an icosohedron 
-// iteratively down to roughly the level of one pixel 
-// at the requested resolution; then linearly interpolates 
+// Operates by tesselating one octant of an icosohedron
+// iteratively down to roughly the level of one pixel
+// at the requested resolution; then linearly interpolates
 // within the terminal triangle.
 vw::Vector3 vw::cartography::ToastTransform::octant_point_to_unitvec(double x, double y) const {
   Vector3 c1(0,0,1), c2(1,0,0), c3(0,1,0);
@@ -44,27 +44,27 @@ vw::Vector3 vw::cartography::ToastTransform::octant_point_to_unitvec(double x, d
   while( epsilon < 1.0 ) {
     if( x < 0.5 ) {
       if( y < 0.5 ) {
-	if( y < 0.5 - x ) {
-	  x = 2*x;
-	  y = 2*y;
-	  c2 = normalize(c1 + c2);
-	  c3 = normalize(c3 + c1);
-	}
-	else {
-	  x = 1-2*x;
-	  y = 1-2*y;
-	  Vector3 c12 = normalize(c1 + c2);
-	  Vector3 c31 = normalize(c3 + c1);
-	  c1 = normalize(c2 + c3);
-	  c2 = c31;
-	  c3 = c12;
-	}
+        if( y < 0.5 - x ) {
+          x = 2*x;
+          y = 2*y;
+          c2 = normalize(c1 + c2);
+          c3 = normalize(c3 + c1);
+        }
+        else {
+          x = 1-2*x;
+          y = 1-2*y;
+          Vector3 c12 = normalize(c1 + c2);
+          Vector3 c31 = normalize(c3 + c1);
+          c1 = normalize(c2 + c3);
+          c2 = c31;
+          c3 = c12;
+        }
       }
       else {
-	x = 2*x;
-	y = 2*y-1;
-	c2 = normalize(c2 + c3);
-	c1 = normalize(c3 + c1);
+        x = 2*x;
+        y = 2*y-1;
+        c2 = normalize(c2 + c3);
+        c1 = normalize(c3 + c1);
       }
     }
     else {
@@ -79,7 +79,7 @@ vw::Vector3 vw::cartography::ToastTransform::octant_point_to_unitvec(double x, d
 }
 
 
-// Maps the first octant of the unit sphere onto the unit right 
+// Maps the first octant of the unit sphere onto the unit right
 // triangle.  In particular, maps (0,0,1) onto (0,0), (1,0,0) onto
 // (1,0), and (0,1,0) onto (0,1).
 //
@@ -94,28 +94,28 @@ vw::Vector2 vw::cartography::ToastTransform::octant_unitvec_to_point(vw::Vector3
     Vector3 c23 = normalize(c2+c3);
     if( dot_prod(cross_prod(c12,c23),vec) > 0 ) {
       if( dot_prod(cross_prod(c23,c13),vec) > 0 ) {
-	if( dot_prod(cross_prod(c12,c13),vec) > 0 ) {
-	  c2 = c12;
-	  c3 = c13;
-	  p2 = (p1+p2)/2;
-	  p3 = (p1+p3)/2;
-	}
-	else {
-	  c1 = c23;
-	  c2 = c13;
-	  c3 = c12;
-	  Vector2 p12 = (p1+p2)/2;
-	  Vector2 p13 = (p1+p3)/2;
-	  p1 = (p2+p3)/2;
-	  p2 = p13;
-	  p3 = p12;
-	}
+        if( dot_prod(cross_prod(c12,c13),vec) > 0 ) {
+          c2 = c12;
+          c3 = c13;
+          p2 = (p1+p2)/2;
+          p3 = (p1+p3)/2;
+        }
+        else {
+          c1 = c23;
+          c2 = c13;
+          c3 = c12;
+          Vector2 p12 = (p1+p2)/2;
+          Vector2 p13 = (p1+p3)/2;
+          p1 = (p2+p3)/2;
+          p2 = p13;
+          p3 = p12;
+        }
       }
       else {
-	c1 = c13;
-	c2 = c23;
-	p1 = (p1+p3)/2;
-	p2 = (p2+p3)/2;
+        c1 = c13;
+        c2 = c23;
+        p1 = (p1+p3)/2;
+        p2 = (p2+p3)/2;
       }
     }
     else {
@@ -164,23 +164,23 @@ vw::Vector2 vw::cartography::ToastTransform::forward(vw::Vector2 const& point) c
     if( lon >= 0 ) {
       // Lower left: 0 to 90E
       if( lat < 0 ) {
-	Vector2 octpt = octant_lonlat_to_point(90-lonlat.x(), -lonlat.y());
-	return Vector2( octpt.x()/2, 1.0-octpt.y()/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(90-lonlat.x(), -lonlat.y());
+        return Vector2( octpt.x()/2, 1.0-octpt.y()/2 ) * (m_resolution-1);
       }
       else {
-	Vector2 octpt = octant_lonlat_to_point(lonlat.x(), lonlat.y());
-	return Vector2( (1.0-octpt.x())/2, 1.0-(1.0-octpt.y())/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(lonlat.x(), lonlat.y());
+        return Vector2( (1.0-octpt.x())/2, 1.0-(1.0-octpt.y())/2 ) * (m_resolution-1);
       }
     }
     else {
       // Upper left: 9 to 90W
       if( lat < 0 ) {
-	Vector2 octpt = octant_lonlat_to_point(90+lonlat.x(), -lonlat.y());
-	return Vector2( octpt.x()/2, 1.0-(2.0-octpt.y())/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(90+lonlat.x(), -lonlat.y());
+        return Vector2( octpt.x()/2, 1.0-(2.0-octpt.y())/2 ) * (m_resolution-1);
       }
       else {
-	Vector2 octpt = octant_lonlat_to_point(-lonlat.x(), lonlat.y());
-	return Vector2( (1-octpt.x())/2, 1.0-(octpt.y()+1.0)/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(-lonlat.x(), lonlat.y());
+        return Vector2( (1-octpt.x())/2, 1.0-(octpt.y()+1.0)/2 ) * (m_resolution-1);
       }
     }
   }
@@ -188,23 +188,23 @@ vw::Vector2 vw::cartography::ToastTransform::forward(vw::Vector2 const& point) c
     if( lon >= 0 ) {
       // Lower right: 90E to 180
       if( lat < 0 ) {
-	Vector2 octpt = octant_lonlat_to_point(lonlat.x()-90, -lonlat.y());
-	return Vector2( (2.0-octpt.x())/2, 1.0-octpt.y()/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(lonlat.x()-90, -lonlat.y());
+        return Vector2( (2.0-octpt.x())/2, 1.0-octpt.y()/2 ) * (m_resolution-1);
       }
       else {
-	Vector2 octpt = octant_lonlat_to_point(180-lonlat.x(), lonlat.y());
-	return Vector2( (octpt.x()+1)/2, 1.0-(1.0-octpt.y())/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(180-lonlat.x(), lonlat.y());
+        return Vector2( (octpt.x()+1)/2, 1.0-(1.0-octpt.y())/2 ) * (m_resolution-1);
       }
     }
     else {
       // Upper right: 90W to 180
       if( lat < 0 ) {
-	Vector2 octpt = octant_lonlat_to_point(-90-lonlat.x(), -lonlat.y());
-	return Vector2( (2.0-octpt.x())/2, 1.0-(2.0-octpt.y())/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(-90-lonlat.x(), -lonlat.y());
+        return Vector2( (2.0-octpt.x())/2, 1.0-(2.0-octpt.y())/2 ) * (m_resolution-1);
       }
       else {
-	Vector2 octpt = octant_lonlat_to_point(180+lonlat.x(), lonlat.y());
-	return Vector2( (octpt.x()+1.0)/2, 1.0-(octpt.y()+1.0)/2 ) * (m_resolution-1);
+        Vector2 octpt = octant_lonlat_to_point(180+lonlat.x(), lonlat.y());
+        return Vector2( (octpt.x()+1.0)/2, 1.0-(octpt.y()+1.0)/2 ) * (m_resolution-1);
       }
     }
   }
@@ -218,7 +218,7 @@ vw::Vector2 vw::cartography::ToastTransform::reverse(vw::Vector2 const& point) c
   // projection which we exploit here.  We first determine which
   // top-level triangle (i.e. which octant) the requested point lies
   // within.  We then map that octant onto a unit triangle, call
-  // octant_point_to_lonlat to project onto the sphere, and then 
+  // octant_point_to_lonlat to project onto the sphere, and then
   // rework the resulting lat/lon back into the proper octant.
   double x = point.x()/(m_resolution-1);
   double y = 1.0-point.y()/(m_resolution-1);
@@ -226,23 +226,23 @@ vw::Vector2 vw::cartography::ToastTransform::reverse(vw::Vector2 const& point) c
     if( y < 0.5 ) {
       // Lower left: 0 to 90E
       if( y < 0.5 - x ) {
-	Vector2 lonlat = octant_point_to_lonlat(2*x, 2*y);
-	return m_georef.lonlat_to_pixel(Vector2(90-lonlat.x(), -lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2*x, 2*y);
+        return m_georef.lonlat_to_pixel(Vector2(90-lonlat.x(), -lonlat.y()));
       }
       else {
-	Vector2 lonlat = octant_point_to_lonlat(1-2*x, 1-2*y);
-	return m_georef.lonlat_to_pixel(Vector2(lonlat.x(), lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(1-2*x, 1-2*y);
+        return m_georef.lonlat_to_pixel(Vector2(lonlat.x(), lonlat.y()));
       }
     }
     else {
       // Upper left: 0 to 90W
       if( y > 0.5 + x ) {
-	Vector2 lonlat = octant_point_to_lonlat(2*x, 2-2*y);
-	return m_georef.lonlat_to_pixel(Vector2(-90+lonlat.x(), -lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2*x, 2-2*y);
+        return m_georef.lonlat_to_pixel(Vector2(-90+lonlat.x(), -lonlat.y()));
       }
       else {
-	Vector2 lonlat = octant_point_to_lonlat(1-2*x,2*y-1);
-	return m_georef.lonlat_to_pixel(Vector2(-lonlat.x(), lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(1-2*x,2*y-1);
+        return m_georef.lonlat_to_pixel(Vector2(-lonlat.x(), lonlat.y()));
       }
     }
   }
@@ -250,30 +250,30 @@ vw::Vector2 vw::cartography::ToastTransform::reverse(vw::Vector2 const& point) c
     // Lower right: 90E to 180
     if( y < 0.5 ) {
       if( y < x - 0.5 ) {
-	Vector2 lonlat = octant_point_to_lonlat(2-2*x, 2*y);
-	return m_georef.lonlat_to_pixel(Vector2(90+lonlat.x(), -lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2-2*x, 2*y);
+        return m_georef.lonlat_to_pixel(Vector2(90+lonlat.x(), -lonlat.y()));
       }
       else {
-	Vector2 lonlat = octant_point_to_lonlat(2*x-1, 1-2*y);
-	return m_georef.lonlat_to_pixel(Vector2(180-lonlat.x(), lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2*x-1, 1-2*y);
+        return m_georef.lonlat_to_pixel(Vector2(180-lonlat.x(), lonlat.y()));
       }
     }
     else {
       // Upper right: 90W to 180
       if( y > 1.5 - x ) {
-	Vector2 lonlat = octant_point_to_lonlat(2-2*x, 2-2*y);
-	return m_georef.lonlat_to_pixel(Vector2(-90-lonlat.x(), -lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2-2*x, 2-2*y);
+        return m_georef.lonlat_to_pixel(Vector2(-90-lonlat.x(), -lonlat.y()));
       }
       else {
-	Vector2 lonlat = octant_point_to_lonlat(2*x-1, 2*y-1);
-	return m_georef.lonlat_to_pixel(Vector2(-180+lonlat.x(), lonlat.y()));
+        Vector2 lonlat = octant_point_to_lonlat(2*x-1, 2*y-1);
+        return m_georef.lonlat_to_pixel(Vector2(-180+lonlat.x(), lonlat.y()));
       }
     }
   }
 }
 
 
-// We override forward_bbox so it understands to check if the image 
+// We override forward_bbox so it understands to check if the image
 // crosses the poles or not.
 vw::BBox2i vw::cartography::ToastTransform::forward_bbox( vw::BBox2i const& bbox ) const {
   // If the source bounding box contains the south pole, then the dest
@@ -344,7 +344,7 @@ void vw::cartography::ToastTransform::reverse_bbox_poles(vw::BBox2 const& dst_bb
 }
 
 
-// A heuristic that back-projects a line on to a conservative 
+// A heuristic that back-projects a line on to a conservative
 // bounding box.  Used by SparseImageCheck.
 //
 // Sample the line connecting the two points in TOAST image space

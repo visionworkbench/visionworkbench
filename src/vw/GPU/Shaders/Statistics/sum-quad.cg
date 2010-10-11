@@ -6,8 +6,8 @@
 
 
 void main(in float2 texCoord0 : TEXCOORD0,
-	uniform samplerRECT image,
-	out float4 color : COLOR ) 
+        uniform samplerRECT image,
+        out float4 color : COLOR )
 {
    float cSum = 0;
    cSum += texRECT(image, texCoord0).r;

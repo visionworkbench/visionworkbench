@@ -197,7 +197,7 @@ namespace vw {
         retval.push_back("AAIGrid");
       } else if (ext == ".adf") {                // Arc/Info Binary Grid
         retval.push_back("AIG");
-      } else if (ext == ".doq") {                // New Labelled USGS DOQ 
+      } else if (ext == ".doq") {                // New Labelled USGS DOQ
         retval.push_back("DOQ2");
       } else if (ext == ".dt0" || ext == ".dt1" || ext == ".dt2") { // Military Elevation Data
         retval.push_back("DTED");
@@ -489,13 +489,13 @@ namespace vw {
     if (!dataset)
       vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not get native block size.  No file is open.");
 
-    // GDAL assumes a single-row stripsize even for file formats like PNG for 
-    // which it does not support true strip access.  Thus, we check the file 
+    // GDAL assumes a single-row stripsize even for file formats like PNG for
+    // which it does not support true strip access.  Thus, we check the file
     // driver type before accepting GDAL's suggested block size.
     if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
          dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ||
          dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2ECW") ||
-	 dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2KAK") ) {
+         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2KAK") ) {
       GDALRasterBand *band = dataset->GetRasterBand(1);
       int xsize, ysize;
       band->GetBlockSize(&xsize,&ysize);

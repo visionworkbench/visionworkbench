@@ -33,7 +33,7 @@ namespace stereo {
       l_likelihood = INFINITY;
       image_c = crop(transform(edge_extend(image_r, ZeroEdgeExtension()), T), window);
     }
-    
+
     void reset(BBox2i left_window,
                ImageView<PrecisionT> const& g) {
       fill(w, 1.);
@@ -50,7 +50,7 @@ namespace stereo {
       std::cout << prefix << "sigma = " << s << std::endl;
     }
 
-    void fit_parameters() { 
+    void fit_parameters() {
       // weights only used here, so transform the weights into the
       // correct space only here
 
