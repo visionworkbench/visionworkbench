@@ -433,7 +433,7 @@ namespace math {
   class Matrix<ElemT,0,0> : public MatrixBase<Matrix<ElemT> > {
     typedef VarArray<ElemT> core_type;
     core_type core_;
-    size_t m_rows, m_cols;
+    unsigned m_rows, m_cols;
   public:
     typedef ElemT value_type;
 
@@ -504,13 +504,13 @@ namespace math {
     unsigned cols() const { return m_cols; }
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( size_t rows, size_t cols, bool preserve = false ) {
+    void set_size( unsigned rows, unsigned cols, bool preserve = false ) {
       if( preserve ) {
         VarArray<ElemT> other(rows*cols);
-        size_t mr = (std::min)(rows,m_rows);
-        size_t mc = (std::min)(cols,m_cols);
-        for( size_t r=0; r<mr; ++r )
-          for( size_t c=0; c<mc; ++c )
+        unsigned mr = (std::min)(rows,m_rows);
+        unsigned mc = (std::min)(cols,m_cols);
+        for( unsigned r=0; r<mr; ++r )
+          for( unsigned c=0; c<mc; ++c )
             other[r*cols+c] = core_[r*m_cols+c];
         core_.swap( other );
       }

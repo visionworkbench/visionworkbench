@@ -23,7 +23,7 @@ vw::TerminalProgressCallback::TerminalProgressCallback( MessageLevel level, std:
     vw_throw( ArgumentErr() << "TerminalProgressBar must be message level InfoMessage or higher." );
 
   // Calculating bar length
-  m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;
+  m_bar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) - 4 - 3;
   if ( m_precision > 0 )
     m_bar_length -= m_precision + 1; // 1 for decimal point
 }
@@ -48,9 +48,9 @@ void vw::TerminalProgressCallback::report_aborted(std::string why) const {
 
 void vw::TerminalProgressCallback::report_finished() const {
   Mutex::Lock lock(m_mutex);
-  uint32_t cbar_length = m_max_characters - m_pre_progress_text.size()-12;
+  uint32 cbar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) -12;
   std::ostringstream p;
-  for ( uint32_t i = 0; i < cbar_length; i++ )
+  for ( uint32 i = 0; i < cbar_length; i++ )
     p << "*";
   vw_out(m_level, m_namespace) << "\r" << m_pre_progress_text
                                << "[" << p.str() << "] Complete!\n";

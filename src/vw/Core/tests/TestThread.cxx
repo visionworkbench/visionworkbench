@@ -98,7 +98,7 @@ TEST(Thread, ThreadAndMutex) {
 TEST(Thread, ThreadId) {
 
   // Start by testing my own ID.
-  int id;
+  int64 id;
   id = Thread::id();
   ASSERT_EQ( 0, id );
 

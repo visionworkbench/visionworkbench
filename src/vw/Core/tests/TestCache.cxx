@@ -52,7 +52,7 @@ class CacheTest : public ::testing::Test {
 
     CacheTest() :
       cache( num_cache_blocks*dimension*dimension ), cache_handles( num_actual_blocks ) {
-        for (int i = 0; i < num_actual_blocks; ++i) {
+        for (uint8 i = 0; i < num_actual_blocks; ++i) {
           cache_handles[i] = cache.insert( BlockGenerator( dimension, i ) );
         }
     }

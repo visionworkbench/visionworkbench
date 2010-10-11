@@ -80,7 +80,7 @@ namespace vw {
       const Stopwatch &sw(sorted[i].second);
 
       double elapsed = sw.elapsed_seconds();
-      int n = sw.num_stops();
+      uint32 n = sw.num_stops();
 
       out << elapsed;
       if (n) out << " (avg " << elapsed / n << " x " << n << ")";

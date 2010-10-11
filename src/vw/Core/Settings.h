@@ -38,13 +38,13 @@ namespace vw {
   class Settings : private boost::noncopyable {
 
     // Vision Workbench Global Settings
-    int m_default_num_threads;
+    uint32 m_default_num_threads;
     bool m_default_num_threads_override;
     size_t m_system_cache_size;
     bool m_system_cache_size_override;
-    size_t m_write_pool_size;
+    uint32 m_write_pool_size;
     bool m_write_pool_size_override;
-    int m_default_tile_size;
+    uint32 m_default_tile_size;
     bool m_default_tile_size_override;
     std::string m_tmp_directory;
     bool m_tmp_directory_override;
@@ -85,7 +85,7 @@ namespace vw {
 
     /// Query for the default number of threads used in block
     /// processing operations.
-    int default_num_threads();
+    uint32 default_num_threads();
 
     /// Set the default number of threads used in block processing
     /// operations.
@@ -101,19 +101,19 @@ namespace vw {
     void set_system_cache_size(size_t size);
 
     /// Query for the default tile size used for block processing ops.
-    int default_tile_size();
+    uint32 default_tile_size();
 
     /// Set the default tile size to be used for block processing.
-    void set_default_tile_size(int num);
+    void set_default_tile_size(uint32 num);
 
     /// Query for write pool size in number of threads
-    int write_pool_size();
+    uint32 write_pool_size();
 
     /// Set the current write cache size. Write cache is only used in
     /// block writing. In that code this number is used to determine how many
     /// threads can be used for waiting to write. Use this number and file
     /// cache size to define the amount of memory to be used.
-    void set_write_pool_size(int size);
+    void set_write_pool_size(uint32 size);
 
     /// Query for the directory being used to store temporary files.
     std::string tmp_directory();

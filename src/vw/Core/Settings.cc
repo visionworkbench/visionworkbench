@@ -187,7 +187,7 @@ vw::Settings& vw::vw_settings() {
 //                        Settings API
 // -----------------------------------------------------------------
 
-int vw::Settings::default_num_threads() {
+vw::uint32 vw::Settings::default_num_threads() {
   if (!m_default_num_threads_override)
     reload_config();
   Mutex::Lock lock(m_settings_mutex);
@@ -228,14 +228,14 @@ void vw::Settings::set_system_cache_size(size_t size) {
   vw_system_cache().resize(size);
 }
 
-int vw::Settings::write_pool_size(void) {
+vw::uint32 vw::Settings::write_pool_size() {
   if (!m_write_pool_size_override)
     reload_config();
   Mutex::Lock lock(m_settings_mutex);
   return m_write_pool_size;
 }
 
-void vw::Settings::set_write_pool_size(int size) {
+void vw::Settings::set_write_pool_size(vw::uint32 size) {
   {
     Mutex::Lock lock(m_settings_mutex);
     m_write_pool_size_override = true;
@@ -243,14 +243,14 @@ void vw::Settings::set_write_pool_size(int size) {
   }
 }
 
-int vw::Settings::default_tile_size() {
+vw::uint32 vw::Settings::default_tile_size() {
   if (!m_default_tile_size_override)
     reload_config();
   Mutex::Lock lock(m_settings_mutex);
   return m_default_tile_size;
 }
 
-void vw::Settings::set_default_tile_size(int num) {
+void vw::Settings::set_default_tile_size(vw::uint32 num) {
   Mutex::Lock lock(m_settings_mutex);
   m_default_tile_size_override = true;
   m_default_tile_size = num;

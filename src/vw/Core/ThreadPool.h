@@ -220,7 +220,7 @@ namespace vw {
 
     FifoWorkQueue(int num_threads = vw_settings().default_num_threads()) : WorkQueue(num_threads) {}
 
-    int size() {
+    size_t size() {
       Mutex::Lock lock(m_mutex);
       return m_queued_tasks.size();
     }
@@ -259,7 +259,7 @@ namespace vw {
       m_next_index = 0;
     }
 
-    int size() {
+    size_t size() {
       Mutex::Lock lock(m_mutex);
       return m_queued_tasks.size();
     }

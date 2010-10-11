@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <vw/Core/CompoundTypes.h>
+#include <boost/numeric/conversion/cast.hpp>
 
 using namespace vw;
 
@@ -23,7 +24,7 @@ public:
 };
 
 // Simple functions to test the compound_apply logic.
-template <class T> T add( T const& a, T const& b ) { return a + b; }
+template <class T> T add( T const& a, T const& b ) { return boost::numeric_cast<T>(a + b); }
 template <class T> void add_in_place( T& a, T const& b ) { a += b; }
 template <class T> T add_one( T const& val ) { return val + 1; }
 template <class T> void add_one_in_place( T& val ) { val += 1; }
@@ -105,21 +106,21 @@ TEST(CompoundTypes, Traits) {
 }
 
 TEST(CompoundTypes, CompoundSelectChannel) {
-  uint8 vali = 3;
-  EXPECT_EQ( 3, compound_select_channel<const uint8&>(vali,0) );
-  compound_select_channel<uint8&>(vali,0) = 5;
-  EXPECT_EQ( 5, compound_select_channel<const uint8&>(vali,0) );
+  uint32 vali = 3;
+  EXPECT_EQ( 3, compound_select_channel<const uint32&>(vali,0) );
+  compound_select_channel<uint32&>(vali,0) = 5;
+  EXPECT_EQ( 5, compound_select_channel<const uint32&>(vali,0) );
   float valf = 4.0;
   EXPECT_EQ( 4.0, compound_select_channel<const float&>(valf,0) );
   compound_select_channel<float&>(valf,0) = 6;
   EXPECT_EQ( 6.0, compound_select_channel<const float&>(valf,0) );
-  TestCompound<uint8> valci( 1, 2 );
-  EXPECT_EQ( 1, compound_select_channel<const uint8&>(valci,0) );
-  EXPECT_EQ( 2, compound_select_channel<const uint8&>(valci,1) );
-  compound_select_channel<uint8&>(valci,0) = 3;
-  compound_select_channel<uint8&>(valci,1) = 4;
-  EXPECT_EQ( 3, compound_select_channel<const uint8&>(valci,0) );
-  EXPECT_EQ( 4, compound_select_channel<const uint8&>(valci,1) );
+  TestCompound<uint32> valci( 1, 2 );
+  EXPECT_EQ( 1, compound_select_channel<const uint32&>(valci,0) );
+  EXPECT_EQ( 2, compound_select_channel<const uint32&>(valci,1) );
+  compound_select_channel<uint32&>(valci,0) = 3;
+  compound_select_channel<uint32&>(valci,1) = 4;
+  EXPECT_EQ( 3, compound_select_channel<const uint32&>(valci,0) );
+  EXPECT_EQ( 4, compound_select_channel<const uint32&>(valci,1) );
   TestCompound<float> valcf( 2.0, 3.0 );
   EXPECT_EQ( 2.0, compound_select_channel<const float&>(valcf,0) );
   EXPECT_EQ( 3.0, compound_select_channel<const float&>(valcf,1) );
@@ -130,11 +131,11 @@ TEST(CompoundTypes, CompoundSelectChannel) {
 }
 
 TEST(CompoundTypes, BinaryCompoundApply) {
-  uint8 ai=1, bi=2, ci=compound_apply(&add<uint8>, ai, bi);
+  uint32 ai=1, bi=2, ci=compound_apply(&add<uint32>, ai, bi);
   EXPECT_EQ( 3, ci );
   float af=1.0, bf=2.0, cf=compound_apply(&add<float>, af, bf);
   EXPECT_EQ( 3.0, cf );
-  TestCompound<uint8> aci(1,2), bci(3,4), cci=compound_apply(&add<uint8>, aci, bci);
+  TestCompound<uint32> aci(1,2), bci(3,4), cci=compound_apply(&add<uint32>, aci, bci);
   EXPECT_EQ( 4, cci[0] );
   EXPECT_EQ( 6, cci[1] );
   TestCompound<float> acf(1,2), bcf(3,4), ccf=compound_apply(&add<float>, acf, bcf);
@@ -143,14 +144,14 @@ TEST(CompoundTypes, BinaryCompoundApply) {
 }
 
 TEST(CompoundTypes, BinaryCompoundApplyInPlace) {
-  uint8 ai=1, bi=2;
-  compound_apply_in_place(&add_in_place<uint8>, ai, bi);
+  uint32 ai=1, bi=2;
+  compound_apply_in_place(&add_in_place<uint32>, ai, bi);
   EXPECT_EQ( 3, ai );
   float af=1.0, bf=2.0;
   compound_apply_in_place(&add_in_place<float>, af, bf);
   EXPECT_EQ( 3.0, af );
-  TestCompound<uint8> aci(1,2), bci(3,4);
-  compound_apply_in_place(&add_in_place<uint8>, aci, bci);
+  TestCompound<uint32> aci(1,2), bci(3,4);
+  compound_apply_in_place(&add_in_place<uint32>, aci, bci);
   EXPECT_EQ( 4, aci[0] );
   EXPECT_EQ( 6, aci[1] );
   TestCompound<float> acf(1,2), bcf(3,4);
@@ -160,11 +161,11 @@ TEST(CompoundTypes, BinaryCompoundApplyInPlace) {
 }
 
 TEST(CompoundTypes, UnaryCompoundApply) {
-  uint8 ai=1, bi=compound_apply(&add_one<uint8>, ai);
+  uint32 ai=1, bi=compound_apply(&add_one<uint32>, ai);
   EXPECT_EQ( 2, bi );
-  uint8 af=1.0, bf=compound_apply(&add_one<float>, af);
+  float af=1.0, bf=compound_apply(&add_one<float>, af);
   EXPECT_EQ( 2.0, bf );
-  TestCompound<uint8> aci(1,2), bci=compound_apply(&add_one<uint8>, aci);
+  TestCompound<uint32> aci(1,2), bci=compound_apply(&add_one<uint32>, aci);
   EXPECT_EQ( 2, bci[0] );
   EXPECT_EQ( 3, bci[1] );
   TestCompound<float> acf(1,2), bcf=compound_apply(&add_one<float>, acf);
@@ -173,8 +174,8 @@ TEST(CompoundTypes, UnaryCompoundApply) {
 }
 
 TEST(CompoundTypes, UnaryCompoundApplyInPlace) {
-  uint8 vali = 0;
-  compound_apply_in_place( &add_one_in_place<uint8>, vali );
+  uint32 vali = 0;
+  compound_apply_in_place( &add_one_in_place<uint32>, vali );
   EXPECT_EQ( 1.0, vali );
   double valf = 0.0;
   compound_apply_in_place( &add_one_in_place<double>, valf );

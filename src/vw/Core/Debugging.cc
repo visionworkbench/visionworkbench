@@ -10,6 +10,7 @@
 /// Types and functions to assist in debugging code.
 ///
 #include <vw/Core/Debugging.h>
+#include <boost/numeric/conversion/cast.hpp>
 
 #include <iostream>
 
@@ -37,8 +38,8 @@ vw::Timer::~Timer() {
 #else
   timeval end;
   gettimeofday( &end, 0 );
-  double duration = end.tv_sec - m_begin.tv_sec;
-  duration += (end.tv_usec - m_begin.tv_usec)/1.0e6;
+  double duration = boost::numeric_cast<double>(end.tv_sec - m_begin.tv_sec);
+  duration += boost::numeric_cast<double>(end.tv_usec - m_begin.tv_usec)/1.0e6;
 #endif
   vw_out(m_level, m_log_namespace) << m_desc << ": " << duration << std::endl;
 }

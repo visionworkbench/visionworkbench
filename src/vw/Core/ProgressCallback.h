@@ -135,16 +135,16 @@ namespace vw {
     std::string m_namespace;
     std::string m_pre_progress_text;
     mutable double m_last_reported_progress;
-    uint32_t m_precision;
+    uint32 m_precision;
     double  m_step;
 
-    static const uint32_t m_max_characters = 80;
-    uint32_t m_bar_length;
+    static const uint32 m_max_characters = 80;
+    uint32 m_bar_length;
 
     void calculate_bar_length() {
       VW_ASSERT( m_pre_progress_text.size()+8+m_precision < 80,
                  ArgumentErr() << "Pre-progress Text or Precision too big to allow progress bar to fit inside 80 char" );
-      m_bar_length = m_max_characters - m_pre_progress_text.size() - 4 - 3;
+      m_bar_length = m_max_characters - static_cast<uint32>(m_pre_progress_text.size()) - 4 - 3;
       if ( m_precision > 0 )
         m_bar_length -= m_precision + 1; // 1 for decimal point
     }

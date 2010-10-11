@@ -161,7 +161,7 @@ namespace vw {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=int_fast32_t(1e6*milliseconds);
+      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
       return boost::condition::timed_wait(lock, xt);
     }
 
@@ -173,7 +173,7 @@ namespace vw {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=int_fast32_t(1e6*milliseconds);
+      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
       return boost::condition::timed_wait(lock, xt, pred);
     }
   };
@@ -248,14 +248,14 @@ namespace vw {
     /// time.  The thread will not be scheduled to run at all for the
     /// duration, so machine resources are free for other
     /// threads/processes.
-    static inline void sleep_ms( unsigned long milliseconds ) {
+    static inline void sleep_ms( uint32 milliseconds ) {
       boost::xtime xt;
       boost::xtime_get(&xt, boost::TIME_UTC);
       while (milliseconds >= 1000) {
         xt.sec++;
         milliseconds -= 1000;
       }
-      xt.nsec+=boost::int_fast32_t(1e6*milliseconds);
+      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
       boost::thread::sleep(xt);
     }
   };

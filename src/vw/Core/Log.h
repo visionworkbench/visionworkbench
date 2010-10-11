@@ -28,6 +28,7 @@
 
 // Boost Headers
 #include <boost/algorithm/string.hpp>
+#include <boost/numeric/conversion/cast.hpp>
 
 // STD Headers
 #include <string>
@@ -118,7 +119,7 @@ namespace vw {
       stream_iterator end = m_streams.end();
 
       for(; current != end; ++current)
-        (*current)->put(c);
+        (*current)->put(static_cast<CharT>(c));
       return c;
     }
 
@@ -197,7 +198,7 @@ namespace vw {
     // logs to) many, many threads.  We should think carefully about
     // cleaning up this map structure from time to time.
     typedef std::vector<CharT> buffer_type;
-    typedef std::map<int, buffer_type> lookup_table_type;
+    typedef std::map<vw::uint64, buffer_type> lookup_table_type;
     lookup_table_type m_buffers;
 
     std::basic_streambuf<CharT, traits>* m_out;
@@ -211,7 +212,7 @@ namespace vw {
       buffer_type& buffer = m_buffers[ Thread::id() ];
 
       if(!traits::eq_int_type(c, traits::eof())) {
-        buffer.push_back(c);
+        buffer.push_back(static_cast<CharT>(c));
       }
 
       // If the last character is a newline or cairrage return, then
@@ -231,7 +232,7 @@ namespace vw {
       // character string *ends* with a newline, thereby flushing the
       // buffer and printing a line to the log file.
       if ( buffer.size() > 0 ) {
-        int last_char_position = buffer.size()-1;
+        size_t last_char_position = buffer.size()-1;
 
         if ( buffer[last_char_position] == '\n' ||
              buffer[last_char_position] == '\r' )
@@ -243,7 +244,7 @@ namespace vw {
     // You must call this with the lock already held!
     int locked_sync(buffer_type& buffer) {
       if(!buffer.empty() && m_out ) {
-        m_out->sputn(&buffer[0], static_cast<std::streamsize>(buffer.size()));
+        m_out->sputn(&buffer[0], boost::numeric_cast<std::streamsize>(buffer.size()));
         m_out->pubsync();
         buffer.clear();
       }
@@ -422,7 +423,7 @@ namespace vw {
     // ostreams here.  The tricky thing is that once we return the
     // ostream, we don't know how long the thread will use it before
     // it can be safely de-allocated.
-    std::map<int, boost::shared_ptr<multi_ostream> > m_multi_ostreams;
+    std::map<vw::uint64, boost::shared_ptr<multi_ostream> > m_multi_ostreams;
 
   public:
 

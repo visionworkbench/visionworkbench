@@ -67,5 +67,5 @@ TEST(FundamentalTypes, Numeric) {
   std::stringstream s;
   s << vw::_numeric(vw::uint8(42)) << vw::_numeric(vw::int8(-42));
   EXPECT_STREQ( "42-42", s.str().c_str() );
-  EXPECT_FLOAT_EQ( 4.2, vw::_numeric(4.2) );
+  EXPECT_FLOAT_EQ( 4.2f, vw::_numeric(4.2f) );
 }

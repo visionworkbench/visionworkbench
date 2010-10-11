@@ -26,8 +26,8 @@ namespace vw {
     struct data {
       uint64 m_total_elapsed; // in microseconds
       uint64 m_last_start;    // from Stopwatch::microtime
-      uint64 m_startdepth;
-      uint64 m_numstops;
+      uint32 m_startdepth;
+      uint32 m_numstops;
       mutable Mutex m_mutex;
       data() :  m_total_elapsed(0),
                 m_last_start(0),
@@ -71,7 +71,7 @@ namespace vw {
       return (double)elapsed_microseconds() / 1000000.;
     }
 
-    uint64 num_stops() const {
+    uint32 num_stops() const {
       return m_data->m_numstops;
     }
 
