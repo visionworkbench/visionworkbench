@@ -4,7 +4,6 @@
 #include <vw/Mosaic/GMapQuadTreeConfig.h>
 #include <vw/Mosaic/KMLQuadTreeConfig.h>
 #include <vw/Mosaic/TMSQuadTreeConfig.h>
-#include <vw/Mosaic/ToastQuadTreeConfig.h>
 #include <vw/Mosaic/UniviewQuadTreeConfig.h>
 
 using namespace vw;
@@ -12,19 +11,20 @@ using namespace vw::mosaic;
 
 boost::shared_ptr<QuadTreeConfig> QuadTreeConfig::make(const std::string& type) {
   typedef boost::shared_ptr<QuadTreeConfig> ptr_t;
+  std::string utype = boost::to_upper_copy(type);
 
-  if (type == "celestia")
+  if (utype == "CELESTIA")
     return ptr_t(new CelestiaQuadTreeConfig());
-  else if (type == "gigapan" || type == "gigapan-noproj")
+  else if (utype == "GIGAPAN" || utype == "GIGAPAN_NOPROJ")
     return ptr_t(new GigapanQuadTreeConfig());
-  else if (type == "gmap")
+  else if (utype == "GMAP")
     return ptr_t(new GMapQuadTreeConfig());
-  else if (type == "kml")
+  else if (utype == "KML")
     return ptr_t(new KMLQuadTreeConfig());
-  else if (type == "tms")
+  else if (utype == "TMS")
     return ptr_t(new TMSQuadTreeConfig());
-  else if (type == "uniview")
+  else if (utype == "UNIVIEW")
     return ptr_t(new UniviewQuadTreeConfig());
   else
-    vw_throw(NoImplErr() << "Unknown quad tree type: " << type);
+    vw_throw(NoImplErr() << "Unknown quad tree type: " << utype);
 }

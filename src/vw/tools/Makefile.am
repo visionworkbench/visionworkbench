@@ -12,7 +12,13 @@
 # For simplicity, these example applications depend on exceptions
 if ENABLE_EXCEPTIONS
 
-COMMON_LIBS = @PKG_TOOLS_LIBS@
+include_HEADERS = Common.h
+libvwTools_la_SOURCES = Common.cc
+libvwTools_la_LIBADD = @PKG_TOOLS_LIBS@
+libvwTools_la_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
+lib_LTLIBRARIES = libvwTools.la
+
+COMMON_LIBS = libvwTools.la
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
@@ -174,6 +180,6 @@ AM_LDFLAGS = @VW_LDFLAGS@
 
 EXTRA_DIST = run_ba_tests_lib ba_test.cfg.example ba_test_plan.txt.example
 
-includedir = $(prefix)/include/vw
+includedir = $(prefix)/include/vw/tools
 
 include $(top_srcdir)/config/rules.mak

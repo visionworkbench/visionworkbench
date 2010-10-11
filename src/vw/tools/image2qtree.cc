@@ -12,11 +12,7 @@
 /// programs, such as Google Earth. Currently, the program supports output
 /// in KML, TMS, Uniview, and Google Maps formats.
 
-#ifdef _MSC_VER
-#pragma warning(disable:4244)
-#pragma warning(disable:4267)
-#pragma warning(disable:4996)
-#endif
+#include <vw/tools/Common.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -26,13 +22,14 @@
 #include <boost/program_options.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>
+#include <boost/assign/list_of.hpp>
+#include <boost/foreach.hpp>
 namespace po = boost::program_options;
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Image/Transform.h>
-#include <vw/Image/Palette.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
@@ -46,80 +43,175 @@ using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
 using namespace vw::mosaic;
+using std::string;
+using vw::tools::Usage;
+using vw::tools::Tristate;
+using std::cout;
+using std::cerr;
+using std::endl;
 
-// Global variables
-std::vector<std::string> image_files;
-std::string output_file_name = "";
-std::string output_file_type;
-std::string output_metadata;
-std::string module_name;
-double nudge_x=0, nudge_y=0;
-double north=90.0, south=-90.0;
-double east=180.0, west=-180.0;
-double proj_lat=0, proj_lon=0, proj_scale=1;
-int utm_zone;
-int tile_size;
-float jpeg_quality;
-int png_compression;
-std::string palette_file;
-std::string channel_type_str;
-float palette_scale=1.0, palette_offset=0.0;
-int draw_order_offset; // KML only.
-int max_lod_pixels; // KML only.
-float pixel_scale=1.0, pixel_offset=0.0;
-double lcc_parallel1, lcc_parallel2;
-int aspect_ratio=1;
-int global_resolution=0;
-bool terrain=false;
-float nodata=0;
-float user_spherical_datum=0;
+VW_DEFINE_ENUM(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
+VW_DEFINE_ENUM(Mode, 8, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN, GIGAPAN_NOPROJ));
+VW_DEFINE_ENUM(DatumOverride, 5, (NONE, WGS84, LUNAR, MARS, SPHERE))
+VW_DEFINE_ENUM(Projection, 9, (
+    SINUSOIDAL,
+    MERCATOR,
+    TRANSVERSE_MERCATOR,
+    ORTHOGRAPHIC,
+    STEREOGRAPHIC,
+    LAMBERT_AZIMUTHAL,
+    LAMBERT_CONFORMAL_CONIC,
+    UTM,
+    PLATE_CARREE))
+
+struct Options {
+  Options() :
+    output_file_type("png"),
+    module_name("", true),
+    tile_size(256),
+    jpeg_quality(0, true),
+    png_compression(0, true),
+    pixel_scale(1),
+    pixel_offset(0),
+    aspect_ratio(1),
+    global_resolution(0, true),
+    nodata(0, true),
+    north(0, true), south(0, true),
+    east(0, true), west(0, true),
+    channel_type(Channel::NONE),
+    multiband(false),
+    help(false),
+    normalize(false),
+    terrain(false),
+    manual(false) {}
+
+  std::vector<string> input_files;
+
+  string output_file_name;
+  Tristate<string> output_file_type;
+  Tristate<string> module_name;
+  Tristate<double> nudge_x, nudge_y;
+  Tristate<uint32> tile_size;
+  Tristate<float>  jpeg_quality;
+  Tristate<uint32> png_compression;
+  Tristate<float>  pixel_scale, pixel_offset;
+  Tristate<int32>  aspect_ratio;
+  Tristate<uint32> global_resolution;
+  Tristate<float>  nodata;
+  Tristate<float>  north, south, east, west;
+
+  Channel channel_type;
+  Mode mode;
+
+  bool multiband;
+  bool help;
+  bool normalize;
+  bool terrain;
+  bool manual;
+
+  struct {
+    uint32 draw_order_offset;
+    uint32 max_lod_pixels;
+  } kml;
+
+  struct proj_{
+    Projection type;
+    Tristate<double> lat, lon, scale /*=1*/;
+    Tristate<double> p1, p2;
+    Tristate<int32> utm_zone;
+    proj_() :
+      type(Projection::PLATE_CARREE),
+      scale(1),
+      utm_zone(0, true) {}
+  } proj;
+
+  struct datum_ {
+    DatumOverride type;
+    Tristate<float> sphere_radius;
+    datum_() : type(DatumOverride::NONE), sphere_radius(0, true) {}
+  } datum;
+
+  void validate() {
+    VW_ASSERT(!help, Usage());
+    VW_ASSERT(input_files.size() > 0, Usage() << "Need at least one input image");
+
+    if (datum.type == DatumOverride::SPHERE)
+      VW_ASSERT(datum.sphere_radius.set(), Usage() << "Sphere datum override requires a radius");
+
+    if(output_file_name.empty())
+      output_file_name = fs::path(input_files[0]).replace_extension().string();
+
+    if (north.set() || south.set() || east.set() || west.set()) {
+      VW_ASSERT(input_files.size() == 1,
+          Usage() << "Cannot override georeference information on multiple images");
+      VW_ASSERT(north.set() && south.set() && east.set() && west.set(),
+          Usage() << "If you provide one, you must provide all of: --north --south --east --west");
+      manual = true;
+    }
+
+    switch (mode) {
+      case Mode::NONE:
+      case Mode::GIGAPAN_NOPROJ:
+        VW_ASSERT(input_files.size() == 1, Usage() << "Non-georeferenced images cannot be composed");
+        break;
+      case Mode::CELESTIA:
+      case Mode::UNIVIEW:
+        VW_ASSERT(module_name.set(), Usage() << "Uniview and Celestia require --module-name");
+        break;
+      default:
+        /* nothing */
+        break;
+    }
+
+    if (jpeg_quality.set())
+      DiskImageResourceJPEG::set_default_quality( jpeg_quality );
+    if (png_compression.set())
+      DiskImageResourcePNG::set_default_compression_level( png_compression );
+  }
+};
 
 // For image stretching.
-float lo_value = ScalarTypeLimits<float>::highest();
-float hi_value = ScalarTypeLimits<float>::lowest();
+static float lo_value = ScalarTypeLimits<float>::highest();
+static float hi_value = ScalarTypeLimits<float>::lowest();
 
-// Function pointers for computing resolution.
-std::map<std::string, vw::int32 (*)(const GeoTransform&, const Vector2&)> str_to_resolution_fn_map;
-
-// Fill the maps for converting input strings to function pointers.
-static void fill_input_maps() {
-  str_to_resolution_fn_map[std::string("none")]     = NULL;
-  str_to_resolution_fn_map[std::string("kml")]      = &vw::cartography::output::kml::compute_resolution;
-  str_to_resolution_fn_map[std::string("tms")]      = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("uniview")]  = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("gmap")]     = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("celestia")] = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("gigapan")]  = &vw::cartography::output::tms::compute_resolution;
-  str_to_resolution_fn_map[std::string("gigapan-noproj")] = NULL;
+vw::int32 compute_resolution(const Mode& p, const GeoTransform& t, const Vector2& v) {
+  switch(p.value()) {
+    case Mode::KML:      return vw::cartography::output::kml::compute_resolution(t,v);
+    case Mode::TMS:      return vw::cartography::output::tms::compute_resolution(t,v);
+    case Mode::UNIVIEW:  return vw::cartography::output::tms::compute_resolution(t,v);
+    case Mode::GMAP:     return vw::cartography::output::tms::compute_resolution(t,v);
+    case Mode::CELESTIA: return vw::cartography::output::tms::compute_resolution(t,v);
+    case Mode::GIGAPAN:  return vw::cartography::output::tms::compute_resolution(t,v);
+    default: vw_throw(LogicErr() << "Asked to compute resolution for unknown profile " << p.string());
+  }
 }
 
-static void get_normalize_vals(std::string filename, DiskImageResourceGDAL &file_resource,
-                               bool use_nodata ) {
+static void get_normalize_vals(DiskImageResourceGDAL &file, const Options& opt) {
 
-  DiskImageView<PixelRGBA<float> > min_max_file(filename);
+  DiskImageView<PixelRGBA<float> > min_max_file(&file);
   float new_lo, new_hi;
-  if ( use_nodata ) {
-    PixelRGBA<float> no_data_value( nodata );
+  if ( opt.nodata.set() ) {
+    PixelRGBA<float> no_data_value( opt.nodata.value() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
-  } else if ( file_resource.has_nodata_value() ) {
-    PixelRGBA<float> no_data_value( file_resource.nodata_value() );
+  } else if ( file.has_nodata_value() ) {
+    PixelRGBA<float> no_data_value( file.nodata_value() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
   } else {
     min_max_channel_values( min_max_file, new_lo, new_hi );
   }
   lo_value = std::min(new_lo, lo_value);
   hi_value = std::max(new_hi, hi_value);
-  std::cout << "Pixel range for \"" << filename << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << std::endl;
+  cout << "Pixel range for \"" << file.filename() << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << endl;
 }
 
 template <class PixelT>
-void do_normal_mosaic(po::variables_map const& /*vm*/, const ProgressCallback *progress) {
-    DiskImageView<PixelT> img(image_files[0]);
-    QuadTreeGenerator quadtree(img, output_file_name);
-    quadtree.set_tile_size( tile_size );
-    quadtree.set_file_type( output_file_type );
+void do_normal_mosaic(const Options& opt, const ProgressCallback *progress) {
+    DiskImageView<PixelT> img(opt.input_files[0]);
+    QuadTreeGenerator quadtree(img, opt.output_file_name);
+    quadtree.set_tile_size( opt.tile_size );
+    quadtree.set_file_type( opt.output_file_type );
 
-    if (output_metadata == "gigapan-noproj") {
+    if (opt.mode == Mode::GIGAPAN_NOPROJ) {
       GigapanQuadTreeConfig config;
       config.configure( quadtree );
     }
@@ -127,118 +219,101 @@ void do_normal_mosaic(po::variables_map const& /*vm*/, const ProgressCallback *p
     quadtree.generate( *progress );
 }
 
+GeoReference make_input_georef(DiskImageResourceGDAL& file, const Options& opt) {
+  GeoReference input_georef;
+  bool fail_read_georef = false;
+  try {
+    fail_read_georef = !read_georeference( input_georef, file );
+  } catch ( InputErr const& e ) {
+    vw_out(ErrorMessage) << "Input " << file.filename() << " has malformed georeferencing information.\n";
+    fail_read_georef = true;
+  }
+
+  switch(opt.datum.type) {
+    case DatumOverride::WGS84: input_georef.set_well_known_geogcs("WGS84");  break;
+    case DatumOverride::LUNAR: input_georef.set_well_known_geogcs("D_MOON"); break;
+    case DatumOverride::MARS:  input_georef.set_well_known_geogcs("D_MARS"); break;
+    case DatumOverride::SPHERE: {
+      cartography::Datum datum("USER SUPPLIED DATUM", "SPHERICAL DATUM", "Reference Meridian",
+          opt.datum.sphere_radius, opt.datum.sphere_radius, 0.0);
+      input_georef.set_datum(datum);
+      break;
+    }
+    case DatumOverride::NONE: break;
+  }
+
+  if( opt.manual ) {
+    Matrix3x3 m;
+    m(0,0) = (opt.east - opt.west) / file.cols();
+    m(0,2) = opt.west;
+    m(1,1) = (opt.south - opt.north) / file.rows();
+    m(1,2) = opt.north;
+    m(2,2) = 1;
+    input_georef.set_transform( m );
+  } else if ( fail_read_georef ) {
+    vw_out(ErrorMessage) << "Missing input georeference. Please provide --north --south --east and --west.\n";
+    exit(1);
+  }
+
+  switch (opt.proj.type) {
+    case Projection::LAMBERT_AZIMUTHAL:       input_georef.set_lambert_azimuthal(opt.proj.lat,opt.proj.lon); break;
+    case Projection::LAMBERT_CONFORMAL_CONIC: input_georef.set_lambert_conformal(opt.proj.p1, opt.proj.p2, opt.proj.lat, opt.proj.lon); break;
+    case Projection::MERCATOR:                input_georef.set_mercator(opt.proj.lat,opt.proj.lon,opt.proj.scale); break;
+    case Projection::ORTHOGRAPHIC:            input_georef.set_orthographic(opt.proj.lat,opt.proj.lon); break;
+    case Projection::PLATE_CARREE:            input_georef.set_geographic(); break;
+    case Projection::SINUSOIDAL:              input_georef.set_sinusoidal(opt.proj.lon); break;
+    case Projection::STEREOGRAPHIC:           input_georef.set_stereographic(opt.proj.lat,opt.proj.lon,opt.proj.scale); break;
+    case Projection::TRANSVERSE_MERCATOR:     input_georef.set_transverse_mercator(opt.proj.lat,opt.proj.lon,opt.proj.scale); break;
+    case Projection::UTM:                     input_georef.set_UTM( abs(opt.proj.utm_zone), opt.proj.utm_zone > 0 ); break;
+  }
+
+  if( opt.nudge_x || opt.nudge_y ) {
+    Matrix3x3 m = input_georef.transform();
+    m(0,2) += opt.nudge_x;
+    m(1,2) += opt.nudge_y;
+    input_georef.set_transform( m );
+  }
+
+  return input_georef;
+}
+
 template <class PixelT>
-void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
+void do_mosaic(const Options& opt, const ProgressCallback *progress)
 {
   typedef typename PixelChannelType<PixelT>::type ChannelT;
 
   // If we're not outputting any special sort of mosaic (just a regular old
   // quadtree, no georeferencing, no metadata), we use a different
   // function.
-  if(output_metadata == "none" || output_metadata == "gigapan-noproj") {
-    if(image_files.size() != 1) {
-      std::cerr << "Error: can only have 1 image as input when not creating a geo-referenced quadtree." << std::endl;
-      std::cerr << "       (Use the `blend' program to create a quadtree with multiple images.)" << std::endl;
-      return;
-    }
-    do_normal_mosaic<PixelT>(vm, progress);
+  if(opt.mode == Mode::NONE || opt.mode == Mode::GIGAPAN_NOPROJ) {
+    do_normal_mosaic<PixelT>(opt, progress);
     return;
   }
 
-  DiskImageResourceJPEG::set_default_quality( jpeg_quality );
-  DiskImageResourcePNG::set_default_compression_level( png_compression );
-
   // Read in georeference info and compute total resolution.
-  GeoReference output_georef;
   int total_resolution = 1024;
   std::vector<GeoReference> georeferences;
 
-  for(unsigned i=0; i < image_files.size(); i++) {
-    std::cout << "Adding file " << image_files[i] << std::endl;
-    DiskImageResourceGDAL file_resource( image_files[i] );
+  BOOST_FOREACH(const string filename, opt.input_files) {
+    DiskImageResourceGDAL file( filename );
+    cout << "Adding file " << file.filename() << endl;
 
-    if( vm.count("normalize") ) get_normalize_vals(image_files[i], file_resource,
-                                                   vm.count("nodata") );
+    if( opt.normalize ) get_normalize_vals(file, opt);
 
-    GeoReference input_georef;
-    bool fail_read_georef = false;
-    try {
-      fail_read_georef = !read_georeference( input_georef, file_resource );
-    } catch ( InputErr const& e ) {
-      vw_out(ErrorMessage) << "Input " << image_files[i]
-                           << " has malformed georeferencing information.\n";
-      fail_read_georef = true;
-    }
-
-    // Handling Manual Datum
-    if(vm.count("force-lunar-datum")) {
-      vw_out() << "\t--> Using Lunar Datum\n";
-      input_georef.set_well_known_geogcs("D_MOON");
-    } else if(vm.count("force-mars-datum")) {
-      vw_out() << "\t--> Using Mars Datum\n";
-      input_georef.set_well_known_geogcs("D_MARS");
-    } else if(vm.count("force-spherical-datum")) {
-      vw_out() << "\t--> Using user-supplied spherical datum: "
-                << user_spherical_datum << "\n";
-      cartography::Datum datum("USER SUPPLIED DATUM",
-                               "SPHERICAL DATUM",
-                               "Reference Meridian",
-                               user_spherical_datum,
-                               user_spherical_datum,
-                               0.0);
-      input_georef.set_datum(datum);
-    } else if(vm.count("force-wgs84") > 0 || input_georef.proj4_str().empty() ) {
-      vw_out() << "\t--> Using WGS84 Datum\n";
-      input_georef.set_well_known_geogcs("WGS84");
-    }
-
-    if(i==0) {
-      output_georef.set_datum( input_georef.datum() );
-    }
-
-    // Handling Manual Transform
-    bool manual = vm.count("north") && vm.count("south") && vm.count("east") && vm.count("west");
-    if( manual ) {
-      Matrix3x3 m;
-      m(0,0) = (east - west) / file_resource.cols();
-      m(0,2) = west;
-      m(1,1) = (south - north) / file_resource.rows();
-      m(1,2) = north;
-      m(2,2) = 1;
-      input_georef.set_transform( m );
-    } else if ( fail_read_georef ) {
-      vw_out(ErrorMessage) << "Missing input georeference. Please provide --north --south --east and --west.\n";
-      exit(1);
-    }
-
-    // Handling Manual Projection
-    if ( vm.count("sinusoidal") ) input_georef.set_sinusoidal(proj_lon);
-    else if( vm.count("mercator") ) input_georef.set_mercator(proj_lat,proj_lon,proj_scale);
-    else if( vm.count("transverse-mercator") ) input_georef.set_transverse_mercator(proj_lat,proj_lon,proj_scale);
-    else if( vm.count("orthographic") ) input_georef.set_orthographic(proj_lat,proj_lon);
-    else if( vm.count("stereographic") ) input_georef.set_stereographic(proj_lat,proj_lon,proj_scale);
-    else if( vm.count("lambert-azimuthal") ) input_georef.set_lambert_azimuthal(proj_lat,proj_lon);
-    else if( vm.count("lambert-conformal-conic") ) input_georef.set_lambert_azimuthal(lcc_parallel1, lcc_parallel2, proj_lat, proj_lon);
-    else if( vm.count("utm") ) input_georef.set_UTM( abs(utm_zone), utm_zone > 0 );
-    else if( vm.count("plate-carree") ) input_georef.set_geographic();
-
-    if( vm.count("nudge-x") || vm.count("nudge-y") ) {
-      Matrix3x3 m = input_georef.transform();
-      m(0,2) += nudge_x;
-      m(1,2) += nudge_y;
-      input_georef.set_transform( m );
-    }
-
+    GeoReference input_georef = make_input_georef(file, opt);
     georeferences.push_back( input_georef );
+
+    GeoReference output_georef(input_georef.datum());
 
     // Right now, we only need a WGS84 output geoereference to compute
     // the resolution. The rest of the output info will get set later.
     GeoTransform geotx( input_georef, output_georef );
+
     // Calculate the best resolution at 5 different points in the image,
     // as occasionally there's a singularity at the center pixel that
     // makes it extremely tiny (such as in pole-centered images).
-    const int cols = file_resource.cols();
-    const int rows = file_resource.rows();
+    const int cols = file.cols();
+    const int rows = file.rows();
     Vector2 res_pixel[5];
     res_pixel[0] = Vector2( cols/2, rows/2 );
     res_pixel[1] = Vector2( cols/2 + cols/4, rows/2 );
@@ -247,54 +322,51 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
     res_pixel[4] = Vector2 (cols/2, rows/2 - rows/4 );
     int resolution;
     for(int i=0; i < 5; i++) {
-      resolution = str_to_resolution_fn_map[output_metadata](geotx, res_pixel[i]);
+      resolution = compute_resolution(opt.mode, geotx, res_pixel[i]);
       if( resolution > total_resolution ) total_resolution = resolution;
     }
   }
 
-  boost::shared_ptr<QuadTreeConfig> config = QuadTreeConfig::make(output_metadata);
+  if(opt.global_resolution.set()) {
+    vw_out(VerboseDebugMessage) << "Overriding calculated resolution " << total_resolution << " with " << opt.global_resolution.value() << endl;
+    total_resolution = opt.global_resolution;
+  }
 
-  if(global_resolution) total_resolution = global_resolution;
+  boost::shared_ptr<QuadTreeConfig> config = QuadTreeConfig::make(opt.mode.string());
 
   // Now that we have the best resolution, we can get our output_georef.
-  int xresolution = total_resolution / aspect_ratio, yresolution = total_resolution;
+  int xresolution = total_resolution / opt.aspect_ratio, yresolution = total_resolution;
 
-  output_georef = config->output_georef(xresolution, yresolution);
+  GeoReference output_georef = config->output_georef(xresolution, yresolution);
   output_georef.set_datum( georeferences[0].datum() );
-  vw_out(VerboseDebugMessage, "tool") << "Output Georef:\n" << output_georef << std::endl;
+  vw_out(VerboseDebugMessage, "tool") << "Output Georef:\n" << output_georef << endl;
 
   // Configure the composite.
   ImageComposite<PixelT> composite;
 
   // Add the transformed image files to the composite.
-  for(unsigned i=0; i < image_files.size(); i++) {
-    GeoTransform geotx( georeferences[i], output_georef );
-    ImageViewRef<PixelT> source = DiskImageView<PixelT>( image_files[i] );
+  for(unsigned i=0; i < opt.input_files.size(); i++) {
+    const std::string& filename = opt.input_files[i];
+    const GeoReference& input_ref = georeferences[i];
 
-    if( vm.count("nodata") )
-      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(nodata)));
+    GeoTransform geotx( input_ref, output_georef );
+    ImageViewRef<PixelT> source = DiskImageView<PixelT>( filename );
 
-    bool global = boost::trim_copy(georeferences[i].proj4_str())=="+proj=longlat" &&
-      fabs(georeferences[i].lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-      fabs(georeferences[i].lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
-      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-      fabs(georeferences[i].lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
+    if( opt.nodata.set() )
+      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(opt.nodata.value())));
+
+    bool global = boost::trim_copy(input_ref.proj4_str())=="+proj=longlat" &&
+      fabs(input_ref.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
+      fabs(input_ref.lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
+      fabs(input_ref.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
+      fabs(input_ref.lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
 
     // Do various modifications to the input image here.
-    if( pixel_scale != 1.0 || pixel_offset != 0.0 )
-      source = channel_cast_rescale<ChannelT>( DiskImageView<PixelT>( image_files[i] ) * pixel_scale + pixel_offset );
+    if( opt.pixel_scale.set() || opt.pixel_offset.set() )
+      source = channel_cast_rescale<ChannelT>( DiskImageView<PixelT>( filename ) * opt.pixel_scale.value() + opt.pixel_offset.value() );
 
-    if( vm.count("normalize") )
-      source = pixel_cast<PixelT>(channel_cast_rescale<ChannelT>( normalize_retain_alpha(DiskImageView<PixelRGBA<float> >( image_files[i] ), lo_value, hi_value, 0.0, 1.0) ) );
-
-    if( vm.count("palette-file") ) {
-      DiskImageView<float> disk_image( image_files[i] );
-      if( vm.count("palette-scale") || vm.count("palette-offset") ) {
-        source = per_pixel_filter( disk_image*palette_scale+palette_offset, PaletteFilter<PixelT>(palette_file) );
-      } else {
-        source = per_pixel_filter( disk_image, PaletteFilter<PixelT>(palette_file) );
-      }
-    }
+    if( opt.normalize )
+      source = pixel_cast<PixelT>(channel_cast_rescale<ChannelT>( normalize_retain_alpha(DiskImageView<PixelRGBA<float> >( filename ), lo_value, hi_value, 0.0, 1.0) ) );
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     if (global) {
@@ -318,7 +390,7 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   BBox2i total_bbox;
   BBox2 ll_bbox;
   // Now we differ a bit based on our output.
-  if(output_metadata == "kml") {
+  if(opt.mode == Mode::KML) {
     // Compute a tighter Google Earth coordinate system aligned bounding box.
     bbox.crop( BBox2i(0,0,xresolution,yresolution) );
     int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
@@ -335,14 +407,14 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
-  } else if (output_metadata == "gigapan") {
+  } else if (opt.mode == Mode::GIGAPAN) {
     total_bbox = bbox;
     bbox.crop( BBox2i(0,0,xresolution,yresolution) );
     ll_bbox = BBox2( -180.0 + (360.0*total_bbox.min().x())/xresolution,
                       180.0 - (360.0*total_bbox.max().y())/yresolution,
                       (360.0*total_bbox.width())/xresolution,
                       (360.0*total_bbox.height())/yresolution );
-  }  else if(output_metadata != "none") {
+  } else {
     total_bbox = composite.bbox();
     total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
     total_bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
@@ -356,37 +428,33 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   }
 
   // Prepare the composite.
-  if( vm.count("composite-multiband") ) {
-    std::cout << "Preparing composite..." << std::endl;
-    composite.prepare( total_bbox, *progress );
-  } else {
+  if(!opt.multiband)
     composite.set_draft_mode( true );
-    composite.prepare( total_bbox );
-  }
+  composite.prepare( total_bbox, *progress );
 
   // Data bbox.
-  if(output_metadata == "kml" || output_metadata == "gigapan") {
+  if(opt.mode == Mode::KML || opt.mode == Mode::GIGAPAN) {
     data_bbox = composite.bbox();
     data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
-  } else if(output_metadata != "none") {
-    data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/tile_size)*tile_size,
-                       (int)std::floor(double(bbox.min().y())/tile_size)*tile_size,
-                       (int)std::ceil(double(bbox.width())/tile_size)*tile_size,
-                       (int)std::ceil(double(bbox.height())/tile_size)*tile_size);
+  } else {
+    data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/opt.tile_size)*opt.tile_size,
+                       (int)std::floor(double(bbox.min().y())/opt.tile_size)*opt.tile_size,
+                       (int)std::ceil(double(bbox.width())/opt.tile_size)*opt.tile_size,
+                       (int)std::ceil(double(bbox.height())/opt.tile_size)*opt.tile_size);
     data_bbox.crop(total_bbox);
   }
 
-  QuadTreeGenerator quadtree( composite, output_file_name );
+  QuadTreeGenerator quadtree( composite, opt.output_file_name );
 
-  if( output_metadata == "kml" ) {
+  if( opt.mode == Mode::KML ) {
     KMLQuadTreeConfig *c2 = dynamic_cast<KMLQuadTreeConfig*>(config.get());
     c2->set_longlat_bbox( ll_bbox );
-    c2->set_max_lod_pixels( max_lod_pixels );
-    c2->set_draw_order_offset( draw_order_offset );
-  } else if( output_metadata == "uniview" ) {
+    c2->set_max_lod_pixels( opt.kml.max_lod_pixels );
+    c2->set_draw_order_offset( opt.kml.draw_order_offset );
+  } else if( opt.mode == Mode::UNIVIEW ) {
     UniviewQuadTreeConfig *c2 = dynamic_cast<UniviewQuadTreeConfig*>(config.get());
-    c2->set_terrain(terrain);
-  } else if ( output_metadata == "gigapan" ) {
+    c2->set_terrain(opt.terrain);
+  } else if ( opt.mode == Mode::GIGAPAN ) {
     GigapanQuadTreeConfig *c2 = dynamic_cast<GigapanQuadTreeConfig*>(config.get());
     c2->set_longlat_bbox( ll_bbox );
   }
@@ -394,22 +462,23 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
   config->configure(quadtree);
 
   quadtree.set_crop_bbox(data_bbox);
-  if( vm.count("crop") ) quadtree.set_crop_images(true);
-  quadtree.set_tile_size(tile_size);
-  quadtree.set_file_type(output_file_type);
+  if (opt.tile_size.set())
+    quadtree.set_tile_size(opt.tile_size);
+  if (opt.output_file_type.set())
+    quadtree.set_file_type(opt.output_file_type);
 
   // Generate the composite.
-  vw_out() << "Generating " << output_metadata << " overlay..." << std::endl;
+  vw_out() << "Generating " << opt.mode.string() << " overlay..." << endl;
   quadtree.generate(*progress);
 
   // This should really get moved into a metadata function for
   // UniviewQuadTreeConfig.
-  if(output_metadata == "uniview") {
-    std::string config_filename = output_file_name + ".conf";
+  if(opt.mode == Mode::UNIVIEW) {
+    string config_filename = opt.output_file_name + ".conf";
     std::ofstream conf( config_filename.c_str() );
-    if(terrain) {
+    if(opt.terrain) {
       conf << "// Terrain\n";
-      conf << "HeightmapCacheLocation=modules/" << module_name << "/Offlinedatasets/" << output_file_name << "/Terrain/\n";
+      conf << "HeightmapCacheLocation=modules/" << opt.module_name.value() << "/Offlinedatasets/" << opt.output_file_name << "/Terrain/\n";
       conf << "HeightmapCallstring=Generated by the NASA Vision Workbench image2qtree tool.\n";
       conf << "HeightmapFormat=" << quadtree.get_file_type() << '\n';
       conf << "NrHeightmapLevels=" << quadtree.get_tree_levels()-1 << '\n';
@@ -419,109 +488,102 @@ void do_mosaic(po::variables_map const& vm, const ProgressCallback *progress)
       conf << "NrRows=1\n";
       conf << "NrColumns=2\n";
       conf << "Bbox= -180 -90 180 90\n";
-      conf << "DatasetTitle=" << output_file_name << "\n";
+      conf << "DatasetTitle=" << opt.output_file_name << "\n";
       conf << "Tessellation=19\n\n";
 
       conf << "// Texture\n";
-      conf << "TextureCacheLocation=modules/" << module_name << "/Offlinedatasets/" << output_file_name << "/Texture/\n";
+      conf << "TextureCacheLocation=modules/" << opt.module_name.value() << "/Offlinedatasets/" << opt.output_file_name << "/Texture/\n";
       conf << "TextureCallstring=Generated by the NASA Vision Workbench image2qtree tool.\n";
       conf << "TextureFormat=" << quadtree.get_file_type() << "\n";
       conf << "TextureLevels= " << quadtree.get_tree_levels()-1 << "\n";
-      conf << "TextureSize= " << tile_size << "\n\n";
+      conf << "TextureSize= " << opt.tile_size.value() << "\n\n";
     }
     conf.close();
-    std::cout << "Note: You must merge the texture and terrain config files into a single file (Terrain info should go below texture info.)" << std::endl;
-    std::cout << "Both output sets should be in the same directory, with the texture in a subdirectory named Texture and the terrain in a subdirectory named Terrain." << std::endl;
-  } else if (output_metadata == "celestia") {
-    std::string fn = output_file_name + ".ctx";
+    cout << "Note: You must merge the texture and terrain config files into a single file (Terrain info should go below texture info.)" << endl;
+    cout << "Both output sets should be in the same directory, with the texture in a subdirectory named Texture and the terrain in a subdirectory named Terrain." << endl;
+  } else if (opt.mode == Mode::CELESTIA) {
+    string fn = opt.output_file_name + ".ctx";
     std::ofstream ctx( fn.c_str() );
     ctx << "VirtualTexture\n";
     ctx << "{\n";
-    ctx << "        ImageDirectory \"" << output_file_name << "\"\n";
+    ctx << "        ImageDirectory \"" << opt.output_file_name << "\"\n";
     ctx << "        BaseSplit 0\n";
-    ctx << "        TileSize " << (tile_size >> 1) << "\n";
-    ctx << "        TileType \"" << output_file_type << "\"\n";
+    ctx << "        TileSize " << (opt.tile_size >> 1) << "\n";
+    ctx << "        TileType \"" << opt.output_file_type.value() << "\"\n";
     ctx << "}\n";
     ctx.close();
 
-    fn = output_file_name + ".ssc";
+    fn = opt.output_file_name + ".ssc";
     std::ofstream ssc( fn.c_str() );
 
-    ssc << "AltSurface \"" << output_file_name << "\" \"" << module_name << "\"\n";
+    ssc << "AltSurface \"" << opt.output_file_name << "\" \"" << opt.module_name.value() << "\"\n";
     ssc << "{\n";
-    ssc << "    Texture \"" << output_file_name << ".ctx" << "\"\n";
+    ssc << "    Texture \"" << opt.output_file_name << ".ctx" << "\"\n";
     ssc << "}\n";
     ssc.close();
-    std::cout << "Place " << output_file_name << ".ssc" << " in Celestia's extras dir" << std::endl;
-    std::cout << "Place " << output_file_name << ".ctx" << " and the output dir ("
-                          << output_file_name << ") in extras/textures/hires" << std::endl;
+    cout << "Place " << opt.output_file_name << ".ssc" << " in Celestia's extras dir" << endl;
+    cout << "Place " << opt.output_file_name << ".ctx" << " and the output dir ("
+                          << opt.output_file_name << ") in extras/textures/hires" << endl;
   }
 }
 
-int main(int argc, char **argv) {
-  fill_input_maps();
 
+
+int handle_options(int argc, char *argv[], Options& opt) {
   po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral Options");
   general_options.add_options()
-    ("output-name,o", po::value<std::string>(&output_file_name), "Specify the base output directory")
-    ("help,h", "Display this help message");
+    ("output-name,o", po::value(&opt.output_file_name), "Specify the base output directory")
+    ("help,h", po::bool_switch(&opt.help), "Display this help message");
 
   po::options_description input_options("Input Options");
+  string datum_desc = string("Override input datum [") + DatumOverride::list() + "]";
+  string mode_desc  = string("Specify the output metadata type [") + Mode::list() + "]";
+  string proj_desc  = string("Projection type [") + Projection::list() + "]";
+  string chan_desc  = string("Output channel type [") + Channel::list() + "]";
+
   input_options.add_options()
-    ("force-wgs84", "Use WGS84 as the input images' geographic coordinate systems, even if they're not (old behavior)")
-    ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
-    ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
-    ("force-spherical-datum", po::value<float>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
-    ("pixel-scale", po::value<float>(&pixel_scale)->default_value(1.0), "Scale factor to apply to pixels")
-    ("pixel-offset", po::value<float>(&pixel_offset)->default_value(0.0), "Offset to apply to pixels")
-    ("normalize", "Normalize input images so that their full dynamic range falls in between [0,255].")
-    ("nodata",po::value<float>(&nodata),"Set the input's nodata value so that it will be transparent in output");
+    ("force-datum" , po::value(&opt.datum.type)                       , datum_desc.c_str())
+    ("datum-radius", po::value(&opt.datum.sphere_radius)              , "Radius to use for --force-datum SPHERE")
+    ("pixel-scale" , po::value(&opt.pixel_scale)->default_value(1.0)  , "Scale factor to apply to pixels")
+    ("pixel-offset", po::value(&opt.pixel_offset)->default_value(0.0) , "Offset to apply to pixels")
+    ("normalize"   , po::bool_switch(&opt.normalize)                  , "Normalize input images so that their full dynamic range falls in between [0,255].")
+    ("nodata"      , po::value(&opt.nodata)                           , "Set the input's nodata value so that it will be transparent in output");
 
   po::options_description output_options("Output Options");
   output_options.add_options()
-    ("output-metadata,m", po::value<std::string>(&output_metadata)->default_value("kml"), "Specify the output metadata type. One of [kml, tms, uniview, gmap, celestia, none]")
-    ("file-type", po::value<std::string>(&output_file_type)->default_value("png"), "Output file type.  (Choose \'auto\' to generate jpgs in opaque areas and png images where there is transparency.)")
-    ("channel-type", po::value<std::string>(&channel_type_str)->default_value("uint8"), "Output (and input) channel type. One of [uint8, uint16, int16, float]")
-    ("module-name", po::value<std::string>(&module_name)->default_value("marsds"), "The module where the output will be placed. Ex: marsds for Uniview, or Sol/Mars for Celestia")
-    ("terrain", "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.75), "JPEG quality factor (0.0 to 1.0)")
-    ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
-    ("palette-file", po::value<std::string>(&palette_file), "Apply a palette from the given file")
-    ("palette-scale", po::value<float>(&palette_scale), "Apply a scale factor before applying the palette")
-    ("palette-offset", po::value<float>(&palette_offset), "Apply an offset before applying the palette")
-    ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
-    ("max-lod-pixels", po::value<int>(&max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none (kml only)")
-    ("draw-order-offset", po::value<int>(&draw_order_offset)->default_value(0), "Offset for the <drawOrder> tag for this overlay (kml only)")
-    ("composite-multiband", "Composite images using multi-band blending")
-    ("aspect-ratio", po::value<int>(&aspect_ratio)->default_value(1), "Pixel aspect ratio (for polar overlays; should be a power of two)")
-    ("global-resolution", po::value<int>(&global_resolution)->default_value(0), "Override the global pixel resolution; should be a power of two");
+    ("mode,m"           , po::value(&opt.mode)->default_value(Mode("kml"))       , mode_desc.c_str())
+    ("file-type"        , po::value(&opt.output_file_type)                       , "Output file type.  (Choose \'auto\' to generate jpgs in opaque areas and png images where there is transparency.)")
+    ("channel-type"     , po::value(&opt.channel_type)                           , chan_desc.c_str())
+    ("module-name"      , po::value(&opt.module_name)                            , "The module where the output will be placed. Ex: marsds for Uniview,  or Sol/Mars for Celestia")
+    ("terrain"          , po::bool_switch(&opt.terrain)                          , "Outputs image files suitable for a Uniview terrain view. Implies output format as PNG, channel type uint16. Uniview only")
+    ("jpeg-quality"     , po::value(&opt.jpeg_quality)                           , "JPEG quality factor (0.0 to 1.0)")
+    ("png-compression"  , po::value(&opt.png_compression)                        , "PNG compression level (0 to 9)")
+    ("tile-size"        , po::value(&opt.tile_size)                              , "Tile size in pixels")
+    ("max-lod-pixels"   , po::value(&opt.kml.max_lod_pixels)->default_value(1024), "Max LoD in pixels, or -1 for none (kml only)")
+    ("draw-order-offset", po::value(&opt.kml.draw_order_offset)->default_value(0), "Offset for the <drawOrder> tag for this overlay (kml only)")
+    ("multiband"        , po::bool_switch(&opt.multiband)                        , "Composite images using multi-band blending")
+    ("aspect-ratio"     , po::value(&opt.aspect_ratio)                           , "Pixel aspect ratio (for polar overlays; should be a power of two)")
+    ("global-resolution", po::value(&opt.global_resolution)                      , "Override the global pixel resolution; should be a power of two");
 
   po::options_description projection_options("Projection Options");
   projection_options.add_options()
-    ("north", po::value<double>(&north), "The northernmost latitude in projection units")
-    ("south", po::value<double>(&south), "The southernmost latitude in projection units")
-    ("east", po::value<double>(&east), "The easternmost longitude in projection units")
-    ("west", po::value<double>(&west), "The westernmost longitude in projection units")
-    ("sinusoidal", "Assume a sinusoidal projection")
-    ("mercator", "Assume a Mercator projection")
-    ("transverse-mercator", "Assume a transverse Mercator projection")
-    ("orthographic", "Assume an orthographic projection")
-    ("stereographic", "Assume a stereographic projection")
-    ("lambert-azimuthal", "Assume a Lambert azimuthal projection")
-    ("lambert-conformal-conic", "Assume a Lambert Conformal Conic projection")
-    ("utm", po::value(&utm_zone), "Assume UTM projection with the given zone (+ for North, - for South)")
-    ("plate-carre", "Assume a Plate Carree or Geographic projection")
-    ("proj-lat", po::value<double>(&proj_lat), "The center of projection latitude (if applicable)")
-    ("proj-lon", po::value<double>(&proj_lon), "The center of projection longitude (if applicable)")
-    ("proj-scale", po::value<double>(&proj_scale), "The projection scale (if applicable)")
-    ("std-parallel1", po::value<double>(&lcc_parallel1), "Standard parallels for Lambert Conformal Conic projection")
-    ("std-parallel2", po::value<double>(&lcc_parallel2), "Standard parallels for Lambert Conformal Conic projection")
-    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
-    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates");
+    ("north"      ,  po::value(&opt.north)         , "The northernmost latitude in projection units")
+    ("south"      ,  po::value(&opt.south)         , "The southernmost latitude in projection units")
+    ("east"       ,  po::value(&opt.east)          , "The easternmost longitude in projection units")
+    ("west"       ,  po::value(&opt.west)          , "The westernmost longitude in projection units")
+    ("projection" ,  po::value(&opt.proj.type)     , proj_desc.c_str())
+    ("utm-zone"   ,  po::value(&opt.proj.utm_zone) , "Set zone for --projection UTM (+ is North)")
+    ("proj-lat"   ,  po::value(&opt.proj.lat)      , "The center of projection latitude")
+    ("proj-lon"   ,  po::value(&opt.proj.lon)      , "The center of projection longitude")
+    ("proj-scale" ,  po::value(&opt.proj.scale)    , "The projection scale")
+    ("p1"         ,  po::value(&opt.proj.p1)       , "Standard parallels for Lambert Conformal Conic projection")
+    ("p2"         ,  po::value(&opt.proj.p2)       , "Standard parallels for Lambert Conformal Conic projection")
+    ("nudge-x"    ,  po::value(&opt.nudge_x)       , "Nudge the image, in projected coordinates")
+    ("nudge-y"    ,  po::value(&opt.nudge_y)       , "Nudge the image, in projected coordinates");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-file", po::value<std::vector<std::string> >(&image_files));
+    ("input-file", po::value(&opt.input_files));
 
   po::options_description options("Allowed Options");
   options.add(general_options).add(input_options).add(output_options).add(projection_options).add(hidden_options);
@@ -530,74 +592,46 @@ int main(int argc, char **argv) {
   p.add("input-file", -1);
 
   std::ostringstream usage;
-  usage << "Usage: image2qtree [options] <filename>..." <<std::endl << std::endl;
-  usage << general_options << std::endl;
-  usage << input_options << std::endl;
-  usage << output_options << std::endl;
-  usage << projection_options << std::endl;
+  usage << "Usage: image2qtree [options] <filename>..." <<endl << endl;
+  usage << general_options << endl;
+  usage << input_options << endl;
+  usage << output_options << endl;
+  usage << projection_options << endl;
 
-  po::variables_map vm;
   try {
+    po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << usage.str();
-    return 1;
+    opt.validate();
+  } catch (const po::error& e) {
+    cerr << usage.str() << endl
+         << "Failed to parse command line arguments:" << endl
+         << "\t" << e.what() << endl;
+    return false;
+  } catch (const Usage& e) {
+    const char* msg = e.what();
+      cerr << usage.str() << endl;
+    if (strlen(msg) > 0) {
+           cerr << endl
+           << "Invalid argument:" << endl
+           << "\t" << msg << endl;
+    }
+    return false;
   }
+  return true;
+}
 
-  if( vm.count("help") ) {
-    std::cout << usage.str();
-    return 0;
-  }
-
-  if( vm.count("input-file") < 1 ) {
-    std::cerr << "Error: must specify at least one input file!" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if( output_file_name == "" )
-    output_file_name = fs::path(image_files[0]).replace_extension().string();
-
-  if( tile_size <= 0 ) {
-    std::cerr << "Error: The tile size must be a positive number!  (You specified: " << tile_size << ")." << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if(str_to_resolution_fn_map.find(output_metadata) == str_to_resolution_fn_map.end()) {
-    std::cerr << "Error: Output metadata must be one of [none, kml, tms, uniview, gmap, celestia]!  (You specified: " << output_metadata << ")." << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
+int run(const Options& opt) {
   TerminalProgressCallback tpc( "tools.image2qtree", "");
   const ProgressCallback *progress = &tpc;
 
-  if(vm.count("terrain")) {
-    terrain = true;
-    output_file_type = std::string("png");
-  }
-
   // Get the right pixel/channel type, and call the mosaic.
-  DiskImageResource *first_resource = DiskImageResource::open(image_files[0]);
+  DiskImageResource *first_resource = DiskImageResource::open(opt.input_files[0]);
   ChannelTypeEnum channel_type = first_resource->channel_type();
   PixelFormatEnum pixel_format = first_resource->pixel_format();
   delete first_resource;
-  if(vm.count("channel-type")) {
-    channel_type = channel_name_to_enum(channel_type_str);
-    switch (channel_type) {
-      case VW_CHANNEL_UINT8:  case VW_CHANNEL_INT16:
-      case VW_CHANNEL_UINT16: case VW_CHANNEL_FLOAT32:
-        break;
-      default:
-        std::cerr << "Error: Channel type must be one of [uint8, uint16, int16, float]!  (You specified: " << channel_type_str << ".)" << std::endl << std::endl;
-        std::cout << usage.str();
-        return 1;
-    }
-  }
+  if(opt.channel_type != Channel::NONE)
+    channel_type = channel_name_to_enum(opt.channel_type.string());
 
   // Convert non-alpha channel images into images with one for the
   // composite.
@@ -605,23 +639,30 @@ int main(int argc, char **argv) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
-        case VW_CHANNEL_UINT8:  do_mosaic<PixelGrayA<uint8>   >(vm, progress); break;
-        case VW_CHANNEL_INT16:  do_mosaic<PixelGrayA<int16>   >(vm, progress); break;
-        case VW_CHANNEL_UINT16: do_mosaic<PixelGrayA<uint16>  >(vm, progress); break;
-        default:                do_mosaic<PixelGrayA<float32> >(vm, progress); break;
+        case VW_CHANNEL_UINT8:  do_mosaic<PixelGrayA<uint8>   >(opt, progress); break;
+        case VW_CHANNEL_INT16:  do_mosaic<PixelGrayA<int16>   >(opt, progress); break;
+        case VW_CHANNEL_UINT16: do_mosaic<PixelGrayA<uint16>  >(opt, progress); break;
+        default:                do_mosaic<PixelGrayA<float32> >(opt, progress); break;
       }
       break;
     case VW_PIXEL_RGB:
     case VW_PIXEL_RGBA:
     default:
       switch(channel_type) {
-        case VW_CHANNEL_UINT8:  do_mosaic<PixelRGBA<uint8>   >(vm, progress); break;
-        case VW_CHANNEL_INT16:  do_mosaic<PixelRGBA<int16>   >(vm, progress); break;
-        case VW_CHANNEL_UINT16: do_mosaic<PixelRGBA<uint16>  >(vm, progress); break;
-        default:                do_mosaic<PixelRGBA<float32> >(vm, progress); break;
+        case VW_CHANNEL_UINT8:  do_mosaic<PixelRGBA<uint8>   >(opt, progress); break;
+        case VW_CHANNEL_INT16:  do_mosaic<PixelRGBA<int16>   >(opt, progress); break;
+        case VW_CHANNEL_UINT16: do_mosaic<PixelRGBA<uint16>  >(opt, progress); break;
+        default:                do_mosaic<PixelRGBA<float32> >(opt, progress); break;
       }
       break;
   }
 
   return 0;
+}
+
+int main(int argc, char **argv) {
+  Options opt;
+  if (!handle_options(argc, argv, opt))
+    return 1;
+  return run(opt);
 }
