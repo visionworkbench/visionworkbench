@@ -21,10 +21,14 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
   // slightly here, since we want to make sure we don't trucate at
   // tiles when we divide by 2.
   BBox2i level_bbox = bbox;
-  level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2.0 );
-  level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2.0 );
-  level_bbox.max().x() = ceil( float(level_bbox.max().x()+1) / 2.0 );
-  level_bbox.max().y() = ceil( float(level_bbox.max().y()+1) / 2.0 );
+  level_bbox.min().x() =
+    boost::numeric_cast<int32>(floor( float(level_bbox.min().x()) / 2.0 ));
+  level_bbox.min().y() =
+    boost::numeric_cast<int32>(floor( float(level_bbox.min().y()) / 2.0 ));
+  level_bbox.max().x() =
+    boost::numeric_cast<int32>(ceil( float(level_bbox.max().x()+1) / 2.0 ));
+  level_bbox.max().y() =
+    boost::numeric_cast<int32>(ceil( float(level_bbox.max().y()+1) / 2.0 ));
 
   // Compute the range of progress for this SubProgressCallback.  The
   // geometric sum below probably could be computed more easily, but
@@ -110,10 +114,14 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
     sub_progress.report_finished();
 
     // Adjust the size of the bbox for this level
-    level_bbox.min().x() = floor( float(level_bbox.min().x()) / 2 );
-    level_bbox.min().y() = floor( float(level_bbox.min().y()) / 2 );
-    level_bbox.max().x() = ceil( float(level_bbox.max().x()) / 2 );
-    level_bbox.max().y() = ceil( float(level_bbox.max().y()) / 2 );
+    level_bbox.min().x() =
+      boost::numeric_cast<int32>(floor( float(level_bbox.min().x()) / 2 ));
+    level_bbox.min().y() =
+      boost::numeric_cast<int32>(floor( float(level_bbox.min().y()) / 2 ));
+    level_bbox.max().x() =
+      boost::numeric_cast<int32>(ceil( float(level_bbox.max().x()) / 2 ));
+    level_bbox.max().y() =
+      boost::numeric_cast<int32>(ceil( float(level_bbox.max().y()) / 2 ));
   }
   progress_callback.report_finished();
 }

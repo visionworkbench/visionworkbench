@@ -173,11 +173,11 @@ void do_all_levels(std::string platefile_name, std::string output_name,
     fs::create_directory(output_name);
 
   // Iterate over the levels
-  for (int level = 0; level < platefile->num_levels(); ++level) {
+  for (int32 level = 0; level < platefile->num_levels(); ++level) {
 
     // The entire region contains 2^level tiles.
-    int region_size = pow(2,level);
-    int subdivided_region_size = region_size / 16;
+    int32 region_size = 1 << level;
+    int32 subdivided_region_size = region_size / 16;
     if (subdivided_region_size < 1024) subdivided_region_size = 1024;
     BBox2i full_region(0,0,region_size,region_size);
     std::list<BBox2i> workunits = bbox_tiles(full_region,

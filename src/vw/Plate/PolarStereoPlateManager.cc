@@ -16,10 +16,14 @@ vw::platefile::stereo_image_tiles( BBox2i const& image_bbox,
   BBox2i pyramid_px_bbox = geotx.forward_bbox(image_bbox);
   tiles.clear();
 
-  int32 min_tile_x = floor(pyramid_px_bbox.min().x() / tile_size );
-  int32 min_tile_y = floor(pyramid_px_bbox.min().y() / tile_size );
-  int32 max_tile_x = ceil(pyramid_px_bbox.max().x()  / tile_size );
-  int32 max_tile_y = ceil(pyramid_px_bbox.max().y()  / tile_size );
+  int32 min_tile_x =
+    boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().x() / tile_size ));
+  int32 min_tile_y =
+    boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().y() / tile_size ));
+  int32 max_tile_x =
+    boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().x()  / tile_size ));
+  int32 max_tile_y =
+    boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().y()  / tile_size ));
 
   for ( int32 tile_x = min_tile_x; tile_x <= max_tile_x; tile_x++ ) {
     for ( int32 tile_y = min_tile_y; tile_y <= max_tile_y; tile_y++ ) {

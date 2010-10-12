@@ -88,8 +88,8 @@ namespace platefile {
       }
 
       // Fit requested_pixels_per_meters to the nearest (256*2^n) / (2*major)
-      int pyramid_level =
-        ceil(log(requested_pixels_per_meters*2*m_datum.semi_major_axis()/256)/log(2));
+      int32 pyramid_level =
+        boost::numeric_cast<int32>(ceil(log(requested_pixels_per_meters*2*m_datum.semi_major_axis()/256)/log(2)));
       requested_pixels_per_meters =
         256*pow(2,pyramid_level)/(2*m_datum.semi_major_axis());
 
@@ -132,7 +132,7 @@ namespace platefile {
       // which was passed in with transaction_id_override.  If not,
       // then transaction_id_override == -1, and we get an
       // automatically assigned t_id.
-      int transaction_id =
+      int32 transaction_id =
         m_platefile->transaction_request(description,
                                          transaction_id_override);
 

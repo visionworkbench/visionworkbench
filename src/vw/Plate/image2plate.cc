@@ -349,7 +349,7 @@ int main( int argc, char *argv[] ) {
           if (has_nodata_value)
             do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
-                                                nodata_value)),
+                                                boost::numeric_cast<uint8>(nodata_value))),
                       image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           else
@@ -361,7 +361,7 @@ int main( int argc, char *argv[] ) {
           if (has_nodata_value)
             do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]),
-                                                nodata_value)),
+                                                boost::numeric_cast<int16>(nodata_value))),
                       image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           else
@@ -373,7 +373,7 @@ int main( int argc, char *argv[] ) {
           if (has_nodata_value) {
             do_mosaic(platefile,
                       mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
-                                                nodata_value)),
+                                                boost::numeric_cast<float32>(nodata_value))),
                       image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           } else
@@ -394,7 +394,7 @@ int main( int argc, char *argv[] ) {
           if (has_nodata_value)
             do_mosaic(platefile,
                       pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
-                                                                              nodata_value))),
+                                                                              boost::numeric_cast<uint8>(nodata_value)))),
                       image_files[i], transaction_id_override, georef,
                       output_mode, vm.count("terrain"));
           else

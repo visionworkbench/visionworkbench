@@ -44,7 +44,7 @@ TEST( CameraRelation, Construction ) {
   CameraRelationNetwork<IPFeature> crn;
   crn.add_node( CameraNode<IPFeature>(0,"monkey") );
   crn.add_node( CameraNode<IPFeature>(1,"dog") );
-  ASSERT_EQ( crn.size(), 2 );
+  ASSERT_EQ( crn.size(), 2u );
 
   {
     boost::shared_ptr<IPFeature> first( new IPFeature( InterestPoint(5,10),
@@ -64,9 +64,9 @@ TEST( CameraRelation, Construction ) {
         it != list.end(); it++ ) {
     std::ostringstream ostr;
     ostr << (**it);
-    EXPECT_GT( ostr.str().size(), 20 );
+    EXPECT_GT( ostr.str().size(), 20u );
   }
-  EXPECT_EQ( list.size(), 2 );
+  EXPECT_EQ( list.size(), 2u );
   EXPECT_EQ( list.front()->m_ip.x, 10 );
   EXPECT_EQ( list.back()->m_ip.x, 5 );
 }
@@ -76,16 +76,16 @@ TEST_F( CircleTest, IPFeature ) {
   // Convert to Camera Relation
   CameraRelationNetwork<IPFeature> crn;
   crn.read_controlnetwork( cnet );
-  EXPECT_EQ( crn.size(), 4 );
+  EXPECT_EQ( crn.size(), 4u );
   for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );
-  EXPECT_EQ( crn[0].relations.size(), 4 );
-  EXPECT_EQ( crn[1].relations.size(), 3 );
-  EXPECT_EQ( crn[2].relations.size(), 2 );
-  EXPECT_EQ( crn[3].relations.size(), 1 );
+  EXPECT_EQ( crn[0].relations.size(), 4u );
+  EXPECT_EQ( crn[1].relations.size(), 3u );
+  EXPECT_EQ( crn[2].relations.size(), 2u );
+  EXPECT_EQ( crn[3].relations.size(), 1u );
   std::list<boost::shared_ptr<IPFeature> > list;
   crn[3].relations.front()->list_connections( list );
-  EXPECT_EQ( list.size(), 4 );
+  EXPECT_EQ( list.size(), 4u );
 
   // Converting back to Control Network
   ControlNetwork cnet2("Copy");
@@ -105,16 +105,16 @@ TEST_F( CircleTest, JFeature ) {
   // Convert to Camera Relation
   CameraRelationNetwork<JFeature> crn;
   crn.read_controlnetwork( cnet );
-  EXPECT_EQ( crn.size(), 4 );
+  EXPECT_EQ( crn.size(), 4u );
   for ( uint32 i = 0; i < crn.size(); i++ )
     EXPECT_EQ( crn[i].id, i );
-  EXPECT_EQ( crn[0].relations.size(), 4 );
-  EXPECT_EQ( crn[1].relations.size(), 3 );
-  EXPECT_EQ( crn[2].relations.size(), 2 );
-  EXPECT_EQ( crn[3].relations.size(), 1 );
+  EXPECT_EQ( crn[0].relations.size(), 4u );
+  EXPECT_EQ( crn[1].relations.size(), 3u );
+  EXPECT_EQ( crn[2].relations.size(), 2u );
+  EXPECT_EQ( crn[3].relations.size(), 1u );
   std::list<boost::shared_ptr<JFeature> > list;
   crn[3].relations.front()->list_connections( list );
-  EXPECT_EQ( list.size(), 4 );
+  EXPECT_EQ( list.size(), 4u );
 
   // Converting back to Control Network
   ControlNetwork cnet2("Copy");

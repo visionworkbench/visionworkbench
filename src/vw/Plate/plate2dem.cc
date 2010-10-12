@@ -30,7 +30,7 @@ struct Options {
   std::string plate_file_name;
 
   // Settings
-  int west, east, north, south, tile_size, tile_size_deg;
+  int32 west, east, north, south, tile_size, tile_size_deg;
   double tile_ppd;
   bool pds_dem_mode, pds_imagery_mode;
   int level;
@@ -117,11 +117,13 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
   if ( opt.tile_size_deg > 0 ) {
     if ( opt.tile_ppd > 0 ) {
-      opt.tile_size = opt.tile_size_deg * opt.tile_ppd;
+      opt.tile_size =
+        boost::numeric_cast<int32>(opt.tile_size_deg * opt.tile_ppd);
     } else {
       // User must have specified out to be sized in degrees
-      opt.tile_size = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
-                             output_georef.lonlat_to_pixel(Vector2(opt.tile_size_deg,0)));
+      opt.tile_size =
+        boost::numeric_cast<int32>(norm_2(output_georef.lonlat_to_pixel(Vector2(0,0)) -
+                                          output_georef.lonlat_to_pixel(Vector2(opt.tile_size_deg,0))));
     }
   }
 
@@ -156,12 +158,12 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
     std::ostringstream output_filename;
     output_filename << opt.output_prefix << "_"
-                    << abs(round(top_left_ll[0]));
+                    << abs(int32(top_left_ll[0]));
     if ( top_left_ll[0] < 0 )
       output_filename << "W_";
     else
       output_filename << "E_";
-    output_filename << abs(round(top_left_ll[1]));
+    output_filename << abs(int32(top_left_ll[1]));
     if ( top_left_ll[1] >= 0 )
       output_filename << "N.tif";
     else

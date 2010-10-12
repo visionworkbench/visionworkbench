@@ -88,9 +88,9 @@ protected:
     typedef typename CompoundChannelType<PixelT>::type ChannelT;
     ChannelT tol;
     if ( boost::is_floating_point<ChannelT>::value )
-      tol = extension_i == 2 ? 1e-2 : 1e-5;
+      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 1e-2 : 1e-5);
     else
-      tol = extension_i == 2 ? 1 : 0;
+      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 1 : 0);
     ChannelCastRescaleFunctor<ChannelT> conv;
     EXPECT_NEAR( image(0,0).r(), conv(uint8(128)), tol );
     EXPECT_NEAR( image(0,0).g(), conv(uint8(128)), tol );
@@ -140,9 +140,9 @@ protected:
     typedef typename CompoundChannelType<PixelT>::type ChannelT;
     ChannelT tol;
     if ( boost::is_floating_point<ChannelT>::value )
-      tol = extension_i == 2 ? 4e-2 : 1e-5;
+      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 4e-2 : 1e-5);
     else
-      tol = extension_i == 2 ? 10 : 0;
+      tol = boost::numeric_cast<ChannelT>(extension_i == 2 ? 10 : 0);
     EXPECT_NEAR( image2(0,0).r(), image(0,0).r(), tol );
     EXPECT_NEAR( image2(0,0).g(), image(0,0).g(), tol );
     EXPECT_NEAR( image2(0,0).b(), image(0,0).b(), tol );

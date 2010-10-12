@@ -406,20 +406,23 @@ namespace stereo {
   // transform( right_image, DisparityTransform(DisparityI)) will
   // project the right image into the perspective of the left.
   class DisparityTransform : public TransformBase<DisparityTransform> {
-    ImageViewRef<PixelMask<Vector2f> > m_offset_image;
+    typedef ImageViewRef<PixelMask<Vector2f> > inner_view;
+    typedef ZeroEdgeExtension EdgeT;
+    typedef EdgeExtensionView<inner_view,EdgeT> edge_extend_view;
+    typedef NearestPixelInterpolation InterpT;
+    InterpolationView<edge_extend_view, InterpT> m_offset_image;
   public:
     template <class DisparityT>
-    DisparityTransform(ImageViewBase<DisparityT> const& offset_image)
-    : m_offset_image(offset_image.impl()) {}
+    DisparityTransform(ImageViewBase<DisparityT> const& offset_image) :
+      m_offset_image( interpolate(inner_view(m_offset_image.impl()),InterpT(),EdgeT()) ) {}
 
     inline Vector2 reverse(const Vector2 &p ) const {
-      PixelMask<Vector2f> offset =  m_offset_image(p.x(),p.y());
+      PixelMask<Vector2f> offset = m_offset_image(p.x(),p.y());
       if ( !is_valid(offset) )
         return Vector2(-1,p.y());
       return p + offset.child();
     }
   };
-
 
   /// intersect_mask_and_data(view, mask)
   ///

@@ -42,7 +42,7 @@ namespace stereo {
       for (p = 0; p < outImg.planes() ; p++) {
         for (i = 0; i < outImg.cols(); i++) {
           for (j = 0; j < outImg.rows(); j++) {
-            outImg(i,j,p) = 0.0f;
+            outImg(i,j,p) = PixelT(0);
             outImg(i,j,p) += img(2*i     , 2*j    ,p);
             outImg(i,j,p) += img(2*i + 1 , 2*j    ,p);
             outImg(i,j,p) += img(2*i     , 2*j + 1,p);

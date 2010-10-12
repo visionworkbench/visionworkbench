@@ -124,9 +124,10 @@ struct WeightedVar2 : public ReduceBase<WeightedVar2> {
     for ( uint8 i = 0; i < num_channels-1; i++ )
       select_channel(var2,i) = sum_weighted_data2[i];
     // Setting output alpha
-    select_channel(var2,num_channels-1) = threshold(summed_weights,0,
-                                                    ChannelRange<typename PixelChannelType<PixelT>::type>::min(),
-                                                    ChannelRange<typename PixelChannelType<PixelT>::type>::max());
+    select_channel(var2,num_channels-1) =
+      threshold(summed_weights,0,
+                ChannelRange<typename PixelChannelType<PixelT>::type>::min(),
+                ChannelRange<typename PixelChannelType<PixelT>::type>::max());
   }
 };
 
@@ -241,11 +242,13 @@ public:
           continue;
         }
 
-        output(ix,iy)[num_v_channels] = ChannelRange<typename PixelChannelType<PixelT>::type>::max();
+        typedef typename PixelChannelType<PixelT>::type ChannelT;
+        output(ix,iy)[num_v_channels] = ChannelRange<ChannelT>::max();
         for ( uint8 iz = 0; iz < num_v_channels; iz++ ) {
           vector<float> copy = t_weight;
-          output(ix,iy)[iz] = smart_weighted_mean( copy,
-                                                   t_samples[iz] );
+          output(ix,iy)[iz] =
+            boost::numeric_cast<ChannelT>(smart_weighted_mean( copy,
+                                                               t_samples[iz]));
         }
       } // iy - end loop
     }   // ix - first loop
@@ -258,29 +261,29 @@ public:
 struct Options {
   // Input
   string url;
-  int level;
-  int start_trans_id;
-  int end_trans_id;
+  int32 level;
+  int32 start_trans_id;
+  int32 end_trans_id;
 
   // Output
   string function;
-  int transaction_id;
+  int32 transaction_id;
 
   // For spawning multiple jobs
-  int job_id;
-  int num_jobs;
+  int32 job_id;
+  int32 num_jobs;
 };
 
 void handle_arguments(int argc, char *argv[], Options& opt) {
   po::options_description general_options("Perform weighted averages of all layers within a tile inside a plate file");
   general_options.add_options()
-    ("job_id,j", po::value<int>(&opt.job_id)->default_value(0), "")
-    ("num_jobs,n", po::value<int>(&opt.num_jobs)->default_value(1), "")
-    ("start_t", po::value<int>(&opt.start_trans_id)->default_value(0), "Input starting transaction ID range.")
-    ("end_t", po::value<int>(&opt.end_trans_id), "Input ending transaction ID range.")
-    ("level,l", po::value<int>(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out and show the number of levels available.")
-    ("function,f", po::value<string>(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean WeightedVar]")
-    ("transaction-id,t",po::value<int>(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
+    ("job_id,j", po::value(&opt.job_id)->default_value(0), "")
+    ("num_jobs,n", po::value(&opt.num_jobs)->default_value(1), "")
+    ("start_t", po::value(&opt.start_trans_id)->default_value(0), "Input starting transaction ID range.")
+    ("end_t", po::value(&opt.end_trans_id), "Input ending transaction ID range.")
+    ("level,l", po::value(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out and show the number of levels available.")
+    ("function,f", po::value(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean WeightedVar]")
+    ("transaction-id,t",po::value(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
     ("help", "Display this help message");
 
   po::options_description hidden_options("");
@@ -377,11 +380,11 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   }
 
   // This is arbitrary, just needed to divide up jobs
-  int region_size = pow(2.0,opt.level);
+  int32 region_size = 1 << opt.level;
   BBox2i full_region(0,0,region_size,region_size);
   std::list<BBox2i> workunits = bbox_tiles(full_region,4,4);
   std::list<BBox2i> mworkunits;
-  int count = 0;
+  int32 count = 0;
   BOOST_FOREACH(const BBox2i& c, workunits) {
     if (count==opt.num_jobs)
       count=0;
