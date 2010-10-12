@@ -30,7 +30,7 @@ namespace vw {
   // as pixel types, but the type traits machinery is defined here in more
   // general terms to avoid undesirable dependencies.
   template <class T> struct CompoundChannelType { typedef T type; };
-  template <class T> struct CompoundNumChannels { static const int32 value = 1; };
+  template <class T> struct CompoundNumChannels { static const size_t value = 1; };
   template <class T, class ChannelT> struct CompoundChannelCast { typedef ChannelT type; };
   template <class T> struct IsCompound
     : public boost::mpl::not_< boost::is_same< typename CompoundChannelType<T>::type, T > >::type {};
@@ -58,22 +58,22 @@ namespace vw {
   // rather than the second argument, but that still breaks on some not-so-old
   // compilers.
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::is_reference<ResultT>::type>, int32>::type /*channel*/ ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::is_reference<ResultT>::type>, size_t>::type /*channel*/ ) {
     return pixel;
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type /*channel*/ ) {
+  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<typename boost::mpl::not_< IsCompound<PixelT> >::type, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, size_t>::type /*channel*/ ) {
     return pixel;
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::is_reference<ResultT>::type>, int32>::type channel ) {
+  inline ResultT compound_select_channel( PixelT& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::is_reference<ResultT>::type>, size_t>::type channel ) {
     return pixel[channel];
   }
 
   template <class ResultT, class PixelT>
-  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, int32>::type channel ) {
+  inline ResultT compound_select_channel( PixelT const& pixel, typename boost::enable_if<typename boost::mpl::and_<IsCompound<PixelT>, typename boost::mpl::not_<typename boost::is_reference<ResultT>::type>::type >, size_t>::type channel ) {
     return pixel[channel];
   }
 
@@ -83,9 +83,9 @@ namespace vw {
   typename boost::enable_if< IsScalarOrCompound<T>, double >::type
   inline mean_channel_value( T const& arg ) {
     typedef typename CompoundChannelType<T>::type channel_type;
-    int num_channels = CompoundNumChannels<T>::value;
+    size_t num_channels = CompoundNumChannels<T>::value;
     double accum = 0;
-    for( int i=0; i<num_channels; ++i )
+    for( size_t i=0; i<num_channels; ++i )
       accum += compound_select_channel<channel_type const&>( arg, i );
     return accum / num_channels;
   }
@@ -99,11 +99,11 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ResultT, class Arg1T, class Arg2T>
+    template <bool CompoundB, size_t ChannelsN, class ResultT, class Arg1T, class Arg2T>
     struct Helper {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
         ResultT result;
-        for( int i=0; i<ChannelsN; ++i ) result[i] = func(arg1[i],arg2[i]);
+        for( size_t i=0; i<ChannelsN; ++i ) result[i] = func(arg1[i],arg2[i]);
         return result;
       }
     };
@@ -191,10 +191,10 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class Arg1T, class Arg2T>
+    template <bool CompoundB, size_t ChannelsN, class Arg1T, class Arg2T>
     struct Helper {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        for( int i=0; i<ChannelsN; ++i ) func(arg1[i],arg2[i]);
+        for( size_t i=0; i<ChannelsN; ++i ) func(arg1[i],arg2[i]);
         return arg1;
       }
     };
@@ -283,11 +283,11 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ResultT, class ArgT>
+    template <bool CompoundB, size_t ChannelsN, class ResultT, class ArgT>
     struct Helper {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
         ResultT result;
-        for( int i=0; i<ChannelsN; ++i ) result[i] = func(arg[i]);
+        for( size_t i=0; i<ChannelsN; ++i ) result[i] = func(arg[i]);
         return result;
       }
     };
@@ -375,10 +375,10 @@ namespace vw {
     typedef typename boost::add_reference<FuncT>::type func_ref;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ArgT>
+    template <bool CompoundB, size_t ChannelsN, class ArgT>
     struct Helper {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        for( int i=0; i<ChannelsN; ++i ) func(arg[i]);
+        for( size_t i=0; i<ChannelsN; ++i ) func(arg[i]);
         return arg;
       }
     };

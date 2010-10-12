@@ -167,7 +167,7 @@ namespace vw {
         m_min = m_max = arg;
         m_valid = true;
       } else
-        for ( vw::int32 i = 0; i < CompoundNumChannels<ValT>::value; i++ )
+        for ( size_t i = 0; i < CompoundNumChannels<ValT>::value; i++ )
           if ( arg[i] < m_min[i] ) m_min[i] = arg[i];
           else if ( arg[i] > m_max[i] ) m_max[i] = arg[i];
     }

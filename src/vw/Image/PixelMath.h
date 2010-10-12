@@ -123,7 +123,7 @@ namespace vw {
   template <class Pixel1T, class Pixel2T>
   typename boost::enable_if< CompoundIsCompatible<Pixel1T,Pixel2T>, bool >::type
   inline operator==( PixelMathBase<Pixel1T> const& pixel1, PixelMathBase<Pixel2T> const& pixel2 ) {
-    for( int32 c=0; c<CompoundNumChannels<Pixel1T>::value; ++c )
+    for( size_t c=0; c<CompoundNumChannels<Pixel1T>::value; ++c )
       if( compound_select_channel<typename CompoundChannelType<Pixel1T>::type>(pixel1.impl(),c) !=
           compound_select_channel<typename CompoundChannelType<Pixel2T>::type>(pixel2.impl(),c) )
         return false;

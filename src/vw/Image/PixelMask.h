@@ -225,7 +225,7 @@ namespace vw {
   };
   template <class T>
   struct CompoundNumChannels<PixelMask<T> > {
-    static const int32 value = CompoundNumChannels<T>::value + 1;
+    static const size_t value = CompoundNumChannels<T>::value + 1;
   };
   template <class OldT, class NewChT>
   struct CompoundChannelCast<PixelMask<OldT>, NewChT> {

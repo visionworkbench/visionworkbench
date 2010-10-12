@@ -395,7 +395,7 @@ namespace vw {
   };                                                         \
   template <class ChannelT>                                  \
   struct CompoundNumChannels<PIXELT<ChannelT> > {            \
-    static const int32 value = NCHANNELS;                    \
+    static const size_t value = NCHANNELS;                   \
   };                                                         \
   template <class OldChT, class NewChT>                      \
   struct CompoundChannelCast<PIXELT<OldChT>, NewChT> {       \
@@ -416,7 +416,7 @@ namespace vw {
   };                                                         \
   template <class ChannelT, size_t SizeN>                    \
   struct CompoundNumChannels<PIXELT<ChannelT,SizeN> > {      \
-    static const int32 value = SizeN;                     \
+    static const size_t value = SizeN;                       \
   };                                                         \
   template <class OldChT, class NewChT, size_t SizeN>        \
   struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> { \

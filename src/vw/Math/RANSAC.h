@@ -169,7 +169,7 @@ namespace math {
     template <class ContainerT1, class ContainerT2>
     typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1,
                                                   std::vector<ContainerT2> const& p2,
-                                                  int ransac_iterations = 0) const {
+                                                  int32 ransac_iterations = 0) const {
       // check consistency
       VW_ASSERT( p1.size() == p2.size(),
                  RANSACErr() << "RANSAC Error.  data vectors are not the same size." );
@@ -178,7 +178,7 @@ namespace math {
       VW_ASSERT( p1.size() >= m_fitting_func.min_elements_needed_for_fit(p1[0]),
                  RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting funtor. ("<<p1.size() << "/" << m_fitting_func.min_elements_needed_for_fit(p1[0]) << ")\n");
 
-      unsigned inliers_max = 0;
+      uint32 inliers_max = 0;
       typename FittingFuncT::result_type H;
       typename FittingFuncT::result_type H_max;
 
@@ -191,7 +191,7 @@ namespace math {
       /////////////////////////////////////////
 
       // Seed random number generator
-      srandom((unsigned int) clock());
+      srandom((uint32) clock());
 
       // This is a rough value, but it seems to produce reasonably good results.
       if (ransac_iterations == 0)
@@ -200,9 +200,9 @@ namespace math {
       size_t n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
       std::vector<ContainerT1> try1(n);
       std::vector<ContainerT2> try2(n);
-      boost::scoped_array<int> random_indices(new int[n]);
+      boost::scoped_array<int32> random_indices(new int32[n]);
 
-      for (size_t iteration=0; iteration < ransac_iterations; ++iteration) {
+      for (int32 iteration=0; iteration < ransac_iterations; ++iteration) {
         // Get four points at random, taking care not
         // to select the same point twice.
         _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
