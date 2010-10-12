@@ -15,17 +15,19 @@
 /// Tree only supports searches on records of numeric data
 ///
 /// Methods
-///   -- Building a KD tree (optimized, balanced, or randomly built, depending on
-///        the the choice of partitioner and discriminator selector).
+/// -- Building a KD tree (optimized, balanced, or randomly built,
+///    depending on the the choice of partitioner and discriminator selector).
 ///   -- KD m nearest neighbors
 ///   -- Insertion of a single record into the tree
 ///   -- size of tree
-///   -- Max and Min depth of tree (requires testing to insure that depths are consistent
-///      regardless of whether build_tree or insert was used.)
+/// -- Max and Min depth of tree (requires testing to insure that
+///    depths are consistent regardless of whether build_tree or insert
+///    was used.)
 ///   -- Region/Constrained Search (return all records within a region)
-///      Constraint functors are likely to place constraints on records' keys, but
-///      since the constraint functor has access to the record object, the functor
-///      can be designed to access members other than a record's iterable keys.
+///      Constraint functors are likely to place constraints on records' keys,
+///      but since the constraint functor has access to the record object, the
+///      functor can be designed to access members other than a record's
+///      iterable keys.
 ///
 ///
 ///  (TODO: list methods as they are implemented)
@@ -134,9 +136,10 @@ namespace boost{
 
 namespace vw {
 namespace math {
-  template<typename ForwardIterator> void print_file(ForwardIterator, ForwardIterator);
-  template<typename ForwardIterator> void print_record(ForwardIterator, ForwardIterator);
-
+  template<typename ForwardIterator>
+  void print_file(ForwardIterator, ForwardIterator);
+  template<typename ForwardIterator>
+  void print_record(ForwardIterator, ForwardIterator);
 
   // Function object for comparing records by their discriminator keys
   // ContainerT must be have a const_iterator
@@ -377,12 +380,10 @@ namespace math {
 
 
   ////////////////////////// Record Constraint Functors ////////////////////////
-  // These must implement the unary operator(), and the binary function domains overlap
-  // both functions must be passed objects with iterators
-  class NullRecordConstraintKD {
-  public:
-    //template< typename ForwardIterT>
-    //bool operator()(ForwardIterT record_beg, ForwardIterT record_end){
+  // These must implement the unary operator(), and the binary
+  // function domains overlap both functions must be passed objects with
+  // iterators
+  struct NullRecordConstraintKD {
     template<typename T>
     bool operator()(T /*record*/) const {
       return true;
@@ -408,9 +409,7 @@ namespace math {
     RegionRecordConstraintKD(RangeT lowRange, RangeT highRange)
       : lowRange_(lowRange), highRange_(highRange){}
 
-    //template<typename ForwardIterT>
-    //bool operator()(ForwardIterT record_beg, ForwardIterT record_end)
-    bool operator()(RangeT record) const {
+    bool operator()(RangeT const& record) const {
       //check that all keys fall between lowRange_ and hiRange_
       typename RangeT::const_iterator low = lowRange_.begin();
       typename RangeT::const_iterator high = highRange_.begin();
@@ -422,20 +421,6 @@ namespace math {
             return false;
           ++low;
           ++high;
-
-
-          //check that all keys fall between lowRange_ and hiRange_
-          /*
-            typename RangeT::iterator low = lowRange_.begin();
-            typename RangeT::iterator high = highRange_.begin();
-            for(  ; record_beg != record_end; ++record_beg){
-            if( *record_beg < *low )
-            return false;
-            if( *record_beg > *high )
-            return false;
-            ++low;
-            ++high;
-          */
         }
       return true;
     }
@@ -491,7 +476,6 @@ namespace math {
   template <class FileT>
   class KDTree{
 
-    typedef typename FileT::iterator RandomAccessIterT;
     typedef typename FileT::value_type record_t;
     typedef typename record_t::const_iterator record_iter_t;
     typedef typename std::iterator_traits<record_iter_t>::value_type key_t;
@@ -598,9 +582,9 @@ namespace math {
 
       m_NIL = add_vertex(m_kdTree);
 
-      //TODO: This copy is to ensure that the input file is not modified
-      // but I'm not sure if that's necessary
-      std::vector<record_t> temp_file(distance(file.begin(), file.end()));
+      // TODO: This copy is required as the paritioners will run an
+      // in-place sort on sections of the input.
+      std::vector<record_t> temp_file(std::distance(file.begin(), file.end()));
       std::copy(file.begin(), file.end(), temp_file.begin());
 
       m_root = build_tree(temp_file.begin(), temp_file.end(), lo_range, hi_range,
@@ -649,13 +633,19 @@ namespace math {
     // Query must be a container with k keys.
     //TODO: the return type of nearest_records should not depend on ContainerT
     template <typename ContainerT>
-    unsigned m_nearest_neighbors(ContainerT const& query, std::vector<record_t>& nearest_records, unsigned m = 1)
+    unsigned m_nearest_neighbors(ContainerT const& query,
+                                 std::vector<record_t>& nearest_records,
+                                 unsigned m = 1)
     {
-      return m_nearest_neighbors(query, nearest_records, m, NullRecordConstraintKD(), SafeEuclideanDistanceMetric());
+      return m_nearest_neighbors(query, nearest_records, m,
+                                 NullRecordConstraintKD(),
+                                 SafeEuclideanDistanceMetric());
     }
 
     template <typename ContainerT, typename RecordConstraintT, typename DistanceMetricT>
-    unsigned m_nearest_neighbors(ContainerT const& query, std::vector<record_t>& nearest_records, unsigned m = 1,
+    unsigned m_nearest_neighbors(ContainerT const& query,
+                                 std::vector<record_t>& nearest_records,
+                                 unsigned m = 1,
                                  RecordConstraintT recordConstraint = NullRecordConstraintKD(),
                                  DistanceMetricT distanceMetric = SafeEuclideanDistanceMetric())
     {
@@ -714,8 +704,9 @@ namespace math {
 
     /// BUILD_TREE
     //
-    // Given all the records, building the k-d tree is a matter of selecting the proper discriminator
-    // and a pivot which evenly partitions the input file. Returns the root of the k-d tree.
+    // Given all the records, building the k-d tree is a matter of
+    // selecting the proper discriminator and a pivot which evenly partitions
+    // the input file. Returns the root of the k-d tree.
     //
     // DiscSelector:a functor which must support
     //  unsigned operator() (IterT beg, IterT end, unsigned disc)
@@ -725,8 +716,8 @@ namespace math {
     //  IterT operator() (IterT beg, IterT end, unsigned disc)
     //  and return the position of an element to be used for partitioning
     //
-    template< typename DiscSelector, typename Partitioner>
-    Vertex build_tree(RandomAccessIterT file_beg, RandomAccessIterT file_end,
+    template <typename IterT, typename DiscSelector, typename Partitioner>
+    Vertex build_tree(IterT file_beg, IterT file_end,
                       range_t lo_range, range_t hi_range,
                       DiscSelector discSelector, Partitioner partitioner,
                       int previous_disc, unsigned depth)
@@ -745,7 +736,7 @@ namespace math {
 
       //Choose discriminator and partition
       unsigned disc = discSelector(file_beg, file_end, previous_disc);
-      RandomAccessIterT partition = partitioner(file_beg, file_end, disc);
+      IterT partition = partitioner(file_beg, file_end, disc);
 
       Vertex P = add_vertex(m_kdTree);
       m_record_map[P] = *partition;
@@ -762,7 +753,7 @@ namespace math {
       set_range_value(HISON_lo_range.begin(), (*partition).begin(), disc);
 
       //The subtrees below P should not include P
-      RandomAccessIterT one_past_partition = RandomAccessIterT(partition);
+      IterT one_past_partition = IterT(partition);
       std::advance(one_past_partition,1);
 
       Vertex lo = build_tree(file_beg, partition, lo_range, LOSON_hi_range, discSelector, partitioner, disc, ++depth);
@@ -786,10 +777,11 @@ namespace math {
     }
 
 
-    //Insert attempts to find a vertex with a nil child. The edge (both the explicit
-    // BGL edge and the implicit edge defined by LOSON[P] or HISON[P] ) from parent
-    // to the nil child are removed. A new vertex is created for the new record, and
-    // it is inserted as a child to repace P's previous nil child.
+    // Insert attempts to find a vertex with a nil child. The edge
+    // (both the explicit BGL edge and the implicit edge defined by LOSON[P]
+    // or HISON[P] ) from parent to the nil child are removed. A new vertex
+    // is created for the new record, and it is inserted as a child to repace
+    // P's previous nil child.
     // The new vertex's discriminator is determined using via modulo
     //
     // TODO: test updates for m_min_depth and m_max_depth
@@ -913,8 +905,8 @@ namespace math {
     // Finds the m nearest records to the query, and stores them in
     // m_priority_queue.
     //
-    // The return value 0 indicates 'return' from recursion, whereas a return value of
-    // 1 indicates the search is complete
+    // The return value 0 indicates 'return' from recursion, whereas a
+    // return value of 1 indicates the search is complete
     // TODO: Consider using std::make_pair in place of boost's tie function
     //
     // Constrained searches would be faster if children's ranges were checked
@@ -923,12 +915,11 @@ namespace math {
     // This could be done by only searching a child if the child's lorange or
     // the child's hirange satisfies the constraint.
     template<typename RecordConstraint, typename DistanceMetric>
-    int nearest_neighbors(Vertex const& N, range_t const& query, unsigned m, RecordConstraint const& recordConstraint, DistanceMetric const& distanceMetric)
-    {
-      if (N == m_NIL){
-        //std::cout<<"leaf.\n";
+    int nearest_neighbors(Vertex const& N, range_t const& query, unsigned m,
+                          RecordConstraint const& recordConstraint,
+                          DistanceMetric const& distanceMetric ) {
+      if (N == m_NIL)
         return 0;
-      }
 
       range_t& N_lorange = get(m_LORANGE_map, N);
       range_t& N_hirange = get(m_HIRANGE_map, N);
@@ -1020,39 +1011,27 @@ namespace math {
 
 
 
-    //The following two functions refer to a "ball" centered at the query.
-    //The radius of the ball is the distance from the query to the mth
-    //nearest record examined so far in the search. The ball, then, represents a region
-    //where possibly closer records could be found.
-    //  If a region overlaps this ball, that means part of the ball is within that
-    //region's bounds, and the region must be examined. (bounds_overlap_ball)
-    //  If a ball fits entirely within a region that has been examined, the
-    //search is finished. (ball_within_bounds)
+    // The following two functions refer to a "ball" centered at the query.
+    // The radius of the ball is the distance from the query to the mth
+    // nearest record examined so far in the search. The ball, then,
+    // represents a region where possibly closer records could be found. If a
+    // region overlaps this ball, that means part of the ball is within that
+    // region's bounds, and the region must be
+    // examined. (bounds_overlap_ball) If a ball fits entirely within a
+    // region that has been examined, the search is
+    // finished. (ball_within_bounds)
 
 
     /// Bounds Overlap Ball
     //
     // Checks if ANY part of the ball lies within the given bounds.
-    // If the distance from the query to the bounded region is greater than the radius
-    // then there is no overlap.
-    // This is implemented by checking if d^2 = d_1^2 + d_2^2 + ... + d_k^2 > r^2
+    // If the distance from the query to the bounded region is greater
+    // than the radius then there is no overlap. This is implemented by
+    // checking if d^2 = d_1^2 + d_2^2 + ... + d_k^2 > r^2
     //
-    // If the radius is infinite, than it is considered to overlap any bounds, even if they are also
-    // infinite.
+    // If the radius is infinite, than it is considered to overlap any
+    // bounds, even if they are also infinite.
     inline bool bounds_overlap_ball(range_t const& query, range_t const& lorange, range_t const& hirange, double radius) const {
-      // DELETE ?
-      //       if( (radius == m_POSITIVE_INFINITY) || (radius == m_NEGATIVE_INFINITY)){
-      //         //std::cout<<"Infinite Radius overlaps all bounds!\n";
-      //         return true;
-      //       }
-
-      //       //If any coordinate of the query is +/- infinity, then the ball overlaps no bounds
-      //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
-      //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
-      //           //std::cout<<"Query with infinite coordinate overlaps no bounds!\n";
-      //           return false;
-      //         }
-      //       }
 
       //Now we can assume that the query has no infinities in it.
       double radius_squared = pow(radius, 2);
@@ -1082,24 +1061,11 @@ namespace math {
     /// Ball Within Bounds
     //
     // Checks if a sphere of given radius fits entirely within the bounds
-    // by checking if the 'coordinate distance' from the query to the bounded region
-    // is less than the radius of the ball.
+    // by checking if the 'coordinate distance' from the query to the
+    // bounded region is less than the radius of the ball.
     //
     // TODO: all uses of ScalarTypeLimits<double>::highest() should be replaced with a C implementation of infinity!
     bool ball_within_bounds(range_t const& query, range_t const& lorange, range_t const& hirange, double radius){
-      // DELETE?
-      //       //The poorly defined case of an "infinite" radius ball within "infinite" bounds
-      //       if(fabs(radius) == m_POSITIVE_INFINITY)
-      //         return false;
-      //       VW_DEBUG_ASSERT(radius >= 0, ArgumentErr() << "KDTree::ball_within_bounds() radius is zero or non-positive.");
-
-      //       //A query with an infinite coordinate is not within any bounds
-      //       for(typename range_t::const_iterator iter = query.begin(); iter != query.end(); ++iter) {
-      //         if( *iter == m_POSITIVE_INFINITY || *iter == m_NEGATIVE_INFINITY) {
-      //           //std::cout<<"Query with infinite coordinate overlaps no bounds!\n";
-      //           return false;
-      //         }
-      //       }
 
       //If any coordinate distance is less less than radius, ball
       //escapes bounds, so return false if a bound is +/- infinity,
