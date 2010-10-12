@@ -390,8 +390,8 @@ namespace ba {
     size_t find_measure(ControlMeasure const& query);
 
     /// File I/O
-    void read_binary( std::string filename );
-    void read_isis( std::string filename );
+    void read_binary( std::string const& filename );
+    void read_isis( std::string const& filename );
     void write_binary( std::string filename );
     void write_isis( std::string filename );
 

@@ -320,20 +320,19 @@ namespace ba {
   }
 
   /// Remove the control point at the specified index.
-  void ControlPoint::delete_measure(unsigned index) {
+  void ControlPoint::delete_measure(size_t index) {
     if (index >= this->size())
       vw_throw(LogicErr() << "ControlPoint::delete_control_point -- index " << index << " exceeds control point dimensions.");
 
     iterator iter = this->begin();
-    for (unsigned i=0; i<index; ++i)
-      ++iter;
+    iter += index;
 
     m_measures.erase(iter);
   }
 
   /// Find Control Measure
-  unsigned ControlPoint::find(ControlMeasure const& query) {
-    for (unsigned i = 0; i < m_measures.size(); ++i)
+  size_t ControlPoint::find(ControlMeasure const& query) {
+    for (size_t i = 0; i < m_measures.size(); ++i)
       if (m_measures[i] == query)
         return i;
     // If no matches are found, return m_measures.size() (the last index + 1)
@@ -525,20 +524,19 @@ namespace ba {
   }
 
   // Delete control point
-  void ControlNetwork::delete_control_point(unsigned index) {
+  void ControlNetwork::delete_control_point(size_t index) {
     if (index >= this->size())
       vw_throw(LogicErr() << "ControlNetwork::delete_control_point -- index " << index << " exceeds control network dimensions.");
 
     iterator iter = this->begin();
-    for (unsigned i=0; i<index; ++i)
-      ++iter;
+    iter += index;
 
     m_control_points.erase(iter);
   }
 
   // Find measure
-  unsigned ControlNetwork::find_measure(ControlMeasure const& query) {
-    for (unsigned i = 0; i < m_control_points.size(); ++i)
+  size_t ControlNetwork::find_measure(ControlMeasure const& query) {
+    for (size_t i = 0; i < m_control_points.size(); ++i)
       if (m_control_points[i].find(query) != m_control_points[i].size())
         return i;
     // Otherwise...
@@ -574,7 +572,7 @@ namespace ba {
   }
 
   /// Reading a compressed binary style control network
-  void ControlNetwork::read_binary( std::string filename ) {
+  void ControlNetwork::read_binary( std::string const& filename ) {
 
     // Opening file
     std::ifstream f( filename.c_str() );
@@ -657,7 +655,7 @@ namespace ba {
   }
 
   /// Read an isis style control network
-  void ControlNetwork::read_isis( std::string filename ) {
+  void ControlNetwork::read_isis( std::string const& filename ) {
 
     // Opening file
     std::ifstream f( filename.c_str() );
