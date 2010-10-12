@@ -42,7 +42,7 @@ TEST( GeoTransform, UTMFarZone ) {
   utm[2] = Vector2(469332.648, 5184829.285); // UR
   utm[3] = Vector2(469332.648, 5129329.285); // LR
 
-  Vector2 size(3300,3700);
+  Vector2i size(3300,3700);
 
   GeoReference ll_georef, utm_georef;
 

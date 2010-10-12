@@ -28,24 +28,26 @@ namespace cartography {
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
   class OrthoImageView : public ImageViewBase<OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > {
 
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<TerrainImageT>, double, int32>::type offset_type;
+
     TerrainImageT m_terrain;
-    CameraImageT m_camera_image_ref;
     GeoReference m_georef;
     boost::shared_ptr<vw::camera::CameraModel> m_camera_model;
     InterpolationView<EdgeExtensionView<CameraImageT, EdgeT>, InterpT> m_camera_image;
+    CameraImageT m_camera_image_ref;
     InterpT m_interp_func;
     EdgeT m_edge_func;
 
     // Provide safe interaction with DEMs that are scalar or compound
     template <class PixelT>
     typename boost::enable_if< IsScalar<PixelT>, double >::type
-    inline Helper( double const& x, double const& y ) const {
+    inline Helper( offset_type x, offset_type y ) const {
       return m_terrain(x,y);
     }
 
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
-    inline Helper( double const& x, double const& y ) const {
+    inline Helper( offset_type x, offset_type y ) const {
       return m_terrain(x,y)[0];
     }
 
@@ -58,10 +60,10 @@ namespace cartography {
                    CameraImageT const& camera_image, boost::shared_ptr<vw::camera::CameraModel> camera_model,
                    InterpT const& interp_func, EdgeT const& edge_func) :
       m_terrain(terrain),
-      m_camera_image_ref(camera_image),
       m_georef(georef),
       m_camera_model(camera_model),
       m_camera_image(interpolate(camera_image, m_interp_func, m_edge_func)),
+      m_camera_image_ref(camera_image),
       m_interp_func(interp_func),
       m_edge_func(edge_func) {}
 
@@ -76,7 +78,7 @@ namespace cartography {
     /// compute a 3D point corresponding to this location in the DTM.
     /// This point is then "imaged" by the camera model and the
     /// resulting pixel location is returned from the camera image.
-    inline result_type operator()( int32 i, int32 j, int p=0 ) const {
+    inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const {
 
       // We need to convert the georefernced positions into a
       // cartesian coordinate system so that they can be imaged by the
@@ -131,7 +133,7 @@ namespace cartography {
   /// \cond INTERNAL
   // Type traits
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > : public true_type {};
+  struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > : public IsFloatingPointIndexable<TerrainImageT> {};
   /// \endcond
 
 } // namespace vw

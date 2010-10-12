@@ -13,6 +13,7 @@
 
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Interpolation.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Math/LevenbergMarquardt.h>
@@ -35,7 +36,7 @@ namespace cartography {
   // Define an LMA model to solve for an intersection ...
   template <class DEMImageT>
   class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
-    ImageViewBase<DEMImageT> const& m_dem;
+    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
     GeoReference m_georef;
     boost::shared_ptr<camera::CameraModel> m_camera_model;
     BBox2i m_dem_bbox;
@@ -44,13 +45,13 @@ namespace cartography {
     template <class PixelT>
     typename boost::enable_if< IsScalar<PixelT>, double >::type
     inline Helper( double const& x, double const& y ) const {
-      return m_dem.impl()(x,y);
+      return m_dem(x,y);
     }
 
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
     inline Helper( double const& x, double const& y ) const {
-      return m_dem.impl()(x,y)[0];
+      return m_dem(x,y)[0];
     }
 
   public:
@@ -67,8 +68,8 @@ namespace cartography {
     DEMIntersectionLMA( ImageViewBase<DEMImageT> const& dem_image,
                         GeoReference const& georef,
                         boost::shared_ptr<camera::CameraModel> camera_model ) :
-    m_dem(dem_image), m_georef(georef), m_camera_model(camera_model) {
-      m_dem_bbox = bounding_box( m_dem.impl() );
+    m_dem(interpolate(dem_image)), m_georef(georef), m_camera_model(camera_model) {
+      m_dem_bbox = bounding_box( m_dem );
     }
 
     // Evaluator
