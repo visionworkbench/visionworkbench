@@ -237,7 +237,7 @@ namespace ba {
 
     /// Returns the number of control measures associated with this
     /// control point.
-    unsigned size() const { return m_measures.size(); }
+    size_t size() const { return m_measures.size(); }
 
     /// Associate a single control measure with this ControlPoint
     void add_measure(ControlMeasure const& measure);
@@ -246,18 +246,18 @@ namespace ba {
     void add_measures(std::vector<ControlMeasure> const& measures);
 
     /// Remove the control point at the specified index.
-    void delete_measure(unsigned index);
+    void delete_measure(size_t index);
 
     /// Access a specific control measure that is associated with this control point.
-    ControlMeasure& operator[] (int index) { return m_measures[index]; }
-    const ControlMeasure& operator[] (int index) const { return m_measures[index]; }
+    ControlMeasure& operator[] (size_t index) { return m_measures[index]; }
+    const ControlMeasure& operator[] (size_t index) const { return m_measures[index]; }
 
     /// Clear all the control measures associated with this control point.
     void clear() { m_measures.clear(); }
 
     /// Locate a control measure that is equal to the query.  Returns
     /// this->size() if no match is found.
-    unsigned find(ControlMeasure const& query);
+    size_t find(ControlMeasure const& query);
 
     /// Setting/Reading the position of the control point
     void set_position(double x, double y, double z) {
@@ -340,16 +340,16 @@ namespace ba {
 
     /// Returns the number of control measures associated with this
     /// control point.
-    unsigned size() const { return m_control_points.size(); }
+    size_t size() const { return m_control_points.size(); }
 
     /// Return the number of Control Points that are Ground Control
     /// Points (GCPs)
-    unsigned num_ground_control_points() const {
+    size_t num_ground_control_points() const {
       if ( m_type != ControlNetwork::ImageToGround )
         return 0;
 
-      unsigned count=0;
-      for (unsigned i=0; i<this->size(); ++i) {
+      size_t count=0;
+      for (size_t i=0; i<this->size(); ++i) {
         if ((*this)[i].type() == ControlPoint::GroundControlPoint)
           ++count;
       }
@@ -358,9 +358,9 @@ namespace ba {
 
     /// Return the number of Control Points that are of the generic
     /// image tie points
-    unsigned num_tie_points() const {
-      unsigned count=0;
-      for (unsigned i=0; i<this->size(); ++i) {
+    size_t num_tie_points() const {
+      size_t count=0;
+      for (size_t i=0; i<this->size(); ++i) {
         if ((*this)[i].type() == ControlPoint::TiePoint)
           ++count;
       }
@@ -374,12 +374,12 @@ namespace ba {
     void add_control_points(std::vector<ControlPoint> const& points);
 
     /// Remove the control point at the specified index.
-    void delete_control_point(unsigned index);
+    void delete_control_point(size_t index);
 
     /// Access a specific control measure that is associated with this
     /// control point.
-    ControlPoint& operator[] (int index) { return m_control_points[index]; }
-    const ControlPoint& operator[] (int index) const { return m_control_points[index]; }
+    ControlPoint& operator[] (size_t index) { return m_control_points[index]; }
+    const ControlPoint& operator[] (size_t index) const { return m_control_points[index]; }
 
     /// Clear all the control points associated with this control network.
     void clear() { m_control_points.clear(); }
@@ -387,7 +387,7 @@ namespace ba {
     /// Locate a control point that contains the control measure that
     /// is equal to the query.  Returns this->size() if no match is
     /// found.
-    unsigned find_measure(ControlMeasure const& query);
+    size_t find_measure(ControlMeasure const& query);
 
     /// File I/O
     void read_binary( std::string filename );

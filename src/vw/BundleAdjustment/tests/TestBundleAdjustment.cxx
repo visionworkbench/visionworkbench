@@ -32,7 +32,7 @@ class TestBAModel : public ba::ModelBase< TestBAModel, 6, 3 > {
   boost::shared_ptr<ControlNetwork> m_cnet;
   std::vector<camera_vector_t> a, a_target;
   std::vector<point_vector_t> b, b_target;
-  int m_num_pixel_observations;
+  size_t m_num_pixel_observations;
 
 public:
   // Constructor
@@ -41,13 +41,13 @@ public:
 
     // Compute the number of observations from the bundle.
     m_num_pixel_observations = 0;
-    for (unsigned i = 0; i < network->size(); ++i)
+    for (size_t i = 0; i < network->size(); ++i)
       m_num_pixel_observations += (*network)[i].size();
 
     // Setting up the A vectors
     a.resize( m_cameras.size() );
     a_target.resize( a.size() );
-    for ( unsigned j = 0; j < m_cameras.size(); j++ ) {
+    for ( size_t j = 0; j < m_cameras.size(); j++ ) {
       a[j] = camera_vector_t();
       a_target[j] = a[j];
     }
@@ -55,7 +55,7 @@ public:
     // Setting up the B vectors
     b.resize( m_cnet->size() );
     b_target.resize( b.size() );
-    for ( unsigned i = 0; i < m_cnet->size(); i++ ) {
+    for ( size_t i = 0; i < m_cnet->size(); i++ ) {
       b[i] = (*m_cnet)[i].position();
       b_target[i] = b[i];
     }
@@ -65,7 +65,7 @@ public:
   // -- REQUIRED STUFF ---------------------------------------
 
   // Access to the cameras
-  Vector2 operator() ( unsigned /*i*/, unsigned j,
+  Vector2 operator() ( size_t /*i*/, size_t j,
                        camera_vector_t const& a_j,
                        point_vector_t const& b_i ) const {
     // Quaternions are the last half of this equation
@@ -76,28 +76,28 @@ public:
     return cam.point_to_pixel( b_i );
   }
 
-  inline Matrix<double,6,6> A_inverse_covariance( unsigned /*j*/ ) {
+  inline Matrix<double,6,6> A_inverse_covariance( size_t /*j*/ ) {
     Matrix<double,6,6> result;
     result.set_identity();
     result *= 2;
     return result;
   }
-  inline Matrix<double,3,3> B_inverse_covariance( unsigned /*i*/ ) {
+  inline Matrix<double,3,3> B_inverse_covariance( size_t /*i*/ ) {
     Matrix<double,3,3> result;
     result.set_identity();
     result *= 2;
     return result;
   }
 
-  unsigned num_cameras() const { return a.size(); }
-  unsigned num_points() const { return b.size(); }
-  camera_vector_t A_parameters( int j ) const { return a[j]; }
-  point_vector_t B_parameters( int i ) const { return b[i]; }
-  camera_vector_t A_target( int j ) const { return a_target[j]; }
-  point_vector_t B_target( int i ) const { return b_target[i]; }
-  unsigned num_pixel_observations() const { return m_num_pixel_observations; }
-  void set_A_parameters(int j, camera_vector_t const& a_j) { a[j] = a_j; }
-  void set_B_parameters(int i, point_vector_t const& b_i) { b[i] = b_i; }
+  size_t num_cameras() const { return a.size(); }
+  size_t num_points() const { return b.size(); }
+  camera_vector_t A_parameters( size_t j ) const { return a[j]; }
+  point_vector_t B_parameters( size_t i ) const { return b[i]; }
+  camera_vector_t A_target( size_t j ) const { return a_target[j]; }
+  point_vector_t B_target( size_t i ) const { return b_target[i]; }
+  size_t num_pixel_observations() const { return m_num_pixel_observations; }
+  void set_A_parameters(size_t j, camera_vector_t const& a_j) { a[j] = a_j; }
+  void set_B_parameters(size_t i, point_vector_t const& b_i) { b[i] = b_i; }
 
   boost::shared_ptr<ControlNetwork> control_network(void) {
     return m_cnet; }

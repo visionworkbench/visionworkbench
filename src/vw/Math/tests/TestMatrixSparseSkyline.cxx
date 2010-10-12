@@ -13,9 +13,9 @@ using namespace vw::math;
 
 static const double DELTA = 1e-4;
 
-Vector<unsigned> create_test_skyline(unsigned size, int max_offset ) {
+Vector<unsigned> create_test_skyline(size_t size, int max_offset ) {
   Vector<unsigned> result(size);
-  for ( unsigned i = 0; i < size; ++i ) {
+  for ( size_t i = 0; i < size; ++i ) {
     int offset = int(i) - rand()%max_offset;
     if ( offset < 0 ) offset = 0;
     result[i] = offset;
@@ -25,13 +25,13 @@ Vector<unsigned> create_test_skyline(unsigned size, int max_offset ) {
 
 template <class VectorT>
 void fill_vector(VectorT& b) {
-  for ( unsigned i = 0; i < b.size(); ++i )
+  for ( size_t i = 0; i < b.size(); ++i )
     b[i] = lround(double(random())/(pow(2,31)-1)*100)+1;
 }
 
 template <class MatrixT>
 void fill_symmetric_matrix(MatrixT& A, Vector<unsigned> const& skyline ) {
-  for (unsigned i = 0; i < A.rows(); ++i)
+  for (size_t i = 0; i < A.rows(); ++i)
     for (unsigned j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
       A(i,j) = lround(double(random())/(pow(2,31)-1)*100)+1;
       A(j,i) = A(i,j);
@@ -42,21 +42,21 @@ void fill_symmetric_matrix(MatrixT& A, Vector<unsigned> const& skyline ) {
 template <class MatrixT>
 void ldl_decomposition(MatrixT& A) {
   VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "ldl_decomposition: argument must be square and symmetric.\n");
-  for (unsigned j = 0; j < A.cols(); ++j) {
+  for (size_t j = 0; j < A.cols(); ++j) {
 
     // Compute v(1:j)
     std::vector<double> v(j+1);
     v[j] = A(j,j);
-    for (unsigned i = 0; i < j; ++i) {
+    for (size_t i = 0; i < j; ++i) {
       v[i] = A(j,i)*A(i,i);
       v[j] -= A(j,i)*v[i];
     }
 
     // Store d(j) and compute L(j+1:n,j)
     A(j,j) = v[j];
-    for (unsigned i = j+1; i < A.cols(); ++i) {
+    for (size_t i = j+1; i < A.cols(); ++i) {
       double row_sum = 0;
-      for (unsigned jj = 0; jj < j; ++jj)
+      for (size_t jj = 0; jj < j; ++jj)
         row_sum += A(i,jj)*v[jj];
       A(i,j) = ( A(i,j)-row_sum ) / v[j];
     }

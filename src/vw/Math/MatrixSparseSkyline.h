@@ -88,18 +88,18 @@ namespace math {
     m_matrix(0,0), m_skyline(0) {
     }
 
-    MatrixSparseSkyline( unsigned size ) :
+    MatrixSparseSkyline( size_t size ) :
     m_matrix(size,size), m_skyline(size) {
-      for ( unsigned i = 0; i < size; ++i )
+      for ( size_t i = 0; i < size; ++i )
         m_skyline[i] = i;
     }
 
-    MatrixSparseSkyline( unsigned rows, unsigned cols ) :
+    MatrixSparseSkyline( size_t rows, size_t cols ) :
     m_matrix(rows,cols), m_skyline(rows) {
       VW_ASSERT( cols == rows,
                  ArgumentErr() << "MatrixSparseSkyline must be square and symmetric.\n");
       // Setting non-zero to the identity point;
-      for (unsigned i = 0; i < rows; ++i)
+      for (size_t i = 0; i < rows; ++i)
         m_skyline[i] = i;
     }
 
@@ -129,8 +129,8 @@ namespace math {
                  m.impl().cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
       vw_out(vw::WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
-      for ( unsigned i = 0; i < m.rows(); i++ ) {
-        for ( unsigned j = 0; j < m.cols(); j++ ) {
+      for ( size_t i = 0; i < m.rows(); i++ ) {
+        for ( size_t j = 0; j < m.cols(); j++ ) {
           (*this)(i,j) = m(i,j);
         }
       }
@@ -138,16 +138,16 @@ namespace math {
     }
 
     /// Simple Access
-    unsigned rows() const { return m_matrix.size1(); }
-    unsigned cols() const { return m_matrix.size2(); }
+    size_t rows() const { return m_matrix.size1(); }
+    size_t cols() const { return m_matrix.size2(); }
 
     /// Change the size of the matrix
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve = false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool preserve = false ) {
       vw_throw( NoImplErr() << "MatrixSparseSkyline::set_size, code has not been written yet." );
     }
 
     /// Element Access
-    reference_type operator()( unsigned row, unsigned col ) {
+    reference_type operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(),
                  LogicErr() << "operator() ran off end of matrix" );
@@ -160,7 +160,7 @@ namespace math {
     }
 
     /// Element Access
-    const_reference_type operator()( unsigned row, unsigned col ) const {
+    const_reference_type operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(),
                  LogicErr() << "operator() ran off end of matrix" );
@@ -195,11 +195,11 @@ namespace math {
     // Need to first determine the sampling rate. In bundle adjustment
     // it doesn't make sense to show every element as camera variables will
     // come in blocks of 6.
-    unsigned smallest_sampling_rate = m.cols();
-    unsigned curr_sampling_rate = m.cols();
+    size_t smallest_sampling_rate = m.cols();
+    size_t curr_sampling_rate = m.cols();
     unsigned last_value = 10000;
     Vector<unsigned> skyline = m.skyline();
-    for ( unsigned i = 0; i < skyline.size(); i++ ) {
+    for ( size_t i = 0; i < skyline.size(); i++ ) {
       if ( last_value != skyline(i) ) {
         if ( smallest_sampling_rate  > curr_sampling_rate )
           smallest_sampling_rate = curr_sampling_rate;
@@ -210,8 +210,8 @@ namespace math {
     }
 
     os << "MatrixSparseSkyline" << m.rows() << "x" << m.cols() << "@" << smallest_sampling_rate << "\n";
-    for ( unsigned i = 0, ii=0; i < m.rows(); i += smallest_sampling_rate, ii++ ) {
-      for ( unsigned j = 0, jj=0; j < m.cols(); j += smallest_sampling_rate, jj++ ) {
+    for ( size_t i = 0, ii=0; i < m.rows(); i += smallest_sampling_rate, ii++ ) {
+      for ( size_t j = 0, jj=0; j < m.cols(); j += smallest_sampling_rate, jj++ ) {
         ElemT e = m(i,j);
         if (e)
           os << "#";
@@ -245,7 +245,7 @@ namespace math {
 
     Vector<unsigned> const& skyline = A.skyline();
 
-    for (unsigned j = 0; j < A.cols(); ++j) {
+    for (size_t j = 0; j < A.cols(); ++j) {
 
       // Compute v(1:j)
       std::vector<double> v(j+1);
@@ -257,7 +257,7 @@ namespace math {
 
       // Store d(j) and compute L(j+1:n,j)
       A(j,j) = v[j];
-      for (unsigned i = j+1; i < A.cols(); ++i) {
+      for (size_t i = j+1; i < A.cols(); ++i) {
         double row_sum = 0;
         for (unsigned jj = skyline(i); jj < j; ++jj)
           row_sum += A(i,jj)*v[jj];
@@ -270,7 +270,7 @@ namespace math {
   // This version excepts an outside skyline matrix
   template <class MatrixT, class VectorT>
   void sparse_ldl_decomposition(MatrixBase<MatrixT>& A, VectorT& skyline ) {
-    for (unsigned j = 0; j < A.impl().cols(); ++j) {
+    for (size_t j = 0; j < A.impl().cols(); ++j) {
 
       // Compute v(1:j)
       std::vector<double> v(j+1);
@@ -282,7 +282,7 @@ namespace math {
 
       // Store d(j) and compute L(j+1:n,j)
       A.impl()(j,j) = v[j];
-      for (unsigned i = j+1; i < A.impl().cols(); ++i) {
+      for (size_t i = j+1; i < A.impl().cols(); ++i) {
         double row_sum = 0;
         for (unsigned jj = skyline(i); jj < j; ++jj)
           row_sum += A.impl()(i,jj)*v[jj];
@@ -359,7 +359,7 @@ namespace math {
     // Compute the L*D*L^T decomposition of A
     sparse_ldl_decomposition(A, skyline);
 
-    for(unsigned i = 0; i < B.cols(); i++){
+    for(size_t i = 0; i < B.cols(); i++){
       current_col = select_col(B, i);
       select_col(X, i) = sparse_solve_ldl(A, current_col, skyline);
     }
@@ -397,7 +397,7 @@ namespace math {
 
     // Construct the inverse skyline, which is used to optimize the final
     // back substitution step below.
-    for (unsigned j = 0; j < inverse_sky.size(); ++j) {
+    for (size_t j = 0; j < inverse_sky.size(); ++j) {
       inverse_sky(j) = 0;
       for (int i = sky.size()-1; i>=0; --i) {
         if (j < sky(i))
@@ -409,7 +409,7 @@ namespace math {
 
     // Forward Substitution Step ( L*x'=b )
     Vector<typename MatrixT::value_type> x_prime(ar.cols());
-    for (unsigned i = 0; i < x_prime.size(); ++i) {
+    for (size_t i = 0; i < x_prime.size(); ++i) {
       typename MatrixT::value_type sum = 0;
       for (unsigned j = sky(i); j < i; ++j)
         sum += ar(i,j)*x_prime(j);
@@ -418,7 +418,7 @@ namespace math {
 
     // Divide by D ( D*x''=x' )
     Vector<typename MatrixT::value_type> x_doubleprime(A.impl().cols());
-    for (unsigned i = 0; i < x_doubleprime.size(); ++i)
+    for (size_t i = 0; i < x_doubleprime.size(); ++i)
       x_doubleprime(i) = x_prime(i)/ar(i,i);
 
     // Back Substitution step ( L^T*x=x'' )
@@ -469,23 +469,23 @@ namespace math {
     std::vector<unsigned> inverse() const {
       std::vector<unsigned> ilookup;
       ilookup.resize( m_lookup.size() );
-      for ( unsigned i = 0; i < m_lookup.size(); i++ )
+      for ( size_t i = 0; i < m_lookup.size(); i++ )
         ilookup[m_lookup[i]] = i;
       return ilookup;
     }
 
     // Standard Properties
-    unsigned size() const { return m_vector.size(); }
-    void set_size( unsigned new_size, bool preserve=false ) {
+    size_t size() const { return m_vector.size(); }
+    void set_size( size_t new_size, bool preserve=false ) {
       VW_ASSERT( new_size==size(),
                  ArgumentErr() << "Cannot resize vector reorganize." );
     }
 
     // Element Access
-    reference_type operator()( unsigned i ) { return m_vector[m_lookup[i]]; }
-    const_reference_type operator()( unsigned i ) const { return m_vector[m_lookup[i]]; }
-    reference_type operator[]( unsigned i ) { return m_vector[m_lookup[i]]; }
-    const_reference_type operator[]( unsigned i ) const { return m_vector[m_lookup[i]]; }
+    reference_type operator()( size_t i ) { return m_vector[m_lookup[i]]; }
+    const_reference_type operator()( size_t i ) const { return m_vector[m_lookup[i]]; }
+    reference_type operator[]( size_t i ) { return m_vector[m_lookup[i]]; }
+    const_reference_type operator[]( size_t i ) const { return m_vector[m_lookup[i]]; }
 
     // Pointer Access
     iterator begin() { return iterator(*this,0); }
@@ -555,21 +555,21 @@ namespace math {
     }
 
     // Standard properties
-    unsigned rows() const { return m_matrix.rows(); }
-    unsigned cols() const { return m_matrix.cols(); }
-    void set_size( unsigned new_rows, unsigned new_cols, bool preserve=false ) {
+    size_t rows() const { return m_matrix.rows(); }
+    size_t cols() const { return m_matrix.cols(); }
+    void set_size( size_t new_rows, size_t new_cols, bool preserve=false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix reorganize." );
     }
 
     // Element Access
-    reference_type operator()( unsigned row, unsigned col ) {
+    reference_type operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
       return m_matrix(m_lookup[row],m_lookup[col]);
     }
-    const_reference_type operator()( unsigned row, unsigned col ) const {
+    const_reference_type operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -655,7 +655,7 @@ namespace math {
 
     // Building new lookup chart
     std::vector<unsigned> lookup_chart( A.cols() );
-    for ( unsigned i = 0; i < inv_perm.size(); i++ )
+    for ( size_t i = 0; i < inv_perm.size(); i++ )
       lookup_chart[i] = index_map[inv_perm[i]];
 
     // Finding new bandwidth for debug purposes
@@ -675,10 +675,10 @@ namespace math {
   template <class MatrixT>
   Vector<unsigned> solve_for_skyline(MatrixBase<MatrixT> const& A) {
     MatrixT const& ar = A.impl();
-    unsigned rows = ar.rows();
+    size_t rows = ar.rows();
     Vector<unsigned> skyline(rows);
-    for ( unsigned i = 0; i < rows; i++ ) {
-      unsigned j = 0;
+    for ( size_t i = 0; i < rows; i++ ) {
+      size_t j = 0;
       while ( j < i && ar(i,j) == 0 )
         j++;
       skyline[i] = j;

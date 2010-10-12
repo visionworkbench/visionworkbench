@@ -62,7 +62,7 @@ namespace math {
   /// at compile time (or zero for dynamically-sized vectors).
   template <class VectorT>
   struct VectorSize {
-    const static int value = 0;
+    const static size_t value = 0;
   };
 
 
@@ -171,23 +171,29 @@ namespace math {
     typename VectorT::const_reference_type,
     typename VectorT::reference_type>::type> {
 
+  public:
+    typedef typename IndexingVectorIterator::difference_type difference_type;
+
+    IndexingVectorIterator( VectorT& vector, difference_type index ) :
+      m_vector(vector), m_index(index) {}
+  private:
     friend class boost::iterator_core_access;
 
     VectorT& m_vector;
-    unsigned m_index;
+    difference_type m_index;
 
     bool equal( IndexingVectorIterator const& iter ) const {
       return m_index==iter.m_index;
     }
 
-    ptrdiff_t distance_to( IndexingVectorIterator const& iter ) const {
-      return ptrdiff_t(iter.m_index)-ptrdiff_t(m_index);
+    difference_type distance_to( IndexingVectorIterator const& iter ) const {
+      return difference_type(iter.m_index)-difference_type(m_index);
     }
 
     void increment() { ++m_index; }
     void decrement() { --m_index; }
 
-    void advance( ptrdiff_t n ) {
+    void advance( difference_type n ) {
       if ( m_vector.size() == 0 ) return;
       m_index += n;
     }
@@ -195,10 +201,6 @@ namespace math {
     typename IndexingVectorIterator::reference dereference() const {
       return m_vector[m_index];
     }
-
-  public:
-    IndexingVectorIterator( VectorT& vector, ptrdiff_t index ) :
-      m_vector(vector), m_index(index) {}
   };
 
   // *******************************************************************
@@ -207,7 +209,7 @@ namespace math {
   // *******************************************************************
 
   /// A fixed-dimension mathematical vector class.
-  template <class ElemT, int SizeN = 0>
+  template <class ElemT, size_t SizeN = 0>
   class Vector : public VectorBase<Vector<ElemT,SizeN> >
   {
     typedef boost::array<ElemT,SizeN> core_type;
@@ -230,35 +232,35 @@ namespace math {
     Vector( ElemT e1 ) {
       BOOST_STATIC_ASSERT( SizeN >= 1 );
       (*this)[0] = e1;
-      for( unsigned i=1; i<SizeN; ++i ) (*this)[i] = ElemT();
+      for( size_t i=1; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first two elements are as given.
     Vector( ElemT e1, ElemT e2 ) {
       BOOST_STATIC_ASSERT( SizeN >= 2 );
       core_[0] = e1; core_[1] = e2;
-      for( unsigned i=2; i<SizeN; ++i ) (*this)[i] = ElemT();
+      for( size_t i=2; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first three elements are as given.
     Vector( ElemT e1, ElemT e2, ElemT e3 ) {
       BOOST_STATIC_ASSERT( SizeN >= 3 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3;
-      for( unsigned i=3; i<SizeN; ++i ) (*this)[i] = ElemT();
+      for( size_t i=3; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first four elements are as given.
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
       BOOST_STATIC_ASSERT( SizeN >= 4 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4;
-      for( unsigned i=4; i<SizeN; ++i ) (*this)[i] = ElemT();
+      for( size_t i=4; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector whose first five elements are as given.
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5 ) {
       BOOST_STATIC_ASSERT( SizeN >= 5 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4; (*this)[4] = e5;
-      for( unsigned i=5; i<SizeN; ++i ) (*this)[i] = ElemT();
+      for( size_t i=5; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector from given densely-packed data.  This
@@ -304,28 +306,28 @@ namespace math {
     }
 
     /// Returns the size of the vector.
-    unsigned size() const {
+    size_t size() const {
       return SizeN;
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool /*preserve*/ = false ) {
+    void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot change size of fixed-size Vector." );
     }
 
-    reference_type operator()( unsigned i ) {
+    reference_type operator()( size_t i ) {
       return core_[i];
     }
 
-    const_reference_type operator()( unsigned i ) const {
+    const_reference_type operator()( size_t i ) const {
       return core_[i];
     }
 
-    reference_type operator[]( unsigned i ) {
+    reference_type operator[]( size_t i ) {
       return core_[i];
     }
 
-    const_reference_type operator[]( unsigned i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return core_[i];
     }
 
@@ -377,9 +379,9 @@ namespace math {
 
   };
 
-  template <class ElemT, int SizeN>
+  template <class ElemT, size_t SizeN>
   struct VectorSize<Vector<ElemT,SizeN> > {
-    const static int value = SizeN;
+    const static size_t value = SizeN;
   };
 
   template <class DstElemT, class SrcVecT>
@@ -430,7 +432,7 @@ namespace math {
     }
   };
 
-  template <class ElemT, int N>
+  template <class ElemT, size_t N>
   struct VectorClearImpl<Vector<ElemT,N> > {
     static void clear( Vector<ElemT,N>& v ) {
       std::memset( &v(0), 0, N*sizeof(ElemT) );
@@ -461,13 +463,13 @@ namespace math {
     Vector() {}
 
     /// Constructs a zero vector of the given size.
-    Vector( unsigned size ) : core_(size) {}
+    Vector( size_t size ) : core_(size) {}
 
     /// Constructs a vector of the given size from given
     /// densely- packed data.  This constructor copies the data.
     /// If you wish to make a shallow proxy object instead, see
     /// vw::VectorProxy.
-    Vector( unsigned size, const ElemT *data ) : core_(data, data+size) {}
+    Vector( size_t size, const ElemT *data ) : core_(data, data+size) {}
 
     /// Standard copy constructor.
     Vector( Vector const& v ) : core_( v.core_ ) {}
@@ -506,28 +508,28 @@ namespace math {
     }
 
     /// Returns the size of the vector.
-    unsigned size() const {
+    size_t size() const {
       return core_.size();
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool preserve = false ) {
+    void set_size( size_t new_size, bool preserve = false ) {
       core_.resize(new_size, preserve);
     }
 
-    reference_type operator()( unsigned i ) {
+    reference_type operator()( size_t i ) {
       return core_[i];
     }
 
-    const_reference_type operator()( unsigned i ) const {
+    const_reference_type operator()( size_t i ) const {
       return core_[i];
     }
 
-    reference_type operator[]( unsigned i ) {
+    reference_type operator[]( size_t i ) {
       return core_[i];
     }
 
-    const_reference_type operator[]( unsigned i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return core_[i];
     }
 
@@ -557,7 +559,7 @@ namespace math {
   // *******************************************************************
 
   /// A fixed-dimension mathematical vector class.
-  template <class ElemT, int SizeN = 0>
+  template <class ElemT, size_t SizeN = 0>
   class VectorProxy : public VectorBase<VectorProxy<ElemT,SizeN> >
   {
     ElemT *m_ptr;
@@ -600,28 +602,28 @@ namespace math {
     }
 
     /// Returns the size of the vector.
-    unsigned size() const {
+    size_t size() const {
       return SizeN;
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool /*preserve*/ = false ) {
+    void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
     }
 
-    reference_type operator()( unsigned i ) {
+    reference_type operator()( size_t i ) {
       return m_ptr[i];
     }
 
-    const_reference_type operator()( unsigned i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m_ptr[i];
     }
 
-    reference_type operator[]( unsigned i ) {
+    reference_type operator[]( size_t i ) {
       return m_ptr[i];
     }
 
-    const_reference_type operator[]( unsigned i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m_ptr[i];
     }
 
@@ -673,9 +675,9 @@ namespace math {
 
   };
 
-  template <class ElemT, int SizeN>
+  template <class ElemT, size_t SizeN>
   struct VectorSize<VectorProxy<ElemT,SizeN> > {
-    const static int value = SizeN;
+    const static size_t value = SizeN;
   };
 
 
@@ -689,7 +691,7 @@ namespace math {
   template <class ElemT>
   class VectorProxy<ElemT,0> : public VectorBase<VectorProxy<ElemT> > {
     ElemT *m_ptr;
-    unsigned m_size;
+    size_t m_size;
   public:
     typedef ElemT value_type;
 
@@ -700,7 +702,7 @@ namespace math {
     typedef const ElemT* const_iterator;
 
     /// Constructs a vector with zero size.
-    VectorProxy( unsigned size, ElemT *ptr ) : m_ptr(ptr), m_size(size) {}
+    VectorProxy( size_t size, ElemT *ptr ) : m_ptr(ptr), m_size(size) {}
 
     /// Standard copy assignment operator.
     VectorProxy& operator=( VectorProxy const& v ) {
@@ -729,28 +731,28 @@ namespace math {
     }
 
     /// Returns the size of the vector.
-    unsigned size() const {
+    size_t size() const {
       return m_size;
     }
 
     /// Change the size of the vector. Elements in memory are preserved when specified.
-    void set_size( unsigned new_size, bool /*preserve*/ = false ) {
+    void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
     }
 
-    reference_type operator()( unsigned i ) {
+    reference_type operator()( size_t i ) {
       return m_ptr[i];
     }
 
-    const_reference_type operator()( unsigned i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m_ptr[i];
     }
 
-    reference_type operator[]( unsigned i ) {
+    reference_type operator[]( size_t i ) {
       return m_ptr[i];
     }
 
-    const_reference_type operator[]( unsigned i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m_ptr[i];
     }
 
@@ -775,7 +777,7 @@ namespace math {
   /// Shallow proxy view of an block of memory as a vector.
   template <class DataT>
   VectorProxy<DataT>
-  vector_proxy( DataT* data, int size) {
+  vector_proxy( DataT* data, size_t size) {
     return VectorProxy<DataT>( data, size );
   }
 
@@ -801,8 +803,8 @@ namespace math {
     // them, but we want to store everything else by value so that we can
     // return transposed versions of various vector expressions.
     template <class T> struct VectorClosure { typedef T type; };
-    template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN>& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN>& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
     typename VectorClosure<VectorT>::type m_vector;
   public:
     typedef typename VectorT::value_type value_type;
@@ -834,23 +836,23 @@ namespace math {
       return m_vector;
     }
 
-    unsigned size() const {
+    size_t size() const {
       return m_vector.size();
     }
 
-    reference_type operator()( int i ) {
+    reference_type operator()( size_t i ) {
       return m_vector(i);
     }
 
-    const_reference_type operator()( int i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m_vector(i);
     }
 
-    reference_type operator[]( int i ) {
+    reference_type operator[]( size_t i ) {
       return m_vector[i];
     }
 
-    const_reference_type operator[]( int i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m_vector[i];
     }
 
@@ -906,7 +908,7 @@ namespace math {
   template <class VectorT>
   class SubVector : public VectorBase<SubVector<VectorT> > {
     VectorT& m_vector;
-    unsigned m_pos, m_size;
+    size_t m_pos, m_size;
   public:
     typedef typename VectorT::value_type value_type;
 
@@ -920,7 +922,7 @@ namespace math {
                                      typename VectorT::iterator>::type iterator;
     typedef typename VectorT::const_iterator const_iterator;
 
-    SubVector( VectorT& v, unsigned pos, unsigned size ) : m_vector(v), m_pos(pos), m_size(size) {}
+    SubVector( VectorT& v, size_t pos, size_t size ) : m_vector(v), m_pos(pos), m_size(size) {}
 
     /// Standard copy assignment operator.
     SubVector& operator=( SubVector const& v ) {
@@ -946,23 +948,23 @@ namespace math {
       return *this;
     }
 
-    unsigned size() const {
+    size_t size() const {
       return m_size;
     }
 
-    reference_type operator()( int i ) {
+    reference_type operator()( size_t i ) {
       return m_vector(m_pos+i);
     }
 
-    const_reference_type operator()( int i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m_vector(m_pos+i);
     }
 
-    reference_type operator[]( int i ) {
+    reference_type operator[]( size_t i ) {
       return m_vector[m_pos+i];
     }
 
-    const_reference_type operator[]( int i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m_vector[m_pos+i];
     }
 
@@ -985,12 +987,12 @@ namespace math {
   };
 
   template <class VectorT>
-  inline SubVector<VectorT> subvector( VectorBase<VectorT>& vector, unsigned pos, unsigned size ) {
+  inline SubVector<VectorT> subvector( VectorBase<VectorT>& vector, size_t pos, size_t size ) {
     return SubVector<VectorT>( vector.impl(), pos, size );
   }
 
   template <class VectorT>
-  inline SubVector<const VectorT> subvector( VectorBase<VectorT> const& vector, unsigned pos, unsigned size ) {
+  inline SubVector<const VectorT> subvector( VectorBase<VectorT> const& vector, size_t pos, size_t size ) {
     return SubVector<const VectorT>( vector.impl(), pos, size );
   }
 
@@ -1023,10 +1025,10 @@ namespace math {
       FuncT func;
 
       bool equal( iterator const& iter ) const { return i==iter.i; }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i - i; }
+      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
       void increment() { ++i; }
       void decrement() { --i; }
-      void advance( ptrdiff_t n ) { i+=n; }
+      void advance( typename iterator::difference_type n ) { i+=n; }
       typename iterator::reference dereference() const { return func(*i); }
     public:
       iterator(typename VectorT::const_iterator const& i,
@@ -1040,15 +1042,15 @@ namespace math {
     template <class Arg1>
     VectorUnaryFunc( VectorT const& v, Arg1 a1 ) : v(v), func(a1) {}
 
-    unsigned size() const {
+    size_t size() const {
       return v.size();
     }
 
-    reference_type operator()( int i ) const {
+    reference_type operator()( size_t i ) const {
       return func(v(i));
     }
 
-    reference_type operator[]( int i ) const {
+    reference_type operator[]( size_t i ) const {
       return func(v[i]);
     }
 
@@ -1058,7 +1060,7 @@ namespace math {
 
   template <class VectorT, class FuncT>
   struct VectorSize<VectorUnaryFunc<VectorT,FuncT> > {
-    static const int value = VectorSize<VectorT>::value;
+    static const size_t value = VectorSize<VectorT>::value;
   };
 
 
@@ -1091,10 +1093,10 @@ namespace math {
       FuncT func;
 
       bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i1 - i1; }
+      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i1 - i1; }
       void increment() { ++i1; ++i2; }
       void decrement() { --i1; --i2; }
-      void advance( ptrdiff_t n ) { i1+=n; i2+=n; }
+      void advance( typename iterator::difference_type n ) { i1+=n; i2+=n; }
       typename iterator::reference dereference() const { return func(*i1,*i2); }
     public:
       iterator(typename Vector1T::const_iterator const& i1,
@@ -1113,15 +1115,15 @@ namespace math {
       VW_ASSERT( v1.size() == v2.size(), ArgumentErr() << "Vectors must have same size in VectorBinaryFunc" );
     }
 
-    unsigned size() const {
+    size_t size() const {
       return v1.size();
     }
 
-    reference_type operator()( int i ) const {
+    reference_type operator()( size_t i ) const {
       return func(v1(i),v2(i));
     }
 
-    reference_type operator[]( int i ) const {
+    reference_type operator[]( size_t i ) const {
       return func(v1[i],v2[i]);
     }
 
@@ -1131,7 +1133,7 @@ namespace math {
 
   template <class Vector1T, class Vector2T, class FuncT>
   struct VectorSize<VectorBinaryFunc<Vector1T,Vector2T,FuncT> > {
-    static const int value = (VectorSize<Vector1T>::value!=0)?(VectorSize<Vector1T>::value):(VectorSize<Vector2T>::value);
+    static const size_t value = (VectorSize<Vector1T>::value!=0)?(VectorSize<Vector1T>::value):(VectorSize<Vector2T>::value);
   };
 
 
@@ -1148,7 +1150,7 @@ namespace math {
   }
 
   /// Forwarding overload for plain Vector objects.
-  template <class ElemT, int SizeN>
+  template <class ElemT, size_t SizeN>
   inline Vector<ElemT,SizeN> const& eval( Vector<ElemT,SizeN> const& v ) {
     return v;
   }
@@ -1162,10 +1164,10 @@ namespace math {
   template <class VectorT>
   inline std::ostream& operator<<( std::ostream& os, VectorBase<VectorT> const& v ) {
     VectorT const& vr = v.impl();
-    unsigned size = vr.size();
+    size_t size = vr.size();
     os << "Vector" << size << '(';
     if( size > 0 ) os << vr(0);
-    for( unsigned i=1; i<size; ++i ) os << ',' << vr(i);
+    for( size_t i=1; i<size; ++i ) os << ',' << vr(i);
     return os << ')';
   }
 
@@ -1173,10 +1175,10 @@ namespace math {
   template <class VectorT>
   inline std::ostream& operator<<( std::ostream& os, VectorTranspose<VectorT> const& v ) {
     VectorT const& vr = v.child();
-    unsigned size = vr.size();
+    size_t size = vr.size();
     os << "Vector" << size << '(';
     if( size > 0 ) os << vr(0);
-    for( unsigned i=1; i<size; ++i ) os << ',' << vr(i);
+    for( size_t i=1; i<size; ++i ) os << ',' << vr(i);
     return os << ")'";
   }
 
@@ -1630,9 +1632,9 @@ namespace math {
 
   /// Index of the element with the largest magnitude
   template <class VectorT>
-  inline unsigned index_norm_inf( VectorBase<VectorT> const& v ) {
+  inline size_t index_norm_inf( VectorBase<VectorT> const& v ) {
     double maxval = -1;
-    unsigned index=0, result=0;
+    size_t index=0, result=0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
     for( ; i != end ; ++i, ++index ) {
       double a = fabs( *i );

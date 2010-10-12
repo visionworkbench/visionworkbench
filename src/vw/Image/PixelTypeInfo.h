@@ -410,19 +410,19 @@ namespace vw {
   /// the compound type traits classes for a new pixel type
   /// with a variable number of channels.
 #define VW_DECLARE_PIXEL_TYPE_NCHANNELS(PIXELT)              \
-  template <class ChannelT, int SizeN>                       \
+  template <class ChannelT, size_t SizeN>                    \
   struct CompoundChannelType<PIXELT<ChannelT,SizeN> > {      \
     typedef ChannelT type;                                   \
   };                                                         \
-  template <class ChannelT, int SizeN>                       \
+  template <class ChannelT, size_t SizeN>                    \
   struct CompoundNumChannels<PIXELT<ChannelT,SizeN> > {      \
     static const int32 value = SizeN;                     \
   };                                                         \
-  template <class OldChT, class NewChT, int SizeN>           \
+  template <class OldChT, class NewChT, size_t SizeN>        \
   struct CompoundChannelCast<PIXELT<OldChT,SizeN>, NewChT> { \
     typedef PIXELT<NewChT,SizeN> type;                       \
   };                                                         \
-  template <class OldChT, class NewChT, int SizeN>           \
+  template <class OldChT, class NewChT, size_t SizeN>        \
   struct CompoundChannelCast<PIXELT<OldChT,SizeN>, const NewChT> { \
     typedef const PIXELT<NewChT,SizeN> type;                 \
   }

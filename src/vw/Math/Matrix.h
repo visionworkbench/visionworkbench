@@ -52,7 +52,7 @@ namespace math {
   /// vectors).
   template <class MatrixT>
   struct MatrixRows {
-    const static int value = 0;
+    const static size_t value = 0;
   };
 
   /// A type function to compute the number of columns of a matrix
@@ -60,7 +60,7 @@ namespace math {
   /// vectors).
   template <class MatrixT>
   struct MatrixCols {
-    const static int value = 0;
+    const static size_t value = 0;
   };
 
 
@@ -110,41 +110,41 @@ namespace math {
     }
 
     /// Access an individual matrix row, for further access using a second operator[].
-    MatrixRow<MatrixT> operator[]( unsigned row ) {
+    MatrixRow<MatrixT> operator[]( size_t row ) {
       return MatrixRow<MatrixT>( impl(), row );
     }
 
     /// Access an individual matrix row, for further access using a second operator[].
-    MatrixRow<const MatrixT> operator[]( unsigned row ) const {
+    MatrixRow<const MatrixT> operator[]( size_t row ) const {
       return MatrixRow<const MatrixT>( impl(), row );
     }
 
     /// Set the matrix to the identity matrix with the same dimensions.
     void set_identity() {
       VW_ASSERT( impl().rows()==impl().cols(), LogicErr() << "Only square matrices can be identity matrices." );
-      int n=impl().rows();
-      for( int i=0; i<n; ++i )
-        for( int j=0; j<n; ++j )
+      size_t n=impl().rows();
+      for( size_t i=0; i<n; ++i )
+        for( size_t j=0; j<n; ++j )
           impl()(i,j)=(i==j)?(typename MatrixT::value_type(1)):(typename MatrixT::value_type(0));
     }
 
     /// Set the matrix to the identity matrix with the given dimensions.
-    void set_identity( unsigned size ) {
+    void set_identity( size_t size ) {
       impl().set_size( size, size );
       set_identity();
     }
 
     /// Set the matrix to entirely zeros.
     void set_zero() {
-      for( unsigned i=0; i<impl().rows(); ++i )
-        for( unsigned j=0; j<impl().cols(); ++j )
+      for( size_t i=0; i<impl().rows(); ++i )
+        for( size_t j=0; j<impl().cols(); ++j )
           impl()(i,j) = (typename MatrixT::value_type(0));
     }
 
     // Set the entire matrix to ones
     void set_ones() {
-      for( unsigned i=0; i<impl().rows(); ++i )
-        for( unsigned j=0; j<impl().cols(); ++j )
+      for( size_t i=0; i<impl().rows(); ++i )
+        for( size_t j=0; j<impl().cols(); ++j )
           impl()(i,j) = (typename MatrixT::value_type(1));
     }
   };
@@ -187,25 +187,31 @@ namespace math {
   template <class MatrixT>
   class IndexingMatrixIterator : public boost::iterator_facade<IndexingMatrixIterator<MatrixT>,
     typename boost::mpl::if_<boost::is_const<MatrixT>,
-    const typename MatrixT::value_type,
-    typename MatrixT::value_type>::type,
+      const typename MatrixT::value_type,
+      typename MatrixT::value_type>::type,
     boost::random_access_traversal_tag,
     typename boost::mpl::if_<boost::is_const<MatrixT>,
-    typename MatrixT::const_reference_type,
-    typename MatrixT::reference_type>::type>
+      typename MatrixT::const_reference_type,
+      typename MatrixT::reference_type>::type>
   {
+  public:
+    typedef typename IndexingMatrixIterator::difference_type difference_type;
+
+    IndexingMatrixIterator( MatrixT& matrix, difference_type row, difference_type col ) :
+      m_matrix(matrix), m_row(row), m_col(col) {}
+  private:
     friend class boost::iterator_core_access;
 
     MatrixT& m_matrix;
-    unsigned m_row, m_col;
+    size_t m_row, m_col;
 
     bool equal( IndexingMatrixIterator const& iter ) const {
       return m_row==iter.m_row && m_col==iter.m_col;
     }
 
-    ptrdiff_t distance_to( IndexingMatrixIterator const &iter ) const {
-      ptrdiff_t coldiff = (iter.m_col>m_col) ? ptrdiff_t(iter.m_col-m_col) : -ptrdiff_t(m_col-iter.m_col);
-      ptrdiff_t rowdiff = (iter.m_row>m_row) ? ptrdiff_t(iter.m_row-m_row) : -ptrdiff_t(m_row-iter.m_row);
+    difference_type distance_to( IndexingMatrixIterator const &iter ) const {
+      difference_type coldiff = (iter.m_col>m_col) ? difference_type(iter.m_col-m_col) : -difference_type(m_col-iter.m_col);
+      difference_type rowdiff = (iter.m_row>m_row) ? difference_type(iter.m_row-m_row) : -difference_type(m_row-iter.m_row);
       return coldiff + rowdiff * m_matrix.cols();
     }
 
@@ -225,12 +231,12 @@ namespace math {
       }
     }
 
-    void advance( ptrdiff_t n ) {
+    void advance( difference_type n ) {
       // This safeguards against suprious division by zero troubles encountered
       // on some platforms when performing operations on degenerate matrices.
       if( m_matrix.cols() == 0 ) return;
       if( n < 0 ) {
-        ptrdiff_t rowdiff = 1 + (-n)/m_matrix.cols();
+        difference_type rowdiff = 1 + (-n)/m_matrix.cols();
         m_row -= rowdiff;
         n += rowdiff * m_matrix.cols();
       }
@@ -242,10 +248,6 @@ namespace math {
     typename IndexingMatrixIterator::reference dereference() const {
       return m_matrix(m_row,m_col);
     }
-
-  public:
-    IndexingMatrixIterator( MatrixT& matrix, ptrdiff_t row, ptrdiff_t col ) :
-      m_matrix(matrix), m_row(row), m_col(col) {}
   };
 
 
@@ -255,7 +257,7 @@ namespace math {
   // *******************************************************************
 
   /// A fixed-dimension mathematical matrix class.
-  template <class ElemT, int RowsN=0, int ColsN=0>
+  template <class ElemT, size_t RowsN=0, size_t ColsN=0>
   class Matrix : public MatrixBase<Matrix<ElemT,RowsN,ColsN> >
   {
     typedef boost::array<ElemT,RowsN*ColsN> core_type;
@@ -359,19 +361,19 @@ namespace math {
     }
 
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return RowsN; }
+    size_t rows() const { return RowsN; }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return ColsN; }
+    size_t cols() const { return ColsN; }
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize a fixed-size Matrix." );
     }
 
     /// Access an element
-    value_type& operator()( unsigned row, unsigned col ) {
+    value_type& operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -379,7 +381,7 @@ namespace math {
     }
 
     /// Access an element
-    value_type const& operator()( unsigned row, unsigned col ) const {
+    value_type const& operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -412,14 +414,14 @@ namespace math {
 
   };
 
-  template <class ElemT, int RowsN, int ColsN>
+  template <class ElemT, size_t RowsN, size_t ColsN>
   struct MatrixRows<Matrix<ElemT,RowsN,ColsN> > {
-    static const int value = RowsN;
+    static const size_t value = RowsN;
   };
 
-  template <class ElemT, int RowsN, int ColsN>
+  template <class ElemT, size_t RowsN, size_t ColsN>
   struct MatrixCols<Matrix<ElemT,RowsN,ColsN> > {
-    static const int value = ColsN;
+    static const size_t value = ColsN;
   };
 
 
@@ -433,7 +435,7 @@ namespace math {
   class Matrix<ElemT,0,0> : public MatrixBase<Matrix<ElemT> > {
     typedef VarArray<ElemT> core_type;
     core_type core_;
-    unsigned m_rows, m_cols;
+    size_t m_rows, m_cols;
   public:
     typedef ElemT value_type;
 
@@ -447,14 +449,14 @@ namespace math {
     Matrix() : m_rows(0), m_cols(0) {}
 
     /// Constructs a zero matrix of the given size.
-    Matrix( unsigned rows, unsigned cols )
+    Matrix( size_t rows, size_t cols )
       : core_(rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Constructs a matrix of the given size from given
     /// densely-packed row-mjor data.  This constructor copies the
     /// data.  If you wish to make a shallow proxy object instead,
     /// see vw::MatrixProxy.
-    Matrix( unsigned rows, unsigned cols, const ElemT *data )
+    Matrix( size_t rows, size_t cols, const ElemT *data )
       : core_(data,data+rows*cols), m_rows(rows), m_cols(cols) {}
 
     /// Standard copy constructor.
@@ -498,19 +500,19 @@ namespace math {
     }
 
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return m_rows; }
+    size_t rows() const { return m_rows; }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return m_cols; }
+    size_t cols() const { return m_cols; }
 
     /// Change the size of the matrix.  Elements in memory are preserved when specified.
-    void set_size( unsigned rows, unsigned cols, bool preserve = false ) {
+    void set_size( size_t rows, size_t cols, bool preserve = false ) {
       if( preserve ) {
         VarArray<ElemT> other(rows*cols);
-        unsigned mr = (std::min)(rows,m_rows);
-        unsigned mc = (std::min)(cols,m_cols);
-        for( unsigned r=0; r<mr; ++r )
-          for( unsigned c=0; c<mc; ++c )
+        size_t mr = (std::min)(rows,m_rows);
+        size_t mc = (std::min)(cols,m_cols);
+        for( size_t r=0; r<mr; ++r )
+          for( size_t c=0; c<mc; ++c )
             other[r*cols+c] = core_[r*m_cols+c];
         core_.swap( other );
       }
@@ -522,7 +524,7 @@ namespace math {
     }
 
     /// Access an element
-    value_type& operator()( unsigned row, unsigned col ) {
+    value_type& operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -530,7 +532,7 @@ namespace math {
     }
 
     /// Access an element
-    value_type const& operator()( unsigned row, unsigned col ) const {
+    value_type const& operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -571,7 +573,7 @@ namespace math {
   // *******************************************************************
 
   /// A fixed-dimension mathematical matrix class.
-  template <class ElemT, int RowsN=0, int ColsN=0>
+  template <class ElemT, size_t RowsN=0, size_t ColsN=0>
   class MatrixProxy : public MatrixBase<MatrixProxy<ElemT,RowsN,ColsN> >
   {
     ElemT *m_ptr;
@@ -614,20 +616,20 @@ namespace math {
     }
 
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return RowsN; }
+    size_t rows() const { return RowsN; }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return ColsN; }
+    size_t cols() const { return ColsN; }
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix proxy." );
     }
 
     /// Access an element
-    value_type& operator()( unsigned row, unsigned col ) {
+    value_type& operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -635,7 +637,7 @@ namespace math {
     }
 
     /// Access an element
-    value_type const& operator()( unsigned row, unsigned col ) const {
+    value_type const& operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -668,14 +670,14 @@ namespace math {
 
   };
 
-  template <class ElemT, int RowsN, int ColsN>
+  template <class ElemT, size_t RowsN, size_t ColsN>
   struct MatrixRows<MatrixProxy<ElemT,RowsN,ColsN> > {
-    static const int value = RowsN;
+    static const size_t value = RowsN;
   };
 
-  template <class ElemT, int RowsN, int ColsN>
+  template <class ElemT, size_t RowsN, size_t ColsN>
   struct MatrixCols<MatrixProxy<ElemT,RowsN,ColsN> > {
-    static const int value = ColsN;
+    static const size_t value = ColsN;
   };
 
 
@@ -689,7 +691,7 @@ namespace math {
   template <class ElemT>
   class MatrixProxy<ElemT,0,0> : public MatrixBase<MatrixProxy<ElemT> > {
     ElemT *m_ptr;
-    unsigned m_rows, m_cols;
+    size_t m_rows, m_cols;
   public:
     typedef ElemT value_type;
 
@@ -700,7 +702,7 @@ namespace math {
     typedef ElemT const* const_iterator;
 
     /// Constructs a matrix with zero size.
-    MatrixProxy( ElemT* ptr, unsigned rows, unsigned cols )
+    MatrixProxy( ElemT* ptr, size_t rows, size_t cols )
       : m_ptr(ptr), m_rows(rows), m_cols(cols) {}
 
     template <class ContainerT>
@@ -734,20 +736,20 @@ namespace math {
     }
 
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return m_rows; }
+    size_t rows() const { return m_rows; }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return m_cols; }
+    size_t cols() const { return m_cols; }
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix proxy." );
     }
 
     /// Access an element
-    value_type& operator()( unsigned row, unsigned col ) {
+    value_type& operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -755,7 +757,7 @@ namespace math {
     }
 
     /// Access an element
-    value_type const& operator()( unsigned row, unsigned col ) const {
+    value_type const& operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -802,7 +804,7 @@ namespace math {
   /// original image.
   template <class DataT>
   MatrixProxy<DataT>
-  matrix_proxy( DataT* data_ptr, int rows, int cols) {
+  matrix_proxy( DataT* data_ptr, size_t rows, size_t cols) {
     return MatrixProxy<DataT>( data_ptr, rows, cols );
   }
 
@@ -862,20 +864,20 @@ namespace math {
     MatrixT const& child() const { return m_matrix; }
 
     /// Returns the number of rows in the matrix.
-    unsigned rows() const { return m_matrix.cols(); }
+    size_t rows() const { return m_matrix.cols(); }
 
     /// Returns the number of columns in the matrix.
-    unsigned cols() const { return m_matrix.rows(); }
+    size_t cols() const { return m_matrix.rows(); }
 
     /// Change the size of the matrix.
     /// Elements in memory are preserved when specified.
-    void set_size( unsigned new_rows, unsigned new_cols, bool /*preserve*/ = false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/ = false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix transpose." );
     }
 
     /// Access an element
-    reference_type operator()( unsigned row, unsigned col ) {
+    reference_type operator()( size_t row, size_t col ) {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -883,7 +885,7 @@ namespace math {
     }
 
     /// Access an element
-    const_reference_type operator()( unsigned row, unsigned col ) const {
+    const_reference_type operator()( size_t row, size_t col ) const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
@@ -941,7 +943,7 @@ namespace math {
   template <class MatrixT>
   class MatrixRow : public VectorBase<MatrixRow<MatrixT> > {
     MatrixT& m;
-    unsigned row;
+    size_t row;
   public:
     typedef typename MatrixT::value_type value_type;
 
@@ -955,7 +957,7 @@ namespace math {
                                      typename MatrixT::iterator>::type iterator;
     typedef typename MatrixT::const_iterator const_iterator;
 
-    MatrixRow( MatrixT& m, unsigned row ) : m(m), row(row) {}
+    MatrixRow( MatrixT& m, size_t row ) : m(m), row(row) {}
 
     /// Standard copy assignment operator.
     MatrixRow& operator=( MatrixRow const& v ) {
@@ -991,23 +993,23 @@ namespace math {
       return *this;
     }
 
-    unsigned size() const {
+    size_t size() const {
       return m.cols();
     }
 
-    reference_type operator()( int i ) {
+    reference_type operator()( size_t i ) {
       return m(row,i);
     }
 
-    const_reference_type operator()( int i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m(row,i);
     }
 
-    reference_type operator[]( int i ) {
+    reference_type operator[]( size_t i ) {
       return m(row,i);
     }
 
-    const_reference_type operator[]( int i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m(row,i);
     }
 
@@ -1030,18 +1032,18 @@ namespace math {
 
   template <class MatrixT>
   struct VectorSize<MatrixRow<MatrixT> > {
-    static const int value = MatrixCols<MatrixT>::value;
+    static const size_t value = MatrixCols<MatrixT>::value;
   };
 
   /// Extract a row of a matrix as a vector.
   template <class MatrixT>
-  inline MatrixRow<MatrixT> select_row( MatrixBase<MatrixT>& matrix, unsigned row ) {
+  inline MatrixRow<MatrixT> select_row( MatrixBase<MatrixT>& matrix, size_t row ) {
     return MatrixRow<MatrixT>( matrix.impl(), row );
   }
 
   /// Extract a row of a matrix as a vector (const overload).
   template <class MatrixT>
-  inline MatrixRow<const MatrixT> select_row( MatrixBase<MatrixT> const& matrix, unsigned row ) {
+  inline MatrixRow<const MatrixT> select_row( MatrixBase<MatrixT> const& matrix, size_t row ) {
     return MatrixRow<const MatrixT>( matrix.impl(), row );
   }
 
@@ -1056,7 +1058,7 @@ namespace math {
   class MatrixCol : public VectorBase<MatrixCol<MatrixT> >
   {
     MatrixT & m;
-    unsigned col;
+    size_t col;
 
     template <class IterT>
     class Iterator : public boost::iterator_facade<Iterator<IterT>,
@@ -1065,19 +1067,22 @@ namespace math {
                                                    typename std::iterator_traits<IterT>::reference,
                                                    typename std::iterator_traits<IterT>::difference_type>
     {
-      friend class boost::iterator_core_access;
+      public:
+        typedef typename Iterator::difference_type difference_type;
 
-      IterT i;
-      typename Iterator::difference_type stride;
+        Iterator( IterT const& i, difference_type stride ) : i(i), stride(stride) {}
+      private:
+        friend class boost::iterator_core_access;
 
-      bool equal( Iterator const& iter ) const { return i==iter.i; }
-      typename Iterator::difference_type distance_to( Iterator const &iter ) const { return (iter.i - i) / stride; }
-      void increment() { i += stride; }
-      void decrement() { i -= stride; }
-      void advance( ptrdiff_t n ) { i += n*stride; }
-      typename Iterator::reference dereference() const { return *i; }
-    public:
-      Iterator( IterT const& i, typename Iterator::difference_type stride ) : i(i), stride(stride) {}
+        IterT i;
+        difference_type stride;
+
+        bool equal( Iterator const& iter ) const { return i==iter.i; }
+        difference_type distance_to( Iterator const &iter ) const { return (iter.i - i) / stride; }
+        void increment() { i += stride; }
+        void decrement() { i -= stride; }
+        void advance( difference_type n ) { i += n*stride; }
+        typename Iterator::reference dereference() const { return *i; }
     };
 
   public:
@@ -1093,7 +1098,7 @@ namespace math {
                                      Iterator<typename MatrixT::iterator> >::type iterator;
     typedef Iterator<typename MatrixT::const_iterator> const_iterator;
 
-    MatrixCol( MatrixT& m, unsigned col ) : m(m), col(col) {}
+    MatrixCol( MatrixT& m, size_t col ) : m(m), col(col) {}
 
     /// Standard copy assignment operator.
     MatrixCol& operator=( MatrixCol const& v ) {
@@ -1121,23 +1126,23 @@ namespace math {
       return *this;
     }
 
-    unsigned size() const {
+    size_t size() const {
       return m.rows();
     }
 
-    reference_type operator()( int i ) {
+    reference_type operator()( size_t i ) {
       return m(i,col);
     }
 
-    const_reference_type operator()( int i ) const {
+    const_reference_type operator()( size_t i ) const {
       return m(i,col);
     }
 
-    reference_type operator[]( int i ) {
+    reference_type operator[]( size_t i ) {
       return m(i,col);
     }
 
-    const_reference_type operator[]( int i ) const {
+    const_reference_type operator[]( size_t i ) const {
       return m(i,col);
     }
 
@@ -1161,18 +1166,18 @@ namespace math {
 
   template <class MatrixT>
   struct VectorSize<MatrixCol<MatrixT> > {
-    static const int value = MatrixRows<MatrixT>::value;
+    static const size_t value = MatrixRows<MatrixT>::value;
   };
 
   /// Extract a column of a matrix as a vector.
   template <class MatrixT>
-  inline MatrixCol<MatrixT> select_col( MatrixBase<MatrixT>& matrix, unsigned col ) {
+  inline MatrixCol<MatrixT> select_col( MatrixBase<MatrixT>& matrix, size_t col ) {
     return MatrixCol<MatrixT>( matrix.impl(), col );
   }
 
   /// Extract a column of a matrix as a vector (const overload).
   template <class MatrixT>
-  inline MatrixCol<const MatrixT> select_col( MatrixBase<MatrixT> const& matrix, unsigned col ) {
+  inline MatrixCol<const MatrixT> select_col( MatrixBase<MatrixT> const& matrix, size_t col ) {
     return MatrixCol<const MatrixT>( matrix.impl(), col );
   }
 
@@ -1187,8 +1192,8 @@ namespace math {
   class SubMatrix : public MatrixBase<SubMatrix<MatrixT> >
   {
     MatrixT& m_matrix;
-    unsigned m_row, m_col;
-    unsigned m_rows, m_cols;
+    size_t m_row, m_col;
+    size_t m_rows, m_cols;
 
   public:
     typedef typename MatrixT::value_type value_type;
@@ -1201,7 +1206,7 @@ namespace math {
     typedef IndexingMatrixIterator<typename boost::mpl::if_<boost::is_const<MatrixT>, const SubMatrix, SubMatrix>::type> iterator;
     typedef IndexingMatrixIterator<const SubMatrix> const_iterator;
 
-    SubMatrix( MatrixT& m, unsigned row, unsigned col, unsigned rows, unsigned cols ) :
+    SubMatrix( MatrixT& m, size_t row, size_t col, size_t rows, size_t cols ) :
       m_matrix(m), m_row(row), m_col(col), m_rows(rows), m_cols(cols) {}
 
     /// Standard copy assignment operator.
@@ -1230,19 +1235,19 @@ namespace math {
       return *this;
     }
 
-    unsigned rows() const {
+    size_t rows() const {
       return m_rows;
     }
 
-    unsigned cols() const {
+    size_t cols() const {
       return m_cols;
     }
 
-    reference_type operator()( int row, int col ) {
+    reference_type operator()( size_t row, size_t col ) {
       return m_matrix( row+m_row, col+m_col );
     }
 
-    const_reference_type operator()( int row, int col ) const {
+    const_reference_type operator()( size_t row, size_t col ) const {
       return m_matrix( row+m_row, col+m_col );
     }
 
@@ -1266,13 +1271,13 @@ namespace math {
 
   /// Extract a submatrix, i.e. a matrix block.
   template <class MatrixT>
-  inline SubMatrix<MatrixT> submatrix( MatrixBase<MatrixT>& matrix, unsigned row, unsigned col, unsigned rows, unsigned cols ) {
+  inline SubMatrix<MatrixT> submatrix( MatrixBase<MatrixT>& matrix, size_t row, size_t col, size_t rows, size_t cols ) {
     return SubMatrix<MatrixT>( matrix.impl(), row, col, rows, cols );
   }
 
   /// Extract a submatrix, i.e. a matrix block (const overlaod).
   template <class MatrixT>
-  inline SubMatrix<const MatrixT> submatrix( MatrixBase<MatrixT> const& matrix, unsigned row, unsigned col, unsigned rows, unsigned cols ) {
+  inline SubMatrix<const MatrixT> submatrix( MatrixBase<MatrixT> const& matrix, size_t row, size_t col, size_t rows, size_t cols ) {
     return SubMatrix<const MatrixT>( matrix.impl(), row, col, rows, cols );
   }
 
@@ -1297,15 +1302,15 @@ namespace math {
     template <class Arg1>
     MatrixUnaryFunc( MatrixT const& m, Arg1 a1 ) : m(m), func(a1) {}
 
-    unsigned rows() const {
+    size_t rows() const {
       return m.rows();
     }
 
-    unsigned cols() const {
+    size_t cols() const {
       return m.cols();
     }
 
-    reference_type operator()( int i, int j ) const {
+    reference_type operator()( size_t i, size_t j ) const {
       return func(m(i,j));
     }
 
@@ -1316,10 +1321,10 @@ namespace math {
       FuncT func;
 
       bool equal( iterator const& iter ) const { return i==iter.i; }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i - i; }
+      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
       void increment() { ++i; }
       void decrement() { --i; }
-      void advance( ptrdiff_t n ) { i+=n; }
+      void advance( typename iterator::difference_type n ) { i+=n; }
       typename iterator::reference dereference() const { return func(*i); }
     public:
       iterator(typename MatrixT::const_iterator const& i,
@@ -1333,12 +1338,12 @@ namespace math {
 
   template <class MatrixT, class FuncT>
   struct MatrixRows<MatrixUnaryFunc<MatrixT,FuncT> > {
-    static const int value = MatrixRows<MatrixT>::value;
+    static const size_t value = MatrixRows<MatrixT>::value;
   };
 
   template <class MatrixT, class FuncT>
   struct MatrixCols<MatrixUnaryFunc<MatrixT,FuncT> > {
-    static const int value = MatrixCols<MatrixT>::value;
+    static const size_t value = MatrixCols<MatrixT>::value;
   };
 
 
@@ -1367,15 +1372,15 @@ namespace math {
       VW_ASSERT( m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc" );
     }
 
-    unsigned rows() const {
+    size_t rows() const {
       return m1.rows();
     }
 
-    unsigned cols() const {
+    size_t cols() const {
       return m1.cols();
     }
 
-    reference_type operator()( int i, int j ) const {
+    reference_type operator()( size_t i, size_t j ) const {
       return func(m1(i,j),m2(i,j));
     }
 
@@ -1387,10 +1392,10 @@ namespace math {
       FuncT func;
 
       bool equal( iterator const& iter ) const { return (i1==iter.i1) && (i2==iter.i2); }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i1 - i1; }
+      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i1 - i1; }
       void increment() { ++i1; ++i2; }
       void decrement() { --i1; --i2; }
-      void advance( ptrdiff_t n ) { i1+=n; i2+=n; }
+      void advance( typename iterator::difference_type n ) { i1+=n; i2+=n; }
       typename iterator::reference dereference() const { return func(*i1,*i2); }
     public:
       iterator(typename Matrix1T::const_iterator const& i1,
@@ -1405,12 +1410,12 @@ namespace math {
 
   template <class Matrix1T, class Matrix2T, class FuncT>
   struct MatrixRows<MatrixBinaryFunc<Matrix1T,Matrix2T,FuncT> > {
-    static const int value = (MatrixRows<Matrix1T>::value!=0)?(MatrixRows<Matrix1T>::value):(MatrixRows<Matrix2T>::value);
+    static const size_t value = (MatrixRows<Matrix1T>::value!=0)?(MatrixRows<Matrix1T>::value):(MatrixRows<Matrix2T>::value);
   };
 
   template <class Matrix1T, class Matrix2T, class FuncT>
   struct MatrixCols<MatrixBinaryFunc<Matrix1T,Matrix2T,FuncT> > {
-    static const int value = (MatrixCols<Matrix1T>::value!=0)?(MatrixCols<Matrix1T>::value):(MatrixCols<Matrix2T>::value);
+    static const size_t value = (MatrixCols<Matrix1T>::value!=0)?(MatrixCols<Matrix1T>::value):(MatrixCols<Matrix2T>::value);
   };
 
 
@@ -1422,11 +1427,11 @@ namespace math {
   template <class MatrixT>
   inline std::ostream& operator<<( std::ostream& os, MatrixBase<MatrixT> const& m ) {
     MatrixT const& mr = m.impl();
-    unsigned rows = mr.rows(), cols = mr.cols();
+    size_t rows = mr.rows(), cols = mr.cols();
     os << "Matrix" << rows << 'x' << cols << '(';
-    for( unsigned r=0; r<rows; ++r ) {
+    for( size_t r=0; r<rows; ++r ) {
       os << '(' << mr(r,0);
-      for( unsigned c=1; c<cols; ++c )
+      for( size_t c=1; c<cols; ++c )
         os << ',' << mr(r,c);
       os << ')';
     }
@@ -1447,7 +1452,7 @@ namespace math {
   }
 
   /// Forwarding overload for plain Matrix objects.
-  template <class ElemT, int RowsN, int ColsN>
+  template <class ElemT, size_t RowsN, size_t ColsN>
   inline Matrix<ElemT,RowsN,ColsN> const& eval( Matrix<ElemT,RowsN,ColsN> const& m ) {
     return m;
   }
@@ -1819,10 +1824,10 @@ namespace math {
   template <class MatrixT>
   inline double norm_1( MatrixBase<MatrixT> const& m ) {
     double result = 0.0;
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned j=0; j<cols; ++j ) {
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t j=0; j<cols; ++j ) {
       double sum = 0.0;
-      for( unsigned i=0; i<rows; ++i )
+      for( size_t i=0; i<rows; ++i )
         sum += fabs( m.impl()(i,j) );
       if( sum > result ) result = sum;
     }
@@ -1833,10 +1838,10 @@ namespace math {
   template <class MatrixT>
   inline double norm_inf( MatrixBase<MatrixT> const& m ) {
     double result = 0.0;
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned i=0; i<rows; ++i ) {
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t i=0; i<rows; ++i ) {
       double sum = 0.0;
-      for( unsigned j=0; j<cols; ++j )
+      for( size_t j=0; j<cols; ++j )
         sum += fabs( m.impl()(i,j) );
       if( sum > result ) result = sum;
     }
@@ -1847,9 +1852,9 @@ namespace math {
   template <class MatrixT>
   inline double norm_frobenius_sqr( MatrixBase<MatrixT> const& m ) {
     double result = 0.0;
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned i=0; i<rows; ++i ) {
-      for( unsigned j=0; j<cols; ++j ) {
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t i=0; i<rows; ++i ) {
+      for( size_t j=0; j<cols; ++j ) {
         typename MatrixT::value_type e = m.impl()(i,j);
         result += e * e;
       }
@@ -1867,9 +1872,9 @@ namespace math {
   template <class MatrixT>
   inline typename MatrixT::value_type sum( MatrixBase<MatrixT> const& m ) {
     typename MatrixT::value_type result = typename MatrixT::value_type();
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned i=0; i<rows; ++i )
-      for( unsigned j=0; j<cols; ++j )
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t i=0; i<rows; ++i )
+      for( size_t j=0; j<cols; ++j )
         result += m.impl()(i,j);
     return result;
   }
@@ -1878,9 +1883,9 @@ namespace math {
   template <class MatrixT>
   inline typename MatrixT::value_type prod( MatrixBase<MatrixT> const& m ) {
     typename MatrixT::value_type result = typename MatrixT::value_type(1);
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned i=0; i<rows; ++i )
-      for( unsigned j=0; j<cols; ++j )
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t i=0; i<rows; ++i )
+      for( size_t j=0; j<cols; ++j )
         result *= m.impl()(i,j);
     return result;
   }
@@ -1889,8 +1894,8 @@ namespace math {
   template <class MatrixT>
   inline typename MatrixT::value_type trace( MatrixBase<MatrixT> const& m ) {
     typename MatrixT::value_type result = typename MatrixT::value_type();
-    unsigned mindim = std::min( m.impl().rows(), m.impl().cols() );
-    for( unsigned i=0; i<mindim; ++i )
+    size_t mindim = std::min( m.impl().rows(), m.impl().cols() );
+    for( size_t i=0; i<mindim; ++i )
       result += m.impl()(i,i);
     return result;
   }
@@ -1907,7 +1912,7 @@ namespace math {
       typename MatrixT::value_type scale = s.top().second;
       s.pop();
       VW_ASSERT( a.rows() == a.cols(), vw::LogicErr() << "Matrix has become non-square." );
-      unsigned dim = a.rows();
+      size_t dim = a.rows();
       Matrix<typename MatrixT::value_type> sub;
       switch( dim ) {
       case 0:
@@ -1924,7 +1929,7 @@ namespace math {
           s.push( std::make_pair( sub, scale*a(0,0) ) );
           scale *= -1;
         }
-        for( unsigned i=1; i<(dim-1); ++i ) {
+        for( size_t i=1; i<(dim-1); ++i ) {
           submatrix( sub, 0, 0, dim-1, i ) = submatrix( a, 1, 0, dim-1, i );
           submatrix( sub, 0, i, dim-1, dim-i-1 ) = submatrix( a, 1, i+1, dim-1, dim-i-1 );
           s.push( std::make_pair( sub, scale*a(0,i) ) );
@@ -1943,11 +1948,11 @@ namespace math {
   /// Pull out the maximium element
   template <class MatrixT>
   inline typename MatrixT::value_type max( MatrixBase<MatrixT> const& m ) {
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
     if ( rows == 0 ) return typename MatrixT::value_type(0);
     typename MatrixT::value_type result = m.impl()(0,0);
-    for ( unsigned i=0; i<rows; ++i )
-      for ( unsigned j=0; j<cols; ++j )
+    for ( size_t i=0; i<rows; ++i )
+      for ( size_t j=0; j<cols; ++j )
         if ( m.impl()(i,j) > result )
           result = m.impl()(i,j);
     return result;
@@ -1956,11 +1961,11 @@ namespace math {
   /// Pull out the minimium element
   template <class MatrixT>
   inline typename MatrixT::value_type min( MatrixBase<MatrixT> const& m ) {
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
     if ( rows == 0 ) return typename MatrixT::value_type(0);
     typename MatrixT::value_type result = m.impl()(0,0);
-    for ( unsigned i=0; i<rows; ++i )
-      for ( unsigned j=0; j<cols; ++j )
+    for ( size_t i=0; i<rows; ++i )
+      for ( size_t j=0; j<cols; ++j )
         if ( m.impl()(i,j) < result )
           result = m.impl()(i,j);
     return result;
@@ -1969,9 +1974,9 @@ namespace math {
   /// Fill the entire matrix with the specified value
   template <class MatrixT, class ValT>
   inline void fill( MatrixBase<MatrixT> &m, ValT const& val ) {
-    unsigned rows = m.impl().rows(), cols = m.impl().cols();
-    for( unsigned i=0; i<rows; ++i )
-      for( unsigned j=0; j<cols; ++j )
+    size_t rows = m.impl().rows(), cols = m.impl().cols();
+    for( size_t i=0; i<rows; ++i )
+      for( size_t j=0; j<cols; ++j )
         m.impl()(i,j) = typename MatrixT::value_type(val);
   }
 
@@ -1985,17 +1990,17 @@ namespace math {
   class MatrixVectorProduct : public VectorBase<MatrixVectorProduct<MatrixT,VectorT,TransposeN> > {
 
     template <class MatT> struct MatrixClosure { typedef Matrix<typename MatT::value_type> type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<const Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<const MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
     typename MatrixClosure<MatrixT>::type m_matrix;
 
     template <class VecT> struct VectorClosure { typedef Vector<typename VecT::value_type, VectorSize<VecT>::value> type; };
-    template <class ElemT, int SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
-    template <class ElemT, int SizeN> struct VectorClosure<const VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<const Vector<ElemT,SizeN> > { typedef Vector<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
+    template <class ElemT, size_t SizeN> struct VectorClosure<const VectorProxy<ElemT,SizeN> > { typedef VectorProxy<ElemT,SizeN> const& type; };
     typename VectorClosure<VectorT>::type m_vector;
 
   public:
@@ -2006,11 +2011,11 @@ namespace math {
 
     MatrixVectorProduct( MatrixT const& m, VectorT const& v ) : m_matrix(m), m_vector(v) {}
 
-    unsigned size() const {
+    size_t size() const {
       return (TransposeN)?(m_matrix.cols()):(m_matrix.rows());
     }
 
-    reference_type operator()( int i ) const {
+    reference_type operator()( size_t i ) const {
       if( TransposeN ) return dot_prod( select_col(m_matrix,i), m_vector );
       else return dot_prod( select_row(m_matrix,i), m_vector );
     }
@@ -2019,16 +2024,16 @@ namespace math {
       friend class boost::iterator_core_access;
 
       MatrixVectorProduct const& mvp;
-      int i;
+      size_t i;
 
       bool equal( iterator const& iter ) const { return i==iter.i; }
-      ptrdiff_t distance_to( iterator const &iter ) const { return iter.i - i; }
+      typename iterator::difference_type distance_to( iterator const &iter ) const { return iter.i - i; }
       void increment() { ++i; }
       void decrement() { --i; }
-      void advance( ptrdiff_t n ) { i+=n; }
+      void advance( typename iterator::difference_type n ) { i+=n; }
       typename iterator::reference dereference() const { return mvp(i); }
     public:
-      iterator(MatrixVectorProduct const& mvp, int i) : mvp(mvp), i(i) {}
+      iterator(MatrixVectorProduct const& mvp, size_t i) : mvp(mvp), i(i) {}
     };
     typedef iterator const_iterator;
 
@@ -2068,10 +2073,10 @@ namespace math {
   class MatrixMatrixProduct : public MatrixBase<MatrixMatrixProduct<Matrix1T,Matrix2T,Transpose1N,Transpose2N> > {
 
     template <class MatT> struct MatrixClosure { typedef Matrix<typename MatT::value_type> type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
-    template <class ElemT, int RowsN, int ColsN> struct MatrixClosure<const MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<const Matrix<ElemT,RowsN,ColsN> > { typedef Matrix<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
+    template <class ElemT, size_t RowsN, size_t ColsN> struct MatrixClosure<const MatrixProxy<ElemT,RowsN,ColsN> > { typedef MatrixProxy<ElemT,RowsN,ColsN> const& type; };
     typename MatrixClosure<Matrix1T>::type m_matrix1;
     typename MatrixClosure<Matrix2T>::type m_matrix2;
 
@@ -2083,15 +2088,15 @@ namespace math {
 
     MatrixMatrixProduct( Matrix1T const& m1, Matrix2T const& m2 ) : m_matrix1(m1), m_matrix2(m2) {}
 
-    unsigned rows() const {
+    size_t rows() const {
       return (Transpose1N)?(m_matrix1.cols()):(m_matrix1.rows());
     }
 
-    unsigned cols() const {
+    size_t cols() const {
       return (Transpose2N)?(m_matrix2.rows()):(m_matrix2.cols());
     }
 
-    reference_type operator()( int i, int j ) const {
+    reference_type operator()( size_t i, size_t j ) const {
       if     ( (!Transpose1N)&&(!Transpose2N) ) return dot_prod( select_row(m_matrix1,i), select_col(m_matrix2,j) );
       else if( (!Transpose1N)&&( Transpose2N) ) return dot_prod( select_row(m_matrix1,i), select_row(m_matrix2,j) );
       else if( ( Transpose1N)&&(!Transpose2N) ) return dot_prod( select_col(m_matrix1,i), select_col(m_matrix2,j) );
@@ -2119,14 +2124,14 @@ namespace math {
   // *******************************************************************
 
   /// Create a square dynamic identity matrix.
-  inline Matrix<double> identity_matrix(int size) {
+  inline Matrix<double> identity_matrix(size_t size) {
     Matrix<double> id(size,size);
     id.set_identity();
     return id;
   }
 
   /// Create a square static identity matrix.
-  template <int DimN>
+  template <size_t DimN>
   inline Matrix<double,DimN,DimN> identity_matrix() {
     Matrix<double,DimN,DimN> id;
     id.set_identity();
@@ -2143,7 +2148,7 @@ namespace math {
   template <class VectorT>
   inline Matrix<typename VectorT::value_type> diagonal_matrix( VectorT const& diag ) {
     Matrix<typename VectorT::value_type> M(diag.size(),diag.size());
-    for( unsigned i=0; i<diag.size(); ++i )
+    for( size_t i=0; i<diag.size(); ++i )
       M(i,i) = diag(i);
     return M;
   }
@@ -2162,8 +2167,8 @@ namespace math {
                    (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
     result.set_size( v1.impl().size(), v2.size() );
-    for( unsigned i=0; i<v1.impl().size(); ++i )
-      for( unsigned j=0; j<v2.size(); ++j )
+    for( size_t i=0; i<v1.impl().size(); ++i )
+      for( size_t j=0; j<v2.size(); ++j )
         result(i,j) = v1.impl()(i) * v2(j);
     return result;
   }
@@ -2181,8 +2186,8 @@ namespace math {
                    (VectorSize<Vector1T>::value?(VectorSize<Vector2T>::value):0)> result_type;
     result_type result;
     result.set_size( v1.impl().size(), v2.impl().size() );
-    for( unsigned i=0; i<v1.impl().size(); ++i )
-      for( unsigned j=0; j<v2.impl().size(); ++j )
+    for( size_t i=0; i<v1.impl().size(); ++i )
+      for( size_t j=0; j<v2.impl().size(); ++j )
         result(i,j) = v1.impl()(i) * v2.impl()(j);
     return result;
   }
@@ -2193,22 +2198,22 @@ namespace math {
 
     typedef typename MatrixT::value_type value_type;
     value_type zero = value_type();
-    unsigned size = m.impl().cols();
+    size_t size = m.impl().cols();
     Matrix<value_type> buf = m;
 
     // Initialize the permutation
-    Vector<unsigned> pm( size );
-    for ( unsigned i=0; i<size; ++i ) pm(i) = i;
+    Vector<size_t> pm( size );
+    for ( size_t i=0; i<size; ++i ) pm(i) = i;
 
     // Perform LU decomposition with partial pivoting
-    for ( unsigned i=0; i<size; ++i) {
+    for ( size_t i=0; i<size; ++i) {
       MatrixCol<Matrix<value_type> > mci(buf,i);
       MatrixRow<Matrix<value_type> > mri(buf,i);
-      unsigned i_norm_inf = i + index_norm_inf( subvector(mci,i,size-i) );
+      size_t i_norm_inf = i + index_norm_inf( subvector(mci,i,size-i) );
       if ( buf(i_norm_inf,i) == zero )
         vw_throw( MathErr() << "Matrix is singular in inverse()" );
       if ( i_norm_inf != i ) {
-        unsigned pbuf = pm(i);
+        size_t pbuf = pm(i);
         pm(i) = pm(i_norm_inf);
         pm(i_norm_inf) = pbuf;
         Vector<value_type> rowbuf = mri;
@@ -2223,15 +2228,15 @@ namespace math {
 
     // Build up a permuted identity matrix
     Matrix<value_type> inverse(size,size);
-    for ( unsigned i=0; i<size; ++i )
+    for ( size_t i=0; i<size; ++i )
       inverse(i,pm(i)) = value_type(1);
 
     // Divide by the lower-triangular term
-    for ( unsigned i=0; i<size; ++i ) {
-      for ( unsigned j=0; j<size; ++j ) {
+    for ( size_t i=0; i<size; ++i ) {
+      for ( size_t j=0; j<size; ++j ) {
         value_type t = inverse(i,j);
         if ( t != zero ) {
-          for ( unsigned k=i+1; k<size; ++k ) {
+          for ( size_t k=i+1; k<size; ++k ) {
             inverse(k,j) -= buf(k,i) * t;
           }
         }
@@ -2239,11 +2244,11 @@ namespace math {
     }
 
     // Divide by the upper-triangular term
-    for ( int i=size-1; i>=0; --i ) {
-      for ( int j=size-1; j>=0; --j ) {
+    for ( ssize_t i=size-1; i>=0; --i ) {
+      for ( ssize_t j=size-1; j>=0; --j ) {
         value_type t = inverse(i,j) /= buf(i,i);
         if ( t != zero ) {
-          for ( int k=i-1; k>=0; --k )
+          for ( ssize_t k=i-1; k>=0; --k )
             inverse(k,j) -= buf(k,i) * t;
         }
       }

@@ -302,7 +302,7 @@ class PixelNearHelper {
     Message msg;
     bool failed = false;
 
-    for ( int i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
+    for ( size_t i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
       const std::string idx = "["+stringify(i)+"]";
       AssertionResult ret = p( ename+idx, aname+idx,
                                expected.impl()(i), actual.impl()(i));

@@ -33,7 +33,7 @@ namespace math {
 
     /// A homography requires at least 4 point matches to determine 8 unknowns
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 4; }
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 4; }
 
     // Applies a transform matrix to a list of points;
     std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
@@ -48,12 +48,12 @@ namespace math {
     /// Solve for Normalization Similarity Matrix used for noise rej.
     template <class ContainerT>
     vw::Matrix<double> NormSimilarity( std::vector<ContainerT> const& pts ) const {
-      unsigned num_points = pts.size();
-      unsigned dimension = pts[0].size();
+      size_t num_points = pts.size();
+      size_t dimension = pts[0].size();
 
       Vector<double> translation;
       translation.set_size(dimension-1);
-      for ( unsigned i = 0; i < num_points; i++ )
+      for ( size_t i = 0; i < num_points; i++ )
         translation+=subvector(pts[i],0,dimension-1);
       translation /= num_points;
 
@@ -62,7 +62,7 @@ namespace math {
         pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
 
       double scale = 0;
-      for ( unsigned i = 0; i < num_points; i++ )
+      for ( size_t i = 0; i < num_points; i++ )
         scale += norm_2( subvector(pts_int[i],0,dimension-1) );
       scale = num_points*sqrt(2.)/scale;
 
@@ -142,7 +142,7 @@ namespace math {
             else
               H(2,2) = 1;
 
-        for ( unsigned i = 0; i < m_measure.size(); i+=2 ) {
+        for ( size_t i = 0; i < m_measure.size(); i+=2 ) {
           Vector3 input( m_measure[i], m_measure[i+1], 1 );
           Vector3 output_i = H*input;
           output_i /= output_i(2);
@@ -176,7 +176,7 @@ namespace math {
         output.push_back( Vector3( p[0], p[1], p[2] ) );
       }
 
-      unsigned num_points = p1.size();
+      size_t num_points = p1.size();
       if ( num_points == min_elements_needed_for_fit(p1[0] ) ) {
         // Use DLT
         Matrix<double> S_in = NormSimilarity(input);
@@ -244,14 +244,14 @@ namespace math {
   /// This fitting functor attempts to find an affine transformation in RN
   /// (rotation, translation, scaling, and skewing) This fit
   /// is optimal in a least squares sense.
-  template <int dim>
+  template <size_t dim>
   struct AffineFittingFunctorN {
     typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A affine transformation has dim*(dim+1) degrees of freedom so we need
     /// dim*(dim+1)/dim pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return dim+1; }
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return dim+1; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -269,7 +269,7 @@ namespace math {
                  vw::ArgumentErr() << "Cannot compute affine transformation.  Insufficient data.\n");
 
 
-      int dfree = dim * (dim + 1); // Number of parameters that we're solving for
+      size_t dfree = dim * (dim + 1); // Number of parameters that we're solving for
 
       Vector<double> y(p1.size()*dim);
       Vector<double> x(dfree);
@@ -298,10 +298,10 @@ namespace math {
       // y(row i)     = | p2[i][0] |
       // y(row i + 1) = | p2[i][1] |
 
-      for (unsigned i = 0; i < p1.size(); ++i) {
-        for (unsigned j = 0; j < dim; ++j) {
-          unsigned row = i*dim+j;
-          for (unsigned l = 0; l < dim + 1; ++l) {
+      for (size_t i = 0; i < p1.size(); ++i) {
+        for (size_t j = 0; j < dim; ++j) {
+          size_t row = i*dim+j;
+          for (size_t l = 0; l < dim + 1; ++l) {
             A(row, j*(dim+1)+l) = l == dim ? 1 : p1[i][l];
           }
           y(row) = p2[i][j];
@@ -313,7 +313,7 @@ namespace math {
       Matrix<double> S(dim+1,dim+1);
       S.set_identity();
 
-      for (int i = 0; i < dfree; ++i) {
+      for (size_t i = 0; i < dfree; ++i) {
         S(i/(dim+1), i%(dim+1)) = x(i);
       }
 
@@ -329,13 +329,13 @@ namespace math {
 
   /// This fitting functor attempts to find a similarity transformation
   /// (rotation, translation, scaling)
-  template <int dim>
+  template <size_t dim>
   struct SimilarityFittingFunctorN {
     typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A similarity transformation requires 3 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 3; }
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 3; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -359,7 +359,7 @@ namespace math {
 
       // Compute the scale factor between the points
       double dist1 = 0, dist2 = 0;
-      for (unsigned i = 0; i < p1.size(); ++i) {
+      for (size_t i = 0; i < p1.size(); ++i) {
         dist1 += norm_2(p1[i]-mean1);
         dist2 += norm_2(p2[i]-mean2);
       }
@@ -369,10 +369,10 @@ namespace math {
 
       // Compute the rotation
       Matrix<double> H(dim, dim);
-      for (unsigned i = 0; i < p1.size(); ++i) {
+      for (size_t i = 0; i < p1.size(); ++i) {
         Matrix<double> a(dim,1);
         Matrix<double> b(dim,1);
-        for (unsigned d = 0; d < dim; ++d) {
+        for (size_t d = 0; d < dim; ++d) {
           a(d,0) = p1[i][d]-mean1[d];
           b(d,0) = p2[i][d]-mean2[d];
         }
@@ -390,7 +390,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = scale_factor*R;
-      for (unsigned i = 0; i < result.rows(); ++i) {
+      for (size_t i = 0; i < result.rows(); ++i) {
         result(i,dim) = translation(i);
       }
       result(dim,dim) = 1;
@@ -401,13 +401,13 @@ namespace math {
   typedef SimilarityFittingFunctorN<2> SimilarityFittingFunctor;
 
   /// This fitting functor attempts to find a translation and rotation transformation
-  template <int dim>
+  template <size_t dim>
   struct TranslationRotationFittingFunctorN {
     typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A transformation requires 2 pairs of data points to make a fit.
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 2; }
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 2; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -431,10 +431,10 @@ namespace math {
 
       // Compute the rotation
       Matrix<double> H(dim, dim);
-      for (unsigned i = 0; i < p1.size(); ++i) {
+      for (size_t i = 0; i < p1.size(); ++i) {
         Matrix<double> a(dim,1);
         Matrix<double> b(dim,1);
-        for (unsigned d = 0; d < dim; ++d) {
+        for (size_t d = 0; d < dim; ++d) {
           a(d,0) = p1[i][d]-mean1[d];
           b(d,0) = p2[i][d]-mean2[d];
         }
@@ -452,7 +452,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = R;
-      for (unsigned i = 0; i < result.rows(); ++i) {
+      for (size_t i = 0; i < result.rows(); ++i) {
         result(i,dim) = translation(i);
       }
       result(dim,dim) = 1;
@@ -463,13 +463,13 @@ namespace math {
   typedef TranslationRotationFittingFunctorN<2> TranslationRotationFittingFunctor;
 
   /// This fitting functor attempts to find a translation transformation
-  template <int dim>
+  template <size_t dim>
   struct TranslationFittingFunctorN {
     typedef vw::Matrix<double,dim+1,dim+1> result_type;
 
     /// A translation transformation needs 1 pair to make a fit
     template <class ContainerT>
-    unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 1; }
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 1; }
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
@@ -496,7 +496,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       result.set_identity();
-      for (unsigned i = 0; i < dim; ++i) {
+      for (size_t i = 0; i < dim; ++i) {
         result(i,dim) = translation(i);
       }
       return result;

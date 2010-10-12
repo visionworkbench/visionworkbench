@@ -36,28 +36,28 @@ namespace math {
     template <class ContainerT>
     ContainerT operator() (std::vector<ContainerT> const& points) const {
       ContainerT result = points[0]; // to resize container if necessary
-      unsigned num_points = points.size();
-      unsigned dimensions = points[0].size();
+      size_t num_points = points.size();
+      size_t dimensions = points[0].size();
       if (m_homogeneous)
         dimensions--;
 
-      for (unsigned int i = 0; i < dimensions; ++i)
+      for (size_t i = 0; i < dimensions; ++i)
         result[i] = 0;
       if (m_homogeneous)
         result[dimensions] = 1;
 
       if (m_homogeneous) {
-        for (unsigned i = 0; i < num_points; ++i)
-          for (unsigned int j = 0; j < dimensions; ++j)
+        for (size_t i = 0; i < num_points; ++i)
+          for (size_t j = 0; j < dimensions; ++j)
             result[j] += points[i][j] / points[i][dimensions];
       }
       else {
-        for (unsigned i = 0; i < num_points; ++i)
-          for (unsigned int j = 0; j < dimensions; ++j)
+        for (size_t i = 0; i < num_points; ++i)
+          for (size_t j = 0; j < dimensions; ++j)
             result[j] += points[i][j];
       }
 
-      for (unsigned int i = 0; i < dimensions; ++i)
+      for (size_t i = 0; i < dimensions; ++i)
         result[i] /= num_points;
 
       return result;

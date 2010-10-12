@@ -197,19 +197,19 @@ namespace math {
 
     Quaternion( ElemT w, ElemT x, ElemT y, ElemT z ) : core_( w, x, y, z ) {}
 
-    ElemT& operator[]( unsigned i ) {
+    ElemT& operator[]( size_t i ) {
       return *(reinterpret_cast<ElemT*>(this)+i);
     }
 
-    ElemT const& operator[]( unsigned i ) const {
+    ElemT const& operator[]( size_t i ) const {
       return *(reinterpret_cast<ElemT const*>(this)+i);
     }
 
-    ElemT& operator()( unsigned i ) {
+    ElemT& operator()( size_t i ) {
       return *(reinterpret_cast<ElemT*>(this)+i);
     }
 
-    ElemT const& operator()( unsigned i ) const {
+    ElemT const& operator()( size_t i ) const {
       return *(reinterpret_cast<ElemT const*>(this)+i);
     }
 
@@ -288,7 +288,7 @@ namespace math {
 
     template <class VectorT>
     explicit Quaternion( VectorBase<VectorT> const& vec ) {
-      for( unsigned i=0; i<4; ++i ) operator[](i) = vec.impl()[i];
+      for( size_t i=0; i<4; ++i ) operator[](i) = vec.impl()[i];
     }
 
     // Construct quaternion from normalized rotation axis and angle
@@ -297,7 +297,7 @@ namespace math {
       double ha = angle * 0.5;
       w() = ElemT(cos(ha));
       ElemT s = ElemT(sin(ha));
-      for (unsigned i = 0; i < 3; i++)
+      for (size_t i = 0; i < 3; i++)
         operator[](i+1) = s * axis.impl()[i];
     }
 

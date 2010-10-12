@@ -120,28 +120,28 @@ namespace vw {
     }
 
     /// Channel indexing operator.
-    inline channel_type& operator[](int i) {
+    inline channel_type& operator[](size_t i) {
       if (i == CompoundNumChannels<ChildT>::value)
         return m_valid;
       else
         return compound_select_channel<channel_type&>(m_child,i);
      }
     /// Channel indexing operator (const overload).
-    inline channel_type const& operator[](int i) const {
+    inline channel_type const& operator[](size_t i) const {
       if (i == CompoundNumChannels<ChildT>::value)
         return m_valid;
       else
         return compound_select_channel<channel_type const&>(m_child,i);
     }
     /// Channel indexing operator.
-    inline channel_type& operator()(int i) {
+    inline channel_type& operator()(size_t i) {
       if (i == CompoundNumChannels<ChildT>::value)
         return valid;
       else
         return compound_select_channel<channel_type&>(m_child,i);
     }
     /// Channel indexing operator (const overload).
-    inline channel_type const& operator()(int i) const {
+    inline channel_type const& operator()(size_t i) const {
       if (i == CompoundNumChannels<ChildT>::value)
         return valid;
       else
@@ -246,9 +246,9 @@ namespace vw {
   inline mean_channel_value( PixelMask<T> const& arg ) {
     typedef typename CompoundChannelType<T>::type channel_type;
     if (arg.valid()) {
-      int num_channels = CompoundNumChannels<T>::value;
+      size_t num_channels = CompoundNumChannels<T>::value;
       double accum = 0;
-      for( int i=0; i<num_channels-1; ++i )
+      for( size_t i=0; i<num_channels-1; ++i )
         accum += compound_select_channel<channel_type const&>( arg, i );
       return accum / num_channels;
     } else {
@@ -285,11 +285,11 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ResultT, class Arg1T, class Arg2T>
+    template <bool CompoundB, size_t ChannelsN, class ResultT, class Arg1T, class Arg2T>
     struct Helper {
       static inline ResultT construct( FuncT const& func, Arg1T const& arg1, Arg2T const& arg2 ) {
         ResultT result;
-        for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg1[i],arg2[i]);
+        for( size_t i=0; i<ChannelsN-1; ++i ) result[i] = func(arg1[i],arg2[i]);
         if (arg1.valid() && arg2.valid())
           result.validate();
         return result;
@@ -371,10 +371,10 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class Arg1T, class Arg2T>
+    template <bool CompoundB, size_t ChannelsN, class Arg1T, class Arg2T>
     struct Helper {
       static inline Arg1T& apply( FuncT const& func, Arg1T& arg1, Arg2T const& arg2 ) {
-        for( int i=0; i<ChannelsN-1; ++i ) func(arg1[i],arg2[i]);
+        for( size_t i=0; i<ChannelsN-1; ++i ) func(arg1[i],arg2[i]);
         if (!arg2.valid())
           arg1.invalidate();
         return arg1;
@@ -458,11 +458,11 @@ namespace vw {
     FuncT func;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ResultT, class ArgT>
+    template <bool CompoundB, size_t ChannelsN, class ResultT, class ArgT>
     struct Helper {
       static inline ResultT construct( FuncT const& func, ArgT const& arg ) {
         ResultT result;
-        for( int i=0; i<ChannelsN-1; ++i ) result[i] = func(arg[i]);
+        for( size_t i=0; i<ChannelsN-1; ++i ) result[i] = func(arg[i]);
         if (arg.valid())
           result.validate();
         return result;
@@ -544,10 +544,10 @@ namespace vw {
     typedef typename boost::add_reference<FuncT>::type func_ref;
 
     // The general multi-channel case
-    template <bool CompoundB, int ChannelsN, class ArgT>
+    template <bool CompoundB, size_t ChannelsN, class ArgT>
     struct Helper {
       static inline ArgT& apply( func_ref func, ArgT& arg ) {
-        for( int i=0; i<ChannelsN-1; ++i ) func(arg[i]);
+        for( size_t i=0; i<ChannelsN-1; ++i ) func(arg[i]);
         return arg;
       }
     };

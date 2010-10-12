@@ -31,11 +31,11 @@ namespace ba {
 
   // CRTP Base class for Bundle Adjustment functors.
   //---------------------------------------------------------
-  template <class ImplT, unsigned CameraParamsN, unsigned PointParamsN>
+  template <class ImplT, size_t CameraParamsN, size_t PointParamsN>
   class ModelBase {
   public:
-    static const unsigned camera_params_n = CameraParamsN;
-    static const unsigned point_params_n = PointParamsN;
+    static const size_t camera_params_n = CameraParamsN;
+    static const size_t point_params_n = PointParamsN;
 
     /// \cond INTERNAL
     // Methods to access the derived type
@@ -44,7 +44,7 @@ namespace ba {
     /// \endcond
 
     // Required access to camera
-    Vector2 operator() ( unsigned i, unsigned j,
+    Vector2 operator() ( size_t i, size_t j,
                          Vector<double,camera_params_n> const& a_j,
                          Vector<double,point_params_n> const& b_i ) {
       return impl()(i,j,a_j,b_i);
@@ -52,7 +52,7 @@ namespace ba {
 
     // Approximate the jacobian for small variations in the a_j
     // parameters (camera parameters).
-    inline Matrix<double, 2, CameraParamsN> A_jacobian ( unsigned i, unsigned j,
+    inline Matrix<double, 2, CameraParamsN> A_jacobian ( size_t i, size_t j,
                                                          Vector<double, CameraParamsN> const& a_j,
                                                          Vector<double, PointParamsN> const& b_i ) {
 
@@ -70,7 +70,7 @@ namespace ba {
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for ( unsigned n=0; n < CameraParamsN; ++n ){
+      for ( size_t n=0; n < CameraParamsN; ++n ){
         Vector<double, CameraParamsN> a_j_prime = a_j;
 
         // Variable step size, depending on parameter value
@@ -92,7 +92,7 @@ namespace ba {
 
     // Approximate the jacobian for small variations in the b_i
     // parameters (3d point locations).
-    inline Matrix<double, 2, PointParamsN> B_jacobian ( unsigned i, unsigned j,
+    inline Matrix<double, 2, PointParamsN> B_jacobian ( size_t i, size_t j,
                                                         Vector<double, CameraParamsN> const& a_j,
                                                         Vector<double, PointParamsN> const& b_i ) {
 
@@ -110,7 +110,7 @@ namespace ba {
 
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
-      for ( unsigned n=0; n < PointParamsN; ++n ){
+      for ( size_t n=0; n < PointParamsN; ++n ){
         Vector<double, PointParamsN> b_i_prime = b_i;
 
         // Variable step size, depending on parameter value

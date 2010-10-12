@@ -41,7 +41,7 @@ namespace vw {
       std::copy( other.begin(), other.end(), begin() );
     }
 
-    VarArray( int size ) : m_data(new T[size]), m_size(size) {
+    VarArray( size_t size ) : m_data(new T[size]), m_size(size) {
       std::fill(begin(),end(),T());
     }
 
@@ -58,11 +58,11 @@ namespace vw {
       return *this;
     }
 
-    inline T& operator[]( int i ) {
+    inline T& operator[]( size_t i ) {
       return m_data[i];
     }
 
-    inline T const& operator[]( int i ) const {
+    inline T const& operator[]( size_t i ) const {
       return m_data[i];
     }
 

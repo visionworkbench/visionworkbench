@@ -152,7 +152,7 @@ TEST(Matrix, Dynamic) {
 }
 
 TEST(Matrix, VectorEQ) {
-  Matrix<float,1,2> m1(1,2), m2(1.1,1.9), m3(1,2);
+  Matrix<float,1,2> m1(1,2), m2(1.1f,1.9f), m3(1,2);
   EXPECT_FALSE( m1==m2 );
   EXPECT_TRUE ( m1==m3 );
   EXPECT_FALSE( equal(m1,m2) );
@@ -240,7 +240,7 @@ TEST(Matrix, Norms) {
   EXPECT_EQ( 6, norm_1(m) );
   EXPECT_EQ( 7, norm_inf(m) );
   EXPECT_EQ( 30, norm_frobenius_sqr(m) );
-  EXPECT_FLOAT_EQ( 5.4772255750, norm_frobenius(m) );
+  EXPECT_FLOAT_EQ( 5.4772255750f, norm_frobenius(m) );
 
   EXPECT_EQ( 10, sum(m) );
   EXPECT_EQ( 24, prod(m) );

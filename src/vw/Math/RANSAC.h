@@ -63,7 +63,7 @@ namespace math {
     }
   };
 
-  template <int dim>
+  template <size_t dim>
   struct HomogeneousL2NormErrorMetric {
     template <class RelationT, class ContainerT>
     double operator() (RelationT const& H,
@@ -117,15 +117,15 @@ namespace math {
 
     /// \cond INTERNAL
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size]
-    inline void _vw_get_n_unique_integers(unsigned int size, unsigned n, int* samples) const {
+    inline void _vw_get_n_unique_integers(size_t size, size_t n, int* samples) const {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
 
-      for (unsigned i=0; i<n; ++i) {
+      for (size_t i=0; i<n; ++i) {
         bool done = false;
         while (!done) {
           samples[i] = int( (double(std::rand()) / double(RAND_MAX)) * size );
           done = true;
-          for (unsigned j = 0; j < i; j++)
+          for (size_t j = 0; j < i; j++)
             if (samples[i] == samples[j])
               done = false;
         }
@@ -144,7 +144,7 @@ namespace math {
       inliers1.clear();
       inliers2.clear();
 
-      for (unsigned int i=0; i<p1.size(); i++) {
+      for (size_t i=0; i<p1.size(); i++) {
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold) {
           inliers1.push_back(p1[i]);
           inliers2.push_back(p2[i]);
@@ -155,9 +155,9 @@ namespace math {
     // Returns the list of inlier indices.
     template <class ContainerT1, class ContainerT2>
     std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
-                                     std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
+                                    std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
       std::vector<int> result;
-      for (unsigned int i=0; i<p1.size(); i++)
+      for (size_t i=0; i<p1.size(); i++)
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
           result.push_back(i);
       return result;
@@ -197,17 +197,17 @@ namespace math {
       if (ransac_iterations == 0)
         ransac_iterations = p1.size() * 2;
 
-      int n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
+      size_t n = m_fitting_func.min_elements_needed_for_fit(p1[0]);
       std::vector<ContainerT1> try1(n);
       std::vector<ContainerT2> try2(n);
       boost::scoped_array<int> random_indices(new int[n]);
 
-      for (int iteration=0; iteration < ransac_iterations; ++iteration) {
+      for (size_t iteration=0; iteration < ransac_iterations; ++iteration) {
         // Get four points at random, taking care not
         // to select the same point twice.
         _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
 
-        for (int i=0; i < n; ++i) {
+        for (size_t i=0; i < n; ++i) {
           try1[i] = p1[random_indices[i]];
           try2[i] = p2[random_indices[i]];
         }

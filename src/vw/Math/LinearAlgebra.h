@@ -24,9 +24,18 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LapackExports.h>
 
+#include <boost/numeric/conversion/cast.hpp>
+
 namespace vw {
 /// Numerical linear algebra and computational geometry.
 namespace math {
+
+  namespace detail {
+    template <typename T>
+    f77_int FINT(const T& x) {
+      return boost::numeric_cast<f77_int>(x);
+    }
+  }
 
   /// Compute the eigenvalues of a Matrix A
   ///
@@ -36,12 +45,12 @@ namespace math {
   inline void eigen( MatrixT const& A, EigenvaluesT &e ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename MatrixT::value_type real_type;
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    f77_int n = A.cols();
+    f77_int n = detail::FINT(A.cols());
     f77_int lwork = -1, info;
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
     lwork = f77_int(work_size);
@@ -66,14 +75,14 @@ namespace math {
   inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename AMatrixT::value_type real_type;
-    const f77_int lda = A.rows();
-    const f77_int ldvr = A.cols();
+    const f77_int lda = detail::FINT(A.rows());
+    const f77_int ldvr = detail::FINT(A.cols());
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Vbuf( A.rows(), A.cols() );
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
     real_type work_size;
-    f77_int n = A.cols();
+    f77_int n = detail::FINT(A.cols());
     f77_int lwork = -1, info;
 
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
@@ -107,9 +116,9 @@ namespace math {
   template <class AMatrixT, class SingularValuesT>
   inline void svd( AMatrixT const& A, SingularValuesT &s ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
     real_type work_size;
@@ -135,9 +144,9 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( minmn, A.rows() );
     Matrix<real_type> VTbuf( A.cols(), minmn );
@@ -172,9 +181,9 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( A.rows(), A.rows() );
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
@@ -205,9 +214,9 @@ namespace math {
   inline void qrd( AMatrixT const& A, QMatrixT &Q, RMatrixT &R ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename QMatrixT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename RMatrixT::value_type>::type real_type;
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
 
     Q.set_size(A.rows(), A.rows());
     R.set_size(A.rows(), A.cols());
@@ -223,8 +232,8 @@ namespace math {
     sgeqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work[0], lwork, &info);
 
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
-    for (vw::uint32 i = 0; i < R.rows(); i++)
-      for (vw::uint32 j = 0; j < R.cols(); j++)
+    for (size_t i = 0; i < R.rows(); i++)
+      for (size_t j = 0; j < R.cols(); j++)
         R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
@@ -247,9 +256,9 @@ namespace math {
   inline void rqd( AMatrixT const& A, RMatrixT &R, QMatrixT &Q ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename QMatrixT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename RMatrixT::value_type>::type real_type;
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = A.rows();
+    const f77_int lda = detail::FINT(A.rows());
 
     Q.set_size(minmn, n);
     R.set_size(m, minmn);
@@ -267,8 +276,8 @@ namespace math {
     VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sqerqf in argument " << -info);
 
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
-    for (vw::uint32 i = 0; i < R.rows(); i++)
-      for (vw::uint32 j = 0; j < R.cols(); j++)
+    for (size_t i = 0; i < R.rows(); i++)
+      for (size_t j = 0; j < R.cols(); j++)
         R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
@@ -309,13 +318,13 @@ namespace math {
   least_squares( AMatrixT & A, BVectorT & B, double cond = -1 ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = transpose(A);
-    const f77_int m = A.rows(), n = A.cols();
+    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n), maxmn = std::max(m,n);
     Vector<real_type> Bbuf(maxmn);
     subvector(Bbuf,0,m) = B;
-    const f77_int nrhs = 1, lda = A.rows(), ldb = maxmn;
+    const f77_int nrhs = 1, lda = detail::FINT(A.rows()), ldb = maxmn;
     std::vector<real_type> s( minmn );
-    real_type const rcond = cond;
+    real_type const rcond = boost::numeric_cast<real_type>(cond);
     f77_int rank;
     f77_int lwork = -1, info;
     real_type work_size;
@@ -353,11 +362,11 @@ namespace math {
   solve( AMatrixT & A, BVectorT & B ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
 
-    const f77_int n = A.cols();
-    const f77_int lda = A.rows();
+    const f77_int n = detail::FINT(A.cols());
+    const f77_int lda = detail::FINT(A.rows());
     const f77_int nrhs = 1;
     Vector<f77_int> ipiv( A.rows() );
-    const f77_int ldb = B.size();
+    const f77_int ldb = detail::FINT(B.size());
     f77_int info;
 
     Matrix<real_type> Abuf = transpose(A);
@@ -393,10 +402,10 @@ namespace math {
   /// the non-nocopy method below.
   template <class AMatrixT, class BVectorT>
   void solve_symmetric_nocopy( AMatrixT & A, BVectorT & B ) {
-    const f77_int n = A.cols();
+    const f77_int n = detail::FINT(A.cols());
     const f77_int nrhs = 1;
-    const f77_int lda = A.rows();
-    const f77_int ldb = B.size();
+    const f77_int lda = detail::FINT(A.rows());
+    const f77_int ldb = detail::FINT(B.size());
     f77_int info;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0)), ldb, &info);
 
@@ -418,10 +427,10 @@ namespace math {
 
   template <class AMatrixT, class BMatrixT>
   void multi_solve_symmetric_nocopy( AMatrixT & A, BMatrixT & B ) {
-    const f77_int n = A.cols();
-    const f77_int nrhs = B.rows();
-    const f77_int lda = A.cols();
-    const f77_int ldb = B.cols();
+    const f77_int n = detail::FINT(A.cols());
+    const f77_int nrhs = detail::FINT(B.rows());
+    const f77_int lda = detail::FINT(A.cols());
+    const f77_int ldb = detail::FINT(B.cols());
     f77_int info;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0,0)), ldb, &info);
     if (info < 0)
@@ -487,15 +496,15 @@ namespace math {
 
   // Solve for nullity .. using previous SVD results
   template <class MatrixT, class MatrixT2, class VectorT>
-  inline int nullity( MatrixBase<MatrixT> const& A,
-                      MatrixBase<MatrixT2> const& /*U*/,
-                      VectorBase<VectorT> const& S,
-                      MatrixBase<MatrixT2> const& /*V*/,
-                      double const& thresh = -1 ) {
+  inline size_t nullity( MatrixBase<MatrixT> const& A,
+                         MatrixBase<MatrixT2> const& /*U*/,
+                         VectorBase<VectorT> const& S,
+                         MatrixBase<MatrixT2> const& /*V*/,
+                         double const& thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
-    int nn = A.impl().cols()-S.impl().size();
-    for ( unsigned j = 0; j < S.impl().size(); j++ ) {
+    size_t nn = boost::numeric_cast<size_t>(A.impl().cols()-S.impl().size());
+    for ( size_t j = 0; j < S.impl().size(); j++ ) {
       if ( S.impl()[j] <= th )
         nn++;
     }
@@ -504,7 +513,7 @@ namespace math {
 
   // Nullity of a matrix (again from Numerical Receipes)
   template <class MatrixT>
-  inline int nullity( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
+  inline size_t nullity( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     Matrix<value_type> U, V;
     Vector<value_type> S;
@@ -523,18 +532,17 @@ namespace math {
     complete_svd( A.impl(), U, S, V );
     V = transpose(V);
 
-    int nty = nullity(A.impl(),U,S,V,thresh);
+    size_t nty = nullity(A.impl(),U,S,V,thresh);
     if ( nty == 0 )
       return Matrix<value_type>(0,0);
-    Matrix<value_type> nullsp(A.impl().cols(),
-                              nty );
+    Matrix<value_type> nullsp(A.impl().cols(), nty );
     double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S[0]*std::numeric_limits<value_type>::epsilon() );
-    unsigned nn = 0;
-    for ( unsigned j = 0; j < A.impl().cols(); j++ ) {
+    size_t nn = 0;
+    for ( size_t j = 0; j < A.impl().cols(); j++ ) {
       if ( j < S.size() )
         if ( S[j] > th )
           continue;
-      for ( unsigned jj = 0; jj < A.impl().cols(); jj++ )
+      for ( size_t jj = 0; jj < A.impl().cols(); jj++ )
         nullsp(jj,nn) = V[jj][j];
       nn++;
     }
