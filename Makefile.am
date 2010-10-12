@@ -170,7 +170,11 @@ all-headers:
 	grep '^#.*vw/' | sed -e 's#.*src/\(vw/[^"]\+\)".*#\1#' | sort -u
 
 one-ctags-file:
-	ctags -R --regex-c++='/VW_DEFINE_EXCEPTION\(\s*(.*)\s*,\s*(.*)\s*\)/\1/s/' \
+	ctags -R \
+		--regex-c++='/VW_DEFINE_EXCEPTION\(\s*(.*)\s*,\s*(.*)\s*\)/\1/s/' \
+		--regex-c++='/__VW_UNARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/Arg\1Functor/s/' \
+		--regex-c++='/__VW_BINARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/ArgArg\1Functor/s/' \
+		--regex-c++='/VW_DEFINE_ENUM\(\s*(.*)\s*,\s*(.*)\s*,\s*\(\s*(.*)\s*\)\)/\1/g/' \
 		--languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*' . --exclude='' thirdparty/cxxtest/cxxtest/TestSuite.h thirdparty/gtest
 
 .PHONY: push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file copy-timestamp coverage-filter
