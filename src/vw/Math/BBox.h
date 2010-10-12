@@ -108,7 +108,7 @@ namespace math {
       else {
         for (size_t i = 0; i < m_min.size(); ++i) {
           m_min[i] = std::numeric_limits<RealT>::max();
-          m_max[i] = -std::numeric_limits<RealT>::max();
+          m_max[i] = static_cast<RealT>(-std::numeric_limits<RealT>::max());
         }
       }
     }
