@@ -28,7 +28,7 @@ TEST( GDALFeatures, NoDataValue ) {
   {
     DiskImageResourceGDAL w_rsrc( "nodata.tif", monkey.format() );
     w_rsrc.set_nodata_value(-1);
-    ASSERT_TRUE( w_rsrc.set_nodata_value( -1 ) );
+    EXPECT_NO_THROW( w_rsrc.set_nodata_value( -1 ) );
     write_image( w_rsrc, monkey );
   }
 

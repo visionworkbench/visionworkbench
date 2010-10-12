@@ -302,13 +302,14 @@ namespace vw {
     return val;
   }
 
-  bool DiskImageResourceGDAL::set_nodata_value( double v ) const {
+  void DiskImageResourceGDAL::set_nodata_value( double v ) {
     Mutex::Lock lock(*gdal_mutex_ptr);
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL )
       vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to set no data value.  "
                 << "Are you sure the file is open?" );
-    return dataset->GetRasterBand(1)->SetNoDataValue( v ) == CE_None;
+    if (dataset->GetRasterBand(1)->SetNoDataValue( v ) != CE_None)
+      vw_throw(IOErr() << "DiskImageResourceGDAL: Unable to set nodata value");
   }
 
   /// Bind the resource to a file for reading.  Confirm that we can

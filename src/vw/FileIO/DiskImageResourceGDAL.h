@@ -115,7 +115,7 @@ namespace vw {
     /// methods to access that information.
     virtual bool has_nodata_value() const;
     virtual double nodata_value() const;
-    virtual bool set_nodata_value( double ) const;
+    virtual void set_nodata_value( double );
 
     void open( std::string const& filename );
     void create( std::string const& filename,
