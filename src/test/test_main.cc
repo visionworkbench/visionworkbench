@@ -35,6 +35,13 @@ int main(int argc, char **argv) {
     vw::vw_log().console_log().rule_set().add_rule(vw::VerboseDebugMessage, "*");
   }
 
+  // TODO: Make it so the seed is settable so we can reproduce failures in
+  // probabilistic algorithms. This uses clock() instead of time() because
+  // clock() (being measured in "processor ticks" instead of seconds) is likely
+  // to exhibit more variation when tests are run many times in a short time
+  // span.
+  std::srand(boost::numeric_cast<unsigned int>((clock())));
+
   return RUN_ALL_TESTS();
 }
 

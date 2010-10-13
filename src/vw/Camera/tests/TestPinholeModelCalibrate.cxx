@@ -85,8 +85,6 @@ public:
 // -----------------------
 
 TEST( PinholeModelCalibrate, SerializeFour ) {
-  std::srand(std::time(0));
-
   for (int i = 0; i < 10; i++) {
     Vector3 cc(rand(), rand(), rand());
     Vector3 rv(rand(), rand(), rand());
@@ -131,8 +129,6 @@ TEST( PinholeModelCalibrate, SerializeFour ) {
 }
 
 TEST( PinholeModelCalibrate, SerializeThree ) {
-  std::srand(std::time(0));
-
   for (int i = 0; i < 10; i++) {
     Vector3 cc(rand(), rand(), rand());
     Vector3 rv(rand(), rand(), rand());
@@ -173,8 +169,6 @@ TEST( PinholeModelCalibrate, SerializeThree ) {
 }
 
 TEST( PinholeModelCalibrate, SerializeTwo ) {
-  std::srand(std::time(0));
-
   for (int i = 0; i < 10; i++) {
     Vector3 cc(rand(), rand(), rand());
     Vector3 rv(rand(), rand(), rand());
@@ -211,8 +205,6 @@ TEST( PinholeModelCalibrate, SerializeTwo ) {
 }
 
 TEST( PinholeModelCalibrate, SerializeOne ) {
-  std::srand(std::time(0));
-
   for (int i = 0; i < 10; i++) {
     Vector3 cc(rand(), rand(), rand());
     Vector3 rv(rand(), rand(), rand());

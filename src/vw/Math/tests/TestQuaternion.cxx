@@ -325,8 +325,6 @@ TEST(Quaternion, AxisAngleToFromMatrix) {
 }
 
 TEST(Quaternion, AxisAngleQuaternionMatrixRandom) {
-  std::srand(std::time(0));
-
   for (int i = 0; i < 1000; i++) {
     Vector3 v(std::rand(), std::rand(), std::rand());
     v /= math::norm_2(v); // normalize

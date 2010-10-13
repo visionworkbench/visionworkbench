@@ -26,14 +26,14 @@ Vector<unsigned> create_test_skyline(size_t size, int max_offset ) {
 template <class VectorT>
 void fill_vector(VectorT& b) {
   for ( size_t i = 0; i < b.size(); ++i )
-    b[i] = lround(double(random())/(pow(2,31)-1)*100)+1;
+    b[i] = lround(double(rand())/(pow(2,31)-1)*100)+1;
 }
 
 template <class MatrixT>
 void fill_symmetric_matrix(MatrixT& A, Vector<unsigned> const& skyline ) {
   for (size_t i = 0; i < A.rows(); ++i)
     for (unsigned j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
-      A(i,j) = lround(double(random())/(pow(2,31)-1)*100)+1;
+      A(i,j) = lround(double(rand())/(pow(2,31)-1)*100)+1;
       A(j,i) = A(i,j);
     }
 }
@@ -124,8 +124,6 @@ TEST(SparseSkyline, LDL_decomp_correctness) {
   unsigned N = 50;
   unsigned S = 10;
 
-  srandom((unsigned int) clock());
-
   MatrixSparseSkyline<double> sparse_mat(N);
 
   Vector<unsigned> test_skyline = create_test_skyline(N, S);
@@ -151,8 +149,6 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
   unsigned N = 5000;
   unsigned S = 150;
 
-  srandom((unsigned int) clock());
-
   MatrixSparseSkyline<double> sparse_mat(N,N);
   MatrixSparseSkyline<double> original_sparse_mat(N,N);
   Vector<unsigned> test_skyline = create_test_skyline(N,S);
@@ -170,8 +166,6 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
 TEST(SparseSkyline, LDL_solve) {
   unsigned N = 50;
   unsigned S = 10;
-
-  srandom((unsigned int) clock());
 
   Matrix<double> A_nonsparse(N,N);
   MatrixSparseSkyline<double> A_sparse(N,N);
@@ -205,8 +199,6 @@ TEST(SparseSkyline, LDL_solve) {
 TEST(SparseSkyline, LDL_solve_scalability) {
   int N = 1000;
   int S = 100;
-
-  srandom((unsigned int) clock());
 
   MatrixSparseSkyline<double> A_sparse(N,N);
   Vector<unsigned> test_skyline = create_test_skyline(N,S);

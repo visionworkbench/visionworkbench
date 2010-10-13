@@ -84,14 +84,13 @@ TEST( CAHVModel, PinholeConversion ) {
 TEST( CAHVModel, FakeEpipolarConversion ) {
 
   // Building fake flat terrain
-  srandom((unsigned int) clock());
   std::vector<Vector3> points(100);
   for ( unsigned i = 0; i <100; i++ ){
     for ( unsigned s = 0; s < 3; s++ ) {
       if ( s == 2 ) {
         points[i][s] = 0;
       } else {
-        points[i][s] = double(random())/double(pow(2,31)-1) * 30 - 15;
+        points[i][s] = double(rand())/double(pow(2,31)-1) * 30 - 15;
       }
     }
   }
