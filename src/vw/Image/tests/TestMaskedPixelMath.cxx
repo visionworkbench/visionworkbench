@@ -38,7 +38,7 @@ protected:
     b = MPx();
     a.validate();
     b.validate();
-    for ( int i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
+    for ( size_t i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
       a[i] = ci;
       b[i] = cj;
       ci++;

@@ -1117,7 +1117,8 @@ namespace vw {
     typedef ProceduralPixelAccessor<PlanesToChannelsView> pixel_accessor;
 
     PlanesToChannelsView( ImageT const& image ) : m_child(image) {
-      VW_ASSERT( m_child.channels()==1 && m_child.planes()==CompoundNumChannels<PixelT>::value,
+      VW_ASSERT( m_child.channels()==1 &&
+                 boost::numeric_cast<size_t>(m_child.planes())==CompoundNumChannels<PixelT>::value,
                  ArgumentErr() << "PlanesToChannelsView: The image must be multi-plane, single-channel.");
     }
 
@@ -1130,7 +1131,7 @@ namespace vw {
     inline result_type operator()( int32 i, int32 j, int32 /*p*/=0 ) const {
       result_type result;
       typedef typename CompoundChannelType<result_type>::type channel_type;
-      for ( int32 c=0; c<CompoundNumChannels<PixelT>::value; ++c )
+      for ( size_t c=0; c<CompoundNumChannels<PixelT>::value; ++c )
         compound_select_channel<channel_type&>(result,c) = m_child(i,j,c);
       return result;
     }
