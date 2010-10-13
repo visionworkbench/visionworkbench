@@ -13,12 +13,12 @@ using namespace vw::math;
 
 static const double DELTA = 1e-4;
 
-Vector<unsigned> create_test_skyline(size_t size, int max_offset ) {
-  Vector<unsigned> result(size);
+Vector<size_t> create_test_skyline(size_t size, size_t max_offset ) {
+  Vector<size_t> result(size);
   for ( size_t i = 0; i < size; ++i ) {
-    int offset = int(i) - rand()%max_offset;
+    ssize_t offset = i - (rand()%max_offset);
     if ( offset < 0 ) offset = 0;
-    result[i] = offset;
+    result[i] = static_cast<size_t>(offset);
   }
   return result;
 }
@@ -34,9 +34,9 @@ void fill_vector(VectorT& b) {
 }
 
 template <class MatrixT>
-void fill_symmetric_matrix(MatrixT& A, Vector<unsigned> const& skyline ) {
+void fill_symmetric_matrix(MatrixT& A, Vector<size_t> const& skyline ) {
   for (size_t i = 0; i < A.rows(); ++i)
-    for (unsigned j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
+    for (size_t j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
       A(i,j) = lround(drand()*100)+1;
       A(j,i) = A(i,j);
     }
@@ -125,55 +125,55 @@ TEST(SparseSkyline, Creation ) {
 }
 
 TEST(SparseSkyline, LDL_decomp_correctness) {
-  unsigned N = 50;
-  unsigned S = 10;
+  size_t N = 50;
+  size_t S = 10;
 
   MatrixSparseSkyline<double> sparse_mat(N);
 
-  Vector<unsigned> test_skyline = create_test_skyline(N, S);
+  Vector<size_t> test_skyline = create_test_skyline(N, S);
 
   fill_symmetric_matrix(sparse_mat, test_skyline);
   Matrix<double> nonsparse_mat = sparse_mat;
   MatrixSparseSkyline<double> original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
-  for ( unsigned i = 0; i < N; i++ )
-    for ( unsigned j = 0; j < N; j++ )
+  for ( size_t i = 0; i < N; i++ )
+    for ( size_t j = 0; j < N; j++ )
       if ( (sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0) )
         FAIL() << "Sparse structure was not preserved by sparse LDLT decomposition.\nIndex(" << i << "," << j << ") is " << sparse_mat(i,j) << " and " << original_sparse_mat(i,j) << "\n";
 
   ldl_decomposition(nonsparse_mat);
 
-  for ( unsigned i = 0; i < N; i++ )
-    for ( unsigned j = 0; j < i; j++ )
+  for ( size_t i = 0; i < N; i++ )
+    for ( size_t j = 0; j < i; j++ )
       EXPECT_NEAR(sparse_mat(i,j),nonsparse_mat(i,j),DELTA);
 }
 
 TEST(SparseSkyline, LDL_decomp_scalability) {
-  unsigned N = 5000;
-  unsigned S = 150;
+  size_t N = 5000;
+  size_t S = 150;
 
   MatrixSparseSkyline<double> sparse_mat(N,N);
   MatrixSparseSkyline<double> original_sparse_mat(N,N);
-  Vector<unsigned> test_skyline = create_test_skyline(N,S);
+  Vector<size_t> test_skyline = create_test_skyline(N,S);
 
   fill_symmetric_matrix(sparse_mat, test_skyline);
   original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
-  for ( unsigned i = 0; i < N; i++ )
-    for ( unsigned j = 0; j < i; j++ )
+  for ( size_t i = 0; i < N; i++ )
+    for ( size_t j = 0; j < i; j++ )
       if ( (sparse_mat(i,j) == 0)^(original_sparse_mat(i,j) == 0) )
         FAIL() << "Sparse structure was not preserved by sparse LDLT decomposition.\nIndex(" << i << "," << j << ") is " << sparse_mat(i,j) << " and " << original_sparse_mat(i,j) << "\n";
 }
 
 TEST(SparseSkyline, LDL_solve) {
-  unsigned N = 50;
-  unsigned S = 10;
+  size_t N = 50;
+  size_t S = 10;
 
   Matrix<double> A_nonsparse(N,N);
   MatrixSparseSkyline<double> A_sparse(N,N);
-  Vector<unsigned> test_skyline = create_test_skyline(N,S);
+  Vector<size_t> test_skyline = create_test_skyline(N,S);
 
   fill_symmetric_matrix(A_sparse, test_skyline);
   MatrixSparseSkyline<double> A_sparse_original = A_sparse;
@@ -191,12 +191,12 @@ TEST(SparseSkyline, LDL_solve) {
   // Sparse Version
   Vector<double> x_sparse = sparse_solve(A_sparse, b);
 
-  for ( unsigned i = 0; i < N; i++ )
+  for ( size_t i = 0; i < N; i++ )
     EXPECT_NEAR( x_nonsparse[i], x_sparse[i], DELTA );
 
   // Back checking (also showing off that multiplication is possible)
   Vector<double> b_prime = A_sparse_original*x_sparse;
-  for ( unsigned i = 0; i < N; i++ )
+  for ( size_t i = 0; i < N; i++ )
     EXPECT_NEAR( b_prime[i], b[i], DELTA );
 }
 
@@ -205,7 +205,7 @@ TEST(SparseSkyline, LDL_solve_scalability) {
   int S = 100;
 
   MatrixSparseSkyline<double> A_sparse(N,N);
-  Vector<unsigned> test_skyline = create_test_skyline(N,S);
+  Vector<size_t> test_skyline = create_test_skyline(N,S);
   fill_symmetric_matrix(A_sparse, test_skyline);
 
   // Create a vector to solve against
@@ -218,7 +218,7 @@ TEST(SparseSkyline, LDL_solve_scalability) {
 
 // Rearrangement data types
 TEST(SparseSkyline, VectorReorganize) {
-  std::vector<unsigned> lookup;
+  std::vector<size_t> lookup;
   lookup.push_back(2);
   lookup.push_back(0);
   lookup.push_back(1);
@@ -237,31 +237,31 @@ TEST(SparseSkyline, VectorReorganize) {
 
   // Reording back into self
   nrvec = reorganize(nrvec, rvec.inverse());
-  for ( unsigned i = 0; i < nrvec.size(); i++ )
+  for ( size_t i = 0; i < nrvec.size(); i++ )
     EXPECT_EQ(nrvec[i],vec[i]);
 }
 
 TEST(SparseSkyline, VectorLargeReorganize) {
   // Different from above in that this will actually invoke the
   // VectorAssignImpl that calls std::copy and uses the iterators.
-  std::vector<unsigned> lookup;
+  std::vector<size_t> lookup;
   Vector<float> lvec(10);
-  for ( unsigned i = 0, j = 9; i < 10; i++, j-- ) {
+  for ( size_t i = 0, j = 9; i < 10; i++, j-- ) {
     lookup.push_back(j);
-    lvec[i] = (i+2)*0.5;
+    lvec[i] = (i+2)*0.5f;
   }
 
   VectorReorganize<Vector<float> > rlvec2(lvec, lookup);
-  for ( unsigned i = 0; i < 10; i++ )
+  for ( size_t i = 0; i < 10; i++ )
     EXPECT_EQ( rlvec2[i], lvec[lookup[i]] );
 
   Vector<float> rlvec3 = rlvec2;
-  for ( unsigned i = 0; i < 10; i++ )
+  for ( size_t i = 0; i < 10; i++ )
     EXPECT_EQ( rlvec3[i], lvec[lookup[i]] );
 }
 
 TEST(SparseSkyline, MatrixReorganize) {
-  std::vector<unsigned> lookup;
+  std::vector<size_t> lookup;
   lookup.push_back(2);
   lookup.push_back(0);
   lookup.push_back(1);
@@ -285,27 +285,27 @@ TEST(SparseSkyline, MatrixReorganize) {
 
   // Reordering back into self
   nrmat = reorganize(nrmat, rmat.inverse());
-  for ( unsigned i = 0; i < nrmat.cols(); i++ )
+  for ( size_t i = 0; i < nrmat.cols(); i++ )
     EXPECT_EQ(nrmat(i,i),mat(i,i));
 }
 
 TEST(SparseSkyline, MatrixLargeReorganize) {
-  std::vector<unsigned> lookup;
+  std::vector<size_t> lookup;
   Matrix<float> mat(10,10);
-  for ( unsigned i = 0, j = 9; i < 10; i++, j-- ) {
+  for ( size_t i = 0, j = 9; i < 10; i++, j-- ) {
     lookup.push_back(j);
-    for ( unsigned k = 0; k <= i; k++ ) {
+    for ( size_t k = 0; k <= i; k++ ) {
       mat(i,k) = i*k*0.5+2;
       mat(k,i) = mat(i,k);
     }
   }
 
   MatrixReorganize<Matrix<float> > rmat(mat, lookup);
-  for ( unsigned i = 0; i < 10; i++ )
+  for ( size_t i = 0; i < 10; i++ )
     EXPECT_EQ( rmat(i,i), mat(lookup[i],lookup[i]) );
 
   Matrix<float> rmat_copy = rmat;
-  for ( unsigned i = 0; i < 10; i++ )
+  for ( size_t i = 0; i < 10; i++ )
     EXPECT_EQ( rmat_copy(i,i), mat(lookup[i],lookup[i]) );
 }
 
@@ -314,12 +314,12 @@ TEST(SparseSkyline, CuthillMcKee) {
   fill_with_buckeyball(sparse);
 
   // Solving for ordering
-  std::vector<unsigned> new_ordering = cuthill_mckee_ordering(sparse,1);
+  std::vector<size_t> new_ordering = cuthill_mckee_ordering(sparse,1);
 
   // This ordering comes from the MATLAB cuthill mckee example
-  unsigned ideal_order[61] = {1,6,2,5,7,26,30,10,11,12,3,4,8,27,29,9,15,13,16,17,21,25,42,28,43,38,37,14,20,18,22,24,41,47,44,39,36,33,19,32,23,48,45,46,40,34,53,31,52,49,58,50,57,35,54,51,59,56,55,60,0};
+  size_t ideal_order[61] = {1,6,2,5,7,26,30,10,11,12,3,4,8,27,29,9,15,13,16,17,21,25,42,28,43,38,37,14,20,18,22,24,41,47,44,39,36,33,19,32,23,48,45,46,40,34,53,31,52,49,58,50,57,35,54,51,59,56,55,60,0};
 
-  for ( unsigned i = 0; i < new_ordering.size(); i++ )
+  for ( size_t i = 0; i < new_ordering.size(); i++ )
     EXPECT_EQ(ideal_order[i], new_ordering[i]);
 }
 
@@ -330,14 +330,14 @@ TEST(SparseSkyline, ReorderOptimization) {
   sparse(12,0) = 1.0;
   sparse(33,0) = 5.0;
   // Insuring positive definite
-  for ( unsigned i = 0; i < 61; i++ ) {
+  for ( size_t i = 0; i < 61; i++ ) {
     sparse(i,i) += 5;
     if ( i > 0 )
       sparse(i-1,i) += 1;
   }
   Matrix<float> common = sparse;
   Vector<float> x_ideal(61);
-  for ( unsigned i = 0; i < 61; i++ )
+  for ( size_t i = 0; i < 61; i++ )
     x_ideal[i] = float((i+1)*0.5);
 
   Vector<float> b = common*x_ideal;
@@ -352,10 +352,10 @@ TEST(SparseSkyline, ReorderOptimization) {
   EXPECT_EQ( 61u, x_sparse.size() );
 
   // Optimized method;
-  std::vector<unsigned> new_ordering = cuthill_mckee_ordering(sparse,1);
+  std::vector<size_t> new_ordering = cuthill_mckee_ordering(sparse,1);
   math::MatrixReorganize<MatrixSparseSkyline<float> > rsparse( sparse, new_ordering);
 
-  Vector<unsigned> new_skyline = solve_for_skyline(rsparse);
+  Vector<size_t> new_skyline = solve_for_skyline(rsparse);
   Vector<double> x_reorder = sparse_solve( rsparse,
                                            reorganize(b,new_ordering),
                                             new_skyline );
@@ -367,10 +367,10 @@ TEST(SparseSkyline, ReorderOptimization) {
   //std::cout << "Reorder SparseR: " << x_reorder << "\n";
 
   // Make sure old methods still work
-  for ( unsigned i = 0; i < 61; i++ )
+  for ( size_t i = 0; i < 61; i++ )
     EXPECT_NEAR( x_unsparse[i], x_sparse[i], DELTA );
 
   // Does reorganized method work?
-  for ( unsigned i = 0; i < 61; i++ )
+  for ( size_t i = 0; i < 61; i++ )
     EXPECT_NEAR( x_unsparse[i], x_reorder[i], DELTA );
 }

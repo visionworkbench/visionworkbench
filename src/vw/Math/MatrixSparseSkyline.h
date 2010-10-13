@@ -69,7 +69,7 @@ namespace math {
     typedef boost::numeric::ublas::generalized_vector_of_vector<ElemT, order_type, inner_type > sparse_matrix_type;
 
     sparse_matrix_type m_matrix;
-    Vector<unsigned> m_skyline;
+    Vector<size_t> m_skyline;
 
   public:
     /// Common Definitions
@@ -110,7 +110,7 @@ namespace math {
                  m.cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
       m_matrix.clear();
-      VectorClearImpl<Vector<unsigned> >::clear(m_skyline);
+      VectorClearImpl<Vector<size_t> >::clear(m_skyline);
       // Iterate through non-zero elements
       for ( typename MatrixSparseSkyline<ElemT>::const_sparse_iterator1 it1 = m.sparse_begin();
             it1 != m.sparse_end(); it1++ ) {
@@ -185,7 +185,7 @@ namespace math {
     const_sparse_iterator1 sparse_end() const { return m_matrix.end1(); }
 
     // Special Access to Skyline Vector
-    const Vector<unsigned> skyline() const { return m_skyline; }
+    const Vector<size_t>& skyline() const { return m_skyline; }
 
   };
 
@@ -197,8 +197,8 @@ namespace math {
     // come in blocks of 6.
     size_t smallest_sampling_rate = m.cols();
     size_t curr_sampling_rate = m.cols();
-    unsigned last_value = 10000;
-    Vector<unsigned> skyline = m.skyline();
+    size_t last_value = 10000;
+    const Vector<size_t>& skyline = m.skyline();
     for ( size_t i = 0; i < skyline.size(); i++ ) {
       if ( last_value != skyline(i) ) {
         if ( smallest_sampling_rate  > curr_sampling_rate )
@@ -243,14 +243,14 @@ namespace math {
     VW_ASSERT(A.cols() == A.rows(),
               ArgumentErr() << "ldl_decomposition: argument must be square and symmetric.\n");
 
-    Vector<unsigned> const& skyline = A.skyline();
+    Vector<size_t> const& skyline = A.skyline();
 
     for (size_t j = 0; j < A.cols(); ++j) {
 
       // Compute v(1:j)
       std::vector<double> v(j+1);
       v[j] = A(j,j);
-      for (unsigned i = skyline(j); i < j; ++i) {
+      for (size_t i = skyline(j); i < j; ++i) {
         v[i] = A(j,i)*A(i,i);
         v[j] -= A(j,i)*v[i];
       }
@@ -259,7 +259,7 @@ namespace math {
       A(j,j) = v[j];
       for (size_t i = j+1; i < A.cols(); ++i) {
         double row_sum = 0;
-        for (unsigned jj = skyline(i); jj < j; ++jj)
+        for (size_t jj = skyline(i); jj < j; ++jj)
           row_sum += A(i,jj)*v[jj];
         if (j >= skyline(i))
           A(i,j) = ( A(i,j)-row_sum ) / v[j];
@@ -269,13 +269,13 @@ namespace math {
 
   // This version excepts an outside skyline matrix
   template <class MatrixT, class VectorT>
-  void sparse_ldl_decomposition(MatrixBase<MatrixT>& A, VectorT& skyline ) {
+  void sparse_ldl_decomposition(MatrixBase<MatrixT>& A, const VectorT& skyline ) {
     for (size_t j = 0; j < A.impl().cols(); ++j) {
 
       // Compute v(1:j)
       std::vector<double> v(j+1);
       v[j] = A.impl()(j,j);
-      for (unsigned i = skyline(j); i < j; ++i) {
+      for (size_t i = skyline(j); i < j; ++i) {
         v[i] = A.impl()(j,i)*A.impl()(i,i);
         v[j] -= A.impl()(j,i)*v[i];
       }
@@ -284,7 +284,7 @@ namespace math {
       A.impl()(j,j) = v[j];
       for (size_t i = j+1; i < A.impl().cols(); ++i) {
         double row_sum = 0;
-        for (unsigned jj = skyline(i); jj < j; ++jj)
+        for (size_t jj = skyline(i); jj < j; ++jj)
           row_sum += A.impl()(i,jj)*v[jj];
         if (j >= skyline(i))
           A.impl()(i,j) = ( A.impl()(i,j)-row_sum ) / v[j];
@@ -341,13 +341,12 @@ namespace math {
   template <class ElemT, class BMatrixT>
   Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
   multi_sparse_solve(MatrixSparseSkyline<ElemT>& A, BMatrixT & B ) {
-    Vector<unsigned> skyline = A.skyline();
-    return multi_sparse_solve(A, B, skyline);
+    return multi_sparse_solve(A, B, A.skyline());
   }
 
   template <class AMatrixT, class BMatrixT, class VectorT>
   Matrix<typename PromoteType<typename BMatrixT::value_type, typename BMatrixT::value_type>::type>
-    multi_sparse_solve(AMatrixT & A, BMatrixT & B, VectorT & skyline ) {
+    multi_sparse_solve(AMatrixT & A, BMatrixT & B, const VectorT& skyline ) {
     VW_ASSERT(A.cols() == A.rows(), ArgumentErr() << "multi_sparse_solve: matrix must be square and symmetric.\n");
     VW_ASSERT(A.rows() == B.rows(), ArgumentErr() << "multi_sparse_solve: AX=B means A, B have same # of rows.\n");
 
@@ -378,8 +377,7 @@ namespace math {
   /// Assumes it receives LDL^T form of A
   template <class ElemT, class VectorT>
   Vector<ElemT> sparse_solve_ldl(MatrixSparseSkyline<ElemT>& A, VectorT const& b ) {
-    Vector<unsigned> skyline = A.skyline();
-    return sparse_solve_ldl(A,b,skyline);
+    return sparse_solve_ldl(A,b,A.skyline());
   }
 
   /// Version that excepts an outside skyline vector
@@ -392,14 +390,13 @@ namespace math {
     VW_ASSERT(ar.cols() == ar.rows(),
               ArgumentErr() << "sparse_solve: matrix must be square and symmetric.\n");
 
-    //const std::vector<vw::uint32>& skyline = A.skyline();
-    Vector<unsigned> inverse_sky(sky.size());
+    Vector<size_t> inverse_sky(sky.size());
 
     // Construct the inverse skyline, which is used to optimize the final
     // back substitution step below.
     for (size_t j = 0; j < inverse_sky.size(); ++j) {
       inverse_sky(j) = 0;
-      for (int i = sky.size()-1; i>=0; --i) {
+      for (ssize_t i = sky.size()-1; i>=0; --i) {
         if (j < sky(i))
           ++(inverse_sky(j));
         else
@@ -411,7 +408,7 @@ namespace math {
     Vector<typename MatrixT::value_type> x_prime(ar.cols());
     for (size_t i = 0; i < x_prime.size(); ++i) {
       typename MatrixT::value_type sum = 0;
-      for (unsigned j = sky(i); j < i; ++j)
+      for (size_t j = sky(i); j < i; ++j)
         sum += ar(i,j)*x_prime(j);
       x_prime(i) = b(i)-sum;
     }
@@ -423,9 +420,9 @@ namespace math {
 
     // Back Substitution step ( L^T*x=x'' )
     Vector<typename MatrixT::value_type> x(ar.cols());
-    for (int32 i = x.size()-1; i >= 0; --i) {
+    for (ssize_t i = x.size()-1; i >= 0; --i) {
       typename MatrixT::value_type sum = 0;
-      for (unsigned j = i+1; j < ar.cols()-inverse_sky[i]; ++j)
+      for (size_t j = i+1; j < ar.cols()-inverse_sky[i]; ++j)
         sum += ar(j,i)*x(j);
       x(i) = x_doubleprime(i) - sum;
     }
@@ -444,7 +441,7 @@ namespace math {
   template <class VectorT>
   class VectorReorganize : public VectorBase<VectorReorganize<VectorT> > {
     VectorT & m_vector;
-    std::vector<unsigned> m_lookup;
+    std::vector<size_t> m_lookup;
 
   public:
     typedef typename VectorT::value_type value_type;
@@ -456,7 +453,7 @@ namespace math {
     typedef IndexingVectorIterator<const VectorReorganize<VectorT> > const_iterator;
 
     // Constructor
-    explicit VectorReorganize( VectorT& vector, std::vector<unsigned> const& lookup ) : m_vector(vector), m_lookup(lookup) {
+    explicit VectorReorganize( VectorT& vector, std::vector<size_t> const& lookup ) : m_vector(vector), m_lookup(lookup) {
       VW_ASSERT( vector.size()==lookup.size(),
                  ArgumentErr() << "Input Vector and Lookup Chart must have same dimensions" );
     }
@@ -464,10 +461,10 @@ namespace math {
     // Access to internal types
     VectorT& child() { return m_vector; }
     VectorT const& child() const { return m_vector; }
-    std::vector<unsigned>& lookup() { return m_lookup; }
-    std::vector<unsigned> const& lookup() const { return m_lookup; }
-    std::vector<unsigned> inverse() const {
-      std::vector<unsigned> ilookup;
+    std::vector<size_t>& lookup() { return m_lookup; }
+    std::vector<size_t> const& lookup() const { return m_lookup; }
+    std::vector<size_t> inverse() const {
+      std::vector<size_t> ilookup;
       ilookup.resize( m_lookup.size() );
       for ( size_t i = 0; i < m_lookup.size(); i++ )
         ilookup[m_lookup[i]] = i;
@@ -497,7 +494,7 @@ namespace math {
   template <class MatrixT>
   class MatrixReorganize : public MatrixBase<MatrixReorganize<MatrixT> > {
     MatrixT & m_matrix;
-    std::vector<unsigned> m_lookup;
+    std::vector<size_t> m_lookup;
 
   public:
     typedef typename MatrixT::value_type value_type;
@@ -509,7 +506,7 @@ namespace math {
     typedef IndexingMatrixIterator<const MatrixReorganize<MatrixT> > const_iterator;
 
     // Constructor
-    explicit MatrixReorganize( MatrixT& matrix, std::vector<unsigned> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
+    explicit MatrixReorganize( MatrixT& matrix, std::vector<size_t> const& lookup ) : m_matrix(matrix), m_lookup(lookup) {
       VW_ASSERT( matrix.cols()==lookup.size() &&
                  matrix.rows()==lookup.size(),
                  ArgumentErr() << "Input Matrix must be square, and Lookup Chart must have same dimensions" );
@@ -544,10 +541,10 @@ namespace math {
     // Access to internal types
     MatrixT& child() { return m_matrix; }
     MatrixT const& child() const { return m_matrix; }
-    std::vector<unsigned>& lookup() { return m_lookup; }
-    std::vector<unsigned> const& lookup() const { return m_lookup; }
-    std::vector<unsigned> inverse() const {
-      std::vector<unsigned> ilookup;
+    std::vector<size_t>& lookup() { return m_lookup; }
+    std::vector<size_t> const& lookup() const { return m_lookup; }
+    std::vector<size_t> inverse() const {
+      std::vector<size_t> ilookup;
       ilookup.resize( m_lookup.size() );
       for ( size_t i = 0; i < m_lookup.size(); i++ )
         ilookup[m_lookup[i]] = i;
@@ -586,25 +583,25 @@ namespace math {
   // User ease functions
   template <class VectorT>
   inline VectorReorganize<VectorT> reorganize( VectorBase<VectorT>& v,
-                                               std::vector<unsigned>& lookup ) {
+                                               std::vector<size_t>& lookup ) {
     return VectorReorganize<VectorT>(v.impl(), lookup);
   }
 
   template <class VectorT>
   inline VectorReorganize<const VectorT> reorganize( VectorBase<VectorT> const& v,
-                                                     std::vector<unsigned> const& lookup ) {
+                                                     std::vector<size_t> const& lookup ) {
     return VectorReorganize<const VectorT>(v.impl(), lookup);
   }
 
   template <class MatrixT>
   inline MatrixReorganize<MatrixT> reorganize( MatrixBase<MatrixT>& m,
-                                               std::vector<unsigned>& lookup ) {
+                                               std::vector<size_t>& lookup ) {
     return MatrixReorganize<MatrixT>(m.impl(), lookup);
   }
 
   template <class MatrixT>
   inline MatrixReorganize<const MatrixT> reorganize( MatrixBase<MatrixT> const& m,
-                                                     std::vector<unsigned> const& lookup ) {
+                                                     std::vector<size_t> const& lookup ) {
     return MatrixReorganize<const MatrixT>(m.impl(), lookup);
   }
 
@@ -618,27 +615,27 @@ namespace math {
   //------------------------------------------------------------------
 
   template <class ElemT>
-  std::vector<unsigned> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A,
-                                               unsigned const& sampling_rate ) {
+  std::vector<size_t> cuthill_mckee_ordering(MatrixSparseSkyline<ElemT>& A,
+                                             size_t sampling_rate ) {
     // First Working out the Sampling Rate (cheat to save time in
     // Bundle Adjustment where sampling rate is the number of camera
     // parameters)
-    Vector<unsigned> skyline = A.skyline();
+    const Vector<size_t>& skyline = A.skyline();
 
     // Boost Graph Definitions
     typedef boost::adjacency_list<boost::vecS,boost::vecS, boost::undirectedS,
       boost::property<boost::vertex_color_t, boost::default_color_type,
-      boost::property<boost::vertex_degree_t, int> > > Graph;
+      boost::property<boost::vertex_degree_t, size_t> > > Graph;
     typedef boost::graph_traits<Graph>::vertex_descriptor Vertex;
     typedef boost::graph_traits<Graph>::vertices_size_type size_type;
 
     // Finding Connections
     Graph G( A.cols() );
-    for ( unsigned i = 0; i < A.rows(); i += sampling_rate )
-      for ( unsigned j = skyline[i]; j < i; j += sampling_rate )
+    for ( size_t i = 0; i < A.rows(); i += sampling_rate )
+      for ( size_t j = skyline[i]; j < i; j += sampling_rate )
         if ( A(i,j) != 0 )
-          for ( unsigned ii = 0; ii < sampling_rate; ii++ )
-            for ( unsigned jj = 0; jj < sampling_rate; jj++ )
+          for ( size_t ii = 0; ii < sampling_rate; ii++ )
+            for ( size_t jj = 0; jj < sampling_rate; jj++ )
               boost::add_edge( i+ii, j+jj, G);
 
     boost::property_map<Graph,boost::vertex_index_t>::type
@@ -654,7 +651,7 @@ namespace math {
                            make_degree_map(G));
 
     // Building new lookup chart
-    std::vector<unsigned> lookup_chart( A.cols() );
+    std::vector<size_t> lookup_chart( A.cols() );
     for ( size_t i = 0; i < inv_perm.size(); i++ )
       lookup_chart[i] = index_map[inv_perm[i]];
 
@@ -673,10 +670,10 @@ namespace math {
   // --------------------------------------------------------------
 
   template <class MatrixT>
-  Vector<unsigned> solve_for_skyline(MatrixBase<MatrixT> const& A) {
+  Vector<size_t> solve_for_skyline(MatrixBase<MatrixT> const& A) {
     MatrixT const& ar = A.impl();
     size_t rows = ar.rows();
-    Vector<unsigned> skyline(rows);
+    Vector<size_t> skyline(rows);
     for ( size_t i = 0; i < rows; i++ ) {
       size_t j = 0;
       while ( j < i && ar(i,j) == 0 )

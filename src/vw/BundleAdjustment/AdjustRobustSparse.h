@@ -49,8 +49,8 @@ namespace ba {
     typedef Vector<double,BundleAdjustModelT::point_params_n> vector_point;
 
     math::MatrixSparseSkyline<double> m_S;
-    std::vector<unsigned> m_ideal_ordering;
-    Vector<unsigned> m_ideal_skyline;
+    std::vector<size_t> m_ideal_ordering;
+    Vector<size_t> m_ideal_skyline;
     bool m_found_ideal_ordering;
     CameraRelationNetwork<JFeature> m_crn;
     typedef CameraNode<JFeature>::iterator crn_iter;
@@ -85,10 +85,10 @@ namespace ba {
     // covariance matrices for each camera
     void covCalc() {
       // camera params
-      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
-      unsigned num_cameras = this->m_model.num_cameras();
+      size_t num_cam_params = BundleAdjustModelT::camera_params_n;
+      size_t num_cameras = this->m_model.num_cameras();
 
-      unsigned inverse_size = num_cam_params * num_cameras;
+      size_t inverse_size = num_cam_params * num_cameras;
 
       typedef Matrix<double, BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n> matrix_camera_camera;
 
@@ -102,7 +102,7 @@ namespace ba {
       Matrix<double> Cov = multi_sparse_solve(S, Id);
 
       //pick out covariances of indvidual cameras
-      for ( unsigned i = 0; i < num_cameras; i++ )
+      for ( size_t i = 0; i < num_cameras; i++ )
         sparse_cov(i) = submatrix(Cov, i*num_cam_params,
                                   i*num_cam_params,
                                   num_cam_params,
@@ -132,8 +132,8 @@ namespace ba {
         epsilon_b[i] = vector_point();
       }
 
-      unsigned num_cam_params = BundleAdjustModelT::camera_params_n;
-      unsigned num_pt_params = BundleAdjustModelT::point_params_n;
+      size_t num_cam_params = BundleAdjustModelT::camera_params_n;
+      size_t num_pt_params = BundleAdjustModelT::point_params_n;
 
       // Degrees of freedom for data (can be modified later)
       double t_df = 4;
@@ -191,7 +191,7 @@ namespace ba {
       // Add in the camera position and pose constraint terms and covariances.
       time = new Timer("Solving for Camera and GCP error:",DebugMessage,"ba");
       if ( this->m_use_camera_constraint )
-        for (unsigned j = 0; j < U.size(); ++j) {
+        for (size_t j = 0; j < U.size(); ++j) {
           matrix_camera_camera inverse_cov;
           inverse_cov = this->m_model.A_inverse_covariance(j);
           vector_camera eps_a = this->m_model.A_target(j)-this->m_model.A_parameters(j);
@@ -206,7 +206,7 @@ namespace ba {
       // covariances. We only add constraints for Ground Control
       // Points (GCPs), not for 3D tie points.
       if ( this->m_use_gcp_constraint )
-        for (unsigned i = 0; i < V.size(); ++i) {
+        for (size_t i = 0; i < V.size(); ++i) {
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             matrix_point_point inverse_cov;
             inverse_cov = this->m_model.B_inverse_covariance(i);
@@ -224,13 +224,13 @@ namespace ba {
       if (this->m_iterations == 1 && this->m_lambda == 1e-3){
         time = new Timer("Solving for Lambda:",DebugMessage,"ba");
         double max = 0.0;
-        for (unsigned i = 0; i < U.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
+        for (size_t i = 0; i < U.size(); ++i)
+          for (size_t j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
             if (fabs(U[i](j,j)) > max)
               max = fabs(U[i](j,j));
           }
-        for (unsigned i = 0; i < V.size(); ++i)
-          for (unsigned j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
+        for (size_t i = 0; i < V.size(); ++i)
+          for (size_t j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
             if ( fabs(V[i](j,j)) > max)
               max = fabs(V[i](j,j));
           }
@@ -264,7 +264,7 @@ namespace ba {
       // scalar entries.
       time = new Timer("Create special e vector", DebugMessage, "ba");
       Vector<double> e(this->m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
-      for ( unsigned j = 0; j < epsilon_a.size(); ++j ) {
+      for ( size_t j = 0; j < epsilon_a.size(); ++j ) {
         subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) =
           epsilon_a[j];
       }
@@ -453,7 +453,7 @@ namespace ba {
 
       // Camera Constraints
       if ( this->m_use_camera_constraint )
-        for ( unsigned j = 0; j < U.size(); ++j ) {
+        for ( size_t j = 0; j < U.size(); ++j ) {
           // note the signs here: should be +
           vector_camera new_a = this->m_model.A_parameters(j) +
             subvector(delta_a, num_cam_params*j, num_cam_params);
@@ -466,7 +466,7 @@ namespace ba {
 
       // GCP Error
       if ( this->m_use_gcp_constraint )
-        for ( unsigned i = 0; i < V.size(); ++i )
+        for ( size_t i = 0; i < V.size(); ++i )
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             // note the signs here: should be +
             vector_point new_b = this->m_model.B_parameters(i) +
@@ -494,10 +494,10 @@ namespace ba {
       if ( R > 0 ) {
 
         time = new Timer("Setting Parameters",DebugMessage,"ba");
-        for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
+        for (size_t j=0; j<this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
-        for (unsigned i=0; i<this->m_model.num_points(); ++i)
+        for (size_t i=0; i<this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
                                          subvector(delta_b, num_pt_params*i,num_pt_params));
         delete time;
