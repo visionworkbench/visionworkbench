@@ -23,17 +23,21 @@ Vector<unsigned> create_test_skyline(size_t size, int max_offset ) {
   return result;
 }
 
+double drand() {
+  return double(rand()) / double(RAND_MAX);
+}
+
 template <class VectorT>
 void fill_vector(VectorT& b) {
   for ( size_t i = 0; i < b.size(); ++i )
-    b[i] = lround(double(rand())/(pow(2,31)-1)*100)+1;
+    b[i] = lround(drand()*100)+1;
 }
 
 template <class MatrixT>
 void fill_symmetric_matrix(MatrixT& A, Vector<unsigned> const& skyline ) {
   for (size_t i = 0; i < A.rows(); ++i)
     for (unsigned j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
-      A(i,j) = lround(double(rand())/(pow(2,31)-1)*100)+1;
+      A(i,j) = lround(drand()*100)+1;
       A(j,i) = A(i,j);
     }
 }

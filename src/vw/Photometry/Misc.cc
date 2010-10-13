@@ -132,7 +132,6 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
 
   // Random numbers
   srandom((unsigned int) clock());
-  float rand_max = pow(2.0,31)-1;
 
   ImageViewRef<typename ViewT::pixel_type> interp_image1 = interpolate(edge_extend(image1.impl(),
                                                                        ConstantEdgeExtension()),
@@ -173,8 +172,8 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   // num_samples samples from the images.
   while (sample < num_samples && numtries < num_samples*10) {
 
-    Vector2 sample_pix1(float(random())/rand_max * image1.impl().cols(),
-                        float(random())/rand_max * image1.impl().rows());
+    Vector2 sample_pix1(float(random())/RAND_MAX * image1.impl().cols(),
+                        float(random())/RAND_MAX * image1.impl().rows());
     Vector2 sample_pix2 = geo2.lonlat_to_pixel(geo1.pixel_to_lonlat(sample_pix1));
 
     Vector2 sample_pix_dem = GR.lonlat_to_pixel(geo1.pixel_to_lonlat(sample_pix1));

@@ -90,7 +90,7 @@ TEST( CAHVModel, FakeEpipolarConversion ) {
       if ( s == 2 ) {
         points[i][s] = 0;
       } else {
-        points[i][s] = double(rand())/double(pow(2,31)-1) * 30 - 15;
+        points[i][s] = double(rand())/double(RAND_MAX) * 30 - 15;
       }
     }
   }

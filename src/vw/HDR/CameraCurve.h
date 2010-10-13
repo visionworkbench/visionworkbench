@@ -19,13 +19,17 @@
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 
-#define VW_HDR_GET_RAND(max) int((max) * double(rand()) / (RAND_MAX + 1.0))
-
 // Number of LDR intensity pairs to sample
 const int VW_HDR_DEFAULT_NUM_PIXEL_SAMPLES = 300;
 
 namespace vw {
 namespace hdr {
+  namespace detail {
+    inline uint32 dice(uint32 max_) {
+      return static_cast<uint32>(max_ * (double(rand()) / double(RAND_MAX)));
+    }
+  }
+
 
   /// Generate a set of brightness values based on a known ratio of
   /// exposures between images.  Note that this brightness value will
@@ -93,14 +97,14 @@ namespace hdr {
     int i = 0;
     while (i < num_pairs) {
       // Generate random indices for two images
-      int rand_x = VW_HDR_GET_RAND(width);
-      int rand_y = VW_HDR_GET_RAND(height);
+      int rand_x = detail::dice(width);
+      int rand_y = detail::dice(height);
 
       // Pick two distinct images to sample from
-      int id1 = VW_HDR_GET_RAND(images.size());
+      int id1 = detail::dice(images.size());
       int id2;
       while (true) {
-        id2 = VW_HDR_GET_RAND(images.size());
+        id2 = detail::dice(images.size());
         if (id1 != id2) break;
       }
 
@@ -152,8 +156,8 @@ namespace hdr {
     int i = 0;
     while (i < num_pairs) {
       // Generate random indices for two images
-      int rand_x = VW_HDR_GET_RAND(width);
-      int rand_y = VW_HDR_GET_RAND(height);
+      int rand_x = detail::dice(width);
+      int rand_y = detail::dice(height);
 
       for (unsigned j = 0; j < images.size(); ++j)
         pair_list(i,j) = sample_image(images[j].impl(), rand_x, rand_y, channel, kernel_size);
