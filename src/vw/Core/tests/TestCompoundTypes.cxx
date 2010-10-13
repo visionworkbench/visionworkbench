@@ -19,8 +19,8 @@ class TestCompound {
   ChannelT values[2];
 public:
   TestCompound( ChannelT a, ChannelT b ) { values[0]=a; values[1]=b; }
-  ChannelT& operator[]( int i ) { return values[i]; }
-  ChannelT const& operator[]( int i ) const { return values[i]; }
+  ChannelT& operator[]( size_t i ) { return values[i]; }
+  ChannelT const& operator[]( size_t i ) const { return values[i]; }
 };
 
 // Simple functions to test the compound_apply logic.
@@ -34,7 +34,7 @@ class DummyType {};
 
 namespace vw {
   template<class ChannelT> struct CompoundChannelType<TestCompound<ChannelT> > { typedef ChannelT type; };
-  template<class ChannelT> struct CompoundNumChannels<TestCompound<ChannelT> > { static const int32 value = 2; };
+  template<class ChannelT> struct CompoundNumChannels<TestCompound<ChannelT> > { static const size_t value = 2; };
   template<class InT, class OutT> struct CompoundChannelCast<TestCompound<InT>, OutT> { typedef TestCompound<OutT> type; };
 }
 
@@ -47,7 +47,7 @@ static bool is_of_type( T2 ) {
 TEST(CompoundTypes, Basic) {
   EXPECT_TRUE(( boost::is_same<CompoundChannelType<TestCompound<float> >::type, float>::value ));
   // TODO: why is this an error when the next one isn't? EXPECT_EQ( CompoundNumChannels<TestCompound<float> >::value, 2 );
-  EXPECT_EQ( 2, int32(CompoundNumChannels<TestCompound<float> >::value) );
+  EXPECT_EQ( 2, size_t(CompoundNumChannels<TestCompound<float> >::value) );
   EXPECT_TRUE(( boost::is_same<CompoundChannelCast<TestCompound<float>,int>::type, TestCompound<int> >::value ));
 }
 

@@ -1600,7 +1600,7 @@ namespace math {
     double result = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
     for( ; i != end ; ++i ) result += fabs( *i );
-    return result;
+    return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Square of vector 2-norm
@@ -1609,7 +1609,7 @@ namespace math {
     double result = 0.0;
     typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
     for( ; i != end ; ++i ) result += (*i) * (*i);
-    return result;
+    return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Vector 2-norm
@@ -1627,7 +1627,7 @@ namespace math {
       double a = fabs( *i );
       if( a > result ) result = a;
     }
-    return result;
+    return static_cast<typename VectorT::value_type>(result);
   }
 
   /// Index of the element with the largest magnitude

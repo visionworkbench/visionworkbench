@@ -47,8 +47,8 @@ TEST( GeoTransform, UTMFarZone ) {
   GeoReference ll_georef, utm_georef;
 
   Matrix3x3 utm_map;
-  utm_map(0,0) =  (utm[2][0] - utm[0][0]) / size(0);
-  utm_map(1,1) = -(utm[0][1] - utm[1][1]) / size(1);
+  utm_map(0,0) =  (utm[2][0] - utm[0][0]) / static_cast<double>(size(0));
+  utm_map(1,1) = -(utm[0][1] - utm[1][1]) / static_cast<double>(size(1));
   utm_map(0,2) = utm[0][0];
   utm_map(1,2) = utm[0][1];
   utm_map(2,2) = 1;

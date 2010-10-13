@@ -119,7 +119,7 @@ class GenGen : public BlockGenerator {
     GenGen() : BlockGenerator(1, 0) {}
 
     GenGen(const GenGen& obj) :
-      BlockGenerator(obj.m_dimension, obj.m_fill_value+1) {}
+      BlockGenerator(obj.m_dimension, boost::numeric_cast<uint8>(obj.m_fill_value+1)) {}
 };
 
 TEST(Cache, Types) {

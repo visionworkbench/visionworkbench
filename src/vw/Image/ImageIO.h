@@ -314,7 +314,7 @@ namespace vw {
 
         float processed_row_blocks = float(j/block_size.y()*((resource.cols()-1)/block_size.x()+1));
         float processed_col_blocks = float(i/block_size.x());
-        progress_callback.report_progress((processed_row_blocks + processed_col_blocks)/total_num_blocks);
+        progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
 
         // Rasterize and save this image block
         BBox2i current_bbox(Vector2i(i,j),

@@ -48,7 +48,7 @@ TEST(ThreadQueue, Threaded) {
   std::vector<std::pair<TheTask, TheThread> > threads(20);
 
   for (size_t i = 0; i < threads.size(); ++i) {
-    TheTask task(new PushTask(q, 10, i));
+    TheTask task(new PushTask(q, 10, uint32(i)));
     TheThread thread( new Thread(task) );
     threads[i] = std::make_pair(task, thread);
   }
@@ -60,7 +60,7 @@ TEST(ThreadQueue, Threaded) {
   ASSERT_FALSE(q.empty());
 
   std::vector<uint32> ret(threads.size());
-  uint32 value = ret.size()+1;
+  uint32 value = uint32(ret.size())+1;
 
   while (!q.empty()) {
     EXPECT_TRUE(q.timed_wait_pop(value, 0));

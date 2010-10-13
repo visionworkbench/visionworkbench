@@ -399,7 +399,7 @@ namespace cartography {
       strings[i] = new char[2048];
       strncpy(strings[i], arg_strings[i].c_str(), 2048);
     }
-    num_strings = arg_strings.size();
+    num_strings = boost::numeric_cast<int>(arg_strings.size());
     return strings;
   }
 

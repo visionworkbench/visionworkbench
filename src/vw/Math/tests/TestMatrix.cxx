@@ -446,13 +446,13 @@ TEST(Matrix, Inverse) {
   m2(2,0)=9; m2(2,1)=6; m2(2,2)=8;
 
   Matrix<float> i2=inverse(m2);
-  EXPECT_FLOAT_EQ(   8.0 / -15.0 , i2(0,0) );
-  EXPECT_FLOAT_EQ( -14.0 / -15.0 , i2(0,1) );
-  EXPECT_FLOAT_EQ( -3.0  / -15.0 , i2(0,2) );
-  EXPECT_FLOAT_EQ( -16.0 / -15.0 , i2(1,0) );
-  EXPECT_FLOAT_EQ(  13.0 / -15.0 , i2(1,1) );
-  EXPECT_FLOAT_EQ(   6.0 / -15.0 , i2(1,2) );
-  EXPECT_FLOAT_EQ(   3.0 / -15.0 , i2(2,0) );
-  EXPECT_FLOAT_EQ(   6.0 / -15.0 , i2(2,1) );
-  EXPECT_FLOAT_EQ(  -3.0 / -15.0 , i2(2,2) );
+  EXPECT_FLOAT_EQ(   8.0f / -15.0f , i2(0,0) );
+  EXPECT_FLOAT_EQ( -14.0f / -15.0f , i2(0,1) );
+  EXPECT_FLOAT_EQ( -3.0f  / -15.0f , i2(0,2) );
+  EXPECT_FLOAT_EQ( -16.0f / -15.0f , i2(1,0) );
+  EXPECT_FLOAT_EQ(  13.0f / -15.0f , i2(1,1) );
+  EXPECT_FLOAT_EQ(   6.0f / -15.0f , i2(1,2) );
+  EXPECT_FLOAT_EQ(   3.0f / -15.0f , i2(2,0) );
+  EXPECT_FLOAT_EQ(   6.0f / -15.0f , i2(2,1) );
+  EXPECT_FLOAT_EQ(  -3.0f / -15.0f , i2(2,2) );
 }

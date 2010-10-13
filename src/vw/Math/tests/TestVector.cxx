@@ -139,7 +139,7 @@ TEST(Vector, IOStream) {
 }
 
 TEST(Vector, Equality) {
-  Vector3f v1(1,2,3), v2(1.1,1.9,3), v3(1,2,3);
+  Vector3f v1(1,2,3), v2(1.1f,1.9f,3), v3(1,2,3);
   EXPECT_FALSE ( v1 == v2 );
   EXPECT_TRUE  ( v1 == v3 );
   EXPECT_FALSE ( equal(v1,v2) );
@@ -159,7 +159,7 @@ TEST(Vector, Equality) {
 }
 
 TEST(Vector, BasicMath) {
-  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2,-1.1,-3.3);
+  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2f,-1.1f,-3.3f);
 
   EXPECT_EQ( Vector3f(-1, -2, -3)     , -v1 );
 
@@ -184,7 +184,7 @@ TEST(Vector, BasicMath) {
   EXPECT_EQ( Vector3f(0.5, 1, 1.5)    , v1/2 );
   EXPECT_EQ( Vector3f(3, 1.5, 1)      , elem_quot(3, v1) );
 
-  EXPECT_EQ( Vector3f(4.2,1.1,3.3)    , abs(v3) );
+  EXPECT_EQ( Vector3f(4.2f,1.1f,3.3f) , abs(v3) );
 }
 
 TEST(Vector, ElemCompare) {
@@ -237,13 +237,13 @@ TEST(Vector, Funcs) {
   EXPECT_EQ( Vector3f(-4,2,0), cross_prod(v1,v2) );
 
   Vector3f vn = normalize(v1);
-  EXPECT_FLOAT_EQ( 0.2672612419, vn(0) );
-  EXPECT_FLOAT_EQ( 0.5345224838, vn(1) );
-  EXPECT_FLOAT_EQ( 0.8017837257, vn(2) );
+  EXPECT_FLOAT_EQ( 0.2672612419f, vn(0) );
+  EXPECT_FLOAT_EQ( 0.5345224838f, vn(1) );
+  EXPECT_FLOAT_EQ( 0.8017837257f, vn(2) );
 }
 
 TEST(Vector, Transpose) {
-  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2,-1.1,-3.3);
+  Vector3f v1(1,2,3), v2(2,4,4), v3(4.2f,-1.1f,-3.3f);
 
   EXPECT_EQ( 22  , transpose(v1)*v2 );
   EXPECT_EQ( -22 , (-transpose(v1))*v2 );

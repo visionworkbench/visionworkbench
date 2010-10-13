@@ -439,24 +439,26 @@ namespace math {
   // Taken from Numerical Recipes (3rd E) pg 435
   template <class ValT>
   class CDFAccumulator : public ReturnFixedType<void> {
-    int m_buffersize, m_num_quantiles, m_buffer_idx;
-    long m_num_samples; // nq, nd, nt
+    size_t m_buffersize, m_num_quantiles, m_buffer_idx;
+    size_t m_num_samples; // nq, nd, nt
     std::vector<double> m_cdf, m_sample_buf, m_quantile;
     double m_q0, m_qm;  // quantile min and max;
 
   public:
-    CDFAccumulator( int const& buffersize = 1000,
-                    int const& quantiles = 251) {
+    CDFAccumulator( size_t buffersize = 1000, size_t quantiles = 251) {
       this->resize( buffersize, quantiles );
     }
 
     // Allow user to change post constructor (see ChannelAccumulator)
-    void resize( int const& buffersize = 1000,
-                 int const& quantiles = 251 ) {
+    void resize( size_t buffersize, size_t quantiles ) {
+      VW_ASSERT(quantiles > 0, LogicErr() << "Cannot have 0 quantiles");
       m_buffersize = buffersize;
       m_buffer_idx = m_num_samples = 0;
       m_sample_buf.resize( m_buffersize );
-      m_q0 = 1e99; m_qm = -1e99;
+
+      m_q0 =  std::numeric_limits<double>::max();
+      m_qm = -std::numeric_limits<double>::max();
+
       m_num_quantiles = quantiles;
       if ( !(quantiles%2) )
         m_num_quantiles++;
@@ -465,25 +467,25 @@ namespace math {
 
       // Setting a generic cdf to start things off, where 80% of the
       // distribution is in the middle third.
-      int third = m_num_quantiles/3;
-      int third2 = third*2;
+      size_t third = m_num_quantiles/3;
+      size_t third2 = third*2;
       double slope = 10.0 / double(third);
       double first_tertile_gain = 1.0 - slope;
 
       // Filling middle
-      for ( int j = third; j <= third2; j++ )
+      for ( size_t j = third; j <= third2; j++ )
         m_cdf[j] = 0.8*(double(j-third)/double(third2-third))+0.1;
       // Filling first tertile
-      for ( int j = third-1; j >= 0; j-- )
+      for ( ssize_t j = third-1; j >= 0; j-- )
         m_cdf[j] = first_tertile_gain*m_cdf[j+1];
       // Filling third tertile
-      for ( int j = third2+1; j < m_num_quantiles; j++ )
+      for ( size_t j = third2+1; j < m_num_quantiles; j++ )
         m_cdf[j] = 1.0 - first_tertile_gain*(1.0-m_cdf[j-1]);
     }
 
     // Merge in Bundles
     void update() {
-      int jd=0, jq=1;
+      size_t jd=0, jq=1;
       double target, told=0, tnew=0, qold, qnew;
       std::vector<double> m_new_quantile(m_num_quantiles);
       std::sort( m_sample_buf.begin(),
@@ -497,7 +499,7 @@ namespace math {
       m_cdf.back() = std::max(1-0.5/(m_buffer_idx+m_num_samples),
                               0.5*(1+m_cdf[m_num_quantiles-2]));
       // Looping over target probability values for interpolation
-      for ( int iq = 1; iq < m_num_quantiles-1; iq++ ) {
+      for ( size_t iq = 1; iq < m_num_quantiles-1; iq++ ) {
         target = (m_num_samples+m_buffer_idx)*m_cdf[iq];
         if ( tnew < target )
           while (1) {
@@ -556,7 +558,7 @@ namespace math {
       double q;
 
       // if ( m_buffer_idx > 0 ) update();
-      int jl=0,jh=m_num_quantiles-1,j;
+      size_t jl=0,jh=m_num_quantiles-1,j;
       while ( jh - jl > 1 ) {
         j = (jh+jl)>>1;
         if ( arg > m_cdf[j] ) jl=j;
@@ -575,7 +577,7 @@ namespace math {
     ValT third_quartile() const { return quantile(0.75); }
     ValT approximate_mean( double const& stepping = 0.1 ) const {
       ValT mean = 0;
-      int count = 0;
+      size_t count = 0;
       for ( float i = stepping; i < 1+stepping; i+=stepping ) {
         count++;
         mean += ( quantile(i) + quantile(i-stepping) ) / 2.0;
@@ -585,7 +587,7 @@ namespace math {
     ValT approximate_stddev( double const& stepping = 0.1 ) const {
       ValT mean = approximate_mean(stepping);
       ValT stddev = 0;
-      int count = 0;
+      size_t count = 0;
       for ( float i = stepping; i < 1+stepping; i+=stepping ) {
         count++;
         stddev += pow((quantile(i) + quantile(i-stepping))/2-mean,2);

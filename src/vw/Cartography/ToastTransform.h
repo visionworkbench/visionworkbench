@@ -119,12 +119,17 @@ namespace cartography {
 
     virtual BBox2i forward_bbox( BBox2i const& bbox ) const;
 
-    // We override reverse_bbox so it understands to check if the
-    // image crosses the poles or not.  Pass in 'approximate' to
-    // compute reverse bounding boxes by transforming corner
-    // coordinates only.  (This is much faster, but not 100%
-    // accurate.)
-    virtual BBox2i reverse_bbox( BBox2i const& bbox, bool approximate = false ) const;
+    // We override reverse_bbox so it understands to check if the image crosses
+    // the poles or not.  Pass in 'approximate' to compute reverse bounding
+    // boxes by transforming corner coordinates only. (This is much faster, but
+    // not 100% accurate.)
+
+    // We need to have one prototype that matches the Transform prototype or we
+    // get a warning.
+    virtual BBox2i reverse_bbox( BBox2i const& bbox) const {
+      return this->reverse_bbox( bbox, false );
+    }
+    virtual BBox2i reverse_bbox( BBox2i const& bbox, bool approximate ) const;
 
     // Attempt to expand the given bounding box in the source pixel space
     // to include any poles containd in the given bounding box in the

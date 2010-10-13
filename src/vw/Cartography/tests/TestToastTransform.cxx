@@ -274,7 +274,7 @@ TEST_F( ToastTransformTest, BasicReverse ) {
 TEST_F( ToastTransformTest, RandomForwardReverse ) {
   Vector2 lonlat;
 
-  srand(time(0));
+  srand(boost::numeric_cast<unsigned int>(time(0)));
   rand();
 
   for( int i=0; i<1000; ++i ) {
