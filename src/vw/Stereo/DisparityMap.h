@@ -414,7 +414,7 @@ namespace stereo {
   public:
     template <class DisparityT>
     DisparityTransform(ImageViewBase<DisparityT> const& offset_image) :
-      m_offset_image( interpolate(inner_view(m_offset_image.impl()),InterpT(),EdgeT()) ) {}
+      m_offset_image( interpolate(inner_view(offset_image.impl()),InterpT(),EdgeT()) ) {}
 
     inline Vector2 reverse(const Vector2 &p ) const {
       PixelMask<Vector2f> offset = m_offset_image(p.x(),p.y());
