@@ -123,3 +123,19 @@ TEST( DisparityMap, DisparityUpsample ) {
   EXPECT_VECTOR_NEAR( upmap(3,2).child(),
                       Vector2f(10,10), 1e-3 );
 }
+
+TEST( DisparityMap, DisparityTransform ) {
+  // Disparity map will be delta.x = 2 + (left.x - 50) * 0.1
+  ImageView<PixelMask<Vector2f> > disparity(100,1);
+  for ( int32 i = 0; i < 100; i++ ) {
+    float delta = 2 + (i - 50)*0.1;
+    disparity(i,0) = PixelMask<Vector2f>(Vector2f(delta,0));
+  }
+
+  //Test Disparity Transform
+  DisparityTransform trans( disparity );
+  for ( int32 i = 0; i < 100; i++ ) {
+    float delta = 2 + (i - 50)*0.1;
+    EXPECT_NEAR( delta+float(i), trans.reverse(Vector2(i,0))[0], 1e-5 );
+  }
+}
