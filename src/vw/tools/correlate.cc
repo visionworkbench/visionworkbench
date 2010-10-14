@@ -115,13 +115,13 @@ int main( int argc, char *argv[] ) {
 
     DiskImageView<PixelGray<float> > left_disk_image(left_file_name );
     DiskImageView<PixelGray<float> > right_disk_image(right_file_name );
-    int cols = std::max(left_disk_image.cols(),right_disk_image.cols());
-    int rows = std::max(left_disk_image.rows(),right_disk_image.rows());
+    int cols = std::min(left_disk_image.cols(),right_disk_image.cols());
+    int rows = std::min(left_disk_image.rows(),right_disk_image.rows());
     ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
-    ImageViewRef<uint8> left_mask = channel_cast<uint8>(select_channel(edge_mask(left_disk_image),1));
-    ImageViewRef<uint8> right_mask = channel_cast<uint8>(select_channel(edge_mask(right_disk_image),1));
+    ImageViewRef<uint8> left_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(left)),1);
+    ImageViewRef<uint8> right_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(right)),1);
 
     stereo::CorrelatorType corr_type = ABS_DIFF_CORRELATOR; // the default
     if (correlator_type == 1)
@@ -130,7 +130,7 @@ int main( int argc, char *argv[] ) {
       corr_type = NORM_XCORR_CORRELATOR;
 
     ImageView<PixelMask<Vector2f> > disparity_map;
-    if (vm.count("reference")>0) {
+    if (vm.count("reference")) {
       vw::stereo::ReferenceCorrelator correlator( h_corr_min, h_corr_max,
                                                   v_corr_min, v_corr_max,
                                                   xkernel, ykernel,
@@ -142,7 +142,7 @@ int main( int argc, char *argv[] ) {
         disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
       else
         disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
-    } else if (vm.count("pyramid")>0) {
+    } else if (vm.count("pyramid")) {
       vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(h_corr_min, v_corr_min),
                                                       Vector2(h_corr_max, v_corr_max)),
                                                 Vector2i(xkernel, ykernel),
@@ -181,8 +181,12 @@ int main( int argc, char *argv[] ) {
 
     // Write disparity debug images
     BBox2 disp_range = get_disparity_range(result);
-    write_image( "x_disparity.png", normalize(clamp(select_channel(apply_mask(result, disp_range.min()),0), disp_range.min().x(), disp_range.max().x() )));
-    write_image( "y_disparity.png", normalize(clamp(select_channel(apply_mask(result, disp_range.min()),1), disp_range.min().y(), disp_range.max().y() )));
+    std::cout << "Found disparity range: " << disp_range << "\n";
+    ImageViewRef<float32> horizontal = apply_mask(copy_mask(clamp(normalize(select_channel(result,0), disp_range.min().x(), disp_range.max().x(),0,1)),result));
+    ImageViewRef<float32> vertical = apply_mask(copy_mask(clamp(normalize(select_channel(result,1), disp_range.min().y(), disp_range.max().y(),0,1)),result));
+
+    write_image( "x_disparity.png", channel_cast_rescale<uint8>(horizontal) );
+    write_image( "y_disparity.png", channel_cast_rescale<uint8>(vertical) );
   }
   catch( vw::Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;
