@@ -8,10 +8,11 @@
 #ifndef __VW_STEREO_CORRELATE_H__
 #define __VW_STEREO_CORRELATE_H__
 
+#include <vw/Stereo/DisparityMap.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageMath.h>
-#include <vw/Stereo/DisparityMap.h>
+#include <vw/Math/LinearAlgebra.h>
 #include <limits.h>
 
 namespace vw {
@@ -311,40 +312,12 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     return num_good_pix;
   }
 
-  template <class ChannelT>
-  void subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                         ImageView<ChannelT> const& left_image,
-                                         ImageView<ChannelT> const& right_image,
-                                         int kern_width, int kern_height,
-                                         BBox2i region_of_interest,
-                                         bool do_horizontal_subpixel = true,
-                                         bool do_vertical_subpixel = true,
-                                         bool verbose = false);
+ void cross_corr_consistency_check(ImageView<PixelMask<Vector2f> > &L2R,
+                                  ImageView<PixelMask<Vector2f> > const& R2L,
+                                  double cross_corr_threshold, bool verbose = false);
 
-  template <class ChannelT>
-  void subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                       ImageView<ChannelT> const& left_image,
-                                       ImageView<ChannelT> const& right_image,
-                                       int kern_width, int kern_height,
-                                       BBox2i region_of_interest,
-                                       bool do_horizontal_subpixel = true,
-                                       bool do_vertical_subpixel = true,
-                                       bool verbose = false);
+#include <vw/Stereo/Correlate.tcc>
 
-  template <class ChannelT>
-  void subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
-                                     ImageView<ChannelT> const& left_image,
-                                     ImageView<ChannelT> const& right_image,
-                                     int kern_width, int kern_height,
-                                     bool do_horizontal_subpixel = true,
-                                     bool do_vertical_subpixel = true,
-                                     bool verbose = false);
-
-  /// This routine cross checks L2R and R2L, placing the final version
-  /// of the disparity map in L2R.
-  void cross_corr_consistency_check(ImageView<PixelMask<Vector2f> > &L2R,
-                                    ImageView<PixelMask<Vector2f> > const& R2L,
-                                    double cross_corr_threshold, bool verbose = false);
 
 }} // namespace vw::stereo
 

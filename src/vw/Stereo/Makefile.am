@@ -18,7 +18,8 @@ include_HEADERS = Correlate.h ReferenceCorrelator.h             \
         MixtureComponent.h GammaMixtureComponent.h              \
         GaussianMixtureComponent.h                              \
         AffineMixtureComponent.h UniformMixtureComponent.h      \
-        EMSubpixelCorrelatorView.hpp CorrelateResearch.h
+        EMSubpixelCorrelatorView.hpp CorrelateResearch.h        \
+        Correlate.tcc CorrelateResearch.tcc
 
 libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc            \
         Correlate.cc OptimizedCorrelator.cc EMSubpixelCorrelatorView.cc \

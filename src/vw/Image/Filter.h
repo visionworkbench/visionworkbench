@@ -39,17 +39,14 @@ namespace vw {
   };
 
   /// Computes a Gaussian kernel.
-  /// Instantiated by default only for float and double kernels.
   template <class KernelT>
   void generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int32 size=0 );
 
   /// Computes a differentiation kernel.
-  /// Instantiated by default only for float and double kernels.
   template <class KernelT>
   void generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, int32 size=0 );
 
   /// Computes an oriented Gaussian derivative kernel.
-  /// Instantiated by default only for float and double kernels.
   template <class KernelT>
   void generate_gaussian_derivative_kernel( ImageView<KernelT>& kernel, double x_sigma, int32 x_deriv, double y_sigma, int32 y_deriv, double angle, int32 size );
 
@@ -61,7 +58,6 @@ namespace vw {
   }
 
   /// Computes a Laplacian of Gaussian kernel.
-  /// Instantiated by default only for float and double kernels.
   template <class KernelT>
   void generate_laplacian_of_gaussian_kernel( ImageView<KernelT>& kernel, double sigma, int32 size );
 
@@ -352,5 +348,7 @@ namespace vw {
   }
 
 } // namespace vw
+
+#include <vw/Image/Filter.tcc>
 
 #endif // __VW_IMAGE_FILTER_H__

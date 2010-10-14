@@ -5,10 +5,10 @@
 // __END_LICENSE__
 
 
-#ifndef __VW_STEREO_CORRELATE_RESEARCH_H__
-#define __VW_STEREO_CORRELATE_RESEARCH_H__
+#ifndef __VW_TOOLS_H__
+#define __VW_TOOLS_H__
 
-#include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/CorrelateResearch.tcc>
+#include <vw/tools/Common.h>
 
-#endif//__VW_STEREO_CORRELATE_RESEARCH_H__
+#endif // __VW_TOOLS_H__
+

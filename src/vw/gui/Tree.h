@@ -25,7 +25,7 @@ namespace gui {
   /// caught by higher level classes like PlateFile when they are
   /// trying to determine whether a tile exists or not.
   ///
-  VW_DEFINE_EXCEPTION(TileNotFoundErr, vw::Exception);
+  VW_DEFINE_EXCEPTION(TileNotFoundErr, Exception);
 
   // A subclass of TreeMapFunc can be used to iterate over a tree
   // using the TreeNode::map() function below.

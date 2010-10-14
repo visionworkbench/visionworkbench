@@ -85,6 +85,7 @@ endif
 
 if MAKE_MODULE_TOOLS
 tools_subdirs = tools
+tools_headers = tools.h
 endif
 
 if MAKE_MODULE_GUI
@@ -110,6 +111,7 @@ include_HEADERS = \
   $(geometry_headers) \
   $(photometry_headers) \
   $(bundleadjustment_headers) \
+  $(tools_headers) \
   vw.h \
   config.h
 
