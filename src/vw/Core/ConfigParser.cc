@@ -81,7 +81,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
 
   typedef std::vector<po::option> OptionVec;
 
-  for (OptionVec::const_iterator i=opts.options.begin(), end=opts.options.end(); i != end; ++i) {
+  for (OptionVec::const_iterator i=opts.options.begin(), end=opts.options.end(); i < end; ++i) {
     const po::option& o = *i;
 
     //cerr << "Looking at " << o.string_key << endl;

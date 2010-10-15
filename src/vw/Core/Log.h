@@ -108,7 +108,7 @@ namespace vw {
       Mutex::Lock lock(m_mutex);
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
-      for(; current != end; ++current)
+      for(; current < end; ++current)
         (*current)->write(sequence, num);
       return num;
     }
@@ -118,7 +118,7 @@ namespace vw {
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
 
-      for(; current != end; ++current)
+      for(; current < end; current++)
         (*current)->put(static_cast<CharT>(c));
       return c;
     }
@@ -130,7 +130,7 @@ namespace vw {
       stream_iterator current = m_streams.begin();
       stream_iterator end = m_streams.end();
 
-      for(; current != end; ++current)
+      for(; current < end; current++)
         (*current)->rdbuf()->pubsync();
       return 0;
     }
