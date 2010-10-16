@@ -31,13 +31,14 @@ TestMaskedPixelMath_SOURCES       = TestMaskedPixelMath.cxx
 TestMaskViews_SOURCES             = TestMaskViews.cxx
 TestUtilityViews_SOURCES          = TestUtilityViews.cxx
 TestMaskedPixelMath2_SOURCES      = TestMaskedPixelMath2.cxx
+TestMaskedImageMath_SOURCES       = TestMaskedImageMath.cxx
 
 TESTS = TestAlgorithms TestConvolution TestEdgeExtension TestFilter        \
         TestImageMath TestImageResource TestImageView TestImageViewRef     \
         TestInterpolation TestManipulation TestPerPixelAccessorViews       \
         TestPerPixelViews TestPixelMath TestPixelTypes TestStatistics      \
         TestTransform TestMaskedPixelMath TestMaskViews TestUtilityViews   \
-        TestMaskedPixelMath2
+        TestMaskedPixelMath2 TestMaskedImageMath
 
 #include $(top_srcdir)/config/instantiate.am
 
