@@ -367,6 +367,8 @@ namespace cartography {
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
+    // This value is proj's internal limit
+    static const double BOUND = HALFPI-(1e-10)-std::numeric_limits<double>::epsilon();
 
     XY projected;
     LP unprojected;
@@ -379,8 +381,8 @@ namespace cartography {
     // we get edge pixels that extend slightly beyond that range (probably due
     // to pixel as area vs point) and cause Proj.4 to fail. We use HALFPI
     // rather than other incantations for pi/2 because that's what proj.4 uses.
-    if(unprojected.v > HALFPI)       unprojected.v = HALFPI;
-    else if(unprojected.v < -HALFPI) unprojected.v = -HALFPI;
+    if(unprojected.v > BOUND)        unprojected.v = BOUND;
+    else if(unprojected.v < -BOUND) unprojected.v = -BOUND;
 
     projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
     CHECK_PROJ_ERROR;
