@@ -359,14 +359,15 @@ class PixelEqHelper {
  public:
   PixelEqHelper() {}
 
-  template <class PixelT>
+  template <class T1, class T2>
   AssertionResult operator()( const char* ename, const char* aname,
-                              PixelMathBase<PixelT> const& expected,
-                              PixelMathBase<PixelT> const& actual ) {
+                              PixelMathBase<T1> const& expected,
+                              PixelMathBase<T2> const& actual ) {
+    BOOST_STATIC_ASSERT( (boost::is_same<T1,T2>::value) );
     Message msg;
     bool failed = false;
 
-    for ( size_t i = 0; i < CompoundNumChannels<PixelT>::value; i++ ) {
+    for ( size_t i = 0; i < CompoundNumChannels<T1>::value; i++ ) {
       const std::string idx = "["+stringify(i)+"]";
       AssertionResult ret = comp_helper( ename+idx, aname+idx,
                                          expected.impl()(i), actual.impl()(i) );
@@ -384,6 +385,83 @@ class PixelEqHelper {
     return AssertionSuccess();
   }
 };
+
+#define EXPECT_VW_EQ( val1, val2 )\
+  EXPECT_PRED_FORMAT2(vw::test::VWEqHelper(), val1, val2 )
+#define ASSERT_VW_EQ( val1, val2 )\
+  ASSERT_PRED_FORMAT2(vw::test::VWEqHelper(), val1, val2 )
+
+class VWEqHelper {
+public:
+  VWEqHelper() {}
+
+  // Vector Version
+  template <class T1, class T2>
+  AssertionResult operator()( const char* ename, const char* aname,
+                              VectorBase<T1> const& expected,
+                              VectorBase<T2> const& actual ) {
+    BOOST_STATIC_ASSERT( (boost::is_same<T1,T2>::value) );
+
+    Message msg;
+    bool failed = false;
+
+    for ( int i = 0; i < expected.impl().size(); i++ ) {
+      const std::string idx = "["+stringify(i)+"]";
+      AssertionResult ret =
+        test::comp_helper( ename+idx, aname+idx,
+                           expected.impl()(i), actual.impl()(i) );
+      if (!ret) {
+        if (failed)
+          msg << "\n";
+        failed = true;
+        msg << ret.failure_message();
+      }
+    }
+
+    if (failed)
+      return AssertionFailure(msg);
+    return AssertionSuccess();
+  }
+
+  // Pixel Version
+  template <class T1, class T2>
+  AssertionResult operator()( const char* ename, const char* aname,
+                              PixelMathBase<T1> const& expected,
+                              PixelMathBase<T2> const& actual ) {
+    BOOST_STATIC_ASSERT( (boost::is_same<T1,T2>::value) );
+
+    Message msg;
+    bool failed = false;
+
+    for ( int i = 0; i < CompoundNumChannels<T1>::value; i++ ) {
+      const std::string idx = "["+stringify(i)+"]";
+      AssertionResult ret =
+        test::comp_helper( ename+idx, aname+idx,
+                           expected.impl()(i), actual.impl()(i) );
+
+      if (!ret) {
+        if (failed)
+          msg << "\n";
+        failed = true;
+        msg << ret.failure_message();
+      }
+    }
+
+    if (failed)
+      return AssertionFailure(msg);
+    return AssertionSuccess();
+  }
+
+  // Scalar Version
+  template <class T1, class T2>
+  AssertionResult operator()( const char* ename, const char* aname,
+                              T1 const& expected,
+                              T2 const& actual ) {
+    BOOST_STATIC_ASSERT( (boost::is_same<T1,T2>::value) );
+    return test::comp_helper( ename, aname, expected, actual );
+  }
+};
+
 
 }} // namespace vw::test
 
