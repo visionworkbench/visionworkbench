@@ -83,7 +83,9 @@ struct Options {
     help(false),
     normalize(false),
     terrain(false),
-    manual(false) {}
+    manual(false),
+    global(false)
+    {}
 
   std::vector<string> input_files;
 
@@ -108,6 +110,7 @@ struct Options {
   bool normalize;
   bool terrain;
   bool manual;
+  bool global;
 
   struct {
     uint32 draw_order_offset;
@@ -141,11 +144,13 @@ struct Options {
     if(output_file_name.empty())
       output_file_name = fs::path(input_files[0]).replace_extension().string();
 
-    if (north.set() || south.set() || east.set() || west.set()) {
+    if (global || north.set() || south.set() || east.set() || west.set()) {
       VW_ASSERT(input_files.size() == 1,
           Usage() << "Cannot override georeference information on multiple images");
-      VW_ASSERT(north.set() && south.set() && east.set() && west.set(),
+      VW_ASSERT(global || north.set() && south.set() && east.set() && west.set(),
           Usage() << "If you provide one, you must provide all of: --north --south --east --west");
+      if (global)
+        north = 90; south = -90; east = 180; west = -180;
       manual = true;
     }
 
@@ -571,6 +576,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
     ("south"      ,  po::value(&opt.south)         , "The southernmost latitude in projection units")
     ("east"       ,  po::value(&opt.east)          , "The easternmost longitude in projection units")
     ("west"       ,  po::value(&opt.west)          , "The westernmost longitude in projection units")
+    ("global"     ,  po::bool_switch(&opt.global)  , "Override image size to global (in lonlat)")
     ("projection" ,  po::value(&opt.proj.type)     , proj_desc.c_str())
     ("utm-zone"   ,  po::value(&opt.proj.utm_zone) , "Set zone for --projection UTM (+ is North)")
     ("proj-lat"   ,  po::value(&opt.proj.lat)      , "The center of projection latitude")
