@@ -12,6 +12,8 @@
 #ifndef __VW_CORE_FUNDAMENTALTYPES_H__
 #define __VW_CORE_FUNDAMENTALTYPES_H__
 
+#include <vw/Core/Features.h>
+
 #include <complex>
 #include <boost/cstdint.hpp>
 #include <boost/type_traits.hpp>
@@ -44,6 +46,11 @@ namespace boost {
   template <class T> struct is_floating_point : public is_float<T> {};
 }
 #endif
+
+// ssize_t is not in the c++ spec (just POSIX) but it's important. If you've
+// arrived here due to a compile error, something else has previously defined
+// ssize_t in a way that is incorrect.
+BOOST_STATIC_ASSERT(std::numeric_limits<ssize_t>::is_signed && sizeof(ssize_t) == sizeof(size_t));
 
 namespace vw {
 

@@ -73,6 +73,7 @@ AC_PROG_LIBTOOL
 AC_PROG_MAKE_SET
 AC_LANG(C++)
 AX_COMMON_OPTIONS
+AC_CHECK_TYPE(ssize_t, int)
 
 # Does the compiler support noreturn?
 AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
