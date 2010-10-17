@@ -49,7 +49,7 @@ namespace ba {
   /// Constructor
   ControlMeasure::ControlMeasure( float col, float row,
                                   float col_sigma, float row_sigma,
-                                  int image_id,
+                                  size_t image_id,
                                   ControlMeasureType type ) :
     m_col(col), m_row(row), m_col_sigma(col_sigma), m_row_sigma(row_sigma), m_image_id(image_id), m_type(type) {
 

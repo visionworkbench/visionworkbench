@@ -38,7 +38,7 @@ namespace ba {
     std::string m_date_time, m_description, m_chooserName;
     double m_focalplane_x, m_focalplane_y;
     double m_ephemeris_time;
-    int m_image_id;
+    size_t m_image_id;
     bool m_ignore, m_pixels_dominant;
 
   public:
@@ -61,9 +61,7 @@ namespace ba {
     ControlMeasureType m_type;
 
     /// Constructor
-    ControlMeasure( float, float,
-                    float, float,
-                    int,
+    ControlMeasure( float, float, float, float, size_t,
                     ControlMeasureType type = ControlMeasure::Automatic );
     ControlMeasure( ControlMeasureType type = ControlMeasure::Automatic );
     ControlMeasure( std::istream& f, ControlStorageFmt fmt) {
@@ -139,8 +137,8 @@ namespace ba {
 
     /// Setting/Reading the identifier for the image from which this
     /// control point was derived.
-    int image_id() const { return m_image_id; }
-    void set_image_id(int image_id) { m_image_id = image_id; }
+    size_t image_id() const { return m_image_id; }
+    void set_image_id(size_t image_id) { m_image_id = image_id; }
 
     /// Setting/Reading the description
     std::string description() const { return m_description; }
