@@ -575,16 +575,16 @@ namespace math {
     ValT median() const { return quantile(0.5); }
     ValT first_quartile() const { return quantile(0.25); }
     ValT third_quartile() const { return quantile(0.75); }
-    ValT approximate_mean( double const& stepping = 0.1 ) const {
+    ValT approximate_mean( float const& stepping = 0.1 ) const {
       ValT mean = 0;
       size_t count = 0;
       for ( float i = stepping; i < 1+stepping; i+=stepping ) {
         count++;
         mean += ( quantile(i) + quantile(i-stepping) ) / 2.0;
       }
-      return mean / double(count);
+      return mean / ValT(count);
     }
-    ValT approximate_stddev( double const& stepping = 0.1 ) const {
+    ValT approximate_stddev( float const& stepping = 0.1 ) const {
       ValT mean = approximate_mean(stepping);
       ValT stddev = 0;
       size_t count = 0;
@@ -592,7 +592,7 @@ namespace math {
         count++;
         stddev += pow((quantile(i) + quantile(i-stepping))/2-mean,2);
       }
-      return sqrt(stddev/double(count));
+      return sqrt(stddev/ValT(count));
     }
   };
 
