@@ -128,7 +128,7 @@ TEST_F( MaskedRGBu8, Arithmetic ) {
   c = i * i;
   EXPECT_PIXEL_EQ( c.child(), Px() );
   c = a / b;
-  EXPECT_PIXEL_EQ( c.child(), Px(0.5,0.5,3.0/8.0) );
+  EXPECT_PIXEL_EQ( c.child(), Px(ChT(0.5),ChT(0.5),ChT(3.0/8.0)) );
   c = i / b;
   EXPECT_PIXEL_EQ( c.child(), Px() );
   //  c = b / i; // THROWS FLOATING EXCEPTION (divide by zero)

@@ -20,7 +20,7 @@ static bool bool_trait( T const& /*arg*/ ) {
 // Assignment, this in ensures a constant is applied to all elements
 template <class T, class V>
 void assignment( PixelMask<T> & a, V value ) {
-  for ( int32 i = 0; i < CompoundNumChannels<PixelMask<T> >::value - 1; i++ )
+  for ( size_t i = 0; i < CompoundNumChannels<PixelMask<T> >::value - 1; i++ )
     a[i] = value;
 }
 
@@ -28,7 +28,7 @@ void assignment( PixelMask<T> & a, V value ) {
 template <class T, class V>
 typename enable_if<IsCompound<T>, T>::type construct( V value ) {
   T a;
-  for ( int32 i = 0; i < CompoundNumChannels<T>::value; i++ )
+  for ( size_t i = 0; i < CompoundNumChannels<T>::value; i++ )
     a[i] = value;
   return a;
 }
