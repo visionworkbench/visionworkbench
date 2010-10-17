@@ -570,7 +570,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
     ("aspect-ratio"     , po::value(&opt.aspect_ratio)                           , "Pixel aspect ratio (for polar overlays; should be a power of two)")
     ("global-resolution", po::value(&opt.global_resolution)                      , "Override the global pixel resolution; should be a power of two");
 
-  po::options_description projection_options("Projection Options");
+  po::options_description projection_options("Input Projection Options");
   projection_options.add_options()
     ("north"      ,  po::value(&opt.north)         , "The northernmost latitude in projection units")
     ("south"      ,  po::value(&opt.south)         , "The southernmost latitude in projection units")
@@ -578,12 +578,12 @@ int handle_options(int argc, char *argv[], Options& opt) {
     ("west"       ,  po::value(&opt.west)          , "The westernmost longitude in projection units")
     ("global"     ,  po::bool_switch(&opt.global)  , "Override image size to global (in lonlat)")
     ("projection" ,  po::value(&opt.proj.type)     , proj_desc.c_str())
-    ("utm-zone"   ,  po::value(&opt.proj.utm_zone) , "Set zone for --projection UTM (+ is North)")
+    ("utm-zone"   ,  po::value(&opt.proj.utm_zone) , "Set zone for --projection UTM (negative for south)")
     ("proj-lat"   ,  po::value(&opt.proj.lat)      , "The center of projection latitude")
     ("proj-lon"   ,  po::value(&opt.proj.lon)      , "The center of projection longitude")
     ("proj-scale" ,  po::value(&opt.proj.scale)    , "The projection scale")
-    ("p1"         ,  po::value(&opt.proj.p1)       , "Standard parallels for Lambert Conformal Conic projection")
-    ("p2"         ,  po::value(&opt.proj.p2)       , "Standard parallels for Lambert Conformal Conic projection")
+    ("p1"         ,  po::value(&opt.proj.p1)       , "parallel for Lambert Conformal Conic projection")
+    ("p2"         ,  po::value(&opt.proj.p2)       , "parallel for Lambert Conformal Conic projection")
     ("nudge-x"    ,  po::value(&opt.nudge_x)       , "Nudge the image, in projected coordinates")
     ("nudge-y"    ,  po::value(&opt.nudge_y)       , "Nudge the image, in projected coordinates");
 
@@ -592,7 +592,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
     ("input-file", po::value(&opt.input_files));
 
   po::options_description options("Allowed Options");
-  options.add(general_options).add(input_options).add(output_options).add(projection_options).add(hidden_options);
+  options.add(general_options).add(input_options).add(projection_options).add(output_options).add(hidden_options);
 
   po::positional_options_description p;
   p.add("input-file", -1);
@@ -605,8 +605,10 @@ int handle_options(int argc, char *argv[], Options& opt) {
   usage << projection_options << endl;
 
   try {
+    namespace ps = po::command_line_style;
+    int style = ps::unix_style & ~ps::allow_guessing;
     po::variables_map vm;
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+    po::store( po::command_line_parser( argc, argv ).style(style).options(options).positional(p).run(), vm );
     po::notify( vm );
     opt.validate();
   } catch (const po::error& e) {
