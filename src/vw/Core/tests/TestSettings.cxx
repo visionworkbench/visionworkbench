@@ -50,13 +50,13 @@ TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
 
   // Test to see if the settings were correctly read in
   vw_settings().set_rc_filename(file);
-  EXPECT_EQ( 20, vw_settings().default_num_threads() );
+  EXPECT_EQ( 20u, vw_settings().default_num_threads() );
   EXPECT_EQ( 623u, vw_settings().system_cache_size() );
 
   // Test to make sure that the API overrides the contents of vwrc
   vw_settings().set_default_num_threads(5);
   vw_settings().set_system_cache_size(223);
-  EXPECT_EQ( 5, vw_settings().default_num_threads() );
+  EXPECT_EQ( 5u, vw_settings().default_num_threads() );
   EXPECT_EQ( 223u, vw_settings().system_cache_size() );
 }
 
@@ -64,7 +64,7 @@ TEST(Settings, Override) {
   // Test to make sure that the API overrides the contents of vwrc
   vw_settings().set_default_num_threads(5);
   vw_settings().set_system_cache_size(223);
-  EXPECT_EQ( 5, vw_settings().default_num_threads() );
+  EXPECT_EQ( 5u, vw_settings().default_num_threads() );
   EXPECT_EQ( 223u, vw_settings().system_cache_size() );
 }
 

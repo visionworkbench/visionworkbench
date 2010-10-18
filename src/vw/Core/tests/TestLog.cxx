@@ -412,5 +412,5 @@ TEST(Log, DISABLED_LazyLog) {
 
   ASSERT_EQ(s1 + end + s3 + end, stream.str());
   // the sleep inside slow() should not have run.
-  EXPECT_LT(stop-start, 200000);
+  EXPECT_LT(stop-start, 200000u);
 }

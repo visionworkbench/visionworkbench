@@ -204,13 +204,13 @@ namespace hdr {
     // Returns the luminance value for a given pixel value.  Linearly
     // interpolates between points in the lookup table.  Pixel value
     // is expected to be a value in the range [0.0 1.0]
-    double operator() (double pixel_val, unsigned channel) const {
+    double operator() (double pixel_val, size_t channel) const {
       if (channel >= m_lookup_tables.size())
         vw_throw(ArgumentErr() << "CameraCurveFn: unknown lookup table.");
 
       double scaled_pixel_val = pixel_val*(m_lookup_tables[channel].size()-1);
-      int idx1 = int(floor(scaled_pixel_val));
-      int idx2 = int(ceil(scaled_pixel_val));
+      size_t idx1 = boost::numeric_cast<size_t>(floor(scaled_pixel_val));
+      size_t idx2 = boost::numeric_cast<size_t>(ceil(scaled_pixel_val));
       double val1 = m_lookup_tables[channel][idx1];
       double val2 = m_lookup_tables[channel][idx2];
 
@@ -222,20 +222,20 @@ namespace hdr {
     typename CompoundChannelCast<PixelT, double>::type operator() (PixelT pixel_val) const {
       typedef typename CompoundChannelCast<PixelT, double>::type pixel_type;
 
-      if (CompoundNumChannels<PixelT>::value != int32(this->num_channels()))
+      if (CompoundNumChannels<PixelT>::value != this->num_channels())
         vw_throw(ArgumentErr() << "CameraCurveFn: pixel does not have the same number of channels as there are curves.");
 
       pixel_type result;
-      for (int c = 0; c < CompoundNumChannels<PixelT>::value; ++c) {
+      for (size_t c = 0; c < CompoundNumChannels<PixelT>::value; ++c) {
         result[c] = this->operator()(double(pixel_val[c]), c);
       }
       return result;
     }
 
-    unsigned num_channels() const { return m_lookup_tables.size(); }
+    size_t num_channels() const { return m_lookup_tables.size(); }
 
-    Vector<double> const& lookup_table(int channel) const {
-      if (channel < 0 || (size_t)channel >= m_lookup_tables.size())
+    Vector<double> const& lookup_table(size_t channel) const {
+      if (channel >= m_lookup_tables.size())
         vw_throw(ArgumentErr() << "CameraCurveFn: unknown lookup table.");
 
       return m_lookup_tables[channel];

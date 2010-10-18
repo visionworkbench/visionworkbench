@@ -47,7 +47,7 @@ static bool is_of_type( T2 ) {
 TEST(CompoundTypes, Basic) {
   EXPECT_TRUE(( boost::is_same<CompoundChannelType<TestCompound<float> >::type, float>::value ));
   // TODO: why is this an error when the next one isn't? EXPECT_EQ( CompoundNumChannels<TestCompound<float> >::value, 2 );
-  EXPECT_EQ( 2, size_t(CompoundNumChannels<TestCompound<float> >::value) );
+  EXPECT_EQ( 2u, size_t(CompoundNumChannels<TestCompound<float> >::value) );
   EXPECT_TRUE(( boost::is_same<CompoundChannelCast<TestCompound<float>,int>::type, TestCompound<int> >::value ));
 }
 
@@ -107,20 +107,20 @@ TEST(CompoundTypes, Traits) {
 
 TEST(CompoundTypes, CompoundSelectChannel) {
   uint32 vali = 3;
-  EXPECT_EQ( 3, compound_select_channel<const uint32&>(vali,0) );
+  EXPECT_EQ( 3u, compound_select_channel<const uint32&>(vali,0) );
   compound_select_channel<uint32&>(vali,0) = 5;
-  EXPECT_EQ( 5, compound_select_channel<const uint32&>(vali,0) );
+  EXPECT_EQ( 5u, compound_select_channel<const uint32&>(vali,0) );
   float valf = 4.0;
   EXPECT_EQ( 4.0, compound_select_channel<const float&>(valf,0) );
   compound_select_channel<float&>(valf,0) = 6;
   EXPECT_EQ( 6.0, compound_select_channel<const float&>(valf,0) );
   TestCompound<uint32> valci( 1, 2 );
-  EXPECT_EQ( 1, compound_select_channel<const uint32&>(valci,0) );
-  EXPECT_EQ( 2, compound_select_channel<const uint32&>(valci,1) );
+  EXPECT_EQ( 1u, compound_select_channel<const uint32&>(valci,0) );
+  EXPECT_EQ( 2u, compound_select_channel<const uint32&>(valci,1) );
   compound_select_channel<uint32&>(valci,0) = 3;
   compound_select_channel<uint32&>(valci,1) = 4;
-  EXPECT_EQ( 3, compound_select_channel<const uint32&>(valci,0) );
-  EXPECT_EQ( 4, compound_select_channel<const uint32&>(valci,1) );
+  EXPECT_EQ( 3u, compound_select_channel<const uint32&>(valci,0) );
+  EXPECT_EQ( 4u, compound_select_channel<const uint32&>(valci,1) );
   TestCompound<float> valcf( 2.0, 3.0 );
   EXPECT_EQ( 2.0, compound_select_channel<const float&>(valcf,0) );
   EXPECT_EQ( 3.0, compound_select_channel<const float&>(valcf,1) );
@@ -132,12 +132,12 @@ TEST(CompoundTypes, CompoundSelectChannel) {
 
 TEST(CompoundTypes, BinaryCompoundApply) {
   uint32 ai=1, bi=2, ci=compound_apply(&add<uint32>, ai, bi);
-  EXPECT_EQ( 3, ci );
+  EXPECT_EQ( 3u, ci );
   float af=1.0, bf=2.0, cf=compound_apply(&add<float>, af, bf);
   EXPECT_EQ( 3.0, cf );
   TestCompound<uint32> aci(1,2), bci(3,4), cci=compound_apply(&add<uint32>, aci, bci);
-  EXPECT_EQ( 4, cci[0] );
-  EXPECT_EQ( 6, cci[1] );
+  EXPECT_EQ( 4u, cci[0] );
+  EXPECT_EQ( 6u, cci[1] );
   TestCompound<float> acf(1,2), bcf(3,4), ccf=compound_apply(&add<float>, acf, bcf);
   EXPECT_EQ( 4, ccf[0] );
   EXPECT_EQ( 6, ccf[1] );
@@ -146,14 +146,14 @@ TEST(CompoundTypes, BinaryCompoundApply) {
 TEST(CompoundTypes, BinaryCompoundApplyInPlace) {
   uint32 ai=1, bi=2;
   compound_apply_in_place(&add_in_place<uint32>, ai, bi);
-  EXPECT_EQ( 3, ai );
+  EXPECT_EQ( 3u, ai );
   float af=1.0, bf=2.0;
   compound_apply_in_place(&add_in_place<float>, af, bf);
   EXPECT_EQ( 3.0, af );
   TestCompound<uint32> aci(1,2), bci(3,4);
   compound_apply_in_place(&add_in_place<uint32>, aci, bci);
-  EXPECT_EQ( 4, aci[0] );
-  EXPECT_EQ( 6, aci[1] );
+  EXPECT_EQ( 4u, aci[0] );
+  EXPECT_EQ( 6u, aci[1] );
   TestCompound<float> acf(1,2), bcf(3,4);
   compound_apply_in_place(&add_in_place<float>, acf, bcf);
   EXPECT_EQ( 4, acf[0] );
@@ -162,12 +162,12 @@ TEST(CompoundTypes, BinaryCompoundApplyInPlace) {
 
 TEST(CompoundTypes, UnaryCompoundApply) {
   uint32 ai=1, bi=compound_apply(&add_one<uint32>, ai);
-  EXPECT_EQ( 2, bi );
+  EXPECT_EQ( 2u, bi );
   float af=1.0, bf=compound_apply(&add_one<float>, af);
   EXPECT_EQ( 2.0, bf );
   TestCompound<uint32> aci(1,2), bci=compound_apply(&add_one<uint32>, aci);
-  EXPECT_EQ( 2, bci[0] );
-  EXPECT_EQ( 3, bci[1] );
+  EXPECT_EQ( 2u, bci[0] );
+  EXPECT_EQ( 3u, bci[1] );
   TestCompound<float> acf(1,2), bcf=compound_apply(&add_one<float>, acf);
   EXPECT_EQ( 2, bcf[0] );
   EXPECT_EQ( 3, bcf[1] );

@@ -157,69 +157,69 @@ TEST(Cache, Stats) {
     cache.insert(BlockGenerator(1, 1)),
     cache.insert(BlockGenerator(1, 2))};
 
-  EXPECT_EQ(0, cache.hits());
-  EXPECT_EQ(0, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(0u, cache.hits());
+  EXPECT_EQ(0u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 
   // miss
   EXPECT_EQ(0, *h[0]);
 
-  EXPECT_EQ(0, cache.hits());
-  EXPECT_EQ(1, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(0u, cache.hits());
+  EXPECT_EQ(1u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 
   // hit
   EXPECT_EQ(0, *h[0]);
 
-  EXPECT_EQ(1, cache.hits());
-  EXPECT_EQ(1, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(1u, cache.hits());
+  EXPECT_EQ(1u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 
   // miss
   EXPECT_EQ(1, *h[1]);
 
-  EXPECT_EQ(1, cache.hits());
-  EXPECT_EQ(2, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(1u, cache.hits());
+  EXPECT_EQ(2u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 
   // hit
   EXPECT_EQ(1, *h[1]);
 
-  EXPECT_EQ(2, cache.hits());
-  EXPECT_EQ(2, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(2u, cache.hits());
+  EXPECT_EQ(2u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 
   // miss, eviction
   EXPECT_EQ(2, *h[2]);
 
-  EXPECT_EQ(2, cache.hits());
-  EXPECT_EQ(3, cache.misses());
-  EXPECT_EQ(1, cache.evictions());
+  EXPECT_EQ(2u, cache.hits());
+  EXPECT_EQ(3u, cache.misses());
+  EXPECT_EQ(1u, cache.evictions());
 
   // hit
   EXPECT_EQ(2, *h[2]);
 
-  EXPECT_EQ(3, cache.hits());
-  EXPECT_EQ(3, cache.misses());
-  EXPECT_EQ(1, cache.evictions());
+  EXPECT_EQ(3u, cache.hits());
+  EXPECT_EQ(3u, cache.misses());
+  EXPECT_EQ(1u, cache.evictions());
 
   // hit
   EXPECT_EQ(1, *h[1]);
 
-  EXPECT_EQ(4, cache.hits());
-  EXPECT_EQ(3, cache.misses());
-  EXPECT_EQ(1, cache.evictions());
+  EXPECT_EQ(4u, cache.hits());
+  EXPECT_EQ(3u, cache.misses());
+  EXPECT_EQ(1u, cache.evictions());
 
   // miss, eviction
   EXPECT_EQ(0, *h[0]);
 
-  EXPECT_EQ(4, cache.hits());
-  EXPECT_EQ(4, cache.misses());
-  EXPECT_EQ(2, cache.evictions());
+  EXPECT_EQ(4u, cache.hits());
+  EXPECT_EQ(4u, cache.misses());
+  EXPECT_EQ(2u, cache.evictions());
 
   cache.clear_stats();
 
-  EXPECT_EQ(0, cache.hits());
-  EXPECT_EQ(0, cache.misses());
-  EXPECT_EQ(0, cache.evictions());
+  EXPECT_EQ(0u, cache.hits());
+  EXPECT_EQ(0u, cache.misses());
+  EXPECT_EQ(0u, cache.evictions());
 }
