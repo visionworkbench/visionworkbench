@@ -95,7 +95,7 @@ class _Matrix(_Vector):
         self.cols = int(m.group(3))
 
 class VectorProxyStatic(_Vector):
-    PATTERN = r'^vw::math::VectorProxy<(\w+), ([1-9]+\d*)>$'
+    PATTERN = r'^vw::math::VectorProxy<(\w+), ([1-9]+\d*)[a-z]*>$'
     def get_size(self):
         return self.size
     def get_ptr(self):
@@ -109,7 +109,7 @@ class VectorProxyDynamic(_Vector):
         return self.val['m_ptr']
 
 class VectorStatic(_Vector):
-    PATTERN = r'^vw::math::Vector<(\w+), ([1-9]+\d*)>$'
+    PATTERN = r'^vw::math::Vector<(\w+), ([1-9]+\d*)[a-z]*>$'
     def get_size(self):
         return self.size
     def get_ptr(self):
@@ -123,28 +123,28 @@ class VectorDynamic(_Vector):
         return self.val['core_']['m_data']['px']
 
 class MatrixProxyStatic(_Matrix):
-    PATTERN = r'^vw::math::MatrixProxy<(\w+), ([1-9]+\d*), ([1-9]+\d*)>$'
+    PATTERN = r'^vw::math::MatrixProxy<(\w+), ([1-9]+\d*)[a-z]*, ([1-9]+\d*)[a-z]*>$'
     def get_size(self):
         return self.rows * self.cols
     def get_ptr(self):
         return self.val['m_ptr']
 
 class MatrixProxyDynamic(_Matrix):
-    PATTERN = '^vw::math::MatrixProxy<(\w+), (0), (0)>$'
+    PATTERN = '^vw::math::MatrixProxy<(\w+), (0)[a-z]*, (0)[a-z]*>$'
     def get_size(self):
         return self.val['m_rows'] * self.val['m_cols']
     def get_ptr(self):
         return self.val['m_ptr']
 
 class MatrixStatic(_Matrix):
-    PATTERN = r'^vw::math::Matrix<(\w+), ([1-9]+\d*), ([1-9]+\d*)>$'
+    PATTERN = r'^vw::math::Matrix<(\w+), ([1-9]+\d*)[a-z]*, ([1-9]+\d*)[a-z]*>$'
     def get_size(self):
         return self.rows * self.cols
     def get_ptr(self):
         return self.val['core_']['elems']
 
 class MatrixDynamic(_Matrix):
-    PATTERN = '^vw::math::Matrix<(\w+), (0), (0)>$'
+    PATTERN = '^vw::math::Matrix<(\w+), (0)[a-z]*, (0)[a-z]*>$'
     def get_size(self):
         return self.val['m_rows'] * self.val['m_cols']
     def get_ptr(self):
@@ -158,6 +158,9 @@ class BBox(_Basic):
     def children(self):
         min = resolve(self.val['m_min'])
         max = resolve(self.val['m_max'])
+        assert min is not None, 'Could not resolve m_min'
+        assert max is not None, 'Could not resolve m_max'
+
         def calc(idx):
             try:
                 return max.get_ptr()[idx] - min.get_ptr()[idx]
