@@ -57,7 +57,7 @@ class ThreadQueue : private boost::noncopyable {
     }
 
     // Returns the number of messages waiting in the queue.
-    int size() const {
+    size_t size() const {
       Mutex::Lock lock(m_mutex);
       return m_queue.size();
     }
