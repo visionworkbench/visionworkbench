@@ -40,11 +40,11 @@ namespace platefile {
 
     // Standard ImageView interface methods
     int32 cols() const {
-      return pow(2,m_platefile->num_levels()-1) * m_platefile->default_tile_size();
+      return (1 << m_platefile->num_levels()-1) * m_platefile->default_tile_size();
     }
 
     int32 rows() const {
-      return pow(2,m_platefile->num_levels()-1) * m_platefile->default_tile_size();
+      return (1 << m_platefile->num_levels()-1) * m_platefile->default_tile_size();
     }
 
     int32 planes() const { return 1; }
