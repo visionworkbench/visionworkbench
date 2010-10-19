@@ -55,16 +55,23 @@ namespace mosaic {
 
     VW_ASSERT(xresolution == yresolution, LogicErr() << "GMap requires square pixels");
 
-    // GMercatorProjection is Mercator, -180 -> 180
-    cartography::GeoReference r;
+    const double RADIUS = 360. / (2. * M_PI);
+
+    // GMercatorProjection is Mercator. It uses a spherical datum. We choose an
+    // arbitrary radius.  This arbitrary radius happens to map mercator onto
+    // (roughly) degrees, because image2qtree assumes that.
+    cartography::Datum d("Google Maps", "EARTH", "Greenwich", RADIUS, RADIUS, 0);
+
+    cartography::GeoReference r(d);
     r.set_pixel_interpretation(cartography::GeoReference::PixelAsArea);
     r.set_mercator(0,0);
 
+    const double half_circum = M_PI * RADIUS;
     Matrix3x3 transform;
-    transform(0,0) = 360.0 / xresolution;
-    transform(0,2) = -180;
-    transform(1,1) = -360.0 / yresolution;
-    transform(1,2) = 180;
+    transform(0,0) = 2.0 * (half_circum / xresolution);
+    transform(0,2) = -half_circum;
+    transform(1,1) = -2.0 * (half_circum / yresolution);
+    transform(1,2) = half_circum;
     transform(2,2) = 1;
     r.set_transform(transform);
 

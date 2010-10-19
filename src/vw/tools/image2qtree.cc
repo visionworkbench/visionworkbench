@@ -147,7 +147,7 @@ struct Options {
     if (global || north.set() || south.set() || east.set() || west.set()) {
       VW_ASSERT(input_files.size() == 1,
           Usage() << "Cannot override georeference information on multiple images");
-      VW_ASSERT(global || north.set() && south.set() && east.set() && west.set(),
+      VW_ASSERT(global || (north.set() && south.set() && east.set() && west.set()),
           Usage() << "If you provide one, you must provide all of: --north --south --east --west");
       if (global)
         north = 90; south = -90; east = 180; west = -180;
@@ -249,9 +249,9 @@ GeoReference make_input_georef(DiskImageResourceGDAL& file, const Options& opt) 
 
   if( opt.manual ) {
     Matrix3x3 m;
-    m(0,0) = (opt.east - opt.west) / file.cols();
+    m(0,0) = double(opt.east - opt.west) / file.cols();
     m(0,2) = opt.west;
-    m(1,1) = (opt.south - opt.north) / file.rows();
+    m(1,1) = double(opt.south - opt.north) / file.rows();
     m(1,2) = opt.north;
     m(2,2) = 1;
     input_georef.set_transform( m );
@@ -343,7 +343,6 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
   int xresolution = total_resolution / opt.aspect_ratio, yresolution = total_resolution;
 
   GeoReference output_georef = config->output_georef(xresolution, yresolution);
-  output_georef.set_datum( georeferences[0].datum() );
   vw_out(VerboseDebugMessage, "tool") << "Output Georef:\n" << output_georef << endl;
 
   // Configure the composite.
@@ -380,6 +379,7 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     }
     else
       source = crop( transform( source, geotx ), bbox );
+
     // Images that wrap the date line must be added to the composite on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
@@ -390,14 +390,15 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     }
   }
 
-  BBox2i bbox = composite.bbox();
-  BBox2i data_bbox;
-  BBox2i total_bbox;
-  BBox2 ll_bbox;
-  // Now we differ a bit based on our output.
+  // This box represents the entire input data set, in pixels, in the output
+  // projection space. This should NOT include the extra data used to hide
+  // seams and such.
+  BBox2i total_bbox = composite.bbox();
+  total_bbox.crop(BBox2i(0,0,xresolution,yresolution));
+
   if(opt.mode == Mode::KML) {
+    BBox2i bbox = total_bbox;
     // Compute a tighter Google Earth coordinate system aligned bounding box.
-    bbox.crop( BBox2i(0,0,xresolution,yresolution) );
     int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
     if( dim > total_resolution ) dim = total_resolution;
     total_bbox = BBox2i( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
@@ -407,29 +408,6 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
       if( total_bbox.max().y() == yresolution ) total_bbox.min().y() -= dim;
       else total_bbox.max().y() += dim;
     }
-
-    ll_bbox = BBox2( -180.0 + (360.0*total_bbox.min().x())/xresolution,
-                      180.0 - (360.0*total_bbox.max().y())/yresolution,
-                      (360.0*total_bbox.width())/xresolution,
-                      (360.0*total_bbox.height())/yresolution );
-  } else if (opt.mode == Mode::GIGAPAN) {
-    total_bbox = bbox;
-    bbox.crop( BBox2i(0,0,xresolution,yresolution) );
-    ll_bbox = BBox2( -180.0 + (360.0*total_bbox.min().x())/xresolution,
-                      180.0 - (360.0*total_bbox.max().y())/yresolution,
-                      (360.0*total_bbox.width())/xresolution,
-                      (360.0*total_bbox.height())/yresolution );
-  } else {
-    total_bbox = composite.bbox();
-    total_bbox.grow( BBox2i(0,0,total_resolution,total_resolution) );
-    total_bbox.crop( BBox2i(0,0,total_resolution,total_resolution) );
-
-    Vector2 invmin = output_georef.pixel_to_lonlat(total_bbox.min());
-    Vector2 invmax = output_georef.pixel_to_lonlat(total_bbox.max());
-    ll_bbox.min().x() = invmin[0];
-    ll_bbox.max().y() = invmin[1];
-    ll_bbox.max().x() = invmax[0];
-    ll_bbox.min().y() = invmax[1];
   }
 
   // Prepare the composite.
@@ -437,22 +415,15 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     composite.set_draft_mode( true );
   composite.prepare( total_bbox, *progress );
 
-  // Data bbox.
-  if(opt.mode == Mode::KML || opt.mode == Mode::GIGAPAN) {
-    data_bbox = composite.bbox();
-    data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()) );
-  } else {
-    data_bbox = BBox2i((int)std::floor(double(bbox.min().x())/opt.tile_size)*opt.tile_size,
-                       (int)std::floor(double(bbox.min().y())/opt.tile_size)*opt.tile_size,
-                       (int)std::ceil(double(bbox.width())/opt.tile_size)*opt.tile_size,
-                       (int)std::ceil(double(bbox.height())/opt.tile_size)*opt.tile_size);
-    data_bbox.crop(total_bbox);
-  }
-
   QuadTreeGenerator quadtree( composite, opt.output_file_name );
 
   if( opt.mode == Mode::KML ) {
     KMLQuadTreeConfig *c2 = dynamic_cast<KMLQuadTreeConfig*>(config.get());
+    BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
+                    180.0 - (360.0*total_bbox.max().y())/yresolution,
+                    (360.0*total_bbox.width())/xresolution,
+                    (360.0*total_bbox.height())/yresolution );
+
     c2->set_longlat_bbox( ll_bbox );
     c2->set_max_lod_pixels( opt.kml.max_lod_pixels );
     c2->set_draw_order_offset( opt.kml.draw_order_offset );
@@ -461,16 +432,26 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     c2->set_terrain(opt.terrain);
   } else if ( opt.mode == Mode::GIGAPAN ) {
     GigapanQuadTreeConfig *c2 = dynamic_cast<GigapanQuadTreeConfig*>(config.get());
+    BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
+                    180.0 - (360.0*total_bbox.max().y())/yresolution,
+                    (360.0*total_bbox.width())/xresolution,
+                    (360.0*total_bbox.height())/yresolution );
     c2->set_longlat_bbox( ll_bbox );
   }
 
   config->configure(quadtree);
 
-  quadtree.set_crop_bbox(data_bbox);
   if (opt.tile_size.set())
     quadtree.set_tile_size(opt.tile_size);
   if (opt.output_file_type.set())
     quadtree.set_file_type(opt.output_file_type);
+
+  // This box represents the input data, shifted such that total_bbox.min() is
+  // the origin, and cropped to the size of the output resolution.
+  BBox2i data_bbox = composite.bbox();
+  data_bbox.crop( BBox2i(0,0,total_bbox.width(),total_bbox.height()));
+
+  quadtree.set_crop_bbox(data_bbox);
 
   // Generate the composite.
   vw_out() << "Generating " << opt.mode.string() << " overlay..." << endl;
