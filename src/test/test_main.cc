@@ -42,7 +42,11 @@ int main(int argc, char **argv) {
   // span.
   std::srand(boost::numeric_cast<unsigned int>((clock())));
 
-  return RUN_ALL_TESTS();
+  fs::current_path(TEST_SRCDIR);
+  int ret = RUN_ALL_TESTS();
+  VW_ASSERT( fs::path(TEST_SRCDIR) == fs::current_path(),
+             vw::LogicErr() << "Something changed the working directory");
+  return ret;
 }
 
 namespace vw {
