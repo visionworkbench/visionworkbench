@@ -12,7 +12,7 @@
 #include <vw/Plate/google/sparsetable>
 #include <vw/Math/BBox.h>
 #include <vw/Core/FundamentalTypes.h>
-
+#include <boost/numeric/conversion/cast.hpp>
 #include <string>
 #include <list>
 
@@ -93,7 +93,7 @@ namespace platefile {
 
     /// Return the number of valid entries in this page.  (Remember
     /// that this is a sparse store of IndexRecords.)
-    int sparse_size() { return m_sparse_table.num_nonempty(); }
+    int sparse_size() { return boost::numeric_cast<int>(m_sparse_table.num_nonempty()); }
 
     /// Returns a list of valid tiles in this IndexPage.
     ///

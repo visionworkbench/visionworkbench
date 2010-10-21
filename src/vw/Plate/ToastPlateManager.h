@@ -185,7 +185,7 @@ namespace platefile {
                                                                             toast_view,
                                                                             tweak_settings_for_terrain,
                                                                             verbose, // verbose
-                                                                            tiles.size(),
+                                                                            boost::numeric_cast<int>(tiles.size()),
                                                                             progress)));
       }
       m_queue.join_all();

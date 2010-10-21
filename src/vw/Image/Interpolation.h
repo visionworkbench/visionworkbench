@@ -71,7 +71,7 @@ namespace vw {
       typedef typename CompoundChannelCast<pixel_type,real_type>::type result_type;
 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
-      real_type normx = i-x, normy = j-y, norm1mx = 1-normx, norm1my = 1-normy;
+      real_type normx = real_type(i)-real_type(x), normy = real_type(j)-real_type(y), norm1mx = 1-normx, norm1my = 1-normy;
 
       typename ViewT::pixel_accessor acc = view.origin().advance(x,y,p);
       result_type result = (*acc) * norm1mx;

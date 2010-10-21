@@ -332,7 +332,7 @@ namespace vw {
   {
   private:
     ImageT m_image;
-    ptrdiff_t m_xoffset, m_yoffset;
+    int32 m_xoffset, m_yoffset;
     int32 m_cols, m_rows;
     ExtensionT m_extension_func;
   public:
@@ -347,10 +347,10 @@ namespace vw {
     EdgeExtensionView( ImageT const& image, ExtensionT const& extension )
       : m_image(image), m_xoffset(0), m_yoffset(0), m_cols(image.cols()), m_rows(image.rows()), m_extension_func(extension) {}
 
-    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows )
+    EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func() {}
 
-    EdgeExtensionView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows, ExtensionT const& extension )
+    EdgeExtensionView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows, ExtensionT const& extension )
       : m_image(image), m_xoffset(xoffset), m_yoffset(yoffset), m_cols(cols), m_rows(rows), m_extension_func(extension) {}
 
     inline int32 cols() const { return m_cols; }
@@ -403,7 +403,7 @@ namespace vw {
   /// consistent with \ref vw::crop, so if you wish to expand the image
   /// you must specify a negative offset!
   template <class ImageT, class ExtensionT>
-  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows, ExtensionT const& extension ) {
+  EdgeExtensionView<ImageT,ExtensionT> edge_extend( ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows, ExtensionT const& extension ) {
     return EdgeExtensionView<ImageT,ExtensionT>( v.impl(), x_offset, y_offset, cols, rows, extension );
   }
 
@@ -417,7 +417,7 @@ namespace vw {
   /// This is an overloaded function provided for convenience; see vw::edge_extend.
   /// It uses the default vw::ConstantEdgeExtension mode.
   template <class ImageT>
-  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, ptrdiff_t x_offset, ptrdiff_t y_offset, int32 cols, int32 rows ) {
+  EdgeExtensionView<ImageT,ConstantEdgeExtension> edge_extend( ImageViewBase<ImageT> const& v, int32 x_offset, int32 y_offset, int32 cols, int32 rows ) {
     return EdgeExtensionView<ImageT,ConstantEdgeExtension>( v.impl(), x_offset, y_offset, cols, rows );
   }
 

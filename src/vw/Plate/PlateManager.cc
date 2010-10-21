@@ -36,8 +36,8 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
   float total_num_tiles = 0.0;
   float sum_denom = 4.0;
   for ( int level = starting_level-1; level >= 0; --level) {
-    total_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
-    sum_denom *= 4.0;
+    total_num_tiles += float(bbox.width() * bbox.height()) / sum_denom;
+    sum_denom *= 4.0f;
   }
 
   float current_num_tiles = 0;
@@ -47,8 +47,8 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         level >= (stopping_level >= 0 ? stopping_level : 0); --level) {
 
     // Do a little progress callback math.
-    current_num_tiles += (bbox.width() * bbox.height()) / sum_denom;
-    sum_denom *= 4.0;
+    current_num_tiles += float(bbox.width() * bbox.height()) / sum_denom;
+    sum_denom *= 4.0f;
     SubProgressCallback sub_progress(progress_callback,
                                      prev_num_tiles / total_num_tiles,
                                      current_num_tiles / total_num_tiles);
@@ -101,7 +101,7 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
         // Debugging:
         //        vw_out() << "Generating mipmap tiles for " << trimmed_region << " @ " << level << "\n";
 
-        float inc_amt = 1.0/(trimmed_region.width() * trimmed_region.height());
+        float inc_amt = 1.0f/float(trimmed_region.width() * trimmed_region.height());
         for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
           for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
             this->generate_mipmap_tile(i,j,level,transaction_id, preblur);

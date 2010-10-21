@@ -24,8 +24,8 @@ namespace fs = boost::filesystem;
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
+  size_t index = result.rfind(".");
+  if (index != std::string::npos)
     result.erase(index, result.size());
   return result;
 }
@@ -90,7 +90,7 @@ void save_gigapan_tile(std::string base_output_name, boost::shared_ptr<PlateFile
 
     std::string filename = filename_stream.str();
 
-    int size = filename.size();
+    int size = boost::numeric_cast<int>(filename.size());
     while ( (size > 3) && filename.size() >= 3 ) {
       directory_stream << filename.substr(0, 3);
       filename.erase(0, 3);
@@ -143,11 +143,11 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
       if (output_format == "toast") {
         save_toast_tile(output_name, platefile,
                         header_iter->col(), header_iter->row(),
-                        header_iter->level(), header_iter->transaction_id());
+                        header_iter->level(), boost::numeric_cast<int32>(header_iter->transaction_id()));
       } else if (output_format == "gigapan") {
         save_gigapan_tile(output_name, platefile,
                           header_iter->col(), header_iter->row(),
-                          header_iter->level(), header_iter->transaction_id());
+                          header_iter->level(), boost::numeric_cast<int32>(header_iter->transaction_id()));
       } else {
         vw_out() << "Error -- unknown output format: " << output_format << "\n";
         exit(1);

@@ -225,7 +225,7 @@ namespace mosaic {
   void KMLQuadTreeConfigData::metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const {
     std::ostringstream kml;
     fs::path file_path( info.filepath, fs::native );
-    int base_len = file_path.branch_path().native_file_string().size() + 1;
+    size_t base_len = file_path.branch_path().native_file_string().size() + 1;
     fs::path kml_path = change_extension( file_path, ".kml" );
     kml << std::setprecision(10);
 
@@ -267,7 +267,7 @@ namespace mosaic {
 
     int max_lod = m_max_lod_pixels;
     if( num_children == 0 ) max_lod = -1;
-    int draw_order = m_draw_order_offset + info.name.size();
+    int draw_order = m_draw_order_offset + int(info.name.size());
     BBox2i go_bbox = (qtree.get_crop_images() ? info.image_bbox : info.region_bbox);
     if( exists( fs::path( info.filepath + info.filetype ) ) ) {
       kml << kml_ground_overlay( file_path.leaf() + info.filetype,

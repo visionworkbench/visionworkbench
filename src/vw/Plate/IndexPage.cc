@@ -47,7 +47,7 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
        it != m_sparse_table.nonempty_end(); ++it) {
 
     // Iterate over transaction_id list.
-    int32 transaction_list_size = (*it).size();
+    int32 transaction_list_size = boost::numeric_cast<int32>(it->size());
     ostr.write((char*)(&transaction_list_size), sizeof(transaction_list_size));
 
     multi_value_type::iterator transaction_iter = (*it).begin();
@@ -58,7 +58,7 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
       ostr.write((char*)(&t_id), sizeof(t_id));
 
       // Save the size of each protobuf, and then serialize it to disk.
-      uint16 protobuf_size = (*transaction_iter).second.ByteSize();
+      uint16 protobuf_size = boost::numeric_cast<uint16>(transaction_iter->second.ByteSize());
       boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
       (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
       ostr.write((char*)(&protobuf_size), sizeof(protobuf_size));
@@ -120,7 +120,7 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
   int32 page_col = header.col() % m_page_width;
   int32 page_row = header.row() % m_page_height;
 
-  std::pair<int32, IndexRecord> p(header.transaction_id(), record);
+  std::pair<int32, IndexRecord> p(boost::numeric_cast<int32>(header.transaction_id()), record);
   int elmnt = page_row*m_page_width + page_col;
   if (m_sparse_table.test(elmnt)) {
 

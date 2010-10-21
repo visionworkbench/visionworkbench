@@ -95,7 +95,7 @@ int16 AmqpConnection::get_channel(int16 channel) {
     if(m_used_channels.empty())
       channel = 1;
     else
-      channel = *m_used_channels.rbegin() + 1; // largest elt in set
+      channel = boost::numeric_cast<int16>(*m_used_channels.rbegin() + 1); // largest elt in set
   }
 
   if (m_used_channels.count(channel) != 0)
@@ -537,9 +537,9 @@ bool vw_simple_wait_frame(amqp_connection_state_t state, amqp_frame_t *frame, vw
       return false;
 
     // Won't block because we select()'d, and we know it's primed.
-    int result = read(state->sockfd,
-                      state->sock_inbound_buffer.bytes,
-                      state->sock_inbound_buffer.len);
+    ssize_t result = read(state->sockfd,
+                          state->sock_inbound_buffer.bytes,
+                          state->sock_inbound_buffer.len);
 
     if (result < 0)
       die_on_error(-errno, context + ":" + "read() failed");

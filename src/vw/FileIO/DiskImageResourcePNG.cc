@@ -612,7 +612,7 @@ void DiskImageResourcePNG::read_reset() const {
 
 unsigned DiskImageResourcePNG::num_comments() const {
   m_ctx->read_comments();
-  return m_ctx->comments.size();
+  return boost::numeric_cast<unsigned>(m_ctx->comments.size());
 }
 
 DiskImageResourcePNG::Comment const& DiskImageResourcePNG::get_comment( unsigned i ) const {

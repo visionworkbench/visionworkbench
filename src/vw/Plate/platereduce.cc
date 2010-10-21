@@ -186,7 +186,7 @@ private:
           float p_value = 1;                   // p-value
           if (SW1 > 1 && DN > 0) {             // basic assumptions
             bm::fisher_f dist(v1,v2);
-            p_value = 1-cdf(dist, FS);
+            p_value = boost::numeric_cast<float>(1-cdf(dist, FS));
           }
 
           // gradient decent update
@@ -202,7 +202,7 @@ private:
 
         // terminal condition: mean squared difference of weights is
         // smaller than the tolerance
-        if ( sse_wt/weights.size() < error_tol ) break;
+        if ( sse_wt/float(weights.size()) < error_tol ) break;
       }
 
       return  weighted_mean;
@@ -347,7 +347,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
           ImageView<PixelT> new_tile;
           platefile->read( new_tile, location[0],
                            location[1], opt.level,
-                           tile.transaction_id(), true );
+                           boost::numeric_cast<int>(tile.transaction_id()), true );
           tiles.push_back(new_tile);
         }
 

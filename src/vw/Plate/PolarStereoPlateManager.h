@@ -154,7 +154,7 @@ namespace platefile {
           new Job(m_platefile, transaction_id,
                   tile, pyramid_level,
                   stereo_view, tweak_settings_for_terrain,
-                  false, tiles_size, progress)));
+                  false, boost::numeric_cast<int>(tiles_size), progress)));
       }
       m_queue.join_all();
       progress.report_finished();

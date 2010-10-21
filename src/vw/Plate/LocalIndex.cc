@@ -205,7 +205,7 @@ void LocalIndex::save_index_file() const {
    // MD5 hash of the current time and date, or something like that,
    // but little 'ol random() will probably work just fine for our
    // humble purposes.
-   srandom(time(0));
+   srandom(boost::numeric_cast<unsigned int>(time(0)));
    m_header.set_platefile_id(vw::int32(random()));
 
    // Set up the IndexHeader and write it to disk.
@@ -384,7 +384,7 @@ int32 LocalIndex::transaction_request(std::string transaction_description,
        rec.set_blob_offset(iter.current_base_offset());
        rec.set_filetype(hdr.filetype());
        this->write_update(hdr, rec);
-       tpc.report_progress(float(iter.current_base_offset()) / blob.size());
+       tpc.report_progress(float(iter.current_base_offset()) / float(blob.size()));
        ++iter;
     }
     tpc.report_finished();
@@ -402,15 +402,15 @@ int LocalIndex::write_request(uint64 &size) {
 void LocalIndex::write_update(TileHeader const& header, IndexRecord const& record) {
 
   // Store the number of tiles that are contained in the mosaic.
-  int starting_size = m_levels.size();
+  size_t starting_size = m_levels.size();
 
   // Write the update to the PagedIndex superclass.
   PagedIndex::write_update(header, record);
 
   // If adding the record resulted in more levels, we save that
   // information to the index header.
-  if (int(m_levels.size()) != starting_size) {
-    m_header.set_num_levels(m_levels.size());
+  if (m_levels.size() != starting_size) {
+    m_header.set_num_levels(boost::numeric_cast<int32>(m_levels.size()));
     this->save_index_file();
   }
 }

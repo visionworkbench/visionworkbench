@@ -170,7 +170,7 @@ namespace vw {
   private:
     ImageT m_image;
     std::vector<KernelT> m_i_kernel, m_j_kernel;
-    int32 m_ci, m_cj;
+    size_t m_ci, m_cj;
     EdgeT m_edge;
     mutable ImageView<KernelT> m_kernel2d;
 
@@ -256,13 +256,13 @@ namespace vw {
     // operation than a single extra copy.
     template <class DestT>
     void rasterize( DestT const& dest, BBox2i bbox ) const {
-      int32 ni = m_i_kernel.size(), nj = m_j_kernel.size();
+      size_t ni = m_i_kernel.size(), nj = m_j_kernel.size();
       if( ni==0 && nj==0 ) {
         return edge_extend(m_image,m_edge).rasterize(dest,bbox);
       }
       BBox2i child_bbox = bbox;
-      child_bbox.min() -= Vector2i( ni?(ni-m_ci-1):0, nj?(nj-m_cj-1):0 );
-      child_bbox.max() += Vector2i( ni?m_ci:0, nj?m_cj:0 );
+      child_bbox.min() -= Vector2i( int32(ni?(ni-m_ci-1):0), int32(nj?(nj-m_cj-1):0) );
+      child_bbox.max() += Vector2i( int32(ni?m_ci:0), int32(nj?m_cj:0) );
       ImageView<typename ImageT::pixel_type> src_buf = edge_extend(m_image,child_bbox,m_edge);
       if( ni>0 && nj>0 ) {
         ImageView<pixel_type> work( bbox.width(), child_bbox.height(), planes() );

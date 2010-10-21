@@ -153,7 +153,7 @@ namespace platefile {
       // blob_record_size in addition to the size of the blob_record
       // itself.  The offsets stored in the blob_record are relative to
       // the END of the blob_record.  We compute this offset here.
-      uint32 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+      uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size)) + blob_record_size;
       int32 size = blob_record.header_size();
       uint64 offset = base_offset + blob_offset_metadata + blob_record.header_offset();
 
@@ -213,11 +213,11 @@ namespace platefile {
       blob_record.set_header_offset(0);
       blob_record.set_header_size(header.ByteSize());
       blob_record.set_data_offset(header.ByteSize());
-      blob_record.set_data_size(data_size);
+      blob_record.set_data_size(boost::numeric_cast<uint32>(data_size));
 
       // Write the actual blob record size first.  This will help us
       // read and deserialize this protobuffer later on.
-      uint16 blob_record_size = blob_record.ByteSize();
+      uint16 blob_record_size = boost::numeric_cast<uint16>(blob_record.ByteSize());
       m_fstream->write((char*)(&blob_record_size), sizeof(blob_record_size));
       blob_record.SerializeToOstream(m_fstream.get());
 
@@ -268,8 +268,11 @@ namespace platefile {
       // Seek to the end and allocate the proper number of bytes of
       // memory, and then seek back to the beginning.
       istr.seekg(0, std::ios_base::end);
-      uint32 data_size = istr.tellg();
+      std::streamoff loc = istr.tellg();
+      VW_ASSERT(loc > 0, IOErr() << "Failed to identify file length");
       istr.seekg(0, std::ios_base::beg);
+
+      size_t data_size = static_cast<size_t>(loc);
 
       // Read the data into a temporary memory buffer.
       boost::shared_array<uint8> data(new uint8[data_size]);

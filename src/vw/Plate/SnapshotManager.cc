@@ -82,8 +82,8 @@ namespace platefile {
           std::list<TileHeader> tile_records;
           tile_records = platefile->search_by_location(new_col, new_row,
                                                        tile_header.level() + 1,
-                                                       tile_header.transaction_id(),
-                                                       tile_header.transaction_id(),
+                                                       boost::numeric_cast<int>(tile_header.transaction_id()),
+                                                       boost::numeric_cast<int>(tile_header.transaction_id()),
                                                        false); // fetch_one_additional_entry
 
           // If this node has child tiles, then it is not a leaf node.
@@ -145,7 +145,7 @@ namespace platefile {
             << "Adding tile @ " << iter->transaction_id() << " : "
             << " [ " << iter->transaction_id() << " ]  "
             << iter->col() << " " << iter->row() << " @ " << iter->level() << "\n";
-          composite_tiles[iter->transaction_id()] = *iter;
+          composite_tiles[boost::numeric_cast<int>(iter->transaction_id())] = *iter;
 
       }
 
@@ -247,13 +247,13 @@ namespace platefile {
         // the cache first and then read the tile from the platefile
         // if nothing is found.
         if ( !(this->restore_tile(new_tile, current_hdr.col(), current_hdr.row(),
-                                  current_hdr.level(), current_hdr.transaction_id())) ) {
+                                  current_hdr.level(), boost::numeric_cast<int>(current_hdr.transaction_id()))) ) {
           try {
             // If the tile isn't in our cache, then we take the
             // performance hit and read the tile from the platefile.
             m_platefile->read(new_tile,
                             current_hdr.col(), current_hdr.row(),
-                            current_hdr.level(), current_hdr.transaction_id(),
+                            current_hdr.level(), boost::numeric_cast<int>(current_hdr.transaction_id()),
                             true); // exact_transaction_match
           } catch (BlobIoErr &e) {
             // If we get a BlobIO error, that's bad news, but not worth
@@ -279,7 +279,7 @@ namespace platefile {
 
           // Save the tile to the read cache.
           this->save_tile(new_tile, current_hdr.col(), current_hdr.row(),
-                          current_hdr.level(), current_hdr.transaction_id());
+                          current_hdr.level(), boost::numeric_cast<int>(current_hdr.transaction_id()));
 
         }
 
@@ -439,7 +439,7 @@ void vw::platefile::SnapshotManager<PixelT>::full_snapshot(int start_transaction
 
     // Snapshot the entire region at each level.  These region will be
     // broken down into smaller work units in snapshot().
-    int region_size = pow(2,level);
+    int region_size = 1 << level;
     int subdivided_region_size = region_size / 16;
     if (subdivided_region_size < 1024) subdivided_region_size = 1024;
     BBox2i full_region(0,0,region_size,region_size);

@@ -191,9 +191,9 @@ void vw::platefile::ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int
   // optimized to avoid the extra blurring associated with using
   // a kernel wider than 2 pixels.  Math was involved.
   vector<float> kernel(5);
-  kernel[0] = kernel[4] = -0.0344;
-  kernel[1] = kernel[3] = 0.2135;
-  kernel[2] = 0.6418;
+  kernel[0] = kernel[4] = -0.0344f;
+  kernel[1] = kernel[3] = 0.2135f;
+  kernel[2] = 0.6418f;
 
   ImageView<PixelT> new_tile;
   if (preblur) {

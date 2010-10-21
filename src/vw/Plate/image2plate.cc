@@ -39,8 +39,8 @@ bool g_debug;
 // Erases a file suffix if one exists and returns the base string
 static std::string prefix_from_filename(std::string const& filename) {
   std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
+  size_t index = result.rfind(".");
+  if (index != std::string::npos)
     result.erase(index, result.size());
   return result;
 }
@@ -116,7 +116,7 @@ int main( int argc, char *argv[] ) {
     ("nodata-value", po::value<double>(&nodata_value), "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
     ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi, polar]")
     ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95), "JPEG quality factor (0.0 to 1.0)")
+    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95f), "JPEG quality factor (0.0 to 1.0)")
     ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
     ("terrain", "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
