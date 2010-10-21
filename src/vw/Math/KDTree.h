@@ -231,11 +231,11 @@ namespace math {
   // A thread-safer random number generator
   class KDRandom{
   public:
-    ptrdiff_t operator()(ptrdiff_t max) const {
+    ssize_t operator()(ssize_t max) const {
       double tmp;
       tmp = static_cast<double>(rand())
         / static_cast<double>(RAND_MAX);
-      return static_cast<ptrdiff_t>(tmp*max);
+      return static_cast<ssize_t>(tmp*max);
     }
   };
 

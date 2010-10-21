@@ -321,7 +321,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
       reinterpret_cast<Imf::TiledInputFile*>(m_input_file_ptr)->readTiles(first_tile_x, last_tile_x, first_tile_y, last_tile_y);
     } else {
       reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->setFrameBuffer (frameBuffer);
-      reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min(vw::int32(bbox.min().y() + (height-1)), m_format.rows));
+      reinterpret_cast<Imf::InputFile*>(m_input_file_ptr)->readPixels (bbox.min().y(), std::min<int32>(bbox.min().y() + (height-1), m_format.rows));
     }
 
     convert( dest, src_image.buffer(), m_rescale );

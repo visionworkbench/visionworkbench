@@ -35,10 +35,10 @@ namespace vw {
     EdgeExtendView( ImageT const& image, ExtensionT const& extension )
       : impl_type( image, extension ) {}
 
-    EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows )
+    EdgeExtendView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows )
       : impl_type( image, xoffset, yoffset, cols, rows ) {}
 
-    EdgeExtendView( ImageT const& image, ptrdiff_t xoffset, ptrdiff_t yoffset, int32 cols, int32 rows, ExtensionT const& extension )
+    EdgeExtendView( ImageT const& image, int32 xoffset, int32 yoffset, int32 cols, int32 rows, ExtensionT const& extension )
       : impl_type( image, xoffset, yoffset, cols, rows, extension ) {}
 
     EdgeExtendView( impl_type const& other ) : impl_type( other ) {}

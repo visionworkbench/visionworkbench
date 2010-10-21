@@ -31,7 +31,7 @@ namespace vw {
   /// Describes the format of an image, i.e. its dimensions, pixel
   /// structure, and channel type.
   struct ImageFormat {
-    int32 cols, rows, planes;
+    uint32 cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
 
@@ -145,7 +145,7 @@ namespace vw {
   struct ImageBuffer {
     void* data;
     ImageFormat format;
-    ptrdiff_t cstride, rstride, pstride;
+    ssize_t cstride, rstride, pstride;
     bool unpremultiplied;
 
     /// Default constructor; constructs an undefined buffer

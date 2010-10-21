@@ -14,7 +14,7 @@
 
 #include <boost/algorithm/string.hpp>
 
-vw::int32 vw::channel_size( vw::ChannelTypeEnum type ) {
+vw::uint32 vw::channel_size( vw::ChannelTypeEnum type ) {
   switch( type ) {
   case VW_CHANNEL_BOOL:
     return sizeof(bool);
@@ -67,7 +67,7 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   }
 }
 
-vw::int32 vw::num_channels( vw::PixelFormatEnum format ) {
+vw::uint32 vw::num_channels( vw::PixelFormatEnum format ) {
   switch( format ) {
   case VW_PIXEL_SCALAR:
   case VW_PIXEL_GRAY:

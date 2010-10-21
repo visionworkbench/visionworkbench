@@ -49,7 +49,7 @@ namespace vw {
     boost::shared_array<PixelT> m_data;
     int32 m_cols, m_rows, m_planes;
     PixelT *m_origin;
-    ptrdiff_t m_cstride, m_rstride, m_pstride;
+    ssize_t m_cstride, m_rstride, m_pstride;
 
   public:
     /// The base type of the image.

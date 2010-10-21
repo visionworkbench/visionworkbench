@@ -81,7 +81,7 @@ namespace vw {
     inline UnaryPerPixelAccessor& prev_row() { m_iter.prev_row(); return *this; }
     inline UnaryPerPixelAccessor& next_plane() { m_iter.next_plane(); return *this; }
     inline UnaryPerPixelAccessor& prev_plane() { m_iter.prev_plane(); return *this; }
-    inline UnaryPerPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
+    inline UnaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter); }
   };
 
@@ -147,7 +147,7 @@ namespace vw {
     inline BinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); return *this; }
     inline BinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); return *this; }
     inline BinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); return *this; }
-    inline BinaryPerPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 )
+    inline BinaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 )
       { m_iter1.advance(di,dj,dp); m_iter2.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter1,*m_iter2); }
   };
@@ -222,7 +222,7 @@ namespace vw {
     inline TrinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); m_iter3.prev_row(); return *this; }
     inline TrinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); m_iter3.next_plane(); return *this; }
     inline TrinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); m_iter3.prev_plane(); return *this; }
-    inline TrinaryPerPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 )
+    inline TrinaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 )
       { m_iter1.advance(di,dj,dp); m_iter2.advance(di,dj,dp); m_iter3.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter1,*m_iter2,*m_iter3); }
   };

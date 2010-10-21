@@ -43,7 +43,7 @@ namespace vw {
     virtual void prev_row() = 0;
     virtual void next_plane() = 0;
     virtual void prev_plane() = 0;
-    virtual void advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) = 0;
+    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) = 0;
     virtual PixelT operator*() const = 0;
   };
 
@@ -65,7 +65,7 @@ namespace vw {
     virtual void prev_row() { m_iter.prev_row(); }
     virtual void next_plane() { m_iter.next_plane(); }
     virtual void prev_plane() { m_iter.prev_plane(); }
-    virtual void advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_iter.advance(di,dj,dp); }
+    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); }
     virtual pixel_type operator*() const { return *m_iter; }
   };
   /// \endcond
@@ -93,7 +93,7 @@ namespace vw {
     inline ImageViewRefAccessor& prev_row() { m_iter->prev_row(); return *this; }
     inline ImageViewRefAccessor& next_plane() { m_iter->next_plane(); return *this; }
     inline ImageViewRefAccessor& prev_plane() { m_iter->prev_plane(); return *this; }
-    inline ImageViewRefAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_iter->advance(di,dj,dp=0); return *this; }
+    inline ImageViewRefAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_iter->advance(di,dj,dp=0); return *this; }
     inline pixel_type operator*() const { return *(*m_iter); }
   };
 

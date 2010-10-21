@@ -151,7 +151,7 @@ vw::LogRuleSet::LogRuleSet() { }
 vw::LogRuleSet::~LogRuleSet() { }
 
 void vw::LogRuleSet::add_rule(int log_level, std::string log_namespace) {
-  ptrdiff_t count = std::count(log_namespace.begin(), log_namespace.end(), '*');
+  ssize_t count = std::count(log_namespace.begin(), log_namespace.end(), '*');
   if (count > 1)
     vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: only one wildcard is supported.");
 

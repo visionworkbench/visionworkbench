@@ -399,10 +399,10 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
     }
   }
 
-  int32 src_channels = num_channels( src.format.pixel_format );
-  int32 dst_channels = num_channels( dst.format.pixel_format );
-  ptrdiff_t src_chstride = channel_size( src.format.channel_type );
-  ptrdiff_t dst_chstride = channel_size( dst.format.channel_type );
+  size_t src_channels = num_channels( src.format.pixel_format );
+  size_t dst_channels = num_channels( dst.format.pixel_format );
+  size_t src_chstride = channel_size( src.format.channel_type );
+  size_t dst_chstride = channel_size( dst.format.channel_type );
 
   int32 copy_length = (src_channels==dst_channels) ? src_channels : (src_channels<3) ? 1 : (dst_channels>=3) ? 3 : 0;
 

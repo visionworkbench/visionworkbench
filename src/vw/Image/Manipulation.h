@@ -105,7 +105,7 @@ namespace vw {
     inline TransposePixelAccessor& prev_row() { m_child.prev_col(); return *this; }
     inline TransposePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline TransposePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline TransposePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(dj,di,dp); return *this; }
+    inline TransposePixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(dj,di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -191,7 +191,7 @@ namespace vw {
     inline Rotate180PixelAccessor& prev_row() { m_child.next_row(); return *this; }
     inline Rotate180PixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate180PixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate180PixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
+    inline Rotate180PixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -276,7 +276,7 @@ namespace vw {
     inline Rotate90CWPixelAccessor& prev_row() { m_child.prev_col(); return *this; }
     inline Rotate90CWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate90CWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate90CWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(dj,-di,dp); return *this; }
+    inline Rotate90CWPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(dj,-di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -362,7 +362,7 @@ namespace vw {
     inline Rotate90CCWPixelAccessor& prev_row() { m_child.next_col(); return *this; }
     inline Rotate90CCWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate90CCWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate90CCWPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-dj,di,dp); return *this; }
+    inline Rotate90CCWPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-dj,di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -448,7 +448,7 @@ namespace vw {
     inline FlipVerticalPixelAccessor& prev_row() { m_child.next_row(); return *this; }
     inline FlipVerticalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline FlipVerticalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline FlipVerticalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(di,-dj,dp); return *this; }
+    inline FlipVerticalPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(di,-dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -534,7 +534,7 @@ namespace vw {
     inline FlipHorizontalPixelAccessor& prev_row() { m_child.prev_row(); return *this; }
     inline FlipHorizontalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline FlipHorizontalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline FlipHorizontalPixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(-di,dj,dp); return *this; }
+    inline FlipHorizontalPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-di,dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -706,7 +706,7 @@ namespace vw {
     inline SubsamplePixelAccessor& prev_row() { m_child.advance( 0, -m_ydelta ); return *this; }
     inline SubsamplePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline SubsamplePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline SubsamplePixelAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance((ptrdiff_t)m_xdelta*di,(ptrdiff_t)m_ydelta*dj,dp); return *this; }
+    inline SubsamplePixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance((ssize_t)m_xdelta*di,(ssize_t)m_ydelta*dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -1023,7 +1023,7 @@ namespace vw {
     inline ChannelsToPlanesAccessor& prev_row() { m_child.prev_row(); return *this; }
     inline ChannelsToPlanesAccessor& next_plane() { ++m_channel; return *this; }
     inline ChannelsToPlanesAccessor& prev_plane() { --m_channel; return *this; }
-    inline ChannelsToPlanesAccessor& advance( ptrdiff_t di, ptrdiff_t dj, ptrdiff_t dp=0 ) { m_child.advance(di,dj); m_channel+=dp; return *this; }
+    inline ChannelsToPlanesAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(di,dj); m_channel+=dp; return *this; }
 
     inline result_type operator*() const { return compound_select_channel<result_type>(*m_child,m_channel); }
   };
