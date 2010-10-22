@@ -42,9 +42,13 @@ int main(int argc, char **argv) {
   // span.
   std::srand(boost::numeric_cast<unsigned int>((clock())));
 
-  fs::current_path(TEST_SRCDIR);
+  fs::path start_dir(TEST_SRCDIR);
+
+  fs::current_path(start_dir);
   int ret = RUN_ALL_TESTS();
-  VW_ASSERT( fs::path(TEST_SRCDIR) == fs::current_path(),
+  fs::path end_dir = fs::current_path();
+
+  VW_ASSERT( fs::equivalent(start_dir, end_dir),
              vw::LogicErr() << "Something changed the working directory");
   return ret;
 }
