@@ -17,23 +17,23 @@ namespace ip {
 
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip) {
 
-    unsigned num_pts = ip.size();
+    size_t num_pts = ip.size();
     if (num_pts == 0)
       vw_throw(IOErr() << "Attempted to write Lowe SIFT format interest point file with an empty list of interest points.");
 
-    unsigned size = ip.front().descriptor.size();
+    size_t size = ip.front().descriptor.size();
 
     // Write out detected interest points to file.
     FILE *out = fopen(ip_file.c_str(), "w");
-    fprintf(out, "%u %u\n", num_pts, size);
+    fprintf(out, "%u %u\n", uint32(num_pts), uint32(size));
     for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i) {
       float orientation = i->orientation;
       while (orientation > M_PI) orientation -= 2 * M_PI;
       while (orientation < -M_PI) orientation += 2 * M_PI;
       fprintf(out, "%.2f %.2f %.2f %.3f", i->y, i->x, i->scale, orientation);
-      for (unsigned element = 0; element < size; ++element) {
+      for (size_t element = 0; element < size; ++element) {
         if (element % 20 == 0) fprintf(out, "\n");
-        fprintf(out, " %u", (unsigned)(i->descriptor[element] * 255.0));
+        fprintf(out, " %u", (uint8)(i->descriptor[element] * 255.0));
       }
       fprintf(out, "\n");
     }
@@ -51,9 +51,9 @@ namespace ip {
     f.write((char*)&(p.polarity), sizeof(p.polarity));
     f.write((char*)&(p.octave), sizeof(p.octave));
     f.write((char*)&(p.scale_lvl), sizeof(p.scale_lvl));
-    int size = p.size();
-    f.write((char*)(&size), sizeof(int));
-    for (unsigned i = 0; i < p.descriptor.size(); ++i)
+    uint64 size = p.size();
+    f.write((char*)(&size), sizeof(uint64));
+    for (size_t i = 0; i < p.descriptor.size(); ++i)
       f.write((char*)&(p.descriptor[i]), sizeof(p.descriptor[i]));
   }
 
@@ -70,10 +70,10 @@ namespace ip {
     f.read((char*)&(ip.octave), sizeof(ip.octave));
     f.read((char*)&(ip.scale_lvl), sizeof(ip.scale_lvl));
 
-    int size;
-    f.read((char*)&(size), sizeof(ip.descriptor.size()));
+    uint64 size;
+    f.read((char*)&(size), sizeof(uint64));
     ip.descriptor = Vector<double>(size);
-    for (int i = 0; i < size; ++i)
+    for (size_t i = 0; i < size; ++i)
       f.read((char*)&(ip.descriptor[i]), sizeof(ip.descriptor[i]));
     return ip;
   }
@@ -82,8 +82,8 @@ namespace ip {
     std::ofstream f;
     f.open(ip_file.c_str(), std::ios::binary | std::ios::out);
     InterestPointList::iterator iter = ip.begin();
-    int size = ip.size();
-    f.write((char*)&size, sizeof(int));
+    uint64 size = ip.size();
+    f.write((char*)&size, sizeof(uint64));
     for ( ; iter != ip.end(); ++iter)
       write_ip_record(f, *iter);
     f.close();
@@ -99,9 +99,9 @@ namespace ip {
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << ip_file << "\" as VWIP file." );
 
-    int size;
-    f.read((char*)&size, sizeof(int));
-    for (int i = 0; i < size; ++i)
+    uint64 size;
+    f.read((char*)&size, sizeof(uint64));
+    for (size_t i = 0; i < size; ++i)
       result.push_back( read_ip_record(f) );
     f.close();
     return result;
@@ -113,10 +113,10 @@ namespace ip {
     f.open(match_file.c_str(), std::ios::binary | std::ios::out);
     std::vector<InterestPoint>::const_iterator iter1 = ip1.begin();
     std::vector<InterestPoint>::const_iterator iter2 = ip2.begin();
-    int size1 = ip1.size();
-    int size2 = ip2.size();
-    f.write((char*)&size1, sizeof(int));
-    f.write((char*)&size2, sizeof(int));
+    uint64 size1 = ip1.size();
+    uint64 size2 = ip2.size();
+    f.write((char*)&size1, sizeof(uint64));
+    f.write((char*)&size2, sizeof(uint64));
     for ( ; iter1 != ip1.end(); ++iter1)
       write_ip_record(f, *iter1);
     for ( ; iter2 != ip2.end(); ++iter2)
@@ -135,19 +135,19 @@ namespace ip {
     if ( !f.is_open() )
       vw_throw( IOErr() << "Failed to open \"" << match_file << "\" as Match file." );
 
-    int size1, size2;
-    f.read((char*)&size1, sizeof(int));
-    f.read((char*)&size2, sizeof(int));
-    for (int i = 0; i < size1; ++i)
+    uint64 size1, size2;
+    f.read((char*)&size1, sizeof(uint64));
+    f.read((char*)&size2, sizeof(uint64));
+    for (size_t i = 0; i < size1; ++i)
       ip1.push_back( read_ip_record(f) );
-    for (int i = 0; i < size2; ++i)
+    for (size_t i = 0; i < size2; ++i)
       ip2.push_back( read_ip_record(f) );
     f.close();
   }
 
   std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist) {
     std::vector<Vector3> result(iplist.size());
-    for (unsigned i=0; i < iplist.size(); ++i) {
+    for (size_t i=0; i < iplist.size(); ++i) {
       result[i][0] = iplist[i].x;
       result[i][1] = iplist[i].y;
       result[i][2] = 1; // homogeneous vector
@@ -159,7 +159,7 @@ namespace ip {
   // information is lost.
   std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist) {
     std::vector<InterestPoint> result(veclist.size());
-    for (unsigned i=0; i < veclist.size(); ++i) {
+    for (size_t i=0; i < veclist.size(); ++i) {
       result[i].x = veclist[i][0];
       result[i].y = veclist[i][1];
     }

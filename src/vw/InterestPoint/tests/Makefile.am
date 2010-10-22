@@ -14,8 +14,9 @@ if MAKE_MODULE_INTERESTPOINT
 TestMatcher_SOURCES   = TestMatcher.cxx
 TestIntegral_SOURCES  = TestIntegral.cxx
 TestBoxFilter_SOURCES = TestBoxFilter.cxx
+TestInterestData_SOURCES = TestInterestData.cxx
 
-TESTS = TestMatcher TestIntegral TestBoxFilter
+TESTS = TestMatcher TestIntegral TestBoxFilter TestInterestData
 
 #include $(top_srcdir)/config/instantiate.am
 

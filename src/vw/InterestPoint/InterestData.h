@@ -32,8 +32,10 @@ namespace ip {
 
     InterestPoint() {}
 
-  InterestPoint(float x, float y, float scale=1.0, float interest=0.0, float ori=0.0, bool pol=false, unsigned octave = 0, unsigned scale_lvl = 0)
-  : x(x), y(y), scale(scale), ix(int(x)), iy(int(y)), orientation(ori), interest(interest), polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
+    InterestPoint(float x, float y, float scale=1.0, float interest=0.0, float ori=0.0,
+		  bool pol=false, uint32 octave = 0, uint32 scale_lvl = 0)
+      : x(x), y(y), scale(scale), ix(int32(x)), iy(int32(y)), orientation(ori), interest(interest),
+	polarity(pol), octave(octave), scale_lvl(scale_lvl) {}
 
 
     /// Subpixel (col,row) location of point
@@ -46,8 +48,8 @@ namespace ip {
     float scale;
 
     /// Integer location (unnormalized), mainly for internal use.
-    int ix;
-    int iy;
+    int32 ix;
+    int32 iy;
 
     /// Since the orientation is not necessarily unique, we may have more
     /// than one hypothesis for the orientation of an interest point.  I
@@ -64,7 +66,7 @@ namespace ip {
     bool polarity;
     /// This is the integer location in scale space (used for indexing
     /// a vector of interest images)
-    unsigned octave, scale_lvl;
+    uint32 octave, scale_lvl;
 
     /// And finally the descriptor for the interest point.  For example,
     /// PCA descriptors would have a vector of floats or doubles...
@@ -75,7 +77,7 @@ namespace ip {
     const_iterator end() const { return descriptor.end(); }
     iterator end() { return descriptor.end(); }
 
-    int size() const { return descriptor.size(); }
+    size_t size() const { return descriptor.size(); }
     float operator[] (int index) { return descriptor[index]; }
 
     /// std::sort can be used to sort InterestPoints in descending
