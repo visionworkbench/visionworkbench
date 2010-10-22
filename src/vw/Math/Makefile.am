@@ -12,8 +12,8 @@
 if MAKE_MODULE_MATH
 
 if HAVE_PKG_LAPACK
-lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h        \
-	PoseEstimation.h LapackExports.h
+lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h PoseEstimation.h LapackExports.h
+lapack_sources = LapackExports.cc
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
@@ -22,7 +22,7 @@ include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
                   RANSAC.h MatrixSparseSkyline.h $(lapack_headers)
 
-libvwMath_la_SOURCES = MinimumSpanningTree.cc
+libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources)
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la

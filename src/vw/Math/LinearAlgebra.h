@@ -52,14 +52,17 @@ namespace math {
     real_type work_size;
     f77_int n = detail::FINT(A.cols());
     f77_int lwork = -1, info;
+
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
+
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
+
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work[0], lwork, &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
+
     if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
+
     e.set_size( A.cols() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i )
       e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
@@ -86,13 +89,14 @@ namespace math {
     f77_int lwork = -1, info;
 
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
+
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
+
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work[0], lwork, &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
+
     e.set_size( A.cols() );
     V.set_size( Vbuf.cols(), Vbuf.rows() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i ) {
@@ -124,12 +128,12 @@ namespace math {
     real_type work_size;
     f77_int lwork = -1, info;
     std::vector<f77_int> iwork( 8*minmn );
+
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
+
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     s = sbuf;
@@ -156,13 +160,9 @@ namespace math {
     std::vector<f77_int> iwork( 8*minmn );
     f77_int ldu = m, ldvt = minmn;
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
@@ -196,8 +196,6 @@ namespace math {
     lwork = f77_int(work_size);
     std::vector<real_type> work( lwork );
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
@@ -226,10 +224,10 @@ namespace math {
 
     real_type work_size;
     f77_int lwork = -1, info;
-    sgeqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
+    geqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     std::vector<real_type> work(lwork);
-    sgeqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work[0], lwork, &info);
+    geqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work[0], lwork, &info);
 
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
     for (size_t i = 0; i < R.rows(); i++)
@@ -237,12 +235,10 @@ namespace math {
         R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
-    sorgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
+    orgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     work.resize(lwork);
-    sorgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
-
-    VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sorgrq in argument " << -info);
+    orgqr(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
 
     Q = transpose(Abuf);
   }
@@ -268,12 +264,10 @@ namespace math {
 
     real_type work_size;
     f77_int lwork = -1, info;
-    sgerqf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
+    gerqf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     std::vector<real_type> work(lwork);
-    sgerqf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work[0], lwork, &info);
-
-    VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sqerqf in argument " << -info);
+    gerqf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work[0], lwork, &info);
 
     R.set_size(transpose(Abuf).rows(), transpose(Abuf).cols());
     for (size_t i = 0; i < R.rows(); i++)
@@ -281,12 +275,10 @@ namespace math {
         R(i, j) = j >= i ? Abuf(j, i) : 0;
 
     lwork = -1;
-    sorgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
+    orgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     work.resize(lwork);
-    sorgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
-
-    VW_ASSERT(info == 0, vw::MathErr() << "Lapack error on calling sorgrq in argument " << -info);
+    orgrq(m, n, minmn, &Abuf(0, 0), lda, &(Tau(0)), &work[0], lwork, &info);
 
     Q = transpose(Abuf);
   }
@@ -373,8 +365,6 @@ namespace math {
     Vector<real_type> result = B;
     gesv(n,nrhs,&(Abuf(0,0)), lda, &(ipiv(0)), &(result(0)), ldb, &info);
 
-    if (info < 0)
-      vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "solve(): LAPACK driver gesv could not solve equation.  Factor " << info << " of A is zero, so A is singular." );
 
@@ -409,8 +399,6 @@ namespace math {
     f77_int info;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0)), ldb, &info);
 
-    if (info < 0)
-      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
   }
@@ -433,8 +421,6 @@ namespace math {
     const f77_int ldb = detail::FINT(B.cols());
     f77_int info;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0,0)), ldb, &info);
-    if (info < 0)
-      vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv reported an error with argument " << -info << "." );
     if (info > 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
   }

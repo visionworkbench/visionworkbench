@@ -9,6 +9,7 @@
 #define __VW_MATH_LAPACK_EXPORTS_H__
 
 #include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.
@@ -147,94 +148,35 @@ namespace math {
   } // anon namespace
 #endif
 
-  static inline void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info) {
-    sgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-  }
+  void geev(char jobvl, char jobvr, f77_int n, float *a, f77_int lda, float *wr, float *wi, float *vl, f77_int ldvl, float *vr, f77_int ldvr, float *work, f77_int lwork, f77_int *info);
+  void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info);
 
-  static inline void geev(char jobvl, char jobvr, f77_int n, double *a, f77_int lda, double *wr, double *wi, double *vl, f77_int ldvl, double *vr, f77_int ldvr, double *work, f77_int lwork, f77_int *info) {
-    dgeev_(&jobvl, &jobvr, &n, a, &lda, wr, wi, vl, &ldvl, vr, &ldvr, work, &lwork, info);
-  }
+  void gesdd(char jobz, f77_int m, f77_int n, float *a, f77_int lda, float *s, float *u, f77_int ldu, float *vt, f77_int ldvt, float *work, f77_int lwork, f77_int *iwork, f77_int *info);
+  void gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info);
 
-  static inline void gesdd(char jobz, f77_int m, f77_int n, float *a, f77_int lda, float *s, float *u, f77_int ldu, float *vt, f77_int ldvt, float *work, f77_int lwork, f77_int *iwork, f77_int *info) {
-    sgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
-  }
+  void geqrf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
+  void geqrf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
 
-  static inline void gesdd(char jobz, f77_int m, f77_int n, double *a, f77_int lda, double *s, double *u, f77_int ldu, double *vt, f77_int ldvt, double *work, f77_int lwork, f77_int *iwork, f77_int *info) {
-    dgesdd_(&jobz, &m, &n, a, &lda, s, u, &ldu, vt, &ldvt, work, &lwork, iwork, info);
-  }
+  void orgqr(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
+  void orgqr(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
 
-  static inline void sgeqrf(f77_int m, f77_int n, float *a, f77_int lda,
-                            float *tau, float *work, f77_int lwork, f77_int *info) {
-    sgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
-  }
+  void gerqf(f77_int m, f77_int n, float *a, f77_int lda, float *tau, float *work, f77_int lwork, f77_int *info);
+  void gerqf(f77_int m, f77_int n, double *a, f77_int lda, double *tau, double *work, f77_int lwork, f77_int *info);
 
-  static inline void sgeqrf(f77_int m, f77_int n, double *a, f77_int lda,
-                            double *tau, double *work, f77_int lwork, f77_int *info) {
-    dgeqrf_(&m, &n, a, &lda, tau, work, &lwork, info);
-  }
+  void orgrq(f77_int m, f77_int n, f77_int k, float* a, f77_int lda, float* tau, float* work, f77_int lwork, f77_int* info);
+  void orgrq(f77_int m, f77_int n, f77_int k, double* a, f77_int lda, double* tau, double* work, f77_int lwork, f77_int* info);
 
+  void gelsd(f77_int m, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int* iwork, f77_int *info);
+  void gelsd(f77_int m, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int* iwork, f77_int *info);
 
-  static inline void sorgqr(f77_int m, f77_int n, f77_int k, float* a, f77_int lda,
-                            float* tau, float* work, f77_int lwork, f77_int* info) {
-    sorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
-  }
+  void gelss(f77_int m, f77_int n, f77_int rhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int *info);
+  void gelss(f77_int m, f77_int n, f77_int rhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int *info);
 
-  static inline void sorgqr(f77_int m, f77_int n, f77_int k, double* a, f77_int lda,
-                            double* tau, double* work, f77_int lwork, f77_int* info) {
-    dorgqr_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
-  }
+  void gesv(f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
+  void gesv(f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
 
-  static inline void sgerqf(f77_int m, f77_int n, float *a, f77_int lda,
-                            float *tau, float *work, f77_int lwork, f77_int *info) {
-    sgerqf_(&m, &n, a, &lda, tau, work, &lwork, info);
-  }
-
-  static inline void sgerqf(f77_int m, f77_int n, double *a, f77_int lda,
-                            double *tau, double *work, f77_int lwork, f77_int *info) {
-    dgerqf_(&m, &n, a, &lda, tau, work, &lwork, info);
-  }
-
-  static inline void sorgrq(f77_int m, f77_int n, f77_int k, float* a, f77_int lda,
-                            float* tau, float* work, f77_int lwork, f77_int* info) {
-    sorgrq_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
-  }
-
-  static inline void sorgrq(f77_int m, f77_int n, f77_int k, double* a, f77_int lda,
-                            double* tau, double* work, f77_int lwork, f77_int* info) {
-    dorgrq_(&m, &n, &k, a, &lda, tau, work, &lwork, info);
-  }
-
-  static inline void gelsd(f77_int m, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int* iwork, f77_int *info) {
-    sgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
-  }
-
-  static inline void gelsd(f77_int m, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int* iwork, f77_int *info) {
-    dgelsd_( &m, &n, &nrhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, iwork, info );
-  }
-
-  static inline void gelss(f77_int m, f77_int n, f77_int rhs, double *a, f77_int lda, double *b, f77_int ldb, double *s, double rcond, f77_int *rank, double *work, f77_int lwork, f77_int *info) {
-    dgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
-  }
-
-  static inline void gelss(f77_int m, f77_int n, f77_int rhs, float *a, f77_int lda, float *b, f77_int ldb, float *s, float rcond, f77_int *rank, float *work, f77_int lwork, f77_int *info) {
-    sgelss_( &m, &n, &rhs, a, &lda, b, &ldb, s, &rcond, rank, work, &lwork, info );
-  }
-
-  static inline void gesv(f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info) {
-    sgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
-  }
-
-  static inline void gesv(f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info) {
-    dgesv_(&n, &nrhs, a, &lda, ipiv, b, &ldb, info);
-  }
-
-  static inline void posv(char uplo, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, f77_int *info) {
-    sposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
-  }
-
-  static inline void posv(char uplo, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, f77_int *info) {
-    dposv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);
-  }
+  void posv(char uplo, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, f77_int *info);
+  void posv(char uplo, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, f77_int *info);
 
   /// \endcond
 
