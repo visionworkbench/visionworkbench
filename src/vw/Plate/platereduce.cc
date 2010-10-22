@@ -88,12 +88,15 @@ struct WeightedVar2 : public ReduceBase<WeightedVar2> {
     int num_channels = CompoundNumChannels<PixelT>::value;
     std::vector<ImageView<float32> > sum_weighted_data; //store the mean
     std::vector<ImageView<float32> > sum_weighted_data2; //store the variance
+    std::vector<ImageView<float32> > sum_weighted_stdv; //store the standard deviation
 
     for ( uint8 i = 0; i < num_channels-1; i++ ){
       sum_weighted_data.push_back(ImageView<float32>(input.front().cols(),
                                                      input.front().rows()));
       sum_weighted_data2.push_back(ImageView<float32>(input.front().cols(),
                                                      input.front().rows()));
+      sum_weighted_stdv.push_back(ImageView<float32>(input.front().cols(),
+                                                    input.front().rows()));
     }
 
     ImageView<float32> summed_weights(input.front().cols(),
@@ -116,13 +119,14 @@ struct WeightedVar2 : public ReduceBase<WeightedVar2> {
     // Normalizing
     for ( uint8 i = 0; i < num_channels-1; i++ ){
       sum_weighted_data[i] /= summed_weights;
-      sum_weighted_data2[i] = sum_weighted_data2[i]/summed_weights - sum_weighted_data[i];
+      sum_weighted_data2[i] = sum_weighted_data2[i]/summed_weights - sum_weighted_data[i]*sum_weighted_data[i];
+      sum_weighted_stdv[i]=sqrt(clamp(sum_weighted_data2[i],0, 999999999));
     }
 
     var2.set_size(input.front().cols(),
                   input.front().rows());
     for ( uint8 i = 0; i < num_channels-1; i++ )
-      select_channel(var2,i) = sum_weighted_data2[i];
+      select_channel(var2,i) = sum_weighted_stdv[i];
     // Setting output alpha
     select_channel(var2,num_channels-1) =
       threshold(summed_weights,0,
