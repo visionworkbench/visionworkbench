@@ -116,21 +116,21 @@ namespace vw {
     /// The default constructor generates exceptions with empty error
     /// message text.  This is the cleanest approach if you intend to
     /// use streaming (via operator <<) to generate your message.
-    Exception() VW_IF_EXCEPTIONS(throw()) {}
+    Exception() VW_NOTHROW {}
 
     /// Generates exceptions with the given error message text.
-    Exception( std::string const& s ) VW_IF_EXCEPTIONS(throw()) { m_desc << s; }
+    Exception( std::string const& s ) VW_NOTHROW { m_desc << s; }
 
-    virtual ~Exception() VW_IF_EXCEPTIONS(throw()) {}
+    virtual ~Exception() VW_NOTHROW {}
 
     /// Copy Constructor
-    Exception( Exception const& e ) VW_IF_EXCEPTIONS(throw())
+    Exception( Exception const& e ) VW_NOTHROW
       VW_IF_EXCEPTIONS( : std::exception(e) ) {
       m_desc << e.m_desc.str();
     }
 
     /// Assignment operator copies the error string.
-    Exception& operator=( Exception const& e ) VW_IF_EXCEPTIONS(throw()) {
+    Exception& operator=( Exception const& e ) VW_NOTHROW {
       m_desc.str( e.m_desc.str() );
       return *this;
     }
@@ -139,7 +139,7 @@ namespace vw {
     /// returned pointer must be used immediately; other operations on
     /// the exception may invalidate it.  If you need the data for
     /// later, you must save it to a local buffer of your own.
-    virtual const char* what() const VW_IF_EXCEPTIONS(throw()) {
+    virtual const char* what() const VW_NOTHROW {
       m_what_buf = m_desc.str();
       return m_what_buf.c_str();
     }
@@ -196,14 +196,14 @@ namespace vw {
   /// which share the same functionality.
   #define VW_DEFINE_EXCEPTION(exception_type,base)                                          \
   struct exception_type : public base {                                                     \
-    exception_type() VW_IF_EXCEPTIONS(throw()) : base() {}                                  \
-    exception_type(std::string const& s) VW_IF_EXCEPTIONS(throw()) : base(s) {}             \
-    exception_type( exception_type const& e ) VW_IF_EXCEPTIONS(throw()) : base( e ) {}      \
-    virtual ~exception_type() VW_IF_EXCEPTIONS(throw()) {}                                  \
+    exception_type() VW_NOTHROW : base() {}                                                 \
+    exception_type(std::string const& s) VW_NOTHROW : base(s) {}                            \
+    exception_type( exception_type const& e ) VW_NOTHROW : base( e ) {}                     \
+    virtual ~exception_type() VW_NOTHROW {}                                                 \
                                                                                             \
     virtual std::string name() const { return #exception_type; }                            \
                                                                                             \
-    inline exception_type& operator=( exception_type const& e ) VW_IF_EXCEPTIONS(throw()) { \
+    inline exception_type& operator=( exception_type const& e ) VW_NOTHROW {                \
       base::operator=( e );                                                                 \
       return *this;                                                                         \
     }                                                                                       \
@@ -215,7 +215,7 @@ namespace vw {
                                                                                             \
     exception_type& reset() { m_desc.str("");  return *this; }                              \
                                                                                             \
-    VW_IF_EXCEPTIONS(virtual void default_throw() const { throw *this; })                   \
+    VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )                 \
   }
 
   /// Invalid function argument exception
@@ -253,8 +253,8 @@ namespace vw {
   /// can subclass to install an alternative exception handler.
   class ExceptionHandler {
   public:
-    virtual void handle( Exception const& e ) const = 0;
-    virtual ~ExceptionHandler() {}
+    virtual void handle( Exception const& e ) const VW_NORETURN = 0;
+    virtual ~ExceptionHandler() VW_NOTHROW {}
   };
 
   /// Sets the application-wide exception handler.  Pass zero

@@ -12,7 +12,7 @@
 /// See Core/Exception.h for documentation.
 ///
 #include <vw/Core/Exception.h>
-#include <vw/config.h>
+#include <vw/Core/Features.h>
 
 #include <cstdlib>
 
@@ -23,15 +23,15 @@ namespace {
   /// which case it prints the message and calls abort().
   static class DefaultExceptionHandler : public vw::ExceptionHandler {
   public:
-    virtual void handle( vw::Exception const& e ) const {
+    virtual void handle( vw::Exception const& e ) const VW_NORETURN {
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
       e.default_throw();
 #else
       vw::vw_out(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
-      std::abort();
 #endif
+      std::abort();
     }
-    virtual ~DefaultExceptionHandler() {}
+    virtual ~DefaultExceptionHandler() VW_NOTHROW {}
   } _vw_default_exception_handler;
 
   /// The application-wide exception handler pointer.
