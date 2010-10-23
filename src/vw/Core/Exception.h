@@ -196,27 +196,39 @@ namespace vw {
   /// which share the same functionality.
   #define VW_DEFINE_EXCEPTION(exception_type,base)                                          \
   struct exception_type : public base {                                                     \
+    _VW_DEFINE_EXCEPTION_CONSTRUCTORS(exception_type, base)                                 \
+    _VW_DEFINE_EXCEPTION_API(exception_type,exception_type,base)                            \
+  }
+
+  // Macro for creating a hierarchy of exceptions that may have additional
+  // functions or data.  Exceptions using the EXT API must make do with the
+  // default constructors (or define their own)
+  #define VW_DEFINE_EXCEPTION_EXT(exception_type,base)                                      \
+  struct exception_type ## ExceptionBase : public base {                                    \
+    _VW_DEFINE_EXCEPTION_API(exception_type ## ExceptionBase,exception_type,base)           \
+  };                                                                                        \
+  struct exception_type : public exception_type ## ExceptionBase
+
+#define _VW_DEFINE_EXCEPTION_CONSTRUCTORS(exception_type, base)                             \
     exception_type() VW_NOTHROW : base() {}                                                 \
     exception_type(std::string const& s) VW_NOTHROW : base(s) {}                            \
     exception_type( exception_type const& e ) VW_NOTHROW : base( e ) {}                     \
     virtual ~exception_type() VW_NOTHROW {}                                                 \
-                                                                                            \
-    virtual std::string name() const { return #exception_type; }                            \
-                                                                                            \
     inline exception_type& operator=( exception_type const& e ) VW_NOTHROW {                \
       base::operator=( e );                                                                 \
       return *this;                                                                         \
-    }                                                                                       \
-                                                                                            \
-    template <class T>                                                                      \
-    exception_type& operator<<( T const& t ) { m_desc << t; return *this; }                 \
-                                                                                            \
+    }
+
+#define _VW_DEFINE_EXCEPTION_API(exception_type, exception_name, base)                      \
+    virtual std::string name() const { return #exception_name; }                            \
     exception_type& set( std::string const& s ) { m_desc.str(s);  return *this; }           \
-                                                                                            \
     exception_type& reset() { m_desc.str("");  return *this; }                              \
                                                                                             \
     VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )                 \
-  }
+                                                                                            \
+    template <class T>                                                                      \
+    exception_type& operator<<( T const& t ) { m_desc << t; return *this; }
+
 
   /// Invalid function argument exception
   VW_DEFINE_EXCEPTION(ArgumentErr, Exception);

@@ -12,8 +12,18 @@
 
 using namespace vw;
 
-VW_DEFINE_EXCEPTION(Level1Err, vw::Exception);
+VW_DEFINE_EXCEPTION(Level1Err, Exception);
 VW_DEFINE_EXCEPTION(Level2Err, Level1Err);
+
+VW_DEFINE_EXCEPTION_EXT(Code0, Exception) {
+  virtual int32 code() const {return -1;}
+};
+
+VW_DEFINE_EXCEPTION(Code1, Code0);
+
+VW_DEFINE_EXCEPTION_EXT(Code2, Code1) {
+  int32 code() const {return 4;}
+};
 
 TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
 
@@ -25,9 +35,25 @@ TEST(Exceptions, HAS_EXCEPTIONS(Hierarchy)) {
   EXPECT_EQ(l1.name() , "Level1Err" );
   EXPECT_EQ(l2.name() , "Level2Err" );
 
-  EXPECT_THROW(throw Level1Err(), vw::Exception);
+  EXPECT_THROW(throw Level1Err(), Exception);
   EXPECT_THROW(throw Level1Err(), Level1Err);
-  EXPECT_THROW(throw Level2Err(), vw::Exception);
+  EXPECT_THROW(throw Level2Err(), Exception);
   EXPECT_THROW(throw Level2Err(), Level1Err);
   EXPECT_THROW(throw Level2Err(), Level2Err);
+}
+
+TEST(Exceptions, HAS_EXCEPTIONS(Ext)) {
+  Code2 c;
+  c << "rawr";
+  EXPECT_EQ("Code2", c.name());
+  EXPECT_THROW(throw Code2(), Code2);
+  EXPECT_THROW(throw Code2(), Code1);
+  EXPECT_THROW(throw Code2(), Code0);
+  EXPECT_THROW(throw Code2(), Exception);
+
+  try {
+  } catch (const Code0& c) {
+    EXPECT_EQ(2, c.code());
+    EXPECT_EQ("Code2", c.name());
+  }
 }

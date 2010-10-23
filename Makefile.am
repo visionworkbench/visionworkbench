@@ -172,6 +172,7 @@ all-headers:
 one-ctags-file:
 	ctags -R \
 		--regex-c++='/VW_DEFINE_EXCEPTION\(\s*(.*)\s*,\s*(.*)\s*\)/\1/s/' \
+		--regex-c++='/VW_DEFINE_EXCEPTION_EXT\(\s*(.*)\s*,\s*(.*)\s*\)/\1/s/' \
 		--regex-c++='/__VW_UNARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/Arg\1Functor/s/' \
 		--regex-c++='/__VW_BINARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/ArgArg\1Functor/s/' \
 		--regex-c++='/VW_DEFINE_ENUM\(\s*(.*)\s*,\s*(.*)\s*,\s*\(\s*(.*)\s*\)\)/\1/g/' \
