@@ -32,7 +32,7 @@ namespace math {
   {
     VW_ASSERT( vectors1.impl().rows()==3 && vectors2.impl().rows()==3 &&
                vectors1.impl().cols()==vectors2.impl().cols(),
-               ArgumentErr( "relative_orientation(): Invalid or incompatible matrix dimensions" ) );
+               ArgumentErr() << "relative_orientation(): Invalid or incompatible matrix dimensions" );
     Matrix4x4 M;
     for( unsigned i=0; i<vectors1.impl().cols(); ++i ) {
       MatrixCol<const Matrix1T> v1(vectors1.impl(),i);

@@ -64,7 +64,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (rootFrame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return rootFrame.node->clone();
     }
@@ -75,7 +75,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->data().name();
     }
@@ -86,7 +86,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       string name;
       FrameTreeNodeVector const& ancestry = frame.node->ancestry();
@@ -104,7 +104,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
 
       return (frame.node->data().extras() != NULL)?
@@ -117,7 +117,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       frame.node->data().set_extras(extras);
     }
@@ -215,7 +215,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->parent();
     }
@@ -226,7 +226,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->root();
     }
@@ -267,16 +267,16 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (node != NULL,
-                 vw::LogicErr("NULL pointer not allowed as node parameter."));
+                 vw::LogicErr() << "NULL pointer not allowed as node parameter.");
       VW_ASSERT (!is_member(node),
-                 vw::LogicErr("Node already member of FrameStore instance."));
+                 vw::LogicErr() << "Node already member of FrameStore instance.");
 
       auto_ptr<FrameTreeNode> n(node);
 
       VW_ASSERT (node->data().name().length() != 0,
-                 vw::LogicErr("None empty frame name required."));
+                 vw::LogicErr() << "None empty frame name required.");
       VW_ASSERT (parent.node == NULL || is_member(parent),
-                 vw::LogicErr("None member node not allowed as parent."));
+                 vw::LogicErr() << "None member node not allowed as parent.");
 
       // check frame name uniqueness
       assert_unique(node->data().name(), parent.node);
@@ -295,7 +295,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       // erase the node from root node vector, if root node
       FrameTreeNodeVector::iterator elem =
@@ -327,9 +327,9 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as frame parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as frame parameter.");
       VW_ASSERT (parent.node == NULL || is_member(parent),
-                 vw::LogicErr("None member node not allowed as parent."));
+                 vw::LogicErr() << "None member node not allowed as parent.");
 
       // don't do anything if old and new parent are the same
       if (frame.node->parent() == parent.node)
@@ -357,7 +357,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->is_root();
     }
@@ -368,7 +368,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->is_leaf();
     }
@@ -379,7 +379,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL && pop.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return frame.node->is_ancestor_of(pop.node);
     }
@@ -390,7 +390,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL && source.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return vw::geometry::get_transform_of(frame.node, source.node, trans);
     }
@@ -401,7 +401,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL && source.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       return vw::geometry::get_transform(frame.node, source.node) * trans;
     }
@@ -412,7 +412,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (source.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as frame parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as frame parameter.");
 
       return vw::geometry::get_transform(frame.node, source.node);
     }
@@ -423,7 +423,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       vw::geometry::set_transform(frame.node, wrt_frame.node, update);
     }
@@ -434,7 +434,7 @@ namespace vw
       RecursiveMutex::Lock lock(m_mutex);
 
       VW_ASSERT (frame.node != NULL,
-                 vw::LogicErr("NULL handle not allowed as parameter."));
+                 vw::LogicErr() << "NULL handle not allowed as parameter.");
 
       vw::geometry::set_transform(frame.node, NULL, update);
     }
@@ -450,12 +450,12 @@ namespace vw
     FrameStore::merge_tree(FrameTreeNode * tree, FrameHandle start_frame)
     {
       VW_ASSERT (!is_member(tree),
-                 vw::LogicErr("Merged tree must not yet be member of the FrameStore."));
+                 vw::LogicErr() << "Merged tree must not yet be member of the FrameStore.");
 
       // if a start node is given for mergin
       if (start_frame != NULL_HANDLE) {
         VW_ASSERT (tree->data().name() == start_frame.node->data().name(),
-                   vw::LogicErr("Tree root node does not match start node."));
+                   vw::LogicErr() << "Tree root node does not match start node.");
         vw::geometry::merge_frame_trees(tree, start_frame.node);
         tree->recursive_delete();
         return true;
@@ -493,7 +493,7 @@ namespace vw
     FrameStore::set_frame_transforms(FrameHandleVector const& frames, TransformVector const& transforms)
     {
       VW_ASSERT(frames.size() == transforms.size(),
-                vw::LogicErr("Parameter vectors not of same size."));
+                vw::LogicErr() << "Parameter vectors not of same size.");
 
       RecursiveMutex::Lock lock(m_mutex);
       FrameHandleVector::const_iterator first, last = frames.end();
@@ -542,7 +542,7 @@ namespace vw
 
       for (; first != last; ++ first) {
         if ((*first)->data().name() == name)
-          vw_throw(vw::LogicErr(err));
+          vw_throw(vw::LogicErr() << err);
       }
     }
 

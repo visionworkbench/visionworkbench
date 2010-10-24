@@ -118,9 +118,6 @@ namespace vw {
     /// use streaming (via operator <<) to generate your message.
     Exception() VW_NOTHROW {}
 
-    /// Generates exceptions with the given error message text.
-    Exception( std::string const& s ) VW_NOTHROW { m_desc << s; }
-
     virtual ~Exception() VW_NOTHROW {}
 
     /// Copy Constructor
@@ -211,7 +208,6 @@ namespace vw {
 
 #define _VW_DEFINE_EXCEPTION_CONSTRUCTORS(exception_type, base)                             \
     exception_type() VW_NOTHROW : base() {}                                                 \
-    exception_type(std::string const& s) VW_NOTHROW : base(s) {}                            \
     exception_type( exception_type const& e ) VW_NOTHROW : base( e ) {}                     \
     virtual ~exception_type() VW_NOTHROW {}                                                 \
     inline exception_type& operator=( exception_type const& e ) VW_NOTHROW {                \
