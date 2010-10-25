@@ -126,8 +126,10 @@ protected:
       base = "tmp.tif"; break;
     case 2: // JPG
     default:
+#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
       DiskImageResourceJPEG::set_default_quality(1.0);
       DiskImageResourceJPEG::set_default_subsample_factor(1);
+#endif
       base = "tmp.jpg"; break;
     }
     UnlinkName filename(base);

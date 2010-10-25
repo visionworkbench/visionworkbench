@@ -33,9 +33,11 @@ TEST( BlockFileIO, PNG_Crop ) {
   test_read_crop(TEST_SRCDIR"/mural.png", "cropped.mural.png");
 }
 
+#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
 TEST( BlockFileIO, JPG_Crop ) {
   test_read_crop(TEST_SRCDIR"/mural.jpg", "cropped.mural.jpg");
 }
+#endif
 
 TEST( BlockFileIO, TIF_Post_Crop ) {
   UnlinkName fn1("mural.tif");
