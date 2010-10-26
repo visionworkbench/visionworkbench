@@ -9,7 +9,7 @@
 # sources
 #########################################################################
 
-include_HEADERS = sparseconfig.h
+include_HEADERS = sparseconfig.h libc_allocator_with_realloc.h
 
 #########################################################################
 # general

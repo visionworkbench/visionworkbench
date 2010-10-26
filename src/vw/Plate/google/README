@@ -1,1 +1,4 @@
-This is a slightly modified version of the Google sparsetable class.  We have added support for reading/writing sparse table metadata using C++ iostreams.
+This is a slightly modified version of the Google sparsetable class.  We have
+added support for reading/writing sparse table metadata using C++ iostreams.
+
+This is forked from version 1.9.

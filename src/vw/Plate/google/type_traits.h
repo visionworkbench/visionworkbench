@@ -34,6 +34,7 @@
 //   is_integral
 //   is_floating_point
 //   is_pointer
+//   is_enum
 //   is_reference
 //   is_pod
 //   has_trivial_constructor
@@ -44,7 +45,9 @@
 //   remove_volatile
 //   remove_cv
 //   remove_reference
+//   add_reference
 //   remove_pointer
+//   is_same
 //   is_convertible
 // We can add more type traits as required.
 
@@ -83,6 +86,31 @@ struct big_ {
   char dummy[2];
 };
 
+template <class T> struct is_integral;
+template <class T> struct is_floating_point;
+template <class T> struct is_pointer;
+// MSVC can't compile this correctly, and neither can gcc 3.3.5 (at least)
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && __GNUC__ <= 3)
+// is_enum uses is_convertible, which is not available on MSVC.
+template <class T> struct is_enum;
+#endif
+template <class T> struct is_reference;
+template <class T> struct is_pod;
+template <class T> struct has_trivial_constructor;
+template <class T> struct has_trivial_copy;
+template <class T> struct has_trivial_assign;
+template <class T> struct has_trivial_destructor;
+template <class T> struct remove_const;
+template <class T> struct remove_volatile;
+template <class T> struct remove_cv;
+template <class T> struct remove_reference;
+template <class T> struct add_reference;
+template <class T> struct remove_pointer;
+template <class T, class U> struct is_same;
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && __GNUC__ <= 3)
+template <class From, class To> struct is_convertible;
+#endif
+
 // is_integral is false except for the built-in integer types.
 template <class T> struct is_integral : false_type { };
 template<> struct is_integral<bool> : true_type { };
@@ -120,6 +148,53 @@ template<> struct is_floating_point<long double> : true_type { };
 template <class T> struct is_pointer : false_type { };
 template <class T> struct is_pointer<T*> : true_type { };
 
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && __GNUC__ <= 3)
+
+namespace internal {
+
+template <class T> struct is_class_or_union {
+  template <class U> static small_ tester(void (U::*)());
+  template <class U> static big_ tester(...);
+  static const bool value = sizeof(tester<T>(0)) == sizeof(small_);
+};
+
+// is_convertible chokes if the first argument is an array. That's why
+// we use add_reference here.
+template <bool NotUnum, class T> struct is_enum_impl
+    : is_convertible<typename add_reference<T>::type, int> { };
+
+template <class T> struct is_enum_impl<true, T> : false_type { };
+
+}  // namespace internal
+
+// Specified by TR1 [4.5.1] primary type categories.
+
+// Implementation note:
+//
+// Each type is either void, integral, floating point, array, pointer,
+// reference, member object pointer, member function pointer, enum,
+// union or class. Out of these, only integral, floating point, reference,
+// class and enum types are potentially convertible to int. Therefore,
+// if a type is not a reference, integral, floating point or class and
+// is convertible to int, it's a enum.
+//
+// Is-convertible-to-int check is done only if all other checks pass,
+// because it can't be used with some types (e.g. void or classes with
+// inaccessible conversion operators).
+template <class T> struct is_enum
+    : internal::is_enum_impl<
+          is_same<T, void>::value ||
+              is_integral<T>::value ||
+              is_floating_point<T>::value ||
+              is_reference<T>::value ||
+              internal::is_class_or_union<T>::value,
+          T> { };
+
+template <class T> struct is_enum<const T> : is_enum<T> { };
+template <class T> struct is_enum<volatile T> : is_enum<T> { };
+template <class T> struct is_enum<const volatile T> : is_enum<T> { };
+
+#endif
 
 // is_reference is false except for reference types.
 template<typename T> struct is_reference : false_type {};
@@ -127,11 +202,15 @@ template<typename T> struct is_reference<T&> : true_type {};
 
 
 // We can't get is_pod right without compiler help, so fail conservatively.
-// We will assume it's false except for arithmetic types and pointers,
-// and const versions thereof. Note that std::pair is not a POD.
+// We will assume it's false except for arithmetic types, enumerations,
+// pointers and const versions thereof. Note that std::pair is not a POD.
 template <class T> struct is_pod
  : integral_constant<bool, (is_integral<T>::value ||
                             is_floating_point<T>::value ||
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && __GNUC__ <= 3)
+                            // is_enum is not available on MSVC.
+                            is_enum<T>::value ||
+#endif
                             is_pointer<T>::value)> { };
 template <class T> struct is_pod<const T> : is_pod<T> { };
 
@@ -202,9 +281,12 @@ template<typename T> struct remove_cv {
 };
 
 
-// Specified by TR1 [4.7.2]
+// Specified by TR1 [4.7.2] Reference modifications.
 template<typename T> struct remove_reference { typedef T type; };
 template<typename T> struct remove_reference<T&> { typedef T type; };
+
+template <typename T> struct add_reference { typedef T& type; };
+template <typename T> struct add_reference<T&> { typedef T& type; };
 
 // Specified by TR1 [4.7.4] Pointer modifications.
 template<typename T> struct remove_pointer { typedef T type; };
@@ -215,7 +297,11 @@ template<typename T> struct remove_pointer<T* const volatile> {
   typedef T type; };
 
 // Specified by TR1 [4.6] Relationships between types
-#ifndef _MSC_VER
+template<typename T, typename U> struct is_same : public false_type { };
+template<typename T> struct is_same<T, T> : public true_type { };
+
+// Specified by TR1 [4.6] Relationships between types
+#if !defined(_MSC_VER) && !(defined(__GNUC__) && __GNUC__ <= 3)
 namespace internal {
 
 // This class is an implementation detail for is_convertible, and you
