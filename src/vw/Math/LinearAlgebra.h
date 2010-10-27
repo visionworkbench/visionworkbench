@@ -451,15 +451,26 @@ namespace math {
     return transpose(result);
   }
 
+  namespace detail {
+    template <typename MatrixT, typename VectorT>
+    typename VectorT::value_type
+    calc_threshold(const MatrixBase<MatrixT>& A, const VectorBase<VectorT>& S) {
+      return typename VectorT::value_type( 0.5
+                * sqrt(double(A.impl().cols()) + double(A.impl().rows()) + 1.)
+                * S.impl()[0]
+                * std::numeric_limits<typename VectorT::value_type>::epsilon() );
+    }
+  }
+
   // Solve for the rank of a matrix .. using previous SVD results
   template <class MatrixT, class MatrixT2, class VectorT>
   inline int rank( MatrixBase<MatrixT> const& A,
                    MatrixBase<MatrixT2> const& /*U*/,
                    VectorBase<VectorT> const& S,
                    MatrixBase<MatrixT2> const& /*V*/,
-                   double const& thresh = -1 ) {
-    typedef typename MatrixT::value_type value_type;
-    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
+                   typename VectorT::value_type thresh = -1 ) {
+    typedef typename VectorT::value_type value_type;
+    value_type th = ( thresh >= 0. ? thresh : detail::calc_threshold(A, S) );
     int nr = 0;
     for ( unsigned j = 0; j < S.impl().size(); j++ ) {
       if ( S.impl()[j] > th )
@@ -471,7 +482,7 @@ namespace math {
   // Solve for the rank of a matrix. Implementation from pg 68, of Numerical Receipes 3rd Edition
   template <class MatrixT>
   inline int rank( MatrixBase<MatrixT> const& A,
-                   double const& thresh = -1 ) {
+                   typename MatrixT::value_type thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     Matrix<value_type> U, V;
     Vector<value_type> S;
@@ -486,9 +497,9 @@ namespace math {
                          MatrixBase<MatrixT2> const& /*U*/,
                          VectorBase<VectorT> const& S,
                          MatrixBase<MatrixT2> const& /*V*/,
-                         double const& thresh = -1 ) {
+                         typename VectorT::value_type thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
-    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S.impl()[0]*std::numeric_limits<value_type>::epsilon() );
+    value_type th = ( thresh >= 0. ? thresh : detail::calc_threshold(A, S) );
     size_t nn = boost::numeric_cast<size_t>(A.impl().cols()-S.impl().size());
     for ( size_t j = 0; j < S.impl().size(); j++ ) {
       if ( S.impl()[j] <= th )
@@ -499,7 +510,8 @@ namespace math {
 
   // Nullity of a matrix (again from Numerical Receipes)
   template <class MatrixT>
-  inline size_t nullity( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
+  inline size_t nullity( MatrixBase<MatrixT> const& A,
+                         typename MatrixT::value_type thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     Matrix<value_type> U, V;
     Vector<value_type> S;
@@ -511,7 +523,8 @@ namespace math {
   // Solve for the nullspace of a Matrix A. If Ax = [0], the nullspace
   // is an x that is not zero.
   template <class MatrixT >
-  inline Matrix<typename MatrixT::value_type> nullspace( MatrixBase<MatrixT> const& A, double thresh = -1 ) {
+  inline Matrix<typename MatrixT::value_type> nullspace( MatrixBase<MatrixT> const& A,
+                                                         typename MatrixT::value_type thresh = -1 ) {
     typedef typename MatrixT::value_type value_type;
     Matrix<value_type> U, V;
     Vector<value_type> S;
@@ -522,7 +535,7 @@ namespace math {
     if ( nty == 0 )
       return Matrix<value_type>(0,0);
     Matrix<value_type> nullsp(A.impl().cols(), nty );
-    double th = ( thresh >= 0. ? thresh : 0.5*sqrt(A.impl().cols()+A.impl().rows()+1.)*S[0]*std::numeric_limits<value_type>::epsilon() );
+    value_type th = ( thresh >= 0. ? thresh : detail::calc_threshold(A, S) );
     size_t nn = 0;
     for ( size_t j = 0; j < A.impl().cols(); j++ ) {
       if ( j < S.size() )
