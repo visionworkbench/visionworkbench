@@ -49,11 +49,11 @@ namespace gui {
     // in the quad tree for a given col, row, level request.
     int compute_child_id(int col, int row, int level, int current_level) {
 
-      int tile_x = col / int(pow(2,level-current_level));
-      int tile_y = row / int(pow(2,level-current_level));
+      int tile_x = col / (1 << (level-current_level));
+      int tile_y = row / (1 << (level-current_level));
 
-      if (tile_x >= pow(2, current_level) ||
-          tile_y >= pow(2, current_level))
+      if (tile_x >= (1 << current_level) ||
+          tile_y >= (1 << current_level))
         vw_throw(TileNotFoundErr() << "TreeNode: invalid index ("
                  << col << " " << row << " at level " << level << ").");
       tile_x %= 2;

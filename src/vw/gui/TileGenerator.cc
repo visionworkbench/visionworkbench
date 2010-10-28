@@ -30,11 +30,11 @@ namespace fs = boost::filesystem;
 // --------------------------------------------------------------------------------
 
 BBox2i vw::gui::tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level) {
-  if (col < 0 || row < 0 || col >= pow(2, max_level) || row >= pow(2, max_level) ) {
+  if (col < 0 || row < 0 || col >= (1 << max_level) || row >= (1 << max_level) ) {
     return BBox2i();
   } else {
     BBox2i result(tile_size[0]*col, tile_size[1]*row, tile_size[0], tile_size[1]);
-    return result * pow(2,max_level - level);
+    return result * (1 << (max_level - level));
   }
 }
 
@@ -42,7 +42,7 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
   std::list<TileLocator> results;
 
   // Compute the bounding box at the current level.
-  BBox2i level_bbox = bbox / pow(2,max_level - level);
+  BBox2i level_bbox = bbox / (1 << (max_level - level));
 
   // Grow that bounding box to align with tile boundaries
   BBox2i aligned_level_bbox = level_bbox;
@@ -311,8 +311,8 @@ PixelRGBA<float32> WebTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/,
   return result;
 }
 
-int WebTileGenerator::cols() const { return m_tile_size * pow(2,m_levels-1); }
-int WebTileGenerator::rows() const { return m_tile_size * pow(2,m_levels-1); }
+int WebTileGenerator::cols() const { return m_tile_size * (1 << (m_levels-1)); }
+int WebTileGenerator::rows() const { return m_tile_size * (1 << (m_levels-1)); }
 PixelFormatEnum WebTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
 ChannelTypeEnum WebTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
 Vector2i WebTileGenerator::tile_size() const {
@@ -459,11 +459,11 @@ boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileL
 }
 
 int PlatefileTileGenerator::cols() const {
-  return this->tile_size()[0] * pow(2, m_num_levels-1);
+  return this->tile_size()[0] * (1 << (m_num_levels-1));
 }
 
 int PlatefileTileGenerator::rows() const {
-  return this->tile_size()[1] * pow(2, m_num_levels-1);
+  return this->tile_size()[1] * (1 << (m_num_levels-1));
 }
 
 PixelFormatEnum PlatefileTileGenerator::pixel_format() const {
@@ -501,7 +501,7 @@ boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<SrcImage
                                                       int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
   rsrc->read(tile.buffer(), tile_bbox);
-  ImageView<PixelT> reduced_tile = subsample(tile, pow(2,(num_levels-1) - level));
+  ImageView<PixelT> reduced_tile = subsample(tile, (1 << ((num_levels-1) - level)));
   return boost::shared_ptr<ViewImageResource>( new ViewImageResource(reduced_tile) );
 }
 
