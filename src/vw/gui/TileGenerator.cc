@@ -48,9 +48,9 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
   BBox2i aligned_level_bbox = level_bbox;
   aligned_level_bbox.min().x() = ( (level_bbox.min().x() / tile_size[0]) * tile_size[0] );
   aligned_level_bbox.min().y() = ( (level_bbox.min().y() / tile_size[1]) * tile_size[1] );
-  aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) / tile_size[0] ))
+  aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) / float(tile_size[0]) ))
                                    * tile_size[0] );
-  aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) / tile_size[1] ))
+  aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) / float(tile_size[1]) ))
                                    * tile_size[1] );
 
   int tile_y = aligned_level_bbox.min().y() / tile_size[1];
@@ -249,11 +249,11 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
       std::cout << "WARNING: Request " << request_id << " failed for URL: " 
                 << buf.url << "\n\t" << m_http->errorString().toStdString() << "\n";
       ImageView<PixelRGBA<float> > vw_image(1,1);
-      vw_image(0,0) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
+      vw_image(0,0) = PixelRGBA<float>(1.0f,0.0f,0.0f,1.0f);
       buf.result = vw_image;
     } else if (buf.status == 404) {
       ImageView<PixelRGBA<float> > vw_image(1,1);
-      vw_image(0,0) = PixelRGBA<float>(0.0,0.1,0.0,1.0);
+      vw_image(0,0) = PixelRGBA<float>(0.0f,0.1f,0.0f,1.0f);
       buf.result = vw_image;
     }
 
@@ -641,5 +641,5 @@ Vector2i ImageTileGenerator::tile_size() const {
 int32 ImageTileGenerator::num_levels() const {
   int32 max_dimension = std::max(this->cols(), this->rows());
   int32 max_tilesize = std::max(this->tile_size()[0], this->tile_size()[1]);
-  return ceil(log(float(max_dimension) / max_tilesize) / log(2));
+  return boost::numeric_cast<int32>(ceil(log(float(max_dimension) / float(max_tilesize)) / log(2)));
 }
