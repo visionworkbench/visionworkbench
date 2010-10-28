@@ -6,6 +6,7 @@
 
 
 #include <vw/gui/TileGenerator.h>
+#include <vw/Plate/HTTPUtils.h>
 #include <vw/Image/ViewImageResource.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/Statistics.h>
@@ -83,39 +84,29 @@ std::list<TileLocator> vw::gui::bbox_to_tiles(Vector2i tile_size, BBox2i bbox, i
 //                              TILE GENERATOR
 // --------------------------------------------------------------------------
 
-boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename) {
+boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename_) {
 
-  // Strip off any trailing slashes to make sure we aren't
-  // accidentally misparsing a platefile name.
-  if (filename[filename.size()-1] == '/')
-    filename.erase(filename.size()-1, 1);
+  // Remove trailing /
+  boost::trim_right_if(filename_, boost::is_any_of("/"));
+  Url u(filename_);
 
   try {
-
-    // If ends in .plate, then assume platefile.
-    if ( fs::extension(filename) == ".plate") {
-
-      return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(filename) );
-
-    // If begins with http://, then assume web tiles.
-    } else if ( filename.find("http://") == 0) {
-
-      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(filename,17));
-
-    // If testpattern, then we use the testpattern tile generator
-    } else if (filename == "testpattern") {
-
-      vw_out() << "\t--> Starting vwv in testpattern mode.\n";
-      return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
-
-    // Otherwise, assume an image.
+    if (u.scheme() == "http") {
+      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(u.string(),17));
+    } else if (u.scheme() == "file") {
+      if (fs::extension(u.path()) == ".plate")
+        return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(u.path()) );
+      else if (u.path() == "testpattern")
+        return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
+      else
+        return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(u.path()) );
     } else {
-      return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(filename) );
+      std::cerr << "Could not open " << u << ":\n\t" << "No handler for url scheme " << u.scheme() << std::endl;
     }
-  } catch (vw::IOErr &e) {
-    std::cout << "An error occurred opening \"" << filename << "\":\n\t" << e.what() << "\n";
-    exit(0);
+  } catch (const vw::Exception& e) {
+    std::cerr << "Could not open " << u << ":\n\t" << e.what() << std::endl;
   }
+  exit(EXIT_FAILURE);
 }
 
 
