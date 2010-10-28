@@ -11,6 +11,7 @@
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/MaskViews.h>
+#include <vw/Core/Debugging.h>
 
 #include <QUrl>
 #include <QBuffer>
@@ -609,12 +610,11 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
 }
 
 Vector2 ImageTileGenerator::minmax() {
-  return Vector2(0,1.0); // TODO: Implement this properly
+  vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << " not implemented.");
 }
 
 PixelRGBA<float32> ImageTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
-  PixelRGBA<float32> result; // TODO: Implement this properly
-  return result;
+  vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << " not implemented.");
 }
 
 
@@ -641,5 +641,5 @@ Vector2i ImageTileGenerator::tile_size() const {
 int32 ImageTileGenerator::num_levels() const {
   int32 max_dimension = std::max(this->cols(), this->rows());
   int32 max_tilesize = std::max(this->tile_size()[0], this->tile_size()[1]);
-  return boost::numeric_cast<int32>(ceil(log(float(max_dimension) / float(max_tilesize)) / log(2)));
+  return 1 + boost::numeric_cast<int32>(ceil(log(float(max_dimension) / float(max_tilesize)) / log(2)));
 }

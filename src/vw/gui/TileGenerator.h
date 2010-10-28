@@ -34,7 +34,7 @@ namespace gui {
     bool exact_transaction_id_match;
 
     bool is_valid() const {
-      return (col >= 0 && row >= 0 && col < pow(2, level) && row < pow(2, level));
+      return col >= 0 && row >= 0 && col < (1 << level) && row < (1 << level);
     }
   };
 
