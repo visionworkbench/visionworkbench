@@ -35,7 +35,7 @@ protected:
   typedef LogStereoPreprocessingFilter PreFilter;
 
   void SetUp() {
-    stretch = float(istretch)/100;
+    stretch = float32(istretch)/100;
 
     boost::rand48 gen(10);
     image1 = transform(channel_cast_rescale<uint8>(uniform_noise_view( gen, IMAGE_SIZE, IMAGE_SIZE )),
@@ -71,7 +71,7 @@ protected:
     return error / (double(IMAGE_SIZE)*double(IMAGE_SIZE));
   }
 
-  float stretch, translation;
+  float32 stretch, translation;
   ImageView<uint8> image1, image2;
   ImageView<PixelMask<Vector2f> > starting_disp;
 };
@@ -194,5 +194,5 @@ TEST_F( SubPixelCorrelate70Test, BayesEM70 ) {
   //EXPECT_LT(error, 0.198);      // Use for subpixel w/o pyramid
   //EXPECT_LE(invalid_count, 7);
   EXPECT_LT(error, 0.9);
-  EXPECT_LE(invalid_count, 47);
+  EXPECT_LE(invalid_count, 48);
 }
