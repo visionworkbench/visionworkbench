@@ -11,18 +11,46 @@
 
 if MAKE_MODULE_IMAGE
 
-include_HEADERS = PixelIterator.h ImageViewBase.h PixelAccessors.h	\
-	ImageView.h ImageIO.h ImageViewRef.h PixelTypeInfo.h		\
-	PixelMath.h PixelTypes.h PixelMask.h ImageResource.h		\
-	ImageResourceView.h ViewImageResource.h Manipulation.h		\
-	PerPixelViews.h PerPixelAccessorViews.h ImageMath.h		\
-	EdgeExtension.h Interpolation.h Convolution.h Filter.h		\
-	Filter.tcc Transform.h Statistics.h Algorithms.h EdgeExtend.h	\
-	BlockProcessor.h BlockRasterize.h UtilityViews.h Palette.h	\
-	MaskViews.h SparseImageCheck.h ImageResourceImpl.h
+include_HEADERS = \
+  Algorithms.h \
+  BlockProcessor.h \
+  BlockRasterize.h \
+  Convolution.h \
+  EdgeExtend.h \
+  EdgeExtension.h \
+  Filter.h \
+  Filter.tcc \
+  ImageIO.h \
+  ImageMath.h \
+  ImageResource.h \
+  ImageResourceImpl.h \
+  ImageResourceView.h \
+  ImageViewBase.h \
+  ImageView.h \
+  ImageViewRef.h \
+  Interpolation.h \
+  Manipulation.h \
+  MaskViews.h \
+  Palette.h \
+  PerPixelAccessorViews.h \
+  PerPixelViews.h \
+  PixelAccessors.h \
+  PixelIterator.h \
+  PixelMask.h \
+  PixelMath.h \
+  PixelTypeInfo.h \
+  PixelTypes.h \
+  SparseImageCheck.h \
+  Statistics.h \
+  Transform.h \
+  UtilityViews.h \
+  ViewImageResource.h
 
-libvwImage_la_SOURCES = PixelTypeInfo.cc ImageResource.cc Filter.cc     \
-	Interpolation.cc
+libvwImage_la_SOURCES = \
+  Filter.cc \
+  ImageResource.cc \
+  Interpolation.cc \
+  PixelTypeInfo.cc
 
 libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
 
