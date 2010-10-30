@@ -42,7 +42,7 @@ namespace vw {
     }
 
     VarArray( size_t size ) : m_data(new T[size]), m_size(size) {
-      std::fill(begin(),end(),T());
+      std::uninitialized_fill(begin(),end(),T());
     }
 
     template <class IterT>
@@ -88,11 +88,11 @@ namespace vw {
       if( preserve ) {
         if( new_size > m_size ) {
           std::copy( m_data.get(), m_data.get()+m_size, new_data.get() );
-          std::fill( new_data.get()+m_size, new_data.get()+new_size, T() );
+          std::uninitialized_fill( new_data.get()+m_size, new_data.get()+new_size, T() );
         }
         else std::copy( m_data.get(), m_data.get()+new_size, new_data.get() );
       }
-      else std::fill( new_data.get(), new_data.get()+new_size, T() );
+      else std::uninitialized_fill( new_data.get(), new_data.get()+new_size, T() );
       m_data = new_data;
       m_size = new_size;
     }
