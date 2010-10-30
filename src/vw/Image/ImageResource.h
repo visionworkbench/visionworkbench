@@ -43,59 +43,86 @@ namespace vw {
 
   };
 
+  // A read-only image resource
+  class SrcImageResource {
+    public:
+      virtual ~SrcImageResource() {}
 
-  /// Base class from which specific image resources derive.
-  class ImageResource {
+      /// Returns the number of columns in an image resource.
+      virtual int32 cols() const = 0;
+
+      /// Returns the number of rows in an image resource.
+      virtual int32 rows() const = 0;
+
+      /// Returns the number of planes in an image resource.
+      virtual int32 planes() const = 0;
+
+      /// Returns the number of channels in a image resource.
+      int32 channels() const { return num_channels( pixel_format() ); }
+
+      /// Returns the native pixel format of the resource.
+      virtual PixelFormatEnum pixel_format() const = 0;
+
+      /// Returns the native channel type of the resource.
+      virtual ChannelTypeEnum channel_type() const = 0;
+
+      /// Read the image resource at the given location into the given buffer.
+      virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
+
+      /// Returns the preferred block size/alignment for partial reads.
+      virtual Vector2i block_read_size() const { return Vector2i(cols(),rows()); }
+
+      /// Query whether this ImageResource has a nodata value
+      virtual bool has_nodata_value() const { return false; }
+
+      /// Fetch this ImageResource's nodata value
+      virtual double nodata_value() const { return 0.0; }
+  };
+
+  // A write-only image resource
+  class DstImageResource {
+    public:
+      virtual ~DstImageResource() {}
+
+      /// Write the given buffer to the image resource at the given location.
+      virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
+
+      /// Does this resource support block writes?
+      virtual bool has_block_write() const { return false; }
+
+      /// Gets the preferred block size/alignment for partial writes.
+      virtual Vector2i block_write_size() const {
+        vw_throw(NoImplErr() << "This ImageResource does not support block writes");
+      }
+
+      /// Sets the preferred block size/alignment for partial writes.
+      virtual void set_block_write_size(const Vector2i& /*v*/) {
+        vw_throw(NoImplErr() << "This ImageResource does not support block writes");
+      }
+
+      /// Set a nodata value that will be stored in the underlying stream
+      virtual void set_nodata_value( double /*value*/ ) {
+        vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value().");
+      };
+
+      /// Force any changes to be written to the resource.
+      virtual void flush() = 0;
+  };
+
+  // A read-write image resource
+  class ImageResource : public SrcImageResource, public DstImageResource {
   public:
-
-    virtual ~ImageResource() {};
-
-    /// Returns the number of columns in an image resource.
-    virtual int32 cols() const = 0;
-
-    /// Returns the number of rows in an image resource.
-    virtual int32 rows() const = 0;
-
-    /// Returns the number of planes in an image resource.
-    virtual int32 planes() const = 0;
-
-    /// Returns the number of channels in a image resource.
-    int32 channels() const { return num_channels( pixel_format() ); }
-
-    /// Returns the native pixel format of the resource.
-    virtual PixelFormatEnum pixel_format() const = 0;
-
-    /// Returns the native channel type of the resource.
-    virtual ChannelTypeEnum channel_type() const = 0;
-
-    /// Read the image resource at the given location into the given buffer.
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
-
-    /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
-
-    /// Returns the preferred block size/alignment for partial reads or writes.
-    virtual Vector2i block_size() const { return Vector2i(cols(),rows()); }
-
-    /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_block_size( Vector2i const& ) {
-      vw_throw(NoImplErr() << "This ImageResource does not support set_block_size().");
-    };
-
-    /// Query whether this ImageResource has a nodata value
-    virtual bool has_nodata_value() const { return false; }
-
-    /// Fetch this ImageResource's nodata value
-    virtual double nodata_value() const { return 0.0; }
-
-    /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_nodata_value( double /*value*/ ) {
-      vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value().");
-    };
-
-    /// Force any changes to be written to the resource.
+    // Functions from the old interface to let it compile.
     virtual void flush() {}
 
+    virtual Vector2i block_size() const VW_DEPRECATED {
+      return this->block_read_size();
+    }
+
+    virtual void set_block_size(const Vector2i& v) VW_DEPRECATED {
+      if (has_block_write())
+        set_block_write_size(v);
+    }
   };
 
 
@@ -128,8 +155,15 @@ namespace vw {
     void read( ImageBuffer const& buf, BBox2i const& bbox ) const { m_resource->read(buf,bbox); }
     void write( ImageBuffer const& buf, BBox2i const& bbox ) { m_resource->write(buf, bbox); }
 
-    Vector2i block_size() const { return m_resource->block_size(); }
-    void set_block_size( Vector2i const& size ) { m_resource->set_block_size(size); }
+    Vector2i block_read_size() const { return m_resource->block_read_size(); }
+    void set_block_write_size( Vector2i const& size ) { m_resource->set_block_write_size(size); }
+
+    // Implement the deprecated functions
+    Vector2i block_size() const VW_DEPRECATED { return m_resource->block_read_size(); }
+    void set_block_size( Vector2i const& size ) VW_DEPRECATED {
+      if (m_resource->has_block_write())
+        m_resource->set_block_write_size(size);
+    }
 
     void flush() { m_resource->flush(); }
   };
