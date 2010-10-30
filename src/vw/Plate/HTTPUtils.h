@@ -37,6 +37,9 @@ class QueryMap {
     // prefix if map is nonempty.
     std::string serialize(const std::string& prefix = "?", const std::string& sep = "&") const;
 
+    // set a value, and return a reference to it for incremental use
+    std::string& set(const std::string& key, const std::string& value);
+
     template <typename DataT>
     DataT get(const std::string& key, DataT defaultt) const {
       map_t::const_iterator i = m_map.find(key);

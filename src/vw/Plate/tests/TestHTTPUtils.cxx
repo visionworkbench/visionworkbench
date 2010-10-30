@@ -46,9 +46,14 @@ TEST(HTTPUtils, QueryMap) {
   EXPECT_EQ("rawr", a.get("key", string("rawr")));
 
   QueryMap b("pants=cheese&rawr=moo");
+  // This technically isn't guaranteed... there's no map ordering.
   EXPECT_EQ("?pants=cheese&rawr=moo", b.serialize());
   EXPECT_EQ("moo", b.get("rawr", string("pants")));
   EXPECT_EQ("pants", b.get("rawr2", string("pants")));
+
+  EXPECT_EQ("none", b.get("moon", string("none")));
+  b.set("moon", "stars");
+  EXPECT_EQ("stars", b.get("moon", string("none")));
 }
 
 TEST(HTTPUtils, Http) {
