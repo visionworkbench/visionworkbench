@@ -19,6 +19,8 @@
 # include <vw/Image/ImageResourceOpenCV.h>
 #endif
 
+#include <vw/Image/ImageResourceStream.h>
+
 #undef __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 
 #endif

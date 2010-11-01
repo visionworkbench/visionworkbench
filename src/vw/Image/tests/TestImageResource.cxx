@@ -5,7 +5,6 @@
 // __END_LICENSE__
 
 
-// TestImageResource.h
 #include <gtest/gtest.h>
 
 #include <vw/Image/ImageResource.h>
@@ -19,7 +18,16 @@
 # include <opencv/cxcore.h>
 #endif
 
+#include <boost/iostreams/device/array.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
+#include <boost/iostreams/stream.hpp>
+namespace io = boost::iostreams;
+
+#include <boost/filesystem/operations.hpp>
+namespace fs = boost::filesystem;
+
 using namespace vw;
+using namespace vw::test;
 
 // This tests whether premultiplication preserves integer data.
 TEST( ImageResource, PreMultiply ) {
@@ -49,11 +57,225 @@ TEST( ImageResource, PreMultiply ) {
     EXPECT_PIXEL_EQ( buf3_data[i], buf1_data[i] );
 }
 
+struct TestStream : public ::testing::Test {
+  protected:
+    static const size_t WIDTH = 2;
+    static const size_t HEIGHT = 3;
+    static const size_t SIZE = WIDTH * HEIGHT;
+  private:
+    static const char canary[SIZE];
+  protected:
+    static const char src_data[SIZE];
+
+    char src_buf[SIZE];
+    char dst_buf[SIZE];
+    char back_buf[SIZE];
+    ImageFormat fmt;
+
+    size_t size() const {return SIZE;}
+
+    void SetUp() {
+      fmt.cols = WIDTH;
+      fmt.rows = HEIGHT;
+      fmt.planes = 1;
+      fmt.pixel_format = VW_PIXEL_GRAY;
+      fmt.channel_type = VW_CHANNEL_UINT8;
+
+      std::copy(src_data, src_data+SIZE, src_buf);
+    }
+
+    void CHECK(const char* e, const char* a, size_t size = 0) const {
+      if (size == 0) size = SIZE;
+      EXPECT_RANGE_EQ(e, e+SIZE, a, a+SIZE);
+    }
+    void CANARY(char* loc, size_t size = 0) const {
+      assert(size <= SIZE);
+      if (size == 0) size = SIZE;
+      std::copy(canary+0, canary+size, loc);
+    }
+};
+const char TestStream::src_data[TestStream::SIZE] = {'P', 'a', 'n', 't', 's', '!'};
+const char TestStream::canary[TestStream::SIZE] = {43, 47, 53, 59, 61, 67};
+
+TEST_F(TestStream, Read) {
+  const BBox2i box(0,0,WIDTH,HEIGHT);
+  io::stream<io::array_source> s1(src_data, size());
+  SrcImageResourceStream r(&s1);
+
+  ImageBuffer dst(fmt, dst_buf);
+
+  CANARY(dst_buf);
+  ASSERT_NO_THROW(r.read(dst, box));
+  CHECK(src_data, dst_buf);
+
+  // reset the read pointer for another read
+  ASSERT_NO_THROW(r.reset());
+
+  // repeat read to make sure it's supported (after we seek).
+  CANARY(dst_buf);
+  ASSERT_NO_THROW(r.read(dst, box));
+  CHECK(src_data, dst_buf);
+}
+
+TEST_F(TestStream, Write) {
+  const BBox2i box(0,0,WIDTH,HEIGHT);
+  io::stream<io::array_sink> s1(dst_buf, size());
+
+  DstImageResourceStream r(&s1);
+
+  ImageBuffer src(fmt, src_buf);
+
+  // install canary
+  CANARY(dst_buf);
+  ASSERT_NO_THROW(r.write(src, box));
+  ASSERT_NO_THROW(r.flush());
+  CHECK(src_data, dst_buf);
+
+  // reset the write pointer for another write
+  ASSERT_NO_THROW(r.reset());
+
+  // repeat write to make sure it's supported (after we reset)
+  CANARY(dst_buf);
+  ASSERT_NO_THROW(r.reset());
+  ASSERT_NO_THROW(r.write(src, box));
+  ASSERT_NO_THROW(r.flush());
+  CHECK(src_data, dst_buf);
+}
+
+TEST_F(TestStream, ReadWrite) {
+  const BBox2i box(0,0,WIDTH,HEIGHT);
+
+  io::stream<io::array> ss(back_buf, back_buf+SIZE);
+  ImageResourceStream r(&ss);
+  EXPECT_THROW(r.cols(), LogicErr);
+
+  ImageBuffer src(fmt, src_buf);
+  ImageBuffer dst(fmt, dst_buf);
+
+  CANARY(dst_buf);
+  CANARY(back_buf);
+
+  // Do a normal write, a reset, and then a normal read
+  ASSERT_NO_THROW(r.write(src, box));
+  ASSERT_NO_THROW(r.flush());
+  CHECK(src_data, back_buf);
+
+  // reset the pointer for the reread
+  ASSERT_NO_THROW(r.reset());
+
+  ASSERT_NO_THROW(r.read(dst, box));
+  CHECK(src_data, dst_buf);
+}
+
+TEST_F(TestStream, WriteResize) {
+  const BBox2i box(0,0,WIDTH,HEIGHT);
+
+  UnlinkName name("resizewrite");
+  std::ofstream f(name.c_str(), std::ios::binary | std::ios::trunc);
+  ASSERT_TRUE(f.is_open());
+
+  DstImageResourceStream r(&f);
+
+  ImageBuffer src(fmt, src_buf);
+
+  EXPECT_FALSE(f.bad());
+  //ASSERT_NO_THROW(r.write(src, box));
+  r.write(src, box);
+  ASSERT_NO_THROW(r.flush());
+  ASSERT_EQ(size(), fs::file_size(name));
+
+  // reset the pointer for the rewrite
+  ASSERT_NO_THROW(r.reset());
+
+  // repeat write to make sure it doesn't resize even bigger (it should overwrite old)
+  ASSERT_NO_THROW(r.write(src, box));
+  ASSERT_NO_THROW(r.flush());
+  ASSERT_EQ(size(), fs::file_size(name));
+
+  // this should now append to the file
+  ASSERT_NO_THROW(r.write(src, box));
+  ASSERT_NO_THROW(r.flush());
+  ASSERT_EQ(2*size(), fs::file_size(name));
+}
+
+#if 0
+TEST_F(TestStream, ReadWriteConvert) {
+
+#if 0
+  ImageBuffer src2(fmt, src_buf);
+  // Now that we've done a write, we can do a convert read
+  src2.format.pixel_format = VW_PIXEL_SCALAR;
+  // Set up canary
+  std::copy(idata+0, idata+SIZE, dst_data);
+
+  ASSERT_NO_THROW(r.read(dst, box));
+  EXPECT_RANGE_EQ(rstr.begin(), rstr.end(), ss.str().begin(), ss.str().end());
+  EXPECT_RANGE_EQ(rdata+0, rdata+SIZE, dst_data+0, dst_data+SIZE);
+#endif
+}
+#endif
+
+
+TEST_F(TestStream, StreamError) {
+  const BBox2i box(0,0,WIDTH,HEIGHT);
+  const BBox2i big_box(0,0,WIDTH+1,HEIGHT+1);
+  const size_t BIG_SIZE = (WIDTH+1) * (HEIGHT+1);
+  const char src_data_big[BIG_SIZE] = {'P', 'a', 'n', 't', 's', '!', 'H', 'e', 'l', 'l', 'o', '!'};
+  char dst_buf_big[BIG_SIZE], src_buf_big[BIG_SIZE];
+
+  io::stream<io::array> ss(back_buf+0, back_buf+SIZE);
+  ImageResourceStream r(&ss);
+
+  ImageFormat big_fmt = fmt;
+  big_fmt.cols = WIDTH+1;
+  big_fmt.rows = HEIGHT+1;
+
+  // Set up canary in dst
+  CANARY(back_buf);
+
+  // Set up source data (since imagebuffer needs non-const void*)
+  std::copy(src_data_big, src_data_big+BIG_SIZE, src_buf_big);
+
+  ImageBuffer src(fmt, &src_buf);
+  ImageBuffer big_src(big_fmt, &src_buf_big);
+
+  // Try a write without enough room to hold it
+  EXPECT_FALSE(ss.bad());
+  EXPECT_THROW(r.write(big_src, big_box), IOErr);
+  // Make sure that the error is cleared, we already "handled" it by throwing
+  EXPECT_FALSE(ss.bad());
+
+  // Now retry the write with a proper size
+  ASSERT_NO_THROW(r.reset());
+  ASSERT_NO_THROW(r.write(src, box));
+  EXPECT_FALSE(ss.bad());
+  CHECK(src_data, back_buf);
+
+  // Now try a read without enough data
+  CANARY(dst_buf);
+  std::copy(src_data+0, src_data+SIZE, back_buf);
+
+  ImageBuffer dst(fmt, &dst_buf);
+  ImageBuffer big_dst(big_fmt, &dst_buf_big);
+
+  EXPECT_FALSE(ss.fail());
+  EXPECT_THROW(r.read(big_dst, big_box), IOErr);
+  // Make sure that the error is cleared, we already "handled" it by throwing
+  EXPECT_FALSE(ss.fail());
+
+  ASSERT_NO_THROW(r.reset());
+
+  // Now retry the read with a proper size
+  ASSERT_NO_THROW(r.read(dst, box));
+  EXPECT_FALSE(ss.fail());
+  CHECK(src_data, dst_buf);
+}
+
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
 struct ImageResourceOpenCVTest : public ::testing::Test, private boost::noncopyable {
-    typedef boost::shared_ptr<cv::Mat>             mat_t;
-    typedef boost::shared_ptr<ImageResource>       wir_t;
+    typedef boost::shared_ptr<cv::Mat>       mat_t;
+    typedef boost::shared_ptr<ImageResource> wir_t;
     typedef boost::shared_ptr<const ImageResource> rir_t;
     typedef uint8  in_px_t;
     typedef double out_px_t;
@@ -87,7 +309,7 @@ struct ImageResourceOpenCVTest : public ::testing::Test, private boost::noncopya
   }
 
   BBox2i box(const ImageBuffer& buf) const {
-    size_t cols = buf.format.cols, rows = buf.format.rows;
+    int cols = buf.format.cols, rows = buf.format.rows;
     return BBox2i(0,rows/2,cols,rows);
   }
 

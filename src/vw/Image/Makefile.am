@@ -24,6 +24,7 @@ include_HEADERS = \
   ImageMath.h \
   ImageResource.h \
   ImageResourceImpl.h \
+  ImageResourceStream.h \
   ImageResourceView.h \
   ImageViewBase.h \
   ImageView.h \
@@ -49,6 +50,7 @@ include_HEADERS = \
 libvwImage_la_SOURCES = \
   Filter.cc \
   ImageResource.cc \
+  ImageResourceStream.cc \
   Interpolation.cc \
   PixelTypeInfo.cc
 

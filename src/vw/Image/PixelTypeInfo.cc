@@ -14,34 +14,100 @@
 
 #include <boost/algorithm/string.hpp>
 
-vw::uint32 vw::channel_size( vw::ChannelTypeEnum type ) {
-  switch( type ) {
-  case VW_CHANNEL_BOOL:
-    return sizeof(bool);
-  case VW_CHANNEL_CHAR:
-  case VW_CHANNEL_INT8:
-  case VW_CHANNEL_UINT8:
-  case VW_CHANNEL_GENERIC_1_BYTE:
-    return 1;
-  case VW_CHANNEL_INT16:
-  case VW_CHANNEL_UINT16:
-  case VW_CHANNEL_FLOAT16:
-  case VW_CHANNEL_GENERIC_2_BYTE:
-    return 2;
-  case VW_CHANNEL_INT32:
-  case VW_CHANNEL_UINT32:
-  case VW_CHANNEL_FLOAT32:
-  case VW_CHANNEL_GENERIC_4_BYTE:
-    return 4;
-  case VW_CHANNEL_INT64:
-  case VW_CHANNEL_UINT64:
-  case VW_CHANNEL_FLOAT64:
-  case VW_CHANNEL_GENERIC_8_BYTE:
-    return 8;
-  default:
-    vw_throw( ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
-    return 0; // never reached
+bool vw::simple_conversion(vw::ChannelTypeEnum a, vw::ChannelTypeEnum b) {
+  if (a == b)
+    return true;
+  if (channel_size_nothrow(a) != channel_size_nothrow(b))
+    return false;
+
+  switch (a) {
+    case VW_CHANNEL_GENERIC_1_BYTE:
+    case VW_CHANNEL_GENERIC_2_BYTE:
+    case VW_CHANNEL_GENERIC_4_BYTE:
+    case VW_CHANNEL_GENERIC_8_BYTE: return true;
+    default: /* noop */ break;
   }
+
+  switch (b) {
+    case VW_CHANNEL_GENERIC_1_BYTE:
+    case VW_CHANNEL_GENERIC_2_BYTE:
+    case VW_CHANNEL_GENERIC_4_BYTE:
+    case VW_CHANNEL_GENERIC_8_BYTE: return true;
+    default: /* noop */ break;
+  }
+
+  // we can do something about CHAR <-> UINT8/INT8, but it's rarely used, and we
+  // have to figure out if char is signed or unsigned.
+
+  return false;
+}
+
+bool vw::simple_conversion(vw::PixelFormatEnum a, vw::PixelFormatEnum b) {
+  if (a == b)
+    return true;
+  if (num_channels_nothrow(a) != num_channels_nothrow(b))
+    return false;
+
+  switch (a) {
+    case VW_PIXEL_SCALAR:
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GENERIC_1_CHANNEL:
+    case VW_PIXEL_GENERIC_2_CHANNEL:
+    case VW_PIXEL_GENERIC_3_CHANNEL:
+    case VW_PIXEL_GENERIC_4_CHANNEL:
+    case VW_PIXEL_GENERIC_5_CHANNEL:
+    case VW_PIXEL_GENERIC_6_CHANNEL: return true;
+    default: /* noop */ break;
+  }
+
+  switch (b) {
+    case VW_PIXEL_SCALAR:
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GENERIC_1_CHANNEL:
+    case VW_PIXEL_GENERIC_2_CHANNEL:
+    case VW_PIXEL_GENERIC_3_CHANNEL:
+    case VW_PIXEL_GENERIC_4_CHANNEL:
+    case VW_PIXEL_GENERIC_5_CHANNEL:
+    case VW_PIXEL_GENERIC_6_CHANNEL: return true;
+    default: /* noop */ break;
+  }
+
+  return false;
+}
+
+vw::uint32 vw::channel_size_nothrow( vw::ChannelTypeEnum type ) {
+  switch( type ) {
+    case VW_CHANNEL_BOOL:
+      return sizeof(bool);
+    case VW_CHANNEL_CHAR:
+    case VW_CHANNEL_INT8:
+    case VW_CHANNEL_UINT8:
+    case VW_CHANNEL_GENERIC_1_BYTE:
+      return 1;
+    case VW_CHANNEL_INT16:
+    case VW_CHANNEL_UINT16:
+    case VW_CHANNEL_FLOAT16:
+    case VW_CHANNEL_GENERIC_2_BYTE:
+      return 2;
+    case VW_CHANNEL_INT32:
+    case VW_CHANNEL_UINT32:
+    case VW_CHANNEL_FLOAT32:
+    case VW_CHANNEL_GENERIC_4_BYTE:
+      return 4;
+    case VW_CHANNEL_INT64:
+    case VW_CHANNEL_UINT64:
+    case VW_CHANNEL_FLOAT64:
+    case VW_CHANNEL_GENERIC_8_BYTE:
+      return 8;
+    default:
+      return 0;
+  }
+}
+
+vw::uint32 vw::channel_size( vw::ChannelTypeEnum type ) {
+  vw::uint32 size = channel_size_nothrow(type);
+  VW_ASSERT(size > 0, ArgumentErr() << "Unrecognized or unsupported channel type (" << type << ")." );
+  return size;
 }
 
 const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
@@ -67,7 +133,7 @@ const char *vw::channel_type_name( vw::ChannelTypeEnum format ) {
   }
 }
 
-vw::uint32 vw::num_channels( vw::PixelFormatEnum format ) {
+vw::uint32 vw::num_channels_nothrow( vw::PixelFormatEnum format ) {
   switch( format ) {
   case VW_PIXEL_SCALAR:
   case VW_PIXEL_GRAY:
@@ -100,9 +166,14 @@ vw::uint32 vw::num_channels( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_6_CHANNEL:
     return 6;
   default:
-    vw_throw( ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
-    return 0; // never reached
+    return 0;
   }
+}
+
+vw::uint32 vw::num_channels( vw::PixelFormatEnum format ) {
+  vw::uint32 num = num_channels_nothrow(format);
+  VW_ASSERT(num > 0, ArgumentErr() << "Unrecognized or unsupported pixel format (" << format << ")." );
+  return num;
 }
 
 const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {

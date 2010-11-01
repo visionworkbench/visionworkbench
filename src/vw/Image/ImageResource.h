@@ -41,6 +41,24 @@ namespace vw {
         channel_type(VW_CHANNEL_UNKNOWN)
     {}
 
+    // Does this represent a fully-specified data format?
+    bool complete() const {
+      return   cols != 0
+          &&   rows != 0
+          && planes != 0
+          && num_channels_nothrow(pixel_format) > 0
+          && channel_size_nothrow(channel_type) > 0;
+    }
+
+    inline bool simple_convert(const ImageFormat& b) const {
+      return same_size(b)
+          && simple_conversion(channel_type, b.channel_type)
+          && simple_conversion(pixel_format, b.pixel_format);
+    }
+
+    inline bool same_size(const ImageFormat& b) const {
+      return cols == b.cols && rows == b.rows && planes == b.planes;
+    }
   };
 
   // A read-only image resource
@@ -169,6 +187,11 @@ namespace vw {
 
     /// Returns the native channel type of the bufffer.
     inline ChannelTypeEnum channel_type() const { return format.channel_type; }
+
+    /// Returns the size (in bytes) of the data described by this buffer
+    inline size_t byte_size() const {
+      return planes() * pstride;
+    }
 
     /// Returns a cropped version of this bufffer.
     inline ImageBuffer cropped( BBox2i const& bbox ) const {
