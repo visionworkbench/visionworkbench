@@ -36,7 +36,7 @@ namespace vw {
     typedef ProceduralPixelAccessor<ImageResourceView<PixelT> > pixel_accessor;
 
     /// Constructs an ImageResourceView of the given resource.
-    ImageResourceView( boost::shared_ptr<ImageResource> resource )
+    ImageResourceView( boost::shared_ptr<SrcImageResource> resource )
       : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
     {
       initialize();
@@ -45,7 +45,7 @@ namespace vw {
     /// Constructs an ImageResourceView of the given resource.  Takes
     /// ownership of the resource object (i.e. deletes it when it's
     /// done using it).
-    ImageResourceView( ImageResource *resource )
+    ImageResourceView( SrcImageResource *resource )
       : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
     {
       initialize();
@@ -76,7 +76,7 @@ namespace vw {
     /// Returns a pixel_accessor pointing to the origin.
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
-    const ImageResource *resource() const { return m_rsrc.get(); }
+    const SrcImageResource *resource() const { return m_rsrc.get(); }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i bbox ) const {
@@ -109,7 +109,7 @@ namespace vw {
       }
     }
 
-    boost::shared_ptr<ImageResource> m_rsrc;
+    boost::shared_ptr<SrcImageResource> m_rsrc;
     int32 m_planes;
     boost::shared_ptr<Mutex> m_rsrc_mutex;
   };

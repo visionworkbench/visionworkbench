@@ -49,33 +49,33 @@ namespace vw {
 
     /// Constructs a DiskImageView of the given file on disk.
     DiskImageView( std::string const& filename, bool cache=true )
-      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given file on disk
     /// using the specified cache area.
     DiskImageView( std::string const& filename, Cache& cache )
-      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource.
     DiskImageView( boost::shared_ptr<DiskImageResource> resource, bool cache=true )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.
     DiskImageView( boost::shared_ptr<DiskImageResource> resource, Cache& cache )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource.  Takes
     /// ownership of the resource object (i.e. deletes it when it's
     /// done using it).
     DiskImageView( DiskImageResource *resource, bool cache=true )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.  Takes ownership of the resource object
     /// (i.e. deletes it when it's done using it).
     DiskImageView( DiskImageResource *resource, Cache& cache )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<ImageResource>(m_rsrc), m_rsrc->block_size(), 1, cache ) {}
+      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     ~DiskImageView() {}
 

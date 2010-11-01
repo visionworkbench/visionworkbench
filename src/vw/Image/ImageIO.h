@@ -25,7 +25,7 @@ namespace vw {
   // *******************************************************************
 
   template <class PixelT>
-  inline void read_image( ImageView<PixelT>& dst, ImageResource const& src, BBox2i const& bbox ) {
+  inline void read_image( ImageView<PixelT>& dst, SrcImageResource const& src, BBox2i const& bbox ) {
     int32 planes = 1;
     if( ! IsCompound<PixelT>::value ) {
       // The image has a fundamental pixel type
@@ -38,44 +38,44 @@ namespace vw {
   }
 
   template <class PixelT>
-  inline void read_image( ImageView<PixelT>& dst, ImageResource const& src ) {
+  inline void read_image( ImageView<PixelT>& dst, SrcImageResource const& src ) {
     read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
   }
 
   template <class PixelT>
-  inline void read_image( ImageView<PixelT> const& dst, ImageResource const& src, BBox2i const& bbox ) {
+  inline void read_image( ImageView<PixelT> const& dst, SrcImageResource const& src, BBox2i const& bbox ) {
     src.read( dst.buffer(), bbox );
   }
 
   template <class PixelT>
-  inline void read_image( ImageView<PixelT> const& dst, ImageResource const& src ) {
+  inline void read_image( ImageView<PixelT> const& dst, SrcImageResource const& src ) {
     read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
   }
 
   template <class ImageT>
-  inline void read_image( ImageViewBase<ImageT> const& dst, ImageResource const& src, BBox2i const& bbox ) {
+  inline void read_image( ImageViewBase<ImageT> const& dst, SrcImageResource const& src, BBox2i const& bbox ) {
     ImageView<typename ImageT::pixel_type> intermediate;
     read_image( intermediate, src, bbox );
     dst.impl() = intermediate;
   }
 
   template <class ImageT>
-  inline void read_image( ImageViewBase<ImageT> const& dst, ImageResource const& src ) {
+  inline void read_image( ImageViewBase<ImageT> const& dst, SrcImageResource const& src ) {
     read_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
   }
 
   template <class PixelT>
-  inline void write_image( ImageResource &dst, ImageView<PixelT> const& src, BBox2i const& bbox ) {
+  inline void write_image( DstImageResource &dst, ImageView<PixelT> const& src, BBox2i const& bbox ) {
     dst.write( src.buffer(), bbox );
   }
 
   template <class PixelT>
-  inline void write_image( ImageResource &dst, ImageView<PixelT> const& src ) {
-    write_image( dst, src, BBox2i(0,0,dst.cols(),dst.rows()) );
+  inline void write_image( DstImageResource &dst, ImageView<PixelT> const& src ) {
+    write_image( dst, src, BBox2i(0,0,src.cols(),src.rows()) );
   }
 
   template <class ImageT>
-  inline void write_image( ImageResource &dst, ImageViewBase<ImageT> const& src, BBox2i const& bbox ) {
+  inline void write_image( DstImageResource &dst, ImageViewBase<ImageT> const& src, BBox2i const& bbox ) {
     ImageView<typename ImageT::pixel_type> intermediate = src;
     write_image( dst, intermediate, bbox );
   }
@@ -146,14 +146,14 @@ namespace vw {
 
     template <class PixelT>
     class WriteBlockTask : public Task {
-      ImageResource& m_resource;
+      DstImageResource& m_resource;
       ImageView<PixelT> m_image_block;
       BBox2i m_bbox;
       int m_idx;
       CountingSemaphore& m_write_finish_event;
 
     public:
-      WriteBlockTask(ImageResource& resource, ImageView<PixelT> const& image_block,
+      WriteBlockTask(DstImageResource& resource, ImageView<PixelT> const& image_block,
                      BBox2i bbox, int idx, CountingSemaphore& write_finish_event) :
       m_resource(resource), m_image_block(image_block), m_bbox(bbox), m_idx(idx), m_write_finish_event(write_finish_event) {}
 
@@ -170,7 +170,7 @@ namespace vw {
     template <class ViewT>
     class RasterizeBlockTask : public Task {
       ThreadedBlockWriter &m_parent;
-      ImageResource& m_resource;
+      DstImageResource& m_resource;
       ViewT const& m_image;
       BBox2i m_bbox;
       int m_index;
@@ -179,7 +179,7 @@ namespace vw {
       CountingSemaphore& m_write_finish_event;
 
     public:
-      RasterizeBlockTask(ThreadedBlockWriter &parent, ImageResource& resource,
+      RasterizeBlockTask(ThreadedBlockWriter &parent, DstImageResource& resource,
                          ImageViewBase<ViewT> const& image, BBox2i const& bbox,
                          int index, int total_num_blocks,
                          CountingSemaphore& write_finish_event,
@@ -221,7 +221,7 @@ namespace vw {
     // index, which will indicate the order in which this block should
     // be written to disk.
     template <class ViewT>
-    void add_block(ImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
+    void add_block(DstImageResource& resource, ImageViewBase<ViewT> const& image, BBox2i const& bbox, int index, int total_num_blocks,
                    const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       boost::shared_ptr<Task> task( new RasterizeBlockTask<ViewT>(*this, resource, image, bbox, index, total_num_blocks, m_write_queue_limit, progress_callback) );
       this->add_rasterize_task(task);
@@ -236,7 +236,7 @@ namespace vw {
 
   /// Write an image view to a resource.
   template <class ImageT>
-  void block_write_image( ImageResource& resource, ImageViewBase<ImageT> const& image,
+  void block_write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
                           const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
 
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
@@ -252,25 +252,31 @@ namespace vw {
     // thread) at a time.
     ThreadedBlockWriter block_writer;
 
+    const size_t rows = image.impl().rows();
+    const size_t cols = image.impl().cols();
+
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
-    Vector2i block_size = resource.block_size();
-    int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
+    Vector2i block_size(cols, rows);
+    if (resource.has_block_write())
+      block_size = resource.block_write_size();
+
+    int total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
     vw_out(DebugMessage,"image") << "ThreadedBlockWriter: writing " << total_num_blocks << " blocks.\n";
 
-    for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
-      for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
+    for (size_t j = 0; j < rows; j+= block_size.y()) {
+      for (size_t i = 0; i < cols; i+= block_size.x()) {
 
         // Rasterize and save this image block
         BBox2i current_bbox(Vector2i(i,j),
-                            Vector2i(std::min(i+block_size.x(),(int32)(resource.cols())),
-                                     std::min(j+block_size.y(),(int32)(resource.rows()))));
+                            Vector2i(std::min<size_t>(i+block_size.x(),cols),
+                                     std::min<size_t>(j+block_size.y(),rows)));
 
         // Add a task to rasterize this image block.  A seperate task
         // to write the results to disk is generated automatically
         // when rasterization is complete.
-        int col_blocks = int( ceil(float(resource.cols())/float(block_size.x())) );
+        int col_blocks = int( ceil(float(cols)/float(block_size.x())) );
         int i_block_index = int(i/block_size.x());
         int j_block_index = int(j/block_size.y());
         int index = j_block_index*col_blocks+i_block_index;
@@ -287,7 +293,7 @@ namespace vw {
 
 
   template <class ImageT>
-  void write_image( ImageResource& resource, ImageViewBase<ImageT> const& image,
+  void write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
 
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
@@ -296,30 +302,36 @@ namespace vw {
     // Initialize the progress callback
     progress_callback.report_progress(0);
 
+    const size_t rows = image.impl().rows();
+    const size_t cols = image.impl().cols();
+
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
     // it rasterizes blocks from left to right, then top to bottom.
-    Vector2i block_size = resource.block_size();
-    int total_num_blocks = ((resource.rows()-1)/block_size.y()+1) * ((resource.cols()-1)/block_size.x()+1);
-    for (int32 j = 0; j < (int32)resource.rows(); j+= block_size.y()) {
-      for (int32 i = 0; i < (int32)resource.cols(); i+= block_size.x()) {
+    Vector2i block_size(cols, rows);
+    if (resource.has_block_write())
+      block_size = resource.block_write_size();
+
+    int total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
+    for (size_t j = 0; j < rows; j+= block_size.y()) {
+      for (size_t i = 0; i < cols; i+= block_size.x()) {
 
         vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
-                                       << resource.rows() << " " << resource.cols()
+                                       << rows << " " << cols
                                        << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
         // Update the progress callback.
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
-        float processed_row_blocks = float(j/block_size.y()*((resource.cols()-1)/block_size.x()+1));
+        float processed_row_blocks = float(j/block_size.y()*((cols-1)/block_size.x()+1));
         float processed_col_blocks = float(i/block_size.x());
         progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
 
         // Rasterize and save this image block
         BBox2i current_bbox(Vector2i(i,j),
-                            Vector2i(std::min(i+block_size.x(),(int32)(resource.cols())),
-                                     std::min(j+block_size.y(),(int32)(resource.rows()))));
+                            Vector2i(std::min<size_t>(i+block_size.x(),cols),
+                                     std::min<size_t>(j+block_size.y(),rows)));
 
         // Rasterize the current image block into a region of memory
         // and send it off to the resource.
