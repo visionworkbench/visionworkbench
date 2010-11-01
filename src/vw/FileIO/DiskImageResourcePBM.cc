@@ -145,7 +145,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
 
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourcePBM does not support partial reads." );
-  VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
+  VW_ASSERT( dest.format.cols==uint32(cols()) && dest.format.rows==uint32(rows()),
              IOErr() << "Buffer has wrong dimensions in PBM read." );
 
   ifstream input(m_filename.c_str(), fstream::in|fstream::binary);
@@ -267,7 +267,7 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
                                   BBox2i const& bbox ) {
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourcePBM does not support partial writes." );
-  VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
+  VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
              IOErr() << "Buffer has wrong dimensions in PBM write." );
 
   fstream output(m_filename.c_str(), fstream::out|fstream::binary|fstream::app);

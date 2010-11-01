@@ -291,7 +291,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
       vw_throw(IOErr() << "DiskImageResourcePNG: cannot read entire file unless line marker set at beginning.");
 
     boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
-    for(int i=0; i < outer->m_format.rows; i++)
+    for(size_t i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = static_cast<png_bytep>(dst.get()) + i * outer->m_format.cols * cstride;
     png_read_image(ctx.ptr, row_pointers.get());
     current_line = outer->m_format.rows;
@@ -466,7 +466,7 @@ struct DiskImageResourcePNG::vw_png_write_context:
   {
     boost::scoped_array<png_bytep> row_pointers( new png_bytep[outer->m_format.rows] );
 
-    for(int i=0; i < outer->m_format.rows; i++)
+    for(size_t i=0; i < outer->m_format.rows; i++)
       row_pointers[i] = reinterpret_cast<uint8*>(buf.data) + i * cstride * outer->m_format.cols;
 
     png_write_image(ctx.ptr, row_pointers.get());
@@ -658,7 +658,7 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
 
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourcePNG does not support partial writes." );
-  VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
+  VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
              ArgumentErr() << "DiskImageResourcePNG: Buffer has wrong dimensions in PNG write." );
 
   // Set up the image buffer and convert the data into this buffer.

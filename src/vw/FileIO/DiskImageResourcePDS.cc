@@ -252,7 +252,7 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
 {
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourcePDS does not support partial reads." );
-  VW_ASSERT( dest.format.cols==cols() && dest.format.rows==rows(),
+  VW_ASSERT( dest.format.cols==uint32(cols()) && dest.format.rows==uint32(rows()),
              IOErr() << "Buffer has wrong dimensions in PDS read." );
 
   // Re-open the file, and shift the file offset to the position of
@@ -348,10 +348,10 @@ void vw::DiskImageResourcePDS::read( ImageBuffer const& dest, BBox2i const& bbox
         int16 valid_minimum = atoi(valid_minimum_str.c_str());
         uint8* src_row = (uint8*)src.data;
         uint8* dst_row = (uint8*)dest.data;
-        for( int32 y=0; y<m_format.rows; ++y ) {
+        for( uint32 y=0; y<m_format.rows; ++y ) {
           uint8* src_data = src_row;
           uint8* dst_data = dst_row;
-          for( int32 x=0; x<m_format.cols; ++x ) {
+          for( uint32 x=0; x<m_format.cols; ++x ) {
             if( *((int16*)src_data) < valid_minimum ) {
               std::memset( dst_data, 0, dst_bpp );
             }

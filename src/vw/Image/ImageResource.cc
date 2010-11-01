@@ -437,13 +437,13 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
 
   uint8 *src_ptr_p = (uint8*)src.data;
   uint8 *dst_ptr_p = (uint8*)dst.data;
-  for( int32 p=0; p<src.format.planes; ++p ) {
+  for( uint32 p=0; p<src.format.planes; ++p ) {
     uint8 *src_ptr_r = src_ptr_p;
     uint8 *dst_ptr_r = dst_ptr_p;
-    for( int32 r=0; r<src.format.rows; ++r ) {
+    for( uint32 r=0; r<src.format.rows; ++r ) {
       uint8 *src_ptr_c = src_ptr_r;
       uint8 *dst_ptr_c = dst_ptr_r;
-      for( int32 c=0; c<src.format.cols; ++c ) {
+      for( uint32 c=0; c<src.format.cols; ++c ) {
 
         // Setup the buffers, adjusting premultiplication if needed
         uint8 *src_ptr = src_ptr_c;

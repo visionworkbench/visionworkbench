@@ -575,8 +575,8 @@ namespace vw {
 
       GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(channel_type());
       // We've already ensured that either planes==1 or channels==1.
-      for (int32 p = 0; p < dst.format.planes; p++) {
-        for (int32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
+      for (uint32 p = 0; p < dst.format.planes; p++) {
+        for (uint32 c = 0; c < num_channels(dst.format.pixel_format); c++) {
           GDALRasterBand *band = get_dataset_ptr()->GetRasterBand(c+p+1);
 
           band->RasterIO( GF_Write, bbox.min().x(), bbox.min().y(), bbox.width(), bbox.height(),

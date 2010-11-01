@@ -332,7 +332,7 @@ void DiskImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox )
 {
   VW_ASSERT( bbox.width()==int(cols()) && bbox.height()==int(rows()),
              NoImplErr() << "DiskImageResourceJPEG does not support partial writes." );
-  VW_ASSERT( src.format.cols==cols() && src.format.rows==rows(),
+  VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
              IOErr() << "Buffer has wrong dimensions in JPEG write." );
 
   // Set up the JPEG data structures
