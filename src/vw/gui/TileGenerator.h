@@ -134,6 +134,7 @@ namespace gui {
     void request_started(int id);
     void response_header_received( const QHttpResponseHeader & resp );
     void request_finished(int id, bool error);
+    void state_changed(int state);
   };
 
   class WebTileGenerator : public TileGenerator {

@@ -838,6 +838,16 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     m_gl_texture_cache->clear();
     update();
     break;
+  case Qt::Key_Greater:   // Increase transaction id
+    m_current_transaction_id+=100;
+    m_gl_texture_cache->clear();
+    update();
+    break;
+  case Qt::Key_Less:  // Decrease transaction id
+    m_current_transaction_id-=100;
+    m_gl_texture_cache->clear();
+    update();
+    break;
   case Qt::Key_E:  // Toggle exact transaction id match
     m_exact_transaction_id_match = !m_exact_transaction_id_match;
     m_gl_texture_cache->clear();

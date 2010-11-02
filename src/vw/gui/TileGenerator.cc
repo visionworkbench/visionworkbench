@@ -161,9 +161,10 @@ int32 TestPatternTileGenerator::num_levels() const {
 
 HttpDownloadThread::HttpDownloadThread() {
   m_http = new QHttp(NULL);
-  connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));
-  connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));
-  connect(m_http, SIGNAL(responseHeaderReceived(QHttpResponseHeader)),this, SLOT(response_header_received(QHttpResponseHeader)));
+  connect(m_http, SIGNAL(requestStarted(int)),this, SLOT(request_started(int)));  
+  connect(m_http, SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));  
+  connect(m_http, SIGNAL(responseHeaderReceived(QHttpResponseHeader)),this, SLOT(response_header_received(QHttpResponseHeader)));  
+  connect(m_http, SIGNAL(stateChanged(int)),this, SLOT(state_changed(int)));  
 }
 
 void HttpDownloadThread::run() {
@@ -180,15 +181,12 @@ int HttpDownloadThread::get(std::string url_string, int transaction_id,
   Mutex::Lock lock(m_mutex);
   QUrl url(url_string.c_str());
 
-  std::cout << "URL STRING: " << url.toString().toStdString() << "\n";
-  std::cout << "URL FRAG: " << url.fragment().toStdString() << "\n";
-
   /// XXX: Hard coding file_type as PNG for now. FIXME!!!!
   std::string file_type = "png";
 
   int request_id;
   if (m_http) {
-    m_http->setHost(url.host());
+    m_http->setHost(url.host(),url.port());
 
     // Set up request buffer
     RequestBuffer buf;
@@ -199,7 +197,7 @@ int HttpDownloadThread::get(std::string url_string, int transaction_id,
     path_with_opts << url.path().toStdString() << "?nocache=1&transaction_id=" << transaction_id;
     if (exact_transaction_id_match)
       path_with_opts << "&exact=1";
-    vw_out() << "\t --> Fetching " << path_with_opts.str() << "\n";
+    vw_out() << "\t --> Fetching http://" << url.host().toStdString() << path_with_opts.str() << "\n";
     QString final_path_str(path_with_opts.str().c_str());
     request_id = m_http->get (final_path_str, buf.buffer.get());
     m_requests[request_id] = buf;
@@ -220,10 +218,13 @@ vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_
   return result;
 }
 
-void HttpDownloadThread::request_started(int /*request_id*/) {}
+void HttpDownloadThread::request_started(int request_id) {
+  //  std::cout << "Request " << request_id << " started\n";
+}
 
 void HttpDownloadThread::response_header_received( const QHttpResponseHeader & resp ) {
   Mutex::Lock lock(m_mutex);
+  //  std::cout << "Header received...\n";
 
   std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(m_current_request);
   if (request_iter != m_requests.end()) {
@@ -242,15 +243,20 @@ void HttpDownloadThread::response_header_received( const QHttpResponseHeader & r
   }
 }
 
+void HttpDownloadThread::state_changed(int state) {
+  Mutex::Lock lock(m_mutex);
+  //  std::cout << "HTTP State changed: " << state << "\n";
+}
+
 void HttpDownloadThread::request_finished(int request_id, bool error) {
   Mutex::Lock lock(m_mutex);
   std::map<int, RequestBuffer>::iterator request_iter = m_requests.find(request_id);
   if (request_iter != m_requests.end()) {
     RequestBuffer &buf = request_iter->second;
 
-    if (buf.status != 404 && buf.status != 200) {
-      std::cout << "WARNING: Request " << request_id << " failed with status " << buf.status
-                << " for URL: " << buf.url << "\n";
+    if (error || (buf.status != 404 && buf.status != 200)) {
+      std::cout << "WARNING: Request " << request_id << " failed for URL: " 
+                << buf.url << "\n\t" << m_http->errorString().toStdString() << "\n";
       ImageView<PixelRGBA<float> > vw_image(1,1);
       vw_image(0,0) = PixelRGBA<float>(1.0,0.0,0.0,1.0);
       buf.result = vw_image;
