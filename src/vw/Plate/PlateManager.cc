@@ -9,12 +9,15 @@
 #include <vw/Plate/TileManipulation.h>
 #include <vw/Image/Transform.h>
 
-// mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
-void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& bbox,
-                                         int transaction_id, bool preblur,
-                                         const ProgressCallback &progress_callback,
-                                         int stopping_level) const {
+using namespace vw::platefile;
+using namespace vw;
 
+// mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
+template <class PixelT>
+void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
+                                  int transaction_id, bool preblur,
+                                  const ProgressCallback &progress_callback,
+                                  int stopping_level) const {
 
   // Adjust the size of the bbox for the first mipmapping level, which
   // is one level up from the starting_level.  We also pad it
@@ -125,3 +128,82 @@ void vw::platefile::PlateManager::mipmap(int starting_level, vw::BBox2i const& b
   }
   progress_callback.report_finished();
 }
+
+// Calculate the TileInfo objects of the tiles affected by
+// transforming an image of size 'image_size' with transform 'tx'.
+template <class PixelT>
+void PlateManager<PixelT>::affected_tiles(BBox2i const& image_size,
+                                          TransformRef const& tx,int tile_size,
+                                          std::list<TileInfo>& tiles ) const {
+  BBox2i pyramid_px_bbox = tx.forward_bbox(image_size);
+  tiles.clear();
+
+  int32 min_tile_x =
+    boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().x() / tile_size ));
+  int32 min_tile_y =
+    boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().y() / tile_size ));
+  int32 max_tile_x = 1 +
+    boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().x()  / tile_size ));
+  int32 max_tile_y = 1 +
+    boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().y()  / tile_size ));
+
+  for ( int32 tile_x = min_tile_x; tile_x < max_tile_x; tile_x++ ) {
+    for ( int32 tile_y = min_tile_y; tile_y < max_tile_y; tile_y++ ) {
+      TileInfo tile( tile_x, tile_y,
+                     BBox2i(tile_x*tile_size,tile_y*tile_size,
+                            tile_size, tile_size) );
+
+      // See if it intersects
+      bool intersects = false;
+
+      // Check top boundry of bbox
+      for ( int32 px_x = tile.bbox.min()[0];
+            px_x < tile.bbox.max()[0]-1 && !intersects; px_x++ )
+        if ( image_size.contains( tx.reverse( Vector2(px_x,tile.bbox.min()[1]))))
+          intersects = true;
+
+      // Check right boundry of bbox
+      for ( int32 px_y = tile.bbox.min()[1];
+            px_y < tile.bbox.max()[1]-1 && !intersects; px_y++ )
+        if ( image_size.contains( tx.reverse( Vector2(tile.bbox.max()[0],px_y))))
+          intersects = true;
+
+      // Check bottom boundry of bbox
+      for ( int32 px_x = tile.bbox.max()[0]-1;
+            px_x > tile.bbox.min()[0] && !intersects; px_x-- )
+        if ( image_size.contains( tx.reverse( Vector2(px_x,tile.bbox.max()[1]))))
+          intersects = true;
+
+      // Check left boundry of bbox
+      for ( int32 px_y = tile.bbox.max()[1]-1;
+            px_y > tile.bbox.min()[1] && !intersects; px_y-- )
+        if ( image_size.contains( tx.reverse( Vector2(tile.bbox.min()[0],px_y))))
+          intersects = true;
+
+      // If it intersects, its worth rendering
+      if ( intersects )
+        tiles.push_back( tile );
+    }
+  }
+}
+
+// Explicit template instantiation
+namespace vw {
+namespace platefile {
+
+#define VW_INSTANTIATE_PLATE_MANAGER_TYPES(PIXELT)                             \
+  template void                                                                \
+  PlateManager<PIXELT >::mipmap(int starting_level, BBox2i const& bbox,        \
+                                int transaction_id, bool preblur,              \
+                                const ProgressCallback &progress_callback,     \
+                                int stopping_level) const;                     \
+  template void                                                                \
+  PlateManager<PIXELT >::affected_tiles(BBox2i const& image_size,              \
+                                        TransformRef const& tx, int tile_size, \
+                                        std::list<TileInfo>& tiles ) const;
+
+  VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelGrayA<uint8>)
+  VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelGrayA<int16>)
+  VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelGrayA<float32>)
+  VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelRGBA<uint8>)
+}}

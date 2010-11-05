@@ -9,10 +9,12 @@
 ///
 /// Converts a plate file to GeoTIFF tiles on disk.
 
+#include <vw/Image.h>
+#include <vw/FileIO.h>
+#include <vw/Math.h>
 #include <vw/Plate/PlateView.h>
 #include <vw/Plate/PlateCarreePlateManager.h>
-#include <vw/FileIO.h>
-#include <vw/Image/MaskViews.h>
+#include <vw/Cartography/GeoReference.h>
 
 using namespace vw;
 using namespace vw::platefile;
