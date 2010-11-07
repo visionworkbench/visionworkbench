@@ -33,6 +33,11 @@ namespace platefile {
     PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile,
                             cartography::Datum const& datum ) :
       PlateManager<PixelT>(platefile), m_datum(datum) {}
+    PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile) :
+      PlateManager<PixelT>(platefile), m_datum("WGS84") {}
+
+    // Set Datum
+    void set_datum( cartography::Datum const& datum ) { m_datum = datum; }
 
     // Provide a georeference that represents a pyramid level
     cartography::GeoReference georeference( int level, bool north_pole ) const;
