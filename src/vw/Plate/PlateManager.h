@@ -74,6 +74,10 @@ namespace platefile {
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;
 
+    // Provide the user a platemanager of type mode
+    static PlateManager<PixelT>* make( std::string const& mode,
+                                       boost::shared_ptr<PlateFile> platefile );
+
     // Adds an image to the plate file.
     template <class ViewT>
     void insert( ImageViewBase<ViewT> const& imagebase,

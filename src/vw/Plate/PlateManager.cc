@@ -8,9 +8,12 @@
 #include <vw/Plate/PlateManager.h>
 #include <vw/Plate/TileManipulation.h>
 #include <vw/Image/Transform.h>
+#include <vw/Plate/PlateCarreePlateManager.h>
+#include <vw/Plate/PolarStereoPlateManager.h>
+#include <vw/Plate/ToastPlateManager.h>
 
-using namespace vw::platefile;
 using namespace vw;
+using namespace vw::platefile;
 
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
@@ -187,6 +190,23 @@ void PlateManager<PixelT>::affected_tiles(BBox2i const& image_size,
   }
 }
 
+template <class PixelT>
+PlateManager<PixelT>*
+PlateManager<PixelT>::make( std::string const& mode,
+                            boost::shared_ptr<PlateFile> platefile ) {
+  std::string mode_l = boost::to_lower_copy( mode );
+
+  if ( mode_l == "equi" ) {
+    return new PlateCarreePlateManager<PixelT>(platefile);
+  } else if ( mode_l == "toast" ) {
+    return new ToastPlateManager<PixelT>(platefile);
+  } else if ( mode_l == "polar" ) {
+    return new PolarStereoPlateManager<PixelT>(platefile);
+  } else {
+    vw_throw( ArgumentErr() << "Unknown option: \"" << mode << "\".\n" );
+  }
+}
+
 // Explicit template instantiation
 namespace vw {
 namespace platefile {
@@ -200,7 +220,10 @@ namespace platefile {
   template void                                                                \
   PlateManager<PIXELT >::affected_tiles(BBox2i const& image_size,              \
                                         TransformRef const& tx, int tile_size, \
-                                        std::list<TileInfo>& tiles ) const;
+                                        std::list<TileInfo>& tiles ) const;    \
+  template PlateManager<PIXELT >*                                              \
+  PlateManager<PIXELT >::make( std::string const& mode,                        \
+                               boost::shared_ptr<PlateFile> platefile );
 
   VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_PLATE_MANAGER_TYPES(PixelGrayA<int16>)

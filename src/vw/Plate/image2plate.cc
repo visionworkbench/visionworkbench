@@ -47,39 +47,23 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                std::string filename, int transaction_id_override,
                GeoReference const& georef, std::string output_mode,
                bool tweak_settings_for_terrain) {
+  typedef typename ViewT::pixel_type PixelT;
 
-  std::ostringstream status_str;
-  status_str << "\t    " << filename << " : ";
+  PlateManager<PixelT>* pm =
+    PlateManager<PixelT>::make( output_mode, platefile );
 
-  if (output_mode == "toast") {
-
-    boost::shared_ptr<ToastPlateManager<typename ViewT::pixel_type> > pm(
-      new ToastPlateManager<typename ViewT::pixel_type> (platefile) );
-
-    pm->insert(view.impl(), filename, transaction_id_override, georef,
-               tweak_settings_for_terrain, g_debug,
-               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
-
-  } else if (output_mode == "equi") {
-
-    boost::shared_ptr<PlateCarreePlateManager<typename ViewT::pixel_type> > pm(
-      new PlateCarreePlateManager<typename ViewT::pixel_type> (platefile) );
-
-    pm->insert(view.impl(), filename, transaction_id_override, georef,
-               tweak_settings_for_terrain, g_debug,
-               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
-
-  } else if (output_mode == "polar") {
-
-    boost::shared_ptr<PolarStereoPlateManager<typename ViewT::pixel_type> > pm(
-      new PolarStereoPlateManager<typename ViewT::pixel_type> (platefile,georef.datum()) );
-
-    pm->insert(view.impl(), filename, transaction_id_override, georef,
-               tweak_settings_for_terrain, g_debug,
-               TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
-
+  // Polar Manager needs to know the correct datum.
+  if ( output_mode == "polar" ) {
+    PolarStereoPlateManager<PixelT>* polar =
+      dynamic_cast<PolarStereoPlateManager<PixelT>* >( pm );
+    polar->set_datum( georef.datum() );
   }
 
+  pm->insert(view.impl(), filename, transaction_id_override, georef,
+             tweak_settings_for_terrain, g_debug,
+             TerminalProgressCallback( "plate.tools.image2plate",
+                                       "\t    Processing") );
+  delete pm;
 }
 
 // --------------------------------------------------------------------------
