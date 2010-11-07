@@ -11,10 +11,9 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Math/Vector.h>
 #include <vw/Plate/PlateManager.h>
-#include <vw/Cartography/Datum.h>
 
 namespace vw {
-namespace cartography { class GeoReference; }
+namespace cartography { class GeoReference; class Datum; }
 namespace platefile {
 
   class PlateFile;
@@ -22,7 +21,6 @@ namespace platefile {
   template <class PixelT>
   class PolarStereoPlateManager : public PlateManager<PixelT> {
   protected:
-    cartography::Datum m_datum;
     // Transforms an input image with input georef to polar stereo
     // graphic at most ideal matching pyramid level.
     void transform_image( cartography::GeoReference const& georef,
@@ -30,17 +28,12 @@ namespace platefile {
                           TransformRef& txref, int& level ) const;
 
   public:
-    PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile,
-                            cartography::Datum const& datum ) :
-      PlateManager<PixelT>(platefile), m_datum(datum) {}
-    PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile) :
-      PlateManager<PixelT>(platefile), m_datum("WGS84") {}
-
-    // Set Datum
-    void set_datum( cartography::Datum const& datum ) { m_datum = datum; }
+    PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile):
+      PlateManager<PixelT>(platefile) {}
 
     // Provide a georeference that represents a pyramid level
-    cartography::GeoReference georeference( int level, bool north_pole ) const;
+    cartography::GeoReference georeference( int level, bool north_pole,
+                                            cartography::Datum const& datum ) const;
     cartography::GeoReference georeference( int level ) const;
 
     /// This function generates a specific mipmap tile at the given

@@ -52,13 +52,6 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
   PlateManager<PixelT>* pm =
     PlateManager<PixelT>::make( output_mode, platefile );
 
-  // Polar Manager needs to know the correct datum.
-  if ( output_mode == "polar" ) {
-    PolarStereoPlateManager<PixelT>* polar =
-      dynamic_cast<PolarStereoPlateManager<PixelT>* >( pm );
-    polar->set_datum( georef.datum() );
-  }
-
   pm->insert(view.impl(), filename, transaction_id_override, georef,
              tweak_settings_for_terrain, g_debug,
              TerminalProgressCallback( "plate.tools.image2plate",

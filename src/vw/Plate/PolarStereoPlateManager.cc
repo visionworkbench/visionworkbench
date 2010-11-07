@@ -14,17 +14,17 @@ using namespace vw;
 
 template <class PixelT>
 cartography::GeoReference
-PolarStereoPlateManager<PixelT>::georeference( int level,
-                                               bool north_pole ) const {
-  cartography::GeoReference output_georef( m_datum );
+PolarStereoPlateManager<PixelT>::georeference( int level, bool north_pole,
+                                               cartography::Datum const& datum) const {
+  cartography::GeoReference output_georef( datum );
   output_georef.set_stereographic( north_pole ? 90 : -90, 0, 1.0, 0, 0 );
   Matrix3x3 transform = math::identity_matrix<3>();
   double pixels_per_meters =
-    256*pow(2,level)/(2*m_datum.semi_major_axis());
+    256*pow(2,level)/(2*datum.semi_major_axis());
   transform(0,0) = 1/pixels_per_meters;
   transform(1,1) = -1/pixels_per_meters;
-  transform(0,2) = -m_datum.semi_major_axis();
-  transform(1,2) = m_datum.semi_major_axis();
+  transform(0,2) = -datum.semi_major_axis();
+  transform(1,2) = datum.semi_major_axis();
   output_georef.set_transform( transform );
   return output_georef;
 }
@@ -33,7 +33,7 @@ template <class PixelT>
 cartography::GeoReference
 PolarStereoPlateManager<PixelT>::georeference( int level ) const {
   vw_out(WarningMessage, "plate") << "Return PolarStereoGraphic georeference that is north pole regardless of data!";
-  return this->georeference( level, true );
+  return this->georeference( level, true, cartography::Datum("WGS84") );
 }
 
 template <class PixelT>
@@ -55,18 +55,18 @@ void PolarStereoPlateManager<PixelT>::transform_image(
   bool is_north = north_count > 2;
 
   // Work out output resolution from 5 points
-  cartography::GeoReference output_georef( m_datum );
+  cartography::GeoReference output_georef( georef.datum() );
   output_georef.set_stereographic( is_north ? 90.0 : -90.0, 0, 1.0, 0, 0 );
   {
     Matrix3x3 transform = math::identity_matrix<3>();
     transform(1,1) = -1;
-    transform(0,2) = -m_datum.semi_major_axis();
-    transform(1,2) = m_datum.semi_major_axis();
+    transform(0,2) = -georef.datum().semi_major_axis();
+    transform(1,2) = georef.datum().semi_major_axis();
     output_georef.set_transform( transform );
   }
   cartography::GeoTransform geotx( georef, output_georef );
   // We are seeding pixel_per_meters with the lowest resolution possible
-  double requested_pixels_per_meters=256.0/(2*m_datum.semi_major_axis());
+  double requested_pixels_per_meters=256.0/(2*georef.datum().semi_major_axis());
   for ( uint i = 0; i < 5; i++ ) {
     Vector2 i_pos = geotx.forward( test_points[i] );
     Vector2 x_res = geotx.forward( test_points[i]+Vector2(1,0) ) - i_pos;
@@ -78,15 +78,15 @@ void PolarStereoPlateManager<PixelT>::transform_image(
 
   // Fit requested_pixels_per_meters to the nearest (256*2^n) / (2*major)
   level =
-    boost::numeric_cast<int>(ceil(log(requested_pixels_per_meters*2*m_datum.semi_major_axis()/256)/log(2)));
-  output_georef = this->georeference(level,is_north);
+    boost::numeric_cast<int>(ceil(log(requested_pixels_per_meters*2*georef.datum().semi_major_axis()/256)/log(2)));
+  output_georef = this->georeference(level,is_north,georef.datum());
 
   geotx = cartography::GeoTransform( georef, output_georef );
   BBox2i output_bbox = geotx.forward_bbox( bounding_box(image) );
   vw_out() << "\t    Placing image at level " << level
            << " with bbox " << output_bbox << "\n"
            << "\t    (Total Stereographic resolution at this level =  "
-           << requested_pixels_per_meters*2*m_datum.semi_major_axis() << " pixels.)\n";
+           << requested_pixels_per_meters*2*georef.datum().semi_major_axis() << " pixels.)\n";
   if ( is_north )
     vw_out() << "\t    This is a North Pole image.\n";
   else
@@ -158,7 +158,7 @@ namespace platefile {
                                     TransformRef& txref, int& level ) const; \
   template cartography::GeoReference                                         \
   PolarStereoPlateManager<PIXELT >::georeference(int level,                  \
-                                                 bool north_pole) const;     \
+                    bool north_pole, cartography::Datum const& datum) const; \
   template cartography::GeoReference                                         \
   PolarStereoPlateManager<PIXELT >::georeference(int level) const;           \
   template void                                                              \
