@@ -32,7 +32,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_geocentric = false;
 
   m_meridian_offset = 0;
-  if (name == "WGS84") {
+  if (name == "WGS84" || name == "WGS_1984") {
     m_name = "WGS_1984";
     m_spheroid_name="WGS 84";
     m_semi_major_axis = 6378137.0;
@@ -41,7 +41,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "WGS72") {
+  if (name == "WGS72" || name == "WGS_1972") {
     m_name="WGS_1972";
     m_spheroid_name="WGS 72";
     m_semi_major_axis = 6378135.0;
@@ -50,7 +50,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "NAD83") {
+  if (name == "NAD83" || name == "North_American_Datum_1983") {
     m_name="North_American_Datum_1983";
     m_spheroid_name="GRS 1980";
     m_semi_major_axis = 6378137;
@@ -59,7 +59,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "NAD27") {
+  if (name == "NAD27" || name == "North_American_Datum_1927") {
     m_name="North_American_Datum_1927";
     m_spheroid_name="Clarke 1866";
     m_semi_major_axis = 6378206.4;
