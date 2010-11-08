@@ -237,3 +237,24 @@ TEST(HTTPUtils, PathJoin) {
   EXPECT_EQ("pants/cheese", j.path());
   EXPECT_EQ("file://pants/cheese", j.string());
 }
+
+TEST(HTTPUtils, PlatefileUrl) {
+  EXPECT_THROW(PlatefileUrl u("http://rawr", "pants"), ArgumentErr);
+
+  PlatefileUrl u("http://rawr", "pants.plate");
+  EXPECT_THROW(u.name("pants2"), ArgumentErr);
+
+  EXPECT_EQ("http://rawr/pants.plate", u.string());
+  EXPECT_EQ("pants.plate", u.name());
+  EXPECT_EQ("http://rawr/", u.base().string());
+
+  EXPECT_NO_THROW(u.name("pants2.plate"));
+  EXPECT_EQ("http://rawr/pants2.plate", u.string());
+  EXPECT_EQ("pants2.plate", u.name());
+  EXPECT_EQ("http://rawr/", u.base().string());
+
+  EXPECT_NO_THROW(u.base("moo://moo?bob=waffles"));
+  EXPECT_EQ("moo://moo/pants2.plate?bob=waffles", u.string());
+  EXPECT_EQ("pants2.plate", u.name());
+  EXPECT_EQ("moo://moo/?bob=waffles", u.base().string());
+}

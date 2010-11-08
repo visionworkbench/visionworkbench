@@ -173,9 +173,6 @@ std::vector<std::string> LocalIndex::blob_filenames() const {
 
 void LocalIndex::save_index_file() const {
 
-  // First, check to make sure the platefile directory exists.
-  if ( !fs::exists( m_plate_filename ) )
-    fs::create_directory(m_plate_filename);
   std::ofstream ofstr( this->index_filename().c_str() );
   if (!ofstr.is_open())
     vw_throw(IOErr() << "LocalIndex::save_index_file() -- Could not create index file for writing.");
@@ -188,17 +185,28 @@ void LocalIndex::save_index_file() const {
 
  // ------------------------ Public Methods --------------------------
 
- /// Create a new index.  User supplies a pre-configure blob manager.
- LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info) :
-   PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ),
-              new_index_info),  // superclass constructor
-   m_plate_filename(plate_filename),
-   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
+ /// Create a new index.
+ LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info)
+  : PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ), new_index_info),
+   m_plate_filename(plate_filename), m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() ))
+{
+   // Create subdirectory for storing hard copies of index pages.
+   std::string base_index_path = plate_filename + "/index";
+   VW_ASSERT(!fs::exists(base_index_path), ArgumentErr() << "Attempted to create new LocalIndex over existing index");
+   fs::create_directory(base_index_path);
 
    // Start with the new_index_info, which provides the tile size, file
    // type, pixel and channel types, etc.  Then we augment it with a
    // few things to help track the new platefile.
    m_header = new_index_info;
+
+   // Check to make sure we've selected a sane file type
+   if (m_header.channel_type() == VW_CHANNEL_FLOAT32) {
+     if (m_header.tile_filetype() == "png" || m_header.tile_filetype() == "jpg")
+       vw_out(WarningMessage, "plate")
+         << "Constructing 32-bit floating point platefile with a non-32-bit file-type ("
+         << m_header.tile_filetype() << ").\n";
+   }
 
    // Create a unique (random) platefile_id using the random()
    // function.  It would probably be better to use some sort of fancy
@@ -214,11 +222,6 @@ void LocalIndex::save_index_file() const {
    m_header.set_transaction_write_cursor(1);  // Transaction 1 is the first valid transaction
    m_header.set_num_levels(0);                // Index initially contains zero levels
    this->save_index_file();
-
-   // Create subdirectory for storing hard copies of index pages.
-   std::string base_index_path = plate_filename + "/index";
-   if (!fs::exists(base_index_path))
-     fs::create_directory(base_index_path);
 
    // Create the logging facility
    m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );

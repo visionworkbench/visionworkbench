@@ -24,8 +24,12 @@ namespace platefile {
 
 class Index;
 class Blob;
-class AmqpRpcClient;
 class IndexService;
+
+template <typename ServiceT>
+class RpcClient;
+
+typedef RpcClient<IndexService> IndexClient;
 
 typedef boost::function<int (const ApacheRequest&)> Handler;
 
@@ -68,10 +72,10 @@ class PlateModule {
     std::string get_dem() const;
     bool allow_resync() const;
     std::string get_servername() const;
+    const Url& get_base_url() const;
 
   private:
-    boost::shared_ptr<AmqpRpcClient> m_client;
-    boost::shared_ptr<IndexService>  m_index_service;
+    boost::shared_ptr<IndexClient> m_client;
 
     mutable BlobCache  blob_cache;
     mutable IndexCache index_cache;
@@ -79,7 +83,7 @@ class PlateModule {
     // We don't manage the data, and I think apache might modify it behind the scenes.
     // As such, mark it volatile.
     volatile const plate_config *m_conf;
-    std::string m_queue_name;
+    Url m_base_url;
 };
 
 const PlateModule& mod_plate();

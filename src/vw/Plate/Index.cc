@@ -16,29 +16,17 @@ using namespace vw;
 //                            PLATE INDEX
 // -------------------------------------------------------------------
 
-boost::shared_ptr<Index> Index::construct_create(std::string url, const IndexHeader& new_index_info) {
-
-  // Remote index URLs start with "pf://..."
-  if (url.find("pf://") == 0) {
+boost::shared_ptr<Index> Index::construct_create(const Url& url, const IndexHeader& new_index_info) {
+  if (url.scheme() == "file")
+    return boost::shared_ptr<Index>(new LocalIndex(url.path(), new_index_info));
+  else
     return boost::shared_ptr<Index>(new RemoteIndex(url, new_index_info));
-
-  // All other URLs are passed along to the local index structure
-  } else {
-    return boost::shared_ptr<Index>(new LocalIndex(url, new_index_info));
-  }
-
 }
 
-boost::shared_ptr<Index> Index::construct_open(std::string url) {
-
-  // Remote index URLs start with "pf://..."
-  if (url.find("pf://") == 0) {
+boost::shared_ptr<Index> Index::construct_open(const Url& url) {
+  if (url.scheme() == "file")
+    return boost::shared_ptr<Index>(new LocalIndex(url.path()));
+  else
     return boost::shared_ptr<Index>(new RemoteIndex(url));
-
-  // All other URLs are passed along to the local index structure
-  } else {
-    return boost::shared_ptr<Index>(new LocalIndex(url));
-  }
-
 }
 

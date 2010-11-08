@@ -9,10 +9,10 @@
 ///
 /// Converts a plate file to GeoTIFF tiles on disk.
 
-#include <vw/Image.h>
-#include <vw/FileIO.h>
 #include <vw/Plate/PlateView.h>
 #include <vw/Plate/PlateCarreePlateManager.h>
+#include <vw/FileIO.h>
+#include <vw/Image/MaskViews.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -262,7 +262,8 @@ int main( int argc, char *argv[] ) {
   try {
     handle_arguments( argc, argv, opt );
 
-    boost::shared_ptr<PlateFile> platefile(new PlateFile(opt.plate_file_name));
+    // XXX: should make plate_file_name a Url
+    boost::shared_ptr<PlateFile> platefile(new PlateFile(Url(opt.plate_file_name)));
 
     std::cout << "Opened " << opt.plate_file_name << ".     Depth: "
               << platefile->num_levels() << " levels.\n";

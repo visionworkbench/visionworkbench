@@ -42,11 +42,10 @@ class LocalIndexTest : public ::testing::Test {
 
     fs::create_directories(plate_path);
 
-    index_path = plate_path + "/index";
     blob_path  = plate_path + "/0.blob";
 
     // Now construct the index for it
-    index.reset(new LocalIndex(index_path, index_hdr));
+    index.reset(new LocalIndex(plate_path, index_hdr));
     blob.reset(new Blob(blob_path));
   }
 
@@ -62,7 +61,6 @@ class LocalIndexTest : public ::testing::Test {
 
   UnlinkName plate_path;
 
-  std::string index_path;
   std::string blob_path;
 
   boost::shared_ptr<LocalIndex> index;
@@ -172,7 +170,7 @@ TEST(LocalIndex, IndexRecord) {
 TEST_F(LocalIndexTest, WriteRead) {
 
   // Now read the index back in
-  LocalIndex index2(index_path);
+  LocalIndex index2(plate_path);
 
   EXPECT_EQ(index->version(),       index2.version());
   EXPECT_EQ(index->tile_size(),     index2.tile_size());
@@ -300,7 +298,7 @@ TEST_F(LocalIndexTiles, ReadWrite) {
 
   // Now, let's save the data to disk, and then read it back.
   {
-    index.reset(new LocalIndex(index_path));
+    index.reset(new LocalIndex(plate_path));
     blob.reset(new Blob(blob_path));
 
     // Read the data back from the index

@@ -9,8 +9,6 @@
 #include <http_config.h>
 #include <mod_status.h>
 
-#include <vw/Plate/common.h>
-
 /* Forward declarations (You got c++ in my c!) */
 #include "mod_plate.h"
 
@@ -119,23 +117,6 @@ static const char* handle_alias(cmd_parms* cmd, void* cfg, const char* name, con
     return NULL;\
   }
 
-const char* is_ip_address(const char* arg) {
-    // really stupid heuristic
-    if (!arg)
-        return "Expected an IP address: cannot be null";
-    if (arg[0] < '0' || arg[0] > '9')
-        return "Expected an IP address: should have a leading number";
-    return NULL;
-}
-
-const char* is_bare_exchange(const char* arg) {
-    if (!arg)
-        return "Expected a bare exchange name: cannot be null";
-    if (strchr(arg, '.'))
-        return "Expected a bare exchange name: periods delimit namespaces!";
-    return NULL;
-}
-
 const char* is_platefile_id(const char* arg) {
   if (!arg)
     return "Expected a platefile id: cannot be null";
@@ -162,18 +143,21 @@ const char* is_gt_zero(int arg) {
   return NULL;
 }
 
-ADD_STRING_CONFIG(rabbit_ip, is_ip_address);
-ADD_STRING_CONFIG(index_exchange, is_bare_exchange);
+const char* noop(const char* arg) {
+  (void)arg;
+  return NULL;
+}
+
 ADD_STRING_CONFIG(dem_id, is_platefile_id);
 ADD_STRING_CONFIG(servername, is_servername);
 ADD_INT_CONFIG(index_timeout, is_gt_zero);
 ADD_INT_CONFIG(index_tries, is_gt_zero);
 ADD_FLAG_CONFIG(unknown_resync);
 ADD_FLAG_CONFIG(use_blob_cache);
+ADD_STRING_CONFIG(index_url, noop);
 
 static const command_rec my_cmds[] = {
-  AP_INIT_TAKE1("PlateRabbitMQIP",    handle_rabbit_ip,      NULL, RSRC_CONF, "The IP of the rabbitmq server"),
-  AP_INIT_TAKE1("PlateIndexExchange", handle_index_exchange, NULL, RSRC_CONF, "The rabbitmq exchange on which to look for the index server"),
+  AP_INIT_TAKE1("PlateIndexUrl",      handle_index_url,      NULL, RSRC_CONF, "The URL of the index server"),
   AP_INIT_TAKE1("PlateDemID",         handle_dem_id,         NULL, RSRC_CONF, "The platefile ID of the DEM layer to use"),
   AP_INIT_TAKE1("PlateServerName",    handle_servername,     NULL, RSRC_CONF, "The servername to use for the server in the WTML"),
   AP_INIT_TAKE12("PlateLogRule",      handle_rule,           NULL, RSRC_CONF, "A log rule to add to the vw::RuleSet"),
@@ -190,8 +174,7 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   (void)s;
 
   plate_config* conf = (plate_config*)apr_pcalloc(p, sizeof(plate_config));
-  conf->rabbit_ip      = "127.0.0.1";
-  conf->index_exchange = DEV_INDEX_BARE;
+  conf->index_url      = "amqp://127.0.0.1/index";
   conf->dem_id         = NULL;
   conf->servername     = NULL;
   conf->index_timeout  = 3000;
@@ -203,8 +186,7 @@ static void* create_plate_config(apr_pool_t* p, server_rec* s) {
   return conf;
   // This is the default config file
 #if 0
-  PlateRabbitMQIP 127.0.0.1
-  PlateIndexExchange index
+  PlateIndexUrl amqp://127.0.0.1/index
   PlateLogRule DebugMessage plate.apache
   PlateIndexTimeout 3000
   PlateIndexTries 3

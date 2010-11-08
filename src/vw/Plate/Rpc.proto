@@ -7,25 +7,39 @@
 
 package vw.platefile;
 
-message RpcErrorInfo {
-  required string type = 1;
-  required string message = 2;
+message RpcNullMsg {
+  optional int32 dummy = 1 [ default = 0 ];  // dummy parameter (empty message)
 }
 
-message RpcNullMessage {
-  optional int32 dummy = 1 [ default = 0];  // dummy parameter (empty message)
+// The way enums work:
+//   If you add an enum value to the list, code that doesn't known about that
+//   new value will map it to the default. That default is UNKNOWN, which is
+//   the same as "an exception that we don't specifically handle". You can add
+//   to this enum, just don't re-use numbers.
+message RpcErrorMsg {
+  enum Code {
+    // 0-100 reserved for system
+    SUCCESS = 0;
+    UNKNOWN = 1;
+    REMOTE_ERROR = 2;
+
+    // 101-200 reserved for plate
+    PLATE_UNKNOWN = 101;
+    PLATE_TILE_NOT_FOUND = 102;
+    PLATE_INVALID = 103;
+    PLATE_CREATION_FAILED = 104;
+    PLATE_BLOB_IO = 105;
+    PLATE_BLOB_LIMIT = 106;
+  }
+
+  optional Code code = 1 [ default = UNKNOWN ];
+  optional string msg = 2;
 }
 
-message RpcRequestWrapper {
-  required uint32 sequence_number = 1;
-  required string requestor = 2;
-  required string method = 3;
-  required bytes payload = 4;
-}
-
-message RpcResponseWrapper {
-  required uint32 sequence_number = 1;
-  optional bytes payload = 2;
-  required bool error = 3 [ default = false ];
-  optional RpcErrorInfo error_info = 4;
+message RpcWrapper {
+  required string method     = 1;
+  optional bytes payload     = 2;
+  optional RpcErrorMsg error = 3;
+  optional string requestor  = 4;
+  optional int32 seq         = 5 [default = -1];
 }

@@ -10,7 +10,6 @@
 #include "mod_plate_utils.h"
 #include "mod_plate.h"
 
-#include <vw/Plate/common.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Exception.h>
@@ -273,8 +272,7 @@ extern "C" void mod_plate_child_init(apr_pool_t * /*pchild*/, server_rec *s) {
 
 extern "C" int mod_plate_post_config(apr_pool_t* /*pconf*/, apr_pool_t* /*plog*/, apr_pool_t* /*ptemp*/, server_rec *s) {
   const plate_config* conf = get_plate_config(s);
-  CONF_REQUIRE(rabbit_ip,      "PlateRabbitMQIP");
-  CONF_REQUIRE(index_exchange, "PlateIndexExchange");
+  CONF_REQUIRE(index_url,      "PlateIndexUrl");
   CONF_REQUIRE(dem_id,         "PlateDemID");
   CONF_REQUIRE(servername,     "PlateServerName");
 

@@ -12,6 +12,7 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/foreach.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <vector>
 
 using std::string;
@@ -203,6 +204,66 @@ std::istream& operator>>(std::istream& i, Url& val) {
 
 std::ostream& operator<<(std::ostream& o, const Url& val) {
   return (o << val.string());
+}
+
+void PlatefileUrl::sanity() const {
+  Url::split_t sp = path_split();
+  VW_ASSERT(sp.size() > 0, ArgumentErr() << "Expected a platefile url (bad path)");
+  VW_ASSERT(boost::ends_with(sp.back(), ".plate"), ArgumentErr() << "Expected a platefile url (doesn't end in .plate)");
+}
+
+PlatefileUrl::PlatefileUrl(const char* url) : Url(url) {
+  sanity();
+}
+
+PlatefileUrl::PlatefileUrl(const std::string& url) : Url(url) {
+  sanity();
+}
+
+PlatefileUrl::PlatefileUrl(const Url& url)
+  : Url(url) {
+  sanity();
+}
+
+PlatefileUrl::PlatefileUrl(const Url& u, const std::string& name)
+  : Url(u)
+{
+  Url::split_t path(this->path_split());
+  path.push_back(name);
+  this->path_join(path);
+  sanity();
+}
+
+Url PlatefileUrl::base() const {
+  Url::split_t path(this->path_split());
+  path.pop_back();
+  Url u(*this);
+  u.path_join(path);
+  return u;
+}
+
+void PlatefileUrl::base(const Url& u) {
+  PlatefileUrl url(u, this->name());
+  *this = url;
+}
+
+void PlatefileUrl::name(const std::string& n) {
+  VW_ASSERT(boost::ends_with(n, ".plate"), ArgumentErr() << "Expected a platefile name (doesn't end in .plate)");
+  Url::split_t path(this->path_split());
+  path.back() = n;
+  path_join(path);
+}
+
+std::string PlatefileUrl::name() const {
+  Url::split_t path(this->path_split());
+  return path.back();
+}
+
+std::istream& operator>>(std::istream& i, PlatefileUrl& val) {
+  std::string s;
+  i >> s;
+  val = PlatefileUrl(s);
+  return i;
 }
 
 QueryMap::QueryMap(const std::string& query) {

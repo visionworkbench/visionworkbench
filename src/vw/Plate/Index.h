@@ -20,6 +20,7 @@ namespace vw {
 namespace platefile {
 
   class IndexPage;
+  class Url;
 
   // -------------------------------------------------------------------
   //                          INDEX BASE CLASS
@@ -33,7 +34,7 @@ namespace platefile {
     /// created.  All other URLs will create a local index.
     ///
     /// This method opens an existing index.
-    static boost::shared_ptr<Index> construct_open(std::string url);
+    static boost::shared_ptr<Index> construct_open(const Url& url);
 
     /// Static methods for generating an index of the proper type
     /// (i.e. local vs. remote) based on a URL string.  Any URL string
@@ -41,7 +42,7 @@ namespace platefile {
     /// created.  All other URLs will create a local index.
     ///
     /// This method creates a new index.
-    static boost::shared_ptr<Index> construct_create(std::string url, const IndexHeader& new_index_info);
+    static boost::shared_ptr<Index> construct_create(const Url& url, const IndexHeader& new_index_info);
 
     /// Destructor
     virtual ~Index() {}

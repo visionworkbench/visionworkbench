@@ -239,7 +239,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
 int main( int argc, char *argv[] ) {
 
-  std::string url;
+  Url url;
   std::string start_description;
   std::string output_mode;
   std::string range_string;
@@ -258,7 +258,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-file", po::value<std::string>(&url), "");
+    ("input-file", po::value(&url), "");
 
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
@@ -286,7 +286,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  if (url.empty()) {
+  if (vm.count("input-file") != 1) {
     std::cout << usage.str();
     return 1;
   }
@@ -295,7 +295,7 @@ int main( int argc, char *argv[] ) {
 
     //--------------------------- OPEN THE PLATE FILE -----------------------------
 
-    std::cout << "\nOpening input plate file: " << url << "\n";
+    std::cout << "\nOpening input plate file: " << url.string() << "\n";
     boost::shared_ptr<PlateFile> platefile =
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
 

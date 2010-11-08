@@ -19,6 +19,7 @@ TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
 TestIndexPage_SOURCES         = TestIndexPage.cxx
 TestLocalIndex_SOURCES        = TestLocalIndex.cxx
 TestModPlate_SOURCES          = TestModPlate.cxx
+TestRpc_SOURCES               = TestRpc.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 
 if HAVE_PYTHON
@@ -26,13 +27,13 @@ check_SCRIPTS  += TestModPlateRegression.py
 endif
 
 check_PROGRAMS = \
-  TestAmqp \
   TestBlobIO \
   TestBlobManager \
   TestHTTPUtils \
   TestIndexPage \
   TestLocalIndex \
   TestModPlate \
+  TestRpc \
   TestTileManipulation
 
 if MAKE_MODPLATE

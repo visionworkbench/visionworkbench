@@ -357,6 +357,7 @@ PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
 AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 
 AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
+AX_PKG(ZEROMQ,     [], [-lzmq],      [zmq.hpp])
 AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
 AX_PKG(OPENCV, [], [-lcxcore], [opencv/cxcore.h])
 
@@ -390,6 +391,7 @@ AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_CAIROMM, [test "$HAVE_PKG_CAIROMM" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_RABBITMQ_C, [test "$HAVE_PKG_RABBITMQ_C" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_ZEROMQ, [test "$HAVE_PKG_ZEROMQ" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_PROTOBUF, [test "$HAVE_PKG_PROTOBUF" = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENCV, [test "$HAVE_PKG_OPENCV" = "yes"])
 AM_CONDITIONAL(HAVE_PYTHON, [test "$HAVE_PYTHON" = "yes"])

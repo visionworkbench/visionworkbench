@@ -6,6 +6,7 @@
 
 
 #include <vw/Plate/PlateFile.h>
+#include <vw/Plate/HTTPUtils.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -61,12 +62,12 @@ vw::int64 vw::platefile::TemporaryTileFile::file_size() const {
 //                               PLATE FILE
 // -------------------------------------------------------------------------
 
-PlateFile::PlateFile(std::string url) {
+PlateFile::PlateFile(const Url& url) {
   m_index = Index::construct_open(url);
-  vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
+  vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
 }
 
-PlateFile::PlateFile(std::string url, std::string type, std::string description,
+PlateFile::PlateFile(const Url& url, std::string type, std::string description,
                      int tile_size, std::string tile_filetype,
                      PixelFormatEnum pixel_format, ChannelTypeEnum channel_type) {
 
@@ -78,41 +79,8 @@ PlateFile::PlateFile(std::string url, std::string type, std::string description,
   hdr.set_pixel_format(pixel_format);
   hdr.set_channel_type(channel_type);
 
-  vw_out(DebugMessage, "platefile") << "platefile: " << url << "\n";
-  if (url.find("pf://") == 0) {
-
-    // Remote
-    vw_out(DebugMessage, "platefile") << "Constructing new remote platefile : " << url << "\n";
-    m_index = Index::construct_create(url, hdr);
-    vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
-
-  } else {
-    // Plate files are stored as an index file and one or more data
-    // blob files in a directory.  We create that directory here if
-    // it doesn't already exist.
-    if( !exists( fs::path( url, fs::native ) ) ) {
-      fs::create_directory(url);
-
-      m_index = Index::construct_create(url, hdr);
-      vw_out(DebugMessage, "platefile") << "Creating new plate file: \"" << url << "\"\n";
-
-      // Check to make sure we've selected a sane file type
-      if ((channel_type == VW_CHANNEL_FLOAT32 && tile_filetype == "png") ||
-          (channel_type == VW_CHANNEL_FLOAT32 && tile_filetype == "jpg"))
-        vw_out(WarningMessage, "plate") << "Constructing 32-bit floating point platefile "
-                                        << "with a non-32-bit file-type ("
-                                        << tile_filetype << ").\n";
-
-      // However, if it does exist, then we attempt to open the
-      // platefile that is stored there.
-    } else {
-
-      m_index = Index::construct_open(url);
-      vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url << "\"\n";
-
-    }
-  }
-
+  vw_out(DebugMessage, "platefile") << "Constructing new platefile: " << url.string() << "\n";
+  m_index = Index::construct_create(url, hdr);
 }
 
 /// Read the tile header. You supply a base name (without the

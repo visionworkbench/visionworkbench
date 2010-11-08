@@ -14,13 +14,14 @@
 /// indexed by transaction IDs.
 ///
 
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/ToastPlateManager.h>
 #include <vw/Plate/PlateCarreePlateManager.h>
 #include <vw/Plate/PolarStereoPlateManager.h>
+#include <vw/Plate/ToastPlateManager.h>
+#include <vw/Cartography/GeoReference.h>
+#include <vw/FileIO.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/Filter.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -35,15 +36,6 @@ namespace fs = boost::filesystem;
 
 // Global variables
 bool g_debug;
-
-// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  size_t index = result.rfind(".");
-  if (index != std::string::npos)
-    result.erase(index, result.size());
-  return result;
-}
 
 // --------------------------------------------------------------------------
 //                                DO_MOSAIC
@@ -95,7 +87,7 @@ void do_mosaic(boost::shared_ptr<PlateFile> platefile,
 // --------------------------------------------------------------------------
 
 int main( int argc, char *argv[] ) {
-  std::string url;
+  Url url;
   std::string tile_filetype;
   std::string output_mode;
   int tile_size;
@@ -110,7 +102,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
-    ("output-name,o", po::value<std::string>(&url), "Specify the URL of the platefile.")
+    ("output-name,o", po::value<Url>(&url), "Specify the URL of the platefile.")
     ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
     ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
     ("nodata-value", po::value<double>(&nodata_value), "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
@@ -164,10 +156,13 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  //------------------------- SET DEFAULT OPTIONS -----------------------------
+  if( vm.count("output-name") != 1 ) {
+    std::cerr << "Error: must specify a url!" << std::endl << std::endl;
+    std::cout << usage.str();
+    return 1;
+  }
 
-  if( url == "" )
-    url = prefix_from_filename(image_files[0]) + "_" + output_mode + ".plate";
+  //------------------------- SET DEFAULT OPTIONS -----------------------------
 
   DiskImageResourceJPEG::set_default_quality( jpeg_quality );
   DiskImageResourcePNG::set_default_compression_level( png_compression );

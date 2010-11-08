@@ -10,13 +10,18 @@
 
 #include <vw/Plate/PagedIndex.h>
 #include <vw/Plate/IndexPage.h>
+#include <vw/Plate/HTTPUtils.h>
 #include <queue>
 
 namespace vw {
 namespace platefile {
 
-  class AmqpRpcClient;
+  template <typename ServiceT>
+  class RpcClient;
+
   class IndexService;
+
+  typedef RpcClient<IndexService> IndexClient;
 
   // ----------------------------------------------------------------------
   //                         LOCAL INDEX PAGE
@@ -24,8 +29,7 @@ namespace platefile {
 
   class RemoteIndexPage : public IndexPage {
     int m_platefile_id;
-    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
-    boost::shared_ptr<IndexService> m_index_service;
+    boost::shared_ptr<IndexClient> m_client;
 
     // For packetizing write requests.
     std::queue<IndexWriteUpdate> m_write_queue;
@@ -34,8 +38,7 @@ namespace platefile {
   public:
 
     RemoteIndexPage(int platefile_id,
-                    boost::shared_ptr<AmqpRpcClient> rpc_controller,
-                    boost::shared_ptr<IndexService> index_service,
+                    boost::shared_ptr<IndexClient> client,
                     int level, int base_col, int base_row,
                     int page_width, int page_height);
 
@@ -54,15 +57,13 @@ namespace platefile {
 
   class RemotePageGenerator : public PageGeneratorBase {
     int m_platefile_id;
-    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
-    boost::shared_ptr<IndexService> m_index_service;
+    boost::shared_ptr<IndexClient> m_client;
     int m_level, m_base_col, m_base_row;
     int m_page_width, m_page_height;
 
   public:
     RemotePageGenerator( int platefile_id,
-                         boost::shared_ptr<AmqpRpcClient> rpc_controller,
-                         boost::shared_ptr<IndexService> index_service,
+                         boost::shared_ptr<IndexClient> client,
                          int level, int base_col, int base_row,
                          int page_width, int page_height );
     virtual ~RemotePageGenerator() {}
@@ -76,19 +77,16 @@ namespace platefile {
   /// produce pages from a file on disk.
   class RemotePageGeneratorFactory : public PageGeneratorFactory {
     int m_platefile_id;
-    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
-    boost::shared_ptr<IndexService> m_index_service;
+    boost::shared_ptr<IndexClient> m_client;
 
   public:
-    RemotePageGeneratorFactory() : m_platefile_id(-1) {}
-    RemotePageGeneratorFactory(int platefile_id,
-                               boost::shared_ptr<AmqpRpcClient> rpc_controller,
-                               boost::shared_ptr<IndexService> index_service) :
-      m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
-      m_index_service(index_service) {}
+    RemotePageGeneratorFactory(int platefile_id, boost::shared_ptr<IndexClient> client)
+      : m_platefile_id(platefile_id), m_client(client) {}
     virtual ~RemotePageGeneratorFactory() {}
-    virtual boost::shared_ptr<PageGeneratorBase> create(int level, int base_col, int base_row,
-                                                        int page_width, int page_height);
+
+    virtual boost::shared_ptr<PageGeneratorBase>
+    create(int level, int base_col, int base_row, int page_width, int page_height);
+
     virtual std::string who() const;
   };
 
@@ -97,22 +95,21 @@ namespace platefile {
   // -------------------------------------------------------------------
 
   class RemoteIndex : public PagedIndex {
-
+    Url m_url;
     int m_platefile_id;
-    IndexHeader m_index_header;
     std::string m_short_plate_filename;
     std::string m_full_plate_filename;
+    IndexHeader m_index_header;
 
     // Remote connection
-    boost::shared_ptr<AmqpRpcClient> m_rpc_controller;
-    boost::shared_ptr<IndexService> m_index_service;
+    boost::shared_ptr<IndexClient> m_client;
 
   public:
     /// Constructor (for opening an existing index)
-    RemoteIndex(std::string const& url);
+    RemoteIndex(const Url& url);
 
     /// Constructor (for creating a new index)
-    RemoteIndex(std::string const& url, IndexHeader new_index_info);
+    RemoteIndex(const Url& url, IndexHeader new_index_info);
 
     /// destructor
     virtual ~RemoteIndex();

@@ -30,8 +30,7 @@ typedef struct {
 } rule_entry;
 
 typedef struct {
-  const char *rabbit_ip;
-  const char *index_exchange;
+  const char *index_url;
   const char *dem_id;
   const char *servername;
   int index_timeout;

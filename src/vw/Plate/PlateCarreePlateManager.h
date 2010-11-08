@@ -8,12 +8,13 @@
 #ifndef __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATE_CARREE_PLATEMANAGER_H__
 
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Math/Vector.h>
+#include <vw/Plate/PlateManager.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Plate/PlateManager.h>
+#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Filter.h>
+#include <vw/Math/Vector.h>
 #include <vector>
 #include <sstream>
 

@@ -6,11 +6,10 @@
 
 
 #include <vw/Plate/RemoteIndex.h>
-#include <vw/Plate/common.h>
+#include <vw/Plate/Rpc.h>
 #include <vw/Plate/Rpc.pb.h>
 #include <vw/Plate/HTTPUtils.h>
-#include <vw/Plate/RpcServices.h>
-#include <vw/Core/Exception.h>
+#include <vw/Plate/Exception.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -19,71 +18,24 @@ using namespace vw::platefile;
 #include <boost/lexical_cast.hpp>
 #include <unistd.h>
 
-// Parse a URL with the format: pf://<exchange>/<platefile name>.plate
-void parse_url(std::string const& url, std::string &hostname, int &port,
-               std::string &exchange, std::string &platefile_name, QueryMap& params) {
+std::string split_url(Url& url) {
+  Url::split_t sp = url.path_split();
+  VW_ASSERT(sp.size() > 0, ArgumentErr() << "Expected a platefile url (bad path)");
 
-  Url u(url);
-  VW_ASSERT(u.scheme() == "pf",  vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
-  VW_ASSERT(u.path().size() > 1, vw::ArgumentErr() << "RemoteIndex::parse_url() -- this does not appear to be a well-formed URL: " << url);
-
-  hostname = u.hostname();
-  if (hostname.empty())
-    hostname = "localhost";
-
-  port = u.port();
-  if (port == 0)
-    port = 5672;
-
-  std::vector<boost::iterator_range<std::string::const_iterator> > items;
-  boost::split(items, u.path(), boost::is_any_of("/"));
-  std::string bare_exchange;
-
-  VW_ASSERT(items[0].end() - items[0].begin() == 0, vw::LogicErr() << "Url parser broke on " << url);
-
-  //XXX: This hackery is because our url format in the no-hostname case is
-  // illegal (it should be pf:///exchange). If we don't have an exchange and a
-  // platefile name in the path, assume the hostname is actually the exchange.
-  if (items.size() == 2) {
-    // No hostname was specified: pf://<exchange>/<platefilename>.plate
-    hostname = "localhost";
-    bare_exchange = u.hostname();
-    platefile_name = std::string(items[1].begin(), items[1].end());
-
-    u.netloc(hostname + ":" + vw::stringify(port));
-    u.path(std::string() + "/" + bare_exchange + u.path());
-
-    vw_out(WarningMessage, "plate")
-      << "Ill-formed URL [" << url << "] corrected to [" << u << "]" << std::endl;
-
-  } else if (items.size() == 3) {
-    // /exchange/platefile
-    bare_exchange  = std::string(items[1].begin(), items[1].end());
-    platefile_name = std::string(items[2].begin(), items[2].end());
-  } else {
-    vw_throw(vw::ArgumentErr() << "RemoteIndex::parse_url(): " << "could not parse URL string: " << url);
-  }
-
-  params = u.query();
-
-  // From here, we'll always be operating within the platefile exchange
-  // namespace... so prepend it.
-  exchange = std::string(PLATE_EXCHANGE_NAMESPACE) + "." + bare_exchange;
+  const std::string platefile_name = sp.back();
+  VW_ASSERT(boost::ends_with(platefile_name, ".plate"), ArgumentErr() << "Expected a platefile url (doesn't end in .plate)");
+  sp.pop_back();
+  url.path_join(sp);
+  return platefile_name;
 }
 
-// ----------------------------------------------------------------------
-//                         REMOTE INDEX PAGE
-// ----------------------------------------------------------------------
-
-vw::platefile::RemoteIndexPage::RemoteIndexPage(int platefile_id,
-                                                boost::shared_ptr<AmqpRpcClient> rpc_controller,
-                                                boost::shared_ptr<IndexService> index_service,
-                                                int level, int base_col, int base_row,
-                                                int page_width, int page_height) :
-  IndexPage(level, base_col, base_row, page_width, page_height),
-  m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
-  m_index_service(index_service) {
-
+RemoteIndexPage::RemoteIndexPage(int platefile_id,
+                                 boost::shared_ptr<IndexClient> client,
+                                 int level, int base_col, int base_row,
+                                 int page_width, int page_height)
+  : IndexPage(level, base_col, base_row, page_width, page_height),
+    m_platefile_id(platefile_id), m_client(client)
+{
   // Use the PageRequest RPC to fetch the remote page from the index
   // server.
   IndexPageRequest request;
@@ -93,7 +45,7 @@ vw::platefile::RemoteIndexPage::RemoteIndexPage(int platefile_id,
   request.set_level(level);
   IndexPageReply response;
   try {
-    m_index_service->PageRequest(m_rpc_controller.get(), &request, &response, null_callback());
+    m_client->PageRequest(m_client.get(), &request, &response, null_callback());
   } catch (TileNotFoundErr &e) {
     // If the remote server doesn't have this index page, that's ok.
     // Doing nothing here will create an empty index page in this
@@ -107,13 +59,13 @@ vw::platefile::RemoteIndexPage::RemoteIndexPage(int platefile_id,
   this->deserialize(istr);
 }
 
-vw::platefile::RemoteIndexPage::~RemoteIndexPage() {
+RemoteIndexPage::~RemoteIndexPage() {
   this->sync();
 }
 
 // Hijack this method momentartarily to mark the page as "dirty" by
 // setting m_needs_saving to true.
-void vw::platefile::RemoteIndexPage::set(TileHeader const& header, IndexRecord const& record) {
+void RemoteIndexPage::set(TileHeader const& header, IndexRecord const& record) {
   // First call up to the parent class and let the original code run.
   IndexPage::set(header, record);
 
@@ -130,7 +82,7 @@ void vw::platefile::RemoteIndexPage::set(TileHeader const& header, IndexRecord c
     this->flush_write_queue();
 }
 
-void vw::platefile::RemoteIndexPage::flush_write_queue() {
+void RemoteIndexPage::flush_write_queue() {
   if (m_write_queue.size() > 0) {
 
     // For debugging:
@@ -142,13 +94,13 @@ void vw::platefile::RemoteIndexPage::flush_write_queue() {
       *(request.mutable_write_updates()->Add()) = m_write_queue.front();
       m_write_queue.pop();
     }
-    RpcNullMessage response;
-    m_index_service->MultiWriteUpdate(m_rpc_controller.get(), &request, &response, null_callback());
+    RpcNullMsg response;
+    m_client->MultiWriteUpdate(m_client.get(), &request, &response, null_callback());
 
   }
 }
 
-void vw::platefile::RemoteIndexPage::sync() {
+void RemoteIndexPage::sync() {
   this->flush_write_queue();
 }
 
@@ -156,36 +108,29 @@ void vw::platefile::RemoteIndexPage::sync() {
 //                    REMOTE INDEX PAGE GENERATOR
 // ----------------------------------------------------------------------
 
-vw::platefile::RemotePageGenerator::RemotePageGenerator( int platefile_id,
-                                                         boost::shared_ptr<AmqpRpcClient> rpc_controller,
-                                                         boost::shared_ptr<IndexService> index_service,
-                                                         int level, int base_col, int base_row,
-                                                         int page_width, int page_height) :
-  m_platefile_id(platefile_id), m_rpc_controller(rpc_controller),
-  m_index_service(index_service), m_level(level),
-  m_base_col(base_col), m_base_row(base_row),
-  m_page_width(page_width), m_page_height(page_height) {}
+RemotePageGenerator::RemotePageGenerator( int platefile_id,
+                                          boost::shared_ptr<IndexClient> client,
+                                          int level, int base_col, int base_row,
+                                          int page_width, int page_height)
+  : m_platefile_id(platefile_id), m_client(client), m_level(level),
+    m_base_col(base_col), m_base_row(base_row),
+    m_page_width(page_width), m_page_height(page_height) {}
 
-boost::shared_ptr<vw::platefile::IndexPage>
-vw::platefile::RemotePageGenerator::generate() const {
-  return boost::shared_ptr<IndexPage>(new RemoteIndexPage(m_platefile_id, m_rpc_controller,
-                                                          m_index_service,
-                                                          m_level, m_base_col, m_base_row,
-                                                          m_page_width, m_page_height) );
+boost::shared_ptr<IndexPage>
+RemotePageGenerator::generate() const {
+  return boost::shared_ptr<IndexPage>(
+      new RemoteIndexPage(m_platefile_id, m_client, m_level,
+                          m_base_col, m_base_row, m_page_width, m_page_height) );
 }
 
-boost::shared_ptr<PageGeneratorBase> RemotePageGeneratorFactory::create(int level,
-                                                                        int base_col,
-                                                                        int base_row,
-                                                                        int page_width,
-                                                                        int page_height) {
-  VW_ASSERT(m_platefile_id != -1 && m_rpc_controller && m_index_service,
-            LogicErr() << "Error: RemotePageGeneratorFactory has not yet been initialized.");
+boost::shared_ptr<PageGeneratorBase>
+RemotePageGeneratorFactory::create(int level, int base_col, int base_row, int page_width, int page_height) {
+  //VW_ASSERT(m_platefile_id != -1 && m_rpc_controller && m_index_service,
+  //          LogicErr() << "Error: RemotePageGeneratorFactory has not yet been initialized.");
 
   // Create the proper type of page generator.
   boost::shared_ptr<PageGeneratorBase> page_gen(
-    new RemotePageGenerator(m_platefile_id, m_rpc_controller,
-                            m_index_service,
+    new RemotePageGenerator(m_platefile_id, m_client,
                             level, base_col, base_row,
                             page_width, page_height) );
 
@@ -203,32 +148,20 @@ std::string RemotePageGeneratorFactory::who() const {
 // ----------------------------------------------------------------------
 
 
-/// Constructor (for opening an existing Index)
-vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
-  PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new RemotePageGeneratorFactory() ))  {
+// Constructor (for opening an existing Index)
+// expecting a url in the form of scheme://hostname:port/path/to/server/platefile.plate
+RemoteIndex::RemoteIndex(const Url& url_)
+  : m_url(url_), m_short_plate_filename(split_url(m_url)),
+    m_client(new IndexClient(m_url))
+{
+  // TODO: some way to set client_name from here?
+  // m_client->conn(url, string("remote_index_") + platefile_name);
 
-  // Parse the URL string into a separate 'exchange' and 'platefile_name' field.
-  std::string hostname;
-  int port;
-  std::string exchange;
-  std::string platefile_name;
-  QueryMap params;
-  parse_url(url, hostname, port, exchange, platefile_name, params);
-
-  std::string queue_name = unique_name(std::string("remote_index_") + platefile_name);
-
-  // Set up the connection to the AmqpRpcService
-  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
-  m_rpc_controller.reset( new AmqpRpcClient(conn, exchange, queue_name, "index") );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_controller.get() ) );
-  m_rpc_controller->bind_service(m_index_service, queue_name);
-
-  // Send an IndexOpenRequest to the AMQP index server.
   IndexOpenRequest request;
-  request.set_plate_name(platefile_name);
+  request.set_plate_name(m_short_plate_filename);
 
   IndexOpenReply response;
-  m_index_service->OpenRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->OpenRequest(m_client.get(), &request, &response, null_callback());
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
@@ -236,51 +169,40 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url) :
   m_full_plate_filename = response.full_plate_filename();
 
   // Properly initialize the PageGenFactory and set it.
-  boost::shared_ptr<PageGeneratorFactory> factory( new RemotePageGeneratorFactory(m_platefile_id,
-                                                                                  m_rpc_controller,
-                                                                                  m_index_service));
+  boost::shared_ptr<PageGeneratorFactory> factory(
+      new RemotePageGeneratorFactory(m_platefile_id, m_client));
+
   this->set_page_generator_factory(factory);
-  this->set_default_cache_size(params.get("cache_size", 100u));
+  this->set_default_cache_size(m_url.query().get("cache_size", 100u));
 
   // Every time you run num_levels, it synchronizes the number of
   // local (cached) levels with the number of levels on the index
   // server, so we run it here to synchronize it for the first time.
   this->num_levels();
 
-  vw_out(InfoMessage, "plate") << "Opened remote platefile \"" << platefile_name
-                               << "\"   ID: " << m_platefile_id << "\n";
+  vw_out(InfoMessage, "plate")
+    << "Opened remote platefile name[" << m_short_plate_filename
+    << "] id[" << m_platefile_id << "]" << std::endl;
 }
 
 /// Constructor (for creating a new Index)
-vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader index_header_info) :
-  PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new RemotePageGeneratorFactory() )),
-  m_index_header(index_header_info) {
-
-  // Parse the URL string into a separate 'exchange' and 'platefile_name' field.
-  std::string hostname;
-  int port;
-  std::string exchange;
-  std::string platefile_name;
-  QueryMap params;
-  parse_url(url, hostname, port, exchange, platefile_name, params);
-
-  std::string queue_name = unique_name(std::string("remote_index_") + platefile_name);
-
-  // Set up the connection to the AmqpRpcService
-  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(hostname, port));
-  m_rpc_controller.reset( new AmqpRpcClient(conn, exchange, queue_name, "index") );
-  m_index_service.reset ( new IndexService::Stub(m_rpc_controller.get() ) );
-  m_rpc_controller->bind_service(m_index_service, queue_name);
+RemoteIndex::RemoteIndex(const Url& url_, IndexHeader index_header_info)
+  : m_url(url_), m_short_plate_filename(split_url(m_url)),
+    m_index_header(index_header_info),
+    m_client(new IndexClient(m_url))
+{
+  // TODO: some way to set client_name from here?
+  // m_client->conn(url, string("remote_index_") + platefile_name);
 
   // Send an IndexCreateRequest to the AMQP index server.
   IndexCreateRequest request;
-  request.set_plate_name(platefile_name);
+  request.set_plate_name(m_short_plate_filename);
   index_header_info.set_platefile_id(0);  // this takes care of this 'required'
                                           // protobuf property, which is not set yet
   *(request.mutable_index_header()) = index_header_info;
 
   IndexOpenReply response;
-  m_index_service->CreateRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->CreateRequest(m_client.get(), &request, &response, null_callback());
 
   m_index_header = response.index_header();
   m_platefile_id = m_index_header.platefile_id();
@@ -288,52 +210,50 @@ vw::platefile::RemoteIndex::RemoteIndex(std::string const& url, IndexHeader inde
   m_full_plate_filename = response.full_plate_filename();
 
   // Properly initialize the PageGenFactory and set it.
-  boost::shared_ptr<PageGeneratorFactory> factory( new RemotePageGeneratorFactory(m_platefile_id,
-                                                                                  m_rpc_controller,
-                                                                                  m_index_service));
+  boost::shared_ptr<PageGeneratorFactory> factory(
+      new RemotePageGeneratorFactory(m_platefile_id, m_client));
+
   this->set_page_generator_factory(factory);
-  this->set_default_cache_size(params.get("cache_size", 100u));
+  this->set_default_cache_size(m_url.query().get("cache_size", 100u));
 
   // Every time you run num_levels, it synchronizes the number of
   // local (cached) levels with the number of levels on the index
   // server, so we run it here to synchronize it for the first time.
   this->num_levels();
 
-  vw_out(InfoMessage, "plate") << "Created remote platefile \"" << platefile_name
-                               << "\"   ID: " << m_platefile_id << "\n";
-  vw_out() << "Created remote platefile \"" << platefile_name
-           << "\"   ID: " << m_platefile_id << "  ( " << this->num_levels() << " levels )\n";
-
+  vw_out(InfoMessage, "plate")
+    << "Created remote platefile name[" << m_short_plate_filename
+    << "] id[" << m_platefile_id << "] levels[" << this->num_levels() << "]" << std::endl;
 }
 
 
 /// Destructor
-vw::platefile::RemoteIndex::~RemoteIndex() {}
+RemoteIndex::~RemoteIndex() {}
 
 // Writing, pt. 1: Locks a blob and returns the blob id that can
 // be used to write a tile.
-int vw::platefile::RemoteIndex::write_request(uint64 &size) {
+int RemoteIndex::write_request(uint64 &size) {
   IndexWriteRequest request;
   request.set_platefile_id(m_platefile_id);
 
   IndexWriteReply response;
-  m_index_service->WriteRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->WriteRequest(m_client.get(), &request, &response, null_callback());
   size = response.size();
   return response.blob_id();
 }
 
 /// Log a message to the platefile log.
-void vw::platefile::RemoteIndex::log(std::string message) {
+void RemoteIndex::log(std::string message) {
   IndexLogRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_message(message);
 
-  RpcNullMessage response;
-  m_index_service->LogRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  RpcNullMsg response;
+  m_client->LogRequest(m_client.get(), &request, &response, null_callback());
 }
 
 /// Writing, pt. 3: Signal the completion
-void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
+void RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
 
   // First we make sure that we flush the write queue by synchronizing
   // all of the pages back to the index_server!  Otherwise the write
@@ -346,14 +266,14 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
   request.set_blob_id(blob_id);
   request.set_blob_offset(blob_offset);
 
-  RpcNullMessage response;
-  m_index_service->WriteComplete(m_rpc_controller.get(), &request, &response, null_callback());
+  RpcNullMsg response;
+  m_client->WriteComplete(m_client.get(), &request, &response, null_callback());
 }
 
 // This is the old valid_tiles RPC implementation.  It has been
 // replaced by the valid_tiles implementation in the PagedIndex class.
 //
-// std::list<TileHeader> vw::platefile::RemoteIndex::valid_tiles(int level, BBox2i const& region,
+// std::list<TileHeader> RemoteIndex::valid_tiles(int level, BBox2i const& region,
 //                                                               int begin_transaction_id,
 //                                                               int end_transaction_id,
 //                                                               int min_num_matches) const {
@@ -369,7 +289,7 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
 //   request.set_min_num_matches(min_num_matches);
 
 //   IndexValidTilesReply response;
-//   m_index_service->ValidTiles(m_rpc_controller.get(), &request, &response, null_callback());
+//   m_client->ValidTiles(m_client.get(), &request, &response, null_callback());
 
 //   std::list<TileHeader> results;
 //   for (int i = 0; i < response.tile_headers_size(); ++i) {
@@ -378,18 +298,17 @@ void vw::platefile::RemoteIndex::write_complete(int blob_id, uint64 blob_offset)
 //   return results;
 // }
 
-vw::int32 vw::platefile::RemoteIndex::num_levels() const {
+vw::int32 RemoteIndex::num_levels() const {
   IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);
   IndexNumLevelsReply response;
-  m_index_service->NumLevelsRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->NumLevelsRequest(m_client.get(), &request, &response, null_callback());
 
   // Make sure that the local (cached) number of levels matches the
   // number of levels on the server.
-  for (int level = m_levels.size(); level < response.num_levels(); ++level) {
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level,
-                                                            m_page_width, m_page_height,
-                                                            m_default_cache_size) );
+  for (int level = boost::numeric_cast<int>(m_levels.size()); level < response.num_levels(); ++level) {
+    boost::shared_ptr<IndexLevel> new_level(
+        new IndexLevel(m_page_gen_factory, level, m_page_width, m_page_height, m_default_cache_size) );
     m_levels.push_back(new_level);
   }
 
@@ -397,11 +316,11 @@ vw::int32 vw::platefile::RemoteIndex::num_levels() const {
   return response.num_levels();
 }
 
-vw::int32 vw::platefile::RemoteIndex::version() const {
+vw::int32 RemoteIndex::version() const {
   return m_index_header.version();
 }
 
-std::string vw::platefile::RemoteIndex::platefile_name() const {
+std::string RemoteIndex::platefile_name() const {
   return m_full_plate_filename;
 }
 
@@ -409,19 +328,19 @@ IndexHeader RemoteIndex::index_header() const {
   return m_index_header;
 }
 
-vw::int32 vw::platefile::RemoteIndex::tile_size() const {
+vw::int32 RemoteIndex::tile_size() const {
   return m_index_header.tile_size();
 }
 
-std::string vw::platefile::RemoteIndex::tile_filetype() const {
+std::string RemoteIndex::tile_filetype() const {
   return m_index_header.tile_filetype();
 }
 
-vw::PixelFormatEnum vw::platefile::RemoteIndex::pixel_format() const {
+vw::PixelFormatEnum RemoteIndex::pixel_format() const {
   return vw::PixelFormatEnum(m_index_header.pixel_format());
 }
 
-vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
+vw::ChannelTypeEnum RemoteIndex::channel_type() const {
   return vw::ChannelTypeEnum(m_index_header.channel_type());
 }
 
@@ -429,7 +348,7 @@ vw::ChannelTypeEnum vw::platefile::RemoteIndex::channel_type() const {
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transaction_description,
+vw::int32 RemoteIndex::transaction_request(std::string transaction_description,
                                                           int transaction_id_override) {
 
   IndexTransactionRequest request;
@@ -438,38 +357,38 @@ vw::int32 vw::platefile::RemoteIndex::transaction_request(std::string transactio
   request.set_transaction_id_override(transaction_id_override);
 
   IndexTransactionReply response;
-  m_index_service->TransactionRequest(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->TransactionRequest(m_client.get(), &request, &response, null_callback());
   return response.transaction_id();
 }
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuding a transaction_complete method.
-void vw::platefile::RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
+void RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
   IndexTransactionComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
   request.set_update_read_cursor(update_read_cursor);
 
-  RpcNullMessage response;
-  m_index_service->TransactionComplete(m_rpc_controller.get(), &request, &response, null_callback());
+  RpcNullMsg response;
+  m_client->TransactionComplete(m_client.get(), &request, &response, null_callback());
 }
 
 // If a transaction fails, we may need to clean up the mosaic.
-void vw::platefile::RemoteIndex::transaction_failed(int32 transaction_id) {
+void RemoteIndex::transaction_failed(int32 transaction_id) {
   IndexTransactionFailed request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
 
-  RpcNullMessage response;
-  m_index_service->TransactionFailed(m_rpc_controller.get(), &request, &response, null_callback());
+  RpcNullMsg response;
+  m_client->TransactionFailed(m_client.get(), &request, &response, null_callback());
 }
 
-vw::int32 vw::platefile::RemoteIndex::transaction_cursor() {
+vw::int32 RemoteIndex::transaction_cursor() {
   IndexTransactionCursorRequest request;
   request.set_platefile_id(m_platefile_id);
 
   IndexTransactionCursorReply response;
-  m_index_service->TransactionCursor(m_rpc_controller.get(), &request, &response, null_callback());
+  m_client->TransactionCursor(m_client.get(), &request, &response, null_callback());
   return response.transaction_id();
 }
 

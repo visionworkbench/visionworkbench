@@ -13,9 +13,8 @@
 #include <apr_tables.h>
 #include <vw/Core/Settings.h>
 #include <vw/Plate/Index.h>
-#include <vw/Plate/RpcServices.h>
 #include <vw/Plate/Blob.h>
-#include <vw/Plate/common.h>
+#include <vw/Plate/Rpc.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
@@ -84,7 +83,7 @@ std::ostream& PlateModule::logger(MessageLevel level, bool child_id) const {
   std::ostream& out = vw_out(level, "plate.apache");
 
   if (child_id)
-    out << "Child[" << m_queue_name << "]: ";
+    out << "Child[" << getpid() << "]: ";
   return out;
 }
 
@@ -119,8 +118,7 @@ void mod_plate_init(const plate_config *conf) {
 }
 
 PlateModule::PlateModule(const plate_config* conf)
-  : m_connected(false), m_conf(conf),
-    m_queue_name(unique_name("mod_plate"))
+  : m_connected(false), m_conf(conf), m_base_url(conf->index_url)
 {
 
   // Disable the config file
@@ -147,23 +145,14 @@ void PlateModule::connect_index() {
   if (m_connected)
     return;
 
-  // Create the necessary services
-  boost::shared_ptr<AmqpConnection> conn(new AmqpConnection(m_conf->rabbit_ip));
-
-  string exchange = string(PLATE_EXCHANGE_NAMESPACE) + "." + m_conf->index_exchange;
-
-  m_client.reset( new AmqpRpcClient(conn, exchange, m_queue_name, "index") );
+  m_client.reset( new IndexClient(m_base_url) );
 
   // Total possible wait is timeout*tries
-  m_client->timeout(m_conf->index_timeout);
-  m_client->tries(m_conf->index_tries);
-
-  m_index_service.reset ( new IndexService::Stub(m_client.get() ) );
-  m_client->bind_service(m_index_service, m_queue_name);
+  m_client->set_timeout(m_conf->index_timeout);
+  m_client->set_retries(m_conf->index_tries-1);
 
   m_connected = true;
-  logger(DebugMessage) << "child connected to rabbitmq[" << m_conf->rabbit_ip
-                       << "] exchange[" << exchange << "]" << std::endl;
+  logger(DebugMessage) << "child connected to url[" << m_base_url.string() << "]" << std::endl;
 
   mod_plate().sync_index_cache();
 }
@@ -227,7 +216,12 @@ void PlateModule::sync_index_cache() const {
 
   index_cache.clear();
 
-  m_index_service->ListRequest(m_client.get(), &request, &id_list, null_callback());
+  m_client->ListRequest(m_client.get(), &request, &id_list, null_callback());
+
+  Url base_url = get_base_url();
+  base_url.query().set("cache_size", "1");
+  Url::split_t path = base_url.path_split();
+  path.push_back("");
 
   BOOST_FOREACH( const string& name, id_list.platefile_names() ) {
 
@@ -235,8 +229,10 @@ void PlateModule::sync_index_cache() const {
     int32 id;
 
     try {
-      string index_url = string("pf://") + m_conf->rabbit_ip + "/" + m_conf->index_exchange + "/" + name + "?cache_size=1";
-      logger(VerboseDebugMessage) << "Trying to load index: " << index_url << std::endl;
+      Url index_url(base_url);
+      path.back() = name;
+      index_url.path_join(path);
+      logger(VerboseDebugMessage) << "Trying to load index: " << index_url.string() << std::endl;
 
       entry.index = Index::construct_open(index_url);
       const IndexHeader& hdr = entry.index->index_header();

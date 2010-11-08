@@ -82,18 +82,18 @@ namespace platefile {
 
     virtual void WriteUpdate(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexWriteUpdate* request,
-                             ::vw::platefile::RpcNullMessage* response,
+                             ::vw::platefile::RpcNullMsg* response,
                              ::google::protobuf::Closure* done);
 
     // Like WriteUpdate, but packetizes updates.
     virtual void MultiWriteUpdate(::google::protobuf::RpcController* controller,
                              const ::vw::platefile::IndexMultiWriteUpdate* request,
-                             ::vw::platefile::RpcNullMessage* response,
+                             ::vw::platefile::RpcNullMsg* response,
                              ::google::protobuf::Closure* done);
 
     virtual void WriteComplete(::google::protobuf::RpcController* controller,
                                const ::vw::platefile::IndexWriteComplete* request,
-                               ::vw::platefile::RpcNullMessage* response,
+                               ::vw::platefile::RpcNullMsg* response,
                                ::google::protobuf::Closure* done);
 
     virtual void TransactionRequest(::google::protobuf::RpcController* controller,
@@ -103,12 +103,12 @@ namespace platefile {
 
     virtual void TransactionComplete(::google::protobuf::RpcController* controller,
                                      const ::vw::platefile::IndexTransactionComplete* request,
-                                     ::vw::platefile::RpcNullMessage* response,
+                                     ::vw::platefile::RpcNullMsg* response,
                                      ::google::protobuf::Closure* done);
 
     virtual void TransactionFailed(::google::protobuf::RpcController* controller,
                                    const ::vw::platefile::IndexTransactionFailed* request,
-                                   ::vw::platefile::RpcNullMessage* response,
+                                   ::vw::platefile::RpcNullMsg* response,
                                    ::google::protobuf::Closure* done);
 
     virtual void TransactionCursor(::google::protobuf::RpcController* controller,
@@ -123,7 +123,7 @@ namespace platefile {
 
     virtual void LogRequest(::google::protobuf::RpcController* controller,
                             const ::vw::platefile::IndexLogRequest* request,
-                            ::vw::platefile::RpcNullMessage* response,
+                            ::vw::platefile::RpcNullMsg* response,
                             ::google::protobuf::Closure* done);
 
     // A simple message that echos back the value that was sent.

@@ -23,10 +23,8 @@ protocol_sources = IndexService.pb.cc Rpc.pb.cc
 BUILT_SOURCES = $(protocol_sources)
 
 include_HEADERS =           \
-  AmqpConnection.h          \
   Blob.h                    \
   BlobManager.h             \
-  common.h                  \
   Exception.h               \
   HTTPUtils.h               \
   Index.h                   \
@@ -40,19 +38,20 @@ include_HEADERS =           \
   PlateView.h               \
   PolarStereoPlateManager.h \
   RemoteIndex.h             \
-  RpcServices.h             \
+  Rpc.h                     \
+  RpcChannel.h              \
   SnapshotManager.h         \
   TileManipulation.h        \
   ToastDem.h                \
   ToastPlateManager.h
 
-nodist_include_HEADERS = $(protocol_headers)
+include_HEADERS += $(protocol_headers)
 noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
 
 libvwPlate_la_SOURCES =      \
-  AmqpConnection.cc          \
   Blob.cc                    \
   BlobManager.cc             \
+  Exception.cc               \
   HTTPUtils.cc               \
   Index.cc                   \
   IndexPage.cc               \
@@ -64,17 +63,32 @@ libvwPlate_la_SOURCES =      \
   PlateManager.cc            \
   PolarStereoPlateManager.cc \
   RemoteIndex.cc             \
-  RpcServices.cc             \
+  Rpc.cc                     \
+  RpcChannel.cc              \
   SnapshotManager.cc         \
   TileManipulation.cc        \
   ToastDem.cc                \
   ToastPlateManager.cc
+
+
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
 libvwPlate_la_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 lib_LTLIBRARIES += libvwPlate.la
+
+if HAVE_PKG_RABBITMQ_C
+  include_HEADERS       += AmqpChannel.h
+  libvwPlate_la_SOURCES += AmqpChannel.cc
+endif
+
+if HAVE_PKG_ZEROMQ
+  include_HEADERS       += ZeroMQChannel.h
+  libvwPlate_la_SOURCES += ZeroMQChannel.cc
+  libvwPlate_la_LIBADD  += @PKG_ZEROMQ_LIBS@
+
+endif
 
 endif
 

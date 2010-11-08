@@ -101,6 +101,10 @@ namespace platefile {
                int page_width = 256, int page_height = 256,
                int default_cache_size = 100);
 
+    /// Open an existing index from a file on disk.
+    PagedIndex(int page_width = 256, int page_height = 256,
+               int default_cache_size = 100);
+
     virtual ~PagedIndex() {}
 
     /// Sync any unsaved data in the index to disk.

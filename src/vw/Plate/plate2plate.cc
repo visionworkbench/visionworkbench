@@ -180,7 +180,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
 
 template <typename FilterT>
 void run(Options& opt, FilterBase<FilterT>& filter) {
-  PlateFile input(opt.input_name);
+  // XXX: input_name should probably be a url
+  PlateFile input(Url(opt.input_name));
 
   // Use given option first, then use filter recommendation (it will probably
   // just recommend the value from the input platefile)

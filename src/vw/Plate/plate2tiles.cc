@@ -165,7 +165,8 @@ void do_all_levels(std::string platefile_name, std::string output_name,
                    std::string output_format, int transaction_id) {
 
   // Open the plate file
-  boost::shared_ptr<PlateFile> platefile(new PlateFile(platefile_name));
+  // XXX: platefile_name should be a url
+  boost::shared_ptr<PlateFile> platefile(new PlateFile(Url(platefile_name)));
   std::cout << "Exporting " << platefile->num_levels() << " levels of tiles to " << output_name << "\n";
 
   // Create the output directory

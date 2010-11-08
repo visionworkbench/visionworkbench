@@ -11,6 +11,7 @@
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Plate/PlateFile.h>
+#include <vw/Image/Transform.h>
 #include <boost/foreach.hpp>
 
 namespace vw {
@@ -28,7 +29,7 @@ namespace platefile {
     typedef PixelT result_type;
     typedef ProceduralPixelAccessor<PlateView> pixel_accessor;
 
-    PlateView(std::string url)
+    PlateView(const Url& url)
       : m_platefile( new PlateFile(url) ),
         m_current_level(m_platefile->num_levels()-1)
     { }

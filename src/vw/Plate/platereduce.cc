@@ -264,7 +264,7 @@ public:
 // Standard Arguments
 struct Options {
   // Input
-  string url;
+  Url url;
   int32 level;
   int32 start_trans_id;
   int32 end_trans_id;
@@ -292,7 +292,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-file", po::value<std::string>(&opt.url), "");
+    ("input-file", po::value(&opt.url), "");
 
   po::options_description options("");
   options.add(general_options).add(hidden_options);
@@ -312,7 +312,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " <plate_filename> [options]\n";
 
-  if ( vm.count("help") || opt.url.empty() )
+  if ( vm.count("help") || vm.count("input-file") != 1 )
     vw_throw( ArgumentErr() << usage.str() << options );
 }
 
@@ -379,7 +379,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   if ( opt.level < 0 ||
        opt.level >= platefile->num_levels() ) {
     vw_throw( ArgumentErr() << "In correct level selection, "
-              << opt.level << ".\n\nPlatefile " << opt.url << " has "
+              << opt.level << ".\n\nPlatefile " << opt.url.string() << " has "
               << platefile->num_levels() << " levels internally.\n" );
   }
 

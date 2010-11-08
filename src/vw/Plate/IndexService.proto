@@ -244,21 +244,21 @@ service IndexService {
   rpc PageRequest (IndexPageRequest) returns (IndexPageReply);
   rpc ReadRequest (IndexReadRequest) returns (IndexReadReply);
   rpc WriteRequest (IndexWriteRequest) returns (IndexWriteReply);
-  rpc WriteUpdate (IndexWriteUpdate) returns (RpcNullMessage);
-  rpc MultiWriteUpdate (IndexMultiWriteUpdate) returns (RpcNullMessage);
-  rpc WriteComplete (IndexWriteComplete) returns (RpcNullMessage);
+  rpc WriteUpdate (IndexWriteUpdate) returns (RpcNullMsg);
+  rpc MultiWriteUpdate (IndexMultiWriteUpdate) returns (RpcNullMsg);
+  rpc WriteComplete (IndexWriteComplete) returns (RpcNullMsg);
 
 
   // Transaction Management
   rpc TransactionRequest (IndexTransactionRequest) returns (IndexTransactionReply);
-  rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMessage);
-  rpc TransactionFailed (IndexTransactionFailed) returns (RpcNullMessage);
+  rpc TransactionComplete (IndexTransactionComplete) returns (RpcNullMsg);
+  rpc TransactionFailed (IndexTransactionFailed) returns (RpcNullMsg);
   rpc TransactionCursor (IndexTransactionCursorRequest) returns (IndexTransactionCursorReply);
 
   // Misc.
   rpc NumLevelsRequest (IndexNumLevelsRequest) returns (IndexNumLevelsReply);
   rpc ListRequest (IndexListRequest) returns (IndexListReply);
   rpc TestRequest (IndexTestRequest) returns (IndexTestReply);
-  rpc LogRequest (IndexLogRequest) returns (RpcNullMessage);
+  rpc LogRequest (IndexLogRequest) returns (RpcNullMsg);
 
 }

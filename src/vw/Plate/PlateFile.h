@@ -97,6 +97,7 @@
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Plate/HTTPUtils.h>
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/ImageView.h>
@@ -171,9 +172,9 @@ namespace platefile {
     int m_write_blob_id;
 
   public:
-    PlateFile(std::string url);
+    PlateFile(const Url& url);
 
-    PlateFile(std::string url, std::string type, std::string description,
+    PlateFile(const Url& url, std::string type, std::string description,
               int tile_size, std::string tile_filetype,
               PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
 

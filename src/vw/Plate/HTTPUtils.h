@@ -74,6 +74,7 @@ class Url {
     Url();
     Url(const char* url, bool parse_query_params=true);
     Url(const std::string& url, bool parse_query_params=true);
+    virtual ~Url() {}
 
     const std::string& scheme()   const { return m_scheme;   }
     const std::string& netloc()   const { return m_netloc;   }
@@ -109,6 +110,25 @@ class Url {
 
     friend std::istream& operator>>(std::istream& i, Url& val);
     friend std::ostream& operator<<(std::ostream& o, const Url& val);
+};
+
+class PlatefileUrl : public Url {
+  private:
+    void sanity() const;
+  public:
+    explicit PlatefileUrl(const char* url);
+    explicit PlatefileUrl(const std::string& url);
+    explicit PlatefileUrl(const Url& u);
+    PlatefileUrl(const Url& u, const std::string& name);
+
+    std::string name() const;
+    Url base() const;
+
+    void base(const Url& u);
+    void name(const std::string& n);
+
+
+    friend std::istream& operator>>(std::istream& i, PlatefileUrl& val);
 };
 
 }} // namespace vw::platefile

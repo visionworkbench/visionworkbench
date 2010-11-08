@@ -12,6 +12,7 @@
 #include <boost/foreach.hpp>
 
 using namespace vw;
+using namespace vw::platefile;
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.pagedindex") << VW_CURRENT_FUNCTION << ": ")
 
@@ -20,14 +21,14 @@ using namespace vw;
 //                             INDEX LEVEL
 // --------------------------------------------------------------------
 
-vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
-                                      int level, int page_width, int page_height, int cache_size)
-    : m_page_gen_factory(page_gen_factory), m_level(level),
-      m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
+IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
+                       int level, int page_width, int page_height, int cache_size)
+  : m_page_gen_factory(page_gen_factory), m_level(level),
+    m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
 
-  int tiles_per_side = pow(2,level);
-  m_horizontal_pages = ceil(float(tiles_per_side) / page_width);
-  m_vertical_pages = ceil(float(tiles_per_side) / page_height);
+  int tiles_per_side = 1 << level;
+  m_horizontal_pages = (int)ceil(float(tiles_per_side) / float(page_width));
+  m_vertical_pages   = (int)ceil(float(tiles_per_side) / float(page_height));
 
   // Create space for cache handles.  The actual generators are not
   // created until they are needed (because they take enough memory
@@ -38,7 +39,7 @@ vw::platefile::IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> pa
   m_cache_handles.resize(pages);
 }
 
-boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::fetch_page(int i, int j) const {
+boost::shared_ptr<IndexPage> IndexLevel::fetch_page(int i, int j) const {
   Mutex::Lock lock(m_cache_mutex);
 
   size_t idx = j*m_horizontal_pages + i;
@@ -59,7 +60,7 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::fetch_pag
 }
 
 
-vw::platefile::IndexLevel::~IndexLevel() {
+IndexLevel::~IndexLevel() {
   Mutex::Lock lock(m_cache_mutex);
 
   // Make sure the handles drop out of cache
@@ -67,7 +68,7 @@ vw::platefile::IndexLevel::~IndexLevel() {
     h.reset();
 }
 
-void vw::platefile::IndexLevel::sync() {
+void IndexLevel::sync() {
   Mutex::Lock lock(m_cache_mutex);
 
   vw_out(VerboseDebugMessage, "platefile.cache")
@@ -86,7 +87,8 @@ void vw::platefile::IndexLevel::sync() {
 }
 
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
-boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(int col, int row) const {
+boost::shared_ptr<IndexPage> IndexLevel::get_page(int col, int row) const {
+
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level),
              TileNotFoundErr() << "IndexLevel::get_page() failed.  Invalid index [ "
              << col << " " << row << " @ level " << m_level << "]" );
@@ -102,10 +104,7 @@ boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::IndexLevel::get_page(
 
 
 /// Fetch the value of an index node at this level.
-vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
-                                                          int32 row,
-                                                          int32 transaction_id,
-                                                          bool exact_match) const {
+IndexRecord IndexLevel::get(int32 col, int32 row, int32 transaction_id, bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level),
              TileNotFoundErr() << "IndexLevel::get() failed.  Invalid index [ "
@@ -122,8 +121,7 @@ vw::platefile::IndexRecord vw::platefile::IndexLevel::get(int32 col,
 }
 
 /// Set the value of an index node at this level.
-void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
-                                    vw::platefile::IndexRecord const& rec) {
+void IndexLevel::set(TileHeader const& header, IndexRecord const& rec) {
 
   VW_ASSERT( header.col() >= 0 && header.row() >= 0 &&
              header.col() < pow(2,m_level) && header.row() < pow(2,m_level),
@@ -141,19 +139,19 @@ void vw::platefile::IndexLevel::set(vw::platefile::TileHeader const& header,
 }
 
 /// Returns a list of valid tiles at this level.
-std::list<vw::platefile::TileHeader>
-vw::platefile::IndexLevel::search_by_region(BBox2i const& region,
-                                            int start_transaction_id,
-                                            int end_transaction_id,
-                                            int min_num_matches,
-                                            bool fetch_one_additional_entry) const {
+std::list<TileHeader>
+IndexLevel::search_by_region(BBox2i const& region,
+                             int start_transaction_id,
+                             int end_transaction_id,
+                             int min_num_matches,
+                             bool fetch_one_additional_entry) const {
 
   // Start by computing the search range in pages based on the requested region.
   int32 min_level_col = region.min().x() / m_page_width;
   int32 min_level_row = region.min().y() / m_page_height;
 
-  int32 max_level_col = ceilf(float(region.max().x()) / m_page_width);
-  int32 max_level_row = ceilf(float(region.max().y()) / m_page_height);
+  int32 max_level_col = (int32)ceilf(float(region.max().x()) / float(m_page_width));
+  int32 max_level_row = (int32)ceilf(float(region.max().y()) / float(m_page_height));
 
   WHEREAMI << "[" << min_level_col << " " << min_level_row << "]"
            << " to [" << max_level_col
@@ -178,11 +176,11 @@ vw::platefile::IndexLevel::search_by_region(BBox2i const& region,
 }
 
 /// Fetch the value of an index node at this level.
-std::list<vw::platefile::TileHeader>
-vw::platefile::IndexLevel::search_by_location(int32 col, int32 row,
-                                              int32 start_transaction_id,
-                                              int32 end_transaction_id,
-                                              bool fetch_one_additional_entry) const {
+std::list<TileHeader>
+IndexLevel::search_by_location(int32 col, int32 row,
+                               int32 start_transaction_id,
+                               int32 end_transaction_id,
+                               bool fetch_one_additional_entry) const {
 
   if (col < 0 || row < 0 || col >= 1<<m_level || row >= 1<<m_level)
     return std::list<TileHeader>();
@@ -202,40 +200,41 @@ vw::platefile::IndexLevel::search_by_location(int32 col, int32 row,
 // --------------------------------------------------------------------
 
 /// Create a new, empty index.
-vw::platefile::PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
-                                      IndexHeader /*new_index_info*/,
-                                      int page_width, int page_height, int default_cache_size) :
-  m_page_gen_factory(page_gen_factory),
-  m_page_width(page_width), m_page_height(page_height),
-  m_default_cache_size(default_cache_size) {}
+PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
+                       IndexHeader /*new_index_info*/,
+                       int page_width, int page_height, int default_cache_size)
+  : m_page_gen_factory(page_gen_factory), m_page_width(page_width), m_page_height(page_height),
+    m_default_cache_size(default_cache_size) {}
 
 /// Open an existing index from a file on disk.
-vw::platefile::PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
-                                      int page_width, int page_height, int default_cache_size) :
-  m_page_gen_factory(page_gen_factory),
-  m_page_width(page_width), m_page_height(page_height),
-  m_default_cache_size(default_cache_size) {}
+PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
+                       int page_width, int page_height, int default_cache_size)
+  : m_page_gen_factory(page_gen_factory), m_page_width(page_width), m_page_height(page_height),
+    m_default_cache_size(default_cache_size) {}
 
-void vw::platefile::PagedIndex::sync() {
+/// Open an existing index from a file on disk.
+PagedIndex::PagedIndex(int page_width, int page_height, int default_cache_size)
+  : m_page_width(page_width), m_page_height(page_height),
+    m_default_cache_size(default_cache_size) {}
 
+void PagedIndex::sync() {
   for (unsigned i = 0; i < m_levels.size(); ++i) {
     m_levels[i]->sync();
   }
-
 }
 
 // ----------------------- READ/WRITE REQUESTS  ----------------------
 
 /// Grab an IndexPage.  Useful if you want to serialize it by hand to disk.
-boost::shared_ptr<vw::platefile::IndexPage> vw::platefile::PagedIndex::page_request(int col, int row, int level) const {
+boost::shared_ptr<IndexPage> PagedIndex::page_request(int col, int row, int level) const {
   if (level < 0 || level >= int(m_levels.size()))
     vw_throw(TileNotFoundErr() << "Requested page at " << level
              << " was greater than the max level (" << m_levels.size() << ").");
   return m_levels[level]->get_page(col, row);
 }
 
-vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int row, int level,
-                                 int transaction_id, bool exact_transaction_match) {
+IndexRecord PagedIndex::read_request(int col, int row, int level,
+                                     int transaction_id, bool exact_transaction_match) {
   if (level < 0 || level >= int(m_levels.size()))
     vw_throw(TileNotFoundErr() << "Requested tile at level " << level
              << " was greater than the max level (" << m_levels.size() << ").");
@@ -246,17 +245,17 @@ vw::platefile::IndexRecord vw::platefile::PagedIndex::read_request(int col, int 
   return rec;
 }
 
-void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
+void PagedIndex::write_update(TileHeader const& header, IndexRecord const& record) {
   // First, we check to make sure we have a sufficient number of
   // levels to save the requested data.  If not, we grow the levels
   // vector to the correct size.
-  while (int(m_levels.size()) <= header.level()) {
-    boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory,
-                                                            m_levels.size(),
-                                                            m_page_width, m_page_height,
-                                                            m_default_cache_size) );
+
+  for (int level = boost::numeric_cast<int>(m_levels.size()); level <= header.level(); ++level) {
+    boost::shared_ptr<IndexLevel> new_level(
+        new IndexLevel(m_page_gen_factory, level, m_page_width, m_page_height, m_default_cache_size) );
     m_levels.push_back(new_level);
   }
+
   m_levels[header.level()]->set(header, record);
 }
 
@@ -270,12 +269,11 @@ void vw::platefile::PagedIndex::write_update(TileHeader const& header, IndexReco
 /// valid location.  Note: there may be other tiles in the transaction
 /// range at this col/row/level, but search_by_region() only returns the
 /// first one.
-std::list<vw::platefile::TileHeader>
-vw::platefile::PagedIndex::search_by_region(int level, BBox2i const& region,
-                                            int start_transaction_id,
-                                            int end_transaction_id,
-                                            int min_num_matches,
-                                            bool fetch_one_additional_entry) const {
+std::list<TileHeader>
+PagedIndex::search_by_region(int level, BBox2i const& region,
+                             int start_transaction_id, int end_transaction_id,
+                             int min_num_matches,
+                             bool fetch_one_additional_entry) const {
 
   // If the level does not exist, we return an empty list.
   if (level < 0 || level >= int(m_levels.size()))
@@ -287,10 +285,10 @@ vw::platefile::PagedIndex::search_by_region(int level, BBox2i const& region,
                                            min_num_matches, fetch_one_additional_entry);
 }
 
-std::list<vw::platefile::TileHeader>
-vw::platefile::PagedIndex::search_by_location(int col, int row, int level,
-                                              int start_transaction_id, int end_transaction_id,
-                                              bool fetch_one_additional_entry = false) const {
+std::list<TileHeader>
+PagedIndex::search_by_location(int col, int row, int level,
+                               int start_transaction_id, int end_transaction_id,
+                               bool fetch_one_additional_entry = false) const {
 
   // If the level does not exist, we return an empty list.
   if (level < 0 || level >= int(m_levels.size()))
@@ -302,4 +300,3 @@ vw::platefile::PagedIndex::search_by_location(int col, int row, int level,
                                              fetch_one_additional_entry);
 
 }
-

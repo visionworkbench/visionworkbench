@@ -8,7 +8,6 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Amqp.h>
-#include <vw/Plate/common.h>
 
 // Protocols
 #include <vw/Plate/Rpc.pb.h>
