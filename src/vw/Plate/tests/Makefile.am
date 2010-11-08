@@ -13,7 +13,6 @@ check_SCRIPTS  =
 
 if MAKE_MODULE_PLATE
 
-TestAmqp_SOURCES              = TestAmqp.cxx
 TestBlobIO_SOURCES            = TestBlobIO.cxx
 TestBlobManager_SOURCES       = TestBlobManager.cxx
 TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx

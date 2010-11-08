@@ -45,7 +45,6 @@ include_HEADERS =           \
   TileManipulation.h        \
   ToastDem.h                \
   ToastPlateManager.h
-#  WMSService.h
 
 nodist_include_HEADERS = $(protocol_headers)
 noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
@@ -70,7 +69,6 @@ libvwPlate_la_SOURCES =      \
   TileManipulation.cc        \
   ToastDem.cc                \
   ToastPlateManager.cc
-#  WMSService.cc
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)
 
 libvwPlate_la_LIBADD  = @MODULE_PLATE_LIBS@
@@ -114,12 +112,6 @@ if ENABLE_EXCEPTIONS
 index_server_SOURCES = index_server.cc
 index_server_LDADD   = $(PLATE_LOCAL_LIBS)
 
-#wms_server_SOURCES = wms_server.cc
-#wms_server_LDADD = $(PLATE_LOCAL_LIBS)
-#
-#wms_client_SOURCES = wms_client.cc
-#wms_client_LDADD = $(PLATE_LOCAL_LIBS)
-
 image2plate_SOURCES = image2plate.cc
 image2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(PLATE_LOCAL_LIBS)
 
@@ -141,17 +133,8 @@ plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
 
-amqp_perftest_SOURCES = amqp_perftest.cc
-amqp_perftest_LDADD = $(PLATE_LOCAL_LIBS)
-
-index_perftest_SOURCES = index_perftest.cc
-index_perftest_LDADD = $(PLATE_LOCAL_LIBS)
-
 rpc_tool_SOURCES = rpc_tool.cc
 rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
-
-lustre_torture_SOURCES = lustre_torture.cc
-lustre_torture_LDADD = $(PLATE_LOCAL_LIBS)
 
 hirise2tif_SOURCES = hirise2tif.cc
 hirise2tif_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
@@ -163,13 +146,10 @@ platereduce_SOURCES = platereduce.cc
 platereduce_LDADD   = $(PLATE_LOCAL_LIBS)
 
 bin_PROGRAMS =   \
-  amqp_perftest  \
   hirise2tif     \
   image2plate    \
   index_client   \
-  index_perftest \
   index_server   \
-  lustre_torture \
   plate2dem      \
   plate2plate    \
   plate2tiles    \
@@ -178,8 +158,6 @@ bin_PROGRAMS =   \
   rpc_tool       \
   snapshot       \
   tiles2plate
-  #wms_client
-  #wms_server
 
 endif
 
