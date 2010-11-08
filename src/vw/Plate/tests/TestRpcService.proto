@@ -8,15 +8,11 @@
 package vw.platefile;
 import "vw/Plate/Rpc.proto";
 
-message EchoMessage {
-  required string msg = 1;
-}
-
 message DoubleMessage {
-  required int32 num = 1;
+  required int32  num = 1;
+  optional uint32 seq = 2;
 }
 
 service TestService {
-  rpc EchoRequest   (EchoMessage)   returns (EchoMessage);
-  rpc DoubleRequest (DoubleMessage) returns  (DoubleMessage);
+  rpc DoubleRequest (DoubleMessage) returns (DoubleMessage);
 }

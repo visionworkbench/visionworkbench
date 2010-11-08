@@ -191,6 +191,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tests/TestLocalIndex
 /src/vw/Plate/tests/TestModPlate
 /src/vw/Plate/tests/TestRpc
+/src/vw/Plate/tests/TestRpcChannel
 /src/vw/Plate/tests/TestTileManipulation
 /src/vw/Python/vw/_*.cpp
 /src/vw/Python/vw/_*.h

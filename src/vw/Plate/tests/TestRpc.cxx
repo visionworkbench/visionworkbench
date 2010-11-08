@@ -7,9 +7,11 @@
 
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
+#include <vw/Plate/Rpc.h>
 #include <vw/Plate/RpcChannel.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Plate/tests/TestRpcService.pb.h>
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 #include <cstdlib>
@@ -17,58 +19,77 @@
 using namespace std;
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::test;
 
-typedef boost::shared_ptr<IChannel> Chan;
+namespace pb = ::google::protobuf;
+
+class TestServiceImpl : public TestService {
+  public:
+    static const int LIMIT = 900000;
+
+    virtual void DoubleRequest(pb::RpcController* /*controller*/, const DoubleMessage* request, DoubleMessage* response, pb::Closure* done) {
+      if (request->num() > LIMIT)
+        vw_throw(PlatefileErr() << "Sad panda");
+      response->set_num(request->num() * 2);
+      done->Run();
+    }
+};
+
+#if 0
+class TestServiceRude : public TestServiceImpl {
+    const uint32 m_skip;
+    uint32 m_seq;
+  public:
+    TestServiceRude(uint32 skip) : m_skip(skip), m_seq(0) {}
+    virtual void DoubleRequest(pb::RpcController* /*controller*/, const DoubleMessage* request, DoubleMessage* response, pb::Closure* done) {
+      if (m_seq++ < m_skip)
+        vw_throw(NetworkErr() <<
+      response->set_num(request->num() * 2);
+      done->Run();
+    }
+};
+#endif
+
+typedef RpcClient<TestService> TestClient;
+typedef RpcServer<TestService> TestServer;
+typedef boost::shared_ptr<TestClient> Client;
+typedef boost::shared_ptr<TestServer> Server;
 
 const std::string default_hostname = "localhost";
 const std::string default_port = "5672";
-
 const uint64 TIMEOUT = 1000;
-
-string env_str(const char *key, const string& def) {
-  const char *val = getenv(key);
-  return val ? val : def;
-}
 
 Url amqp_url(string hostname = "", short port = -1) {
   if (hostname.empty())
-    hostname = env_str("AMQP_TEST_HOSTNAME", default_hostname);
+    hostname = getenv2("AMQP_TEST_HOSTNAME", default_hostname);
 
-  string sport = env_str("AMQP_TEST_PORT", default_port);
+  string sport = getenv2("AMQP_TEST_PORT", default_port);
   if (port != -1) {
     sport = boost::lexical_cast<string>(port);
   }
   return string("amqp://") + hostname + ":" + sport + "/unittest/server";
 }
 
-struct GenClient {
-  const Url& url;
-  uint64 num;
-  GenClient(const Url& url) : url(url), num(0) {}
-  Chan operator()() {
-    Chan ret(IChannel::make_conn(url, "unittest_client" + stringify(num++)));
-    ret->set_timeout(TIMEOUT);
-    return ret;
-  }
-};
-
-struct IChannelTest : public ::testing::TestWithParam<Url> {
-  ByteArray e1,e2;
-  Chan server;
-  vector<Chan> clients;
+struct RpcTest : public ::testing::TestWithParam<Url> {
+  Server server;
+  vector<Client> clients;
 
   void SetUp() {
-    static const char m1[] = "13", m2[] = "26";
-    e1 = ByteArray(m1, m1+sizeof(m1));
-    e2 = ByteArray(m2, m2+sizeof(m2));
-    ASSERT_NO_THROW(server.reset(IChannel::make_bind(GetParam(), "unittest_server")));
-    server->set_timeout(TIMEOUT);
-    clients.resize(0);
+    make_server();
+    make_clients(0);
   }
 
   void make_clients(uint64 count) {
     clients.resize(count);
-    ASSERT_NO_THROW(std::generate(clients.begin(), clients.end(), GenClient(GetParam())));
+    ASSERT_NO_THROW(std::generate(clients.begin(), clients.end(), TestClient::make_factory(GetParam(), TIMEOUT, 10)));
+  }
+
+  void make_server() {
+    ASSERT_NO_THROW(server.reset(new RpcServer<TestService>(GetParam(), new TestServiceImpl())));
+    // XXX: This is pretty lame. Unlike every other type of 0mq socket, inproc
+    // sockets must bind() before connect(). This delay makes it likely the
+    // server starts before the client.
+    Thread::sleep_ms(50);
   }
 
   void TearDown() {
@@ -77,156 +98,95 @@ struct IChannelTest : public ::testing::TestWithParam<Url> {
   }
 };
 
-TEST_P(IChannelTest, Request) {
-  SharedByteArray a1;
+TEST_P(RpcTest, Basic) {
   make_clients(1);
 
-  clients[0]->send_bytes(e1.begin(), e1.size());
-  server->recv_bytes(a1);
-
-  ASSERT_TRUE(a1);
-  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1->begin(), a1->end());
-}
-
-TEST_P(IChannelTest, RequestReply) {
-  SharedByteArray a1, a2;
-  make_clients(1);
-
-  clients[0]->send_bytes(e1.begin(), e1.size());
-  ASSERT_TRUE(server->recv_bytes(a1));
-  ASSERT_TRUE(a1);
-  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1->begin(), a1->end());
-
-  server->send_bytes(e2.begin(), e2.size());
-  ASSERT_TRUE(clients[0]->recv_bytes(a2));
-  ASSERT_TRUE(a2);
-  EXPECT_RANGE_EQ(e2.begin(), e2.end(), a2->begin(), a2->end());
-}
-
-struct NumberTask {
-  struct Msg {
-    uint64 id;
-    uint64 num;
-    Msg(uint64 id, uint64 num) : id(id), num(num) {}
-  };
-
-  const Url& url;
-  uint64 id;
-  bool done;
-  std::vector<Msg> received;
-  static const uint64 COUNT = 1000;
-
-  NumberTask(const Url& url) : url(url), done(false) {}
-
-  Msg unmake(const ByteArray& b) {
-    Msg m(-1,-1);
-    VW_ASSERT(b.size() == sizeof(m), LogicErr() << "Error in message size");
-    ::memcpy(&m, b.begin(), sizeof(m));
-    return m;
+  DoubleMessage q, a;
+  for (uint32 i = 0; i < 1000; ++i) {
+    q.set_num(i);
+    EXPECT_NO_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()));
+    EXPECT_EQ(i*2, a.num());
   }
+  EXPECT_EQ(1000, server->stats().get("msgs"));
+  EXPECT_EQ(0, server->stats().get("client_error"));
+}
 
-  void operator()() {
-    id = Thread::id();
-    ASSERT_NE(0, id) << "None of the threads should be thread 0";
-    Chan client(IChannel::make_conn(url, "unittest_client" + stringify(id)));
-    client->set_timeout(TIMEOUT);
+TEST_P(RpcTest, ClientErr) {
+  make_clients(1);
 
-    received.resize(COUNT, Msg(-1,-1));
-    SharedByteArray in;
-    for (uint64 i = 0; i < COUNT; ++i) {
-      Msg out(id, i);
-      client->send_bytes(reinterpret_cast<const uint8*>(&out), sizeof(Msg));
-      ASSERT_TRUE(client->recv_bytes(in));
-      ASSERT_TRUE(in);
-      received[i] = unmake(*in);
+  DoubleMessage q, a;
+  q.set_num(TestServiceImpl::LIMIT+1);
+  EXPECT_EQ(0, server->stats().get("msgs"));
+  EXPECT_EQ(0, server->stats().get("client_error"));
+  EXPECT_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()), RpcErr);
+  EXPECT_EQ(0, server->stats().get("msgs"));
+  EXPECT_EQ(1, server->stats().get("client_error"));
+}
+
+class ClientTask {
+    TestClient::Factory f;
+    Mutex &mutex;
+    Condition &cond;
+  public:
+    static const uint64 MSG_COUNT = 250;
+    ClientTask(TestClient::Factory f, Mutex& m, Condition& c) : f(f), mutex(m), cond(c) {}
+
+    void operator()() {
+      uint32 offset = Thread::id() * MSG_COUNT;
+      Client c = f();
+      DoubleMessage q, a;
+
+      {
+        Mutex::Lock lock(mutex);
+        cond.timed_wait(lock, 1000);
+      }
+
+      for (uint32 i = 0; i < MSG_COUNT; ++i) {
+        q.set_num(i + offset);
+        EXPECT_NO_THROW(c->DoubleRequest(c.get(), &q, &a, null_callback()));
+        EXPECT_EQ(q.num() * 2, a.num());
+      }
+      c.reset();
     }
-    done = true;
-  }
 };
 
-TEST_P(IChannelTest, MultiThreadTorture) {
-  uint64 COUNT = 30;
+TEST_P(RpcTest, MultiThreadTorture) {
+  uint64 THREAD_COUNT = 20;
 
-  typedef boost::shared_ptr<NumberTask> task_t;
+  typedef boost::shared_ptr<ClientTask> task_t;
   typedef boost::shared_ptr<Thread> thread_t;
 
-  vector<task_t>   tasks(COUNT);
-  vector<thread_t> threads(COUNT);
+  vector<task_t>   tasks(THREAD_COUNT);
+  vector<thread_t> threads(THREAD_COUNT);
 
-  EXPECT_EQ(Thread::id(), 0);
+  // no retries
+  TestClient::Factory f = TestClient::make_factory(GetParam(), TIMEOUT, 0);
 
-  for (uint64 i = 0; i < COUNT; ++i) {
-    tasks[i]   = task_t(new NumberTask(GetParam()));
+  EXPECT_EQ(0, server->stats().get("msgs"));
+  EXPECT_EQ(0, server->stats().get("client_error"));
+  EXPECT_EQ(0, server->stats().get("server_error"));
+
+  Mutex m;
+  Condition c;
+
+  for (uint64 i = 0; i < THREAD_COUNT; ++i) {
+    tasks[i]   = task_t(new ClientTask(f, m, c));
     threads[i] = thread_t(new Thread(tasks[i]));
   }
 
-  uint64 msgs = 0;
-  SharedByteArray msg;
-  while (1) {
-    msg.reset();
-    if (!server->recv_bytes(msg))
-      break;
-    ASSERT_TRUE(msg);
-    server->send_bytes(msg->begin(), msg->size());
-    msgs++;
-  }
+  Thread::sleep_ms(100);
+  // start everyone at the same time
+  c.notify_all();
 
   BOOST_FOREACH(thread_t& t, threads)
     t->join();
 
-  ASSERT_EQ(COUNT * NumberTask::COUNT, msgs);
-
-  BOOST_FOREACH(task_t& t, tasks) {
-    uint64 i = 0;
-    BOOST_FOREACH(const NumberTask::Msg& msg, t->received) {
-      EXPECT_EQ(t->id, msg.id);
-      EXPECT_EQ(i,     msg.num);
-      i++;
-    }
-  }
+  EXPECT_EQ(THREAD_COUNT * ClientTask::MSG_COUNT, server->stats().get("msgs"));
+  EXPECT_EQ(0, server->stats().get("client_error"));
+  EXPECT_EQ(0, server->stats().get("server_error"));
 }
 
-#if 0
-// RpcServer implements a CallMethod (which talks over the IChannel). It
-// delegates the center to ServiceT::CallMethod.
-template <typename ServiceT>
-class RpcServer : public ServiceT {
-  protected:
-    Chan m_channel;
-
-  public:
-    RpcServer(Chan& channel) : channel(channel) {}
-    RpcServer(const string& url) : channel(make_bind(url)) {}
-
-    void run()
-
-    void CallMethod(
-        const ::google::protobuf::MethodDescriptor* method,
-        IController* controller,
-        const ::google::protobuf::Message* request,
-        ::google::protobuf::Message* response,
-        ::google::protobuf::Closure* done) {
-    }
-
-}
-
-class TestServiceImpl : public RpcServer<TestService> {
-  TestServiceImpl(
-}
-
-TEST_P(IChannelTest, BasicRpc) {
-  make_clients(1);
-
-   IController controller;
-
-   TestServiceImpl server_svc(&
-   TestServiceImpl::Stub stub(&client[0])
-   FooRequest request;
-   FooRespnose response;
-}
-#endif
-
-INSTANTIATE_TEST_CASE_P(URLs, IChannelTest,
+INSTANTIATE_TEST_CASE_P(URLs, RpcTest,
                         ::testing::Values(
                            amqp_url()
                          , "zmq+ipc://" TEST_OBJDIR "/unittest"
