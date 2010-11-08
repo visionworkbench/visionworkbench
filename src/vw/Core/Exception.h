@@ -147,9 +147,15 @@ namespace vw {
     /// Returns a string version of this exception's type.
     virtual std::string name() const { return "Exception"; }
 
+    void set( std::string const& s ) { m_desc.str(s); }
+    void reset() { m_desc.str(""); }
+
     VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )
 
   protected:
+      virtual std::ostringstream& stream() {return m_desc;}
+
+  private:
     // The error message text.
     std::ostringstream m_desc;
 
@@ -178,53 +184,31 @@ namespace vw {
   // generate error message text.  This is currently implemented
   // by simply forwarding invocations of this method to an
   // internal ostringstream.
-  //
-  // Exception::set():
-  // Sets the error message text to the provided string, returning a
-  // reference to the exception for use with the streaming operator
-  // (<<) if desired.
-  //
-  // Exception::reset():
-  // Resets (i.e. clears) the error message text, returning a
-  // reference to the exception for use with the streaming operator
-  // (<<) if desired
 
   /// Macro for quickly creating a hierarchy of exceptions, all of
   /// which share the same functionality.
-  #define VW_DEFINE_EXCEPTION(exception_type,base)                                          \
-  struct exception_type : public base {                                                     \
-    _VW_DEFINE_EXCEPTION_CONSTRUCTORS(exception_type, base)                                 \
-    _VW_DEFINE_EXCEPTION_API(exception_type,exception_type,base)                            \
-  }
-
-  // Macro for creating a hierarchy of exceptions that may have additional
-  // functions or data.  Exceptions using the EXT API must make do with the
-  // default constructors (or define their own)
-  #define VW_DEFINE_EXCEPTION_EXT(exception_type,base)                                      \
-  struct exception_type ## ExceptionBase : public base {                                    \
-    _VW_DEFINE_EXCEPTION_API(exception_type ## ExceptionBase,exception_type,base)           \
-  };                                                                                        \
-  struct exception_type : public exception_type ## ExceptionBase
-
-#define _VW_DEFINE_EXCEPTION_CONSTRUCTORS(exception_type, base)                             \
-    exception_type() VW_NOTHROW : base() {}                                                 \
-    exception_type( exception_type const& e ) VW_NOTHROW : base( e ) {}                     \
-    virtual ~exception_type() VW_NOTHROW {}                                                 \
-    inline exception_type& operator=( exception_type const& e ) VW_NOTHROW {                \
-      base::operator=( e );                                                                 \
-      return *this;                                                                         \
+  #define VW_DEFINE_EXCEPTION(exception_type,base)                             \
+    struct exception_type : public base {                                      \
+      VW_EXCEPTION_API(exception_type)                                         \
     }
 
-#define _VW_DEFINE_EXCEPTION_API(exception_type, exception_name, base)                      \
-    virtual std::string name() const { return #exception_name; }                            \
-    exception_type& set( std::string const& s ) { m_desc.str(s);  return *this; }           \
-    exception_type& reset() { m_desc.str("");  return *this; }                              \
-                                                                                            \
-    VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )                 \
-                                                                                            \
-    template <class T>                                                                      \
-    exception_type& operator<<( T const& t ) { m_desc << t; return *this; }
+  // This sentinel catches users who forget to use VW_EXCEPTION_API
+  #define _VW_EXCEPTION_SENTINEL(e) _YouForgot_VW_EXCEPTION_API_OnException_ ## e
 
+  // Macro for creating a hierarchy of exceptions that may have additional
+  // functions or data. When using this macro, you must include the
+  // VW_EXCEPTION_API macro inside the braces
+  #define VW_DEFINE_EXCEPTION_EXT(exception_type,base)                         \
+    struct _VW_EXCEPTION_SENTINEL(exception_type) : public base {              \
+      virtual std::string name() const = 0;                                    \
+    };                                                                         \
+    struct exception_type : public _VW_EXCEPTION_SENTINEL(exception_type)
+
+  #define VW_EXCEPTION_API(exception_type)                                     \
+    virtual std::string name() const { return #exception_type; }               \
+    VW_IF_EXCEPTIONS( virtual void default_throw() const { throw *this; } )    \
+    template <class T>                                                         \
+    exception_type& operator<<( T const& t ) { stream() << t; return *this; }
 
   /// Invalid function argument exception
   VW_DEFINE_EXCEPTION(ArgumentErr, Exception);

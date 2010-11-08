@@ -16,12 +16,14 @@ VW_DEFINE_EXCEPTION(Level1Err, Exception);
 VW_DEFINE_EXCEPTION(Level2Err, Level1Err);
 
 VW_DEFINE_EXCEPTION_EXT(Code0, Exception) {
+  VW_EXCEPTION_API(Code0);
   virtual int32 code() const {return -1;}
 };
 
 VW_DEFINE_EXCEPTION(Code1, Code0);
 
 VW_DEFINE_EXCEPTION_EXT(Code2, Code1) {
+  VW_EXCEPTION_API(Code2);
   int32 code() const {return 4;}
 };
 
@@ -50,6 +52,11 @@ TEST(Exceptions, HAS_EXCEPTIONS(Ext)) {
   EXPECT_THROW(throw Code2(), Code1);
   EXPECT_THROW(throw Code2(), Code0);
   EXPECT_THROW(throw Code2(), Exception);
+
+  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code2);
+  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code1);
+  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Code0);
+  EXPECT_THROW(vw_throw( Code2() << "Rawr" ), Exception);
 
   try {
   } catch (const Code0& c) {
