@@ -75,4 +75,9 @@ UnlinkName::~UnlinkName() {
     fs::remove_all(this->c_str());
 }
 
+std::string getenv2(const char *key, const std::string& Default) {
+  const char *val = getenv(key);
+  return val ? val : Default;
+}
+
 }} // namespace vw::test

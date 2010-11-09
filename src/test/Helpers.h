@@ -14,6 +14,7 @@
 #include <string>
 #include <boost/function.hpp>
 #include <queue>
+#include <cstdlib>
 
 #include <vw/config.h>
 #include <vw/Core/Log.h>
@@ -51,6 +52,9 @@ class UnlinkName : public std::string {
     UnlinkName(const char *base,        const std::string& directory=TEST_OBJDIR);
     ~UnlinkName();
 };
+
+// A getenv with a default value
+std::string getenv2(const char *key, const std::string& Default);
 
 // reduce the damage from using gtest internal bits, and make sure uint8 is
 // seen as numeric.
