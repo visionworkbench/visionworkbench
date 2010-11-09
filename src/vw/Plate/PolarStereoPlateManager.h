@@ -35,13 +35,12 @@ namespace platefile {
 
   template <class PixelT>
   class PolarStereoPlateManager : public PlateManager {
-    FifoWorkQueue m_queue;
     cartography::Datum m_datum;
   public:
 
   PolarStereoPlateManager(boost::shared_ptr<PlateFile> platefile,
                           cartography::Datum const& datum ) :
-    PlateManager(platefile), m_queue(1), m_datum(datum) {}
+    PlateManager(platefile), m_datum(datum) {}
 
     /// Add an image to the plate file. Return used transaction id.
     template <class ViewT>
@@ -150,13 +149,11 @@ namespace platefile {
       progress.report_progress(0);
       BOOST_FOREACH( TileInfo const& tile, tiles ) {
         typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
-        m_queue.add_task(boost::shared_ptr<Task>(
-          new Job(m_platefile, transaction_id,
-                  tile, pyramid_level,
-                  stereo_view, tweak_settings_for_terrain,
-                  false, boost::numeric_cast<int>(tiles_size), progress)));
+        boost::scoped_ptr<Task> task(
+          new Job(m_platefile, transaction_id, tile, pyramid_level, stereo_view,
+                  tweak_settings_for_terrain, false, boost::numeric_cast<int>(tiles_size), progress));
+        (*task)();
       }
-      m_queue.join_all();
       progress.report_finished();
 
       // Sync the index

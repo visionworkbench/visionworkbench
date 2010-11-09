@@ -51,13 +51,10 @@ namespace platefile {
   template <class PixelT>
   class PlateCarreePlateManager : public PlateManager {
 
-    //    PixelT m_fix;
-    FifoWorkQueue m_queue;
-
   public:
 
     PlateCarreePlateManager(boost::shared_ptr<PlateFile> platefile) :
-      PlateManager(platefile), m_queue(1)  {} // Set threads to 1 for now...
+      PlateManager(platefile)  {}
 
     // Create a georeference object for this plate file.  The user
     // supplies the desired level for which they want the
@@ -185,13 +182,11 @@ namespace platefile {
       progress.report_progress(0);
       for (size_t i = 0; i < tiles.size(); ++i) {
         typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
-        m_queue.add_task(boost::shared_ptr<Task>(
-          new Job(m_platefile, transaction_id,
-                  tiles[i], pyramid_level,
-                  kml_view, tweak_settings_for_terrain,
-                  false, tiles.size(), progress)));
+        boost::scoped_ptr<Task> task(
+          new Job(m_platefile, transaction_id, tiles[i], pyramid_level, kml_view,
+                 tweak_settings_for_terrain, false, tiles.size(), progress));
+        (*task)();
       }
-      m_queue.join_all();
       progress.report_finished();
 
       // Sync the index

@@ -60,9 +60,6 @@ namespace platefile {
 
     int32 m_resolution;
 
-    // Private variables
-    FifoWorkQueue m_queue;
-
     struct CacheEntry {
       int32 level, x, y, transaction_id;
       ImageView<PixelT> tile;
@@ -76,7 +73,7 @@ namespace platefile {
  public:
 
     ToastPlateManager(boost::shared_ptr<PlateFile> platefile) :
-      PlateManager(platefile), m_queue(1) {} // Use 1 thread for now...
+      PlateManager(platefile) {}
 
     /// Add an image to the plate file.
     template <class ViewT>
@@ -176,19 +173,15 @@ namespace platefile {
 
       // Add each tile.
       progress.report_progress(0);
+
       for (size_t i = 0; i < tiles.size(); ++i) {
-        m_queue.add_task(boost::shared_ptr<Task>(
-          new WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >(m_platefile,
-                                                                            transaction_id,
-                                                                            tiles[i],
-                                                                            pyramid_level,
-                                                                            toast_view,
-                                                                            tweak_settings_for_terrain,
-                                                                            verbose, // verbose
-                                                                            boost::numeric_cast<int>(tiles.size()),
-                                                                            progress)));
+        // this used to be a thread queue, but PlateFile isn't threadsafe
+        typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> >Job;
+        boost::scoped_ptr<Task> task(
+          new Job( m_platefile, transaction_id, tiles[i], pyramid_level, toast_view,
+                   tweak_settings_for_terrain, verbose, boost::numeric_cast<int>(tiles.size()), progress));
+        (*task)();
       }
-      m_queue.join_all();
       progress.report_finished();
 
       // Sync the index
