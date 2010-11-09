@@ -52,6 +52,7 @@ int main( int argc, char *argv[] ) {
     ("output_cnet_file,o", po::value<std::string>(&output_cnet_file_tmp)->default_value("processed.cnet"), "Name of processed control network file to write out.")
     ("output_deleted_index_file,o", po::value<std::string>(&output_deleted_index_file_tmp)->default_value("cnet_deleted.txt"), "Name of file of indexes to deleted control points to write out.")
     ("data_dir,d",po::value<std::string>(&data_dir)->default_value("."), "Name of directory to write output files into.")
+    ("clip-if-not-on-moon", "Clip control points that don't track features that are not at least 200 km near the surface of the moon.")
     ("help,h","Brings up this.");
 
   po::options_description positional_options("Positional Options");
@@ -103,7 +104,7 @@ int main( int argc, char *argv[] ) {
                 << tokens[tokens.size()-1] << "\"." );
   }
 
-  // Alright loading image mean file
+  // Loading image mean file
   std::ifstream f;
   f.open( image_mean_file.c_str(), std::ios::binary | std::ios::in );
   unsigned read_cnet_size;
@@ -125,14 +126,13 @@ int main( int argc, char *argv[] ) {
                                        image_errors.end()));
   double max_image = *(std::max_element(image_errors.begin(),
                                         image_errors.end()));
+  double list_size = image_errors.size();
   double mean_image=0, stddev_image=0;
   for( std::list<double>::iterator it = image_errors.begin();
        it != image_errors.end(); it++ ) {
-    mean_image += (*it);
-    stddev_image += (*it)*(*it);
+    mean_image += (*it) / error_size;
+    stddev_image += (*it)*(*it) / error_size;
   }
-  mean_image /= error_size;
-  stddev_image /=  error_size;
   stddev_image = sqrt( stddev_image - mean_image*mean_image );
   vw_out() << "Image min: " << min_image << " max: " << max_image
             << " mean: " << mean_image << " stddev: " << stddev_image
@@ -140,14 +140,11 @@ int main( int argc, char *argv[] ) {
 
   // Awesome, now clipping based one std_dev
   int clipping_count = 0;
-  int other_count = 0;
   int cp_clip_count = 0;
   std::list<double>::iterator image_error = image_errors.begin();
-  std::vector<bool> deleted(cnet.size(), false);
-  int del_i = 0;
   float inc_amt = 1.0/float(cnet.size());
   TerminalProgressCallback tpc("","Clipping");
-  for ( unsigned cpi = 0; cpi < cnet.size(); cpi++, del_i++ ) {
+  for ( unsigned cpi = 0; cpi < cnet.size(); cpi++) {
     tpc.report_incremental_progress(inc_amt);
     for ( unsigned cmi = 0; cmi < cnet[cpi].size(); cmi++ ) {
       if ( image_error == image_errors.end() )
@@ -159,37 +156,27 @@ int main( int argc, char *argv[] ) {
 
         cnet[cpi].delete_measure( cmi );
         cmi--;
-      } else
-        other_count++;
-
+      }
       image_error++;
     }
 
-    if ( cnet[cpi].size() < 2 ) {
+    if ( cnet[cpi].size() < 2 ||
+         ( vm.count("clip-if-not-on-moon") &&
+           (fabs(norm_2(cnet[cpi].position())-1737.4e3) > 200e3 ) ) ) {
+      clipping_count += int(cnet[cpi].size());
       cnet.delete_control_point( cpi );
       cpi--;
       cp_clip_count++;
-      deleted[del_i] = true;
     }
   }
   tpc.report_finished();
-  vw_out() << float(clipping_count) * 100.0 / float(clipping_count + other_count)
-            << "% (" << clipping_count << ") of the control measures removed.\n";
-  vw_out() << float(cp_clip_count) * 100.0 / float(cp_clip_count+cnet.size())
-            << "% (" << cp_clip_count << ") of control points removed.\n";
+  if ( image_error != image_errors.end() )
+    vw_throw( IOErr() << "Internal overflow error" );
+  vw_out() << clipping_count << " control measures removed.\n";
+  vw_out() << cp_clip_count << " of control points removed.\n";
 
   vw_out() << "\nWriting out new control network\n";
   std::string outfile_str = fs::path(data_dir / output_cnet_file ).string();
   vw_out() << "\tfile: " << outfile_str << "\n";
   cnet.write_binary(outfile_str);
-
-  vw_out() << "\nWriting deleted index file\n";
-  std::string delindex_file_str = fs::path(data_dir / output_deleted_index_file ).string();
-  vw_out() << "\tfile: " << delindex_file_str << "\n";
-
-  std::ofstream di_out(delindex_file_str.c_str());
-  for ( size_t i = 0; i < deleted.size()-1; i++)
-    di_out << deleted[i] << " ";
-  di_out << deleted[deleted.size()-1] << "\n";
-  di_out.close();
 }
