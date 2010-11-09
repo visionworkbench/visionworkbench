@@ -44,7 +44,7 @@ ZeroMQChannel::~ZeroMQChannel() VW_NOTHROW {
   }
 }
 
-void ZeroMQChannel::send_bytes(const uint8* message, uint64 len) {
+void ZeroMQChannel::send_bytes(const uint8* message, size_t len) {
   VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannels must not be shared between threads");
   zmq::message_t rmsg(len);
   ::memcpy(rmsg.data(), message, len);

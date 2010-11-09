@@ -214,7 +214,7 @@ AmqpChannel::~AmqpChannel() VW_NOTHROW {
   }
 }
 
-void AmqpChannel::send_bytes(const uint8* message, uint64 len) {
+void AmqpChannel::send_bytes(const uint8* message, size_t len) {
   VW_ASSERT(!m_remote_name.empty(), LogicErr() << m_human_name << ": Don't know who to send_bytes to.");
   vw_out(VerboseDebugMessage, "plate.AMQP") << m_human_name << " sending data to " << m_remote_name << std::endl;
   this->basic_publish(message, len, m_remote_name, m_remote_name);

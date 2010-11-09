@@ -34,7 +34,7 @@ namespace platefile {
       uint32 m_retries;
 
     protected:
-      void send_bytes(const uint8* message, uint64 len);
+      void send_bytes(const uint8* message, size_t len);
       bool recv_bytes(SharedByteArray& bytes);
 
     public:

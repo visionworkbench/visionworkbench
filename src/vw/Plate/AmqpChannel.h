@@ -60,7 +60,7 @@ namespace platefile {
 
       void create_endpoint(const std::string& rabbitmq, short port, const std::string& name);
       void remove_endpoint();
-      void send_bytes(const uint8* message, uint64 len);
+      void send_bytes(const uint8* message, size_t len);
       bool recv_bytes(SharedByteArray& bytes);
 
     public:
