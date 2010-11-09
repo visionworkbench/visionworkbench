@@ -167,7 +167,6 @@ namespace platefile {
 
   class PlateFile {
     boost::shared_ptr<Index> m_index;
-    FifoWorkQueue m_queue;
     boost::shared_ptr<Blob> m_write_blob;
     int m_write_blob_id;
 
