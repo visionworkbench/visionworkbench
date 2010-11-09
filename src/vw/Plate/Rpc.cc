@@ -188,9 +188,11 @@ bool RpcServerBase::Task::handle_one_request() {
 }
 
 // TODO: Make the clientname settable here.
-RpcClientBase::RpcClientBase(const Url& u)
-  : m_chan(IChannel::make_conn(u, u.string()))
-{}
+RpcClientBase::RpcClientBase(const Url& u, int32 timeout, uint32 retries)
+  : m_chan(IChannel::make_conn(u, u.string())) {
+  m_chan->set_timeout(timeout);
+  m_chan->set_retries(retries);
+}
 
 pb::RpcChannel* RpcClientBase::base_channel() {
   return m_chan.get();

@@ -10,6 +10,8 @@
 
 #include <vw/Core/Thread.h>
 #include <google/protobuf/service.h>
+#include <boost/lambda/construct.hpp>
+#include <boost/lambda/bind.hpp>
 
 namespace vw {
 namespace platefile {
@@ -92,7 +94,7 @@ namespace platefile {
       // This exists to allow a fwd-decl of IChannel
       ::google::protobuf::RpcChannel* base_channel();
     public:
-      RpcClientBase(const Url& u);
+      RpcClientBase(const Url& u, int32 timeout, uint32 retries);
       ~RpcClientBase() {}
 
       // -1 means "never", other values in ms
@@ -122,9 +124,18 @@ namespace platefile {
   template <typename ServiceT>
   class RpcClient : public RpcClientBase, public ServiceT::Stub {
     public:
-      RpcClient(const Url& url)
-        : RpcClientBase(url), ServiceT::Stub(base_channel()) {}
       ::google::protobuf::Service* service() {return this;}
+
+      RpcClient(const Url& url, int32 timeout = -1, uint32 retries = 10)
+        : RpcClientBase(url, timeout, retries), ServiceT::Stub(base_channel()) {}
+
+      typedef boost::function<boost::shared_ptr<RpcClient> ()> Factory;
+
+      static Factory make_factory(const Url& url, int32 timeout = -1, uint32 retries = 10) {
+        using namespace boost;
+        typedef boost::shared_ptr<RpcClient> ptr_t;
+        return lambda::bind(lambda::constructor<ptr_t>(), lambda::bind(lambda::new_ptr<RpcClient>(), url, timeout, retries));
+      }
   };
 
 }} // namespace vw::platefile
