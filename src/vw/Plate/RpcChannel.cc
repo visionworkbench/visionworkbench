@@ -57,7 +57,7 @@ IChannel* IChannel::make(const std::string& scheme, const std::string& clientnam
 #endif
 
 #if defined(VW_HAVE_PKG_ZEROMQ) && VW_HAVE_PKG_ZEROMQ==1
-  if (scheme == "zmq+ipc" || scheme == "zmq+tcp" || scheme == "zmq+inproc")
+  if (scheme == "zmq" || scheme == "zmq+ipc" || scheme == "zmq+tcp" || scheme == "zmq+inproc")
     return new ZeroMQChannel(clientname);
 #endif
 

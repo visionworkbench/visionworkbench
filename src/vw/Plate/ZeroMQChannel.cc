@@ -124,7 +124,11 @@ void ZeroMQChannel::CallMethod(const pb::MethodDescriptor* method,
   vw_throw(RpcErr() << "CallMethod timed out completely");
 }
 
-void ZeroMQChannel::conn(const Url& endpoint) {
+void ZeroMQChannel::conn(const Url& endpoint_) {
+  Url endpoint(endpoint_);
+  if (endpoint.scheme() == "zmq")
+    endpoint.scheme("zmq+tcp");
+
   VW_ASSERT(endpoint.scheme().substr(0,4) == "zmq+", LogicErr() << "Expected a zmq+ url");
   VW_ASSERT(!m_sock, LogicErr() << "Please don't reuse ZeroMQ channels");
 
