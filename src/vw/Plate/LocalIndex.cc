@@ -193,7 +193,7 @@ void LocalIndex::save_index_file() const {
    // Create subdirectory for storing hard copies of index pages.
    std::string base_index_path = plate_filename + "/index";
    VW_ASSERT(!fs::exists(base_index_path), ArgumentErr() << "Attempted to create new LocalIndex over existing index");
-   fs::create_directory(base_index_path);
+   fs::create_directories(base_index_path);
 
    // Start with the new_index_info, which provides the tile size, file
    // type, pixel and channel types, etc.  Then we augment it with a
