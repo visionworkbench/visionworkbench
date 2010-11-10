@@ -32,7 +32,6 @@ namespace platefile {
   class PlateManager {
   protected:
     boost::shared_ptr<PlateFile> m_platefile;
-    FifoWorkQueue m_queue;
 
     virtual void affected_tiles( BBox2i const& image_size,
                                  TransformRef const& tx, int tile_size,
@@ -43,7 +42,7 @@ namespace platefile {
                                   TransformRef& txref, int& level ) const = 0;
 
   public:
-    PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile), m_queue(1) {}
+    PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
 
     virtual ~PlateManager() {}
 
@@ -119,13 +118,14 @@ namespace platefile {
       progress.report_progress(0);
       BOOST_FOREACH( TileInfo const& tile, tiles ) {
         typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
-        m_queue.add_task(boost::shared_ptr<Task>(
+
+        boost::scoped_ptr<Task> task(
           new Job(m_platefile, transaction_id,
                   tile, pyramid_level,
                   stereo_view, tweak_settings_for_terrain,
-                  false, boost::numeric_cast<int>(tiles_size), progress)));
+                  false, boost::numeric_cast<int>(tiles_size), progress));
+        (*task)();
       }
-      m_queue.join_all();
       progress.report_finished();
 
       // Sync the index
