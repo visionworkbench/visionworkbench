@@ -19,22 +19,8 @@ using namespace vw;
 using namespace vw::platefile;
 using namespace vw::test;
 
-typedef boost::shared_ptr<IChannel> Chan;
-
-const std::string default_hostname = "localhost";
-const std::string default_port = "5672";
 const uint64 TIMEOUT = 1000;
-
-Url amqp_url(string hostname = "", short port = -1) {
-  if (hostname.empty())
-    hostname = getenv2("AMQP_TEST_HOSTNAME", default_hostname);
-
-  string sport = getenv2("AMQP_TEST_PORT", default_port);
-  if (port != -1) {
-    sport = boost::lexical_cast<string>(port);
-  }
-  return string("amqp://") + hostname + ":" + sport + "/unittest/server";
-}
+typedef boost::shared_ptr<IChannel> Chan;
 
 struct GenClient {
   const Url& url;
@@ -181,10 +167,28 @@ TEST_P(IChannelTest, MultiThreadTorture) {
   }
 }
 
-INSTANTIATE_TEST_CASE_P(URLs, IChannelTest,
-                        ::testing::Values(
-                           amqp_url()
-                         , "zmq+ipc://" TEST_OBJDIR "/unittest"
-                         , "zmq+tcp://127.0.0.1:54321"
-                         , "zmq+inproc://unittest"
-                         ));
+Url amqp_url(string hostname = "", short port = -1) {
+  if (hostname.empty())
+    hostname = getenv2("AMQP_TEST_HOSTNAME", "localhost");
+
+  string sport = getenv2("AMQP_TEST_PORT", "5672");
+  if (port != -1) {
+    sport = boost::lexical_cast<string>(port);
+  }
+  return string("amqp://") + hostname + ":" + sport + "/unittest/server";
+}
+
+std::vector<Url> test_urls() {
+  std::vector<Url> v;
+#if defined(VW_HAVE_PKG_RABBITMQ_C) && VW_HAVE_PKG_RABBITMQ_C==1
+  v.push_back(amqp_url());
+#endif
+#if defined(VW_HAVE_PKG_ZEROMQ) && VW_HAVE_PKG_ZEROMQ==1
+    v.push_back(Url("zmq+ipc://" TEST_OBJDIR "/unittest"));
+    v.push_back(Url("zmq+tcp://127.0.0.1:54321"));
+    v.push_back(Url("zmq+inproc://unittest"));
+#endif
+    return v;
+}
+
+INSTANTIATE_TEST_CASE_P(URLs, IChannelTest, ::testing::ValuesIn(test_urls()));
