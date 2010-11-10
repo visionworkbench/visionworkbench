@@ -144,7 +144,11 @@ void ZeroMQChannel::conn(const Url& endpoint_) {
   m_sock->connect(url.c_str());
 }
 
-void ZeroMQChannel::bind(const Url& endpoint) {
+void ZeroMQChannel::bind(const Url& endpoint_) {
+  Url endpoint(endpoint_);
+  if (endpoint.scheme() == "zmq")
+    endpoint.scheme("zmq+tcp");
+
   VW_ASSERT(endpoint.scheme().substr(0,4) == "zmq+", LogicErr() << "Expected a zmq+ url");
   VW_ASSERT(!m_sock, LogicErr() << "Please don't reuse ZeroMQ channels");
 
