@@ -32,8 +32,12 @@ namespace mosaic {
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
     static boost::shared_ptr<ImageResource> terrain_tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format );
 
+    void metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const;
+    void set_module(const std::string& module);
+
   private:
     bool m_terrain;
+    std::string m_module_name;
   };
 
 } // namespace mosaic

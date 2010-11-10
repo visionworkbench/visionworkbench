@@ -25,6 +25,7 @@ namespace mosaic {
   // This class is overkill, but it exists by analogy to others
   // like it for consistency.
   class CelestiaQuadTreeConfig : public QuadTreeConfig {
+    std::string m_module_name;
   public:
     virtual ~CelestiaQuadTreeConfig() {}
     void configure( QuadTreeGenerator& qtree ) const;
@@ -34,6 +35,9 @@ namespace mosaic {
     // 2_1 is the tile at (x,y) location (2,1), (0,0) is upper-left
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
 
+    void metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const;
+
+    void set_module(const std::string& module);
   };
 
 } // namespace mosaic

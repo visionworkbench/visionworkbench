@@ -8,16 +8,22 @@
 #include <vw/Mosaic/CelestiaQuadTreeConfig.h>
 
 #include <boost/filesystem/path.hpp>
+#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
 
 namespace vw {
 namespace mosaic {
 
+  void CelestiaQuadTreeConfig::set_module(const std::string& module) {
+    m_module_name = module;
+  }
+
   std::string CelestiaQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name(), fs::native );
 
-    Vector2i pos(0,0);
-    for ( int i=0; i<(int)name.length(); ++i ) {
+    Vector<size_t,2> pos(0,0);
+    for ( size_t i=0; i < name.length(); ++i ) {
       pos *= 2;
 
       if( name[i]=='2' )      pos += Vector2i(0,1);
@@ -28,13 +34,12 @@ namespace mosaic {
       }
     }
 
-    int max_val = int(::pow(2., (int)name.length())) >> 1;
-
     std::ostringstream oss;
     if (name.length() == 0) {
       oss << "original";
     } else {
-      oss << "level" << name.length()-1 << "/" << "tx_" << pos.x() << "_" << pos.y()-max_val;
+      size_t max_val = (1 << (name.length()-1));
+      oss << "level" << name.length()-1 << "/" << "tx_" << pos.x() << "_" << max_val - pos.y();
     }
 
     path /= oss.str();
@@ -45,6 +50,7 @@ namespace mosaic {
   void CelestiaQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
     qtree.set_image_path_func( &image_path );
     qtree.set_cull_images( true );
+    qtree.set_metadata_func( boost::bind(&CelestiaQuadTreeConfig::metadata_func,this,_1,_2) );
   }
 
   // TODO: Is this actually the right function for Celestia?
@@ -71,5 +77,38 @@ namespace mosaic {
     return r;
   }
 
-} // namespace mosaic
-} // namespace vw
+  void CelestiaQuadTreeConfig::metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const {
+    // root node
+    if (info.name.empty()) {
+      fs::path out_path(qtree.get_name());
+      fs::path ctx_path = fs::change_extension( out_path, ".ctx" );
+      fs::path ssc_path = fs::change_extension( out_path, ".ssc" );
+
+      // TileSize is a heuristic hint to celestia... we make it one step larger
+      // at the suggestion of other people who make VTs (it makes it load
+      // higher resolutions sooner, I think)
+      fs::ofstream ctx( ctx_path );
+      ctx << "VirtualTexture\n";
+      ctx << "{\n";
+      ctx << "        ImageDirectory \"" << out_path.filename() << "\"\n";
+      ctx << "        BaseSplit 0\n";
+      ctx << "        TileSize " << (qtree.get_tile_size() >> 1) << "\n";
+      ctx << "        TileType \"" << qtree.get_file_type() << "\"\n";
+      ctx << "}\n";
+      ctx.close();
+
+      fs::ofstream ssc( ssc_path );
+
+      ssc << "AltSurface \"" << out_path.filename() << "\" \"" << m_module_name << "\"\n";
+      ssc << "{\n";
+      ssc << "    Texture \"" << ctx_path.filename() << "\"\n";
+      ssc << "}\n";
+      ssc.close();
+
+      std::cout << "\nPlace " << ssc_path << " in Celestia's extras dir" << std::endl;
+      std::cout << "Place " << ctx_path << " and the output dir ("
+                            << out_path << ") in extras/textures/hires" << std::endl;
+    }
+  }
+
+}} // namespace vw::mosaic
