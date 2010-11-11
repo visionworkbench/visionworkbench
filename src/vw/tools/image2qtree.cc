@@ -53,7 +53,8 @@ using std::endl;
 VW_DEFINE_ENUM(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
 VW_DEFINE_ENUM(Mode, 8, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN, GIGAPAN_NOPROJ));
 VW_DEFINE_ENUM(DatumOverride, 5, (NONE, WGS84, LUNAR, MARS, SPHERE))
-VW_DEFINE_ENUM(Projection, 9, (
+VW_DEFINE_ENUM(Projection, 10, (
+    NONE,
     SINUSOIDAL,
     MERCATOR,
     TRANSVERSE_MERCATOR,
@@ -123,7 +124,7 @@ struct Options {
     Tristate<double> p1, p2;
     Tristate<int32> utm_zone;
     proj_() :
-      type(Projection::PLATE_CARREE),
+      type(Projection::NONE),
       scale(1),
       utm_zone(0, true) {}
   } proj;
@@ -270,6 +271,7 @@ GeoReference make_input_georef(DiskImageResourceGDAL& file, const Options& opt) 
     case Projection::STEREOGRAPHIC:           input_georef.set_stereographic(opt.proj.lat,opt.proj.lon,opt.proj.scale); break;
     case Projection::TRANSVERSE_MERCATOR:     input_georef.set_transverse_mercator(opt.proj.lat,opt.proj.lon,opt.proj.scale); break;
     case Projection::UTM:                     input_georef.set_UTM( abs(opt.proj.utm_zone), opt.proj.utm_zone > 0 ); break;
+    case Projection::NONE: break;
   }
 
   if( opt.nudge_x || opt.nudge_y ) {
