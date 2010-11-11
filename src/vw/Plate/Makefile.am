@@ -147,6 +147,9 @@ plate2dem_LDADD    = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
 
+index_perftest_SOURCES = index_perftest.cc
+index_perftest_LDADD = $(PLATE_LOCAL_LIBS)
+
 rpc_tool_SOURCES = rpc_tool.cc
 rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
 
@@ -163,6 +166,7 @@ bin_PROGRAMS =   \
   hirise2tif     \
   image2plate    \
   index_client   \
+  index_perftest \
   index_server   \
   plate2dem      \
   plate2plate    \

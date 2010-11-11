@@ -175,6 +175,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/hirise2tif
 /src/vw/Plate/image2plate
 /src/vw/Plate/index_client
+/src/vw/Plate/index_perftest
 /src/vw/Plate/index_server
 /src/vw/Plate/plate2dem
 /src/vw/Plate/plate2plate

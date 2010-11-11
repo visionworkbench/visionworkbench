@@ -177,7 +177,7 @@ message IndexNumLevelsRequest {
 }
 
 message IndexTestRequest {
-  required int64 value = 1;
+  required uint64 value = 1;
 }
 
 // ----------------------------------
@@ -230,7 +230,7 @@ message IndexNumLevelsReply {
 }
 
 message IndexTestReply {
-  required int64 value = 1;
+  required uint64 value = 1;
 }
 
 service IndexService {
