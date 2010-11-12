@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/ZeroMQChannel.h>
+#include <vw/Plate/detail/ZeroMQChannel.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>

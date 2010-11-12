@@ -3,11 +3,11 @@
 #include <vw/Core/Features.h>
 
 #if defined(VW_HAVE_PKG_RABBITMQ_C) && VW_HAVE_PKG_RABBITMQ_C==1
-#include <vw/Plate/AmqpChannel.h>
+#include <vw/Plate/detail/AmqpChannel.h>
 #endif
 
 #if defined(VW_HAVE_PKG_ZEROMQ) && VW_HAVE_PKG_ZEROMQ==1
-#include <vw/Plate/ZeroMQChannel.h>
+#include <vw/Plate/detail/ZeroMQChannel.h>
 #endif
 
 #include <vw/Plate/HTTPUtils.h>

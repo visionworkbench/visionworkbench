@@ -79,14 +79,14 @@ libvwPlate_la_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 lib_LTLIBRARIES += libvwPlate.la
 
 if HAVE_PKG_RABBITMQ_C
-  include_HEADERS       += AmqpChannel.h
-  libvwPlate_la_SOURCES += AmqpChannel.cc
+  noinst_HEADERS += detail/AmqpChannel.h
+  libvwPlate_la_SOURCES  += detail/AmqpChannel.cc
 endif
 
 if HAVE_PKG_ZEROMQ
-  include_HEADERS       += ZeroMQChannel.h
-  libvwPlate_la_SOURCES += ZeroMQChannel.cc
-  libvwPlate_la_LIBADD  += @PKG_ZEROMQ_LIBS@
+  noinst_HEADERS += detail/ZeroMQChannel.h
+  libvwPlate_la_SOURCES  += detail/ZeroMQChannel.cc
+  libvwPlate_la_LIBADD   += @PKG_ZEROMQ_LIBS@
 
 endif
 

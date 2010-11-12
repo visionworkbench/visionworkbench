@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/AmqpChannel.h>
+#include <vw/Plate/detail/AmqpChannel.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Log.h>
