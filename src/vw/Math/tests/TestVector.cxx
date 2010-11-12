@@ -274,3 +274,27 @@ TEST(Vector, Imag) {
   EXPECT_EQ( 3, imag(v)(1) );
   EXPECT_EQ( 4, imag(v)(2) );
 }
+
+TEST(Vector, IndexingIterator) {
+  typedef Vector2 Vec;
+  typedef math::IndexingVectorIterator<Vec> Iter;
+
+  Vec v1(3,4);
+
+  // Construct
+  Iter i(v1, 0);
+  EXPECT_EQ(3, *i);
+
+  // Copy
+  Iter j(i);
+  EXPECT_EQ(3, *j);
+  EXPECT_NE(&i, &j);
+  EXPECT_TRUE(i == j);
+
+  // Assign
+  Iter k(v1, 0);
+  k = j;
+  EXPECT_EQ(3, *k);
+  EXPECT_NE(&j, &k);
+  EXPECT_TRUE(j == k);
+}

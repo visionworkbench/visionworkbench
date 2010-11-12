@@ -175,11 +175,13 @@ namespace math {
     typedef typename IndexingVectorIterator::difference_type difference_type;
 
     IndexingVectorIterator( VectorT& vector, difference_type index ) :
-      m_vector(vector), m_index(index) {}
+      m_vector(&vector), m_index(index) {}
   private:
     friend class boost::iterator_core_access;
 
-    VectorT& m_vector;
+    // This has to be a pointer and not a reference because we need to support
+    // operator=, and references cannot be reseated.
+    VectorT* m_vector;
     difference_type m_index;
 
     bool equal( IndexingVectorIterator const& iter ) const {
@@ -194,12 +196,12 @@ namespace math {
     void decrement() { --m_index; }
 
     void advance( difference_type n ) {
-      if ( m_vector.size() == 0 ) return;
+      if ( m_vector->size() == 0 ) return;
       m_index += n;
     }
 
     typename IndexingVectorIterator::reference dereference() const {
-      return m_vector[m_index];
+      return (*m_vector)[m_index];
     }
   };
 

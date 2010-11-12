@@ -198,11 +198,14 @@ namespace math {
     typedef typename IndexingMatrixIterator::difference_type difference_type;
 
     IndexingMatrixIterator( MatrixT& matrix, difference_type row, difference_type col ) :
-      m_matrix(matrix), m_row(row), m_col(col) {}
+      m_matrix(&matrix), m_row(row), m_col(col) {}
+
   private:
     friend class boost::iterator_core_access;
 
-    MatrixT& m_matrix;
+    // This has to be a pointer and not a reference because we need to support
+    // operator=, and references cannot be reseated.
+    MatrixT* m_matrix;
     size_t m_row, m_col;
 
     bool equal( IndexingMatrixIterator const& iter ) const {
@@ -212,18 +215,18 @@ namespace math {
     difference_type distance_to( IndexingMatrixIterator const &iter ) const {
       difference_type coldiff = (iter.m_col>m_col) ? difference_type(iter.m_col-m_col) : -difference_type(m_col-iter.m_col);
       difference_type rowdiff = (iter.m_row>m_row) ? difference_type(iter.m_row-m_row) : -difference_type(m_row-iter.m_row);
-      return coldiff + rowdiff * m_matrix.cols();
+      return coldiff + rowdiff * m_matrix->cols();
     }
 
     void increment() {
-      if( ++m_col == m_matrix.cols() ) {
+      if( ++m_col == m_matrix->cols() ) {
         m_col=0; ++m_row;
       }
     }
 
     void decrement() {
       if( m_col==0 ) {
-        m_col=m_matrix.cols()-1;
+        m_col=m_matrix->cols()-1;
         --m_row;
       }
       else {
@@ -234,19 +237,19 @@ namespace math {
     void advance( difference_type n ) {
       // This safeguards against suprious division by zero troubles encountered
       // on some platforms when performing operations on degenerate matrices.
-      if( m_matrix.cols() == 0 ) return;
+      if( m_matrix->cols() == 0 ) return;
       if( n < 0 ) {
-        difference_type rowdiff = 1 + (-n)/m_matrix.cols();
+        difference_type rowdiff = 1 + (-n)/m_matrix->cols();
         m_row -= rowdiff;
-        n += rowdiff * m_matrix.cols();
+        n += rowdiff * m_matrix->cols();
       }
       m_col += n;
-      m_row += m_col / m_matrix.cols();
-      m_col %= m_matrix.cols();
+      m_row += m_col / m_matrix->cols();
+      m_col %= m_matrix->cols();
     }
 
     typename IndexingMatrixIterator::reference dereference() const {
-      return m_matrix(m_row,m_col);
+      return (*m_matrix)(m_row,m_col);
     }
   };
 

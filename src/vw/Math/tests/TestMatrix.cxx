@@ -456,3 +456,27 @@ TEST(Matrix, Inverse) {
   EXPECT_FLOAT_EQ(   6.0f / -15.0f , i2(2,1) );
   EXPECT_FLOAT_EQ(  -3.0f / -15.0f , i2(2,2) );
 }
+
+TEST(Matrix, IndexingIterator) {
+  typedef Matrix2x2 Mat;
+  typedef math::IndexingMatrixIterator<Mat> Iter;
+
+  Mat m1(3,4,5,6);
+
+  // Construct
+  Iter i(m1, 0, 0);
+  EXPECT_EQ(3, *i);
+
+  // Copy
+  Iter j(i);
+  EXPECT_EQ(3, *j);
+  EXPECT_NE(&i, &j);
+  EXPECT_TRUE(i == j);
+
+  // Assign
+  Iter k(m1, 0, 0);
+  k = j;
+  EXPECT_EQ(3, *k);
+  EXPECT_NE(&j, &k);
+  EXPECT_TRUE(j == k);
+}
