@@ -66,7 +66,7 @@ void PlateCarreePlateManager<PixelT>::transform_image(
 
   // Perform transform and rewrite to input
   ImageViewRef<PixelT> holding =
-    transform( image, geotx, CylindricalEdgeExtension(),
+    transform( image, geotx, ZeroEdgeExtension(),
                BicubicInterpolation() );
   txref = TransformRef(geotx);
   image = holding;

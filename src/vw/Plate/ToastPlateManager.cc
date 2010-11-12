@@ -55,7 +55,7 @@ void ToastPlateManager<PixelT>::transform_image(
     << resolution << " pixels.)\n";
 
   ImageViewRef<PixelT> holding =
-    transform( image, toast_tx, PeriodicEdgeExtension(),
+    transform( image, toast_tx, ZeroEdgeExtension(),
                BicubicInterpolation() );
   image = holding;
   txref = TransformRef(toast_tx);
