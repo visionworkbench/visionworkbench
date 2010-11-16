@@ -514,3 +514,13 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
     dst_ptr_p += dst.pstride;
   }
 }
+
+ImageFormat SrcImageResource::format() const {
+  ImageFormat fmt;
+  fmt.cols         = this->cols();
+  fmt.rows         = this->rows();
+  fmt.planes       = this->planes();
+  fmt.pixel_format = this->pixel_format();
+  fmt.channel_type = this->channel_type();
+  return fmt;
+}

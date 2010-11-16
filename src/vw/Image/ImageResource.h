@@ -84,6 +84,9 @@ namespace vw {
       /// Returns the native channel type of the resource.
       virtual ChannelTypeEnum channel_type() const = 0;
 
+      // Returns the image format as a single object
+      virtual ImageFormat format() const;
+
       /// Read the image resource at the given location into the given buffer.
       virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
 
