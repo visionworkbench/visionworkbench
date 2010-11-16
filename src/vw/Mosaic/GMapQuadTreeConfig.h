@@ -31,7 +31,7 @@ namespace mosaic {
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
 
     // Makes DiskImageResource objects with no file extension
-    static boost::shared_ptr<ImageResource> tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format );
+    static boost::shared_ptr<DstImageResource> tile_resource( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format );
 
   };
 

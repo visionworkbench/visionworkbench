@@ -106,7 +106,7 @@ namespace mosaic {
 
     std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, std::string const& name, BBox2i const& region ) const;
     void metadata_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info ) const;
-    boost::shared_ptr<ImageResource> tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const;
+    boost::shared_ptr<DstImageResource> tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const;
 
   public:
     KMLQuadTreeConfigData()
@@ -321,13 +321,13 @@ namespace mosaic {
     return children;
   }
 
-  boost::shared_ptr<ImageResource> KMLQuadTreeConfigData::tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const {
+  boost::shared_ptr<DstImageResource> KMLQuadTreeConfigData::tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const {
     create_directories( fs::path( info.filepath, fs::native ).branch_path() );
     if( info.filetype == ".png" && (format.pixel_format==VW_PIXEL_RGBA || format.pixel_format==VW_PIXEL_GRAYA) ) {
-      return boost::shared_ptr<ImageResource>( new DiskImageResourcePNGAlphaHack( info.filepath+info.filetype, format ) );
+      return boost::shared_ptr<DstImageResource>( new DiskImageResourcePNGAlphaHack( info.filepath+info.filetype, format ) );
     }
     else {
-      return boost::shared_ptr<ImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
+      return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
     }
   }
 

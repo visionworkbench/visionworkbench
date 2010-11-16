@@ -53,7 +53,7 @@ namespace mosaic {
 
     typedef boost::function<std::string(QuadTreeGenerator const&, std::string const&)> image_path_func_type;
     typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> branch_func_type;
-    typedef boost::function<boost::shared_ptr<ImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
+    typedef boost::function<boost::shared_ptr<DstImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
     typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> metadata_func_type;
     typedef boost::function<bool(BBox2i const&)> sparse_image_check_type;
 
@@ -172,7 +172,7 @@ namespace mosaic {
       m_tile_resource_func = tile_resource_func;
     }
 
-    boost::shared_ptr<ImageResource> tile_resource(TileInfo const& info, ImageFormat const& format) const {
+    boost::shared_ptr<DstImageResource> tile_resource(TileInfo const& info, ImageFormat const& format) const {
       return m_tile_resource_func( *this, info, format );
     }
 
@@ -216,7 +216,7 @@ namespace mosaic {
 
     // The default resource function, creates standard disk image resources
     struct default_tile_resource_func {
-      boost::shared_ptr<ImageResource> operator()( QuadTreeGenerator const& qtree, TileInfo const& info, ImageFormat const& format );
+      boost::shared_ptr<DstImageResource> operator()( QuadTreeGenerator const& qtree, TileInfo const& info, ImageFormat const& format );
     };
 
   protected:
@@ -310,7 +310,7 @@ namespace mosaic {
         info.filepath = qtree->m_image_path_func( *qtree, info.name );
         if( cropped_image ) {
           ScopedWatch sw("QuadTreeGenerator::write_tile");
-          boost::shared_ptr<ImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
+          boost::shared_ptr<DstImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
           write_image( *r, cropped_image );
         }
         if( qtree->m_metadata_func ) qtree->m_metadata_func( *qtree, info );

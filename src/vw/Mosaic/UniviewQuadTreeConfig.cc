@@ -79,9 +79,9 @@ namespace mosaic {
   }
 
 
-  boost::shared_ptr<ImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& /*qtree*/,QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
+  boost::shared_ptr<DstImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& /*qtree*/,QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
     create_directories( fs::path( info.filepath, fs::native ).branch_path() );
-    return boost::shared_ptr<ImageResource>( new UniviewTerrainResource( info.filepath+info.filetype, format ) );
+    return boost::shared_ptr<DstImageResource>( new UniviewTerrainResource( info.filepath+info.filetype, format ) );
   }
 
 

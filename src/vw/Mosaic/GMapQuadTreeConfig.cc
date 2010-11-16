@@ -42,9 +42,9 @@ namespace mosaic {
     return path.native_file_string();
   }
 
-  boost::shared_ptr<ImageResource> GMapQuadTreeConfig::tile_resource( QuadTreeGenerator const& /*qtree*/, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
+  boost::shared_ptr<DstImageResource> GMapQuadTreeConfig::tile_resource( QuadTreeGenerator const& /*qtree*/, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
     create_directories( fs::path( info.filepath, fs::native ).branch_path() );
-    return boost::shared_ptr<ImageResource>( DiskImageResource::create( info.filepath + info.filetype, format, info.filetype ) );
+    return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath + info.filetype, format, info.filetype ) );
   }
 
   void GMapQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
