@@ -231,9 +231,9 @@ int main( int argc, char *argv[] ) {
       if (vm.count("nodata-value")) {
         has_nodata_value = true;
         std::cout << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
-      } else if ( rsrc->has_nodata_value() ) {
+      } else if ( rsrc->has_nodata_read() ) {
         has_nodata_value = true;
-        nodata_value = rsrc->nodata_value();
+        nodata_value = rsrc->nodata_read();
         std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
       } else {
         nodata_value = 0;

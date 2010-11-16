@@ -274,7 +274,7 @@ namespace vw {
     m_dataset_cache_handle.reset();
   }
 
-  bool DiskImageResourceGDAL::has_nodata_value() const {
+  bool DiskImageResourceGDAL::nodata_read_ok(double& value) const {
     Mutex::Lock lock(*gdal_mutex_ptr);
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL ) {
@@ -282,27 +282,24 @@ namespace vw {
                 << "Are you sure the file is open?" );
     }
     int success;
-    dataset->GetRasterBand(1)->GetNoDataValue(&success);
+    value = dataset->GetRasterBand(1)->GetNoDataValue(&success);
     return success;
   }
 
-  double DiskImageResourceGDAL::nodata_value() const {
-    Mutex::Lock lock(*gdal_mutex_ptr);
-    boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
-    if( dataset == NULL ) {
-      vw_throw( IOErr() << "DiskImageResourceGDAL: Failed to read no data value.  "
-                << "Are you sure the file is open?" );
-    }
-    int success;
-    double val = dataset->GetRasterBand(1)->GetNoDataValue(&success);
-    if (!success) {
-      vw_throw( IOErr() << "DiskImageResourceGDAL: Error reading nodata value.  "
-                << "This dataset does not have a nodata value.");
-    }
+  bool DiskImageResourceGDAL::has_nodata_read() const {
+    double value;
+    return nodata_read_ok(value);
+  }
+
+  double DiskImageResourceGDAL::nodata_read() const {
+    double val;
+    bool ok = nodata_read_ok(val);
+    VW_ASSERT(ok, IOErr() << "DiskImageResourceGDAL: Error reading nodata value.  "
+                          << "This dataset does not have a nodata value.");
     return val;
   }
 
-  void DiskImageResourceGDAL::set_nodata_value( double v ) {
+  void DiskImageResourceGDAL::set_nodata_write( double v ) {
     Mutex::Lock lock(*gdal_mutex_ptr);
     boost::shared_ptr<GDALDataset> dataset = get_dataset_ptr();
     if( dataset == NULL )
@@ -593,13 +590,17 @@ namespace vw {
   //
   // Be careful here -- you can set any block size here, but you
   // choice may lead to extremely inefficient FileIO operations.
-  void DiskImageResourceGDAL::set_block_size(Vector2i const& block_size) {
+  void DiskImageResourceGDAL::set_block_write_size(Vector2i const& block_size) {
     m_blocksize = block_size;
     Mutex::Lock lock(*gdal_mutex_ptr);
     initialize_write_resource();
   }
 
-  Vector2i DiskImageResourceGDAL::block_size() const {
+  Vector2i DiskImageResourceGDAL::block_write_size() const {
+    return m_blocksize;
+  }
+
+  Vector2i DiskImageResourceGDAL::block_read_size() const {
     return m_blocksize;
   }
 

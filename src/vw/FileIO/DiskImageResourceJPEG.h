@@ -97,6 +97,11 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
+    virtual bool has_block_write()  const {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read()   const {return false;}
+    virtual bool has_nodata_read()  const {return false;}
+
   private:
     // Forward declare an abstraction class that contains jpeg stuff.
     class vw_jpeg_decompress_context;

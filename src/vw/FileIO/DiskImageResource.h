@@ -116,6 +116,9 @@ namespace vw {
     // features rely on rescaling.  Use at your own risk.
     static void set_default_rescale(bool rescale);
 
+    // TODO: This has always been the default, but it probably shouldn't be.
+    virtual void flush() {}
+
   protected:
     DiskImageResource( std::string const& filename ) : m_filename(filename), m_rescale(default_rescale) {}
     ImageFormat m_format;

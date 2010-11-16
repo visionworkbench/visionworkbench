@@ -27,8 +27,8 @@ TEST( GDALFeatures, NoDataValue ) {
 
   {
     DiskImageResourceGDAL w_rsrc( "nodata.tif", monkey.format() );
-    w_rsrc.set_nodata_value(-1);
-    EXPECT_NO_THROW( w_rsrc.set_nodata_value( -1 ) );
+    ASSERT_TRUE( w_rsrc.has_nodata_write() );
+    EXPECT_NO_THROW( w_rsrc.set_nodata_write(-1) );
     write_image( w_rsrc, monkey );
   }
 
@@ -36,8 +36,8 @@ TEST( GDALFeatures, NoDataValue ) {
   ImageView<float> monkey_return;
   DiskImageResourceGDAL r_rsrc( "nodata.tif" );
   read_image( monkey_return, r_rsrc );
-  ASSERT_TRUE( r_rsrc.has_nodata_value() );
-  EXPECT_EQ(  r_rsrc.nodata_value(), -1 );
+  ASSERT_TRUE( r_rsrc.has_nodata_read() );
+  EXPECT_EQ( -1, r_rsrc.nodata_read() );
 }
 
 #endif

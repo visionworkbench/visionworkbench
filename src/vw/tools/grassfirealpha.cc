@@ -302,8 +302,8 @@ int main( int argc, char *argv[] ) {
       }
 
       // Check for nodata value in the file
-      if ( rsrc->has_nodata_value() ) {
-        opt.nodata = rsrc->nodata_value();
+      if ( rsrc->has_nodata_read() ) {
+        opt.nodata = rsrc->nodata_read();
         std::cout << "\t--> Extracted nodata value from file: " << opt.nodata << ".\n";
       }
       delete rsrc;

@@ -167,8 +167,8 @@ void do_hillshade(po::variables_map const& vm) {
   if (vm.count("nodata-value")) {
     std::cout << "\t--> Masking pixel value: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
-  } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    nodata_value = disk_dem_rsrc->nodata_value();
+  } else if ( disk_dem_rsrc->has_nodata_read() ) {
+    nodata_value = disk_dem_rsrc->nodata_read();
     std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
     dem = create_mask(input_image, nodata_value);
   } else {
@@ -188,7 +188,7 @@ void do_hillshade(po::variables_map const& vm) {
   std::cout << "Writing shaded relief image: " << output_file_name << "\n";
 
   DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
-  rsrc.set_block_size(Vector2i(1024,1024));
+  rsrc.set_block_write_size(Vector2i(1024,1024));
   write_georeference(rsrc, georef);
   write_image(rsrc, shaded_image,
               TerminalProgressCallback( "tools.hillshade", "Writing:"));

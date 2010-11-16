@@ -86,7 +86,11 @@ vw::DiskImageResourceOpenEXR::~DiskImageResourceOpenEXR() {
   }
 }
 
-vw::Vector2i vw::DiskImageResourceOpenEXR::block_size() const {
+vw::Vector2i vw::DiskImageResourceOpenEXR::block_read_size() const {
+  return m_block_size;
+}
+
+vw::Vector2i vw::DiskImageResourceOpenEXR::block_write_size() const {
   return m_block_size;
 }
 
@@ -186,7 +190,7 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
   }
 }
 
-void vw::DiskImageResourceOpenEXR::set_block_size(Vector2i const& block_size) {
+void vw::DiskImageResourceOpenEXR::set_block_write_size(Vector2i const& block_size) {
   if (!m_output_file_ptr) {
     vw_throw(NoImplErr() << "DiskImageResourceOpenEXR: set_block_size() not meaningful for reading!");
   }

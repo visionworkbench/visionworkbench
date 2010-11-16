@@ -87,14 +87,21 @@ namespace vw {
       /// Read the image resource at the given location into the given buffer.
       virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
 
+      /// Does this resource support block reads?
+      // If you override this to true, you must implement the other block_read functions
+      virtual bool has_block_read() const = 0;
+
       /// Returns the preferred block size/alignment for partial reads.
       virtual Vector2i block_read_size() const { return Vector2i(cols(),rows()); }
 
-      /// Query whether this ImageResource has a nodata value
-      virtual bool has_nodata_value() const { return false; }
+      // Does this resource have a nodata value?
+      // If you override this to true, you must implement the other nodata_read functions
+      virtual bool has_nodata_read() const = 0;
 
       /// Fetch this ImageResource's nodata value
-      virtual double nodata_value() const { return 0.0; }
+      virtual double nodata_read() const {
+        vw_throw(NoImplErr() << "This ImageResource does not support nodata_read_value().");
+      }
   };
 
   // A write-only image resource
@@ -105,8 +112,9 @@ namespace vw {
       /// Write the given buffer to the image resource at the given location.
       virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
 
-      /// Does this resource support block writes?
-      virtual bool has_block_write() const { return false; }
+      // Does this resource support block writes?
+      // If you override this to true, you must implement the other block_write functions
+      virtual bool has_block_write() const = 0;
 
       /// Gets the preferred block size/alignment for partial writes.
       virtual Vector2i block_write_size() const {
@@ -118,30 +126,21 @@ namespace vw {
         vw_throw(NoImplErr() << "This ImageResource does not support block writes");
       }
 
+      // Does this resource have an output nodata value?
+      // If you override this to true, you must implement the other nodata_write functions
+      virtual bool has_nodata_write() const = 0;
+
       /// Set a nodata value that will be stored in the underlying stream
-      virtual void set_nodata_value( double /*value*/ ) {
-        vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_value().");
-      };
+      virtual void set_nodata_write( double /*value*/ ) {
+        vw_throw(NoImplErr() << "This ImageResource does not support set_nodata_write().");
+      }
 
       /// Force any changes to be written to the resource.
       virtual void flush() = 0;
   };
 
   // A read-write image resource
-  class ImageResource : public SrcImageResource, public DstImageResource {
-  public:
-    // Functions from the old interface to let it compile.
-    virtual void flush() {}
-
-    virtual Vector2i block_size() const VW_DEPRECATED {
-      return this->block_read_size();
-    }
-
-    virtual void set_block_size(const Vector2i& v) VW_DEPRECATED {
-      if (has_block_write())
-        set_block_write_size(v);
-    }
-  };
+  class ImageResource : public SrcImageResource, public DstImageResource {};
 
   /// Represents a generic image buffer in memory, with dimensions and
   /// pixel format specified at run time.  This class does not

@@ -179,7 +179,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
       ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
-      rsrc.set_nodata_value( -32767 );
+      rsrc.set_nodata_write( -32767 );
       write_georeference(rsrc, tile_georef);
       write_image(rsrc, dem_image,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
@@ -187,7 +187,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
       ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = convert_to_pds_imagery( cropped_view );
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
-      rsrc.set_nodata_value( 0 );
+      rsrc.set_nodata_write( 0 );
       write_georeference(rsrc, tile_georef);
       write_image(rsrc, dem_image,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));

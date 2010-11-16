@@ -657,7 +657,7 @@ ChannelTypeEnum ImageTileGenerator::channel_type() const {
 }
 
 Vector2i ImageTileGenerator::tile_size() const {
-  return m_rsrc->block_size();
+  return m_rsrc->block_read_size();
 }
 
 int32 ImageTileGenerator::num_levels() const {

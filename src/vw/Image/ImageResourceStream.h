@@ -47,6 +47,9 @@ class SrcImageResourceStream : public SrcImageResource, private boost::noncopyab
     // Will throw for unseekable streams.
     virtual void reset();
 
+    virtual bool has_block_read()  const {return false;}
+    virtual bool has_nodata_read() const {return false;}
+
   protected:
     boost::shared_ptr<stream_type> m_stream;
     ImageFormat m_fmt;
@@ -77,6 +80,9 @@ class DstImageResourceStream : public DstImageResource, private boost::noncopyab
     // Will reset write pointer to start to allow an overwrite.
     // Will throw for unseekable streams.
     virtual void reset();
+
+    virtual bool has_block_write()  const {return false;}
+    virtual bool has_nodata_write() const {return false;}
 
   protected:
     boost::shared_ptr<stream_type> m_stream;
@@ -129,6 +135,11 @@ class ImageResourceStream : public ImageResource, public SrcImageResourceStream,
     virtual void flush() {
       DstImageResourceStream::flush();
     }
+
+    virtual bool has_block_write() const  {return DstImageResourceStream::has_block_write();}
+    virtual bool has_nodata_write() const {return DstImageResourceStream::has_nodata_write();}
+    virtual bool has_block_read() const   {return SrcImageResourceStream::has_block_read();}
+    virtual bool has_nodata_read() const  {return SrcImageResourceStream::has_nodata_read();}
 };
 
 }

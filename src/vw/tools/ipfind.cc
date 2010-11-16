@@ -200,9 +200,9 @@ int main(int argc, char** argv) {
     DiskImageView<PixelGray<float> > image(image_rsrc);
 
     // Potentially mask image on a no data value
-    if ( image_rsrc->has_nodata_value() )
+    if ( image_rsrc->has_nodata_read() )
       vw_out(DebugMessage,"interest_point") << "Image has a nodata value: "
-                                            << image_rsrc->nodata_value() << "\n";
+                                            << image_rsrc->nodata_read() << "\n";
 
     // The max points sent to IP Detector class is applied to each
     // tile of an image. In order to curb memory use we'll set the max
@@ -252,8 +252,8 @@ int main(int argc, char** argv) {
     }
 
     // Removing Interest Points on nodata or within 1/px
-    if ( image_rsrc->has_nodata_value() ) {
-      float nodata_value = image_rsrc->nodata_value();
+    if ( image_rsrc->has_nodata_read() ) {
+      float nodata_value = image_rsrc->nodata_read();
       ImageViewRef<PixelMask<PixelGray<float> > > image_mask = create_mask(image,nodata_value);
       BBox2i bound = bounding_box( image_mask );
       bound.contract(1);

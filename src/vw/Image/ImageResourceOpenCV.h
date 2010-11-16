@@ -63,6 +63,13 @@ class ImageResourceOpenCV : public ImageResource {
 
     // Write the given buffer to the image resource at the given location.
     virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
+
+    virtual void flush() {}
+
+    virtual bool has_block_write() const  {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read() const   {return false;}
+    virtual bool has_nodata_read() const  {return false;}
 };
 
 }

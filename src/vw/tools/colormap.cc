@@ -101,8 +101,8 @@ void do_colorized_dem(Options& opt) {
     DiskImageResource::open(opt.input_file_name);
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
-  } else if ( disk_dem_rsrc->has_nodata_value() ) {
-    opt.nodata_value = disk_dem_rsrc->nodata_value();
+  } else if ( disk_dem_rsrc->has_nodata_read() ) {
+    opt.nodata_value = disk_dem_rsrc->nodata_read();
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
@@ -143,7 +143,7 @@ void do_colorized_dem(Options& opt) {
     dem = alpha_to_mask(channel_cast<float>(disk_dem_file) );
   else if (opt.nodata_value != std::numeric_limits<float>::max())
     dem = channel_cast<float>(create_mask(input_image, opt.nodata_value));
-  else if ( disk_dem_rsrc->has_nodata_value() )
+  else if ( disk_dem_rsrc->has_nodata_read() )
     dem = create_mask(input_image, opt.nodata_value);
   else
     dem = pixel_cast<PixelMask<PixelGray<float> > >(input_image);

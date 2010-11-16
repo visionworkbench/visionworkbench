@@ -199,8 +199,8 @@ static void get_normalize_vals(DiskImageResourceGDAL &file, const Options& opt) 
   if ( opt.nodata.set() ) {
     PixelRGBA<float> no_data_value( opt.nodata.value() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
-  } else if ( file.has_nodata_value() ) {
-    PixelRGBA<float> no_data_value( file.nodata_value() );
+  } else if ( file.has_nodata_read() ) {
+    PixelRGBA<float> no_data_value( file.nodata_read() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
   } else {
     min_max_channel_values( min_max_file, new_lo, new_hi );

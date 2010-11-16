@@ -64,6 +64,7 @@ namespace vw {
 
 
   class DiskImageResourceGDAL : public DiskImageResource {
+    bool nodata_read_ok(double& value) const;
   public:
 
     typedef std::map<std::string,std::string> Options;
@@ -103,19 +104,22 @@ namespace vw {
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
     virtual void write( ImageBuffer const& dest, BBox2i const& bbox );
 
-    virtual Vector2i block_size() const;
-    virtual void set_block_size(Vector2i const&);
+    virtual bool has_block_read()   const {return true;}
+    virtual bool has_block_write()  const {return true;}
+    virtual bool has_nodata_read()  const;
+    virtual bool has_nodata_write() const {return true;}
+
+    virtual Vector2i block_write_size() const;
+    virtual void set_block_write_size(const Vector2i&);
+    virtual Vector2i block_read_size() const;
+
+    virtual void set_nodata_write(double);
+    virtual double nodata_read() const;
 
     virtual void flush();
 
     // Ask GDAL if it's compiled with support for this file
     static bool gdal_has_support(std::string const& filename);
-
-    /// Some GDAL files store a "NoData" value.  You can use these
-    /// methods to access that information.
-    virtual bool has_nodata_value() const;
-    virtual double nodata_value() const;
-    virtual void set_nodata_value( double );
 
     void open( std::string const& filename );
     void create( std::string const& filename,

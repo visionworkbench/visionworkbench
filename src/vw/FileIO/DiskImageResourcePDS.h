@@ -121,6 +121,11 @@ namespace vw {
     static DiskImageResource* construct_create( std::string const& filename,
                                                 ImageFormat const& format );
 
+    virtual bool has_block_write()  const {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read()   const {return false;}
+    virtual bool has_nodata_read()  const {return false;}
+
   private:
     void parse_pds_header(std::vector<std::string> const& header);
     PixelFormatEnum planes_to_pixel_format(int32 planes) const;

@@ -59,6 +59,11 @@ namespace vw {
     // Use ascii modes instead of binary ones? (default is binary)
     static void default_to_ascii(bool ascii);
 
+    virtual bool has_block_write()  const {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read()   const {return false;}
+    virtual bool has_nodata_read()  const {return false;}
+
   private:
     std::streampos m_image_data_position;
     std::string m_magic;

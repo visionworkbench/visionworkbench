@@ -164,11 +164,16 @@ namespace vw {
       return m_rsrc->write(buf, bbox);
     }
 
-    /// Returns the optimal block size/alignment for partial reads or writes.
-    virtual Vector2i block_size() const { return m_block_size; }
+    virtual bool has_block_write() const  {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read() const   {return true;}
+    virtual bool has_nodata_read() const  {return false;}
 
-    /// Set the preferred block size/alignment for partial reads or writes.
-    virtual void set_block_size( Vector2i const& size ) { m_block_size = size; }
+    /// Returns the optimal block size/alignment for partial reads
+    virtual Vector2i block_read_size() const { return m_block_size; }
+
+    /// Set the preferred block size/alignment for partial reads
+    virtual void set_block_read_size( Vector2i const& size ) { m_block_size = size; }
 
     /// Force any changes to be written to the resource.
     virtual void flush() {}
