@@ -19,6 +19,11 @@
 namespace vw {
 
   class DiskImageResourceOpenEXR : public DiskImageResource {
+  protected:
+
+    void set_tiled_write(int32 tile_width, int32 tile_height, bool random_tile_order = false);
+    void set_scanline_write(int32 scanlines_per_block);
+
   public:
 
     DiskImageResourceOpenEXR( std::string const& filename )
@@ -45,9 +50,6 @@ namespace vw {
 
     /// Returns the type of disk image resource.
     virtual std::string type() { return type_static(); }
-
-    void set_tiled_write(int32 tile_width, int32 tile_height, bool random_tile_order = false);
-    void set_scanline_write(int32 scanlines_per_block);
 
     virtual void read( ImageBuffer const& dest, BBox2i const& bbox ) const;
 

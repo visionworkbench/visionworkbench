@@ -52,6 +52,8 @@ namespace vw {
       vw_throw( NoImplErr() << "Creating HDF files is not yet supported!" );
     }
 
+    static DiskImageResource* construct_open( std::string const& filename );
+
     virtual bool has_block_write()  const {return false;}
     virtual bool has_nodata_write() const {return false;}
     virtual bool has_block_read()   const {return false;}

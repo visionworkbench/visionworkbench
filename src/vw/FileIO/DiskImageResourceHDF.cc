@@ -554,6 +554,10 @@ void vw::DiskImageResourceHDF::open( std::string const& filename ) {
   m_info = new_info;
 }
 
+vw::DiskImageResource* vw::DiskImageResourceHDF::construct_open( std::string const& filename ) {
+  return new DiskImageResourceHDF( filename );
+}
+
 void vw::DiskImageResourceHDF::read( ImageBuffer const& dstbuf, BBox2i const& bbox ) const {
   ImageBuffer srcbuf;
   m_info->read( srcbuf, bbox );

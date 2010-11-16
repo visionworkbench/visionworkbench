@@ -120,7 +120,7 @@ void vw::DiskImageResourceTIFF::open( std::string const& filename ) {
   TIFFSetErrorHandler( &tiff_error_handler );
 
   TIFF* tif = TIFFOpen( filename.c_str(), "r" );
-  if( !tif ) vw_throw( vw::IOErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
+  if( !tif ) vw_throw( vw::ArgumentErr() << "DiskImageResourceTIFF: Failed to open \"" << filename << "\" for reading!" );
 
   // Read into temp variables first to ensure we are using the right integer type.
   // Otherwise we can run into endianness problems.
@@ -229,7 +229,7 @@ void vw::DiskImageResourceTIFF::create( std::string const& filename,
   m_format = format;
 
   TIFF* tif = TIFFOpen(m_filename.c_str(), "w");
-  if( !tif  ) vw_throw( vw::IOErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
+  if( !tif  ) vw_throw( vw::ArgumentErr() << "Failed to create \"" << m_filename << "\" using libTIFF." );
 
   check_retval(TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, (uint32)m_format.cols), 0);
   check_retval(TIFFSetField(tif, TIFFTAG_IMAGELENGTH, (uint32)m_format.rows), 0);
