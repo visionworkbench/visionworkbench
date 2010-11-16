@@ -67,7 +67,7 @@ def lookup(val):
     # if a printer is registered for that type.  Return an
     # instantiation of the printer if found.
     for function in pretty_printers_dict:
-        m = function.search(typename)
+        m = function.match(typename)
         if m:
             handler = pretty_printers_dict[function]
             dprint('Matched %s for %s' % (handler.__name__, typename))
