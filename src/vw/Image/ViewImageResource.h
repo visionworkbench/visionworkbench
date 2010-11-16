@@ -148,9 +148,6 @@ namespace vw {
     /// Returns the number of planes in an image resource.
     virtual int32 planes() const { return m_rsrc->planes(); }
 
-    /// Returns the number of channels in a image resource.
-    int32 channels() const { return num_channels( pixel_format() ); }
-
     /// Returns the native pixel format of the resource.
     virtual PixelFormatEnum pixel_format() const { return m_rsrc->pixel_format(); }
 
