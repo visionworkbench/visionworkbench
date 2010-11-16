@@ -17,7 +17,6 @@
 namespace po = boost::program_options;
 
 #include <vw/Image/ImageView.h>
-#include <vw/Image/Manipulation.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Camera/BayerFilter.h>
 

@@ -568,19 +568,17 @@ int run(const Options& opt) {
   const ProgressCallback *progress = &tpc;
 
   // Get the right pixel/channel type, and call the mosaic.
-  DiskImageResource *first_resource = DiskImageResource::open(opt.input_files[0]);
-  ChannelTypeEnum channel_type = first_resource->channel_type();
-  PixelFormatEnum pixel_format = first_resource->pixel_format();
-  delete first_resource;
+  ImageFormat fmt = tools::taste_image(opt.input_files[0]);
+
   if(opt.channel_type != Channel::NONE)
-    channel_type = channel_name_to_enum(opt.channel_type.string());
+    fmt.channel_type = channel_name_to_enum(opt.channel_type.string());
 
   // Convert non-alpha channel images into images with one for the
   // composite.
-  switch(pixel_format) {
+  switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
-      switch(channel_type) {
+      switch(fmt.channel_type) {
         case VW_CHANNEL_UINT8:  do_mosaic<PixelGrayA<uint8>   >(opt, progress); break;
         case VW_CHANNEL_INT16:  do_mosaic<PixelGrayA<int16>   >(opt, progress); break;
         case VW_CHANNEL_UINT16: do_mosaic<PixelGrayA<uint16>  >(opt, progress); break;
@@ -590,7 +588,7 @@ int run(const Options& opt) {
     case VW_PIXEL_RGB:
     case VW_PIXEL_RGBA:
     default:
-      switch(channel_type) {
+      switch(fmt.channel_type) {
         case VW_CHANNEL_UINT8:  do_mosaic<PixelRGBA<uint8>   >(opt, progress); break;
         case VW_CHANNEL_INT16:  do_mosaic<PixelRGBA<int16>   >(opt, progress); break;
         case VW_CHANNEL_UINT16: do_mosaic<PixelRGBA<uint16>  >(opt, progress); break;

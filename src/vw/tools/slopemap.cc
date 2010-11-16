@@ -17,6 +17,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/tools/Common.h>
 
 /*
 Implements modified versions of finite difference opt.algorithms + fitting a plane to 9 points of a 3x3 window
@@ -371,17 +372,14 @@ int main( int argc, char *argv[] ) {
 
   try {
     // Get the right pixel/channel type.
-    DiskImageResource *rsrc = DiskImageResource::open(opt.input_file_name);
-    ChannelTypeEnum channel_type = rsrc->channel_type();
-    PixelFormatEnum pixel_format = rsrc->pixel_format();
-    delete rsrc;
+    ImageFormat fmt = tools::taste_image(opt.input_file_name);
 
-    switch(pixel_format) {
+    switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:
     case VW_PIXEL_GRAYA:
     case VW_PIXEL_RGB:
     case VW_PIXEL_RGBA:
-      switch(channel_type) {
+      switch(fmt.channel_type) {
       case VW_CHANNEL_UINT8:  do_slopemap<PixelGray<uint8>   >(opt); break;
       case VW_CHANNEL_INT16:  do_slopemap<PixelGray<int16>   >(opt); break;
       case VW_CHANNEL_UINT16: do_slopemap<PixelGray<uint16>  >(opt); break;

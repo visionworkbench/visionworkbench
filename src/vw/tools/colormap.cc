@@ -33,6 +33,7 @@ namespace po = boost::program_options;
 #include <vw/Image/Statistics.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/tools/Common.h>
 
 using namespace vw;
 
@@ -97,7 +98,7 @@ void do_colorized_dem(Options& opt) {
   cartography::read_georeference(georef, opt.input_file_name);
 
   // Attempt to extract nodata value
-  DiskImageResource *disk_dem_rsrc =
+  SrcImageResource *disk_dem_rsrc =
     DiskImageResource::open(opt.input_file_name);
   if (opt.nodata_value != std::numeric_limits<float>::max()) {
     vw_out() << "\t--> Using user-supplied nodata value: " << opt.nodata_value << ".\n";
@@ -298,14 +299,11 @@ int main( int argc, char *argv[] ) {
     }
 
     // Get the right pixel/channel type.
-    DiskImageResource *rsrc = DiskImageResource::open(opt.input_file_name);
-    ChannelTypeEnum channel_type = rsrc->channel_type();
-    PixelFormatEnum pixel_format = rsrc->pixel_format();
-    delete rsrc;
+    ImageFormat fmt = tools::taste_image(opt.input_file_name);
 
-    switch(pixel_format) {
+    switch(fmt.pixel_format) {
     case VW_PIXEL_GRAY:
-      switch(channel_type) {
+      switch(fmt.channel_type) {
       case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGray<uint8>   >(opt); break;
       case VW_CHANNEL_INT16:  do_colorized_dem<PixelGray<int16>   >(opt); break;
       case VW_CHANNEL_UINT16: do_colorized_dem<PixelGray<uint16>  >(opt); break;
@@ -313,7 +311,7 @@ int main( int argc, char *argv[] ) {
       }
       break;
     case VW_PIXEL_GRAYA:
-      switch(channel_type) {
+      switch(fmt.channel_type) {
       case VW_CHANNEL_UINT8:  do_colorized_dem<PixelGrayA<uint8>   >(opt); break;
       case VW_CHANNEL_INT16:  do_colorized_dem<PixelGrayA<int16>   >(opt); break;
       case VW_CHANNEL_UINT16: do_colorized_dem<PixelGrayA<uint16>  >(opt); break;

@@ -592,7 +592,7 @@ public:
     // Perform a sanity check: make sure no control point has an image_id()
     // greater than the number of cameras. Should only happen if we aren't
     // reading the right control network.
-    int camera_count = cameras.size();
+    size_t camera_count = cameras.size();
     for (ControlNetwork::const_iterator i = network->begin(), end = network->end(); i != end; ++i) {
       for (ControlPoint::const_iterator j = i->begin(), end2 = i->end(); j != end2; ++j) {
         VW_ASSERT(j->image_id() < camera_count, ArgumentErr()

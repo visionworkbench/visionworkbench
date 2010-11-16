@@ -11,28 +11,17 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/tools/Common.h>
+#include <vw/Mosaic/ImageComposite.h>
+#include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/GeoTransform.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Image/Filter.h>
 
-#include <string>
-#include <fstream>
-#include <vector>
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <boost/operators.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
-namespace fs = boost::filesystem;
 
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Mosaic/ImageComposite.h>
-#include <vw/Cartography.h>
-#include <vw/Math.h>
 using namespace vw;
 using namespace vw::math;
 using namespace vw::cartography;
@@ -373,13 +362,11 @@ int main( int argc, char *argv[] ) {
 
     if(vm.count("nodata-value")) has_nodata_value = true;
 
-    DiskImageResource *first_resource = DiskImageResource::open(image_files[0]);
-    ChannelTypeEnum channel_type = first_resource->channel_type();
-    PixelFormatEnum pixel_format = first_resource->pixel_format();
-    delete first_resource;
+    ImageFormat fmt = tools::taste_image(image_files[0]);
+
     if (vm.count("channel-type")) {
-      channel_type = channel_name_to_enum(channel_type_str);
-      switch (channel_type) {
+      fmt.channel_type = channel_name_to_enum(channel_type_str);
+      switch (fmt.channel_type) {
         case VW_CHANNEL_UINT8:  case VW_CHANNEL_INT16:
         case VW_CHANNEL_UINT16: case VW_CHANNEL_FLOAT32:
           break;
@@ -391,15 +378,15 @@ int main( int argc, char *argv[] ) {
     }
 
     if (vm.count("ignore-alpha")) {
-      if (pixel_format == VW_PIXEL_RGBA) pixel_format = VW_PIXEL_RGB;
-      if (pixel_format == VW_PIXEL_GRAYA) pixel_format = VW_PIXEL_GRAY;
+      if (fmt.pixel_format == VW_PIXEL_RGBA)  fmt.pixel_format = VW_PIXEL_RGB;
+      if (fmt.pixel_format == VW_PIXEL_GRAYA) fmt.pixel_format = VW_PIXEL_GRAY;
     }
 
-    vw_out(vw::VerboseDebugMessage) << "Using pixel type " << pixel_format_name(pixel_format) << ":" << channel_type_name(channel_type) << std::endl;
+    vw_out(vw::VerboseDebugMessage) << "Using pixel type " << pixel_format_name(fmt.pixel_format) << ":" << channel_type_name(fmt.channel_type) << std::endl;
 
-    switch (pixel_format) {
+    switch (fmt.pixel_format) {
     case VW_PIXEL_GRAY:
-      switch (channel_type) {
+      switch (fmt.channel_type) {
       case VW_CHANNEL_UINT8:   do_blend<vw::PixelGray<vw::uint8> >(); break;
       case VW_CHANNEL_INT16:   do_blend<vw::PixelGray<vw::int16> >(); break;
       case VW_CHANNEL_UINT16:  do_blend<vw::PixelGray<vw::uint16> >(); break;
@@ -407,7 +394,7 @@ int main( int argc, char *argv[] ) {
       }
       break;
     case VW_PIXEL_GRAYA:
-      switch (channel_type) {
+      switch (fmt.channel_type) {
       case VW_CHANNEL_UINT8:   do_blend<vw::PixelGrayA<vw::uint8> >(); break;
       case VW_CHANNEL_INT16:   do_blend<vw::PixelGrayA<vw::int16> >(); break;
       case VW_CHANNEL_UINT16:  do_blend<vw::PixelGrayA<vw::uint16> >(); break;
@@ -415,7 +402,7 @@ int main( int argc, char *argv[] ) {
       }
       break;
     case VW_PIXEL_RGB:
-      switch (channel_type) {
+      switch (fmt.channel_type) {
       case VW_CHANNEL_UINT8:   do_blend<vw::PixelRGB<vw::uint8> >(); break;
       case VW_CHANNEL_INT16:   do_blend<vw::PixelRGB<vw::int16> >(); break;
       case VW_CHANNEL_UINT16:  do_blend<vw::PixelRGB<vw::uint16> >(); break;
@@ -423,7 +410,7 @@ int main( int argc, char *argv[] ) {
       }
       break;
     default:
-      switch (channel_type) {
+      switch (fmt.channel_type) {
       case VW_CHANNEL_UINT8:   do_blend<vw::PixelRGBA<vw::uint8> >(); break;
       case VW_CHANNEL_INT16:   do_blend<vw::PixelRGBA<vw::int16> >(); break;
       case VW_CHANNEL_UINT16:  do_blend<vw::PixelRGBA<vw::uint16> >(); break;

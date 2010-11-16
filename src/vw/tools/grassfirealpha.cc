@@ -287,7 +287,7 @@ int main( int argc, char *argv[] ) {
     BOOST_FOREACH( const std::string& input, opt.input_files ) {
 
       // Determining the format of the input
-      DiskImageResource *rsrc = DiskImageResource::open(input);
+      SrcImageResource *rsrc = DiskImageResource::open(input);
       ChannelTypeEnum channel_type = rsrc->channel_type();
       PixelFormatEnum pixel_format = rsrc->pixel_format();
 

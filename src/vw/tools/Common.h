@@ -8,6 +8,7 @@
 #ifndef __VW_TOOLS_COMMON_H__
 #define __VW_TOOLS_COMMON_H__
 
+#include <vw/Image/ImageResource.h>
 #include <vw/Core/Exception.h>
 
 #include <boost/preprocessor.hpp>
@@ -22,6 +23,8 @@ namespace vw {
 namespace tools {
 
   VW_DEFINE_EXCEPTION(Usage, Exception);
+
+  ImageFormat taste_image(const std::string& filename);
 
 namespace detail {
 
