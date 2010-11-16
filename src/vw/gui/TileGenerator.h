@@ -193,7 +193,7 @@ namespace gui {
 
   class ImageTileGenerator : public TileGenerator {
     std::string m_filename;
-    boost::shared_ptr<DiskImageResource> m_rsrc;
+    boost::shared_ptr<SrcImageResource> m_rsrc;
 
   public:
     ImageTileGenerator(std::string filename);

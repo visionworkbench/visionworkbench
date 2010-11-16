@@ -126,7 +126,7 @@ int main( int argc, char *argv[] ) {
                                        image_errors.end()));
   double max_image = *(std::max_element(image_errors.begin(),
                                         image_errors.end()));
-  double list_size = image_errors.size();
+  //double list_size = image_errors.size();
   double mean_image=0, stddev_image=0;
   for( std::list<double>::iterator it = image_errors.begin();
        it != image_errors.end(); it++ ) {

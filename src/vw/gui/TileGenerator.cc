@@ -218,7 +218,7 @@ vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_
   return result;
 }
 
-void HttpDownloadThread::request_started(int request_id) {
+void HttpDownloadThread::request_started(int /*request_id*/) {
   //  std::cout << "Request " << request_id << " started\n";
 }
 
@@ -243,7 +243,7 @@ void HttpDownloadThread::response_header_received( const QHttpResponseHeader & r
   }
 }
 
-void HttpDownloadThread::state_changed(int state) {
+void HttpDownloadThread::state_changed(int /*state*/) {
   Mutex::Lock lock(m_mutex);
   //  std::cout << "HTTP State changed: " << state << "\n";
 }
@@ -518,7 +518,7 @@ ImageTileGenerator::ImageTileGenerator(std::string filename) :
 
 // This little template makes the code below much cleaner.
 template <class PixelT>
-boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<ImageResource> rsrc,
+boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<SrcImageResource> rsrc,
                                                       BBox2i tile_bbox,
                                                       int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
