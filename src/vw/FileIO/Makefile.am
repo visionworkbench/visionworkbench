@@ -43,15 +43,30 @@ gdal_headers = DiskImageResourceGDAL.h
 gdal_sources = DiskImageResourceGDAL.cc
 endif
 
-include_HEADERS = DiskImageResource.h DiskImageView.h	\
-	DiskImageResourcePDS.h $(png_headers) $(jpeg_headers)	\
-	$(tiff_headers) $(openexr_headers) $(hdf_headers)	\
-	$(gdal_headers) KML.h DiskImageResourcePBM.h
+include_HEADERS = \
+  DiskImageResource.h \
+  DiskImageResourcePBM.h \
+  DiskImageResourcePDS.h \
+  DiskImageView.h \
+  KML.h \
+  $(gdal_headers) \
+  $(hdf_headers) \
+  $(jpeg_headers) \
+  $(openexr_headers) \
+  $(png_headers) \
+  $(tiff_headers)
 
-libvwFileIO_la_SOURCES = DiskImageResource.cc DiskImageResourcePDS.cc	\
-	$(png_sources) $(jpeg_sources) $(tiff_sources)			\
-	$(openexr_sources) $(hdf_sources) $(gdal_sources) KML.cc        \
-	DiskImageResourcePBM.cc
+libvwFileIO_la_SOURCES = \
+  DiskImageResource.cc \
+  DiskImageResourcePBM.cc \
+  DiskImageResourcePDS.cc \
+  KML.cc \
+  $(gdal_sources) \
+  $(hdf_sources) \
+  $(jpeg_sources) \
+  $(openexr_sources) \
+  $(png_sources) \
+  $(tiff_sources)
 
 libvwFileIO_la_LIBADD = @MODULE_FILEIO_LIBS@
 
