@@ -113,6 +113,14 @@ ThreadMap::Locked RpcServerBase::stats() {
   return ThreadMap::Locked(m_stats);
 }
 
+void RpcBase::set_debug(bool on) {
+  m_debug = on;
+}
+
+bool RpcBase::debug() const {
+  return m_debug;
+}
+
 void RpcServerBase::Task::operator()() {
   // TODO: pass something more useful than u.string()
   m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
@@ -179,7 +187,9 @@ bool RpcServerBase::Task::handle_one_request() {
     m_stats.add("client_error");
   } catch (const std::exception &e) {
     // These exceptions should be reported back to the far side as a general
-    // server error
+    // server error- unless we're in debug mode, in which case... rethrow!
+    if (m_rpc->debug())
+      throw;
     a_wrap.mutable_error()->set_code(RpcErrorMsg::REMOTE_ERROR);
     a_wrap.mutable_error()->set_msg(e.what());
     m_stats.add("server_error");

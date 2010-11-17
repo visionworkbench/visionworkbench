@@ -50,7 +50,7 @@ void process_args(Options& opt, int argc, char *argv[]) {
   po::options_description general_options("Runs a master index manager.\n\nGeneral Options:");
   general_options.add_options()
     ("url",             po::value(&opt.url),                               "Url to listen on")
-    ("debug",           po::bool_switch(&opt.debug)->default_value(false), "Output debug messages.")
+    ("debug",           po::bool_switch(&opt.debug)->default_value(false), "Allow server to die.")
     ("help",            po::bool_switch(&opt.help)->default_value(false),  "Display this help message")
     ("sync-interval,s", po::value(&opt.sync_interval)->default_value(60.),
      "Specify the time interval (in minutes) for automatically synchronizing the index to disk.");
@@ -100,6 +100,7 @@ int main(int argc, char** argv) {
 
   // Start the server task in another thread
   RpcServer<IndexServiceImpl> server(opt.url, new IndexServiceImpl(opt.root));
+  server.set_debug(opt.debug);
 
   vw_out(InfoMessage) << "Starting index server\n\n";
   uint64 sync_interval_us = uint64(opt.sync_interval * 60000000);

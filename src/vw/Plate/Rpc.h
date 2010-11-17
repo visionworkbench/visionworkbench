@@ -61,10 +61,18 @@ namespace platefile {
       void SetFailed(const std::string& /*reason*/);
       bool IsCanceled() const;
       void NotifyOnCancel(::google::protobuf::Closure* /*callback*/);
+
+    protected:
+      bool m_debug;
+
     public:
       // retrieve the abstract service
       virtual ::google::protobuf::Service* service() = 0;
+      RpcBase() : m_debug(false) {}
       virtual ~RpcBase() {}
+
+      void set_debug(bool on);
+      bool debug() const;
   };
 
   class RpcServerBase : public RpcBase {

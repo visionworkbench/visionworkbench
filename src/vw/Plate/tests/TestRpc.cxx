@@ -23,15 +23,27 @@ using namespace vw::test;
 
 namespace pb = ::google::protobuf;
 
+#if defined(VW_HAVE_PKG_ZEROMQ) && (VW_HAVE_PKG_ZEROMQ==1)
+#define HAS_ZEROMQ(x) x
+#else
+#define HAS_ZEROMQ(x) DISABLED_ ## x
+#endif
+
 class TestServiceImpl : public TestService {
   public:
-    static const int LIMIT = 900000;
+    static const int CLIENT_ERROR = 900001;
+    static const int SERVER_ERROR = 900002;
 
     virtual void DoubleRequest(pb::RpcController* /*controller*/, const DoubleMessage* request, DoubleMessage* response, pb::Closure* done) {
-      if (request->num() > LIMIT)
-        vw_throw(PlatefileErr() << "Sad panda");
-      response->set_num(request->num() * 2);
-      done->Run();
+      switch (request->num()) {
+        case CLIENT_ERROR:
+          vw_throw(PlatefileErr() << "Sad panda");
+        case SERVER_ERROR:
+          vw_throw(LogicErr() << "It broke!");
+        default:
+          response->set_num(request->num() * 2);
+          done->Run();
+      }
     }
 };
 
@@ -98,16 +110,46 @@ TEST_P(RpcTest, Basic) {
   EXPECT_EQ(0, server->stats().get("client_error"));
 }
 
-TEST_P(RpcTest, ClientErr) {
+TEST_P(RpcTest, Err) {
   make_clients(1);
 
-  DoubleMessage q, a;
-  q.set_num(TestServiceImpl::LIMIT+1);
   EXPECT_EQ(0, server->stats().get("msgs"));
   EXPECT_EQ(0, server->stats().get("client_error"));
+  EXPECT_EQ(0, server->stats().get("server_error"));
+
+  DoubleMessage q, a;
+
+  q.set_num(TestServiceImpl::CLIENT_ERROR);
+  EXPECT_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()), PlatefileErr);
+  EXPECT_EQ(0, server->stats().get("msgs"));
+  EXPECT_EQ(1, server->stats().get("client_error"));
+  EXPECT_EQ(0, server->stats().get("server_error"));
+
+  q.set_num(TestServiceImpl::SERVER_ERROR);
   EXPECT_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()), RpcErr);
   EXPECT_EQ(0, server->stats().get("msgs"));
   EXPECT_EQ(1, server->stats().get("client_error"));
+  EXPECT_EQ(1, server->stats().get("server_error"));
+}
+
+TEST(TestRpc, HAS_ZEROMQ(KillServerDeathTest)) {
+  // This test only works if the death test starts in a different process
+  // (so we don't get a channel collision)
+  Url u("zmq+inproc://unittest2");
+  Server server;
+  Client client;
+
+  ASSERT_NO_THROW(server.reset(new RpcServer<TestService>(u, new TestServiceImpl())));
+  Thread::sleep_ms(50);
+  ASSERT_NO_THROW(client.reset(new TestClient(u)));
+
+  DoubleMessage q, a;
+
+  server->set_debug(true);
+  q.set_num(TestServiceImpl::SERVER_ERROR);
+  EXPECT_DEATH(
+      client->DoubleRequest(client.get(), &q, &a, null_callback()),
+      "broke");
 }
 
 class ClientTask {
