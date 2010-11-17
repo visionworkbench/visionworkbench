@@ -51,7 +51,7 @@ void process_args(Options& opt, int argc, char *argv[]) {
   general_options.add_options()
     ("url",             po::value(&opt.url),                               "Url to listen on")
     ("debug",           po::bool_switch(&opt.debug)->default_value(false), "Allow server to die.")
-    ("help",            po::bool_switch(&opt.help)->default_value(false),  "Display this help message")
+    ("help,h",          po::bool_switch(&opt.help)->default_value(false),  "Display this help message")
     ("sync-interval,s", po::value(&opt.sync_interval)->default_value(60.),
      "Specify the time interval (in minutes) for automatically synchronizing the index to disk.");
 
@@ -70,27 +70,31 @@ void process_args(Options& opt, int argc, char *argv[]) {
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " root_directory" << std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " --url <url> root_directory" << std::endl << std::endl;
   usage << general_options << std::endl;
 
   if(opt.help)
     vw_throw(Usage() << usage.str());
 
   if( vm.count("root-directory") != 1 ) {
-    std::cerr << "Error: must specify a root directory that contains plate files!"
-              << std::endl << std::endl;
-    vw_throw(Usage() << usage.str());
+    vw_throw(Usage() << usage.str()
+                     << "\n\nError: must specify a root directory that contains plate files!");
   }
 
   if ( vm.count("url") != 1 ) {
-    vw_out(ErrorMessage) << "Must specify a url to listen on" << std::endl << std::endl;
-    vw_throw(Usage() << usage.str());
+    vw_throw(Usage() << usage.str()
+                     << "\n\nMust specify a url to listen on");
   }
 }
 
 int main(int argc, char** argv) {
   Options opt;
-  process_args(opt, argc, argv);
+  try {
+    process_args(opt, argc, argv);
+  } catch (const Usage& u) {
+    std::cerr << u.what() << std::endl;
+    ::exit(EXIT_FAILURE);
+  }
 
   // Install Unix Signal Handlers.  These will help us to gracefully
   // recover and salvage the index under most unexpected error
