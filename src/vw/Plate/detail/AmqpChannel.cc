@@ -170,17 +170,14 @@ void AmqpChannel::remove_endpoint() {
   if (!m_conn)
     return;
 
-  {
+  m_consumer.reset();
+
+  if (!m_local_name.empty()) {
     amqp_connection_state_t state;
     Mutex::Lock lock(m_conn->get_mutex(&state));
-
-    m_consumer.reset();
-
-    if (!m_local_name.empty()) {
-      this->locked_queue_unbind(m_local_name, m_local_name, m_local_name);
-      die_on_amqp_error(amqp_channel_close(state, m_channel_id, AMQP_REPLY_SUCCESS), "closing connection");
-      m_channel_id = -1;
-    }
+    this->locked_queue_unbind(m_local_name, m_local_name, m_local_name);
+    die_on_amqp_error(amqp_channel_close(state, m_channel_id, AMQP_REPLY_SUCCESS), "closing connection");
+    m_channel_id = -1;
   }
   m_conn.reset();
 }
