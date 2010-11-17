@@ -75,9 +75,10 @@ AC_LANG(C++)
 AX_COMMON_OPTIONS
 AC_CHECK_TYPE(ssize_t, int)
 
-# Does the compiler support noreturn?
+# Does the compiler support various fun function attributes?
 AX_CHECK_FUNCTION_ATTRIBUTE([noreturn])
 AX_CHECK_FUNCTION_ATTRIBUTE([deprecated])
+AX_CHECK_FUNCTION_ATTRIBUTE([warn_unused_result])
 
 # Looking for headers
 AC_CHECK_HEADERS([unistd.h pwd.h fenv.h])

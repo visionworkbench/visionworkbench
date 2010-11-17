@@ -58,7 +58,7 @@ class AmqpConnection : private boost::noncopyable {
     /// terminates automatically when this object is destroyed.
     AmqpConnection(std::string const& hostname = "localhost", int port = 5672);
 
-    Mutex& get_mutex(AmqpConnectionState** state);
+    Mutex& get_mutex(AmqpConnectionState** state) VW_WARN_UNUSED;
     void locked_get_state(AmqpConnectionState** state);
 
     /// Allocates a communications channel number. Meant to be called by

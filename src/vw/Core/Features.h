@@ -25,6 +25,12 @@
 #define VW_NORETURN
 #endif
 
+#if defined(VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT) && (VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT==1)
+#define VW_WARN_UNUSED __attribute__((warn_unused_result))
+#else
+#define VW_WARN_UNUSED
+#endif
+
 #define VW_NOTHROW VW_IF_EXCEPTIONS(throw())
 
 /// The master compile-time debugging level flag.  The default value
