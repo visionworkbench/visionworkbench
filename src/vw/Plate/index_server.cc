@@ -144,11 +144,11 @@ int main(int argc, char** argv) {
       << "(" << (100. * success / (calls ? calls : 1)) << "% success)                    \r"
       << std::flush;
 
-    Thread::sleep_ms(1000);
+    Thread::sleep_ms(500);
   }
 
-  server.stop();
   vw_out(InfoMessage) << "\nShutting down the index service safely.\n";
+  server.stop();
   server.impl()->sync();
 
   return 0;

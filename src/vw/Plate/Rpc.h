@@ -79,7 +79,7 @@ namespace platefile {
     public:
       RpcServerBase() {}
       RpcServerBase(const Url& url);
-      ~RpcServerBase();
+      virtual ~RpcServerBase();
 
       void bind(const Url& url);
       void stop();
@@ -95,7 +95,7 @@ namespace platefile {
       ::google::protobuf::RpcChannel* base_channel();
     public:
       RpcClientBase(const Url& u, int32 timeout, uint32 retries);
-      ~RpcClientBase() {}
+      virtual ~RpcClientBase() {}
 
       // -1 means "never", other values in ms
       void set_timeout(int32 t);

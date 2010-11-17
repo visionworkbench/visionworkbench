@@ -94,13 +94,15 @@ RpcServerBase::RpcServerBase(const Url& url) {
 
 RpcServerBase::~RpcServerBase() {
   stop();
-  m_thread->join();
   m_thread.reset();
+  m_task.reset();
 }
 
 void RpcServerBase::stop() {
   if (m_task)
     m_task->stop();
+  if (m_thread)
+    m_thread->join();
 }
 
 void RpcServerBase::bind(const Url& url) {
