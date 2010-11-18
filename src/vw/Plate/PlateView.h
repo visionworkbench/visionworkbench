@@ -62,7 +62,7 @@ namespace platefile {
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
 
-    inline pixel_type operator()(float /*x*/, float /*y*/, int32 /*p*/ = 0) const {
+    inline pixel_type operator()(int32 /*x*/, int32 /*y*/, int32 /*p*/ = 0) const {
       vw_throw(NoImplErr() << "PlateView::operator() -- not yet implemented.");
     }
 

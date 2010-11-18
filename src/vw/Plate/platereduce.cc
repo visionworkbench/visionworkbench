@@ -140,9 +140,9 @@ struct RobustMean : public ReduceBase<RobustMean> {
 private:
   float smart_weighted_mean( vector<float> & weights,
                              vector<float> const& samples,
-                             float const sign_level=0.3,
-                             float const learn_rate=0.1,
-                             float const error_tol=1e-5,
+                             float const sign_level=0.3f,
+                             float const learn_rate=0.1f,
+                             float const error_tol=1e-5f,
                              int32 const max_iter=1000 ) {
     namespace bm = boost::math;
     switch ( samples.size() ) {

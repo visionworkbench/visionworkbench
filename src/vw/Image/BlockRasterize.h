@@ -155,7 +155,7 @@ namespace vw {
         // very wide images?  Either way we will guess wrong some of
         // the time, so advanced users will have to know what they're
         // doing in any case.
-        int32 block_rows = default_blocksize / (planes()*cols()*sizeof(pixel_type));
+        int32 block_rows = default_blocksize / (planes()*cols()*int32(sizeof(pixel_type)));
         if( block_rows < 1 ) block_rows = 1;
         else if( block_rows > rows() ) block_rows = rows();
         m_block_size = Vector2i( cols(), block_rows );

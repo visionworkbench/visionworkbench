@@ -37,13 +37,13 @@ namespace vw {
 
   template <class SrcAccessT, class KernelIterT>
   typename ProductType<typename SrcAccessT::pixel_type, typename std::iterator_traits<KernelIterT>::value_type>::type
-  inline correlate_1d_at_point( SrcAccessT const& src, KernelIterT const& kernel, int32 n ) {
+  inline correlate_1d_at_point( SrcAccessT const& src, KernelIterT const& kernel, size_t n ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename std::iterator_traits<KernelIterT>::value_type>::type result_type;
     result_type result = result_type();
     validate(result);
     SrcAccessT s = src;
     KernelIterT k = kernel;
-    for( int32 i=n; i; --i ) {
+    for( ssize_t i=n; i; --i ) {
       result += (*k)*(*s);
       s.next_col();
       ++k;
@@ -53,17 +53,17 @@ namespace vw {
 
   template <class SrcAccessT, class KernelAccessT>
   typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type
-  inline correlate_2d_at_point( SrcAccessT const& src, KernelAccessT const& kernel, int32 cols, int32 rows ) {
+  inline correlate_2d_at_point( SrcAccessT const& src, KernelAccessT const& kernel, size_t cols, size_t rows ) {
     typedef typename ProductType<typename SrcAccessT::pixel_type, typename KernelAccessT::pixel_type>::type result_type;
 
     result_type result = result_type();
     validate(result);
     SrcAccessT srow = src;
     KernelAccessT krow = kernel;
-    for( int32 j=rows; j; --j ) {
+    for( ssize_t j=rows; j; --j ) {
       SrcAccessT scol = srow;
       KernelAccessT kcol = krow;
-      for( int32 i=cols; i; --i ) {
+      for( ssize_t i=cols; i; --i ) {
         result += (*kcol)*(*scol);
         scol.next_col();
         kcol.next_col();
@@ -175,8 +175,8 @@ namespace vw {
     mutable ImageView<KernelT> m_kernel2d;
 
     void generate2DKernel() const {
-      int32 ni = m_i_kernel.size() ? m_i_kernel.size() : 1;
-      int32 nj = m_j_kernel.size() ? m_j_kernel.size() : 1;
+      int32 ni = m_i_kernel.size() ? int32(m_i_kernel.size()) : 1;
+      int32 nj = m_j_kernel.size() ? int32(m_j_kernel.size()) : 1;
       m_kernel2d.set_size( ni, nj );
       for( int32 i=0; i<ni; ++i )
         for( int32 j=0; j<nj; ++j )
@@ -217,8 +217,8 @@ namespace vw {
     inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
       typedef typename CompoundChannelType<result_type>::type channel_type;
       if( m_kernel2d.cols()==0 ) generate2DKernel();
-      int32 ci = m_i_kernel.size() ? (m_i_kernel.size()-1-m_ci) : 0;
-      int32 cj = m_j_kernel.size() ? (m_j_kernel.size()-1-m_cj) : 0;
+      int32 ci = m_i_kernel.size() ? int32(m_i_kernel.size()-1-m_ci) : 0;
+      int32 cj = m_j_kernel.size() ? int32(m_j_kernel.size()-1-m_cj) : 0;
       if( (x >= int(ci)) && (y >= int(cj)) &&
           (x <= int(m_image.cols())-int(m_kernel2d.cols())+int(ci)) &&
           (y <= int(m_image.rows())-int(m_kernel2d.rows())+int(cj)) ) {

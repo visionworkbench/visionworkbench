@@ -51,6 +51,8 @@ namespace vw {
   class ImageViewRefAccessorImpl : public ImageViewRefAccessorBase<typename IterT::pixel_type> {
   private:
     IterT m_iter;
+    // We know what this is, but the base class doesn't. Just cast...
+    typedef typename IterT::offset_type iter_offset_type;
   public:
     typedef typename IterT::pixel_type pixel_type;
 
@@ -65,7 +67,9 @@ namespace vw {
     virtual void prev_row() { m_iter.prev_row(); }
     virtual void next_plane() { m_iter.next_plane(); }
     virtual void prev_plane() { m_iter.prev_plane(); }
-    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); }
+    virtual void advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) {
+      m_iter.advance((iter_offset_type)di,(iter_offset_type)dj,dp);
+    }
     virtual pixel_type operator*() const { return *m_iter; }
   };
   /// \endcond

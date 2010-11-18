@@ -302,8 +302,8 @@ namespace vw {
     // Initialize the progress callback
     progress_callback.report_progress(0);
 
-    const size_t rows = image.impl().rows();
-    const size_t cols = image.impl().cols();
+    const int32 rows = boost::numeric_cast<int32>(image.impl().rows());
+    const int32 cols = boost::numeric_cast<int32>(image.impl().cols());
 
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
@@ -312,9 +312,9 @@ namespace vw {
     if (resource.has_block_write())
       block_size = resource.block_write_size();
 
-    int total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
-    for (size_t j = 0; j < rows; j+= block_size.y()) {
-      for (size_t i = 0; i < cols; i+= block_size.x()) {
+    size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
+    for (int32 j = 0; j < rows; j+= block_size.y()) {
+      for (int32 i = 0; i < cols; i+= block_size.x()) {
 
         vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
                                        << rows << " " << cols
@@ -330,8 +330,8 @@ namespace vw {
 
         // Rasterize and save this image block
         BBox2i current_bbox(Vector2i(i,j),
-                            Vector2i(std::min<size_t>(i+block_size.x(),cols),
-                                     std::min<size_t>(j+block_size.y(),rows)));
+                            Vector2i(std::min<int32>(i+block_size.x(),cols),
+                                     std::min<int32>(j+block_size.y(),rows)));
 
         // Rasterize the current image block into a region of memory
         // and send it off to the resource.

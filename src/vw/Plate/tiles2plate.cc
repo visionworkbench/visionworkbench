@@ -87,7 +87,7 @@ public:
 
     tile_name.erase(0, 1);
 
-    t.m_level = tile_name.length();
+    t.m_level = boost::numeric_cast<int32>(tile_name.length());
     if(t.m_level == 0) {
       t.m_row = t.m_col = 0;
       return t;
