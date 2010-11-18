@@ -73,6 +73,7 @@ namespace vw {
   public:
     typedef typename boost::result_of<FuncT(typename ImageIterT::pixel_type)>::type result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+    typedef typename ImageIterT::offset_type offset_type;
 
     UnaryPerPixelAccessor( ImageIterT const& iter, FuncT const& func ) : m_iter(iter), m_func(func) {}
     inline UnaryPerPixelAccessor& next_col() { m_iter.next_col(); return *this; }
@@ -81,7 +82,7 @@ namespace vw {
     inline UnaryPerPixelAccessor& prev_row() { m_iter.prev_row(); return *this; }
     inline UnaryPerPixelAccessor& next_plane() { m_iter.next_plane(); return *this; }
     inline UnaryPerPixelAccessor& prev_plane() { m_iter.prev_plane(); return *this; }
-    inline UnaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
+    inline UnaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter); }
   };
 
@@ -139,6 +140,8 @@ namespace vw {
   public:
     typedef typename boost::result_of<FuncT(typename Image1IterT::pixel_type,typename Image2IterT::pixel_type)>::type result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+    typedef typename boost::mpl::if_<boost::is_same<typename Image1IterT::offset_type, typename Image2IterT::offset_type>,
+                                     typename Image1IterT::offset_type, int32>::type offset_type;
 
     BinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_func(func) {}
     inline BinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); return *this; }
@@ -147,7 +150,7 @@ namespace vw {
     inline BinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); return *this; }
     inline BinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); return *this; }
     inline BinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); return *this; }
-    inline BinaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 )
+    inline BinaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 )
       { m_iter1.advance(di,dj,dp); m_iter2.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter1,*m_iter2); }
   };
@@ -214,6 +217,9 @@ namespace vw {
   public:
     typedef typename boost::result_of<FuncT(typename Image1IterT::pixel_type,typename Image2IterT::pixel_type,typename Image3IterT::pixel_type)>::type result_type;
     typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type pixel_type;
+    typedef typename boost::mpl::if_<boost::mpl::and_<boost::is_same<typename Image1IterT::offset_type, typename Image2IterT::offset_type>,
+                                                      boost::is_same<typename Image1IterT::offset_type, typename Image3IterT::offset_type> >,
+                                     typename Image1IterT::offset_type, int32>::type offset_type;
 
     TrinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, Image2IterT const& iter3, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_iter3(iter3), m_func(func) {}
     inline TrinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); m_iter3.next_col(); return *this; }
@@ -222,7 +228,7 @@ namespace vw {
     inline TrinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); m_iter3.prev_row(); return *this; }
     inline TrinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); m_iter3.next_plane(); return *this; }
     inline TrinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); m_iter3.prev_plane(); return *this; }
-    inline TrinaryPerPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 )
+    inline TrinaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 )
       { m_iter1.advance(di,dj,dp); m_iter2.advance(di,dj,dp); m_iter3.advance(di,dj,dp); return *this; }
     inline result_type operator*() const { return m_func(*m_iter1,*m_iter2,*m_iter3); }
   };

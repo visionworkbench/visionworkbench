@@ -84,6 +84,7 @@ namespace vw {
   public:
     typedef PixelT pixel_type;
     typedef PixelT result_type;
+    typedef ssize_t offset_type;
 
     template <class IterT> ImageViewRefAccessor( IterT const& iter ) : m_iter( new ImageViewRefAccessorImpl<IterT>(iter) ) {}
     ~ImageViewRefAccessor() {}

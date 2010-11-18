@@ -97,6 +97,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     TransposePixelAccessor( ChildT const& acc ) : m_child(acc) {}
 
     inline TransposePixelAccessor& next_col() { m_child.next_row(); return *this; }
@@ -105,7 +106,7 @@ namespace vw {
     inline TransposePixelAccessor& prev_row() { m_child.prev_col(); return *this; }
     inline TransposePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline TransposePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline TransposePixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(dj,di,dp); return *this; }
+    inline TransposePixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(dj,di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -183,6 +184,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     Rotate180PixelAccessor( ChildT const& image ) : m_child(image) {}
 
     inline Rotate180PixelAccessor& next_col() { m_child.prev_col(); return *this; }
@@ -191,7 +193,7 @@ namespace vw {
     inline Rotate180PixelAccessor& prev_row() { m_child.next_row(); return *this; }
     inline Rotate180PixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate180PixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate180PixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
+    inline Rotate180PixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(-di,-dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -269,6 +271,8 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
+
     Rotate90CWPixelAccessor( ChildT const& acc ) : m_child(acc) {}
     inline Rotate90CWPixelAccessor& next_col() { m_child.prev_row(); return *this; }
     inline Rotate90CWPixelAccessor& prev_col() { m_child.next_row(); return *this; }
@@ -276,7 +280,7 @@ namespace vw {
     inline Rotate90CWPixelAccessor& prev_row() { m_child.prev_col(); return *this; }
     inline Rotate90CWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate90CWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate90CWPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(dj,-di,dp); return *this; }
+    inline Rotate90CWPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(dj,-di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -354,6 +358,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     Rotate90CCWPixelAccessor( ChildT const& acc ) : m_child(acc) {}
 
     inline Rotate90CCWPixelAccessor& next_col() { m_child.next_row(); return *this; }
@@ -362,7 +367,7 @@ namespace vw {
     inline Rotate90CCWPixelAccessor& prev_row() { m_child.next_col(); return *this; }
     inline Rotate90CCWPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline Rotate90CCWPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline Rotate90CCWPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-dj,di,dp); return *this; }
+    inline Rotate90CCWPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(-dj,di,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -440,6 +445,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     FlipVerticalPixelAccessor( ChildT const& acc ) : m_child(acc) {}
 
     inline FlipVerticalPixelAccessor& next_col() { m_child.next_col(); return *this; }
@@ -448,7 +454,7 @@ namespace vw {
     inline FlipVerticalPixelAccessor& prev_row() { m_child.next_row(); return *this; }
     inline FlipVerticalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline FlipVerticalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline FlipVerticalPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(di,-dj,dp); return *this; }
+    inline FlipVerticalPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(di,-dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -526,6 +532,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     FlipHorizontalPixelAccessor( ChildT const& acc ) : m_child(acc) {}
 
     inline FlipHorizontalPixelAccessor& next_col() { m_child.prev_col(); return *this; }
@@ -534,7 +541,7 @@ namespace vw {
     inline FlipHorizontalPixelAccessor& prev_row() { m_child.prev_row(); return *this; }
     inline FlipHorizontalPixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline FlipHorizontalPixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline FlipHorizontalPixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(-di,dj,dp); return *this; }
+    inline FlipHorizontalPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(-di,dj,dp); return *this; }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -698,6 +705,7 @@ namespace vw {
   public:
     typedef typename ChildT::pixel_type pixel_type;
     typedef typename ChildT::result_type result_type;
+    typedef typename ChildT::offset_type offset_type;
     SubsamplePixelAccessor( ChildT const& acc , int32 xdelta, int32 ydelta) : m_child(acc), m_xdelta(xdelta), m_ydelta(ydelta) {}
 
     inline SubsamplePixelAccessor& next_col() { m_child.advance(  m_xdelta, 0 ); return *this; }
@@ -706,7 +714,10 @@ namespace vw {
     inline SubsamplePixelAccessor& prev_row() { m_child.advance( 0, -m_ydelta ); return *this; }
     inline SubsamplePixelAccessor& next_plane() { m_child.next_plane(); return *this; }
     inline SubsamplePixelAccessor& prev_plane() { m_child.prev_plane(); return *this; }
-    inline SubsamplePixelAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance((ssize_t)m_xdelta*di,(ssize_t)m_ydelta*dj,dp); return *this; }
+    inline SubsamplePixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) {
+      m_child.advance((offset_type)m_xdelta*di,(offset_type)m_ydelta*dj,dp);
+      return *this;
+    }
 
     inline result_type operator*() const { return *m_child; }
   };
@@ -1015,6 +1026,7 @@ namespace vw {
   public:
     typedef typename CompoundChannelType<typename ChildT::pixel_type>::type pixel_type;
     typedef typename CopyCVR<typename ChildT::result_type, pixel_type>::type result_type;
+    typedef typename ChildT::offset_type offset_type;
 
     ChannelsToPlanesAccessor( ChildT const& acc ) : m_child(acc), m_channel(0) {}
     inline ChannelsToPlanesAccessor& next_col() { m_child.next_col(); return *this; }
@@ -1023,7 +1035,7 @@ namespace vw {
     inline ChannelsToPlanesAccessor& prev_row() { m_child.prev_row(); return *this; }
     inline ChannelsToPlanesAccessor& next_plane() { ++m_channel; return *this; }
     inline ChannelsToPlanesAccessor& prev_plane() { --m_channel; return *this; }
-    inline ChannelsToPlanesAccessor& advance( ssize_t di, ssize_t dj, ssize_t dp=0 ) { m_child.advance(di,dj); m_channel+=dp; return *this; }
+    inline ChannelsToPlanesAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_child.advance(di,dj); m_channel+=dp; return *this; }
 
     inline result_type operator*() const { return compound_select_channel<result_type>(*m_child,m_channel); }
   };

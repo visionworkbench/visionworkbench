@@ -49,6 +49,7 @@ namespace vw {
   public:
     typedef PixelT pixel_type;
     typedef PixelT& result_type;
+    typedef ssize_t offset_type;
 
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     MemoryStridingPixelAccessor( PixelT *ptr,
@@ -105,7 +106,9 @@ namespace vw {
   /// invokes the view's function operator when dereferenced.
   template <class ViewT>
   class ProceduralPixelAccessor {
+  public:
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<ViewT>, double, int32>::type offset_type;
+  private:
     ViewT const& m_view;
     offset_type m_c, m_r;
     int32 m_p;
@@ -122,7 +125,7 @@ namespace vw {
     inline ProceduralPixelAccessor& prev_row() { --m_r; return *this; }
     inline ProceduralPixelAccessor& next_plane() { ++m_p; return *this; }
     inline ProceduralPixelAccessor& prev_plane() { --m_p; return *this; }
-    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, int32 dp=0 ) { m_c+=dc; m_r+=dr; m_p+=dp; return *this; }
+    inline ProceduralPixelAccessor& advance( offset_type dc, offset_type dr, ssize_t dp=0 ) { m_c+=dc; m_r+=dr; m_p+=(int32)dp; return *this; }
 
     inline ProceduralPixelAccessor next_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.next_col();   return tmp; }
     inline ProceduralPixelAccessor prev_col_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_col();   return tmp; }
@@ -130,7 +133,7 @@ namespace vw {
     inline ProceduralPixelAccessor prev_row_copy()   const { ProceduralPixelAccessor tmp(*this); tmp.prev_row();   return tmp; }
     inline ProceduralPixelAccessor next_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.next_plane(); return tmp; }
     inline ProceduralPixelAccessor prev_plane_copy() const { ProceduralPixelAccessor tmp(*this); tmp.prev_plane(); return tmp; }
-    inline ProceduralPixelAccessor advance_copy ( ssize_t dc, ssize_t dr, ssize_t dp=0 ) const {
+    inline ProceduralPixelAccessor advance_copy ( offset_type dc, offset_type dr, ssize_t dp=0 ) const {
       ProceduralPixelAccessor tmp(*this);
       tmp.advance(dc,dr,dp);
       return tmp;
