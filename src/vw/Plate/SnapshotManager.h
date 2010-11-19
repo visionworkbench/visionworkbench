@@ -28,7 +28,7 @@ namespace platefile {
     // speeds things up considerably to cache them here.
     struct TileCacheEntry {
       int32 level, x, y;
-      Transaction transaction_id;
+      TransactionOrNeg transaction_id;
       ImageView<PixelT> tile;
     };
     typedef std::list<TileCacheEntry> tile_cache_t;

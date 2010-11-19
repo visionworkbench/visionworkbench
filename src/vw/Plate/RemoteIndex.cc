@@ -350,11 +350,16 @@ vw::ChannelTypeEnum RemoteIndex::channel_type() const {
 // they start a self-contained chunk of mosaicking work.  .
 Transaction RemoteIndex::transaction_request(std::string transaction_description,
                                              TransactionOrNeg transaction_id_override) {
+  int32 id;
+  if (transaction_id_override.newest())
+    id = -1;
+  else
+    id = static_cast<int32>(uint32(transaction_id_override.promote()));
 
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);
   request.set_description(transaction_description);
-  request.set_transaction_id_override(transaction_id_override);
+  request.set_transaction_id_override(id);
 
   IndexTransactionReply response;
   m_client->TransactionRequest(m_client.get(), &request, &response, null_callback());

@@ -167,7 +167,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
                 snapshot_parameters.begin_transaction_id,
                 snapshot_parameters.end_transaction_id,
-                snapshot_parameters.write_transaction_id,
+                snapshot_parameters.write_transaction_id.promote(),
                 snapshot_parameters.tweak_settings_for_terrain);
 
     // Release the blob id lock.
@@ -182,53 +182,26 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
   } else {
 
-    // If no region was specified, then we build a snapshot of the
-    // entire platefile.
-    if (snapshot_parameters.write_transaction_id == -1) {
+    // If no region was specified, then we build a snapshot of the entire
+    // platefile.
 
-      // User did not supply a t_id.  We must request and complete a
-      // transaction on our own.
-      std::ostringstream transaction_description;
-      transaction_description << "Full snapshot (auto-generated t_id)";
-      Transaction t_id = platefile->transaction_request(transaction_description.str(), -1);
+    // Request a transaction (write_transaction_id might be -1, and that's okay)
+    const std::string description = "Full snapshot (requested t_id:  " + vw::stringify(snapshot_parameters.write_transaction_id) + ")";
+    Transaction t_id = platefile->transaction_request(description, snapshot_parameters.write_transaction_id);
 
-      // Grab a lock on a blob file to use for writing tiles during
-      // the two operations below.
-      platefile->write_request();
+    // Grab a lock on a blob file to use for writing tiles during
+    // the two operations below.
+    platefile->write_request();
 
-      // Do a full snapshot
-      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
-                       snapshot_parameters.end_transaction_id,
-                       t_id,
-                       snapshot_parameters.tweak_settings_for_terrain);
+    // Do a full snapshot
+    sm.full_snapshot(snapshot_parameters.begin_transaction_id,
+                     snapshot_parameters.end_transaction_id,
+                     t_id,
+                     snapshot_parameters.tweak_settings_for_terrain);
 
-      // Release the blob id lock and note that the transaction is finished.
-      platefile->write_complete();
-      platefile->transaction_complete(t_id, true);
-
-    } else {
-
-      // Use the user-supplied t_id.
-      std::ostringstream transaction_description;
-      transaction_description << "Full snapshot (auto-generated t_id = "
-                              << snapshot_parameters.write_transaction_id << " )";
-      Transaction t_id = platefile->transaction_request(transaction_description.str(),
-                                                snapshot_parameters.write_transaction_id);
-
-      // Grab a lock on a blob file to use for writing tiles during
-      // the two operations below.
-      platefile->write_request();
-
-      // User-supplied transaction_id
-      sm.full_snapshot(snapshot_parameters.begin_transaction_id,
-                       snapshot_parameters.end_transaction_id,
-                       snapshot_parameters.write_transaction_id,
-                       snapshot_parameters.tweak_settings_for_terrain);
-
-      // Release the blob id lock and note that the transaction is finished.
-      platefile->write_complete();
-      platefile->transaction_complete(t_id, true);
-    }
+    // Release the blob id lock and note that the transaction is finished.
+    platefile->write_complete();
+    platefile->transaction_complete(t_id, true);
   }
 
 }
@@ -324,12 +297,12 @@ int main( int argc, char *argv[] ) {
     }
 
     if (vm.count("finish")) {
-      if (!vm.count("transaction-id")) {
+      if (transaction_id.newest()) {
         vw_out() << "You must specify a transaction-id if you use --finish.\n";
         exit(1);
       }
       // Update the read cursor when the snapshot is complete!
-      platefile->transaction_complete(transaction_id, true);
+      platefile->transaction_complete(transaction_id.promote(), true);
       vw_out() << "Transaction " << transaction_id << " complete.\n";
       exit(0);
     }

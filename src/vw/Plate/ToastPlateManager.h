@@ -18,7 +18,7 @@ namespace platefile {
   protected:
     struct CacheEntry {
       int32 level, x, y;
-      Transaction transaction_id;
+      TransactionOrNeg transaction_id;
       ImageView<PixelT> tile;
     };
 
@@ -43,7 +43,7 @@ namespace platefile {
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
     void generate_mipmap_tile(int col, int row, int level,
-                              TransactionOrNeg transaction_id, bool preblur) const;
+                              Transaction transaction_id, bool preblur) const;
 
     ImageView<PixelT> fetch_child_tile(int x, int y, int level,
                                        TransactionOrNeg transaction_id) const;

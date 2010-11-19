@@ -147,7 +147,7 @@ ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
 template <class PixelT>
 void ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row,
                                                      int level,
-                                                     TransactionOrNeg transaction_id,
+                                                     Transaction transaction_id,
                                                      bool preblur) const {
 
   // Create an image large enough to store all of the child nodes
@@ -214,7 +214,7 @@ namespace platefile {
   template void                                                         \
   ToastPlateManager<PIXELT >::generate_mipmap_tile(int col, int row,    \
                                                    int level,           \
-                                                   TransactionOrNeg transaction_id,  \
+                                                   Transaction transaction_id,  \
                                                    bool preblur) const; \
   template cartography::GeoReference                                    \
   ToastPlateManager<PIXELT >::georeference( int level ) const;          \

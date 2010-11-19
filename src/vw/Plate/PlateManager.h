@@ -58,7 +58,7 @@ namespace platefile {
     //         tiles.
     // transaction_id -- transaction id to use when reading/writing tiles
     void mipmap(int starting_level, BBox2i const& bbox,
-                TransactionOrNeg transaction_id, bool preblur,
+                Transaction transaction_id, bool preblur,
                 const ProgressCallback &progress_callback =
                 ProgressCallback::dummy_instance(),
                 int stopping_level = -1) const;
@@ -71,7 +71,7 @@ namespace platefile {
     // mipmapping. Otherwise you will get a nice, low-pass filtered
     // version in the mipmap.
     virtual void generate_mipmap_tile(int col, int row, int level,
-                                      TransactionOrNeg transaction_id, bool preblur) const = 0;
+                                      Transaction transaction_id, bool preblur) const = 0;
 
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;

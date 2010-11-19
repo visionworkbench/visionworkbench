@@ -96,7 +96,7 @@ PlateCarreePlateManager<PixelT>::georeference( int level ) const {
 template <class PixelT>
 void PlateCarreePlateManager<PixelT>::generate_mipmap_tile(
                           int col, int row, int level,
-                          TransactionOrNeg transaction_id, bool preblur) const {
+                          Transaction transaction_id, bool preblur) const {
   // Create an image large enough to store all of the child nodes
   int tile_size = this->m_platefile->default_tile_size();
   ImageView<PixelT> super(2*tile_size, 2*tile_size);
@@ -154,7 +154,7 @@ namespace platefile {
   template void                                                              \
   PlateCarreePlateManager<PIXELT >::generate_mipmap_tile(                    \
                                     int col, int row, int level,             \
-                                    TransactionOrNeg transaction_id, bool preblur) const;
+                                    Transaction transaction_id, bool preblur) const;
 
   VW_INSTANTIATE_PLATE_CARREE_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_PLATE_CARREE_TYPES(PixelGrayA<int16>)

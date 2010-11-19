@@ -271,7 +271,7 @@ struct Options {
 
   // Output
   string function;
-  Transaction transaction_id;
+  TransactionOrNeg transaction_id;
 
   // For spawning multiple jobs
   int32 job_id;
@@ -312,7 +312,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " <plate_filename> [options]\n";
 
-  if ( vm.count("help") || vm.count("input-file") != 1 )
+  if ( vm.count("help") || vm.count("input-file") != 1 || opt.transaction_id.newest())
     vw_throw( ArgumentErr() << usage.str() << options );
 }
 
@@ -362,7 +362,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
         platefile->write_request();
         platefile->write_update(result,
                                 location[0], location[1],
-                                opt.level, opt.transaction_id);
+                                opt.level, opt.transaction_id.promote());
         platefile->write_complete();
       }
     }

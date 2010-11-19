@@ -292,21 +292,20 @@ void LocalIndex::log(std::string message) {
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
 Transaction LocalIndex::transaction_request(std::string transaction_description,
-                                            TransactionOrNeg transaction_id_override) {
+                                            TransactionOrNeg transaction_id_override_neg) {
 
-   if (transaction_id_override != -1) {
-     Transaction override = boost::numeric_cast<Transaction>(transaction_id_override);
-
+   if (transaction_id_override_neg != -1) {
+     Transaction transaction_id_override = transaction_id_override_neg.promote();
      // If the user has chosen to override the transaction ID's, then we
      // use the transaction ID they specify.  We also increment the
      // transaction_write_cursor if necessary so that we dole out a
      // reasonable transaction ID if we are ever asked again without an
      // override.
-     Transaction max_trans_id = std::max(m_header.transaction_write_cursor(), override+1);
+     Transaction max_trans_id = std::max(m_header.transaction_write_cursor(), transaction_id_override+1);
      m_header.set_transaction_write_cursor(max_trans_id);
      this->save_index_file();
-     this->log() << "Transaction " << override << " started: " << transaction_description << "\n";
-     return override;
+     this->log() << "Transaction " << transaction_id_override << " started: " << transaction_description << "\n";
+     return transaction_id_override;
 
    } else {
 
@@ -331,7 +330,7 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
    //this->sync();
 
    if ( update_read_cursor ) {
-     Transaction max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
+     Transaction max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id+0);
      m_header.set_transaction_read_cursor(max_trans_id);
      this->save_index_file();
    }

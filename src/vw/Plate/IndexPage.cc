@@ -12,6 +12,7 @@
 #include <vw/Core/Debugging.h>
 
 #include <boost/shared_array.hpp>
+#include <boost/foreach.hpp>
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.index") << VW_CURRENT_FUNCTION << ": ")
 using namespace vw;
@@ -173,7 +174,7 @@ void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 ///   - Setting exact_match to true forces an exact transaction_id
 ///   match.
 ///
-IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id, bool exact_match) const {
+IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id_neg, bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0,
              TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
@@ -193,8 +194,10 @@ IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id, bo
   // recent tile (which is the first entry in the list, since it is
   // sorted from most recent to least recent), regardless of its
   // transaction id.
-  if (transaction_id == -1)
+  if (transaction_id_neg.newest())
     return (*it).second;
+
+  Transaction transaction_id = transaction_id_neg.promote();
 
   // Otherwise, we search through the entries in the list, looking for
   // the requested t_id.  Note: this search is O(n), so it can be slow
@@ -253,29 +256,25 @@ IndexPage::search_by_region(BBox2i const& region,
                             bool fetch_one_additional_entry) const {
   std::list<TileHeader> results;
 
+  // empty range means something broke upstream
+  VW_ASSERT(start_transaction_id <= end_transaction_id,
+            ArgumentErr() << VW_CURRENT_FUNCTION << ": received a null set range ["
+                          << start_transaction_id << "," << end_transaction_id << "]");
+
   for (int row = 0; row < m_page_height; ++row) {
     for (int col = 0; col < m_page_width; ++col) {
       if (m_sparse_table.test(row*m_page_width + col)) {
 
         // Iterate over entries.
         multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
-        multi_value_type::const_iterator it = entries.begin();
         multi_value_type candidates;
 
-        if (start_transaction_id == -1 && end_transaction_id == -1) {
-
+        if (start_transaction_id.newest() && end_transaction_id.newest()) {
           // If the user has specified a transaction range of [-1, -1],
           // then we only return the last valid tile.
           if (entries.size() > 0)
             candidates.push_back( *(entries.begin()) );
-
         } else {
-
-          // std::ostringstream ostr;
-          // ostr << "Accumulating entries for tile ["
-          //      << (m_base_col + col) << " " << (m_base_row + row) <<  " @ "
-          //      << m_level << "] with " << entries.size() << " entries -- ";
-
           // Search through the entries in the list, looking entries
           // that match the requested transaction_id range.  Note: this
           // search is O(n), so it can be slow if there are a lot of
@@ -284,26 +283,19 @@ IndexPage::search_by_region(BBox2i const& region,
           // those with many entries (i.e. tiles near the root of the
           // mosaic), you will most likely be searching for recently
           // added tiles, which are sorted to the beginning.
-          while (it != entries.end() && it->first >= start_transaction_id) {
-            if ( it->first >= start_transaction_id && it->first <= end_transaction_id ) {
-              //              ostr << it->first << " ";
-              candidates.push_back(*it);
+          BOOST_FOREACH(const value_type& v, entries) {
+            if (v.first >= start_transaction_id && v.first <= end_transaction_id)
+              candidates.push_back(v);
+            else {
+              // For snapshotting, we need to fetch one additional entry
+              // outside of the specified range.  This next tile
+              // represents the "top" tile in the mosaic for entries that
+              // may not have been part of the last snapshot.
+              if (fetch_one_additional_entry)
+                candidates.push_back(v);
+              break;
             }
-            ++it;
           }
-
-          // For snapshotting, we need to fetch one additional entry
-          // outside of the specified range.  This next tile
-          // represents the "top" tile in the mosaic for entries that
-          // may not have been part of the last snapshot.
-          if (fetch_one_additional_entry && it != entries.end()) {
-            //ostr << it->first << " ";
-            candidates.push_back(*it);
-          }
-
-          // For debugging
-          // if (candidates.size() != 0)// && m_level == 10)
-          //   std::cout << ostr.str() << "   ( " << candidates.size() << " )\n";
         }
 
         // Do the region check.

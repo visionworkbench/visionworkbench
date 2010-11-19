@@ -26,6 +26,7 @@ include_HEADERS =           \
   Blob.h                    \
   BlobManager.h             \
   Exception.h               \
+  FundamentalTypes.h        \
   HTTPUtils.h               \
   Index.h                   \
   IndexPage.h               \
@@ -52,6 +53,7 @@ libvwPlate_la_SOURCES =      \
   Blob.cc                    \
   BlobManager.cc             \
   Exception.cc               \
+  FundamentalTypes.cc        \
   HTTPUtils.cc               \
   Index.cc                   \
   IndexPage.cc               \

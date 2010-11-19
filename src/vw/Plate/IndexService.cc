@@ -352,7 +352,7 @@ void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* /*c
   // Access the data in the index.  Return the data on success, or
   // notify the remote client of our failure if we did not succeed.
   Transaction transaction_id = rec.index->transaction_request(request->description(),
-                                                         request->transaction_id_override());
+                                                              request->transaction_id_override());
   response->set_transaction_id(transaction_id);
 
   // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction "
