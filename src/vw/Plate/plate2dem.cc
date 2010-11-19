@@ -252,8 +252,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
 
   if( opt.output_prefix == "" ) {
     opt.output_prefix = fs::path(opt.plate_file_name).stem();
-    int indx = opt.output_prefix.rfind("/");
-    if ( indx > 0 )
+    size_t indx = opt.output_prefix.rfind("/");
+    if ( indx != std::string::npos )
       opt.output_prefix = opt.output_prefix.substr(indx+1);
   }
 }

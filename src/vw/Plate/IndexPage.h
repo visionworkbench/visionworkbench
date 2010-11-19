@@ -8,11 +8,12 @@
 #ifndef __VW_PLATEFILE_INDEX_PAGE_H__
 #define __VW_PLATEFILE_INDEX_PAGE_H__
 
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexService.pb.h>
 #include <vw/Plate/google/sparsetable>
 #include <vw/Math/BBox.h>
-#include <vw/Core/FundamentalTypes.h>
 #include <boost/numeric/conversion/cast.hpp>
+#include <boost/shared_ptr.hpp>
 #include <string>
 #include <list>
 
@@ -36,7 +37,7 @@ namespace platefile {
 
     void append_if_in_region( std::list<vw::platefile::TileHeader> &results,
                               multi_value_type const& candidates,
-                              int col, int row, BBox2i const& region, int min_num_matches) const;
+                              int col, int row, BBox2i const& region, uint32 min_num_matches) const;
 
 
   public:
@@ -77,7 +78,7 @@ namespace platefile {
     ///   - Setting exact_match to true forces an exact transaction_id
     ///   match.
     ///
-    IndexRecord get(int col, int row, int transaction_id, bool exact_match = false) const;
+    IndexRecord get(int col, int row, TransactionOrNeg transaction_id, bool exact_match = false) const;
 
     /// Return multiple index entries that match the specified
     /// transaction id range.  This range is inclusive of the first
@@ -89,7 +90,7 @@ namespace platefile {
     ///
     /// Note: this function is mostly used when creating snapshots.
     multi_value_type multi_get(int col, int row,
-                               int begin_transaction_id, int end_transaction_id) const;
+                               TransactionOrNeg begin_transaction_id, TransactionOrNeg end_transaction_id) const;
 
     /// Return the number of valid entries in this page.  (Remember
     /// that this is a sparse store of IndexRecords.)
@@ -99,9 +100,9 @@ namespace platefile {
     ///
     /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> search_by_region(vw::BBox2i const& region,
-                                           int start_transaction_id,
-                                           int end_transaction_id,
-                                           int min_num_matches,
+                                           TransactionOrNeg start_transaction_id,
+                                           TransactionOrNeg end_transaction_id,
+                                           uint32 min_num_matches,
                                            bool fetch_one_additional_entry) const;
 
     /// Return multiple tile headers that match the specified
@@ -114,7 +115,8 @@ namespace platefile {
     ///
     /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> search_by_location(int col, int row,
-                                             int start_transaction_id, int end_transaction_id,
+                                             TransactionOrNeg start_transaction_id,
+                                             TransactionOrNeg end_transaction_id,
                                              bool fetch_one_additional_entry) const;
 
   };

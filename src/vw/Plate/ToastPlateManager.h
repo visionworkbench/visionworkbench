@@ -8,21 +8,17 @@
 #ifndef __VW_PLATE_TOAST_PLATEMANAGER_H__
 #define __VW_PLATE_TOAST_PLATEMANAGER_H__
 
-#include <vw/Image/ImageView.h>
-#include <vw/Image/ImageViewRef.h>
 #include <vw/Plate/PlateManager.h>
 
 namespace vw {
-namespace cartography { class GeoReference; }
 namespace platefile {
-
-  class PlateFile;
 
   template <class PixelT>
   class ToastPlateManager : public PlateManager<PixelT> {
   protected:
     struct CacheEntry {
-      int32 level, x, y, transaction_id;
+      int32 level, x, y;
+      Transaction transaction_id;
       ImageView<PixelT> tile;
     };
 
@@ -47,10 +43,10 @@ namespace platefile {
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
     void generate_mipmap_tile(int col, int row, int level,
-                              int transaction_id, bool preblur) const;
+                              TransactionOrNeg transaction_id, bool preblur) const;
 
     ImageView<PixelT> fetch_child_tile(int x, int y, int level,
-                                       int transaction_id) const;
+                                       TransactionOrNeg transaction_id) const;
   };
 
 }} // namespace vw::plate

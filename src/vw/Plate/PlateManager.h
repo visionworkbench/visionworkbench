@@ -8,15 +8,18 @@
 #ifndef __VW_PLATE_PLATEMANAGER_H__
 #define __VW_PLATE_PLATEMANAGER_H__
 
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/PlateFile.h>
+#include <vw/Cartography/GeoReference.h>
 #include <vw/Image/Transform.h>
 #include <boost/foreach.hpp>
 
 namespace vw {
-namespace cartography { class GeoReference; }
+
+  template <typename PixelT> class ImageViewRef;
+
 namespace platefile {
 
-  class PlateFile;
   template <class ViewT>
   class WritePlateFileTask;
 
@@ -55,7 +58,7 @@ namespace platefile {
     //         tiles.
     // transaction_id -- transaction id to use when reading/writing tiles
     void mipmap(int starting_level, BBox2i const& bbox,
-                int transaction_id, bool preblur,
+                TransactionOrNeg transaction_id, bool preblur,
                 const ProgressCallback &progress_callback =
                 ProgressCallback::dummy_instance(),
                 int stopping_level = -1) const;
@@ -68,7 +71,7 @@ namespace platefile {
     // mipmapping. Otherwise you will get a nice, low-pass filtered
     // version in the mipmap.
     virtual void generate_mipmap_tile(int col, int row, int level,
-                                      int transaction_id, bool preblur) const = 0;
+                                      TransactionOrNeg transaction_id, bool preblur) const = 0;
 
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;
@@ -101,7 +104,7 @@ namespace platefile {
         affected_bbox.grow( Vector2i(tile.i,tile.j) );
       }
       size_t tiles_size = tiles.size();
-      int32 transaction_id =
+      Transaction transaction_id =
         m_platefile->transaction_request( description,
                                           transaction_id_override );
       vw_out(InfoMessage, "platefile")
@@ -157,7 +160,7 @@ namespace platefile {
   template <class ViewT>
   class WritePlateFileTask : public Task {
     boost::shared_ptr<PlateFile> m_platefile;
-    int m_transaction_id;
+    Transaction m_transaction_id;
     TileInfo m_tile_info;
     int m_level;
     ViewT const& m_view;
@@ -167,7 +170,7 @@ namespace platefile {
 
   public:
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile,
-                       int transaction_id,
+                       Transaction transaction_id,
                        TileInfo const& tile_info,
                        int level, ImageViewBase<ViewT> const& view,
                        bool tweak_settings_for_terrain,

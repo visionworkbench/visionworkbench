@@ -58,8 +58,8 @@ namespace platefile {
                              const PlateFile& platefile,
                              int32 col, int32 row, int32 level,
                              int32 level_difference,
-                             int32 input_transaction_id,
-                             int32 output_transaction_id) {
+                             TransactionOrNeg input_transaction_id,
+                             Transaction output_transaction_id) {
 
     // First, we need to determine which set of triangle indices to use
     // for this tile.  For upper right and lower left quadrants, we use
@@ -254,8 +254,8 @@ bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
                                         const PlateFile& platefile,
                                         int32 col, int32 row, int32 level,
                                         int32 level_difference,
-                                        int32 input_transaction_id,
-                                        int32 output_transaction_id) {
+                                        TransactionOrNeg input_transaction_id,
+                                        Transaction output_transaction_id) {
 
   if (platefile.channel_type() == VW_CHANNEL_INT16) {
     return toast_dem_tile_helper<PixelGrayA<int16> >(writer, platefile, col, row, level,
@@ -281,7 +281,7 @@ namespace {
 
     DemFilesystem(const std::string& base_output_name) : base_output_name(base_output_name) {}
 
-    void operator()(const boost::shared_array<uint8> data, size_t data_size, int32 dem_col, int32 dem_row, int32 dem_level, int32 /*transaction_id*/) const {
+    void operator()(const boost::shared_array<uint8> data, size_t data_size, int32 dem_col, int32 dem_row, int32 dem_level, vw::platefile::Transaction /*transaction_id*/) const {
       // Create the level directory (if it doesn't exist)
       std::ostringstream ostr;
       ostr << base_output_name
@@ -306,7 +306,7 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
                                         boost::shared_ptr<PlateFile> platefile,
                                         int32 col, int32 row, int32 level,
                                         int32 level_difference,
-                                        int32 transaction_id) {
+                                        TransactionOrNeg transaction_id) {
 
   DemFilesystem writer(base_output_name);
   make_toast_dem_tile(writer, *platefile, col, row, level, level_difference,

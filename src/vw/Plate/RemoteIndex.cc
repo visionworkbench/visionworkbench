@@ -348,8 +348,8 @@ vw::ChannelTypeEnum RemoteIndex::channel_type() const {
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-vw::int32 RemoteIndex::transaction_request(std::string transaction_description,
-                                                          int transaction_id_override) {
+Transaction RemoteIndex::transaction_request(std::string transaction_description,
+                                             TransactionOrNeg transaction_id_override) {
 
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);
@@ -363,7 +363,7 @@ vw::int32 RemoteIndex::transaction_request(std::string transaction_description,
 
 // Once a chunk of work is complete, clients can "commit" their
 // work to the mosaic by issuding a transaction_complete method.
-void RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
+void RemoteIndex::transaction_complete(Transaction transaction_id, bool update_read_cursor) {
   IndexTransactionComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
@@ -374,7 +374,7 @@ void RemoteIndex::transaction_complete(int32 transaction_id, bool update_read_cu
 }
 
 // If a transaction fails, we may need to clean up the mosaic.
-void RemoteIndex::transaction_failed(int32 transaction_id) {
+void RemoteIndex::transaction_failed(Transaction transaction_id) {
   IndexTransactionFailed request;
   request.set_platefile_id(m_platefile_id);
   request.set_transaction_id(transaction_id);
@@ -383,7 +383,7 @@ void RemoteIndex::transaction_failed(int32 transaction_id) {
   m_client->TransactionFailed(m_client.get(), &request, &response, null_callback());
 }
 
-vw::int32 RemoteIndex::transaction_cursor() {
+Transaction RemoteIndex::transaction_cursor() {
   IndexTransactionCursorRequest request;
   request.set_platefile_id(m_platefile_id);
 

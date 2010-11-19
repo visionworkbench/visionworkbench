@@ -18,7 +18,7 @@ using namespace vw::platefile;
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
-                                  int transaction_id, bool preblur,
+                                  TransactionOrNeg transaction_id, bool preblur,
                                   const ProgressCallback &progress_callback,
                                   int stopping_level) const {
 
@@ -214,7 +214,7 @@ namespace platefile {
 #define VW_INSTANTIATE_PLATE_MANAGER_TYPES(PIXELT)                             \
   template void                                                                \
   PlateManager<PIXELT >::mipmap(int starting_level, BBox2i const& bbox,        \
-                                int transaction_id, bool preblur,              \
+                                TransactionOrNeg transaction_id, bool preblur,     \
                                 const ProgressCallback &progress_callback,     \
                                 int stopping_level) const;                     \
   template void                                                                \

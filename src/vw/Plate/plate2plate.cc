@@ -35,10 +35,10 @@ struct FilterBase {
   inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
   inline void init(PlateFile& output, const PlateFile& input,
-                   int input_transaction_id, int output_transaction_id) {
+                   TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
     return impl().init(output, input, input_transaction_id, output_transaction_id);
   }
-  inline void fini(PlateFile& output, const PlateFile& input, int output_transaction_id) {
+  inline void fini(PlateFile& output, const PlateFile& input, Transaction output_transaction_id) {
     return impl().fini(output, input, output_transaction_id);
   }
 
@@ -50,7 +50,7 @@ struct FilterBase {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
     impl()(output, input, col, row, level, input_transaction_id, output_transaction_id);
   }
 };
@@ -64,10 +64,10 @@ struct Identity : public FilterBase<Identity> {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void init(PlateFile& output, const PlateFile& /*input*/, int /* input_transaction_id */, int /*output_transaction_id*/) { output.write_request(); }
-  inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) { output.write_complete(); }
+  inline void init(PlateFile& output, const PlateFile& /*input*/, TransactionOrNeg /* input_transaction_id */, Transaction /*output_transaction_id*/) { output.write_request(); }
+  inline void fini(PlateFile& output, const PlateFile& /*input*/, Transaction /*transaction_id*/) { output.write_complete(); }
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
     ImageView<PixelRGBA<double> > tile;
     TileHeader hdr = input.read(tile, col, row, level, input_transaction_id);
     output.write_update(tile, col, row, level, output_transaction_id);
@@ -81,7 +81,7 @@ struct ToastDem : public FilterBase<ToastDem> {
   PixelFormatEnum pixel_format(PixelFormatEnum) const { return VW_PIXEL_SCALAR; }
   ChannelTypeEnum channel_type(ChannelTypeEnum) const { return VW_CHANNEL_UINT8; }
 
-  inline void init(PlateFile& output, const PlateFile& input, int input_transaction_id, int output_transaction_id) {
+  inline void init(PlateFile& output, const PlateFile& input, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
     output.write_request();
 
     // Write null tiles for the levels we don't have data for
@@ -104,7 +104,7 @@ struct ToastDem : public FilterBase<ToastDem> {
     }
   }
 
-  inline void fini(PlateFile& output, const PlateFile& /*input*/, int /*transaction_id*/) {
+  inline void fini(PlateFile& output, const PlateFile& /*input*/, Transaction /*transaction_id*/) {
     output.write_complete();
   }
 
@@ -113,13 +113,13 @@ struct ToastDem : public FilterBase<ToastDem> {
     DemWriter(PlateFile& output) : platefile(output) { }
     inline void operator()(const boost::shared_array<uint8> data, size_t data_size,
                            int32 dem_col, int32 dem_row,
-                           int32 dem_level, int32 output_transaction_id) const {
+                           int32 dem_level, Transaction output_transaction_id) const {
       platefile.write_update(data, data_size, dem_col, dem_row,
                              dem_level, output_transaction_id);
     }
   };
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, int32 input_transaction_id, int32 output_transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
     DemWriter writer(output);
     int level_difference = log(input.default_tile_size()/
                                float(output.default_tile_size())) / log(2.) + 0.5;
@@ -199,7 +199,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   PlateFile output(opt.output_name, opt.mode, opt.description, opt.tile_size, opt.filetype, opt.pixel_format, opt.channel_type);
 
-  int output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
+  Transaction output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
 
   filter.init(output, input, input.transaction_cursor(), output_transaction_id);
 

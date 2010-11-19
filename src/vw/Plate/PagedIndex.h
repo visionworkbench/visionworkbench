@@ -8,7 +8,7 @@
 #ifndef __VW_PLATEFILE_PAGED_INDEX_H__
 #define __VW_PLATEFILE_PAGED_INDEX_H__
 
-#include <vw/Core/FundamentalTypes.h>
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Core/Cache.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/IndexPage.h>
@@ -52,21 +52,21 @@ namespace platefile {
     boost::shared_ptr<IndexPage> get_page(int col, int row) const;
 
     /// Fetch the value of an index node at this level.
-    IndexRecord get(int32 col, int32 row, int32 transaction_id, bool exact_match = false) const;
+    IndexRecord get(int32 col, int32 row, TransactionOrNeg transaction_id, bool exact_match = false) const;
 
     /// Set the value of an index node at this level.
     void set(TileHeader const& hdr, IndexRecord const& rec);
 
     /// Returns a list of valid tiles at this level.
     std::list<TileHeader> search_by_region(BBox2i const& region,
-                                           int start_transaction_id,
-                                           int end_transaction_id,
-                                           int min_num_matches,
+                                           TransactionOrNeg start_transaction_id,
+                                           TransactionOrNeg end_transaction_id,
+                                           uint32 min_num_matches,
                                            bool fetch_one_additional_entry) const;
 
     /// Returns a list of valid tiles at this level and specified location
     std::list<TileHeader> search_by_location(int col, int row,
-                                             int start_transaction_id, int end_transaction_id,
+                                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
                                              bool fetch_one_additional_entry = false) const;
   };
 
@@ -132,7 +132,7 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     virtual IndexRecord read_request(int col, int row, int level,
-                                     int transaction_id, bool exact_transaction_match = false);
+                                     TransactionOrNeg transaction_id, bool exact_transaction_match = false);
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
@@ -154,16 +154,16 @@ namespace platefile {
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
     virtual std::list<TileHeader> search_by_region(int level, BBox2i const& region,
-                                                   int start_transaction_id,
-                                                   int end_transaction_id,
-                                                   int min_num_matches,
+                                                   TransactionOrNeg start_transaction_id,
+                                                   TransactionOrNeg end_transaction_id,
+                                                   uint32 min_num_matches,
                                                    bool fetch_one_additional_entry) const;
 
     /// Returns a list of tile headers for a given tile location in
     /// the mosaic, subject to the specified transaction_id range.
     virtual std::list<TileHeader> search_by_location(int col, int row, int level,
-                                                     int start_transaction_id,
-                                                     int end_transaction_id,
+                                                     TransactionOrNeg start_transaction_id,
+                                                     TransactionOrNeg end_transaction_id,
                                                      bool fetch_one_additional_entry) const;
 
   };

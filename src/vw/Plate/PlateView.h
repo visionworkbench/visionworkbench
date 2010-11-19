@@ -79,10 +79,10 @@ namespace platefile {
       aligned_level_bbox.min() = ( (level_bbox.min() / m_platefile->default_tile_size())
                                   * m_platefile->default_tile_size() );
       aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) /
-                                                  m_platefile->default_tile_size() ))
+                                                  float(m_platefile->default_tile_size()) ))
                                        * m_platefile->default_tile_size() );
       aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) /
-                                                  m_platefile->default_tile_size() ))
+                                                  float(m_platefile->default_tile_size()) ))
                                        * m_platefile->default_tile_size() );
 
       // Searching for tile headers

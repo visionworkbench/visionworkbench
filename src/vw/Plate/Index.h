@@ -8,10 +8,11 @@
 #ifndef __VW_PLATEFILE_INDEX_H__
 #define __VW_PLATEFILE_INDEX_H__
 
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexService.pb.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Math/BBox.h>
-#include <vw/Core/FundamentalTypes.h>
+#include <boost/shared_ptr.hpp>
 #include <list>
 
 #define VW_PLATE_INDEX_VERSION 3
@@ -71,7 +72,7 @@ namespace platefile {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(int col, int row, int depth, int transaction_id, bool exact_transaction_match = false) = 0;
+    virtual IndexRecord read_request(int col, int row, int depth, TransactionOrNeg transaction_id, bool exact_transaction_match = false) = 0;
 
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.
@@ -94,17 +95,17 @@ namespace platefile {
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
     virtual std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
-                                                   int start_transaction_id,
-                                                   int end_transaction_id,
-                                                   int min_num_matches,
+                                                   TransactionOrNeg start_transaction_id,
+                                                   TransactionOrNeg end_transaction_id,
+                                                   uint32 min_num_matches,
                                                    bool fetch_one_additional_entry = false) const = 0;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive of the first
     /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
     virtual std::list<TileHeader> search_by_location(int col, int row, int level,
-                                                     int start_transaction_id,
-                                                     int end_transaction_id,
+                                                     TransactionOrNeg start_transaction_id,
+                                                     TransactionOrNeg end_transaction_id,
                                                      bool fetch_one_additional_entry = false) const = 0;
 
     virtual IndexHeader index_header() const = 0;
@@ -127,17 +128,17 @@ namespace platefile {
     // transaction_id_override to force the use of a transaction ID
     // for an upcoming transaction.  Setting transaction_id_override
     // to -1 lets the platefile choose its own transaction_id.
-    virtual int32 transaction_request(std::string transaction_description,
-                                      int transaction_id_override) = 0;
+    virtual Transaction transaction_request(std::string transaction_description,
+                                            TransactionOrNeg transaction_id_override) = 0;
 
     /// Once a chunk of work is complete, clients can "commit" their
     /// work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor) = 0;
+    virtual void transaction_complete(Transaction transaction_id, bool update_read_cursor) = 0;
 
     // If a transaction fails, we may need to clean up the mosaic.
-    virtual void transaction_failed(int32 transaction_id) = 0;
+    virtual void transaction_failed(Transaction transaction_id) = 0;
 
-    virtual int32 transaction_cursor() = 0;
+    virtual Transaction transaction_cursor() = 0;
 
   };
 

@@ -7,16 +7,10 @@
 #ifndef __VW_PLATE_POLAR_STEREO_PLATEMANAGER_H__
 #define __VW_PLATE_POLAR_STEREO_PLATEMANAGER_H__
 
-#include <vw/Image/ImageViewBase.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Math/Vector.h>
 #include <vw/Plate/PlateManager.h>
 
 namespace vw {
-namespace cartography { class GeoReference; class Datum; }
 namespace platefile {
-
-  class PlateFile;
 
   template <class PixelT>
   class PolarStereoPlateManager : public PlateManager<PixelT> {
@@ -39,7 +33,7 @@ namespace platefile {
     /// This function generates a specific mipmap tile at the given
     /// col, row, and level, and transaction_id.
     void generate_mipmap_tile(int col, int row, int level,
-                              int transaction_id, bool preblur) const;
+                              TransactionOrNeg transaction_id, bool preblur) const;
   };
 
 }} // end vw::platefile

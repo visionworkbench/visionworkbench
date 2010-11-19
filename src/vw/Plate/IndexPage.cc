@@ -7,18 +7,22 @@
 
 #include <vw/Plate/IndexPage.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/BBox.h>
 #include <vw/Core/Debugging.h>
 
 #include <boost/shared_array.hpp>
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.index") << VW_CURRENT_FUNCTION << ": ")
+using namespace vw;
+using namespace vw::platefile;
 
 // ----------------------------------------------------------------------
 //                            INDEX PAGE
 // ----------------------------------------------------------------------
 
-vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row,
-                                    int page_width, int page_height) :
+IndexPage::IndexPage(int level, int base_col, int base_row,
+                     int page_width, int page_height) :
   m_level(level), m_base_col(base_col), m_base_row(base_row),
   m_page_width(page_width), m_page_height(page_height) {
 
@@ -28,11 +32,11 @@ vw::platefile::IndexPage::IndexPage(int level, int base_col, int base_row,
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 }
 
-vw::platefile::IndexPage::~IndexPage() {
+IndexPage::~IndexPage() {
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 }
 
-void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
+void IndexPage::serialize(std::ostream& ostr) {
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
   // Part 1: Write out the page size
@@ -69,7 +73,7 @@ void vw::platefile::IndexPage::serialize(std::ostream& ostr) {
   }
 }
 
-void vw::platefile::IndexPage::deserialize(std::istream& istr) {
+void IndexPage::deserialize(std::istream& istr) {
 
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
@@ -112,7 +116,7 @@ void vw::platefile::IndexPage::deserialize(std::istream& istr) {
 
 // ----------------------- ACCESSORS  ----------------------
 
-void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& record) {
+void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
   VW_ASSERT( header.col() >= 0 && header.row() >= 0,
              TileNotFoundErr() << "IndexPage::set() failed.  Column and row indices must be positive.");
@@ -130,10 +134,10 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
     // We need to keep this list sorted in decreasing order of
     // transaction ID, do a simple insertion sort here.
     multi_value_type::iterator it = entries->begin();
-    while (it != entries->end() && (*it).first >= int64(header.transaction_id()) ) {
+    while (it != entries->end() && (*it).first >= boost::numeric_cast<int32>(header.transaction_id()) ) {
 
       // Handle the case where we replace an entry
-      if ( (*it).first == int64(header.transaction_id()) ) {
+      if ( (*it).first == boost::numeric_cast<int32>(header.transaction_id()) ) {
         (*it).second = record;
         return;
       }
@@ -170,9 +174,7 @@ void vw::platefile::IndexPage::set(TileHeader const& header, IndexRecord const& 
 ///   - Setting exact_match to true forces an exact transaction_id
 ///   match.
 ///
-vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
-                                                         int transaction_id,
-                                                         bool exact_match) const {
+IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id, bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0,
              TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
@@ -220,14 +222,14 @@ vw::platefile::IndexRecord vw::platefile::IndexPage::get(int col, int row,
 }
 
 
-void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::TileHeader> &results,
-                                                    multi_value_type const& candidates,
-                                                    int col, int row, BBox2i const& region,
-                                                    int min_num_matches) const {
+void IndexPage::append_if_in_region( std::list<TileHeader> &results,
+                                     multi_value_type const& candidates,
+                                     int col, int row, BBox2i const& region,
+                                     uint32 min_num_matches) const {
 
   // Check to see if the tile is in the specified region.
   Vector2i loc( m_base_col + col, m_base_row + row);
-  if ( region.contains( loc ) && int(candidates.size()) >= min_num_matches ) {
+  if ( region.contains( loc ) && candidates.size() >= min_num_matches ) {
     TileHeader hdr;
     hdr.set_col( m_base_col + col );
     hdr.set_row( m_base_row + row );
@@ -244,12 +246,12 @@ void vw::platefile::IndexPage::append_if_in_region( std::list<vw::platefile::Til
 /// recent tile at each valid location.  Note: there may be other
 /// tiles in the transaction range at this col/row/level, but
 /// search_by_region() only returns the first one.
-std::list<vw::platefile::TileHeader>
-vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
-                                           int start_transaction_id,
-                                           int end_transaction_id,
-                                           int min_num_matches,
-                                           bool fetch_one_additional_entry) const {
+std::list<TileHeader>
+IndexPage::search_by_region(BBox2i const& region,
+                            TransactionOrNeg start_transaction_id,
+                            TransactionOrNeg end_transaction_id,
+                            uint32 min_num_matches,
+                            bool fetch_one_additional_entry) const {
   std::list<TileHeader> results;
 
   for (int row = 0; row < m_page_height; ++row) {
@@ -314,11 +316,11 @@ vw::platefile::IndexPage::search_by_region(vw::BBox2i const& region,
   return results;
 }
 
-std::list<vw::platefile::TileHeader>
-vw::platefile::IndexPage::search_by_location(int col, int row,
-                                             int start_transaction_id,
-                                             int end_transaction_id,
-                                             bool fetch_one_additional_entry) const {
+std::list<TileHeader>
+IndexPage::search_by_location(int col, int row,
+                              TransactionOrNeg start_transaction_id,
+                              TransactionOrNeg end_transaction_id,
+                              bool fetch_one_additional_entry) const {
 
   int32 page_col = col % m_page_width;
   int32 page_row = row % m_page_height;
@@ -333,7 +335,7 @@ vw::platefile::IndexPage::search_by_location(int col, int row,
     return std::list<TileHeader>();
 
   // If there are, then we apply the transaction_id filters to select the requested ones.
-  std::list<vw::platefile::TileHeader> results;
+  std::list<TileHeader> results;
   multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
   while (it != entries.end() && it->first >= start_transaction_id) {

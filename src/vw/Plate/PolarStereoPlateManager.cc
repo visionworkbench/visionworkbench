@@ -103,7 +103,7 @@ void PolarStereoPlateManager<PixelT>::transform_image(
 template <class PixelT>
 void PolarStereoPlateManager<PixelT>::generate_mipmap_tile(
                           int col, int row, int level,
-                          int transaction_id, bool preblur) const {
+                          TransactionOrNeg transaction_id, bool preblur) const {
   // Create an image large enough to store all of the child nodes
   int tile_size = this->m_platefile->default_tile_size();
   ImageView<PixelT> super(2*tile_size, 2*tile_size);
@@ -164,7 +164,7 @@ namespace platefile {
   template void                                                              \
   PolarStereoPlateManager<PIXELT >::generate_mipmap_tile(int col, int row,   \
                                                          int level,          \
-                                                         int transaction_id, \
+                                                         TransactionOrNeg transaction_id, \
                                                          bool preblur) const;
 
   VW_INSTANTIATE_POLAR_STEREO_TYPES(PixelGrayA<uint8>)

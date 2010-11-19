@@ -266,12 +266,12 @@ struct Options {
   // Input
   Url url;
   int32 level;
-  int32 start_trans_id;
-  int32 end_trans_id;
+  TransactionOrNeg start_trans_id;
+  TransactionOrNeg end_trans_id;
 
   // Output
   string function;
-  int32 transaction_id;
+  Transaction transaction_id;
 
   // For spawning multiple jobs
   int32 job_id;
@@ -351,7 +351,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
           ImageView<PixelT> new_tile;
           platefile->read( new_tile, location[0],
                            location[1], opt.level,
-                           boost::numeric_cast<int>(tile.transaction_id()), true );
+                           tile.transaction_id(), true );
           tiles.push_back(new_tile);
         }
 

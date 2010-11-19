@@ -146,7 +146,7 @@ int main(int argc, char** argv) {
     vw_out(InfoMessage)
       << "[index_server] : "
       << float(calls_dt)/dt << " qps "
-      << "(" << (100. * success / (calls ? calls : 1)) << "% success)                    \r"
+      << "(" << (100. * double(success) / double(calls ? calls : 1)) << "% success)                    \r"
       << std::flush;
 
     Thread::sleep_ms(500);

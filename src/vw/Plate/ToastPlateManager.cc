@@ -70,7 +70,7 @@ ToastPlateManager<PixelT>::georeference( int /*level*/ ) const {
 template <class PixelT>
 ImageView<PixelT>
 ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
-                                            int transaction_id) const {
+                                            TransactionOrNeg transaction_id) const {
   int32 num_tiles = 1 << level;
   if ( x==-1 ) {
     if ( y==-1 )
@@ -147,7 +147,7 @@ ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
 template <class PixelT>
 void ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row,
                                                      int level,
-                                                     int transaction_id,
+                                                     TransactionOrNeg transaction_id,
                                                      bool preblur) const {
 
   // Create an image large enough to store all of the child nodes
@@ -214,14 +214,14 @@ namespace platefile {
   template void                                                         \
   ToastPlateManager<PIXELT >::generate_mipmap_tile(int col, int row,    \
                                                    int level,           \
-                                                   int transaction_id,  \
+                                                   TransactionOrNeg transaction_id,  \
                                                    bool preblur) const; \
   template cartography::GeoReference                                    \
   ToastPlateManager<PIXELT >::georeference( int level ) const;          \
   template ImageView<PIXELT >                                           \
   ToastPlateManager<PIXELT >::fetch_child_tile(int col, int row,        \
                                                int level,               \
-                                               int transaction_id) const; \
+                                               TransactionOrNeg transaction_id) const; \
 
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<int16>)

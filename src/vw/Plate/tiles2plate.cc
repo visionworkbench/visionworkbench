@@ -149,10 +149,10 @@ public:
 template <class ViewT>
 class PlateHandler : public TileHandler {
   boost::shared_ptr<PlateFile> m_platefile;
-  int32 m_write_transaction_id;
+  Transaction m_write_transaction_id;
 
 public:
-  PlateHandler( boost::shared_ptr<PlateFile> &platefile, int32 write_transaction_id )
+  PlateHandler( boost::shared_ptr<PlateFile> &platefile, Transaction write_transaction_id )
     : m_platefile(platefile), m_write_transaction_id(write_transaction_id)
   { }
   virtual ~PlateHandler() {}
@@ -302,7 +302,7 @@ int main( int argc, char *argv[] ) {
                                                   pixel_format, channel_type) );
 
     std::vector<TileHeader> empty_tile_list;
-    int32 write_transaction_id =
+    Transaction write_transaction_id =
       platefile->transaction_request("Writing tiles from tile tree " + tile_directory_name, -1);
 
     switch(pixel_format) {

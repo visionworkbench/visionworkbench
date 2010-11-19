@@ -34,7 +34,7 @@ static std::string prefix_from_filename(std::string const& filename) {
 // ----------------------------------------------------------------------------
 
 void save_toast_tile(std::string base_output_name, boost::shared_ptr<PlateFile> platefile,
-                     int32 col, int32 row, int32 level, int32 transaction_id) {
+                     int32 col, int32 row, int32 level, TransactionOrNeg transaction_id) {
 
   try {
 
@@ -67,7 +67,7 @@ void save_toast_tile(std::string base_output_name, boost::shared_ptr<PlateFile> 
 // ----------------------------------------------------------------------------
 
 void save_gigapan_tile(std::string base_output_name, boost::shared_ptr<PlateFile> platefile,
-                       int32 col, int32 row, int32 level, int32 transaction_id) {
+                       int32 col, int32 row, int32 level, TransactionOrNeg transaction_id) {
 
   try {
     std::stringstream filename_stream;
@@ -143,11 +143,11 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
       if (output_format == "toast") {
         save_toast_tile(output_name, platefile,
                         header_iter->col(), header_iter->row(),
-                        header_iter->level(), boost::numeric_cast<int32>(header_iter->transaction_id()));
+                        header_iter->level(), header_iter->transaction_id());
       } else if (output_format == "gigapan") {
         save_gigapan_tile(output_name, platefile,
                           header_iter->col(), header_iter->row(),
-                          header_iter->level(), boost::numeric_cast<int32>(header_iter->transaction_id()));
+                          header_iter->level(), header_iter->transaction_id());
       } else {
         vw_out() << "Error -- unknown output format: " << output_format << "\n";
         exit(1);

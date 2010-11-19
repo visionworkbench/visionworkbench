@@ -8,7 +8,7 @@
 #ifndef __VW_PLATEFILE_LOCAL_INDEX_H__
 #define __VW_PLATEFILE_LOCAL_INDEX_H__
 
-#include <vw/Core/FundamentalTypes.h>
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Plate/PagedIndex.h>
 
@@ -156,20 +156,20 @@ namespace platefile {
     // transaction_id_override to force the use of a transaction ID
     // for an upcoming transaction.  Setting transaction_id_override
     // to -1 lets the platefile choose its own transaction_id.
-    virtual int32 transaction_request(std::string transaction_description,
-                                      int transaction_id_override);
+    virtual Transaction transaction_request(std::string transaction_description,
+                                            TransactionOrNeg transaction_id_override);
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor);
+    virtual void transaction_complete(Transaction transaction_id, bool update_read_cursor);
 
     // If a transaction fails, we may need to clean up the mosaic.
-    virtual void transaction_failed(int32 transaction_id);
+    virtual void transaction_failed(Transaction transaction_id);
 
     // Return the current location of the transaction cursor.  This
     // will be the last transaction id that refers to a coherent
     // version of the mosaic.
-    virtual int32 transaction_cursor();
+    virtual Transaction transaction_cursor();
   };
 
 }} // namespace vw::plate

@@ -89,35 +89,35 @@ public:
     tokenizer::iterator tok_iter = tokens.begin();
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    min_gray = boost::lexical_cast<int>(*tok_iter);
+    min_gray = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    max_gray = boost::lexical_cast<int>(*tok_iter);
+    max_gray = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    min_i = boost::lexical_cast<int>(*tok_iter);
+    min_i = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    max_i = boost::lexical_cast<int>(*tok_iter);
+    max_i = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    min_r = boost::lexical_cast<int>(*tok_iter);
+    min_r = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    max_r = boost::lexical_cast<int>(*tok_iter);
+    max_r = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    min_b = boost::lexical_cast<int>(*tok_iter);
+    min_b = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter == tokens.end()) this->error("stats", range_string);
-    max_b = boost::lexical_cast<int>(*tok_iter);
+    max_b = boost::lexical_cast<uint16>(*tok_iter);
     ++tok_iter;
 
     if (tok_iter != tokens.end()) this->error("snapshot", range_string);

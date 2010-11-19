@@ -7,6 +7,7 @@
 
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/HTTPUtils.h>
+#include <vw/Core/Settings.h>
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -88,7 +89,7 @@ PlateFile::PlateFile(const Url& url, std::string type, std::string description,
 /// automatically for you based on the filetype in the TileHeader.
 std::string vw::platefile::PlateFile::read_to_file(std::string const& base_name,
                                                    int col, int row, int level,
-                                                   int transaction_id) {
+                                                   TransactionOrNeg transaction_id) {
 
   TileHeader result;
   std::string filename = base_name;
@@ -175,7 +176,7 @@ void vw::platefile::PlateFile::write_complete() {
 /// A transaction ID of -1 indicates that we should return the
 /// most recent tile, regardless of its transaction id.
 vw::platefile::IndexRecord vw::platefile::PlateFile::read_record(int col, int row, int level,
-                                                                 int transaction_id,
+                                                                 TransactionOrNeg transaction_id,
                                                                  bool exact_transaction_match) {
   return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
 }

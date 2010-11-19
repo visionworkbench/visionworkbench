@@ -124,24 +124,6 @@ namespace platefile {
     /// Log a message to the platefile log.
     virtual void log(std::string message);
 
-    // /// Returns a list of valid tiles at this level.
-    // virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-    //                                           int start_transaction_id,
-    //                                           int end_transaction_id,
-    //                                           int min_num_matches) const;
-
-    // ----------------------- PROPERTIES  ----------------------
-
-    // /// Returns a list of tile headers for any valid tiles that exist
-    // /// at a the specified level and transaction_id.  The
-    // /// transaction_id is treated the same as it would be for
-    // /// read_request() above.  The region specifies a tile range of
-    // /// interest.
-    // virtual std::list<TileHeader> valid_tiles(int level, BBox2i const& region,
-    //                                           int begin_transaction_id,
-    //                                           int end_transaction_id,
-    //                                           int min_num_matches) const;
-
     virtual IndexHeader index_header() const;
 
     virtual int32 version() const;
@@ -159,17 +141,17 @@ namespace platefile {
 
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description,
-                                      int transaction_id_override);
+    virtual Transaction transaction_request(std::string transaction_description,
+                                            TransactionOrNeg transaction_id_override);
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor);
+    virtual void transaction_complete(Transaction transaction_id, bool update_read_cursor);
 
     // If a transaction fails, we may need to clean up the mosaic.
-    virtual void transaction_failed(int32 transaction_id);
+    virtual void transaction_failed(Transaction transaction_id);
 
-    virtual int32 transaction_cursor();
+    virtual Transaction transaction_cursor();
 
   };
 

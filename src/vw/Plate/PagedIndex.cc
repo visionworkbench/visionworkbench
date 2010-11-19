@@ -104,7 +104,7 @@ boost::shared_ptr<IndexPage> IndexLevel::get_page(int col, int row) const {
 
 
 /// Fetch the value of an index node at this level.
-IndexRecord IndexLevel::get(int32 col, int32 row, int32 transaction_id, bool exact_match) const {
+IndexRecord IndexLevel::get(int32 col, int32 row, TransactionOrNeg transaction_id, bool exact_match) const {
 
   VW_ASSERT( col >= 0 && row >= 0 && col < pow(2,m_level) && row < pow(2,m_level),
              TileNotFoundErr() << "IndexLevel::get() failed.  Invalid index [ "
@@ -141,9 +141,9 @@ void IndexLevel::set(TileHeader const& header, IndexRecord const& rec) {
 /// Returns a list of valid tiles at this level.
 std::list<TileHeader>
 IndexLevel::search_by_region(BBox2i const& region,
-                             int start_transaction_id,
-                             int end_transaction_id,
-                             int min_num_matches,
+                             TransactionOrNeg start_transaction_id,
+                             TransactionOrNeg end_transaction_id,
+                             uint32 min_num_matches,
                              bool fetch_one_additional_entry) const {
 
   // Start by computing the search range in pages based on the requested region.
@@ -178,8 +178,8 @@ IndexLevel::search_by_region(BBox2i const& region,
 /// Fetch the value of an index node at this level.
 std::list<TileHeader>
 IndexLevel::search_by_location(int32 col, int32 row,
-                               int32 start_transaction_id,
-                               int32 end_transaction_id,
+                               TransactionOrNeg start_transaction_id,
+                               TransactionOrNeg end_transaction_id,
                                bool fetch_one_additional_entry) const {
 
   if (col < 0 || row < 0 || col >= 1<<m_level || row >= 1<<m_level)
@@ -234,7 +234,7 @@ boost::shared_ptr<IndexPage> PagedIndex::page_request(int col, int row, int leve
 }
 
 IndexRecord PagedIndex::read_request(int col, int row, int level,
-                                     int transaction_id, bool exact_transaction_match) {
+                                     TransactionOrNeg transaction_id, bool exact_transaction_match) {
   if (level < 0 || level >= int(m_levels.size()))
     vw_throw(TileNotFoundErr() << "Requested tile at level " << level
              << " was greater than the max level (" << m_levels.size() << ").");
@@ -271,8 +271,8 @@ void PagedIndex::write_update(TileHeader const& header, IndexRecord const& recor
 /// first one.
 std::list<TileHeader>
 PagedIndex::search_by_region(int level, BBox2i const& region,
-                             int start_transaction_id, int end_transaction_id,
-                             int min_num_matches,
+                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
+                             uint32 min_num_matches,
                              bool fetch_one_additional_entry) const {
 
   // If the level does not exist, we return an empty list.
@@ -287,7 +287,7 @@ PagedIndex::search_by_region(int level, BBox2i const& region,
 
 std::list<TileHeader>
 PagedIndex::search_by_location(int col, int row, int level,
-                               int start_transaction_id, int end_transaction_id,
+                               TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
                                bool fetch_one_additional_entry = false) const {
 
   // If the level does not exist, we return an empty list.

@@ -291,22 +291,22 @@ void LocalIndex::log(std::string message) {
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
-int32 LocalIndex::transaction_request(std::string transaction_description,
-                                                     int transaction_id_override) {
+Transaction LocalIndex::transaction_request(std::string transaction_description,
+                                            TransactionOrNeg transaction_id_override) {
 
    if (transaction_id_override != -1) {
+     Transaction override = boost::numeric_cast<Transaction>(transaction_id_override);
 
      // If the user has chosen to override the transaction ID's, then we
      // use the transaction ID they specify.  We also increment the
      // transaction_write_cursor if necessary so that we dole out a
      // reasonable transaction ID if we are ever asked again without an
      // override.
-     int max_trans_id = std::max(m_header.transaction_write_cursor(), transaction_id_override+1);
+     Transaction max_trans_id = std::max(m_header.transaction_write_cursor(), override+1);
      m_header.set_transaction_write_cursor(max_trans_id);
      this->save_index_file();
-     this->log() << "Transaction " << transaction_id_override
-                 << " started: " << transaction_description << "\n";
-     return transaction_id_override;
+     this->log() << "Transaction " << override << " started: " << transaction_description << "\n";
+     return override;
 
    } else {
 
@@ -314,7 +314,7 @@ int32 LocalIndex::transaction_request(std::string transaction_description,
      // the cursor to a file.  (Saving to a file gurantees that we won't
      // accidentally assign two transactions the same ID if the index
      // server crashes and has to be restarted.
-     int32 transaction_id = m_header.transaction_write_cursor();
+     Transaction transaction_id = m_header.transaction_write_cursor();
      m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
      this->save_index_file();
      this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
@@ -325,13 +325,13 @@ int32 LocalIndex::transaction_request(std::string transaction_description,
 
  // Once a chunk of work is complete, clients can "commit" their
  // work to the mosaic by issuing a transaction_complete method.
- void LocalIndex::transaction_complete(int32 transaction_id, bool update_read_cursor) {
+ void LocalIndex::transaction_complete(Transaction transaction_id, bool update_read_cursor) {
 
    // First we save (sync) the index pages to disk
    //this->sync();
 
    if ( update_read_cursor ) {
-     int max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
+     Transaction max_trans_id = std::max(m_header.transaction_read_cursor(), transaction_id);
      m_header.set_transaction_read_cursor(max_trans_id);
      this->save_index_file();
    }
@@ -342,7 +342,7 @@ int32 LocalIndex::transaction_request(std::string transaction_description,
 
  // Once a chunk of work is complete, clients can "commit" their
  // work to the mosaic by issuing a transaction_complete method.
- void LocalIndex::transaction_failed(int32 transaction_id) {
+ void LocalIndex::transaction_failed(Transaction transaction_id) {
 
    // Log the failure.
    this->log() << "Transaction " << transaction_id << " FAILED.\n";
@@ -352,7 +352,7 @@ int32 LocalIndex::transaction_request(std::string transaction_description,
  // Return the current location of the transaction cursor.  This
  // will be the last transaction id that refers to a coherent
  // version of the mosaic.
- int32 LocalIndex::transaction_cursor() {
+ Transaction LocalIndex::transaction_cursor() {
    return m_header.transaction_read_cursor();
  }
 

@@ -31,7 +31,7 @@ message TileHeader {
   required int32 col = 5;
   required int32 row = 6;
   required int32 level = 7;
-  optional uint64 transaction_id = 8 [ default = 0 ];
+  optional uint32 transaction_id = 8 [ default = 0 ];
   optional string filetype = 10 [ default = 'jpg' ];
 }
 
@@ -64,8 +64,8 @@ message IndexHeader {
   //
   required int32 platefile_id = 1;   // a unique number that identifies this platefile
   optional int32 version = 10 [default = 1];
-  optional int32 transaction_read_cursor = 11 [default = 1];
-  optional int32 transaction_write_cursor = 12 [default = 1];
+  optional uint32 transaction_read_cursor = 11 [default = 1];
+  optional uint32 transaction_write_cursor = 12 [default = 1];
 
 }
 
@@ -154,18 +154,18 @@ message IndexWriteComplete {
 message IndexTransactionRequest {
   required int32 platefile_id = 1;
   required string description = 2;
-  required int32 transaction_id_override = 3;
+  optional int32 transaction_id_override = 3 [default = -1];
 }
 
 message IndexTransactionComplete {
   required int32 platefile_id = 1;
-  required int32 transaction_id = 2;
+  required uint32 transaction_id = 2;
   required bool update_read_cursor = 3;
 }
 
 message IndexTransactionFailed {
   required int32 platefile_id = 1;
-  required int32 transaction_id = 2;
+  required uint32 transaction_id = 2;
 }
 
 message IndexTransactionCursorRequest {
@@ -218,11 +218,11 @@ message IndexWriteReply {
 }
 
 message IndexTransactionReply {
-  required int32 transaction_id = 1;
+  required uint32 transaction_id = 1;
 }
 
 message IndexTransactionCursorReply {
-  required int32 transaction_id = 1;
+  required uint32 transaction_id = 1;
 }
 
 message IndexNumLevelsReply {

@@ -51,16 +51,16 @@ public:
 
   // Public variables.  You access these directly.
   int level;
-  int begin_transaction_id;
-  int end_transaction_id;
-  int write_transaction_id;
+  TransactionOrNeg begin_transaction_id;
+  TransactionOrNeg end_transaction_id;
+  TransactionOrNeg write_transaction_id;
   bool tweak_settings_for_terrain;
   BBox2i region;
 
   // Constructor
   SnapshotParameters(std::string const& range_string,
                      std::string const& region_string,
-                     int const& write_transaction_id,
+                     TransactionOrNeg write_transaction_id,
                      bool terrain) :
     write_transaction_id(write_transaction_id),
     tweak_settings_for_terrain(terrain) {
@@ -82,11 +82,11 @@ public:
       tokenizer::iterator tok_iter = tokens.begin();
 
       if (tok_iter == tokens.end()) this->error("snapshot", range_string);
-      begin_transaction_id = boost::lexical_cast<int>(*tok_iter);
+      begin_transaction_id = boost::lexical_cast<TransactionOrNeg>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter == tokens.end()) this->error("snapshot", range_string);
-      end_transaction_id = boost::lexical_cast<int>(*tok_iter);
+      end_transaction_id = boost::lexical_cast<TransactionOrNeg>(*tok_iter);
       ++tok_iter;
 
       if (tok_iter != tokens.end()) this->error("snapshot", range_string);
@@ -190,7 +190,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       // transaction on our own.
       std::ostringstream transaction_description;
       transaction_description << "Full snapshot (auto-generated t_id)";
-      int t_id = platefile->transaction_request(transaction_description.str(), -1);
+      Transaction t_id = platefile->transaction_request(transaction_description.str(), -1);
 
       // Grab a lock on a blob file to use for writing tiles during
       // the two operations below.
@@ -212,7 +212,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       std::ostringstream transaction_description;
       transaction_description << "Full snapshot (auto-generated t_id = "
                               << snapshot_parameters.write_transaction_id << " )";
-      int t_id = platefile->transaction_request(transaction_description.str(),
+      Transaction t_id = platefile->transaction_request(transaction_description.str(),
                                                 snapshot_parameters.write_transaction_id);
 
       // Grab a lock on a blob file to use for writing tiles during
@@ -244,13 +244,13 @@ int main( int argc, char *argv[] ) {
   std::string output_mode;
   std::string range_string;
   std::string region_string;
-  int transaction_id = -1;
+  TransactionOrNeg transaction_id = -1;
 
   po::options_description general_options("\nCreate a snapshot of a quadtree.  If no options are supplied, this utility will create a snapshot of the entire platefile starting with read_cursor and going to the max transaction_id.\n\nGeneral options");
   general_options.add_options()
     ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", "Finish a multi-part snapshot.")
-    ("transaction-id,t", po::value<int>(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
+    ("transaction-id,t", po::value(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
     ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).")
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
     ("terrain", "Tweak settings for terrain.")
@@ -317,7 +317,7 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
 
-      int t = platefile->transaction_request(start_description, transaction_id);
+      Transaction t = platefile->transaction_request(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
       vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
       exit(0);

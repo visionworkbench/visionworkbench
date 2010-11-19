@@ -94,15 +94,15 @@
 #ifndef __VW_PLATE_PLATEFILE_H__
 #define __VW_PLATE_PLATEFILE_H__
 
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/HTTPUtils.h>
-
 #include <vw/FileIO/DiskImageResource.h>
+
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
-#include <vw/Math/Vector.h>
 
 #include <sstream>
 
@@ -206,7 +206,7 @@ namespace platefile {
     /// will be appended automatically for you based on the filetype
     /// in the TileHeader.
     std::string read_to_file(std::string const& base_name,
-                             int col, int row, int level, int transaction_id);
+                             int col, int row, int level, TransactionOrNeg transaction_id);
 
     /// Read an image from the specified tile location in the plate file.
     ///
@@ -221,7 +221,7 @@ namespace platefile {
     /// most recent tile, regardless of its transaction id.
     template <class ViewT>
     TileHeader read(ViewT &view, int col, int row, int level,
-                    int transaction_id, bool exact_transaction_match = false) const {
+                    TransactionOrNeg transaction_id, bool exact_transaction_match = false) const {
 
       // 1. Call index read_request(col,row,level).  Returns IndexRecord.
       IndexRecord record = m_index->read_request(col, row, level,
@@ -262,7 +262,7 @@ namespace platefile {
     /// in the plate file.
     template <class ViewT>
     void write_update(ImageViewBase<ViewT> const& view,
-                      int col, int row, int level, int transaction_id) {
+                      int col, int row, int level, Transaction transaction_id) {
 
       if (!m_write_blob)
         vw_throw(BlobIoErr() << "Error issuing write_update().  No blob file open.  "
@@ -312,7 +312,7 @@ namespace platefile {
     /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
     /// tile location. Use the filetype to identify the data later.
     void write_update(const boost::shared_array<uint8> data, uint64 data_size,
-                      int col, int row, int level, int transaction_id) {
+                      int col, int row, int level, Transaction transaction_id) {
 
       // Quick sanity check.
       if (this->default_file_type() == "auto") {
@@ -360,29 +360,29 @@ namespace platefile {
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
     IndexRecord read_record(int col, int row, int level,
-                            int transaction_id, bool exact_transaction_match = false);
+                            TransactionOrNeg transaction_id, bool exact_transaction_match = false);
 
     // --------------------- TRANSACTIONS ------------------------
 
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
-    virtual int32 transaction_request(std::string transaction_description,
-                                      int transaction_id_override) {
+    virtual Transaction transaction_request(std::string transaction_description,
+                                            TransactionOrNeg transaction_id_override) {
       return m_index->transaction_request(transaction_description, transaction_id_override);
     }
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(int32 transaction_id, bool update_read_cursor) {
+    virtual void transaction_complete(Transaction transaction_id, bool update_read_cursor) {
       m_index->transaction_complete(transaction_id, update_read_cursor);
     }
 
     // If a transaction fails, we may need to clean up the mosaic.
-    virtual void transaction_failed(int32 transaction_id) {
+    virtual void transaction_failed(Transaction transaction_id) {
       m_index->transaction_failed(transaction_id);
     }
 
-    virtual int32 transaction_cursor() {
+    virtual Transaction transaction_cursor() {
       return m_index->transaction_cursor();
     }
 
@@ -395,9 +395,9 @@ namespace platefile {
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
     std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
-                                           int start_transaction_id,
-                                           int end_transaction_id,
-                                           int min_num_matches,
+                                           TransactionOrNeg start_transaction_id,
+                                           TransactionOrNeg end_transaction_id,
+                                           uint32 min_num_matches,
                                            bool fetch_one_additional_entry = false) const {
       return m_index->search_by_region(level, region,
                                   start_transaction_id, end_transaction_id,
@@ -411,7 +411,7 @@ namespace platefile {
     ///
     /// This is mostly useful when compositing tiles during mipmapping.
     std::list<TileHeader> search_by_location(int col, int row, int level,
-                                             int begin_transaction_id, int end_transaction_id,
+                                             TransactionOrNeg begin_transaction_id, TransactionOrNeg end_transaction_id,
                                              bool fetch_one_additional_entry = false) {
       return m_index->search_by_location(col, row, level,
                                          begin_transaction_id, end_transaction_id,
