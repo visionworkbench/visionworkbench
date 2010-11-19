@@ -642,15 +642,16 @@ class destructive_two_d_iterator {
 } while (0)
 
 #define STREAM_PUT_(take_from, offset)  do {                            \
-  ostr->put(static_cast<int>(((take_from) >> ((offset) % (sizeof(take_from)*8)))\
+  ostr->put(static_cast<char>(((take_from) >> ((offset) % (sizeof(take_from)*8))) \
                              % 256));                                   \
 } while (0)
 
-#define STREAM_GET_(add_to, offset)  do {                               \
-  if ((x=istr->get()) == EOF)                                                    \
+#define STREAM_GET_(add_to, offset)  do {                                     \
+  x=istr->get();                                                              \
+  if (istr->fail())                                                           \
     return false;                                                             \
   else                                                                        \
-    add_to |= (static_cast<size_type>(x) << ((offset) % (sizeof(add_to)*8))); \
+    add_to |= static_cast<size_type>(static_cast<size_type>(x) << ((offset) % (sizeof(add_to)*8))); \
 } while (0)
 
 template <class T, u_int16_t GROUP_SIZE, class Alloc>
@@ -727,8 +728,8 @@ class sparsegroup {
 
  private:
   // We need to do all this bit manipulation, of course.  ick
-  static size_type charbit(size_type i)  { return i >> 3; }
-  static size_type modbit(size_type i)   { return 1 << (i&7); }
+  static size_type charbit(size_type i)  { return static_cast<size_type>(i >> 3); }
+  static size_type modbit(size_type i)   { return static_cast<size_type>(1 << (i&7)); }
   int bmtest(size_type i) const    { return bitmap[charbit(i)] & modbit(i); }
   void bmset(size_type i)          { bitmap[charbit(i)] |= modbit(i); }
   void bmclear(size_type i)        { bitmap[charbit(i)] &= ~modbit(i); }
@@ -912,7 +913,7 @@ class sparsegroup {
   // and allocator_type.
   void set_aux(size_type offset, false_type) {
     // This is valid because 0 <= offset <= num_buckets
-    pointer p = allocate_group(settings.num_buckets + 1);
+    pointer p = allocate_group(size_type(settings.num_buckets + 1));
     uninitialized_copy(group, group + offset, p);
     uninitialized_copy(group + offset, group + settings.num_buckets,
                        p + offset + 1);
@@ -1710,6 +1711,8 @@ inline void swap(sparsetable<T,GROUP_SIZE,Alloc> &x,
 
 #undef GET_
 #undef PUT_
+#undef STREAM_GET_
+#undef STREAM_PUT_
 
 _END_GOOGLE_NAMESPACE_
 
