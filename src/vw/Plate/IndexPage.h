@@ -27,7 +27,8 @@ namespace platefile {
   class IndexPage {
 
   public:
-    typedef std::list<std::pair<int32,IndexRecord> > multi_value_type;
+    typedef std::pair<uint32, IndexRecord> value_type;
+    typedef std::list<value_type> multi_value_type;
     typedef google::sparsetable<multi_value_type>::nonempty_iterator nonempty_iterator;
 
   protected:

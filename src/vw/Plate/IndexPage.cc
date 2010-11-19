@@ -47,18 +47,17 @@ void IndexPage::serialize(std::ostream& ostr) {
   m_sparse_table.write_metadata(&ostr);
 
   // Part 3: Write sparse entries
-  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
-       it != m_sparse_table.nonempty_end(); ++it) {
+  for (nonempty_iterator it = m_sparse_table.nonempty_begin(); it != m_sparse_table.nonempty_end(); ++it) {
 
     // Iterate over transaction_id list.
-    int32 transaction_list_size = boost::numeric_cast<int32>(it->size());
+    uint32 transaction_list_size = boost::numeric_cast<uint32>(it->size());
     ostr.write((char*)(&transaction_list_size), sizeof(transaction_list_size));
 
     multi_value_type::iterator transaction_iter = (*it).begin();
     while (transaction_iter != (*it).end()) {
 
       // Save the transaction id
-      int32 t_id = (*transaction_iter).first;
+      uint32 t_id = (*transaction_iter).first;
       ostr.write((char*)(&t_id), sizeof(t_id));
 
       // Save the size of each protobuf, and then serialize it to disk.
@@ -85,18 +84,18 @@ void IndexPage::deserialize(std::istream& istr) {
   m_sparse_table.read_metadata(&istr);
 
   // Part 3: Read sparse entries
-  for (google::sparsetable<multi_value_type>::nonempty_iterator it = m_sparse_table.nonempty_begin();
+  for (nonempty_iterator it = m_sparse_table.nonempty_begin();
        it != m_sparse_table.nonempty_end(); ++it) {
 
     // Iterate over transaction_id list.
-    int32 transaction_list_size;
+    uint32 transaction_list_size;
     istr.read((char*)(&transaction_list_size), sizeof(transaction_list_size));
 
     new (&(*it)) multi_value_type();
-    for (int tid = 0; tid < transaction_list_size; ++tid) {
+    for (uint32 tid = 0; tid < transaction_list_size; ++tid) {
 
       // Read the transaction id
-      int32 t_id;
+      uint32 t_id;
       istr.read((char*)(&t_id), sizeof(t_id));
 
       // Read the size (in bytes) of this protobuffer and then read
@@ -109,7 +108,7 @@ void IndexPage::deserialize(std::istream& istr) {
       if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
         vw_throw(IOErr() << "An error occurred while parsing an IndexEntry.");
 
-      (*it).push_back(std::pair<int32, IndexRecord>(t_id, rec));
+      (*it).push_back(value_type(t_id, rec));
     }
   }
 }
@@ -124,20 +123,20 @@ void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
   int32 page_col = header.col() % m_page_width;
   int32 page_row = header.row() % m_page_height;
 
-  std::pair<int32, IndexRecord> p(boost::numeric_cast<int32>(header.transaction_id()), record);
+  value_type p(header.transaction_id(), record);
   int elmnt = page_row*m_page_width + page_col;
   if (m_sparse_table.test(elmnt)) {
 
     // Add to existing entry.
-    multi_value_type *entries = m_sparse_table[page_row*m_page_width + page_col].operator&();
+    multi_value_type *entries = m_sparse_table[elmnt].operator&();
 
     // We need to keep this list sorted in decreasing order of
     // transaction ID, do a simple insertion sort here.
     multi_value_type::iterator it = entries->begin();
-    while (it != entries->end() && (*it).first >= boost::numeric_cast<int32>(header.transaction_id()) ) {
+    while (it != entries->end() && (*it).first >= header.transaction_id() ) {
 
       // Handle the case where we replace an entry
-      if ( (*it).first == boost::numeric_cast<int32>(header.transaction_id()) ) {
+      if ( (*it).first == header.transaction_id() ) {
         (*it).second = record;
         return;
       }
