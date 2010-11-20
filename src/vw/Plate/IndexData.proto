@@ -12,10 +12,10 @@ package vw.platefile;
 // positioning and length.  BlobRecords are stored in the blob files:
 // <platefile>/plate_<#>.blob
 message BlobRecord {
-  required uint32 header_offset = 1;
-  required uint32 header_size = 2;
-  required uint32 data_offset = 3;
-  required uint32 data_size = 4;
+  required uint64 header_offset = 1;
+  required uint64 header_size = 2;
+  required uint64 data_offset = 3;
+  required uint64 data_size = 4;
 }
 
 // The TileRecord store metadata about the tile itself as well as the

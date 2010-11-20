@@ -50,7 +50,7 @@ namespace platefile {
       //   }
       // }
 
-      void unlock(int current_blob_offset) {
+      void unlock(uint64 current_blob_offset) {
         this->current_blob_offset = current_blob_offset;
         this->locked = false;
       }
@@ -73,13 +73,13 @@ namespace platefile {
 
     /// Create a new blob manager.  The max_blob_size is specified in
     /// units of megabytes.
-    BlobManager(vw::uint64 max_blob_size = 2048, int initial_nblobs = 1, unsigned max_blobs = 16384);
+    BlobManager(vw::uint64 max_blob_size = 1792, int initial_nblobs = 1, unsigned max_blobs = 16384);
 
     /// Return the number of blobs currently in use.
     unsigned num_blobs();
 
     /// Return the max size of a blob (in megabytes)
-    vw::int64 max_blob_size();
+    uint64 max_blob_size();
 
     /// Request a blob to write to that has sufficient space to write at
     /// least 'size' bytes.  Returns the blob index of a locked blob

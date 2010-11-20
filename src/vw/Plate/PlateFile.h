@@ -296,7 +296,7 @@ namespace platefile {
 
       // 3. Create a blob and call write_from_file(filename).  Returns
       // offset, size.
-      int64 blob_offset;
+      uint64 blob_offset;
       m_write_blob->write_from_file(tile_filename, write_header, blob_offset);
 
       // 4. Call write_update(col, row, level, record) to update the
@@ -334,7 +334,7 @@ namespace platefile {
       write_header.set_filetype(this->default_file_type());
 
       // 1. Write the data into the blob
-      int64 blob_offset = m_write_blob->write(write_header, data, data_size);
+      uint64 blob_offset = m_write_blob->write(write_header, data, data_size);
 
       // 2. Update the index
       IndexRecord write_record;

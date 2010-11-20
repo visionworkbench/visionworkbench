@@ -102,7 +102,7 @@ namespace platefile {
         : m_blob(blob), m_current_base_offset(base_offset) {}
 
       uint64 current_base_offset() const { return m_current_base_offset; }
-      uint32 current_data_size() const { return m_blob.data_size(m_current_base_offset); }
+      uint64 current_data_size() const { return m_blob.data_size(m_current_base_offset); }
 
     };
 
@@ -136,11 +136,12 @@ namespace platefile {
     /// Returns binary index record (a serialized protobuffer) for an
     /// entry starting at base_offset.
     template <class ProtoBufT>
-    ProtoBufT read_header(vw::uint64 base_offset) {
+    ProtoBufT read_header(vw::uint64 base_offset64) {
 
-      vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_header() -- "
-                                                     <<" base_offset: "
-                                                     <<  base_offset << "\n";
+      vw_out(VerboseDebugMessage, "platefile::blob")
+        << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
+
+      std::streamoff base_offset = boost::numeric_cast<std::streamoff>(base_offset64);
 
       // Seek to the requested offset and read the header and data offset
       m_fstream->seekg(base_offset, std::ios_base::beg);
@@ -153,16 +154,19 @@ namespace platefile {
       // blob_record_size in addition to the size of the blob_record
       // itself.  The offsets stored in the blob_record are relative to
       // the END of the blob_record.  We compute this offset here.
-      uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size)) + blob_record_size;
-      int32 size = blob_record.header_size();
-      uint64 offset = base_offset + blob_offset_metadata + blob_record.header_offset();
+      // This type-size juggling is to make sure we end up with sane behavior
+      // on both 32-bit and 64-bit
+      uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size) + blob_record_size);
+      size_t size = boost::numeric_cast<size_t>(blob_record.header_size());
+      uint64 offset64 = base_offset + blob_offset_metadata + blob_record.header_offset();
+
+      std::streamoff offset = boost::numeric_cast<std::streamoff>(offset64);
 
       // Allocate an array of the appropriate size to read the data.
       boost::shared_array<uint8> data(new uint8[size]);
 
-      vw_out(VerboseDebugMessage, "platefile::blob") << "         read_header() -- "
-                                                     << " data offset: " << offset
-                                                     << " size: " << size << "\n";
+      vw_out(VerboseDebugMessage, "platefile::blob")
+        << "\tread_header() -- data offset: " << offset << " size: " << size << "\n";
 
       m_fstream->seekg(offset, std::ios_base::beg);
       m_fstream->read((char*)(data.get()), size);
@@ -176,14 +180,14 @@ namespace platefile {
 
       // Deserialize the header
       ProtoBufT header;
-      bool worked = header.ParseFromArray(data.get(),  size);
+      bool worked = header.ParseFromArray(data.get(), boost::numeric_cast<int>(size));
       if (!worked)
         vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
                  << "from the blob file.\n");
 
-      vw::vw_out(vw::VerboseDebugMessage, "platefile::blob") << "         read_header() -- read "
-                                                         << size << " bytes at " << offset
-                                                         << " from " << m_blob_filename << "\n";
+      vw_out(vw::VerboseDebugMessage, "platefile::blob")
+        << "\tread_header() -- read " << size << " bytes at " << offset << " from " << m_blob_filename << "\n";
+
       return header;
     }
 
@@ -194,7 +198,7 @@ namespace platefile {
     void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);
 
     /// Returns the data size
-    uint32 data_size(uint64 base_offset) const;
+    uint64 data_size(uint64 base_offset) const;
 
     /// Write a tile to the blob file. You must supply the header
     /// (e.g. a serialized TileHeader protobuffer) and the data as
@@ -205,7 +209,7 @@ namespace platefile {
 
       // Store the current offset of the end of the file.  We'll
       // return that at the end of this function.
-      vw::uint64 base_offset = m_end_of_file_ptr;
+      std::streamoff base_offset = boost::numeric_cast<std::streamoff>(m_end_of_file_ptr);
       m_fstream->seekp(base_offset, std::ios_base::beg);
 
       // Create the blob record and write it to the blob file.
@@ -213,7 +217,7 @@ namespace platefile {
       blob_record.set_header_offset(0);
       blob_record.set_header_size(header.ByteSize());
       blob_record.set_data_offset(header.ByteSize());
-      blob_record.set_data_size(boost::numeric_cast<uint32>(data_size));
+      blob_record.set_data_size(data_size);
 
       // Write the actual blob record size first.  This will help us
       // read and deserialize this protobuffer later on.
@@ -225,7 +229,7 @@ namespace platefile {
       header.SerializeToOstream(m_fstream.get());
 
       // And write the data.
-      m_fstream->write((char*)(data.get()), data_size);
+      m_fstream->write((char*)(data.get()), boost::numeric_cast<size_t>(data_size));
 
       // Write the data at the end of the file and return the offset
       // of the beginning of this data file.
@@ -257,7 +261,7 @@ namespace platefile {
     /// Write the data file to disk, and the concatenate it into the data blob.
     template <class ProtoBufT>
     void write_from_file(std::string source_file, ProtoBufT const& header,
-                         int64& base_offset) {
+                         uint64& base_offset) {
 
       // Open the source_file and read data from it.
       std::ifstream istr(source_file.c_str(), std::ios::binary);

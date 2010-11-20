@@ -71,7 +71,7 @@ message IndexMultiWriteUpdate {
 
 message IndexWriteComplete {
   required int32 platefile_id = 1;
-  required int32 blob_id = 2;
+  required uint32 blob_id = 2;
   required uint64 blob_offset = 3;
 }
 
@@ -137,8 +137,8 @@ message IndexSuccess {
 }
 
 message IndexWriteReply {
-  required int32 blob_id = 1;
-  required int32 size = 2;
+  required uint32 blob_id = 1;
+  required uint64 size = 2;
 }
 
 message IndexTransactionReply {

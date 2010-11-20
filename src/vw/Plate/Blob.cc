@@ -85,7 +85,7 @@ vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
   uint16 blob_record_size;
   BlobRecord blob_record = this->read_blob_record(blob_record_size);
 
-  uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size)) + blob_record_size;
+  uint64 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
   uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
 
   WHEREAMI << "[next_offset: " <<  next_offset << "]\n";
@@ -94,7 +94,7 @@ vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
 }
 
 /// Returns the data size
-vw::uint32 vw::platefile::Blob::data_size(uint64 base_offset) const {
+vw::uint64 vw::platefile::Blob::data_size(uint64 base_offset) const {
 
   WHEREAMI << "[base_offset: " <<  base_offset << "]\n";
 
@@ -173,7 +173,7 @@ void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& fil
   // blob_record_size in addition to the size of the blob_record
   // itself.  The offsets stored in the blob_record are relative to
   // the END of the blob_record.  We compute this offset here.
-  uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size)) + blob_record_size;
+  uint64 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
 
   size     = blob_record.data_size();
   offset   = base_offset + blob_offset_metadata + blob_record.data_offset();

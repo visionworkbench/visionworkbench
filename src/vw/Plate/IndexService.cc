@@ -283,7 +283,7 @@ void IndexServiceImpl::WriteRequest(::google::protobuf::RpcController* /*control
   uint64 size;
   int blob_id = rec.index->write_request(size);
   response->set_blob_id(blob_id);
-  response->set_size(boost::numeric_cast<int32>(size));
+  response->set_size(size);
   done->Run();
 }
 

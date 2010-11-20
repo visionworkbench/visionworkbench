@@ -107,7 +107,7 @@ unsigned vw::platefile::BlobManager::num_blobs() {
   return boost::numeric_cast<unsigned>(m_blob_locks.size());
 }
 
-vw::int64 vw::platefile::BlobManager::max_blob_size() {
+vw::uint64 vw::platefile::BlobManager::max_blob_size() {
   Mutex::Lock lock(m_mutex);
   return m_max_blob_size;
 }
@@ -142,6 +142,6 @@ int vw::platefile::BlobManager::request_lock(uint64 &size) {
 // "committing" the write to the blob when you are finished with it.).
 void vw::platefile::BlobManager::release_lock(int blob_id, uint64 blob_offset) {
   Mutex::Lock lock(m_mutex);
-  m_blob_locks[blob_id].unlock(boost::numeric_cast<int>(blob_offset));
+  m_blob_locks[blob_id].unlock(blob_offset);
 }
 
