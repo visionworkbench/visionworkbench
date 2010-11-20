@@ -103,7 +103,7 @@ namespace vw {
 
       /// Fetch this ImageResource's nodata value
       virtual double nodata_read() const {
-        vw_throw(NoImplErr() << "This ImageResource does not support nodata_read_value().");
+        vw_throw(NoImplErr() << "This ImageResource does not support nodata_read().");
       }
   };
 
