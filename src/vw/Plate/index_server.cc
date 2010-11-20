@@ -11,6 +11,7 @@
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Core/Log.h>
 #include <signal.h>
+#include <boost/format.hpp>
 
 #include <google/protobuf/descriptor.h>
 
@@ -111,7 +112,8 @@ int main(int argc, char** argv) {
   uint64 t0 = Stopwatch::microtime(), t1;
   uint64 next_sync = t0 + sync_interval_us;
 
-  size_t success = 0, fail = 0, calls = 0;
+  size_t win = 0, lose = 0, draw = 0, total = 0;
+  boost::format status("qps[%7.1f]   total[%9u]   server_err[%9u]   client_err[%9u]\r");
 
   while(process_messages) {
     bool should_sync = force_sync || (Stopwatch::microtime() >= next_sync);
@@ -128,25 +130,25 @@ int main(int argc, char** argv) {
 
     t1 = Stopwatch::microtime();
 
-    size_t success_dt, fail_dt, calls_dt;
+    size_t win_dt, lose_dt, draw_dt, total_dt;
     {
       ThreadMap::Locked stats = server.stats();
-      success_dt = stats.get("msgs");
-      fail_dt    = stats.get("server_error") + stats.get("client_error");
-      calls_dt = success_dt + fail_dt;
+      win_dt = stats.get("msgs");
+      lose_dt  = stats.get("server_error");
+      draw_dt  = stats.get("client_error");
       stats.clear();
     }
-    success += success_dt;
-    fail    += fail_dt;
-    calls   += calls_dt;
+    total_dt = win_dt + lose_dt + draw_dt;
+    win   += win_dt;
+    lose  += lose_dt;
+    draw  += draw_dt;
+    total += total_dt;
 
     float dt = float(t1 - t0) / 1e6f;
     t0 = t1;
 
     vw_out(InfoMessage)
-      << "[index_server] : "
-      << float(calls_dt)/dt << " qps "
-      << "(" << (100. * double(success) / double(calls ? calls : 1)) << "% success)                    \r"
+      << status % (float(total_dt)/dt) % total % lose % draw
       << std::flush;
 
     Thread::sleep_ms(500);
