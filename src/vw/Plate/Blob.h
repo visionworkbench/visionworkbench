@@ -34,7 +34,7 @@
 ///
 ///
 
-#include <vw/Plate/IndexService.pb.h>
+#include <vw/Plate/IndexData.pb.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>

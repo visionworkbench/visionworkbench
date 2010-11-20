@@ -20,6 +20,7 @@ namespace platefile {
   class RpcClient;
 
   class IndexService;
+  class IndexWriteUpdate;
 
   typedef RpcClient<IndexService> IndexClient;
 

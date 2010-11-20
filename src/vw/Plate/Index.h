@@ -9,7 +9,7 @@
 #define __VW_PLATEFILE_INDEX_H__
 
 #include <vw/Plate/FundamentalTypes.h>
-#include <vw/Plate/IndexService.pb.h>
+#include <vw/Plate/IndexData.pb.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Math/BBox.h>
 #include <boost/shared_ptr.hpp>

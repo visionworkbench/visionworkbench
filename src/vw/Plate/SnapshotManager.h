@@ -8,7 +8,7 @@
 #ifndef __VW_PLATE_SNAPSHOT_MANAGER_H__
 #define __VW_PLATE_SNAPSHOT_MANAGER_H__
 
-#include <vw/Plate/IndexService.pb.h>
+#include <vw/Plate/IndexData.pb.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Plate/FundamentalTypes.h>
 

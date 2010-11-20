@@ -15,6 +15,7 @@
 #include <vw/Plate/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Rpc.h>
+#include <vw/Plate/IndexService.pb.h>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>

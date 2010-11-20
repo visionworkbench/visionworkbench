@@ -7,7 +7,7 @@
 
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/Rpc.h>
-#include <vw/Plate/Rpc.pb.h>
+#include <vw/Plate/IndexService.pb.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Plate/Exception.h>
 
