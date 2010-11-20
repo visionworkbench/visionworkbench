@@ -41,8 +41,8 @@ void IndexPage::serialize(std::ostream& ostr) {
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
   // Part 1: Write out the page size
-  ostr.write((char*)(&m_page_width), sizeof(m_page_width));
-  ostr.write((char*)(&m_page_height), sizeof(m_page_height));
+  ostr.write(reinterpret_cast<char*>(&m_page_width), sizeof(m_page_width));
+  ostr.write(reinterpret_cast<char*>(&m_page_height), sizeof(m_page_height));
 
   // Part 2: Write the sparsetable metadata
   m_sparse_table.write_metadata(&ostr);
@@ -52,21 +52,21 @@ void IndexPage::serialize(std::ostream& ostr) {
 
     // Iterate over transaction_id list.
     uint32 transaction_list_size = boost::numeric_cast<uint32>(it->size());
-    ostr.write((char*)(&transaction_list_size), sizeof(transaction_list_size));
+    ostr.write(reinterpret_cast<char*>(&transaction_list_size), sizeof(transaction_list_size));
 
     multi_value_type::iterator transaction_iter = (*it).begin();
     while (transaction_iter != (*it).end()) {
 
       // Save the transaction id
       uint32 t_id = (*transaction_iter).first;
-      ostr.write((char*)(&t_id), sizeof(t_id));
+      ostr.write(reinterpret_cast<char*>(&t_id), sizeof(t_id));
 
       // Save the size of each protobuf, and then serialize it to disk.
       uint16 protobuf_size = boost::numeric_cast<uint16>(transaction_iter->second.ByteSize());
       boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
       (*transaction_iter).second.SerializeToArray(protobuf_bytes.get(), protobuf_size);
-      ostr.write((char*)(&protobuf_size), sizeof(protobuf_size));
-      ostr.write((char*)(protobuf_bytes.get()), protobuf_size);
+      ostr.write(reinterpret_cast<char*>(&protobuf_size), sizeof(protobuf_size));
+      ostr.write(reinterpret_cast<char*>(protobuf_bytes.get()), protobuf_size);
 
       ++transaction_iter;
     }
@@ -78,8 +78,8 @@ void IndexPage::deserialize(std::istream& istr) {
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
   // Part 1: Read the page size
-  istr.read((char*)(&m_page_width), sizeof(m_page_width));
-  istr.read((char*)(&m_page_height), sizeof(m_page_height));
+  istr.read(reinterpret_cast<char*>(&m_page_width), sizeof(m_page_width));
+  istr.read(reinterpret_cast<char*>(&m_page_height), sizeof(m_page_height));
 
   // Part 2: Read the sparsetable metadata
   m_sparse_table.read_metadata(&istr);
@@ -90,21 +90,21 @@ void IndexPage::deserialize(std::istream& istr) {
 
     // Iterate over transaction_id list.
     uint32 transaction_list_size;
-    istr.read((char*)(&transaction_list_size), sizeof(transaction_list_size));
+    istr.read(reinterpret_cast<char*>(&transaction_list_size), sizeof(transaction_list_size));
 
     new (&(*it)) multi_value_type();
     for (uint32 tid = 0; tid < transaction_list_size; ++tid) {
 
       // Read the transaction id
       uint32 t_id;
-      istr.read((char*)(&t_id), sizeof(t_id));
+      istr.read(reinterpret_cast<char*>(&t_id), sizeof(t_id));
 
       // Read the size (in bytes) of this protobuffer and then read
       // the protobuffer and deserialize it.
       uint16 protobuf_size;
-      istr.read((char*)(&protobuf_size), sizeof(protobuf_size));
+      istr.read(reinterpret_cast<char*>(&protobuf_size), sizeof(protobuf_size));
       boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
-      istr.read((char*)(protobuf_bytes.get()), protobuf_size);
+      istr.read(reinterpret_cast<char*>(protobuf_bytes.get()), protobuf_size);
       IndexRecord rec;
       if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
         vw_throw(IOErr() << "An error occurred while parsing an IndexEntry.");

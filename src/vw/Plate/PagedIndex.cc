@@ -27,8 +27,8 @@ IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
     m_page_width(page_width), m_page_height(page_height), m_cache(cache_size) {
 
   int tiles_per_side = 1 << level;
-  m_horizontal_pages = (int)ceil(float(tiles_per_side) / float(page_width));
-  m_vertical_pages   = (int)ceil(float(tiles_per_side) / float(page_height));
+  m_horizontal_pages = static_cast<int>(ceil(float(tiles_per_side) / float(page_width)));
+  m_vertical_pages   = static_cast<int>(ceil(float(tiles_per_side) / float(page_height)));
 
   // Create space for cache handles.  The actual generators are not
   // created until they are needed (because they take enough memory
@@ -150,8 +150,8 @@ IndexLevel::search_by_region(BBox2i const& region,
   int32 min_level_col = region.min().x() / m_page_width;
   int32 min_level_row = region.min().y() / m_page_height;
 
-  int32 max_level_col = (int32)ceilf(float(region.max().x()) / float(m_page_width));
-  int32 max_level_row = (int32)ceilf(float(region.max().y()) / float(m_page_height));
+  int32 max_level_col = static_cast<int32>(ceilf(float(region.max().x()) / float(m_page_width)));
+  int32 max_level_row = static_cast<int32>(ceilf(float(region.max().y()) / float(m_page_height)));
 
   WHEREAMI << "[" << min_level_col << " " << min_level_row << "]"
            << " to [" << max_level_col

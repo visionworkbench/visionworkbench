@@ -169,7 +169,7 @@ namespace platefile {
         << "\tread_header() -- data offset: " << offset << " size: " << size << "\n";
 
       m_fstream->seekg(offset, std::ios_base::beg);
-      m_fstream->read((char*)(data.get()), size);
+      m_fstream->read(reinterpret_cast<char*>(data.get()), size);
 
       // Throw an exception if the read operation failed (after clearing the error bit)
       if (m_fstream->fail()) {
@@ -222,14 +222,14 @@ namespace platefile {
       // Write the actual blob record size first.  This will help us
       // read and deserialize this protobuffer later on.
       uint16 blob_record_size = boost::numeric_cast<uint16>(blob_record.ByteSize());
-      m_fstream->write((char*)(&blob_record_size), sizeof(blob_record_size));
+      m_fstream->write(reinterpret_cast<char*>(&blob_record_size), sizeof(blob_record_size));
       blob_record.SerializeToOstream(m_fstream.get());
 
       // Serialize the header.
       header.SerializeToOstream(m_fstream.get());
 
       // And write the data.
-      m_fstream->write((char*)(data.get()), boost::numeric_cast<size_t>(data_size));
+      m_fstream->write(reinterpret_cast<char*>(data.get()), boost::numeric_cast<size_t>(data_size));
 
       // Write the data at the end of the file and return the offset
       // of the beginning of this data file.
@@ -280,7 +280,7 @@ namespace platefile {
 
       // Read the data into a temporary memory buffer.
       boost::shared_array<uint8> data(new uint8[data_size]);
-      istr.read((char*)(data.get()), data_size);
+      istr.read(reinterpret_cast<char*>(data.get()), data_size);
       istr.close();
 
       base_offset = this->write(header, data, data_size);

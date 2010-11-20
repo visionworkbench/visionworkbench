@@ -33,11 +33,11 @@ vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_rec
            << " Offset: " << m_fstream->tellg() << "]\n";
 
   // Read the blob record
-  m_fstream->read((char*)(&blob_record_size), sizeof(blob_record_size));
+  m_fstream->read(reinterpret_cast<char*>(&blob_record_size), sizeof(blob_record_size));
   WHEREAMI << "[blob_record_size: " << blob_record_size << "]\n";
 
   boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
-  m_fstream->read((char*)(blob_rec_data.get()), blob_record_size);
+  m_fstream->read(reinterpret_cast<char*>(blob_rec_data.get()), blob_record_size);
   WHEREAMI << "read complete.\n";
 
   BlobRecord blob_record;
@@ -60,7 +60,7 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
   boost::shared_array<uint8> data(new uint8[data_size]);
 
   m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read((char*)(data.get()), data_size);
+  m_fstream->read(reinterpret_cast<char*>(data.get()), data_size);
 
   // Throw an exception if the read operation failed (after clearing the error bit)
   if (m_fstream->fail()) {
@@ -194,7 +194,7 @@ void vw::platefile::Blob::write_end_of_file_ptr(uint64 ptr) {
   // The end of file ptr is stored at the beginning of the blob
   // file.
   m_fstream->seekg(0, std::ios_base::beg);
-  m_fstream->write((char*)(&data), 3*sizeof(ptr));
+  m_fstream->write(reinterpret_cast<char*>(&data), 3*sizeof(ptr));
 }
 
 uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
@@ -203,7 +203,7 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   // The end of file ptr is stored at the beginning of the blob
   // file.
   m_fstream->seekg(0, std::ios_base::beg);
-  m_fstream->read((char*)(data), 3*sizeof(uint64));
+  m_fstream->read(reinterpret_cast<char*>(data), 3*sizeof(uint64));
 
   // Make sure the read ptr is valid by comparing the three
   // entries.
@@ -241,7 +241,7 @@ void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
     vw_throw(IOErr() << "Blob::read_as_file() -- could not open destination "
              << "file for writing..");
 
-  ostr.write((char*)(data.get()), size);
+  ostr.write(reinterpret_cast<char*>(data.get()), size);
   ostr.close();
 }
 

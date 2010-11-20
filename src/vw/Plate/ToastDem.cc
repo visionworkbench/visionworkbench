@@ -129,7 +129,7 @@ namespace platefile {
           if (sizeof(typename PixelChannelType<PixelT>::type) == 2) {
             // TODO: Think about what to do if the pixel has alpha!
             I16 value;
-            value.i16 = (int16)src_tile(u,v).v();
+            value.i16 = static_cast<int16>(src_tile(u,v).v());
 
             // spec for toast dem files says "intel" byte order (little-endian)
             // so if we're on big endian, swap them.

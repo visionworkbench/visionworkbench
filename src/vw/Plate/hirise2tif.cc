@@ -141,7 +141,7 @@ public:
       ImageView<PixelRGB<uint16> > stripe( image.cols(), filter );
       TerminalProgressCallback progress("plate.tools.hirise2tif", "");
       for( int y=0; y+filter-1<image.rows(); y+=filter ) {
-        progress.report_progress( (double)y / image.rows() );
+        progress.report_progress( double(y) / image.rows() );
         stripe = crop( image, 0, y, image.cols(), filter );
         ImageView<PixelRGB<uint16> >::pixel_accessor col = stripe.origin();
         for( int x=0; x+filter-1<image.cols(); x+=filter ) {
@@ -178,7 +178,7 @@ public:
         ImageView<uint16> stripe( image.cols(), filter );
         TerminalProgressCallback progress("plate.tools.hirise2tif", "");
         for( int y=0; y+filter-1<image.rows(); y+=filter ) {
-          progress.report_progress( (double)y / image.rows() );
+          progress.report_progress( double(y) / image.rows() );
           stripe = crop( image, 0, y, image.cols(), filter );
           ImageView<uint16>::pixel_accessor col = stripe.origin();
           for( int x=0; x+filter-1<image.cols(); x+=filter ) {

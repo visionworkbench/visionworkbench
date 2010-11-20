@@ -31,7 +31,7 @@ void ToastPlateManager<PixelT>::transform_image(
   Vector2 p2 = georef.pixel_to_lonlat(Vector2(image.cols()/2,
                                               image.rows()/2+1));
   double degrees_per_pixel = sqrt(pow(p1.y()-p0.y(),2)+pow(p2.y()-p0.y(),2));
-  level = (int)round(log(360/degrees_per_pixel/(tile_size-1)) / log(2));
+  level = static_cast<int>(round(log(360/degrees_per_pixel/(tile_size-1)) / log(2)));
 
   // Compute the resolution of the TOAST output space at the given
   // pyramid_level.  The formula below was carefully chosen to

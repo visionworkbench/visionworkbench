@@ -88,7 +88,8 @@ bool ZeroMQChannel::recv_bytes(SharedByteArray& bytes) {
       vw_throw(ZeroMQErr() << "Failed to recv bytes");
   }
 
-  bytes.reset(new ByteArray((const char*)rmsg.data(), (const char*)rmsg.data() + rmsg.size()));
+  bytes.reset(new ByteArray(reinterpret_cast<const char*>(rmsg.data()),
+                            reinterpret_cast<const char*>(rmsg.data()) + rmsg.size()));
   return true;
 }
 

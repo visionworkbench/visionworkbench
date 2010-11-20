@@ -53,7 +53,7 @@ void PlateCarreePlateManager<PixelT>::transform_image(
 
   // Round the resolution to the nearest power of two.  The
   // base of the pyramid is 2^8 or 256x256 pixels.
-  level = (int)ceil(log(resolution) / log(2)) - 8;
+  level = static_cast<int>(ceil(log(resolution) / log(2))) - 8;
   output_georef = this->georeference( level );
 
   // Rebuild the transform
