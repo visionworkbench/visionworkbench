@@ -13,31 +13,47 @@ using namespace vw::math;
 
 static const double DELTA = 1e-4;
 
-Vector<size_t> create_test_skyline(size_t size, size_t max_offset ) {
+// This is a fix for old versions of boost, the distribution uniform_01
+// was implemented with expectations of working with the variate generator.
+// instead we switch over to uniform_real as a backup solution in old boost.
+#if BOOST_VERSION <= 103800
+
+#include <boost/random/uniform_real.hpp>
+#define UNIFORM01 boost::uniform_real
+
+#else
+
+#include <boost/random/uniform_01.hpp>
+#define UNIFORM01 boost::uniform_01
+
+#endif
+
+#include <boost/random.hpp>
+
+template <class GenT>
+Vector<size_t> create_test_skyline(size_t size, size_t max_offset,
+                                   GenT& generator ) {
   Vector<size_t> result(size);
   for ( size_t i = 0; i < size; ++i ) {
-    ssize_t offset = i - (rand()%max_offset);
+    ssize_t offset = i - generator()*(max_offset-1);
     if ( offset < 0 ) offset = 0;
     result[i] = static_cast<size_t>(offset);
   }
   return result;
 }
 
-double drand() {
-  return double(rand()) / double(RAND_MAX);
-}
-
-template <class VectorT>
-void fill_vector(VectorT& b) {
+template <class VectorT, class GenT>
+void fill_vector(VectorT& b, GenT& generator) {
   for ( size_t i = 0; i < b.size(); ++i )
-    b[i] = lround(drand()*100)+1;
+    b[i] = lround(generator()*100)+1;
 }
 
-template <class MatrixT>
-void fill_symmetric_matrix(MatrixT& A, Vector<size_t> const& skyline ) {
+template <class MatrixT, class GenT>
+void fill_symmetric_matrix(MatrixT& A, Vector<size_t> const& skyline,
+                           GenT& generator ) {
   for (size_t i = 0; i < A.rows(); ++i)
     for (size_t j = skyline[i]; j < std::min(i+1,A.cols()); ++j) {
-      A(i,j) = lround(drand()*100)+1;
+      A(i,j) = lround(generator()*100)+1;
       A(j,i) = A(i,j);
     }
 }
@@ -127,12 +143,15 @@ TEST(SparseSkyline, Creation ) {
 TEST(SparseSkyline, LDL_decomp_correctness) {
   size_t N = 50;
   size_t S = 10;
+  boost::mt19937 random_gen(86);
+  typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
+  vargen_type generator( random_gen, UNIFORM01<>() );
 
   MatrixSparseSkyline<double> sparse_mat(N);
 
-  Vector<size_t> test_skyline = create_test_skyline(N, S);
+  Vector<size_t> test_skyline = create_test_skyline(N, S, generator);
 
-  fill_symmetric_matrix(sparse_mat, test_skyline);
+  fill_symmetric_matrix(sparse_mat, test_skyline, generator);
   Matrix<double> nonsparse_mat = sparse_mat;
   MatrixSparseSkyline<double> original_sparse_mat = sparse_mat;
 
@@ -152,12 +171,15 @@ TEST(SparseSkyline, LDL_decomp_correctness) {
 TEST(SparseSkyline, LDL_decomp_scalability) {
   size_t N = 5000;
   size_t S = 150;
+  boost::mt19937 random_gen(86);
+  typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
+  vargen_type generator( random_gen, UNIFORM01<>() );
 
   MatrixSparseSkyline<double> sparse_mat(N,N);
   MatrixSparseSkyline<double> original_sparse_mat(N,N);
-  Vector<size_t> test_skyline = create_test_skyline(N,S);
+  Vector<size_t> test_skyline = create_test_skyline(N,S,generator);
 
-  fill_symmetric_matrix(sparse_mat, test_skyline);
+  fill_symmetric_matrix(sparse_mat, test_skyline, generator);
   original_sparse_mat = sparse_mat;
 
   sparse_ldl_decomposition(sparse_mat);
@@ -170,12 +192,15 @@ TEST(SparseSkyline, LDL_decomp_scalability) {
 TEST(SparseSkyline, LDL_solve) {
   size_t N = 50;
   size_t S = 10;
+  boost::mt19937 random_gen(42);
+  typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
+  vargen_type generator( random_gen, UNIFORM01<>() );
 
   Matrix<double> A_nonsparse(N,N);
   MatrixSparseSkyline<double> A_sparse(N,N);
-  Vector<size_t> test_skyline = create_test_skyline(N,S);
+  Vector<size_t> test_skyline = create_test_skyline(N,S,generator);
 
-  fill_symmetric_matrix(A_sparse, test_skyline);
+  fill_symmetric_matrix(A_sparse, test_skyline, generator);
   MatrixSparseSkyline<double> A_sparse_original = A_sparse;
   EXPECT_EQ( A_sparse.cols(), A_sparse_original.cols() );
   EXPECT_EQ( A_sparse.rows(), A_sparse_original.rows() );
@@ -183,7 +208,7 @@ TEST(SparseSkyline, LDL_solve) {
 
   // Create a vector to solve against
   Vector<double> b(N);
-  fill_vector(b);
+  fill_vector(b,generator);
 
   // Solve using normal
   Vector<double> x_nonsparse = inverse(A_nonsparse)*b;
@@ -203,14 +228,17 @@ TEST(SparseSkyline, LDL_solve) {
 TEST(SparseSkyline, LDL_solve_scalability) {
   int N = 1000;
   int S = 100;
+  boost::mt19937 random_gen(86);
+  typedef boost::variate_generator<boost::mt19937&,UNIFORM01<> > vargen_type;
+  vargen_type generator( random_gen, UNIFORM01<>() );
 
   MatrixSparseSkyline<double> A_sparse(N,N);
-  Vector<size_t> test_skyline = create_test_skyline(N,S);
-  fill_symmetric_matrix(A_sparse, test_skyline);
+  Vector<size_t> test_skyline = create_test_skyline(N,S,generator);
+  fill_symmetric_matrix(A_sparse, test_skyline, generator);
 
   // Create a vector to solve against
   Vector<double> b(A_sparse.cols());
-  fill_vector(b);
+  fill_vector(b,generator);
 
   // Solving for X
   Vector<double> x_result = sparse_solve(A_sparse, b);
