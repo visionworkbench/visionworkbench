@@ -164,7 +164,7 @@ vw::Settings::Settings() : m_rc_last_polltime(0),
   m_default_num_threads = VW_NUM_THREADS;
   m_system_cache_size = 768 * 1024 * 1024; // Default cache size is 768-MB
   m_write_pool_size  = 21;                 // Default pool size is 21 threads. About 252-MB for RGB f32 1024^2
-  m_default_tile_size = 1024;
+  m_default_tile_size = 256;
   m_tmp_directory = "/tmp";
 
   // By default, the .vwrc file has precedence, but the user can
