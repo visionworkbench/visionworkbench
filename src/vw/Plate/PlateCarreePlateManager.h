@@ -22,6 +22,11 @@ namespace platefile {
                           ImageViewRef<PixelT>& image,
                           TransformRef& txref, int& level ) const;
 
+    // This handles the border crossing of +-180 degrees.
+    virtual void affected_tiles( BBox2i const& image_size,
+                                 TransformRef const& tx, int tile_size,
+                                 int level, std::list<TileInfo>& tiles ) const;
+
   public:
     PlateCarreePlateManager(boost::shared_ptr<PlateFile> platefile) :
       PlateManager<PixelT>(platefile) {}

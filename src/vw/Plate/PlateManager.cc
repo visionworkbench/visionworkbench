@@ -15,6 +15,51 @@
 using namespace vw;
 using namespace vw::platefile;
 
+namespace {
+  class BresenhamLine {
+    vw::int32 x0, y0, x1, y1;
+    vw::int32 x, y;
+    bool steep;
+    vw::int32 deltax, deltay, error, ystep;
+  public:
+    BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
+    x0(start[0]), y0(start[1]), x1(stop[0]), y1(stop[1]) {
+      steep = abs(y1-y0) > abs(x1-x0);
+      if (steep) {
+        std::swap(x0,y0);
+        std::swap(x1,y1);
+      }
+      if ( x0 > x1 ) {
+        std::swap(x0,x1);
+        std::swap(y0,y1);
+      }
+      deltax = x1 - x0;
+      deltay = abs(y1-y0);
+      error = deltax / 2;
+      ystep = y0 < y1 ? 1 : -1;
+      x = x0; y = y0;
+    }
+
+    vw::Vector2i operator*() const {
+      if (steep)
+        return vw::Vector2i(y,x);
+      else
+        return vw::Vector2i(x,y);
+    }
+
+    void operator++() {
+      x++;
+      error -= deltay;
+      if ( error < 0 ) {
+        y += ystep;
+        error += deltax;
+      }
+    }
+
+    bool is_good() const { return x < x1; }
+  };
+}
+
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
@@ -136,18 +181,18 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
 // transforming an image of size 'image_size' with transform 'tx'.
 template <class PixelT>
 void PlateManager<PixelT>::affected_tiles(BBox2i const& image_size,
-                                          TransformRef const& tx,int tile_size,
-                                          std::list<TileInfo>& tiles ) const {
-  BBox2i pyramid_px_bbox = tx.forward_bbox(image_size);
+                                          TransformRef const& tx, int tile_size,
+                                          int /*lvl*/, std::list<TileInfo>& tiles ) const {
+  BBox2f pyramid_px_bbox = tx.forward_bbox(image_size);
   tiles.clear();
 
   int32 min_tile_x =
     boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().x() / tile_size ));
   int32 min_tile_y =
     boost::numeric_cast<int32>(floor(pyramid_px_bbox.min().y() / tile_size ));
-  int32 max_tile_x = 1 +
+  int32 max_tile_x =
     boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().x()  / tile_size ));
-  int32 max_tile_y = 1 +
+  int32 max_tile_y =
     boost::numeric_cast<int32>(ceil(pyramid_px_bbox.max().y()  / tile_size ));
 
   for ( int32 tile_x = min_tile_x; tile_x < max_tile_x; tile_x++ ) {
@@ -159,29 +204,81 @@ void PlateManager<PixelT>::affected_tiles(BBox2i const& image_size,
       // See if it intersects
       bool intersects = false;
 
-      // Check top boundry of bbox
-      for ( int32 px_x = tile.bbox.min()[0];
-            px_x < tile.bbox.max()[0]-1 && !intersects; px_x++ )
-        if ( image_size.contains( tx.reverse( Vector2(px_x,tile.bbox.min()[1]))))
-          intersects = true;
+      // We're testing a pattern that looks like
+      //      +--+--+
+      //      |\ | /|
+      //      ---+---
+      //      |/ | \|
+      //      +--+--+
 
-      // Check right boundry of bbox
-      for ( int32 px_y = tile.bbox.min()[1];
-            px_y < tile.bbox.max()[1]-1 && !intersects; px_y++ )
-        if ( image_size.contains( tx.reverse( Vector2(tile.bbox.max()[0],px_y))))
+      // Testing \'
+      BresenhamLine line( tile.bbox.min(), tile.bbox.max() );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
           intersects = true;
+        ++line;
+      }
 
-      // Check bottom boundry of bbox
-      for ( int32 px_x = tile.bbox.max()[0]-1;
-            px_x > tile.bbox.min()[0] && !intersects; px_x-- )
-        if ( image_size.contains( tx.reverse( Vector2(px_x,tile.bbox.max()[1]))))
+      // Testing /
+      line = BresenhamLine( tile.bbox.min()+Vector2i(tile.bbox.width(),0),
+                            tile.bbox.max()-Vector2i(tile.bbox.width(),0) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
           intersects = true;
+        ++line;
+      }
 
-      // Check left boundry of bbox
-      for ( int32 px_y = tile.bbox.max()[1]-1;
-            px_y > tile.bbox.min()[1] && !intersects; px_y-- )
-        if ( image_size.contains( tx.reverse( Vector2(tile.bbox.min()[0],px_y))))
+      // Testing |
+      line = BresenhamLine( tile.bbox.min()+Vector2i(tile.bbox.width()/2,0),
+                            tile.bbox.max()-Vector2i(tile.bbox.width()/2,0) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
           intersects = true;
+        ++line;
+      }
+
+      // Testing -
+      line = BresenhamLine( tile.bbox.min()+Vector2i(0,tile.bbox.height()/2),
+                            tile.bbox.max()-Vector2i(0,tile.bbox.height()/2) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
+          intersects = true;
+        ++line;
+      }
+
+      // Testing far left
+      line = BresenhamLine( Vector2(0,0), Vector2(0,tile.bbox.height()) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
+          intersects = true;
+        ++line;
+      }
+
+      // Testing far right
+      line = BresenhamLine( Vector2(tile.bbox.width()-1,0),
+                            Vector2(tile.bbox.width()-1,tile.bbox.height()) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
+          intersects = true;
+        ++line;
+      }
+
+      // Testing top
+      line = BresenhamLine( Vector2(0,0), Vector2(tile.bbox.width(),0) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
+          intersects = true;
+        ++line;
+      }
+
+      // Testing bottom
+      line = BresenhamLine( Vector2(0,tile.bbox.height()-1),
+                            Vector2(tile.bbox.width(),tile.bbox.height()-1) );
+      while ( line.is_good() && !intersects ) {
+        if ( image_size.contains( tx.reverse( *line ) ) )
+          intersects = true;
+        ++line;
+      }
 
       // If it intersects, its worth rendering
       if ( intersects )
@@ -220,7 +317,7 @@ namespace platefile {
   template void                                                                \
   PlateManager<PIXELT >::affected_tiles(BBox2i const& image_size,              \
                                         TransformRef const& tx, int tile_size, \
-                                        std::list<TileInfo>& tiles ) const;    \
+                                        int level, std::list<TileInfo>& tiles ) const; \
   template PlateManager<PIXELT >*                                              \
   PlateManager<PIXELT >::make( std::string const& mode,                        \
                                boost::shared_ptr<PlateFile> platefile );

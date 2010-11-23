@@ -27,6 +27,7 @@ TestModPlate_SOURCES          = TestModPlate.cxx
 TestRpc_SOURCES               = TestRpc.cxx $(protocol_sources)
 TestRpcChannel_SOURCES        = TestRpcChannel.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
+TestPlateManager_SOURCES      = TestPlateManager.cxx
 
 if HAVE_PYTHON
 check_SCRIPTS  += TestModPlateRegression.py
@@ -41,7 +42,8 @@ check_PROGRAMS = \
   TestModPlate \
   TestRpc \
   TestRpcChannel \
-  TestTileManipulation
+  TestTileManipulation \
+  TestPlateManager
 
 if MAKE_MODPLATE
 MORE_FLAGS = -DVW_HAVE_APACHE=1

@@ -38,7 +38,7 @@ namespace platefile {
 
     virtual void affected_tiles( BBox2i const& image_size,
                                  TransformRef const& tx, int tile_size,
-                                 std::list<TileInfo>& tiles ) const;
+                                 int level, std::list<TileInfo>& tiles ) const;
 
     virtual void transform_image( cartography::GeoReference const& georef,
                                   ImageViewRef<PixelT>& image,
@@ -186,16 +186,9 @@ namespace platefile {
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
       vw_out(DebugMessage, "platefile") << "\t    Generating tile: [ "
-                                        << m_tile_info.j << " " << m_tile_info.i
+                                        << m_tile_info.i << " " << m_tile_info.j
                                         << " @ level " <<  m_level << "]    BBox: "
                                         << m_tile_info.bbox << "\n";
-      // XXX: Remove me!  I'm for debugging only!
-
-      // if ( (m_tile_info.i == 255 && m_tile_info.j == 255) ||
-      //      (m_tile_info.i == 0 && m_tile_info.j == 0) )
-      //   std::cout << "Processing " << m_tile_info.bbox << "\n";
-      // else
-      //   return;
 
       // Generate the tile from the image data
       ImageView<typename ViewT::pixel_type> tile;

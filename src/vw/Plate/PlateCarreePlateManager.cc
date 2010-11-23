@@ -13,6 +13,32 @@ using namespace vw::platefile;
 using namespace vw;
 
 template <class PixelT>
+void PlateCarreePlateManager<PixelT>::affected_tiles(
+                          BBox2i const& image_size,
+                          TransformRef const& tx, int tile_size,
+                          int level, std::list<TileInfo>& tiles ) const {
+  PlateManager<PixelT>::affected_tiles( image_size, tx, tile_size,
+                                        level, tiles );
+
+  int32 level_size_tiles = 1 << level;
+  int32 level_size_pixels = level_size_tiles*tile_size;
+
+  // Correct tiles that cross boundaries
+  BOOST_FOREACH( TileInfo& tile, tiles ) {
+    if (tile.i < 0) {
+      tile.i += level_size_tiles;
+      tile.bbox.min() += Vector2i(level_size_pixels,0);
+      tile.bbox.max() += Vector2i(level_size_pixels,0);
+    }
+    if (tile.i >= level_size_tiles) {
+      tile.i -= level_size_tiles;
+      tile.bbox.min() -= Vector2i(level_size_pixels,0);
+      tile.bbox.max() -= Vector2i(level_size_pixels,0);
+    }
+  }
+}
+
+template <class PixelT>
 void PlateCarreePlateManager<PixelT>::transform_image(
                           cartography::GeoReference const& georef,
                           ImageViewRef<PixelT>& image,
@@ -68,8 +94,20 @@ void PlateCarreePlateManager<PixelT>::transform_image(
   ImageViewRef<PixelT> holding =
     transform( image, geotx, ZeroEdgeExtension(),
                BicubicInterpolation() );
+  if ( output_bbox.max().x() > resolution ) {
+    // Determine if we are too far east
+    image = edge_extend(crop(holding,resolution/2,0,resolution,resolution),
+                        -resolution/2,0,resolution,resolution,
+                        PeriodicEdgeExtension());
+  } else if ( output_bbox.min().x() < 0 ) {
+    // Determine if we are too far west
+    image = edge_extend(crop(holding,-resolution/2,0,resolution,resolution),
+                        resolution/2,0,resolution,resolution,
+                        PeriodicEdgeExtension());
+  } else {
+    image = holding;
+  }
   txref = TransformRef(geotx);
-  image = holding;
 }
 
 template <class PixelT>
@@ -149,6 +187,11 @@ namespace platefile {
                                     cartography::GeoReference const& georef, \
                                     ImageViewRef<PIXELT >& image,            \
                                     TransformRef& txref, int& level ) const; \
+  template void                                                              \
+  PlateCarreePlateManager<PIXELT >::affected_tiles(                          \
+                                    BBox2i const& image_size,                \
+                                    TransformRef const& tx, int tile_size,   \
+                              int level, std::list<TileInfo>& tiles ) const; \
   template cartography::GeoReference                                         \
   PlateCarreePlateManager<PIXELT >::georeference( int level ) const;         \
   template void                                                              \
