@@ -51,8 +51,7 @@ namespace vw {
     }
 
     inline bool simple_convert(const ImageFormat& b) const {
-      return same_size(b)
-          && simple_conversion(channel_type, b.channel_type)
+      return simple_conversion(channel_type, b.channel_type)
           && simple_conversion(pixel_format, b.pixel_format);
     }
 

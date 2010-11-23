@@ -87,7 +87,7 @@ void SrcImageResourceStream::read( ImageBuffer const& dst_buf, BBox2i const& bbo
   VW_ASSERT(!m_stream->fail(), IOErr() << "Can't read from stream (the bad or fail flag is already up)");
 
   // If we're doing unformatted reads, or conversion is simple
-  if (!m_fmt.complete() || (m_fmt.complete() && m_fmt.simple_convert(dst_buf.format))) {
+  if (!m_fmt.complete() || (m_fmt.complete() && m_fmt.same_size(dst_buf.format) && m_fmt.simple_convert(dst_buf.format))) {
     perform_read(m_stream.get(), reinterpret_cast<char*>(dst_buf.data), dst_buf.byte_size());
     return;
   }
@@ -139,7 +139,7 @@ void DstImageResourceStream::write( ImageBuffer const& src_buf, BBox2i const& bb
   VW_ASSERT(!m_stream->bad(), IOErr() << "Can't write to stream (the bad flag is already up)");
 
   // If we're doing unformatted writes, or conversion is simple
-  if (!m_fmt.complete() || (m_fmt.complete() && m_fmt.simple_convert(src_buf.format))) {
+  if (!m_fmt.complete() || (m_fmt.complete() && m_fmt.same_size(src_buf.format) && m_fmt.simple_convert(src_buf.format))) {
     perform_write(m_stream.get(), reinterpret_cast<const char*>(src_buf.data), src_buf.byte_size());
     return;
   }
