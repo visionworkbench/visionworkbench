@@ -11,7 +11,9 @@
 
 if MAKE_MODULE_MOSAIC
 
-TESTS =
+TestImageComposite_SOURCES = TestImageComposite.cxx
+
+TESTS = TestImageComposite
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -25,7 +27,7 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_MOSAIC_LIBS@
 
 check_PROGRAMS = $(TESTS)
-CLEANFILES = $(TESTS:%=%.cxx)
+CLEANFILES =
 
 include $(top_srcdir)/config/rules.mak
-include $(top_srcdir)/config/tests_old.am
+include $(top_srcdir)/config/tests.am

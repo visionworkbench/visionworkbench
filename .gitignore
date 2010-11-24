@@ -68,7 +68,6 @@ Makefile.in
 /src/vw/Cartography/tests/*.cxx
 /src/vw/Geometry/tests/*.cxx
 /src/vw/HDR/tests/*.cxx
-/src/vw/Mosaic/tests/*.cxx
 
 # Documentation intermediates
 docs/workbook/*.aux
@@ -116,6 +115,7 @@ docs/workbook/workbook.toc
 /src/vw/FileIO/tests/TestEndianness
 /src/vw/FileIO/tests/TestExtTester
 /src/vw/FileIO/tests/TestGDALFeatures
+/src/vw/FileIO/tests/nodata.tif
 /src/vw/Geometry/tests/TestSpatialTree
 /src/vw/Geometry/tests/TestSphere
 /src/vw/GPU/Shaders.cc
@@ -140,8 +140,10 @@ docs/workbook/workbook.toc
 /src/vw/Image/tests/TestImageViewRef
 /src/vw/Image/tests/TestInterpolation
 /src/vw/Image/tests/TestManipulation
-/src/vw/Image/tests/TestMaskViews
+/src/vw/Image/tests/TestMaskedImageMath
 /src/vw/Image/tests/TestMaskedPixelMath
+/src/vw/Image/tests/TestMaskedPixelMath2
+/src/vw/Image/tests/TestMaskViews
 /src/vw/Image/tests/TestPerPixelAccessorViews
 /src/vw/Image/tests/TestPerPixelViews
 /src/vw/Image/tests/TestPixelMath
@@ -172,6 +174,7 @@ docs/workbook/workbook.toc
 /src/vw/Math/tests/TestPoseEstimation
 /src/vw/Math/tests/TestQuaternion
 /src/vw/Math/tests/TestVector
+/src/vw/Mosaic/tests/TestImageComposite
 /src/vw/Plate/hirise2tif
 /src/vw/Plate/image2plate
 /src/vw/Plate/index_client
