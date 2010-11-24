@@ -87,15 +87,12 @@ PlateFile::PlateFile(const Url& url, std::string type, std::string description,
 /// Read the tile header. You supply a base name (without the
 /// file's image extension).  The image extension will be appended
 /// automatically for you based on the filetype in the TileHeader.
-std::string vw::platefile::PlateFile::read_to_file(std::string const& base_name,
-                                                   int col, int row, int level,
-                                                   TransactionOrNeg transaction_id) {
-
-  TileHeader result;
-  std::string filename = base_name;
-
+std::pair<std::string, TileHeader>
+PlateFile::read_to_file(std::string const& base_name, int col, int row, int level,
+                        TransactionOrNeg transaction_id, bool exact_transaction_match) const
+{
   // 1. Call index read_request(col,row,level).  Returns IndexRecord.
-  IndexRecord record = m_index->read_request(col, row, level, transaction_id);
+  IndexRecord record = m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
 
   // 2. Open the blob file and read the header
   boost::shared_ptr<Blob> read_blob;
@@ -110,11 +107,13 @@ std::string vw::platefile::PlateFile::read_to_file(std::string const& base_name,
   // 3. Choose a temporary filename and call BlobIO
   // read_as_file(filename, offset, size) [ offset, size from
   // IndexRecord ]
-  filename += "." + record.filetype();
+  std::string filename = base_name + "." + record.filetype();
   read_blob->read_to_file(filename, record.blob_offset());
 
+  TileHeader hdr = read_blob->read_header<TileHeader>(record.blob_offset());
+
   // 4. Return the name of the file
-  return filename;
+  return std::make_pair(filename, hdr);
 }
 
 /// Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -181,3 +180,36 @@ vw::platefile::IndexRecord vw::platefile::PlateFile::read_record(int col, int ro
   return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
 }
 
+void PlateFile::write_update(const boost::shared_array<uint8> data, uint64 data_size,
+                             int col, int row, int level, Transaction transaction_id) {
+
+  // Quick sanity check.
+  if (this->default_file_type() == "auto") {
+    vw_throw(NoImplErr() << "write_update() does not support writing un-typed "
+                         << "data arrays for filetype \'auto\'.\n");
+  }
+
+
+  if (!m_write_blob)
+    vw_throw(BlobIoErr() << "Error issuing write_update(). No blob file open. "
+                         << "Are you sure your ran write_request()?");
+
+  // 0. Create a write_header
+  TileHeader write_header;
+  write_header.set_col(col);
+  write_header.set_row(row);
+  write_header.set_level(level);
+  write_header.set_transaction_id(transaction_id);
+  write_header.set_filetype(this->default_file_type());
+
+  // 1. Write the data into the blob
+  uint64 blob_offset = m_write_blob->write(write_header, data, data_size);
+
+  // 2. Update the index
+  IndexRecord write_record;
+  write_record.set_blob_id(m_write_blob_id);
+  write_record.set_blob_offset(blob_offset);
+  write_record.set_filetype(write_header.filetype());
+
+  m_index->write_update(write_header, write_record);
+  }

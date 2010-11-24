@@ -53,9 +53,7 @@ void save_toast_tile(std::string base_output_name, boost::shared_ptr<PlateFile> 
     ostr << "/" << row;
 
     // transaction_id = -1 returns the latest tile available
-    std::string output_filename = platefile->read_to_file(ostr.str(), col, row, level, transaction_id);
-    // std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing "
-    //           << output_filename << "\n";
+    platefile->read_to_file(ostr.str(), col, row, level, transaction_id);
 
   } catch (TileNotFoundErr &e) {
     //    std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n";
@@ -104,9 +102,7 @@ void save_gigapan_tile(std::string base_output_name, boost::shared_ptr<PlateFile
     filename = directory_stream.str() + filename_stream.str();
 
     // transaction_id = -1 returns the latest tile available
-    std::string output_filename = platefile->read_to_file(filename, col, row, level, transaction_id);
-    //    std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Writing "
-    //              << output_filename << "\n";
+    platefile->read_to_file(filename, col, row, level, transaction_id);
 
   } catch (TileNotFoundErr &e) {
     //    std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n";
