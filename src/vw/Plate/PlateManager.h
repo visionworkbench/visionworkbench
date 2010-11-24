@@ -98,7 +98,10 @@ namespace platefile {
 
       // Calculated affected tiles and print debug statistics
       std::list<TileInfo> tiles;
-      this->affected_tiles( bounding_box(image), tx, 256, tiles );
+      this->affected_tiles( bounding_box(image), tx,
+                            m_platefile->default_tile_size(),
+                            pyramid_level, tiles );
+
       BBox2i affected_bbox;
       BOOST_FOREACH( TileInfo const& tile, tiles ) {
         affected_bbox.grow( Vector2i(tile.i,tile.j) );
