@@ -17,8 +17,12 @@ TestEndianness_SOURCES        = TestEndianness.cxx
 TestBlockFileIO_SOURCES       = TestBlockFileIO.cxx
 TestGDALFeatures_SOURCES      = TestGDALFeatures.cxx
 
-TESTS = TestDiskImageResource TestDiskImageView TestEndianness \
-        TestBlockFileIO TestGDALFeatures
+TESTS = \
+  TestBlockFileIO \
+  TestDiskImageResource \
+  TestDiskImageView \
+  TestEndianness \
+  TestGDALFeatures
 
 #include $(top_srcdir)/config/instantiate.am
 
