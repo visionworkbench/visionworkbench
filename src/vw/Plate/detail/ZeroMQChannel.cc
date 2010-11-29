@@ -34,7 +34,7 @@ namespace {
 }
 
 ZeroMQChannel::ZeroMQChannel(const std::string& human_name)
-  : m_ctx(get_ctx()), m_human_name(human_name), m_timeout(-1), m_retries(10) {}
+  : m_ctx(get_ctx()), m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_retries(10) {}
 
 
 ZeroMQChannel::~ZeroMQChannel() VW_NOTHROW {
