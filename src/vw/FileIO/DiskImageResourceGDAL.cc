@@ -89,6 +89,17 @@ namespace {
     // Register all GDAL file readers and writers and open the data set.
     GDALAllRegister();
   }
+
+  bool blocksize_whitelist(const GDALDriver* driver) {
+    // These drivers are mostly known to report good data
+    static const size_t DRIVER_COUNT = 4;
+    static const char drivers[DRIVER_COUNT][7] = {"GTiff", "ISIS3", "JP2ECW", "JP2KAK"};
+
+    for (size_t i = 0; i < DRIVER_COUNT; ++i)
+      if (driver == GetGDALDriverManager()->GetDriverByName(drivers[i]))
+        return true;
+    return false;
+  }
 }
 
 void vw::UnloadGDAL() {
@@ -487,19 +498,19 @@ namespace vw {
     if (!dataset)
       vw_throw(LogicErr() << "DiskImageResourceGDAL: Could not get native block size.  No file is open.");
 
+    GDALRasterBand *band = dataset->GetRasterBand(1);
+    int xsize, ysize;
+    band->GetBlockSize(&xsize,&ysize);
+
     // GDAL assumes a single-row stripsize even for file formats like PNG for
-    // which it does not support true strip access.  Thus, we check the file
-    // driver type before accepting GDAL's suggested block size.
-    if ( dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("GTiff") ||
-         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("ISIS3") ||
-         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2ECW") ||
-         dataset->GetDriver() == GetGDALDriverManager()->GetDriverByName("JP2KAK") ) {
-      GDALRasterBand *band = dataset->GetRasterBand(1);
-      int xsize, ysize;
-      band->GetBlockSize(&xsize,&ysize);
-      return Vector2i(xsize,ysize);
+    // which it does not support true strip access. If it looks like it did
+    // that (single-line block) only trust it if it's on the whitelist.
+    if (ysize == 1 && !blocksize_whitelist(dataset->GetDriver())) {
+      xsize = cols();
+      ysize = rows();
     }
-    return Vector2i(cols(),rows());
+
+    return Vector2i(xsize, ysize);
   }
 
   /// Set gdal's internal cache size (in bytes)
