@@ -66,14 +66,23 @@ IChannel* IChannel::make(const std::string& scheme, const std::string& clientnam
 
 IChannel* IChannel::make_conn(const Url& u, const std::string& clientname) {
   std::auto_ptr<IChannel> chan(make(u.scheme(), clientname));
-  chan->set_timeout(u.query().get("timeout", int32(-1)));
+
+  if (u.query().has("timeout"))
+    chan->set_timeout(u.query().get<int32>("timeout"));
+  if (u.query().has("retries"))
+    chan->set_retries(u.query().get<uint32>("retries"));
+
   chan->conn(u);
   return chan.release();
 }
 
 IChannel* IChannel::make_bind(const Url& u, const std::string& clientname) {
   std::auto_ptr<IChannel> chan(make(u.scheme(), clientname));
-  chan->set_timeout(u.query().get("timeout", int32(-1)));
+  if (u.query().has("timeout"))
+    chan->set_timeout(u.query().get<int32>("timeout"));
+  if (u.query().has("retries"))
+    chan->set_retries(u.query().get<uint32>("retries"));
+
   chan->bind(u);
   return chan.release();
 }
