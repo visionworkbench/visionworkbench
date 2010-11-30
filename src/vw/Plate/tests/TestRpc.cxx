@@ -39,7 +39,7 @@ class TestServiceImpl : public TestService {
         case CLIENT_ERROR:
           vw_throw(PlatefileErr() << "Sad panda");
         case SERVER_ERROR:
-          vw_throw(LogicErr() << "It broke!");
+          vw_throw(LogicErr() << "It broke! [<--- this is expected! Please ignore.]");
         default:
           response->set_num(request->num() * 2);
           done->Run();
