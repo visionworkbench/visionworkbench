@@ -122,6 +122,9 @@ void vw::parse_config(std::basic_istream<char>& stream,
 
         int32 level = name2level(level_s);
 
+        if (level >= DebugMessage)
+          std::cerr << "Warning! Your current config file enables debug logging. This will be slow." << std::endl;
+
         //cerr << "Adding rule: " << level << " " << domain << "\n";
         if (current_log)
           current_log->rule_set().add_rule(level, domain);
