@@ -250,8 +250,13 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
     q_wrap.set_seq(++m_seq);
 
     send_message(q_wrap);
-    if (!recv_message(a_wrap)) {
-      vw_out(WarningMessage) << "CallMethod Timeout. ";
+    try {
+      if (!recv_message(a_wrap)) {
+        vw_out(WarningMessage) << "CallMethod Timeout. ";
+        continue;
+      }
+    } catch (const RpcErr& e) {
+      vw_out(WarningMessage) << "CallMethod(): " << e.what() << ". ";
       continue;
     }
 
