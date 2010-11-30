@@ -299,6 +299,10 @@ string vw::platefile::QueryMap::serialize(const std::string& prefix, const std::
   return prefix + boost::join(vals, sep);
 }
 
+bool QueryMap::has(const std::string& key) const {
+  return m_map.find(key) != m_map.end();
+}
+
 // This is an adapter so boost::lexical_cast can handle hex.
 template <typename ElemT>
 struct HexTo {

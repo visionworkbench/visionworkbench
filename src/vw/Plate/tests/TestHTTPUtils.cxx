@@ -51,6 +51,11 @@ TEST(HTTPUtils, QueryMap) {
   EXPECT_EQ("moo", b.get("rawr", string("pants")));
   EXPECT_EQ("pants", b.get("rawr2", string("pants")));
 
+  EXPECT_TRUE(b.has("rawr"));
+  EXPECT_NO_THROW(b.get<string>("rawr"));
+  EXPECT_THROW(b.get<int>("rawr2"), LogicErr);
+  EXPECT_THROW(b.get<int>("rawr"), ArgumentErr);
+
   EXPECT_EQ("none", b.get("moon", string("none")));
   b.set("moon", "stars");
   EXPECT_EQ("stars", b.get("moon", string("none")));

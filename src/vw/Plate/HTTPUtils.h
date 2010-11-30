@@ -40,6 +40,20 @@ class QueryMap {
     // set a value, and return a reference to it for incremental use
     std::string& set(const std::string& key, const std::string& value);
 
+    // is the value set?
+    bool has(const std::string& key) const;
+
+    template <typename DataT>
+    DataT get(const std::string& key) const {
+      map_t::const_iterator i = m_map.find(key);
+      VW_ASSERT(i != m_map.end(), LogicErr() << "Key " << key << " is not in QueryMap!");
+      try {
+        return boost::lexical_cast<DataT>(i->second);
+      } catch (const boost::bad_lexical_cast&) {
+        vw_throw(vw::ArgumentErr() << "Illegal query string value");
+      }
+    }
+
     template <typename DataT>
     DataT get(const std::string& key, DataT defaultt) const {
       map_t::const_iterator i = m_map.find(key);
