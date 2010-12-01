@@ -203,7 +203,7 @@ int main( int argc, char *argv[] ) {
     ("format,f", po::value<std::string>(&tile_format)->default_value("toast"), "Tile directory format: toast, gigapan")
     ("output-name,o", po::value<std::string>(&output_file_name), "Specify the output plate file name.")
     ("file-type", po::value<std::string>(&output_file_type), "Output file type (png is used by default)")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

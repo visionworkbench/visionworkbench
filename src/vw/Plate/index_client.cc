@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("Runs a query against the index manager, or a specified platefile id");
   general_options.add_options()
     ("url,u", po::value(&url), "Run an info request against this platefile url.")
-    ("help",  "Display this help message");
+    ("help,h",  "Display this help message");
 
   po::options_description options("Allowed Options");
   options.add(general_options);

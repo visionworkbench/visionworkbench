@@ -227,7 +227,7 @@ int main( int argc, char *argv[] ) {
     ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).")
     ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
     ("terrain", "Tweak settings for terrain.")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

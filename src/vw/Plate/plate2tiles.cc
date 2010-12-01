@@ -206,7 +206,7 @@ int main( int argc, char *argv[] ) {
      "Specify the base output directory")
     ("transaction-id,t", po::value<int>(&transaction_id)->default_value(-1),
      "Specify the transaction id to save.")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

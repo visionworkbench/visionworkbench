@@ -29,7 +29,7 @@ int main( int argc, char *argv[] ) {
     ("failed", po::value<unsigned>(&transaction_id), "Mark a transaction as failed.")
     ("complete", po::value<unsigned>(&transaction_id), "Mark a transaction as complete, and update the read cursor..")
     ("sync", "Sync the platefile index to disk.")
-    ("help", "Display this help message.");
+    ("help,h", "Display this help message.");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

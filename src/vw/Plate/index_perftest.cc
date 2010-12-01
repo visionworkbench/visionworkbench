@@ -33,7 +33,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("AMQP Performance Test Program");
   general_options.add_options()
     ("url,u", po::value(&url), "Run requests against this index url.")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::variables_map vm;
   po::store( po::command_line_parser( argc, argv ).options(general_options).run(), vm );

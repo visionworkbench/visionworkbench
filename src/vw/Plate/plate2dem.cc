@@ -217,7 +217,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     ("output-datum", po::value(&opt.output_datum)->default_value("WGS84"), "Specify the output datum to use, [WGS84, WGS72, D_MOON, D_MARS]")
     ("export-pds-dem", "Export using int16 channel value with a -32767 nodata value")
     ("export-pds-imagery", "Export using uint8 channel value with a 0 nodata value")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description positional("");
   positional.add_options()

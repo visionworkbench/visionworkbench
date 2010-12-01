@@ -96,7 +96,7 @@ int main( int argc, char *argv[] ) {
     ("force-spherical-datum", po::value<double>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
     ("force-float", "Force the platefile to use a channel type of float.")
     ("debug", "Display helpful debugging messages.")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("Runs a mosaicking daemon that listens for mosaicking requests coming in over the AMQP bus..\n\nGeneral Options:");
   general_options.add_options()
     ("queue_name,q", po::value<std::string>(&queue_name)->default_value(""), "Specify the name of the AMQP queue to create and listen to for mosaicking requests. (Defaults to the \"ngt_mosaic_worker\" queue.")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description options("Allowed Options");
   options.add(general_options);

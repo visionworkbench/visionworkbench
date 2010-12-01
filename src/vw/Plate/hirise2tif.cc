@@ -504,7 +504,7 @@ int main( int argc, char *argv[] ) {
     ("uniform-stretch", "Stretch all color channels using the same range.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Cache size, in megabytes")
     ("gdal-cache", po::value<unsigned>(&gdal_cache_size)->default_value(256), "GDAL internal cache size, in megabytes")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description output_options("Output Options");
   output_options.add_options()

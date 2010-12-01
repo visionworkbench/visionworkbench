@@ -29,7 +29,7 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("\nRebuild a platefile index.\n");
   general_options.add_options()
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()

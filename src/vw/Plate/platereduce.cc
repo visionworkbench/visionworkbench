@@ -288,7 +288,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("level,l", po::value(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out and show the number of levels available.")
     ("function,f", po::value(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean WeightedVar]")
     ("transaction-id,t",po::value(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
-    ("help", "Display this help message");
+    ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
