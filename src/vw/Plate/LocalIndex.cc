@@ -21,6 +21,9 @@ using namespace vw::platefile;
 #include <algorithm>
 namespace fs = boost::filesystem;
 
+#include <sstream>
+#include <openssl/md5.h>
+
 LocalIndexPage::LocalIndexPage(std::string filename, int level, int base_col,
                                int base_row, int page_width, int page_height)
   : IndexPage(level, base_col, base_row, page_width, page_height),
@@ -208,13 +211,12 @@ void LocalIndex::save_index_file() const {
          << m_header.tile_filetype() << ").\n";
    }
 
-   // Create a unique (random) platefile_id using the random()
-   // function.  It would probably be better to use some sort of fancy
-   // MD5 hash of the current time and date, or something like that,
-   // but little 'ol random() will probably work just fine for our
-   // humble purposes.
-   srandom(boost::numeric_cast<unsigned int>(time(0)));
-   m_header.set_platefile_id(vw::int32(random()));
+   // Create a unique platefile_id from md5 of time and name
+   std::ostringstream md5_input;
+   md5_input << boost::numeric_cast<unsigned int>(time(0))
+             << plate_filename;
+   unsigned char* md5_ichar = (unsigned char*)(md5_input.str().c_str());
+   m_header.set_platefile_id( *((vw::int32*)MD5( md5_ichar, md5_input.str().size(),NULL)));
 
    // Set up the IndexHeader and write it to disk.
    m_header.set_version(VW_PLATE_INDEX_VERSION);
