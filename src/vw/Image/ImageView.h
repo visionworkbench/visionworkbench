@@ -140,15 +140,37 @@ namespace vw {
 
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
     void set_size( int32 cols, int32 rows, int32 planes = 1 ) {
+      // if none of cols, rows, or planes are larger than this, the
+      // product of the three cannot overflow a 64-bit signed number
+      // 2^26 * 2^26 * 2^10  = 2^62 < 2^63-1
+      static const int32 MAX_PIXEL_SIZE  = 1<<26;
+      static const int32 MAX_PLANE_COUNT = 1<<10;
       if( cols==m_cols && rows==m_rows && planes==m_planes ) return;
 
-      // FIXME: We can do better than this on 64-bit machines.
-      int32 size = cols*rows*planes;
-      if( size==0 ) {
+      // This check can go away when the ImageViewBase classes handle these as unsigned
+      VW_ASSERT(cols >= 0 && rows >= 0 && planes >= 0,
+          ArgumentErr() << "Cannot allocate image with negative pixel count (you requested " << cols << " x "  << rows << " x " << planes << ")");
+
+      // see comment above on MAX_PIXEL_SIZE.
+      VW_ASSERT(cols < MAX_PIXEL_SIZE && rows < MAX_PIXEL_SIZE && planes < MAX_PLANE_COUNT,
+          ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE << " pixels on a side (you requested " << cols << " x "  << rows << " x " << planes << ")");
+
+      uint64 size64 = uint64(cols) * uint64(rows) * uint64(planes);
+
+      // This might trip on 32-bit platforms
+      VW_ASSERT(size64 < std::numeric_limits<size_t>::max(),
+          ArgumentErr() << "Cannot allocate enough memory for a " << cols << "x"  << rows << "x" << planes << " image: too many pixels!");
+
+      size_t size = size64;
+
+      if( size==0 )
         m_data.reset();
-      }
       else {
-        boost::shared_array<PixelT> data( new PixelT[size] );
+        boost::shared_array<PixelT> data( new (std::nothrow) PixelT[size] );
+        if (!data) {
+          vw_out(ErrorMessage)   << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!" << std::endl;
+          vw_throw(ArgumentErr() << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!");
+        }
         m_data = data;
       }
 

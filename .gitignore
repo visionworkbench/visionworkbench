@@ -137,6 +137,7 @@ docs/workbook/workbook.toc
 /src/vw/Image/tests/TestImageMath
 /src/vw/Image/tests/TestImageResource
 /src/vw/Image/tests/TestImageView
+/src/vw/Image/tests/TestImageViewMemory
 /src/vw/Image/tests/TestImageViewRef
 /src/vw/Image/tests/TestInterpolation
 /src/vw/Image/tests/TestManipulation

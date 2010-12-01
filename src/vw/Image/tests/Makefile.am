@@ -19,6 +19,7 @@ TestImageMath_SOURCES             = TestImageMath.cxx
 TestImageResource_SOURCES         = TestImageResource.cxx
 TestImageViewRef_SOURCES          = TestImageViewRef.cxx
 TestImageView_SOURCES             = TestImageView.cxx
+TestImageViewMemory_SOURCES       = TestImageViewMemory.cxx
 TestInterpolation_SOURCES         = TestInterpolation.cxx
 TestManipulation_SOURCES          = TestManipulation.cxx
 TestMaskedImageMath_SOURCES       = TestMaskedImageMath.cxx
@@ -41,6 +42,7 @@ TESTS = \
   TestImageMath \
   TestImageResource \
   TestImageView \
+  TestImageViewMemory \
   TestImageViewRef \
   TestInterpolation \
   TestManipulation \

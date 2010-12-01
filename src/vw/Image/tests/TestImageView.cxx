@@ -105,6 +105,9 @@ TEST( ImageView, SetSize ) {
   EXPECT_EQ(test_rgba.cols(), 0);
   EXPECT_EQ(test_rgba.rows(), 0);
   ASSERT_EQ(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
+
+  EXPECT_THROW(test_rgba.set_size(0,-1), ArgumentErr);
+  EXPECT_THROW(test_rgba.set_size(0,std::numeric_limits<int32>::max()), ArgumentErr);
 }
 
 TEST( ImageView, Reset ) {
