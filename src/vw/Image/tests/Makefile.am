@@ -17,28 +17,44 @@ TestEdgeExtension_SOURCES         = TestEdgeExtension.cxx
 TestFilter_SOURCES                = TestFilter.cxx
 TestImageMath_SOURCES             = TestImageMath.cxx
 TestImageResource_SOURCES         = TestImageResource.cxx
-TestImageView_SOURCES             = TestImageView.cxx
 TestImageViewRef_SOURCES          = TestImageViewRef.cxx
+TestImageView_SOURCES             = TestImageView.cxx
 TestInterpolation_SOURCES         = TestInterpolation.cxx
 TestManipulation_SOURCES          = TestManipulation.cxx
+TestMaskedImageMath_SOURCES       = TestMaskedImageMath.cxx
+TestMaskedPixelMath2_SOURCES      = TestMaskedPixelMath2.cxx
+TestMaskedPixelMath_SOURCES       = TestMaskedPixelMath.cxx
+TestMaskViews_SOURCES             = TestMaskViews.cxx
 TestPerPixelAccessorViews_SOURCES = TestPerPixelAccessorViews.cxx
 TestPerPixelViews_SOURCES         = TestPerPixelViews.cxx
 TestPixelMath_SOURCES             = TestPixelMath.cxx
 TestPixelTypes_SOURCES            = TestPixelTypes.cxx
 TestStatistics_SOURCES            = TestStatistics.cxx
 TestTransform_SOURCES             = TestTransform.cxx
-TestMaskedPixelMath_SOURCES       = TestMaskedPixelMath.cxx
-TestMaskViews_SOURCES             = TestMaskViews.cxx
 TestUtilityViews_SOURCES          = TestUtilityViews.cxx
-TestMaskedPixelMath2_SOURCES      = TestMaskedPixelMath2.cxx
-TestMaskedImageMath_SOURCES       = TestMaskedImageMath.cxx
 
-TESTS = TestAlgorithms TestConvolution TestEdgeExtension TestFilter        \
-        TestImageMath TestImageResource TestImageView TestImageViewRef     \
-        TestInterpolation TestManipulation TestPerPixelAccessorViews       \
-        TestPerPixelViews TestPixelMath TestPixelTypes TestStatistics      \
-        TestTransform TestMaskedPixelMath TestMaskViews TestUtilityViews   \
-        TestMaskedPixelMath2 TestMaskedImageMath
+TESTS = \
+  TestAlgorithms \
+  TestConvolution \
+  TestEdgeExtension \
+  TestFilter \
+  TestImageMath \
+  TestImageResource \
+  TestImageView \
+  TestImageViewRef \
+  TestInterpolation \
+  TestManipulation \
+  TestMaskedImageMath \
+  TestMaskedPixelMath \
+  TestMaskedPixelMath2 \
+  TestMaskViews \
+  TestPerPixelAccessorViews \
+  TestPerPixelViews \
+  TestPixelMath \
+  TestPixelTypes \
+  TestStatistics \
+  TestTransform \
+  TestUtilityViews
 
 #include $(top_srcdir)/config/instantiate.am
 
