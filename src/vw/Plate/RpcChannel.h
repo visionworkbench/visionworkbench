@@ -54,8 +54,9 @@ class IChannel : public ::google::protobuf::RpcChannel {
     virtual int32  timeout() const = 0;
     virtual uint32 retries() const = 0;
 
-    // Default timeout for all channels, if none is provided
-    static const int32 DEFAULT_TIMEOUT = 10000; // ms
+    // Defaults for all channels, if none is provided
+    static const int32  DEFAULT_TIMEOUT = 10000; // ms
+    static const uint32 DEFAULT_RETRIES = 10;
 
     //virtual uint64 queue_depth() const = 0;
     virtual std::string name() const = 0;

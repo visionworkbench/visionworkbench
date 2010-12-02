@@ -65,7 +65,7 @@ namespace platefile {
 
     public:
       AmqpChannel(const std::string& human_name)
-        : m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_seq(0), m_retries(10) {}
+        : m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_seq(0), m_retries(DEFAULT_RETRIES) {}
       virtual ~AmqpChannel() VW_NOTHROW;
 
       int32  timeout() const;

@@ -39,8 +39,7 @@ namespace {
 }
 
 ZeroMQChannel::ZeroMQChannel(const std::string& human_name)
-  : m_ctx(get_ctx()), m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_retries(10) {}
-
+  : m_ctx(get_ctx()), m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_retries(DEFAULT_RETRIES) {}
 
 ZeroMQChannel::~ZeroMQChannel() VW_NOTHROW {
   if (m_sock) {
@@ -219,12 +218,6 @@ uint32 ZeroMQChannel::retries() const {
 void ZeroMQChannel::set_retries(uint32 x) {
   m_retries = x;
 }
-
-#if 0
-uint64 ZeroMQChannel::queue_depth() const {
-  vw_throw(NoImplErr() << "Dang. Can't do this with zeromq yet.");
-}
-#endif
 
 std::string ZeroMQChannel::name() const {
   return m_human_name;
