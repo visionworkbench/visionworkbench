@@ -470,7 +470,7 @@ AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU" = "yes"])
 # final processing
 ##################################################
 
-VW_CPPFLAGS="-I\${top_srcdir}/src $OTHER_CPPFLAGS"
+VW_CPPFLAGS="-I\${abs_top_srcdir}/src $OTHER_CPPFLAGS"
 VW_LDFLAGS="$OTHER_LDFLAGS"
 
 # Do this last, to make sure it's not overridden
