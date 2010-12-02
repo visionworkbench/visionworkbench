@@ -153,7 +153,7 @@ namespace vw {
 
       // see comment above on MAX_PIXEL_SIZE.
       VW_ASSERT(cols < MAX_PIXEL_SIZE && rows < MAX_PIXEL_SIZE,
-          ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE-1 << " pixels on a side (you requested " << cols << " x " << rows ")");
+          ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE-1 << " pixels on a side (you requested " << cols << " x " << rows << ")");
 
       VW_ASSERT(planes < MAX_PLANE_COUNT,
           ArgumentErr() << "Refusing to allocate an image with more than " << MAX_PLANE_COUNT-1 << " planes on a side (you requested " << planes << ")");
