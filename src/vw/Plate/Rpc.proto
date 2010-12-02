@@ -42,4 +42,5 @@ message RpcWrapper {
   optional RpcErrorMsg error = 3;
   optional string requestor  = 4;
   optional int32 seq         = 5 [default = -1];
+  required uint32 checksum   = 6;
 }

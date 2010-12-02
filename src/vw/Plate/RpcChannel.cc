@@ -32,7 +32,8 @@ std::string vw::platefile::unique_name(const std::string& identifier, const std:
   return uuid.str();
 }
 
-void IChannel::send_message(const RpcWrapper& message) {
+void IChannel::send_message(RpcWrapper& message) {
+  message.set_checksum(this->checksum(message));
   const size_t len = message.ByteSize();
 
   boost::scoped_array<uint8> bytes(new uint8[len]);
@@ -46,6 +47,8 @@ bool IChannel::recv_message(RpcWrapper& message) {
     return false;
   bool worked = message.ParseFromArray(bytes->begin(), boost::numeric_cast<int>(bytes->size()));
   VW_ASSERT(worked, RpcErr() << "IChannel::recv_message failed to parse message");
+  worked = (this->checksum(message) == message.checksum());
+  VW_ASSERT(worked, RpcErr() << "IChannel::recv_message checksum failed (message corrupted?)");
   return true;
 }
 
@@ -85,4 +88,26 @@ IChannel* IChannel::make_bind(const Url& u, const std::string& clientname) {
 
   chan->bind(u);
   return chan.release();
+}
+
+namespace {
+  // This is basically fletcher16, except not quite (since it preserves the
+  // full c0 and c1)
+  void fletcher_add( uint32& sum, const char *data, size_t len ) {
+    uint16 c0 = (sum >> 16), c1 = (sum & 0xffff);
+    for (size_t i = 0; i < len; ++i) {
+      c0 += *data++;
+      c1 += c0;
+    }
+    sum = c0;
+    sum <<= 16;
+    sum += c1;
+  }
+}
+
+uint32 IChannel::checksum(const RpcWrapper& message) {
+  uint32 sum = 0;
+  fletcher_add(sum, message.method().c_str(), message.method().size());
+  fletcher_add(sum, message.payload().c_str(), message.payload().size());
+  return sum;
 }

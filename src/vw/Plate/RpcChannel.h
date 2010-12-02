@@ -33,9 +33,13 @@ class IChannel : public ::google::protobuf::RpcChannel {
     virtual void send_bytes(const uint8* message, size_t len) = 0;
     virtual bool recv_bytes(SharedByteArray& bytes) = 0;
 
-    void send_message(const RpcWrapper& message);
+    // message is non-const because it updates the checksum
+    void send_message(RpcWrapper& message);
     // return false means timeout
     bool recv_message(RpcWrapper& message);
+
+    // Calculate checksum.
+    static uint32 checksum(const RpcWrapper& message);
 
     virtual void CallMethod(const google::protobuf::MethodDescriptor*,
                             google::protobuf::RpcController*,

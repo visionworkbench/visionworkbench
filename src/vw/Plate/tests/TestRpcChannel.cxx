@@ -19,6 +19,20 @@ using namespace vw;
 using namespace vw::platefile;
 using namespace vw::test;
 
+TEST(TestRpcChannel, Checksum) {
+  RpcWrapper msg;
+  msg.set_method("ab");
+  msg.set_payload("cd");
+
+  uint16 high = 'a' + 'b' + 'c' + 'd';
+  uint16 low  = 'a' + ('a' + 'b') + ('a' + 'b' + 'c') + ('a' + 'b' + 'c' + 'd');
+  uint32 sum = (uint32(high) << 16) + low;
+
+  // magic number is hand-calculated, but should equal the above
+  ASSERT_EQ(0x18a03d4, sum);
+  EXPECT_EQ(sum, IChannel::checksum(msg));
+}
+
 const uint64 TIMEOUT = 1000;
 typedef boost::shared_ptr<IChannel> Chan;
 
@@ -57,6 +71,35 @@ struct IChannelTest : public ::testing::TestWithParam<Url> {
     server.reset();
   }
 };
+
+TEST_P(IChannelTest, ChecksumFailure) {
+  RpcWrapper message, a;
+  make_clients(1);
+
+  // Need to bake the message by hand to falsify the checksum
+  message.set_method("test");
+  message.set_payload("rawr!");
+  message.set_checksum(clients[0]->checksum(message) + 1);
+
+  size_t len = message.ByteSize();
+  boost::scoped_array<uint8> bytes(new uint8[len]);
+  message.SerializeToArray(bytes.get(), boost::numeric_cast<int>(len));
+  clients[0]->send_bytes(bytes.get(), len);
+
+  // corrupted checksum should throw
+  EXPECT_THROW(server->recv_message(a), RpcErr);
+
+  // Now resend the message properly (though as a response, so we don't violate
+  // send/receive order
+  message.set_checksum(clients[0]->checksum(message));
+
+  len = message.ByteSize();
+  bytes.reset(new uint8[len]);
+  message.SerializeToArray(bytes.get(), boost::numeric_cast<int>(len));
+  server->send_bytes(bytes.get(), len);
+
+  EXPECT_NO_THROW(clients[0]->recv_message(a));
+}
 
 TEST_P(IChannelTest, Request) {
   SharedByteArray a1;
