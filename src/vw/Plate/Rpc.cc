@@ -12,6 +12,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Debugging.h>
 #include <google/protobuf/descriptor.h>
+#include <boost/scoped_ptr.hpp>
 
 using namespace vw;
 using namespace vw::platefile;

@@ -14,6 +14,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <google/protobuf/descriptor.h>
 #include <boost/numeric/conversion/cast.hpp>
+#include <boost/scoped_array.hpp>
 
 using namespace vw;
 using namespace vw::platefile;
