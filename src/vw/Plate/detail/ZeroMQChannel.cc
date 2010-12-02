@@ -13,6 +13,7 @@
 #include <boost/algorithm/string/trim.hpp>
 #include <google/protobuf/descriptor.h>
 #include <zmq.hpp>
+#include <cerrno>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -30,6 +31,10 @@ namespace {
   boost::shared_ptr<zmq::context_t> get_ctx() {
     zmq_init_once.run(init_zmq);
     return zmq_ctx_ptr;
+  }
+
+  const char* zmq_err() {
+    return zmq_strerror(errno);
   }
 }
 
@@ -70,19 +75,23 @@ bool ZeroMQChannel::recv_bytes(SharedByteArray& bytes) {
 
     // zeromq timeouts are in us
     int32 timeout_us = this->timeout() * 1000;
-
-    uint64_t stop = Stopwatch::microtime() + timeout_us;
-
-    // This is only necessary for a while
-    // zmq revision e2167cecaefec6557c7a5712fb75e51487ff69a6 prevents poll from
-    // returning early (so maybe v2.1.0?)
+    const uint64_t stop = Stopwatch::microtime() + timeout_us;
     int rc;
-    do {
-      rc = zmq::poll(item, 1, timeout_us);
-    } while (rc == 0 && Stopwatch::microtime() < stop);
+    while (true) {
+      rc = ::zmq_poll(item, 1, timeout_us);
+      if (rc > 0)
+        break;
+      if (rc < 0 && !(errno == EINTR || errno == EAGAIN))
+        vw_throw(ZeroMQErr() << "ZeroMQChannel::recv_bytes failed: poll error: " << zmq_err());
 
-    if (rc == 0)
-      return false;
+      //recalculate time and go again. poll can return 0 before timeout has
+      //completely expired, though zmq revision
+      //e2167cecaefec6557c7a5712fb75e51487ff69a6 might fix that. anyway, assume
+      //it might have returned early and deal with it.
+      timeout_us = stop - Stopwatch::microtime();
+      if (timeout_us <= 0)
+        return false;
+    }
   }
 
   // false return means EAGAIN
@@ -176,7 +185,7 @@ void ZeroMQChannel::conn(const Url& endpoint_) {
   // We use the c interface rather than the c++ one here to avoid having to
   // catch an exception and rethrow
   if (zmq_connect(*m_sock, url.c_str()) != 0)
-    vw_throw(ZeroMQErr() << "Failed to connect to " << url.c_str() << ": " << zmq_strerror(zmq_errno()));
+    vw_throw(ZeroMQErr() << "Failed to connect to " << url.c_str() << ": " << zmq_err);
 }
 
 void ZeroMQChannel::bind(const Url& endpoint_) {
