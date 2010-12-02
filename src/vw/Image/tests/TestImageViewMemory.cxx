@@ -23,7 +23,8 @@ void operator delete[](void*, const nothrow_t&) throw() {
 
 TEST(ImageView, TooMuchMemoryDeath) {
   int32 cols, rows, planes;
-  cols = rows = planes = 1 << 11;
+  cols = rows = 1<<15;
+  planes = 1 << 9;
 
   ImageView<uint8> img;
 

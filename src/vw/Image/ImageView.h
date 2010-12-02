@@ -152,8 +152,11 @@ namespace vw {
           ArgumentErr() << "Cannot allocate image with negative pixel count (you requested " << cols << " x "  << rows << " x " << planes << ")");
 
       // see comment above on MAX_PIXEL_SIZE.
-      VW_ASSERT(cols < MAX_PIXEL_SIZE && rows < MAX_PIXEL_SIZE && planes < MAX_PLANE_COUNT,
-          ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE << " pixels on a side (you requested " << cols << " x "  << rows << " x " << planes << ")");
+      VW_ASSERT(cols < MAX_PIXEL_SIZE && rows < MAX_PIXEL_SIZE,
+          ArgumentErr() << "Refusing to allocate an image larger than " << MAX_PIXEL_SIZE-1 << " pixels on a side (you requested " << cols << " x " << rows ")");
+
+      VW_ASSERT(planes < MAX_PLANE_COUNT,
+          ArgumentErr() << "Refusing to allocate an image with more than " << MAX_PLANE_COUNT-1 << " planes on a side (you requested " << planes << ")");
 
       uint64 size64 = uint64(cols) * uint64(rows) * uint64(planes);
 
@@ -168,6 +171,7 @@ namespace vw {
       else {
         boost::shared_array<PixelT> data( new (std::nothrow) PixelT[size] );
         if (!data) {
+          // print it and throw it for the benefit of OSX, which doesn't print the exception what() on terminate()
           vw_out(ErrorMessage)   << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!" << std::endl;
           vw_throw(ArgumentErr() << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!");
         }
