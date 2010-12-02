@@ -213,7 +213,7 @@ void LocalIndex::save_index_file() const {
    // MD5 hash of the current time and date, or something like that,
    // but little 'ol random() will probably work just fine for our
    // humble purposes.
-   srandom(boost::numeric_cast<unsigned int>(time(0)));
+   srandom(boost::numeric_cast<unsigned int>(clock()));
    m_header.set_platefile_id(vw::int32(random()));
 
    // Set up the IndexHeader and write it to disk.
