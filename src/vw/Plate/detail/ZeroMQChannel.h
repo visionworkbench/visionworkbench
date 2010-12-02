@@ -36,6 +36,7 @@ namespace platefile {
     protected:
       void send_bytes(const uint8* message, size_t len);
       bool recv_bytes(SharedByteArray& bytes);
+      void init_endpoint(Url& u);
 
     public:
       ZeroMQChannel(const std::string& human_name);

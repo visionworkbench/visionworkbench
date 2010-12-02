@@ -235,3 +235,29 @@ std::vector<Url> test_urls() {
 }
 
 INSTANTIATE_TEST_CASE_P(URLs, IChannelTest, ::testing::ValuesIn(test_urls()));
+
+struct TestUrls : ::testing::Test {
+  Chan server(const Url& u) {
+    return Chan(IChannel::make_bind(u, "unittest_server"));
+  }
+  Chan client(const Url& u) {
+    return Chan(IChannel::make_conn(u, "unittest_client"));
+  }
+};
+
+// Make sure some illegal urls don't pass
+TEST_F(TestUrls, Illegal) {
+#if defined(VW_HAVE_PKG_ZEROMQ) && VW_HAVE_PKG_ZEROMQ==1
+  // can't connect to a wildcard
+  EXPECT_THROW(client("zmq+tcp://*:12345"), ArgumentErr);
+  // can't connect or bind without a port
+  EXPECT_THROW(client("zmq+tcp://127.0.0.1"), ArgumentErr);
+  EXPECT_THROW(server("zmq+tcp://127.0.0.1"), ArgumentErr);
+  // tcp urls don't take a path
+  EXPECT_THROW(server("zmq+tcp://127.0.0.1:12345/b"), ArgumentErr);
+  EXPECT_THROW(client("zmq+tcp://127.0.0.1:12345/a"), ArgumentErr);
+  // ipc must have a path; / isn't good enough
+  EXPECT_THROW(server("zmq+ipc:///"), ArgumentErr);
+  EXPECT_THROW(client("zmq+ipc:///"), ArgumentErr);
+#endif
+}
