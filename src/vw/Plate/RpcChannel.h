@@ -8,9 +8,9 @@
 #ifndef __VW_PLATE_RPCCHANNEL_H__
 #define __VW_PLATE_RPCCHANNEL_H__
 
-#include <vw/Core/VarArray.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <google/protobuf/service.h>
+#include <vector>
 
 namespace vw {
 namespace platefile {
@@ -18,9 +18,6 @@ namespace platefile {
 class RpcWrapper;
 class Url;
 class RpcBase;
-
-typedef VarArray<uint8> ByteArray;
-typedef boost::shared_ptr<ByteArray> SharedByteArray;
 
 // Returns a unique name based on the identifier
 // (uuid built from id, hostname, pid, thread, time)
@@ -31,7 +28,7 @@ std::string unique_name(const std::string& identifier, const std::string& join =
 class IChannel : public ::google::protobuf::RpcChannel {
   public:
     virtual void send_bytes(const uint8* message, size_t len) = 0;
-    virtual bool recv_bytes(SharedByteArray& bytes) VW_WARN_UNUSED = 0;
+    virtual bool recv_bytes(std::vector<uint8>* bytes) VW_WARN_UNUSED = 0;
 
     void send_message(RpcWrapper& message);
     // This returns -1 for recoverable error, 0 for timeout, 1 for success

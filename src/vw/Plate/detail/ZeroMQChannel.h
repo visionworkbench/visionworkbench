@@ -11,6 +11,7 @@
 #include <vw/Plate/RpcChannel.h>
 #include <vw/Plate/Exception.h>
 #include <boost/noncopyable.hpp>
+#include <boost/shared_ptr.hpp>
 
 namespace zmq {
   class context_t;
@@ -35,7 +36,7 @@ namespace platefile {
 
     protected:
       void send_bytes(const uint8* message, size_t len);
-      bool recv_bytes(SharedByteArray& bytes);
+      bool recv_bytes(std::vector<uint8>* bytes);
       void init_endpoint(Url& u);
 
     public:

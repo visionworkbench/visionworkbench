@@ -42,10 +42,10 @@ void IChannel::send_message(RpcWrapper& message) {
 }
 
 int32 IChannel::recv_message(RpcWrapper& message) {
-  SharedByteArray bytes;
-  if (!recv_bytes(bytes))
+  std::vector<uint8> bytes;
+  if (!recv_bytes(&bytes))
     return 0;
-  if (!message.ParseFromArray(bytes->begin(), boost::numeric_cast<int>(bytes->size())))
+  if (!message.ParseFromArray(&bytes[0], boost::numeric_cast<int>(bytes.size())))
     return -1;
   if (this->checksum(message) != message.checksum())
     return -1;

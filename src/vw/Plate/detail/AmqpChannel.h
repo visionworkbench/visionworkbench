@@ -13,6 +13,7 @@
 #include <vw/Core/ThreadQueue.h>
 
 #include <boost/function.hpp>
+#include <boost/shared_array.hpp>
 
 struct amqp_rpc_reply_t_;
 typedef amqp_rpc_reply_t_ amqp_rpc_reply_t;
@@ -29,7 +30,7 @@ namespace platefile {
   class AmqpConsumeTask;
   class AmqpConnection;
   struct AmqpData {
-    SharedByteArray data;
+    boost::shared_ptr<std::vector<uint8> > data;
     std::string sender;
   };
 
@@ -56,12 +57,12 @@ namespace platefile {
       boost::shared_ptr<AmqpConsumer> locked_basic_consume(std::string const& queue, boost::function<void (AmqpData)> callback);
 
       void basic_publish(const uint8* message, uint64 len, std::string const& exchange, std::string const& routing_key) const;
-      bool basic_get(std::string const& queue, SharedByteArray& message) const;
+      //bool basic_get(std::string const& queue, SharedByteArray& message) const;
 
       void create_endpoint(const std::string& rabbitmq, short port, const std::string& name);
       void remove_endpoint();
       void send_bytes(const uint8* message, size_t len);
-      bool recv_bytes(SharedByteArray& bytes);
+      bool recv_bytes(std::vector<uint8>* bytes);
 
     public:
       AmqpChannel(const std::string& human_name)

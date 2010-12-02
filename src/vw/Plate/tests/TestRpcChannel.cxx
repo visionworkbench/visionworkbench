@@ -48,14 +48,14 @@ struct GenClient {
 };
 
 struct IChannelTest : public ::testing::TestWithParam<Url> {
-  ByteArray e1,e2;
+  std::vector<uint8> e1,e2;
   Chan server;
   vector<Chan> clients;
 
   void SetUp() {
     static const char m1[] = "13", m2[] = "26";
-    e1 = ByteArray(m1, m1+sizeof(m1));
-    e2 = ByteArray(m2, m2+sizeof(m2));
+    std::copy(m1, m1+sizeof(m1), std::back_inserter(e1));
+    std::copy(m2, m2+sizeof(m2), std::back_inserter(e2));
     ASSERT_NO_THROW(server.reset(IChannel::make_bind(GetParam(), "unittest_server")));
     server->set_timeout(TIMEOUT);
     clients.resize(0);
@@ -102,29 +102,25 @@ TEST_P(IChannelTest, ChecksumFailure) {
 }
 
 TEST_P(IChannelTest, Request) {
-  SharedByteArray a1;
+  std::vector<uint8> a1;
   make_clients(1);
 
-  clients[0]->send_bytes(e1.begin(), e1.size());
-  EXPECT_TRUE(server->recv_bytes(a1));
-
-  ASSERT_TRUE(a1);
-  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1->begin(), a1->end());
+  clients[0]->send_bytes(&e1[0], e1.size());
+  EXPECT_TRUE(server->recv_bytes(&a1));
+  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1.begin(), a1.end());
 }
 
 TEST_P(IChannelTest, RequestReply) {
-  SharedByteArray a1, a2;
+  std::vector<uint8> a1, a2;
   make_clients(1);
 
-  clients[0]->send_bytes(e1.begin(), e1.size());
-  ASSERT_TRUE(server->recv_bytes(a1));
-  ASSERT_TRUE(a1);
-  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1->begin(), a1->end());
+  clients[0]->send_bytes(&e1[0], e1.size());
+  ASSERT_TRUE(server->recv_bytes(&a1));
+  EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1.begin(), a1.end());
 
-  server->send_bytes(e2.begin(), e2.size());
-  ASSERT_TRUE(clients[0]->recv_bytes(a2));
-  ASSERT_TRUE(a2);
-  EXPECT_RANGE_EQ(e2.begin(), e2.end(), a2->begin(), a2->end());
+  server->send_bytes(&e2[0], e2.size());
+  ASSERT_TRUE(clients[0]->recv_bytes(&a2));
+  EXPECT_RANGE_EQ(e2.begin(), e2.end(), a2.begin(), a2.end());
 }
 
 struct NumberTask {
@@ -142,10 +138,10 @@ struct NumberTask {
 
   NumberTask(const Url& url) : url(url), done(false) {}
 
-  Msg unmake(const ByteArray& b) {
+  Msg unmake(const std::vector<uint8>& b) {
     Msg m(-1,-1);
     VW_ASSERT(b.size() == sizeof(m), LogicErr() << "Error in message size");
-    ::memcpy(&m, b.begin(), sizeof(m));
+    ::memcpy(&m, &b[0], sizeof(m));
     return m;
   }
 
@@ -156,13 +152,12 @@ struct NumberTask {
     client->set_timeout(TIMEOUT);
 
     received.resize(COUNT, Msg(-1,-1));
-    SharedByteArray in;
+    std::vector<uint8> in;
     for (uint64 i = 0; i < COUNT; ++i) {
       Msg out(id, i);
       client->send_bytes(reinterpret_cast<const uint8*>(&out), sizeof(Msg));
-      ASSERT_TRUE(client->recv_bytes(in));
-      ASSERT_TRUE(in);
-      received[i] = unmake(*in);
+      ASSERT_TRUE(client->recv_bytes(&in));
+      received[i] = unmake(in);
     }
     done = true;
   }
@@ -185,13 +180,11 @@ TEST_P(IChannelTest, MultiThreadTorture) {
   }
 
   uint64 msgs = 0;
-  SharedByteArray msg;
+  std::vector<uint8> msg;
   while (1) {
-    msg.reset();
-    if (!server->recv_bytes(msg))
+    if (!server->recv_bytes(&msg))
       break;
-    ASSERT_TRUE(msg);
-    server->send_bytes(msg->begin(), msg->size());
+    server->send_bytes(&msg[0], msg.size());
     msgs++;
   }
 

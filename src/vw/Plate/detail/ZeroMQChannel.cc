@@ -60,7 +60,7 @@ void ZeroMQChannel::send_bytes(const uint8* message, size_t len) {
   }
 }
 
-bool ZeroMQChannel::recv_bytes(SharedByteArray& bytes) {
+bool ZeroMQChannel::recv_bytes(std::vector<uint8>* bytes) {
   VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannels must not be shared between threads");
 
   zmq::message_t rmsg;
@@ -97,8 +97,12 @@ bool ZeroMQChannel::recv_bytes(SharedByteArray& bytes) {
   while (!m_sock->recv(&rmsg))
     Thread::sleep_ms(10);
 
-  bytes.reset(new ByteArray(reinterpret_cast<const char*>(rmsg.data()),
-                            reinterpret_cast<const char*>(rmsg.data()) + rmsg.size()));
+  bytes->clear();
+  bytes->reserve(rmsg.size());
+  std::copy(reinterpret_cast<const char*>(rmsg.data()),
+            reinterpret_cast<const char*>(rmsg.data()) +rmsg.size(),
+            std::back_inserter(*bytes));
+
   return true;
 }
 

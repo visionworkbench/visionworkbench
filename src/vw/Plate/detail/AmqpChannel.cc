@@ -217,7 +217,7 @@ void AmqpChannel::send_bytes(const uint8* message, size_t len) {
   this->basic_publish(message, len, m_remote_name, m_remote_name);
 }
 
-bool AmqpChannel::recv_bytes(SharedByteArray& bytes) {
+bool AmqpChannel::recv_bytes(std::vector<uint8>* bytes) {
   vw_out(VerboseDebugMessage, "plate.AMQP") << m_human_name << " waiting for data for " << this->timeout() << "ms" << std::endl;
   AmqpData d;
   if (this->timeout() == -1)
@@ -227,7 +227,9 @@ bool AmqpChannel::recv_bytes(SharedByteArray& bytes) {
       return false;
   }
 
-  bytes = d.data;
+  bytes->clear();
+  bytes->reserve(d.data->size());
+  std::copy(d.data->begin(), d.data->end(), std::back_inserter(*bytes));
   m_remote_name = d.sender;
   return true;
 }
@@ -341,6 +343,7 @@ void AmqpChannel::basic_publish(const uint8* message, uint64 len,
   die_on_error(ret, "doing a basic.publish");
 }
 
+#if 0
 bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) const {
 
   ASSERT_CHANNEL_OPEN();
@@ -369,6 +372,7 @@ bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) 
   message = msg.data;
   return true;
 }
+#endif
 
 int32 AmqpChannel::timeout() const {
   return m_timeout;
@@ -576,7 +580,7 @@ void read_content(amqp_connection_state_t conn, AmqpData& msg) {
   msg.sender = amqp_bytes(p->reply_to);
 
   size_t body_size = header.payload.properties.body_size;
-  msg.data = SharedByteArray( new ByteArray(body_size) );
+  msg.data.reset(new std::vector<uint8>(body_size) );
 
   size_t body_read = 0;
   amqp_frame_t frame;
@@ -590,7 +594,7 @@ void read_content(amqp_connection_state_t conn, AmqpData& msg) {
         AMQPErr() << "AMQP packet body size does not match header's body target.");
 
     // Copy the bytes out of the payload...
-    memcpy(msg.data->begin() + body_read,
+    memcpy(&(msg.data->operator[](0)) + body_read,
         frame.payload.body_fragment.bytes,
         frame.payload.body_fragment.len);
 
