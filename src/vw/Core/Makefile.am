@@ -11,14 +11,36 @@
 
 if MAKE_MODULE_CORE
 
-include_HEADERS = Exception.h FundamentalTypes.h TypeDeduction.h	\
-	VarArray.h Functors.h CompoundTypes.h Debugging.h Thread.h	\
-	ThreadPool.h Cache.h ProgressCallback.h Stopwatch.h Settings.h	\
-	Log.h ConfigParser.h ThreadQueue.h Features.h
+include_HEADERS = \
+  Cache.h \
+  CompoundTypes.h \
+  ConfigParser.h \
+  Debugging.h \
+  Exception.h \
+  Features.h \
+  Functors.h \
+  FundamentalTypes.h \
+  Log.h \
+  ProgressCallback.h \
+  Settings.h \
+  Stopwatch.h \
+  Thread.h \
+  ThreadPool.h \
+  ThreadQueue.h \
+  TypeDeduction.h \
+  VarArray.h
 
-libvwCore_la_SOURCES = Debugging.cc Exception.cc Thread.cc Cache.cc	\
-	ProgressCallback.cc Stopwatch.cc Settings.cc Log.cc		\
-	ConfigParser.cc
+libvwCore_la_SOURCES = \
+  Cache.cc \
+  ConfigParser.cc \
+  Debugging.cc \
+  Exception.cc \
+  Log.cc \
+  ProgressCallback.cc \
+  Settings.cc \
+  Stopwatch.cc \
+  Thread.cc
+
 libvwCore_la_LIBADD = @MODULE_CORE_LIBS@
 
 lib_LTLIBRARIES = libvwCore.la
