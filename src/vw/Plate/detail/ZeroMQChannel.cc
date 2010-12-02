@@ -119,21 +119,19 @@ void ZeroMQChannel::CallMethod(const pb::MethodDescriptor* method,
       vw_out(WarningMessage) << "Retry (" << trial << "/" << m_retries << ")" << std::endl;
 
     send_message(q_wrap);
-    try {
-      if (!recv_message(a_wrap)) {
-        vw_out(WarningMessage) << "CallMethod Timeout. ";
+    switch (recv_message(a_wrap)) {
+      case 0:
+        // we can't recover from a timeout, since we can't send twice in a row
+        vw_throw(NetworkErr() << "CallMethod Timeout.");
+      case -1:
+        vw_out(WarningMessage) << "CallMethod(): corrupted message. ";
         continue;
-      }
-    } catch (const RpcErr& e) {
-      vw_out(WarningMessage) << "CallMethod(): " << e.what() << ". ";
-      continue;
+      default:
+        throw_rpc_error(a_wrap.error());
+        response->ParseFromString(a_wrap.payload());
+        done->Run();
+        return;
     }
-
-    throw_rpc_error(a_wrap.error());
-
-    response->ParseFromString(a_wrap.payload());
-    done->Run();
-    return;
   }
   vw_out(WarningMessage) << "No more retries." << std::endl;
   vw_throw(RpcErr() << "CallMethod timed out completely");

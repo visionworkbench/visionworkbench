@@ -143,9 +143,16 @@ void RpcServerBase::Task::operator()() {
 bool RpcServerBase::Task::handle_one_request() {
   RpcWrapper q_wrap, a_wrap;
 
-  if (!m_chan->recv_message(q_wrap)) {
-    m_stats.add("timeout");
-    return false;
+  switch (m_chan->recv_message(q_wrap)) {
+    case 0:
+      m_stats.add("timeout");
+      return false;
+    case -1:
+      // message corruption?
+      m_stats.add("client_error");
+      return false;
+    default:
+      break;
   }
 
   const pb::MethodDescriptor* method = m_rpc->service()->GetDescriptor()->FindMethodByName(q_wrap.method());

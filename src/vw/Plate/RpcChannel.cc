@@ -41,15 +41,15 @@ void IChannel::send_message(RpcWrapper& message) {
   send_bytes(bytes.get(), len);
 }
 
-bool IChannel::recv_message(RpcWrapper& message) {
+int32 IChannel::recv_message(RpcWrapper& message) {
   SharedByteArray bytes;
   if (!recv_bytes(bytes))
-    return false;
-  bool worked = message.ParseFromArray(bytes->begin(), boost::numeric_cast<int>(bytes->size()));
-  VW_ASSERT(worked, RpcErr() << "IChannel::recv_message failed to parse message");
-  worked = (this->checksum(message) == message.checksum());
-  VW_ASSERT(worked, RpcErr() << "IChannel::recv_message checksum failed (message corrupted?)");
-  return true;
+    return 0;
+  if (!message.ParseFromArray(bytes->begin(), boost::numeric_cast<int>(bytes->size())))
+    return -1;
+  if (this->checksum(message) != message.checksum())
+    return -1;
+  return 1;
 }
 
 IChannel* IChannel::make(const std::string& scheme, const std::string& clientname) {

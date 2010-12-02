@@ -86,8 +86,8 @@ TEST_P(IChannelTest, ChecksumFailure) {
   message.SerializeToArray(bytes.get(), boost::numeric_cast<int>(len));
   clients[0]->send_bytes(bytes.get(), len);
 
-  // corrupted checksum should throw
-  EXPECT_THROW(server->recv_message(a), RpcErr);
+  // corrupted checksum: should return error
+  EXPECT_EQ(-1, server->recv_message(a));
 
   // Now resend the message properly (though as a response, so we don't violate
   // send/receive order
@@ -98,7 +98,7 @@ TEST_P(IChannelTest, ChecksumFailure) {
   message.SerializeToArray(bytes.get(), boost::numeric_cast<int>(len));
   server->send_bytes(bytes.get(), len);
 
-  EXPECT_NO_THROW(clients[0]->recv_message(a));
+  EXPECT_EQ(1, clients[0]->recv_message(a));
 }
 
 TEST_P(IChannelTest, Request) {
@@ -106,7 +106,7 @@ TEST_P(IChannelTest, Request) {
   make_clients(1);
 
   clients[0]->send_bytes(e1.begin(), e1.size());
-  server->recv_bytes(a1);
+  EXPECT_TRUE(server->recv_bytes(a1));
 
   ASSERT_TRUE(a1);
   EXPECT_RANGE_EQ(e1.begin(), e1.end(), a1->begin(), a1->end());

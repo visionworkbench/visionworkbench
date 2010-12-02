@@ -250,26 +250,23 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
     q_wrap.set_seq(++m_seq);
 
     send_message(q_wrap);
-    try {
-      if (!recv_message(a_wrap)) {
+    switch (recv_message(a_wrap)) {
+      case 0:
         vw_out(WarningMessage) << "CallMethod Timeout. ";
         continue;
-      }
-    } catch (const RpcErr& e) {
-      vw_out(WarningMessage) << "CallMethod(): " << e.what() << ". ";
-      continue;
+      case -1:
+        vw_out(WarningMessage) << "CallMethod(): corrupted message. ";
+        continue;
+      default:
+        if (a_wrap.seq() != q_wrap.seq()) {
+          vw_out(WarningMessage) << "Sequence mismatch on \"" << this->name() << "\" (expected " << m_seq << ", got " << a_wrap.seq() << ") ";
+          continue;
+        }
+        throw_rpc_error(a_wrap.error());
+        response->ParseFromString(a_wrap.payload());
+        done->Run();
+        return;
     }
-
-    if (a_wrap.seq() != q_wrap.seq()) {
-      vw_out(WarningMessage) << "Sequence mismatch on \"" << this->name() << "\" (expected " << m_seq << ", got " << a_wrap.seq() << ") ";
-      continue;
-    }
-
-    throw_rpc_error(a_wrap.error());
-
-    response->ParseFromString(a_wrap.payload());
-    done->Run();
-    return;
   }
   vw_out(WarningMessage) << "No more retries." << std::endl;
   vw_throw(RpcErr() << "CallMethod timed out completely");

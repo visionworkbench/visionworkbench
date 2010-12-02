@@ -31,12 +31,12 @@ std::string unique_name(const std::string& identifier, const std::string& join =
 class IChannel : public ::google::protobuf::RpcChannel {
   public:
     virtual void send_bytes(const uint8* message, size_t len) = 0;
-    virtual bool recv_bytes(SharedByteArray& bytes) = 0;
+    virtual bool recv_bytes(SharedByteArray& bytes) VW_WARN_UNUSED = 0;
 
-    // message is non-const because it updates the checksum
     void send_message(RpcWrapper& message);
-    // return false means timeout
-    bool recv_message(RpcWrapper& message);
+    // This returns -1 for recoverable error, 0 for timeout, 1 for success
+    // It throws for nonrecoverable errors (that's sort of ugly).
+    int32 recv_message(RpcWrapper& message) VW_WARN_UNUSED;
 
     // Calculate checksum.
     static uint32 checksum(const RpcWrapper& message);
