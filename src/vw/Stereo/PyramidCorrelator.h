@@ -138,7 +138,7 @@ namespace stereo {
       ImageView<PixelMask<Vector2f> > disparity_map;
 
       // Overall Progress Bar
-      TerminalProgressCallback prog( "stereo", "Pyr Search:");
+      TerminalProgressCallback prog( "stereo", "Pyr Search:", DebugMessage);
 
       // Refined the disparity map by searching in the local region
       // where the last good disparity value was found.
