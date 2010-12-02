@@ -70,7 +70,7 @@ ToastPlateManager<PixelT>::georeference( int /*level*/ ) const {
 template <class PixelT>
 ImageView<PixelT>
 ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
-                                            TransactionOrNeg transaction_id) const {
+                                            Transaction transaction_id) const {
   int32 num_tiles = 1 << level;
   if ( x==-1 ) {
     if ( y==-1 )
@@ -221,7 +221,7 @@ namespace platefile {
   template ImageView<PIXELT >                                           \
   ToastPlateManager<PIXELT >::fetch_child_tile(int col, int row,        \
                                                int level,               \
-                                               TransactionOrNeg transaction_id) const; \
+                                               Transaction transaction_id) const; \
 
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<int16>)

@@ -63,7 +63,7 @@ namespace {
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
-                                  Transaction transaction_id, bool preblur,
+                                  TransactionOrNeg transaction_id,bool preblur,
                                   const ProgressCallback &progress_callback,
                                   int stopping_level) const {
 
@@ -142,6 +142,8 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
              trim_iter != valid_tile_records.end(); ++trim_iter) {
           trimmed_region.grow(Vector2i(trim_iter->col()/2, trim_iter->row()/2));
         }
+        Transaction destination_id =
+          valid_tile_records.begin()->transaction_id();
 
         // Pad the bottom right edge of the bbox to make sure we get
         // tiles from the parent that only hald overlapped with the
@@ -155,7 +157,7 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
         float inc_amt = 1.0f/float(trimmed_region.width() * trimmed_region.height());
         for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
           for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
-            this->generate_mipmap_tile(i,j,level,transaction_id, preblur);
+            this->generate_mipmap_tile(i,j,level,destination_id, preblur);
             sub_sub_progress.report_incremental_progress(inc_amt);
           }
         }
@@ -311,7 +313,7 @@ namespace platefile {
 #define VW_INSTANTIATE_PLATE_MANAGER_TYPES(PIXELT)                             \
   template void                                                                \
   PlateManager<PIXELT >::mipmap(int starting_level, BBox2i const& bbox,        \
-                                Transaction transaction_id, bool preblur,      \
+                                TransactionOrNeg transaction_id, bool preblur, \
                                 const ProgressCallback &progress_callback,     \
                                 int stopping_level) const;                     \
   template void                                                                \

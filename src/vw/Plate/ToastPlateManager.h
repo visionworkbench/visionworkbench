@@ -46,7 +46,7 @@ namespace platefile {
                               Transaction transaction_id, bool preblur) const;
 
     ImageView<PixelT> fetch_child_tile(int x, int y, int level,
-                                       TransactionOrNeg transaction_id) const;
+                                       Transaction transaction_id) const;
   };
 
 }} // namespace vw::plate
