@@ -319,7 +319,7 @@ else
   fi
 
   # We seed QT_QMAKE's cppflags and libs with the ones qmake figured out
-  PKG_QT_QMAKE_CPPFLAGS="$PKG_QT_QMAKE_CPPFLAGS $QT_CPPFLAGS"
+  PKG_QT_QMAKE_CPPFLAGS="$PKG_QT_QMAKE_CPPFLAGS `strip_arg -I. $QT_CPPFLAGS`"
   AX_PKG(QT_QMAKE, [], [$QT_LIBS], [QVector])
 fi
 

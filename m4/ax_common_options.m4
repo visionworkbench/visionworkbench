@@ -6,6 +6,20 @@ dnl __END_LICENSE__
 
 
 AC_DEFUN([AX_COMMON_OPTIONS], [
+  m4_ifdef([_AX_COMMON_OPTIONS_PREPARE], [],
+  [
+    strip_arg() {
+        local bad="[$]1"
+        shift 1
+        for arg in "[$]@"; do
+            case "[$]arg" in
+                [$]bad) ;;
+                *) echo -n " [$]arg";;
+            esac
+        done
+    }
+    m4_define([_AX_COMMON_OPTIONS_PREPARE], [1])
+  ])
 
 ##################################################
 # Compilation options
