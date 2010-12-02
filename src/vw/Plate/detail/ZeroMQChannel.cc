@@ -151,6 +151,9 @@ void ZeroMQChannel::init_endpoint(Url& endpoint) {
   // remove zmq+ prefix to the scheme
   endpoint.scheme(endpoint.scheme().substr(4));
 
+  endpoint.query().clear();
+  endpoint.fragment("");
+
   m_id = Thread::id();
 }
 

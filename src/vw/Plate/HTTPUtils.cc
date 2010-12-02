@@ -303,6 +303,10 @@ bool QueryMap::has(const std::string& key) const {
   return m_map.find(key) != m_map.end();
 }
 
+void QueryMap::clear() {
+  m_map.clear();
+}
+
 // This is an adapter so boost::lexical_cast can handle hex.
 template <typename ElemT>
 struct HexTo {

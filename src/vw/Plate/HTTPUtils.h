@@ -43,6 +43,9 @@ class QueryMap {
     // is the value set?
     bool has(const std::string& key) const;
 
+    // Dump the map
+    void clear();
+
     template <typename DataT>
     DataT get(const std::string& key) const {
       map_t::const_iterator i = m_map.find(key);
