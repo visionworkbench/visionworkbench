@@ -56,9 +56,12 @@ namespace platefile {
     // bbox -- bounding box (in terms of tiles) containing the tiles that need
     //         to be mipmapped at starting_level. Use to specify affected
     //         tiles.
-    // transaction_id -- transaction id to use when reading/writing tiles
+    // input_transaction_id -- to use when reading
+    // output_transaction_id -- to use when writing
     void mipmap(int starting_level, BBox2i const& bbox,
-                TransactionOrNeg transaction_id, bool preblur,
+                TransactionOrNeg input_transaction_id,
+                Transaction output_transaction_id,
+                bool preblur,
                 const ProgressCallback &progress_callback =
                 ProgressCallback::dummy_instance(),
                 int stopping_level = -1) const;
@@ -70,9 +73,10 @@ namespace platefile {
     // Set preblur to false if you want straight decimation during
     // mipmapping. Otherwise you will get a nice, low-pass filtered
     // version in the mipmap.
-    virtual void generate_mipmap_tile(int col, int row, int level,
-                                      Transaction transaction_id,
-                                      bool preblur) const = 0;
+    //
+    // If bool(dest) is false, no data was found.
+    virtual void generate_mipmap_tile(ImageView<PixelT>& dest,
+        int col, int row, int level, TransactionOrNeg read_transaction_id, bool preblur) const;
 
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;
@@ -142,7 +146,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_bbox, transaction_id,
+        this->mipmap(pyramid_level, affected_bbox, transaction_id, transaction_id,
                      (!tweak_settings_for_terrain), // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }

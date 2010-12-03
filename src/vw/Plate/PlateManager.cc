@@ -8,6 +8,7 @@
 #include <vw/Plate/PlateManager.h>
 #include <vw/Plate/TileManipulation.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/Filter.h>
 #include <vw/Plate/PlateCarreePlateManager.h>
 #include <vw/Plate/PolarStereoPlateManager.h>
 #include <vw/Plate/ToastPlateManager.h>
@@ -63,7 +64,9 @@ namespace {
 // mipmap() generates mipmapped (i.e. low resolution) tiles in the mosaic.
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
-                                  TransactionOrNeg transaction_id,bool preblur,
+                                  TransactionOrNeg read_transaction_id,
+                                  Transaction output_transaction_id,
+                                  bool preblur,
                                   const ProgressCallback &progress_callback,
                                   int stopping_level) const {
 
@@ -127,7 +130,7 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
       parent_region.max() *= 2;
       std::list<TileHeader> valid_tile_records =
         m_platefile->search_by_region(level+1, parent_region,
-                                      transaction_id, transaction_id, 1);
+                                      read_transaction_id, read_transaction_id, 1);
 
       // Debugging:
       // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1)
@@ -142,8 +145,6 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
              trim_iter != valid_tile_records.end(); ++trim_iter) {
           trimmed_region.grow(Vector2i(trim_iter->col()/2, trim_iter->row()/2));
         }
-        Transaction destination_id =
-          valid_tile_records.begin()->transaction_id();
 
         // Pad the bottom right edge of the bbox to make sure we get
         // tiles from the parent that only hald overlapped with the
@@ -151,13 +152,18 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
         trimmed_region.max().x() += 1;
         trimmed_region.max().y() += 1;
 
-        // Debugging:
-        //        vw_out() << "Generating mipmap tiles for " << trimmed_region << " @ " << level << "\n";
+        ImageView<PixelT> img;
 
         float inc_amt = 1.0f/float(trimmed_region.width() * trimmed_region.height());
-        for (int j = trimmed_region.min().y(); j < trimmed_region.max().y(); ++j) {
-          for (int i = trimmed_region.min().x(); i < trimmed_region.max().x(); ++i) {
-            this->generate_mipmap_tile(i,j,level,destination_id, preblur);
+        for (int row = trimmed_region.min().y(); row < trimmed_region.max().y(); ++row) {
+          for (int col = trimmed_region.min().x(); col < trimmed_region.max().x(); ++col) {
+            this->generate_mipmap_tile(img,col,row,level,read_transaction_id,preblur);
+
+            if (img && !is_transparent(img)) {
+              vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row << " @ " << level << "\n";
+              this->m_platefile->write_update(img, col, row, level, output_transaction_id);
+            }
+
             sub_sub_progress.report_incremental_progress(inc_amt);
           }
         }
@@ -178,6 +184,46 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
   }
   progress_callback.report_finished();
 }
+
+template <class PixelT>
+void PlateManager<PixelT>::generate_mipmap_tile(
+      ImageView<PixelT>& dest, int col, int row, int level,
+      TransactionOrNeg transaction_id, bool preblur) const
+{
+  // Create an image large enough to store all of the child nodes
+  uint32 tile_size = this->m_platefile->default_tile_size();
+  ImageView<PixelT> super(2*tile_size, 2*tile_size);
+
+  bool found = false;
+
+  // Gather the children and stick them into a supertile.
+  for( uint32 j=0; j<2; ++j ) {
+    for( uint32 i=0; i<2; ++i ) {
+      try {
+        uint32 child_col = 2*col+i;
+        uint32 child_row = 2*row+j;
+        this->m_platefile->read(dest, child_col, child_row, level+1, transaction_id, true); // exact_transaction
+        crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = dest;
+        found = true;
+      } catch (TileNotFoundErr &e) { /*Do Nothing*/ }
+    }
+  }
+
+  if (!found) {
+    dest.reset();
+    return;
+  }
+
+  // We subsample after blurring with a standard 2x2 box filter.
+  std::vector<float> kernel(2);
+  kernel[0] = kernel[1] = 0.5;
+
+  if (preblur)
+    dest = subsample( separable_convolution_filter( super, kernel, kernel, 1, 1, ConstantEdgeExtension() ), 2);
+  else
+    dest = subsample( super, 2 );
+}
+
 
 // Calculate the TileInfo objects of the tiles affected by
 // transforming an image of size 'image_size' with transform 'tx'.
@@ -313,7 +359,9 @@ namespace platefile {
 #define VW_INSTANTIATE_PLATE_MANAGER_TYPES(PIXELT)                             \
   template void                                                                \
   PlateManager<PIXELT >::mipmap(int starting_level, BBox2i const& bbox,        \
-                                TransactionOrNeg transaction_id, bool preblur, \
+                                TransactionOrNeg transaction_id,               \
+                                Transaction output_transaction_id,             \
+                                bool preblur,                                  \
                                 const ProgressCallback &progress_callback,     \
                                 int stopping_level) const;                     \
   template void                                                                \

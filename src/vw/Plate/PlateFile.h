@@ -218,8 +218,9 @@ namespace platefile {
     /// PlateFile to search for a tile that has the EXACT SAME
     /// transaction_id as the one that you specify.
     ///
-    /// A transaction ID of -1 indicates that we should return the
-    /// most recent tile, regardless of its transaction id.
+    /// A transaction ID of -1 indicates that we should return the most recent
+    /// tile, regardless of its transaction id. This trumps everything including
+    /// exact_transaction_match.
     template <class ViewT>
     TileHeader read(ViewT &view, int col, int row, int level,
                     TransactionOrNeg transaction_id, bool exact_transaction_match = false) const {

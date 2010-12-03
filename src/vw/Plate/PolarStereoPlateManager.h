@@ -29,11 +29,6 @@ namespace platefile {
     cartography::GeoReference georeference( int level, bool north_pole,
                                             cartography::Datum const& datum ) const;
     cartography::GeoReference georeference( int level ) const;
-
-    /// This function generates a specific mipmap tile at the given
-    /// col, row, and level, and transaction_id.
-    void generate_mipmap_tile(int col, int row, int level,
-                              Transaction transaction_id, bool preblur) const;
   };
 
 }} // end vw::platefile

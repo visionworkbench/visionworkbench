@@ -100,52 +100,6 @@ void PolarStereoPlateManager<PixelT>::transform_image(
   txref = TransformRef( geotx );
 }
 
-template <class PixelT>
-void PolarStereoPlateManager<PixelT>::generate_mipmap_tile(
-                          int col, int row, int level,
-                          Transaction transaction_id, bool preblur) const {
-  // Create an image large enough to store all of the child nodes
-  int tile_size = this->m_platefile->default_tile_size();
-  ImageView<PixelT> super(2*tile_size, 2*tile_size);
-
-  // Iterate over the children, gathering them and (recursively)
-  // regenerating them if necessary.
-  for( int j=0; j<2; ++j ) {
-    for( int i=0; i<2; ++i ) {
-      try {
-        int child_col = 2*col+i;
-        int child_row = 2*row+j;
-        vw_out(VerboseDebugMessage, "platefile") << "Reading tile "
-                                                 << child_col << " "
-                                                 << child_row
-                                                 << " @  " << (level+1) << "\n";
-        ImageView<PixelT> child;
-        this->m_platefile->read(child, child_col, child_row, level+1,
-                                transaction_id, true); // exact_transaction
-        crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = child;
-      } catch (TileNotFoundErr &e) { /*Do Nothing*/ }
-    }
-  }
-
-  // We subsample after blurring with a standard 2x2 box filter.
-  std::vector<float> kernel(2);
-  kernel[0] = kernel[1] = 0.5;
-
-  ImageView<PixelT> new_tile;
-  if (preblur)
-    new_tile = subsample( separable_convolution_filter( super, kernel,
-                                                        kernel, 1, 1,
-                                                        ConstantEdgeExtension() ), 2);
-  else
-    new_tile = subsample( super, 2 );
-
-  if (!is_transparent(new_tile)) {
-    vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row
-                                             << " @ " << level << "\n";
-    this->m_platefile->write_update(new_tile, col, row, level, transaction_id);
-  }
-}
-
 // Explicit template instantiation
 namespace vw {
 namespace platefile {
@@ -160,12 +114,7 @@ namespace platefile {
   PolarStereoPlateManager<PIXELT >::georeference(int level,                  \
                     bool north_pole, cartography::Datum const& datum) const; \
   template cartography::GeoReference                                         \
-  PolarStereoPlateManager<PIXELT >::georeference(int level) const;           \
-  template void                                                              \
-  PolarStereoPlateManager<PIXELT >::generate_mipmap_tile(int col, int row,   \
-                                                         int level,          \
-                                                         Transaction transaction_id, \
-                                                         bool preblur) const;
+  PolarStereoPlateManager<PIXELT >::georeference(int level) const;
 
   VW_INSTANTIATE_POLAR_STEREO_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_POLAR_STEREO_TYPES(PixelGrayA<int16>)

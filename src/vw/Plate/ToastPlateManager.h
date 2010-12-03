@@ -16,16 +16,6 @@ namespace platefile {
   template <class PixelT>
   class ToastPlateManager : public PlateManager<PixelT> {
   protected:
-    struct CacheEntry {
-      int32 level, x, y;
-      TransactionOrNeg transaction_id;
-      ImageView<PixelT> tile;
-    };
-
-    // The cache is declared mutable because it is modified by the
-    // otherwise const fetch_child_tile() method.
-    typedef std::list<CacheEntry> cache_t;
-    mutable cache_t m_cache;
 
     // Transforms an input image with input georef to toast projection
     // at the most ideal matching pyramid level.
@@ -40,13 +30,11 @@ namespace platefile {
     // Non-working .. just matching base type
     cartography::GeoReference georeference( int level ) const;
 
-    /// This function generates a specific mipmap tile at the given
-    /// col, row, and level, and transaction_id.
-    void generate_mipmap_tile(int col, int row, int level,
-                              Transaction transaction_id, bool preblur) const;
+    void generate_mipmap_tile(ImageView<PixelT>& dest,
+        int col, int row, int level, TransactionOrNeg transaction_id, bool preblur) const;
 
-    ImageView<PixelT> fetch_child_tile(int x, int y, int level,
-                                       Transaction transaction_id) const;
+    ImageView<PixelT> fetch_child_tile(
+        int x, int y, int level, TransactionOrNeg transaction_id) const;
   };
 
 }} // namespace vw::plate

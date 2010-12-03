@@ -70,7 +70,7 @@ ToastPlateManager<PixelT>::georeference( int /*level*/ ) const {
 template <class PixelT>
 ImageView<PixelT>
 ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
-                                            Transaction transaction_id) const {
+                                            TransactionOrNeg transaction_id) const {
   int32 num_tiles = 1 << level;
   if ( x==-1 ) {
     if ( y==-1 )
@@ -105,39 +105,10 @@ ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
     else return tile;
   }
 
-  // Tile accesses during mipmapping of a TOAST mosaic are highly
-  // localized, so it speeds things up considerably to cache the tiles
-  // as we access them. We check the cache for this tile here.
-  for ( typename cache_t::iterator i=m_cache.begin(); i!=m_cache.end(); ++i ) {
-    if ( i->level==level && i->x==x && i->y==y ) {
-      CacheEntry e = *i;
-      m_cache.erase(i);
-      m_cache.push_front(e);
-      vw_out(VerboseDebugMessage, "platefile") << "Found cached tile at "
-                                               << x << " " << y << " " << level << "\n";
-      return e.tile;
-    }
-  }
-
   ImageView<PixelT> tile;
   try {
-    // If the tile is not in the cache, we attempt to access it in the index.
-    vw_out(VerboseDebugMessage, "platefile") << "Reading tile at " << x << " " << y << " " << level << "\n";
     this->m_platefile->read(tile, x, y, level, transaction_id, true); // exact_transaction_match == true
-
   } catch (TileNotFoundErr &e) { /* No Op */ }
-
-  // Save the tile in the cache.  The cache size of 1024 tiles was chosen
-  // somewhat arbitrarily.
-  if ( m_cache.size() >= 1024 )
-    m_cache.pop_back();
-  CacheEntry e;
-  e.level = level;
-  e.x = x;
-  e.y = y;
-  e.transaction_id = transaction_id;
-  e.tile = tile;
-  m_cache.push_front(e);
 
   // Regardless of what happened above, we return the tile here.  If
   // the read failed, the tile will be an empty image.
@@ -145,26 +116,31 @@ ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
 }
 
 template <class PixelT>
-void ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row,
-                                                     int level,
-                                                     Transaction transaction_id,
-                                                     bool preblur) const {
-
+void ToastPlateManager<PixelT>::generate_mipmap_tile(
+    ImageView<PixelT>& dest, int col, int row, int level,
+    TransactionOrNeg transaction_id, bool preblur) const
+{
   // Create an image large enough to store all of the child nodes
   int tile_size = this->m_platefile->default_tile_size();
   ImageView<PixelT> super(4*tile_size-3, 4*tile_size-3);
+
+  bool found = false;
 
   // Iterate over the children, gathering them and (recursively)
   // regenerating them if necessary.
   for ( int j=-1; j<3; ++j ) {
     for ( int i=-1; i<3; ++i ) {
-      ImageView<PixelT> child = fetch_child_tile(2*col+i, 2*row+j,
-                                                 level+1, transaction_id);
+      ImageView<PixelT> child = fetch_child_tile(2*col+i, 2*row+j, level+1, transaction_id);
       if (child) {
-        crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),
-             tile_size,tile_size) = child;
+        crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1), tile_size,tile_size) = child;
+        found = true;
       }
     }
+  }
+
+  if (!found) {
+    dest.reset();
+    return;
   }
 
   // In the WWT implementation of TOAST the pixel centers
@@ -178,26 +154,13 @@ void ToastPlateManager<PixelT>::generate_mipmap_tile(int col, int row,
   kernel[1] = kernel[3] = 0.2135f;
   kernel[2] = 0.6418f;
 
-  ImageView<PixelT> new_tile;
   if (preblur)
-    new_tile =
-      subsample( crop( separable_convolution_filter(super, kernel,
-                                                    kernel, NoEdgeExtension() ),
-                       tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2);
+    dest = subsample(
+             crop(
+               separable_convolution_filter(super, kernel, kernel, NoEdgeExtension() ),
+               tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2);
   else
-    new_tile =
-      subsample( crop( super, tile_size-1, tile_size-1,
-                       2*tile_size, 2*tile_size ), 2 );
-
-  if (!is_transparent(new_tile)) {
-    vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row
-                                             << " @ " << level << "\n";
-    //m_platefile->write_request();  // These could be used here, but this
-                                     // causes a lot of unnecessary work for
-                                     // the BlobManager...
-    this->m_platefile->write_update(new_tile, col, row, level, transaction_id);
-    //m_platefile->write_complete();
-  }
+    dest = subsample( crop( super, tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 }
 
 
@@ -211,17 +174,16 @@ namespace platefile {
                                cartography::GeoReference const& georef, \
                                ImageViewRef<PIXELT >& image,            \
                                TransformRef& txref, int& level ) const; \
-  template void                                                         \
-  ToastPlateManager<PIXELT >::generate_mipmap_tile(int col, int row,    \
-                                                   int level,           \
-                                                   Transaction transaction_id,  \
-                                                   bool preblur) const; \
+template void                                                           \
+ToastPlateManager<PIXELT >::generate_mipmap_tile(                       \
+    ImageView<PIXELT>& dest, int col, int row, int level,               \
+    TransactionOrNeg transaction_id, bool preblur) const;               \
+                                                                        \
   template cartography::GeoReference                                    \
   ToastPlateManager<PIXELT >::georeference( int level ) const;          \
   template ImageView<PIXELT >                                           \
-  ToastPlateManager<PIXELT >::fetch_child_tile(int col, int row,        \
-                                               int level,               \
-                                               Transaction transaction_id) const; \
+  ToastPlateManager<PIXELT >::fetch_child_tile(                         \
+      int col, int row, int level, TransactionOrNeg transaction_id) const; \
 
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<uint8>)
   VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PixelGrayA<int16>)
