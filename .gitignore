@@ -184,6 +184,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/plate2dem
 /src/vw/Plate/plate2plate
 /src/vw/Plate/plate2tiles
+/src/vw/Plate/plate2kml
 /src/vw/Plate/platereduce
 /src/vw/Plate/rebuild_index
 /src/vw/Plate/rpc_tool
@@ -196,6 +197,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tests/TestIndexPage
 /src/vw/Plate/tests/TestLocalIndex
 /src/vw/Plate/tests/TestModPlate
+/src/vw/Plate/tests/TestPlateManager
 /src/vw/Plate/tests/TestRpc
 /src/vw/Plate/tests/TestRpcChannel
 /src/vw/Plate/tests/TestTileManipulation

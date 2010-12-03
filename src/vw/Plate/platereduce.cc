@@ -320,7 +320,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   usage << "Usage: " << argv[0] << " <plate_filename> [options]\n";
 
   if ( vm.count("help") || vm.count("input-file") != 1 || opt.transaction_id.newest())
-    vw_throw( ArgumentErr() << usage.str() << options );
+    vw_throw( ArgumentErr() << usage.str() << general_options );
 }
 
 // --- Meta Application of Above Functions ----------
@@ -398,7 +398,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
 
   if ( opt.level < 0 ||
        opt.level >= platefile->num_levels() ) {
-    vw_throw( ArgumentErr() << "In correct level selection, "
+    vw_throw( ArgumentErr() << "Incorrect level selection, "
               << opt.level << ".\n\nPlatefile " << opt.url.string() << " has "
               << platefile->num_levels() << " levels internally.\n" );
   }
