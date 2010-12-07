@@ -27,7 +27,7 @@ namespace vw {
   class DstEncodedImageResource : public DstImageResource {
     public:
       // Copy encoded data into data, resizing as necessary
-      virtual void set_decoded_data( VarArray<uint8>& data) = 0;
+      virtual void set_decoded_data( std::vector<uint8>* data) = 0;
       // constructs the appropriate subclass for the type, then calls write() using the data and the format
       static DstEncodedImageResource* create( const uint8* data, size_t len, const ImageFormat& format, const std::string& type);
   };
