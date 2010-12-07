@@ -196,12 +196,14 @@ bool RpcServerBase::Task::handle_one_request() {
   } catch (const std::exception &e) {
     // These exceptions should be reported back to the far side as a general
     // server error- unless we're in debug mode, in which case... rethrow!
-    if (m_rpc->debug())
-      throw;
     a_wrap.mutable_error()->set_code(RpcErrorMsg::REMOTE_ERROR);
     a_wrap.mutable_error()->set_msg(e.what());
     m_stats.add("server_error");
     vw_out(WarningMessage) << "Server Error: " << e.what() << std::endl;
+    if (m_rpc->debug()) {
+      m_chan->send_message(a_wrap);
+      throw;
+    }
   }
 
   m_chan->send_message(a_wrap);
