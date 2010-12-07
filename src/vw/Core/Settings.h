@@ -37,17 +37,34 @@ namespace vw {
   /// create a settings object yourself!!!!
   class Settings : private boost::noncopyable {
 
-    // Vision Workbench Global Settings
-    uint32 m_default_num_threads;
-    bool m_default_num_threads_override;
-    size_t m_system_cache_size;
-    bool m_system_cache_size_override;
-    uint32 m_write_pool_size;
-    bool m_write_pool_size_override;
-    uint32 m_default_tile_size;
-    bool m_default_tile_size_override;
-    std::string m_tmp_directory;
-    bool m_tmp_directory_override;
+// Keep the knowledge in this macro in sync with VW_DEFINE_SETTING in Settings.cc
+#define VW_DECLARE_SETTING(Name, Type)\
+    private: \
+      type m_ ## Name; \
+      bool m_ ## Name ## _override; \
+    public: \
+      void set_ ## Name(Type x); \
+      Type Name() const;
+
+    // The default number of threads used in block processing operations.
+    DECLARE_SETTING(default_num_threads, uint32);
+
+    // The current system cache size (in bytes). The system cache is shared by
+    // all BlockRasterizeView<>'s, including DiskImageView<>'s.
+    DECLARE_SETTING(system_cache_size, size_t);
+
+    // Write cache is only used in block writing. This is the number of threads
+    // that can be blocked on IO before the code stops creating more jobs (to
+    // let the writes catch up).
+    DECLARE_SETTING(write_pool_size, uint32);
+
+    // The default tile size (in pixels) used for block processing ops.
+    DECLARE_SETTING(default_tile_size, uint32);
+
+    // The directory used to store temporary files.
+    DECLARE_SETTING(tmp_directory, std::string);
+
+#undef VW_DECLARE_SETTING
 
     // Member variables assoc. with periodically polling the log
     // configuration (logconf) file.
@@ -82,44 +99,6 @@ namespace vw {
     // Reload the config. When this returns, the config will be reloaded.
     // It may happen in a different thread than requested, however.
     void reload_config();
-
-    /// Query for the default number of threads used in block
-    /// processing operations.
-    uint32 default_num_threads();
-
-    /// Set the default number of threads used in block processing
-    /// operations.
-    void set_default_num_threads(unsigned num = 0);
-
-    /// Query for the current system cache size.  Result is given in
-    /// units of bytes.
-    size_t system_cache_size();
-
-    /// Set the current system cache size.  'size' should be in units
-    /// of bytes.  The system cache is shared by all
-    /// BlockRasterizeView<>'s, including DiskImageView<>'s.
-    void set_system_cache_size(size_t size);
-
-    /// Query for the default tile size used for block processing ops.
-    uint32 default_tile_size();
-
-    /// Set the default tile size to be used for block processing.
-    void set_default_tile_size(uint32 num);
-
-    /// Query for write pool size in number of threads
-    uint32 write_pool_size();
-
-    /// Set the current write cache size. Write cache is only used in
-    /// block writing. In that code this number is used to determine how many
-    /// threads can be used for waiting to write. Use this number and file
-    /// cache size to define the amount of memory to be used.
-    void set_write_pool_size(uint32 size);
-
-    /// Query for the directory being used to store temporary files.
-    std::string tmp_directory();
-
-    /// Set the directory to be used for storing temporary files.
-    void set_tmp_directory(std::string const& path);
   };
 
   /// Static method to access the singleton instance of the system
