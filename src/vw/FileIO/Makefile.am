@@ -17,8 +17,8 @@ png_sources = DiskImageResourcePNG.cc
 endif
 
 if HAVE_PKG_JPEG
-jpeg_headers = DiskImageResourceJPEG.h  EncodedImageResourceJPEG.h
-jpeg_sources = DiskImageResourceJPEG.cc EncodedImageResourceJPEG.cc
+jpeg_headers = DiskImageResourceJPEG.h
+jpeg_sources = DiskImageResourceJPEG.cc
 endif
 
 if HAVE_PKG_TIFF
@@ -48,7 +48,6 @@ include_HEADERS = \
   DiskImageResourcePBM.h \
   DiskImageResourcePDS.h \
   DiskImageView.h \
-  EncodedImageResource.h \
   KML.h \
   $(gdal_headers) \
   $(hdf_headers) \
