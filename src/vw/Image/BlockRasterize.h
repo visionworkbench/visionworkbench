@@ -33,26 +33,12 @@ namespace vw {
     typedef typename ImageT::pixel_type result_type;
     typedef ProceduralPixelAccessor<BlockRasterizeView> pixel_accessor;
 
-    BlockRasterizeView( ImageT const& image,
-                        Vector2i const& block_size,
-                        int num_threads = 0,
-                        bool cache = false )
+    BlockRasterizeView( ImageT const& image, Vector2i const& block_size,
+                        int num_threads = 0, Cache *cache = NULL )
       : m_child( new ImageT(image) ),
         m_block_size( block_size ),
         m_num_threads( num_threads ),
-        m_cache_ptr( cache ? (&vw_system_cache()) : 0 )
-    {
-      initialize();
-    }
-
-    BlockRasterizeView( ImageT const& image,
-                        Vector2i const& block_size,
-                        int num_threads,
-                        Cache &cache )
-      : m_child( new ImageT(image) ),
-        m_block_size( block_size ),
-        m_num_threads( num_threads ),
-        m_cache_ptr( &cache )
+        m_cache_ptr( cache )
     {
       initialize();
     }

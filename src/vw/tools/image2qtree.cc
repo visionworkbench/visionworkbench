@@ -194,7 +194,7 @@ vw::int32 compute_resolution(const Mode& p, const GeoTransform& t, const Vector2
 
 static void get_normalize_vals(DiskImageResourceGDAL &file, const Options& opt) {
 
-  DiskImageView<PixelRGBA<float> > min_max_file(&file);
+  DiskImageView<PixelRGBA<float> > min_max_file(file);
   float new_lo, new_hi;
   if ( opt.nodata.set() ) {
     PixelRGBA<float> no_data_value( opt.nodata.value() );

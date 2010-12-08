@@ -63,7 +63,7 @@ void do_blend() {
       offset >> x >> y;
       std::cout << "Importing image file " << ifi->second.string()
                 << " at offet (" << x << "," << y << ")" << std::endl;
-      composite.insert( DiskImageView<PixelT>( ifi->second.string(), false ), x, y );
+      composite.insert( DiskImageView<PixelT>( ifi->second.string() ), x, y );
     }
   }
 

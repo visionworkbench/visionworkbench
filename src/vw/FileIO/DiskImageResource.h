@@ -127,6 +127,11 @@ namespace vw {
     static bool default_rescale;
   };
 
+  namespace fileio { namespace detail {
+    void noop_disk_deleter(DiskImageResource*);
+  }}
+
+
 
   // *******************************************************************
   // Free functions using the DiskImageResource interface

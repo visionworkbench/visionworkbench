@@ -47,35 +47,27 @@ namespace vw {
     typedef typename impl_type::result_type result_type;
     typedef typename impl_type::pixel_accessor pixel_accessor;
 
-    /// Constructs a DiskImageView of the given file on disk.
-    DiskImageView( std::string const& filename, bool cache=true )
-      : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
-
     /// Constructs a DiskImageView of the given file on disk
-    /// using the specified cache area.
-    DiskImageView( std::string const& filename, Cache& cache )
+    /// using the specified cache area. NULL cache means skip it.
+    DiskImageView( std::string const& filename, Cache* cache = NULL )
       : m_rsrc( DiskImageResource::open( filename ) ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
-
-    /// Constructs a DiskImageView of the given resource.
-    DiskImageView( boost::shared_ptr<DiskImageResource> resource, bool cache=true )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.
-    DiskImageView( boost::shared_ptr<DiskImageResource> resource, Cache& cache )
-      : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
-
-    /// Constructs a DiskImageView of the given resource.  Takes
-    /// ownership of the resource object (i.e. deletes it when it's
-    /// done using it).
-    DiskImageView( DiskImageResource *resource, bool cache=true )
+    DiskImageView( boost::shared_ptr<DiskImageResource> resource, Cache* cache = NULL)
       : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     /// Constructs a DiskImageView of the given resource using the
     /// specified cache area.  Takes ownership of the resource object
     /// (i.e. deletes it when it's done using it).
-    DiskImageView( DiskImageResource *resource, Cache& cache )
+    DiskImageView( DiskImageResource *resource, Cache* cache = NULL )
       : m_rsrc( resource ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
+
+    /// Constructs a DiskImageView of the given resource using the specified
+    /// cache area. Does not take ownership, you must ensure resource stays
+    /// valid for the lifetime of DiskImageView
+    DiskImageView( DiskImageResource &resource, Cache* cache = NULL )
+      : m_rsrc( &resource, fileio::detail::noop_disk_deleter ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     ~DiskImageView() {}
 
