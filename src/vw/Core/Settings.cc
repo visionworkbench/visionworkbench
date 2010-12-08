@@ -187,10 +187,6 @@ vw::Settings& vw::vw_settings() {
 //                        Settings API
 // -----------------------------------------------------------------
 
-#define VW_DEFINE_SETTING(Name, Type, Default)\
-Type vw::Settings::Name() {
-}
-
 vw::uint32 vw::Settings::default_num_threads() {
   if (!m_default_num_threads_override)
     reload_config();
