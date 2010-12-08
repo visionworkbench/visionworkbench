@@ -283,14 +283,21 @@ IndexPage::search_by_region(BBox2i const& region,
           // those with many entries (i.e. tiles near the root of the
           // mosaic), you will most likely be searching for recently
           // added tiles, which are sorted to the beginning.
-          BOOST_FOREACH(const value_type& v, entries) {
-            if (v.first >= start_transaction_id && v.first <= end_transaction_id)
+
+          // Transactions are stored in descending order. Find the first one that is <= end_transaction_id
+          multi_value_type::const_iterator begin =
+            std::find_if(entries.begin(), entries.end(),
+                         boost::bind(std::greater_equal<TransactionOrNeg>(), end_transaction_id, boost::bind(&value_type::first,_1)));
+
+          // now iterate from that one until we go outside the transaction range.
+          BOOST_FOREACH(const value_type& v, boost::make_iterator_range(begin, entries.end())) {
+            if (v.first >= start_transaction_id)
               candidates.push_back(v);
             else {
               // For snapshotting, we need to fetch one additional entry
-              // outside of the specified range.  This next tile
-              // represents the "top" tile in the mosaic for entries that
-              // may not have been part of the last snapshot.
+              // outside of the specified range.  This next tile represents the
+              // "top" tile in the mosaic for entries that may not have been
+              // part of the last snapshot.
               if (fetch_one_additional_entry)
                 candidates.push_back(v);
               break;
