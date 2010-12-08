@@ -164,7 +164,11 @@ plate2plate_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 platereduce_SOURCES = platereduce.cc
 platereduce_LDADD   = $(PLATE_LOCAL_LIBS)
 
+blob_file_dump_SOURCES = blob_file_dump.cc
+blob_file_dump_LDADD   = $(PLATE_LOCAL_LIBS)
+
 bin_PROGRAMS =   \
+  blob_file_dump \
   hirise2tif     \
   image2plate    \
   index_client   \
