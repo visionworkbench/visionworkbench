@@ -12,6 +12,7 @@
 if MAKE_MODULE_IMAGE
 
 TestAlgorithms_SOURCES            = TestAlgorithms.cxx
+TestBlockRasterize_SOURCES        = TestBlockRasterize.cxx
 TestConvolution_SOURCES           = TestConvolution.cxx
 TestEdgeExtension_SOURCES         = TestEdgeExtension.cxx
 TestFilter_SOURCES                = TestFilter.cxx
@@ -36,6 +37,7 @@ TestUtilityViews_SOURCES          = TestUtilityViews.cxx
 
 TESTS = \
   TestAlgorithms \
+  TestBlockRasterize \
   TestConvolution \
   TestEdgeExtension \
   TestFilter \

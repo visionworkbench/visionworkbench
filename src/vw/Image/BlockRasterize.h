@@ -182,17 +182,17 @@ namespace vw {
 
   template <class ImageT>
   inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads = 0 ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, false );
+    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads );
   }
 
   template <class ImageT>
   inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads = 0 ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, true );
+    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &vw_system_cache() );
   }
 
   template <class ImageT>
   inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads, Cache& cache ) {
-    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, cache );
+    return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &cache );
   }
 
 } // namespace vw
