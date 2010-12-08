@@ -9,11 +9,13 @@ namespace vw {
   class SrcEncodedImageResourceJPEG : public SrcEncodedImageResource, private boost::noncopyable {
       struct Data;
       boost::shared_ptr<Data> m_data;
+      const uint8* m_encoded;
+      size_t m_size;
 
     public:
-      SrcEncodedImageResourceJPEG(const uint8* buffer, size_t len) { this->set_encoded_data(buffer, len); }
+      SrcEncodedImageResourceJPEG(const uint8* data, size_t len) { this->set_encoded_data(data, len); }
 
-      virtual void set_encoded_data( const uint8* buffer, size_t len);
+      virtual void set_encoded_data( const uint8* data, size_t len);
       virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 
       virtual int32 cols() const;
@@ -29,16 +31,20 @@ namespace vw {
   class DstEncodedImageResourceJPEG : public DstEncodedImageResource {
       struct Data;
       boost::shared_ptr<Data> m_data;
+      const uint8* m_encoded;
+      size_t m_size;
 
     public:
-      DstEncodedImageResourceJPEG(std::vector<uint8>* buffer, const ImageFormat& fmt);
 
-      virtual void set_decoded_data( std::vector<uint8>* buffer);
+      DstEncodedImageResourceJPEG(VarArray<uint8>& data) { this->set_decoded_data(data); }
+
+      virtual void set_decoded_data( VarArray<uint8>& data);
       virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
-      virtual void flush() {}
 
       virtual bool has_block_write()  const {return false;}
       virtual bool has_nodata_write() const {return false;}
+
+      virtual void flush();
   };
 
 }
