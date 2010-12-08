@@ -123,22 +123,27 @@ bool RpcBase::debug() const {
 }
 
 void RpcServerBase::Task::operator()() {
-  // TODO: pass something more useful than u.string()
-  m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
-  m_chan->set_timeout(250);
+  try {
+    // TODO: pass something more useful than u.string()
+    m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
+    m_chan->set_timeout(250);
 
-  while (m_go) {
-    try {
-      handle_one_request();
-    } catch (const NetworkErr& err) {
-      vw_out(ErrorMessage) << "Network error! This is probably fatal. Recreating channel." << std::endl;
-      m_stats.add("fatal_error");
-      // TODO: pass something more useful than u.string()
-      m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
-      m_chan->set_timeout(250);
+    while (m_go) {
+      try {
+        handle_one_request();
+      } catch (const NetworkErr& err) {
+        vw_out(ErrorMessage) << "Network error! This is probably fatal. Recreating channel." << std::endl;
+        m_stats.add("fatal_error");
+        // TODO: pass something more useful than u.string()
+        m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
+        m_chan->set_timeout(250);
+      }
     }
+    m_chan.reset();
+  } catch (const std::exception& e) {
+    std::cerr << VW_CURRENT_FUNCTION << ": caught exception: " << e.what() << std::endl;
+    std::abort();
   }
-  m_chan.reset();
 }
 
 bool RpcServerBase::Task::handle_one_request() {
