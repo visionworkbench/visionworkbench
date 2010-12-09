@@ -4,12 +4,12 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Core/Stopwatch.h>
 
-// System includes
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include <sstream>
+#include <vw/Core/Debugging.h>
+#include <vw/Core/Exception.h>
+
+#include <boost/thread/once.hpp>
 
 // Time
 #ifdef WIN32
@@ -18,15 +18,10 @@
 #include <sys/time.h>
 #endif
 
-// BOOST includes
-#include <boost/thread/once.hpp>
-
-// VisionWorkbench includes
-#include <vw/Core/Debugging.h>
-#include <vw/Core/Exception.h>
-
-// Self
-#include <vw/Core/Stopwatch.h>
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <sstream>
 
 using std::endl;
 using std::map;
@@ -93,24 +88,7 @@ namespace vw {
     return out.str();
   }
 
-  // Global StopwatchSet
-
-  namespace GlobalStopwatchSet {
-    static StopwatchSet *_g_global_stopwatch_set;
-    void _create() {
-      _g_global_stopwatch_set = new StopwatchSet();
-    }
-  };
-
-  // Return the global StopwatchSet
-  //
-  // We want to be able to use this during globals and statics construction, so we cannot
-  // assume that constructors in this file have already been called
-
-  StopwatchSet *global_stopwatch_set() {
-    static RunOnce once = VW_RUNONCE_INIT;
-    once.run(GlobalStopwatchSet::_create);
-    return GlobalStopwatchSet::_g_global_stopwatch_set;
+  Stopwatch stopwatch_get(const std::string &name) {
+    return vw_stopwatch_set().get(name);
   }
-
 }; // namespace vw

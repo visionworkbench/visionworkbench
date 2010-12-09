@@ -39,18 +39,6 @@ typedef struct _stat struct_stat;
 typedef struct stat struct_stat;
 #endif
 
-namespace {
-
-  // ---------------------------------------------------
-  // Create a single instance of the Settings class
-  // ---------------------------------------------------
-  vw::RunOnce settings_once = VW_RUNONCE_INIT;
-  boost::shared_ptr<vw::Settings> system_settings_ptr;
-  void init_system_settings() {
-    system_settings_ptr = boost::shared_ptr<vw::Settings>(new vw::Settings());
-  }
-}
-
 namespace vw {
 
 // ---------------------------------------------------
@@ -178,12 +166,6 @@ Settings::Settings() : m_rc_last_polltime(0),
   m_tmp_directory_override = false;
   m_write_pool_size_override = false;
 }
-
-Settings& vw_settings() {
-  settings_once.run( init_system_settings );
-  return *system_settings_ptr;
-}
-
 
 // -----------------------------------------------------------------
 //                        Settings API

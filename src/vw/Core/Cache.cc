@@ -13,19 +13,6 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Core/Settings.h>
 
-namespace {
-  vw::RunOnce system_cache_once = VW_RUNONCE_INIT;
-  vw::Cache *system_cache_ptr = 0;
-  void init_system_cache() {
-    system_cache_ptr = new vw::Cache( vw::vw_settings().system_cache_size() );
-  }
-}
-
-vw::Cache& vw::vw_system_cache() {
-  system_cache_once.run( init_system_cache );
-  return *system_cache_ptr;
-}
-
 void vw::Cache::allocate( size_t size ) {
   while( m_size+size > m_max_size ) {
     if( ! m_last_valid ) {

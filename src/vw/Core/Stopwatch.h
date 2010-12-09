@@ -15,6 +15,7 @@
 // BOOST includes
 #include <boost/shared_ptr.hpp>
 
+#include <vw/Core/System.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/FundamentalTypes.h>
 
@@ -117,11 +118,8 @@ namespace vw {
   // Simple functions for global StopwatchSet
   //
 
-  // Return the global StopwatchSet
-  StopwatchSet *global_stopwatch_set();
-
   // Find or create names stopwatch from the global StopwatchSet
-  inline Stopwatch stopwatch_get(const std::string &name) { return global_stopwatch_set()->get(name); }
+  Stopwatch stopwatch_get(const std::string &name);
 
   // Start the named stopwatch from the global StopwatchSet
   inline void stopwatch_start(const std::string &name) { stopwatch_get(name).start(); }

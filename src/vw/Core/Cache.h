@@ -57,6 +57,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/System.h>
 
 #include <boost/shared_ptr.hpp>
 #include <typeinfo>
@@ -272,12 +273,6 @@ namespace vw {
       m_hits = m_misses = m_evictions = 0;
     }
   };
-
-  /// Use this method to return a reference to the Vision Workbench
-  /// system cache.  This cache is used by default for all new
-  /// BlockImageView<>'s such as DiskImageView<>.
-  Cache& vw_system_cache();
-
 } // namespace vw
 
 #endif  // __VW_CORE_CACHE_H__

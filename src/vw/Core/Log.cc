@@ -44,16 +44,8 @@ current_posix_time_string()
   return std::string(time_string);
 }
 
-// ---------------------------------------------------
-// Create a single instance of the SystemLog
-// ---------------------------------------------------
 namespace {
   static vw::null_ostream g_null_ostream;
-  vw::RunOnce system_log_once = VW_RUNONCE_INIT;
-  boost::shared_ptr<vw::Log> system_log_ptr;
-  void init_system_log() {
-    system_log_ptr = boost::shared_ptr<vw::Log>(new vw::Log());
-  }
 }
 
 // ---------------------------------------------------
@@ -130,11 +122,6 @@ std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) {
 
     return *stream;
   }
-}
-
-vw::Log& vw::vw_log() {
-  system_log_once.run( init_system_log );
-  return *system_log_ptr;
 }
 
 vw::LogRuleSet::LogRuleSet( LogRuleSet const& copy_log) {

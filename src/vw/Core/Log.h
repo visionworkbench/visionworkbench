@@ -25,6 +25,7 @@
 
 #include <vw/Core/Features.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/System.h>
 
 // Boost Headers
 #include <boost/algorithm/string.hpp>
@@ -397,10 +398,9 @@ namespace vw {
   /// on disk.  It supports multiple open log streams, each with their
   /// own LogRuleSet.
   ///
-  /// Important Note: You should access the system log using the
-  /// Log::system_log() static method, which access a singleton
-  /// instance of the system log class.  You should not need to create
-  /// a log object yourself.
+  /// Important Note: You should access the system log using the vw::vw_log
+  /// free function, which is a singleton instance of the system log class.  You
+  /// should not need to create a log object yourself.
   class Log : private boost::noncopyable {
 
     // Pointers to various log instances that are currently being
@@ -477,16 +477,6 @@ namespace vw {
       m_console_log->rule_set() = rule_set;
     }
   };
-
-  /// Static method to access the singleton instance of the system
-  /// log.  You should *always* use this method if you want to access
-  /// Vision Workbench system log, where all Vision Workbench log
-  /// messages go.
-  /// For example:
-  ///
-  ///     vw_log().console_log() << "Some text\n";
-  ///
-  Log& vw_log();
 
   /// The vision workbench logging operator.  Use this to generate a
   /// message in the system log using the given log_level and

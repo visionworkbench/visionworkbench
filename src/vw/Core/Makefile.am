@@ -24,6 +24,7 @@ include_HEADERS = \
   ProgressCallback.h \
   Settings.h \
   Stopwatch.h \
+  System.h \
   Thread.h \
   ThreadPool.h \
   ThreadQueue.h \
@@ -39,6 +40,7 @@ libvwCore_la_SOURCES = \
   ProgressCallback.cc \
   Settings.cc \
   Stopwatch.cc \
+  System.cc \
   Thread.cc
 
 libvwCore_la_LIBADD = @MODULE_CORE_LIBS@

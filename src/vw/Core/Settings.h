@@ -20,6 +20,7 @@
 
 #include <vector>
 
+#include <vw/Core/System.h>
 #include <vw/Core/Thread.h>
 
 namespace vw {
@@ -121,17 +122,6 @@ namespace vw {
     /// Set the directory to be used for storing temporary files.
     void set_tmp_directory(std::string const& path);
   };
-
-  /// Static method to access the singleton instance of the system
-  /// settings.  You should *always* use this method if you want to
-  /// access Vision Workbench system log, where all Vision Workbench
-  /// log messages go.
-  ///
-  /// For example:
-  ///
-  ///     vw_settings().set_system_cache_size(2048)
-  ///
-  Settings& vw_settings();
 
 } // namespace vw
 
