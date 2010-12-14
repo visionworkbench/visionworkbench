@@ -18,8 +18,6 @@ using namespace vw;
 using namespace vw::platefile;
 namespace pb = ::google::protobuf;
 
-void vw::platefile::noop() {}
-
 #define NOIMPL { vw_throw(vw::NoImplErr() << "Not implemented: " << VW_CURRENT_FUNCTION); }
 
 void RpcBase::Reset() NOIMPL

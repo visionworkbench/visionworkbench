@@ -32,12 +32,12 @@ namespace platefile {
 
     // Private methods
     std::vector<std::string> glob_plate_filenames(std::string const& root_directory);
-    IndexServiceRecord add_index(std::string root_directory, std::string plate_filename,
-                                 boost::shared_ptr<Index> index);
+    IndexServiceRecord* add_index(std::string root_directory, std::string plate_filename,
+                                  boost::shared_ptr<Index> index);
 
-    /// Fetch an IndexServiceRecord for a given platefile_id, or throw an
-    /// exception if no record is found.
-    IndexServiceRecord get_index_record_for_platefile_id(int platefile_id);
+    IndexServiceRecord* find_id(int32 platefile_id);
+    IndexServiceRecord  find_id_throw(int32 platefile_id);
+    IndexServiceRecord* find_name(const std::string& name);
 
   public:
 

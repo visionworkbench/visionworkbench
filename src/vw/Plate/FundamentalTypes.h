@@ -11,12 +11,23 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <boost/operators.hpp>
-#include <boost/optional.hpp>
+
+namespace google { namespace protobuf {
+  class Closure;
+}}
 
 namespace vw {
 namespace platefile {
 
 namespace detail {
+
+  struct RequireCall {
+    typedef ::google::protobuf::Closure Func;
+    Func *call;
+    RequireCall(Func* call);
+    ~RequireCall();
+  };
+
   // These numbers carefully chosen to match reality and the proper ordering...
   // "No Transaction" should be -1 and should always compare greater than
   // anything in the valid transaction range. Every invalid transaction should

@@ -12,6 +12,7 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/ThreadQueue.h>
 #include <vw/config.h>
+#include <vw/Plate/FundamentalTypes.h>
 
 #include <google/protobuf/descriptor.h>
 
@@ -240,6 +241,7 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
                              pb::Message* response,
                              pb::Closure* done)
 {
+  detail::RequireCall call(done);
   RpcWrapper q_wrap, a_wrap;
 
   q_wrap.set_method(method->name());
@@ -266,7 +268,6 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
         }
         throw_rpc_error(a_wrap.error());
         response->ParseFromString(a_wrap.payload());
-        done->Run();
         return;
     }
   }

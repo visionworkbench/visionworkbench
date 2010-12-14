@@ -19,10 +19,8 @@ namespace platefile {
   class IChannel;
   class Url;
 
-  void noop();
-
   inline google::protobuf::Closure* null_callback() {
-    return google::protobuf::NewCallback(&noop);
+    return google::protobuf::NewCallback(&google::protobuf::DoNothing);
   }
 
   class ThreadMap : private boost::noncopyable {

@@ -1,7 +1,12 @@
 #include <vw/Plate/FundamentalTypes.h>
+#include <google/protobuf/service.h>
 
 namespace vw {
 namespace platefile {
+  namespace detail {
+    RequireCall::RequireCall(Func* call) : call(call) {}
+    RequireCall::~RequireCall() {call->Run();}
+  }
 
 TransactionOrNeg::TransactionOrNeg() VW_NOTHROW {
   set(detail::NO_TRANSACTION);

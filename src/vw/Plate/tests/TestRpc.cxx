@@ -37,8 +37,10 @@ class TestServiceImpl : public TestService {
     virtual void DoubleRequest(pb::RpcController* /*controller*/, const DoubleMessage* request, DoubleMessage* response, pb::Closure* done) {
       switch (request->num()) {
         case CLIENT_ERROR:
+          done->Run();
           vw_throw(PlatefileErr() << "Sad panda");
         case SERVER_ERROR:
+          done->Run();
           vw_throw(LogicErr() << "It broke! [<--- this is expected! Please ignore.]");
         default:
           response->set_num(request->num() * 2);

@@ -7,6 +7,7 @@
 
 #include <vw/Plate/detail/ZeroMQChannel.h>
 #include <vw/Plate/HTTPUtils.h>
+#include <vw/Plate/FundamentalTypes.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>
 
@@ -112,6 +113,7 @@ void ZeroMQChannel::CallMethod(const pb::MethodDescriptor* method,
                                pb::Message* response,
                                pb::Closure* done)
 {
+  detail::RequireCall call(done);
   RpcWrapper q_wrap, a_wrap;
 
   q_wrap.set_method(method->name());
@@ -133,7 +135,6 @@ void ZeroMQChannel::CallMethod(const pb::MethodDescriptor* method,
       default:
         throw_rpc_error(a_wrap.error());
         response->ParseFromString(a_wrap.payload());
-        done->Run();
         return;
     }
   }

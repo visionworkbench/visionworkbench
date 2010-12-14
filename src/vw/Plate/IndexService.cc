@@ -16,7 +16,9 @@ using namespace vw::platefile;
 
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
+namespace pb = ::google::protobuf;
 
 // ----------------------------------------------------------------------------------
 //                                 PRIVATE METHODS
@@ -45,9 +47,9 @@ std::vector<std::string> IndexServiceImpl::glob_plate_filenames(std::string cons
   return result;
 }
 
-IndexServiceImpl::IndexServiceRecord IndexServiceImpl::add_index(std::string root_directory,
-                                                                 std::string plate_filename,
-                                                                 boost::shared_ptr<Index> index) {
+IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index(std::string root_directory,
+                                                                  std::string plate_filename,
+                                                                  boost::shared_ptr<Index> index) {
 
     // Build up an IndexServiceRecord
     IndexServiceRecord rec;
@@ -57,20 +59,29 @@ IndexServiceImpl::IndexServiceRecord IndexServiceImpl::add_index(std::string roo
 
     // Store the record in a std::map by platefile_id
     m_indices[index->index_header().platefile_id()]  = rec;
-    return rec;
+    return &m_indices[index->index_header().platefile_id()];
 }
 
-/// Fetch an IndexServiceRecord for a given platefile_id, or throw an
-/// exception if no record is found.  This is the first step in most
-/// of the RPC handlers below, so the code is factored out here for
-/// convenience.
-IndexServiceImpl::IndexServiceRecord IndexServiceImpl::get_index_record_for_platefile_id(int platefile_id) {
 
-  if (m_indices.find(platefile_id) == m_indices.end())
-    vw_throw(InvalidPlatefileErr() << "No platefile matching this platefile_id could be found.");
+IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::find_id(int32 platefile_id) {
+  index_list_type::iterator i = m_indices.find(platefile_id);
+  if (i == m_indices.end())
+    return 0;
+  return &i->second;
+}
 
-  return m_indices[platefile_id];
+IndexServiceImpl::IndexServiceRecord IndexServiceImpl::find_id_throw(int32 platefile_id) {
+  IndexServiceRecord *rec = find_id(platefile_id);
+  if (rec)
+    return *rec;
+  vw_throw(InvalidPlatefileErr() << "No platefile matching this platefile id found: " << platefile_id);
+}
 
+IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::find_name(const std::string& name) {
+  BOOST_FOREACH(index_list_type::value_type& index, m_indices)
+    if ( name == index.second.short_plate_filename )
+      return &(index.second);
+  return 0;
 }
 
 // ----------------------------------------------------------------------------------
@@ -94,114 +105,79 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
 }
 
 void IndexServiceImpl::sync() {
-  for (index_list_type::iterator iter = m_indices.begin(); iter != m_indices.end(); ++iter) {
-    vw_out() << "\t--> Syncing index for " << iter->second.short_plate_filename
-             << " to disk.\n";
-    iter->second.index->sync();
+  BOOST_FOREACH(index_list_type::value_type& i, m_indices) {
+    vw_out() << "\t--> Syncing index for " << i.second.short_plate_filename << " to disk.\n";
+    i.second.index->sync();
   }
 }
 
-void IndexServiceImpl::OpenRequest(::google::protobuf::RpcController* /*controller*/,
-                                   const IndexOpenRequest* request,
-                                   IndexOpenReply* response,
-                                   ::google::protobuf::Closure* done) {
+#define METHOD_IMPL(Name, Input, Output) \
+  void IndexServiceImpl::Name(pb::RpcController*, const Input* request, Output* response, pb::Closure* done)
+#define METHOD_IMPL_NOREPLY(Name, Input) \
+  void IndexServiceImpl::Name(pb::RpcController*, const Input* request, RpcNullMsg*, pb::Closure* done)
 
-  index_list_type::iterator iter = m_indices.begin();
-  while (iter != m_indices.end()) {
-    if ( (*iter).second.short_plate_filename == request->plate_name() ) {
+METHOD_IMPL(OpenRequest, IndexOpenRequest, IndexOpenReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord *r = find_name(request->plate_name());
 
-      // If we find a matching short_plate_filename in m_indices, then
-      // we return the index header.
-      response->set_short_plate_filename( (*iter).second.short_plate_filename );
-      response->set_full_plate_filename( (*iter).second.full_plate_filename );
-      *(response->mutable_index_header()) = (*iter).second.index->index_header();
-      done->Run();
-      return;
+  if (!r)
+    vw_throw(InvalidPlatefileErr() << "No platefile matching this platename found: " << request->plate_name());
 
-    }
-    ++iter;
-  }
-
-  // If we reach this point, then there is no matching plate file
-  // being tracked by this IndexService.  Return an error.
-  vw_throw(InvalidPlatefileErr() << "No platefile matching this plate_name could be found.");
+  response->set_short_plate_filename( r->short_plate_filename );
+  response->set_full_plate_filename( r->full_plate_filename );
+  *(response->mutable_index_header()) = r->index->index_header();
 }
 
-void IndexServiceImpl::CreateRequest(::google::protobuf::RpcController* /*controller*/,
-                                     const IndexCreateRequest* request,
-                                     IndexOpenReply* response,
-                                     ::google::protobuf::Closure* done) {
+METHOD_IMPL(CreateRequest, IndexCreateRequest, IndexOpenReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord *r = find_name(request->plate_name());
 
-  // Try OPEN: the index may already exist and be open.  If so, we do
-  // nothing but return the necessary info in the IndexOpenReply.
-  index_list_type::iterator iter = m_indices.begin();
-  while (iter != m_indices.end()) {
-    if ( (*iter).second.short_plate_filename == request->plate_name() ) {
-
-      // If we find a matching short_plate_filename in m_indices, then
-      // we return the index header.
-      response->set_short_plate_filename( (*iter).second.short_plate_filename );
-      response->set_full_plate_filename( (*iter).second.full_plate_filename );
-      *(response->mutable_index_header()) = (*iter).second.index->index_header();
-      done->Run();
-      return;
-
-    }
-    ++iter;
-  }
-
-
-  // If the index is not already open...
-  std::string url = m_root_directory + "/" + request->plate_name();
-  boost::shared_ptr<Index> idx;
+  const Url url(m_root_directory + "/" + request->plate_name());
   try {
-    if (!exists( fs::path( url, fs::native ) ) ) {
-
+    if (!r && !fs::exists(url.path())) {
       // CREATE: If there was no index already open by that name, and
       // no platefile on disk, then we try to create it.
-      fs::create_directory(url);
-      idx = Index::construct_create(url, request->index_header());
-
+      fs::create_directory(url.path());
+      boost::shared_ptr<Index> idx = Index::construct_create(url, request->index_header());
+      r = this->add_index(m_root_directory, request->plate_name(), idx);
     } else {
-
+      if (!r) {
       // REOPEN: If a platefile actually does appear to exist on disk,
       // but we had not previously opened it, we open it here.
-      idx = Index::construct_open(url);
-
+      boost::shared_ptr<Index> idx = Index::construct_open(url);
+      r = this->add_index(m_root_directory, request->plate_name(), idx);
     }
-  } catch (IOErr &e) {
+    // OPEN: Now check that the opened/reopened index matches the requested format.
+    const IndexHeader& orig = r->index->index_header();
+    const IndexHeader& req  = request->index_header();
+
+    // Most of these settings are just defaults or can be gleaned from the
+    // TileHeader or the data itself (like, the tile size). However, the type
+    // cannot be changed.
+#define CHECK(field) VW_ASSERT(orig.field() == req.field(), PlatefileCreationErr() << "Refusing to override " #field " on platefile " << request->plate_name())
+    CHECK(type);
+#undef CHECK
+    }
+  } catch (const IOErr& e) {
     vw_throw(PlatefileCreationErr() << e.what());
-    return; // never reached
   }
 
-  IndexServiceRecord rec = this->add_index(m_root_directory, request->plate_name(), idx);
-  response->set_short_plate_filename( rec.short_plate_filename );
-  response->set_full_plate_filename( rec.full_plate_filename );
-  *(response->mutable_index_header()) = rec.index->index_header();
-  done->Run();
+  response->set_short_plate_filename( r->short_plate_filename );
+  response->set_full_plate_filename( r->full_plate_filename );
+  *(response->mutable_index_header()) = r->index->index_header();
 }
 
-void IndexServiceImpl::InfoRequest(::google::protobuf::RpcController* /*controller*/,
-                                   const IndexInfoRequest* request,
-                                   IndexInfoReply* response,
-                                   ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+METHOD_IMPL(InfoRequest, IndexInfoRequest, IndexInfoReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
   response->set_short_plate_filename(rec.short_plate_filename);
   response->set_full_plate_filename(rec.full_plate_filename);
   *(response->mutable_index_header()) = rec.index->index_header();
-  done->Run();
 }
 
-void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* /*controller*/,
-                                   const IndexListRequest* request,
-                                   IndexListReply* response,
-                                   ::google::protobuf::Closure* done) {
-
-  //  std::cout << "RECEIVED ListRequest message : " << request->DebugString() << "\n";
-
+METHOD_IMPL(ListRequest, IndexListRequest, IndexListReply) {
+  detail::RequireCall call(done);
   for (index_list_type::const_iterator i = m_indices.begin(), end = m_indices.end(); i != end; ++i) {
 
     IndexServiceRecord rec = i->second;
@@ -220,235 +196,106 @@ void IndexServiceImpl::ListRequest(::google::protobuf::RpcController* /*controll
 
     if (should_filter_out(type))
       continue;
-
 #undef should_filter_out
 
     response->add_platefile_names(rec.short_plate_filename);
   }
-
-  //  std::cout << "SENDING ListRequest response : " << response->DebugString() << "\n";
-
-  done->Run();
 }
 
-void IndexServiceImpl::PageRequest(::google::protobuf::RpcController* /*controller*/,
-                                   const IndexPageRequest* request,
-                                   IndexPageReply* response,
-                                   ::google::protobuf::Closure* done) {
+METHOD_IMPL(PageRequest, IndexPageRequest, IndexPageReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
-  boost::shared_ptr<IndexPage> page = rec.index->page_request(request->col(),
-                                                              request->row(),
-                                                              request->level());
+  boost::shared_ptr<IndexPage> page =
+    rec.index->page_request(request->col(), request->row(), request->level());
 
   std::ostringstream ostr;
   page->serialize(ostr);
   response->set_page_bytes(ostr.str().c_str(), ostr.str().size());
-  done->Run();
 }
 
-void IndexServiceImpl::ReadRequest(::google::protobuf::RpcController* /*controller*/,
-                                   const IndexReadRequest* request,
-                                   IndexReadReply* response,
-                                   ::google::protobuf::Closure* done) {
+METHOD_IMPL(ReadRequest, IndexReadRequest, IndexReadReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
-  IndexRecord record = rec.index->read_request(request->col(),
-                                               request->row(),
-                                               request->level(),
-                                               request->transaction_id(),
-                                               request->exact_transaction_match());
-  *(response->mutable_index_record()) = record;
-  done->Run();
+  *(response->mutable_index_record()) =
+    rec.index->read_request(request->col(), request->row(), request->level(),
+                            request->transaction_id(), request->exact_transaction_match());
 }
 
-void IndexServiceImpl::WriteRequest(::google::protobuf::RpcController* /*controller*/,
-                                    const IndexWriteRequest* request,
-                                    IndexWriteReply* response,
-                                    ::google::protobuf::Closure* done) {
+METHOD_IMPL(WriteRequest, IndexWriteRequest, IndexWriteReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
   uint64 size;
   int blob_id = rec.index->write_request(size);
   response->set_blob_id(blob_id);
   response->set_size(size);
-  done->Run();
 }
 
-void IndexServiceImpl::WriteUpdate(::google::protobuf::RpcController* /*controller*/,
-                                   const ::vw::platefile::IndexWriteUpdate* request,
-                                   ::vw::platefile::RpcNullMsg* /*response*/,
-                                   ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL_NOREPLY(WriteUpdate, IndexWriteUpdate) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->write_update(request->header(), request->record());
-
-  // This message has no response
-  done->Run();
 }
 
-void IndexServiceImpl::MultiWriteUpdate(::google::protobuf::RpcController* /*controller*/,
-                                        const ::vw::platefile::IndexMultiWriteUpdate* request,
-                                        ::vw::platefile::RpcNullMsg* /*response*/,
-                                        ::google::protobuf::Closure* done) {
-
+METHOD_IMPL_NOREPLY(MultiWriteUpdate, IndexMultiWriteUpdate) {
+  detail::RequireCall call(done);
   // MultiWrite updates are packetized.  We iterate over them here.
   for (int i = 0; i < request->write_updates().size(); ++i) {
     IndexWriteUpdate update = request->write_updates().Get(i);
-
-    // Fetch the index service record
-    IndexServiceRecord rec = get_index_record_for_platefile_id(update.platefile_id());
-
-    // Access the data in the index.  Return the data on success, or
-    // notify the remote client of our failure if we did not succeed.
+    IndexServiceRecord rec = find_id_throw(update.platefile_id());
     rec.index->write_update(update.header(), update.record());
   }
-
-  // This message has no response
-  done->Run();
 }
 
-void IndexServiceImpl::WriteComplete(::google::protobuf::RpcController* /*controller*/,
-                                     const IndexWriteComplete* request,
-                                     RpcNullMsg* /*response*/,
-                                     ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL_NOREPLY(WriteComplete, IndexWriteComplete) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->write_complete(request->blob_id(), request->blob_offset());
-
-  // This message has no response
-  done->Run();
 }
 
-
-void IndexServiceImpl::TransactionRequest(::google::protobuf::RpcController* /*controller*/,
-                                          const IndexTransactionRequest* request,
-                                          IndexTransactionReply* response,
-                                          ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
-  Transaction transaction_id = rec.index->transaction_request(request->description(),
-                                                              request->transaction_id_override());
+METHOD_IMPL(TransactionRequest, IndexTransactionRequest, IndexTransactionReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
+  Transaction transaction_id = 
+    rec.index->transaction_request(request->description(), request->transaction_id_override());
   response->set_transaction_id(transaction_id);
-
-  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction "
-  //           << transaction_id << " started.\n";
-
-  done->Run();
 }
 
-void IndexServiceImpl::TransactionComplete(::google::protobuf::RpcController* /*controller*/,
-                                           const IndexTransactionComplete* request,
-                                           RpcNullMsg* /*response*/,
-                                           ::google::protobuf::Closure* done) {
-
-  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction "
-  //           << request->transaction_id() << " complete.\n";
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
-  rec.index->transaction_complete(request->transaction_id(),
-                                  request->update_read_cursor());
-
-  // This message has no response.
-  done->Run();
+METHOD_IMPL_NOREPLY(TransactionComplete, IndexTransactionComplete) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
+  rec.index->transaction_complete(request->transaction_id(), request->update_read_cursor());
 }
 
-void IndexServiceImpl::TransactionFailed(::google::protobuf::RpcController* /*controller*/,
-                                         const IndexTransactionFailed* request,
-                                         RpcNullMsg* /*response*/,
-                                         ::google::protobuf::Closure* done) {
-
-  // std::cout << "\n\t--> [ Platefile " << request->platefile_id() << " ] : Transaction "
-  //           << request->transaction_id() << " failed.\n";
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL_NOREPLY(TransactionFailed, IndexTransactionFailed) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->transaction_failed(request->transaction_id());
-
-  // This message has no response.
-  done->Run();
 }
 
-void IndexServiceImpl::TransactionCursor(::google::protobuf::RpcController* /*controller*/,
-                                         const IndexTransactionCursorRequest* request,
-                                         IndexTransactionCursorReply* response,
-                                         ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL(TransactionCursor, IndexTransactionCursorRequest, IndexTransactionCursorReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   Transaction transaction_id = rec.index->transaction_cursor();
   response->set_transaction_id(transaction_id);
-  done->Run();
 }
 
-void IndexServiceImpl::NumLevelsRequest(::google::protobuf::RpcController* /*controller*/,
-                                        const IndexNumLevelsRequest* request,
-                                        IndexNumLevelsReply* response,
-                                        ::google::protobuf::Closure* done) {
-
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
-
-  // Access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL(NumLevelsRequest, IndexNumLevelsRequest, IndexNumLevelsReply) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   response->set_num_levels(rec.index->num_levels());
-  done->Run();
 }
 
-void IndexServiceImpl::LogRequest(::google::protobuf::RpcController* /*controller*/,
-                                  const ::vw::platefile::IndexLogRequest* request,
-                                  ::vw::platefile::RpcNullMsg* /*response*/,
-                                  ::google::protobuf::Closure* done) {
-  // Fetch the index service record
-  IndexServiceRecord rec = get_index_record_for_platefile_id(request->platefile_id());
+METHOD_IMPL_NOREPLY(LogRequest, IndexLogRequest) {
+  detail::RequireCall call(done);
+  IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->log(request->message());
-
-  // This message has no response
-  done->Run();
 }
 
-void IndexServiceImpl::TestRequest(::google::protobuf::RpcController* /*controller*/,
-                                    const IndexTestRequest* request,
-                                    IndexTestReply* response,
-                                    ::google::protobuf::Closure* done) {
-
-  // access the data in the index.  Return the data on success, or
-  // notify the remote client of our failure if we did not succeed.
+METHOD_IMPL(TestRequest, IndexTestRequest, IndexTestReply) {
+  detail::RequireCall call(done);
   response->set_value(request->value());
-  done->Run();
 }
 
