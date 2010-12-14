@@ -11,20 +11,28 @@
 
 if MAKE_MODULE_CORE
 
-TestCompoundTypes_SOURCES    = TestCompoundTypes.cxx
-TestFunctors_SOURCES         = TestFunctors.cxx
-TestExceptions_SOURCES       = TestExceptions.cxx
-TestThread_SOURCES           = TestThread.cxx
-TestThreadPool_SOURCES       = TestThreadPool.cxx
-TestSettings_SOURCES         = TestSettings.cxx
 TestCache_SOURCES            = TestCache.cxx
-TestLog_SOURCES              = TestLog.cxx
+TestCompoundTypes_SOURCES    = TestCompoundTypes.cxx
+TestExceptions_SOURCES       = TestExceptions.cxx
+TestFunctors_SOURCES         = TestFunctors.cxx
 TestFundamentalTypes_SOURCES = TestFundamentalTypes.cxx
+TestLog_SOURCES              = TestLog.cxx
+TestSettings_SOURCES         = TestSettings.cxx
+TestThreadPool_SOURCES       = TestThreadPool.cxx
 TestThreadQueue_SOURCES      = TestThreadQueue.cxx
+TestThread_SOURCES           = TestThread.cxx
 
-TESTS = TestCompoundTypes TestFunctors TestExceptions TestThread TestThreadPool TestSettings TestCache TestLog TestFundamentalTypes TestThreadQueue
-
-#include $(top_srcdir)/config/instantiate.am
+TESTS = \
+  TestCache \
+  TestCompoundTypes \
+  TestExceptions \
+  TestFunctors \
+  TestFundamentalTypes \
+  TestLog \
+  TestSettings \
+  TestThread \
+  TestThreadPool \
+  TestThreadQueue
 
 endif
 
