@@ -117,7 +117,7 @@ namespace ba {
     // the average improvement in the cost function.
     double update(double &abs_tol, double &rel_tol) {
       ++this->m_iterations;
-      Timer* time;
+      boost::scoped_ptr<Timer> time;
 
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
@@ -137,7 +137,7 @@ namespace ba {
       // Populate the Jacobian, which is broken into two sparse
       // matrices A & B, as well as the error matrix and the W
       // matrix.
-      time = new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba");
+      time.reset(new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba"));
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
       for ( uint32 j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
@@ -181,10 +181,10 @@ namespace ba {
           (**fiter).m_w = transpose(A) * inverse_cov * B;
         }
       }
-      delete time;
+      time.reset();
 
       // Add in the camera position and pose constraint terms and covariances.
-      time = new Timer("Solving for Camera and GCP error:",DebugMessage,"ba");
+      time.reset(new Timer("Solving for Camera and GCP error:",DebugMessage,"ba"));
       if ( this->m_use_camera_constraint )
         for ( size_t j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov;
@@ -208,11 +208,11 @@ namespace ba {
             error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
             epsilon_b[i] += inverse_cov * eps_b;
           }
-      delete time;
+      time.reset();
 
       // set initial lambda, and ignore if the user has touched it
       if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
-        time = new Timer("Solving for Lambda:", DebugMessage, "ba");
+        time.reset(new Timer("Solving for Lambda:", DebugMessage, "ba"));
         double max = 0.0;
         for (size_t i = 0; i < U.size(); ++i)
           for (size_t j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
@@ -225,10 +225,10 @@ namespace ba {
               max = fabs(V[i](j,j));
           }
         this->m_lambda = max * 1e-10;
-        delete time;
+        time.reset();
       }
 
-      time = new Timer("Augmenting with lambda",DebugMessage,"ba");
+      time.reset(new Timer("Augmenting with lambda",DebugMessage,"ba"));
       //e at this point should be -g_a
 
       // "Augment" the diagonal entries of the U and V matrices with
@@ -248,12 +248,12 @@ namespace ba {
         for ( uint32 i = 0; i < V.size(); ++i )
           V[i] += v_lambda;
       }
-      delete time;
+      time.reset();
 
       // Create the 'e' vector in S * delta_a = e.  The first step is
       // to "flatten" our block structure to a vector that contains
       // scalar entries.
-      time = new Timer("Create special e vector", DebugMessage, "ba");
+      time.reset(new Timer("Create special e vector", DebugMessage, "ba"));
       Vector<double> e(this->m_model.num_cameras() * BundleAdjustModelT::camera_params_n);
       for (size_t j = 0; j < epsilon_a.size(); ++j) {
         subvector(e, j*BundleAdjustModelT::camera_params_n, BundleAdjustModelT::camera_params_n) =
@@ -279,10 +279,10 @@ namespace ba {
         }
       }
 
-      delete time;
+      time.reset();
 
       // --- BUILD SPARSE, SOLVE A'S UPDATE STEP -------------------------
-      time = new Timer("Build Sparse", DebugMessage, "ba");
+      time.reset(new Timer("Build Sparse", DebugMessage, "ba"));
 
       // The S matrix is a m x m block matrix with blocks that are
       // camera_params_n x camera_params_n in size.  It has a sparse
@@ -343,20 +343,20 @@ namespace ba {
       }
 
       m_S = S; // S is modified in sparse solve. Keeping a copy.
-      delete time;
+      time.reset();
 
       // Computing ideal ordering
       if (!m_found_ideal_ordering) {
-        time = new Timer("Solving Cuthill-Mckee", DebugMessage, "ba");
+        time.reset(new Timer("Solving Cuthill-Mckee", DebugMessage, "ba"));
         m_ideal_ordering = cuthill_mckee_ordering(S,num_cam_params);
         math::MatrixReorganize<math::MatrixSparseSkyline<double> > mod_S( S, m_ideal_ordering );
         m_ideal_skyline = solve_for_skyline(mod_S);
 
         m_found_ideal_ordering = true;
-        delete time;
+        time.reset();
       }
 
-      time = new Timer("Solve Delta A", DebugMessage, "ba");
+      time.reset(new Timer("Solve Delta A", DebugMessage, "ba"));
 
       // Compute the LDL^T decomposition and solve using sparse methods.
       math::MatrixReorganize<math::MatrixSparseSkyline<double> > modified_S( S, m_ideal_ordering );
@@ -364,12 +364,12 @@ namespace ba {
                                              reorganize(e, m_ideal_ordering),
                                              m_ideal_skyline );
       delta_a = reorganize(delta_a, modified_S.inverse());
-      delete time;
+      time.reset();
 
       // --- SOLVE B'S UPDATE STEP ---------------------------------
 
       // Back Solving for Delta B
-      time = new Timer("Solve Delta B", DebugMessage, "ba");
+      time.reset(new Timer("Solve Delta B", DebugMessage, "ba"));
       Vector<double> delta_b( this->m_model.num_points() * num_pt_params );
       {
         // delta_b = inverse(V)*( epsilon_b - sum_across_cam( WijT * delta_aj ) )
@@ -392,7 +392,7 @@ namespace ba {
           subvector( delta_b, i*num_pt_params, num_pt_params ) = delta_temp;
         }
       }
-      delete time;
+      time.reset();
 
       //Predicted improvement for Fletcher modification
       double dS = 0;
@@ -409,7 +409,7 @@ namespace ba {
       // -------------------------------
       // Compute the update error vector and predicted change
       // -------------------------------
-      time = new Timer("Solve for Updated Error", DebugMessage, "ba");
+      time.reset(new Timer("Solve for Updated Error", DebugMessage, "ba"));
       double new_error_total = 0;
       for ( uint32 j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
@@ -466,7 +466,7 @@ namespace ba {
             inverse_cov = this->m_model.B_inverse_covariance(i);
             new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
           }
-      delete time;
+      time.reset();
 
       //Fletcher modification
       double Splus = new_error_total;     //Compute new objective
@@ -482,14 +482,14 @@ namespace ba {
 
       if ( R > 0 ) {
 
-        time = new Timer("Setting Parameters",DebugMessage,"ba");
+        time.reset(new Timer("Setting Parameters",DebugMessage,"ba"));
         for (size_t j = 0; j < this->m_model.num_cameras(); ++j)
           this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
         for (size_t i = 0; i < this->m_model.num_points(); ++i)
           this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
                                          subvector(delta_b, num_pt_params*i,num_pt_params));
-        delete time;
+        time.reset();
 
         if ( this->m_control == 0 ) {
           double temp = 1 - pow((2*R - 1),3);
