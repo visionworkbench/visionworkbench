@@ -291,7 +291,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("function,f", po::value(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean WeightedVar]")
     ("transaction-id,t",po::value(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
     ("start", po::value<std::string>(&opt.start_description), "Starts a multi-part plate reduce.")
-    ("finish", "Finish a multi-part plate reduce");
+    ("finish", "Finish a multi-part plate reduce")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
