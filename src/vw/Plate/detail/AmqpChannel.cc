@@ -254,6 +254,8 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
     q_wrap.set_seq(++m_seq);
 
     send_message(q_wrap);
+
+CallMethod_receive_again:
     switch (recv_message(a_wrap)) {
       case 0:
         vw_out(WarningMessage) << "CallMethod Timeout. ";
@@ -264,6 +266,11 @@ void AmqpChannel::CallMethod(const pb::MethodDescriptor* method,
       default:
         if (a_wrap.seq() != q_wrap.seq()) {
           vw_out(WarningMessage) << "Sequence mismatch on \"" << this->name() << "\" (expected " << m_seq << ", got " << a_wrap.seq() << ") ";
+          // If we get a seq less than we were expecting, one of the messages
+          // we timed out waiting for finally arrived. Drop it on the floor and
+          // wait again rather than retrying completely.
+          if (a_wrap.seq() < q_wrap.seq())
+            goto CallMethod_receive_again;
           continue;
         }
         throw_rpc_error(a_wrap.error());
