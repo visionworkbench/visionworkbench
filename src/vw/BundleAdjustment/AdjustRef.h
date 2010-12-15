@@ -40,10 +40,10 @@ namespace vw {
 namespace ba {
 
   template <class BundleAdjustModelT, class RobustCostT>
-  class AdjustRef : public AdjustBase<BundleAdjustModelT,RobustCostT> {
+  class AdjustRef : public AdjustBase<BundleAdjustModelT,RobustCostT>, private boost::noncopyable {
 
     // Need to save S for covariance calculations
-    boost::shared_ptr<math::Matrix<double> > m_S;
+    math::Matrix<double> m_S;
 
   public:
 
@@ -55,9 +55,9 @@ namespace ba {
                                                 use_camera_constraint,
                                                 use_gcp_constraint ) {}
 
-    Matrix<double> S() { return *m_S; }
-    void set_S(math::Matrix<double> S) {
-      m_S = boost::shared_ptr<math::Matrix<double> >(new math::Matrix<double>(S));
+    Matrix<double> S() { return m_S; }
+    void set_S(const math::Matrix<double>& S) {
+      m_S = S;
     }
 
     // Covariance Calculator
