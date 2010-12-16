@@ -51,9 +51,10 @@ namespace ba {
   template <class FeatureT>
   void CameraRelationNetwork<FeatureT>::build_map() {
     typedef boost::shared_ptr<FeatureT> f_ptr;
+    typedef boost::weak_ptr<FeatureT> w_ptr;
     typedef typename std::list<f_ptr>::iterator list_it;
     typedef typename std::list<f_ptr>::const_iterator list_cit;
-    typedef typename std::map<uint32,f_ptr>::const_iterator map_cit;
+    typedef typename std::map<uint32,w_ptr>::const_iterator map_cit;
 
     for ( uint32 j = 0; j < m_nodes.size(); j++ ) {
       // Building maps for all features
@@ -79,6 +80,7 @@ namespace ba {
   template <class FeatureT>
   void CameraRelationNetwork<FeatureT>::read_controlnetwork( ControlNetwork const& cnet ) {
     typedef boost::shared_ptr<FeatureT> f_ptr;
+    typedef boost::weak_ptr<FeatureT> w_ptr;
     m_nodes.clear();
 
     for ( uint32 cp_i = 0; cp_i < cnet.size(); cp_i++ ) {
@@ -104,8 +106,8 @@ namespace ba {
       // Doubly Linking features together
       for ( uint32 i = 0; i < features_added.size() - 1; i++ ) {
         for ( uint32 j = i+1; j < features_added.size(); j++ ) {
-          features_added[i]->connection( features_added[j], false );
-          features_added[j]->connection( features_added[i], false );
+          features_added[i]->connection( w_ptr(features_added[j]), false );
+          features_added[j]->connection( w_ptr(features_added[i]), false );
         }
       }
 
@@ -134,8 +136,10 @@ namespace ba {
       progress.report_progress(0);
       for ( uint32 i = 0; i < crn.size() - 1; i++ ) {
         progress.report_progress(float(i)/float(crn.size()-1));
+        typedef boost::weak_ptr<FeatureT> w_ptr;
         typedef boost::shared_ptr<FeatureT> f_ptr;
         typedef typename std::list<f_ptr>::iterator f_list_iter;
+        typedef typename std::list<w_ptr>::iterator w_list_iter;
 
         // Iterating over matched relations inside a camera node and
         // building control points for them.
@@ -143,7 +147,7 @@ namespace ba {
               iter != crn[i].end(); iter++ ) {
           // 1.) Building a listing of interest point for a control
           // point
-          std::list<f_ptr> interestpts;
+          std::list<w_ptr> interestpts;
           interestpts.push_back(*iter);
           (*iter)->list_connections( interestpts );
 
@@ -153,11 +157,11 @@ namespace ba {
           cpoint.add_measure( (*iter)->control_measure() );
 
           // 3.) Adding and Removing measures in all other locations
-          f_list_iter measure = interestpts.begin();
+          w_list_iter measure = interestpts.begin();
           measure++;
           for ( ; measure != interestpts.end(); measure++ ) {
-            crn[(*measure)->m_camera_id].relations.remove(*measure);
-            cpoint.add_measure( (*measure)->control_measure() );
+            crn[(*measure).lock()->m_camera_id].relations.remove((*measure).lock());
+            cpoint.add_measure( (*measure).lock()->control_measure() );
           }
 
           // 4.) Removing this location finally
@@ -168,16 +172,16 @@ namespace ba {
           {
             std::list<unsigned> previous_camera;
             bool match = false;
-            for ( f_list_iter interest = interestpts.begin();
+            for ( w_list_iter interest = interestpts.begin();
                   interest != interestpts.end(); interest++ ) {
               for ( std::list<unsigned>::iterator previous = previous_camera.begin();
                     previous != previous_camera.end(); previous++ ) {
-                if ((*previous) == (*interest)->m_camera_id) {
+                if ((*previous) == (*interest).lock()->m_camera_id) {
                   match = true;
                   break;
                 }
               }
-              previous_camera.push_back( (*interest)->m_camera_id );
+              previous_camera.push_back( (*interest).lock()->m_camera_id );
               if ( match ) {
                 continue;
               }

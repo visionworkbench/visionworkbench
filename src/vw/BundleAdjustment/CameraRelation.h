@@ -41,9 +41,14 @@ namespace ba {
     inline ImplT& impl() { return static_cast<ImplT&>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-    typedef boost::shared_ptr<ImplT> f_ptr;
-    std::list<f_ptr> m_connections;
-    std::map<uint32,f_ptr> m_map; // Alternative access compared to
+    // Features use weak points as they can't be allowed to have
+    // ownership. The reason is that 2 features can keep themselves from
+    // being deleted if they have shared_ptrs of each
+    // other. Shared_ptrs and the control of deletion is handled by Camera
+    // Nodes below.
+    typedef boost::weak_ptr<ImplT> w_ptr;
+    std::list<w_ptr> m_connections;
+    std::map<uint32,w_ptr> m_map; // Alternative access compared to
     // connections. This should only be used after spiral error detection has
     // been performed. Map can used to find quickly the feature that belongs
     // to a camera specific camera.
@@ -53,12 +58,12 @@ namespace ba {
     // Returns a string identifying feature type
     std::string type() { return impl().type(); }
     // Connects this feature to another
-    void connection( f_ptr& con, bool check=true ) {
+    void connection( w_ptr con, bool check=true ) {
       if (check) {
-        typedef typename std::list<f_ptr>::iterator list_it;
+        typedef typename std::list<w_ptr>::iterator list_it;
         for ( list_it iter = m_connections.begin();
               iter != m_connections.end(); iter++ ) {
-          if ( (*iter).get() == con.get() ) // Compare pointers only
+          if ( (*iter).lock() == con.lock() ) // Compare pointers only
             return;
         }
       }
@@ -66,30 +71,30 @@ namespace ba {
     }
     // List all features connected to this one. This will traverse all
     // connections and append them to the provided list.
-    void list_connections( std::list<f_ptr>& listing ) {
-      typedef typename std::list<f_ptr>::iterator list_it;
+    void list_connections( std::list<w_ptr>& listing ) {
+      typedef typename std::list<w_ptr>::iterator list_it;
       for ( list_it iter = m_connections.begin();
             iter != m_connections.end(); iter++ ) {
         bool contains = false;
         for ( list_it diter = listing.begin();
               diter != listing.end(); diter++ )
-          if ( *diter == *iter ) {
+          if ( (*diter).lock() == (*iter).lock() ) {
             contains = true;
             break;
           }
 
         if ( !contains ) {
           listing.push_back(*iter);
-          (*iter)->list_connections( listing );
+          (*iter).lock()->list_connections( listing );
         }
       }
     }
     void build_map() {
       m_map.clear();
-      typedef typename std::list<f_ptr>::const_iterator list_it;
+      typedef typename std::list<w_ptr>::const_iterator list_it;
       for ( list_it fiter = m_connections.begin();
             fiter != m_connections.end(); fiter++ )
-        m_map[ (**fiter).m_camera_id ] = *fiter;
+        m_map[ (*fiter).lock()->m_camera_id ] = *fiter;
     }
 
     // Interface to aid conversion with Control Network
@@ -99,7 +104,6 @@ namespace ba {
   // Interest Point Feature
   // - Intended for fast insertion of IP matches
   struct IPFeature : public FeatureBase<IPFeature> {
-    typedef boost::shared_ptr<IPFeature> f_ptr;
     ip::InterestPoint m_ip;
 
     // Standard Constructor
@@ -125,8 +129,6 @@ namespace ba {
   // Jacobian Feature
   // - Intended for internal use in BA
   struct JFeature : public FeatureBase<JFeature> {
-    typedef boost::shared_ptr<JFeature> f_ptr;
-
     Matrix<double> m_w, m_y; // W = product of Jacobians, Y = product of W
 
     uint32 m_point_id;

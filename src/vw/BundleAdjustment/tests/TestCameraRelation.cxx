@@ -58,17 +58,17 @@ TEST( CameraRelation, Construction ) {
     crn[1].relations.push_back( second );
   }
 
-  std::list<boost::shared_ptr<IPFeature> > list;
+  std::list<boost::weak_ptr<IPFeature> > list;
   (*crn[0].begin())->list_connections( list );
-  for ( std::list<boost::shared_ptr<IPFeature> >::iterator it = list.begin();
+  for ( std::list<boost::weak_ptr<IPFeature> >::iterator it = list.begin();
         it != list.end(); it++ ) {
     std::ostringstream ostr;
-    ostr << (**it);
+    ostr << *(*it).lock();
     EXPECT_GT( ostr.str().size(), 20u );
   }
   EXPECT_EQ( list.size(), 2u );
-  EXPECT_EQ( list.front()->m_ip.x, 10 );
-  EXPECT_EQ( list.back()->m_ip.x, 5 );
+  EXPECT_EQ( list.front().lock()->m_ip.x, 10 );
+  EXPECT_EQ( list.back().lock()->m_ip.x, 5 );
 }
 
 TEST_F( CircleTest, IPFeature ) {
@@ -83,7 +83,7 @@ TEST_F( CircleTest, IPFeature ) {
   EXPECT_EQ( crn[1].relations.size(), 3u );
   EXPECT_EQ( crn[2].relations.size(), 2u );
   EXPECT_EQ( crn[3].relations.size(), 1u );
-  std::list<boost::shared_ptr<IPFeature> > list;
+  std::list<boost::weak_ptr<IPFeature> > list;
   crn[3].relations.front()->list_connections( list );
   EXPECT_EQ( list.size(), 4u );
 
@@ -112,7 +112,7 @@ TEST_F( CircleTest, JFeature ) {
   EXPECT_EQ( crn[1].relations.size(), 3u );
   EXPECT_EQ( crn[2].relations.size(), 2u );
   EXPECT_EQ( crn[3].relations.size(), 1u );
-  std::list<boost::shared_ptr<JFeature> > list;
+  std::list<boost::weak_ptr<JFeature> > list;
   crn[3].relations.front()->list_connections( list );
   EXPECT_EQ( list.size(), 4u );
 

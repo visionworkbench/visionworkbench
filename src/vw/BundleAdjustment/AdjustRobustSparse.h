@@ -324,6 +324,7 @@ namespace ba {
 
         // Filling in off diagonal
         for ( uint32 k = j+1; k < m_crn.size(); k++ ) {
+          typedef boost::weak_ptr<JFeature> w_ptr;
           typedef boost::shared_ptr<JFeature> f_ptr;
           typedef std::multimap< uint32, f_ptr >::iterator mm_iterator;
           std::pair< mm_iterator, mm_iterator > feature_range;
@@ -335,10 +336,10 @@ namespace ba {
           bool found = false;
           for ( mm_iterator f_j_iter = feature_range.first;
                 f_j_iter != feature_range.second; f_j_iter++ ) {
-            f_ptr f_k = (*f_j_iter).second->m_map[k];
+            w_ptr f_k = (*f_j_iter).second->m_map[k];
             found = true;
             S_jk -= (*f_j_iter).second->m_y *
-              transpose( (*f_k).m_w );
+              transpose( f_k.lock()->m_w );
           }
 
           // Loading into sparse matrix
