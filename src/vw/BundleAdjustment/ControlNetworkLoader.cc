@@ -27,6 +27,11 @@ struct ContainsEqualIP {
   }
 };
 
+// Utility for checking that the point is BA safe
+void safe_measurement( ip::InterestPoint& ip ) {
+  if ( ip.scale <= 0 ) ip.scale = 10;
+}
+
 void vw::ba::build_control_network( ControlNetwork& cnet,
                                     std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                     std::vector<std::string> const& image_files,
@@ -69,9 +74,11 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
                                            << ip1.size() << " matches.\n";
           num_loaded += ip1.size();
 
-          // Remove descriptors from interest points
+          // Remove descriptors from interest points and correct scale
           std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
           std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
+          std::for_each( ip1.begin(), ip1.end(), safe_measurement );
+          std::for_each( ip2.begin(), ip2.end(), safe_measurement );
 
           typedef boost::shared_ptr< IPFeature > f_ptr;
           typedef std::list< f_ptr >::iterator f_itr;
