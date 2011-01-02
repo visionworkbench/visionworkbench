@@ -234,29 +234,8 @@ namespace ba {
         m_human_report.close();
       if (m_bundlevis_binary.is_open())
         m_bundlevis_binary.close();
-
-      if ( report_level >= BundlevisTriangulation ) {
-        // Writing an image mean file (TEMPORARY)
-        std::cout << "Writing image mean\n";
-        std::ofstream image_mean_file;
-        image_mean_file.open( "image_mean.err", std::ios::binary | std::ios::out );
-        boost::shared_ptr<ControlNetwork> network = m_model.control_network();
-        int size1 = network->size();
-        image_mean_file.write((char*)&size1, sizeof(int));
-
-        // Right Now getting the data I need
-        std::vector<double> image_errors;
-        m_model.image_errors(image_errors);
-        int size2 = image_errors.size();
-        image_mean_file.write((char*)&size2, sizeof(int));
-
-        for ( unsigned i = 0; i < image_errors.size(); i++ )
-          image_mean_file.write((char*)&(image_errors[i]),sizeof(double));
-
-        image_mean_file.close();
-      }
-
     }
+
     // This will display the current error statistics
     std::ostream& operator() () {
       // These are for special comments to the report
