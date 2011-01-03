@@ -139,9 +139,6 @@ ba_test_SOURCES = ba_test.cc
 ba_test_LDADD = @PKG_BUNDLEADJUSTMENT_LIBS@ $(COMMON_LIBS)
 make_ba_test_data_SOURCES = make_ba_test_data.cc
 make_ba_test_data_LDADD = @PKG_BUNDLEADJUSTMENT_LIBS@ $(COMMON_LIBS)
-cnet_editor_progs = cnet_editor
-cnet_editor_SOURCES = cnet_editor.cc
-cnet_editor_LDADD = @PKG_BUNDLEADJUSTMENT_LIBS@ $(COMMON_LIBS)
 endif
 endif
 endif
@@ -164,7 +161,7 @@ endif
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(interestpoint_progs) $(mosaic_progs)            \
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
-               $(cnet_editor_progs) $(contourgen_progs)
+               $(contourgen_progs)
 
 noinst_PROGRAMS      = $(doc_generate_progs) $(batest_progs)
 dist_noinst_SCRIPTS  = ba_unit_test run_ba_tests
