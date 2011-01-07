@@ -48,6 +48,13 @@ TEST( ControlNetwork, Construction ) {
   EXPECT_EQ( cnet.num_tie_points(), 4u );
   EXPECT_EQ( cnet.num_ground_control_points(), 0u);
 
+  // Testing delete control point
+  cnet.delete_control_point(2);
+  ASSERT_EQ( cnet.size(), 3u );
+  EXPECT_EQ( cnet[0].size(), 1u );
+  EXPECT_EQ( cnet[1].size(), 2u );
+  EXPECT_EQ( cnet[2].size(), 4u );
+
   // Checking that default settings were applied
   EXPECT_TRUE( cnet[0][0].is_pixels_dominant() );
   EXPECT_FALSE( cnet[0][0].ignore() );
@@ -65,8 +72,8 @@ TEST( ControlNetwork, Construction ) {
   EXPECT_GT( ostr.str().size(), 100u );
 
   // Check clearing
-  cnet[3].clear();
-  ASSERT_EQ( cnet[3].size(), 0u );
+  cnet[0].clear();
+  ASSERT_EQ( cnet[0].size(), 0u );
   cnet.clear();
   ASSERT_EQ( cnet.size(), 0u );
 }
