@@ -135,15 +135,23 @@ namespace ba {
     std::string camera_position_unit() { return "meters"; }
     std::string camera_pose_unit() { return "radians"; }
     std::string gcp_unit() { return "meters"; }
-    // Forced on the user to define
-    void image_errors( std::vector<double>& x ) {
-      impl().image_errors(x); }
-    void camera_position_errors( std::vector<double>& x ) {
-      impl().camera_position_errors(x); }
-    void camera_pose_errors( std::vector<double>& x) {
-      impl().camera_pose_errors(x); }
-    void gcp_errors( std::vector<double>& x ) {
-      impl().gcp_errors(x); }
+    // Forcing the user to define
+    inline double image_compare( Vector2 const& meas,
+                                 Vector2 const& obj ) {
+      return impl().image_compare( meas, obj );
+    }
+    inline double position_compare( Vector<double, CameraParamsN> const& meas,
+                                    Vector<double, CameraParamsN> const& obj ) {
+      return impl().position_compare( meas, obj );
+    }
+    inline double pose_compare( Vector<double, CameraParamsN> const& meas,
+                                Vector<double, CameraParamsN> const& obj) {
+      return impl().pose_compare( meas, obj );
+    }
+    inline double gcp_compare( Vector<double, PointParamsN> const& meas,
+                               Vector<double, PointParamsN> const& obj ) {
+      return impl().gcp_compare( meas, obj );
+    }
     boost::shared_ptr<ControlNetwork> control_network() {
       vw_throw( vw::NoImplErr() << "Programmer needs to implement ModelBase::control_network()\n" );
     }

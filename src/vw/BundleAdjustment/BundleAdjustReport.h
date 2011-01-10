@@ -33,6 +33,7 @@
 #include <boost/bind.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/filesystem/fstream.hpp>
+#include <boost/foreach.hpp>
 
 // Posix time is not fully supported in the version of Boost for RHEL
 // Workstation 4
@@ -102,7 +103,6 @@ namespace ba {
 
     typedef typename BundleAdjusterT::model_type ModelType;
     ModelType& m_model;
-    //BundleAdjustModelT& m_model;
     BundleAdjusterT& m_adjuster;
 
 #ifndef __APPLE__
@@ -245,51 +245,50 @@ namespace ba {
     // Repeated sections of reporting
     void generic_readings() {
       m_human_both << "\tLambda: " << m_adjuster.lambda() << std::endl;
+      boost::shared_ptr<ControlNetwork> network = m_model.control_network();
       { // Grabbing Image Error information
-        std::vector<double> image_errors;
-        m_model.image_errors(image_errors);
+        size_t cp_index = 0;
         math::CDFAccumulator<double> image_cdf;
-        image_cdf = std::for_each(image_errors.begin(),
-                                  image_errors.end(),
-                                  image_cdf);
+        BOOST_FOREACH( ControlPoint const& cp, *network ) {
+          BOOST_FOREACH( ControlMeasure const& cm, cp ) {
+            image_cdf(m_model.image_compare(cm.position(),
+                                            m_model(cp_index,cm.image_id(),
+                                                    m_model.A_parameters(cm.image_id()),
+                                                    m_model.B_parameters(cp_index))));
+          }
+          cp_index++;
+        }
         write_statistics( image_cdf, "Image",
                           m_model.image_unit());
       }
 
       { // Grabbing Camera Information
-        std::vector<double> position_errors, pose_errors;
-        m_model.camera_position_errors(position_errors);
-        m_model.camera_pose_errors(pose_errors);
-        if ( !position_errors.empty() ) {
-          math::CDFAccumulator<double> position_cdf;
-          position_cdf = std::for_each(position_errors.begin(),
-                                       position_errors.end(),
-                                       position_cdf);
-          write_statistics( position_cdf, "C Pos",
-                            m_model.camera_position_unit());
+        math::CDFAccumulator<double> position_cdf, pose_cdf;
+        for ( size_t j = 0; j < m_model.num_cameras(); j++ ) {
+          position_cdf( m_model.position_compare( m_model.A_parameters(j), m_model.A_target(j) ) );
+          pose_cdf( m_model.pose_compare( m_model.A_parameters(j), m_model.A_target(j) ) );
         }
-        if ( !pose_errors.empty() ) {
-          math::CDFAccumulator<double> pose_cdf;
-          pose_cdf = std::for_each(pose_errors.begin(),
-                                   pose_errors.end(),
-                                   pose_cdf);
-          write_statistics( pose_cdf, "C Rot",
-                            m_model.camera_pose_unit());
-        }
+        write_statistics( position_cdf, "C Pos",
+                          m_model.camera_position_unit());
+        write_statistics( pose_cdf, "C Rot",
+                          m_model.camera_pose_unit());
       }
 
       {
-        std::vector<double> gcp_errors;
-        m_model.gcp_errors(gcp_errors);
-        if ( !gcp_errors.empty() ) {
-          math::CDFAccumulator<double> gcp_cdf;
-          gcp_cdf = std::for_each(gcp_errors.begin(),
-                                  gcp_errors.end(),
-                                  gcp_cdf);
+        size_t count = 0;
+        math::CDFAccumulator<double> gcp_cdf;
+        for ( size_t i = 0; i < m_model.num_points(); i++ ) {
+          if ( (*network)[i].type() == ControlPoint::GroundControlPoint ) {
+            count++;
+            gcp_cdf( m_model.gcp_compare( m_model.B_parameters(i),
+                                          m_model.B_target(i) ) );
+          }
+        }
+        if ( count > 0 )
           write_statistics( gcp_cdf, "  GCP",
                             m_model.gcp_unit());
-        }
       }
+      m_human_both << std::flush;
     }
 
     void stereo_errors( std::vector<double>& stereo_errors ) {
@@ -415,9 +414,8 @@ namespace ba {
 
       write_gcps_kml( kml, *network );
       if ( !gcps_only ) {
-        std::vector<double> image_errors;
-        m_model.image_errors( image_errors );
-        write_3d_est_kml( kml, *network, image_errors );
+        //m_model.image_errors( image_errors );
+        //write_3d_est_kml( kml, *network, image_errors );
       }
     }
 
