@@ -192,22 +192,23 @@ vw::int32 compute_resolution(const Mode& p, const GeoTransform& t, const Vector2
   }
 }
 
-static void get_normalize_vals(DiskImageResourceGDAL &file, const Options& opt) {
+static void get_normalize_vals(boost::shared_ptr<DiskImageResource> file,
+                               const Options& opt) {
 
-  DiskImageView<PixelRGBA<float> > min_max_file(file);
+  DiskImageView<PixelRGB<float> > min_max_file(file);
   float new_lo, new_hi;
   if ( opt.nodata.set() ) {
-    PixelRGBA<float> no_data_value( opt.nodata.value() );
+    PixelRGB<float> no_data_value( opt.nodata.value() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
-  } else if ( file.has_nodata_read() ) {
-    PixelRGBA<float> no_data_value( file.nodata_read() );
+  } else if ( file->has_nodata_read() ) {
+    PixelRGB<float> no_data_value( file->nodata_read() );
     min_max_channel_values( create_mask(min_max_file,no_data_value), new_lo, new_hi );
   } else {
     min_max_channel_values( min_max_file, new_lo, new_hi );
   }
   lo_value = std::min(new_lo, lo_value);
   hi_value = std::max(new_hi, hi_value);
-  cout << "Pixel range for \"" << file.filename() << "\": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << endl;
+  cout << "Pixel range for \"" << file->filename() << ": [" << new_lo << " " << new_hi << "]    Output dynamic range: [" << lo_value << " " << hi_value << "]" << endl;
 }
 
 template <class PixelT>
@@ -225,13 +226,14 @@ void do_normal_mosaic(const Options& opt, const ProgressCallback *progress) {
     quadtree.generate( *progress );
 }
 
-GeoReference make_input_georef(DiskImageResourceGDAL& file, const Options& opt) {
+GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
+                               const Options& opt) {
   GeoReference input_georef;
   bool fail_read_georef = false;
   try {
-    fail_read_georef = !read_georeference( input_georef, file );
+    fail_read_georef = !read_georeference( input_georef, *file );
   } catch ( InputErr const& e ) {
-    vw_out(ErrorMessage) << "Input " << file.filename() << " has malformed georeferencing information.\n";
+    vw_out(ErrorMessage) << "Input " << file->filename() << " has malformed georeferencing information.\n";
     fail_read_georef = true;
   }
 
@@ -250,9 +252,9 @@ GeoReference make_input_georef(DiskImageResourceGDAL& file, const Options& opt) 
 
   if( opt.manual ) {
     Matrix3x3 m;
-    m(0,0) = double(opt.east - opt.west) / file.cols();
+    m(0,0) = double(opt.east - opt.west) / file->cols();
     m(0,2) = opt.west;
-    m(1,1) = double(opt.south - opt.north) / file.rows();
+    m(1,1) = double(opt.south - opt.north) / file->rows();
     m(1,2) = opt.north;
     m(2,2) = 1;
     input_georef.set_transform( m );
@@ -302,8 +304,8 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
   std::vector<GeoReference> georeferences;
 
   BOOST_FOREACH(const string filename, opt.input_files) {
-    DiskImageResourceGDAL file( filename );
-    cout << "Adding file " << file.filename() << endl;
+    boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
+    cout << "Adding file " << file->filename() << endl;
 
     if( opt.normalize ) get_normalize_vals(file, opt);
 
@@ -319,8 +321,8 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     // Calculate the best resolution at 5 different points in the image,
     // as occasionally there's a singularity at the center pixel that
     // makes it extremely tiny (such as in pole-centered images).
-    const int cols = file.cols();
-    const int rows = file.rows();
+    const int cols = file->cols();
+    const int rows = file->rows();
     Vector2 res_pixel[5];
     res_pixel[0] = Vector2( cols/2, rows/2 );
     res_pixel[1] = Vector2( cols/2 + cols/4, rows/2 );
@@ -355,11 +357,19 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     const std::string& filename = opt.input_files[i];
     const GeoReference& input_ref = georeferences[i];
 
+    boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
     GeoTransform geotx( input_ref, output_georef );
-    ImageViewRef<PixelT> source = DiskImageView<PixelT>( filename );
+    ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
-    if( opt.nodata.set() )
+    if ( opt.nodata.set() ) {
+      vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
+                                          << opt.nodata.value() << "\n";
       source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(opt.nodata.value())));
+    } else if ( file->has_nodata_read() ) {
+      vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
+                                          << file->nodata_read() << "\n";
+      source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(file->nodata_read())));
+    }
 
     bool global = boost::trim_copy(input_ref.proj4_str())=="+proj=longlat" &&
       fabs(input_ref.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
@@ -368,11 +378,21 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
       fabs(input_ref.lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
 
     // Do various modifications to the input image here.
-    if( opt.pixel_scale.set() || opt.pixel_offset.set() )
-      source = channel_cast_rescale<ChannelT>( DiskImageView<PixelT>( filename ) * opt.pixel_scale.value() + opt.pixel_offset.value() );
+    if( opt.pixel_scale.set() || opt.pixel_offset.set() ) {
+      vw_out(VerboseDebugMessage, "tool") << "Apply input scaling: "
+                           << opt.pixel_scale.value() << " offset: "
+                           << opt.pixel_offset.value() << "\n";
+      source = channel_cast_rescale<ChannelT>( source * opt.pixel_scale.value() + opt.pixel_offset.value() );
+    }
 
-    if( opt.normalize )
-      source = pixel_cast<PixelT>(channel_cast_rescale<ChannelT>( normalize_retain_alpha(DiskImageView<PixelRGBA<float> >( filename ), lo_value, hi_value, 0.0, 1.0) ) );
+    if( opt.normalize ) {
+      vw_out(VerboseDebugMessage, "tool") << "Apply normalizing: ["
+                                          << lo_value << ", "
+                                          << hi_value << "]\n";
+      typedef ChannelRange<ChannelT> range_type;
+      source = normalize_retain_alpha(source, lo_value, hi_value,
+                                      range_type::min(), range_type::max());
+    }
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
     if (global) {
@@ -382,7 +402,8 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     else
       source = crop( transform( source, geotx ), bbox );
 
-    // Images that wrap the date line must be added to the composite on both sides.
+    // Images that wrap the date line must be added to the composite
+    // on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
     }
