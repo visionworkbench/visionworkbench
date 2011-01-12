@@ -107,7 +107,7 @@ AssertionResult range_compare(const char* e0name, const char* e1name,
     msg << "Expected: (" << e0name << ")[" << idx << "] == ("
                          << a0name << ")[" << idx << "], "
         << "actual: " << vw::test::format(*(r.first))
-        << " vs "     << vw::test::format(*(r.second));
+        << " != "     << vw::test::format(*(r.second));
     need_newline = true;
     ret.pop();
   }
