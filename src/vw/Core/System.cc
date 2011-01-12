@@ -4,36 +4,20 @@
 #include <vw/Core/Settings.h>
 #include <vw/Core/Stopwatch.h>
 
-namespace {
-  vw::RunOnce core_once = VW_RUNONCE_INIT;
-        vw::Cache*      cache_ptr = 0;
-     vw::Settings*   settings_ptr = 0;
-          vw::Log*        log_ptr = 0;
-  vw::StopwatchSet* stopwatch_ptr = 0;
+#define FUNC(Name, Type, Code)                    \
+  namespace {                                     \
+    vw::RunOnce Name ## _once = VW_RUNONCE_INIT;  \
+    Type* Name ## _ptr = 0;                       \
+    void init_ ## Name() {                        \
+      Name ## _ptr = new Type Code;               \
+    }                                             \
+  }                                               \
+  Type& vw::vw_ ## Name() {                       \
+    Name ## _once.run(init_ ## Name);             \
+    return *Name ## _ptr;                         \
+  }
 
-  void init_core() {
-         settings_ptr = new vw::Settings();
-              log_ptr = new vw::Log();
-            cache_ptr = new vw::Cache(settings_ptr->system_cache_size());
-        stopwatch_ptr = new vw::StopwatchSet();
-  }
-}
-
-namespace vw {
-  Cache& vw_system_cache() {
-    core_once.run(init_core);
-    return *cache_ptr;
-  }
-  Log& vw_log() {
-    core_once.run(init_core);
-    return *log_ptr;
-  }
-  Settings& vw_settings() {
-    core_once.run(init_core);
-    return *settings_ptr;
-  }
-  StopwatchSet& vw_stopwatch_set() {
-    core_once.run(init_core);
-    return *stopwatch_ptr;
-  }
-}
+FUNC(     settings, vw::Settings,     ());
+FUNC(          log, vw::Log,          ());
+FUNC( system_cache, vw::Cache,        (vw::vw_settings().system_cache_size()));
+FUNC(stopwatch_set, vw::StopwatchSet, ());
