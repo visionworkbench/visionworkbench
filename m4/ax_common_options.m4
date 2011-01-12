@@ -14,7 +14,7 @@ AC_DEFUN([AX_COMMON_OPTIONS], [
         for arg in "[$]@"; do
             case "[$]arg" in
                 [$]bad) ;;
-                *) echo -n " [$]arg";;
+                *) AS_ECHO_N([" [$]arg"]);;
             esac
         done
     }
