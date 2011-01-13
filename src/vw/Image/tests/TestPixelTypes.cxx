@@ -321,7 +321,7 @@ TEST( PixelTypes, RGB2XYZ2RGB ) {
         PixelRGB<vw::uint8> tmp1(r,g,b);
         PixelXYZ<vw::uint8> tmp2(tmp1);
         PixelRGB<vw::uint8> rgb(tmp2);
-        EXPECT_PIXEL_NEAR( rgb, tmp1, 3 );
+        EXPECT_PIXEL_NEAR( rgb, tmp1, 4 );
       }
     }
   }
