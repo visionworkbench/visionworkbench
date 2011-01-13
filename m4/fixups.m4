@@ -31,5 +31,10 @@ m4_ifset([m4_argn], [],
 [m4_define([m4_argn],
 [m4_car(m4_shiftn($1, $@))])])
 
+m4_ifset([AS_ECHO_N], [m4_copy([AS_ECHO_N], [VW_ECHO_N])],
+[m4_define([VW_ECHO_N],
+  [AS_REQUIRE([_AS_ECHO_N_PREPARE])dnl
+  echo $ECHO_N "_AS_QUOTE([$1])$ECHO_C" ])])
+
 
 m4_define([_AX_FIXUPS], [1])

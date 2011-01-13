@@ -21,7 +21,7 @@ AC_DEFUN([AX_MODULE],
     }
 
     var_uniq() {
-        AS_ECHO_N(["[$]*"]) | sed 's/ \+/\n/g' | sed -n 'G; s/\n/&&/; /^\(@<:@^\n@:>@*\n\).*\n\1/d; s/\n//; h; P' | tr '\n' ' '
+        VW_ECHO_N(["[$]*"]) | sed 's/ \+/\n/g' | sed -n 'G; s/\n/&&/; /^\(@<:@^\n@:>@*\n\).*\n\1/d; s/\n//; h; P' | tr '\n' ' '
     }
 
     get_rpath() {
@@ -30,7 +30,7 @@ AC_DEFUN([AX_MODULE],
                 -L*)
                     v="`abspath ${i#-L}`";
                     if test -n "$v"; then
-                        AS_ECHO_N([" -R[$]v"])
+                        VW_ECHO_N([" -R[$]v"])
                     fi
                     ;;
             esac
@@ -58,7 +58,7 @@ AC_DEFUN([AX_MODULE],
       AC_ARG_ENABLE([module-]my_tolower([$1]),
         AS_HELP_STRING([--enable-module-]my_tolower([$1]), [enable the $1 module @<:@$4@:>@]),
         [ ENABLE_MODULE_$1=$enableval; WANT_MODULE_$1=$enableval; ],
-        [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`AS_ECHO_N([$4]) | tr [A-Z] [a-z]` ; fi ]
+        [ if test x"$ENABLE_MODULE_$1" = x; then ENABLE_MODULE_$1=`VW_ECHO_N([$4]) | tr [A-Z] [a-z]` ; fi ]
       )])
 
     AC_MSG_CHECKING([whether to build module $1])

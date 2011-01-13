@@ -5,6 +5,8 @@ dnl All Rights Reserved.
 dnl __END_LICENSE__
 
 
+m4_ifdef([_AX_FIXUPS], [], [m4_include([m4/fixups.m4])])
+
 dnl usage: AX_MODULE_PYTHON(<directory>, <default>)
 AC_DEFUN([AX_MODULE_PYTHON],
 [
@@ -17,7 +19,7 @@ AC_DEFUN([AX_MODULE_PYTHON],
     AC_ARG_ENABLE([module-python],
       AS_HELP_STRING([--enable-module-python], [enable the python bindings @<:@$2@:>@]),
       [ ENABLE_MODULE_PYTHON=$enableval ],
-      [ if test x"$ENABLE_MODULE_PYTHON" = x""; then ENABLE_MODULE_PYTHON=`AS_ECHO_N([$2]) | tr [A-Z] [a-z]` ; fi ]
+      [ if test x"$ENABLE_MODULE_PYTHON" = x""; then ENABLE_MODULE_PYTHON=`VW_ECHO_N([$2]) | tr [A-Z] [a-z]` ; fi ]
     )])
 
     AC_MSG_CHECKING([whether to build module Python])
