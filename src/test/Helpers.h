@@ -300,9 +300,9 @@ _CheckMatrix<CmpT> check_matrix(const CmpT& cmp) {
 #define ASSERT_RANGE_NEAR(expect0, expect1, actual0, actual1, delta) \
   ASSERT_PRED_FORMAT4(t::check_range(t::cmp_near(#delta, delta)), expect0, expect1, actual0, actual1)
 
-#define EXPECT_MATRIX_EQ(expect, actual, delta)\
+#define EXPECT_MATRIX_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_matrix(t::CmpEqual()), expect, actual)
-#define ASSERT_MATRIX_EQ(expect, actual, delta)\
+#define ASSERT_MATRIX_EQ(expect, actual)\
   ASSERT_PRED_FORMAT2(t::check_matrix(t::CmpEqual()), expect, actual)
 #define EXPECT_MATRIX_NEAR(expect, actual, delta)\
   EXPECT_PRED_FORMAT2(t::check_matrix(t::cmp_near(#delta, delta)), expect, actual)
@@ -327,10 +327,6 @@ _CheckMatrix<CmpT> check_matrix(const CmpT& cmp) {
   EXPECT_PRED_FORMAT2(t::check_one(t::cmp_near(#delta, delta)), expect, actual)
 #define ASSERT_PIXEL_NEAR(expect, actual, delta)\
   ASSERT_PRED_FORMAT2(t::check_one(t::cmp_near(#delta, delta)), expect, actual)
-#define EXPECT_PIXEL_EQ(expect, actual)\
-  EXPECT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
-#define ASSERT_PIXEL_EQ(expect, actual)\
-  ASSERT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
 
 #define EXPECT_VW_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
@@ -343,6 +339,8 @@ _CheckMatrix<CmpT> check_matrix(const CmpT& cmp) {
 #define EXPECT_COMPLEX_MATRIX_NEAR(e, a, d)  EXPECT_MATRIX_NEAR(e, a, d)
 #define EXPECT_VECTOR_FLOAT_EQ(e, a)  EXPECT_VECTOR_NEAR(e, a, 1e20)
 #define EXPECT_VECTOR_DOUBLE_EQ(e, a) EXPECT_VECTOR_NEAR(e, a, 1e45)
+#define EXPECT_PIXEL_EQ(e, a)         EXPECT_TYPE_EQ(e,a)
+#define ASSERT_PIXEL_EQ(e, a)         ASSERT_TYPE_EQ(e,a)
 
 template <typename T1, typename T2>
 T1 value_diff_round(const T2& x) {
