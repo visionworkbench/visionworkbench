@@ -65,7 +65,7 @@ void Settings::reload_config() {
   // one thread takes the performance hit of reading the rc file
   // during any given reload.
   {
-    Mutex::Lock time_lock(m_rc_time_mutex);
+    RecursiveMutex::Lock time_lock(m_rc_time_mutex);
     if (xt.sec - m_rc_last_polltime > m_rc_poll_period) {
       m_rc_last_polltime = xt.sec;
       needs_reloading = true;
@@ -73,7 +73,7 @@ void Settings::reload_config() {
   }
 
   if (needs_reloading) {
-    Mutex::Lock lock(m_rc_file_mutex);
+    RecursiveMutex::Lock lock(m_rc_file_mutex);
 
     // Check to see if the file has changed.  If so, re-read the settings.
     struct_stat statbuf;
@@ -99,158 +99,101 @@ void Settings::set_rc_filename(std::string filename) {
   // limit the scope of the lock
   {
     // we grab both locks in the same order that reload_config does.
-    Mutex::Lock time_lock(m_rc_time_mutex);
-    Mutex::Lock file_lock(m_rc_file_mutex);
+    RecursiveMutex::Lock time_lock(m_rc_time_mutex);
+    RecursiveMutex::Lock file_lock(m_rc_file_mutex);
 
-    if (filename != m_rc_filename) {
-      if (filename.empty()) {
-        // Set the last poll time and the last modification time to the death
-        // of the universe.  This is a little bit of a hack, but it lets us
-        // disable the config file without making the locking in
-        // reload_config() even more complex.
-        m_rc_last_polltime     = std::numeric_limits<long>::max();
-        m_rc_last_modification = std::numeric_limits<long>::max();
-      } else {
-        m_rc_last_polltime = 0;
-        m_rc_last_modification = 0;
-      }
-      m_rc_filename = filename;
+    if (filename.empty()) {
+      // Set the last poll time and the last modification time to the death
+      // of the universe.  This is a little bit of a hack, but it lets us
+      // disable the config file without making the locking in
+      // reload_config() even more complex.
+      m_rc_last_polltime     = std::numeric_limits<long>::max();
+      m_rc_last_modification = std::numeric_limits<long>::max();
+    } else if (filename != m_rc_filename) {
+      m_rc_last_polltime = 0;
+      m_rc_last_modification = 0;
     }
+    m_rc_filename = filename;
   }
 
   // Okay, we might have changed the filename. Call reload_config() in order to
   // re-read it. It will grab time_lock and file_lock, so we need to make sure
   // we've released them before we re-read it (or we deadlock).
-
   reload_config();
 }
 
-void Settings::set_rc_poll_period(double period) {
+void Settings::set_rc_poll_period(float period) {
 
   // limit the scope of the lock
   {
     // we only need the time lock here
-    Mutex::Lock time_lock(m_rc_time_mutex);
+    RecursiveMutex::Lock time_lock(m_rc_time_mutex);
     m_rc_poll_period = period;
     m_rc_last_polltime = 0;
   }
   reload_config();
 }
 
-Settings::Settings() : m_rc_last_polltime(0),
-                           m_rc_last_modification(0),
-                           m_rc_poll_period(5.0) {
-  std::string homedir;
+namespace {
+  std::string default_tmp_dir() {
+    const char *dir;
+    if ((dir = ::getenv("TMPDIR"))) // unix standard
+      return dir;
+    else if ((dir = ::getenv("TEMP"))) // windows standard
+      return dir;
+    else
+      return "/tmp";
+  }
+
+  std::string default_vwrc() {
+    const char *dir;
+    if ((dir = ::getenv("HOME"))) // This is hopefully set on windows and linux
+      return std::string(dir) + "/.vwrc";
+
 #ifdef VW_HAVE_GETPWUID
-  struct passwd *pw;
-  pw = getpwuid( getuid() );
-  homedir = pw->pw_dir;
+    // Not set? Try a last ditch effort...
+    struct passwd *pw;
+    pw = getpwuid( getuid() );
+    if (pw && pw->pw_dir && strlen(pw->pw_dir))
+      return std::string(pw->pw_dir) + "/.vwrc";
 #endif
-  if (homedir.empty())
-      homedir = getenv("HOME");
-  m_rc_filename = homedir + "/.vwrc";
-
-  // Set defaults
-  m_default_num_threads = VW_NUM_THREADS;
-  m_system_cache_size = 768 * 1024 * 1024; // Default cache size is 768-MB
-  m_write_pool_size  = 21;                 // Default pool size is 21 threads. About 252-MB for RGB f32 1024^2
-  m_default_tile_size = 256;
-  m_tmp_directory = "/tmp";
-
-  // By default, the .vwrc file has precedence, but the user can
-  // override these settings by explicitly changing them using the
-  // system_settings() API.
-  m_default_num_threads_override = false;
-  m_system_cache_size_override = false;
-  m_default_tile_size_override = false;
-  m_tmp_directory_override = false;
-  m_write_pool_size_override = false;
-}
-
-// -----------------------------------------------------------------
-//                        Settings API
-// -----------------------------------------------------------------
-
-uint32 Settings::default_num_threads() {
-  if (!m_default_num_threads_override)
-    reload_config();
-  Mutex::Lock lock(m_settings_mutex);
-  return m_default_num_threads;
-}
-
-void Settings::set_default_num_threads(unsigned num) {
-
-  { // Used to contain the lock from reload_config()
-    Mutex::Lock lock(m_settings_mutex);
-    if ( num == 0 ) {
-      // Reset state
-      m_default_num_threads_override = false;
-      m_default_num_threads = VW_NUM_THREADS;
-    } else {
-      m_default_num_threads_override = true;
-      m_default_num_threads = num;
-    }
-  }
-
-  if ( num == 0 )
-    reload_config();
-}
-
-size_t Settings::system_cache_size() {
-  if (!m_system_cache_size_override)
-    reload_config();
-  Mutex::Lock lock(m_settings_mutex);
-  return m_system_cache_size;
-}
-
-void Settings::set_system_cache_size(size_t size) {
-  {
-    Mutex::Lock lock(m_settings_mutex);
-    m_system_cache_size_override = true;
-    m_system_cache_size = size;
-  }
-  vw_system_cache().resize(size);
-}
-
-uint32 Settings::write_pool_size() {
-  if (!m_write_pool_size_override)
-    reload_config();
-  Mutex::Lock lock(m_settings_mutex);
-  return m_write_pool_size;
-}
-
-void Settings::set_write_pool_size(uint32 size) {
-  {
-    Mutex::Lock lock(m_settings_mutex);
-    m_write_pool_size_override = true;
-    m_write_pool_size = size;
+    // Out of options, need to disable config.
+    return std::string();
   }
 }
 
-uint32 Settings::default_tile_size() {
-  if (!m_default_tile_size_override)
-    reload_config();
-  Mutex::Lock lock(m_settings_mutex);
-  return m_default_tile_size;
+#define _VW_SET1(Name, Default)\
+  m_ ## Name(Default), m_ ## Name ## _override(false)
+
+Settings::Settings()
+  : _VW_SET1(default_num_threads, VW_NUM_THREADS),
+    _VW_SET1(system_cache_size, 768 * 1024 * 1024),
+    _VW_SET1(write_pool_size, 21), // 21 threads is about 252MB of back data for RGB f32 1024x1024 blocks
+    _VW_SET1(default_tile_size, 256),
+    _VW_SET1(tmp_directory, default_tmp_dir()),
+    m_rc_poll_period(5.0f)
+{
+  set_rc_filename(default_vwrc());
 }
 
-void Settings::set_default_tile_size(uint32 num) {
-  Mutex::Lock lock(m_settings_mutex);
-  m_default_tile_size_override = true;
-  m_default_tile_size = num;
-}
+#define GETSET(Name, Type, Callback)           \
+  Type Settings::Name() {                      \
+    if (!m_ ## Name ## _override)              \
+      reload_config();                         \
+    RecursiveMutex::Lock lock(m_settings_mutex);        \
+    return m_ ## Name;                         \
+  }                                            \
+  void Settings::set_ ## Name(const Type& x) { \
+    RecursiveMutex::Lock lock(m_settings_mutex);        \
+    m_ ## Name ## _override = true;            \
+    m_ ## Name = x;                            \
+    Callback                                   \
+  }
 
-std::string Settings::tmp_directory() {
-  if (!m_tmp_directory_override)
-    reload_config();
-  Mutex::Lock lock(m_settings_mutex);
-  return m_tmp_directory;
-}
-
-void Settings::set_tmp_directory(std::string const& path) {
-  Mutex::Lock lock(m_settings_mutex);
-  m_tmp_directory_override = true;
-  m_tmp_directory = path;
-}
+GETSET(default_num_threads, uint32, ;);
+GETSET(system_cache_size, size_t, vw_system_cache().resize(x););
+GETSET(write_pool_size, uint32, ;);
+GETSET(default_tile_size, uint32, ;);
+GETSET(tmp_directory, std::string, ;);
 
 } // namespace vw
