@@ -313,32 +313,39 @@ namespace vw {
       block_size = resource.block_write_size();
 
     size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
-    for (int32 j = 0; j < rows; j+= block_size.y()) {
-      for (int32 i = 0; i < cols; i+= block_size.x()) {
 
-        vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
-                                       << rows << " " << cols
-                                       << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
+    // Early out for easy case
+    if (total_num_blocks == 1) {
+      ImageView<typename ImageT::pixel_type> image_block = image.impl();
+      resource.write( image_block.buffer(), BBox2i(0,0,image_block.cols(),image_block.rows()) );
+    } else {
+      for (int32 j = 0; j < rows; j+= block_size.y()) {
+        for (int32 i = 0; i < cols; i+= block_size.x()) {
 
-        // Update the progress callback.
-        if (progress_callback.abort_requested())
-          vw_throw( Aborted() << "Aborted by ProgressCallback" );
+          vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
+                                         << rows << " " << cols
+                                         << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
-        float processed_row_blocks = float(j/block_size.y()*((cols-1)/block_size.x()+1));
-        float processed_col_blocks = float(i/block_size.x());
-        progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
+          // Update the progress callback.
+          if (progress_callback.abort_requested())
+            vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
-        // Rasterize and save this image block
-        BBox2i current_bbox(Vector2i(i,j),
-                            Vector2i(std::min<int32>(i+block_size.x(),cols),
-                                     std::min<int32>(j+block_size.y(),rows)));
+          float processed_row_blocks = float(j/block_size.y()*((cols-1)/block_size.x()+1));
+          float processed_col_blocks = float(i/block_size.x());
+          progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
 
-        // Rasterize the current image block into a region of memory
-        // and send it off to the resource.
-        ImageView<typename ImageT::pixel_type> image_block( crop(image.impl(), current_bbox) );
-        ImageBuffer buf = image_block.buffer();
-        resource.write( buf, current_bbox );
+          // Rasterize and save this image block
+          BBox2i current_bbox(Vector2i(i,j),
+                              Vector2i(std::min<int32>(i+block_size.x(),cols),
+                                       std::min<int32>(j+block_size.y(),rows)));
 
+          // Rasterize the current image block into a region of memory
+          // and send it off to the resource.
+          ImageView<typename ImageT::pixel_type> image_block( crop(image.impl(), current_bbox) );
+          ImageBuffer buf = image_block.buffer();
+          resource.write( buf, current_bbox );
+
+        }
       }
     }
     progress_callback.report_finished();
