@@ -1030,3 +1030,29 @@ TEST( Manipulation, Rescale ) {
   // Test the traits
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( pixel_cast_rescale<PixelRGBA<double> >(im) ) );
 }
+
+
+TEST(Manipulation, Equality) {
+  ImageView<uint8> a(0,0), b(2,2);
+  CropView<ImageView<uint8> > c(b,0,0,0,0), d(b,0,0,1,1), e(b,0,0,2,2);
+  b(0,0) = 3; b(1,0) = 5; b(0,1) = 7; b(1,1) = 11;
+
+  EXPECT_EQ(a,a);
+  EXPECT_EQ(b,b);
+  EXPECT_EQ(c,c);
+  EXPECT_EQ(d,d);
+  EXPECT_EQ(e,e);
+
+  EXPECT_NE(a,b);
+  EXPECT_EQ(a,c);
+  EXPECT_NE(a,d);
+  EXPECT_NE(a,e);
+
+  EXPECT_NE(b,c);
+  EXPECT_NE(b,d);
+  EXPECT_EQ(b,e);
+
+  EXPECT_NE(c,d);
+  EXPECT_NE(c,e);
+  EXPECT_NE(d,e);
+}

@@ -53,12 +53,15 @@ namespace vw {
 
     /// An STL-compatible iterator type.
     typedef PixelIterator<ImplT> iterator;
+    typedef PixelIterator<const ImplT> const_iterator;
 
     /// Returns an iterator pointing to the first pixel in the image.
-    iterator begin() const { return iterator(impl(),0,0,0); }
+    iterator begin() { return iterator(impl(),0,0,0); }
+    const_iterator begin() const { return const_iterator(impl(),0,0,0); }
 
     /// Returns an iterator pointing one past the last pixel in the image.
-    iterator end() const { return iterator(impl(),0,0,impl().planes()); }
+    iterator end() { return iterator(impl(),0,0,impl().planes()); }
+    const_iterator end() const { return const_iterator(impl(),0,0,impl().planes()); }
 
     /// Returns the number of channels in the image's pixel type.
     inline int32 channels() const { return CompoundNumChannels<typename ImplT::pixel_type>::value; }
@@ -297,6 +300,54 @@ namespace vw {
   inline rasterize( SrcT const& src, DestT& dest ) {
     dest.set_size( src.cols(), src.rows(), src.planes() );
     rasterize( src, const_cast<DestT const&>(dest), BBox2i(0,0,src.cols(),src.rows()) );
+  }
+
+  template <class Image1T, class Image2T>
+  inline bool equal( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2) {
+    if (m1.impl().cols()!=m2.impl().cols() || m1.impl().rows()!=m2.impl().rows() || m1.impl().planes()!=m2.impl().planes())
+      return false;
+    return std::equal(m1.impl().begin(), m1.impl().end(), m2.impl().begin());
+  }
+
+  template <class Image1T, class Image2T, class PredT>
+  inline bool equal( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2, PredT p) {
+    if (m1.impl().cols()!=m2.impl().cols() || m1.impl().rows()!=m2.impl().rows() || m1.impl().planes()!=m2.impl().planes())
+      return false;
+    return std::equal(m1.impl().begin(), m1.impl().end(), m2.impl().begin(), p);
+  }
+
+  template <class Image1T, class Image2T>
+  inline bool operator==( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2 ) {
+    return vw::equal(m1, m2);
+  }
+
+  template <class Image1T, class Image2T>
+  inline bool operator!=( ImageViewBase<Image1T> const& m1, ImageViewBase<Image2T> const& m2 ) {
+    return !vw::equal(m1, m2);
+  }
+
+  /// Dumps a matrix to a std::ostream
+  template <class ImageT>
+  inline std::ostream& operator<<( std::ostream& os, ImageViewBase<ImageT> const& m ) {
+    ImageT const& mr = m.impl();
+    size_t rows = mr.rows(), cols = mr.cols(), planes = mr.planes();
+    os << "ImageViewBase[" << planes << 'x' << rows << 'x' << cols << "](";
+    for( size_t p=0; p<planes; ++p ) {
+      if (p != 0)
+        os << ',';
+      os << '(';
+      for( size_t r=0; r<rows; ++r ) {
+        if (r != 0)
+          os << ',';
+        os << '(' << mr(0,r,p);
+        for( size_t c=1; c<cols; ++c ) {
+          os << ',' << mr(c,r,p);
+        }
+        os << ')';
+      }
+      os << ')';
+    }
+    return os << ')';
   }
 
 } // namespace vw

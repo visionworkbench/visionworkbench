@@ -110,7 +110,7 @@ namespace stereo {
 
     template <class ViewT>
     int count_valid_pixels(ImageViewBase<ViewT> const& img) {
-      typedef typename ViewT::iterator view_iter;
+      typedef typename ViewT::const_iterator view_iter;
 
       int count = 0;
       for (view_iter i = img.impl().begin(); i != img.impl().end(); i++) {

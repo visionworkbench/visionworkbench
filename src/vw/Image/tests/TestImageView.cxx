@@ -316,3 +316,20 @@ TEST(ImageView, ViewImageResource) {
 
   EXPECT_RANGE_EQ(img1.begin(), img1.end(), img2.begin(), img2.end());
 }
+
+TEST(ImageView, Equality) {
+  ImageView<uint8> a(0,0), b(1,1), c(1,1), d(1,1);
+  d(0,0) = 12;
+  EXPECT_EQ(a,a);
+  EXPECT_EQ(b,b);
+  EXPECT_EQ(c,c);
+  EXPECT_EQ(d,d);
+
+  EXPECT_NE(a,b);
+  EXPECT_NE(a,c);
+  EXPECT_NE(a,d);
+
+  EXPECT_EQ(b,c);
+  EXPECT_NE(b,d);
+  EXPECT_NE(c,d);
+}
