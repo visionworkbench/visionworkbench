@@ -210,9 +210,9 @@ class _CheckRange {
                 << "Iterator ranges (" << ename << ") and (" << aname
                 << ") represent different-sized ranges.";
 
-      typedef std::pair<typename Range1T::const_iterator, typename Range2T::const_iterator> range_t;
+      typedef std::pair<typename Range1T::const_iterator, typename Range2T::const_iterator> pair_t;
 
-      std::queue<range_t> ret;
+      std::queue<pair_t> ret;
       mismatch_queue(e.begin(), e.end(), a.begin(), ret, cmp);
 
       if (ret.empty())
@@ -221,7 +221,7 @@ class _CheckRange {
       Message msg;
       bool need_newline = false;
       while (!ret.empty()) {
-        const range_t& r = ret.front();
+        const pair_t& r = ret.front();
         const std::string idx = "[" + stringify(std::distance(e.begin(), r.first)) + "]";
         if (need_newline)
           msg << std::endl;
@@ -248,47 +248,85 @@ _CheckRange<CmpT> check_range(const CmpT& cmp) {
 }
 
 template <typename CmpT>
-class _CheckMatrix {
+class _CheckNDRange {
     const CmpT& cmp;
+
+    typedef Vector<size_t, 0> SVec;
+
+    template <typename T>
+    SVec size_helper(const MatrixBase<T>& m) {return Vector<size_t, 2>(m.impl().rows(), m.impl().cols());}
+
+    template <typename T>
+    SVec size_helper(const ImageViewBase<T>& m) {return Vector<size_t, 3>(m.impl().planes(), m.impl().rows(), m.impl().cols());}
+
+    template <typename T>
+    SVec size_helper(const VectorBase<T>& m) {return m.size();}
+
+    SVec stride_from_size(const SVec& size) {
+      SVec stride(size.size());
+      stride(size.size()-1) = 1;
+      for (ssize_t i = stride.size()-2; i >= 0; --i)
+        stride[i] = size[i+1] * stride[i+1];
+      return stride;
+    }
+
+    template <typename IterT1>
+    std::string to_idx(const SVec& stride, IterT1 begin, IterT1 wrong) {
+      std::ostringstream ss;
+      ss << "[";
+      bool comma = false;
+      ssize_t d = std::distance(begin, wrong);
+      for (size_t i = 0; i < stride.size(); ++i) {
+        if (comma)
+          ss << ',';
+        ss << size_t(d / stride[i]);
+        d = d % stride[i];
+        comma = true;
+      }
+      ss << "]";
+      return ss.str();
+    }
+
   public:
-    _CheckMatrix() : cmp(CmpT()) {}
-    _CheckMatrix(const CmpT& cmp) : cmp(cmp) {}
+    _CheckNDRange() : cmp(CmpT()) {}
+    _CheckNDRange(const CmpT& cmp) : cmp(cmp) {}
 
     template <typename T1, typename T2>
-    AssertionResult operator()(const char* ename, const char* aname, const MatrixBase<T1>& expect, const MatrixBase<T2>& actual)
+    AssertionResult operator()(const char* ename, const char* aname, const T1& e, const T2& a)
     {
-      const size_t rows = expect.impl().rows(),
-                   cols = expect.impl().cols();
+      SVec esize = size_helper(e), asize = size_helper(a);
 
-      if ( rows != actual.impl().rows() || cols != actual.impl().cols() )
+      if ( esize != asize )
         return AssertionFailure() << "Cannot compare " << ename << " and " << aname << ": Different size: "
-                                  << rows << "x" << cols << " != "
-                                  << actual.impl().rows() << "x" << actual.impl().cols();
+                                  << esize << " != " << asize;
+
+      typedef std::pair<typename T1::const_iterator, typename T2::const_iterator> pair_t;
+      std::queue<pair_t> ret;
+      mismatch_queue(e.begin(), e.end(), a.begin(), ret, cmp);
+
+      if (ret.empty())
+        return AssertionSuccess();
+
+      SVec stride = stride_from_size(esize);
 
       Message msg;
-      bool failed = false;
       bool need_newline = false;
-      for (size_t i = 0; i < rows; ++i) {
-        for (size_t j = 0; j < cols; ++j) {
-          if (need_newline)
-            msg << std::endl;
-          const std::string idx = "[" + stringify(i) +  ","  + stringify(j) + "]";
-          if (!cmp(expect.impl()(i,j), actual.impl()(i,j))) {
-            failed = true;
-            msg << cmp.what(ename + idx, aname + idx, expect.impl()(i,j), actual.impl()(i,j));
-          }
-        }
+      while (!ret.empty()) {
+        const pair_t& r = ret.front();
+        const std::string idx = to_idx(stride, e.begin(), r.first);
+        if (need_newline)
+          msg << std::endl;
+        msg << cmp.what(ename + idx, aname + idx, *(r.first), *(r.second));
+        need_newline = true;
+        ret.pop();
       }
-
-      if (failed)
-        return AssertionFailure(msg);
-      return AssertionSuccess();
+      return AssertionFailure(msg);
     }
 };
 
 template <typename CmpT>
-_CheckMatrix<CmpT> check_matrix(const CmpT& cmp) {
-  return _CheckMatrix<CmpT>(cmp);
+_CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
+  return _CheckNDRange<CmpT>(cmp);
 }
 
 #define EXPECT_RANGE_EQ(expect0, expect1, actual0, actual1) \
@@ -301,13 +339,13 @@ _CheckMatrix<CmpT> check_matrix(const CmpT& cmp) {
   ASSERT_PRED_FORMAT4(t::check_range(t::cmp_near(#delta, delta)), expect0, expect1, actual0, actual1)
 
 #define EXPECT_MATRIX_EQ(expect, actual)\
-  EXPECT_PRED_FORMAT2(t::check_matrix(t::CmpEqual()), expect, actual)
+  EXPECT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
 #define ASSERT_MATRIX_EQ(expect, actual)\
-  ASSERT_PRED_FORMAT2(t::check_matrix(t::CmpEqual()), expect, actual)
+  ASSERT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
 #define EXPECT_MATRIX_NEAR(expect, actual, delta)\
-  EXPECT_PRED_FORMAT2(t::check_matrix(t::cmp_near(#delta, delta)), expect, actual)
+  EXPECT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
 #define ASSERT_MATRIX_NEAR(expect, actual, delta)\
-  ASSERT_PRED_FORMAT2(t::check_matrix(t::cmp_near(#delta, delta)), expect, actual)
+  ASSERT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
 
 #define EXPECT_VECTOR_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_range(t::CmpEqual()), expect, actual)
