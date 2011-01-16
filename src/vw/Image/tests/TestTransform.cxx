@@ -5,8 +5,8 @@
 // __END_LICENSE__
 
 
-// TestTransform.h
 #include <gtest/gtest.h>
+#include <test/Helpers.h>
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Transform.h>
@@ -86,4 +86,24 @@ TEST( Transform, Resample ) {
   ASSERT_TRUE( bool_trait<IsFloatingPointIndexable>( im2 ) );
   ASSERT_TRUE( bool_trait<IsFloatingPointIndexable>( transform(im, ResampleTransform(1,1)) ) );
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( transform(im, ResampleTransform(1,1)) ) );
+}
+
+TEST( Transform, Rotate ) {
+  typedef PixelRGB<uint8> Px;
+  Px gray(0x7f,0x7f,0x7f), r(0xff,0,0), g(0,0xff,0), b(0,0,0xff);
+
+  ImageView<Px> src(2,2);
+  src(0,0) = gray;
+  src(1,0) = r;
+  src(0,1) = g;
+  src(1,1) = b;
+
+  ImageView<Px> dst =
+    vw::crop(
+      vw::rotate(
+        vw::translate(src, -src.cols()/2, -src.rows()/2),
+        2*M_PI),
+      -src.cols()/2, -src.rows()/2, src.cols(), src.rows());
+
+  EXPECT_MATRIX_EQ(src, dst);
 }
