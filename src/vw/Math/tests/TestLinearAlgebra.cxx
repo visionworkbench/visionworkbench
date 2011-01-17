@@ -775,3 +775,42 @@ TEST(LinearAlgebra, RankAndNullspace) {
     EXPECT_EQ( nullity(shark), 2);
   }
 }
+
+TEST(LinearAlgebra, LU_Decomposition) {
+  {
+    Matrix<float> a(3,3);
+    a(0,0) = 1; a(0,1) = 2; a(0,2) = 3;
+    a(1,0) = 4; a(1,1) = 5; a(1,2) = 6;
+    a(2,0) = 7; a(2,1) = 8; a(2,2) = 0;
+
+    LUD<float> decomposition(a);
+
+    // if X = [4;5;6]
+    Vector3f b1(32,77,68);
+    // if X = [1.7;-3.9;0.3]
+    Vector3f b2(-5.2,-10.9,-19.3);
+
+    double tol = 1e-4;
+    Vector<float> result = decomposition.solve(b1);
+    ASSERT_EQ( 3, result.size() );
+    EXPECT_VECTOR_NEAR( Vector3f(4,5,6), result, tol );
+    result = decomposition.solve(b2);
+    ASSERT_EQ( 3, result.size() );
+    EXPECT_VECTOR_NEAR( Vector3f(1.7,-3.9,0.3), result, tol );
+
+    a(2,2) = 9;
+    EXPECT_THROW( LUD<float> monkey(a),
+                  ArgumentErr );
+  }
+  {
+    Matrix<double> a(4,3);
+    a(0,0) = 7; a(0,1) = 8; a(0,2) = 9;
+    a(1,0) = 3; a(1,1) = 4; a(1,2) = 5;
+    a(2,0) = 1; a(2,1) = 2; a(2,2) = 3;
+    a(3,0) = 9; a(3,1) = 8; a(3,2) = 1;
+    LUD<double> decomposition(a);
+    Vector4 b1(50,26,14,28);
+    EXPECT_THROW( Vector<double> result = decomposition.solve(b1),
+                  ArgumentErr );
+  }
+}

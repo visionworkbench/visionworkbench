@@ -144,6 +144,16 @@ namespace math {
 
     void dposv_(char *uplo, f77_int *n, f77_int *nrhs, double *a,
                            f77_int *lda, double *b, f77_int *ldb, f77_int *info);
+
+    void sgetrf_(f77_int *m, f77_int *n, float *a, f77_int *lda,
+                 f77_int *ipiv, f77_int *info );
+    void dgetrf_(f77_int *m, f77_int *n, double *a, f77_int *lda,
+                 f77_int *ipiv, f77_int *info );
+
+    void sgetrs_(char *trans, f77_int* n, f77_int *nrhs, float *a, f77_int *lda,
+                 f77_int *ipiv, float *b, f77_int *ldb, f77_int *info );
+    void dgetrs_(char *trans, f77_int* n, f77_int *nrhs, double *a, f77_int *lda,
+                 f77_int *ipiv, double *b, f77_int *ldb, f77_int *info );
   }
   } // anon namespace
 #endif
@@ -177,6 +187,12 @@ namespace math {
 
   void posv(char uplo, f77_int n, f77_int nrhs, float *a, f77_int lda, float *b, f77_int ldb, f77_int *info);
   void posv(char uplo, f77_int n, f77_int nrhs, double *a, f77_int lda, double *b, f77_int ldb, f77_int *info);
+
+  void getrf(f77_int m, f77_int n, float *a, f77_int lda, f77_int *ipiv, f77_int *info);
+  void getrf(f77_int m, f77_int n, double *a, f77_int lda, f77_int *ipiv, f77_int *info);
+
+  void getrs(char trans, f77_int n, f77_int nrhs, float *a, f77_int lda, f77_int *ipiv, float *b, f77_int ldb, f77_int *info);
+  void getrs(char trans, f77_int n, f77_int nrhs, double *a, f77_int lda, f77_int *ipiv, double *b, f77_int ldb, f77_int *info);
 
   /// \endcond
 

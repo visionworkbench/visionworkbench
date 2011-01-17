@@ -548,6 +548,50 @@ namespace math {
     return nullsp;
   }
 
+  // LU Decomposition
+  //
+  // This is an optimized form for solving a mass of A*x_i=b_i where A
+  // is constant.  See : http://www.netlib.org/lapack/double/dgetrf.f
+  //
+  // This was kept in object form to keep things simple and to take
+  // advantage of working with a transposed A.
+  template <class T>
+  class LUD {
+    typedef T real_type;
+    Matrix<real_type> m_A;  // Decomposed
+    Vector<f77_int> m_ipiv; // Partial Pivots
+  public:
+    template <class MatrixT>
+    LUD ( MatrixBase<MatrixT> const& A ) : m_A(A.impl()) {
+      // Uses GETRF
+      m_ipiv.set_size( std::min(m_A.cols(),m_A.rows()) );
+      f77_int info;
+      getrf( detail::FINT(m_A.cols()), detail::FINT(m_A.rows()),
+             &m_A(0,0), detail::FINT(m_A.cols()), &m_ipiv(0), &info );
+      if (info > 0)
+        vw_throw( ArgumentErr() << "LUD(): Input matrix is singular." );
+      if (info < 0)
+        vw_throw( ArgumentErr() << "LUD(): Argument " << -info << " has an illegal value." );
+    }
+
+    template <class VectorT>
+    Vector<real_type> solve( VectorBase<VectorT> const& b ) {
+      VW_ASSERT(m_A.rows() == m_A.cols(),
+                ArgumentErr() << "LUD(): Only works with square input A. This is a limitation of getrs.");
+      VW_ASSERT(b.impl().size() == m_A.rows(),
+                ArgumentErr() << "Input vector size does not match columns of input matrix." );
+      // Uses GETRS
+      Vector<real_type> x = b.impl();
+      f77_int info;
+      getrs( 'T', detail::FINT(m_A.rows()), detail::FINT(1),
+             &m_A(0,0), detail::FINT(m_A.cols()), &m_ipiv(0),
+             &x(0), detail::FINT(m_A.rows()), &info );
+      if ( info < 0 )
+        vw_throw( ArgumentErr() << "LUD::solve(): Argument " << -info << " has an illegal value." );
+      return x;
+    }
+  };
+
 } // namespace math
 } // namespace vw
 

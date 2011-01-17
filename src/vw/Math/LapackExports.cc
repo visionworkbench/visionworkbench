@@ -97,11 +97,29 @@ D_gesv(d, double);
 
 #define D_posv(prefix, type)\
   void posv(char uplo, f77_int n, f77_int nrhs, type *a, f77_int lda, type *b, f77_int ldb, f77_int *info) { \
-    prefix ## posv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info); \
+    prefix ## posv_(&uplo, &n, &nrhs, a, &lda, b, &ldb, info);          \
     CHECK(); \
   }
 
 D_posv(s, float);
 D_posv(d, double);
+
+#define D_getrf(prefix, type)\
+  void getrf(f77_int m, f77_int n, type *a, f77_int lda, f77_int *ipiv, f77_int *info ) { \
+    prefix ## getrf_(&m, &n, a, &lda, ipiv, info );                     \
+    CHECK();                                                            \
+  }
+
+D_getrf(s, float);
+D_getrf(d, double);
+
+#define D_getrs(prefix, type)                   \
+  void getrs(char trans, f77_int n, f77_int nrhs, type *a, f77_int lda, f77_int *ipiv, type *b, f77_int ldb, f77_int *info ) { \
+    prefix ## getrs_(&trans, &n, &nrhs, a, &lda, ipiv, b, &ldb, info ); \
+    CHECK();                                                            \
+  }
+
+D_getrs(s, float);
+D_getrs(d, double);
 
 }} // vw::math
