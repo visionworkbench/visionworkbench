@@ -38,8 +38,9 @@ void weighted_histogram(ImageViewBase<ViewT1> const& val_image,
   std::fill(histo.begin(),histo.end(),0.0);
   float s = float(n_bins-1)/(max-min);
 
-  typename ViewT2::iterator weight_iter = weight_image.begin();
-  for (typename ViewT1::iterator iter = val_image.begin(); iter != val_image.end(); ++iter, ++weight_iter) {
+  typename ViewT2::const_iterator weight_iter = weight_image.begin();
+  for (typename ViewT1::const_iterator iter = val_image.begin();
+       iter != val_image.end(); ++iter, ++weight_iter) {
     int index = int(0.5+s*(float(*iter) - min));
     if (index>=0 && (unsigned)index<n_bins) histo[index] += *weight_iter;
   }
