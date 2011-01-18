@@ -99,11 +99,7 @@ TEST( Transform, Rotate ) {
   src(1,1) = b;
 
   ImageView<Px> dst =
-    vw::crop(
-      vw::rotate(
-        vw::translate(src, -src.cols()/2, -src.rows()/2),
-        2*M_PI),
-      -src.cols()/2, -src.rows()/2, src.cols(), src.rows());
+    rotate( src, 2*M_PI, Vector2(src.cols(),src.rows())/2 );
 
   EXPECT_MATRIX_EQ(src, dst);
 }
