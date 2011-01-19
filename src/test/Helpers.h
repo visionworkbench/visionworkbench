@@ -271,7 +271,7 @@ class _CheckNDRange {
     }
 
     template <typename IterT1>
-    std::string to_idx(const SVec& stride, IterT1 begin, IterT1 wrong) {
+    std::string to_idx(const SVec& stride, const IterT1& begin, const IterT1& wrong) {
       std::ostringstream ss;
       ss << "[";
       bool comma = false;
@@ -338,13 +338,13 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
 #define ASSERT_RANGE_NEAR(expect0, expect1, actual0, actual1, delta) \
   ASSERT_PRED_FORMAT4(t::check_range(t::cmp_near(#delta, delta)), expect0, expect1, actual0, actual1)
 
-#define EXPECT_MATRIX_EQ(expect, actual)\
+#define EXPECT_SEQ_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
-#define ASSERT_MATRIX_EQ(expect, actual)\
+#define ASSERT_SEQ_EQ(expect, actual)\
   ASSERT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
-#define EXPECT_MATRIX_NEAR(expect, actual, delta)\
+#define EXPECT_SEQ_NEAR(expect, actual, delta)\
   EXPECT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
-#define ASSERT_MATRIX_NEAR(expect, actual, delta)\
+#define ASSERT_SEQ_NEAR(expect, actual, delta)\
   ASSERT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
 
 #define EXPECT_VECTOR_EQ(expect, actual)\
@@ -372,13 +372,17 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
   ASSERT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
 
 // DEPRECATED
-#define EXPECT_MATRIX_FLOAT_EQ(e, a)  EXPECT_MATRIX_NEAR(e, a, 1e20)
-#define EXPECT_MATRIX_DOUBLE_EQ(e, a) EXPECT_MATRIX_NEAR(e, a, 1e45)
-#define EXPECT_COMPLEX_MATRIX_NEAR(e, a, d)  EXPECT_MATRIX_NEAR(e, a, d)
-#define EXPECT_VECTOR_FLOAT_EQ(e, a)  EXPECT_VECTOR_NEAR(e, a, 1e20)
-#define EXPECT_VECTOR_DOUBLE_EQ(e, a) EXPECT_VECTOR_NEAR(e, a, 1e45)
-#define EXPECT_PIXEL_EQ(e, a)         EXPECT_TYPE_EQ(e,a)
-#define ASSERT_PIXEL_EQ(e, a)         ASSERT_TYPE_EQ(e,a)
+#define EXPECT_MATRIX_FLOAT_EQ(e, a)          EXPECT_MATRIX_NEAR(e, a, 1e20)
+#define EXPECT_MATRIX_DOUBLE_EQ(e, a)         EXPECT_MATRIX_NEAR(e, a, 1e45)
+#define EXPECT_COMPLEX_MATRIX_NEAR(e, a, d)   EXPECT_MATRIX_NEAR(e, a, d)
+#define EXPECT_VECTOR_FLOAT_EQ(e, a)          EXPECT_VECTOR_NEAR(e, a, 1e20)
+#define EXPECT_VECTOR_DOUBLE_EQ(e, a)         EXPECT_VECTOR_NEAR(e, a, 1e45)
+#define EXPECT_PIXEL_EQ(e, a)                 EXPECT_TYPE_EQ(e,a)
+#define ASSERT_PIXEL_EQ(e, a)                 ASSERT_TYPE_EQ(e,a)
+#define EXPECT_MATRIX_EQ(e, a)                EXPECT_SEQ_EQ(e,a)
+#define ASSERT_MATRIX_EQ(e, a)                ASSERT_SEQ_EQ(e,a)
+#define EXPECT_MATRIX_NEAR(e, a, delta)       EXPECT_SEQ_NEAR(e,a,delta)
+#define ASSERT_MATRIX_NEAR(e, a, delta)       ASSERT_SEQ_NEAR(e,a,delta)
 
 template <typename T1, typename T2>
 T1 value_diff_round(const T2& x) {
