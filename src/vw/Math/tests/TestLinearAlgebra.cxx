@@ -798,19 +798,25 @@ TEST(LinearAlgebra, LU_Decomposition) {
     ASSERT_EQ( 3, result.size() );
     EXPECT_VECTOR_NEAR( Vector3f(1.7,-3.9,0.3), result, tol );
 
+    // Try again with doubles
+    Matrix<double> ad = a;
+    LUD<double> decompositiond(ad);
+    Vector<double> resultd = decompositiond.solve(b1);
+    ASSERT_EQ( 3, resultd.size() );
+    EXPECT_VECTOR_NEAR( Vector3(4,5,6), resultd, tol );
+    resultd = decompositiond.solve(b2);
+    ASSERT_EQ( 3, resultd.size() );
+    EXPECT_VECTOR_NEAR( Vector3(1.7,-3.9,0.3), resultd, tol );
+
+    // Check for singular
     a(2,2) = 9;
     EXPECT_THROW( LUD<float> monkey(a),
                   ArgumentErr );
   }
   {
+    // Test Non Square Error
     Matrix<double> a(4,3);
-    a(0,0) = 7; a(0,1) = 8; a(0,2) = 9;
-    a(1,0) = 3; a(1,1) = 4; a(1,2) = 5;
-    a(2,0) = 1; a(2,1) = 2; a(2,2) = 3;
-    a(3,0) = 9; a(3,1) = 8; a(3,2) = 1;
-    LUD<double> decomposition(a);
-    Vector4 b1(50,26,14,28);
-    EXPECT_THROW( Vector<double> result = decomposition.solve(b1),
+    EXPECT_THROW( LUD<double> monkey(a),
                   ArgumentErr );
   }
 }

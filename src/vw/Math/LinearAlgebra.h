@@ -563,7 +563,8 @@ namespace math {
   public:
     template <class MatrixT>
     LUD ( MatrixBase<MatrixT> const& A ) : m_A(A.impl()) {
-      // Uses GETRF
+      VW_ASSERT(m_A.rows() == m_A.cols(),
+                ArgumentErr() << "LUD(): Only works with square input A.");
       m_ipiv.set_size( std::min(m_A.cols(),m_A.rows()) );
       f77_int info;
       getrf( detail::FINT(m_A.cols()), detail::FINT(m_A.rows()),
@@ -576,8 +577,6 @@ namespace math {
 
     template <class VectorT>
     Vector<real_type> solve( VectorBase<VectorT> const& b ) {
-      VW_ASSERT(m_A.rows() == m_A.cols(),
-                ArgumentErr() << "LUD(): Only works with square input A. This is a limitation of getrs.");
       VW_ASSERT(b.impl().size() == m_A.rows(),
                 ArgumentErr() << "Input vector size does not match columns of input matrix." );
       // Uses GETRS
