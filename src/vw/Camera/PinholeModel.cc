@@ -131,6 +131,7 @@ void camera::PinholeModel::read_old_file(std::string const& filename) {
   m_u_direction = u_direction;
   m_v_direction = v_direction;
   m_w_direction = w_direction;
+  m_pixel_pitch = 1;
 
   m_fu = fu;
   m_fv = fv;
