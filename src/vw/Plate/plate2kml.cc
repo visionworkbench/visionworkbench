@@ -20,8 +20,52 @@ namespace fs = boost::filesystem;
 #include <kml/base/file.h>
 
 struct Options {
-  std::string output_name, url_name;
+  std::string output_name, url_name, mod_plate_base_url;
 };
+
+void handle_arguments(int argc, char* argv[], Options& opt) {
+  po::options_description general_options("Extract plate into KML tiles.");
+  general_options.add_options()
+    ("output_name,o", po::value(&opt.output_name),
+     "Output name for the KML result.")
+    ("mod_plate", po::value(&opt.mod_plate_base_url),
+     "Do not create copy of images. Use mod plate images using user defined base url.")
+    ("help,h", "Display this help message");
+
+  po::options_description hidden_options("");
+  hidden_options.add_options()
+    ("url", po::value(&opt.url_name), "");
+
+  po::options_description options("");
+  options.add(general_options).add(hidden_options);
+
+  po::positional_options_description p;
+  p.add("url",-1);
+
+  po::variables_map vm;
+  try {
+    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
+    po::notify( vm );
+  } catch (po::error &e) {
+    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << options );
+  }
+
+  std::ostringstream usage;
+  usage << "Usage: " << argv[0] << " <plate url> [options]\n";
+
+  if ( vm.count("help") || opt.url_name.empty() )
+    vw_throw( ArgumentErr() << usage.str() << general_options );
+  if ( *(opt.url_name.rbegin()) == '/' )
+    opt.url_name = opt.url_name.substr(0,opt.url_name.size()-1);
+  if ( opt.output_name.empty() ) {
+    size_t folder_divide, ext_divide;
+    folder_divide = opt.url_name.rfind("/");
+    ext_divide = opt.url_name.rfind(".");
+    opt.output_name =
+      opt.url_name.substr(folder_divide+1,ext_divide-folder_divide-1);
+  }
+}
 
 kmldom::LatLonAltBoxPtr
 create_latlonaltbox( double south, double west, double degree_size,
@@ -69,9 +113,93 @@ std::string prefix_from_location( ssize_t col, ssize_t row, ssize_t level ) {
   return result;
 }
 
+class GroundOverlayEngine {
+  size_t m_draw_order;
+
+protected:
+  kmldom::GroundOverlayPtr
+  create_linkless_overlay( TileHeader const& tile,
+                           kmldom::KmlFactory* factory,
+                           bool lowest_overlay ) const {
+    double deg_delta = 360.0 / double( 1 << tile.level() );
+    double lon_west = -180.0 + tile.col()*deg_delta;
+    double lat_south = 180 - deg_delta*(tile.row()+1);
+
+    kmldom::GroundOverlayPtr goverlay = factory->CreateGroundOverlay();
+    kmldom::RegionPtr region = factory->CreateRegion();
+    if ( tile.level() == 1 ) {
+      // Top layerish. Layer 0 is never drawn because it's
+      // boundaries are illegal (Lat range too large). So this step
+      // is to make sure layer 1 can always be seen when zoomed out.
+      region->set_lod( create_lod( 1, 513, factory ) );
+    } else if ( lowest_overlay ) {
+      // End of branch
+      region->set_lod( create_lod( 128, -1, factory ) );
+    } else {
+      // Original code went to 1024
+      region->set_lod( create_lod( 128, 513, factory ) );
+    }
+    region->set_latlonaltbox( create_latlonaltbox( lat_south, lon_west,
+                                                   deg_delta, factory ) );
+    goverlay->set_region( region );
+    goverlay->set_latlonbox( create_latlonbox( lat_south, lon_west,
+                                               deg_delta, factory ) );
+    goverlay->set_draworder( m_draw_order );
+    return goverlay;
+  }
+public:
+  GroundOverlayEngine( size_t draw_order = 50 ) : m_draw_order(draw_order){}
+};
+
+class LocalEquiEngine : public GroundOverlayEngine {
+  boost::shared_ptr<PlateFile> m_platefile;
+public:
+  LocalEquiEngine( boost::shared_ptr<PlateFile> platefile,
+                   size_t draw_order = 50 ) : GroundOverlayEngine(draw_order), m_platefile(platefile) {}
+
+  kmldom::GroundOverlayPtr
+  operator()( fs::path kml_location, TileHeader const& tile,
+              kmldom::KmlFactory* factory, bool lowest_overlay ) const {
+
+    m_platefile->read_to_file(kml_location.string(), tile.col(), tile.row(),
+                              tile.level(), tile.transaction_id(), true);
+
+    kmldom::GroundOverlayPtr goverlay =
+      this->create_linkless_overlay( tile, factory, lowest_overlay );
+    kmldom::IconPtr icon = factory->CreateIcon();
+    icon->set_href(kml_location.replace_extension(m_platefile->default_file_type()).filename());
+    goverlay->set_icon( icon );
+    return goverlay;
+  }
+};
+
+class ModPlateEquiEngine : public GroundOverlayEngine {
+  std::string m_base_url, m_extension;
+public:
+  ModPlateEquiEngine( std::string const& base_url,
+                      std::string const& extension = "jpg",
+                      size_t draw_order = 50 ) :  GroundOverlayEngine(draw_order), m_base_url(base_url), m_extension(extension) {}
+
+  kmldom::GroundOverlayPtr
+  operator()( fs::path kml_location, TileHeader const& tile,
+              kmldom::KmlFactory* factory, bool lowest_overlay ) const {
+    kmldom::GroundOverlayPtr goverlay =
+      this->create_linkless_overlay( tile, factory, lowest_overlay );
+    kmldom::IconPtr icon = factory->CreateIcon();
+    std::ostringstream ostr;
+    ostr << m_base_url << "/" << tile.level() << "/" << tile.row()
+         << "/" << tile.col() << "." << m_extension;
+    icon->set_href(ostr.str());
+    goverlay->set_icon( icon );
+    return goverlay;
+  }
+};
+
+template <class EngineT>
 void draw_kml_level ( std::string const& base_folder, ssize_t level,
                       BBox2i const& region, TransactionOrNeg id,
-                      boost::shared_ptr<PlateFile> plate ) {
+                      boost::shared_ptr<PlateFile> plate,
+                      EngineT const& goverlay_engine ) {
   // Do not delete this pointer. LibKML is managing this itself somewhere.
   kmldom::KmlFactory* factory = kmldom::KmlFactory::GetFactory();
 
@@ -84,14 +212,6 @@ void draw_kml_level ( std::string const& base_folder, ssize_t level,
     fs::path path( base_folder + "/" +
                    prefix_from_location( t.col(), t.row(), t.level() ) );
     fs::create_directory( path.parent_path() );
-    std::string path_prefix = path.string();
-    plate->read_to_file(path_prefix, t.col(), t.row(),
-                        t.level(), id, true);
-
-    // Deciding math for lat lon range
-    double deg_delta = 360.0 / double( 1 << t.level() );
-    double lon_west = -180.0 + t.col()*deg_delta;
-    double lat_south = 180 - deg_delta*(t.row()+1);
 
     std::list<TileHeader> links =
       plate->search_by_region(level+1,region*2,id,id,0,false);
@@ -129,30 +249,7 @@ void draw_kml_level ( std::string const& base_folder, ssize_t level,
       }
 
       // Create ground overlay
-      kmldom::GroundOverlayPtr goverlay = factory->CreateGroundOverlay();
-      kmldom::RegionPtr region = factory->CreateRegion();
-      if ( level == 1 ) {
-        // Top layerish. Layer 0 is never drawn because it's
-        // boundaries are illegal (Lat range too large). So this step
-        // is to make sure layer 1 can always be seen when zoomed out.
-        region->set_lod( create_lod( 1, 513, factory ) );
-      } else if ( links.size() == 0 ) {
-        // End of branch
-        region->set_lod( create_lod( 128, -1, factory ) );
-      } else {
-        // Original code went to 1024
-        region->set_lod( create_lod( 128, 513, factory ) );
-      }
-      region->set_latlonaltbox( create_latlonaltbox( lat_south, lon_west,
-                                                     deg_delta, factory ) );
-      goverlay->set_region( region );
-      goverlay->set_latlonbox( create_latlonbox( lat_south, lon_west,
-                                                 deg_delta, factory ) );
-      kmldom::IconPtr icon = factory->CreateIcon();
-      icon->set_href(path.replace_extension(plate->default_file_type()).filename());
-      goverlay->set_icon( icon );
-      goverlay->set_draworder( 50 );
-      folder->add_feature( goverlay );
+      folder->add_feature( goverlay_engine( path, t, factory, !links.size() ) );
 
       // Writing
       kmldom::KmlPtr kml = factory->CreateKml();
@@ -167,50 +264,8 @@ void draw_kml_level ( std::string const& base_folder, ssize_t level,
     BOOST_FOREACH( TileHeader const& lower, links ) {
       draw_kml_level( base_folder, lower.level(),
                       BBox2i( lower.col(), lower.row(), 1, 1 ),
-                      id, plate );
+                      id, plate, goverlay_engine );
     }
-  }
-}
-
-void handle_arguments(int argc, char* argv[], Options& opt) {
-  po::options_description general_options("Extract plate into KML tiles.");
-  general_options.add_options()
-    ("output_name,o", po::value(&opt.output_name),
-     "Output name for the KML result.")
-    ("help,h", "Display this help message");
-
-  po::options_description hidden_options("");
-  hidden_options.add_options()
-    ("url", po::value(&opt.url_name), "");
-
-  po::options_description options("");
-  options.add(general_options).add(hidden_options);
-
-  po::positional_options_description p;
-  p.add("url",-1);
-
-  po::variables_map vm;
-  try {
-    po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
-    po::notify( vm );
-  } catch (po::error &e) {
-    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
-              << e.what() << options );
-  }
-
-  std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " <plate_filename> [options]\n";
-
-  if ( vm.count("help") || opt.url_name.empty() )
-    vw_throw( ArgumentErr() << usage.str() << general_options );
-  if ( *(opt.url_name.rbegin()) == '/' )
-    opt.url_name = opt.url_name.substr(0,opt.url_name.size()-1);
-  if ( opt.output_name.empty() ) {
-    size_t folder_divide, ext_divide;
-    folder_divide = opt.url_name.rfind("/");
-    ext_divide = opt.url_name.rfind(".");
-    opt.output_name =
-      opt.url_name.substr(folder_divide+1,ext_divide-folder_divide-1);
   }
 }
 
@@ -225,9 +280,17 @@ int main( int argc, char *argv[] ) {
     // Create out output directory and chdir
     fs::create_directory( opt.output_name );
 
-    // Recursive call that goes depth first in generation.
-    draw_kml_level( opt.output_name, 0, BBox2i(0,0,1,1),
-                    TransactionOrNeg(-1), platefile);
+    if ( opt.mod_plate_base_url.empty() ) {
+      // Standard local platefile
+      LocalEquiEngine engine( platefile );
+      draw_kml_level( opt.output_name, 0, BBox2i(0,0,1,1),
+                      TransactionOrNeg(-1), platefile, engine);
+    } else {
+      // Recursive call that goes depth first in generation.
+      ModPlateEquiEngine engine( opt.mod_plate_base_url );
+      draw_kml_level( opt.output_name, 0, BBox2i(0,0,1,1),
+                      TransactionOrNeg(-1), platefile, engine);
+    }
 
     // Rename 0.kml to be the opening kml
     fs::rename( fs::path(opt.output_name) / "0.kml",
