@@ -16,7 +16,9 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Filter.h>
+#include <vw/Image/UtilityViews.h>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/random/linear_congruential.hpp>
 #include <fstream>
 
 namespace fs = boost::filesystem;
@@ -66,18 +68,25 @@ TEST_P(MemoryImageResourceTest, BasicRead) {
 
 TEST_P(MemoryImageResourceTest, BasicWriteRead) {
   typedef PixelRGB<uint8> Px;
-  ImageView<Px> src_(64,64);
+  ImageView<Px> src;
+
+  {
+    typedef PixelRGB<float> Py;
+    const size_t SIZE = 64;
+    ImageView<Py> src_(SIZE,SIZE);
+    for (size_t row = 0; row < SIZE; ++row) {
+      for (size_t col = 0; col < SIZE; ++col) {
+        src_(col, row) =
+          Py(float(row)/SIZE, float(col)/SIZE, 1 - ((float(row) + col) / 2 / SIZE));
+      }
+    }
+    // jpeg is lossy, and has trouble with noise-free images. Add some noise and blur to help it out.
+    boost::rand48 gen(uint64(test::get_random_seed()));
+    src_ += gaussian_noise_view(gen, 0.008, 0.004, src_);
+    src = gaussian_filter(pixel_cast<Px>(normalize(src_, 0, 255)), 2, 2, 4, 4);
+  }
+
   std::string type(fs::extension(GetParam()));
-
-  Px gray(0x7f, 0x7f, 0x7f), red(0x7f, 0, 0), green(0, 0x7f, 0), blue(0, 0, 0x7f);
-
-  vw::fill(crop(src_,  0,  0, 32, 32), gray);
-  vw::fill(crop(src_, 32,  0, 32, 32), red);
-  vw::fill(crop(src_,  0, 32, 32, 32), green);
-  vw::fill(crop(src_, 32, 32, 32, 32), blue);
-  // jpeg is lossy, and has trouble with solid-color blocks. Blur image to help jpeg out.
-  ImageView<Px> src = gaussian_filter(src_, 8, 8, 32, 32);
-
   vector<uint8> data;
   {
     // Set up dst to bytes go into data
