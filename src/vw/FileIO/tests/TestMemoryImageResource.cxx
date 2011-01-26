@@ -15,6 +15,7 @@
 #include <vw/Image/ImageIO.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageMath.h>
+#include <vw/Image/Filter.h>
 #include <boost/filesystem/convenience.hpp>
 #include <fstream>
 
@@ -65,23 +66,24 @@ TEST_P(MemoryImageResourceTest, BasicRead) {
 
 TEST_P(MemoryImageResourceTest, BasicWriteRead) {
   typedef PixelRGB<uint8> Px;
-  ImageView<Px> src(64,64);
+  ImageView<Px> src_(64,64);
   std::string type(fs::extension(GetParam()));
 
   Px gray(0x7f, 0x7f, 0x7f), red(0x7f, 0, 0), green(0, 0x7f, 0), blue(0, 0, 0x7f);
 
-  vw::fill(crop(src,  0,  0, 32, 32), gray);
-  vw::fill(crop(src, 32,  0, 32, 32), red);
-  vw::fill(crop(src,  0, 32, 32, 32), green);
-  vw::fill(crop(src, 32, 32, 32, 32), blue);
-
+  vw::fill(crop(src_,  0,  0, 32, 32), gray);
+  vw::fill(crop(src_, 32,  0, 32, 32), red);
+  vw::fill(crop(src_,  0, 32, 32, 32), green);
+  vw::fill(crop(src_, 32, 32, 32, 32), blue);
+  // jpeg is lossy, and has trouble with solid-color blocks. Blur image to help jpeg out.
+  ImageView<Px> src = gaussian_filter(src_, 8, 8, 32, 32);
 
   vector<uint8> data;
   {
     // Set up dst to bytes go into data
     boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, &data, src.format()));
     write_image(*r, src);
-    // data now contains the jpeg-encoded bytes
+    // data now contains the encoded bytes
   }
 
   ImageView<Px> img1;
@@ -90,11 +92,7 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
     read_image(img1, *r);
   }
 
-  ASSERT_EQ(src.rows(),   img1.rows());
-  ASSERT_EQ(src.cols(),   img1.cols());
-  ASSERT_EQ(src.planes(), img1.planes());
-
-  EXPECT_RANGE_NEAR(src.begin(), src.end(), img1.begin(), img1.end(), 2);
+  EXPECT_SEQ_NEAR(src, img1, 6);
 }
 
 vector<string> test_paths() {
