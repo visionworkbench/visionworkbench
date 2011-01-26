@@ -85,7 +85,7 @@ namespace vw {
     Settings();
 
     /// Change the rc filename (default: ~/.vwrc)
-    void set_rc_filename(std::string filename);
+    void set_rc_filename(std::string filename, bool parse_now = true);
 
     /// Change the rc file poll period.  (default: 5 seconds)
     /// Note -- this sets the *minimum* poll time for the file.  The

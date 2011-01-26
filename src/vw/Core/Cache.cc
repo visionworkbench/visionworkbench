@@ -11,7 +11,6 @@
 ///
 #include <vw/Core/Cache.h>
 #include <vw/Core/Debugging.h>
-#include <vw/Core/Settings.h>
 
 void vw::Cache::allocate( size_t size ) {
   while( m_size+size > m_max_size ) {

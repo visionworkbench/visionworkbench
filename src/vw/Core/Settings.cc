@@ -94,7 +94,7 @@ void Settings::reload_config() {
 #endif
 }
 
-void Settings::set_rc_filename(std::string filename) {
+void Settings::set_rc_filename(std::string filename, bool parse_now) {
 
   // limit the scope of the lock
   {
@@ -119,7 +119,8 @@ void Settings::set_rc_filename(std::string filename) {
   // Okay, we might have changed the filename. Call reload_config() in order to
   // re-read it. It will grab time_lock and file_lock, so we need to make sure
   // we've released them before we re-read it (or we deadlock).
-  reload_config();
+  if (parse_now)
+    reload_config();
 }
 
 void Settings::set_rc_poll_period(float period) {
@@ -173,7 +174,7 @@ Settings::Settings()
     _VW_SET1(tmp_directory, default_tmp_dir()),
     m_rc_poll_period(5.0f)
 {
-  set_rc_filename(default_vwrc());
+  set_rc_filename(default_vwrc(), false);
 }
 
 #define GETSET(Name, Type, Callback)           \
