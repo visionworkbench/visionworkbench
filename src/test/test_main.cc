@@ -16,6 +16,10 @@ namespace fs = boost::filesystem;
 #include <fenv.h>
 #endif
 
+namespace {
+  vw::uint32 SEED;
+}
+
 int main(int argc, char **argv) {
   // Disable the user's config file
   vw::vw_settings().set_rc_filename("");
@@ -40,7 +44,8 @@ int main(int argc, char **argv) {
   // clock() (being measured in "processor ticks" instead of seconds) is likely
   // to exhibit more variation when tests are run many times in a short time
   // span.
-  std::srand(boost::numeric_cast<unsigned int>((clock())));
+  SEED = boost::numeric_cast<unsigned int>(clock());
+  std::srand(SEED);
 
   fs::path start_dir(TEST_SRCDIR);
 
@@ -78,6 +83,10 @@ UnlinkName::~UnlinkName() {
 std::string getenv2(const char *key, const std::string& Default) {
   const char *val = getenv(key);
   return val ? val : Default;
+}
+
+vw::uint32 get_random_seed() {
+  return SEED;
 }
 
 }} // namespace vw::test

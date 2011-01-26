@@ -61,6 +61,11 @@ class UnlinkName : public std::string {
 // A getenv with a default value
 std::string getenv2(const char *key, const std::string& Default);
 
+// Fetch the seed we used. You should only need to do this if you're
+// initializing a different random number generator (i.e. boost::rand48). Do
+// NOT use this to reseed a global random number generator.
+uint32 get_random_seed();
+
 // reduce the damage from using gtest internal bits, and make sure uint8 is
 // seen as numeric.
 template <typename T>
