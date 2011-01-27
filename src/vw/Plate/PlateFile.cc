@@ -110,7 +110,7 @@ PlateFile::read_to_file(std::string const& base_name, int col, int row, int leve
   std::string filename = base_name + "." + record.filetype();
   read_blob->read_to_file(filename, record.blob_offset());
 
-  TileHeader hdr = read_blob->read_header<TileHeader>(record.blob_offset());
+  TileHeader hdr = read_blob->read_header(record.blob_offset());
 
   // 4. Return the name of the file
   return std::make_pair(filename, hdr);

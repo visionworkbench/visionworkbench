@@ -76,7 +76,7 @@ TEST_F(BlobIOTest, WriteThenRead) {
       EXPECT_EQ( test_data[i], verify_data[i] );
 
     // Test Reading of the header
-    TileHeader hdr2 = blob.read_header<TileHeader>(offset);
+    TileHeader hdr2 = blob.read_header(offset);
     EXPECT_EQ(hdr.filetype(), hdr2.filetype());
     EXPECT_EQ(hdr.col(), hdr2.col());
     EXPECT_EQ(hdr.row(), hdr2.row());

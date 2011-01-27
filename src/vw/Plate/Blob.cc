@@ -49,7 +49,61 @@ vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_rec
   return blob_record;
 }
 
-/// read_data()
+vw::platefile::TileHeader vw::platefile::Blob::read_header(vw::uint64 base_offset64) {
+
+  vw_out(VerboseDebugMessage, "platefile::blob")
+    << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
+
+  std::streamoff base_offset = boost::numeric_cast<std::streamoff>(base_offset64);
+
+  // Seek to the requested offset and read the header and data offset
+  m_fstream->seekg(base_offset, std::ios_base::beg);
+
+  // Read the blob record
+  uint16 blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(blob_record_size);
+
+  // The overall blob metadata includes the uint16 of the
+  // blob_record_size in addition to the size of the blob_record
+  // itself.  The offsets stored in the blob_record are relative to
+  // the END of the blob_record.  We compute this offset here.
+  // This type-size juggling is to make sure we end up with sane behavior
+  // on both 32-bit and 64-bit
+  uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size) + blob_record_size);
+  size_t size = boost::numeric_cast<size_t>(blob_record.header_size());
+  uint64 offset64 = base_offset + blob_offset_metadata + blob_record.header_offset();
+
+  std::streamoff offset = boost::numeric_cast<std::streamoff>(offset64);
+
+  // Allocate an array of the appropriate size to read the data.
+  boost::shared_array<uint8> data(new uint8[size]);
+
+  vw_out(VerboseDebugMessage, "platefile::blob")
+    << "\tread_header() -- data offset: " << offset << " size: " << size << "\n";
+
+  m_fstream->seekg(offset, std::ios_base::beg);
+  m_fstream->read(reinterpret_cast<char*>(data.get()), size);
+
+  // Throw an exception if the read operation failed (after clearing the error bit)
+  if (m_fstream->fail()) {
+    m_fstream->clear();
+    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading "
+             << "data from the blob file.\n");
+  }
+
+  // Deserialize the header
+  TileHeader header;
+  bool worked = header.ParseFromArray(data.get(), boost::numeric_cast<int>(size));
+  if (!worked)
+    vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
+             << "from the blob file.\n");
+
+  vw_out(vw::VerboseDebugMessage, "platefile::blob")
+    << "\tread_header() -- read " << size << " bytes at " << offset << " from " << m_blob_filename << "\n";
+
+  return header;
+}
+
 boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset, vw::uint64& data_size) {
 
   vw::uint64 offset;
@@ -230,6 +284,55 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   }
 }
 
+vw::uint64 vw::platefile::Blob::write(TileHeader const& header, boost::shared_array<uint8> data, uint64 data_size) {
+
+  // Store the current offset of the end of the file.  We'll
+  // return that at the end of this function.
+  std::streamoff base_offset = boost::numeric_cast<std::streamoff>(m_end_of_file_ptr);
+  m_fstream->seekp(base_offset, std::ios_base::beg);
+
+  // Create the blob record and write it to the blob file.
+  BlobRecord blob_record;
+  blob_record.set_header_offset(0);
+  blob_record.set_header_size(header.ByteSize());
+  blob_record.set_data_offset(header.ByteSize());
+  blob_record.set_data_size(data_size);
+
+  // Write the actual blob record size first.  This will help us
+  // read and deserialize this protobuffer later on.
+  uint16 blob_record_size = boost::numeric_cast<uint16>(blob_record.ByteSize());
+  m_fstream->write(reinterpret_cast<char*>(&blob_record_size), sizeof(blob_record_size));
+  blob_record.SerializeToOstream(m_fstream.get());
+
+  // Serialize the header.
+  header.SerializeToOstream(m_fstream.get());
+
+  // And write the data.
+  m_fstream->write(reinterpret_cast<char*>(data.get()), boost::numeric_cast<size_t>(data_size));
+
+  // Write the data at the end of the file and return the offset
+  // of the beginning of this data file.
+  vw::vw_out(vw::VerboseDebugMessage, "platefile::blob") << "Blob::write() -- writing "
+                                                     << data_size
+                                                     << " bytes to "
+                                                     << m_blob_filename << "\n";
+
+  // Update the in-memory copy of the end-of-file pointer
+  m_end_of_file_ptr = m_fstream->tellg();
+
+  // The write_count is used to keep track of when we last wrote
+  // the end_of_file_ptr to disk.  We don't want to write this too
+  // often since this will slow down IO, so we only write it every
+  // 10 writes (or when the blob is deconstructed...).
+  ++m_write_count;
+  if (m_write_count % 10 == 0) {
+    this->write_end_of_file_ptr(m_end_of_file_ptr);
+  }
+
+  // Return the base_offset
+  return base_offset;
+}
+
 /// Read data out of the blob and save it as its own file on disk.
 void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
   uint64 size;
@@ -244,5 +347,30 @@ void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
 
   ostr.write(reinterpret_cast<char*>(data.get()), size);
   ostr.close();
+}
+
+
+void vw::platefile::Blob::write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) {
+  // Open the source_file and read data from it.
+  std::ifstream istr(source_file.c_str(), std::ios::binary);
+
+  if (!istr.is_open())
+    vw_throw(IOErr() << "Blob::write_from_file() -- could not open source file for reading.");
+
+  // Seek to the end and allocate the proper number of bytes of
+  // memory, and then seek back to the beginning.
+  istr.seekg(0, std::ios_base::end);
+  std::streamoff loc = istr.tellg();
+  VW_ASSERT(loc > 0, IOErr() << "Failed to identify file length");
+  istr.seekg(0, std::ios_base::beg);
+
+  size_t data_size = static_cast<size_t>(loc);
+
+  // Read the data into a temporary memory buffer.
+  boost::shared_array<uint8> data(new uint8[data_size]);
+  istr.read(reinterpret_cast<char*>(data.get()), data_size);
+  istr.close();
+
+  base_offset = this->write(header, data, data_size);
 }
 

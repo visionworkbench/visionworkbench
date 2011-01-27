@@ -309,31 +309,31 @@ TEST_F(LocalIndexTiles, ReadWrite) {
     uint64 read_size;
 
     out_rec  = index->read_request(0, 0, 0, -1);
-    out_hdr  = blob->read_header<TileHeader>(out_rec.blob_offset());
+    out_hdr  = blob->read_header(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
     ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[0], out_hdr);
 
     out_rec  = index->read_request(0, 0, 1, -1);
-    out_hdr  = blob->read_header<TileHeader>(out_rec.blob_offset());
+    out_hdr  = blob->read_header(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
     ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[1], out_hdr);
 
     out_rec = index->read_request(1, 0, 1, -1);
-    out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
+    out_hdr = blob->read_header(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
     ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[2], out_hdr);
 
     out_rec = index->read_request(0, 1, 1, -1);
-    out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
+    out_hdr = blob->read_header(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
     ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[3], out_hdr);
 
     out_rec = index->read_request(1, 1, 1, -1);
-    out_hdr = blob->read_header<TileHeader>(out_rec.blob_offset());
+    out_hdr = blob->read_header(out_rec.blob_offset());
     out_data = blob->read_data(out_rec.blob_offset(), read_size);
     ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
     check_tile_hdr(hdrs[4], out_hdr);
