@@ -92,7 +92,7 @@ ChannelTypeEnum SrcMemoryImageResourcePNG::channel_type() const {
 }
 
 class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {
-  std::vector<uint8>* m_data;
+  std::vector<uint8> m_data;
   typedef DstMemoryImageResourcePNG::Data this_type;
 
   protected:
@@ -100,20 +100,21 @@ class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {
       png_set_write_fn(m_ctx, reinterpret_cast<voidp>(this), &this_type::write_fn, &this_type::flush_fn);
     }
   public:
-    Data(std::vector<uint8>* buffer, const ImageFormat &fmt) : PngIOCompress(fmt), m_data(buffer) {}
+    Data(const ImageFormat &fmt) : PngIOCompress(fmt) {}
+    const std::vector<uint8>* data() const {return &m_data;}
 
     static void write_fn( png_structp ctx, png_bytep data, png_size_t length )
     {
       Data *mgr = reinterpret_cast<Data*>(png_get_io_ptr(ctx));
-      mgr->m_data->insert(mgr->m_data->end(), data, data+length);
+      mgr->m_data.insert(mgr->m_data.end(), data, data+length);
     }
 
     static void flush_fn( png_structp /*ctx*/) {}
 };
 
 
-DstMemoryImageResourcePNG::DstMemoryImageResourcePNG(std::vector<uint8>* buffer, const ImageFormat& fmt)
-  : m_data(new Data(buffer, fmt))
+DstMemoryImageResourcePNG::DstMemoryImageResourcePNG(const ImageFormat& fmt)
+  : m_data(new Data(fmt))
 {
   m_data->open();
 }
@@ -149,5 +150,14 @@ void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbo
 
   m_data->write(buf.get(), width, height, bufsize);
 }
+
+const uint8* DstMemoryImageResourcePNG::data() const {
+  return &(m_data->data()->operator[](0));
+}
+
+size_t DstMemoryImageResourcePNG::size() const {
+  return m_data->data()->size();
+}
+
 
 } // namespace vw

@@ -30,13 +30,16 @@ namespace vw {
       boost::shared_ptr<Data> m_data;
 
     public:
-      DstMemoryImageResourceJPEG(std::vector<uint8>* buffer, const ImageFormat& fmt);
+      DstMemoryImageResourceJPEG(const ImageFormat& fmt);
 
       virtual void write( ImageBuffer const& buf, BBox2i const& bbox );
       virtual void flush() {}
 
       virtual bool has_block_write()  const {return false;}
       virtual bool has_nodata_write() const {return false;}
+
+      virtual const uint8* data() const;
+      virtual size_t size() const;
   };
 
 }

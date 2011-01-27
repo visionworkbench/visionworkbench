@@ -85,17 +85,18 @@ ChannelTypeEnum SrcMemoryImageResourceJPEG::channel_type() const {
 }
 
 class DstMemoryImageResourceJPEG::Data : public fileio::detail::JpegIOCompress {
-  std::vector<uint8>* m_data;
+  std::vector<uint8> m_data;
 
   protected:
-    virtual void bind() { fileio::detail::jpeg_vector_dest(&m_ctx, m_data); }
+    virtual void bind() { fileio::detail::jpeg_vector_dest(&m_ctx, &m_data); }
   public:
-    Data(std::vector<uint8>* buffer, const ImageFormat &fmt) : JpegIOCompress(fmt), m_data(buffer) {}
+    Data(const ImageFormat &fmt) : JpegIOCompress(fmt) {}
+    const std::vector<uint8>* data() const {return &m_data;}
 };
 
 
-DstMemoryImageResourceJPEG::DstMemoryImageResourceJPEG(std::vector<uint8>* buffer, const ImageFormat& fmt)
-  : m_data(new Data(buffer, fmt))
+DstMemoryImageResourceJPEG::DstMemoryImageResourceJPEG(const ImageFormat& fmt)
+  : m_data(new Data(fmt))
 {
   m_data->open();
 }
@@ -130,6 +131,14 @@ void DstMemoryImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bb
   }
 
   m_data->write(buf.get(), width, height, bufsize);
+}
+
+const uint8* DstMemoryImageResourceJPEG::data() const {
+  return &(m_data->data()->operator[](0));
+}
+
+size_t DstMemoryImageResourceJPEG::size() const {
+  return m_data->data()->size();
 }
 
 } // namespace vw

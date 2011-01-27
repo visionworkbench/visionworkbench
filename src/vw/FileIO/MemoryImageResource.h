@@ -22,7 +22,9 @@ namespace vw {
   class DstMemoryImageResource : public DstImageResource {
     public:
       // constructs the appropriate subclass for the type
-      static DstMemoryImageResource* create( const std::string& type, std::vector<uint8>* data, const ImageFormat& format );
+      static DstMemoryImageResource* create( const std::string& type, const ImageFormat& format );
+      virtual const uint8* data() const = 0;
+      virtual size_t size() const = 0;
   };
 
 

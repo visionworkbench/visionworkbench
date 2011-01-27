@@ -24,7 +24,7 @@
 
 namespace {
   typedef boost::function<vw::SrcMemoryImageResource*(const vw::uint8*, size_t)> open_func;
-  typedef boost::function<vw::DstMemoryImageResource*(std::vector<vw::uint8>*, const vw::ImageFormat&)> create_func;
+  typedef boost::function<vw::DstMemoryImageResource*(const vw::ImageFormat&)> create_func;
 
   typedef std::map<std::string, open_func> open_map_t;
   typedef std::map<std::string, create_func> create_map_t;
@@ -70,12 +70,11 @@ namespace vw {
     return i->second(data, len);
   }
 
-  DstMemoryImageResource* DstMemoryImageResource::create( const std::string& type, std::vector<uint8>* data, const ImageFormat& format ) {
+  DstMemoryImageResource* DstMemoryImageResource::create( const std::string& type, const ImageFormat& format ) {
     create_map_t::const_iterator i = create_map.find(clean_type(type));
     if (i == create_map.end())
       vw_throw( NoImplErr() << "Unsupported file format: " << type );
-    return i->second(data, format);
+    return i->second(format);
   }
-
 
 } // namespace vw

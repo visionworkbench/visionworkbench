@@ -87,19 +87,12 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
   }
 
   std::string type(fs::extension(GetParam()));
-  vector<uint8> data;
-  {
-    // Set up dst to bytes go into data
-    boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, &data, src.format()));
-    write_image(*r, src);
-    // data now contains the encoded bytes
-  }
+  boost::scoped_ptr<DstMemoryImageResource> dst(DstMemoryImageResource::create(type, src.format()));
+  write_image(*dst, src);
+  boost::scoped_ptr<SrcImageResource> src2(SrcMemoryImageResource::open(type, dst->data(), dst->size()));
 
   ImageView<Px> img1;
-  {
-    boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(type, &data[0], data.size()));
-    read_image(img1, *r);
-  }
+  read_image(img1, *src2);
 
   EXPECT_SEQ_NEAR(src, img1, 6);
 }
