@@ -94,12 +94,6 @@ class LocalIndexTiles : public LocalIndexTest {
     hdrs[4].set_level(1);
 
     hdrs[5] = hdrs[4];
-
-    test_size = 20;
-
-    test_data.reset(new uint8[test_size]);
-    for (size_t i = 0; i < test_size; ++i)
-      test_data[i] = i;
   }
 
   void index_write(const TileHeader &hdr, IndexRecord &rec) {
@@ -122,12 +116,13 @@ class LocalIndexTiles : public LocalIndexTest {
     EXPECT_EQ( expected.filetype(), actual.filetype() );
   }
 
-
   boost::shared_array<TileHeader> hdrs;
 
-  size_t test_size;
-  boost::shared_array<uint8> test_data;
+  static const size_t test_size = 20;
+  static const uint8 test_data[20];
 };
+const size_t LocalIndexTiles::test_size;
+const uint8 LocalIndexTiles::test_data[20] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19};
 
 TEST(LocalIndex, BasicAccess) {
   UnlinkName file("index");
@@ -304,38 +299,36 @@ TEST_F(LocalIndexTiles, ReadWrite) {
     // Read the data back from the index
     IndexRecord out_rec;
     TileHeader  out_hdr;
-    boost::shared_array<uint8> out_data;
-
-    uint64 read_size;
+    TileData out_data;
 
     out_rec  = index->read_request(0, 0, 0, -1);
     out_hdr  = blob->read_header(out_rec.blob_offset());
-    out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
+    out_data = blob->read_data(out_rec.blob_offset());
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], out_data->begin(), out_data->end());
     check_tile_hdr(hdrs[0], out_hdr);
 
     out_rec  = index->read_request(0, 0, 1, -1);
     out_hdr  = blob->read_header(out_rec.blob_offset());
-    out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
+    out_data = blob->read_data(out_rec.blob_offset());
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], out_data->begin(), out_data->end());
     check_tile_hdr(hdrs[1], out_hdr);
 
     out_rec = index->read_request(1, 0, 1, -1);
     out_hdr = blob->read_header(out_rec.blob_offset());
-    out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
+    out_data = blob->read_data(out_rec.blob_offset());
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], out_data->begin(), out_data->end());
     check_tile_hdr(hdrs[2], out_hdr);
 
     out_rec = index->read_request(0, 1, 1, -1);
     out_hdr = blob->read_header(out_rec.blob_offset());
-    out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
+    out_data = blob->read_data(out_rec.blob_offset());
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], out_data->begin(), out_data->end());
     check_tile_hdr(hdrs[3], out_hdr);
 
     out_rec = index->read_request(1, 1, 1, -1);
     out_hdr = blob->read_header(out_rec.blob_offset());
-    out_data = blob->read_data(out_rec.blob_offset(), read_size);
-    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], &out_data[0], &out_data[read_size]);
+    out_data = blob->read_data(out_rec.blob_offset());
+    ASSERT_RANGE_EQ(&test_data[0], &test_data[test_size], out_data->begin(), out_data->end());
     check_tile_hdr(hdrs[4], out_hdr);
   }
 }

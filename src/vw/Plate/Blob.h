@@ -45,6 +45,8 @@
 namespace vw {
 namespace platefile {
 
+  typedef boost::shared_ptr<std::vector<vw::uint8> > TileData;
+
   // -------------------------------------------------------------------
   //                                 BLOB
   // -------------------------------------------------------------------
@@ -115,10 +117,14 @@ namespace platefile {
     TileHeader read_header(vw::uint64 base_offset64);
 
     /// Returns the binary data for an entry starting at base_offset.
-    boost::shared_array<uint8> read_data(vw::uint64 base_offset, vw::uint64& data_size);
+    boost::shared_array<uint8> read_data(vw::uint64 base_offset, vw::uint64& data_size) VW_DEPRECATED;
+    TileData read_data(vw::uint64 base_offset);
 
     /// Returns the parameters necessary to call sendfile(2)
     void read_sendfile(vw::uint64 base_offset, std::string& filename, vw::uint64& offset, vw::uint64& size);
+
+    /// Read data out of the blob and save it as its own file on disk.
+    void read_to_file(std::string dest_file, vw::uint64 offset) VW_DEPRECATED;
 
     /// Returns the data size
     uint64 data_size(uint64 base_offset) const;
@@ -127,13 +133,10 @@ namespace platefile {
     /// (e.g. a serialized TileHeader protobuffer) and the data as
     /// shared_arrays.  Returns the base_offset where the data was
     /// written to the blob file.
-    vw::uint64 write(TileHeader const& header, boost::shared_array<uint8> data, uint64 data_size);
-
-    /// Read data out of the blob and save it as its own file on disk.
-    void read_to_file(std::string dest_file, vw::uint64 offset);
+    vw::uint64 write(TileHeader const& header, const uint8* data, uint64 data_size);
 
     /// Write the data file to disk, and the concatenate it into the data blob.
-    void write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset);
+    void write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) VW_DEPRECATED;
 
   };
 

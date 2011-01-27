@@ -95,6 +95,20 @@ namespace vw {
       view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
     }
 
+    /// Note that this is almost a copy of read_image in ImageIO, but actually
+    /// including that is a circular dependency.
+    explicit ImageView( const SrcImageResource& src ) {
+      int32 planes = 1;
+      if( ! IsCompound<PixelT>::value ) {
+        // The image has a fundamental pixel type
+        if( src.planes()>1 && src.channels()>1 )
+          vw_throw( ArgumentErr() << "Cannot read a multi-plane multi-channel image resource into a single-channel view." );
+        planes = (std::max)( src.planes(), src.channels() );
+      }
+      set_size(src.cols(), src.rows(), planes);
+      src.read( this->buffer(), BBox2i(0,0,src.cols(),src.rows()) );
+    }
+
     /// Rasterizes the given view into the image, adjusting the size if needed.
     template <class SrcT>
     inline ImageView& operator=( ImageViewBase<SrcT> const& view ) {

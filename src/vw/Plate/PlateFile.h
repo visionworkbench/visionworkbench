@@ -100,6 +100,7 @@
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/MemoryImageResource.h>
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
@@ -108,62 +109,6 @@
 
 namespace vw {
 namespace platefile {
-
-  // -------------------------------------------------------------------------
-  //                            TEMPORARY TILE FILE
-  // -------------------------------------------------------------------------
-
-  // A scoped temporary file object that store a tile under /tmp.  The
-  // file is destroyed when this object is deleted.
-  class TemporaryTileFile : private boost::noncopyable {
-
-    std::string m_filename;
-
-    // No default constructor
-    TemporaryTileFile() {}
-
-  public:
-
-    /// Generate a unique filename ( usually in /tmp, though this can
-    /// be overridden using vw_settings().tmp_directory() ).
-    static std::string unique_tempfile_name(std::string file_extension);
-
-    /// This constructor assumes control over an existing file on disk,
-    /// and deletes it when the TemporaryTileFile object is de-allocated.
-    TemporaryTileFile(std::string filename);
-
-    /// This constructor assumes control over an existing file on disk,
-    /// and deletes it when the TemporaryTileFile object is de-allocated.
-    template <class ViewT>
-    TemporaryTileFile(ImageViewBase<ViewT> const& view, std::string file_extension) :
-      m_filename(unique_tempfile_name(file_extension)) {
-      write_image(m_filename, view);
-      vw_out(DebugMessage, "plate::tempfile") << "Created temporary file: "
-                                              << m_filename << "\n";
-    }
-
-    ~TemporaryTileFile();
-
-    std::string file_name() const { return m_filename; }
-
-    /// Opens the temporary file and determines its size in bytes.
-    int64 file_size() const;
-
-    // Read an image from the temporary tile file.
-    template <class PixelT>
-    ImageView<PixelT> read() const {
-      ImageView<PixelT> img;
-      read_image(img, m_filename);
-      return img;
-    }
-
-  };
-
-
-  // -------------------------------------------------------------------------
-  //                            PLATE FILE
-  // -------------------------------------------------------------------------
-
 
   class PlateFile {
     boost::shared_ptr<Index> m_index;
@@ -209,6 +154,9 @@ namespace platefile {
     read_to_file(std::string const& base_name, int col, int row, int level,
                  TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
 
+    std::pair<TileHeader, TileData>
+    read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
+
     /// Read an image from the specified tile location in the plate file.
     ///
     /// By default, this call to read will return a tile with the MOST
@@ -225,14 +173,10 @@ namespace platefile {
     TileHeader read(ViewT &view, int col, int row, int level,
                     TransactionOrNeg transaction_id, bool exact_transaction_match = false) const {
 
-      std::pair<std::string, TileHeader> ret;
-
-      ret = this->read_to_file( TemporaryTileFile::unique_tempfile_name("tile"),
-                                col, row, level, transaction_id, exact_transaction_match);
-
-      view = TemporaryTileFile(ret.first).read<typename ViewT::pixel_type>();
-
-      return ret.second;
+      std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
+      boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(ret.first.filetype(), &ret.second->operator[](0), ret.second->size()));
+      read_image(view, *r);
+      return ret.first;
     }
 
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
@@ -245,55 +189,26 @@ namespace platefile {
     void write_update(ImageViewBase<ViewT> const& view,
                       int col, int row, int level, Transaction transaction_id) {
 
-      if (!m_write_blob)
-        vw_throw(BlobIoErr() << "Error issuing write_update().  No blob file open.  "
-                 << "Are you sure your ran write_request()?");
-
-      // 0. Create a write_header
-      TileHeader write_header;
-      write_header.set_col(col);
-      write_header.set_row(row);
-      write_header.set_level(level);
-      write_header.set_transaction_id(transaction_id);
-
+      std::string type;
       if (this->default_file_type() == "auto") {
-
-        // This specialization saves us TONS of space by storing
-        // opaque tiles as jpgs.  However it does come at a small cost
-        // of having to conduct this extra check to see if the tile is
-        // opaque or not.
-        if ( is_opaque(view.impl()) ) {
-          write_header.set_filetype("jpg");
-        } else {
-          write_header.set_filetype("png");
-        }
-      } else {
-        write_header.set_filetype(this->default_file_type());
+        // This specialization saves us TONS of space by storing opaque tiles
+        // as jpgs.  However it does come at a small cost of having to conduct
+        // this extra check to see if the tile is opaque or not.
+        if ( is_opaque(view.impl()) )
+          type = "jpg";
+        else
+          type = "png";
       }
-
-      // 1. Write data to temporary file.
-      TemporaryTileFile tile(view, write_header.filetype());
-      std::string tile_filename = tile.file_name();
-
-      // 3. Create a blob and call write_from_file(filename).  Returns
-      // offset, size.
-      uint64 blob_offset;
-      m_write_blob->write_from_file(tile_filename, write_header, blob_offset);
-
-      // 4. Call write_update(col, row, level, record) to update the
-      // index with the new data.
-      IndexRecord write_record;
-      write_record.set_blob_id(m_write_blob_id);
-      write_record.set_blob_offset(blob_offset);
-      write_record.set_filetype(write_header.filetype());
-
-      m_index->write_update(write_header, write_record);
+      boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, view.format()));
+      write_image(*r, view);
+      this->write_update(r->data(), r->size(), col, row, level, transaction_id, type);
     }
 
     /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
-    /// tile location. Use the filetype to identify the data later.
-    void write_update(const boost::shared_array<uint8> data, uint64 data_size,
-                      int col, int row, int level, Transaction transaction_id);
+    /// tile location. Use the filetype to identify the data later; empty type
+    /// means "platefile default".
+    void write_update(const uint8* data, uint64 data_size,
+                      int col, int row, int level, Transaction transaction_id, const std::string& type = "");
 
     /// Writing, pt. 3: Signal the completion of the write operation.
     void write_complete();

@@ -272,34 +272,21 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
       return;
     }
 
-    // Save the data to a temporary file, and then read the image file
-    // using the Vision Workbench FileIO subsystem.
-    std::string temp_filename = platefile::TemporaryTileFile::unique_tempfile_name(buf.file_type);
-    std::ofstream of(temp_filename.c_str());
-    if ( !(of.good()) )
-      vw_throw(IOErr() << "Could not open temporary tile file for writing: " << temp_filename);
-    of.write(buf.buffer->buffer().data(), buf.buffer->buffer().length());
-    of.close();
-    TemporaryTileFile temp_tile_file(temp_filename);
+    boost::scoped_ptr<SrcImageResource> rsrc(
+        SrcMemoryImageResource::open(
+          buf.file_type, reinterpret_cast<uint8*>(buf.buffer->buffer().data()), buf.buffer->buffer().length()));
 
-    // Now read the image out of the tempfile and save the decoded
-    // pixels as the result.
     try {
-      boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(temp_filename));
       if (rsrc->channel_type() == VW_CHANNEL_UINT8) {
-        ImageView<PixelRGBA<uint8> > vw_image = temp_tile_file.read<PixelRGBA<uint8> >();
-        buf.result = channel_cast_rescale<float>(vw_image);
+        buf.result = channel_cast_rescale<float>(ImageView<PixelRGBA<uint8> >(*rsrc));
       } else if (rsrc->channel_type() == VW_CHANNEL_UINT16) {
-        ImageView<PixelRGBA<int16> > vw_image = temp_tile_file.read<PixelRGBA<int16> >();
-        buf.result = channel_cast_rescale<float>(vw_image);
+        buf.result = channel_cast_rescale<float>(ImageView<PixelRGBA<int16> >(*rsrc));
       } else {
-        vw_out() << "WARNING: Image contains unsupported channel type: "
-                 << rsrc->channel_type() << "\n";
+        vw_out() << "WARNING: Image contains unsupported channel type: " << rsrc->channel_type() << "\n";
       }
       buf.finished = true;
     } catch (IOErr &e) {
-      vw_out(WarningMessage) << "Could not read data from temporary file: "
-                             << temp_filename << "\n";
+      vw_out(WarningMessage) << "Could not parse network tile: " << buf.url << std::endl;
       buf.finished = true;
     }
   }

@@ -111,10 +111,10 @@ struct ToastDem : public FilterBase<ToastDem> {
   struct DemWriter : public ToastDemWriter {
     PlateFile& platefile;
     DemWriter(PlateFile& output) : platefile(output) { }
-    inline void operator()(const boost::shared_array<uint8> data, size_t data_size,
+    inline void operator()(const boost::shared_array<uint8> data, uint64 data_size,
                            int32 dem_col, int32 dem_row,
                            int32 dem_level, Transaction output_transaction_id) const {
-      platefile.write_update(data, data_size, dem_col, dem_row,
+      platefile.write_update(data.get(), data_size, dem_col, dem_row,
                              dem_level, output_transaction_id);
     }
   };

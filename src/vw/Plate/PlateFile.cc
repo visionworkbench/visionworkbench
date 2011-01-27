@@ -16,53 +16,6 @@ namespace fs = boost::filesystem;
 using namespace vw::platefile;
 using namespace vw;
 
-// -------------------------------------------------------------------------
-//                            TEMPORARY TILE FILE
-// -------------------------------------------------------------------------
-
-std::string vw::platefile::TemporaryTileFile::unique_tempfile_name(std::string file_extension) {
-  std::string base_name = vw_settings().tmp_directory() + "/vw_plate_tile_XXXXXXX";
-
-  boost::scoped_array<char> c_str(new char[base_name.size()+1]);
-  strncpy(c_str.get(), base_name.c_str(), base_name.size()+1);
-  char* dummy = mktemp(c_str.get());
-  std::string ret(dummy);
-  return ret + "." + file_extension;
-}
-
-vw::platefile::TemporaryTileFile::TemporaryTileFile(std::string filename) :
-  m_filename(filename) {
-  vw_out(DebugMessage, "plate::tempfile") << "Assumed control of temporary file: "
-                                          << m_filename << "\n";
-}
-
-vw::platefile::TemporaryTileFile::~TemporaryTileFile() {
-  int result = unlink(m_filename.c_str());
-  if (result)
-    vw_out(ErrorMessage, "plate::tempfile")
-      << "WARNING: unlink() failed in ~TemporaryTileFile() for filename \""
-      << m_filename << "\"\n";
-  vw_out(DebugMessage, "plate::tempfile") << "Destroyed temporary file: "
-                                          << m_filename << "\n";
-}
-
-/// Opens the temporary file and determines its size in bytes.
-vw::int64 vw::platefile::TemporaryTileFile::file_size() const {
-  std::ifstream istr(m_filename.c_str(), std::ios::binary);
-
-  if (!istr.is_open())
-    vw_throw(IOErr() << "TempPlateFile::file_size() -- could not open \""
-             << m_filename << "\".");
-  istr.seekg(0, std::ios_base::end);
-  return istr.tellg();
-}
-
-
-
-// -------------------------------------------------------------------------
-//                               PLATE FILE
-// -------------------------------------------------------------------------
-
 PlateFile::PlateFile(const Url& url) {
   m_index = Index::construct_open(url);
   vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
@@ -82,6 +35,25 @@ PlateFile::PlateFile(const Url& url, std::string type, std::string description,
 
   vw_out(DebugMessage, "platefile") << "Constructing new platefile: " << url.string() << "\n";
   m_index = Index::construct_create(url, hdr);
+}
+
+std::pair<TileHeader, TileData>
+PlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match) const {
+  IndexRecord record = m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
+
+  boost::shared_ptr<Blob> read_blob;
+  if (m_write_blob && record.blob_id() == m_write_blob_id) {
+    read_blob = m_write_blob;
+  } else {
+    std::ostringstream blob_filename;
+    blob_filename << this->name() << "/plate_" << record.blob_id() << ".blob";
+    read_blob.reset(new Blob(blob_filename.str(), true));
+  }
+
+  std::pair<TileHeader, TileData> tile;
+  tile.first  = read_blob->read_header(record.blob_offset());
+  tile.second = read_blob->read_data(record.blob_offset());
+  return tile;
 }
 
 /// Read the tile header. You supply a base name (without the
@@ -180,27 +152,24 @@ vw::platefile::IndexRecord vw::platefile::PlateFile::read_record(int col, int ro
   return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
 }
 
-void PlateFile::write_update(const boost::shared_array<uint8> data, uint64 data_size,
-                             int col, int row, int level, Transaction transaction_id) {
+void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int row,
+    int level, Transaction transaction_id, const std::string& type_) {
 
-  // Quick sanity check.
-  if (this->default_file_type() == "auto") {
-    vw_throw(NoImplErr() << "write_update() does not support writing un-typed "
-                         << "data arrays for filetype \'auto\'.\n");
-  }
+  std::string type = type_;
+  if (type.empty())
+    type = this->default_file_type();
 
-
+  if (type == "auto")
+    vw_throw(NoImplErr() << "write_update() does not support filetype 'auto'");
   if (!m_write_blob)
-    vw_throw(BlobIoErr() << "Error issuing write_update(). No blob file open. "
-                         << "Are you sure your ran write_request()?");
+    vw_throw(BlobIoErr() << "write_update(): No blob file open. Are you sure you ran write_request()?");
 
-  // 0. Create a write_header
   TileHeader write_header;
   write_header.set_col(col);
   write_header.set_row(row);
   write_header.set_level(level);
   write_header.set_transaction_id(transaction_id);
-  write_header.set_filetype(this->default_file_type());
+  write_header.set_filetype(type);
 
   // 1. Write the data into the blob
   uint64 blob_offset = m_write_blob->write(write_header, data, data_size);
@@ -212,4 +181,4 @@ void PlateFile::write_update(const boost::shared_array<uint8> data, uint64 data_
   write_record.set_filetype(write_header.filetype());
 
   m_index->write_update(write_header, write_record);
-  }
+}

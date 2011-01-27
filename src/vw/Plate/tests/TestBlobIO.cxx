@@ -37,24 +37,20 @@ class BlobIOTest : public ::testing::Test {
   virtual void SetUp() {
     blob_path = UnlinkName("BlobIO");
 
-    data_size = 20;
-    test_data = boost::shared_array<uint8>(new uint8[data_size]);
-    for (uint64 i = 0; i < data_size; ++i) {
-      test_data[i] = i;
-    }
-
     hdr.set_filetype("tif");
     hdr.set_col(0);
     hdr.set_row(0);
     hdr.set_level(0);
   }
 
-  boost::shared_array<uint8> test_data;
-  uint64 data_size;
+  static const size_t data_size = 20;
+  static const uint8 test_data[data_size];
   UnlinkName blob_path;
 
   TileHeader hdr;
 };
+const size_t BlobIOTest::data_size;
+const uint8 BlobIOTest::test_data[BlobIOTest::data_size] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19};
 
 TEST_F(BlobIOTest, WriteThenRead) {
 
@@ -65,15 +61,9 @@ TEST_F(BlobIOTest, WriteThenRead) {
     // Write the data to the file.
     int64 offset = blob.write(hdr, test_data, data_size);
 
-    uint64 read_size;
-
     // Test reading of the data
-    boost::shared_array<uint8> verify_data = blob.read_data(offset, read_size);
-
-    ASSERT_EQ(data_size, read_size);
-
-    for (uint64 i = 0; i < data_size; ++i)
-      EXPECT_EQ( test_data[i], verify_data[i] );
+    TileData verify_data = blob.read_data(offset);
+    EXPECT_RANGE_EQ(test_data+0, test_data+data_size, verify_data->begin(), verify_data->end());
 
     // Test Reading of the header
     TileHeader hdr2 = blob.read_header(offset);
@@ -90,15 +80,9 @@ TEST_F(BlobIOTest, WriteThenRead) {
     // Write the data to the file.
     int64 offset = blob.write(hdr, test_data, data_size);
 
-    uint64 read_size;
-
     // Read it back in.
-    boost::shared_array<uint8> verify_data = blob.read_data(offset, read_size);
-
-    ASSERT_EQ(data_size, read_size);
-
-    for (uint64 i = 0; i < data_size; ++i)
-      EXPECT_EQ( test_data[i], verify_data[i] );
+    TileData verify_data = blob.read_data(offset);
+    EXPECT_RANGE_EQ(test_data+0, test_data+data_size, verify_data->begin(), verify_data->end());
   }
 }
 

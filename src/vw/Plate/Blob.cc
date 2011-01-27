@@ -118,6 +118,25 @@ TileHeader Blob::read_header(uint64 base_offset64) {
   return header;
 }
 
+TileData Blob::read_data(vw::uint64 base_offset) {
+  uint64 offset, size;
+  std::string dontcare;
+  read_sendfile(base_offset, dontcare, offset, size);
+
+  TileData data(new std::vector<uint8>(size));
+
+  m_fstream->seekg(offset, std::ios_base::beg);
+  m_fstream->read(reinterpret_cast<char*>(&data->operator[](0)), size);
+
+  // Throw an exception if the read operation failed (after clearing the error bit)
+  if (m_fstream->fail()) {
+    m_fstream->clear();
+    vw_throw(IOErr() << VW_CURRENT_FUNCTION << ": failed to read from blob.");
+  }
+
+  return data;
+}
+
 boost::shared_array<uint8> Blob::read_data(uint64 base_offset, uint64& data_size) {
 
   uint64 offset;
@@ -298,7 +317,7 @@ uint64 Blob::read_end_of_file_ptr() const {
   }
 }
 
-uint64 Blob::write(TileHeader const& header, boost::shared_array<uint8> data, uint64 data_size) {
+uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size) {
 
   // Store the current offset of the end of the file.  We'll
   // return that at the end of this function.
@@ -322,7 +341,7 @@ uint64 Blob::write(TileHeader const& header, boost::shared_array<uint8> data, ui
   header.SerializeToOstream(m_fstream.get());
 
   // And write the data.
-  m_fstream->write(reinterpret_cast<char*>(data.get()), boost::numeric_cast<size_t>(data_size));
+  m_fstream->write(reinterpret_cast<const char*>(data), boost::numeric_cast<size_t>(data_size));
 
   // Write the data at the end of the file and return the offset
   // of the beginning of this data file.
@@ -349,20 +368,17 @@ uint64 Blob::write(TileHeader const& header, boost::shared_array<uint8> data, ui
 
 /// Read data out of the blob and save it as its own file on disk.
 void Blob::read_to_file(std::string dest_file, uint64 offset) {
-  uint64 size;
-  boost::shared_array<uint8> data = this->read_data(offset, size);
+  TileData data = this->read_data(offset);
 
   // Open the dest_file and write to it.
   std::ofstream ostr(dest_file.c_str(), std::ios::binary);
 
   if (!ostr.is_open())
-    vw_throw(IOErr() << "Blob::read_as_file() -- could not open destination "
-             << "file for writing..");
+    vw_throw(IOErr() << VW_CURRENT_FUNCTION << ": could not open dst file for writing");
 
-  ostr.write(reinterpret_cast<char*>(data.get()), size);
+  ostr.write(reinterpret_cast<char*>(&data->operator[](0)), data->size());
   ostr.close();
 }
-
 
 void Blob::write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) {
   // Open the source_file and read data from it.
@@ -381,11 +397,11 @@ void Blob::write_from_file(std::string source_file, TileHeader const& header, ui
   size_t data_size = static_cast<size_t>(loc);
 
   // Read the data into a temporary memory buffer.
-  boost::shared_array<uint8> data(new uint8[data_size]);
+  boost::scoped_array<uint8> data(new uint8[data_size]);
   istr.read(reinterpret_cast<char*>(data.get()), data_size);
   istr.close();
 
-  base_offset = this->write(header, data, data_size);
+  base_offset = this->write(header, data.get(), data_size);
 }
 
 }} // namespace platefile
