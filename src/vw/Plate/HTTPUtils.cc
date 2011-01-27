@@ -286,7 +286,7 @@ std::string& QueryMap::set(const std::string& key, const std::string& value) {
   return (m_map[key] = value);
 }
 
-string vw::platefile::QueryMap::serialize(const std::string& prefix, const std::string& sep) const {
+string QueryMap::serialize(const std::string& prefix, const std::string& sep) const {
   if (m_map.empty())
     return std::string();
 

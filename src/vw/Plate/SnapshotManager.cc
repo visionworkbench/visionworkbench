@@ -97,16 +97,17 @@ namespace platefile {
   }
 
   template <class PixelT>
-  int vw::platefile::SnapshotManager<PixelT>::snapshot_helper(int current_col,
-                       int current_row,
-                       int current_level,
-                       std::map<TransactionOrNeg, TileHeader> composite_tiles,
-                       vw::BBox2i const& target_region,
-                       int target_level,
-                       TransactionOrNeg start_transaction_id,
-                       TransactionOrNeg end_transaction_id,
-                       Transaction write_transaction_id,
-                       bool tweak_settings_for_terrain) const {
+  int SnapshotManager<PixelT>::snapshot_helper(int current_col,
+        int current_row,
+        int current_level,
+        std::map<TransactionOrNeg, TileHeader> composite_tiles,
+        vw::BBox2i const& target_region,
+        int target_level,
+        TransactionOrNeg start_transaction_id,
+        TransactionOrNeg end_transaction_id,
+        Transaction write_transaction_id,
+        bool tweak_settings_for_terrain) const
+  {
 
     typedef std::map<TransactionOrNeg, TileHeader> TileMap;
     typedef std::list<TileHeader> TileList;

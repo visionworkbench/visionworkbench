@@ -13,12 +13,11 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
 
-// -------------------------------------------------------------------
-//                            BLOB_MANAGER
-// -------------------------------------------------------------------
+namespace vw {
+namespace platefile {
 
 // Move to the next blob, wrapping around if we reach the end.
-void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
+void BlobManager::increment_blob_index(int &blob_index) {
   ++blob_index;
   if (blob_index >= int(m_blob_locks.size()))
     blob_index = 0;
@@ -26,7 +25,7 @@ void vw::platefile::BlobManager::increment_blob_index(int &blob_index) {
 
 // A method to poll for an available blob.  Returns -1 if there
 // are no blobs available.
-int vw::platefile::BlobManager::get_next_available_blob() {
+int BlobManager::get_next_available_blob() {
 
   // Move the starting point for our search forward one so that we
   // don't always return the same general set of blobs.
@@ -87,7 +86,7 @@ int vw::platefile::BlobManager::get_next_available_blob() {
 
 /// Create a new blob manager.  The max_blob_size is specified in
 /// units of megabytes.
-vw::platefile::BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) :
+BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) :
   m_max_blob_size(max_blob_size * 1024 * 1024), m_max_blobs(max_blobs), m_blob_index(0) {
 
   VW_ASSERT(initial_nblobs >=1, ArgumentErr() << "BlobManager: inital_nblobs must be >= 1.");
@@ -102,12 +101,12 @@ vw::platefile::BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs
 }
 
 /// Return the number of blobs currently in use.
-unsigned vw::platefile::BlobManager::num_blobs() {
+unsigned BlobManager::num_blobs() {
   Mutex::Lock lock(m_mutex);
   return boost::numeric_cast<unsigned>(m_blob_locks.size());
 }
 
-vw::uint64 vw::platefile::BlobManager::max_blob_size() {
+uint64 BlobManager::max_blob_size() {
   Mutex::Lock lock(m_mutex);
   return m_max_blob_size;
 }
@@ -122,7 +121,7 @@ vw::uint64 vw::platefile::BlobManager::max_blob_size() {
 // efficient because it blocks on write if it catches up to a blob
 // that is still locked.  We should add real blob selection logic
 // here at a later date.
-int vw::platefile::BlobManager::request_lock(uint64 &size) {
+int BlobManager::request_lock(uint64 &size) {
   Mutex::Lock lock(m_mutex);
 
   // First, we check to see if the next blob is free.  If not, we
@@ -140,8 +139,9 @@ int vw::platefile::BlobManager::request_lock(uint64 &size) {
 
 // Release the blob lock and update its write index (essentially
 // "committing" the write to the blob when you are finished with it.).
-void vw::platefile::BlobManager::release_lock(int blob_id, uint64 blob_offset) {
+void BlobManager::release_lock(int blob_id, uint64 blob_offset) {
   Mutex::Lock lock(m_mutex);
   m_blob_locks[blob_id].unlock(blob_offset);
 }
 
+}} // namespace vw::platefile

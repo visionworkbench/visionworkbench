@@ -36,7 +36,7 @@ namespace platefile {
     int m_page_width, m_page_height;
     google::sparsetable<multi_value_type> m_sparse_table;
 
-    void append_if_in_region( std::list<vw::platefile::TileHeader> &results,
+    void append_if_in_region( std::list<TileHeader> &results,
                               multi_value_type const& candidates,
                               int col, int row, BBox2i const& region, uint32 min_num_matches) const;
 

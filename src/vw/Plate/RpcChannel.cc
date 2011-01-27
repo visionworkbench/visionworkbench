@@ -16,11 +16,12 @@
 #include <boost/numeric/conversion/cast.hpp>
 #include <boost/scoped_array.hpp>
 
-using namespace vw;
-using namespace vw::platefile;
 namespace pb = ::google::protobuf;
 
-std::string vw::platefile::unique_name(const std::string& identifier, const std::string& join) {
+namespace vw {
+namespace platefile {
+
+std::string unique_name(const std::string& identifier, const std::string& join) {
   // Start by generating a unique name based on our hostname, PID, and thread ID.
   char hostname[255];
   gethostname(hostname, 255);
@@ -29,7 +30,7 @@ std::string vw::platefile::unique_name(const std::string& identifier, const std:
        << join << hostname
        << join << getpid()
        << join << Thread::id()
-       << join << vw::Stopwatch::microtime(false);
+       << join << Stopwatch::microtime(false);
   return uuid.str();
 }
 
@@ -112,3 +113,5 @@ uint32 IChannel::checksum(const RpcWrapper& message) {
   fletcher_add(sum, message.payload().c_str(), message.payload().size());
   return sum;
 }
+
+}} // namespace vw::platefile

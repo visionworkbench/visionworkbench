@@ -19,16 +19,12 @@
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
 
-using namespace vw;
-
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
 
-// -------------------------------------------------------------------
-//                                 BLOB
-// -------------------------------------------------------------------
+namespace vw {
+namespace platefile {
 
-/// read_blob_record()
-vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_record_size) const {
+BlobRecord Blob::read_blob_record(uint16 &blob_record_size) const {
 
   WHEREAMI << "[Filename: " << m_blob_filename
            << " Offset: " << m_fstream->tellg() << "]\n";
@@ -49,7 +45,7 @@ vw::platefile::BlobRecord vw::platefile::Blob::read_blob_record(uint16 &blob_rec
   return blob_record;
 }
 
-vw::platefile::TileHeader vw::platefile::Blob::read_header(vw::uint64 base_offset64) {
+TileHeader Blob::read_header(uint64 base_offset64) {
 
   vw_out(VerboseDebugMessage, "platefile::blob")
     << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
@@ -98,15 +94,15 @@ vw::platefile::TileHeader vw::platefile::Blob::read_header(vw::uint64 base_offse
     vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
              << "from the blob file.\n");
 
-  vw_out(vw::VerboseDebugMessage, "platefile::blob")
+  vw_out(VerboseDebugMessage, "platefile::blob")
     << "\tread_header() -- read " << size << " bytes at " << offset << " from " << m_blob_filename << "\n";
 
   return header;
 }
 
-boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset, vw::uint64& data_size) {
+boost::shared_array<uint8> Blob::read_data(uint64 base_offset, uint64& data_size) {
 
-  vw::uint64 offset;
+  uint64 offset;
   std::string dontcare;
 
   read_sendfile(base_offset, dontcare, offset, data_size);
@@ -129,7 +125,7 @@ boost::shared_array<uint8> vw::platefile::Blob::read_data(vw::uint64 base_offset
   return data;
 }
 
-vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
+uint64 Blob::next_base_offset(uint64 current_base_offset) {
 
   WHEREAMI << "[current_base_offset: " <<  current_base_offset << "]\n";
 
@@ -149,7 +145,7 @@ vw::uint64 vw::platefile::Blob::next_base_offset(uint64 current_base_offset) {
 }
 
 /// Returns the data size
-vw::uint64 vw::platefile::Blob::data_size(uint64 base_offset) const {
+uint64 Blob::data_size(uint64 base_offset) const {
 
   WHEREAMI << "[base_offset: " <<  base_offset << "]\n";
 
@@ -167,8 +163,9 @@ vw::uint64 vw::platefile::Blob::data_size(uint64 base_offset) const {
 
 
 // Constructor stores the blob filename for reading & writing
-vw::platefile::Blob::Blob(std::string filename, bool readonly) :
-  m_blob_filename(filename), m_write_count(0) {
+Blob::Blob(std::string filename, bool readonly)
+  : m_blob_filename(filename), m_write_count(0)
+{
 
   if (readonly) {
     m_fstream.reset(new std::fstream(m_blob_filename.c_str(),
@@ -210,13 +207,12 @@ vw::platefile::Blob::Blob(std::string filename, bool readonly) :
 }
 
 /// Destructor: make sure that we have written the end of file ptr.
-vw::platefile::Blob::~Blob() {
+Blob::~Blob() {
   this->write_end_of_file_ptr(m_end_of_file_ptr);
   WHEREAMI << m_blob_filename << "\n";
 }
 
-void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& filename,
-                                        vw::uint64& offset, vw::uint64& size) {
+void Blob::read_sendfile(uint64 base_offset, std::string& filename, uint64& offset, uint64& size) {
   // Seek to the requested offset and read the header and data offset
   m_fstream->seekg(base_offset, std::ios_base::beg);
 
@@ -235,7 +231,7 @@ void vw::platefile::Blob::read_sendfile(vw::uint64 base_offset, std::string& fil
   filename = m_blob_filename;
 }
 
-void vw::platefile::Blob::write_end_of_file_ptr(uint64 ptr) {
+void Blob::write_end_of_file_ptr(uint64 ptr) {
 
   // We write the end of file pointer three times, because that
   // pretty much gurantees that at least two versions of the
@@ -252,7 +248,7 @@ void vw::platefile::Blob::write_end_of_file_ptr(uint64 ptr) {
   m_fstream->write(reinterpret_cast<char*>(&data), 3*sizeof(ptr));
 }
 
-uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
+uint64 Blob::read_end_of_file_ptr() const {
   uint64 data[3];
 
   // The end of file ptr is stored at the beginning of the blob
@@ -284,7 +280,7 @@ uint64 vw::platefile::Blob::read_end_of_file_ptr() const {
   }
 }
 
-vw::uint64 vw::platefile::Blob::write(TileHeader const& header, boost::shared_array<uint8> data, uint64 data_size) {
+uint64 Blob::write(TileHeader const& header, boost::shared_array<uint8> data, uint64 data_size) {
 
   // Store the current offset of the end of the file.  We'll
   // return that at the end of this function.
@@ -312,7 +308,7 @@ vw::uint64 vw::platefile::Blob::write(TileHeader const& header, boost::shared_ar
 
   // Write the data at the end of the file and return the offset
   // of the beginning of this data file.
-  vw::vw_out(vw::VerboseDebugMessage, "platefile::blob") << "Blob::write() -- writing "
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Blob::write() -- writing "
                                                      << data_size
                                                      << " bytes to "
                                                      << m_blob_filename << "\n";
@@ -334,7 +330,7 @@ vw::uint64 vw::platefile::Blob::write(TileHeader const& header, boost::shared_ar
 }
 
 /// Read data out of the blob and save it as its own file on disk.
-void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
+void Blob::read_to_file(std::string dest_file, uint64 offset) {
   uint64 size;
   boost::shared_array<uint8> data = this->read_data(offset, size);
 
@@ -350,7 +346,7 @@ void vw::platefile::Blob::read_to_file(std::string dest_file, uint64 offset) {
 }
 
 
-void vw::platefile::Blob::write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) {
+void Blob::write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) {
   // Open the source_file and read data from it.
   std::ifstream istr(source_file.c_str(), std::ios::binary);
 
@@ -374,3 +370,4 @@ void vw::platefile::Blob::write_from_file(std::string source_file, TileHeader co
   base_offset = this->write(header, data, data_size);
 }
 
+}} // namespace platefile
