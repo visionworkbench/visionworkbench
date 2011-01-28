@@ -45,6 +45,24 @@ BlobRecord Blob::read_blob_record(uint16 &blob_record_size) const {
   return blob_record;
 }
 
+bool Blob::iterator::equal (iterator const& iter) const {
+  return m_blob->m_blob_filename == iter.m_blob->m_blob_filename
+      && m_current_base_offset == iter.m_current_base_offset;
+}
+
+void Blob::iterator::increment() {
+  m_current_base_offset = m_blob->next_base_offset(m_current_base_offset);
+}
+
+TileHeader Blob::iterator::dereference() const {
+  return m_blob->read_header(m_current_base_offset);
+}
+
+Blob::iterator::iterator( Blob *blob, uint64 base_offset )
+  : m_blob(blob), m_current_base_offset(base_offset) {}
+
+uint64 Blob::iterator::current_base_offset() const { return m_current_base_offset; }
+
 TileHeader Blob::read_header(uint64 base_offset64) {
 
   vw_out(VerboseDebugMessage, "platefile::blob")

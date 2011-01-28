@@ -64,46 +64,23 @@ namespace platefile {
     uint64 read_end_of_file_ptr() const;
 
   public:
-
-    // ------------------------ Blob Iterator ------------------------------
-
-    /// An STL-compliant iterator for iterating over the index entries
-    /// in a blob.  This can be used by Index.h to read in and rebuild
-    /// the Index tree.
-    class iterator : public boost::iterator_facade<Blob::iterator, TileHeader,
-                                                   boost::forward_traversal_tag,
-                                                   TileHeader, int64> {
+    class iterator
+      : public boost::iterator_facade<iterator, TileHeader, boost::forward_traversal_tag, TileHeader> {
 
       // This is required for boost::iterator_facade
       friend class boost::iterator_core_access;
 
       // Private variables
-      Blob& m_blob;
+      Blob* m_blob;
       uint64 m_current_base_offset;
 
-      // Iterator methods.  The boost iterator facade takes these and
-      // uses them to construct normal iterator methods.
-      bool equal (iterator const& iter) const {
-        return (m_current_base_offset == iter.m_current_base_offset);
-      }
-
-      void increment() {
-        m_current_base_offset = m_blob.next_base_offset(m_current_base_offset);
-      }
-
-      TileHeader const dereference() const {
-        return m_blob.read_header(m_current_base_offset);
-      }
+      bool equal (iterator const& iter) const;
+      void increment();
+      TileHeader dereference() const;
 
     public:
-
-      // Constructors
-      iterator( Blob &blob, uint64 base_offset )
-        : m_blob(blob), m_current_base_offset(base_offset) {}
-
-      uint64 current_base_offset() const { return m_current_base_offset; }
-      uint64 current_data_size() const { return m_blob.data_size(m_current_base_offset); }
-
+      iterator( Blob *blob, uint64 base_offset );
+      uint64 current_base_offset() const;
     };
 
     // -----------------------------------------------------------------------
@@ -125,10 +102,10 @@ namespace platefile {
     /// 3*sizeof(uint64) is the very first byte in the file after the
     /// end-of-file pointer.  (See the *_end_of_file_ptr() routines
     /// above for more info...)
-    iterator begin() { return iterator(*this, 3*sizeof(uint64) ); }
+    iterator begin() { return iterator(this, 3*sizeof(uint64) ); }
 
     /// Returns an iterator pointing one past the last TileHeader in the blob.
-    iterator end() { return iterator(*this, m_end_of_file_ptr ); }
+    iterator end() { return iterator(this, m_end_of_file_ptr ); }
 
     /// Seek to the next base offset given the current base offset.
     uint64 next_base_offset(uint64 current_base_offset);
