@@ -1,0 +1,43 @@
+// __BEGIN_LICENSE__
+// Copyright (C) 2006-2010 United States Government as represented by
+// the Administrator of the National Aeronautics and Space Administration.
+// All Rights Reserved.
+// __END_LICENSE__
+
+#include <vw/gui/TestPatternTileGenerator.h>
+
+namespace vw { namespace gui {
+
+boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& /*tile_info*/) {
+  ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
+  for (int j = 0; j < m_tile_size; ++j){
+    for (int i = 0; i < m_tile_size; ++i){
+      if (abs(i - j) < 10 || abs(i - (m_tile_size - j)) < 10)
+        tile(i,j) = PixelRGBA<uint8>(255,0,0,255);
+      else
+        tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
+    }
+  }
+  boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
+  return result;
+}
+
+Vector2 TestPatternTileGenerator::minmax() { return Vector2(0.0, 1.0); }
+
+PixelRGBA<float32> TestPatternTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
+  PixelRGBA<float32> result;
+  return result;
+}
+
+int TestPatternTileGenerator::cols() const { return 2048; }
+int TestPatternTileGenerator::rows() const { return 2048; }
+PixelFormatEnum TestPatternTileGenerator::pixel_format() const { return VW_PIXEL_RGBA; }
+ChannelTypeEnum TestPatternTileGenerator::channel_type() const { return VW_CHANNEL_UINT8; }
+Vector2i TestPatternTileGenerator::tile_size() const {
+  return Vector2i(m_tile_size, m_tile_size);
+}
+int32 TestPatternTileGenerator::num_levels() const {
+  return 4;
+}
+
+}}

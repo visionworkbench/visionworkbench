@@ -8,25 +8,15 @@
 #ifndef __VW_GUI_TILEGENERATOR_H__
 #define __VW_GUI_TILEGENERATOR_H__
 
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Math/BBox.h>
-#include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/Image/PixelTypes.h>
 #include <vw/Image/ViewImageResource.h>
-#include <vw/Plate/PlateFile.h>
-#include <vw/Plate/HTTPUtils.h>
-
-// Qt
-#include <QObject>
-#include <QThread>
-#include <QHttp>
-#include <QBuffer>
-
+#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Math/BBox.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 namespace gui {
-  using vw::platefile::Url;
 
   struct TileLocator {
     int col;
@@ -53,7 +43,7 @@ namespace gui {
   //                              TILE GENERATOR
   // --------------------------------------------------------------------------
 
-  class TileGenerator : public QObject {
+  class TileGenerator {
   public:
     virtual ~TileGenerator() {}
     virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
@@ -72,138 +62,7 @@ namespace gui {
     static boost::shared_ptr<TileGenerator> create(std::string filename);
   };
 
-  // --------------------------------------------------------------------------
-  //                         TEST PATTERN TILE GENERATOR
-  // --------------------------------------------------------------------------
-
-  class TestPatternTileGenerator : public TileGenerator {
-    int m_tile_size;
-
-  public:
-    TestPatternTileGenerator(int tile_size) : m_tile_size(tile_size) {}
-    virtual ~TestPatternTileGenerator() {}
-
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
-    virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
-
-    virtual int cols() const;
-    virtual int rows() const;
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
-    virtual Vector2i tile_size() const;
-    virtual int32 num_levels() const;
-  };
-
-  // --------------------------------------------------------------------------
-  //                          WEB TILE GENERATOR
-  // --------------------------------------------------------------------------
-  class HttpDownloadThread : public QThread {
-    Q_OBJECT
-
-    struct RequestBuffer {
-        Url url;
-        bool ready;
-        QBuffer buffer;
-        vw::ImageView<vw::PixelRGBA<float> > result;
-      public:
-        RequestBuffer(const Url& url_)
-          : url(url_), ready(false) { buffer.open(QIODevice::WriteOnly); }
-    };
-    typedef boost::shared_ptr<RequestBuffer> RequestBufferPtr;
-
-    typedef std::map<int, RequestBufferPtr> map_t;
-
-    const Url m_base_url;
-    const boost::shared_ptr<QHttp> m_http;
-    map_t m_requests;
-    vw::Mutex m_mutex;
-
-  protected:
-    void run();
-  public:
-    HttpDownloadThread(const Url& u);
-    virtual ~HttpDownloadThread();
-    int get(const std::vector<std::string>& path, int transaction_id, bool exact_transaction_id_match);
-    bool result_available(int request_id);
-    vw::ImageView<vw::PixelRGBA<float> > pop_result(int request_id);
-  public slots:
-    void request_finished(int id, bool error);
-  };
-
-  class WebTileGenerator : public TileGenerator {
-    Q_OBJECT
-
-    int m_tile_size;
-    int m_levels;
-    HttpDownloadThread m_download_thread;
-
-  public:
-    WebTileGenerator(const Url& url, int levels);
-    virtual ~WebTileGenerator() {}
-
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
-    virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
-
-    virtual int cols() const;
-    virtual int rows() const;
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
-    virtual Vector2i tile_size() const;
-    virtual int32 num_levels() const;
-  };
-
-  // --------------------------------------------------------------------------
-  //                         PLATE FILE TILE GENERATOR
-  // --------------------------------------------------------------------------
-
-  class PlatefileTileGenerator : public TileGenerator {
-    boost::shared_ptr<vw::platefile::PlateFile> m_platefile;
-    int m_num_levels;
-
-  public:
-    PlatefileTileGenerator(std::string platefile_name);
-    virtual ~PlatefileTileGenerator() {}
-
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
-    virtual Vector2 minmax();
-    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
-
-    virtual int cols() const;
-    virtual int rows() const;
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
-    virtual Vector2i tile_size() const;
-    virtual int32 num_levels() const;
-  };
-
-  // --------------------------------------------------------------------------
-  //                             IMAGE TILE GENERATOR
-  // --------------------------------------------------------------------------
-
-  class ImageTileGenerator : public TileGenerator {
-    std::string m_filename;
-    boost::shared_ptr<SrcImageResource> m_rsrc;
-
-  public:
-    ImageTileGenerator(std::string filename);
-    virtual ~ImageTileGenerator() {}
-    virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
-
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
-    virtual Vector2 minmax();
-
-    virtual int cols() const;
-    virtual int rows() const;
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
-    virtual Vector2i tile_size() const;
-    virtual int32 num_levels() const;
-  };
-
-
 }} // namespace vw::gui
 
-#endif // __VW_GUI_TILEGENERATOR_H__
+#endif
 

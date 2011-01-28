@@ -12,23 +12,39 @@
 # 'make clean' should get rid of any QT meta-object compiled files.
 CLEANFILES = *.moc.cc
 
-# For simplicity, these example applications depend on exceptions
 if ENABLE_EXCEPTIONS
 
-# Graphical tools based on the core modules
-vwv_SOURCES = vwv.cc MainWindow.cc GlPreviewWidget.cc MainWindow.h	\
-	      GlPreviewWidget.h TileGenerator.h TextureCache.cc	\
-	      TileGenerator.cc
+noinst_HEADERS =                \
+  GlPreviewWidget.h             \
+  ImageTileGenerator.h          \
+  MainWindow.h                  \
+  PlatefileTileGenerator.h      \
+  TestPatternTileGenerator.h    \
+  TextureCache.h                \
+  TileGenerator.h               \
+  Tree.h                        \
+  WebTileGenerator.h
 
-# These are automatically-generated sources?
-nodist_vwv_SOURCES = MainWindow.moc.cc GlPreviewWidget.moc.cc	\
-		TileGenerator.moc.cc
+vwv_SOURCES =                   \
+  $(BUILT_SOURCES)              \
+  GlPreviewWidget.cc            \
+  ImageTileGenerator.cc         \
+  MainWindow.cc                 \
+  PlatefileTileGenerator.cc     \
+  TestPatternTileGenerator.cc   \
+  TextureCache.cc               \
+  TileGenerator.cc              \
+  vwv.cc                        \
+  WebTileGenerator.cc
+
+BUILT_SOURCES =                 \
+  GlPreviewWidget.moc.cc        \
+  MainWindow.moc.cc             \
+  WebTileGenerator.moc.cc
 
 vwv_LDADD    = @PKG_GUI_LIBS@ @PKG_PLATE_LIBS@
 
 bin_PROGRAMS = vwv
-
-noinst_PROGRAMS =
 
 endif
 
