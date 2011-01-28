@@ -181,7 +181,7 @@ public:
                       size_t draw_order = 50 ) :  GroundOverlayEngine(draw_order), m_base_url(base_url), m_extension(extension) {}
 
   kmldom::GroundOverlayPtr
-  operator()( fs::path kml_location, TileHeader const& tile,
+  operator()( fs::path /*kml_location*/, TileHeader const& tile,
               kmldom::KmlFactory* factory, bool lowest_overlay ) const {
     kmldom::GroundOverlayPtr goverlay =
       this->create_linkless_overlay( tile, factory, lowest_overlay );
