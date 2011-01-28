@@ -100,6 +100,10 @@ string PlateModule::get_servername() const {
   return m_conf->servername;
 }
 
+const Url& PlateModule::get_base_url() const {
+  return m_base_url;
+}
+
 namespace {
   boost::shared_ptr<PlateModule> mod_plate_ptr;
 }
