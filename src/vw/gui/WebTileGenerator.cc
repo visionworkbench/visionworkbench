@@ -31,8 +31,6 @@ int HttpDownloadThread::get(const std::vector<std::string>& path, int transactio
   req_path.insert(req_path.end(), path.begin(), path.end());
   req_url.path_join(req_path);
 
-  std::cout << "URL STRING: " << req_url << std::endl;
-
   // Set up request buffer
   RequestBufferPtr buf(new RequestBuffer(req_url));
 
@@ -80,60 +78,64 @@ void HttpDownloadThread::request_finished(int request_id, bool error) {
 
   typedef PixelRGBA<float> pixel_t;
 
-  switch (hdr.statusCode()) {
-    case 200:
-      // handled below
-      break;
-    case 404:
-      buf->result.set_size(1,1);
-      buf->result(0,0) = pixel_t(0.0f,0.1f,0.0f,1.0f);
-      buf->ready = true;
-      return;
-    default:
-      error = true;
-      vw_out(WarningMessage, "console") <<
-        "Request " << request_id << " failed with status " << hdr.statusCode() << " for URL: " << buf->url << "\n";
-      break;
-    }
-
-    std::string filetype;
-    if (hdr.contentType() == "image/png")
-      filetype = "png";
-    else if (hdr.contentType() == "image/jpeg" || hdr.contentType() == "image/jpg")
-      filetype = "jpg";
-    else if (hdr.contentType() == "image/tiff" || hdr.contentType() == "image/tif")
-      filetype = "tif";
-    else {
-      vw_out(WarningMessage, "console") << "unrecognized content-type: " << hdr.contentType().toStdString() << "\n";
-      error = true;
-    }
-
-    if (error) {
-      buf->result.set_size(1,1);
-      buf->result(0,0) = pixel_t(1.0f,0.0f,0.0f,1.0f);
-      buf->ready = true;
-      return;
-    }
-
-    const QByteArray& bytes = buf->buffer.data();
-
-    boost::scoped_ptr<SrcImageResource> rsrc(
-        SrcMemoryImageResource::open(
-          filetype, reinterpret_cast<const uint8*>(bytes.constData()), bytes.size()));
-
-    try {
-      if (rsrc->channel_type() == VW_CHANNEL_UINT8) {
-        buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<uint8> >(*rsrc));
-      } else if (rsrc->channel_type() == VW_CHANNEL_UINT16) {
-        buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<int16> >(*rsrc));
-      } else {
-        vw_out() << "WARNING: Image contains unsupported channel type: " << rsrc->channel_type() << "\n";
+  std::string filetype;
+  if (error) {
+    vw_out(WarningMessage, "console") << "Connection Error: " << m_http->errorString().toStdString() << "\n";
+  } else {
+    switch (hdr.statusCode()) {
+      case 200:
+        // handled below
+        break;
+      case 404:
+        buf->result.set_size(1,1);
+        buf->result(0,0) = pixel_t(0.0f,0.1f,0.0f,1.0f);
+        buf->ready = true;
+        return;
+      default:
+        error = true;
+        vw_out(WarningMessage, "console") <<
+          "Request " << request_id << " failed with status " << hdr.statusCode() << " for URL: " << buf->url << "\n";
+        break;
       }
-      buf->ready = true;
-    } catch (IOErr &e) {
-      vw_out(WarningMessage) << "Could not parse network tile: " << buf->url << std::endl;
-      buf->ready = true;
+
+      if (hdr.contentType() == "image/png")
+        filetype = "png";
+      else if (hdr.contentType() == "image/jpeg" || hdr.contentType() == "image/jpg")
+        filetype = "jpg";
+      else if (hdr.contentType() == "image/tiff" || hdr.contentType() == "image/tif")
+        filetype = "tif";
+      else {
+        vw_out(WarningMessage, "console") << "unrecognized content-type: " << hdr.contentType().toStdString() << "\n";
+        error = true;
+      }
+  }
+
+  if (error) {
+    buf->result.set_size(1,1);
+    buf->result(0,0) = pixel_t(1.0f,0.0f,0.0f,1.0f);
+    buf->ready = true;
+    return;
+  }
+
+  const QByteArray& bytes = buf->buffer.data();
+
+  boost::scoped_ptr<SrcImageResource> rsrc(
+      SrcMemoryImageResource::open(
+        filetype, reinterpret_cast<const uint8*>(bytes.constData()), bytes.size()));
+
+  try {
+    if (rsrc->channel_type() == VW_CHANNEL_UINT8) {
+      buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<uint8> >(*rsrc));
+    } else if (rsrc->channel_type() == VW_CHANNEL_UINT16) {
+      buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<int16> >(*rsrc));
+    } else {
+      vw_out() << "WARNING: Image contains unsupported channel type: " << rsrc->channel_type() << "\n";
     }
+    buf->ready = true;
+  } catch (IOErr &e) {
+    vw_out(WarningMessage) << "Could not parse network tile: " << buf->url << std::endl;
+    buf->ready = true;
+  }
 }
 
 
@@ -145,9 +147,9 @@ WebTileGenerator::WebTileGenerator(const Url& url, int levels) :
 boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
 
   std::vector<std::string> path(3);
-  path.push_back(vw::stringify(tile_info.level));
-  path.push_back(vw::stringify(tile_info.col));
-  path.push_back(vw::stringify(tile_info.row) + ".png");
+  path[0] = vw::stringify(tile_info.level);
+  path[1] = vw::stringify(tile_info.col);
+  path[2] = vw::stringify(tile_info.row) + ".png";
 
   int request_id = m_download_thread.get(path,
                                          tile_info.transaction_id,
