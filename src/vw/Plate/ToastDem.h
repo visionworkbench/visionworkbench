@@ -22,7 +22,7 @@ namespace platefile {
 
   struct ToastDemWriter {
     virtual ~ToastDemWriter() {}
-    virtual void operator()(const boost::shared_array<uint8> data, size_t data_size,
+    virtual void operator()(const boost::shared_array<uint8> data, uint64 data_size,
                             int32 dem_col, int32 dem_row, int32 dem_level,
                             Transaction output_transaction_id) const = 0;
   };
