@@ -104,6 +104,12 @@ namespace vw {
       virtual double nodata_read() const {
         vw_throw(NoImplErr() << "This ImageResource does not support nodata_read().");
       }
+
+      /// Return a pointer to the data in the same format as format(). This
+      /// might cause a copy, depending on implementation. The shared_ptr will
+      /// handle cleanup.
+      virtual boost::shared_array<const uint8> native_ptr() const;
+      virtual size_t native_size() const;
   };
 
   // A write-only image resource

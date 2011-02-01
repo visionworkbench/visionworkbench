@@ -57,6 +57,58 @@ TEST( ImageResource, PreMultiply ) {
     EXPECT_PIXEL_EQ( buf3_data[i], buf1_data[i] );
 }
 
+namespace {
+  void noop_deleter(const uint8*) {}
+}
+
+class SrcNoopResource : public SrcImageResource {
+  private:
+    const ImageFormat& m_fmt;
+    const uint8* m_data;
+    bool m_copy;
+
+  public:
+    SrcNoopResource(const ImageFormat& fmt, const uint8* data, bool copy)
+      : m_fmt(fmt), m_data(data), m_copy(copy) {}
+
+    virtual ImageFormat format() const {return m_fmt;}
+    virtual void read( ImageBuffer const& buf, BBox2i const& /*bbox*/ ) const { vw::convert(buf, ImageBuffer(m_fmt, const_cast<uint8*>(m_data))); }
+    virtual bool has_block_read() const  {return false;}
+    virtual bool has_nodata_read() const {return false;}
+    virtual boost::shared_array<const uint8> native_ptr() const {
+      return m_copy ? SrcImageResource::native_ptr() : boost::shared_array<const uint8>(m_data, noop_deleter);
+    }
+};
+
+TEST( ImageResource, NativePtr ) {
+  ImageFormat fmt;
+  fmt.cols = fmt.rows = 2;
+  fmt.planes = 1;
+  fmt.pixel_format = VW_PIXEL_RGBA;
+  fmt.channel_type = VW_CHANNEL_UINT8;
+
+  typedef PixelRGBA<uint8> Px;
+  typedef boost::shared_array<const uint8> Data;
+  const Px src_[4] = {Px(1,2,3,4), Px(5,6,7,8), Px(9,10,11,12), Px(13,14,15,16)};
+  const uint8* src = reinterpret_cast<const uint8*>(&src_[0]);
+
+  SrcNoopResource src1(fmt, src, true),
+                  src2(fmt, src, false);
+
+  ASSERT_EQ(2 * 2 * 1 * 4 * 1, src1.native_size());
+  ASSERT_EQ(2 * 2 * 1 * 4 * 1, src2.native_size());
+
+  Data d1, d2;
+  d1 = src1.native_ptr();
+  d2 = src2.native_ptr();
+
+  ASSERT_NE(src, d1.get());
+  ASSERT_EQ(src, d2.get());
+
+  EXPECT_RANGE_EQ(src, src+4, &d1[0], &d1[4]);
+  EXPECT_RANGE_EQ(src, src+4, &d2[0], &d2[4]);
+}
+
 struct TestStream : public ::testing::Test {
   protected:
     static const size_t WIDTH = 2;

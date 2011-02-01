@@ -20,12 +20,18 @@
 
 namespace vw {
 
+  namespace image { namespace detail {
+    template <typename T>
+    struct noop_deleter {
+      void operator()(T*) const {}
+    };
+  }}
 
   // This set of classes helps us to extract the direct data access
   // member (if available) from the view.
   template <class ViewT> struct ViewDataAccessor {
-    static char* data(ViewT const& /*view*/) {
-      vw_throw(NoImplErr() << "ViewDataAccessor data() failed. This view does not support direct data access.");
+    static boost::shared_array<const uint8> data(ViewT const& /*view*/) {
+      vw_throw(NoImplErr() << "ViewDataAccessor native_ptr() failed. This view does not support direct data access.");
       return NULL; // never reached
     }
   };
@@ -33,7 +39,9 @@ namespace vw {
   // Currently, the ImageView<> class is the only one that supports
   // direct access.
   template<class PixelT> struct ViewDataAccessor<ImageView<PixelT> > {
-    static char* data(ImageView<PixelT> const& view) { return (char*)(view.data()); }
+    static boost::shared_array<const uint8> data(ImageView<PixelT> const& view) {
+      return boost::shared_array<const uint8>(reinterpret_cast<const uint8*>(view.data()), image::detail::noop_deleter<const uint8>());
+    }
   };
 
 
@@ -65,7 +73,7 @@ namespace vw {
       convert(buf, src);
     }
 
-    virtual char* data() const {
+    virtual boost::shared_array<const uint8> native_ptr() const {
       return ViewDataAccessor<ViewT>::data(m_view);
     }
   };
@@ -107,7 +115,7 @@ namespace vw {
     /// Force any changes to be written to the resource.
     virtual void flush() {}
 
-    char* data() const { return m_rsrc->data(); }
+    boost::shared_array<const uint8> native_ptr() const { return m_rsrc->native_ptr(); }
   };
 
 } // namespace vw

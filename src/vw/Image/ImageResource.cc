@@ -524,3 +524,13 @@ ImageFormat SrcImageResource::format() const {
   fmt.channel_type = this->channel_type();
   return fmt;
 }
+
+boost::shared_array<const uint8> SrcImageResource::native_ptr() const {
+  boost::shared_array<const uint8> data(new uint8[native_size()]);
+  this->read(ImageBuffer(format(), const_cast<uint8*>(data.get())), BBox2i(0,0,cols(),rows()));
+  return data;
+}
+
+size_t SrcImageResource::native_size() const {
+  return channel_size(channel_type()) * num_channels(pixel_format()) * cols() * rows() * planes();
+}

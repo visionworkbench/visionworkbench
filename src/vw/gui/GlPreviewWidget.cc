@@ -314,7 +314,7 @@ GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> ti
 
   glTexImage2D(GL_TEXTURE_2D, 0, texture_pixel_type,
                tile->cols(), tile->rows(), 0,
-               source_pixel_type, source_channel_type, tile->data() );
+               source_pixel_type, source_channel_type, tile->native_ptr().get() );
 
   glBindTexture(GL_TEXTURE_2D, 0);
   glDisable( GL_TEXTURE_2D );
