@@ -20,40 +20,6 @@
 
 namespace vw {
 
-  /// \cond INTERNAL
-  // Base class definition
-  class ViewImageResourceBase {
-  public:
-    virtual ~ViewImageResourceBase() {}
-
-    /// Returns the number of columns in an image resource.
-    virtual int32 cols() const = 0;
-
-    /// Returns the number of rows in an image resource.
-    virtual int32 rows() const = 0;
-
-    /// Returns the number of planes in an image resource.
-    virtual int32 planes() const = 0;
-
-    /// Returns the number of channels in a image resource.
-    virtual int32 channels() const = 0;
-
-    /// Returns the native pixel format of the resource.
-    virtual PixelFormatEnum pixel_format() const = 0;
-
-    /// Returns the native channel type of the resource.
-    virtual ChannelTypeEnum channel_type() const = 0;
-
-    /// Read the image resource at the given location into the given buffer.
-    virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const = 0;
-
-    /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) = 0;
-
-    virtual char* data() const = 0;
-  };
-
-
 
   // This set of classes helps us to extract the direct data access
   // member (if available) from the view.
@@ -71,9 +37,8 @@ namespace vw {
   };
 
 
-  // ViewImageResourceImpl class implementation
   template <class ViewT>
-  class ViewImageResourceImpl : public ViewImageResourceBase {
+  class ViewImageResourceImpl : public SrcImageResource {
   private:
     ViewT m_view;
 
@@ -83,23 +48,12 @@ namespace vw {
 
     virtual ~ViewImageResourceImpl() {}
 
-    /// Returns the number of columns in an image resource.
-    virtual int32 cols() const { return m_view.cols(); }
+    virtual ImageFormat format() const { return m_view.format(); }
 
-    /// Returns the number of rows in an image resource.
-    virtual int32 rows() const { return m_view.rows(); }
-
-    /// Returns the number of planes in an image resource.
-    virtual int32 planes() const { return m_view.planes(); }
-
-    /// Returns the number of planes in an image resource.
-    virtual int32 channels() const { return m_view.channels(); }
-
-    /// Returns the native pixel format of the resource.
-    virtual PixelFormatEnum pixel_format() const { return m_view.pixel_format(); }
-
-    /// Returns the native channel type of the resource.
-    virtual ChannelTypeEnum channel_type() const { return m_view.channel_type(); }
+    virtual bool has_block_write() const  {return false;}
+    virtual bool has_nodata_write() const {return false;}
+    virtual bool has_block_read() const   {return false;}
+    virtual bool has_nodata_read() const  {return false;}
 
     /// Read the image resource at the given location into the given buffer.
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
@@ -111,19 +65,14 @@ namespace vw {
       convert(buf, src);
     }
 
-    /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& /*buf*/, BBox2i const& /*bbox*/ ) {
-      vw_throw(NoImplErr() << "ViewImageResource::write() failed.  ViewImageResource is read-only.");
-    }
-
     virtual char* data() const {
       return ViewDataAccessor<ViewT>::data(m_view);
     }
   };
 
   /// Base class from which specific image resources derive.
-  class ViewImageResource : public ImageResource {
-    boost::shared_ptr<ViewImageResourceBase> m_rsrc;
+  class ViewImageResource : public SrcImageResource {
+    boost::shared_ptr<SrcImageResource> m_rsrc;
     Vector2i m_block_size;
 
   public:
@@ -137,31 +86,11 @@ namespace vw {
       m_rsrc( new ViewImageResourceImpl<ViewT>(view) ),
       m_block_size(Vector2i(view.impl().cols(), view.impl().rows())) {}
 
-    virtual ~ViewImageResource() {};
-
-    /// Returns the number of columns in an image resource.
-    virtual int32 cols() const { return m_rsrc->cols(); }
-
-    /// Returns the number of rows in an image resource.
-    virtual int32 rows() const { return m_rsrc->rows(); }
-
-    /// Returns the number of planes in an image resource.
-    virtual int32 planes() const { return m_rsrc->planes(); }
-
-    /// Returns the native pixel format of the resource.
-    virtual PixelFormatEnum pixel_format() const { return m_rsrc->pixel_format(); }
-
-    /// Returns the native channel type of the resource.
-    virtual ChannelTypeEnum channel_type() const { return m_rsrc->channel_type(); }
+    virtual ImageFormat format() const { return m_rsrc->format(); }
 
     /// Read the image resource at the given location into the given buffer.
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
       return m_rsrc->read(buf, bbox);
-    }
-
-    /// Write the given buffer to the image resource at the given location.
-    virtual void write( ImageBuffer const& buf, BBox2i const& bbox ) {
-      return m_rsrc->write(buf, bbox);
     }
 
     virtual bool has_block_write() const  {return false;}

@@ -71,24 +71,8 @@ void SrcMemoryImageResourcePNG::read( ImageBuffer const& dst, BBox2i const& bbox
   convert(dst, src, true);
 }
 
-int32 SrcMemoryImageResourcePNG::cols() const {
-  return m_data->fmt().cols;
-}
-
-int32 SrcMemoryImageResourcePNG::rows() const {
-  return m_data->fmt().rows;
-}
-
-int32 SrcMemoryImageResourcePNG::planes() const {
-  return m_data->fmt().planes;
-}
-
-PixelFormatEnum SrcMemoryImageResourcePNG::pixel_format() const {
-  return m_data->fmt().pixel_format;
-}
-
-ChannelTypeEnum SrcMemoryImageResourcePNG::channel_type() const {
-  return m_data->fmt().channel_type;
+ImageFormat SrcMemoryImageResourcePNG::format() const {
+  return m_data->fmt();
 }
 
 class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {

@@ -15,11 +15,7 @@ namespace vw {
 
       virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 
-      virtual int32 cols() const;
-      virtual int32 rows() const;
-      virtual int32 planes() const;
-      virtual PixelFormatEnum pixel_format() const;
-      virtual ChannelTypeEnum channel_type() const;
+      virtual ImageFormat format() const;
 
       virtual bool has_block_read() const  {return false;}
       virtual bool has_nodata_read() const {return false;}

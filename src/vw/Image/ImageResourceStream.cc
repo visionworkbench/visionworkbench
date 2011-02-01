@@ -45,29 +45,9 @@ SrcImageResourceStream::SrcImageResourceStream(boost::shared_ptr<stream_type> st
   VW_ASSERT(m_fmt.complete(), ArgumentErr() << "ImageFormat must fully describe the image data");
 }
 
-int32 SrcImageResourceStream::cols() const {
+ImageFormat SrcImageResourceStream::format() const {
   VW_ASSERT(m_fmt.complete(), LogicErr() << "Function only callable on complete image format " << VW_CURRENT_FUNCTION);
-  return m_fmt.cols;
-}
-
-int32 SrcImageResourceStream::rows() const {
-  VW_ASSERT(m_fmt.complete(), LogicErr() << "Function only callable on complete image format " << VW_CURRENT_FUNCTION);
-  return m_fmt.rows;
-}
-
-int32 SrcImageResourceStream::planes() const {
-  VW_ASSERT(m_fmt.complete(), LogicErr() << "Function only callable on complete image format " << VW_CURRENT_FUNCTION);
-  return m_fmt.planes;
-}
-
-PixelFormatEnum SrcImageResourceStream::pixel_format() const {
-  VW_ASSERT(m_fmt.complete(), LogicErr() << "Function only callable on complete image format " << VW_CURRENT_FUNCTION);
-  return m_fmt.pixel_format;
-}
-
-ChannelTypeEnum SrcImageResourceStream::channel_type() const {
-  VW_ASSERT(m_fmt.complete(), LogicErr() << "Function only callable on complete image format " << VW_CURRENT_FUNCTION);
-  return m_fmt.channel_type;
+  return m_fmt;
 }
 
 const ImageFormat& SrcImageResourceStream::read_format() const {

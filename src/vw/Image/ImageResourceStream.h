@@ -32,11 +32,7 @@ class SrcImageResourceStream : public SrcImageResource, private boost::noncopyab
     virtual void set_read_format(const ImageFormat& fmt);
 
     // If m_fmt.complete() is false, these will throw.
-    virtual int32 cols() const;
-    virtual int32 rows() const;
-    virtual int32 planes() const;
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
+    virtual ImageFormat format() const;
 
     // Read the stream and write to the given buffer.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw
@@ -111,6 +107,7 @@ class ImageResourceStream : public ImageResource, public SrcImageResourceStream,
     virtual int32 planes() const                 {return SrcImageResourceStream::planes();}
     virtual PixelFormatEnum pixel_format() const {return SrcImageResourceStream::pixel_format();}
     virtual ChannelTypeEnum channel_type() const {return SrcImageResourceStream::channel_type();}
+    virtual ImageFormat format() const {return SrcImageResourceStream::format();}
 
     // Read the stream and write to the given buffer.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw

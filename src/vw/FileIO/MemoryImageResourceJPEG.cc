@@ -64,24 +64,8 @@ void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbo
   convert(dst, src, true);
 }
 
-int32 SrcMemoryImageResourceJPEG::cols() const {
-  return m_data->fmt().cols;
-}
-
-int32 SrcMemoryImageResourceJPEG::rows() const {
-  return m_data->fmt().rows;
-}
-
-int32 SrcMemoryImageResourceJPEG::planes() const {
-  return m_data->fmt().planes;
-}
-
-PixelFormatEnum SrcMemoryImageResourceJPEG::pixel_format() const {
-  return m_data->fmt().pixel_format;
-}
-
-ChannelTypeEnum SrcMemoryImageResourceJPEG::channel_type() const {
-  return m_data->fmt().channel_type;
+ImageFormat SrcMemoryImageResourceJPEG::format() const {
+  return m_data->fmt();
 }
 
 class DstMemoryImageResourceJPEG::Data : public fileio::detail::JpegIOCompress {

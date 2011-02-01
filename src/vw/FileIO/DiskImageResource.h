@@ -45,23 +45,8 @@ namespace vw {
     /// implement this by calling a static function type_static().
     virtual std::string type() = 0;
 
-    /// Returns the number of columns in an image on disk.
-    int32 cols() const { return m_format.cols; }
-
-    /// Returns the number of rows in an image on disk.
-    int32 rows() const { return m_format.rows; }
-
-    /// Returns the number of planes in an image on disk.
-    int32 planes() const { return m_format.planes; }
-
-    /// Returns the pixel format of an image on disk.
-    PixelFormatEnum pixel_format() const { return m_format.pixel_format; }
-
     /// Returns the channel type of an image on disk.
-    ChannelTypeEnum channel_type() const { return m_format.channel_type; }
-
-    /// Returns the channel type of an image on disk.
-    ImageFormat format() const { return m_format; }
+    virtual ImageFormat format() const { return m_format; }
 
     /// Return the filename of the disk image file.
     std::string filename() const { return m_filename; }

@@ -38,24 +38,8 @@ class ImageResourceOpenCV : public ImageResource {
 
     virtual ~ImageResourceOpenCV() {};
 
-    virtual int32 cols() const {
-      return m_format.cols;
-    }
-
-    virtual int32 rows() const {
-      return m_format.rows;
-    }
-
-    virtual int32 planes() const {
-      return m_format.planes;
-    }
-
-    virtual PixelFormatEnum pixel_format() const {
-      return m_format.pixel_format;
-    }
-
-    virtual ChannelTypeEnum channel_type() const {
-      return m_format.channel_type;
+    virtual ImageFormat format() const {
+      return m_format;
     }
 
     // Read the image resource at the given location into the given buffer.
