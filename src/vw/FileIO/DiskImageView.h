@@ -67,7 +67,7 @@ namespace vw {
     /// cache area. Does not take ownership, you must ensure resource stays
     /// valid for the lifetime of DiskImageView
     DiskImageView( DiskImageResource &resource, Cache* cache = &vw_system_cache() )
-      : m_rsrc( &resource, fileio::detail::noop_disk_deleter ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
+      : m_rsrc( &resource, NOP() ), m_impl( boost::shared_ptr<SrcImageResource>(m_rsrc), m_rsrc->block_read_size(), 1, cache ) {}
 
     ~DiskImageView() {}
 

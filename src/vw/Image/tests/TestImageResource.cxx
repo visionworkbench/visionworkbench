@@ -57,10 +57,6 @@ TEST( ImageResource, PreMultiply ) {
     EXPECT_PIXEL_EQ( buf3_data[i], buf1_data[i] );
 }
 
-namespace {
-  void noop_deleter(const uint8*) {}
-}
-
 class SrcNoopResource : public SrcImageResource {
   private:
     const ImageFormat& m_fmt;
@@ -76,7 +72,7 @@ class SrcNoopResource : public SrcImageResource {
     virtual bool has_block_read() const  {return false;}
     virtual bool has_nodata_read() const {return false;}
     virtual boost::shared_array<const uint8> native_ptr() const {
-      return m_copy ? SrcImageResource::native_ptr() : boost::shared_array<const uint8>(m_data, noop_deleter);
+      return m_copy ? SrcImageResource::native_ptr() : boost::shared_array<const uint8>(m_data, NOP());
     }
 };
 

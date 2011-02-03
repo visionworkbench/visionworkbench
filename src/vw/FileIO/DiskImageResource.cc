@@ -255,5 +255,3 @@ vw::DiskImageResource* vw::DiskImageResource::create( std::string const& filenam
   vw_throw( NoImplErr() << "Unsupported file format: " << filename );
   return 0; // never reached
 }
-
-void vw::fileio::detail::noop_disk_deleter(DiskImageResource*) {}

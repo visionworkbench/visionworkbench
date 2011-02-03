@@ -641,6 +641,11 @@ namespace vw {
     inline bool operator()( ArgT const& arg ) const { return m_val>=arg; }
   };
 
+  struct NOP {
+    template <typename T>
+    void operator()(T) const {}
+  };
+
 } // namespace vw
 
 #endif  // __VW_CORE_FUNCTORS_H__

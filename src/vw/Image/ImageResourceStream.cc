@@ -11,9 +11,6 @@
 using namespace vw;
 
 namespace {
-  void noop_istream(SrcImageResourceStream::stream_type*)   {}
-  void noop_ostream(DstImageResourceStream::stream_type*)   {}
-
   void perform_read(std::istream* stream, char* buf, size_t size) {
     stream->read(buf, size);
     if (stream->fail()) {
@@ -32,10 +29,10 @@ namespace {
 }
 
 SrcImageResourceStream::SrcImageResourceStream(stream_type* stream)
-  : m_stream(stream, noop_istream) {}
+  : m_stream(stream, NOP()) {}
 
 SrcImageResourceStream::SrcImageResourceStream(stream_type* stream, ImageFormat fmt)
-  : m_stream(stream, noop_istream), m_fmt(fmt) {
+  : m_stream(stream, NOP()), m_fmt(fmt) {
   VW_ASSERT(m_fmt.complete(), ArgumentErr() << "ImageFormat must fully describe the image data");
 }
 SrcImageResourceStream::SrcImageResourceStream(boost::shared_ptr<stream_type> stream)
@@ -89,11 +86,11 @@ void SrcImageResourceStream::reset() {
 }
 
 DstImageResourceStream::DstImageResourceStream(stream_type* stream)
-  : m_stream(stream, noop_ostream) {}
+  : m_stream(stream, NOP()) {}
 DstImageResourceStream::DstImageResourceStream(boost::shared_ptr<stream_type> stream)
   : m_stream(stream) {}
 DstImageResourceStream::DstImageResourceStream(stream_type* stream, ImageFormat fmt)
-  : m_stream(stream, noop_ostream), m_fmt(fmt) {
+  : m_stream(stream, NOP()), m_fmt(fmt) {
   VW_ASSERT(m_fmt.complete(), ArgumentErr() << "ImageFormat must fully describe the image data");
 }
 DstImageResourceStream::DstImageResourceStream(boost::shared_ptr<stream_type> stream, ImageFormat fmt)

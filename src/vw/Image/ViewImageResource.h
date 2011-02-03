@@ -20,13 +20,6 @@
 
 namespace vw {
 
-  namespace image { namespace detail {
-    template <typename T>
-    struct noop_deleter {
-      void operator()(T*) const {}
-    };
-  }}
-
   // This set of classes helps us to extract the direct data access
   // member (if available) from the view.
   template <class ViewT> struct ViewDataAccessor {
@@ -40,7 +33,7 @@ namespace vw {
   // direct access.
   template<class PixelT> struct ViewDataAccessor<ImageView<PixelT> > {
     static boost::shared_array<const uint8> data(ImageView<PixelT> const& view) {
-      return boost::shared_array<const uint8>(reinterpret_cast<const uint8*>(view.data()), image::detail::noop_deleter<const uint8>());
+      return boost::shared_array<const uint8>(reinterpret_cast<const uint8*>(view.data()), NOP());
     }
   };
 

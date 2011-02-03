@@ -8,8 +8,6 @@
 #include <vw/FileIO/PngIO.h>
 #include <vw/Core/Debugging.h>
 
-static void noop_deleter(vw::uint8*) {}
-
 namespace vw {
 
 class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
@@ -54,7 +52,7 @@ void SrcMemoryImageResourcePNG::read( ImageBuffer const& dst, BBox2i const& bbox
   // If we don't need to convert, we read directly into the dst buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
   if (simple)
-    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(dst.data)), noop_deleter );
+    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(dst.data)), NOP() );
   else
     buf.reset( new uint8[bufsize] );
 
@@ -120,7 +118,7 @@ void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbo
   // If we don't need to convert, we write directly from the src buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
   if (simple)
-    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(src.data)), noop_deleter );
+    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(src.data)), NOP() );
   else {
     buf.reset( new uint8[bufsize] );
 
