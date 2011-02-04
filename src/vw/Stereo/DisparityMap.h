@@ -504,8 +504,8 @@ namespace stereo {
     }
 
     typedef DisparitySubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const {
-      return *this; }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type(m_child.prerasterize(bbox)); }
     template <class DestT>
     inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
@@ -540,8 +540,8 @@ namespace stereo {
     }
 
     typedef DisparityUpsampleView<typename ImageT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i const& /*bbox*/ ) const {
-      return *this; }
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type(m_child.prerasterize(bbox)); }
     template <class DestT>
     inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );

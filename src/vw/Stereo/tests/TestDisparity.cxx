@@ -99,6 +99,21 @@ TEST( DisparityMap, DisparitySubsample ) {
                       Vector2f(1.75,1.0), 1e-3 );
   EXPECT_VECTOR_NEAR( submap(1,1).child(),
                       Vector2f(1,1), 1e-3 );
+
+  ImageViewRef<PixelMask<Vector2f> > submapref =
+    disparity_subsample( ImageViewRef<PixelMask<Vector2f> >(map) );
+  ASSERT_EQ( submapref.cols(), 2 );
+  ASSERT_EQ( submapref.rows(), 2 );
+  EXPECT_TRUE( is_valid(submapref(0,0)) );
+  EXPECT_TRUE( is_valid(submapref(1,0)) );
+  EXPECT_FALSE( is_valid(submapref(0,1)) );
+  EXPECT_TRUE( is_valid(submapref(1,1)) );
+  EXPECT_VECTOR_NEAR( submapref(0,0).child(),
+                      Vector2f(1.5,0.5), 1e-3 );
+  EXPECT_VECTOR_NEAR( submapref(1,0).child(),
+                      Vector2f(1.75,1.0), 1e-3 );
+  EXPECT_VECTOR_NEAR( submapref(1,1).child(),
+                      Vector2f(1,1), 1e-3 );
 }
 
 TEST( DisparityMap, DisparityUpsample ) {
@@ -121,6 +136,23 @@ TEST( DisparityMap, DisparityUpsample ) {
   EXPECT_VECTOR_NEAR( upmap(2,2).child(),
                       Vector2f(10,10), 1e-3 );
   EXPECT_VECTOR_NEAR( upmap(3,2).child(),
+                      Vector2f(10,10), 1e-3 );
+
+  ImageViewRef<PixelMask<Vector2f> > upmapref =
+    disparity_upsample( ImageViewRef<PixelMask<Vector2f> >(map) );
+  ASSERT_EQ( upmapref.cols(), 4 );
+  ASSERT_EQ( upmapref.rows(), 4 );
+  for (unsigned i = 0; i < 4; i++ )
+    EXPECT_TRUE( is_valid(upmapref(i,i)) );
+  for (unsigned i = 0; i < 4; i++ )
+    EXPECT_FALSE( is_valid(upmapref(3-i,i)) );
+  EXPECT_VECTOR_NEAR( upmapref(0,0).child(),
+                      Vector2f(6,2), 1e-3 );
+  EXPECT_VECTOR_NEAR( upmapref(1,1).child(),
+                      Vector2f(6,2), 1e-3 );
+  EXPECT_VECTOR_NEAR( upmapref(2,2).child(),
+                      Vector2f(10,10), 1e-3 );
+  EXPECT_VECTOR_NEAR( upmapref(3,2).child(),
                       Vector2f(10,10), 1e-3 );
 }
 
