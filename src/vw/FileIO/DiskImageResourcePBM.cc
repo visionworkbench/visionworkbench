@@ -156,8 +156,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   input.seekg(m_image_data_position);
 
   // Reading image data
-  ImageBuffer src(m_format, 0);
-  size_t data_size = src.pstride * src.format.planes;
+  size_t data_size = m_format.byte_size();
   scoped_array<uint8> image_data(new uint8[data_size]);
 
   // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
@@ -181,7 +180,7 @@ void DiskImageResourcePBM::read( ImageBuffer const& dest, BBox2i const& bbox )  
   if ( m_magic != "P1" && m_magic != "P4" )
     normalize( image_data, data_size, m_max_value );
 
-  src.data = image_data.get();
+  ImageBuffer src(m_format, image_data.get());
   convert( dest, src, m_rescale );
 }
 
@@ -270,19 +269,17 @@ void DiskImageResourcePBM::write( ImageBuffer const& src,
   VW_ASSERT( src.format.cols==uint32(cols()) && src.format.rows==uint32(rows()),
              IOErr() << "Buffer has wrong dimensions in PBM write." );
 
-  fstream output(m_filename.c_str(), fstream::out|fstream::binary|fstream::app);
-  output.exceptions(ofstream::failbit | ofstream::badbit);
-  output.seekp(m_image_data_position);
-
-  ImageBuffer dst(m_format, 0);
-  size_t data_size = dst.pstride * dst.format.planes;
-
   // TODO: P4 is broken; binary bool is packed, and we're not doing that yet
   if ( m_magic == "P4" )
     vw_throw( NoImplErr() << "P4 (PBM Binary) is not currently implemented" );
 
+  fstream output(m_filename.c_str(), fstream::out|fstream::binary|fstream::app);
+  output.exceptions(ofstream::failbit | ofstream::badbit);
+  output.seekp(m_image_data_position);
+
+  size_t data_size = m_format.byte_size();
   scoped_array<uint8> image_data(new uint8[data_size]);
-  dst.data = image_data.get();
+  ImageBuffer dst(m_format, image_data.get());
   convert( dst, src, m_rescale );
 
   if ( m_magic == "P1" || m_magic == "P2" || m_magic == "P3" ) {

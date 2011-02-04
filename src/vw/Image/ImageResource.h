@@ -58,6 +58,12 @@ namespace vw {
     inline bool same_size(const ImageFormat& b) const {
       return cols == b.cols && rows == b.rows && planes == b.planes;
     }
+
+    // These are only valid once you've populated this. No checking is performed.
+    size_t cstride()   const {return channel_size(channel_type) * num_channels(pixel_format);}
+    size_t rstride()   const {return cstride() * cols;}
+    size_t pstride()   const {return rstride() * rows;}
+    size_t byte_size() const {return pstride() * planes;}
   };
 
   // A read-only image resource

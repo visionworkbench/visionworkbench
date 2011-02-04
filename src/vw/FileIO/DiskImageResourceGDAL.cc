@@ -528,8 +528,8 @@ namespace vw {
     src_fmt.cols = bbox.width();
     src_fmt.rows = bbox.height();
 
-    ImageBuffer src(src_fmt, 0);
-    src.data = new uint8[src.pstride * src.format.planes];
+    boost::scoped_array<uint8> src_data(new uint8[src_fmt.byte_size()]);
+    ImageBuffer src(src_fmt, src_data.get());
 
     {
       Mutex::Lock lock(*gdal_mutex_ptr);
@@ -563,7 +563,6 @@ namespace vw {
     }
 
     convert( dest, src, m_rescale );
-    delete [] reinterpret_cast<uint8*>(src.data);
   }
 
 
@@ -574,8 +573,9 @@ namespace vw {
     dst_fmt.cols = bbox.width();
     dst_fmt.rows = bbox.height();
 
-    ImageBuffer dst(dst_fmt, 0);
-    dst.data = new uint8[dst.pstride * dst.format.planes];
+    boost::scoped_array<uint8> dst_data(new uint8[dst_fmt.byte_size()]);
+    ImageBuffer dst(dst_fmt, dst_data.get());
+
     convert( dst, src, m_rescale );
 
     {
@@ -593,8 +593,6 @@ namespace vw {
         }
       }
     }
-
-    delete [] reinterpret_cast<uint8*>(dst.data);
   }
 
   // Set the block size

@@ -70,9 +70,8 @@ void SrcImageResourceStream::read( ImageBuffer const& dst_buf, BBox2i const& bbo
   }
 
   // Do the complex conversion
-  ImageBuffer tmp_src(m_fmt, NULL);
-  boost::scoped_array<char> data(new char[tmp_src.byte_size()]);
-  tmp_src.data = data.get();
+  boost::scoped_array<char> data(new char[m_fmt.byte_size()]);
+  ImageBuffer tmp_src(m_fmt, data.get());
 
   perform_read(m_stream.get(), reinterpret_cast<char*>(tmp_src.data), tmp_src.byte_size());
 
@@ -122,9 +121,8 @@ void DstImageResourceStream::write( ImageBuffer const& src_buf, BBox2i const& bb
   }
 
   // Do the complex conversion
-  ImageBuffer tmp_dst(m_fmt, NULL);
-  boost::scoped_array<char> data(new char[tmp_dst.byte_size()]);
-  tmp_dst.data = data.get();
+  boost::scoped_array<char> data(new char[m_fmt.byte_size()]);
+  ImageBuffer tmp_dst(m_fmt, data.get());
 
   convert(tmp_dst, src_buf, false);
   perform_write(m_stream.get(), reinterpret_cast<const char*>(tmp_dst.data), tmp_dst.byte_size());
