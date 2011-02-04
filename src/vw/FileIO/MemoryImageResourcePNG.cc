@@ -11,12 +11,13 @@
 namespace vw {
 
 class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
-    const uint8 * const m_begin, *m_cur;
-    const uint8 *const m_end;
+    boost::shared_array<const uint8> m_data;
+    const uint8 * m_cur;
+    const uint8 * const m_end;
   protected:
     virtual void bind() { png_set_read_fn(m_ctx, reinterpret_cast<voidp>(this), &SrcMemoryImageResourcePNG::Data::read_fn); }
   public:
-    Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_begin, m_end-m_begin)); r->open(); return r.release();}
+    Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_end-m_data.get())); r->open(); return r.release();}
 
     static void read_fn( png_structp ctx, png_bytep data, png_size_t len ) {
       Data *mgr = reinterpret_cast<Data*>(png_get_io_ptr(ctx));
@@ -24,10 +25,10 @@ class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
       std::copy(mgr->m_cur, mgr->m_cur+len, data);
       mgr->m_cur += len;
     }
-    Data(const uint8* buffer, size_t len) : m_begin(buffer), m_cur(buffer), m_end(buffer+len) {}
+    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_cur(buffer.get()), m_end(buffer.get()+len) {}
 };
 
-SrcMemoryImageResourcePNG::SrcMemoryImageResourcePNG(const uint8* buffer, size_t len)
+SrcMemoryImageResourcePNG::SrcMemoryImageResourcePNG(boost::shared_array<const uint8> buffer, size_t len)
   : m_data(new Data(buffer, len)) {
     m_data->open();
 }

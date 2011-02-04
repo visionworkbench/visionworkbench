@@ -11,7 +11,7 @@ namespace vw {
       mutable boost::shared_ptr<Data> m_data;
 
     public:
-      SrcMemoryImageResourceJPEG(const uint8* buffer, size_t len);
+      SrcMemoryImageResourceJPEG(boost::shared_array<const uint8> buffer, size_t len);
 
       virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
 

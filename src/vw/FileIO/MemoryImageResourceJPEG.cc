@@ -11,16 +11,16 @@
 namespace vw {
 
 class SrcMemoryImageResourceJPEG::Data : public fileio::detail::JpegIODecompress {
-    const uint8* m_data;
+    boost::shared_array<const uint8> m_data;
     size_t m_len;
   protected:
-    virtual void bind() { fileio::detail::jpeg_ptr_src(&m_ctx, m_data, m_len); }
+    virtual void bind() { fileio::detail::jpeg_ptr_src(&m_ctx, m_data.get(), m_len); }
   public:
     Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_len)); r->open(); return r.release();}
-    Data(const uint8* buffer, size_t len) : m_data(buffer), m_len(len) {}
+    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {}
 };
 
-SrcMemoryImageResourceJPEG::SrcMemoryImageResourceJPEG(const uint8* buffer, size_t len)
+SrcMemoryImageResourceJPEG::SrcMemoryImageResourceJPEG(boost::shared_array<const uint8> buffer, size_t len)
   : m_data(new Data(buffer, len)) {
     m_data->open();
 }

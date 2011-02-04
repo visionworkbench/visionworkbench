@@ -16,7 +16,10 @@ namespace vw {
   class SrcMemoryImageResource : public SrcImageResource {
     public:
       // constructs the appropriate subclass for the type
-      static SrcMemoryImageResource* open( const std::string& type, const uint8* data, size_t len );
+      // Does not take ownership of data
+      static SrcMemoryImageResource* open( const std::string& type, const uint8* data, size_t len);
+      // Takes ownership of data
+      static SrcMemoryImageResource* open( const std::string& type, boost::shared_array<const uint8> data, size_t len);
   };
 
   class DstMemoryImageResource : public DstImageResource {
