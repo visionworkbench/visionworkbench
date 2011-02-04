@@ -5,12 +5,13 @@
 // __END_LICENSE__
 
 
-#include <sstream>
+#include <gtest/gtest.h>
+#include <test/Helpers.h>
 
-#include <cxxtest/TestSuite.h>
+#include <vw/Geometry/SpatialTree.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
-#include <vw/Geometry/SpatialTree.h>
+#include <sstream>
 
 using namespace vw;
 using namespace vw::geometry;
@@ -41,180 +42,163 @@ int which_one(GeomPrimitive *p, GeomPrimitive *ps[])
   return i;
 }
 
-class TestSpatialTree : public CxxTest::TestSuite
-{
-public:
+struct SpatialTreeTest : public ::testing::TestWithParam<unsigned> {};
 
-  void internal_test_spatial_tree(int dim)
+TEST_P(SpatialTreeTest, Basic) {
+  size_t dim = GetParam();
+
+  Vector<double,4> b_min(0, 0, 0, 0), b_max(1, 1, 1, 1);
+  BBoxN b(subvector(b_min, 0, dim), subvector(b_max, 0, dim));
+  SpatialTree t(b);
+  std::list<GeomPrimitive*> l;
+  std::list<GeomPrimitive*>::iterator i;
+  std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > overlaps;
+  std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >::iterator i2;
+  unsigned j;
+
+  Vector<double,4> p0(0.1, 0.1, 0.1, 0.1), p0_(0.2, 0.2, 0.2, 0.2);
+  SpatialTree t0(b);
+  TestGeomPrimitive g0_, g0__;
+  g0_.grow(subvector(p0, 0, dim));
+  t0.add(&g0_, 1);
+  ASSERT_TRUE( t0.check() );
+  g0__.grow(subvector(p0_, 0, dim));
+  t0.add(&g0__, 5);
+  ASSERT_TRUE( t0.check() );
+
+  TestGeomPrimitive g0;
+  g0.grow(subvector(p0, 0, dim));
+  g0.grow(subvector(p0_, 0, dim));
+  t.add(&g0);
+
+  Vector<double,4> p1(1, 2, 0.1, 0.1), p2(1.75, 4, 0.2, 0.2);
+  TestGeomPrimitive g1;
+  g1.grow(subvector(p1, 0, dim));
+  g1.grow(subvector(p2, 0, dim));
+  t.add(&g1);
+
+  Vector<double,4> p3(1.5, 3, 0.1, 0.1), p4(2, 5, 0.2, 0.2);
+  ASSERT_EQ( &g1, t.contains(subvector(p3, 0, dim)) );
+  l.clear();
+  t.contains(subvector(p3, 0, dim), l);
+  ASSERT_EQ( 1u, l.size() );
+  ASSERT_EQ( &g1, *(l.begin()) );
+  ASSERT_EQ( (GeomPrimitive*)0, t.contains(subvector(p4, 0, dim)) );
+  l.clear();
+  t.contains(subvector(p4, 0, dim), l);
+  ASSERT_EQ( 0u, l.size() );
+
+  TestGeomPrimitive g2;
+  g2.grow(subvector(p3, 0, dim));
+  g2.grow(subvector(p4, 0, dim));
+  t.add(&g2);
+
+  Vector<double,4> p5(1.25, 3.5, 0.15, 0.15), p6(1.6, 3.5, 0.15, 0.15), p7(1.75, 4.5, 0.15, 0.15), p8(1.25, 4.5, 0.15, 0.15), p9(8, 8, 0.15, 0.15);
+  GeomPrimitive *gt1;
+  GeomPrimitive *gt2;
+  ASSERT_EQ( &g1, t.contains(subvector(p5, 0, dim)) );
+  l.clear();
+  t.contains(subvector(p5, 0, dim), l);
+  ASSERT_EQ( 1u, l.size() );
+  ASSERT_EQ( &g1, *(l.begin()) );
+  gt1 = t.contains(subvector(p6, 0, dim));
+  ASSERT_TRUE( gt1 == &g1 || gt1 == &g2 );
+  l.clear();
+  t.contains(subvector(p6, 0, dim), l);
+  ASSERT_EQ( 2u, l.size() );
+  i = l.begin(); gt1 = *i; i++; gt2 = *i;
+  ASSERT_TRUE( gt1 == &g1 || gt1 == &g2 );
+  ASSERT_TRUE( gt2 == &g1 || gt2 == &g2 );
+  ASSERT_NE( gt1, gt2 );
+  ASSERT_EQ( &g2, t.contains(subvector(p7, 0, dim)) );
+  l.clear();
+  t.contains(subvector(p7, 0, dim), l);
+  ASSERT_EQ( 1u, l.size() );
+  ASSERT_EQ( &g2, *(l.begin()) );
+  if (dim == 1)
   {
-    Vector<double,4> b_min(0, 0, 0, 0), b_max(1, 1, 1, 1);
-    BBoxN b(subvector(b_min, 0, dim), subvector(b_max, 0, dim));
-    SpatialTree t(b);
-    std::list<GeomPrimitive*> l;
-    std::list<GeomPrimitive*>::iterator i;
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > overlaps;
-    std::list<std::pair<GeomPrimitive*, GeomPrimitive*> >::iterator i2;
-    unsigned j;
-
-    Vector<double,4> p0(0.1, 0.1, 0.1, 0.1), p0_(0.2, 0.2, 0.2, 0.2);
-    SpatialTree t0(b);
-    TestGeomPrimitive g0_, g0__;
-    g0_.grow(subvector(p0, 0, dim));
-    t0.add(&g0_, 1);
-    TS_ASSERT( t0.check() );
-    g0__.grow(subvector(p0_, 0, dim));
-    t0.add(&g0__, 5);
-    TS_ASSERT( t0.check() );
-
-    TestGeomPrimitive g0;
-    g0.grow(subvector(p0, 0, dim));
-    g0.grow(subvector(p0_, 0, dim));
-    t.add(&g0);
-
-    Vector<double,4> p1(1, 2, 0.1, 0.1), p2(1.75, 4, 0.2, 0.2);
-    TestGeomPrimitive g1;
-    g1.grow(subvector(p1, 0, dim));
-    g1.grow(subvector(p2, 0, dim));
-    t.add(&g1);
-
-    Vector<double,4> p3(1.5, 3, 0.1, 0.1), p4(2, 5, 0.2, 0.2);
-    TS_ASSERT_EQUALS( t.contains(subvector(p3, 0, dim)), &g1 );
+    ASSERT_EQ( &g1, t.contains(subvector(p8, 0, dim)) );
     l.clear();
-    t.contains(subvector(p3, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1u );
-    TS_ASSERT_EQUALS( *(l.begin()), &g1 );
-    TS_ASSERT_EQUALS( t.contains(subvector(p4, 0, dim)), (GeomPrimitive*)0 );
+    t.contains(subvector(p8, 0, dim), l);
+    ASSERT_EQ( 1u, l.size() );
+    ASSERT_EQ( &g1, *(l.begin()) );
+  }
+  else
+  {
+    ASSERT_EQ( (GeomPrimitive*)0, t.contains(subvector(p8, 0, dim)) );
     l.clear();
-    t.contains(subvector(p4, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 0u );
+    t.contains(subvector(p8, 0, dim), l);
+    ASSERT_EQ( 0u, l.size() );
+  }
+  ASSERT_EQ( (GeomPrimitive*)0, t.contains(subvector(p9, 0, dim)) );
+  l.clear();
+  t.contains(subvector(p9, 0, dim), l);
+  ASSERT_EQ( 0u, l.size() );
 
-    TestGeomPrimitive g2;
-    g2.grow(subvector(p3, 0, dim));
-    g2.grow(subvector(p4, 0, dim));
-    t.add(&g2);
+  Vector<double,4> p10(9, 9, 9, 9), p10_(9.1, 9.1, 9.1, 9.1);
+  TestGeomPrimitive g3;
+  g3.grow(subvector(p10, 0, dim));
+  g3.grow(subvector(p10_, 0, dim));
+  t.add(&g3);
 
-    Vector<double,4> p5(1.25, 3.5, 0.15, 0.15), p6(1.6, 3.5, 0.15, 0.15), p7(1.75, 4.5, 0.15, 0.15), p8(1.25, 4.5, 0.15, 0.15), p9(8, 8, 0.15, 0.15);
-    GeomPrimitive *gt1;
-    GeomPrimitive *gt2;
-    TS_ASSERT_EQUALS( t.contains(subvector(p5, 0, dim)), &g1 );
-    l.clear();
-    t.contains(subvector(p5, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1u );
-    TS_ASSERT_EQUALS( *(l.begin()), &g1 );
-    gt1 = t.contains(subvector(p6, 0, dim));
-    TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
-    l.clear();
-    t.contains(subvector(p6, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 2u );
-    i = l.begin(); gt1 = *i; i++; gt2 = *i;
-    TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
-    TS_ASSERT( gt2 == &g1 || gt2 == &g2 );
-    TS_ASSERT( gt1 != gt2 );
-    TS_ASSERT_EQUALS( t.contains(subvector(p7, 0, dim)), &g2 );
-    l.clear();
-    t.contains(subvector(p7, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 1u );
-    TS_ASSERT_EQUALS( *(l.begin()), &g2 );
-    if (dim == 1)
-    {
-      TS_ASSERT_EQUALS( t.contains(subvector(p8, 0, dim)), &g1 );
-      l.clear();
-      t.contains(subvector(p8, 0, dim), l);
-      TS_ASSERT_EQUALS( l.size(), 1u );
-      TS_ASSERT_EQUALS( *(l.begin()), &g1 );
-    }
-    else
-    {
-      TS_ASSERT_EQUALS( t.contains(subvector(p8, 0, dim)), (GeomPrimitive*)0 );
-      l.clear();
-      t.contains(subvector(p8, 0, dim), l);
-      TS_ASSERT_EQUALS( l.size(), 0u );
-    }
-    TS_ASSERT_EQUALS( t.contains(subvector(p9, 0, dim)), (GeomPrimitive*)0 );
-    l.clear();
-    t.contains(subvector(p9, 0, dim), l);
-    TS_ASSERT_EQUALS( l.size(), 0u );
+  overlaps.clear();
+  t.overlap_pairs(overlaps);
+  ASSERT_EQ( 1u, overlaps.size() );
+  i2 = overlaps.begin(); gt1 = (*i2).first; gt2 = (*i2).second;
+  ASSERT_TRUE( gt1 == &g1 || gt1 == &g2 );
+  ASSERT_TRUE( gt2 == &g1 || gt2 == &g2 );
+  ASSERT_NE( gt1, gt2 );
 
-    Vector<double,4> p10(9, 9, 9, 9), p10_(9.1, 9.1, 9.1, 9.1);
-    TestGeomPrimitive g3;
-    g3.grow(subvector(p10, 0, dim));
-    g3.grow(subvector(p10_, 0, dim));
-    t.add(&g3);
+  if (dim <= 2)
+  {
+    std::ostringstream os;
+    const char *print_results[3] = {0, TEST_SPATIAL_TREE_PRINT_RESULT_1D, TEST_SPATIAL_TREE_PRINT_RESULT_2D};
+    std::string printstr(print_results[dim]);
+    t.print(os);
+    ASSERT_EQ( printstr, os.str() );
+  }
 
-    overlaps.clear();
-    t.overlap_pairs(overlaps);
-    TS_ASSERT_EQUALS( overlaps.size(), 1u );
-    i2 = overlaps.begin(); gt1 = (*i2).first; gt2 = (*i2).second;
-    TS_ASSERT( gt1 == &g1 || gt1 == &g2 );
-    TS_ASSERT( gt2 == &g1 || gt2 == &g2 );
-    TS_ASSERT( gt1 != gt2 );
+  if (dim == 2)
+  {
+    std::ostringstream os2;
+    std::string vrmlstr(TEST_SPATIAL_TREE_VRML_RESULT);
+    t.write_vrml(os2);
+    ASSERT_EQ( vrmlstr, os2.str() );
+  }
 
-    if (dim <= 2)
-    {
-      std::ostringstream os;
-      const char *print_results[3] = {0, TEST_SPATIAL_TREE_PRINT_RESULT_1D, TEST_SPATIAL_TREE_PRINT_RESULT_2D};
-      std::string printstr(print_results[dim]);
-      t.print(os);
-      TS_ASSERT_EQUALS( os.str(), printstr );
-    }
+  Vector<double,4> p11(0.01, 0.01, 0.01, 0.01), p12(6, 6, 6, 6);
+  TestGeomPrimitive g4;
+  g4.grow(subvector(p11, 0, dim));
+  g4.grow(subvector(p12, 0, dim));
+  t.add(&g4);
 
-    if (dim == 2)
-    {
-      std::ostringstream os2;
-      std::string vrmlstr(TEST_SPATIAL_TREE_VRML_RESULT);
-      t.write_vrml(os2);
-      TS_ASSERT_EQUALS( os2.str(), vrmlstr );
-    }
-
-    Vector<double,4> p11(0.01, 0.01, 0.01, 0.01), p12(6, 6, 6, 6);
-    TestGeomPrimitive g4;
-    g4.grow(subvector(p11, 0, dim));
-    g4.grow(subvector(p12, 0, dim));
-    t.add(&g4);
-
-    overlaps.clear();
-    t.overlap_pairs(overlaps);
-    unsigned num_overlaps = 4;
-    GeomPrimitive *overlaps_truth[4][2] = {{&g4, &g2}, {&g4, &g1}, {&g4, &g0}, {&g2, &g1}};
-    int overlaps_found[4] = {0, 0, 0, 0};
-    //GeomPrimitive *prims[6] = {&g0, &g1, &g2, &g3, &g4, 0};
-    //for (i2 = overlaps.begin(); i2 != overlaps.end(); i2++)
-    //  TS_TRACE(stringify(which_one((*i2).first, prims)) +  " overlaps " + stringify(which_one((*i2).second, prims)));
-    TS_ASSERT_EQUALS( overlaps.size(), num_overlaps );
-    for (i2 = overlaps.begin(); i2 != overlaps.end(); i2++)
-    {
-      gt1 = (*i2).first; gt2 = (*i2).second;
-      for (j = 0; j < num_overlaps; j++)
-      {
-        if ((gt1 == overlaps_truth[j][0] && gt2 == overlaps_truth[j][1]) || (gt1 == overlaps_truth[j][1] && gt2 == overlaps_truth[j][0]))
-        {
-          overlaps_found[j] = 1;
-          break;
-        }
-      }
-    }
+  overlaps.clear();
+  t.overlap_pairs(overlaps);
+  unsigned num_overlaps = 4;
+  GeomPrimitive *overlaps_truth[4][2] = {{&g4, &g2}, {&g4, &g1}, {&g4, &g0}, {&g2, &g1}};
+  int overlaps_found[4] = {0, 0, 0, 0};
+  //GeomPrimitive *prims[6] = {&g0, &g1, &g2, &g3, &g4, 0};
+  //for (i2 = overlaps.begin(); i2 != overlaps.end(); i2++)
+  //  TS_TRACE(stringify(which_one((*i2).first, prims)) +  " overlaps " + stringify(which_one((*i2).second, prims)));
+  ASSERT_EQ( num_overlaps, overlaps.size() );
+  for (i2 = overlaps.begin(); i2 != overlaps.end(); i2++)
+  {
+    gt1 = (*i2).first; gt2 = (*i2).second;
     for (j = 0; j < num_overlaps; j++)
     {
-      TS_ASSERT_EQUALS( overlaps_found[j], 1 );
+      if ((gt1 == overlaps_truth[j][0] && gt2 == overlaps_truth[j][1]) || (gt1 == overlaps_truth[j][1] && gt2 == overlaps_truth[j][0]))
+      {
+        overlaps_found[j] = 1;
+        break;
+      }
     }
-
-    TS_ASSERT( t.check() );
+  }
+  for (j = 0; j < num_overlaps; j++)
+  {
+    ASSERT_EQ( 1, overlaps_found[j] );
   }
 
-  void test_spatial_tree_1d() {
-    internal_test_spatial_tree(1);
-  }
+  ASSERT_TRUE( t.check() );
+}
 
-  void test_spatial_tree_2d() {
-    internal_test_spatial_tree(2);
-  }
-
-  void test_spatial_tree_3d() {
-    internal_test_spatial_tree(3);
-  }
-
-  void test_spatial_tree_4d() {
-    internal_test_spatial_tree(4);
-  }
-
-}; // class TestSpatialTree
+INSTANTIATE_TEST_CASE_P(Dims, SpatialTreeTest, test::Range(1u,5u));

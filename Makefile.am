@@ -27,7 +27,6 @@ EXTRA_DIST = \
   scripts/python/vw/gdb/types.py \
   scripts/python/vw/__init__.py \
   scripts/relicense.pl \
-  thirdparty/cxxtest \
   thirdparty/gtest/CHANGES \
   thirdparty/gtest/CONTRIBUTORS \
   thirdparty/gtest/COPYING \
@@ -176,7 +175,7 @@ one-ctags-file:
 		--regex-c++='/__VW_UNARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/Arg\1Functor/s/' \
 		--regex-c++='/__VW_BINARY_MATH_FUNCTOR\(\s*([A-Z].*)\s*,\s*(.*)\s*\)/ArgArg\1Functor/s/' \
 		--regex-c++='/VW_DEFINE_ENUM\(\s*(.*)\s*,\s*(.*)\s*,\s*\(\s*(.*)\s*\)\)/\1/g/' \
-		--languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*' --exclude='*vw/GPU/*' . --exclude='' thirdparty/cxxtest/cxxtest/TestSuite.h thirdparty/gtest
+		--languages=C,C++ --exclude='*thirdparty/*' --exclude='*tests/*' --exclude='*vw/GPU/*' . --exclude='' thirdparty/gtest
 
 .PHONY: push-coverage instantiate-all instantiate-skipped all-headers one-ctags-file copy-timestamp coverage-filter
 

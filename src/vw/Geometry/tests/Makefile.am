@@ -11,8 +11,8 @@
 
 if MAKE_MODULE_GEOMETRY
 
-TestSphere_SOURCES = TestSphere.oldtest
-TestSpatialTree_SOURCES = TestSpatialTree.oldtest
+TestSphere_SOURCES = TestSphere.cxx
+TestSpatialTree_SOURCES = TestSpatialTree.cxx
 
 TESTS = TestSphere TestSpatialTree
 
@@ -28,7 +28,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_GEOMETRY_LIBS@
 
 check_PROGRAMS = $(TESTS)
-CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
-include $(top_srcdir)/config/tests_old.am
+include $(top_srcdir)/config/tests.am

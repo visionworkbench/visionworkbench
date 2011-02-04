@@ -11,9 +11,7 @@
 
 if MAKE_MODULE_HDR
 
-#TestCameraCurve_SOURCES = TestCameraCurve.oldtest
-
-TESTS = #TestCameraCurve
+TESTS =
 
 #include $(top_srcdir)/config/instantiate.am
 
@@ -27,7 +25,6 @@ AM_CPPFLAGS = @VW_CPPFLAGS@ $(TEST_CPPFLAGS)
 AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_HDR_LIBS@
 
 check_PROGRAMS = $(TESTS)
-CLEANFILES = $(TESTS:%=%.cxx)
 
 include $(top_srcdir)/config/rules.mak
-include $(top_srcdir)/config/tests_old.am
+include $(top_srcdir)/config/tests.am

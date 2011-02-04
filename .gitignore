@@ -64,11 +64,6 @@ Makefile.in
 /src/vw/*/tests/TestInstantiateRecord
 /src/vw/*/tests/TestInstantiateFree
 
-# Generated files from the old tests
-/src/vw/Cartography/tests/*.cxx
-/src/vw/Geometry/tests/*.cxx
-/src/vw/HDR/tests/*.cxx
-
 # Documentation intermediates
 docs/workbook/*.aux
 docs/workbook/*.pdf
