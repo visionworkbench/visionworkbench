@@ -11,12 +11,29 @@
 #include <vw/gui/WebTileGenerator.h>
 
 #include <vw/Plate/HTTPUtils.h>
+#include <vw/Core/Debugging.h>
 #include <boost/filesystem/convenience.hpp>
 
 namespace fs = boost::filesystem;
 using namespace vw::platefile;
 
 namespace vw { namespace gui {
+
+ConstantSrc::ConstantSrc(const uint8* data, size_t size, const ImageFormat& fmt)
+  : m_fmt(fmt), m_size(size), m_data(new uint8[m_size]) {
+    VW_ASSERT(size >= fmt.byte_size(), LogicErr() << VW_CURRENT_FUNCTION << ": ImageFormat does not match data");
+    std::copy(data+0, data+size, const_cast<uint8*>(&m_data[0]));
+}
+
+void ConstantSrc::read( ImageBuffer const& dst, BBox2i const& bbox ) const {
+  VW_ASSERT( dst.format.cols == size_t(bbox.width()) && dst.format.rows == size_t(bbox.height()),
+             ArgumentErr() << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
+  VW_ASSERT( dst.format.cols == size_t(cols()) && dst.format.rows == size_t(rows()),
+             ArgumentErr() << VW_CURRENT_FUNCTION << ": Partial reads are not supported");
+
+  const ImageBuffer src(m_fmt, const_cast<uint8*>(m_data.get()));
+  convert(dst, src, true);
+}
 
 
 BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level) {

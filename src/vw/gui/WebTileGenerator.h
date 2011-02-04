@@ -11,56 +11,49 @@
 #include <vw/gui/TileGenerator.h>
 #include <vw/Plate/HTTPUtils.h>
 
-#include <QThread>
+#include <QEventLoop>
 #include <QHttp>
 #include <QBuffer>
 
 namespace vw {
 namespace gui {
 
-  class HttpDownloadThread : public QThread {
-    Q_OBJECT
+  class BlockingDownloader : public QObject {
+      Q_OBJECT
+    public:
+      struct Result {
+        int status;
+        std::string mimetype;
+        boost::shared_array<const uint8> data;
+        size_t size;
+      };
 
-    struct RequestBuffer {
-        platefile::Url url;
-        bool ready;
-        QBuffer buffer;
-        vw::ImageView<vw::PixelRGBA<float> > result;
-      public:
-        RequestBuffer(const platefile::Url& url_)
-          : url(url_), ready(false) { buffer.open(QIODevice::WriteOnly); }
-    };
-    typedef boost::shared_ptr<RequestBuffer> RequestBufferPtr;
+      BlockingDownloader();
+      ~BlockingDownloader();
+      Result* get(const platefile::Url& u_, int transaction, bool exact);
 
-    typedef std::map<int, RequestBufferPtr> map_t;
-
-    const platefile::Url m_base_url;
-    const boost::shared_ptr<QHttp> m_http;
-    map_t m_requests;
-    vw::Mutex m_mutex;
-
-  protected:
-    void run();
-  public:
-    HttpDownloadThread(const platefile::Url& u);
-    virtual ~HttpDownloadThread();
-    int get(const std::vector<std::string>& path, int transaction_id, bool exact_transaction_id_match);
-    bool result_available(int request_id);
-    vw::ImageView<vw::PixelRGBA<float> > pop_result(int request_id);
-  public slots:
-    void request_finished(int id, bool error);
+    private:
+      QHttp* m_http;
+      std::auto_ptr<Result> m_result;
+      int m_request;
+      bool m_done;
+      size_t m_alloc;
+    private slots:
+      void onResponseHeaderReceived(const QHttpResponseHeader& resp);
+      void onReadyRead(const QHttpResponseHeader& resp);
+      void onRequestFinished(int request_id, bool error);
   };
 
   class WebTileGenerator : public TileGenerator {
     int m_tile_size;
     int m_levels;
-    HttpDownloadThread m_download_thread;
+    const platefile::Url m_base_url;
 
   public:
     WebTileGenerator(const platefile::Url& url, int levels);
     virtual ~WebTileGenerator() {}
 
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+    virtual boost::shared_ptr<SrcImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
     virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 

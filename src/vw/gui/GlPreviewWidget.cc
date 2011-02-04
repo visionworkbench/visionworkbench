@@ -242,7 +242,7 @@ void GlPreviewWidget::zoom(float scale) {
 //             GlPreviewWidget Setup Methods
 // --------------------------------------------------------------
 
-GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<ViewImageResource> tile) {
+GLuint GlPreviewWidget::allocate_texture(boost::shared_ptr<SrcImageResource> tile) {
   GLuint texture_id;
 
   makeCurrent();

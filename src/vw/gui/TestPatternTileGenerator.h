@@ -20,7 +20,7 @@ namespace gui {
     TestPatternTileGenerator(int tile_size) : m_tile_size(tile_size) {}
     virtual ~TestPatternTileGenerator() {}
 
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info);
+    virtual boost::shared_ptr<SrcImageResource> generate_tile(TileLocator const& tile_info);
     virtual Vector2 minmax();
     virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id);
 

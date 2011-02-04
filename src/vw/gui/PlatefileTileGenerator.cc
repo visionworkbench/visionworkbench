@@ -8,6 +8,7 @@
 #include <vw/gui/PlatefileTileGenerator.h>
 #include <vw/Plate/PlateFile.h>
 #include <vw/Image/MaskViews.h>
+#include <vw/Image/ViewImageResource.h>
 
 namespace vw { namespace gui {
 
@@ -106,7 +107,7 @@ PixelRGBA<float32> PlatefileTileGenerator::sample(int /*x*/, int /*y*/, int /*le
 }
 
 template <class PixelT>
-boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_info,
+boost::shared_ptr<SrcImageResource> generate_tile_impl(TileLocator const& tile_info,
                                       boost::shared_ptr<vw::platefile::PlateFile> platefile) {
   ImageView<PixelT> tile(1,1);
   try {
@@ -116,20 +117,14 @@ boost::shared_ptr<ViewImageResource> generate_tile_impl(TileLocator const& tile_
                     tile_info.exact_transaction_id_match);
 
   } catch (platefile::TileNotFoundErr &e) {
-
-    ImageView<PixelRGBA<uint8> > blank_tile(1,1);
-    blank_tile(0,0) = PixelRGBA<uint8>(0, 20, 0, 255);
-    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );
-
+    return boost::shared_ptr<SrcImageResource>(make_point_src(PixelRGBA<uint8>(0, 20, 0, 255)));
   } catch (vw::IOErr &e) {
-
     std::cout << "WARNING: AMQP ERROR -- " << e.what() << "\n";
-
   }
-  return boost::shared_ptr<ViewImageResource>( new ViewImageResource(tile) );
+  return boost::shared_ptr<SrcImageResource>( new ViewImageResource(tile) );
 }
 
-boost::shared_ptr<ViewImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
+boost::shared_ptr<SrcImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
 
   vw_out(DebugMessage, "gui") << "Request to generate platefile tile "
                               << tile_info.col << " " << tile_info.row

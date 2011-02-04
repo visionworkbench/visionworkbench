@@ -8,15 +8,37 @@
 #ifndef __VW_GUI_TILEGENERATOR_H__
 #define __VW_GUI_TILEGENERATOR_H__
 
-#include <vw/Image/ViewImageResource.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Math/BBox.h>
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 namespace gui {
+
+  class ConstantSrc : public SrcImageResource {
+      ImageFormat m_fmt;
+      size_t m_size;
+      boost::shared_array<const uint8> m_data;
+    public:
+      // Creates a copy of the data.
+      ConstantSrc(const uint8* data, size_t size, const ImageFormat& fmt);
+      virtual ImageFormat format() const {return m_fmt;}
+      virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const;
+      virtual bool has_block_read() const {return false;}
+      virtual bool has_nodata_read() const {return false;}
+      virtual boost::shared_array<const uint8> native_ptr() const {return m_data;}
+      virtual size_t native_size() const {return m_size;}
+  };
+
+  template <typename PixelT>
+  SrcImageResource* make_point_src(const PixelT& px) {
+    ImageFormat fmt;
+    fmt.rows = fmt.cols = fmt.planes = 1;
+    fmt.pixel_format = PixelFormatID<PixelT>::value;
+    fmt.channel_type = ChannelTypeID<typename PixelChannelType<PixelT>::type>::value;
+    return new ConstantSrc(reinterpret_cast<const uint8*>(&px), sizeof(PixelT), fmt);
+  }
 
   struct TileLocator {
     int col;
@@ -46,7 +68,7 @@ namespace gui {
   class TileGenerator {
   public:
     virtual ~TileGenerator() {}
-    virtual boost::shared_ptr<ViewImageResource> generate_tile(TileLocator const& tile_info) = 0;
+    virtual boost::shared_ptr<SrcImageResource> generate_tile(TileLocator const& tile_info) = 0;
     virtual Vector2 minmax() = 0;
     virtual PixelRGBA<float> sample(int x, int y, int level, int transaction_id) = 0;
 

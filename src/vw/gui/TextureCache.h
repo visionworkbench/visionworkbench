@@ -27,7 +27,6 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/Log.h>
 #include <vw/Image/ImageView.h>
-#include <vw/Image/ViewImageResource.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/ImageViewRef.h>
@@ -63,13 +62,13 @@ namespace gui {
   public:
 
     // These are defined in the subclass: vwv_GlPreviewWidget
-    virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile) = 0;
+    virtual GLuint allocate_texture(boost::shared_ptr<SrcImageResource> tile) = 0;
     virtual void deallocate_texture(GLuint texture_id) = 0;
 
     virtual ~CachedTextureRenderer() { m_requests.clear(); }
 
     virtual void request_allocation(boost::shared_ptr<TextureRecordBase> texture_record,
-                                    boost::shared_ptr<ViewImageResource> tile);
+                                    boost::shared_ptr<SrcImageResource> tile);
 
     virtual void request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record);
 
@@ -96,7 +95,7 @@ namespace gui {
       // Load the tile into memory by querying the TileGenerator.
       // This can take a little while, which is why we perform this
       // step in a seperate thread.
-      boost::shared_ptr<ViewImageResource> tile = generator->generate_tile(tile_info);
+      boost::shared_ptr<SrcImageResource> tile = generator->generate_tile(tile_info);
 
       // For debugging:
       //

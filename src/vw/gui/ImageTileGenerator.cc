@@ -7,6 +7,7 @@
 
 #include <vw/gui/ImageTileGenerator.h>
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/Image/ViewImageResource.h>
 #include <vw/Core/Debugging.h>
 
 namespace vw { namespace gui {
@@ -19,16 +20,16 @@ ImageTileGenerator::ImageTileGenerator(std::string filename) :
 
 // This little template makes the code below much cleaner.
 template <class PixelT>
-boost::shared_ptr<ViewImageResource> do_image_tilegen(boost::shared_ptr<SrcImageResource> rsrc,
+boost::shared_ptr<SrcImageResource> do_image_tilegen(boost::shared_ptr<SrcImageResource> rsrc,
                                                       BBox2i tile_bbox,
                                                       int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
   rsrc->read(tile.buffer(), tile_bbox);
   ImageView<PixelT> reduced_tile = subsample(tile, (1 << ((num_levels-1) - level)));
-  return boost::shared_ptr<ViewImageResource>( new ViewImageResource(reduced_tile) );
+  return boost::shared_ptr<SrcImageResource>( new ViewImageResource(reduced_tile) );
 }
 
-boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocator const& tile_info) {
+boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocator const& tile_info) {
 
   // Compute the bounding box of the image and the tile that is being
   // requested.  The bounding box of the tile depends on the pyramid
@@ -40,9 +41,8 @@ boost::shared_ptr<ViewImageResource> ImageTileGenerator::generate_tile(TileLocat
   // Check to make sure the image intersects the bounding box.  Print
   // an error to screen and return an empty tile if it does not.
   if (!image_bbox.intersects(tile_bbox)) {
-    vw_out() << "WARNING in ImageTileGenerator: a tile was requested that doesn't exist.";
-    ImageView<PixelGray<uint8> > blank_tile(this->tile_size()[0], this->tile_size()[1]);
-    return boost::shared_ptr<ViewImageResource>( new ViewImageResource(blank_tile) );
+    vw_out(WarningMessage) << "ImageTileGenerator: No such tile!" << std::endl;
+    return boost::shared_ptr<SrcImageResource>( make_point_src(PixelGray<uint8>(0)) );
   }
 
   // Make sure we don't access any pixels outside the image boundary

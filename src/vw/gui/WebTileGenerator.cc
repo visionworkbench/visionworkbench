@@ -7,159 +7,127 @@
 
 #include <vw/gui/WebTileGenerator.h>
 #include <vw/FileIO/MemoryImageResource.h>
+#include <vw/Image/PixelTypes.h>
 
 using namespace vw::platefile;
 
+namespace {
+  size_t DEFAULT_BUFFER_SIZE = 32768;
+}
+
 namespace vw { namespace gui {
 
-HttpDownloadThread::HttpDownloadThread(const Url& u)
-  : m_base_url(u), m_http(new QHttp(QString::fromStdString(m_base_url.hostname()), m_base_url.port() != 0 ? m_base_url.port() : 80, NULL))
-{
-  connect(m_http.get(), SIGNAL(requestFinished(int, bool)),this, SLOT(request_finished(int, bool)));
+BlockingDownloader::BlockingDownloader() {
+  m_http  = new QHttp(this);
+
+  bool ret;
+  ret = connect(m_http, SIGNAL(responseHeaderReceived(const QHttpResponseHeader&)), this, SLOT(onResponseHeaderReceived(const QHttpResponseHeader&)));
+  VW_ASSERT(ret, NotFoundErr() << "Failed to connect to responseHeaderReceived");
+  ret = connect(m_http, SIGNAL(readyRead(const QHttpResponseHeader&)), this, SLOT(onReadyRead(const QHttpResponseHeader&)));
+  VW_ASSERT(ret, NotFoundErr() << "Failed to connect to readyRead");
+  ret = connect(m_http, SIGNAL(requestFinished(int, bool)), this, SLOT(onRequestFinished(int, bool)));
+  VW_ASSERT(ret, NotFoundErr() << "Failed to connect to onRequestFinished");
 }
 
-void HttpDownloadThread::run() {
-  QThread::exec();
+BlockingDownloader::~BlockingDownloader() {
+  m_http->disconnect();
+  delete m_http;
 }
 
-HttpDownloadThread::~HttpDownloadThread() { }
-
-int HttpDownloadThread::get(const std::vector<std::string>& path, int transaction_id,
-                            bool exact_transaction_id_match) {
-  Url req_url(m_base_url);
-  Url::split_t req_path = req_url.path_split();
-  req_path.insert(req_path.end(), path.begin(), path.end());
-  req_url.path_join(req_path);
-
-  // Set up request buffer
-  RequestBufferPtr buf(new RequestBuffer(req_url));
-
-  int request_id;
-  req_url.query().set("nocache", "1");
-  req_url.query().set("transaction_id", vw::stringify(transaction_id));
-
-  if (exact_transaction_id_match)
-    req_url.query().set("exact", "1");
-
-  vw_out() << "\t --> Fetching " << req_url << "\n";
-
-  request_id = m_http->get(QString::fromStdString(req_url.string()), &buf->buffer);
-
-  Mutex::Lock lock(m_mutex);
-  m_requests[request_id] = buf;
-
-  return request_id;
+void BlockingDownloader::onResponseHeaderReceived(const QHttpResponseHeader& resp) {
+  if (resp.hasContentLength())
+    m_alloc = resp.contentLength();
+  else
+    m_alloc = DEFAULT_BUFFER_SIZE;
+  m_result->data.reset(new uint8[m_alloc]);
 }
 
-bool HttpDownloadThread::result_available(int request_id) {
-  Mutex::Lock lock(m_mutex);
-  return m_requests[request_id]->ready;
+void BlockingDownloader::onReadyRead(const QHttpResponseHeader& /*resp*/) {
+  while (m_http->bytesAvailable() > ssize_t(m_alloc - m_result->size)) {
+    vw_out(WarningMessage) << "Resizing read buffer from " << m_alloc << " to " << m_alloc*2 << "!\n";
+    m_alloc *= 2;
+    boost::shared_array<const uint8> newdata(new uint8[m_alloc]);
+    std::copy(m_result->data.get(), m_result->data.get()+m_alloc/2, const_cast<uint8*>(newdata.get()));
+    m_result->data = newdata;
+  }
+  int64 r = m_http->read(reinterpret_cast<char*>(const_cast<uint8*>(m_result->data.get())) + m_result->size, m_alloc - m_result->size);
+  VW_ASSERT(r >= 0, IOErr() << "Failed to read bytes from wire");
+  m_result->size += r;
 }
 
-vw::ImageView<vw::PixelRGBA<float> > HttpDownloadThread::pop_result(int request_id) {
-  Mutex::Lock lock(m_mutex);
-  map_t::iterator i = m_requests.find(request_id);
-  VW_ASSERT(i != m_requests.end(), LogicErr() << "Asked for a request that doesn't exist!");
-  RequestBufferPtr r = i->second;
-  m_requests.erase(i);
-  return r->result;
+BlockingDownloader::Result* BlockingDownloader::get(const Url& u_, int transaction, bool exact) {
+  VW_ASSERT(!u_.hostname().empty(), ArgumentErr() << "Need a hostname");
+
+  Url url(u_);
+
+  url.query().set("nocache", "1");
+  url.query().set("transaction_id", vw::stringify(transaction));
+  if (exact)
+    url.query().set("exact", "1");
+
+  vw_out() << "  --> Fetching " << url << " ";
+
+  m_http->setHost(url.hostname().c_str(), url.port() ? url.port() : 80);
+
+  m_result.reset(new Result());
+  m_result->size = m_alloc = 0;
+
+  QEventLoop wait;
+  connect(m_http, SIGNAL(done(bool)), &wait, SLOT(quit()));
+  m_request = m_http->get(url.string().c_str(), 0);
+  wait.exec();
+
+  vw_out() << "[" << m_result->status << ", " << m_result->size << "]\n";
+
+  if (m_result->status > 0)
+    return m_result.release();
+  else {
+    if (m_result->status == 0)
+      vw_out(WarningMessage, "console") << "Timed out?\n";
+    return 0;
+  }
 }
 
-void HttpDownloadThread::request_finished(int request_id, bool error) {
-  Mutex::Lock lock(m_mutex);
-
-  map_t::iterator i = m_requests.find(request_id);
-  // setHost and things count as requests
-  if (i == m_requests.end())
+void BlockingDownloader::onRequestFinished(int request_id, bool error) {
+  if (request_id != m_request)
     return;
 
-  QHttpResponseHeader hdr = m_http->lastResponse();
-  RequestBufferPtr buf = i->second;
-
-  typedef PixelRGBA<float> pixel_t;
-
-  std::string filetype;
   if (error) {
     vw_out(WarningMessage, "console") << "Connection Error: " << m_http->errorString().toStdString() << "\n";
-  } else {
-    switch (hdr.statusCode()) {
-      case 200:
-        // handled below
-        break;
-      case 404:
-        buf->result.set_size(1,1);
-        buf->result(0,0) = pixel_t(0.0f,0.1f,0.0f,1.0f);
-        buf->ready = true;
-        return;
-      default:
-        error = true;
-        vw_out(WarningMessage, "console") <<
-          "Request " << request_id << " failed with status " << hdr.statusCode() << " for URL: " << buf->url << "\n";
-        break;
-      }
-
-      if (hdr.contentType() == "image/png")
-        filetype = "png";
-      else if (hdr.contentType() == "image/jpeg" || hdr.contentType() == "image/jpg")
-        filetype = "jpg";
-      else if (hdr.contentType() == "image/tiff" || hdr.contentType() == "image/tif")
-        filetype = "tif";
-      else {
-        vw_out(WarningMessage, "console") << "unrecognized content-type: " << hdr.contentType().toStdString() << "\n";
-        error = true;
-      }
-  }
-
-  if (error) {
-    buf->result.set_size(1,1);
-    buf->result(0,0) = pixel_t(1.0f,0.0f,0.0f,1.0f);
-    buf->ready = true;
+    m_result->status = -1;
     return;
   }
 
-  const QByteArray& bytes = buf->buffer.data();
-
-  boost::scoped_ptr<SrcImageResource> rsrc(
-      SrcMemoryImageResource::open(
-        filetype, reinterpret_cast<const uint8*>(bytes.constData()), bytes.size()));
-
-  try {
-    if (rsrc->channel_type() == VW_CHANNEL_UINT8) {
-      buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<uint8> >(*rsrc));
-    } else if (rsrc->channel_type() == VW_CHANNEL_UINT16) {
-      buf->result = channel_cast_rescale<float>(ImageView<PixelRGBA<int16> >(*rsrc));
-    } else {
-      vw_out() << "WARNING: Image contains unsupported channel type: " << rsrc->channel_type() << "\n";
-    }
-    buf->ready = true;
-  } catch (IOErr &e) {
-    vw_out(WarningMessage) << "Could not parse network tile: " << buf->url << std::endl;
-    buf->ready = true;
-  }
+  QHttpResponseHeader hdr = m_http->lastResponse();
+  m_result->status   = hdr.statusCode();
+  m_result->mimetype = std::string(hdr.contentType().toStdString());
+  // result data is set already, behind the scenes
 }
 
+WebTileGenerator::WebTileGenerator(const Url& base_url, int levels)
+  : m_tile_size(256), m_levels(levels), m_base_url(base_url) {}
 
-WebTileGenerator::WebTileGenerator(const Url& url, int levels) :
-  m_tile_size(256), m_levels(levels), m_download_thread(url) {
-  m_download_thread.start();
-}
+boost::shared_ptr<SrcImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
 
-boost::shared_ptr<ViewImageResource> WebTileGenerator::generate_tile(TileLocator const& tile_info) {
+  Url url(m_base_url);
+  Url::split_t path = url.path_split();
+  path.reserve(path.size()+3);
+  path.push_back(vw::stringify(tile_info.level));
+  path.push_back(vw::stringify(tile_info.col));
+  path.push_back(vw::stringify(tile_info.row) + ".png");
+  url.path_join(path);
 
-  std::vector<std::string> path(3);
-  path[0] = vw::stringify(tile_info.level);
-  path[1] = vw::stringify(tile_info.col);
-  path[2] = vw::stringify(tile_info.row) + ".png";
+  BlockingDownloader d;
+  boost::scoped_ptr<BlockingDownloader::Result> r(d.get(url, tile_info.transaction_id, tile_info.exact_transaction_id_match));
 
-  int request_id = m_download_thread.get(path,
-                                         tile_info.transaction_id,
-                                         tile_info.exact_transaction_id_match);
-  // TODO: busywait :(
-  while(!m_download_thread.result_available(request_id))
-    usleep(100);
+  typedef PixelRGBA<float> pixel_t;
+  typedef boost::shared_ptr<SrcImageResource> Ptr;
+  if (!r)
+    return Ptr(make_point_src(pixel_t(1.f, 0.f, 0.f, 1.f)));
+  else if (r->status == 404)
+    return Ptr(make_point_src(pixel_t(0.f, 0.1f, 0.f, 1.f)));
 
-  vw::ImageView<vw::PixelRGBA<float> > result = m_download_thread.pop_result(request_id);
-  return boost::shared_ptr<ViewImageResource>( new ViewImageResource( result ) );
+  return Ptr(SrcMemoryImageResource::open( r->mimetype, r->data, r->size));
 }
 
 Vector2 WebTileGenerator::minmax() { return Vector2(0.0, 1.0); }

@@ -5,10 +5,12 @@
 // __END_LICENSE__
 
 #include <vw/gui/TestPatternTileGenerator.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/ViewImageResource.h>
 
 namespace vw { namespace gui {
 
-boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& /*tile_info*/) {
+boost::shared_ptr<SrcImageResource> TestPatternTileGenerator::generate_tile(TileLocator const& /*tile_info*/) {
   ImageView<PixelRGBA<uint8> > tile(m_tile_size, m_tile_size);
   for (int j = 0; j < m_tile_size; ++j){
     for (int i = 0; i < m_tile_size; ++i){
@@ -18,7 +20,7 @@ boost::shared_ptr<ViewImageResource> TestPatternTileGenerator::generate_tile(Til
         tile(i,j) = PixelRGBA<uint8>(0,0,0,255);
     }
   }
-  boost::shared_ptr<ViewImageResource> result( new ViewImageResource(tile) );
+  boost::shared_ptr<SrcImageResource> result( new ViewImageResource(tile) );
   return result;
 }
 

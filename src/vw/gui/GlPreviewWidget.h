@@ -77,7 +77,7 @@ namespace gui {
     GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt, int transaction_id);
     virtual ~GlPreviewWidget();
 
-    virtual GLuint allocate_texture(boost::shared_ptr<ViewImageResource> tile);
+    virtual GLuint allocate_texture(boost::shared_ptr<SrcImageResource> tile);
     virtual void deallocate_texture(GLuint texture_id);
 
     // Set a default size for this widget.  This is usually overridden

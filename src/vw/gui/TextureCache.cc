@@ -21,11 +21,11 @@ struct vw::gui::TextureRequest {
 // Allocate Texture Request
 class AllocateTextureRequest : public TextureRequest {
   boost::shared_ptr<TextureRecordBase> m_record;
-  boost::shared_ptr<ViewImageResource> m_tile;
+  boost::shared_ptr<SrcImageResource> m_tile;
   CachedTextureRenderer* m_parent;
 public:
   AllocateTextureRequest( boost::shared_ptr<TextureRecordBase> texture_record,
-                          boost::shared_ptr<ViewImageResource> tile,
+                          boost::shared_ptr<SrcImageResource> tile,
                           CachedTextureRenderer* parent) :
     m_record(texture_record), m_tile(tile), m_parent(parent) {}
   virtual ~AllocateTextureRequest() {}
@@ -56,7 +56,7 @@ public:
 // --------------------------------------------------------------
 
 void CachedTextureRenderer::request_allocation(boost::shared_ptr<TextureRecordBase> texture_record,
-                                               boost::shared_ptr<ViewImageResource> tile) {
+                                               boost::shared_ptr<SrcImageResource> tile) {
   vw::Mutex::Lock lock(m_request_mutex);
   m_requests.push_back( boost::shared_ptr<TextureRequest>(new AllocateTextureRequest(texture_record, tile, this)) );
   m_needs_redraw = true;
