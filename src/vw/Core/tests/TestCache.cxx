@@ -10,6 +10,7 @@
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <boost/shared_array.hpp>
 
 using namespace vw;
 
@@ -32,7 +33,7 @@ public:
 
   boost::shared_ptr< value_type > generate() const {
 
-    boost::shared_ptr< value_type > ptr(new vw::uint8[m_dimension*m_dimension]);
+    boost::shared_ptr< value_type > ptr(new vw::uint8[m_dimension*m_dimension], boost::checked_array_deleter<value_type>());
     (&(*ptr))[0] = m_fill_value;
     return ptr;
   }
