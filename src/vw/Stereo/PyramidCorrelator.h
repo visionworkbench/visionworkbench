@@ -342,8 +342,8 @@ namespace stereo {
 
       left_pyramid[0] =  pixel_cast<channel_type>(left_image);
       right_pyramid[0] = pixel_cast<channel_type>(right_image);
-      left_masks[0] =    pixel_cast<channel_type>(left_mask);
-      right_masks[0] =   pixel_cast<channel_type>(right_mask);
+      left_masks[0] =    pixel_cast<uint8>(left_mask);
+      right_masks[0] =   pixel_cast<uint8>(right_mask);
 
       // Produce the image pyramid
       for (int n = 1; n < m_pyramid_levels; ++n) {
