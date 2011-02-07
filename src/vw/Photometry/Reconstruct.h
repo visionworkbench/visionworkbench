@@ -23,6 +23,7 @@ namespace photometry {
 
   typedef struct GlobalParams{
     int reflectanceType;
+    int saveReflectance;
     int slopeType;
     int exposureInitType;
     int albedoInitType;
@@ -39,9 +40,11 @@ namespace photometry {
     float TRConst;
     int updateAlbedo, updateExposure, updateHeight;
     int useWeights;
+    int saveWeights;
     int maxNumIter;
     int computeErrors;
     int noDEMDataValue;
+    
   };
 
   typedef struct ModelParams {
@@ -50,7 +53,7 @@ namespace photometry {
     Vector2 cameraParams; //currently not used
     Vector3 sunPosition; //relative to the center of the Moon
     Vector3 spacecraftPosition;//relative to the center of the planet
- 
+    
     int *centerLine;
     int *maxDistArray;
     int *centerLineDEM;
@@ -59,7 +62,17 @@ namespace photometry {
     int *maxVerDistArray;
     int *horCenterLineDEM;
     int *maxVerDistArrayDEM;
-
+    
+    /*
+    vector<int> centerLine;
+    vector<int> maxDistArray;
+    vector<int> centerLineDEM;
+    vector<int> maxDistArrayDEM;
+    vector<int> horCenterLine;
+    vector<int> maxVerDistArray;
+    vector<int> horCenterLineDEM;
+    vector<int> maxVerDistArrayDEM;
+    */
     std::string infoFilename, DEMFilename, meanDEMFilename,
       var2DEMFilename, reliefFilename, shadowFilename,
       errorFilename, inputFilename, outputFilename, 

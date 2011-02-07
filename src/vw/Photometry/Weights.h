@@ -18,16 +18,18 @@ namespace photometry {
 
   int* ComputeImageCenterLine(std::string input_img_file,
                               int **r_maxDistArray);
-  int* ComputeDEMCenterLine(std::string input_DEM_file,
+  int* ComputeDEMCenterLine(std::string input_DEM_file, int noDataDEMVal,
                             int **r_maxDistArray);
   int* ComputeImageHorCenterLine(std::string input_img_file,
                                  int **r_maxDistArray);
-  int* ComputeDEMHorCenterLine(std::string input_DEM_file,
+  int* ComputeDEMHorCenterLine(std::string input_DEM_file, int noDataDEMVal,
                                int **r_maxDistArray);
   float ComputeLineWeights(Vector2 pix, int *centerLine,
                            int *maxDistArray);
   float ComputeLineWeightsV(Vector2 pix, int *centerLine,
                             int *maxDistArray);
+  void SaveWeightsParamsToFile(struct ModelParams modelParams);
+  void ReadWeightsParamsFromFile(struct ModelParams *modelParams);
 
 }} // end vw::photometry
 

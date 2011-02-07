@@ -62,7 +62,8 @@ float ComputeGradient_Exposure(float T, float albedo) {
 //  error = (intensity-T*albedo*reflectance);
 //  return error;
 //}
-
+/*
+//these functions will be removed - START
 //void AppendExposureInfoToFile(string exposureFilename, string currInputFile, ModelParams currModelParams)
 void vw::photometry::AppendExposureInfoToFile(std::string exposureFilename,
                                               ModelParams currModelParams) {
@@ -95,6 +96,28 @@ vw::photometry::ReadExposureInfoFile(std::string exposureFilename,
   fclose(fp);
 
   return exposureTimeVector;
+}
+*/
+
+void vw::photometry::SaveExposureInfoToFile(ModelParams modelParams)
+{
+  FILE *fp;
+  fp = fopen((char*)(modelParams.exposureFilename).c_str(), "w");
+  fprintf(fp, "%f", modelParams.exposureTime);
+  fclose(fp);
+}
+
+void vw::photometry::ReadExposureInfoFromFile(ModelParams *modelParams)
+{
+  FILE *fp;
+  fp = fopen((char*)(modelParams->exposureFilename).c_str(), "r");
+  if (fp == NULL){
+    modelParams->exposureTime = 1;
+  }
+  else{
+    fscanf(fp, "%f", &(modelParams->exposureTime));
+    fclose(fp);
+  }
 }
 
 
@@ -198,7 +221,7 @@ void vw::photometry::ComputeExposureAlbedo(ModelParams *currModelParams,
 
 
           //check for valid DEM pixel value and valid left and top coordinates
-          if ((sample_pix_dem_left(0) >= 0) && (sample_pix_dem_top(1) >= 0) && (dem_image(x,y) != -10000)){
+          if ((sample_pix_dem_left(0) >= 0) && (sample_pix_dem_top(1) >= 0) && (dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
 
             Vector2 lon_lat_left = curr_dem_geo.pixel_to_lonlat(sample_pix_dem_left);
             Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(dem_image)(sample_pix_dem_left(0), sample_pix_dem_left(1)));

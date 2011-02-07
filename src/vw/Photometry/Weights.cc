@@ -129,12 +129,13 @@ vw::photometry::ComputeImageCenterLine(std::string input_img_file,
 
     int k, l;
 
-    int *centerLine = new int[input_img.rows()];
-    int *maxDistArray = new int[input_img.rows()];
+    int *centerLine = new int [input_img.rows()];
+    int* maxDistArray = new int [input_img.rows()];
 
     int minVal, maxVal;
 
     printf("file=%s\n",input_img_file.c_str());
+
     //initialize  output_img, and numSamples
     for (k = 0 ; k < (int)input_img.rows(); ++k) {
 
@@ -219,7 +220,7 @@ vw::photometry::ComputeImageHorCenterLine(std::string input_img_file,
 
 
 int*
-vw::photometry::ComputeDEMCenterLine(std::string input_DEM_file,
+vw::photometry::ComputeDEMCenterLine(std::string input_DEM_file,int noDataDEMVal,
                                      int **r_maxDistArray) {
 
     //compute the center of the image
@@ -240,7 +241,7 @@ vw::photometry::ComputeDEMCenterLine(std::string input_DEM_file,
         maxVal = 0;
         for (l = 0; l < input_DEM.cols(); ++l) {
 
-           if ( input_DEM(l,k) != -10000 ) {
+	  if ( input_DEM(l,k) != noDataDEMVal ) {
              if (l < minVal){
                  minVal = l;
              }
@@ -264,7 +265,7 @@ vw::photometry::ComputeDEMCenterLine(std::string input_DEM_file,
 }
 
 int*
-vw::photometry::ComputeDEMHorCenterLine(std::string input_DEM_file,
+vw::photometry::ComputeDEMHorCenterLine(std::string input_DEM_file,int noDataDEMVal,
                                         int **r_maxDistArray) {
   //compute the center of the image
   DiskImageView<PixelGray<float> >   input_DEM(input_DEM_file);
@@ -284,7 +285,7 @@ vw::photometry::ComputeDEMHorCenterLine(std::string input_DEM_file,
     maxVal = 0;
     for (l = 0; l < input_DEM.rows(); ++l) {
 
-      if ( input_DEM(l,k) != -10000 ) {
+      if ( input_DEM(l,k) != noDataDEMVal ) {
         if (l < minVal){
           minVal = l;
         }
@@ -352,4 +353,86 @@ float ComputeWeightsVH(Vector2 pix, ModelParams imgParams)
   float weightH = ComputeLineWeights(pix, imgParams.centerLine, imgParams.maxDistArray);
   float weight = weightV*weightH;
   return weight;
+}
+
+
+//saves weights to file. it will be move to weights.cc
+void 
+vw::photometry::SaveWeightsParamsToFile(struct ModelParams modelParams)
+{
+
+  FILE *fp;
+  fp = fopen((char*)(modelParams.weightFilename).c_str(), "w");
+
+  DiskImageView<PixelGray<float> >   dem(modelParams.DEMFilename);
+  int numRows = dem.rows();
+  
+  for (int i = 0; i < numRows; i++){
+      fprintf(fp, "%d ", modelParams.centerLineDEM[i]);
+  }
+  fprintf(fp, "\n");
+
+  for (int i = 0; i < numRows; i++){
+      fprintf(fp, "%d ", modelParams.maxDistArrayDEM[i]);
+  }
+  fprintf (fp, "\n");
+
+  DiskImageView<PixelMask<PixelGray<uint8> > >  drg(modelParams.inputFilename);
+  numRows = drg.rows();
+
+  for (int i = 0; i < numRows; i++){
+      fprintf(fp, "%d ", modelParams.centerLine[i]);
+  }
+  fprintf(fp, "\n");
+
+  for (int i = 0; i < numRows; i++){
+      fprintf(fp, "%d ", modelParams.maxDistArray[i]);
+  }
+  fprintf(fp,"\n");
+  
+  fclose(fp);
+}
+
+void 
+vw::photometry::ReadWeightsParamsFromFile(struct ModelParams *modelParams)
+{
+  FILE *fp;
+
+  fp = fopen((char*)(modelParams->weightFilename).c_str(), "r");
+  if (fp==NULL){
+    return;
+  }
+
+  DiskImageView<PixelGray<float> >   dem(modelParams->DEMFilename);
+  int numRows = dem.rows();
+    
+  modelParams->centerLineDEM = new int[dem.rows()];
+  modelParams->maxDistArrayDEM = new int[dem.rows()];
+  for (int i = 0; i < numRows; i++){
+    fscanf(fp, "%d ", &(modelParams->centerLineDEM[i]));
+  }
+  fscanf(fp, "\n");
+  
+  for (int i = 0; i < numRows; i++){
+    fscanf(fp, "%d ", &(modelParams->maxDistArrayDEM[i]));
+  }
+  fscanf (fp, "\n");
+  
+  DiskImageView<PixelMask<PixelGray<uint8> > >  drg(modelParams->inputFilename);
+  numRows = drg.rows();
+  
+  modelParams->centerLine = new int[drg.rows()];
+  modelParams->maxDistArray = new int[drg.rows()];
+   
+  for (int i = 0; i < numRows; i++){
+    fscanf(fp, "%d ", &(modelParams->centerLine[i]));
+  }
+  fscanf(fp, "\n");
+
+  for (int i = 0; i < numRows; i++){
+    fscanf(fp, "%d ", &(modelParams->maxDistArray[i]));
+  }
+  fscanf(fp,"\n");
+
+  fclose(fp);
 }

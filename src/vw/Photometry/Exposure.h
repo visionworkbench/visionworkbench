@@ -24,11 +24,14 @@ namespace photometry {
   //used for mosaicking, with no reflectance model
   void ComputeExposureAlbedo(ModelParams *currModelParams,
                              GlobalParams globalParams);
-
+  /*
   void AppendExposureInfoToFile(std::string exposureFilename,
                                 ModelParams currModelParams);
   std::vector<float> ReadExposureInfoFile(std::string exposureFilename,
                                           int numEntries);
+  */
+  void SaveExposureInfoToFile(ModelParams modelParams);
+  void ReadExposureInfoFromFile(ModelParams *modelParams);
 
 }} // end vw::photometry
 

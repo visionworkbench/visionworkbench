@@ -339,109 +339,7 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
   return input_img_reflectance;
 
 }
-/*
-//computes a reflectance image
-//author: Ara Nefian
-float computeImageReflectance(std::string input_img_file, std::string DEM_file,
-ModelParams input_img_params, std::string output_img_file)
-{
-unsigned i, l, k;
-int count = 0;
-float avg_reflectance = 0.0;
 
-
-DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
-GeoReference input_img_geo;
-read_georeference(input_img_geo, input_img_file);
-
-DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
-GeoReference input_dem_geo;
-read_georeference(input_dem_geo, DEM_file);
-
-//DiskImageView<PixelMask<PixelGray<uint8> > > output_img_r(output_img_file);
-
-ImageView<PixelMask<PixelGray<float> > > output_img (input_img.cols(), input_img.rows());
-
-
-Vector3 xyz;
-Vector3 xyz_prior;
-int x, y;
-
-ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-ConstantEdgeExtension()),
-BilinearInterpolation());
-
-//initialize the nominator and denomitor images
-for (k = 0 ; k < input_img.rows(); ++k) {
-for (l = 0; l < input_img.cols(); ++l) {
-
-Vector2 input_image_pix(l,k);
-
-if ( is_valid(input_img(l,k)) ) {
-
-//get the corresponding DEM value
-
-Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_image_pix);
-Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_image_pix));
-
-x = (int)input_dem_pix[0];
-y = (int)input_dem_pix[1];
-
-//check for valid DEM coordinates
-if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-
-Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);
-
-Vector2 input_dem_left_pix;
-input_dem_left_pix(0) = x-1;
-input_dem_left_pix(1) = y;
-
-Vector2 input_dem_top_pix;
-input_dem_top_pix(0) = x;
-input_dem_top_pix(1) = y-1;
-
-
-//check for valid DEM pixel value and valid left and top coordinates
-if ((input_dem_left_pix(0) >= 0) && (input_dem_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
-
-Vector2 lon_lat_left = input_dem_geo.pixel_to_lonlat(input_dem_left_pix);
-Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-//Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);//check this
-Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-
-Vector2 lon_lat_top= input_dem_geo.pixel_to_lonlat(input_dem_top_pix);
-Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-//Vector3 xyz_top = input_dem_geo.datum().geodetic_to_cartesian(longlat3_top);//check this
-Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-
-Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-//This part is the only image depedent part - START
-
-float input_img_reflectance;
-input_img_reflectance = computeLunarLambertianReflectanceFromNormal(input_img_params.sunPosition,
-input_img_params.spacecraftPosition, xyz,  normal);
-
-output_img(l, k) = input_img_reflectance;
-
-avg_reflectance = avg_reflectance + output_img(l,k);
-count++;
-
-}
-}
-}
-}
-}
-
-avg_reflectance = avg_reflectance/count;
-printf("avg_reflectance = %f\n", avg_reflectance);
-write_georeferenced_image(output_img_file,
-output_img,
-input_img_geo, TerminalProgressCallback());
-
-return avg_reflectance;
-}
-*/
 
 //computes a reflectance image
 //author: Ara Nefian
@@ -509,7 +407,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
           input_img_top_pix(1) = k-1;
 
           //check for valid DEM pixel value and valid left and top coordinates
-          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
 
             //determine the 3D coordinates of the pixel left of the current pixel
             Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
@@ -638,7 +536,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
           input_img_top_pix(1) = k-1;
 
           //check for valid DEM pixel value and valid left and top coordinates
-          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
 
             //determine the 3D coordinates of the pixel left of the current pixel
             Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));

@@ -544,6 +544,7 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
     std::string shadow_file = input_img_params.shadowFilename;
     std::string output_img_file = input_img_params.outputFilename;
 
+    //DiskImageView<PixelMask<PixelRGB<uint8> > >  input_img(input_img_file);
     DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
     GeoReference input_img_geo;
     read_georeference(input_img_geo, input_img_file);
@@ -596,7 +597,7 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                 input_img_top_pix(1) = k-1;
 
                 //check for valid DEM pixel value and valid left and top coordinates
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
 
                   //determine the 3D coordinates of the pixel left of the current pixel
                   Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
@@ -692,7 +693,7 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                 input_img_top_pix(1) = k-1;
 
                 //check for valid DEM pixel value and valid left and top coordinates
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
 
                   //determine the 3D coordinates of the pixel left of the current pixel
                   Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
@@ -748,42 +749,67 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
       }
     }
 
+
+
+
     //compute the mean albedo value
+    int numValid = 0;
     for (k = 0 ; k < input_img.rows(); ++k) {
        for (l = 0; l < input_img.cols(); ++l) {
 
+         //output_img(l,k).invalidate();
+
          if ( (is_valid(input_img(l,k))) && (numSamples(l, k)!=0) ) {
+
+              output_img(l,k).validate();
+
               if (globalParams.useWeights == 0){
                   output_img(l, k) = output_img(l, k)/numSamples(l,k);
               }
               else{
-                  output_img(l, k) = output_img(l, k)/norm(l,k);
+		output_img(l, k) = output_img(l, k)/norm(l,k);
               }
-           }
-       }
+	      numValid++;
+         }
+
+      }
     }
 
-    /*
+    printf("numValid = %d, total = %d\n", numValid, input_img.rows()*input_img.cols());
+    
     //TODO: compute the albedo variance (standard deviation)
-    for (k = 0 ; k < input_img.rows(); ++k) {
-       for (l = 0; l < input_img.cols(); ++l) {
-
-         if ( (is_valid(input_img(l,k))) && (numSamples(l, k)!=0) ) {
-              output_img(l, k) = output_img(l, k)/numSamples(l,k);
-           }
-       }
-    }
-    */
-
-    //write in the previous DEM
+   
+   
+    //write in the albedo image
     write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
-
+    
+    
+    /*
+    ImageView<PixelMask<PixelRGB<uint8> > > albedo_img (input_img.cols(), input_img.rows());
+    for (k = 0 ; k < input_img.rows(); ++k) {
+       for (l = 0; l < input_img.cols(); ++l) {
+          albedo_img(l,k)[0] = (int)floor(output_img(l,k));
+	  albedo_img(l,k)[1] = (int)floor(output_img(l,k));
+	  albedo_img(l,k)[2] = (int)floor(output_img(l,k));
+	 if (is_valid(output_img(l,k)) ){
+             albedo_img(l,k).validate();
+	  }
+	  else{
+            albedo_img(l,k).invalidate();
+          }
+       }
+    }
+  
+    //write in the albedo image
+    write_georeferenced_image(output_img_file, albedo_img,
+                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+    */
 }
 
 
-//input_files[i], input_files[i-1], output_files[i], output_files[i-1]
+
 //writes the current albedo of the current image in the area of overlap with the previous mage
 //writes the previous albedo in the area of overlap with the current image
 void
@@ -865,7 +891,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
 
                 //check for valid DEM pixel value and valid left and top coordinates
                 //if ((input_dem_left_pix(0) >= 0) && (input_dem_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
 
                   //determine the 3D coordinates of the pixel left of the current pixel
                   Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
@@ -972,7 +998,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
                 input_img_top_pix(1) = k-1;
 
                 //check for valid DEM pixel value and valid left and top coordinates
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
+                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
 
 
                   //determine the 3D coordinates of the pixel left of the current pixel
@@ -1040,14 +1066,18 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
     //finalize the output image
     for (k = 0 ; k < output_img.rows(); ++k) {
        for (l = 0; l < output_img.cols(); ++l) {
-
+           
+           output_img(l,k).invalidate();
+           
            if ( is_valid(output_img(l,k)) ) {
              if ((float)denominator(l, k) != 0){
                 float delta = (float)nominator(l, k)/(float)denominator(l, k);
                 //printf("k = %d, l = %d, output_img = %f, delta = %f\n", k, l, (float)output_img(l,k), delta);
-                output_img(l, k) = (float)output_img_r(l, k) + delta;
+                output_img(l,k) = (float)output_img_r(l, k) + delta;
+                output_img(l,k).validate();
              }
            }
+
        }
     }
 
