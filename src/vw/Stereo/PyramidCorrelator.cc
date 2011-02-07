@@ -16,11 +16,10 @@ using namespace stereo;
 
 std::vector<vw::BBox2i>
 PyramidCorrelator::subdivide_bboxes(ImageView<PixelDisp > const& disparity_map,
-                                    ImageView<PixelMask<uint32> > const& valid_pad,
+                                    ImageView<PixelMask<uint8> > const& valid_pad,
                                     BBox2i const& box) {
   std::vector<BBox2i> result;
-  BBox2i box_div_2 = box;
-  box_div_2.min() = box.min()/2;  box_div_2.max() = box.max()/2;
+  BBox2i box_div_2 = box / 2;
   BBox2f disp_range;
   try {
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));

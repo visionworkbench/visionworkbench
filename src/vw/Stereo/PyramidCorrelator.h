@@ -68,7 +68,7 @@ namespace stereo {
                             std::vector<BBox2i> const& nominal_blocks);
     std::vector<BBox2i>
     subdivide_bboxes(ImageView<PixelDisp> const& disparity_map,
-                     ImageView<PixelMask<uint32> > const& valid_pad,
+                     ImageView<PixelMask<uint8> > const& valid_pad,
                      BBox2i const& box);
 
     template <class ViewT>
@@ -129,7 +129,7 @@ namespace stereo {
                                           left_pyramid[n].rows()));
           search_ranges.push_back(initial_search_range);
         } else {
-          std::vector<vw::uint32> x_kern(m_kernel_size.x()),
+          std::vector<uint8> x_kern(m_kernel_size.x()),
             y_kern(m_kernel_size.y());
           std::fill(x_kern.begin(), x_kern.end(), 1);
           std::fill(y_kern.begin(), y_kern.end(), 1);
@@ -144,8 +144,8 @@ namespace stereo {
           //   apply_mask(copy_mask(constant_view<uint32>(1, disparity_map.cols(),
           //                                              disparity_map.rows()),
           //                        disparity_map));
-          ImageView<PixelMask<uint32> > valid_pad =
-            create_mask(separable_convolution_filter(apply_mask(copy_mask(constant_view<uint32>(1, disparity_map.cols(), disparity_map.rows()), disparity_map)), x_kern, y_kern));
+          ImageView<PixelMask<uint8> > valid_pad =
+            create_mask(separable_convolution_filter(apply_mask(copy_mask(constant_view<uint8>(1, disparity_map.cols(), disparity_map.rows()), disparity_map)), x_kern, y_kern));
 
           nominal_blocks = subdivide_bboxes(disparity_map, valid_pad,
                                             BBox2i(0,0,left_pyramid[n].cols(),
