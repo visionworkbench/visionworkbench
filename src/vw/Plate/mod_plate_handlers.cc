@@ -132,6 +132,8 @@ int vw::platefile::handle_image(const ApacheRequest& r) {
       boost::bind(apr_file_open, &fd, filename.c_str(), APR_READ|APR_FOPEN_SENDFILE_ENABLED, 0, r.writer()->pool),
       boost::bind(apr_file_close, boost::ref(fd)));
 
+  ap_set_content_length(r.writer(), size);
+
   // Use sendfile (if available) to send the proper tile data
   size_t sent;
   apr_status_t ap_ret;
