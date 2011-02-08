@@ -239,33 +239,33 @@ namespace vw {
   /// Affine function (i.e. linear plus translation) image transform functor
   class AffineTransform : public TransformHelper<AffineTransform,ConvexFunction,ConvexFunction> {
   protected:
-    double a, b, c, d;
-    double ai, bi, ci, di;
-    double x, y;
+    double m_a, m_b, m_c, m_d;
+    double m_ai, m_bi, m_ci, m_di;
+    double m_x, m_y;
     AffineTransform() {}
   public:
     AffineTransform( Matrix2x2 const& matrix, Vector2 const& offset ) :
-      a( matrix(0,0) ), b( matrix(0,1) ),
-      c( matrix(1,0) ), d( matrix(1,1) ),
-      x( offset(0) ), y( offset(1) )
+      m_a( matrix(0,0) ), m_b( matrix(0,1) ),
+      m_c( matrix(1,0) ), m_d( matrix(1,1) ),
+      m_x( offset(0) ), m_y( offset(1) )
     {
       Matrix2x2 inv = inverse( matrix );
-      ai = inv(0,0);
-      bi = inv(0,1);
-      ci = inv(1,0);
-      di = inv(1,1);
+      m_ai = inv(0,0);
+      m_bi = inv(0,1);
+      m_ci = inv(1,0);
+      m_di = inv(1,1);
     }
 
     inline Vector2 forward( Vector2 const& p ) const {
-      return Vector2(a*p[0]+b*p[1] + x,
-                     c*p[0]+d*p[1] + y);
+      return Vector2(m_a*p[0]+m_b*p[1] + m_x,
+                     m_c*p[0]+m_d*p[1] + m_y);
     }
 
     inline Vector2 reverse( Vector2 const& p ) const {
-      double px = p[0]-x;
-      double py = p[1]-y;
-      return Vector2(ai*px+bi*py,
-                     ci*px+di*py);
+      double px = p[0]-m_x;
+      double py = p[1]-m_y;
+      return Vector2(m_ai*px+m_bi*py,
+                     m_ci*px+m_di*py);
     }
   };
 
@@ -275,14 +275,14 @@ namespace vw {
     RotateTransform( double theta, Vector2 const& translate ) {
       double c=cos(theta), s=sin(theta);
       Matrix2x2 rotate( c, -s, s, c );
-      Vector2 rhs = rotate*translate - translate;
-      a = rotate(0,0); b = rotate(0,1);
-      c = rotate(1,0); d = rotate(1,1);
-      x = rhs(0);
-      y = rhs(1);
+      Vector2 rhs = translate - (rotate*translate);
+      m_a = rotate(0,0); m_b = rotate(0,1);
+      m_c = rotate(1,0); m_d = rotate(1,1);
+      m_x = rhs(0);
+      m_y = rhs(1);
       rotate = inverse(rotate);
-      ai = rotate(0,0); bi = rotate(0,1);
-      ci = rotate(1,0); di = rotate(1,1);
+      m_ai = rotate(0,0); m_bi = rotate(0,1);
+      m_ci = rotate(1,0); m_di = rotate(1,1);
     }
   };
 
@@ -1116,7 +1116,6 @@ namespace vw {
                      edge_func, interp_func);
   }
 
-  /// Rotate the image.  The user specifies the angle.
   template <class ImageT, class EdgeT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, RotateTransform>
   inline rotate( ImageViewBase<ImageT> const& v,
@@ -1126,11 +1125,10 @@ namespace vw {
                      edge_func, BilinearInterpolation());
   }
 
-  /// Rotate the image.  The user specifies the angle.
   template <class ImageT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, RotateTransform>
   inline rotate( ImageViewBase<ImageT> const& v,
-                 double theta, Vector2 translate ) {
+                 double theta, Vector2 translate=Vector2() ) {
     return transform(v, RotateTransform(theta, translate), /* dims */
                      ZeroEdgeExtension(), BilinearInterpolation());
   }

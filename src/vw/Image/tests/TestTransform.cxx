@@ -99,7 +99,13 @@ TEST( Transform, Rotate ) {
   src(1,1) = b;
 
   ImageView<Px> dst =
-    rotate( src, 2*M_PI, Vector2(src.cols(),src.rows())/2 );
+    rotate( src, 2*M_PI, Vector2(src.cols()-1,src.rows()-1)/2 );
 
   EXPECT_MATRIX_EQ(src, dst);
+
+  {
+    RotateTransform rotatetx(M_PI/2,Vector2(1,1));
+    EXPECT_VECTOR_NEAR( Vector2(1,3), rotatetx.forward( Vector2(3,1) ), 1e-3 );
+    EXPECT_VECTOR_NEAR( Vector2(1,-1),rotatetx.reverse( Vector2(3,1) ), 1e-3 );
+  }
 }
