@@ -86,13 +86,13 @@ int vw::platefile::handle_image(const ApacheRequest& r) {
   // Okay, we've gotten this far without error. Set content type now, so HTTP
   // HEAD returns the correct file type
   if (idx_record.filetype() == "png")
-    r.writer()->content_type = "image/png";
+    ap_set_content_type(r.writer(), "image/png");
   else if (idx_record.filetype() == "jpg")
-    r.writer()->content_type = "image/jpeg";
+    ap_set_content_type(r.writer(), "image/jpeg");
   else if (idx_record.filetype() == "tif")
-    r.writer()->content_type = "image/tiff";
+    ap_set_content_type(r.writer(), "image/tiff");
   else
-    r.writer()->content_type = "application/octet-stream";
+    ap_set_content_type(r.writer(), "application/octet-stream");
 
   if (r.args.get("nocache", 0u) == 1) {
     apr_table_set(r.writer()->headers_out, "Cache-Control", "no-cache");
@@ -158,7 +158,7 @@ int vw::platefile::handle_wtml(const ApacheRequest& r) {
 
   string filename = boost::lexical_cast<string>(match[1]);
 
-  r.writer()->content_type = "application/xml";
+  ap_set_content_type(r.writer(), "application/xml");
 
   if (r.header_only())
     return OK;
