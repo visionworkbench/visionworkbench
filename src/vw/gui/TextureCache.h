@@ -56,9 +56,6 @@ namespace gui {
     std::list<boost::shared_ptr<TextureRequest> > m_requests;
     vw::Mutex m_request_mutex;
 
-  protected:
-    bool m_needs_redraw;
-
   public:
 
     // These are defined in the subclass: vwv_GlPreviewWidget

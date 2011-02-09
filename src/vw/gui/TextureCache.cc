@@ -59,13 +59,11 @@ void CachedTextureRenderer::request_allocation(boost::shared_ptr<TextureRecordBa
                                                boost::shared_ptr<SrcImageResource> tile) {
   vw::Mutex::Lock lock(m_request_mutex);
   m_requests.push_back( boost::shared_ptr<TextureRequest>(new AllocateTextureRequest(texture_record, tile, this)) );
-  m_needs_redraw = true;
 }
 
 void CachedTextureRenderer::request_deallocation(boost::shared_ptr<TextureRecordBase> texture_record) {
   vw::Mutex::Lock lock(m_request_mutex);
   m_requests.push_back( boost::shared_ptr<TextureRequest>(new DeallocateTextureRequest(texture_record, this)) );
-  m_needs_redraw = true;
 }
 
 void CachedTextureRenderer::process_allocation_requests() {

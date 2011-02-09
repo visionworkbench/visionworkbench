@@ -131,13 +131,13 @@ void print_program_info_log(GLuint obj)
   }
 }
 
-void check_gl_errors( void )
+void vw::gui::check_gl_errors()
 {
   GLenum errCode;
   const GLubyte *errStr;
   if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
     errStr = gluErrorString( errCode );
-    std::cout << "OpenGL ERROR (" << int(errCode) << "): " << errStr << "\n";
+    vw_out(ErrorMessage) << "OpenGL ERROR (" << int(errCode) << "): " << errStr << "\n";
   }
 }
 
@@ -146,14 +146,18 @@ void check_gl_errors( void )
 // --------------------------------------------------------------
 
 GlPreviewWidget::GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt,
-                                 int transaction_id) :
-  QGLWidget(frmt, parent) {
+                                 int transaction_id)
+  : QGLWidget(frmt, parent)
+{
 
   // Verify that our OpenGL formatting options stuck
   if (!QGLFormat::hasOpenGL()) {
     vw::vw_out() << "This system has no OpenGL support.\nExiting\n\n";
     exit(1);
   }
+
+  check_gl_errors();
+
   if (!format().sampleBuffers())
     std::cout << "\n\nCould not activate FSAA; results will be suboptimal\n\n";
   if (!format().doubleBuffer())
@@ -216,7 +220,6 @@ void GlPreviewWidget::size_to_fit() {
     m_current_viewport = BBox2(Vector2(-extra/2, 0.0),
                                 Vector2(width-extra/2, height));
   }
-  update();
 }
 
 namespace {
@@ -234,7 +237,6 @@ void GlPreviewWidget::zoom(float scale) {
       m_current_viewport.width()/scale < 20*m_tile_generator->cols() &&
       m_current_viewport.height()/scale < 20*m_tile_generator->rows()) {
     m_current_viewport = (m_current_viewport - makeVector(currentImagePos)) / scale + makeVector(currentImagePos);
-    update();
   }
 }
 
@@ -348,7 +350,6 @@ void GlPreviewWidget::initializeGL() {
   print_program_info_log(m_glsl_program);
 
   // Now that GL is setup, we can start the Qt Timer
-  m_needs_redraw = false;
   m_timer = new QTimer(this);
   connect(m_timer, SIGNAL(timeout()), this, SLOT(timer_callback()));
   m_timer->start(33);
@@ -777,7 +778,6 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
   // Regardless, we store the current position for the text legend.
   lastPos = event->pos();
   updateCurrentMousePosition();
-  update();
 }
 
 void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
@@ -785,7 +785,6 @@ void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
   updateCurrentMousePosition();
   m_last_pixel_sample = m_tile_generator->sample(currentImagePos.x(), currentImagePos.y(),
                                                  m_current_level, m_current_transaction_id);
-  update();
 }
 
 void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
@@ -815,12 +814,10 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
 
 void GlPreviewWidget::enterEvent(QEvent */*event*/) {
   m_show_legend = true;
-  update();
 }
 
 void GlPreviewWidget::leaveEvent(QEvent */*event*/) {
   m_show_legend = false;
-  update();
 }
 
 void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
@@ -831,54 +828,43 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
   case Qt::Key_Plus:   // Increase transaction id
     m_current_transaction_id++;
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_Minus:  // Decrease transaction id
     m_current_transaction_id--;
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_Greater:   // Increase transaction id
     m_current_transaction_id+=100;
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_Less:  // Decrease transaction id
     m_current_transaction_id-=100;
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_E:  // Toggle exact transaction id match
     m_exact_transaction_id_match = !m_exact_transaction_id_match;
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_F:  // Size to fit
     size_to_fit();
     break;
   case Qt::Key_I:  // Toggle bilinear/nearest neighbor interp
     m_bilinear_filter = !m_bilinear_filter;
-    update();
     break;
   case Qt::Key_C:  // Activate colormap
     m_use_colormap = !m_use_colormap;
-    update();
     break;
   case Qt::Key_H:  // Activate hillshade
     m_hillshade_display = !m_hillshade_display;
-    update();
     break;
   case Qt::Key_T:  // Activate tile boundaries
     m_show_tile_boundaries = !m_show_tile_boundaries;
-    update();
     break;
   case Qt::Key_R: // Reload the image
     m_gl_texture_cache->clear();
-    update();
     break;
   case Qt::Key_N:  // Normalize the image
     this->normalize();
-    update();
     break;
   case Qt::Key_G:  // Gain adjustment mode
     if (m_adjust_mode == GainAdjustment) {
@@ -889,7 +875,6 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
       s << "Gain: " << log(m_gain)/log(2) << " f-stops\n";
       m_legend_status = s.str();
     }
-    update();
     break;
   case Qt::Key_O:  // Offset adjustment mode
     if (m_adjust_mode == OffsetAdjustment) {
@@ -900,7 +885,6 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
       s << "Offset: " << m_offset;
       m_legend_status = s.str();
     }
-    update();
     break;
   case Qt::Key_V:  // Gamma adjustment mode
     if (m_adjust_mode == GammaAdjustment) {
@@ -911,27 +895,21 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
       s << "Gamma: " << m_gamma;
       m_legend_status = s.str();
     }
-    update();
     break;
   case Qt::Key_1:  // Display red channel only
     m_display_channel = DisplayR;
-    update();
     break;
   case Qt::Key_2:  // Display green channel only
     m_display_channel = DisplayG;
-    update();
     break;
   case Qt::Key_3:  // Display blue channel only
     m_display_channel = DisplayB;
-    update();
     break;
   case Qt::Key_4:  // Display alpha channel only
     m_display_channel = DisplayA;
-    update();
     break;
   case Qt::Key_0:  // Display all color channels
     m_display_channel = DisplayRGBA;
-    update();
     break;
   default:
     QWidget::keyPressEvent(event);
