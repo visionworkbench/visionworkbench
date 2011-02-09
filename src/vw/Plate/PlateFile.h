@@ -189,8 +189,8 @@ namespace platefile {
     void write_update(ImageViewBase<ViewT> const& view,
                       int col, int row, int level, Transaction transaction_id) {
 
-      std::string type;
-      if (this->default_file_type() == "auto") {
+      std::string type = this->default_file_type();
+      if (type == "auto") {
         // This specialization saves us TONS of space by storing opaque tiles
         // as jpgs.  However it does come at a small cost of having to conduct
         // this extra check to see if the tile is opaque or not.
