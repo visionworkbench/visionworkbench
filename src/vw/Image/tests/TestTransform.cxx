@@ -109,3 +109,42 @@ TEST( Transform, Rotate ) {
     EXPECT_VECTOR_NEAR( Vector2(1,-1),rotatetx.reverse( Vector2(3,1) ), 1e-3 );
   }
 }
+
+TEST( Transform, Compose ) {
+
+  { // Test looped transform (translation only)
+    TransformRef tx( compose(TranslateTransform( 2, 2 ),
+                             TranslateTransform(-2,-2)) );
+    for ( size_t i = 0; i < 4; i++ ) {
+      for ( size_t j = 0; j < 4; j++ ) {
+        EXPECT_VECTOR_NEAR( Vector2(i,j),
+                            tx.forward(Vector2(i,j)), 1e-3 );
+        EXPECT_VECTOR_NEAR( Vector2(i,j),
+                            tx.reverse(Vector2(i,j)), 1e-3 );
+      }
+    }
+  }
+
+  { // Test looped transform (rotation only)
+    TransformRef tx( compose(RotateTransform( M_PI/3, Vector2(2,2) ),
+                             RotateTransform( -M_PI/3, Vector2(2,2) ) ) );
+    for ( size_t i = 0; i < 4; i++ ) {
+      for ( size_t j = 0; j < 4; j++ ) {
+        EXPECT_VECTOR_NEAR( Vector2(i,j),
+                            tx.forward(Vector2(i,j)), 1e-3 );
+        EXPECT_VECTOR_NEAR( Vector2(i,j),
+                            tx.reverse(Vector2(i,j)), 1e-3 );
+      }
+    }
+  }
+
+  { // Test rotate transform and translation combined.
+    TransformRef tx( compose( RotateTransform( M_PI/2, Vector2() ),
+                              TranslateTransform( 1, 1 ) ) );
+    EXPECT_VECTOR_NEAR( Vector2(-1,1),
+                        tx.forward(Vector2()), 1e-3 );
+    EXPECT_VECTOR_NEAR( Vector2(),
+                        tx.reverse(Vector2(-1,1)), 1e-3 );
+  }
+
+}
