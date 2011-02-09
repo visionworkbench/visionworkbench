@@ -213,7 +213,15 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
 
 void GdalIOCompress::open() {
   m_driver = (GDALDriver*)GDALGetDriverByName("GTiff");
-  VW_ASSERT(GDALGetMetadataItem(m_driver, GDAL_DCAP_VIRTUALIO, NULL ), NoImplErr() << "GDAL's current tiff driver does not support virtual IO");
+
+  // GDAL_DCAP_VIRTUALIO was added for 1.5.0, but GTiff's support for virtual
+  // io predates that. Thus, the check is commented out. Uncomment it if this
+  // is code extended beyond tiff.
+
+  //#define VW_GDAL_BUILD_VERSION(major, minor, rev, build) (major*1000+minor*100+rev*10+build)
+  //#if GDAL_VERSION_NUM >= VW_GDAL_BUILD_VERSION(1,5,0,0)
+  //  VW_ASSERT(GDALGetMetadataItem(m_driver, GDAL_DCAP_VIRTUALIO, NULL ), NoImplErr() << "GDAL's current tiff driver does not support virtual IO");
+  //#endif
 
   this->bind();
   m_cstride = num_channels(fmt().pixel_format) * channel_size(fmt().channel_type);
