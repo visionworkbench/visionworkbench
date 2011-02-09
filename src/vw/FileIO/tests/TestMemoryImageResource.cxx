@@ -87,9 +87,13 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
   }
 
   std::string type(fs::extension(GetParam()));
-  boost::scoped_ptr<DstMemoryImageResource> dst(DstMemoryImageResource::create(type, src.format()));
-  write_image(*dst, src);
-  boost::scoped_ptr<SrcImageResource> src2(SrcMemoryImageResource::open(type, dst->data(), dst->size()));
+
+  boost::scoped_ptr<SrcImageResource> src2;
+  boost::scoped_ptr<DstMemoryImageResource> dst;
+
+  ASSERT_NO_THROW(dst.reset(DstMemoryImageResource::create(type, src.format())));
+  EXPECT_NO_THROW(write_image(*dst, src));
+  ASSERT_NO_THROW(src2.reset(SrcMemoryImageResource::open(type, dst->data(), dst->size())));
 
   ImageView<Px> img1;
   read_image(img1, *src2);
@@ -104,6 +108,9 @@ vector<string> test_paths() {
 #endif
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   v.push_back("rgb2x2.png");
+#endif
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  v.push_back("rgb2x2.tif");
 #endif
     return v;
 }

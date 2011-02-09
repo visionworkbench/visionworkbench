@@ -39,8 +39,8 @@ hdf_sources = DiskImageResourceHDF.cc
 endif
 
 if HAVE_PKG_GDAL
-gdal_headers = DiskImageResourceGDAL.h
-gdal_sources = DiskImageResourceGDAL.cc
+gdal_headers = DiskImageResourceGDAL.h  MemoryImageResourceGDAL.h  GdalIO.h
+gdal_sources = DiskImageResourceGDAL.cc MemoryImageResourceGDAL.cc GdalIO.cc
 endif
 
 include_HEADERS = \

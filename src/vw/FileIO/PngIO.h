@@ -44,7 +44,7 @@ class PngIOCompress : public PngIO, public ScanlineWriteBackend {
 
     void open();
     bool ready() const;
-    void write(const uint8* buffer, size_t rows, size_t cols, size_t bufsize);
+    void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes);
 };
 
 }}} // namespace vw::fileio::detail

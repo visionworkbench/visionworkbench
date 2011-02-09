@@ -129,8 +129,9 @@ bool PngIOCompress::ready() const {
   return !m_written;
 }
 
-void PngIOCompress::write(const uint8* data, size_t rows, size_t cols, size_t bufsize) {
+void PngIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_t cols, size_t planes) {
   VW_ASSERT(this->ready(), LogicErr() << "PngIO: Cannot rewrite");
+  VW_ASSERT(planes == 1, LogicErr() << "PNG does not support multi-plane images");
 
   size_t skip = cols * chan_bytes();
   VW_ASSERT(bufsize >= rows * skip, LogicErr() << "Buffer is too small");

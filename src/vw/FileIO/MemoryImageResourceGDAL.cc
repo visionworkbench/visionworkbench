@@ -4,35 +4,48 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#include <vw/FileIO/MemoryImageResourceJPEG.h>
-#include <vw/FileIO/JpegIO.h>
+#include <vw/FileIO/MemoryImageResourceGDAL.h>
+#include <vw/FileIO/GdalIO.h>
 #include <vw/Core/Debugging.h>
+#include <boost/format.hpp>
+
+namespace {
+  std::string make_fn(const char* name, unsigned tid, const void* key) {
+    static const boost::format GDAL_MEM_FILENAME("/vsimem/vw_%s_%u_%p");
+    return std::string(boost::str(boost::format(GDAL_MEM_FILENAME) % name % tid % key));
+  }
+}
 
 namespace vw {
 
-class SrcMemoryImageResourceJPEG::Data : public fileio::detail::JpegIODecompress {
+class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress {
     boost::shared_array<const uint8> m_data;
     size_t m_len;
   protected:
-    virtual void bind() { fileio::detail::jpeg_ptr_src(&m_ctx, m_data.get(), m_len); }
+    virtual void bind() {
+      const std::string src_fn(make_fn("src", Thread::id(), m_data.get()));
+      VSIFCloseL(VSIFileFromMemBuffer(src_fn.c_str(), const_cast<uint8*>(m_data.get()), m_len, false));
+      m_dataset.reset(reinterpret_cast<GDALDataset*>(GDALOpen(src_fn.c_str(), GA_ReadOnly)), GDALClose);
+      if (!m_dataset) {
+        VSIUnlink(src_fn.c_str());
+        vw_throw(IOErr() << "Unable to open memory dataset.");
+      }
+    }
+    Data* rewind() const {vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported");}
   public:
-    Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_len)); r->open(); return r.release();}
     Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {}
 };
 
-SrcMemoryImageResourceJPEG::SrcMemoryImageResourceJPEG(boost::shared_array<const uint8> buffer, size_t len)
+SrcMemoryImageResourceGDAL::SrcMemoryImageResourceGDAL(boost::shared_array<const uint8> buffer, size_t len)
   : m_data(new Data(buffer, len)) {
     m_data->open();
 }
 
-void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbox ) const {
+void SrcMemoryImageResourceGDAL::read( ImageBuffer const& dst, BBox2i const& bbox ) const {
   VW_ASSERT( dst.format.cols == size_t(bbox.width()) && dst.format.rows == size_t(bbox.height()),
              ArgumentErr() << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
   VW_ASSERT( dst.format.cols == size_t(cols()) && dst.format.rows == size_t(rows()),
              ArgumentErr() << VW_CURRENT_FUNCTION << ": Partial reads are not supported");
-
-  if (!m_data->ready())
-    m_data.reset(m_data->rewind());
 
   // shared rather than scoped so we get a deleter.
   boost::shared_array<uint8> buf;
@@ -62,33 +75,35 @@ void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbo
   convert(dst, src, true);
 }
 
-ImageFormat SrcMemoryImageResourceJPEG::format() const {
+ImageFormat SrcMemoryImageResourceGDAL::format() const {
   return m_data->fmt();
 }
 
-class DstMemoryImageResourceJPEG::Data : public fileio::detail::JpegIOCompress {
-  std::vector<uint8> m_data;
-
+class DstMemoryImageResourceGDAL::Data : public fileio::detail::GdalIOCompress {
   protected:
-    virtual void bind() { fileio::detail::jpeg_vector_dest(&m_ctx, &m_data); }
+    virtual void bind() { m_fn = make_fn("dst", Thread::id(), this); }
   public:
-    Data(const ImageFormat &fmt) : JpegIOCompress(fmt) {}
-    const uint8* data() const {return &m_data[0];}
-    size_t size() const {return m_data.size();}
+    Data(const ImageFormat &fmt) : GdalIOCompress(fmt) {}
+    ~Data() {
+      if (!m_fn.empty())
+          VSIUnlink(m_fn.c_str()); // ignore return code, we can't do anything if it failed
+    }
+    const uint8* data() const { return VSIGetMemFileBuffer( m_fn.c_str(), 0, FALSE); }
+    size_t size() const {vsi_l_offset s; VSIGetMemFileBuffer( m_fn.c_str(), &s, FALSE); return s; }
 };
 
 
-DstMemoryImageResourceJPEG::DstMemoryImageResourceJPEG(const ImageFormat& fmt)
+DstMemoryImageResourceGDAL::DstMemoryImageResourceGDAL(const ImageFormat& fmt)
   : m_data(new Data(fmt))
 {
   m_data->open();
 }
 
-void DstMemoryImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox ) {
+void DstMemoryImageResourceGDAL::write( ImageBuffer const& src, BBox2i const& bbox ) {
   size_t width = bbox.width(), height = bbox.height(), planes = src.format.planes;
   VW_ASSERT( src.format.cols == width && src.format.rows == height,
              ArgumentErr() << VW_CURRENT_FUNCTION << ": partial writes not supported." );
-  VW_ASSERT(m_data->ready(), LogicErr() << "Multiple writes to one DstMemoryImageResourceJPEG. Probably a bug?");
+  VW_ASSERT(m_data->ready(), LogicErr() << "Multiple writes to one DstMemoryImageResourceGDAL. Probably a bug?");
 
   // shared rather than scoped so we get a deleter.
   boost::shared_array<uint8> buf;
@@ -116,11 +131,11 @@ void DstMemoryImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bb
   m_data->write(buf.get(), bufsize, width, height, planes);
 }
 
-const uint8* DstMemoryImageResourceJPEG::data() const {
+const uint8* DstMemoryImageResourceGDAL::data() const {
   return m_data->data();
 }
 
-size_t DstMemoryImageResourceJPEG::size() const {
+size_t DstMemoryImageResourceGDAL::size() const {
   return m_data->size();
 }
 

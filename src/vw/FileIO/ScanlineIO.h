@@ -48,7 +48,9 @@ class ScanlineReadBackend : public ScanlineBackend {
 class ScanlineWriteBackend : public ScanlineBackend {
   public:
     // encode data from buffer. buffer must hold rows * cols * chan_bytes() bytes
-    virtual void write(const uint8* buffer, size_t rows, size_t cols, size_t bufsize) = 0;
+    virtual void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes) = 0;
+    virtual const uint8* data() const = 0;
+    virtual size_t size() const = 0;
 };
 
 }}} // namespace vw::fileio::detail

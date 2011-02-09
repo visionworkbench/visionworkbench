@@ -84,7 +84,8 @@ class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {
     }
   public:
     Data(const ImageFormat &fmt) : PngIOCompress(fmt) {}
-    const std::vector<uint8>* data() const {return &m_data;}
+    const uint8* data() const {return &m_data[0];}
+    size_t size() const {return m_data.size();}
 
     static void write_fn( png_structp ctx, png_bytep data, png_size_t length )
     {
@@ -103,7 +104,7 @@ DstMemoryImageResourcePNG::DstMemoryImageResourcePNG(const ImageFormat& fmt)
 }
 
 void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox ) {
-  size_t width = bbox.width(), height = bbox.height();
+  size_t width = bbox.width(), height = bbox.height(), planes = src.format.planes;
   VW_ASSERT( src.format.cols == width && src.format.rows == height,
              ArgumentErr() << VW_CURRENT_FUNCTION << ": partial writes not supported." );
   VW_ASSERT(m_data->ready(), LogicErr() << "Multiple writes to one DstMemoryImageResourcePNG. Probably a bug?");
@@ -114,7 +115,7 @@ void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbo
   // no conversion necessary?
   bool simple = src.format.simple_convert(m_data->fmt());
 
-  size_t bufsize = m_data->chan_bytes() * width * height;
+  size_t bufsize = m_data->chan_bytes() * width * height * planes;
 
   // If we don't need to convert, we write directly from the src buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
@@ -131,15 +132,15 @@ void DstMemoryImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbo
     convert(dst, src, true);
   }
 
-  m_data->write(buf.get(), width, height, bufsize);
+  m_data->write(buf.get(), bufsize, width, height, planes);
 }
 
 const uint8* DstMemoryImageResourcePNG::data() const {
-  return &(m_data->data()->operator[](0));
+  return m_data->data();
 }
 
 size_t DstMemoryImageResourcePNG::size() const {
-  return m_data->data()->size();
+  return m_data->size();
 }
 
 

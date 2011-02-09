@@ -34,6 +34,7 @@
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Core/Cache.h>
+#include <vw/FileIO/GdalIO.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -45,23 +46,6 @@ namespace vw {
 }
 
 namespace vw {
-
-  // GdalDatasetGenerator reopens a read-only GDAL Dataset if we have to
-  // invalidate one in our cache.
-  class GdalDatasetGenerator {
-    std::string m_filename;
-  public:
-    typedef GDALDataset value_type;
-
-    GdalDatasetGenerator( std::string filename ) : m_filename( filename ) {}
-
-    size_t size() const {
-      return 1;
-    }
-
-    boost::shared_ptr<GDALDataset> generate() const;
-  };
-
 
   class DiskImageResourceGDAL : public DiskImageResource {
     bool nodata_read_ok(double& value) const;
@@ -163,8 +147,7 @@ namespace vw {
     static Mutex &global_lock();
 
   private:
-    static vw::Cache& gdal_cache();
-    void initialize_write_resource();
+    void initialize_write_resource_locked();
     Vector2i default_block_size();
 
     std::string m_filename;
@@ -172,7 +155,7 @@ namespace vw {
     std::vector<PixelRGBA<uint8> > m_palette;
     Vector2i m_blocksize;
     Options m_options;
-    Cache::Handle<GdalDatasetGenerator> m_dataset_cache_handle;
+    Cache::Handle<fileio::detail::GdalDatasetGenerator> m_read_dataset_ptr;
   };
 
   void UnloadGDAL();
