@@ -23,6 +23,7 @@ namespace gui {
     public:
       struct Result {
         int status;
+        std::string msg;
         std::string mimetype;
         boost::shared_array<const uint8> data;
         size_t size;

@@ -77,13 +77,16 @@ BlockingDownloader::Result* BlockingDownloader::get(const Url& u_, int transacti
   m_request = m_http->get(url.string().c_str(), 0);
   wait.exec();
 
-  vw_out() << "[" << m_result->status << ", " << m_result->size << "]\n";
+  vw_out() << "[" << m_result->status << ", " << m_result->size << "]";
 
-  if (m_result->status > 0)
+  if (m_result->status > 0) {
+    vw_out() << '\n';
     return m_result.release();
+  }
   else {
     if (m_result->status == 0)
-      vw_out(WarningMessage, "console") << "Timed out?\n";
+      m_result->msg += "Timed out?";
+    vw_out() << " [" << m_result->msg << "]\n";
     return 0;
   }
 }
@@ -93,7 +96,7 @@ void BlockingDownloader::onRequestFinished(int request_id, bool error) {
     return;
 
   if (error) {
-    vw_out(WarningMessage, "console") << "Connection Error: " << m_http->errorString().toStdString() << "\n";
+    m_result->msg = std::string("Connection Error: ") + m_http->errorString().toStdString();
     m_result->status = -1;
     return;
   }
