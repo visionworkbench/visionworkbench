@@ -36,7 +36,7 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
   // level we are looking at.
   BBox2i image_bbox(0,0,m_rsrc->cols(),m_rsrc->rows());
   BBox2i tile_bbox = tile_to_bbox(this->tile_size(), tile_info.col,
-                                  tile_info.row, tile_info.level, this->num_levels());
+                                  tile_info.row, tile_info.level, this->num_levels()-1);
 
   // Check to make sure the image intersects the bounding box.  Print
   // an error to screen and return an empty tile if it does not.
@@ -160,9 +160,9 @@ Vector2i ImageTileGenerator::tile_size() const {
 }
 
 int32 ImageTileGenerator::num_levels() const {
-  int32 max_dimension = std::max(this->cols(), this->rows());
-  int32 max_tilesize = std::max(this->tile_size()[0], this->tile_size()[1]);
-  return 1 + boost::numeric_cast<int32>(ceil(log(float(max_dimension) / float(max_tilesize)) / log(2)));
+  float tiles_x = float(this->cols()) / float(this->tile_size()[0]);
+  float tiles_y = float(this->rows()) / float(this->tile_size()[1]);
+  return 1 + boost::numeric_cast<int32>(ceil(log(std::max(tiles_x, tiles_y)) / log(2)));
 }
 
 }} // namespace vw::gui
