@@ -226,7 +226,10 @@ namespace vw {
   void DiskImageResourceGDAL::open( std::string const& filename )
   {
     Mutex::Lock lock(d::gdal());
-    m_read_dataset_ptr = d::gdal_cache().insert(d::GdalDatasetGenerator(filename));
+    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), GDALClose);
+
+    if( !m_read_dataset_ptr )
+      vw_throw( ArgumentErr() << "GDAL: Failed to open " << filename << "." );
 
     boost::shared_ptr<GDALDataset> dataset(get_dataset_ptr());
 
@@ -516,8 +519,10 @@ namespace vw {
 
   // Provides access to the underlying GDAL Dataset object.
   boost::shared_ptr<GDALDataset> DiskImageResourceGDAL::get_dataset_ptr() const {
-    if (m_write_dataset_ptr) return m_write_dataset_ptr;
-    else return m_read_dataset_ptr;
+    if (m_write_dataset_ptr)  return m_write_dataset_ptr;
+    else if(m_read_dataset_ptr) return m_read_dataset_ptr;
+    else
+      vw_throw(LogicErr() << "GDAL: no dataset open!");
   }
 
   // Provides access to the global GDAL lock, for users who need to go

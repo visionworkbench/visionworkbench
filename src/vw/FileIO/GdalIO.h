@@ -1,5 +1,5 @@
-#ifndef __VW_FILEIO_JPEGIO_H__
-#define __VW_FILEIO_JPEGIO_H__
+#ifndef __VW_FILEIO_GDALIO_H__
+#define __VW_FILEIO_GDALIO_H__
 
 #include <vw/FileIO/ScanlineIO.h>
 
@@ -10,36 +10,19 @@ extern "C" {
 
 namespace vw {
   class Mutex;
-  class Cache;
 
 namespace fileio {
 namespace detail {
 
 Mutex& gdal() VW_WARN_UNUSED;
-Cache& gdal_cache() VW_WARN_UNUSED;
-
-class GdalDatasetGenerator {
-    std::string m_filename;
-  public:
-    typedef GDALDataset value_type;
-    GdalDatasetGenerator( std::string filename ) : m_filename( filename ) {}
-
-    size_t size() const { return 1; }
-
-    boost::shared_ptr<GDALDataset> generate() const;
-};
-
 
 // These classes exist to share code between the on-disk and in-memory versions
 // of the relevant image resources. They are not intended for use by users
 // (thus the detail namespace).
 
-class GdalIO {
+class GdalIODecompress : public ScanlineReadBackend {
   protected:
     boost::shared_ptr<GDALDataset> m_dataset;
-};
-
-class GdalIODecompress : public GdalIO, public ScanlineReadBackend {
   public:
     GdalIODecompress();
     virtual ~GdalIODecompress();
@@ -49,10 +32,11 @@ class GdalIODecompress : public GdalIO, public ScanlineReadBackend {
     void read(uint8* data, size_t bufsize);
 };
 
-class GdalIOCompress : public GdalIO, public ScanlineWriteBackend {
+class GdalIOCompress : public ScanlineWriteBackend {
   protected:
-    GDALDriver *m_driver;
     std::string m_fn;
+    GDALDriver *m_driver;
+    boost::shared_ptr<GDALDataset> m_dataset;
 
   public:
     // cols/rows/planes ignored in imageformat

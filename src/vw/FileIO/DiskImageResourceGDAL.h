@@ -33,8 +33,6 @@
 #include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Math/Matrix.h>
-#include <vw/Core/Cache.h>
-#include <vw/FileIO/GdalIO.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -155,7 +153,7 @@ namespace vw {
     std::vector<PixelRGBA<uint8> > m_palette;
     Vector2i m_blocksize;
     Options m_options;
-    Cache::Handle<fileio::detail::GdalDatasetGenerator> m_read_dataset_ptr;
+    boost::shared_ptr<GDALDataset> m_read_dataset_ptr;
   };
 
   void UnloadGDAL();

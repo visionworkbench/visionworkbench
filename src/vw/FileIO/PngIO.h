@@ -1,5 +1,5 @@
-#ifndef __VW_FILEIO_JPEGIO_H__
-#define __VW_FILEIO_JPEGIO_H__
+#ifndef __VW_FILEIO_PNGIO_H__
+#define __VW_FILEIO_PNGIO_H__
 
 #include <vw/FileIO/ScanlineIO.h>
 

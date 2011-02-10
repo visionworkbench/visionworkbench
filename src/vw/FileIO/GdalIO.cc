@@ -1,8 +1,6 @@
 #include <vw/FileIO/GdalIO.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
-#include <vw/Core/Settings.h>
-#include <vw/Core/Cache.h>
 
 static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const char *pszErrorMsg) {
   vw::MessageLevel lvl;
@@ -36,20 +34,17 @@ static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const c
 namespace {
   vw::RunOnce _gdal_init_once = VW_RUNONCE_INIT;
   vw::Mutex* _gdal_mutex;
-  vw::Cache* _gdal_cache;
 
   void init_gdal() {
     CPLPushErrorHandler(gdal_error_handler);
-    // If we run out of handles, GDAL will start closing them behind the
-    // scenes. We maintain our own cache so we never hit their limit.
-    CPLSetConfigOption("GDAL_MAX_DATASET_POOL_SIZE", "200");
+    // If we run out of handles, GDAL error out. If you have more than 400
+    // open, you probably have a bug.
+    CPLSetConfigOption("GDAL_MAX_DATASET_POOL_SIZE", "400");
     GDALAllRegister();
-    _gdal_cache = new vw::Cache(200);
     _gdal_mutex = new vw::Mutex();
   }
   void kill_gdal() {
     delete _gdal_mutex;
-    delete _gdal_cache;
     GDALDumpOpenDatasets(stderr);
     GDALDestroyDriverManager();
     CPLDumpSharedList(0);
@@ -101,18 +96,6 @@ vw::Mutex& gdal() {
   _gdal_init_once.run( init_gdal );
   return *_gdal_mutex;
 }
-vw::Cache& gdal_cache() {
-  _gdal_init_once.run( init_gdal );
-  return *_gdal_cache;
-}
-
-boost::shared_ptr<GDALDataset> GdalDatasetGenerator::generate() const {
-  GDALDataset *dataset = (GDALDataset*) GDALOpen( m_filename.c_str(), GA_ReadOnly );
-  if ( !dataset )
-    vw_throw(ArgumentErr() << "DiskImageResourceGDAL: Could not open \"" << m_filename << "\"");
-  return boost::shared_ptr<GDALDataset>(dataset, GDALClose);
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Decompress
@@ -197,6 +180,8 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   m_dataset.reset(
     reinterpret_cast<GDALDataset*>(GDALCreate( m_driver, m_fn.c_str(), cols, rows, num_channels(m_fmt.pixel_format), channel_vw_to_gdal(fmt().channel_type), NULL)),
     GDALClose);
+
+  VW_ASSERT(m_dataset, IOErr() << "GDAL: Failed to open file for create");
 
   if (fmt().pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
