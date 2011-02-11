@@ -129,6 +129,8 @@ boost::shared_ptr<SrcImageResource> WebTileGenerator::generate_tile(TileLocator 
     return Ptr(make_point_src(pixel_t(1.f, 0.f, 0.f, 1.f)));
   else if (r->status == 404)
     return Ptr(make_point_src(pixel_t(0.f, 0.1f, 0.f, 1.f)));
+  else if (r->status != 200)
+    return Ptr(make_point_src(pixel_t(1.f, 0.f, 0.f, 1.f)));
 
   return Ptr(SrcMemoryImageResource::open( r->mimetype, r->data, r->size));
 }
