@@ -67,23 +67,24 @@ TEST_P(MemoryImageResourceTest, BasicRead) {
 }
 
 TEST_P(MemoryImageResourceTest, BasicWriteRead) {
-  typedef PixelRGB<uint8> Px;
+  typedef PixelRGBA<uint8> Px;
   ImageView<Px> src;
 
   {
-    typedef PixelRGB<float> Py;
+    typedef PixelRGBA<float> Py;
     const size_t SIZE = 64;
     ImageView<Py> src_(SIZE,SIZE);
     for (size_t row = 0; row < SIZE; ++row) {
       for (size_t col = 0; col < SIZE; ++col) {
         src_(col, row) =
-          Py(float(row)/SIZE, float(col)/SIZE, 1 - ((float(row) + col) / 2 / SIZE));
+          Py(float(row)/SIZE, float(col)/SIZE, 1 - ((float(row) + col) / 2 / SIZE), 1);
       }
     }
     // jpeg is lossy, and has trouble with noise-free images. Add some noise and blur to help it out.
     boost::rand48 gen(uint64(test::get_random_seed()));
     src_ += gaussian_noise_view(gen, 0.008, 0.004, src_);
     src = gaussian_filter(pixel_cast<Px>(normalize(src_, 0, 255)), 2, 2, 4, 4);
+    vw::fill(vw::select_channel(src, 3), 255);
   }
 
   std::string type(fs::extension(GetParam()));
