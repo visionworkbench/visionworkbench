@@ -369,7 +369,8 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
   Vector3 xyz;
   Vector3 xyz_prior;
-  int x, y;
+  //int x, y;
+  float x, y;
 
   ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
                                                                               ConstantEdgeExtension()),
@@ -389,8 +390,10 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
         Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_image_pix);
         Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_image_pix));
 
-        x = (int)input_dem_pix[0];
-        y = (int)input_dem_pix[1];
+        //x = (int)input_dem_pix[0];
+        //y = (int)input_dem_pix[1];
+	x = (float)input_dem_pix[0];
+        y = (float)input_dem_pix[1];
 
         //check for valid DEM coordinates to be within the DEM boundaries
         if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
@@ -407,7 +410,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
           input_img_top_pix(1) = k-1;
 
           //check for valid DEM pixel value and valid left and top coordinates
-          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
+          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
 
             //determine the 3D coordinates of the pixel left of the current pixel
             Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
