@@ -10,6 +10,7 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/LinearAlgebra.h>
+#include <vw/Math/MatrixSparseSkyline.h>
 #include <test/Helpers.h>
 
 #include <vw/Camera/PinholeModel.h>
@@ -194,6 +195,43 @@ protected:
   boost::shared_ptr<ControlNetwork> cnet;
 };
 
+// Test Matrix Forms
+TEST( MatrixObjects, Combined ) {
+  // Checking that SparseSkyline works
+  math::MatrixSparseSkyline<double> sparse(3,3);
+  ASSERT_EQ( 3, sparse.cols() );
+  ASSERT_EQ( 3, sparse.rows() );
+  sparse(0,0) = 1; sparse(1,1) = 4;
+  sparse(2,2) = 2; sparse(0,2) = 3;
+  ASSERT_EQ( 1, sparse(0,0) );
+  ASSERT_EQ( 4, sparse(1,1) );
+  ASSERT_EQ( 2, sparse(2,2) );
+  ASSERT_EQ( 3, sparse(0,2) );
+  ASSERT_EQ( 3, sparse(2,0) );
+  Vector<size_t> skyline = sparse.skyline();
+  ASSERT_EQ( 3, skyline.size() );
+  EXPECT_EQ( 0, skyline[0] );
+  EXPECT_EQ( 1, skyline[1] );
+  EXPECT_EQ( 0, skyline[2] );
+
+  // Try reorganization
+  std::vector<size_t> reorganize(3);
+  reorganize[0] = 1;
+  reorganize[1] = 2;
+  reorganize[2] = 0;
+  Matrix<double> rsparse =
+    math::MatrixReorganize<math::MatrixSparseSkyline<double> >( sparse, reorganize );
+  ASSERT_EQ( 3, rsparse.cols() );
+  ASSERT_EQ( 3, rsparse.rows() );
+  std::string warning_message("NOTE: This failure is mostly likely an indication of a compiler bug. If you are using OSX's GCC4.0.1, please consider switching to OSX's GCC 4.2 or higher if available. If you are seeing this error on a different compiler, please report to vision-workbench@lists.nasa.gov.\n");
+  ASSERT_EQ( 4, rsparse(0,0) ) << warning_message;
+  ASSERT_EQ( 2, rsparse(1,1) ) << warning_message;
+  ASSERT_EQ( 1, rsparse(2,2) ) << warning_message;
+  ASSERT_EQ( 3, rsparse(1,2) ) << warning_message;
+  ASSERT_EQ( 3, rsparse(2,1) ) << warning_message;
+  ASSERT_EQ( 0, rsparse(0,1) ) << warning_message;
+  ASSERT_EQ( 0, rsparse(0,2) ) << warning_message;
+}
 
 // Null Tests
 // -----------------------
@@ -318,7 +356,7 @@ TEST_F( ComparisonTest, Ref_VS_Sparse ) {
 
   // Comparison
   for ( uint32 i = 0; i < 5; i++ )
-    EXPECT_VECTOR_NEAR( ref_solution[i],
+    ASSERT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
                         1e-3 );
 }
@@ -362,7 +400,7 @@ TEST_F( ComparisonTest, RobustRef_VS_RobustSparse ) {
 
   // Comparison
   for ( uint32 i = 0; i < 5; i++ )
-    EXPECT_VECTOR_NEAR( ref_solution[i],
+    ASSERT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
                         1e-2 );
 }
@@ -404,7 +442,7 @@ TEST_F( ComparisonTest, RobustSparse_VS_RobustSparseKGCP ) {
 
   // Comparison
   for ( uint32 i = 0; i < 5; i++ )
-    EXPECT_VECTOR_NEAR( spr_solution[i],
+    ASSERT_VECTOR_NEAR( spr_solution[i],
                         sprkgcp_solution[i],
                         1e-3 );
 }
