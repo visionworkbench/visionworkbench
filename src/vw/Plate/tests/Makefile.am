@@ -24,10 +24,11 @@ TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
 TestIndexPage_SOURCES         = TestIndexPage.cxx
 TestLocalIndex_SOURCES        = TestLocalIndex.cxx
 TestModPlate_SOURCES          = TestModPlate.cxx
+TestPlateManager_SOURCES      = TestPlateManager.cxx
 TestRpc_SOURCES               = TestRpc.cxx $(protocol_sources)
 TestRpcChannel_SOURCES        = TestRpcChannel.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
-TestPlateManager_SOURCES      = TestPlateManager.cxx
+TestTransactions_SOURCES      = TestTransactions.cxx
 
 if HAVE_PYTHON
 check_SCRIPTS  += TestModPlateRegression.py
@@ -40,10 +41,11 @@ check_PROGRAMS = \
   TestIndexPage \
   TestLocalIndex \
   TestModPlate \
+  TestPlateManager \
   TestRpc \
   TestRpcChannel \
   TestTileManipulation \
-  TestPlateManager
+  TestTransactions
 
 if MAKE_MODPLATE
 MORE_FLAGS = -DVW_HAVE_APACHE=1

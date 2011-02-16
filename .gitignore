@@ -199,6 +199,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tests/TestRpc
 /src/vw/Plate/tests/TestRpcChannel
 /src/vw/Plate/tests/TestTileManipulation
+/src/vw/Plate/tests/TestTransactions
 /src/vw/Python/vw/_*.cpp
 /src/vw/Python/vw/_*.h
 /src/vw/Python/vw/*.loT

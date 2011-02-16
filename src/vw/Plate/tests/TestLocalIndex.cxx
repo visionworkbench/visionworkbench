@@ -174,29 +174,29 @@ TEST_F(LocalIndexTest, WriteRead) {
 
 TEST_F(LocalIndexTest, Transactions) {
   // Store the default transaction id
-  int tx0 = index->transaction_cursor();
+  Transaction tx0 = index->transaction_cursor();
 
   // 0 means nothing has happened
-  EXPECT_EQ(0, tx0);
+  EXPECT_EQ(0u, tx0);
 
   // Start a bunch of transactions
-  int tx1 = index->transaction_request("Test transaction #1", -1);
-  int tx2 = index->transaction_request("Test transaction #2", -1);
-  int tx3 = index->transaction_request("Test transaction #3", -1);
-  int tx4 = index->transaction_request("Test transaction #4", -1);
-  int tx5 = index->transaction_request("Test transaction #5", -1);
-  int tx6 = index->transaction_request("Test transaction #6", -1);
+  Transaction tx1 = index->transaction_request("Test transaction #1", -1);
+  Transaction tx2 = index->transaction_request("Test transaction #2", -1);
+  Transaction tx3 = index->transaction_request("Test transaction #3", -1);
+  Transaction tx4 = index->transaction_request("Test transaction #4", -1);
+  Transaction tx5 = index->transaction_request("Test transaction #5", -1);
+  Transaction tx6 = index->transaction_request("Test transaction #6", -1);
 
   // Make sure we didn't move the transaction cursor
   EXPECT_EQ( tx0, index->transaction_cursor() );
 
   // According to the current scheme, each tx id is ++
-  EXPECT_EQ(   1, tx1 );
-  EXPECT_EQ(   2, tx2 );
-  EXPECT_EQ(   3, tx3 );
-  EXPECT_EQ(   4, tx4 );
-  EXPECT_EQ(   5, tx5 );
-  EXPECT_EQ(   6, tx6 );
+  EXPECT_EQ(   1u, tx1 );
+  EXPECT_EQ(   2u, tx2 );
+  EXPECT_EQ(   3u, tx3 );
+  EXPECT_EQ(   4u, tx4 );
+  EXPECT_EQ(   5u, tx5 );
+  EXPECT_EQ(   6u, tx6 );
 
   // Now complete a transaction, but not the next one in the series.
   index->transaction_complete(tx6, false);
@@ -221,19 +221,19 @@ TEST_F(LocalIndexTest, Transactions) {
 
 TEST_F(LocalIndexTest, SkipTransactions) {
   // Store the default transaction id
-  int tx0 = index->transaction_cursor();
+  Transaction tx0 = index->transaction_cursor();
 
   // 0 means nothing has happened
-  EXPECT_EQ(0, tx0);
+  EXPECT_EQ(0u, tx0);
 
   // Start a bunch of transactions, including one with an override ID.
-  int tx1 = index->transaction_request("Test transaction #1", -1);
-  int tx2 = index->transaction_request("Test transaction #2", 13);
-  int tx3 = index->transaction_request("Test transaction #2", -1);
+  Transaction tx1 = index->transaction_request("Test transaction #1", -1);
+  Transaction tx2 = index->transaction_request("Test transaction #2", 13);
+  Transaction tx3 = index->transaction_request("Test transaction #2", -1);
 
-  EXPECT_EQ(   1, tx1 );
-  EXPECT_EQ(   13, tx2 );
-  EXPECT_EQ(   14, tx3 );
+  EXPECT_EQ(    1u, tx1 );
+  EXPECT_EQ(   13u, tx2 );
+  EXPECT_EQ(   14u, tx3 );
 }
 
 TEST_F(LocalIndexTiles, BasicReadWrite) {

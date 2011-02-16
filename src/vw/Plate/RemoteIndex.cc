@@ -354,7 +354,7 @@ Transaction RemoteIndex::transaction_request(std::string transaction_description
   if (transaction_id_override.newest())
     id = -1;
   else
-    id = static_cast<int32>(uint32(transaction_id_override.promote()));
+    id = static_cast<int32>(transaction_id_override.promote());
 
   IndexTransactionRequest request;
   request.set_platefile_id(m_platefile_id);

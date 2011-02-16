@@ -39,7 +39,6 @@ namespace detail {
   BOOST_STATIC_ASSERT(MAX_TRANSACTION < NO_TRANSACTION);
 
   template <typename ImplT>
-  //class TransactionBase : boost::totally_ordered<ImplT> {
   class TransactionBase {
     private:
       inline ImplT& impl() { return static_cast<ImplT&>(*this); }
@@ -68,7 +67,13 @@ namespace detail {
 
 class Transaction;
 
-class TransactionOrNeg : public detail::TransactionBase<TransactionOrNeg>, boost::totally_ordered<TransactionOrNeg> {
+class TransactionOrNeg : public detail::TransactionBase<TransactionOrNeg>,
+                         boost::totally_ordered<TransactionOrNeg,
+                         boost::totally_ordered<TransactionOrNeg, uint32,
+                         boost::totally_ordered<TransactionOrNeg, Transaction> > >
+{
+  protected:
+    friend class Transaction;
   public:
     TransactionOrNeg() VW_NOTHROW;
     TransactionOrNeg(int32 id) VW_NOTHROW;
@@ -78,22 +83,56 @@ class TransactionOrNeg : public detail::TransactionBase<TransactionOrNeg>, boost
     void set(int32 id) VW_NOTHROW;
     // Is this a request for the newest transaction id?
     bool newest() const VW_NOTHROW;
-    bool operator<(const TransactionOrNeg& x) const {
-      return m_id < x.m_id;
-    }
-    bool operator==(const TransactionOrNeg& x) const {
-      return m_id == x.m_id;
-    }
+
+    bool operator<(const TransactionOrNeg& x) const;
+    bool operator==(const TransactionOrNeg& x) const;
+
+    bool operator<(const uint32& x) const;
+    bool operator>(const uint32& x) const;
+    bool operator==(const uint32& x) const;
+
+    bool operator<(const Transaction& x) const;
+    bool operator>(const Transaction& x) const;
+    bool operator==(const Transaction& x) const;
 };
 
-class Transaction : public detail::TransactionBase<Transaction> {
+class Transaction : public detail::TransactionBase<Transaction>,
+                    boost::totally_ordered<Transaction,
+                    boost::totally_ordered<Transaction, uint32> >
+{
+  protected:
+    friend class TransactionOrNeg;
   public:
     Transaction(uint32 id);
     // Set the id. Will throw if transaction id is -1.
     void set(uint32 id);
     operator uint32() const VW_NOTHROW;
     operator TransactionOrNeg() const VW_NOTHROW;
+
+    bool operator<(const TransactionOrNeg& x) const;
+    bool operator>(const TransactionOrNeg& x) const;
+
+    bool operator<(const uint32& x) const;
+    bool operator>(const uint32& x) const;
+    bool operator==(const uint32& x) const;
+
+    bool operator<(const Transaction& x) const;
+    bool operator==(const Transaction& x) const;
 };
+
+class TransactionRange : private std::pair<TransactionOrNeg, TransactionOrNeg> {
+  typedef std::pair<TransactionOrNeg, TransactionOrNeg> Super;
+  public:
+    // INCLUSIVE RANGE
+    TransactionRange(TransactionOrNeg first, TransactionOrNeg last);
+    TransactionRange(TransactionOrNeg only);
+    TransactionOrNeg first() const;
+    TransactionOrNeg last() const;
+};
+
+// We can't edit the protobuf-generated code, so this is next best place for this
+class TileHeader;
+std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr);
 
 }} // vw::platefile
 
