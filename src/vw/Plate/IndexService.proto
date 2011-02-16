@@ -157,6 +157,8 @@ message IndexTestReply {
   required uint64 value = 1;
 }
 
+option cc_generic_services = true;
+
 service IndexService {
 
   // Basic Platefile Management

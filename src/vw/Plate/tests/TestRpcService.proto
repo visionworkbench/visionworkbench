@@ -13,6 +13,8 @@ message DoubleMessage {
   optional uint32 seq = 2;
 }
 
+option cc_generic_services = true;
+
 service TestService {
   rpc DoubleRequest (DoubleMessage) returns (DoubleMessage);
 }
