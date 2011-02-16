@@ -402,3 +402,40 @@ TEST(SparseSkyline, ReorderOptimization) {
   for ( size_t i = 0; i < 61; i++ )
     EXPECT_NEAR( x_unsparse[i], x_reorder[i], DELTA );
 }
+
+TEST(SparseSkyline, ReorderConstCorrectness) {
+  // Checking that SparseSkyline works
+  math::MatrixSparseSkyline<double> sparse(1,1);
+  ASSERT_EQ( 1, sparse.cols() );
+  ASSERT_EQ( 1, sparse.rows() );
+  sparse(0,0) = 1;
+  ASSERT_EQ( 1, sparse(0,0) );
+  Vector<size_t> skyline = sparse.skyline();
+  ASSERT_EQ( 1, skyline.size() );
+  EXPECT_EQ( 0, skyline[0] );
+
+  { // Applying second layers that could goof const
+    math::MatrixTranspose<math::MatrixSparseSkyline<double> > tsparse( sparse );
+    ASSERT_EQ( 1, tsparse.cols() );
+    ASSERT_EQ( 1, tsparse.rows() );
+    EXPECT_EQ( 1, tsparse(0,0) );
+    const math::MatrixTranspose<math::MatrixSparseSkyline<double> > ctsparse( sparse );
+    ASSERT_EQ( 1, ctsparse.cols() );
+    ASSERT_EQ( 1, ctsparse.rows() );
+    EXPECT_EQ( 1, ctsparse(0,0) );
+
+
+    // Another example of the error
+    std::vector<size_t> reorder(1);
+    reorder[0] = 0;
+    math::MatrixReorganize<math::MatrixSparseSkyline<double> > rsparse( sparse, reorder );
+    ASSERT_EQ( 1, rsparse.cols() );
+    ASSERT_EQ( 1, rsparse.rows() );
+    EXPECT_EQ( 1, rsparse(0,0) );
+    const math::MatrixReorganize<math::MatrixSparseSkyline<double> > crsparse( sparse, reorder );
+    ASSERT_EQ( 1, crsparse.cols() );
+    ASSERT_EQ( 1, crsparse.rows() );
+    EXPECT_EQ( 1, crsparse(0,0) );
+
+  }
+}

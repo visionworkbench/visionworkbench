@@ -480,9 +480,9 @@ namespace math {
 
     // Element Access
     reference_type operator()( size_t i ) { return m_vector[m_lookup[i]]; }
-    const_reference_type operator()( size_t i ) const { return m_vector[m_lookup[i]]; }
+    const_reference_type operator()( size_t i ) const { return const_cast<const VectorT&>(m_vector)[m_lookup[i]]; }
     reference_type operator[]( size_t i ) { return m_vector[m_lookup[i]]; }
-    const_reference_type operator[]( size_t i ) const { return m_vector[m_lookup[i]]; }
+    const_reference_type operator[]( size_t i ) const { return const_cast<const VectorT&>(m_vector)[m_lookup[i]]; }
 
     // Pointer Access
     iterator begin() { return iterator(*this,0); }
@@ -570,7 +570,7 @@ namespace math {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      return m_matrix(m_lookup[row],m_lookup[col]);
+      return const_cast<const MatrixT&>(m_matrix)(m_lookup[row],m_lookup[col]);
     }
 
     // Pointer Access

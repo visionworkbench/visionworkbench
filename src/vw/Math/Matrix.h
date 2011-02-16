@@ -892,7 +892,7 @@ namespace math {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      return m_matrix(col,row);
+      return const_cast<const MatrixT&>(m_matrix)(col,row);
     }
 
     iterator begin() {
