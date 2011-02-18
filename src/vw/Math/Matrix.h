@@ -884,7 +884,7 @@ namespace math {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      return m_matrix(col,row);
+      return child()(col,row);
     }
 
     /// Access an element
@@ -892,24 +892,13 @@ namespace math {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
       VW_ASSERT( row < rows() && col < cols(), LogicErr() << "operator() ran off end of matrix" );
 #endif
-      return const_cast<const MatrixT&>(m_matrix)(col,row);
+      return child()(col,row);
     }
 
-    iterator begin() {
-      return iterator(*this,0,0);
-    }
-
-    const_iterator begin() const {
-      return const_iterator(*this,0,0);
-    }
-
-    iterator end() {
-      return iterator(*this,rows(),0);
-    }
-
-    const_iterator end() const {
-      return const_iterator(*this,rows(),0);
-    }
+    iterator begin() { return iterator(*this,0,0); }
+    const_iterator begin() const { return const_iterator(*this,0,0); }
+    iterator end() { return iterator(*this,rows(),0); }
+    const_iterator end() const { return const_iterator(*this,rows(),0); }
   };
 
   /// Matrix transpose.
@@ -996,41 +985,22 @@ namespace math {
       return *this;
     }
 
+    MatrixT& child() { return m; }
+    MatrixT const& child() const { return m; }
+
     size_t size() const {
-      return m.cols();
+      return child().cols();
     }
 
-    reference_type operator()( size_t i ) {
-      return m(row,i);
-    }
+    reference_type operator()( size_t i ) { return child()(row,i); }
+    const_reference_type operator()( size_t i ) const { return child()(row,i); }
+    reference_type operator[]( size_t i ) { return child()(row,i); }
+    const_reference_type operator[]( size_t i ) const { return child()(row,i); }
 
-    const_reference_type operator()( size_t i ) const {
-      return m(row,i);
-    }
-
-    reference_type operator[]( size_t i ) {
-      return m(row,i);
-    }
-
-    const_reference_type operator[]( size_t i ) const {
-      return m(row,i);
-    }
-
-    iterator begin() {
-      return m.begin() + row*m.cols();
-    }
-
-    const_iterator begin() const {
-      return const_cast<MatrixT const&>(m).begin() + row*m.cols();
-    }
-
-    iterator end() {
-      return m.begin() + (row+1)*m.cols();
-    }
-
-    const_iterator end() const {
-      return const_cast<MatrixT const&>(m).begin() + (row+1)*m.cols();
-    }
+    iterator begin() { return child().begin() + row*child().cols(); }
+    const_iterator begin() const { return child().begin() + row*child().cols(); }
+    iterator end() { return child().begin() + (row+1)*child().cols(); }
+    const_iterator end() const { return child().begin() + (row+1)*child().cols(); }
   };
 
   template <class MatrixT>
@@ -1129,41 +1099,24 @@ namespace math {
       return *this;
     }
 
+    MatrixT& child() { return m; }
+    MatrixT const& child() const { return m; }
+
     size_t size() const {
-      return m.rows();
+      return child().rows();
     }
 
-    reference_type operator()( size_t i ) {
-      return m(i,col);
-    }
+    reference_type operator()( size_t i ) { return child()(i,col); }
+    const_reference_type operator()( size_t i ) const { return child()(i,col); }
+    reference_type operator[]( size_t i ) { return child()(i,col); }
+    const_reference_type operator[]( size_t i ) const { return child()(i,col); }
 
-    const_reference_type operator()( size_t i ) const {
-      return m(i,col);
-    }
-
-    reference_type operator[]( size_t i ) {
-      return m(i,col);
-    }
-
-    const_reference_type operator[]( size_t i ) const {
-      return m(i,col);
-    }
-
-    iterator begin() {
-      return iterator( m.begin() + col, m.cols() );
-    }
-
+    iterator begin() { return iterator( child().begin() + col, child().cols() ); }
     const_iterator begin() const {
-      return const_iterator( const_cast<MatrixT const&>(m).begin() + col, m.cols() );
+      return const_iterator( child().begin() + col, child().cols() );
     }
-
-    iterator end() {
-      return begin() + size();
-    }
-
-    const_iterator end() const {
-      return begin() + size();
-    }
+    iterator end() { return begin() + size(); }
+    const_iterator end() const { return begin() + size(); }
 
   };
 
@@ -1238,37 +1191,23 @@ namespace math {
       return *this;
     }
 
-    size_t rows() const {
-      return m_rows;
-    }
+    MatrixT& child() { return m_matrix; }
+    MatrixT const& child() const { return m_matrix; }
 
-    size_t cols() const {
-      return m_cols;
-    }
+    size_t rows() const { return m_rows; }
+    size_t cols() const { return m_cols; }
 
     reference_type operator()( size_t row, size_t col ) {
-      return m_matrix( row+m_row, col+m_col );
+      return child()( row+m_row, col+m_col );
     }
-
     const_reference_type operator()( size_t row, size_t col ) const {
-      return m_matrix( row+m_row, col+m_col );
+      return child()( row+m_row, col+m_col );
     }
 
-    iterator begin() {
-      return iterator( *this, 0, 0 );
-    }
-
-    const_iterator begin() const {
-      return const_iterator( *this, 0, 0 );
-    }
-
-    iterator end() {
-      return iterator( *this, rows(), 0 );
-    }
-
-    const_iterator end() const {
-      return const_iterator( *this, rows(), 0 );
-    }
+    iterator begin() { return iterator( *this, 0, 0 ); }
+    const_iterator begin() const { return const_iterator( *this, 0, 0 ); }
+    iterator end() { return iterator( *this, rows(), 0 ); }
+    const_iterator end() const { return const_iterator( *this, rows(), 0 ); }
 
   };
 
@@ -1305,16 +1244,13 @@ namespace math {
     template <class Arg1>
     MatrixUnaryFunc( MatrixT const& m, Arg1 a1 ) : m(m), func(a1) {}
 
-    size_t rows() const {
-      return m.rows();
-    }
+    MatrixT const& child() const { return m; }
 
-    size_t cols() const {
-      return m.cols();
-    }
+    size_t rows() const { return m.rows(); }
+    size_t cols() const { return m.cols(); }
 
     reference_type operator()( size_t i, size_t j ) const {
-      return func(m(i,j));
+      return func(child()(i,j));
     }
 
     class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
@@ -1333,10 +1269,10 @@ namespace math {
       iterator(typename MatrixT::const_iterator const& i,
                FuncT const& func) : i(i), func(func) {}
     };
-    typedef iterator const_iterator;
 
-    iterator begin() const { return iterator(m.begin(),func); }
-    iterator end() const { return iterator(m.end(),func); }
+    typedef iterator const_iterator;
+    iterator begin() const { return iterator(child().begin(),func); }
+    iterator end() const { return iterator(child().end(),func); }
   };
 
   template <class MatrixT, class FuncT>
@@ -1375,16 +1311,14 @@ namespace math {
       VW_ASSERT( m1.rows() == m2.rows() && m1.cols() == m2.cols(), ArgumentErr() << "Matrices must have same size in MatrixBinaryFunc" );
     }
 
-    size_t rows() const {
-      return m1.rows();
-    }
+    Matrix1T const& child1() const { return m1; }
+    Matrix2T const& child2() const { return m2; }
 
-    size_t cols() const {
-      return m1.cols();
-    }
+    size_t rows() const { return m1.rows(); }
+    size_t cols() const { return m1.cols(); }
 
     reference_type operator()( size_t i, size_t j ) const {
-      return func(m1(i,j),m2(i,j));
+      return func(child1()(i,j),child2()(i,j));
     }
 
     class iterator : public boost::iterator_facade<iterator, value_type, boost::random_access_traversal_tag, value_type> {
@@ -1405,10 +1339,10 @@ namespace math {
                typename Matrix2T::const_iterator const& i2,
                FuncT const& func) : i1(i1), i2(i2), func(func) {}
     };
-    typedef iterator const_iterator;
 
-    iterator begin() const { return iterator(m1.begin(),m2.begin(),func); }
-    iterator end() const { return iterator(m1.end(),m2.end(),func); }
+    typedef iterator const_iterator;
+    iterator begin() const { return iterator(child1().begin(),child2().begin(),func); }
+    iterator end() const { return iterator(child1().end(),child2().end(),func); }
   };
 
   template <class Matrix1T, class Matrix2T, class FuncT>
