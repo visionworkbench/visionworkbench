@@ -55,6 +55,10 @@ namespace vw {
     typedef typename PixelChannelCast<PixelT,typename MakeReal<typename PixelChannelType<PixelT>::type>::type>::type type;
   };
 
+  template <class T>
+  struct ImageChannelType {
+    typedef typename PixelChannelType<typename T::pixel_type>::type type;
+  };
 
   // *******************************************************************
   // Pixel channel standard range computation logic
