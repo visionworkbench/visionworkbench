@@ -7,7 +7,7 @@
 
 //// Vision Workbench
 #include <vw/Plate/IndexService.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/detail/Index.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Plate/Rpc.h>
 #include <vw/Core/Log.h>
@@ -22,6 +22,7 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 #define VW_DEFINE_SINGLETON(name, klass) \
   namespace { \

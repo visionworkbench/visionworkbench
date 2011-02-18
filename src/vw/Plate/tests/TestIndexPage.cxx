@@ -7,12 +7,13 @@
 
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
-#include <vw/Plate/LocalIndex.h>
+#include <vw/Plate/detail/LocalIndex.h>
 #include <vw/Plate/Exception.h>
 
 using namespace std;
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 using namespace vw::test;
 
 class IndexPageTest : public ::testing::Test {

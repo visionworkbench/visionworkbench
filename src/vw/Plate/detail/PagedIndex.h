@@ -10,8 +10,8 @@
 
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Core/Cache.h>
-#include <vw/Plate/Index.h>
-#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/detail/Index.h>
+#include <vw/Plate/detail/IndexPage.h>
 
 #include <vector>
 #include <list>
@@ -19,6 +19,9 @@
 namespace vw {
 namespace platefile {
   class TileHeader;
+
+namespace detail {
+
 
   // --------------------------------------------------------------------
   //                             INDEX LEVEL
@@ -162,6 +165,6 @@ namespace platefile {
 
   };
 
-}} // namespace vw::platefile
+}}}
 
 #endif // __VW_PLATEFILE_PAGED_INDEX_H__

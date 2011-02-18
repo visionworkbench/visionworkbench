@@ -205,7 +205,7 @@ void draw_kml_level ( std::string const& base_folder, ssize_t level,
 
   // Searching for transactions
   std::list<TileHeader> tile_records;
-  tile_records = plate->search_by_region(level,region,id,id,0,false);
+  tile_records = plate->search_by_region(level,region,TransactionRange(id));
 
   // Drawing Level
   BOOST_FOREACH( TileHeader const& t, tile_records ) {
@@ -214,7 +214,7 @@ void draw_kml_level ( std::string const& base_folder, ssize_t level,
     fs::create_directory( path.parent_path() );
 
     std::list<TileHeader> links =
-      plate->search_by_region(level+1,region*2,id,id,0,false);
+      plate->search_by_region(level+1,region*2,TransactionRange(id));
 
     { // Producing this layer's kml
       kmldom::FolderPtr folder = factory->CreateFolder();

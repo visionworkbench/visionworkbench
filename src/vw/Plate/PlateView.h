@@ -86,17 +86,14 @@ namespace platefile {
                                        * m_platefile->default_tile_size() );
 
       // Searching for tile headers
-      return m_platefile->search_by_region( m_current_level,
-                                            aligned_level_bbox/m_platefile->default_tile_size(),
-                                            -1, -1, 0 );
+      return m_platefile->search_by_region( m_current_level, aligned_level_bbox/m_platefile->default_tile_size(), TransactionRange(-1) );
     }
 
     // Simplified access
     std::list<TileHeader>
     search_for_tiles( BBox2i const& image_bbox ) const {
       BBox2i level_bbox, aligned_level_bbox;
-      return search_for_tiles( image_bbox, level_bbox,
-                               aligned_level_bbox );
+      return search_for_tiles( image_bbox, level_bbox, aligned_level_bbox );
     }
 
     /// \cond INTERNAL

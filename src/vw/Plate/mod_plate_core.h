@@ -22,7 +22,10 @@
 namespace vw {
 namespace platefile {
 
-class Index;
+namespace detail {
+  class Index;
+}
+
 class Blob;
 class IndexService;
 
@@ -45,7 +48,7 @@ class PlateModule {
       std::string shortname;
       std::string filename;
       std::string description;
-      boost::shared_ptr<Index> index;
+      boost::shared_ptr<detail::Index> index;
       int read_cursor;
     };
 

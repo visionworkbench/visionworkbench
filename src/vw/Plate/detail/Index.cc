@@ -5,16 +5,13 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/Index.h>
-#include <vw/Plate/RemoteIndex.h>
-#include <vw/Plate/LocalIndex.h>
+#include <vw/Plate/detail/Index.h>
+#include <vw/Plate/detail/RemoteIndex.h>
+#include <vw/Plate/detail/LocalIndex.h>
+#include <vw/Plate/HTTPUtils.h>
 
 using namespace vw::platefile;
-using namespace vw;
-
-// -------------------------------------------------------------------
-//                            PLATE INDEX
-// -------------------------------------------------------------------
+using namespace vw::platefile::detail;
 
 boost::shared_ptr<Index> Index::construct_create(const Url& url, const IndexHeader& new_index_info) {
   if (url.scheme() == "file")

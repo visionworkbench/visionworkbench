@@ -6,7 +6,7 @@
 
 
 #include "mod_plate_utils.h"
-#include <vw/Plate/Index.h>
+#include <vw/Plate/detail/Index.h>
 #include <vw/Core/Log.h>
 
 #include <httpd.h>
@@ -43,7 +43,7 @@ WTMLImageSet::WTMLImageSet(
     const string& data_prefix,
     const string& /*static_prefix*/,
     const string dem_id,
-    boost::shared_ptr<const Index> index,
+    boost::shared_ptr<const detail::Index> index,
     const string& description)
 {
   const IndexHeader& hdr = index->index_header();

@@ -1,0 +1,26 @@
+package vw.platefile.detail;
+import "vw/Plate/IndexData.proto";
+
+// Each entry in the blob file is described by a BlobRecord.  This
+// allows us to save and access data and headers with variable
+// positioning and length.  BlobRecords are stored in the blob files:
+// <platefile>/plate_<#>.blob
+message BlobRecord {
+  required uint64 header_offset = 1;
+  required uint64 header_size = 2;
+  required uint64 data_offset = 3;
+  required uint64 data_size = 4;
+}
+
+// The IndexRecord stores basic metadata for locating a tile in a
+// blob.  The IndexRecord is used to store this information in a live
+// index (in main memory), and can also be stored as part of a
+// TileHeader, which is written to the blob file on disk.  Other
+// metadata about that tile is stored alongside the tile itself in the
+// blobfile in a TileRecord protobufer (see below).
+message IndexRecord {
+  optional int32 blob_id = 1 [default = -1];
+  optional uint64 blob_offset = 2 [default = 0];
+  optional string filetype = 3 [default = "default_to_index"];
+}
+

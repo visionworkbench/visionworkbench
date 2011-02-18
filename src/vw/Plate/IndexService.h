@@ -14,15 +14,16 @@
 
 namespace vw {
 namespace platefile {
-
-  class Index;
+  namespace detail {
+    class Index;
+  }
 
   class IndexServiceImpl : public IndexService {
 
     struct IndexServiceRecord {
       std::string short_plate_filename;
       std::string full_plate_filename;
-      boost::shared_ptr<Index> index;
+      boost::shared_ptr<detail::Index> index;
     };
 
     std::string m_root_directory;
@@ -33,7 +34,7 @@ namespace platefile {
     // Private methods
     std::vector<std::string> glob_plate_filenames(std::string const& root_directory);
     IndexServiceRecord* add_index(std::string root_directory, std::string plate_filename,
-                                  boost::shared_ptr<Index> index);
+                                  boost::shared_ptr<detail::Index> index);
 
     IndexServiceRecord* find_id(int32 platefile_id);
     IndexServiceRecord  find_id_throw(int32 platefile_id);

@@ -35,6 +35,7 @@
 ///
 
 #include <vw/Plate/IndexData.pb.h>
+#include <vw/Plate/IndexDataPrivate.pb.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
@@ -59,7 +60,7 @@ namespace platefile {
     uint64 m_write_count;
 
     /// Returns the metadata (i.e. BlobRecord) for a blob entry.
-    BlobRecord read_blob_record(uint16 &blob_record_size) const;
+    detail::BlobRecord read_blob_record(uint16 &blob_record_size) const;
 
     // End-of-file point manipulation.
     void write_end_of_file_ptr(uint64 ptr);
@@ -99,6 +100,8 @@ namespace platefile {
     /// end_of_file_ptr)
     uint64 size() const { return m_end_of_file_ptr; }
 
+    const std::string& filename() const;
+
     /// Returns an iterator pointing to the first TileHeader in the blob.
     ///
     /// 3*sizeof(uint64) is the very first byte in the file after the
@@ -137,7 +140,6 @@ namespace platefile {
 
     /// Write the data file to disk, and the concatenate it into the data blob.
     void write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) VW_DEPRECATED;
-
   };
 
 }} // namespace vw::platefile

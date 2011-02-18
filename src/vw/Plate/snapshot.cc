@@ -143,7 +143,7 @@ template <class PixelT>
 void do_snapshot(boost::shared_ptr<PlateFile> platefile,
                  SnapshotParameters snapshot_parameters) {
 
-  SnapshotManager<PixelT> sm( platefile );
+  SnapshotManager<PixelT> sm( platefile, snapshot_parameters.tweak_settings_for_terrain );
   if (snapshot_parameters.level != -1) {
 
     if (snapshot_parameters.write_transaction_id == -1) {
@@ -152,12 +152,10 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       exit(1);
     }
 
-    std::ostringstream log_description;
-    log_description << "Started multi-part snapshot (t_id = "
-                    << snapshot_parameters.write_transaction_id
-                    << ") -- level:" << snapshot_parameters.level
-                    << " region: " << snapshot_parameters.region << "\n";
-    platefile->log(log_description.str());
+    platefile->audit_log()
+      << "Started multi-part snapshot (t_id = " << snapshot_parameters.write_transaction_id
+      << ") -- level:" << snapshot_parameters.level
+      << " region: " << snapshot_parameters.region << "\n";
 
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
@@ -165,20 +163,16 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
     // If the user has specified a region, then we
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
-                snapshot_parameters.begin_transaction_id,
-                snapshot_parameters.end_transaction_id,
-                snapshot_parameters.write_transaction_id.promote(),
-                snapshot_parameters.tweak_settings_for_terrain);
+                TransactionRange( snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id),
+                snapshot_parameters.write_transaction_id.promote());
 
     // Release the blob id lock.
     platefile->write_complete();
 
-    std::ostringstream log_description2;
-    log_description2 << "Finished multi-part snapshot (t_id = "
-                    << snapshot_parameters.write_transaction_id
-                    << ") -- level:" << snapshot_parameters.level
-                    << " region: " << snapshot_parameters.region << "\n";
-    platefile->log(log_description2.str());
+    platefile->audit_log()
+      << "Finished multi-part snapshot (t_id = " << snapshot_parameters.write_transaction_id
+      << ") -- level:" << snapshot_parameters.level
+      << " region: " << snapshot_parameters.region << "\n";
 
   } else {
 
@@ -187,21 +181,19 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
     // Request a transaction (write_transaction_id might be -1, and that's okay)
     const std::string description = "Full snapshot (requested t_id:  " + vw::stringify(snapshot_parameters.write_transaction_id) + ")";
-    Transaction t_id = platefile->transaction_request(description, snapshot_parameters.write_transaction_id);
+    platefile->transaction_begin(description, snapshot_parameters.write_transaction_id);
 
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
     platefile->write_request();
 
     // Do a full snapshot
-    sm.full_snapshot(snapshot_parameters.begin_transaction_id,
-                     snapshot_parameters.end_transaction_id,
-                     t_id,
-                     snapshot_parameters.tweak_settings_for_terrain);
+    sm.full_snapshot(TransactionRange(snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id),
+                     platefile->transaction_id());
 
     // Release the blob id lock and note that the transaction is finished.
     platefile->write_complete();
-    platefile->transaction_complete(t_id, true);
+    platefile->transaction_end(true);
   }
 
 }
@@ -290,19 +282,22 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
 
-      Transaction t = platefile->transaction_request(start_description, transaction_id);
+      Transaction t = platefile->transaction_begin(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
       vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
       exit(0);
     }
 
+    if (transaction_id.newest()) {
+      vw_out() << "You must specify a transaction-id if you are not starting a new one.\n";
+      exit(1);
+    }
+
+    platefile->transaction_resume(transaction_id.promote());
+
     if (vm.count("finish")) {
-      if (transaction_id.newest()) {
-        vw_out() << "You must specify a transaction-id if you use --finish.\n";
-        exit(1);
-      }
       // Update the read cursor when the snapshot is complete!
-      platefile->transaction_complete(transaction_id.promote(), true);
+      platefile->transaction_end(true);
       vw_out() << "Transaction " << transaction_id << " complete.\n";
       exit(0);
     }

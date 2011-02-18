@@ -125,9 +125,7 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
         region_iter != tile_workunits.end(); ++region_iter) {
 
     // Fetch the list of valid tiles in this particular workunit.
-    std::list<TileHeader> tile_records = platefile->search_by_region(level, *region_iter,
-                                                                     transaction_id,
-                                                                     transaction_id, 1);
+    std::list<TileHeader> tile_records = platefile->search_by_region(level, *region_iter, TransactionRange(transaction_id));
 
     if (!tile_records.empty()) {
       vw_out() << "\t--> Exporting " << tile_records.size() << " tiles in " << *region_iter
@@ -170,11 +168,11 @@ void do_all_levels(std::string platefile_name, std::string output_name,
     fs::create_directory(output_name);
 
   // Iterate over the levels
-  for (int32 level = 0; level < platefile->num_levels(); ++level) {
+  for (uint32 level = 0; level < platefile->num_levels(); ++level) {
 
     // The entire region contains 2^level tiles.
-    int32 region_size = 1 << level;
-    int32 subdivided_region_size = region_size / 16;
+    uint32 region_size = 1 << level;
+    uint32 subdivided_region_size = region_size / 16;
     if (subdivided_region_size < 1024) subdivided_region_size = 1024;
     BBox2i full_region(0,0,region_size,region_size);
     std::list<BBox2i> workunits = bbox_tiles(full_region,

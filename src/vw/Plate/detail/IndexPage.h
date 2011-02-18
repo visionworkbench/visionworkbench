@@ -10,6 +10,7 @@
 
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexData.pb.h>
+#include <vw/Plate/IndexDataPrivate.pb.h>
 #include <vw/Plate/google/sparsetable>
 #include <vw/Math/BBox.h>
 #include <boost/numeric/conversion/cast.hpp>
@@ -19,6 +20,7 @@
 
 namespace vw {
 namespace platefile {
+namespace detail {
 
   // ----------------------------------------------------------------------
   //                            INDEX PAGE
@@ -148,7 +150,7 @@ namespace platefile {
     virtual std::string who() const = 0;
   };
 
-}} // namespace vw::platefile
+}}}
 
-#endif // __VW_PLATEFILE_INDEX_PAGE_H__
+#endif
 

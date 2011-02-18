@@ -95,7 +95,7 @@
 #define __VW_PLATE_PLATEFILE_H__
 
 #include <vw/Plate/FundamentalTypes.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/Datastore.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Plate/HTTPUtils.h>
@@ -105,46 +105,52 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
 
+#include <boost/iostreams/tee.hpp>
+#include <boost/iostreams/stream.hpp>
 #include <sstream>
 
 namespace vw {
 namespace platefile {
 
   class PlateFile {
-    boost::shared_ptr<Index> m_index;
-    boost::shared_ptr<Blob> m_write_blob;
-    int m_write_blob_id;
+    typedef MultiOutputStream<char> log_t;
 
+    boost::shared_ptr<Datastore> m_data;
+    log_t m_error_log;
+    boost::shared_ptr<Transaction> m_transaction;
+    boost::shared_ptr<WriteState> m_write_state;
   public:
     PlateFile(const Url& url);
 
     PlateFile(const Url& url, std::string type, std::string description,
-              int tile_size, std::string tile_filetype,
+              uint32 tile_size, std::string tile_filetype,
               PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
 
     /// The destructor saves the platefile to disk.
     virtual ~PlateFile() {}
 
     /// Returns the name of the root directory containing the plate file.
-    std::string name() const { return m_index->platefile_name(); }
+    //std::string name() const;
 
     /// Returns the name of the root directory containing the plate file.
-    IndexHeader index_header() const { return m_index->index_header(); }
+    IndexHeader index_header() const;
 
     /// Returns the file type used to store tiles in this plate file.
-    std::string default_file_type() const { return m_index->tile_filetype(); }
+    std::string default_file_type() const;
 
-    int default_tile_size() const { return m_index->tile_size(); }
+    uint32 default_tile_size() const;
 
-    PixelFormatEnum pixel_format() const { return m_index->pixel_format(); }
+    PixelFormatEnum pixel_format() const;
 
-    ChannelTypeEnum channel_type() const { return m_index->channel_type(); }
+    ChannelTypeEnum channel_type() const;
 
-    int num_levels() const { return m_index->num_levels(); }
+    uint32 num_levels() const;
 
-    void sync() const { m_index->sync(); }
+    void sync() const;
 
-    void log(std::string message) { m_index->log(message); }
+    std::ostream& audit_log();
+    std::ostream& error_log();
+    void log(std::string message) VW_DEPRECATED;
 
     /// Read data directly to a file on disk. You supply a base name
     /// (without the file's image extension).  The image extension
@@ -224,32 +230,24 @@ namespace platefile {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    IndexRecord read_record(int col, int row, int level,
-                            TransactionOrNeg transaction_id, bool exact_transaction_match = false);
+    //IndexRecord read_record(int col, int row, int level,
+    //                        TransactionOrNeg transaction_id, bool exact_transaction_match = false);
 
     // --------------------- TRANSACTIONS ------------------------
 
     // Clients are expected to make a transaction request whenever
     // they start a self-contained chunk of mosaicking work.  .
-    virtual Transaction transaction_request(std::string transaction_description,
-                                            TransactionOrNeg transaction_id_override) {
-      return m_index->transaction_request(transaction_description, transaction_id_override);
-    }
+    virtual const Transaction& transaction_begin(const std::string& description, TransactionOrNeg transaction_id_override);
+
+    // Resume a previous transaction (useful for multi-process runs). You are
+    // responsible for making sure transaction_begin was run previously.
+    virtual void transaction_resume(const Transaction& tid);
 
     // Once a chunk of work is complete, clients can "commit" their
     // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_complete(Transaction transaction_id, bool update_read_cursor) {
-      m_index->transaction_complete(transaction_id, update_read_cursor);
-    }
+    virtual void transaction_end(bool update_read_cursor);
 
-    // If a transaction fails, we may need to clean up the mosaic.
-    virtual void transaction_failed(Transaction transaction_id) {
-      m_index->transaction_failed(transaction_id);
-    }
-
-    virtual Transaction transaction_cursor() {
-      return m_index->transaction_cursor();
-    }
+    virtual const Transaction& transaction_id() const;
 
     // ----------------------- UTILITIES --------------------------
 
@@ -259,15 +257,8 @@ namespace platefile {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
-    std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
-                                           TransactionOrNeg start_transaction_id,
-                                           TransactionOrNeg end_transaction_id,
-                                           uint32 min_num_matches,
-                                           bool fetch_one_additional_entry = false) const {
-      return m_index->search_by_region(level, region,
-                                  start_transaction_id, end_transaction_id,
-                                  min_num_matches, fetch_one_additional_entry);
-    }
+    std::list<TileHeader>
+    search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
 
     /// Read one ore more images at a specified location in the
     /// platefile by specifying a range of transaction ids of
@@ -275,17 +266,9 @@ namespace platefile {
     /// the last entry: [ begin_transaction_id, end_transaction_id )
     ///
     /// This is mostly useful when compositing tiles during mipmapping.
-    std::list<TileHeader> search_by_location(int col, int row, int level,
-                                             TransactionOrNeg begin_transaction_id, TransactionOrNeg end_transaction_id,
-                                             bool fetch_one_additional_entry = false) {
-      return m_index->search_by_location(col, row, level,
-                                         begin_transaction_id, end_transaction_id,
-                                         fetch_one_additional_entry);
-    }
-
+    std::list<TileHeader>
+    search_by_location(int col, int row, int level, const TransactionRange& range);
   };
-
-
 
 }} // namespace vw::plate
 

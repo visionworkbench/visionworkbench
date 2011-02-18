@@ -12,7 +12,7 @@
 #include <httpd.h>
 #include <apr_tables.h>
 #include <vw/Core/Settings.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/detail/Index.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/Rpc.h>
 #include <vw/Plate/IndexService.pb.h>
@@ -239,7 +239,7 @@ void PlateModule::sync_index_cache() const {
       index_url.path_join(path);
       logger(VerboseDebugMessage) << "Trying to load index: " << index_url.string() << std::endl;
 
-      entry.index = Index::construct_open(index_url);
+      entry.index = detail::Index::construct_open(index_url);
       const IndexHeader& hdr = entry.index->index_header();
 
       entry.shortname   = name;

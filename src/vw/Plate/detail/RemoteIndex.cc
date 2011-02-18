@@ -5,14 +5,18 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/RemoteIndex.h>
+#include <vw/Plate/detail/RemoteIndex.h>
 #include <vw/Plate/Rpc.h>
 #include <vw/Plate/IndexService.pb.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Plate/Exception.h>
 
+#include <boost/iostreams/stream.hpp>
+namespace io = boost::iostreams;
+
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 #include <boost/algorithm/string/split.hpp>
 #include <boost/lexical_cast.hpp>
@@ -28,6 +32,23 @@ std::string split_url(Url& url) {
   url.path_join(sp);
   return platefile_name;
 }
+
+class RemoteIndex::LogRequestSink : public io::sink {
+    RemoteIndex* m_idx;
+  public:
+    LogRequestSink(RemoteIndex* idx) : m_idx(idx) {}
+
+    std::streamsize write(const char* s, std::streamsize n) {
+      IndexLogRequest request;
+      request.set_platefile_id(m_idx->m_platefile_id);
+      request.set_message(s, n);
+
+      RpcNullMsg response;
+      m_idx->m_client->LogRequest(m_idx->m_client.get(), &request, &response, null_callback());
+      return n;
+    }
+};
+
 
 RemoteIndexPage::RemoteIndexPage(int platefile_id,
                                  boost::shared_ptr<IndexClient> client,
@@ -152,7 +173,8 @@ std::string RemotePageGeneratorFactory::who() const {
 // expecting a url in the form of scheme://hostname:port/path/to/server/platefile.plate
 RemoteIndex::RemoteIndex(const Url& url_)
   : m_url(url_), m_short_plate_filename(split_url(m_url)),
-    m_client(new IndexClient(m_url))
+    m_client(new IndexClient(m_url)),
+    m_logger(new io::stream<LogRequestSink>(LogRequestSink(this)))
 {
   // TODO: some way to set client_name from here?
   // m_client->conn(url, string("remote_index_") + platefile_name);
@@ -189,7 +211,8 @@ RemoteIndex::RemoteIndex(const Url& url_)
 RemoteIndex::RemoteIndex(const Url& url_, IndexHeader index_header_info)
   : m_url(url_), m_short_plate_filename(split_url(m_url)),
     m_index_header(index_header_info),
-    m_client(new IndexClient(m_url))
+    m_client(new IndexClient(m_url)),
+    m_logger(new io::stream<LogRequestSink>(LogRequestSink(this)))
 {
   // TODO: some way to set client_name from here?
   // m_client->conn(url, string("remote_index_") + platefile_name);
@@ -243,13 +266,8 @@ int RemoteIndex::write_request(uint64 &size) {
 }
 
 /// Log a message to the platefile log.
-void RemoteIndex::log(std::string message) {
-  IndexLogRequest request;
-  request.set_platefile_id(m_platefile_id);
-  request.set_message(message);
-
-  RpcNullMsg response;
-  m_client->LogRequest(m_client.get(), &request, &response, null_callback());
+std::ostream& RemoteIndex::log() {
+  return *m_logger;
 }
 
 /// Writing, pt. 3: Signal the completion

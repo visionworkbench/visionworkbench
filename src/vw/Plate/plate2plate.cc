@@ -138,7 +138,7 @@ struct Options {
   string filetype;
   PixelFormatEnum pixel_format;
   ChannelTypeEnum channel_type;
-  int bottom_level;
+  uint32 bottom_level;
   bool skim_mode;
 
   string filter;
@@ -158,7 +158,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("mode",             po::value(&opt.mode),         "Output mode [toast, kml]")
     ("tile-size",        po::value(&opt.tile_size),    "Output size, in pixels")
     ("filter",           po::value(&opt.filter),       "Filters to run [identity, toast_dem]")
-    ("bottom-level",     po::value(&opt.bottom_level), "Bottom level to process")
+    ("bottom-level",     po::value(&opt.bottom_level)->default_value(999), "Bottom level to process")
     ("skim-last-id-only", "Only process the last transaction id from the input")
     ("help,h",           "Display this help message.");
 
@@ -199,15 +199,17 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   PlateFile output(opt.output_name, opt.mode, opt.description, opt.tile_size, opt.filetype, opt.pixel_format, opt.channel_type);
 
-  Transaction output_transaction_id = output.transaction_request("plate2plate, reporting for duty", -1);
+  output.transaction_begin("plate2plate, reporting for duty", -1);
 
-  filter.init(output, input, input.transaction_cursor(), output_transaction_id);
+  Transaction output_transaction_id = output.transaction_id();
+
+  filter.init(output, input, input.transaction_id(), output_transaction_id);
 
   VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
 
-  int bottom_level = min(input.num_levels(), opt.bottom_level+1);
+  uint32 bottom_level = min(input.num_levels(), opt.bottom_level+1);
 
-  for (int level = 0; level < bottom_level; ++level) {
+  for (uint32 level = 0; level < bottom_level; ++level) {
     vw_out(InfoMessage) << "\nProcessing level " << level << " of " << bottom_level-1 << ".  ";
     TerminalProgressCallback tpc("plate.plate2plate.progress", "");
     vw::Timer timer( "\t    Processing time in seconds" );
@@ -229,10 +231,9 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
       std::cout << "\n\t--> Sub-region: " << region1 << "\n";
       std::list<TileHeader> tiles;
       if ( !opt.skim_mode )
-        tiles = input.search_by_region(level, region1, 0,
-                                       input.transaction_cursor(), true);
+        tiles = input.search_by_region(level, region1, TransactionRange(0, input.transaction_id()));
       else
-        tiles = input.search_by_region(level, region1, -1, -1, true);
+        tiles = input.search_by_region(level, region1, TransactionRange(-1));
 
       //      if (tiles.size() > 0)
       //      std::cout << "\t--> Region " << region1 << " has " << tiles.size() << " tiles.\n";
@@ -259,7 +260,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   filter.fini(output, input, output_transaction_id);
 
-  output.transaction_complete(output_transaction_id, true);
+  output.transaction_end(true);
 }
 
 // Blah blah boilerplate

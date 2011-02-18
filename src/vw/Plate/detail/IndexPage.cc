@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/detail/IndexPage.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
@@ -17,6 +17,7 @@
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.index") << VW_CURRENT_FUNCTION << ": ")
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 // ----------------------------------------------------------------------
 //                            INDEX PAGE
@@ -118,14 +119,11 @@ void IndexPage::deserialize(std::istream& istr) {
 
 void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 
-  VW_ASSERT( header.col() >= 0 && header.row() >= 0,
-             TileNotFoundErr() << "IndexPage::set() failed.  Column and row indices must be positive.");
-
-  int32 page_col = header.col() % m_page_width;
-  int32 page_row = header.row() % m_page_height;
+  uint32 page_col = header.col() % m_page_width;
+  uint32 page_row = header.row() % m_page_height;
 
   value_type p(header.transaction_id(), record);
-  int elmnt = page_row*m_page_width + page_col;
+  uint32 elmnt = page_row*m_page_width + page_col;
   if (m_sparse_table.test(elmnt)) {
 
     // Add to existing entry.

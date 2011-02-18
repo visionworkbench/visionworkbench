@@ -128,9 +128,7 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
       BBox2i parent_region = *iter;
       parent_region.min() *= 2;
       parent_region.max() *= 2;
-      std::list<TileHeader> valid_tile_records =
-        m_platefile->search_by_region(level+1, parent_region,
-                                      read_transaction_id, read_transaction_id, 1);
+      std::list<TileHeader> valid_tile_records = m_platefile->search_by_region(level+1, parent_region, TransactionRange(read_transaction_id, read_transaction_id));
 
       // Debugging:
       // std::cout << "Queried for valid_tiles in " << parent_region << " @ " << (level+1)
@@ -141,10 +139,8 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
         // Once we compute the valid tiles at the parent level, we
         // translate that back down into valid tiles at this level.
         BBox2i trimmed_region;
-        for (std::list<TileHeader>::iterator trim_iter = valid_tile_records.begin();
-             trim_iter != valid_tile_records.end(); ++trim_iter) {
-          trimmed_region.grow(Vector2i(trim_iter->col()/2, trim_iter->row()/2));
-        }
+        BOOST_FOREACH(const TileHeader& tile, valid_tile_records)
+          trimmed_region.grow(Vector2i(tile.col()/2, tile.row()/2));
 
         // Pad the bottom right edge of the bbox to make sure we get
         // tiles from the parent that only hald overlapped with the

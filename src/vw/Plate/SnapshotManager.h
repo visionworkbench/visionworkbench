@@ -9,17 +9,14 @@
 #define __VW_PLATE_SNAPSHOT_MANAGER_H__
 
 #include <vw/Plate/IndexData.pb.h>
-#include <vw/Image/ImageView.h>
+#include <vw/Plate/Datastore.h>
 #include <vw/Plate/FundamentalTypes.h>
+#include <vw/Image/ImageView.h>
 
 namespace vw {
 namespace platefile {
 
   class PlateFile;
-
-  // -------------------------------------------------------------------------
-  //                              SNAPSHOT MANAGER
-  // -------------------------------------------------------------------------
 
   template <class PixelT>
   class SnapshotManager {
@@ -68,23 +65,22 @@ namespace platefile {
       return false;
     }
 
-    int snapshot_helper(int current_col,
-                        int current_row,
-                        int current_level,
-                        std::map<TransactionOrNeg, TileHeader> composite_tiles,
+    int snapshot_helper(uint32 current_col,
+                        uint32 current_row,
+                        uint32 current_level,
                         vw::BBox2i const& target_region,
-                        int target_level,
-                        TransactionOrNeg start_transaction_id,
-                        TransactionOrNeg end_transaction_id,
-                        Transaction write_transaction_id,
-                        bool tweak_settings_for_terrain) const;
+                        uint32 target_level,
+                        TransactionRange read_transaction_range,
+                        Transaction write_transaction_id) const;
 
   protected:
     boost::shared_ptr<PlateFile> m_platefile;
+    bool m_tweak_settings_for_terrain;
 
   public:
 
-    SnapshotManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}
+    SnapshotManager(boost::shared_ptr<PlateFile> platefile, bool tweak_settings_for_terrain)
+      : m_platefile(platefile), m_tweak_settings_for_terrain(tweak_settings_for_terrain) {}
 
     // ---------------------------- SNAPSHOTTING --------------------------------
 
@@ -97,16 +93,10 @@ namespace platefile {
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //   write_transaction_id -- the t_id to use for writing the snapshotted tiles.
     //
-    void snapshot(int level, BBox2i const& bbox,
-                  TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
-                  Transaction write_transaction_id,
-                  bool tweak_settings_for_terrain) const;
+    void snapshot(uint32 level, BBox2i const& bbox, TransactionRange read_transaction_range, Transaction write_transaction_id) const;
 
     // Create a full snapshot of every level and every region in the mosaic.
-    void full_snapshot(TransactionOrNeg start_transaction_id,
-                       TransactionOrNeg end_transaction_id,
-                       Transaction write_transaction_id,
-                       bool tweak_settings_for_terrain) const;
+    void full_snapshot(TransactionRange read_transaction_range, Transaction write_transaction_id) const;
 
   };
 

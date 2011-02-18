@@ -6,7 +6,7 @@
 
 
 #include <vw/Plate/PlateFile.h>
-#include <vw/Plate/LocalIndex.h>
+#include <vw/Plate/detail/LocalIndex.h>
 using namespace vw;
 using namespace vw::platefile;
 
@@ -86,7 +86,7 @@ int main( int argc, char *argv[] ) {
         exit(0);
     }
 
-    LocalIndex index(filename);
+    detail::LocalIndex index(filename);
     index.rebuild_index();
 
  }  catch (vw::Exception &e) {
