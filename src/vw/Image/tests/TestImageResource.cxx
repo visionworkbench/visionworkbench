@@ -91,8 +91,8 @@ TEST( ImageResource, NativePtr ) {
   SrcNoopResource src1(fmt, src, true),
                   src2(fmt, src, false);
 
-  ASSERT_EQ(2 * 2 * 1 * 4 * 1, src1.native_size());
-  ASSERT_EQ(2 * 2 * 1 * 4 * 1, src2.native_size());
+  ASSERT_EQ(2u * 2u * 1u * 4u * 1u, src1.native_size());
+  ASSERT_EQ(2u * 2u * 1u * 4u * 1u, src2.native_size());
 
   Data d1, d2;
   d1 = src1.native_ptr();

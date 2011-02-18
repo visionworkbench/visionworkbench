@@ -29,100 +29,100 @@ TEST( PixelTypes, ChannelTypes ) {
 
 TEST( PixelTypes, Gray ) {
   // Test default-construction and size with all supported channel types
-  { PixelGray<vw::int8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),1 ); }
-  { PixelGray<vw::uint8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),1 ); }
-  { PixelGray<vw::int16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),2 ); }
-  { PixelGray<vw::uint16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),2 ); }
-  { PixelGray<vw::int32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelGray<vw::uint32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelGray<vw::int64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelGray<vw::uint64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelGray<vw::float32> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelGray<vw::float64> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),8 ); }
+  { PixelGray<vw::int8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),1u ); }
+  { PixelGray<vw::uint8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),1u ); }
+  { PixelGray<vw::int16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),2u ); }
+  { PixelGray<vw::uint16> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( sizeof(p),2u ); }
+  { PixelGray<vw::int32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelGray<vw::uint32> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelGray<vw::int64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelGray<vw::uint64> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelGray<vw::float32> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelGray<vw::float64> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),8u ); }
   // Test channel-value-construction and accessors
   { PixelGray<vw::int8> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
   { PixelGray<vw::uint8> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
   { PixelGray<vw::int16> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
-  { PixelGray<vw::uint16> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
+  { PixelGray<vw::uint16> p(1); EXPECT_EQ( p.v(),1u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p(0),1u ); }
   { PixelGray<vw::int32> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
-  { PixelGray<vw::uint32> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
+  { PixelGray<vw::uint32> p(1); EXPECT_EQ( p.v(),1u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p(0),1u ); }
   { PixelGray<vw::int64> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
-  { PixelGray<vw::uint64> p(1); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p(0),1 ); }
+  { PixelGray<vw::uint64> p(1); EXPECT_EQ( p.v(),1u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p(0),1u ); }
   { PixelGray<vw::float32> p(1.0); EXPECT_EQ( p.v(),1.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p(0),1.0 ); }
   { PixelGray<vw::float64> p(1.0); EXPECT_EQ( p.v(),1.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p(0),1.0 ); }
 }
 
 TEST( PixelTypes, GrayA ) {
   // Test default-construction and size with all supported channel types
-  { PixelGrayA<vw::int8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),2 ); }
-  { PixelGrayA<vw::uint8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),2 ); }
-  { PixelGrayA<vw::int16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelGrayA<vw::uint16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelGrayA<vw::int32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelGrayA<vw::uint32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelGrayA<vw::int64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16 ); }
-  { PixelGrayA<vw::uint64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16 ); }
-  { PixelGrayA<vw::float32> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelGrayA<vw::float64> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),16 ); }
+  { PixelGrayA<vw::int8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),2u ); }
+  { PixelGrayA<vw::uint8> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),2u ); }
+  { PixelGrayA<vw::int16> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelGrayA<vw::uint16> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( p.a(),0u ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelGrayA<vw::int32> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelGrayA<vw::uint32> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( p.a(),0u ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelGrayA<vw::int64> p; EXPECT_EQ( p.v(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16u ); }
+  { PixelGrayA<vw::uint64> p; EXPECT_EQ( p.v(),0u ); EXPECT_EQ( p.a(),0u ); EXPECT_EQ( sizeof(p),16u ); }
+  { PixelGrayA<vw::float32> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelGrayA<vw::float64> p; EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),16u ); }
   // Test channel-value-construction and accessors
   { PixelGrayA<vw::int8> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
   { PixelGrayA<vw::uint8> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
   { PixelGrayA<vw::int16> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
   { PixelGrayA<vw::uint16> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
   { PixelGrayA<vw::int32> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
-  { PixelGrayA<vw::uint32> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
+  { PixelGrayA<vw::uint32> p(1,2); EXPECT_EQ( p.v(),1u ); EXPECT_EQ( p.a(),2u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); }
   { PixelGrayA<vw::int64> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
-  { PixelGrayA<vw::uint64> p(1,2); EXPECT_EQ( p.v(),1 ); EXPECT_EQ( p.a(),2 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); }
+  { PixelGrayA<vw::uint64> p(1,2); EXPECT_EQ( p.v(),1u ); EXPECT_EQ( p.a(),2u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); }
   { PixelGrayA<vw::float32> p(1.0,2.0); EXPECT_EQ( p.v(),1.0 ); EXPECT_EQ( p.a(),2.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); }
   { PixelGrayA<vw::float64> p(1.0,2.0); EXPECT_EQ( p.v(),1.0 ); EXPECT_EQ( p.a(),2.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); }
 }
 
 TEST( PixelTypes, RGB ) {
   // Test default-construction and size with all supported channel types
-  { PixelRGB<vw::int8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelRGB<vw::uint8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelRGB<vw::int16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelRGB<vw::uint16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelRGB<vw::int32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelRGB<vw::uint32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelRGB<vw::int64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelRGB<vw::uint64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelRGB<vw::float32> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelRGB<vw::float64> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( sizeof(p),24 ); }
+  { PixelRGB<vw::int8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelRGB<vw::uint8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelRGB<vw::int16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelRGB<vw::uint16> p; EXPECT_EQ( p.r(),0u ); EXPECT_EQ( p.g(),0u ); EXPECT_EQ( p.b(),0u ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelRGB<vw::int32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelRGB<vw::uint32> p; EXPECT_EQ( p.r(),0u ); EXPECT_EQ( p.g(),0u ); EXPECT_EQ( p.b(),0u ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelRGB<vw::int64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelRGB<vw::uint64> p; EXPECT_EQ( p.r(),0u ); EXPECT_EQ( p.g(),0u ); EXPECT_EQ( p.b(),0u ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelRGB<vw::float32> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelRGB<vw::float64> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( sizeof(p),24u ); }
   // Test channel-value-construction and accessors
   { PixelRGB<vw::int8> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelRGB<vw::uint8> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelRGB<vw::int16> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelRGB<vw::uint16> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelRGB<vw::int32> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelRGB<vw::uint32> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelRGB<vw::uint32> p(1,2,3); EXPECT_EQ( p.r(),1u ); EXPECT_EQ( p.g(),2u ); EXPECT_EQ( p.b(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelRGB<vw::int64> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelRGB<vw::uint64> p(1,2,3); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelRGB<vw::uint64> p(1,2,3); EXPECT_EQ( p.r(),1u ); EXPECT_EQ( p.g(),2u ); EXPECT_EQ( p.b(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelRGB<vw::float32> p(1.0,2.0,3.0); EXPECT_EQ( p.r(),1.0 ); EXPECT_EQ( p.g(),2.0 ); EXPECT_EQ( p.b(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
   { PixelRGB<vw::float64> p(1.0,2.0,3.0); EXPECT_EQ( p.r(),1.0 ); EXPECT_EQ( p.g(),2.0 ); EXPECT_EQ( p.b(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
 }
 
 TEST( PixelTypes, RGBA ) {
   // Test default-construction and size with all supported channel types
-  { PixelRGBA<vw::int8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelRGBA<vw::uint8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4 ); }
-  { PixelRGBA<vw::int16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelRGBA<vw::uint16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8 ); }
-  { PixelRGBA<vw::int32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16 ); }
-  { PixelRGBA<vw::uint32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16 ); }
-  { PixelRGBA<vw::int64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),32 ); }
-  { PixelRGBA<vw::uint64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),32 ); }
-  { PixelRGBA<vw::float32> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),16 ); }
-  { PixelRGBA<vw::float64> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),32 ); }
+  { PixelRGBA<vw::int8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelRGBA<vw::uint8> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),4u ); }
+  { PixelRGBA<vw::int16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelRGBA<vw::uint16> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),8u ); }
+  { PixelRGBA<vw::int32> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),16u ); }
+  { PixelRGBA<vw::uint32> p; EXPECT_EQ( p.r(),0u ); EXPECT_EQ( p.g(),0u ); EXPECT_EQ( p.b(),0u ); EXPECT_EQ( p.a(),0u ); EXPECT_EQ( sizeof(p),16u ); }
+  { PixelRGBA<vw::int64> p; EXPECT_EQ( p.r(),0 ); EXPECT_EQ( p.g(),0 ); EXPECT_EQ( p.b(),0 ); EXPECT_EQ( p.a(),0 ); EXPECT_EQ( sizeof(p),32u ); }
+  { PixelRGBA<vw::uint64> p; EXPECT_EQ( p.r(),0u ); EXPECT_EQ( p.g(),0u ); EXPECT_EQ( p.b(),0u ); EXPECT_EQ( p.a(),0u ); EXPECT_EQ( sizeof(p),32u ); }
+  { PixelRGBA<vw::float32> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),16u ); }
+  { PixelRGBA<vw::float64> p; EXPECT_EQ( p.r(),0.0 ); EXPECT_EQ( p.g(),0.0 ); EXPECT_EQ( p.b(),0.0 ); EXPECT_EQ( p.a(),0.0 ); EXPECT_EQ( sizeof(p),32u ); }
   // Test channel-value-construction and accessors
   { PixelRGBA<vw::int8> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
   { PixelRGBA<vw::uint8> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
   { PixelRGBA<vw::int16> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
   { PixelRGBA<vw::uint16> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
   { PixelRGBA<vw::int32> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
-  { PixelRGBA<vw::uint32> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
+  { PixelRGBA<vw::uint32> p(1,2,3,4); EXPECT_EQ( p.r(),1u ); EXPECT_EQ( p.g(),2u ); EXPECT_EQ( p.b(),3u ); EXPECT_EQ( p.a(),4u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p[3],4u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); EXPECT_EQ( p(3),4u ); }
   { PixelRGBA<vw::int64> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
-  { PixelRGBA<vw::uint64> p(1,2,3,4); EXPECT_EQ( p.r(),1 ); EXPECT_EQ( p.g(),2 ); EXPECT_EQ( p.b(),3 ); EXPECT_EQ( p.a(),4 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p[3],4 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); EXPECT_EQ( p(3),4 ); }
+  { PixelRGBA<vw::uint64> p(1,2,3,4); EXPECT_EQ( p.r(),1u ); EXPECT_EQ( p.g(),2u ); EXPECT_EQ( p.b(),3u ); EXPECT_EQ( p.a(),4u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p[3],4u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); EXPECT_EQ( p(3),4u ); }
   { PixelRGBA<vw::float32> p(1.0,2.0,3.0,4.0); EXPECT_EQ( p.r(),1.0 ); EXPECT_EQ( p.g(),2.0 ); EXPECT_EQ( p.b(),3.0 ); EXPECT_EQ( p.a(),4.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p[3],4.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); EXPECT_EQ( p(3),4.0 ); }
   { PixelRGBA<vw::float64> p(1.0,2.0,3.0,4.0); EXPECT_EQ( p.r(),1.0 ); EXPECT_EQ( p.g(),2.0 ); EXPECT_EQ( p.b(),3.0 ); EXPECT_EQ( p.a(),4.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p[3],4.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); EXPECT_EQ( p(3),4.0 ); }
 }
@@ -164,25 +164,25 @@ TEST( PixelTypes, WeightedRGB2Gray) {
 
 TEST( PixelTypes, HSV ) {
   // Test default-construction and size with all supported channel types
-  { PixelHSV<vw::int8> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelHSV<vw::uint8> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelHSV<vw::int16> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelHSV<vw::uint16> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelHSV<vw::int32> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelHSV<vw::uint32> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelHSV<vw::int64> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelHSV<vw::uint64> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelHSV<vw::float32> p; EXPECT_EQ( p.h(),0.0 ); EXPECT_EQ( p.s(),0.0 ); EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelHSV<vw::float64> p; EXPECT_EQ( p.h(),0.0 ); EXPECT_EQ( p.s(),0.0 ); EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),24 ); }
+  { PixelHSV<vw::int8> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelHSV<vw::uint8> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelHSV<vw::int16> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelHSV<vw::uint16> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelHSV<vw::int32> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelHSV<vw::uint32> p; EXPECT_EQ( p.h(),0u ); EXPECT_EQ( p.s(),0u ); EXPECT_EQ( p.v(),0u ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelHSV<vw::int64> p; EXPECT_EQ( p.h(),0 ); EXPECT_EQ( p.s(),0 ); EXPECT_EQ( p.v(),0 ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelHSV<vw::uint64> p; EXPECT_EQ( p.h(),0u ); EXPECT_EQ( p.s(),0u ); EXPECT_EQ( p.v(),0u ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelHSV<vw::float32> p; EXPECT_EQ( p.h(),0.0 ); EXPECT_EQ( p.s(),0.0 ); EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelHSV<vw::float64> p; EXPECT_EQ( p.h(),0.0 ); EXPECT_EQ( p.s(),0.0 ); EXPECT_EQ( p.v(),0.0 ); EXPECT_EQ( sizeof(p),24u ); }
   // Test channel-value-construction and accessors
   { PixelHSV<vw::int8> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelHSV<vw::uint8> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelHSV<vw::int16> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelHSV<vw::uint16> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelHSV<vw::int32> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelHSV<vw::uint32> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelHSV<vw::uint32> p(1,2,3); EXPECT_EQ( p.h(),1u ); EXPECT_EQ( p.s(),2u ); EXPECT_EQ( p.v(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelHSV<vw::int64> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelHSV<vw::uint64> p(1,2,3); EXPECT_EQ( p.h(),1 ); EXPECT_EQ( p.s(),2 ); EXPECT_EQ( p.v(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelHSV<vw::uint64> p(1,2,3); EXPECT_EQ( p.h(),1u ); EXPECT_EQ( p.s(),2u ); EXPECT_EQ( p.v(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelHSV<vw::float32> p(1.0,2.0,3.0); EXPECT_EQ( p.h(),1.0 ); EXPECT_EQ( p.s(),2.0 ); EXPECT_EQ( p.v(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
   { PixelHSV<vw::float64> p(1.0,2.0,3.0); EXPECT_EQ( p.h(),1.0 ); EXPECT_EQ( p.s(),2.0 ); EXPECT_EQ( p.v(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
 }
@@ -279,25 +279,25 @@ TEST( PixelTypes, RGB2HSV2RGB ) {
 
 TEST( PixelTypes, XYZ ) {
   // Test default-construction and size with all supported channel types
-  { PixelXYZ<vw::int8> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelXYZ<vw::uint8> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),3 ); }
-  { PixelXYZ<vw::int16> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelXYZ<vw::uint16> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),6 ); }
-  { PixelXYZ<vw::int32> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelXYZ<vw::uint32> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelXYZ<vw::int64> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelXYZ<vw::uint64> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),24 ); }
-  { PixelXYZ<vw::float32> p; EXPECT_EQ( p.x(),0.0 ); EXPECT_EQ( p.y(),0.0 ); EXPECT_EQ( p.z(),0.0 ); EXPECT_EQ( sizeof(p),12 ); }
-  { PixelXYZ<vw::float64> p; EXPECT_EQ( p.x(),0.0 ); EXPECT_EQ( p.y(),0.0 ); EXPECT_EQ( p.z(),0.0 ); EXPECT_EQ( sizeof(p),24 ); }
+  { PixelXYZ<vw::int8> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelXYZ<vw::uint8> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),3u ); }
+  { PixelXYZ<vw::int16> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelXYZ<vw::uint16> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),6u ); }
+  { PixelXYZ<vw::int32> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelXYZ<vw::uint32> p; EXPECT_EQ( p.x(),0u ); EXPECT_EQ( p.y(),0u ); EXPECT_EQ( p.z(),0u ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelXYZ<vw::int64> p; EXPECT_EQ( p.x(),0 ); EXPECT_EQ( p.y(),0 ); EXPECT_EQ( p.z(),0 ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelXYZ<vw::uint64> p; EXPECT_EQ( p.x(),0u ); EXPECT_EQ( p.y(),0u ); EXPECT_EQ( p.z(),0u ); EXPECT_EQ( sizeof(p),24u ); }
+  { PixelXYZ<vw::float32> p; EXPECT_EQ( p.x(),0.0 ); EXPECT_EQ( p.y(),0.0 ); EXPECT_EQ( p.z(),0.0 ); EXPECT_EQ( sizeof(p),12u ); }
+  { PixelXYZ<vw::float64> p; EXPECT_EQ( p.x(),0.0 ); EXPECT_EQ( p.y(),0.0 ); EXPECT_EQ( p.z(),0.0 ); EXPECT_EQ( sizeof(p),24u ); }
   // Test channel-value-construction and accessors
   { PixelXYZ<vw::int8> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelXYZ<vw::uint8> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelXYZ<vw::int16> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelXYZ<vw::uint16> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
   { PixelXYZ<vw::int32> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelXYZ<vw::uint32> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelXYZ<vw::uint32> p(1,2,3); EXPECT_EQ( p.x(),1u ); EXPECT_EQ( p.y(),2u ); EXPECT_EQ( p.z(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelXYZ<vw::int64> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
-  { PixelXYZ<vw::uint64> p(1,2,3); EXPECT_EQ( p.x(),1 ); EXPECT_EQ( p.y(),2 ); EXPECT_EQ( p.z(),3 ); EXPECT_EQ( p[0],1 ); EXPECT_EQ( p[1],2 ); EXPECT_EQ( p[2],3 ); EXPECT_EQ( p(0),1 ); EXPECT_EQ( p(1),2 ); EXPECT_EQ( p(2),3 ); }
+  { PixelXYZ<vw::uint64> p(1,2,3); EXPECT_EQ( p.x(),1u ); EXPECT_EQ( p.y(),2u ); EXPECT_EQ( p.z(),3u ); EXPECT_EQ( p[0],1u ); EXPECT_EQ( p[1],2u ); EXPECT_EQ( p[2],3u ); EXPECT_EQ( p(0),1u ); EXPECT_EQ( p(1),2u ); EXPECT_EQ( p(2),3u ); }
   { PixelXYZ<vw::float32> p(1.0,2.0,3.0); EXPECT_EQ( p.x(),1.0 ); EXPECT_EQ( p.y(),2.0 ); EXPECT_EQ( p.z(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
   { PixelXYZ<vw::float64> p(1.0,2.0,3.0); EXPECT_EQ( p.x(),1.0 ); EXPECT_EQ( p.y(),2.0 ); EXPECT_EQ( p.z(),3.0 ); EXPECT_EQ( p[0],1.0 ); EXPECT_EQ( p[1],2.0 ); EXPECT_EQ( p[2],3.0 ); EXPECT_EQ( p(0),1.0 ); EXPECT_EQ( p(1),2.0 ); EXPECT_EQ( p(2),3.0 ); }
 }

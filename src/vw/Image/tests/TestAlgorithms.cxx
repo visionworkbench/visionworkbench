@@ -170,7 +170,7 @@ TEST( Algorithms, TransparentOpaque ) {
 TEST( Algorithms, ImageBlocks ) {
   ImageView<uint8> bin1(5,5);
   std::vector<BBox2i> bout1 = image_blocks(bin1,2,2);
-  EXPECT_EQ( 9, bout1.size() );
+  EXPECT_EQ( 9u, bout1.size() );
   EXPECT_EQ( 2, bout1.front().width() );
   EXPECT_EQ( 2, bout1.front().height() );
   EXPECT_EQ( 1, bout1.back().width() );
@@ -178,7 +178,7 @@ TEST( Algorithms, ImageBlocks ) {
 
   ImageView<uint8> bin2(9,10);
   std::vector<BBox2i> bout2 = image_blocks(bin2,3,4);
-  EXPECT_EQ( 9, bout2.size() );
+  EXPECT_EQ( 9u, bout2.size() );
   EXPECT_EQ( 3, bout2.front().width() );
   EXPECT_EQ( 4, bout2.front().height() );
   EXPECT_EQ( 3, bout2.back().width() );

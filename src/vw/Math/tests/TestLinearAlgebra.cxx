@@ -688,10 +688,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
   magic(2,0) = 4; magic(2,1) = 9; magic(2,2) = 2;
 
   Matrix<double> nullsp = nullspace(magic);
-  EXPECT_EQ( nullsp.cols(), 0u );
-  EXPECT_EQ( nullsp.rows(), 0u );
-  EXPECT_EQ( rank(magic), 3 );  // It's square yo
-  EXPECT_EQ( nullity(magic), 0 );
+  EXPECT_EQ( 0u, nullsp.cols() );
+  EXPECT_EQ( 0u, nullsp.rows() );
+  EXPECT_EQ( 3,  rank(magic) );  // It's square yo
+  EXPECT_EQ( 0u, nullity(magic) );
 
   { // Common example of nullspace
     Matrix<double> cow(2,4);
@@ -710,8 +710,8 @@ TEST(LinearAlgebra, RankAndNullspace) {
     for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-8 );
 
-    EXPECT_EQ( rank(cow), 2 );
-    EXPECT_EQ( nullity(cow), 2 );
+    EXPECT_EQ( 2,  rank(cow) );
+    EXPECT_EQ( 2u, nullity(cow) );
   }
 
   { // Data that threw an error in the past
@@ -727,10 +727,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
 
     MatrixProxy<float> monkey( monkey_data, 7, 9 );
     nullsp = nullspace(monkey);
-    EXPECT_EQ( nullsp.cols(), 2u );
-    EXPECT_EQ( nullsp.rows(), 9u );
-    EXPECT_EQ( rank(monkey), 7 );
-    EXPECT_EQ( nullity(monkey), 2 );
+    EXPECT_EQ( 2u, nullsp.cols() );
+    EXPECT_EQ( 9u, nullsp.rows() );
+    EXPECT_EQ( 7, rank(monkey) );
+    EXPECT_EQ( 2u, nullity(monkey) );
 
     Vector<double> definition_check;
     definition_check = monkey*select_col(nullsp,0);
@@ -741,10 +741,10 @@ TEST(LinearAlgebra, RankAndNullspace) {
       EXPECT_NEAR( 0, definition_check(i), 1e-1 );
 
     nullsp = nullspace(transpose(monkey));
-    EXPECT_EQ( nullsp.cols(), 0u );
-    EXPECT_EQ( nullsp.rows(), 0u );
-    EXPECT_EQ( rank(transpose(monkey)), 7 );
-    EXPECT_EQ( nullity(transpose(monkey)), 0 );
+    EXPECT_EQ( 0u, nullsp.cols() );
+    EXPECT_EQ( 0u, nullsp.rows() );
+    EXPECT_EQ( 7, rank(transpose(monkey)) );
+    EXPECT_EQ( 0u, nullity(transpose(monkey)) );
   }
 
   {  // More Data that threw an error in the past
@@ -771,8 +771,8 @@ TEST(LinearAlgebra, RankAndNullspace) {
     for ( uint32 i = 0; i < definition_check.size(); i++ )
       EXPECT_NEAR( 0, definition_check(i), 1e-5 );
 
-    EXPECT_EQ( rank(shark), 7 );
-    EXPECT_EQ( nullity(shark), 2);
+    EXPECT_EQ( 7, rank(shark) );
+    EXPECT_EQ( 2u, nullity(shark) );
   }
 }
 
@@ -792,20 +792,20 @@ TEST(LinearAlgebra, LU_Decomposition) {
 
     double tol = 1e-4;
     Vector<float> result = decomposition.solve(b1);
-    ASSERT_EQ( 3, result.size() );
+    ASSERT_EQ( 3u, result.size() );
     EXPECT_VECTOR_NEAR( Vector3f(4,5,6), result, tol );
     result = decomposition.solve(b2);
-    ASSERT_EQ( 3, result.size() );
+    ASSERT_EQ( 3u, result.size() );
     EXPECT_VECTOR_NEAR( Vector3f(1.7,-3.9,0.3), result, tol );
 
     // Try again with doubles
     Matrix<double> ad = a;
     LUD<double> decompositiond(ad);
     Vector<double> resultd = decompositiond.solve(b1);
-    ASSERT_EQ( 3, resultd.size() );
+    ASSERT_EQ( resultd.size(), 3u );
     EXPECT_VECTOR_NEAR( Vector3(4,5,6), resultd, tol );
     resultd = decompositiond.solve(b2);
-    ASSERT_EQ( 3, resultd.size() );
+    ASSERT_EQ( resultd.size(), 3u );
     EXPECT_VECTOR_NEAR( Vector3(1.7,-3.9,0.3), resultd, tol );
 
     // Check for singular
