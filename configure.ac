@@ -434,7 +434,12 @@ AX_MODULE(STEREO,           [src/vw/Stereo],           [libvwStereo.la],        
 AX_MODULE(GEOMETRY,         [src/vw/Geometry],         [libvwGeometry.la],         yes, [VW])
 AX_MODULE(PHOTOMETRY,       [src/vw/Photometry],       [libvwPhotometry.la],        no, [CARTOGRAPHY VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS])
 AX_MODULE(BUNDLEADJUSTMENT, [src/vw/BundleAdjustment], [libvwBundleAdjustment.la], yes, [CAMERA CARTOGRAPHY INTERESTPOINT STEREO VW])
-AX_MODULE(PLATE,            [src/vw/Plate],            [libvwPlate.la],             no, [CARTOGRAPHY VW], [RABBITMQ_C PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [LIBKML])
+AX_MODULE(PLATE,            [src/vw/Plate],            [libvwPlate.la],             no, [CARTOGRAPHY VW], [PROTOBUF BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [RABBITMQ_C ZEROMQ LIBKML])
+AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
+  [AS_IF([test x"$HAVE_PKG_RABBITMQ_C" != "xyes"],
+      [AS_IF([test x"$HAVE_PKG_ZEROMQ" != "xyes"],
+        [AC_MSG_WARN([You have neither rabbitmq_c nor zeromq. Plate network support will be disabled.])])])])
+
 AX_MODULE(TOOLS,            [src/vw/tools],            [],                         yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE(GUI,              [src/vw/gui],              [],                          no, [PLATE VW], [QT BOOST_PROGRAM_OPTIONS GL])
 AX_MODULE_PYTHON(           [src/vw/Python], [no])
