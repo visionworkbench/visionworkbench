@@ -23,7 +23,9 @@ struct request_rec;
 namespace vw {
 namespace platefile {
 
-class Index;
+namespace detail {
+  class Index;
+}
 
 VW_DEFINE_EXCEPTION(PlateException,   Exception);
 VW_DEFINE_EXCEPTION(BadRequest,       PlateException);
@@ -60,7 +62,7 @@ class WTMLImageSet : public std::map<std::string, std::string> {
                  const std::string& data_prefix,
                  const std::string& static_prefix,
                  const std::string dem_id,
-                 boost::shared_ptr<const Index> index,
+                 boost::shared_ptr<const detail::Index> index,
                  const std::string& description);
 
     void serializeToOstream(std::ostream& o) const;

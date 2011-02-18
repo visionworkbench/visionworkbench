@@ -8,8 +8,8 @@
 #ifndef __VW_PLATE_REMOTE_INDEX_H__
 #define __VW_PLATE_REMOTE_INDEX_H__
 
-#include <vw/Plate/PagedIndex.h>
-#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/detail/PagedIndex.h>
+#include <vw/Plate/detail/IndexPage.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <queue>
 
@@ -23,6 +23,8 @@ namespace platefile {
   class IndexWriteUpdate;
 
   typedef RpcClient<IndexService> IndexClient;
+
+namespace detail {
 
   // ----------------------------------------------------------------------
   //                         LOCAL INDEX PAGE
@@ -96,7 +98,7 @@ namespace platefile {
   // -------------------------------------------------------------------
 
   class RemoteIndex : public PagedIndex {
-    Url m_url;
+    vw::platefile::Url m_url;
     int m_platefile_id;
     std::string m_short_plate_filename;
     std::string m_full_plate_filename;
@@ -104,6 +106,11 @@ namespace platefile {
 
     // Remote connection
     boost::shared_ptr<IndexClient> m_client;
+
+    // Log streamer
+    struct LogRequestSink;
+    friend class RemoteIndex::LogRequestSink;
+    boost::shared_ptr<std::ostream> m_logger;
 
   public:
     /// Constructor (for opening an existing index)
@@ -123,7 +130,7 @@ namespace platefile {
     virtual void write_complete(int blob_id, uint64 blob_offset);
 
     /// Log a message to the platefile log.
-    virtual void log(std::string message);
+    virtual std::ostream& log();
 
     virtual IndexHeader index_header() const;
 
@@ -156,6 +163,6 @@ namespace platefile {
 
   };
 
-}} // namespace vw::plate
+}}}
 
 #endif // __VW_PLATE_REMOTE_INDEX_H__

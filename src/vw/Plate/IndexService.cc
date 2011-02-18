@@ -7,12 +7,13 @@
 
 #include <vw/Plate/IndexService.h>
 #include <vw/Plate/Exception.h>
-#include <vw/Plate/IndexPage.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/detail/IndexPage.h>
+#include <vw/Plate/detail/Index.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Core/Log.h>
 
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 #include <boost/regex.hpp>
 #include <boost/filesystem.hpp>
@@ -47,7 +48,7 @@ std::vector<std::string> IndexServiceImpl::glob_plate_filenames(std::string cons
   return result;
 }
 
-IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index( std::string plate_filename, boost::shared_ptr<Index> index) {
+IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index( std::string plate_filename, boost::shared_ptr<detail::Index> index) {
   // Build up an IndexServiceRecord
   IndexServiceRecord rec;
   rec.short_plate_filename = plate_filename;
@@ -297,7 +298,7 @@ METHOD_IMPL(NumLevelsRequest, IndexNumLevelsRequest, IndexNumLevelsReply) {
 METHOD_IMPL_NOREPLY(LogRequest, IndexLogRequest) {
   METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
-  rec.index->log(request->message());
+  rec.index->log() << request->message();
 }
 
 METHOD_IMPL(TestRequest, IndexTestRequest, IndexTestReply) {

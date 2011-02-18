@@ -8,6 +8,7 @@
 package vw.platefile;
 import "vw/Plate/Rpc.proto";
 import "vw/Plate/IndexData.proto";
+import "vw/Plate/IndexDataPrivate.proto";
 
 // ----------------------------------
 // Client --> Server Requests
@@ -62,7 +63,7 @@ message IndexWriteRequest {
 message IndexWriteUpdate {
   required int32 platefile_id = 1;
   required TileHeader header = 3;
-  required IndexRecord record = 4;
+  required detail.IndexRecord record = 4;
 }
 
 message IndexMultiWriteUpdate {
@@ -129,7 +130,7 @@ message IndexPageReply {
 }
 
 message IndexReadReply {
-  required IndexRecord index_record = 1;
+  required detail.IndexRecord index_record = 1;
 }
 
 message IndexSuccess {

@@ -11,7 +11,7 @@
 #include "mod_plate.h"
 
 #include <vw/Plate/Blob.h>
-#include <vw/Plate/Index.h>
+#include <vw/Plate/detail/Index.h>
 #include <vw/Plate/Exception.h>
 
 #include <httpd.h>
@@ -26,6 +26,7 @@
 
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 using std::string;
 

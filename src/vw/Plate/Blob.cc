@@ -23,6 +23,7 @@
 
 namespace vw {
 namespace platefile {
+  using detail::BlobRecord;
 
 BlobRecord Blob::read_blob_record(uint16 &blob_record_size) const {
 
@@ -401,6 +402,11 @@ void Blob::write_from_file(std::string source_file, TileHeader const& header, ui
   istr.close();
 
   base_offset = this->write(header, data.get(), data_size);
+}
+
+
+const std::string& Blob::filename() const {
+  return m_blob_filename;
 }
 
 }} // namespace platefile

@@ -128,13 +128,12 @@ namespace platefile {
         affected_bbox.grow( Vector2i(tile.i,tile.j) );
       }
       size_t tiles_size = tiles.size();
-      Transaction transaction_id =
-        m_platefile->transaction_request( description,
-                                          transaction_id_override );
+      m_platefile->transaction_begin( description, transaction_id_override );
+
       vw_out(InfoMessage, "platefile")
         << "\t    Rasterizing " << tiles_size << " image tiles.\n"
         << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
-        << "\t    Transaction ID: " << transaction_id << "\n"
+        << "\t    Transaction ID: " << m_platefile->transaction_id() << "\n"
         << "\t    Affected tiles @ root: " << affected_bbox << "\n";
 
       // Grab a lock on a blob file to use for writing tiles during
@@ -147,7 +146,7 @@ namespace platefile {
         typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
 
         boost::scoped_ptr<Task> task(
-          new Job(m_platefile, transaction_id,
+          new Job(m_platefile, m_platefile->transaction_id(),
                   tile, pyramid_level,
                   trans_view, tweak_settings_for_terrain,
                   false, boost::numeric_cast<int>(tiles_size), progress));
@@ -162,7 +161,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_bbox, transaction_id, transaction_id,
+        this->mipmap(pyramid_level, affected_bbox, m_platefile->transaction_id(), m_platefile->transaction_id(),
                      (!tweak_settings_for_terrain), // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
@@ -172,7 +171,7 @@ namespace platefile {
 
       // Notify the index that this transaction is complete.  Do not
       // update the read cursor (false).
-      m_platefile->transaction_complete(transaction_id, false);
+      m_platefile->transaction_end(false);
     }
 
   };

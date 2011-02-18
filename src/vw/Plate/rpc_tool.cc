@@ -26,7 +26,6 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
   general_options.add_options()
-    ("failed", po::value<unsigned>(&transaction_id), "Mark a transaction as failed.")
     ("complete", po::value<unsigned>(&transaction_id), "Mark a transaction as complete, and update the read cursor..")
     ("sync", "Sync the platefile index to disk.")
     ("help,h", "Display this help message.");
@@ -74,11 +73,10 @@ int main( int argc, char *argv[] ) {
     boost::shared_ptr<PlateFile> platefile =
       boost::shared_ptr<PlateFile>( new PlateFile(url) );
 
-    if (vm.count("failed"))
-      platefile->transaction_failed(transaction_id);
-
-    if (vm.count("complete"))
-      platefile->transaction_complete(transaction_id,true);
+    if (vm.count("complete")) {
+      platefile->transaction_resume(transaction_id);
+      platefile->transaction_end(true);
+    }
 
     if (vm.count("sync"))
       platefile->sync();

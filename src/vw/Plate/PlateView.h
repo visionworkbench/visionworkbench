@@ -64,9 +64,7 @@ namespace platefile {
       BBox2i query_region;
       query_region.min() = floor(Vector2f(image_bbox.min())/tile_size);
       query_region.max() = ceil(Vector2f(image_bbox.max())/tile_size);
-      return  m_platefile->search_by_region(m_current_level,
-                                            query_region,
-                                            -1, -1, 0);
+      return m_platefile->search_by_region(m_current_level, query_region, TransactionRange(-1));
     }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }

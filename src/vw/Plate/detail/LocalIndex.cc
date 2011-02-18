@@ -8,14 +8,15 @@
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/TemporaryFile.h>
-#include <vw/Plate/LocalIndex.h>
-#include <vw/Plate/RemoteIndex.h>
+#include <vw/Plate/detail/LocalIndex.h>
+#include <vw/Plate/detail/RemoteIndex.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/BlobManager.h>
 #include <vw/Plate/detail/Seed.h>
 
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 #include <fstream>
 #include <boost/foreach.hpp>
@@ -210,7 +211,6 @@ void LocalIndex::save_index_file() const {
       WARN_IF_DIFFERENT(channel_type);
       WARN_IF_DIFFERENT(type);
       WARN_IF_DIFFERENT(description);
-      WARN_IF_DIFFERENT(version);
 #undef WARN_IF_DIFFERENT
      return;
    }
@@ -230,19 +230,27 @@ void LocalIndex::save_index_file() const {
          << m_header.tile_filetype() << ").\n";
    }
 
+#define WARN_IF_SET(field) do {if (new_index_info.has_ ## field()) vw_out(ErrorMessage, "plate") << #field << " is a private field. Ignoring your value " << m_header.field() << std::endl;} while(0)
+   WARN_IF_SET(platefile_id);
+   WARN_IF_SET(version);
+   WARN_IF_SET(transaction_read_cursor);
+   WARN_IF_SET(transaction_write_cursor);
+   WARN_IF_SET(num_levels);
+#undef WARN_IF_SET
+
    // Create a unique (random) platefile_id using the random()
    // function.  It would probably be better to use some sort of fancy
    // MD5 hash of the current time and date, or something like that,
    // but little 'ol random() will probably work just fine for our
    // humble purposes.
    plate_seed_random();
-   m_header.set_platefile_id(vw::int32(random()));
+   m_header.set_platefile_id(vw::uint32(random()));
 
    // Set up the IndexHeader and write it to disk.
    m_header.set_version(VW_PLATE_INDEX_VERSION);
-   m_header.set_transaction_read_cursor(0);   // Transaction 0 is the empty mosaic
-   m_header.set_transaction_write_cursor(1);  // Transaction 1 is the first valid transaction
-   m_header.set_num_levels(0);                // Index initially contains zero levels
+   m_header.set_transaction_read_cursor(0);  // Transaction 0 is the empty mosaic
+   m_header.set_transaction_write_cursor(1); // Transaction 1 is the first valid transaction to write into
+   m_header.set_num_levels(0);               // Index initially contains zero levels
    this->save_index_file();
 
    // Create the logging facility
@@ -303,17 +311,11 @@ LocalIndex::LocalIndex(std::string plate_filename) :
  ///
  ///   index_instance.log() << "some text for the log...\n";
  ///
- std::ostream& LocalIndex::log () {
+ std::ostream& LocalIndex::log() {
    if (!m_log)
      vw_throw(LogicErr() << "LocalIndex::log() - attempted to write to log when the log wasn\'t open.");
    return (*m_log)(InfoMessage, "console");
  }
-
-/// Log a message to the platefile log.
-void LocalIndex::log(std::string message) {
-  this->log() << message;
-}
-
 
 // Clients are expected to make a transaction request whenever
 // they start a self-contained chunk of mosaicking work.  .
@@ -340,11 +342,10 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
      // accidentally assign two transactions the same ID if the index
      // server crashes and has to be restarted.
      Transaction transaction_id = m_header.transaction_write_cursor();
-     m_header.set_transaction_write_cursor(m_header.transaction_write_cursor() + 1);
+     m_header.set_transaction_write_cursor(transaction_id + 1);
      this->save_index_file();
      this->log() << "Transaction " << transaction_id << " started: " << transaction_description << "\n";
      return transaction_id;
-
    }
  }
 
@@ -433,7 +434,7 @@ void LocalIndex::write_update(TileHeader const& header, IndexRecord const& recor
   // If adding the record resulted in more levels, we save that
   // information to the index header.
   if (m_levels.size() != starting_size) {
-    m_header.set_num_levels(boost::numeric_cast<int32>(m_levels.size()));
+    m_header.set_num_levels(boost::numeric_cast<uint32>(m_levels.size()));
     this->save_index_file();
   }
 }

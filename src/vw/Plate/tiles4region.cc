@@ -95,7 +95,7 @@ int main( int argc, char *argv[]) {
         BBox2i region(opt.minx, opt.miny, opt.width, opt.height);
         TransactionOrNeg id(-1);
         std::list<TileHeader> tile_records;
-        tile_records = plate->search_by_region(opt.level,region,id,id,0,false);
+        tile_records = plate->search_by_region(opt.level,region,TransactionRange(id));
 
         printf("{ \"ok\": true,\n");
         printf("\"result\": [\n");

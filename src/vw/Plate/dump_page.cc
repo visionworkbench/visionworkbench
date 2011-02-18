@@ -5,8 +5,8 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/Index.h>
-#include <vw/Plate/IndexPage.h>
+#include <vw/Plate/detail/Index.h>
+#include <vw/Plate/detail/IndexPage.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/HTTPUtils.h>
 
@@ -52,8 +52,8 @@ void dump_tile(const Url& url, uint32 blob_id, uint64 blob_offset) {
 }
 
 void run(const Options& opt) {
-  boost::shared_ptr<Index> index(Index::construct_open(opt.plate));
-  boost::shared_ptr<IndexPage> page = index->page_request(opt.col, opt.row, opt.level);
+  boost::shared_ptr<detail::Index> index(detail::Index::construct_open(opt.plate));
+  boost::shared_ptr<detail::IndexPage> page = index->page_request(opt.col, opt.row, opt.level);
   std::cout << "Loaded page at col=" << opt.col << " row=" << opt.row << " level=" << opt.level << std::endl
             << "Page contains " << page->sparse_size() << " entries." << std::endl;
 
@@ -61,9 +61,9 @@ void run(const Options& opt) {
     //typedef std::list<value_type> multi_value_type;
     //typedef google::sparsetable<multi_value_type>::nonempty_iterator nonempty_iterator;
 
-  BOOST_FOREACH(const IndexPage::multi_value_type& slot, std::make_pair(page->begin(), page->end())) {
+  BOOST_FOREACH(const detail::IndexPage::multi_value_type& slot, std::make_pair(page->begin(), page->end())) {
     std::cout << "Loaded page slot with " << slot.size() << " entries" << std::endl;
-    BOOST_FOREACH(const IndexPage::value_type& elt, slot) {
+    BOOST_FOREACH(const detail::IndexPage::value_type& elt, slot) {
       std::cout << "TID=" << elt.first << " BLOB=" << elt.second.blob_id() << " OFFSET=" << elt.second.blob_offset() << std::endl;
       if (opt.verify)
         dump_tile(opt.plate, elt.second.blob_id(), elt.second.blob_offset());

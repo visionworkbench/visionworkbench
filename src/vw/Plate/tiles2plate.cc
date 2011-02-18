@@ -21,11 +21,11 @@ using namespace vw::platefile;
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
-struct Tile {
+struct TileLocation {
   fs::path m_path;
   int32 m_col, m_row, m_level;
 
-  Tile(const fs::path &path, int32 col = -1, int32 row = -1, int32 level = -1)
+  TileLocation(const fs::path &path, int32 col = -1, int32 row = -1, int32 level = -1)
     : m_path(path), m_col(col), m_row(row), m_level(level)
   { }
 
@@ -39,7 +39,7 @@ class TilePathDecoder {
 public:
   TilePathDecoder() {}
   virtual ~TilePathDecoder() {}
-  virtual Tile decode( const fs::path &path ) = 0;
+  virtual TileLocation decode( const fs::path &path ) = 0;
 };
 
 class ToastDecoder : public TilePathDecoder {
@@ -50,9 +50,9 @@ public:
     : m_base_path(base_path) { }
   virtual ~ToastDecoder() { }
 
-  virtual Tile decode( const fs::path &full_path ) {
+  virtual TileLocation decode( const fs::path &full_path ) {
     fs::path partial_path(full_path.string().substr(m_base_path.string().length() + 1));
-    Tile t(full_path);
+    TileLocation t(full_path);
 
     partial_path.replace_extension();
     //std::cout << partial_path << std::endl;
@@ -75,8 +75,8 @@ public:
   GigapanDecoder() {}
   virtual ~GigapanDecoder() {}
 
-  virtual Tile decode( const fs::path &full_path ) {
-    Tile t(full_path);
+  virtual TileLocation decode( const fs::path &full_path ) {
+    TileLocation t(full_path);
     if( full_path.extension() == ".info" )
       return t;
 
@@ -127,7 +127,7 @@ class TileHandler {
 public:
   TileHandler() {}
   virtual ~TileHandler() {}
-  virtual bool operator() ( const Tile & tile ) = 0;
+  virtual bool operator() ( const TileLocation & tile ) = 0;
 };
 
 class FirstHandler : public TileHandler {
@@ -137,7 +137,7 @@ class FirstHandler : public TileHandler {
 public:
   FirstHandler() : m_have_path(false) {}
   virtual ~FirstHandler() {}
-  virtual bool operator() ( const Tile & tile ) {
+  virtual bool operator() ( const TileLocation & tile ) {
     m_path = tile.m_path;
     m_have_path = true;
     return false;
@@ -157,7 +157,7 @@ public:
   { }
   virtual ~PlateHandler() {}
 
-  virtual bool operator() ( const Tile &tile ) {
+  virtual bool operator() ( const TileLocation &tile ) {
     ViewT image(tile.m_path.string());
     std::cout << "\t--> Writing tile [ "
               << tile.m_col << " " << tile.m_row << " " << tile.m_level << " ] "
@@ -185,7 +185,7 @@ void iterate_over_tiles( fs::path &dir_path,
     if( fs::is_directory(itr->status()) )
       continue;
 
-    Tile t = decoder->decode( itr->path() );
+    TileLocation t = decoder->decode( itr->path() );
     if( t.valid() ) {
       if( !handler(t) ) return;
     }
@@ -276,7 +276,7 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  DiskImageResource *rsrc = DiskImageResource::open(first_handler.get_path().string());
+  SrcImageResource *rsrc = DiskImageResource::open(first_handler.get_path().string());
   PixelFormatEnum pixel_format = rsrc->pixel_format();
   ChannelTypeEnum channel_type = rsrc->channel_type();
   int32 tile_size = rsrc->rows();
@@ -303,7 +303,7 @@ int main( int argc, char *argv[] ) {
 
     std::vector<TileHeader> empty_tile_list;
     Transaction write_transaction_id =
-      platefile->transaction_request("Writing tiles from tile tree " + tile_directory_name, -1);
+      platefile->transaction_begin("Writing tiles from tile tree " + tile_directory_name, -1);
 
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
@@ -364,7 +364,7 @@ int main( int argc, char *argv[] ) {
     }
 
     // update_read_cursor == true below.
-    platefile->transaction_complete( write_transaction_id, true );
+    platefile->transaction_end( true );
   } catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting\n\n";
   }

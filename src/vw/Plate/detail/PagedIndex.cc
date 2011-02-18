@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Plate/PagedIndex.h>
+#include <vw/Plate/detail/PagedIndex.h>
 #include <vw/Plate/Exception.h>
 #include <vw/Core/Debugging.h>
 
@@ -13,6 +13,7 @@
 
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::platefile::detail;
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.pagedindex") << VW_CURRENT_FUNCTION << ": ")
 
@@ -123,13 +124,12 @@ IndexRecord IndexLevel::get(int32 col, int32 row, TransactionOrNeg transaction_i
 /// Set the value of an index node at this level.
 void IndexLevel::set(TileHeader const& header, IndexRecord const& rec) {
 
-  VW_ASSERT( header.col() >= 0 && header.row() >= 0 &&
-             header.col() < pow(2,m_level) && header.row() < pow(2,m_level),
+  VW_ASSERT( header.col() < pow(2,m_level) && header.row() < pow(2,m_level),
              TileNotFoundErr() << "IndexLevel::set() failed.  Invalid index [ "
              << header.col() << " " << header.row() << " @ level " << m_level << "]" );
 
-  int32 level_col = header.col() / m_page_width;
-  int32 level_row = header.row() / m_page_height;
+  uint32 level_col = header.col() / m_page_width;
+  uint32 level_row = header.row() / m_page_height;
 
   WHEREAMI << "(" << level_col << " " << level_row << " @ " << m_level << ")\n";
 
@@ -243,7 +243,7 @@ void PagedIndex::write_update(TileHeader const& header, IndexRecord const& recor
   // levels to save the requested data.  If not, we grow the levels
   // vector to the correct size.
 
-  for (int level = boost::numeric_cast<int>(m_levels.size()); level <= header.level(); ++level) {
+  for (uint32 level = m_levels.size(); level <= header.level(); ++level) {
     boost::shared_ptr<IndexLevel> new_level(
         new IndexLevel(m_page_gen_factory, level, m_page_width, m_page_height, m_default_cache_size) );
     m_levels.push_back(new_level);

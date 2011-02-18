@@ -17,28 +17,30 @@ if MAKE_MODULE_PLATE
 # dependency for compile-order calculations
 PLATE_LOCAL_LIBS = libvwPlate.la @MODULE_PLATE_LIBS@
 
-protocol_headers = IndexService.pb.h Rpc.pb.h IndexData.pb.h
-protocol_sources = IndexService.pb.cc Rpc.pb.cc IndexData.pb.cc
+protocol_headers = IndexService.pb.h  Rpc.pb.h  IndexData.pb.h  IndexDataPrivate.pb.h
+protocol_sources = IndexService.pb.cc Rpc.pb.cc IndexData.pb.cc IndexDataPrivate.pb.cc
 
 BUILT_SOURCES = $(protocol_sources)
 
 include_HEADERS =           \
   Blob.h                    \
   BlobManager.h             \
+  Datastore.h               \
+  detail/Blobstore.h        \
   Exception.h               \
   FundamentalTypes.h        \
   HTTPUtils.h               \
-  Index.h                   \
-  IndexPage.h               \
+  detail/Index.h            \
+  detail/IndexPage.h        \
   IndexService.h            \
-  LocalIndex.h              \
-  PagedIndex.h              \
+  detail/LocalIndex.h       \
+  detail/PagedIndex.h       \
   PlateCarreePlateManager.h \
   PlateFile.h               \
   PlateManager.h            \
   PlateView.h               \
   PolarStereoPlateManager.h \
-  RemoteIndex.h             \
+  detail/RemoteIndex.h      \
   Rpc.h                     \
   RpcChannel.h              \
   SnapshotManager.h         \
@@ -52,19 +54,21 @@ noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handle
 libvwPlate_la_SOURCES =      \
   Blob.cc                    \
   BlobManager.cc             \
+  Datastore.cc               \
+  detail/Blobstore.cc        \
   Exception.cc               \
   FundamentalTypes.cc        \
   HTTPUtils.cc               \
-  Index.cc                   \
-  IndexPage.cc               \
+  detail/Index.cc            \
+  detail/IndexPage.cc        \
   IndexService.cc            \
-  LocalIndex.cc              \
-  PagedIndex.cc              \
+  detail/LocalIndex.cc       \
+  detail/PagedIndex.cc       \
   PlateCarreePlateManager.cc \
   PlateFile.cc               \
   PlateManager.cc            \
   PolarStereoPlateManager.cc \
-  RemoteIndex.cc             \
+  detail/RemoteIndex.cc      \
   Rpc.cc                     \
   RpcChannel.cc              \
   SnapshotManager.cc         \

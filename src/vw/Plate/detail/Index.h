@@ -10,6 +10,7 @@
 
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexData.pb.h>
+#include <vw/Plate/IndexDataPrivate.pb.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Math/BBox.h>
 #include <boost/shared_ptr.hpp>
@@ -19,9 +20,10 @@
 
 namespace vw {
 namespace platefile {
-
-  class IndexPage;
   class Url;
+
+namespace detail {
+  class IndexPage;
 
   // -------------------------------------------------------------------
   //                          INDEX BASE CLASS
@@ -52,7 +54,7 @@ namespace platefile {
     virtual void sync() = 0;
 
     /// Log a message to the platefile log.
-    virtual void log(std::string message) = 0;
+    virtual std::ostream& log() = 0;
 
     // -------------------------- I/O ---------------------------
 
@@ -142,6 +144,6 @@ namespace platefile {
 
   };
 
-}} // namespace vw::plate
+}}}
 
 #endif // __VW_PLATEFILE_INDEX_H__

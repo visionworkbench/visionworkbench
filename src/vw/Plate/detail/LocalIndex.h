@@ -10,13 +10,15 @@
 
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Image/PixelTypeInfo.h>
-#include <vw/Plate/PagedIndex.h>
+#include <vw/Plate/detail/PagedIndex.h>
 
 namespace vw {
 namespace platefile {
 
   class BlobManager;
   class TileHeader;
+
+namespace detail {
 
   // ----------------------------------------------------------------------
   //                         LOCAL INDEX PAGE
@@ -115,9 +117,6 @@ namespace platefile {
     // time.
     void rebuild_index();
 
-    /// Log a message to the platefile log.
-    virtual void log(std::string message);
-
     /// Use this to send data to the index's logfile like this:
     ///
     ///   index_instance.log() << "some text for the log...\n";
@@ -174,6 +173,6 @@ namespace platefile {
     virtual Transaction transaction_cursor();
   };
 
-}} // namespace vw::plate
+}}}
 
-#endif // __VW_PLATEFILE_LOCAL_INDEX_H__
+#endif
