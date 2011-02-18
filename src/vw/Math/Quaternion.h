@@ -5,24 +5,24 @@
 // __END_LICENSE__
 
 
-//! \file Quaternion.h
-//!
-//! Provides the core Quaternion<> template class.
-//! Depends on the BOOST quaternion<> class for much of the implementation.
-//!
-//! Currently I believe we support:
-//!   Element access via q(i), q[i], and q.w(),q.x(),q.y(),q.z()
-//!   Quaternion addition, subtraction, multiplication, division, and negation
-//!   Scalar addition, subtraction, multiplication, and division
-//!   Construction from axis vector + angle
-//!   Construction from a rotation matrix
-//!   Conversion to matrix via rotation_matrix() and rotation_matrix_4()
-//!   Rotation of individual 3-vectors via rotate()
-//!   Conjugation and inverse via conj() and inverse()
-//!   exp, sin, cos, tan, sinh, cosh, tanh, and pow with integer powers
-//!   Norms via norm_1(), norm_2(), and norm_inf()
-//!   Extraction of real and imaginary-vector parts via real() and imag()
-//!
+// \file Quaternion.h
+//
+// Provides the core Quaternion<> template class.
+// Depends on the BOOST quaternion<> class for much of the implementation.
+//
+// Currently I believe we support:
+//   Element access via q(i), q[i], and q.w(),q.x(),q.y(),q.z()
+//   Quaternion addition, subtraction, multiplication, division, and negation
+//   Scalar addition, subtraction, multiplication, and division
+//   Construction from axis vector + angle
+//   Construction from a rotation matrix
+//   Conversion to matrix via rotation_matrix() and rotation_matrix_4()
+//   Rotation of individual 3-vectors via rotate()
+//   Conjugation and inverse via conj() and inverse()
+//   exp, sin, cos, tan, sinh, cosh, tanh, and pow with integer powers
+//   Norms via norm_1(), norm_2(), and norm_inf()
+//   Extraction of real and imaginary-vector parts via real() and imag()
+//
 #ifndef __VW_QUATERNION_H__
 #define __VW_QUATERNION_H__
 
@@ -39,17 +39,17 @@ namespace math {
 
     template <class QuaternionT, class OStreamT>
     static inline OStreamT& quaternion_to_stream( QuaternionT const& q, OStreamT& os ) {
-      return os << "[Q]" << q.core_;
+      return os << "[Q]" << q.m_core;
     }
 
     template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_equality( QuaternionT const& a, QuaternionT const& b ) {
-      return a.core_ == b.core_;
+      return a.m_core == b.m_core;
     }
 
     template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_real( QuaternionT const& q ) {
-      return real( q.core_ );
+      return real( q.m_core );
     }
 
     template <class QuaternionT>
@@ -59,112 +59,112 @@ namespace math {
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_conj( QuaternionT const& q ) {
-      return conj( q.core_ );
+      return conj( q.m_core );
     }
 
     template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_norm_1( QuaternionT const& q ) {
-      return l1( q.core_ );
+      return l1( q.m_core );
     }
 
     template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_norm_2( QuaternionT const& q ) {
-      return abs( q.core_ );
+      return abs( q.m_core );
     }
 
     template <class QuaternionT>
     static inline typename QuaternionT::value_type quaternion_norm_inf( QuaternionT const& q ) {
-      return sup( q.core_ );
+      return sup( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_inverse( QuaternionT const& q ) {
-      return conj( q.core_ ) / norm( q.core_ );
+      return conj( q.m_core ) / norm( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_negation( QuaternionT const& q ) {
-      return - q.core_;
+      return - q.m_core;
     }
 
     template <class QuaternionT, class ScalarT>
     static inline QuaternionT quaternion_scalar_sum( QuaternionT const& q, ScalarT s ) {
-      return q.core_ + typename QuaternionT::value_type(s);
+      return q.m_core + typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
     static inline QuaternionT quaternion_scalar_difference( QuaternionT const& q, ScalarT s ) {
-      return q.core_ - typename QuaternionT::value_type(s);
+      return q.m_core - typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
     static inline QuaternionT quaternion_scalar_product( QuaternionT const& q, ScalarT s ) {
-      return q.core_ * typename QuaternionT::value_type(s);
+      return q.m_core * typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT, class ScalarT>
     static inline QuaternionT quaternion_scalar_quotient( QuaternionT const& q, ScalarT s ) {
-      return q.core_ / typename QuaternionT::value_type(s);
+      return q.m_core / typename QuaternionT::value_type(s);
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_quaternion_sum( QuaternionT const& q1, QuaternionT const& q2 ) {
-      return q1.core_ + q2.core_;
+      return q1.m_core + q2.m_core;
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_quaternion_difference( QuaternionT const& q1, QuaternionT const& q2 ) {
-      return q1.core_ - q2.core_;
+      return q1.m_core - q2.m_core;
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_quaternion_product( QuaternionT const& q1, QuaternionT const& q2 ) {
-      return q1.core_ * q2.core_;
+      return q1.m_core * q2.m_core;
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_quaternion_quotient( QuaternionT const& q1, QuaternionT const& q2 ) {
-      return q1.core_ / q2.core_;
+      return q1.m_core / q2.m_core;
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_exp( QuaternionT const& q ) {
-      return exp( q.core_ );
+      return exp( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_sin( QuaternionT const& q ) {
-      return sin( q.core_ );
+      return sin( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_cos( QuaternionT const& q ) {
-      return cos( q.core_ );
+      return cos( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_tan( QuaternionT const& q ) {
-      return tan( q.core_ );
+      return tan( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_sinh( QuaternionT const& q ) {
-      return sinh( q.core_ );
+      return sinh( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_cosh( QuaternionT const& q ) {
-      return cosh( q.core_ );
+      return cosh( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_tanh( QuaternionT const& q ) {
-      return tanh( q.core_ );
+      return tanh( q.m_core );
     }
 
     template <class QuaternionT>
     static inline QuaternionT quaternion_int_pow( QuaternionT const& q, int n ) {
-      return pow( q.core_, n );
+      return pow( q.m_core, n );
     }
 
   };
@@ -187,63 +187,15 @@ namespace math {
   class Quaternion : public QuaternionBase<Quaternion<ElemT> >
   {
     typedef boost::math::quaternion<ElemT> core_type;
-    core_type core_;
+    core_type m_core;
     friend class QuaternionImplementation;
-    Quaternion( core_type const& q ) : core_(q) {}
+    Quaternion( core_type const& q ) : m_core(q) {}
   public:
     typedef ElemT value_type;
 
     Quaternion() {}
 
-    Quaternion( ElemT w, ElemT x, ElemT y, ElemT z ) : core_( w, x, y, z ) {}
-
-    ElemT& operator[]( size_t i ) {
-      return *(reinterpret_cast<ElemT*>(this)+i);
-    }
-
-    ElemT const& operator[]( size_t i ) const {
-      return *(reinterpret_cast<ElemT const*>(this)+i);
-    }
-
-    ElemT& operator()( size_t i ) {
-      return *(reinterpret_cast<ElemT*>(this)+i);
-    }
-
-    ElemT const& operator()( size_t i ) const {
-      return *(reinterpret_cast<ElemT const*>(this)+i);
-    }
-
-    ElemT& w() {
-      return operator[](0);
-    }
-
-    ElemT const& w() const {
-      return operator[](0);
-    }
-
-    ElemT& x() {
-      return operator[](1);
-    }
-
-    ElemT const& x() const {
-      return operator[](1);
-    }
-
-    ElemT& y() {
-      return operator[](2);
-    }
-
-    ElemT const& y() const {
-      return operator[](2);
-    }
-
-    ElemT& z() {
-      return operator[](3);
-    }
-
-    ElemT const& z() const {
-      return operator[](3);
-    }
+    Quaternion( ElemT w, ElemT x, ElemT y, ElemT z ) : m_core( w, x, y, z ) {}
 
     template <class MatrixT>
     explicit Quaternion( MatrixBase<MatrixT> const& matrix ) {
@@ -259,47 +211,68 @@ namespace math {
       if (yy > max) max = yy;
       if (zz > max) max = zz;
 
+      ElemT c[4];
       if (ww == max) {
         ElemT w4 = ElemT(sqrt(ww * 4.0));
-        w() = w4 / 4;
-        x() = (rot(2,1) - rot(1,2)) / w4;
-        y() = (rot(0,2) - rot(2,0)) / w4;
-        z() = (rot(1,0) - rot(0,1)) / w4;
+        c[0] = w4 / 4;
+        c[1] = (rot(2,1) - rot(1,2)) / w4;
+        c[2] = (rot(0,2) - rot(2,0)) / w4;
+        c[3] = (rot(1,0) - rot(0,1)) / w4;
       } else if (xx == max) {
         ElemT x4 = ElemT(sqrt(xx * 4.0));
-        w() = (rot(2,1) - rot(1,2)) / x4;
-        x() = x4 / 4;
-        y() = (rot(0,1) + rot(1,0)) / x4;
-        z() = (rot(0,2) + rot(2,0)) / x4;
+        c[0] = (rot(2,1) - rot(1,2)) / x4;
+        c[1] = x4 / 4;
+        c[2] = (rot(0,1) + rot(1,0)) / x4;
+        c[3] = (rot(0,2) + rot(2,0)) / x4;
       } else if (yy == max) {
         ElemT y4 = ElemT(sqrt(yy * 4.0));
-        w() = (rot(0,2) - rot(2,0)) / y4;
-        x() = (rot(0,1) + rot(1,0)) / y4;
-        y() =  y4 / 4;
-        z() = (rot(1,2) + rot(2,1)) / y4;
+        c[0] = (rot(0,2) - rot(2,0)) / y4;
+        c[1] = (rot(0,1) + rot(1,0)) / y4;
+        c[2] =  y4 / 4;
+        c[3] = (rot(1,2) + rot(2,1)) / y4;
       } else {
         ElemT z4 = ElemT(sqrt(zz * 4.0));
-        w() = (rot(1,0) - rot(0,1)) / z4;
-        x() = (rot(0,2) + rot(2,0)) / z4;
-        y() = (rot(1,2) + rot(2,1)) / z4;
-        z() =  z4 / 4;
+        c[0] = (rot(1,0) - rot(0,1)) / z4;
+        c[1] = (rot(0,2) + rot(2,0)) / z4;
+        c[2] = (rot(1,2) + rot(2,1)) / z4;
+        c[3] =  z4 / 4;
       }
+      m_core = core_type(c[0],c[1],c[2],c[3]);
     }
 
     template <class VectorT>
     explicit Quaternion( VectorBase<VectorT> const& vec ) {
-      for( size_t i=0; i<4; ++i ) operator[](i) = vec.impl()[i];
+      VW_ASSERT( vec.impl().size() == 4,
+                 ArgumentErr() << "Quaternion: Vector input requires 4 elements" );
+      m_core = core_type(vec.impl()[0],vec.impl()[1],vec.impl()[2],vec.impl()[3]);
     }
 
     // Construct quaternion from normalized rotation axis and angle
     template <class VectorT>
     Quaternion( VectorBase<VectorT> const& axis, ElemT angle ) {
       double ha = angle * 0.5;
-      w() = ElemT(cos(ha));
       ElemT s = ElemT(sin(ha));
-      for (size_t i = 0; i < 3; i++)
-        operator[](i+1) = s * axis.impl()[i];
+      m_core = core_type(cos(ha), s * axis.impl()[0],
+                         s * axis.impl()[1], s * axis.impl()[2]);
     }
+
+    ElemT operator[]( size_t i ) const {
+      switch ( i ) {
+      case 0: return m_core.R_component_1(); break;
+      case 1: return m_core.R_component_2(); break;
+      case 2: return m_core.R_component_3(); break;
+      case 3: return m_core.R_component_4(); break;
+      default:
+        vw_throw( ArgumentErr() << "Quaternion: Invalid index" );
+      }
+    }
+    ElemT operator()( size_t i ) const { return (*this)[i]; }
+
+    ElemT w() const { return m_core.R_component_1(); }
+    ElemT x() const { return m_core.R_component_2(); }
+    ElemT y() const { return m_core.R_component_3(); }
+    ElemT z() const { return m_core.R_component_4(); }
+
 
     // Convert to an equivalent set of normalized rotation axis and angle
     template <class VectorT>
@@ -320,9 +293,9 @@ namespace math {
 
     // Convert to an equivalent rotation vector pointing along the rotation axis
     // with a norm_2 that corresponds to the rotation angle in radian
-    vw::Vector<value_type, 3> axis_angle() const {
-      vw::Vector<value_type, 3> axis;
-      value_type angle;
+    Vector<ElemT, 3> axis_angle() const {
+      Vector<ElemT, 3> axis;
+      ElemT angle;
       axis_angle(axis, angle);
       return axis*angle;
     }
@@ -513,8 +486,9 @@ namespace math {
     return QuaternionImplementation::quaternion_int_pow( q.impl(), n );
   }
 
-  // Convert a 3 component rotation vector pointing in the rotation axis' direction and with norm_2 being equal to the rotation
-  // angle (in radian) to a quaternion
+  // Convert a 3 component rotation vector pointing in the rotation
+  // axis' direction and with norm_2 being equal to the rotation angle
+  // (in radian) to a quaternion
   template<class VectorT>
   inline Quaternion<typename VectorT::value_type> axis_angle_to_quaternion(const VectorBase<VectorT>& axis_angle) {
     typename VectorT::value_type norm2 = vw::math::norm_2(axis_angle.impl());
@@ -525,8 +499,9 @@ namespace math {
   }
 
 
-  // Convert a 3 component rotation vector pointing in the rotation axis' direction and with norm_2 equal to the rotation
-  // angle (in radian) to a rotation matrix
+  // Convert a 3 component rotation vector pointing in the rotation
+  // axis' direction and with norm_2 equal to the rotation angle (in
+  // radian) to a rotation matrix
   template<class VectorT>
   static inline Matrix<typename VectorT::value_type, 3, 3> axis_angle_to_matrix(const VectorBase<VectorT>& rotation_vector) {
     typedef typename VectorT::value_type ElemT;
@@ -547,8 +522,9 @@ namespace math {
   }
 
 
-  // Convert a 3x3 rotation matrix to an equivalent rotation vector pointing along the rotation axis
-  // with a norm_2 that corresponds to the rotation angle in radian
+  // Convert a 3x3 rotation matrix to an equivalent rotation vector
+  // pointing along the rotation axis with a norm_2 that corresponds
+  // to the rotation angle in radian
   template<class MatrixT>
   inline Vector<typename MatrixT::value_type, 3> matrix_to_axis_angle(const MatrixBase<MatrixT>& q) {
     Vector<typename MatrixT::value_type, 3> res( Quaternion<typename MatrixT::value_type>(q.impl()).axis_angle() );

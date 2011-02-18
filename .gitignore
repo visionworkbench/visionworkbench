@@ -127,6 +127,7 @@ docs/workbook/workbook.toc
 /src/vw/gui/vwv
 /src/vw/HDR/tests/TestCameraCurve
 /src/vw/Image/tests/TestAlgorithms
+/src/vw/Image/tests/TestBlockRasterize
 /src/vw/Image/tests/TestConvolution
 /src/vw/Image/tests/TestEdgeExtension
 /src/vw/Image/tests/TestFilter

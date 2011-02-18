@@ -93,35 +93,46 @@ namespace camera {
 
     boost::shared_ptr<CameraModel> m_camera;
     Vector3 m_translation;
-    Quaternion<double> m_rotation;
-    Quaternion<double> m_rotation_inverse;
+    Quat m_rotation;
+    Quat m_rotation_inverse;
 
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model) : m_camera(camera_model) {
-      m_rotation = math::Quaternion<double>(math::identity_matrix<3>());
-      m_rotation_inverse = math::Quaternion<double>(math::identity_matrix<3>());
+      m_rotation = Quat(math::identity_matrix<3>());
+      m_rotation_inverse = Quat(math::identity_matrix<3>());
     }
 
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                        Vector3 const& translation, math::Quaternion<double> const& rotation) :
+                        Vector3 const& translation, Quat const& rotation) :
       m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
 
     virtual ~AdjustedCameraModel() {}
     virtual std::string type() const { return "Adjusted"; }
 
     Vector3 translation() const { return m_translation; }
-    Quaternion<double> rotation() const { return m_rotation; }
+    Quat rotation() const { return m_rotation; }
     Matrix<double,3,3> rotation_matrix() const { return m_rotation.rotation_matrix(); }
     Vector3 axis_angle_rotation() const;
-    void set_translation(Vector3 const&);
-    void set_rotation(Quaternion<double> const&);
-    void set_rotation(Matrix<double,3,3> const&);
-    void set_axis_angle_rotation(Vector3 const&);
+    void set_rotation(Quat const&);
+
+    template <class MatrixT>
+    void set_rotation(MatrixBase<MatrixT> const& m) {
+      m_rotation = Quat(m.impl());
+      m_rotation_inverse = inverse(m_rotation);
+    }
+    template <class VectorT>
+    void set_translation(VectorBase<VectorT> const& v) {
+      m_translation = v.impl();
+    }
+    template <class VectorT>
+    void set_axis_angle_rotation(VectorBase<VectorT> const& v) {
+      this->set_rotation( axis_angle_to_quaternion(v.impl()) );
+    }
 
     virtual Vector2 point_to_pixel (Vector3 const&) const;
     virtual Vector3 pixel_to_vector (Vector2 const&) const;
     virtual Vector3 camera_center (Vector2 const&) const;
-    virtual Quaternion<double> camera_pose(Vector2 const&) const;
+    virtual Quat camera_pose(Vector2 const&) const;
 
     void write(std::string const&);
     void read(std::string const&);

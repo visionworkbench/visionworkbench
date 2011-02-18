@@ -13,8 +13,8 @@ if MAKE_MODULE_CAMERA
 
 protocol_headers =
 protocol_sources =
-
 include_HEADERS =
+libvwCamera_la_SOURCES =
 
 if HAVE_PKG_PROTOBUF
 protocol_headers += TsaiFile.pb.h
@@ -24,18 +24,19 @@ include_HEADERS += $(protocol_headers)
 endif
 
 if HAVE_PKG_LAPACK
-lsm_headers = Extrinsics.h LinescanModel.h LinearPushbroomModel.h       \
-              OrbitingPushbroomModel.h PinholeModelCalibrate.h          \
-              LensDistortion.h CameraGeometry.h
+include_HEADERS += Extrinsics.h LinescanModel.h LinearPushbroomModel.h   \
+                   OrbitingPushbroomModel.h PinholeModelCalibrate.h      \
+                   LensDistortion.h CameraGeometry.h
+libvwCamera_la_SOURCES += Extrinsics.cc
 endif
 
 include_HEADERS += CameraModel.h CAHVModel.h CAHVORModel.h               \
-             CameraTransform.h Exif.h ExifData.h BayerFilter.h          \
-             PinholeModel.h $(lsm_headers)
+                   CameraTransform.h Exif.h ExifData.h BayerFilter.h     \
+                   PinholeModel.h
 
-libvwCamera_la_SOURCES = PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
-             Exif.cc ExifData.cc LensDistortion.cc $(protocol_sources)  \
-             CameraModel.cc
+libvwCamera_la_SOURCES += PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
+              Exif.cc ExifData.cc LensDistortion.cc $(protocol_sources)  \
+              CameraModel.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
