@@ -467,38 +467,38 @@ namespace stereo {
 
     inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
       int32 ci = i << 1; int32 cj = j << 1;
-      result_type buffer;
+      result_type buffer = 0;
       float count = 0;
       if ( is_valid( m_child(ci,cj,p) ) ) {
         count+=1.0; buffer += m_child(ci,cj,p);
       }
       if ( is_valid( m_child(ci+1,cj,p) ) ) {
-        count+=0.5; buffer += 0.5*m_child(ci+1,cj,p);
+        count+=0.5; buffer += m_child(ci+1,cj,p)/2;
       }
       if ( is_valid( m_child(ci,cj+1,p) ) ) {
-        count+=0.5; buffer += 0.5*m_child(ci,cj+1,p);
+        count+=0.5; buffer += m_child(ci,cj+1,p)/2;
       }
       if ( is_valid( m_child(ci-1,cj,p) ) ) {
-        count+=0.5; buffer += 0.5*m_child(ci-1,cj,p);
+        count+=0.5; buffer += m_child(ci-1,cj,p)/2;
       }
       if ( is_valid( m_child(ci,cj-1,p) ) ) {
-        count+=0.5; buffer += 0.5*m_child(ci,cj-1,p);
+        count+=0.5; buffer += m_child(ci,cj-1,p)/2;
       }
       if ( is_valid( m_child(ci+1,cj+1,p) ) ) {
-        count+=0.2; buffer += 0.2*m_child(ci+1,cj+1,p);
+        count+=0.2; buffer += m_child(ci+1,cj+1,p)/5;
       }
       if ( is_valid( m_child(ci-1,cj-1,p) ) ) {
-        count+=0.2; buffer += 0.2*m_child(ci-1,cj-1,p);
+        count+=0.2; buffer += m_child(ci-1,cj-1,p)/5;
       }
       if ( is_valid( m_child(ci-1,cj+1,p) ) ) {
-        count+=0.2; buffer += 0.2*m_child(ci-1,cj+1,p);
+        count+=0.2; buffer += m_child(ci-1,cj+1,p)/5;
       }
       if ( is_valid( m_child(ci+1,cj-1,p) ) ) {
-        count+=0.2; buffer += 0.2*m_child(ci+1,cj-1,p);
+        count+=0.2; buffer += m_child(ci+1,cj-1,p)/5;
       }
       if ( count > 0 ) {
         validate(buffer);
-        return buffer / (count*2.0 );
+        return buffer / (count*2 );
       }
       return result_type();
     }

@@ -65,8 +65,8 @@ TEST_F( CameraGeometryTest, LinearSolve ) {
   }
   Matrix<double> P =
     CameraMatrixFittingFunctor()(world_small,image_small);
-  ASSERT_EQ( P.rows(), 3 );
-  ASSERT_EQ( P.cols(), 4 );
+  ASSERT_EQ( P.rows(), 3u );
+  ASSERT_EQ( P.cols(), 4u );
 
   for ( uint8 i = 0; i < 10; i++ ) {
     Vector3 p_result = P*noisy_world_m[i];
@@ -82,8 +82,8 @@ TEST_F( CameraGeometryTest, IteratorSolve ) {
   Matrix<double> P =
     CameraMatrixFittingFunctor()(noisy_world_m,
                                  noisy_image_m );
-  ASSERT_EQ( P.rows(), 3 );
-  ASSERT_EQ( P.cols(), 4 );
+  ASSERT_EQ( P.rows(), 3u );
+  ASSERT_EQ( P.cols(), 4u );
 
   for ( uint8 i = 0; i < 10; i++ ) {
     Vector3 p_result = P*world_m[i];
@@ -106,8 +106,8 @@ TEST_F( CameraGeometryTest, DISABLED_RansacSolve ) {
 
   math::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac( CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 2 );
   Matrix<double> P(ransac(world_m,image_m));
-  ASSERT_EQ( P.rows(), 3 );
-  ASSERT_EQ( P.cols(), 4 );
+  ASSERT_EQ( P.rows(), 3u );
+  ASSERT_EQ( P.cols(), 4u );
 
   for ( uint8 i = 0; i < 10; i++ ) {
     Vector3 p_result = P*world_m[i];

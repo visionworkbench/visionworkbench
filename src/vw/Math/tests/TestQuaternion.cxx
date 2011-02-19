@@ -20,9 +20,11 @@ static const double DELTA = 1e-12;
 
 template <typename QuaternionT>
 bool CompareQuaternion(const QuaternionT& expected, const QuaternionT& actual) {
-  for (size_t i = 0; i < 4; ++i)
-    if (fabs(expected(0) - actual(0)) > DELTA)
-      return false;
+  if ( fabs(expected.w()-actual.w()) > DELTA ||
+       fabs(expected.x()-actual.x()) > DELTA ||
+       fabs(expected.y()-actual.y()) > DELTA ||
+       fabs(expected.z()-actual.z()) > DELTA )
+    return false;
   return true;
 }
 

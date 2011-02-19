@@ -28,7 +28,7 @@ TEST( DiskImageView, Construction ) {
   ImageView<PixelRGB<uint8> > image = *v2;
 
   // Expect that DiskImageView actually wrote something to the cache
-  EXPECT_EQ( 1, vw_system_cache().misses() - misses_before );
+  EXPECT_EQ( 1u, vw_system_cache().misses() - misses_before );
 
   ASSERT_EQ( image.cols(), 2 );
   ASSERT_EQ( image.rows(), 2 );
@@ -76,8 +76,8 @@ TEST( DiskCacheImageView, Construction ) {
 
   // Expect that DiskImageView actually wrote something to cache and
   // then used it.
-  EXPECT_EQ( 1,  vw_system_cache().misses() - misses_before );
-  EXPECT_EQ( 11, vw_system_cache().hits() - hits_before );
+  EXPECT_EQ( 1u,  vw_system_cache().misses() - misses_before );
+  EXPECT_EQ( 11u, vw_system_cache().hits() - hits_before );
 
   // Test copying
   {
