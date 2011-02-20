@@ -1,3 +1,4 @@
+
 // __BEGIN_LICENSE__
 // Copyright (C) 2006-2010 United States Government as represented by
 // the Administrator of the National Aeronautics and Space Administration.
@@ -18,6 +19,8 @@
 using namespace vw;
 using namespace vw::stereo;
 
+typedef PixelMask<Vector2f> PixelDisp;
+
 TEST( DisparityMap, Transform1 ) {
 
   vw::Matrix<double,3,3> align_matrix;
@@ -27,18 +30,18 @@ TEST( DisparityMap, Transform1 ) {
   align_matrix(1,2) = -30;
 
   // Building disparity map
-  ImageView<PixelMask<Vector2f> > map(5,5);
-  for (unsigned i = 0; i < 5; i++)
-    for (unsigned j = 0; j < 5; j++)
-      map(i,j) = PixelMask<Vector2f>(i*5+j,j*7+i);
+  ImageView<PixelDisp > map(5,5);
+  for (size_t i = 0; i < 5; i++)
+    for (size_t j = 0; j < 5; j++)
+      map(i,j) = PixelDisp(i*5+j,j*7+i);
 
   // Applying the inverse of the align matrix
-  ImageViewRef<PixelMask<Vector2f> > result;
+  ImageViewRef<PixelDisp > result;
   result = transform_disparities(map, HomographyTransform(align_matrix));
 
   // Comparing results
-  for (unsigned i = 0; i < 5; i++)
-    for (unsigned j = 0; j < 5; j++) {
+  for (size_t i = 0; i < 5; i++)
+    for (size_t j = 0; j < 5; j++) {
       Vector3 t_disparity(result(i,j)[0], result(i,j)[1], 1);
       Vector3 location(i,j,0);
       Vector3 check = align_matrix*(t_disparity + location) - location;
@@ -59,18 +62,18 @@ TEST( DisparityMap, Transform2 ) {
   align_matrix(1,2) = -1.93039; //Homography affine
 
   // Building disparity map
-  ImageView<PixelMask<Vector2f> > map(5,5);
-  for (unsigned i = 0; i < 5; i++)
-    for (unsigned j = 0; j < 5; j++)
-      map(i,j) = PixelMask<Vector2f>(i*5+j,j*7+i);
+  ImageView<PixelDisp > map(5,5);
+  for (size_t i = 0; i < 5; i++)
+    for (size_t j = 0; j < 5; j++)
+      map(i,j) = PixelDisp(i*5+j,j*7+i);
 
   // Applying the inverse of the align matrix
-  ImageViewRef<PixelMask<Vector2f> > result;
+  ImageViewRef<PixelDisp > result;
   result = transform_disparities(map, HomographyTransform(align_matrix));
 
   // Comparing results
-  for (unsigned i = 0; i < 5; i++)
-    for (unsigned j = 0; j < 5; j++) {
+  for (size_t i = 0; i < 5; i++)
+    for (size_t j = 0; j < 5; j++) {
       Vector3 t_disparity(result(i,j)[0], result(i,j)[1], 1);
       Vector3 location(i,j,0);
       Vector3 check = align_matrix*(location + t_disparity) - location;
@@ -80,12 +83,14 @@ TEST( DisparityMap, Transform2 ) {
 }
 
 TEST( DisparityMap, DisparitySubsample ) {
-  ImageView<PixelMask<Vector2f> > map(4,4);
-  map(0,0) = PixelMask<Vector2f>(Vector2f(3,1));
-  map(2,0) = PixelMask<Vector2f>(Vector2f(4,2));
-  map(2,1) = PixelMask<Vector2f>(Vector2f(2,2));
+  ImageView<PixelDisp > map(4,4);
+  map(0,0) = PixelDisp(Vector2f(3,1));
+  map(2,0) = PixelDisp(Vector2f(4,2));
+  map(2,1) = PixelDisp(Vector2f(2,2));
+  ASSERT_TRUE( is_valid(map(0,0)) );
+  ASSERT_FALSE( is_valid(map(1,1)) );
 
-  ImageView<PixelMask<Vector2f> > submap =
+  ImageView<PixelDisp > submap =
     disparity_subsample( map );
   ASSERT_EQ( submap.cols(), 2 );
   ASSERT_EQ( submap.rows(), 2 );
@@ -100,8 +105,8 @@ TEST( DisparityMap, DisparitySubsample ) {
   EXPECT_VECTOR_NEAR( submap(1,1).child(),
                       Vector2f(1,1), 1e-3 );
 
-  ImageViewRef<PixelMask<Vector2f> > submapref =
-    disparity_subsample( ImageViewRef<PixelMask<Vector2f> >(map) );
+  ImageViewRef<PixelDisp > submapref =
+    disparity_subsample( ImageViewRef<PixelDisp >(map) );
   ASSERT_EQ( submapref.cols(), 2 );
   ASSERT_EQ( submapref.rows(), 2 );
   EXPECT_TRUE( is_valid(submapref(0,0)) );
@@ -114,20 +119,34 @@ TEST( DisparityMap, DisparitySubsample ) {
                       Vector2f(1.75,1.0), 1e-3 );
   EXPECT_VECTOR_NEAR( submapref(1,1).child(),
                       Vector2f(1,1), 1e-3 );
+
+  ImageView<PixelMask<Vector2i> > imap(3,1);
+  imap(0,0) = PixelMask<Vector2i>(Vector2i(4,2));
+  imap(1,0) = PixelMask<Vector2i>(Vector2i(10,-8));
+  ImageViewRef<PixelMask<Vector2i> > simap =
+    disparity_subsample( imap );
+  ASSERT_EQ( simap.cols(), 2 );
+  ASSERT_EQ( simap.rows(), 1 );
+  EXPECT_TRUE( is_valid(simap(0,0)) );
+  EXPECT_TRUE( is_valid(simap(1,0)) );
+  EXPECT_VECTOR_NEAR( simap(0,0).child(),
+                      Vector2i(2, 0), 1e-3 );
+  EXPECT_VECTOR_NEAR( simap(1,0).child(),
+                      Vector2i(5,-4), 1e-3 );
 }
 
 TEST( DisparityMap, DisparityUpsample ) {
-  ImageView<PixelMask<Vector2f> > map(2,2);
-  map(0,0) = PixelMask<Vector2f>(Vector2f(3,1));
-  map(1,1) = PixelMask<Vector2f>(Vector2f(5,5));
+  ImageView<PixelDisp > map(2,2);
+  map(0,0) = PixelDisp(Vector2f(3,1));
+  map(1,1) = PixelDisp(Vector2f(5,5));
 
-  ImageView<PixelMask<Vector2f> > upmap =
+  ImageView<PixelDisp > upmap =
     disparity_upsample( map );
   ASSERT_EQ( upmap.cols(), 4 );
   ASSERT_EQ( upmap.rows(), 4 );
-  for (unsigned i = 0; i < 4; i++ )
+  for (size_t i = 0; i < 4; i++ )
     EXPECT_TRUE( is_valid(upmap(i,i)) );
-  for (unsigned i = 0; i < 4; i++ )
+  for (size_t i = 0; i < 4; i++ )
     EXPECT_FALSE( is_valid(upmap(3-i,i)) );
   EXPECT_VECTOR_NEAR( upmap(0,0).child(),
                       Vector2f(6,2), 1e-3 );
@@ -138,13 +157,13 @@ TEST( DisparityMap, DisparityUpsample ) {
   EXPECT_VECTOR_NEAR( upmap(3,2).child(),
                       Vector2f(10,10), 1e-3 );
 
-  ImageViewRef<PixelMask<Vector2f> > upmapref =
-    disparity_upsample( ImageViewRef<PixelMask<Vector2f> >(map) );
+  ImageViewRef<PixelDisp > upmapref =
+    disparity_upsample( ImageViewRef<PixelDisp >(map) );
   ASSERT_EQ( upmapref.cols(), 4 );
   ASSERT_EQ( upmapref.rows(), 4 );
-  for (unsigned i = 0; i < 4; i++ )
+  for (size_t i = 0; i < 4; i++ )
     EXPECT_TRUE( is_valid(upmapref(i,i)) );
-  for (unsigned i = 0; i < 4; i++ )
+  for (size_t i = 0; i < 4; i++ )
     EXPECT_FALSE( is_valid(upmapref(3-i,i)) );
   EXPECT_VECTOR_NEAR( upmapref(0,0).child(),
                       Vector2f(6,2), 1e-3 );
@@ -158,10 +177,10 @@ TEST( DisparityMap, DisparityUpsample ) {
 
 TEST( DisparityMap, DisparityTransform ) {
   // Disparity map will be delta.x = 2 + (left.x - 50) * 0.1
-  ImageView<PixelMask<Vector2f> > disparity(100,1);
+  ImageView<PixelDisp > disparity(100,1);
   for ( int32 i = 0; i < 100; i++ ) {
     float delta = 2 + (i - 50)*0.1;
-    disparity(i,0) = PixelMask<Vector2f>(Vector2f(delta,0));
+    disparity(i,0) = PixelDisp(Vector2f(delta,0));
   }
 
   //Test Disparity Transform

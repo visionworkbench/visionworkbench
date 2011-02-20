@@ -467,34 +467,36 @@ namespace stereo {
 
     inline result_type operator()( int32 i, int32 j, int32 p=0 ) const {
       int32 ci = i << 1; int32 cj = j << 1;
-      result_type buffer = 0;
-      float count = 0;
+      typedef typename AccumulatorType<typename PixelChannelType<result_type>::type>::type cnt_type;
+      typedef typename CompoundChannelCast<result_type, cnt_type>::type bff_type;
+      bff_type buffer = 0;
+      cnt_type count = 0;
       if ( is_valid( m_child(ci,cj,p) ) ) {
-        count+=1.0; buffer += m_child(ci,cj,p);
+        count+=10; buffer += 10*bff_type(m_child(ci,cj,p));
       }
       if ( is_valid( m_child(ci+1,cj,p) ) ) {
-        count+=0.5; buffer += m_child(ci+1,cj,p)/2;
+        count+=5; buffer += 5*bff_type(m_child(ci+1,cj,p));
       }
       if ( is_valid( m_child(ci,cj+1,p) ) ) {
-        count+=0.5; buffer += m_child(ci,cj+1,p)/2;
+        count+=5; buffer += 5*bff_type(m_child(ci,cj+1,p));
       }
       if ( is_valid( m_child(ci-1,cj,p) ) ) {
-        count+=0.5; buffer += m_child(ci-1,cj,p)/2;
+        count+=5; buffer += 5*m_child(ci-1,cj,p);
       }
       if ( is_valid( m_child(ci,cj-1,p) ) ) {
-        count+=0.5; buffer += m_child(ci,cj-1,p)/2;
+        count+=5; buffer += 5*m_child(ci,cj-1,p);
       }
       if ( is_valid( m_child(ci+1,cj+1,p) ) ) {
-        count+=0.2; buffer += m_child(ci+1,cj+1,p)/5;
+        count+=2; buffer += 2*m_child(ci+1,cj+1,p);
       }
       if ( is_valid( m_child(ci-1,cj-1,p) ) ) {
-        count+=0.2; buffer += m_child(ci-1,cj-1,p)/5;
+        count+=2; buffer += 2*m_child(ci-1,cj-1,p);
       }
       if ( is_valid( m_child(ci-1,cj+1,p) ) ) {
-        count+=0.2; buffer += m_child(ci-1,cj+1,p)/5;
+        count+=2; buffer += 2*m_child(ci-1,cj+1,p);
       }
       if ( is_valid( m_child(ci+1,cj-1,p) ) ) {
-        count+=0.2; buffer += m_child(ci+1,cj-1,p)/5;
+        count+=2; buffer += 2*m_child(ci+1,cj-1,p);
       }
       if ( count > 0 ) {
         validate(buffer);
