@@ -190,3 +190,20 @@ TEST( DisparityMap, DisparityTransform ) {
     EXPECT_NEAR( delta+float(i), trans.reverse(Vector2(i,0))[0], 1e-5 );
   }
 }
+
+TEST( DisparityMap, GetDisparityRange ) {
+  ImageView<PixelDisp> disparity(4,1);
+  disparity(0,0) = PixelDisp(Vector2f(2,2));
+  disparity(1,0) = PixelDisp(Vector2f(3,5));
+  disparity(2,0) = PixelDisp(Vector2f(-4,-1));
+  disparity(2,0).invalidate();
+
+  BBox2f range = get_disparity_range(disparity);
+  EXPECT_VECTOR_EQ( Vector2f(2,2), range.min() );
+  EXPECT_VECTOR_EQ( Vector2f(3,5), range.max() );
+
+  disparity(0,0).invalidate(); disparity(1,0).invalidate();
+  range = get_disparity_range(disparity);
+  EXPECT_VECTOR_EQ( Vector2f(), range.min() );
+  EXPECT_VECTOR_EQ( Vector2f(), range.max() );
+}

@@ -85,12 +85,7 @@ namespace stereo {
     inline prerasterize_type prerasterize(BBox2i bbox) const {
 
       // Find the range of disparity values for this patch.
-      BBox2i search_range;
-      try {
-        search_range = get_disparity_range(crop(m_disparity_map, bbox));
-      } catch ( std::exception &e ) {
-        search_range = BBox2i();
-      }
+      BBox2i search_range = get_disparity_range(crop(m_disparity_map, bbox));
 
       // The area in the right image that we'll be searching is
       // determined by the bbox of the left image plus the search

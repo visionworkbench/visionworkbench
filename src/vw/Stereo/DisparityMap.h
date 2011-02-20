@@ -33,10 +33,16 @@ namespace stereo {
   //
   // Determine the range of disparity values present in the disparity map.
   template <class ViewT>
-  BBox2 get_disparity_range(ImageViewBase<ViewT> const& disparity_map ) {
-    typename UnmaskedPixelType<typename ViewT::pixel_type>::type min, max;
-    min_max_pixel_values(disparity_map, min, max);
-    return BBox2(min,max);
+  BBox2f get_disparity_range(ImageViewBase<ViewT> const& disparity_map ) {
+    typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type accum_type;
+    PixelAccumulator<EWMinMaxAccumulator<accum_type> > accumulator;
+    for_each_pixel( disparity_map, accumulator );
+
+    if ( !accumulator.is_valid() ) {
+      return BBox2f(0,0,0,0);
+    }
+    return BBox2f(accumulator.minimum(),
+		  accumulator.maximum());
   }
 
   //  missing_pixel_image()
