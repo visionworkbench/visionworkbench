@@ -497,7 +497,7 @@ namespace stereo {
         count+=0.2; buffer += 0.2*m_child(ci+1,cj-1,p);
       }
       if ( count > 0 ) {
-        buffer.validate();
+        validate(buffer);
         return buffer / (count*2.0 );
       }
       return result_type();
