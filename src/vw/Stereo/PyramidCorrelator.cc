@@ -55,7 +55,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelDisp > const& disparity_map,
 }
 
 void draw_bbox(ImageView<PixelRGB<float> > &view, BBox2i const& bbox) {
-  int u,v;
+  int32 u,v;
   // Top
   v = bbox.min().y();
   for (u = bbox.min().x(); u < bbox.max().x(); ++u)
@@ -77,7 +77,7 @@ void draw_bbox(ImageView<PixelRGB<float> > &view, BBox2i const& bbox) {
     view(u,v) = vw::PixelRGB<float>(1.0,0.0,0.0);
 }
 
-void PyramidCorrelator::write_debug_images(int n, ImageViewRef<PixelDisp> const& disparity_map,
+void PyramidCorrelator::write_debug_images(int32 n, ImageViewRef<PixelDisp> const& disparity_map,
                                            std::vector<BBox2i> const& nominal_blocks) {
   std::ostringstream current_level;
   current_level << n;

@@ -24,10 +24,10 @@ namespace stereo {
     Vector2i m_kernel_size;
     float m_cross_correlation_threshold;
     float m_corrscore_rejection_threshold;
-    int m_cost_blur;
+    int32 m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     size_t m_pyramid_levels;
-    int m_min_subregion_dim;
+    int32 m_min_subregion_dim;
     typedef PixelMask<Vector2f> PixelDisp;
 
     std::string m_debug_prefix;
@@ -64,7 +64,7 @@ namespace stereo {
     compute_search_ranges(ImageView<PixelDisp> const& prev_disparity_map,
                           std::vector<BBox2i> const& nominal_blocks);
 
-    void write_debug_images(int n, ImageViewRef<PixelDisp> const& disparity_map,
+    void write_debug_images(int32 n, ImageViewRef<PixelDisp> const& disparity_map,
                             std::vector<BBox2i> const& nominal_blocks);
     std::vector<BBox2i>
     subdivide_bboxes(ImageView<PixelDisp> const& disparity_map,
@@ -288,7 +288,7 @@ namespace stereo {
                       Vector2i kernel_size,
                       float cross_correlation_threshold = 1,
                       float corrscore_rejection_threshold = 1.0,
-                      int cost_blur = 1,
+                      int32 cost_blur = 1,
                       stereo::CorrelatorType correlator_type = ABS_DIFF_CORRELATOR,
                       size_t pyramid_levels = 4) :
       m_initial_search_range(initial_search_range),
@@ -346,7 +346,7 @@ namespace stereo {
       right_masks[0] =   pixel_cast<uint8>(right_mask);
 
       // Produce the image pyramid
-      for (int n = 1; n < m_pyramid_levels; ++n) {
+      for (size_t n = 1; n < m_pyramid_levels; ++n) {
 	left_pyramid[n] =  subsample(gaussian_filter(left_pyramid[n-1],1.2),2);
 	right_pyramid[n] = subsample(gaussian_filter(right_pyramid[n-1],1.2),2);
         left_masks[n] =    subsample_mask_by_two(left_masks[n-1]);

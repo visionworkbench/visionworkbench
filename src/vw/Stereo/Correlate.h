@@ -153,10 +153,10 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   template <class PixelT>
   inline typename CorrelatorAccumulatorType<typename CompoundChannelType<PixelT>::type>::type
   compute_soad(PixelT *img0, PixelT *img1,
-               int r, int c,                   // row and column in img0
-               int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-               int kern_width, int kern_height,// Kernel dimensions
-               int width, int height) {        // Image dimensions
+               int32 r, int32 c,                   // row and column in img0
+               int32 hdisp, int32 vdisp,           // Current disparity offset from (c,r) for img1
+               int32 kern_width, int32 kern_height,// Kernel dimensions
+               int32 width, int32 height) {        // Image dimensions
     typedef typename CompoundChannelType<PixelT>::type channel_type;
     typedef typename CorrelatorAccumulatorType<channel_type>::type accum_type;
 
@@ -175,8 +175,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
     accum_type ret = 0;
     AbsDiffCostFunc cost_fn;
-    for (int rr= 0; rr< kern_height; rr++) {
-     for (int cc= 0; cc< kern_width; cc++) {
+    for (int32 rr= 0; rr< kern_height; rr++) {
+     for (int32 cc= 0; cc< kern_width; cc++) {
         ret += cost_fn(new_img0[cc], new_img1[cc]);
       }
       new_img0 += width;
@@ -191,9 +191,9 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   inline typename CorrelatorAccumulatorType<typename CompoundChannelType<typename ViewT::pixel_type>::type>::type
   compute_soad(ImageViewBase<ViewT> const& img0,
                ImageViewBase<ViewT> const& img1,
-               int r, int c,                   // row and column in img0
-               int hdisp, int vdisp,           // Current disparity offset from (c,r) for img1
-               int kern_width, int kern_height,
+               int32 r, int32 c,                   // row and column in img0
+               int32 hdisp, int32 vdisp,           // Current disparity offset from (c,r) for img1
+               int32 kern_width, int32 kern_height,
                BBox2i const& left_bbox,
                BBox2i const& right_bbox) {// Kernel dimensions
     typedef typename CompoundChannelType<typename ViewT::pixel_type>::type channel_type;
@@ -217,8 +217,8 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
 
     accum_type ret = 0;
     AbsDiffCostFunc cost_fn;
-    for (int rr= 0; rr< kern_height; rr++) {
-     for (int cc= 0; cc< kern_width; cc++) {
+    for (int32 rr= 0; rr< kern_height; rr++) {
+     for (int32 cc= 0; cc< kern_width; cc++) {
        ret += cost_fn(img0.impl()(c+cc,r+rr), img1.impl()(c+cc+hdisp,r+rr+vdisp));
       }
     }
@@ -235,17 +235,17 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   inline PixelMask<Vector2f>
   compute_disparity(ImageView<ChannelT> &left_image,
                     ImageView<ChannelT> &right_image,
-                    int i, int j,
-                    int kern_width, int kern_height,
-                    int min_h_disp, int max_h_disp,
-                    int min_v_disp, int max_v_disp) {
+                    int32 i, int32 j,
+                    int32 kern_width, int32 kern_height,
+                    int32 min_h_disp, int32 max_h_disp,
+                    int32 min_v_disp, int32 max_v_disp) {
 
     typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
     accum_type min_soad = std::numeric_limits<accum_type>::max(); // Impossibly large
     PixelMask<Vector2f> best_disparity;
     invalidate(best_disparity);
-    for (int ii = min_h_disp; ii <= max_h_disp; ++ii) {
-      for (int jj = min_v_disp; jj <= max_v_disp; ++jj) {
+    for (int32 ii = min_h_disp; ii <= max_h_disp; ++ii) {
+      for (int32 jj = min_v_disp; jj <= max_v_disp; ++jj) {
         accum_type soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
                                        j, i, ii, jj,kern_width, kern_height,
                                        left_image.cols(), left_image.rows());
@@ -266,23 +266,23 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
                       ImageView<float> const& weight_template) {
 
-    int center_pix_x = weight_template.cols()/2;
-    int center_pix_y = weight_template.rows()/2;
+    int32 center_pix_x = weight_template.cols()/2;
+    int32 center_pix_y = weight_template.rows()/2;
     PixelMask<Vector2f> center_pix =
       disparity_map_patch(center_pix_x, center_pix_y);
 
     float sum = 0;
-    int num_good_pix = 0;
+    int32 num_good_pix = 0;
     typedef ImageView<float>::pixel_accessor IViewFAcc;
     typedef ImageView<PixelMask<Vector2f> >::pixel_accessor IViewDAcc;
     IViewFAcc weight_row_acc = weight.origin();
     IViewFAcc template_row_acc = weight_template.origin();
     IViewDAcc disp_row_acc = disparity_map_patch.origin();
-    for (int j = 0; j < weight_template.rows(); ++j) {
+    for (int32 j = 0; j < weight_template.rows(); ++j) {
       IViewFAcc weight_col_acc = weight_row_acc;
       IViewFAcc template_col_acc = template_row_acc;
       IViewDAcc disp_col_acc = disp_row_acc;
-      for (int i = 0; i < weight_template.cols(); ++i ) {
+      for (int32 i = 0; i < weight_template.cols(); ++i ) {
 
         // Mask is zero if the disparity map's pixel is missing...
         if ( !is_valid(*disp_col_acc) )

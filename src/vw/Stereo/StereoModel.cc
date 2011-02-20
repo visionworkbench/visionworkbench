@@ -18,8 +18,8 @@ ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const
   // Error analysis
   double mean_error = 0.0;
   double max_error = 0.0;
-  int point_count = 0;
-  int divergent = 0;
+  int32 point_count = 0;
+  int32 divergent = 0;
 
   // Allocate xyz image and get pointer to buffer
   ImageView<Vector3> xyz(disparity_map.cols(), disparity_map.rows());

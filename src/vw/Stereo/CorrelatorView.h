@@ -31,13 +31,13 @@ namespace stereo {
     Vector2i m_kernel_size;
     float m_cross_corr_threshold;
     float m_corr_score_threshold;
-    int m_cost_blur;
+    int32 m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     std::string m_debug_prefix;
     bool m_do_pyramid_correlator;
 
     // Precalculated constants
-    int m_num_pyramid_levels;
+    int32 m_num_pyramid_levels;
     Vector2i m_kernpad;         // Padding used around a render box
 
   public:
@@ -96,11 +96,11 @@ namespace stereo {
       }
       Vector2i kernel_size() const { return m_kernel_size; }
 
-      void set_correlator_options(int cost_blur, stereo::CorrelatorType correlator_type) {
+      void set_correlator_options(int32 cost_blur, stereo::CorrelatorType correlator_type) {
         m_cost_blur = cost_blur;
         m_correlator_type = correlator_type;
       }
-      int cost_blur() const { return m_cost_blur; }
+      int32 cost_blur() const { return m_cost_blur; }
       stereo::CorrelatorType correlator_type() const { return m_correlator_type; }
 
       void set_cross_corr_threshold(float threshold) { m_cross_corr_threshold = threshold; }
@@ -213,8 +213,8 @@ namespace stereo {
 
         // Adjust the disparities to be relative to the uncropped
         // image pixel locations
-        for (int v = 0; v < disparity_map.rows(); ++v)
-          for (int u = 0; u < disparity_map.cols(); ++u)
+        for (int32 v = 0; v < disparity_map.rows(); ++v)
+          for (int32 u = 0; u < disparity_map.cols(); ++u)
             if (is_valid(disparity_map(u,v)) )
               remove_mask(disparity_map(u,v)) += m_search_range.min();
 

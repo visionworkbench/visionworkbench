@@ -73,16 +73,16 @@ static Vector2f find_minimum_2d(VectorBase<VectorT> &points,
 ///-------------------------------------------------------------------------
 
 inline ImageView<float>
-compute_spatial_weight_image(int kern_width, int kern_height,
+compute_spatial_weight_image(int32 kern_width, int32 kern_height,
                              float two_sigma_sqr) {
-  int center_pix_x = kern_width/2;
-  int center_pix_y = kern_height/2;
+  int32 center_pix_x = kern_width/2;
+  int32 center_pix_y = kern_height/2;
   float sum;
 
   sum = 0.0;
   ImageView<float> weight(kern_width, kern_height);
-  for (int j = 0; j < kern_height; ++j) {
-    for (int i = 0; i < kern_width; ++i ) {
+  for (int32 j = 0; j < kern_height; ++j) {
+    for (int32 i = 0; i < kern_width; ++i ) {
       weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
                             (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
       sum += weight(i,j);
@@ -100,7 +100,7 @@ template<class ChannelT> void
 subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                                   ImageView<ChannelT> const& left_image,
                                   ImageView<ChannelT> const& right_image,
-                                  int kern_width, int kern_height,
+                                  int32 kern_width, int32 kern_height,
                                   BBox2i region_of_interest,
                                   bool do_horizontal_subpixel,
                                   bool do_vertical_subpixel,
@@ -137,10 +137,10 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
   // adjusted by affine subpixel refinement.
   float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
 
-  int kern_half_height = kern_height/2;
-  int kern_half_width = kern_width/2;
-  int kern_pixels = kern_height * kern_width;
-  int weight_threshold = kern_pixels/2;
+  int32 kern_half_height = kern_height/2;
+  int32 kern_half_width = kern_width/2;
+  int32 kern_pixels = kern_height * kern_width;
+  int32 weight_threshold = kern_pixels/2;
 
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
@@ -153,11 +153,11 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
 
   // Iterate over all of the pixels in the disparity map except for
   // the outer edges.
-  for ( int y = std::max(region_of_interest.min().y()-1,kern_half_height);
+  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
         y < std::min(left_image.rows()-kern_half_height,
                      region_of_interest.max().y()+1); ++y) {
 
-    for (int x=std::max(region_of_interest.min().x()-1,kern_half_width);
+    for (int32 x=std::max(region_of_interest.min().x()-1,kern_half_width);
          x < std::min(left_image.cols()-kern_half_width,
                       region_of_interest.max().x()+1); ++x) {
 
@@ -186,7 +186,7 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
       CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
 
       // Compute the base weight image
-      int good_pixels =
+      int32 good_pixels =
         adjust_weight_image(w, crop(disparity_map, current_window),
                                             weight_template);
 
@@ -252,20 +252,20 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
           ImageViewFAcc w_row = w.origin();
 
           // Perform loop that does Expectation and Maximization in one go
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+          for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
             ImageViewFAcc w_ptr = w_row;
             CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
             CropViewTAcc left_image_patch_ptr = left_image_patch_row;
-            int gamma_iy = jj + kern_half_height;
+            int32 gamma_iy = jj + kern_half_height;
             float xx_partial = x_base + d[1] * jj + d[2];
             float yy_partial = y_base + d[4] * jj + d[5];
             float delta_x_partial = d_em[1] * jj + d_em[2];
             float delta_y_partial = d_em[4] * jj + d_em[5];
 
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+            for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
-              int gamma_ix = ii + kern_half_width;
+              int32 gamma_ix = ii + kern_half_width;
               float xx = d[0] * ii + xx_partial;
               float yy = d[3] * ii + yy_partial;
               float delta_x = d_em[0] * ii + delta_x_partial;
@@ -399,19 +399,19 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
           I_y_row = I_y.origin();
           left_image_patch_row = left_image_patch.origin();
 
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+          for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
             CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
             CropViewTAcc left_image_patch_ptr = left_image_patch_row;
-            int gamma_iy = jj + kern_half_height;
+            int32 gamma_iy = jj + kern_half_height;
             float xx_partial = x_base + d[1] * jj + d[2];
             float yy_partial = y_base + d[4] * jj + d[5];
             float delta_x_partial = d_em[1] * jj + d_em[2];
             float delta_y_partial = d_em[4] * jj + d_em[5];
 
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+            for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
-              int gamma_ix = ii + kern_half_width;
+              int32 gamma_ix = ii + kern_half_width;
               float xx = d[0] * ii + xx_partial;
               float yy = d[3] * ii + yy_partial;
               float delta_x = d_em[0] * ii + delta_x_partial;
@@ -495,7 +495,7 @@ template<class ChannelT> void
 subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                                 ImageView<ChannelT> const& left_image,
                                 ImageView<ChannelT> const& right_image,
-                                int kern_width, int kern_height,
+                                int32 kern_width, int32 kern_height,
                                 BBox2i region_of_interest,
                                 bool do_horizontal_subpixel,
                                 bool do_vertical_subpixel,
@@ -526,10 +526,10 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
   // adjusted by affine subpixel refinement.
   float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
 
-  int kern_half_height = kern_height/2;
-  int kern_half_width = kern_width/2;
-  int kern_pixels = kern_height * kern_width;
-  int weight_threshold = kern_pixels/2;
+  int32 kern_half_height = kern_height/2;
+  int32 kern_half_width = kern_width/2;
+  int32 kern_pixels = kern_height * kern_width;
+  int32 weight_threshold = kern_pixels/2;
 
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
@@ -542,11 +542,11 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
 
   // Iterate over all of the pixels in the disparity map except for
   // the outer edges.
-  for ( int y = std::max(region_of_interest.min().y()-1,kern_half_height);
+  for ( int32 y = std::max(region_of_interest.min().y()-1,kern_half_height);
         y < std::min(left_image.rows()-kern_half_height,
                      region_of_interest.max().y()+1); ++y) {
 
-    for (int x=std::max(region_of_interest.min().x()-1,kern_half_width);
+    for (int32 x=std::max(region_of_interest.min().x()-1,kern_half_width);
          x < std::min(left_image.cols()-kern_half_width,
                       region_of_interest.max().x()+1); ++x) {
 
@@ -575,7 +575,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
       CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
 
       // Compute the base weight image
-      int good_pixels =
+      int32 good_pixels =
         adjust_weight_image(w, crop(disparity_map, current_window),
                                             weight_template);
 
@@ -637,7 +637,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
           ImageViewFAcc w_row = w.origin();
 
           // Perform loop that does Expectation and Maximization in one go
-          for (int jj = -kern_half_height; jj <= kern_half_height; ++jj) {
+          for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
             ImageViewFAcc w_ptr = w_row;
             CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
             CropViewTAcc left_image_patch_ptr = left_image_patch_row;
@@ -646,7 +646,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
             float delta_x_partial = d_em[1] * jj + d_em[2];
             float delta_y_partial = d_em[4] * jj + d_em[5];
 
-            for (int ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+            for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
               float xx = d[0] * ii + xx_partial;
@@ -821,7 +821,7 @@ template<class ChannelT> void
 subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
                               ImageView<ChannelT> const& left_image,
                               ImageView<ChannelT> const& right_image,
-                              int kern_width, int kern_height,
+                              int32 kern_width, int32 kern_height,
                               bool do_horizontal_subpixel,
                               bool do_vertical_subpixel,
                               bool /*verbose*/ = false) {
@@ -831,8 +831,8 @@ subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
             left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
             ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
 
-  int height = disparity_map.rows();
-  int width = disparity_map.cols();
+  int32 height = disparity_map.rows();
+  int32 width = disparity_map.cols();
 
   ChannelT *new_img0 = &(left_image(0,0));
   ChannelT *new_img1 = &(right_image(0,0));
@@ -852,13 +852,13 @@ subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
       -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
       -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };
   MatrixProxy<float,6,9> pinvA(pinvA_data);
-  for (int r = 0; r < height; r++) {
-    for (int c = 0; c < width; c++) {
+  for (int32 r = 0; r < height; r++) {
+    for (int32 c = 0; c < width; c++) {
       if ( !is_valid(disparity_map(c,r) ) )
         continue;
 
-      int hdisp = int(disparity_map(c,r)[0]);
-      int vdisp = int(disparity_map(c,r)[1]);
+      int32 hdisp = int32(disparity_map(c,r)[0]);
+      int32 vdisp = int32(disparity_map(c,r)[1]);
 
       accum_type mid = compute_soad(new_img0, new_img1,
                                     r, c, hdisp, vdisp,

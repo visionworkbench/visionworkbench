@@ -51,7 +51,7 @@ inline BinaryPerPixelView<Image1T, Image2T, SqDifferenceFunctor> sq_difference(I
 //                           COST FUNCTIONS
 // ---------------------------------------------------------------------------
 
-ImageView<float> AbsDifferenceCost::calculate(int dx, int dy) {
+ImageView<float> AbsDifferenceCost::calculate(int32 dx, int32 dy) {
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left,ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right,ZeroEdgeExtension()), right_bbox);
@@ -59,7 +59,7 @@ ImageView<float> AbsDifferenceCost::calculate(int dx, int dy) {
 }
 
 
-ImageView<float> SqDifferenceCost::calculate(int dx, int dy) {
+ImageView<float> SqDifferenceCost::calculate(int32 dx, int32 dy) {
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left,ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right,ZeroEdgeExtension()), right_bbox);
@@ -67,7 +67,7 @@ ImageView<float> SqDifferenceCost::calculate(int dx, int dy) {
 }
 
 
-ImageView<float> NormXCorrCost::calculate(int dx, int dy) {
+ImageView<float> NormXCorrCost::calculate(int32 dx, int32 dy) {
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left, ZeroEdgeExtension()), this->bbox());
   CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_mean_window(edge_extend(m_left_mean, ZeroEdgeExtension()), this->bbox());
@@ -97,18 +97,18 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
                                                       BBox2i const& search_window,
                                                       ProgressCallback const& progress) {
 
-  int width = cost_function->cols();
-  int height = cost_function->rows();
+  int32 width = cost_function->cols();
+  int32 height = cost_function->rows();
 
   ImageView<DisparityScore<float> > result_buf(width, height);
   ImageView<float> cost_buf(width, height);
 
-  int current_iteration = 0;
-  int total_iterations = (search_window.width() + 1) * (search_window.height() + 1);
+  int32 current_iteration = 0;
+  int32 total_iterations = (search_window.width() + 1) * (search_window.height() + 1);
 
   BBox2i left_bbox = cost_function->bbox();
-  for (int dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
-    for (int dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
+  for (int32 dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
+    for (int32 dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
       BBox2i right_bbox = cost_function->bbox() + Vector2i (dx,dy);
 
       CropView<ImageView<DisparityScore<float> > > result_buf_window(result_buf, left_bbox);
@@ -119,10 +119,10 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
 
       CropView<ImageView<DisparityScore<float> > >::pixel_accessor result_row_acc = result_buf_window.origin();
       CropView<ImageView<float> >::pixel_accessor cost_buf_row_acc = cost_buf_window.origin();
-      for (int y = 0; y < left_bbox.height(); y++) {
+      for (int32 y = 0; y < left_bbox.height(); y++) {
         CropView<ImageView<DisparityScore<float> > >::pixel_accessor result_col_acc = result_row_acc;
         CropView<ImageView<float> >::pixel_accessor cost_buf_col_acc = cost_buf_row_acc;
-        for (int x = 0; x < left_bbox.width(); x++) {
+        for (int32 x = 0; x < left_bbox.width(); x++) {
           if (*cost_buf_col_acc < (*result_col_acc).best) {
             (*result_col_acc).best = *cost_buf_col_acc;
             (*result_col_acc).hdisp = dx;
@@ -146,8 +146,8 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
   // convert from the local result buffer to the return format
   ImageView<PixelMask<Vector2f> > result(width, height);
 
-  for (int x = 0; x < width; x++) {
-    for (int y = 0; y < height; y++) {
+  for (int32 x = 0; x < width; x++) {
+    for (int32 y = 0; y < height; y++) {
       if (result_buf(x, y).best == ScalarTypeLimits<float>::highest() ||
           result_buf(x, y).best == result_buf(x, y).worst) {
         invalidate(result(x,y));

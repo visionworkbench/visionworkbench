@@ -28,7 +28,7 @@ namespace stereo {
     // General Settings
     Vector2i m_kernel_size;
     bool m_do_h_subpixel, m_do_v_subpixel;
-    int m_which_subpixel;
+    int32 m_which_subpixel;
     PreprocFilterT m_preproc_filter;
     bool m_verbose;
 
@@ -41,10 +41,10 @@ namespace stereo {
     SubpixelView(DisparityViewT const& disparity_map,
                  ImageT const& left_image,
                  ImageT const& right_image,
-                 int kern_width, int kern_height,
+                 int32 kern_width, int32 kern_height,
                  bool do_horizontal_subpixel,
                  bool do_vertical_subpixel,
-                 int which_subpixel,
+                 int32 which_subpixel,
                  PreprocFilterT preproc_filter,
                  bool verbose) : m_disparity_map(disparity_map),
                                  m_left_image(left_image),
@@ -143,7 +143,7 @@ namespace stereo {
         break;
       case 2: // Bayes EM  Subpixel
         {
-          const int pyramid_levels = 2;
+          const int32 pyramid_levels = 2;
           std::vector< ImageView<float> > l_patches, r_patches;
           std::vector<BBox2i> rois;
           ImageView<PixelMask<Vector2f> > d_subpatch;
@@ -151,7 +151,7 @@ namespace stereo {
           // I'd like for image subsampling to use a gaussian when
           // downsampling however it was introducing some edge effects
           // that I couldn't figure out within a reasonable time frame.
-          for ( int i = 0; i < pyramid_levels; i++ ) {
+          for ( int32 i = 0; i < pyramid_levels; i++ ) {
             if ( i > 0 ) {
               // Building all other levels
               l_patches.push_back( subsample( l_patches.back(), 2 ) );
@@ -170,7 +170,7 @@ namespace stereo {
             }
           }
 
-          for ( int i = pyramid_levels-1; i >= 0; i-- ) {
+          for ( int32 i = pyramid_levels-1; i >= 0; i-- ) {
             subpixel_optimized_affine_2d_EM(d_subpatch,
                                             l_patches[i], r_patches[i],
                                             m_kernel_size[0], m_kernel_size[1],
@@ -232,9 +232,9 @@ namespace stereo {
   subpixel_refine( ImageViewBase<DisparityT> const& disparity_map,
                    ImageViewBase<ImageT> const& left_image,
                    ImageViewBase<ImageT> const& right_image,
-                   int kern_width, int kern_height,
+                   int32 kern_width, int32 kern_height,
                    bool do_horizontal, bool do_vertical,
-                   int which_subpixel, PreprocFilterT const& filter,
+                   int32 which_subpixel, PreprocFilterT const& filter,
                    bool verbose = false ) {
     typedef SubpixelView<PreprocFilterT,ImageT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),
@@ -250,7 +250,7 @@ namespace stereo {
                    ImageViewBase<ImageT> const& right_image,
                    Vector2i const& kernel_size,
                    bool do_horizontal, bool do_vertical,
-                   int which_subpixel, PreprocFilterT const& filter,
+                   int32 which_subpixel, PreprocFilterT const& filter,
                    bool verbose = false ) {
     typedef SubpixelView<PreprocFilterT,ImageT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),

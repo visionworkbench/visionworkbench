@@ -93,7 +93,7 @@ namespace stereo {
     // the requested pixel is missing in the disparity map or if the
     // stereo geometry returns a bad match (e.g. if the rays
     // diverged).
-    inline double error( int i, int j, int p=0 ) const {
+    inline double error( int32 i, int32 j, int32 p=0 ) const {
       double error = 1e-10;
       if ( is_valid(m_disparity_map(i,j,p)) )
         StereoModelHelper( m_stereo_model, Vector2(i,j),
@@ -136,7 +136,7 @@ namespace stereo {
     // small status class, we can change state that is shared between
     // any copies of the UniverseRadius object and the original.
     struct UniverseRadiusState {
-      int rejected_points, total_points;
+      int32 rejected_points, total_points;
     };
 
     Vector3 m_origin;
@@ -156,8 +156,8 @@ namespace stereo {
 
     double near_radius() const { return m_near_radius; }
     double far_radius() const { return m_far_radius; }
-    int rejected_points() const { return m_state->rejected_points; }
-    int total_points() const { return m_state->total_points; }
+    int32 rejected_points() const { return m_state->rejected_points; }
+    int32 total_points() const { return m_state->total_points; }
 
     Vector3 operator() (Vector3 const& pix) const {
       m_state->total_points++;
