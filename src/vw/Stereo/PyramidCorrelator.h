@@ -33,43 +33,6 @@ namespace stereo {
     std::string m_debug_prefix;
 
     // Reduce the image size by a factor of two by averaging the pixels
-    template <class PixelT>
-    ImageView<PixelT> subsample_by_two(ImageView<PixelT> &img) {
-
-      ImageView<PixelT> outImg(img.cols()/2, img.rows()/2,img.planes());
-      int32 i, j, p;
-
-      for (p = 0; p < outImg.planes() ; p++) {
-        for (i = 0; i < outImg.cols(); i++) {
-          for (j = 0; j < outImg.rows(); j++) {
-            outImg(i,j,p) = PixelT(0);
-            outImg(i,j,p) += img(2*i     , 2*j    ,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j    ,p);
-            outImg(i,j,p) += img(2*i     , 2*j + 1,p);
-            outImg(i,j,p) += img(2*i + 1 , 2*j + 1,p);
-            outImg(i,j,p) /= 4;
-          }
-        }
-      }
-      return outImg;
-    }
-
-    template <class PixelT>
-    ImageView<PixelT> upsample_by_two(ImageView<PixelT> &img) {
-      ImageView<PixelT> outImg(img.cols()*2, img.rows()*2,img.planes());
-      int32 i, j, p;
-
-      for (p = 0; p < outImg.planes() ; p++) {
-        for (i = 0; i < outImg.cols(); i++) {
-          for (j = 0; j < outImg.rows(); j++) {
-            outImg(i,j,p) = img(i/2, j/2, p);
-          }
-        }
-      }
-      return outImg;
-    }
-
-    // Reduce the image size by a factor of two by averaging the pixels
     template <class MaskPixelT>
     ImageView<MaskPixelT> subsample_mask_by_two(ImageView<MaskPixelT> &img) {
 
@@ -273,12 +236,11 @@ namespace stereo {
           // If we have a missing pixel that correlated properly in
           // the previous pyramid level, use the disparity found at
           // the previous pyramid level
-          ImageView<PixelDisp > disparity_map_old;
-          disparity_map_old =
-            2*crop(edge_extend(upsample_by_two(disparity_map),
-                               ZeroEdgeExtension()),
-                   BBox2i(0, 0, disparity_map_clean.cols(),
-                          disparity_map_clean.rows()));
+          ImageView<PixelDisp > disparity_map_old =
+	    crop(edge_extend(disparity_upsample(disparity_map),
+			     ZeroEdgeExtension()),
+		 BBox2i(0, 0, disparity_map_clean.cols(),
+			disparity_map_clean.rows()));
           ImageView<PixelDisp > disparity_map_old_diff =
             invert_mask(intersect_mask(disparity_map_old, disparity_map_clean));
           disparity_map =
@@ -385,10 +347,10 @@ namespace stereo {
 
       // Produce the image pyramid
       for (int n = 1; n < m_pyramid_levels; ++n) {
-        left_pyramid[n] = subsample_by_two(left_pyramid[n-1]);
-        right_pyramid[n] = subsample_by_two(right_pyramid[n-1]);
-        left_masks[n] = subsample_mask_by_two(left_masks[n-1]);
-        right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
+	left_pyramid[n] =  subsample(gaussian_filter(left_pyramid[n-1],1.2),2);
+	right_pyramid[n] = subsample(gaussian_filter(right_pyramid[n-1],1.2),2);
+        left_masks[n] =    subsample_mask_by_two(left_masks[n-1]);
+        right_masks[n] =   subsample_mask_by_two(right_masks[n-1]);
       }
 
       int32 mask_padding = std::max(m_kernel_size[0], m_kernel_size[1])/2;
