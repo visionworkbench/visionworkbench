@@ -246,7 +246,7 @@ namespace vw {
   public:
     template <class ArgT>
     void operator()( ArgT const& pix ) {
-      if ( is_valid(pix) )
+      if ( ::vw::is_valid(pix) )
         AccumT::operator()( remove_mask( pix ) );
     }
   };
