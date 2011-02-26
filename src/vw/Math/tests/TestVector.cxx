@@ -7,6 +7,7 @@
 
 // TestVector.h
 #include <gtest/gtest.h>
+#include <test/Helpers.h>
 #include <vw/Math/Vector.h>
 
 using namespace vw;
@@ -297,4 +298,36 @@ TEST(Vector, IndexingIterator) {
   EXPECT_EQ(3, *k);
   EXPECT_NE(&j, &k);
   EXPECT_TRUE(j == k);
+}
+
+TEST(Vector, SmallIntArithmetic) {
+  {
+    Vector3 small(1e-5,1e-5,2e-5);
+    int64 scalar = 10000;
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2),
+                        (small*scalar), 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2),
+                        (scalar*small), 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2),
+                        double(scalar)*small, 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2),
+                        small*double(scalar), 1e-6 );
+    // These evaluate differently somehow
+    const Vector3 iresult = scalar*small;
+    Vector3 fresult = double(scalar)*small;
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2), iresult, 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.1,.1,.2), fresult, 1e-6 );
+  }
+  {
+    const Vector3 small(0.1,0.1,0.2);
+    int64 scalar = 10;
+    EXPECT_VECTOR_NEAR( Vector3(.01,.01,.02),
+                        small/scalar, 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.01,.01,.02),
+                        small/double(scalar),1e-6 );
+    Vector3 iresult = small/scalar;
+    Vector3 fresult = small/double(scalar);
+    EXPECT_VECTOR_NEAR( Vector3(.01,.01,.02), iresult, 1e-6 );
+    EXPECT_VECTOR_NEAR( Vector3(.01,.01,.02), fresult, 1e-6 );
+  }
 }
