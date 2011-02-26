@@ -69,7 +69,6 @@ namespace vw {
   /// Basic floating-point types
   typedef float float32;
   typedef double float64;
-  typedef long double float128;
 
   /// Basic true and false types
   typedef boost::mpl::integral_c<bool,true> true_type;
