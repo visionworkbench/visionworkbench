@@ -21,6 +21,7 @@ TestSettings_SOURCES         = TestSettings.cxx
 TestThreadPool_SOURCES       = TestThreadPool.cxx
 TestThreadQueue_SOURCES      = TestThreadQueue.cxx
 TestThread_SOURCES           = TestThread.cxx
+TestTypeDeduction_SOURCES    = TestTypeDeduction.cxx
 
 TESTS = \
   TestCache \
@@ -32,7 +33,8 @@ TESTS = \
   TestSettings \
   TestThread \
   TestThreadPool \
-  TestThreadQueue
+  TestThreadQueue \
+  TestTypeDeduction
 
 endif
 
