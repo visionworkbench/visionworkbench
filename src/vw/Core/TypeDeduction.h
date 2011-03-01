@@ -78,6 +78,8 @@ namespace vw {
     template<> struct Helper<unsigned char,long double> { typedef long double type; }; \
     template<> struct Helper<long double,signed char> { typedef long double type; }; \
     template<> struct Helper<signed char,long double> { typedef long double type; }; \
+    template<> struct Helper<long double,char> { typedef long double type; }; \
+    template<> struct Helper<char,long double> { typedef long double type; }; \
     /* Combinations that return double */                               \
     template<> struct Helper<double,double> { typedef double type; };   \
     template<> struct Helper<double,float> { typedef double type; };    \
@@ -102,6 +104,8 @@ namespace vw {
     template<> struct Helper<unsigned char,double> { typedef double type; }; \
     template<> struct Helper<double,signed char> { typedef double type; }; \
     template<> struct Helper<signed char,double> { typedef double type; }; \
+    template<> struct Helper<double,char> { typedef double type; }; \
+    template<> struct Helper<char,double> { typedef double type; }; \
     /* Combinations that return float */                                \
     template<> struct Helper<float,float> { typedef float type; };      \
     template<> struct Helper<float,unsigned long long> { typedef float type; }; \
@@ -124,6 +128,8 @@ namespace vw {
     template<> struct Helper<unsigned char,float> { typedef float type; }; \
     template<> struct Helper<float,signed char> { typedef float type; }; \
     template<> struct Helper<signed char,float> { typedef float type; }; \
+    template<> struct Helper<float,char> { typedef float type; }; \
+    template<> struct Helper<char,float> { typedef float type; }; \
     /* Combinations that return unsigned long long */                   \
     template<> struct Helper<unsigned long long,unsigned long long> { typedef unsigned long long type; }; \
     template<> struct Helper<unsigned long long,signed long long> { typedef unsigned long long type; }; \
@@ -144,6 +150,8 @@ namespace vw {
     template<> struct Helper<unsigned char,unsigned long long> { typedef unsigned long long type; }; \
     template<> struct Helper<unsigned long long,signed char> { typedef unsigned long long type; }; \
     template<> struct Helper<signed char,unsigned long long> { typedef unsigned long long type; }; \
+    template<> struct Helper<unsigned long long,char> { typedef unsigned long long type; }; \
+    template<> struct Helper<char,unsigned long long> { typedef unsigned long long type; }; \
     /* Combinations that return signed long long */                     \
     template<> struct Helper<signed long long,signed long long> { typedef signed long long type; }; \
     template<> struct Helper<signed long long,unsigned long> { typedef signed long long type; }; \
@@ -162,6 +170,8 @@ namespace vw {
     template<> struct Helper<unsigned char,signed long long> { typedef signed long long type; }; \
     template<> struct Helper<signed long long,signed char> { typedef signed long long type; }; \
     template<> struct Helper<signed char,signed long long> { typedef signed long long type; }; \
+    template<> struct Helper<signed long long,char> { typedef signed long long type; }; \
+    template<> struct Helper<char,signed long long> { typedef signed long long type; }; \
     /* Combinations that return unsigned long */                        \
     template<> struct Helper<unsigned long,unsigned long> { typedef unsigned long type; }; \
     template<> struct Helper<unsigned long,signed long> { typedef unsigned long type; }; \
@@ -178,6 +188,8 @@ namespace vw {
     template<> struct Helper<unsigned char,unsigned long> { typedef unsigned long type; }; \
     template<> struct Helper<unsigned long,signed char> { typedef unsigned long type; }; \
     template<> struct Helper<signed char,unsigned long> { typedef unsigned long type; }; \
+    template<> struct Helper<unsigned long,char> { typedef unsigned long type; }; \
+    template<> struct Helper<char,unsigned long> { typedef unsigned long type; }; \
     /* Combinations that return signed long */                          \
     template<> struct Helper<signed long,signed long> { typedef signed long type; }; \
     template<> struct Helper<signed long,unsigned int> { typedef signed long type; }; \
@@ -192,6 +204,8 @@ namespace vw {
     template<> struct Helper<unsigned char,signed long> { typedef signed long type; }; \
     template<> struct Helper<signed long,signed char> { typedef signed long type; }; \
     template<> struct Helper<signed char,signed long> { typedef signed long type; }; \
+    template<> struct Helper<signed long,char> { typedef signed long type; }; \
+    template<> struct Helper<char,signed long> { typedef signed long type; }; \
     /* Combinations that return unsigned int */                         \
     template<> struct Helper<unsigned int,unsigned int> { typedef unsigned int type; }; \
     template<> struct Helper<unsigned int,signed int> { typedef unsigned int type; }; \
@@ -204,6 +218,8 @@ namespace vw {
     template<> struct Helper<unsigned char,unsigned int> { typedef unsigned int type; }; \
     template<> struct Helper<unsigned int,signed char> { typedef unsigned int type; }; \
     template<> struct Helper<signed char,unsigned int> { typedef unsigned int type; }; \
+    template<> struct Helper<unsigned int,char> { typedef unsigned int type; }; \
+    template<> struct Helper<char,unsigned int> { typedef unsigned int type; }; \
     /* Combinations that return signed int */                           \
     template<> struct Helper<signed int,signed int> { typedef signed int type; }; \
     template<> struct Helper<signed int,unsigned short> { typedef signed int type; }; \
@@ -214,6 +230,8 @@ namespace vw {
     template<> struct Helper<unsigned char,signed int> { typedef signed int type; }; \
     template<> struct Helper<signed int,signed char> { typedef signed int type; }; \
     template<> struct Helper<signed char,signed int> { typedef signed int type; }; \
+    template<> struct Helper<signed int,char> { typedef signed int type; }; \
+    template<> struct Helper<char,signed int> { typedef signed int type; }; \
     /* Combinations that return unsigned short */                       \
     template<> struct Helper<unsigned short,unsigned short> { typedef unsigned short type; }; \
     template<> struct Helper<unsigned short,signed short> { typedef unsigned short type; }; \
@@ -222,18 +240,28 @@ namespace vw {
     template<> struct Helper<unsigned char,unsigned short> { typedef unsigned short type; }; \
     template<> struct Helper<unsigned short,signed char> { typedef unsigned short type; }; \
     template<> struct Helper<signed char,unsigned short> { typedef unsigned short type; }; \
+    template<> struct Helper<unsigned short,char> { typedef unsigned short type; }; \
+    template<> struct Helper<char,unsigned short> { typedef unsigned short type; }; \
     /* Combinations that return signed short */                       \
     template<> struct Helper<signed short,signed short> { typedef signed short type; }; \
     template<> struct Helper<signed short,unsigned char> { typedef signed short type; }; \
     template<> struct Helper<unsigned char,signed short> { typedef signed short type; }; \
     template<> struct Helper<signed short,signed char> { typedef signed short type; }; \
     template<> struct Helper<signed char,signed short> { typedef signed short type; }; \
+    template<> struct Helper<signed short,char> { typedef signed short type; }; \
+    template<> struct Helper<char,signed short> { typedef signed short type; }; \
     /* Combinations that return unsigned char */                        \
     template<> struct Helper<unsigned char,unsigned char> { typedef unsigned char type; }; \
     template<> struct Helper<unsigned char,signed char> { typedef unsigned char type; }; \
     template<> struct Helper<signed char,unsigned char> { typedef unsigned char type; }; \
+    template<> struct Helper<unsigned char,char> { typedef unsigned char type; }; \
+    template<> struct Helper<char,unsigned char> { typedef unsigned char type; }; \
     /* Combinations that return signed char */                       \
     template<> struct Helper<signed char,signed char> { typedef signed char type; }; \
+    template<> struct Helper<signed char,char> { typedef signed char type; }; \
+    template<> struct Helper<char,signed char> { typedef signed char type; }; \
+    /* Combinations that return char */                       \
+    template<> struct Helper<char,char> { typedef char type; }; \
     /* Combinations with a user type return that type */                \
     template<class T> struct Helper<signed long long,T> { typedef T type; }; \
     template<class T> struct Helper<T,signed long long> { typedef T type; }; \
@@ -260,7 +288,9 @@ namespace vw {
     template<class T> struct Helper<unsigned char,T> { typedef T type; }; \
     template<class T> struct Helper<T,unsigned char> { typedef T type; }; \
     template<class T> struct Helper<signed char,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed char> { typedef T type; };
+    template<class T> struct Helper<T,signed char> { typedef T type; }; \
+    template<class T> struct Helper<char,T> { typedef T type; }; \
+    template<class T> struct Helper<T,char> { typedef T type; };
 
   template <class T>
   struct TypeDeductionError;
