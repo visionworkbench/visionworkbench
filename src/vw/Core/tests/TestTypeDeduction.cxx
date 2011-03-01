@@ -21,11 +21,11 @@ These tests generated with this python script (requires >= python 2.7):
       print 'TRIAL(%s, %s, %s);' % tuple(i.rjust(pad) for i in (l,r,''))
 #endif
 
-#define DEDUCE(a,b,c) (boost::is_same<typename TypeDeductionHelper<a,b>::type, c>::value)
+#define DEDUCE(a,b,c) (boost::is_same<TypeDeductionHelper<a,b>::type, c>::value)
 
 #define TRIAL_(a,b,c) \
   EXPECT_TRUE(DEDUCE(a,b,c)) \
-      << "[" << #a << "] and [" << #b << "] produced [" << gi::GetTypeName<typename TypeDeductionHelper<a,b>::type>() \
+      << "[" << #a << "] and [" << #b << "] produced [" << gi::GetTypeName<TypeDeductionHelper<a,b>::type>() \
       << "] expected [" << #c << "]";
 
 #define TRIAL(a,b,c) \
