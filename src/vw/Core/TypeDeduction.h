@@ -235,6 +235,10 @@ namespace vw {
     /* Combinations that return signed char */                       \
     template<> struct Helper<signed char,signed char> { typedef signed char type; }; \
     /* Combinations with a user type return that type */                \
+    template<class T> struct Helper<signed long long,T> { typedef T type; }; \
+    template<class T> struct Helper<T,signed long long> { typedef T type; }; \
+    template<class T> struct Helper<unsigned long long,T> { typedef T type; }; \
+    template<class T> struct Helper<T,unsigned long long> { typedef T type; }; \
     template<class T> struct Helper<long double,T> { typedef T type; }; \
     template<class T> struct Helper<T,long double> { typedef T type; }; \
     template<class T> struct Helper<double,T> { typedef T type; };      \
