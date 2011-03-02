@@ -526,10 +526,10 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
   // adjusted by affine subpixel refinement.
   float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
 
-  int32 kern_half_height = kern_height/2;
-  int32 kern_half_width = kern_width/2;
-  int32 kern_pixels = kern_height * kern_width;
-  int32 weight_threshold = kern_pixels/2;
+  const int32 kern_half_height = kern_height/2;
+  const int32 kern_half_width = kern_width/2;
+  const int32 kern_pixels = kern_height * kern_width;
+  const int32 weight_threshold = kern_pixels/2;
 
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
   ImageView<float> y_deriv = derivative_filter(left_image, 0, 1);
@@ -636,6 +636,9 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
           CropViewTAcc left_image_patch_row = left_image_patch.origin();
           ImageViewFAcc w_row = w.origin();
 
+          // Counts pixels skipped on evaluation.
+          int32 skip = 0;
+
           // Perform loop that does Expectation and Maximization in one go
           for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
             ImageViewFAcc w_ptr = w_row;
@@ -691,6 +694,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                 I_x_ptr.next_col();
                 I_y_ptr.next_col();
                 left_image_patch_ptr.next_col();
+                skip++;
                 continue;
               }
               float I_x_val = weight * (*I_x_ptr);
@@ -700,12 +704,12 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
               float I_x_I_y = I_x_val * (*I_y_ptr);
 
               // Left hand side
-              lhs(0) += ii * I_x_val * I_e_val;
-              lhs(1) += jj * I_x_val * I_e_val;
-              lhs(2) +=      I_x_val * I_e_val;
-              lhs(3) += ii * I_y_val * I_e_val;
-              lhs(4) += jj * I_y_val * I_e_val;
-              lhs(5) +=      I_y_val * I_e_val;
+              lhs(0) -= ii * I_x_val * I_e_val;
+              lhs(1) -= jj * I_x_val * I_e_val;
+              lhs(2) -=      I_x_val * I_e_val;
+              lhs(3) -= ii * I_y_val * I_e_val;
+              lhs(4) -= jj * I_y_val * I_e_val;
+              lhs(5) -=      I_y_val * I_e_val;
 
               float multipliers[3];
               multipliers[0] = ii*ii;
@@ -745,32 +749,30 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
             I_y_row.next_row();
             left_image_patch_row.next_row();
           }
-          lhs *= -1;
+
+          // Checking for early termination
+          if ( skip == kern_pixels )
+            break;
 
           // Fill in symmetric entries
           rhs(1,0) = rhs(0,1);
           rhs(2,0) = rhs(0,2);
           rhs(2,1) = rhs(1,2);
-          rhs(1,3) = rhs(0,4);
-          rhs(2,3) = rhs(0,5);
-          rhs(2,4) = rhs(1,5);
           rhs(3,0) = rhs(0,3);
-          rhs(3,1) = rhs(1,3);
-          rhs(3,2) = rhs(2,3);
-          rhs(4,0) = rhs(0,4);
+          rhs(1,3) = rhs(3,1) = rhs(4,0) = rhs(0,4);
+          rhs(2,3) = rhs(3,2) = rhs(5,0) = rhs(0,5);
           rhs(4,1) = rhs(1,4);
-          rhs(4,2) = rhs(2,4);
-          rhs(4,3) = rhs(3,4);
-          rhs(5,0) = rhs(0,5);
-          rhs(5,1) = rhs(1,5);
+          rhs(2,4) = rhs(4,2) = rhs(5,1) = rhs(1,5);
           rhs(5,2) = rhs(2,5);
+          rhs(4,3) = rhs(3,4);
           rhs(5,3) = rhs(3,5);
           rhs(5,4) = rhs(4,5);
 
           // Solves lhs = rhs * x, and stores the result in-place in lhs.
-          try {
-            solve_symmetric_nocopy(rhs,lhs);
-          } catch (ArgumentErr &/*e*/) {} // Do Nothing
+          const math::f77_int n = 6;
+          const math::f77_int nrhs = 1;
+          math::f77_int info;
+          math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
           //normalize the mean of the noise
           mean_noise = mean_noise_tmp/sum_gamma_noise;
