@@ -22,290 +22,127 @@
 
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
-#include <boost/mpl/and.hpp>
-#include <boost/mpl/not.hpp>
+#include <boost/mpl/greater.hpp>
+#include <boost/mpl/equal_to.hpp>
+#include <boost/mpl/sizeof.hpp>
+#include <boost/mpl/identity.hpp>
 
 #include <vw/Core/CompoundTypes.h>
 
 namespace vw {
 
-  /// \cond INTERNAL
-
-  // ********************************************************************
-  // Operator Return Type Deduction Routines
-  //
-  // The following type-deduction metaprograms can be used to deduce the
-  // return types of various operations on compound types.  This exists
-  // and must be maintained until either C++ officially adopts the typeof
-  // keyword (and compilers actually support it) or the BOOST folks get
-  // their act together and agree on a single unified framework for this
-  // sort of thing.  (In the latter case some code still needs to stay,
-  // but it should get reworked to fit within said framework.)
-  //
-  // At the moment nothing fancy is supported.  For instance, compound
-  // type sums are only supported when the two arguments have the same
-  // type.  However, everything is in place to make it easy to extend
-  // should the need arise.
-  // ********************************************************************
-
-  // Okay, I'll be the first to admit that this is a really brain-dead
-  // way to do this.  Nevertheless, it works and will give us a standard
-  // against which to compare better methods later.
-#define __VW_STANDARD_ARITHMETIC_CONVERSIONS(Helper)                    \
-    /* Combinations that return long double */                          \
-    template<> struct Helper<long double,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,double> { typedef long double type; }; \
-    template<> struct Helper<double,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,float> { typedef long double type; }; \
-    template<> struct Helper<float,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,unsigned long long> { typedef long double type; }; \
-    template<> struct Helper<unsigned long long,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,signed long long> { typedef long double type; }; \
-    template<> struct Helper<signed long long,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,unsigned long> { typedef long double type; }; \
-    template<> struct Helper<unsigned long,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,signed long> { typedef long double type; }; \
-    template<> struct Helper<signed long,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,unsigned int> { typedef long double type; }; \
-    template<> struct Helper<unsigned int,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,signed int> { typedef long double type; }; \
-    template<> struct Helper<signed int,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,unsigned short> { typedef long double type; }; \
-    template<> struct Helper<unsigned short,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,signed short> { typedef long double type; }; \
-    template<> struct Helper<signed short,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,unsigned char> { typedef long double type; }; \
-    template<> struct Helper<unsigned char,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,signed char> { typedef long double type; }; \
-    template<> struct Helper<signed char,long double> { typedef long double type; }; \
-    template<> struct Helper<long double,char> { typedef long double type; }; \
-    template<> struct Helper<char,long double> { typedef long double type; }; \
-    /* Combinations that return double */                               \
-    template<> struct Helper<double,double> { typedef double type; };   \
-    template<> struct Helper<double,float> { typedef double type; };    \
-    template<> struct Helper<float,double> { typedef double type; };    \
-    template<> struct Helper<double,unsigned long long> { typedef double type; }; \
-    template<> struct Helper<unsigned long long,double> { typedef double type; }; \
-    template<> struct Helper<double,signed long long> { typedef double type; }; \
-    template<> struct Helper<signed long long,double> { typedef double type; }; \
-    template<> struct Helper<double,unsigned long> { typedef double type; }; \
-    template<> struct Helper<unsigned long,double> { typedef double type; }; \
-    template<> struct Helper<double,signed long> { typedef double type; }; \
-    template<> struct Helper<signed long,double> { typedef double type; }; \
-    template<> struct Helper<double,unsigned int> { typedef double type; }; \
-    template<> struct Helper<unsigned int,double> { typedef double type; }; \
-    template<> struct Helper<double,signed int> { typedef double type; }; \
-    template<> struct Helper<signed int,double> { typedef double type; }; \
-    template<> struct Helper<double,unsigned short> { typedef double type; }; \
-    template<> struct Helper<unsigned short,double> { typedef double type; }; \
-    template<> struct Helper<double,signed short> { typedef double type; }; \
-    template<> struct Helper<signed short,double> { typedef double type; }; \
-    template<> struct Helper<double,unsigned char> { typedef double type; }; \
-    template<> struct Helper<unsigned char,double> { typedef double type; }; \
-    template<> struct Helper<double,signed char> { typedef double type; }; \
-    template<> struct Helper<signed char,double> { typedef double type; }; \
-    template<> struct Helper<double,char> { typedef double type; }; \
-    template<> struct Helper<char,double> { typedef double type; }; \
-    /* Combinations that return float */                                \
-    template<> struct Helper<float,float> { typedef float type; };      \
-    template<> struct Helper<float,unsigned long long> { typedef float type; }; \
-    template<> struct Helper<unsigned long long,float> { typedef float type; }; \
-    template<> struct Helper<float,signed long long> { typedef float type; }; \
-    template<> struct Helper<signed long long,float> { typedef float type; }; \
-    template<> struct Helper<float,unsigned long> { typedef float type; }; \
-    template<> struct Helper<unsigned long,float> { typedef float type; }; \
-    template<> struct Helper<float,signed long> { typedef float type; }; \
-    template<> struct Helper<signed long,float> { typedef float type; }; \
-    template<> struct Helper<float,unsigned int> { typedef float type; }; \
-    template<> struct Helper<unsigned int,float> { typedef float type; }; \
-    template<> struct Helper<float,signed int> { typedef float type; }; \
-    template<> struct Helper<signed int,float> { typedef float type; }; \
-    template<> struct Helper<float,unsigned short> { typedef float type; }; \
-    template<> struct Helper<unsigned short,float> { typedef float type; }; \
-    template<> struct Helper<float,signed short> { typedef float type; }; \
-    template<> struct Helper<signed short,float> { typedef float type; }; \
-    template<> struct Helper<float,unsigned char> { typedef float type; }; \
-    template<> struct Helper<unsigned char,float> { typedef float type; }; \
-    template<> struct Helper<float,signed char> { typedef float type; }; \
-    template<> struct Helper<signed char,float> { typedef float type; }; \
-    template<> struct Helper<float,char> { typedef float type; }; \
-    template<> struct Helper<char,float> { typedef float type; }; \
-    /* Combinations that return unsigned long long */                   \
-    template<> struct Helper<unsigned long long,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,signed long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<signed long long,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,unsigned long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,signed long> { typedef unsigned long long type; }; \
-    template<> struct Helper<signed long,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,unsigned int> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned int,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,signed int> { typedef unsigned long long type; }; \
-    template<> struct Helper<signed int,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,unsigned short> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned short,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,signed short> { typedef unsigned long long type; }; \
-    template<> struct Helper<signed short,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,unsigned char> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned char,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,signed char> { typedef unsigned long long type; }; \
-    template<> struct Helper<signed char,unsigned long long> { typedef unsigned long long type; }; \
-    template<> struct Helper<unsigned long long,char> { typedef unsigned long long type; }; \
-    template<> struct Helper<char,unsigned long long> { typedef unsigned long long type; }; \
-    /* Combinations that return signed long long */                     \
-    template<> struct Helper<signed long long,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,unsigned long> { typedef signed long long type; }; \
-    template<> struct Helper<unsigned long,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,signed long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,unsigned int> { typedef signed long long type; }; \
-    template<> struct Helper<unsigned int,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,signed int> { typedef signed long long type; }; \
-    template<> struct Helper<signed int,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,unsigned short> { typedef signed long long type; }; \
-    template<> struct Helper<unsigned short,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,signed short> { typedef signed long long type; }; \
-    template<> struct Helper<signed short,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,unsigned char> { typedef signed long long type; }; \
-    template<> struct Helper<unsigned char,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,signed char> { typedef signed long long type; }; \
-    template<> struct Helper<signed char,signed long long> { typedef signed long long type; }; \
-    template<> struct Helper<signed long long,char> { typedef signed long long type; }; \
-    template<> struct Helper<char,signed long long> { typedef signed long long type; }; \
-    /* Combinations that return unsigned long */                        \
-    template<> struct Helper<unsigned long,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,signed long> { typedef unsigned long type; }; \
-    template<> struct Helper<signed long,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,unsigned int> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned int,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,signed int> { typedef unsigned long type; }; \
-    template<> struct Helper<signed int,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,unsigned short> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned short,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,signed short> { typedef unsigned long type; }; \
-    template<> struct Helper<signed short,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,unsigned char> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned char,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,signed char> { typedef unsigned long type; }; \
-    template<> struct Helper<signed char,unsigned long> { typedef unsigned long type; }; \
-    template<> struct Helper<unsigned long,char> { typedef unsigned long type; }; \
-    template<> struct Helper<char,unsigned long> { typedef unsigned long type; }; \
-    /* Combinations that return signed long */                          \
-    template<> struct Helper<signed long,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,unsigned int> { typedef signed long type; }; \
-    template<> struct Helper<unsigned int,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,signed int> { typedef signed long type; }; \
-    template<> struct Helper<signed int,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,unsigned short> { typedef signed long type; }; \
-    template<> struct Helper<unsigned short,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,signed short> { typedef signed long type; }; \
-    template<> struct Helper<signed short,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,unsigned char> { typedef signed long type; }; \
-    template<> struct Helper<unsigned char,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,signed char> { typedef signed long type; }; \
-    template<> struct Helper<signed char,signed long> { typedef signed long type; }; \
-    template<> struct Helper<signed long,char> { typedef signed long type; }; \
-    template<> struct Helper<char,signed long> { typedef signed long type; }; \
-    /* Combinations that return unsigned int */                         \
-    template<> struct Helper<unsigned int,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,signed int> { typedef unsigned int type; }; \
-    template<> struct Helper<signed int,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,unsigned short> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned short,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,signed short> { typedef unsigned int type; }; \
-    template<> struct Helper<signed short,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,unsigned char> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned char,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,signed char> { typedef unsigned int type; }; \
-    template<> struct Helper<signed char,unsigned int> { typedef unsigned int type; }; \
-    template<> struct Helper<unsigned int,char> { typedef unsigned int type; }; \
-    template<> struct Helper<char,unsigned int> { typedef unsigned int type; }; \
-    /* Combinations that return signed int */                           \
-    template<> struct Helper<signed int,signed int> { typedef signed int type; }; \
-    template<> struct Helper<signed int,unsigned short> { typedef signed int type; }; \
-    template<> struct Helper<unsigned short,signed int> { typedef signed int type; }; \
-    template<> struct Helper<signed int,signed short> { typedef signed int type; }; \
-    template<> struct Helper<signed short,signed int> { typedef signed int type; }; \
-    template<> struct Helper<signed int,unsigned char> { typedef signed int type; }; \
-    template<> struct Helper<unsigned char,signed int> { typedef signed int type; }; \
-    template<> struct Helper<signed int,signed char> { typedef signed int type; }; \
-    template<> struct Helper<signed char,signed int> { typedef signed int type; }; \
-    template<> struct Helper<signed int,char> { typedef signed int type; }; \
-    template<> struct Helper<char,signed int> { typedef signed int type; }; \
-    /* Combinations that return unsigned short */                       \
-    template<> struct Helper<unsigned short,unsigned short> { typedef unsigned short type; }; \
-    template<> struct Helper<unsigned short,signed short> { typedef unsigned short type; }; \
-    template<> struct Helper<signed short,unsigned short> { typedef unsigned short type; }; \
-    template<> struct Helper<unsigned short,unsigned char> { typedef unsigned short type; }; \
-    template<> struct Helper<unsigned char,unsigned short> { typedef unsigned short type; }; \
-    template<> struct Helper<unsigned short,signed char> { typedef unsigned short type; }; \
-    template<> struct Helper<signed char,unsigned short> { typedef unsigned short type; }; \
-    template<> struct Helper<unsigned short,char> { typedef unsigned short type; }; \
-    template<> struct Helper<char,unsigned short> { typedef unsigned short type; }; \
-    /* Combinations that return signed short */                       \
-    template<> struct Helper<signed short,signed short> { typedef signed short type; }; \
-    template<> struct Helper<signed short,unsigned char> { typedef signed short type; }; \
-    template<> struct Helper<unsigned char,signed short> { typedef signed short type; }; \
-    template<> struct Helper<signed short,signed char> { typedef signed short type; }; \
-    template<> struct Helper<signed char,signed short> { typedef signed short type; }; \
-    template<> struct Helper<signed short,char> { typedef signed short type; }; \
-    template<> struct Helper<char,signed short> { typedef signed short type; }; \
-    /* Combinations that return unsigned char */                        \
-    template<> struct Helper<unsigned char,unsigned char> { typedef unsigned char type; }; \
-    template<> struct Helper<unsigned char,signed char> { typedef unsigned char type; }; \
-    template<> struct Helper<signed char,unsigned char> { typedef unsigned char type; }; \
-    template<> struct Helper<unsigned char,char> { typedef unsigned char type; }; \
-    template<> struct Helper<char,unsigned char> { typedef unsigned char type; }; \
-    /* Combinations that return signed char */                       \
-    template<> struct Helper<signed char,signed char> { typedef signed char type; }; \
-    template<> struct Helper<signed char,char> { typedef signed char type; }; \
-    template<> struct Helper<char,signed char> { typedef signed char type; }; \
-    /* Combinations that return char */                       \
-    template<> struct Helper<char,char> { typedef char type; }; \
-    /* Combinations with a user type return that type */                \
-    template<class T> struct Helper<signed long long,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed long long> { typedef T type; }; \
-    template<class T> struct Helper<unsigned long long,T> { typedef T type; }; \
-    template<class T> struct Helper<T,unsigned long long> { typedef T type; }; \
-    template<class T> struct Helper<long double,T> { typedef T type; }; \
-    template<class T> struct Helper<T,long double> { typedef T type; }; \
-    template<class T> struct Helper<double,T> { typedef T type; };      \
-    template<class T> struct Helper<T,double> { typedef T type; };      \
-    template<class T> struct Helper<float,T> { typedef T type; };       \
-    template<class T> struct Helper<T,float> { typedef T type; };       \
-    template<class T> struct Helper<unsigned long,T> { typedef T type; }; \
-    template<class T> struct Helper<T,unsigned long> { typedef T type; }; \
-    template<class T> struct Helper<signed long,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed long> { typedef T type; }; \
-    template<class T> struct Helper<unsigned int,T> { typedef T type; }; \
-    template<class T> struct Helper<T,unsigned int> { typedef T type; };  \
-    template<class T> struct Helper<signed int,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed int> { typedef T type; };  \
-    template<class T> struct Helper<unsigned short,T> { typedef T type; }; \
-    template<class T> struct Helper<T,unsigned short> { typedef T type; }; \
-    template<class T> struct Helper<signed short,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed short> { typedef T type; }; \
-    template<class T> struct Helper<unsigned char,T> { typedef T type; }; \
-    template<class T> struct Helper<T,unsigned char> { typedef T type; }; \
-    template<class T> struct Helper<signed char,T> { typedef T type; }; \
-    template<class T> struct Helper<T,signed char> { typedef T type; }; \
-    template<class T> struct Helper<char,T> { typedef T type; }; \
-    template<class T> struct Helper<T,char> { typedef T type; };
-
+  // If you have an error message that leads you here, you tried to apply a
+  // functor to two user-defined (non-arithmetic) types, and we didn't know
+  // what type to return. If you know, you can put a template specialization
+  // for it, like:
+  //    VW_NEW_TYPE_DEDUCTION1(user1_t, result_t);
+  //    VW_NEW_TYPE_DEDUCTION2(user1_t, user2_t, result_t);
   template <class T>
   struct TypeDeductionError;
 
-  template <class Arg1T, class Arg2T>
-  struct TypeDeductionHelper {
-    typedef TypeDeductionError<TypeDeductionHelper> type;
-  };
+  #define VW_NEW_TYPE_DEDUCTION1(T1, Result)                             \
+    namespace vw { namespace core { namespace detail {                   \
+    template <class T2>                                                  \
+    struct TypeDeductionHelperImpl<T1, T2, false, false, false, false> { \
+      typedef Result type;                                               \
+    };                                                                   \
+    template <class T2>                                                  \
+    struct TypeDeductionHelperImpl<T2, T1, false, false, false, false> { \
+      typedef Result type;                                               \
+    };                                                                   \
+    }}}
 
+  #define VW_NEW_TYPE_DEDUCTION2(T1, T2, Result)                         \
+    namespace vw { namespace core { namespace detail {                   \
+    template <>                                                          \
+    struct TypeDeductionHelperImpl<T1, T2, false, false, false, false> { \
+      typedef Result type;                                               \
+    };                                                                   \
+    template <>                                                          \
+    struct TypeDeductionHelperImpl<T2, T1, false, false, false, false> { \
+      typedef Result type;                                               \
+    };                                                                   \
+    }}}
+
+  namespace core { namespace detail {
+    template <class T1, class T2, bool T1Float, bool T2Float, bool T1Arith, bool T2Arith>
+    struct TypeDeductionHelperImpl;
+
+    // Both types are different user-defined types [since they're not arithmetic].
+    // No solution. Error.
+    template <class T1, class T2, bool T1Float, bool T2Float>
+    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, false, false> {
+      typedef TypeDeductionError<TypeDeductionHelperImpl> type;
+    };
+    // Only one type is arithmetic, pick the user-defined type.
+    template <class T1, class T2, bool T1Float, bool T2Float>
+    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, true, false> {
+      typedef T2 type;
+    };
+    // Only one type is arithmetic, pick the user-defined type.
+    template <class T1, class T2, bool T1Float, bool T2Float>
+    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, false, true> {
+      typedef T1 type;
+    };
+    // both arithmetic, only one is floating. pick the float.
+    template <class T1, class T2>
+    struct TypeDeductionHelperImpl<T1, T2, false, true, true, true> {
+      typedef T2 type;
+    };
+    // both arithmetic, only one is floating. pick the float.
+    template <class T1, class T2>
+    struct TypeDeductionHelperImpl<T1, T2, true, false, true, true> {
+      typedef T1 type;
+    };
+    // both arithmetic, both float. pick the bigger float.
+    template <class T1, class T2>
+    struct TypeDeductionHelperImpl<T1, T2, true, true, true, true> {
+      typedef typename boost::mpl::if_<
+        typename boost::mpl::greater<typename boost::mpl::sizeof_<T1>, typename boost::mpl::sizeof_<T2> >::type, T1, T2
+      >::type type;
+    };
+    // both arithmetic, neither float. We use a modification of the C++ arithmetic expression rules here.
+    // if sizeof(T1) == sizeof(T2):
+    //   if is_unsigned(T1) or is_unsigned(T2): return make_unsigned(T1)
+    //   else: return make_signed(T1)
+    // else:
+    //  return typeof(bigger_type)
+    template <class T1, class T2>
+    struct TypeDeductionHelperImpl<T1, T2, false, false, true, true> {
+      BOOST_STATIC_ASSERT(boost::mpl::sizeof_<T1>::value > 0);
+      BOOST_STATIC_ASSERT(boost::mpl::sizeof_<T2>::value > 0);
+
+      typedef typename
+        boost::mpl::eval_if< boost::mpl::equal_to<boost::mpl::sizeof_<T1>, boost::mpl::sizeof_<T2> >
+          , boost::mpl::eval_if< boost::mpl::or_<boost::is_unsigned<T1>, boost::is_unsigned<T2> >
+            , boost::make_unsigned<T2>
+            , boost::make_signed<T2> >
+          , boost::mpl::eval_if< boost::mpl::greater<boost::mpl::sizeof_<T1>, boost::mpl::sizeof_<T2> >
+            , boost::mpl::identity<T1>
+            , boost::mpl::identity<T2> >
+      >::type type;
+    };
+  }}
+
+  template <class T1, class T2>
+  struct TypeDeductionHelper;
+
+  // Both types are the same? Just use that.
   template <class ArgT>
   struct TypeDeductionHelper<ArgT, ArgT> {
     typedef ArgT type;
   };
 
-  __VW_STANDARD_ARITHMETIC_CONVERSIONS(TypeDeductionHelper)
+  template <class T1, class T2>
+  struct TypeDeductionHelper {
+    typedef typename core::detail::TypeDeductionHelperImpl<T1, T2
+            , boost::is_floating_point<T1>::value
+            , boost::is_floating_point<T2>::value
+            , boost::is_arithmetic<T1>::value
+            , boost::is_arithmetic<T2>::value
+            >::type type;
+  };
+
 
 
   // ********************************************************************
