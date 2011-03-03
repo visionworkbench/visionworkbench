@@ -20,130 +20,93 @@
 #ifndef __VW_CORE_TYPE_DEDUCTION_H__
 #define __VW_CORE_TYPE_DEDUCTION_H__
 
+#include <boost/config.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
-#include <boost/mpl/greater.hpp>
 #include <boost/mpl/equal_to.hpp>
-#include <boost/mpl/sizeof.hpp>
+#include <boost/mpl/greater.hpp>
 #include <boost/mpl/identity.hpp>
 
 #include <vw/Core/CompoundTypes.h>
 
 namespace vw {
-
   // If you have an error message that leads you here, you tried to apply a
   // functor to two user-defined (non-arithmetic) types, and we didn't know
-  // what type to return. If you know, you can put a template specialization
-  // for it, like:
-  //    VW_NEW_TYPE_DEDUCTION1(user1_t, result_t);
-  //    VW_NEW_TYPE_DEDUCTION2(user1_t, user2_t, result_t);
+  // what type to return.
   template <class T>
   struct TypeDeductionError;
 
-  #define VW_NEW_TYPE_DEDUCTION1(T1, Result)                             \
-    namespace vw { namespace core { namespace detail {                   \
-    template <class T2>                                                  \
-    struct TypeDeductionHelperImpl<T1, T2, false, false, false, false> { \
-      typedef Result type;                                               \
-    };                                                                   \
-    template <class T2>                                                  \
-    struct TypeDeductionHelperImpl<T2, T1, false, false, false, false> { \
-      typedef Result type;                                               \
-    };                                                                   \
-    }}}
-
-  #define VW_NEW_TYPE_DEDUCTION2(T1, T2, Result)                         \
-    namespace vw { namespace core { namespace detail {                   \
-    template <>                                                          \
-    struct TypeDeductionHelperImpl<T1, T2, false, false, false, false> { \
-      typedef Result type;                                               \
-    };                                                                   \
-    template <>                                                          \
-    struct TypeDeductionHelperImpl<T2, T1, false, false, false, false> { \
-      typedef Result type;                                               \
-    };                                                                   \
-    }}}
-
   namespace core { namespace detail {
-    template <class T1, class T2, bool T1Float, bool T2Float, bool T1Arith, bool T2Arith>
-    struct TypeDeductionHelperImpl;
+    struct unknown_type_tag : public boost::mpl::int_<10000> {};
 
-    // Both types are different user-defined types [since they're not arithmetic].
-    // No solution. Error.
-    template <class T1, class T2, bool T1Float, bool T2Float>
-    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, false, false> {
-      typedef TypeDeductionError<TypeDeductionHelperImpl> type;
-    };
-    // Only one type is arithmetic, pick the user-defined type.
-    template <class T1, class T2, bool T1Float, bool T2Float>
-    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, true, false> {
-      typedef T2 type;
-    };
-    // Only one type is arithmetic, pick the user-defined type.
-    template <class T1, class T2, bool T1Float, bool T2Float>
-    struct TypeDeductionHelperImpl<T1, T2, T1Float, T2Float, false, true> {
-      typedef T1 type;
-    };
-    // both arithmetic, only one is floating. pick the float.
-    template <class T1, class T2>
-    struct TypeDeductionHelperImpl<T1, T2, false, true, true, true> {
-      typedef T2 type;
-    };
-    // both arithmetic, only one is floating. pick the float.
-    template <class T1, class T2>
-    struct TypeDeductionHelperImpl<T1, T2, true, false, true, true> {
-      typedef T1 type;
-    };
-    // both arithmetic, both float. pick the bigger float.
-    template <class T1, class T2>
-    struct TypeDeductionHelperImpl<T1, T2, true, true, true, true> {
-      typedef typename boost::mpl::if_<
-        typename boost::mpl::greater<typename boost::mpl::sizeof_<T1>, typename boost::mpl::sizeof_<T2> >::type, T1, T2
-      >::type type;
-    };
-    // both arithmetic, neither float. We use a modification of the C++ arithmetic expression rules here.
-    // if sizeof(T1) == sizeof(T2):
-    //   if is_unsigned(T1) or is_unsigned(T2): return make_unsigned(T1)
-    //   else: return make_signed(T1)
-    // else:
-    //  return typeof(bigger_type)
-    template <class T1, class T2>
-    struct TypeDeductionHelperImpl<T1, T2, false, false, true, true> {
-      BOOST_STATIC_ASSERT(boost::mpl::sizeof_<T1>::value > 0);
-      BOOST_STATIC_ASSERT(boost::mpl::sizeof_<T2>::value > 0);
+    // This should be considered an implementation detail
+#define _VW_INTERNAL_TYPE_DEDUCTION(Type, Number)            \
+    BOOST_STATIC_ASSERT(boost::is_arithmetic<Type>::value);  \
+    template <>                                              \
+    struct TypeDeductionIndex<Type> {                        \
+      typedef boost::mpl::int_<Number> type;                 \
+      BOOST_STATIC_CONSTANT(unsigned, value = type::value);  \
+    };                                                       \
 
-      typedef typename
-        boost::mpl::eval_if< boost::mpl::equal_to<boost::mpl::sizeof_<T1>, boost::mpl::sizeof_<T2> >
-          , boost::mpl::eval_if< boost::mpl::or_<boost::is_unsigned<T1>, boost::is_unsigned<T2> >
-            , boost::make_unsigned<T2>
-            , boost::make_signed<T2> >
-          , boost::mpl::eval_if< boost::mpl::greater<boost::mpl::sizeof_<T1>, boost::mpl::sizeof_<T2> >
-            , boost::mpl::identity<T1>
-            , boost::mpl::identity<T2> >
-      >::type type;
+    template <class T>
+    struct TypeDeductionIndex {
+      typedef unknown_type_tag type;
+      BOOST_STATIC_CONSTANT(unsigned, value = type::value);
     };
+
+    _VW_INTERNAL_TYPE_DEDUCTION(              char,  100);
+    _VW_INTERNAL_TYPE_DEDUCTION(       signed char,  200);
+    _VW_INTERNAL_TYPE_DEDUCTION(     unsigned char,  300);
+    _VW_INTERNAL_TYPE_DEDUCTION(      signed short,  400);
+    _VW_INTERNAL_TYPE_DEDUCTION(    unsigned short,  500);
+    _VW_INTERNAL_TYPE_DEDUCTION(        signed int,  600);
+    _VW_INTERNAL_TYPE_DEDUCTION(      unsigned int,  700);
+    _VW_INTERNAL_TYPE_DEDUCTION(       signed long,  800);
+    _VW_INTERNAL_TYPE_DEDUCTION(     unsigned long,  900);
+#if defined(BOOST_HAS_LONG_LONG)
+    _VW_INTERNAL_TYPE_DEDUCTION(  signed long long, 1000);
+    _VW_INTERNAL_TYPE_DEDUCTION(unsigned long long, 1100);
+#endif
+#if defined(BOOST_HAS_MS_INT64)
+    _VW_INTERNAL_TYPE_DEDUCTION(          __int64;, 1200);
+    _VW_INTERNAL_TYPE_DEDUCTION( unsigned __int64;, 1300);
+#endif
+    _VW_INTERNAL_TYPE_DEDUCTION(             float, 1400);
+    _VW_INTERNAL_TYPE_DEDUCTION(            double, 1500);
+    _VW_INTERNAL_TYPE_DEDUCTION(       long double, 1600);
   }}
 
   template <class T1, class T2>
-  struct TypeDeductionHelper;
+  struct TypeDeductionHelper {
+    typedef typename core::detail::TypeDeductionIndex<T1>::type I1;
+    typedef typename core::detail::TypeDeductionIndex<T2>::type I2;
+
+    // If an error message leads you here, you tried to apply a functor to two
+    // user-defined (non-arithmetic) types, and we didn't know what type to
+    // return. (We catch the case where the types are actually the same in the
+    // next specialization.)
+    BOOST_STATIC_ASSERT((!boost::mpl::equal_to<I1, I2>::value));
+
+    // If an error message leads you here, you have an arithmetic type that we
+    // haven't identified. Please report this as a bug.
+    //
+    // (Implementation note: _VW_INTERNAL_TYPE_DEDUCTION contains an
+    // is_arithmetic check which makes this logic correct)
+    BOOST_STATIC_ASSERT(!(boost::mpl::and_<boost::is_arithmetic<T1>, boost::mpl::equal_to<I1, core::detail::unknown_type_tag> >::value));
+    BOOST_STATIC_ASSERT(!(boost::mpl::and_<boost::is_arithmetic<T2>, boost::mpl::equal_to<I2, core::detail::unknown_type_tag> >::value));
+
+    typedef typename
+      boost::mpl::eval_if< boost::mpl::greater<I1, I2>
+      , boost::mpl::identity<T1>
+      , boost::mpl::identity<T2>
+      >::type type;
+  };
 
   // Both types are the same? Just use that.
   template <class ArgT>
   struct TypeDeductionHelper<ArgT, ArgT> {
     typedef ArgT type;
   };
-
-  template <class T1, class T2>
-  struct TypeDeductionHelper {
-    typedef typename core::detail::TypeDeductionHelperImpl<T1, T2
-            , boost::is_floating_point<T1>::value
-            , boost::is_floating_point<T2>::value
-            , boost::is_arithmetic<T1>::value
-            , boost::is_arithmetic<T2>::value
-            >::type type;
-  };
-
-
 
   // ********************************************************************
   // Now we set up the default promotion behavior for general types.
@@ -249,4 +212,4 @@ namespace vw {
 
 } // namespace vw
 
-#endif // __VW_TYPE_DEDUCTION_H__
+#endif
