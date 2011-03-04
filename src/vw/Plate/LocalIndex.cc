@@ -187,12 +187,27 @@ void LocalIndex::save_index_file() const {
 
  /// Create a new index.
  LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info)
-  : PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ), new_index_info),
+  : PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) )),
    m_plate_filename(plate_filename), m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() ))
 {
    // Create subdirectory for storing hard copies of index pages.
    std::string base_index_path = plate_filename + "/index";
-   VW_ASSERT(!fs::exists(base_index_path), ArgumentErr() << "Attempted to create new LocalIndex over existing index");
+
+   if (fs::exists(base_index_path)) {
+      open_impl();
+#define WARN_IF_DIFFERENT(field) do {if (new_index_info.field() != m_header.field()) vw_out(WarningMessage, "plate") << "Refusing to change default for field " << #field << " from " << m_header.field() << " to " << new_index_info.field() << std::endl;} while(0)
+     // Ignore attempts to change the header, but warn if anything is different.
+      WARN_IF_DIFFERENT(tile_size);
+      WARN_IF_DIFFERENT(tile_filetype);
+      WARN_IF_DIFFERENT(pixel_format);
+      WARN_IF_DIFFERENT(channel_type);
+      WARN_IF_DIFFERENT(type);
+      WARN_IF_DIFFERENT(description);
+      WARN_IF_DIFFERENT(version);
+#undef WARN_IF_DIFFERENT
+     return;
+   }
+
    fs::create_directories(base_index_path);
 
    // Start with the new_index_info, which provides the tile size, file
@@ -229,49 +244,53 @@ void LocalIndex::save_index_file() const {
                <<  m_header.DebugString() << "\n";
  }
 
- /// Open an existing index from a file on disk.
- LocalIndex::LocalIndex(std::string plate_filename) :
-   PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ) ),  // superclass constructor
-   m_plate_filename(plate_filename),
-   m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() )) {
+  void LocalIndex::open_impl() {
+    // First, check to make sure the platefile directory exists.
+    if ( !fs::exists( m_plate_filename ) )
+      vw_throw(IOErr() << "Could not open platefile: \"" << m_plate_filename << "\" for reading.");
 
-   // First, check to make sure the platefile directory exists.
-   if ( !fs::exists( plate_filename ) )
-     vw_throw(IOErr() << "Could not open platefile: \"" << plate_filename << "\" for reading.");
+    // The load the index file & parse the IndexHeader protobuffer
+    std::ifstream ifstr( this->index_filename().c_str() );
+    if (!ifstr.is_open())
+      vw_throw(IOErr() << "LocalIndex::LocalIndex() -- Could not load index file for reading.");
 
-   // The load the index file & parse the IndexHeader protobuffer
-   std::ifstream ifstr( this->index_filename().c_str() );
-   if (!ifstr.is_open())
-     vw_throw(IOErr() << "LocalIndex::LocalIndex() -- Could not load index file for reading.");
+    bool worked = m_header.ParseFromIstream(&ifstr);
+    if (!worked)
+      vw_throw(IOErr() << "LocalIndex::LocalIndex() -- Could not parse index information from "
+          << this->index_filename());
 
-   bool worked = m_header.ParseFromIstream(&ifstr);
-   if (!worked)
-     vw_throw(IOErr() << "LocalIndex::LocalIndex() -- Could not parse index information from "
-              << this->index_filename());
+    ifstr.close();
 
-   ifstr.close();
+    // Load Index Levels for PagedIndex
+    for (int level = 0; level < this->num_levels(); ++level) {
+      boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level,
+            m_page_width, m_page_height,
+            m_default_cache_size) );
+      m_levels.push_back(new_level);
+    }
 
-   // Load Index Levels for PagedIndex
-   for (int level = 0; level < this->num_levels(); ++level) {
-     boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level,
-                                                             m_page_width, m_page_height,
-                                                             m_default_cache_size) );
-     m_levels.push_back(new_level);
-   }
+    // Create the logging facility
+    try {
+      m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+      this->log() << "Reopened index \"" << this->index_filename() << "\n"
+        << m_header.DebugString() << "\n";
+    } catch (IOErr &e) {
+      // If we fail to open the log, then it's ok for now.  However, the
+      // program _will_ crash if we try to do something with the index
+      // that generates a log message.
+      vw_out(WarningMessage, "plate") << "\nWARNING: could not open index log file. "
+        << "Proceed with caution.";
+    }
+  }
 
-   // Create the logging facility
-   try {
-     m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
-     this->log() << "Reopened index \"" << this->index_filename() << "\n"
-                 << m_header.DebugString() << "\n";
-   } catch (IOErr &e) {
-     // If we fail to open the log, then it's ok for now.  However, the
-     // program _will_ crash if we try to do something with the index
-     // that generates a log message.
-     vw_out(WarningMessage, "plate") << "\nWARNING: could not open index log file. "
-                                     << "Proceed with caution.";
-   }
- }
+/// Open an existing index from a file on disk.
+LocalIndex::LocalIndex(std::string plate_filename) :
+  PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ) ),  // superclass constructor
+  m_plate_filename(plate_filename),
+  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() ))
+{
+  open_impl();
+}
 
  /// Use this to send data to the index's logfile like this:
  ///

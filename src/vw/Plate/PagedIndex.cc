@@ -199,13 +199,6 @@ IndexLevel::search_by_location(int32 col, int32 row,
 //                             PAGED INDEX
 // --------------------------------------------------------------------
 
-/// Create a new, empty index.
-PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
-                       IndexHeader /*new_index_info*/,
-                       int page_width, int page_height, int default_cache_size)
-  : m_page_gen_factory(page_gen_factory), m_page_width(page_width), m_page_height(page_height),
-    m_default_cache_size(default_cache_size) {}
-
 /// Open an existing index from a file on disk.
 PagedIndex::PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
                        int page_width, int page_height, int default_cache_size)

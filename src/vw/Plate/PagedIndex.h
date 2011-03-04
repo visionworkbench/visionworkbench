@@ -90,12 +90,6 @@ namespace platefile {
   public:
     typedef IndexLevel::multi_value_type multi_value_type;
 
-    /// Create a new, empty index.
-    PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_generator,
-               IndexHeader new_index_info,
-               int page_width = 256, int page_height = 256,
-               int default_cache_size = 100);
-
     /// Open an existing index from a file on disk.
     PagedIndex(boost::shared_ptr<PageGeneratorFactory> page_generator,
                int page_width = 256, int page_height = 256,

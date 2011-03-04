@@ -97,6 +97,8 @@ namespace platefile {
     std::string log_filename() const;
     std::vector<std::string> blob_filenames() const;
 
+    void open_impl();
+
   public:
 
     /// Create a new, empty index.
