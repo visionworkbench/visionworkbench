@@ -16,11 +16,15 @@ lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h PoseEstimation.
 lapack_sources = LapackExports.cc
 endif
 
+if HAVE_PKG_FLANN
+flann_headers = FLANNTree.h
+endif
+
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   Quaternion.h EulerAngles.h ConjugateGradient.h	\
                   NelderMead.h Statistics.h DisjointSet.h		\
                   MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
-                  RANSAC.h MatrixSparseSkyline.h $(lapack_headers)
+                  RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
 
 libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources)
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
