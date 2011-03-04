@@ -414,3 +414,16 @@ TEST(Log, DISABLED_LazyLog) {
   // the sleep inside slow() should not have run.
   EXPECT_LT(stop-start, 200000u);
 }
+
+TEST(Log, WarningsOnByDefault) {
+  std::ostringstream sstr;
+  LogInstance log(sstr, false);
+
+  log(WarningMessage) << "foo\n";
+  log(WarningMessage, "someothernamespace") << "bar\n";
+
+  const std::string& x = sstr.str();
+  ASSERT_FALSE(x.empty());
+  EXPECT_TRUE(x.find("foo") != std::string::npos);
+  EXPECT_TRUE(x.find("bar") != std::string::npos);
+}

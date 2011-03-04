@@ -214,6 +214,8 @@ bool vw::LogRuleSet::operator() (int log_level, std::string log_namespace) {
   if (log_level <= vw::InfoMessage)
     if (log_namespace == "console" || wildcard_match("*.progress", lower_namespace))
       return true;
+  if (log_level <= vw::WarningMessage)
+    return true;
 
   // We reach this line if all of the rules have failed, in
   // which case we return a NULL stream, which will result in
