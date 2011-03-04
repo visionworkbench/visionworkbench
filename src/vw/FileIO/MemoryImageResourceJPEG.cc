@@ -25,8 +25,9 @@ SrcMemoryImageResourceJPEG::SrcMemoryImageResourceJPEG(boost::shared_array<const
     m_data->open();
 }
 
-void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbox ) const {
-  VW_ASSERT( dst.format.cols == size_t(bbox.width()) && dst.format.rows == size_t(bbox.height()),
+void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbox_ ) const {
+  size_t width = bbox_.width(), height = bbox_.height(), planes = dst.format.planes;
+  VW_ASSERT( dst.format.cols == width && dst.format.rows == height,
              ArgumentErr() << VW_CURRENT_FUNCTION << ": Destination buffer has wrong dimensions!" );
   VW_ASSERT( dst.format.cols == size_t(cols()) && dst.format.rows == size_t(rows()),
              ArgumentErr() << VW_CURRENT_FUNCTION << ": Partial reads are not supported");
@@ -40,7 +41,7 @@ void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbo
   // no conversion necessary?
   bool simple = m_data->fmt().simple_convert(dst.format);
 
-  size_t bufsize = m_data->line_bytes() * bbox.height();
+  size_t bufsize = m_data->line_bytes() * height * planes;
 
   // If we don't need to convert, we read directly into the dst buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
@@ -55,8 +56,8 @@ void SrcMemoryImageResourceJPEG::read( ImageBuffer const& dst, BBox2i const& bbo
     return;
 
   ImageFormat src_fmt(m_data->fmt());
-  src_fmt.rows = bbox.height();
-  src_fmt.cols = bbox.width();
+  src_fmt.rows = height;
+  src_fmt.cols = width;
 
   ImageBuffer src(src_fmt, buf.get());
   convert(dst, src, true);
@@ -84,8 +85,8 @@ DstMemoryImageResourceJPEG::DstMemoryImageResourceJPEG(const ImageFormat& fmt)
   m_data->open();
 }
 
-void DstMemoryImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox ) {
-  size_t width = bbox.width(), height = bbox.height(), planes = src.format.planes;
+void DstMemoryImageResourceJPEG::write( ImageBuffer const& src, BBox2i const& bbox_ ) {
+  size_t width = bbox_.width(), height = bbox_.height(), planes = src.format.planes;
   VW_ASSERT( src.format.cols == width && src.format.rows == height,
              ArgumentErr() << VW_CURRENT_FUNCTION << ": partial writes not supported." );
   VW_ASSERT(m_data->ready(), LogicErr() << "Multiple writes to one DstMemoryImageResourceJPEG. Probably a bug?");
