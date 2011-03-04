@@ -137,14 +137,25 @@ namespace vw {
     typedef typename CompoundChannelCast<Arg2T,typename PromoteTypeSpecialization<Arg1T, typename CompoundChannelType<Arg2T>::type>::type>::type type;
   };
 
+  template <class Arg1T, class Arg2T, bool SameWrapper>
+  struct PromoteTypeSpecializationHelper2;
+
+  template <class Arg1T, class Arg2T>
+  struct PromoteTypeSpecializationHelper2<Arg1T, Arg2T, true> {
+    typedef typename CompoundChannelCast<Arg1T, typename PromoteTypeSpecialization<typename CompoundChannelType<Arg1T>::type, typename CompoundChannelType<Arg2T>::type>::type>::type type;
+  };
+
+  template <class Arg1T, class Arg2T>
+  struct PromoteTypeSpecializationHelper2<Arg1T, Arg2T, false> {
+    typedef typename TypeDeductionHelper<Arg1T,Arg2T>::type type;
+  };
+
   // Recursive behavior when both Arg1T and Arg2T are compound types.
   template <class Arg1T, class Arg2T>
   struct PromoteTypeSpecializationHelper<Arg1T,Arg2T,true,true> {
-    typedef typename boost::is_same<Arg1T,typename CompoundChannelCast<Arg2T,typename CompoundChannelType<Arg1T>::type>::type>::type if_same_type;
-    typedef typename CompoundChannelCast<Arg1T,typename PromoteTypeSpecialization<typename CompoundChannelType<Arg1T>::type,typename CompoundChannelType<Arg2T>::type>::type>::type is_same_type;
-    typedef typename TypeDeductionHelper<Arg1T,Arg2T>::type not_same_type;
-    typedef typename boost::mpl::if_<if_same_type,is_same_type,not_same_type>::type type;
-  };
+    typedef typename PromoteTypeSpecializationHelper2<Arg1T, Arg2T,
+      boost::is_same<Arg1T, typename CompoundChannelCast<Arg2T,typename CompoundChannelType<Arg1T>::type>::type>::value>::type type;
+    };
 
   // Dispatch to the appropriate helper based on which if any
   // argument is a compound type.
