@@ -150,8 +150,9 @@ struct Options {
           Usage() << "Cannot override georeference information on multiple images");
       VW_ASSERT(global || (north.set() && south.set() && east.set() && west.set()),
           Usage() << "If you provide one, you must provide all of: --north --south --east --west");
-      if (global)
+      if (global) {
         north = 90; south = -90; east = 180; west = -180;
+      }
       manual = true;
     }
 
