@@ -225,7 +225,7 @@ void grassfire_alpha( Options& opt,
 
 // Handling input
 void handle_arguments( int argc, char *argv[], Options& opt ) {
-  unsigned cache_size;
+  size_t cache_size;
 
   po::options_description general_options("");
   general_options.add_options()
@@ -234,7 +234,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     ("feather-max,f", po::value(&opt.feather_max)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
     ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("output-filename,o", po::value(&opt.output_filename), "Filename to use for output files.")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(1024), "Source data cache size, in megabytes")
+    ("cache", po::value(&cache_size)->default_value(1024), "Source data cache size, in megabytes")
     ("blur-sigma", po::value<float>(&opt.blur_sigma)->default_value(0), "Blur the grassfire result before appyling the tranfer function to create an even smoother blend.")
     ("force-float", "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
     ("help,h", "Display this help message");

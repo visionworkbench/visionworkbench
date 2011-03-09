@@ -71,11 +71,11 @@ static void write_debug_image( std::string out_file_name,
     if ( norm_i < .5 ) {
       // Form of red
       color.r() = 255;
-      color.g() = (unsigned char)(2*norm_i*255);
+      color.g() = (uint8)(2*norm_i*255);
     } else {
       // Form of green
       color.g() = 255;
-      color.r() = 255 - (unsigned char)(2*(norm_i-.5)*255);
+      color.r() = 255 - (uint8)(2*(norm_i-.5)*255);
     }
 
     // Marking point w/ Dot
@@ -192,7 +192,7 @@ int main(int argc, char** argv) {
   }
 
   // Iterate over the input files and find interest points in each.
-  for (unsigned i = 0; i < input_file_names.size(); ++i) {
+  for (size_t i = 0; i < input_file_names.size(); ++i) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
     std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();

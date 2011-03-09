@@ -32,9 +32,9 @@ namespace fs = boost::filesystem;
 void remove_duplicates(std::vector<InterestPoint> &ip1, std::vector<InterestPoint> &ip2) {
   std::vector<InterestPoint> new_ip1, new_ip2;
 
-  for (unsigned i = 0; i < ip1.size(); ++i) {
+  for (size_t i = 0; i < ip1.size(); ++i) {
     bool bad_entry = false;
-    for (unsigned j = 0; j < ip1.size(); ++j) {
+    for (size_t j = 0; j < ip1.size(); ++j) {
       if (i != j &&
           ((ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) ||
            (ip2[i].x == ip2[j].x && ip2[i].y == ip2[j].y)) ) {
@@ -75,7 +75,7 @@ static void write_match_image(std::string out_file_name,
   ImageView<PixelRGB<uint8> > comp = composite;
 
   // Draw a red line between matching interest points
-  for (unsigned int i = 0; i < matched_ip1.size(); ++i) {
+  for (size_t i = 0; i < matched_ip1.size(); ++i) {
     Vector2 start(matched_ip1[i].x, matched_ip1[i].y);
     Vector2 end(matched_ip2[i].x+src1.impl().cols(), matched_ip2[i].y);
     for (float r=0; r<1.0; r+=1/norm_2(end-start)){
@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("matcher-threshold,t", po::value<double>(&matcher_threshold)->default_value(0.6), "Threshold for the interest point matcher.")
+    ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), "Threshold for the interest point matcher.")
     ("non-kdtree", "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
     ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
@@ -141,8 +141,8 @@ int main(int argc, char** argv) {
   }
 
   // Iterate over combinations of the input files and find interest points in each.
-  for (unsigned i = 0; i < input_file_names.size(); ++i) {
-    for (unsigned j = i+1; j < input_file_names.size(); ++j) {
+  for (size_t i = 0; i < input_file_names.size(); ++i) {
+    for (size_t j = i+1; j < input_file_names.size(); ++j) {
 
       // Read each file off disk
       std::vector<InterestPoint> ip1, ip2;
@@ -194,7 +194,7 @@ int main(int argc, char** argv) {
           std::cout << "\t--> Fundamental: " << F << "\n";
           indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "none") {
-          for ( unsigned i = 0; i < matched_ip1.size(); ++i )
+          for ( size_t i = 0; i < matched_ip1.size(); ++i )
             indices.push_back(i);
         } else {
           std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
@@ -207,9 +207,9 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
-      for (unsigned idx=0; idx < indices.size(); ++idx) {
-        final_ip1.push_back(matched_ip1[indices[idx]]);
-        final_ip2.push_back(matched_ip2[indices[idx]]);
+      BOOST_FOREACH( int& index, indices ) {
+        final_ip1.push_back(matched_ip1[index]);
+        final_ip2.push_back(matched_ip2[index]);
       }
 
       std::string output_filename =

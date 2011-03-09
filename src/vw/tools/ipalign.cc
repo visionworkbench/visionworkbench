@@ -203,9 +203,9 @@ void align_images( Options & opt ) {
 
     if ( opt.save_intermediate ) {
       std::vector<InterestPoint> final_ip1, final_ip2;
-      for (unsigned idx=0; idx < indices.size(); ++idx) {
-        final_ip1.push_back(matched_ip1[indices[idx]]);
-        final_ip2.push_back(matched_ip2[indices[idx]]);
+      BOOST_FOREACH( int& index, indices ) {
+        final_ip1.push_back(matched_ip1[index]);
+        final_ip2.push_back(matched_ip2[index]);
       }
       std::string output_filename =
         fs::path(ref_name).replace_extension().string() + "__" +
