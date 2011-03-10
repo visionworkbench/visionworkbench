@@ -150,6 +150,9 @@ plate2dem_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 plate2kml_SOURCES = plate2kml.cc
 plate2kml_LDADD   = $(PLATE_LOCAL_LIBS) 
 
+tiles4region_SOURCES = tiles4region.cc
+tiles4region_LDADD   = $(PLATE_LOCAL_LIBS) 
+
 index_client_SOURCES = index_client.cc
 index_client_LDADD = $(PLATE_LOCAL_LIBS)
 
@@ -189,7 +192,8 @@ bin_PROGRAMS =   \
   rebuild_index  \
   rpc_tool       \
   snapshot       \
-  tiles2plate
+  tiles2plate    \
+  tiles4region
 
 if HAVE_PKG_LIBKML
   bin_PROGRAMS += plate2kml
