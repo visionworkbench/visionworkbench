@@ -75,7 +75,7 @@ int main( int argc, char *argv[] ) {
       std::ostringstream ostr;
       ostr << blob_prefix << "_" << it.current_base_offset() << "_"
            << it->col() << "_" << it->row() << "_" << it->level()
-           << ".png";
+           << "." << it->filetype();
       blob.read_to_file( ostr.str(), it.current_base_offset() );
     }
   }
