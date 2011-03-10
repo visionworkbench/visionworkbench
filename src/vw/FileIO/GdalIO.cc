@@ -37,7 +37,7 @@ namespace {
 
   void init_gdal() {
     CPLPushErrorHandler(gdal_error_handler);
-    // If we run out of handles, GDAL error out. If you have more than 400
+    // If we run out of handles, GDALs error out. If you have more than 400
     // open, you probably have a bug.
     CPLSetConfigOption("GDAL_MAX_DATASET_POOL_SIZE", "400");
     GDALAllRegister();
@@ -177,20 +177,39 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   VW_ASSERT(planes == 1 || fmt().pixel_format==VW_PIXEL_SCALAR,
       NoImplErr() << "Multi-channel multi-plane images are not supported");
 
-  m_dataset.reset(
-    reinterpret_cast<GDALDataset*>(GDALCreate( m_driver, m_fn.c_str(), cols, rows, num_channels(m_fmt.pixel_format), channel_vw_to_gdal(fmt().channel_type), NULL)),
-    GDALClose);
+  int num_bands = std::max( m_fmt.planes, num_channels( m_fmt.pixel_format ) );
+
+  char** options = NULL;
+
+  try {
+    if(fmt().pixel_format == VW_PIXEL_GRAYA || fmt().pixel_format == VW_PIXEL_RGBA)
+      options = CSLSetNameValue( options, "ALPHA", "YES" );
+    if(fmt().pixel_format != VW_PIXEL_SCALAR )
+      options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
+
+    if( m_fmt.pixel_format == VW_PIXEL_RGB || m_fmt.pixel_format == VW_PIXEL_RGBA ||
+        m_fmt.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_fmt.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL)
+        options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
+
+    m_dataset.reset(
+      reinterpret_cast<GDALDataset*>(GDALCreate( m_driver, m_fn.c_str(), cols, rows, num_bands, channel_vw_to_gdal(fmt().channel_type), options)),
+      GDALClose);
+  } catch (const std::exception&) {
+    CSLDestroy(options);
+    throw;
+  }
+  CSLDestroy(options);
 
   VW_ASSERT(m_dataset, IOErr() << "GDAL: Failed to open file for create");
 
   if (fmt().pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
     m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
-                        channel_vw_to_gdal(fmt().channel_type), num_channels(m_fmt.pixel_format), NULL, 0, 0, 0);
+                        channel_vw_to_gdal(fmt().channel_type), num_bands, NULL, 0, 0, 0);
   } else {
     //Interleaved pixels
     m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
-                        channel_vw_to_gdal(fmt().channel_type), num_channels(m_fmt.pixel_format), NULL,
+                        channel_vw_to_gdal(fmt().channel_type), num_bands, NULL,
                         m_cstride, skip, 1);
   }
   m_dataset.reset();
