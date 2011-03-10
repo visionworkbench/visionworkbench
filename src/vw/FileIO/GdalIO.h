@@ -30,6 +30,8 @@ class GdalIODecompress : public ScanlineReadBackend {
     void open();
     bool ready() const;
     void read(uint8* data, size_t bufsize);
+
+    bool nodata_read_ok(double& value) const;
 };
 
 class GdalIOCompress : public ScanlineWriteBackend {
@@ -37,6 +39,8 @@ class GdalIOCompress : public ScanlineWriteBackend {
     std::string m_fn;
     GDALDriver *m_driver;
     boost::shared_ptr<GDALDataset> m_dataset;
+    double m_nodata;
+    bool   m_has_nodata;
 
   public:
     // cols/rows/planes ignored in imageformat
@@ -46,6 +50,7 @@ class GdalIOCompress : public ScanlineWriteBackend {
     void open();
     bool ready() const;
     void write(const uint8* buffer, size_t bufsize, size_t rows, size_t cols, size_t planes);
+    void set_nodata(double value) {m_nodata = value; m_has_nodata = true;}
 };
 
 }}} // namespace vw::fileio::detail

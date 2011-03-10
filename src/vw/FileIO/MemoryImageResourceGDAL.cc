@@ -80,6 +80,18 @@ ImageFormat SrcMemoryImageResourceGDAL::format() const {
   return m_data->fmt();
 }
 
+bool SrcMemoryImageResourceGDAL::has_nodata_read() const {
+  double value;
+  return m_data->nodata_read_ok(value);
+}
+
+double SrcMemoryImageResourceGDAL::nodata_read() const {
+  double value;
+  bool ok = m_data->nodata_read_ok(value);
+  VW_ASSERT(ok, IOErr() << VW_CURRENT_FUNCTION << ": This dataset does not have a nodata value.");
+  return value;
+}
+
 class DstMemoryImageResourceGDAL::Data : public fileio::detail::GdalIOCompress {
   protected:
     virtual void bind() { m_fn = make_fn("dst", Thread::id(), this); }
@@ -138,6 +150,10 @@ const uint8* DstMemoryImageResourceGDAL::data() const {
 
 size_t DstMemoryImageResourceGDAL::size() const {
   return m_data->size();
+}
+
+void DstMemoryImageResourceGDAL::set_nodata_write(double value) {
+  m_data->set_nodata(value);
 }
 
 } // namespace vw

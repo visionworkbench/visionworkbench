@@ -18,7 +18,8 @@ namespace vw {
       virtual ImageFormat format() const;
 
       virtual bool has_block_read() const  {return false;}
-      virtual bool has_nodata_read() const {return false;}
+      virtual bool has_nodata_read() const;
+      virtual double nodata_read() const;
   };
 
   class DstMemoryImageResourceGDAL : public DstMemoryImageResource {
@@ -32,7 +33,9 @@ namespace vw {
       virtual void flush() {}
 
       virtual bool has_block_write()  const {return false;}
-      virtual bool has_nodata_write() const {return false;}
+      virtual bool has_nodata_write() const {return true;}
+
+      virtual void set_nodata_write(double value);
 
       virtual const uint8* data() const;
       virtual size_t size() const;

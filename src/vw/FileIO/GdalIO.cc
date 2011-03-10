@@ -106,6 +106,7 @@ GdalIODecompress::~GdalIODecompress() { }
 bool GdalIODecompress::ready() const { return true; }
 
 void GdalIODecompress::read(uint8* buffer, size_t bufsize) {
+  Mutex::Lock lock(gdal());
   size_t skip = line_bytes();
   VW_ASSERT(bufsize >= m_fmt.rows * skip, LogicErr() << "Buffer is too small");
   if (m_fmt.pixel_format == VW_PIXEL_SCALAR) {
@@ -121,6 +122,7 @@ void GdalIODecompress::read(uint8* buffer, size_t bufsize) {
 }
 
 void GdalIODecompress::open() {
+  Mutex::Lock lock(gdal());
   this->bind();
 
   m_fmt.rows = m_dataset->GetRasterYSize();
@@ -157,10 +159,17 @@ void GdalIODecompress::open() {
   m_rstride = m_cstride * m_fmt.cols;
 }
 
+bool GdalIODecompress::nodata_read_ok(double& value) const {
+  Mutex::Lock lock(gdal());
+  int success;
+  value = m_dataset->GetRasterBand(1)->GetNoDataValue(&success);
+  return success;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Compress
 ////////////////////////////////////////////////////////////////////////////////
-GdalIOCompress::GdalIOCompress(const ImageFormat& fmt) {
+GdalIOCompress::GdalIOCompress(const ImageFormat& fmt) : m_has_nodata(false) {
   m_fmt = fmt;
 }
 
@@ -171,6 +180,8 @@ bool GdalIOCompress::ready() const {
 }
 
 void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_t cols, size_t planes) {
+  Mutex::Lock lock(gdal());
+
   size_t skip = cols * chan_bytes();
   VW_ASSERT(bufsize >= rows * skip, LogicErr() << "Buffer is too small");
 
@@ -202,6 +213,9 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
 
   VW_ASSERT(m_dataset, IOErr() << "GDAL: Failed to open file for create");
 
+  if (m_has_nodata && m_dataset->GetRasterBand(1)->SetNoDataValue( m_nodata ) != CE_None)
+    vw_throw(IOErr() << "GdalIO: Unable to set nodata value");
+
   if (fmt().pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
     m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
@@ -216,6 +230,8 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
 }
 
 void GdalIOCompress::open() {
+  Mutex::Lock lock(gdal());
+
   m_driver = (GDALDriver*)GDALGetDriverByName("GTiff");
 
   // GDAL_DCAP_VIRTUALIO was added for 1.5.0, but GTiff's support for virtual
