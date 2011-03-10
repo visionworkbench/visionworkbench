@@ -98,7 +98,10 @@ void Url::parse(const std::string& url, bool parse_query_params) {
   if (url.substr(begin, 2) == "//")
     begin += 2;
 
-  if (c != string::npos) {
+  // If it's a file, there is no netloc and relative paths are supported If
+  // it's not, the path must be absolute and, if it's not, the first part is
+  // assumed to be a netloc
+  if (c != string::npos && m_scheme != "file") {
     // if we found a scheme
     // [begin, end) now contains just the netloc and the path
     size_t s = url.find('/', begin);

@@ -103,12 +103,20 @@ TEST(HTTPUtils, File) {
   EXPECT_EQ("file://host/pants", Url("file://host/pants").string());
 
   Url c("rawr");
-  EXPECT_EQ("rawr",        c.path());
-  EXPECT_EQ("file://rawr", c.string());
+  Url d("file://rawr");
 
-  Url d("pants/cheese");
-  EXPECT_EQ("pants/cheese",        d.path());
-  EXPECT_EQ("file://pants/cheese", d.string());
+  EXPECT_EQ("rawr",        c.path());
+  EXPECT_EQ("rawr",        d.path());
+  EXPECT_EQ("file://rawr", c.string());
+  EXPECT_EQ("file://rawr", d.string());
+
+  Url e("pants/cheese");
+  Url f("file://pants/cheese");
+
+  EXPECT_EQ("pants/cheese",        e.path());
+  EXPECT_EQ("pants/cheese",        f.path());
+  EXPECT_EQ("file://pants/cheese", e.string());
+  EXPECT_EQ("file://pants/cheese", f.string());
 }
 
 TEST(HTTPUtils, Tricky) {
