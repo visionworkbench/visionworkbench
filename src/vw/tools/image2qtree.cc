@@ -420,6 +420,9 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
   BBox2i total_bbox = composite.bbox();
   total_bbox.crop(BBox2i(0,0,xresolution,yresolution));
 
+  VW_ASSERT(total_bbox.width() > 0 && total_bbox.height() > 0,
+            LogicErr() << "Total bbox is empty. Georeference calculation is probably incorrect.");
+
   if(opt.mode == Mode::KML) {
     BBox2i bbox = total_bbox;
     // Compute a tighter Google Earth coordinate system aligned bounding box.
@@ -438,6 +441,8 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
   if(!opt.multiband)
     composite.set_draft_mode( true );
   composite.prepare( total_bbox, *progress );
+  VW_ASSERT(composite.rows() > 0 && composite.cols() > 0,
+            LogicErr() << "Composite image is empty. Georeference calculation is probably incorrect.");
 
   QuadTreeGenerator quadtree( composite, opt.output_file_name );
 
