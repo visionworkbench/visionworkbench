@@ -265,23 +265,6 @@ TEST_F( NullTest, AdjustRobustSparse ) {
   }
 }
 
-TEST_F( NullTest, AdjustRobustSparseKGCP ) {
-  TestBAModel model( cameras, cnet );
-  AdjustRobustSparseKGCP< TestBAModel, L2Error > adjuster( model, L2Error(), false, false);
-
-  // Running BA
-  double abs_tol = 1e10, rel_tol = 1e10;
-  for ( uint32 i = 0; i < 5; i++ )
-    adjuster.update(abs_tol,rel_tol);
-
-  // Checking solutions
-  Vector<double,6> zero_vector;
-  for ( uint32 i = 0; i < 5; i++ ) {
-    Vector<double> solution = model.A_parameters(i);
-    EXPECT_VECTOR_NEAR( solution, zero_vector, 1e-1 );
-  }
-}
-
 // Comparison Tests
 // -----------------------
 TEST_F( ComparisonTest, Ref_VS_Sparse ) {
@@ -365,46 +348,4 @@ TEST_F( ComparisonTest, RobustRef_VS_RobustSparse ) {
     ASSERT_VECTOR_NEAR( ref_solution[i],
                         spr_solution[i],
                         1e-2 );
-}
-
-TEST_F( ComparisonTest, RobustSparse_VS_RobustSparseKGCP ) {
-  std::vector<Vector<double> > spr_solution;
-  std::vector<Vector<double> > sprkgcp_solution;
-
-  { // Performing Ref BA
-    TestBAModel model( cameras, cnet );
-    AdjustRobustSparse< TestBAModel, L2Error > adjuster( model, L2Error(),
-                                                      false, false);
-
-    // Running BA
-    double abs_tol = 1e10, rel_tol = 1e10;
-    for ( unsigned i = 0; i < 2; i++ )
-      adjuster.update(abs_tol,rel_tol);
-
-    // Storing result
-    for ( uint32 i = 0; i < 5; i++ )
-      spr_solution.push_back( model.A_parameters(i) );
-  }
-
-  { // Performing Sparse BA
-    TestBAModel model( cameras, cnet );
-    AdjustRobustSparseKGCP< TestBAModel, L2Error > adjuster( model,
-                                                             L2Error(),
-                                                             false, false);
-
-    // Running BA
-    double abs_tol = 1e10, rel_tol = 1e10;
-    for ( unsigned i = 0; i < 2; i++ )
-      adjuster.update(abs_tol,rel_tol);
-
-    // Storing result
-    for ( uint32 i = 0; i < 5; i++ )
-      sprkgcp_solution.push_back( model.A_parameters(i) );
-  }
-
-  // Comparison
-  for ( uint32 i = 0; i < 5; i++ )
-    ASSERT_VECTOR_NEAR( spr_solution[i],
-                        sprkgcp_solution[i],
-                        1e-3 );
 }

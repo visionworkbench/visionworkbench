@@ -73,6 +73,7 @@ namespace ba {
       U( this->m_model.num_cameras() ), V( this->m_model.num_points() ),
       V_inverse( this->m_model.num_points() ),
       epsilon_a( this->m_model.num_cameras() ), epsilon_b( this->m_model.num_points() ) {
+      vw_out(DebugMessage,"ba") << "Constructed Robust Sparse Bundle Adjuster.\n";
       m_crn.read_controlnetwork( *(this->m_control_net).get() );
       m_found_ideal_ordering = false;
     }
@@ -107,9 +108,6 @@ namespace ba {
                                   i*num_cam_params,
                                   num_cam_params,
                                   num_cam_params);
-
-      std::cout << "Covariance matrices for cameras are:"
-                << sparse_cov << "\n\n";
     }
 
     // UPDATE IMPLEMENTATION
@@ -374,6 +372,8 @@ namespace ba {
                                              reorganize(e, m_ideal_ordering),
                                              m_ideal_skyline );
       delta_a = reorganize( delta_a, modified_S.inverse() );
+      BOOST_FOREACH( double& e, delta_a )
+        if ( std::isnan( e ) ) e = 0;
       time.reset();
 
       // --- SOLVE B'S UPDATE STEP ---------------------------------
@@ -481,9 +481,11 @@ namespace ba {
       time.reset();
 
       //Fletcher modification
-      double Splus = new_robust_objective;     //Compute new objective
-      double SS = robust_objective;            //Compute old objective
-      double R = (SS - Splus)/dS;         // Compute ratio
+      double Splus = new_robust_objective;  //Compute new objective
+      double SS = robust_objective;         //Compute old objective
+      double R = (SS - Splus)/dS;           // Compute ratio
+      vw_out(DebugMessage,"ba") << "New Error: " << new_robust_objective << "\n";
+      vw_out(DebugMessage,"ba") << "Old Error: " << robust_objective << "\n";
 
       rel_tol = -1e30;
       BOOST_FOREACH( vector_camera const& a, epsilon_a )

@@ -75,6 +75,7 @@ namespace ba {
       U( this->m_model.num_cameras() ), V( this->m_model.num_points() ),
       V_inverse( this->m_model.num_points() ),
       epsilon_a( this->m_model.num_cameras() ), epsilon_b( this->m_model.num_points() ) {
+      vw_out(DebugMessage,"ba") << "Constructed Sparse Bundle Adjuster.\n";
       m_crn.read_controlnetwork( *(this->m_control_net).get() );
       m_found_ideal_ordering = false;
     }
@@ -365,6 +366,8 @@ namespace ba {
                                              reorganize(e, m_ideal_ordering),
                                              m_ideal_skyline );
       delta_a = reorganize(delta_a, modified_S.inverse());
+      BOOST_FOREACH( double& e, delta_a )
+        if ( std::isnan( e ) ) e = 0;
       time.reset();
 
       // --- SOLVE B'S UPDATE STEP ---------------------------------
@@ -473,6 +476,8 @@ namespace ba {
       double Splus = new_error_total;     //Compute new objective
       double SS = error_total;            //Compute old objective
       double R = (SS - Splus)/dS;         // Compute ratio
+      vw_out(DebugMessage,"ba") << "New Error: " << new_error_total << std::endl;
+      vw_out(DebugMessage,"ba") << "Old Error: " << error_total << std::endl;
 
       rel_tol = -1e30;
       BOOST_FOREACH( vector_camera const& a, epsilon_a )

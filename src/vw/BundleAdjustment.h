@@ -21,7 +21,6 @@
 #include <vw/BundleAdjustment/AdjustSparse.h>
 #include <vw/BundleAdjustment/AdjustRobustRef.h>
 #include <vw/BundleAdjustment/AdjustRobustSparse.h>
-#include <vw/BundleAdjustment/AdjustRobustSparseKGCP.h>
 
 // Reporter
 #include <vw/BundleAdjustment/BundleAdjustReport.h>

@@ -22,8 +22,7 @@ endif
 
 include_HEADERS = BundleAdjustReport.h ControlNetwork.h ModelBase.h         \
                   AdjustBase.h AdjustRef.h AdjustRobustRef.h AdjustSparse.h \
-                  AdjustRobustSparse.h AdjustRobustSparseKGCP.h             \
-                  $(relation_headers)
+                  AdjustRobustSparse.h $(relation_headers)
 
 libvwBundleAdjustment_la_SOURCES = BundleAdjustReport.cc ControlNetwork.cc  \
                   $(relation_sources)
