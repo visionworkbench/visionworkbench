@@ -12,7 +12,7 @@ using namespace vw::platefile;
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-#include <boost/foreach.hpp>
+// #include <boost/foreach.hpp>
 
 struct Options {
     std::string plate_url;
@@ -82,10 +82,13 @@ int main( int argc, char *argv[]) {
     tile_records = plate->search_by_region(opt.level,region,id,id,0,false);
 
     printf("[\n");
-    BOOST_FOREACH( TileHeader const& t, tile_records ) {
-        printf("{'level':%u,'col':%u,'row':%u},\n", t.level(), t.col(), t.row() );
+    std::list<TileHeader>::iterator i;
+    for (i=tile_records.begin(); i != tile_records.end(); i++) {
+        if (i != tile_records.begin()) { std::cout << ",\n"; }
+        TileHeader t = *i;
+        printf("{'level':%u,'col':%u,'row':%u}", t.level(), t.col(), t.row() );
     }
-    printf("]\n");
+    printf("\n]\n");
 
     return 0;
 }
