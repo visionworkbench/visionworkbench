@@ -113,9 +113,10 @@ namespace cartography {
     bool last_valid=false;
     Vector2 last_geospatial_point;
     scale = -1;
+    int32 step_amount = (2*cols+2*rows)/100;
 
     // Top row
-    for( int x=0; x<cols; ++x ) {
+    for( int32 x=0; x<cols; x+=step_amount ) {
       Vector2 pix(x,0);
       bool test_intersect;
       Vector2 geospatial_point = geospatial_intersect( pix, georef,
@@ -138,7 +139,8 @@ namespace cartography {
       }
 
       if( last_valid ) {
-        double current_scale = norm_2( geospatial_point - last_geospatial_point );
+        double current_scale =
+          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
         if ( current_scale < 0 ||
              current_scale < scale )
           scale = current_scale;
@@ -148,7 +150,8 @@ namespace cartography {
       last_valid = true;
     }
     // Bottom row
-    for( int x=cols-1; x>=0; --x ) {
+    last_valid = false;
+    for( int32 x=cols-1; x>=0; x-=step_amount ) {
       Vector2 pix(x,rows-1);
 
       bool test_intersect;
@@ -172,7 +175,8 @@ namespace cartography {
       }
 
       if( last_valid ) {
-        double current_scale = norm_2( geospatial_point - last_geospatial_point );
+        double current_scale =
+          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
         if ( current_scale < 0 ||
              current_scale < scale )
           scale = current_scale;
@@ -182,7 +186,8 @@ namespace cartography {
       last_valid = true;
     }
     // Left side
-    for( int y=rows-2; y>0; --y ) {
+    last_valid = false;
+    for( int32 y=rows-1; y>=0; y-=step_amount ) {
       Vector2 pix(0,y);
 
       bool test_intersect;
@@ -206,7 +211,8 @@ namespace cartography {
       }
 
       if( last_valid ) {
-        double current_scale = norm_2( geospatial_point - last_geospatial_point );
+        double current_scale =
+          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
         if ( current_scale < 0 ||
              current_scale < scale )
           scale = current_scale;
@@ -217,7 +223,7 @@ namespace cartography {
     }
     // Right side
     last_valid = false;
-    for( int y=1; y<rows-1; ++y ) {
+    for( int32 y=0; y<rows; y+=step_amount ) {
       Vector2 pix(cols-1,y);
 
       bool test_intersect;
@@ -241,7 +247,8 @@ namespace cartography {
       }
 
       if( last_valid ) {
-        double current_scale = norm_2( geospatial_point - last_geospatial_point );
+        double current_scale =
+          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
         if ( scale < 0 ||
              current_scale < scale )
           scale = current_scale;
