@@ -5,6 +5,7 @@
 // __END_LICENSE__
 
 
+#include <vw/Cartography/detail/BresenhamLine.h>
 #include <vw/Cartography/GeoTransform.h>
 
 // Vision Workbench
@@ -12,52 +13,6 @@
 
 // Proj.4
 #include <projects.h>
-
-namespace {
-  class BresenhamLine {
-    vw::int32 x0, y0, x1, y1;
-    vw::int32 x, y;
-    bool steep;
-    vw::int32 deltax, deltay, error, ystep;
-  public:
-    BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
-    x0(start[0]), y0(start[1]), x1(stop[0]), y1(stop[1]) {
-      steep = abs(y1-y0) > abs(x1-x0);
-      if (steep) {
-        std::swap(x0,y0);
-        std::swap(x1,y1);
-      }
-      if ( x0 > x1 ) {
-        std::swap(x0,x1);
-        std::swap(y0,y1);
-      }
-      deltax = x1 - x0;
-      deltay = abs(y1-y0);
-      error = deltax / 2;
-      ystep = y0 < y1 ? 1 : -1;
-      x = x0; y = y0;
-    }
-
-    vw::Vector2i operator*() const {
-      if (steep)
-        return vw::Vector2i(y,x);
-      else
-        return vw::Vector2i(x,y);
-    }
-
-    void operator++() {
-      x++;
-      error -= deltay;
-      if ( error < 0 ) {
-        y += ystep;
-        error += deltax;
-      }
-    }
-
-    bool is_good() const { return x < x1; }
-  };
-}
-
 
 namespace vw {
 namespace cartography {

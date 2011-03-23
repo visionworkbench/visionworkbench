@@ -50,161 +50,36 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
                                 int32 cols, int32 rows, float &scale ) {
 
-  double semi_major_axis = georef.datum().semi_major_axis();
-  double semi_minor_axis = georef.datum().semi_minor_axis();
-  double z_scale = semi_major_axis / semi_minor_axis;
+  // Testing to see if we should be centering on zero
+  bool center_on_zero = true;
+  Vector3 camera_llr =
+    XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
+  if ( camera_llr[0] < -90 ||
+       camera_llr[0] > 90 )
+    center_on_zero = false;
 
-  BBox2 georeference_space_bbox;
-  bool last_valid=false;
-  Vector3 last_intersection;
-  Vector2 last_geospatial_point;
-  scale = -1;
   int32 step_amount = (2*cols+2*rows)/100;
+  detail::CameraDatumBBoxHelper functor( georef, camera_model,
+                                         center_on_zero );
 
-  // Top row
-  for( int32 x=0; x<cols; x+=step_amount ) {
-    Vector2 pix(x,0);
-    bool test_intersect;
-    Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                     camera_model,
-                                                     z_scale,
-                                                     test_intersect );
-    if ( !test_intersect ) {
-      last_valid = false;
-      continue;
-    }
+  // Running the edges
+  bresenham_apply( BresenhamLine(0,0,cols,0),
+                   step_amount, functor );
+  functor.last_valid = false;
+  bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
+                   step_amount, functor );
+  functor.last_valid = false;
+  bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),
+                   step_amount, functor );
+  functor.last_valid = false;
+  bresenham_apply( BresenhamLine(0,rows-1,0,0),
+                   step_amount, functor );
+  functor.last_valid = false;
 
-    if( last_valid ) {
-      double current_scale =
-        norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-      if ( current_scale < 0 ||
-           current_scale < scale )
-        scale = current_scale;
-    }
-    last_geospatial_point = geospatial_point;
-    georeference_space_bbox.grow( geospatial_point );
-    last_valid = true;
-  }
-  // Bottom row
-  last_valid = false;
-  for( int32 x=cols-1; x>=0; x-=step_amount ) {
-    Vector2 pix(x,rows-1);
+  // Running once through the center
+  bresenham_apply( BresenhamLine(0,0,cols,rows),
+                   step_amount, functor );
 
-    bool test_intersect;
-    Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                     camera_model,
-                                                     z_scale,
-                                                     test_intersect );
-    if ( !test_intersect ) {
-      last_valid = false;
-      continue;
-    }
-
-    if( last_valid ) {
-      double current_scale =
-        norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-      if ( current_scale < 0 ||
-           current_scale < scale )
-        scale = current_scale;
-    }
-    last_geospatial_point = geospatial_point;
-    georeference_space_bbox.grow( geospatial_point );
-    last_valid = true;
-  }
-  // Left side
-  last_valid = false;
-  for( int32 y=rows-1; y>=0; y-=step_amount ) {
-    Vector2 pix(0,y);
-
-    bool test_intersect;
-    Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                     camera_model,
-                                                     z_scale,
-                                                     test_intersect );
-    if ( !test_intersect ) {
-      last_valid = false;
-      continue;
-    }
-
-    if( last_valid ) {
-      double current_scale =
-        norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-      if ( current_scale < 0 ||
-           current_scale < scale )
-        scale = current_scale;
-    }
-    last_geospatial_point = geospatial_point;
-    georeference_space_bbox.grow( geospatial_point );
-    last_valid = true;
-  }
-  // Right side
-  last_valid = false;
-  for( int32 y=0; y<rows; y+=step_amount ) {
-    Vector2 pix(cols-1,y);
-
-    bool test_intersect;
-    Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                     camera_model,
-                                                     z_scale,
-                                                     test_intersect );
-    if ( !test_intersect ) {
-      last_valid = false;
-      continue;
-    }
-
-    if( last_valid ) {
-      double current_scale =
-        norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-      if ( scale < 0 ||
-           current_scale < scale )
-        scale = current_scale;
-    }
-    last_geospatial_point = geospatial_point;
-    georeference_space_bbox.grow( geospatial_point );
-    last_valid = true;
-  }
-
-  BBox2 bbox = georeference_space_bbox;
-
-  // Did we fail to find scale?
-  if ( scale == -1 ) {
-    Vector2 pix(cols,rows);
-    pix = pix / 2;
-    Vector2 pix2 = pix + Vector2(1,1);
-
-    bool test_intersect, test_intersect2;
-    Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                     camera_model,
-                                                     z_scale,
-                                                     test_intersect );
-    Vector2 geospatial_point2 = geospatial_intersect( pix2, georef,
-                                                      camera_model,
-                                                      z_scale,
-                                                      test_intersect2 );
-    if ( (!test_intersect) || (!test_intersect2) )
-      return bbox;
-
-    scale = norm_2( geospatial_point - geospatial_point2 );
-  }
-
-  // If the bbox_180 crosses the singularity at 180 degrees, then we
-  // return the bbox_360 instead.
-  // FIXME: We do not properly handle cases where the correct bounding
-  // box includes both the prime meridian and the antimeridean but
-  // does not include the pole.  This is a highly unlikely corner
-  // case that can only occur under very particular circumstances
-  // involving camera distortion and near alignment of one side of the
-  // bounding box with the prime meridian over a pole.
-  // if( (bbox_180.min().x() < 180.0 && bbox_180.max().x() > 180.0) ||
-  //       (bbox_180.min().x() < -180.0 && bbox_180.max().x() > -180.0) )
-  //     bbox = bbox_360;
-  //   if( pole ) {
-  //     bbox.min().x() = -180;
-  //     bbox.max().x() = 180;
-  //     if( bbox.min().y() > -bbox.max().y() ) bbox.max().y() = 90;
-  //     else bbox.min().y() = -90;
-  //   }
-
-  return bbox;
-
+  scale = functor.scale/double(step_amount);
+  return functor.box;
 }

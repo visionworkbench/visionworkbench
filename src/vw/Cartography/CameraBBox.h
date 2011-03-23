@@ -14,17 +14,16 @@
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Interpolation.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Camera/CameraModel.h>
 #include <vw/Math/LevenbergMarquardt.h>
+#include <vw/Camera/CameraModel.h>
+#include <vw/Cartography/SimplePointImageManipulation.h>
+#include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/detail/BresenhamLine.h>
 
 #include <boost/shared_ptr.hpp>
 
 namespace vw {
 namespace cartography {
-
-  // Intersection Devices
-  //////////////////////////////////////////////////////
 
   // Return map projected point location (the intermediate between LLA
   // and Pixel)
@@ -83,6 +82,122 @@ namespace cartography {
     }
   };
 
+  namespace detail {
+
+    template <class FunctionT>
+    void bresenham_apply( BresenhamLine line, size_t step,
+                          FunctionT& f ) {
+      while ( line.is_good() ) {
+        f( *line );
+        for ( size_t i = 0; i < step; i++ )
+          ++line;
+      }
+    }
+
+    class CameraDatumBBoxHelper {
+      GeoReference m_georef;
+      boost::shared_ptr<camera::CameraModel> m_camera;
+      double m_z_scale;
+      Vector2 m_last_intersect;
+
+    public:
+      bool last_valid, center_on_zero;
+      BBox2 box;
+      double scale;
+
+      CameraDatumBBoxHelper( GeoReference const& georef,
+                             boost::shared_ptr<camera::CameraModel> camera,
+                             bool center=false) : m_georef(georef), m_camera(camera), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
+        m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
+      }
+
+      void operator() ( Vector2 pixel ) {
+        bool test_intersect;
+        Vector2 geospatial_point =
+          geospatial_intersect( pixel, m_georef, m_camera,
+                                m_z_scale, test_intersect );
+        if ( !test_intersect ) {
+          last_valid = false;
+          return;
+        }
+
+        if ( center_on_zero && geospatial_point[0] > 180 )
+          geospatial_point[0] -= 360.0;
+
+        if ( last_valid ) {
+          double current_scale =
+            norm_2( geospatial_point - m_last_intersect );
+          if ( current_scale < scale )
+            scale = current_scale;
+        }
+        m_last_intersect = geospatial_point;
+        box.grow( geospatial_point );
+        last_valid = true;
+      }
+    };
+
+    template <class DEMImageT>
+    class CameraDEMBBoxHelper {
+      GeoReference m_georef;
+      boost::shared_ptr<camera::CameraModel> m_camera;
+      ImageViewBase<DEMImageT> const& m_dem;
+      double m_z_scale;
+      Vector2 m_last_intersect;
+
+    public:
+      bool last_valid, center_on_zero;
+      BBox2 box;
+      double scale;
+
+      CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem_image,
+                           GeoReference const& georef,
+                           boost::shared_ptr<camera::CameraModel> camera,
+                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
+        m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
+      }
+
+      void operator() ( Vector2 pixel ) {
+        bool test_intersect;
+        Vector2 geospatial_point =
+          geospatial_intersect( pixel, m_georef, m_camera,
+                                m_z_scale, test_intersect );
+        if ( !test_intersect ) {
+          last_valid = false;
+          return;
+        }
+
+        // Refining with more accurate intersection
+        DEMIntersectionLMA<DEMImageT> model( m_dem, m_georef, m_camera );
+        int status = 0;
+        geospatial_point = math::levenberg_marquardt( model, geospatial_point,
+                                                      pixel, status );
+        if ( status < 0 ) {
+          last_valid = false;
+          return;
+        }
+
+        if ( center_on_zero && geospatial_point[0] > 180 )
+          geospatial_point[0] -= 360.0;
+        else if ( center_on_zero && geospatial_point[0] < -180 )
+          geospatial_point[0] += 360.0;
+        else if ( !center_on_zero && geospatial_point[0] < 0 )
+          geospatial_point[0] += 360.0;
+        else if ( !center_on_zero && geospatial_point[0] > 360 )
+          geospatial_point[0] -= 360.0;
+
+        if ( last_valid ) {
+          double current_scale =
+            norm_2( geospatial_point - m_last_intersect );
+          if ( current_scale < scale )
+            scale = current_scale;
+        }
+        m_last_intersect = geospatial_point;
+        box.grow( geospatial_point );
+        last_valid = true;
+      }
+    };
+  }
+
   // Functions for Users
   //////////////////////////////////////////////////////
 
@@ -105,182 +220,38 @@ namespace cartography {
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &scale ) {
 
-    double semi_major_axis = georef.datum().semi_major_axis();
-    double semi_minor_axis = georef.datum().semi_minor_axis();
-    double z_scale = semi_major_axis / semi_minor_axis;
+    // Testing to see if we should be centering on zero
+    bool center_on_zero = true;
+    Vector3 camera_llr =
+      XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
+    if ( camera_llr[0] < -90 ||
+         camera_llr[0] > 90 )
+      center_on_zero = false;
 
-    BBox2 georeference_space_bbox;
-    bool last_valid=false;
-    Vector2 last_geospatial_point;
-    scale = -1;
     int32 step_amount = (2*cols+2*rows)/100;
+    detail::CameraDEMBBoxHelper<DEMImageT> functor( dem_image, georef, camera_model,
+                                                    center_on_zero );
 
-    // Top row
-    for( int32 x=0; x<cols; x+=step_amount ) {
-      Vector2 pix(x,0);
-      bool test_intersect;
-      Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                       camera_model,
-                                                       z_scale,
-                                                       test_intersect );
-      if ( !test_intersect ) {
-        last_valid = false;
-        continue;
-      }
+    // Running the edges
+    bresenham_apply( BresenhamLine(0,0,cols,0),
+                     step_amount, functor );
+    functor.last_valid = false;
+    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
+                     step_amount, functor );
+    functor.last_valid = false;
+    bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),
+                     step_amount, functor );
+    functor.last_valid = false;
+    bresenham_apply( BresenhamLine(0,rows-1,0,0),
+                     step_amount, functor );
+    functor.last_valid = false;
 
-      // Refining with more accurate intersection
-      DEMIntersectionLMA<DEMImageT> model( dem_image, georef, camera_model );
-      int status = 0;
-      geospatial_point = math::levenberg_marquardt( model, geospatial_point,
-                                                    pix, status );
-      if ( status < 0 ) {
-        last_valid = false;
-        continue;
-      }
+    // Running once through the center
+    bresenham_apply( BresenhamLine(0,0,cols,rows),
+                     step_amount, functor );
 
-      if( last_valid ) {
-        double current_scale =
-          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-        if ( current_scale < 0 ||
-             current_scale < scale )
-          scale = current_scale;
-      }
-      last_geospatial_point = geospatial_point;
-      georeference_space_bbox.grow( geospatial_point );
-      last_valid = true;
-    }
-    // Bottom row
-    last_valid = false;
-    for( int32 x=cols-1; x>=0; x-=step_amount ) {
-      Vector2 pix(x,rows-1);
-
-      bool test_intersect;
-      Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                       camera_model,
-                                                       z_scale,
-                                                       test_intersect );
-      if ( !test_intersect ) {
-        last_valid = false;
-        continue;
-      }
-
-      // Refining with more accurate intersection
-      DEMIntersectionLMA<DEMImageT> model( dem_image, georef, camera_model );
-      int status = 0;
-      geospatial_point = math::levenberg_marquardt( model, geospatial_point,
-                                                    pix, status );
-      if ( status < 0 ) {
-        last_valid = false;
-        continue;
-      }
-
-      if( last_valid ) {
-        double current_scale =
-          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-        if ( current_scale < 0 ||
-             current_scale < scale )
-          scale = current_scale;
-      }
-      last_geospatial_point = geospatial_point;
-      georeference_space_bbox.grow( geospatial_point );
-      last_valid = true;
-    }
-    // Left side
-    last_valid = false;
-    for( int32 y=rows-1; y>=0; y-=step_amount ) {
-      Vector2 pix(0,y);
-
-      bool test_intersect;
-      Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                       camera_model,
-                                                       z_scale,
-                                                       test_intersect );
-      if ( !test_intersect ) {
-        last_valid = false;
-        continue;
-      }
-
-      // Refining with more accurate intersection
-      DEMIntersectionLMA<DEMImageT> model( dem_image, georef, camera_model );
-      int status = 0;
-      geospatial_point = math::levenberg_marquardt( model, geospatial_point,
-                                                    pix, status );
-      if ( status < 0 ) {
-        last_valid = false;
-        continue;
-      }
-
-      if( last_valid ) {
-        double current_scale =
-          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-        if ( current_scale < 0 ||
-             current_scale < scale )
-          scale = current_scale;
-      }
-      last_geospatial_point = geospatial_point;
-      georeference_space_bbox.grow( geospatial_point );
-      last_valid = true;
-    }
-    // Right side
-    last_valid = false;
-    for( int32 y=0; y<rows; y+=step_amount ) {
-      Vector2 pix(cols-1,y);
-
-      bool test_intersect;
-      Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                       camera_model,
-                                                       z_scale,
-                                                       test_intersect );
-      if ( !test_intersect ) {
-        last_valid = false;
-        continue;
-      }
-
-      // Refining with more accurate intersection
-      DEMIntersectionLMA<DEMImageT> model( dem_image, georef, camera_model );
-      int status = 0;
-      geospatial_point = math::levenberg_marquardt( model, geospatial_point,
-                                                    pix, status );
-      if ( status < 0 ) {
-        last_valid = false;
-        continue;
-      }
-
-      if( last_valid ) {
-        double current_scale =
-          norm_2( geospatial_point - last_geospatial_point ) / double(step_amount);
-        if ( scale < 0 ||
-             current_scale < scale )
-          scale = current_scale;
-      }
-      last_geospatial_point = geospatial_point;
-      georeference_space_bbox.grow( geospatial_point );
-      last_valid = true;
-    }
-
-    BBox2 bbox = georeference_space_bbox;
-
-    // Did we fail to find scale?
-    if ( scale == -1 ) {
-      Vector2 pix(cols,rows);
-      pix = pix / 2;
-      Vector2 pix2 = pix + Vector2(1,1);
-
-      bool test_intersect, test_intersect2;
-      Vector2 geospatial_point = geospatial_intersect( pix, georef,
-                                                       camera_model,
-                                                       z_scale,
-                                                       test_intersect );
-      Vector2 geospatial_point2 = geospatial_intersect( pix2, georef,
-                                                        camera_model,
-                                                        z_scale,
-                                                        test_intersect2 );
-      if ( (!test_intersect) || (!test_intersect2) )
-        return bbox;
-      scale = norm_2( geospatial_point - geospatial_point2 );
-    }
-
-    return bbox;
+    scale = functor.scale/double(step_amount);
+    return functor.box;
   }
 
   template< class DEMImageT >
