@@ -207,13 +207,25 @@ class PlateLevel(object):
                 for tile in offset_region.tiles():
                     yield TileRegion(region_level, tile.bbox).project_to_level(self.level)
 
+class PlateException(Exception):
+    pass
+class PlateDepthExceededException(PlateException):
+    pass
+
 def search_tiles_by_region(platefile_url, region):
     args = '%d %d %d %d -l %d' % (region.minx, region.miny, region.width, region.height, region.level)
     print "Searching for tiles at %s: " % args,
     args = [os.path.join(options.vw_bin_path,'tiles4region'), platefile_url] + args.split(' ')
     output = subprocess.check_output( args )
     output = output.replace("'", '"')
-    tiles = [ Tile(**t) for t in json.loads(output) ]
+    response = json.loads(output)
+    if response['ok']:
+        tiles = [ Tile(**t) for t in response['result'] ]
+    else:
+        if response['error'] == "TOO DEEP":
+            raise PlateDepthExceededException()
+        else:
+            raise PlateException(response['error'])
     print "FOUND %d" % len(tiles)
     return tiles
 
@@ -247,13 +259,15 @@ def overlay_for_tile(tile, factory, extension="auto"):
 
     return goverlay
 
-def make_netlink(url, region, factory):
+def make_netlink(url, region, factory, name=None):
     netlink = factory.CreateNetworkLink()
     netlink.set_region(region.kml_region())
     link = factory.CreateLink()
     link.set_href(url)
     link.set_viewrefreshmode( kmldom.VIEWREFRESHMODE_ONREGION )
     netlink.set_link(link)
+    if name:
+        netlink.set_name(name)
     return netlink
 
 def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
@@ -261,7 +275,11 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     netlinks = []
     hit_regions = []
     for region in level.regionate(restrict_to_regions=prior_hit_regions):
-        netlink = draw_region(region, plate, output_dir, factory)
+        try:
+            netlink = draw_region(region, plate, output_dir, factory)
+        except PlateDepthExceededException:
+            print "Hit bottom!"
+            break
         if netlink:
             netlinks.append(netlink)
             hit_regions.append(region)
@@ -273,16 +291,17 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     if len(netlinks) == 0:
         return None
     else:
-        outfilename = os.path.join(output_dir, "%2d"%level.level+".kml")
+        outfilename = os.path.join(output_dir, "%02d"%level.level+".kml")
         with open(outfilename, 'w') as outfile:
             folder = factory.CreateFolder()
+            folder.set_name("%02d" % level.level)
             for netlink in netlinks:
                 folder.add_feature(netlink)
             kml = factory.CreateKml()
             kml.set_feature(folder)
             outfile.write( kmldom.SerializePretty( kml ) )
 
-        return make_netlink(outfilename, level.region, factory)
+        return make_netlink(outfilename, level.region, factory, name="%02d"%level.level)
 
 
 def draw_region(region, plate, output_dir, factory):
@@ -313,7 +332,7 @@ def draw_region(region, plate, output_dir, factory):
     kmzfile.writestr('doc.kml', kmlstr)
     kmzfile.close()
 
-    netlink = make_netlink(kmz_filename, region, factory)
+    netlink = make_netlink(kmz_filename, region, factory, name=region.name())
     return netlink
 
 def draw_plate(platefile_url, output_dir):

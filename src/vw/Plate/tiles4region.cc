@@ -76,19 +76,30 @@ int main( int argc, char *argv[]) {
 
     boost::shared_ptr<PlateFile> plate( new PlateFile(opt.plate_url) );
 
-    BBox2i region(opt.minx, opt.miny, opt.width, opt.height);
-    TransactionOrNeg id(-1);
-    std::list<TileHeader> tile_records;
-    tile_records = plate->search_by_region(opt.level,region,id,id,0,false);
+    if (opt.level >= plate->index_header().num_levels()) {
+        std::cout << "{\n";
+        std::cout << "  \"ok\": false,";
+        std::cout << "  \"error\": \"TOO DEEP\"\n";
+        std::cout << "}";
+        return 0;
+    } else {
 
-    printf("[\n");
-    std::list<TileHeader>::iterator i;
-    for (i=tile_records.begin(); i != tile_records.end(); i++) {
-        if (i != tile_records.begin()) { std::cout << ",\n"; }
-        TileHeader t = *i;
-        printf("{'level':%u,'col':%u,'row':%u}", t.level(), t.col(), t.row() );
+        BBox2i region(opt.minx, opt.miny, opt.width, opt.height);
+        TransactionOrNeg id(-1);
+        std::list<TileHeader> tile_records;
+        tile_records = plate->search_by_region(opt.level,region,id,id,0,false);
+
+        std::cout << "{ \"ok\": true,\n";
+        printf("\"result\": [\n");
+        std::list<TileHeader>::iterator i;
+        for (i=tile_records.begin(); i != tile_records.end(); i++) {
+            if (i != tile_records.begin()) { std::cout << ",\n"; }
+            TileHeader t = *i;
+            printf("{'level':%u,'col':%u,'row':%u}", t.level(), t.col(), t.row() );
+        }
+        printf("\n]\n");
+        std::cout << "}";
+
+        return 0;
     }
-    printf("\n]\n");
-
-    return 0;
 }
