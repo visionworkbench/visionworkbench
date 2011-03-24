@@ -13,30 +13,20 @@ import urlparse
 DEFAULT_MAX_KMZ_FEATURES = 256
 DEFAULT_DRAW_ORDER = 50 # presently hardcoded
 DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
-
-#class dotdict(dict):
-#    """Syntax hack"""
-#    __getattr__ = dict.__getitem__
-#    __setattr__= dict.__setitem__
-#    __delattr__= dict.__delitem__
-
-def delegate_property(delegate_object, propname, readonly=False):
-    """Delegate attribute access to a member object."""
-    def getter(self):
-        """Access is delegated to self.%s""" % delegate_object
-        return getattr(getattr(self, delegate_object), propname)
-    if readonly:
-        return property(getter)
-    def setter(self, value):
-        setattr(getattr(self, delegate_object), propname, value)
-    return property(getter, setter)
+DEFAULT_REGIONATION_OFFSET = 5
 
 class BBox(object):
-    def __init__(self, minx, miny, width, height):
-        self.minx = minx
-        self.miny = miny
-        self.width = width
-        self.height = height
+    def __init__(self, minx, miny, width, height, allow_floats=False):
+        if allow_floats:
+            self.minx = minx
+            self.miny = miny
+            self.width = width
+            self.height = height
+        else:
+            self.minx = int(minx)
+            self.miny = int(miny)
+            self.width = int(width)
+            self.height = int(height)
 
     @property
     def corners(self):
@@ -51,7 +41,7 @@ class BBox(object):
         b1[1][1] >= b2[1][1]
 
     def quarter(self):
-        """Break a region in to 4 pieces"""
+        """(generator) Break out into 4 subregions, if possible"""
         if self.width == 1 and self.height == 1:
             yield self
             raise StopIteration
@@ -67,25 +57,77 @@ class BBox(object):
 class TileRegion(object):
     def __init__(self, level, bbox):
         self.level = level
-        self.bbox = bbox
-    col = delegate_property('bbox','minx',readonly=True)
-    row = delegate_property('bbox','miny',readonly=True)
-    width = delegate_property('bbox','width',readonly=True)
-    height = delegate_property('bbox','height',readonly=True)
+        if callable(bbox):
+            self._bbox = bbox()
+        else:
+            self._bbox = bbox
+    # TODO: semantically, row and col should be minx and miny
+    @property
+    def minx(self):
+        return self._bbox.minx
+    @property
+    def miny(self):
+        return self._bbox.miny
+    @property
+    def width(self):
+        return self._bbox.width
+    @property
+    def height(self):
+        return self._bbox.height
 
     def name(self):
-        return "L%02dR%dC%d" % (self.level, self.row, self.col)
+        return "L%02dR%dC%dW%dH%d" % (self.level, self.miny, self.minx, self.width, self.height)
+
     def __hash__(self):
-        return (self.level, self.bbox.minx, self.bbox.miny, self.bbox.width, self.bbox.height).__hash__()
+        return (self.level, self.minx, self.bbox.miny, self.bbox.width, self.bbox.height).__hash__()
+
+    def tiles(self):
+        """
+        Iterate over the tiles contained by this region.
+        Some of these may not be in the plate file.
+        If you want to iterate over tiles actually in the plate, use search_tiles_by_region.
+        """
+        c = self.minx
+        r = self.miny
+        for i in range(self.width):
+            for j in range(self.height):
+                yield Tile(r+j, c+i, self.level)
 
     def subdivide(self):
+        """
+        Quarter this region.
+        """
         for bbox in self.bbox.quarter():
-            yield self.TileRegion(self.level, bbox)
+            subregion = self.TileRegion(self.level, bbox)
+            yield subregion
+
+    def project_to_level(self, level):
+        """
+        Return a TileRegion representing the extent of this TileRegion,
+        projected onto a different level of the tile pyramid.
+        """
+        
+        level_delta = level - self.level
+        if level_delta == 0:
+            return self
+        scale_factor = 2 ** level_delta
+        proj_bbox = BBox(
+            self.minx * scale_factor,
+            self.miny * scale_factor,
+            self.width * scale_factor,
+            self.height * scale_factor
+        )
+        if level_delta < 0:
+            # Ensure that region bounds are still integers
+            for prop in (proj_bbox.minx, proj_bbox.miny, proj_bbox.width, proj_bbox.height):
+                assert prop % 1 == 0
+
+        return TileRegion( level, proj_bbox )
 
     def kml_region(self):
         deg_delta = 360.0 / (1 << self.level)
-        lon_west = -180.0 + self.col*deg_delta
-        lat_south = 180.0 - deg_delta*(self.row+1)
+        lon_west = -180.0 + self.minx*deg_delta
+        lat_south = 180.0 - deg_delta*(self.miny+1)
         region = factory.CreateRegion()
         
         if self.level == 1:
@@ -124,12 +166,55 @@ class Tile(object):
         llbox.set_north(north)
         return llbox
 
+    def bbox(self):
+        return BBox(
+            self.col,
+            self.row,
+            1,
+            1
+        )    
+        
+class PlateLevel(object): 
+    def __init__(self, level):
+        self.level = level
+        self.region = TileRegion(level, BBox(0,0,2**level,2**level))
+
+    def regionate(self, offset=-9999, restrict_to_regions=[]):
+        """
+        Generate regions for this plate level, based on some heuristics.
+        If a list of restrict_to_regions is given, only produce regions contained by those regions.
+        """
+        if offset == -9999:
+            offset = options.regionation_offset
+        region_level = self.level - offset
+
+        if region_level <= 0:
+            yield self.region
+        else:
+
+            if restrict_to_regions:
+                for reg in restrict_to_regions:
+                    reg = reg.project_to_level(region_level)
+                    for tile in reg.tiles():
+                        yield TileRegion(region_level, tile.bbox).project_to_level(self.level)
+            else:
+                offset_region = TileRegion(region_level, BBox(
+                    0,
+                    0,
+                    2**region_level,
+                    2**region_level
+                ))
+                for tile in offset_region.tiles():
+                    yield TileRegion(region_level, tile.bbox).project_to_level(self.level)
 
 def search_tiles_by_region(platefile_url, region):
-    args = os.path.join(options.vw_bin_path,'tiles4region') + ' %s %d %d %d %d -l %d' % (platefile_url, region.col, region.row, region.width, region.height, region.level)
-    output = subprocess.check_output(args.split(' '))
+    args = '%d %d %d %d -l %d' % (region.minx, region.miny, region.width, region.height, region.level)
+    print "Searching for tiles at %s: " % args,
+    args = [os.path.join(options.vw_bin_path,'tiles4region'), platefile_url] + args.split(' ')
+    output = subprocess.check_output( args )
     output = output.replace("'", '"')
     tiles = [ Tile(**t) for t in json.loads(output) ]
+    print "FOUND %d" % len(tiles)
     return tiles
 
 def create_lod(minpix, maxpix, factory):
@@ -147,7 +232,7 @@ def create_latlonalt_square(south, west, degree_size, factory):
     return box
     
     
-def overlay_for_tile(tile, factory, extension="jpg"):
+def overlay_for_tile(tile, factory, extension="auto"):
     goverlay = factory.CreateGroundOverlay()
     region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
     goverlay.set_region(region)
@@ -162,7 +247,7 @@ def overlay_for_tile(tile, factory, extension="jpg"):
 
     return goverlay
 
-def netlink_for_kmz(url, region, factory):
+def make_netlink(url, region, factory):
     netlink = factory.CreateNetworkLink()
     netlink.set_region(region.kml_region())
     link = factory.CreateLink()
@@ -171,25 +256,49 @@ def netlink_for_kmz(url, region, factory):
     netlink.set_link(link)
     return netlink
 
-def draw_kml_region(region, plate, output_dir, factory):
+def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
+    level = PlateLevel(levelno)
+    netlinks = []
+    hit_regions = []
+    for region in level.regionate(restrict_to_regions=prior_hit_regions):
+        netlink = draw_region(region, plate, output_dir, factory)
+        if netlink:
+            netlinks.append(netlink)
+            hit_regions.append(region)
+
+    # clear the referenced list and replace contents with new hit_regions
+    del prior_hit_regions[:]
+    prior_hit_regions += hit_regions
+
+    if len(netlinks) == 0:
+        return None
+    else:
+        outfilename = os.path.join(output_dir, "%2d"%level.level+".kml")
+        with open(outfilename, 'w') as outfile:
+            folder = factory.CreateFolder()
+            for netlink in netlinks:
+                folder.add_feature(netlink)
+            kml = factory.CreateKml()
+            kml.set_feature(folder)
+            outfile.write( kmldom.SerializePretty( kml ) )
+
+        return make_netlink(outfilename, level.region, factory)
+
+
+def draw_region(region, plate, output_dir, factory):
+    """
+    Render the TileRegion to KML and write it to disk.
+    Return a libkml NetworkLink object fot the file.
+    """
     netlinks = []
     goverlays = []
     tiles = search_tiles_by_region(plate, region)
     if len(tiles) == 0:
         return None
-    if len(tiles) > options.max_features:
-        subregions = region.subdivide()
-        for subregion in subregions:
-            netlink = draw_kml_region(subregion, plate, output_dir,  factory)
-            if netlink:
-                netlinks.append(netlink)
-    else:
-        for t in tiles:
-            goverlay = overlay_for_tile(t, factory)
-            goverlays.append(goverlay)
-            #subregion = TileRegion(t.level+1, BBox(t.col*2, t.row*2, t.col*2+1, t.row*2+1))
-            subregion = TileRegion(t.level+1, BBox(t.col*2, t.row*2, 2, 2 ))
-            netlinks.append( draw_kml_region(subregion, plate, output_dir, factory) )
+    #if len(tiles) > options.max_features:  # TODO: Implement (or remove) max features / netlinks
+    for t in tiles:
+        goverlay = overlay_for_tile(t, factory)
+        goverlays.append(goverlay)
 
     folder = factory.CreateFolder()
     for goverlay in goverlays:
@@ -204,31 +313,49 @@ def draw_kml_region(region, plate, output_dir, factory):
     kmzfile.writestr('doc.kml', kmlstr)
     kmzfile.close()
 
-    netlink = netlink_for_kmz(kmz_filename, region, factory)
+    netlink = make_netlink(kmz_filename, region, factory)
     return netlink
 
-
-def start_kml(platefile_url, output_dir):
+def draw_plate(platefile_url, output_dir):
     if not os.path.exists(output_dir):
         raise Exception("output dir does not exist: ", output_dir)
     global factory
     factory = kmldom.KmlFactory.GetFactory()
-    initial_region = TileRegion(0, BBox(0,0,1,1))
-    draw_kml_region(initial_region, platefile_url, output_dir, factory)
+    level = 0
+    keep_drilling = True
+    netlinks = []
+    hit_regions = []
+    while keep_drilling:
+        print "Drawing level %d..." % level
+        netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
+        if netlink: netlinks.append(netlink)
+        keep_drilling = bool(netlink)
+        level += 1
 
+    folder = factory.CreateFolder()
+    for netlink in netlinks:
+        folder.add_feature(netlink)
+    kml = factory.CreateKml()
+    kml.set_feature(folder)
+    with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
+        outfile.write(kmldom.SerializePretty(kml))
+
+        
+global options
 def main():
     usage = "%s <platefile> <output_dir>" % sys.argv[0]
     parser = optparse.OptionParser(usage=usage)
     parser.add_option('--max-features', dest='max_features', help="Maximum number of features to stuff into one kmz file.", default=DEFAULT_MAX_KMZ_FEATURES)
     parser.add_option('--vw-bin', dest="vw_bin_path", help="Location of VW bin files", default=DEFAULT_VW_BIN_PATH)
     parser.add_option('--baseurl', dest='baseurl', help="mod_plate base URL", default="http://example.tld/path/99999")
+    parser.add_option('-r','--regionation-offset', dest='regionation_offset', default=DEFAULT_REGIONATION_OFFSET)
     global options
     (options, args) = parser.parse_args()
     if len(args) != 2:
         parser.print_help()
         sys.exit(1)  
     (platefile_url, output_dir) = args
-    start_kml(platefile_url, output_dir)
+    draw_plate(platefile_url, output_dir)
 
 
 if __name__ == "__main__":
