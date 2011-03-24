@@ -345,7 +345,8 @@ global options
 def main():
     usage = "%s <platefile> <output_dir>" % sys.argv[0]
     parser = optparse.OptionParser(usage=usage)
-    parser.add_option('--max-features', dest='max_features', help="Maximum number of features to stuff into one kmz file.", default=DEFAULT_MAX_KMZ_FEATURES)
+    # TODO: Implement max_features
+    #parser.add_option('--max-features', dest='max_features', help="Maximum number of features to stuff into one kmz file.", default=DEFAULT_MAX_KMZ_FEATURES)
     parser.add_option('--vw-bin', dest="vw_bin_path", help="Location of VW bin files", default=DEFAULT_VW_BIN_PATH)
     parser.add_option('--baseurl', dest='baseurl', help="mod_plate base URL", default="http://example.tld/path/99999")
     parser.add_option('-r','--regionation-offset', dest='regionation_offset', default=DEFAULT_REGIONATION_OFFSET)
