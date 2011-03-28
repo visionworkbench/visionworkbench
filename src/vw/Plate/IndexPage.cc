@@ -320,44 +320,32 @@ IndexPage::search_by_location(int col, int row,
                               TransactionOrNeg end_transaction_id,
                               bool fetch_one_additional_entry) const {
 
+  int32 page_col = col % m_page_width;
+  int32 page_row = row % m_page_height;
+
   // Basic bounds checking
-  VW_ASSERT(col >= 0 && col < m_page_width && row >= 0 && row < m_page_height,
+  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height,
             TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index ["
-            << col << " " << row << "]");
+            << page_col << " " << page_row << "]");
 
   // Check first to make sure that there are actually tiles at this location.
-  if (!m_sparse_table.test(row*m_page_width + col))
+  if (!m_sparse_table.test(page_row*m_page_width + page_col))
     return std::list<TileHeader>();
 
-  // If there are, then we apply the transaction_id filters to select
-  // the requested ones.
+  // If there are, then we apply the transaction_id filters to select the requested ones.
   std::list<TileHeader> results;
-  multi_value_type const& entries = m_sparse_table[row*m_page_width + col];
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
-  if ( start_transaction_id.newest() && end_transaction_id.newest() ) {
-    // If the user has specified a transaction range of [-1, -1],
-    // then we only return the last valid tile.
-    if (entries.size() > 0) {
+  while (it != entries.end() && it->first >= start_transaction_id) {
+    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
       TileHeader hdr;
-      hdr.set_col( m_base_col + col );
-      hdr.set_row( m_base_row + row );
+      hdr.set_col( m_base_col + page_col );
+      hdr.set_row( m_base_row + page_row );
       hdr.set_level(m_level);
       hdr.set_transaction_id(it->first);
       results.push_back(hdr);
     }
-  } else {
-    // Searching a range
-    while (it != entries.end() && it->first >= start_transaction_id) {
-      if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
-        TileHeader hdr;
-        hdr.set_col( m_base_col + col );
-        hdr.set_row( m_base_row + row );
-        hdr.set_level(m_level);
-        hdr.set_transaction_id(it->first);
-        results.push_back(hdr);
-      }
-      ++it;
-    }
+    ++it;
   }
 
   // For snapshotting, we need to fetch one additional entry
@@ -366,8 +354,8 @@ IndexPage::search_by_location(int col, int row,
   // may not have been part of the last snapshot.
   if (fetch_one_additional_entry && it != entries.end()) {
     TileHeader hdr;
-    hdr.set_col( m_base_col + col );
-    hdr.set_row( m_base_row + row );
+    hdr.set_col( m_base_col + page_col );
+    hdr.set_row( m_base_row + page_row );
     hdr.set_level(m_level);
     hdr.set_transaction_id(it->first);
     results.push_back(hdr);
