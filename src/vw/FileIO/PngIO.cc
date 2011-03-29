@@ -105,6 +105,7 @@ void PngIODecompress::open() {
 
   m_cstride = num_channels(m_fmt.pixel_format) * channel_size(m_fmt.channel_type);
   m_rstride = m_cstride * m_fmt.cols;
+  m_fmt.premultiplied = false;
 
   size_t png_row = png_get_rowbytes(m_ctx, m_info);
   VW_ASSERT(png_row == m_rstride, LogicErr() << "libpng and vw do not agree on the size of a row");
@@ -118,6 +119,8 @@ void PngIODecompress::open() {
 ////////////////////////////////////////////////////////////////////////////////
 PngIOCompress::PngIOCompress(const ImageFormat& fmt) {
   m_fmt = fmt;
+  // pngs are stored unpremultiplied
+  m_fmt.premultiplied = false;
   m_written = false;
 }
 
