@@ -89,16 +89,16 @@ int main( int argc, char *argv[]) {
         std::list<TileHeader> tile_records;
         tile_records = plate->search_by_region(opt.level,region,id,id,0,false);
 
-        std::cout << "{ \"ok\": true,\n";
+        printf("{ \"ok\": true,\n");
         printf("\"result\": [\n");
         std::list<TileHeader>::iterator i;
         for (i=tile_records.begin(); i != tile_records.end(); i++) {
             if (i != tile_records.begin()) { std::cout << ",\n"; }
             TileHeader t = *i;
-            printf("{'level':%u,'col':%u,'row':%u}", t.level(), t.col(), t.row() );
+            printf("{'level':%u,'col':%u,'row':%u, 'filetype':'%s'}", t.level(), t.col(), t.row(), t.filetype().c_str() );
         }
         printf("\n]\n");
-        std::cout << "}";
+        printf("}");
 
         return 0;
     }

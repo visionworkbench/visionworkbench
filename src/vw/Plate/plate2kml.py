@@ -154,10 +154,11 @@ class TileRegion(object):
         return region
 
 class Tile(object):
-    def __init__(self, row, col, level):
+    def __init__(self, row, col, level, filetype="png"):
         self.row = row
         self.col = col
         self.level = level
+        self.filetype = filetype
 
     def latlonbox(self):
         #deg_delta = 360.0 / (2**self.level)
@@ -259,7 +260,7 @@ def create_latlonalt_square(north, south, west, east,factory):
     return box
     
     
-def overlay_for_tile(tile, factory, extension="png"):
+def overlay_for_tile(tile, factory):
     goverlay = factory.CreateGroundOverlay()
     region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
     goverlay.set_region(region)
@@ -267,9 +268,9 @@ def overlay_for_tile(tile, factory, extension="png"):
     # TODO: maybe draw order shourld be a fcn of level
     goverlay.set_draworder(tile.level * DEFAULT_DRAW_ORDER_FACTOR) 
 
-    url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.col, tile.row) ) + "."+extension )
+    url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.col, tile.row) ) + "."+tile.filetype )
     icon = factory.CreateIcon()
-    icon.set_href( url )
+    icon.set_href( str(url) )
     goverlay.set_icon( icon )
 
     return goverlay
