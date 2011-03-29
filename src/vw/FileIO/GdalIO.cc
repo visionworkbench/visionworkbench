@@ -198,7 +198,10 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   try {
     if(fmt().pixel_format == VW_PIXEL_GRAYA || fmt().pixel_format == VW_PIXEL_RGBA)
       options = CSLSetNameValue( options, "ALPHA", "YES" );
-    if(fmt().pixel_format != VW_PIXEL_SCALAR )
+
+    if(fmt().pixel_format == VW_PIXEL_SCALAR )
+      options = CSLSetNameValue( options, "INTERLEAVE", "BAND" );
+    else
       options = CSLSetNameValue( options, "INTERLEAVE", "PIXEL" );
 
     if( m_fmt.pixel_format == VW_PIXEL_RGB || m_fmt.pixel_format == VW_PIXEL_RGBA ||
