@@ -11,7 +11,7 @@ import urlparse
 
 
 DEFAULT_MAX_KMZ_FEATURES = 256
-DEFAULT_DRAW_ORDER = 50 # presently hardcoded
+DEFAULT_DRAW_ORDER_FACTOR = 10 # presently hardcoded: tiles will be rendererd at DRAW_ORDER_FACTOR * tile_level
 DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
 DEFAULT_REGIONATION_OFFSET = 5
 
@@ -125,24 +125,31 @@ class TileRegion(object):
         return TileRegion( level, proj_bbox )
 
     def kml_region(self):
-        deg_delta = 360.0 / (1 << self.level)
-        lon_west = -180.0 + self.minx*deg_delta
-        lat_south = 180.0 - deg_delta*(self.miny+1)
+        #tile_deg_delta = 360.0 / (1 << self.level)
+        lat_delta = 180.0 / (2**self.level)
+        lon_delta = 360.0 / (2**self.level)
+        lon_west = -180.0 + self.minx*lon_delta
+        lon_east = lon_west + (self.width * lon_delta)
+        lat_north = 90.0 - lat_delta*(self.miny+1)
+        lat_south = lat_north - (self.height * lat_delta)
         region = factory.CreateRegion()
         
         if self.level == 1:
           ## Top layerish. Layer 0 is never drawn because it's
           ## boundaries are illegal (Lat range too large). So this step
           ## is to make sure layer 1 can always be seen when zoomed out.
-            minlod, maxlod = (1,513)
+            #minlod, maxlod = (1,513)
+            minlod, maxlod = (1,1024)
         #    elif lowest_overlay:
         #        # end of branch
         #        minlod, maxlod = (128 ,-1)
         else:
-            minlod, maxlod = (128, 531)
+            #minlod, maxlod = (128, 531)
+            #minlod, maxlod = (64, -1)
+            minlod, maxlod = (64, 2048)
         region.set_lod(create_lod(minlod, maxlod, factory))
         
-        latlonalt_box = create_latlonalt_square(lat_south, lon_west, deg_delta, factory)
+        latlonalt_box = create_latlonalt_square(lat_north, lat_south, lon_west, lon_east, factory)
         region.set_latlonaltbox(latlonalt_box)
         return region
 
@@ -216,7 +223,13 @@ def search_tiles_by_region(platefile_url, region):
     args = '%d %d %d %d -l %d' % (region.minx, region.miny, region.width, region.height, region.level)
     print "Searching for tiles at %s: " % args,
     args = [os.path.join(options.vw_bin_path,'tiles4region'), platefile_url] + args.split(' ')
-    output = subprocess.check_output( args )
+    while True:
+        try:
+            output = subprocess.check_output( args )
+            break
+        except subprocess.CalledProcessError, e:
+            print "%s RETRYING" % str(e)
+            continue
     output = output.replace("'", '"')
     response = json.loads(output)
     if response['ok']:
@@ -235,24 +248,24 @@ def create_lod(minpix, maxpix, factory):
     lod.set_maxlodpixels(maxpix)
     return lod
 
-def create_latlonalt_square(south, west, degree_size, factory):
+def create_latlonalt_square(north, south, west, east,factory):
     box = factory.CreateLatLonAltBox()
     box.set_south(south)
-    box.set_north(south + degree_size)
+    box.set_north(north)
     box.set_west(west)
-    box.set_east(west+degree_size)
+    box.set_east(east)
     return box
     
     
-def overlay_for_tile(tile, factory, extension="auto"):
+def overlay_for_tile(tile, factory, extension="png"):
     goverlay = factory.CreateGroundOverlay()
     region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
     goverlay.set_region(region)
     goverlay.set_latlonbox(tile.latlonbox())
     # TODO: maybe draw order shourld be a fcn of level
-    goverlay.set_draworder(DEFAULT_DRAW_ORDER) 
+    goverlay.set_draworder(tile.level * DEFAULT_DRAW_ORDER_FACTOR) 
 
-    url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.row, tile.col) ) + "."+extension )
+    url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.col, tile.row) ) + "."+extension )
     icon = factory.CreateIcon()
     icon.set_href( url )
     goverlay.set_icon( icon )
@@ -261,7 +274,8 @@ def overlay_for_tile(tile, factory, extension="auto"):
 
 def make_netlink(url, region, factory, name=None):
     netlink = factory.CreateNetworkLink()
-    netlink.set_region(region.kml_region())
+    if region:
+        netlink.set_region(region.kml_region())
     link = factory.CreateLink()
     link.set_href(url)
     link.set_viewrefreshmode( kmldom.VIEWREFRESHMODE_ONREGION )
@@ -301,7 +315,8 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
             kml.set_feature(folder)
             outfile.write( kmldom.SerializePretty( kml ) )
 
-        return make_netlink(outfilename, level.region, factory, name="%02d"%level.level)
+        #return make_netlink(outfilename, level.region, factory, name="%02d"%level.level)
+        return make_netlink(os.path.basename(outfilename), None, factory, name="%02d"%level.level)
 
 
 def draw_region(region, plate, output_dir, factory):
@@ -309,6 +324,8 @@ def draw_region(region, plate, output_dir, factory):
     Render the TileRegion to KML and write it to disk.
     Return a libkml NetworkLink object fot the file.
     """
+    kmz_filename = region.name() + ".kmz"
+    netlink = make_netlink(os.path.basename(kmz_filename), region, factory, name=region.name())
     netlinks = []
     goverlays = []
     tiles = search_tiles_by_region(plate, region)
@@ -327,12 +344,10 @@ def draw_region(region, plate, output_dir, factory):
     kml = factory.CreateKml()
     kml.set_feature(folder)
     kmlstr = kmldom.SerializePretty(kml)
-    kmz_filename = region.name() + ".kmz"
     kmzfile = zipfile.ZipFile(os.path.join(output_dir, kmz_filename), 'w')
     kmzfile.writestr('doc.kml', kmlstr)
     kmzfile.close()
 
-    netlink = make_netlink(kmz_filename, region, factory, name=region.name())
     return netlink
 
 def draw_plate(platefile_url, output_dir):
@@ -344,7 +359,7 @@ def draw_plate(platefile_url, output_dir):
     keep_drilling = True
     netlinks = []
     hit_regions = []
-    while keep_drilling:
+    while keep_drilling and level <= options.max_levels:
         print "Drawing level %d..." % level
         netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
         if netlink: netlinks.append(netlink)
@@ -355,9 +370,13 @@ def draw_plate(platefile_url, output_dir):
     for netlink in netlinks:
         folder.add_feature(netlink)
     kml = factory.CreateKml()
+    if options.planet:
+        kml.set_hint("target=%s" % options.planet)
     kml.set_feature(folder)
+    print "Writing root.kml"
     with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
         outfile.write(kmldom.SerializePretty(kml))
+    print "Done."
 
         
 global options
@@ -369,6 +388,9 @@ def main():
     parser.add_option('--vw-bin', dest="vw_bin_path", help="Location of VW bin files", default=DEFAULT_VW_BIN_PATH)
     parser.add_option('--baseurl', dest='baseurl', help="mod_plate base URL", default="http://example.tld/path/99999")
     parser.add_option('-r','--regionation-offset', dest='regionation_offset', default=DEFAULT_REGIONATION_OFFSET)
+    parser.add_option('-l','--max-level', dest='max_levels', type='int', default=9999, help="Stop drawing after this level.")
+    parser.add_option('--planet', dest='planet', help="Tell GE to load this in a particular planet mode (Earth, Moon, Mars)", default="mars")
+    #parser.add_option('--resume', dest='resume', action="store_true", default=False, help="Don't overwrite KMZ files if they already exist.")
     global options
     (options, args) = parser.parse_args()
     if len(args) != 2:
