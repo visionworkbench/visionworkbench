@@ -52,10 +52,13 @@ namespace {
     CPLPopErrorHandler();
   }
 
-  GDALColorInterp bcolor(const boost::shared_ptr<GDALDataset> d, size_t idx /* 1-indexed */) {
+  // returns true if the color interp is either the expected one, or undefined.
+  // (some gdal operations strip the interp)
+  bool bcolor_is(const boost::shared_ptr<GDALDataset> d, size_t idx /* 1-indexed */, GDALColorInterp expected) {
     if (ssize_t(idx) > d->GetRasterCount())
-      return GCI_Max;
-    return d->GetRasterBand(idx)->GetColorInterpretation();
+      return false;
+    GDALColorInterp actual = d->GetRasterBand(idx)->GetColorInterpretation();
+    return (expected == actual || actual == GCI_Undefined);
   }
 
   vw::ChannelTypeEnum channel_gdal_to_vw(GDALDataType gdal_type) {
@@ -131,19 +134,19 @@ void GdalIODecompress::open() {
   size_t chans = m_dataset->GetRasterCount();
   VW_ASSERT(chans > 0, IOErr() << "Cannot read GDAL Image: unknown number of channels");
 
-  if ( bcolor(m_dataset, 1) == GCI_GrayIndex) {
+  if ( bcolor_is(m_dataset, 1, GCI_GrayIndex) ) {
     if (chans == 1) {
       m_fmt.pixel_format = VW_PIXEL_GRAY;
       m_fmt.planes = 1;
-    } else if (chans == 2 && bcolor(m_dataset, 2) == GCI_AlphaBand) {
+    } else if (chans == 2 && bcolor_is(m_dataset, 2, GCI_AlphaBand)) {
       m_fmt.pixel_format = VW_PIXEL_GRAYA;
       m_fmt.planes = 1;
     }
-  } else if ( bcolor(m_dataset, 1) == GCI_RedBand && bcolor(m_dataset, 2) == GCI_GreenBand && bcolor(m_dataset, 3) == GCI_BlueBand) {
+  } else if ( bcolor_is(m_dataset, 1, GCI_RedBand) && bcolor_is(m_dataset, 2, GCI_GreenBand) && bcolor_is(m_dataset, 3, GCI_BlueBand)) {
     if (chans == 3) {
       m_fmt.pixel_format = VW_PIXEL_RGB;
       m_fmt.planes = 1;
-    } else if (chans == 4 && bcolor(m_dataset, 4) == GCI_AlphaBand) {
+    } else if (chans == 4 && bcolor_is(m_dataset, 4, GCI_AlphaBand)) {
       m_fmt.pixel_format = VW_PIXEL_RGBA;
       m_fmt.planes = 1;
     }
