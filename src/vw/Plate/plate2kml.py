@@ -361,23 +361,25 @@ def draw_plate(platefile_url, output_dir):
     keep_drilling = True
     netlinks = []
     hit_regions = []
-    while keep_drilling and level <= options.max_levels:
-        print "Drawing level %d..." % level
-        netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
-        if netlink: netlinks.append(netlink)
-        keep_drilling = bool(netlink)
-        level += 1
-
     folder = factory.CreateFolder()
-    for netlink in netlinks:
-        folder.add_feature(netlink)
     kml = factory.CreateKml()
     if options.planet:
         kml.set_hint("target=%s" % options.planet)
     kml.set_feature(folder)
-    print "Writing root.kml"
-    with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
-        outfile.write(kmldom.SerializePretty(kml))
+    while keep_drilling and level <= options.max_levels:
+        print "Drawing level %d..." % level
+        netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
+        if netlink: netlinks.append(netlink)
+
+        for netlink in netlinks:
+            folder.add_feature(netlink)
+        print "Writing root.kml"
+        with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
+            outfile.write(kmldom.SerializePretty(kml))
+
+        keep_drilling = bool(netlink)
+        level += 1
+
     print "Done."
 
         
