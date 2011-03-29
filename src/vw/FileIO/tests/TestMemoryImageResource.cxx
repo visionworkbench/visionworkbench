@@ -51,19 +51,19 @@ TEST_P(MemoryImageResourceTest, BasicRead) {
 
   boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(fs::extension(GetParam()), &*raw.begin(), raw.size()));
 
-  ImageView<PixelRGB<uint8> > img1, img2;
-  ImageView<PixelRGB<float> > img3, img4;
+  ImageView<PixelRGBA<uint8> > disk, mem;
+  ImageView<PixelRGBA<float> > diskf, memf;
 
-  read_image(img1, GetParam());
+  read_image(disk, GetParam());
   // simple read
-  read_image(img2, *r);
+  read_image(mem, *r);
   // read w/ convert (and also reread the same resource)
-  read_image(img4, *r);
+  read_image(memf, *r);
 
-  EXPECT_SEQ_EQ(img1, img2);
+  ASSERT_SEQ_EQ(disk, mem);
 
-  img3 = channel_cast_rescale<float>(img1);
-  EXPECT_SEQ_NEAR(img3, img4, 1e-7);
+  diskf = channel_cast_rescale<float>(disk);
+  EXPECT_SEQ_NEAR(diskf, memf, 2e-3);
 }
 
 TEST_P(MemoryImageResourceTest, BasicWriteRead) {
@@ -109,9 +109,13 @@ vector<string> test_paths() {
 #endif
 #if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
   v.push_back("rgb2x2.png");
+  v.push_back("rgb4x4_halfalpha.png");
+  v.push_back("rgb4x4_alpha.png");
 #endif
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   v.push_back("rgb2x2.tif");
+  v.push_back("rgb4x4_halfalpha.tif");
+  v.push_back("rgb4x4_alpha.tif");
 #endif
     return v;
 }
