@@ -34,11 +34,13 @@ namespace vw {
     uint32 cols, rows, planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
+    bool premultiplied;
 
     ImageFormat()
       : cols(0), rows(0), planes(0),
         pixel_format(VW_PIXEL_UNKNOWN),
-        channel_type(VW_CHANNEL_UNKNOWN)
+        channel_type(VW_CHANNEL_UNKNOWN),
+        premultiplied(true)
     {}
 
     // Does this represent a fully-specified data format?
@@ -52,7 +54,8 @@ namespace vw {
 
     inline bool simple_convert(const ImageFormat& b) const {
       return simple_conversion(channel_type, b.channel_type)
-          && simple_conversion(pixel_format, b.pixel_format);
+          && simple_conversion(pixel_format, b.pixel_format)
+          && premultiplied == b.premultiplied;
     }
 
     inline bool same_size(const ImageFormat& b) const {
@@ -167,21 +170,18 @@ namespace vw {
     void* data;
     ImageFormat format;
     ssize_t cstride, rstride, pstride;
-    bool unpremultiplied;
 
     /// Default constructor; constructs an undefined buffer
     ImageBuffer()
       : data(0), format(),
-        cstride(0), rstride(0), pstride(0),
-        unpremultiplied(false)
+        cstride(0), rstride(0), pstride(0)
     {}
 
     /// Populates stride information from format
-    explicit ImageBuffer(ImageFormat format, void *data, bool unpremultiplied = false)
+    explicit ImageBuffer(ImageFormat format, void *data)
       : data(data), format(format),
         cstride(channel_size(format.channel_type) * num_channels(format.pixel_format)),
-        rstride(cstride * format.cols), pstride(rstride * format.rows),
-        unpremultiplied(unpremultiplied)
+        rstride(cstride * format.cols), pstride(rstride * format.rows)
     {}
 
     virtual ~ImageBuffer() {}

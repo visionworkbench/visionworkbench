@@ -256,7 +256,6 @@ namespace vw {
       buffer.cstride = sizeof(PixelT);
       buffer.rstride = sizeof(PixelT)*cols();
       buffer.pstride = sizeof(PixelT)*cols()*rows();
-      buffer.unpremultiplied = false;
       return buffer;
     }
 

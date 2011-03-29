@@ -33,11 +33,18 @@ using namespace vw::test;
 TEST( ImageResource, PreMultiply ) {
   typedef PixelGrayA<uint16> Px;
 
-  ImageFormat fmt;
-  fmt.rows = fmt.cols = 2;
-  fmt.planes = 1;
-  fmt.pixel_format = PixelFormatID<Px>::value;
-  fmt.channel_type = ChannelTypeID<PixelChannelType<Px>::type>::value;
+  ImageFormat premult, unpremult;
+  {
+    ImageFormat fmt;
+    fmt.rows = fmt.cols = 2;
+    fmt.planes = 1;
+    fmt.pixel_format = PixelFormatID<Px>::value;
+    fmt.channel_type = ChannelTypeID<PixelChannelType<Px>::type>::value;
+
+    premult = unpremult = fmt;
+    premult.premultiplied = true;
+    unpremult.premultiplied = false;
+  }
 
   // Some arbitrary data (48195 triggered a rounding bug)
   // Small alpha AND value will basically always truncate.
@@ -46,15 +53,14 @@ TEST( ImageResource, PreMultiply ) {
   };
   Px buf2_data[4], buf3_data[4];
 
-  ImageBuffer buf1(fmt, buf1_data, true);
-  ImageBuffer buf2(fmt, buf2_data, false);
-  ImageBuffer buf3(fmt, buf3_data, true);
+  ImageBuffer buf1(unpremult, buf1_data);
+  ImageBuffer buf2(premult, buf2_data);
+  ImageBuffer buf3(unpremult, buf3_data);
 
   convert(buf2, buf1, true);
   convert(buf3, buf2, true);
 
-  for (size_t i = 0; i < 4; ++i)
-    EXPECT_PIXEL_EQ( buf3_data[i], buf1_data[i] );
+  EXPECT_RANGE_EQ(buf3_data+0, buf3_data+4, buf1_data+0, buf1_data+4);
 }
 
 class SrcNoopResource : public SrcImageResource {

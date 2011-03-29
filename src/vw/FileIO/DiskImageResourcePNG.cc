@@ -271,6 +271,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
     outer->m_format.cols = cols;
     outer->m_format.rows = rows;
     outer->m_format.planes = 1;
+    outer->m_format.premultiplied = false;
 
     // Allocate the scanline.
     cstride = bytes_per_channel * channels;
@@ -598,7 +599,6 @@ void DiskImageResourcePNG::read( ImageBuffer const& dest, BBox2i const& bbox ) c
   // can read sequential lines.
   src.format.rows = bbox.height();
   src.format.cols = bbox.width();
-  src.unpremultiplied = true;
 
   src.cstride = ctx->cstride;
   src.rstride = src.cstride * src.format.cols;
@@ -645,6 +645,8 @@ void DiskImageResourcePNG::create( std::string const& filename, ImageFormat cons
 
   m_filename = filename;
   m_format = format;
+  // png is stored unpremultiplied
+  m_format.premultiplied = false;
 
   m_ctx = boost::shared_ptr<vw_png_context>( new vw_png_write_context( const_cast<DiskImageResourcePNG *>(this), options ) );
 
@@ -669,7 +671,6 @@ void DiskImageResourcePNG::write( ImageBuffer const& src, BBox2i const& bbox )
   dst.format = m_format;
   dst.format.rows = bbox.height();
   dst.format.cols = bbox.width();
-  dst.unpremultiplied = true;
 
   if (dst.format.channel_type != VW_CHANNEL_UINT16 &&
       dst.format.channel_type != VW_CHANNEL_INT16)

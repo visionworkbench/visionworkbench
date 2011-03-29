@@ -80,6 +80,7 @@ namespace vw {
       format.planes = impl().planes();
       format.pixel_format = pixel_format();
       format.channel_type = channel_type();
+      format.premultiplied = true;
       return format;
     }
 

@@ -406,13 +406,15 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
 
   int32 copy_length = (src_channels==dst_channels) ? src_channels : (src_channels<3) ? 1 : (dst_channels>=3) ? 3 : 0;
 
-  bool unpremultiply_src = (src.format.pixel_format==VW_PIXEL_GRAYA || src.format.pixel_format==VW_PIXEL_RGBA)
-    && !src.unpremultiplied && dst.unpremultiplied;
-  bool premultiply_src = (src.format.pixel_format==VW_PIXEL_GRAYA || src.format.pixel_format==VW_PIXEL_RGBA)
-    && (dst.format.pixel_format==VW_PIXEL_GRAY || dst.format.pixel_format==VW_PIXEL_RGB) && src.unpremultiplied;
-  bool premultiply_dst = (dst.format.pixel_format==VW_PIXEL_GRAYA || dst.format.pixel_format==VW_PIXEL_RGBA)
-    && (src.format.pixel_format==VW_PIXEL_GRAYA || src.format.pixel_format==VW_PIXEL_RGBA)
-    && src.unpremultiplied && !dst.unpremultiplied;
+  bool unpremultiply_src = false, premultiply_src = false, premultiply_dst = false;
+  {
+    const ImageFormat& srcf = src.format, dstf = dst.format;
+    bool src_alpha = (srcf.pixel_format == VW_PIXEL_GRAYA || dstf.pixel_format == VW_PIXEL_RGBA);
+    bool dst_alpha = (dstf.pixel_format == VW_PIXEL_GRAYA || dstf.pixel_format == VW_PIXEL_RGBA);
+    unpremultiply_src = (src_alpha && srcf.premultiplied && !dstf.premultiplied);
+    premultiply_src   = (src_alpha && !dst_alpha && !srcf.premultiplied);
+    premultiply_dst   = (src_alpha && dst_alpha && !srcf.premultiplied && dstf.premultiplied);
+  }
 
   bool triplicate = src_channels<3 && dst_channels>=3;
   bool average = src_channels >=3 && dst_channels<3;
