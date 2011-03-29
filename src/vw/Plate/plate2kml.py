@@ -233,7 +233,6 @@ def search_tiles_by_region(platefile_url, region):
         except subprocess.CalledProcessError, e:
             print "%s RETRYING" % str(e)
             continue
-    output = output.replace("'", '"')
     response = json.loads(output)
     if response['ok']:
         tiles = [ Tile(**t) for t in response['result'] ]

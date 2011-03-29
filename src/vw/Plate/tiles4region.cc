@@ -95,7 +95,7 @@ int main( int argc, char *argv[]) {
         for (i=tile_records.begin(); i != tile_records.end(); i++) {
             if (i != tile_records.begin()) { std::cout << ",\n"; }
             TileHeader t = *i;
-            printf("{'level':%u,'col':%u,'row':%u, 'filetype':'%s'}", t.level(), t.col(), t.row(), t.filetype().c_str() );
+            printf("{\"level\":%u,\"col\":%u,\"row\":%u, \"filetype\":\"%s\"}", t.level(), t.col(), t.row(), t.filetype().c_str() );
         }
         printf("\n]\n");
         printf("}");
