@@ -160,11 +160,13 @@ class Tile(object):
         self.level = level
 
     def latlonbox(self):
-        deg_delta = 360.0 / (2**self.level)
-        west = -180 + self.col * deg_delta
-        south = 180 - deg_delta*(self.row+1)
-        east = west + deg_delta
-        north = south + deg_delta
+        #deg_delta = 360.0 / (2**self.level)
+        lon_delta = 360.0 / (2**self.level)
+        lat_delta = 180.0 / (2**self.level)
+        west = -180 + self.col * lon_delta
+        south = 90 - lat_delta*(self.row+1)
+        east = west + lon_delta
+        north = south + lat_delta
 
         llbox = factory.CreateLatLonBox()
         llbox.set_west(west)
