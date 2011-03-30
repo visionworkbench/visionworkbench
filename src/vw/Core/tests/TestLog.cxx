@@ -424,6 +424,56 @@ TEST(Log, WarningsOnByDefault) {
 
   const std::string& x = sstr.str();
   ASSERT_FALSE(x.empty());
-  EXPECT_TRUE(x.find("foo") != std::string::npos);
-  EXPECT_TRUE(x.find("bar") != std::string::npos);
+  EXPECT_EQ("Warning: foo\nWarning: bar\n", x);
+}
+
+TEST(Log, WarningsCanBeTurnedOff1) {
+  std::ostringstream sstr;
+  LogInstance log(sstr, false);
+  log.rule_set().add_rule(ErrorMessage, "console");
+
+  log(WarningMessage) << "foo\n";
+  log(WarningMessage, "someothernamespace") << "bar\n";
+
+  const std::string& x = sstr.str();
+  ASSERT_FALSE(x.empty());
+  EXPECT_EQ("Warning: bar\n", x);
+}
+
+TEST(Log, WarningsCanBeTurnedOff2) {
+  std::ostringstream sstr;
+  LogInstance log(sstr, false);
+  log.rule_set().add_rule(ErrorMessage, "someothernamespace");
+
+  log(WarningMessage) << "foo\n";
+  log(WarningMessage, "someothernamespace") << "bar\n";
+
+  const std::string& x = sstr.str();
+  ASSERT_FALSE(x.empty());
+  EXPECT_EQ("Warning: foo\n", x);
+}
+
+TEST(Log, WarningsCanBeTurnedOff3) {
+  std::ostringstream sstr;
+  LogInstance log(sstr, false);
+  log.rule_set().add_rule(ErrorMessage, "someothernamespace");
+  log.rule_set().add_rule(ErrorMessage, "console");
+
+  log(WarningMessage) << "foo\n";
+  log(WarningMessage, "someothernamespace") << "bar\n";
+
+  const std::string& x = sstr.str();
+  ASSERT_TRUE(x.empty());
+}
+
+TEST(Log, WarningsCanBeTurnedOff4) {
+  std::ostringstream sstr;
+  LogInstance log(sstr, false);
+  log.rule_set().add_rule(ErrorMessage, "*");
+
+  log(WarningMessage) << "foo\n";
+  log(WarningMessage, "someothernamespace") << "bar\n";
+
+  const std::string& x = sstr.str();
+  ASSERT_TRUE(x.empty());
 }
