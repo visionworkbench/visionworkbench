@@ -192,8 +192,7 @@ namespace platefile {
     /// Writing, pt. 2: Write an image to the specified tile location
     /// in the plate file.
     template <class ViewT>
-    void write_update(ImageViewBase<ViewT> const& view,
-                      int col, int row, int level, Transaction transaction_id) {
+    void write_update(ImageViewBase<ViewT> const& view, int col, int row, int level) {
 
       std::string type = this->default_file_type();
       if (type == "auto") {
@@ -207,14 +206,13 @@ namespace platefile {
       }
       boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, view.format()));
       write_image(*r, view);
-      this->write_update(r->data(), r->size(), col, row, level, transaction_id, type);
+      this->write_update(r->data(), r->size(), col, row, level, type);
     }
 
     /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
     /// tile location. Use the filetype to identify the data later; empty type
     /// means "platefile default".
-    void write_update(const uint8* data, uint64 data_size,
-                      int col, int row, int level, Transaction transaction_id, const std::string& type = "");
+    void write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type = "");
 
     /// Writing, pt. 3: Signal the completion of the write operation.
     void write_complete();

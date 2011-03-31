@@ -163,8 +163,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
     // If the user has specified a region, then we
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
-                TransactionRange( snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id),
-                snapshot_parameters.write_transaction_id.promote());
+                TransactionRange( snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id));
 
     // Release the blob id lock.
     platefile->write_complete();
@@ -188,8 +187,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
     platefile->write_request();
 
     // Do a full snapshot
-    sm.full_snapshot(TransactionRange(snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id),
-                     platefile->transaction_id());
+    sm.full_snapshot(TransactionRange(snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id));
 
     // Release the blob id lock and note that the transaction is finished.
     platefile->write_complete();
