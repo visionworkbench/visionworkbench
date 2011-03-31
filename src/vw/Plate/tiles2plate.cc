@@ -149,12 +149,10 @@ public:
 template <class ViewT>
 class PlateHandler : public TileHandler {
   boost::shared_ptr<PlateFile> m_platefile;
-  Transaction m_write_transaction_id;
 
 public:
-  PlateHandler( boost::shared_ptr<PlateFile> &platefile, Transaction write_transaction_id )
-    : m_platefile(platefile), m_write_transaction_id(write_transaction_id)
-  { }
+  PlateHandler( boost::shared_ptr<PlateFile> &platefile )
+    : m_platefile(platefile) {}
   virtual ~PlateHandler() {}
 
   virtual bool operator() ( const TileLocation &tile ) {
@@ -164,9 +162,7 @@ public:
               << " (" << tile.m_path.leaf() << ")"
               << std::endl;
     m_platefile->write_request();
-    m_platefile->write_update(image,
-                              tile.m_col, tile.m_row,
-                              tile.m_level, m_write_transaction_id);
+    m_platefile->write_update(image, tile.m_col, tile.m_row, tile.m_level);
     m_platefile->write_complete();
     return true;
   }
@@ -302,19 +298,18 @@ int main( int argc, char *argv[] ) {
                                                   pixel_format, channel_type) );
 
     std::vector<TileHeader> empty_tile_list;
-    Transaction write_transaction_id =
-      platefile->transaction_begin("Writing tiles from tile tree " + tile_directory_name, -1);
+    platefile->transaction_begin("Writing tiles from tile tree " + tile_directory_name, -1);
 
     switch(pixel_format) {
     case VW_PIXEL_GRAY:
       switch(channel_type) {
       case VW_CHANNEL_UINT8: {
-          PlateHandler<DiskImageView<PixelGray<uint8> > > plate_handler( platefile, write_transaction_id );
+          PlateHandler<DiskImageView<PixelGray<uint8> > > plate_handler(platefile);
           iterate_over_tiles( tile_directory, decoder, plate_handler );
         }
         break;
       case VW_CHANNEL_FLOAT32: {
-          PlateHandler<DiskImageView<PixelGray<float> > > plate_handler( platefile, write_transaction_id );
+          PlateHandler<DiskImageView<PixelGray<float> > > plate_handler(platefile);
           iterate_over_tiles( tile_directory, decoder, plate_handler );
         }
         break;
@@ -326,7 +321,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_GRAYA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8: {
-          PlateHandler<DiskImageView<PixelGrayA<uint8> > > plate_handler( platefile, write_transaction_id );
+          PlateHandler<DiskImageView<PixelGrayA<uint8> > > plate_handler(platefile);
           iterate_over_tiles( tile_directory, decoder, plate_handler );
         }
         break;
@@ -338,7 +333,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGB:
       switch(channel_type) {
       case VW_CHANNEL_UINT8: {
-          PlateHandler<DiskImageView<PixelRGB<uint8> > > plate_handler( platefile, write_transaction_id );
+          PlateHandler<DiskImageView<PixelRGB<uint8> > > plate_handler(platefile);
           iterate_over_tiles( tile_directory, decoder, plate_handler );
         }
         break;
@@ -350,7 +345,7 @@ int main( int argc, char *argv[] ) {
     case VW_PIXEL_RGBA:
       switch(channel_type) {
       case VW_CHANNEL_UINT8: {
-          PlateHandler<DiskImageView<PixelRGBA<uint8> > > plate_handler( platefile, write_transaction_id );
+          PlateHandler<DiskImageView<PixelRGBA<uint8> > > plate_handler(platefile);
           iterate_over_tiles( tile_directory, decoder, plate_handler );
         }
         break;

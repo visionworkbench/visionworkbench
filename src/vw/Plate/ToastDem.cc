@@ -58,8 +58,7 @@ namespace platefile {
                              const PlateFile& platefile,
                              int32 col, int32 row, int32 level,
                              int32 level_difference,
-                             TransactionOrNeg input_transaction_id,
-                             Transaction output_transaction_id) {
+                             TransactionOrNeg input_transaction_id) {
 
     // First, we need to determine which set of triangle indices to use
     // for this tile.  For upper right and lower left quadrants, we use
@@ -156,9 +155,9 @@ namespace platefile {
 
         // We've batched a dem tile worth of data. Call the writer.
         if (level_difference == 0) {
-          writer(data, tile_bytes, col, row, level, output_transaction_id);
+          writer(data, tile_bytes, col, row, level);
         } else {
-          writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
+          writer(data, tile_bytes, dst_col, dst_row, dst_level);
         }
 
       }
@@ -242,7 +241,7 @@ namespace platefile {
     //         // std::cout << "\n";
 
     //         // We've batched a dem tile worth of data. Call the writer.
-    //         writer(data, tile_bytes, dst_col, dst_row, dst_level, output_transaction_id);
+    //         writer(data, tile_bytes, dst_col, dst_row, dst_level);
     //     }
     //   }
     //    return true;
@@ -254,17 +253,16 @@ bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
                                         const PlateFile& platefile,
                                         int32 col, int32 row, int32 level,
                                         int32 level_difference,
-                                        TransactionOrNeg input_transaction_id,
-                                        Transaction output_transaction_id) {
+                                        TransactionOrNeg input_transaction_id) {
 
   if (platefile.channel_type() == VW_CHANNEL_INT16) {
     return toast_dem_tile_helper<PixelGrayA<int16> >(writer, platefile, col, row, level,
                                                      level_difference,
-                                                     input_transaction_id, output_transaction_id);
+                                                     input_transaction_id);
   } else if (platefile.channel_type() == VW_CHANNEL_FLOAT32) {
     return toast_dem_tile_helper<PixelGrayA<float32> >(writer, platefile, col, row, level,
                                                        level_difference,
-                                                       input_transaction_id, output_transaction_id);
+                                                       input_transaction_id);
   } else {
     std::cout << "Could not convert to toast_dem.  "
               << "Unsupported channel type in platefile: " << platefile.channel_type() << "\n";
@@ -281,7 +279,7 @@ namespace {
 
     DemFilesystem(const std::string& base_output_name) : base_output_name(base_output_name) {}
 
-    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level, vw::platefile::Transaction /*transaction_id*/) const {
+    void operator()(const boost::shared_array<uint8> data, uint64 data_size, int32 dem_col, int32 dem_row, int32 dem_level) const {
       // Create the level directory (if it doesn't exist)
       std::ostringstream ostr;
       ostr << base_output_name
@@ -310,7 +308,7 @@ void vw::platefile::save_toast_dem_tile(std::string base_output_name,
 
   DemFilesystem writer(base_output_name);
   make_toast_dem_tile(writer, *platefile, col, row, level, level_difference,
-                      transaction_id, 0); // output_transaction_id doesn't matter here.
+                      transaction_id);
 }
 
 boost::shared_array<uint8> vw::platefile::toast_dem_null_tile(uint64& output_tile_size) {

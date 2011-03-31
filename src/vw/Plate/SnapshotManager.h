@@ -70,8 +70,7 @@ namespace platefile {
                         uint32 current_level,
                         vw::BBox2i const& target_region,
                         uint32 target_level,
-                        TransactionRange read_transaction_range,
-                        Transaction write_transaction_id) const;
+                        TransactionRange read_transaction_range) const;
 
   protected:
     boost::shared_ptr<PlateFile> m_platefile;
@@ -91,12 +90,11 @@ namespace platefile {
     //           to be snapshotted at starting_level.  Use to specify affected tiles.
     //   start_transaction_id -- select a transaction_id to use when accessing tiles.
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
-    //   write_transaction_id -- the t_id to use for writing the snapshotted tiles.
     //
-    void snapshot(uint32 level, BBox2i const& bbox, TransactionRange read_transaction_range, Transaction write_transaction_id) const;
+    void snapshot(uint32 level, BBox2i const& bbox, TransactionRange read_transaction_range) const;
 
     // Create a full snapshot of every level and every region in the mosaic.
-    void full_snapshot(TransactionRange read_transaction_range, Transaction write_transaction_id) const;
+    void full_snapshot(TransactionRange read_transaction_range) const;
 
   };
 

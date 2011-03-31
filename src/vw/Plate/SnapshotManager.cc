@@ -130,8 +130,7 @@ namespace platefile {
         uint32 current_level,
         vw::BBox2i const& target_region,
         uint32 target_level,
-        TransactionRange read_transaction_range,
-        Transaction write_transaction_id) const
+        TransactionRange read_transaction_range) const
   {
 
     tilemap_t composite_tiles;
@@ -226,22 +225,8 @@ namespace platefile {
       vw_out(DebugMessage, "plate::snapshot")  << "\t    Compositing " << current_col << " "
         << current_row << " @ " << current_level
         << "  [ " << num_composited << " ]\n";
-      //---
 
-      // for testing purposes
-      // std::cout << "Writing dummy tiles " << current_col << " " << current_row << " @ " << current_level << " for t_id = " << write_transaction_id << "\n";
-      // ImageView<PixelRGBA<float> > test_tile(256,256);
-      // for (int j = 0; j < test_tile.rows(); ++j) {
-      //   for (int i = 0; i < test_tile.cols(); ++i) {
-      //     if (abs(i-j) < 10)
-      //       test_tile(i,j) = PixelRGBA<float>(1.0,0,0,1.0);
-      //   }
-      // }
-      //        m_platefile->write_update(test_tile,
-
-      m_platefile->write_update(composite_tile,
-          current_col, current_row, current_level,
-          write_transaction_id);
+      m_platefile->write_update(composite_tile, current_col, current_row, current_level);
       return 1;
     } else {
       return 0;
@@ -251,8 +236,7 @@ namespace platefile {
 
 template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region,
-                                       TransactionRange read_transaction_range,
-                                       Transaction write_transaction_id) const {
+                                       TransactionRange read_transaction_range) const {
 
   // Subdivide the bbox into smaller workunits if necessary.
   // This helps to keep operations efficient.
@@ -262,7 +246,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region,
 
     // Create an empty list of composite tiles and then kick off the
     // recursive snapshotting process.
-    int num_tiles_updated = snapshot_helper(0, 0, 0, *region_iter, level, read_transaction_range, write_transaction_id);
+    int num_tiles_updated = snapshot_helper(0, 0, 0, *region_iter, level, read_transaction_range);
 
     if (num_tiles_updated > 0)
       vw_out() << "\t--> Snapshot " << *region_iter << " @ level " << level
@@ -273,7 +257,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region,
 
 // Create a full snapshot of every level and every region in the mosaic.
 template <class PixelT>
-void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_range, Transaction write_transaction_id) const {
+void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_range) const {
 
   for (uint32 level = 0; level < m_platefile->num_levels(); ++level) {
 
@@ -291,7 +275,7 @@ void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_ra
                                              subdivided_region_size);
     for ( std::list<BBox2i>::iterator region_iter = workunits.begin();
           region_iter != workunits.end(); ++region_iter) {
-      snapshot(level, *region_iter, read_transaction_range, write_transaction_id);
+      snapshot(level, *region_iter, read_transaction_range);
     }
   }
 }
@@ -300,9 +284,9 @@ void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_ra
 // Explicit template instatiation
 #define _VW_INSTANTIATE(Px)\
   template\
-  void vw::platefile::SnapshotManager<Px >::snapshot(uint32 level, BBox2i const& bbox, TransactionRange, Transaction write_transaction_id) const;\
+  void vw::platefile::SnapshotManager<Px >::snapshot(uint32 level, BBox2i const& bbox, TransactionRange) const;\
   template\
-  void vw::platefile::SnapshotManager<Px >::full_snapshot(TransactionRange, Transaction write_transaction_id) const;
+  void vw::platefile::SnapshotManager<Px >::full_snapshot(TransactionRange) const;
 
 _VW_INSTANTIATE(vw::PixelGrayA<vw::uint8>);
 _VW_INSTANTIATE(vw::PixelGrayA<vw::int16>);

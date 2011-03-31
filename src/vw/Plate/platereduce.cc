@@ -365,9 +365,7 @@ void apply_reduce( boost::shared_ptr<PlateFile> platefile,
         ImageView<PixelT> result;
         reduce(tiles, tile_records, result);
 
-        platefile->write_update(result,
-                                location[0], location[1],
-                                opt.level, opt.transaction_id.promote());
+        platefile->write_update(result, location[0], location[1], opt.level);
       }
     }
   }

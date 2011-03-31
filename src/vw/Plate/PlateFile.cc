@@ -118,14 +118,12 @@ PlateFile::read_to_file(std::string const& base_name, int col, int row, int leve
 void PlateFile::write_request() {
   VW_ASSERT(m_transaction, LogicErr() << "Must start transaction before trying to write");
   m_write_state.reset(m_data->write_request(*m_transaction));
-  m_data->audit_log() << "Started a write: " << m_write_state->what() << "\n";
 }
 
 /// Writing, pt. 3: Signal the completion of the write operation.
 void PlateFile::write_complete() {
   VW_ASSERT(m_write_state, LogicErr() << "Must start a transaction before completing it");
   m_data->write_complete(*m_write_state);
-  m_data->audit_log() << "Completed write: " << m_write_state->what() << "\n";
   m_write_state.reset();
 }
 
@@ -146,8 +144,7 @@ void PlateFile::write_complete() {
 //  return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
 //}
 
-void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int row,
-    int level, Transaction transaction_id, const std::string& type_) {
+void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type_) {
 
   std::string type = type_;
   if (type.empty())

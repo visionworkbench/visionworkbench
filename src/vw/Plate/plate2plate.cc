@@ -35,11 +35,11 @@ struct FilterBase {
   inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
   inline void init(PlateFile& output, const PlateFile& input,
-                   TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
-    return impl().init(output, input, input_transaction_id, output_transaction_id);
+                   TransactionOrNeg input_transaction_id) {
+    return impl().init(output, input, input_transaction_id);
   }
-  inline void fini(PlateFile& output, const PlateFile& input, Transaction output_transaction_id) {
-    return impl().fini(output, input, output_transaction_id);
+  inline void fini(PlateFile& output, const PlateFile& input) {
+    return impl().fini(output, input);
   }
 
 #   define lookup(name, type) type name(type data) const { return impl().name(data); }
@@ -50,8 +50,8 @@ struct FilterBase {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
-    impl()(output, input, col, row, level, input_transaction_id, output_transaction_id);
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id) {
+    impl()(output, input, col, row, level, input_transaction_id);
   }
 };
 
@@ -64,13 +64,13 @@ struct Identity : public FilterBase<Identity> {
     lookup(channel_type, ChannelTypeEnum);
 #   undef lookup
 
-  inline void init(PlateFile& output, const PlateFile& /*input*/, TransactionOrNeg /* input_transaction_id */, Transaction /*output_transaction_id*/) { output.write_request(); }
-  inline void fini(PlateFile& output, const PlateFile& /*input*/, Transaction /*transaction_id*/) { output.write_complete(); }
+  inline void init(PlateFile& output, const PlateFile& /*input*/, TransactionOrNeg /* input_transaction_id */) { output.write_request(); }
+  inline void fini(PlateFile& output, const PlateFile& /*input*/) { output.write_complete(); }
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id) {
     ImageView<PixelRGBA<double> > tile;
     TileHeader hdr = input.read(tile, col, row, level, input_transaction_id);
-    output.write_update(tile, col, row, level, output_transaction_id);
+    output.write_update(tile, col, row, level);
   }
 };
 
@@ -81,7 +81,7 @@ struct ToastDem : public FilterBase<ToastDem> {
   PixelFormatEnum pixel_format(PixelFormatEnum) const { return VW_PIXEL_SCALAR; }
   ChannelTypeEnum channel_type(ChannelTypeEnum) const { return VW_CHANNEL_UINT8; }
 
-  inline void init(PlateFile& output, const PlateFile& input, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
+  inline void init(PlateFile& output, const PlateFile& input, TransactionOrNeg input_transaction_id) {
     output.write_request();
 
     // Write null tiles for the levels we don't have data for
@@ -97,14 +97,13 @@ struct ToastDem : public FilterBase<ToastDem> {
       for (int row = 0; row < region_size; ++row) {
         for (int col = 0; col < region_size; ++col) {
           DemWriter writer(output);
-          make_toast_dem_tile(writer, input, col, row, level, 0,
-                              input_transaction_id, output_transaction_id);
+          make_toast_dem_tile(writer, input, col, row, level, 0, input_transaction_id);
         }
       }
     }
   }
 
-  inline void fini(PlateFile& output, const PlateFile& /*input*/, Transaction /*transaction_id*/) {
+  inline void fini(PlateFile& output, const PlateFile& /*input*/) {
     output.write_complete();
   }
 
@@ -112,19 +111,16 @@ struct ToastDem : public FilterBase<ToastDem> {
     PlateFile& platefile;
     DemWriter(PlateFile& output) : platefile(output) { }
     inline void operator()(const boost::shared_array<uint8> data, uint64 data_size,
-                           int32 dem_col, int32 dem_row,
-                           int32 dem_level, Transaction output_transaction_id) const {
-      platefile.write_update(data.get(), data_size, dem_col, dem_row,
-                             dem_level, output_transaction_id);
+                           int32 dem_col, int32 dem_row, int32 dem_level) const {
+      platefile.write_update(data.get(), data_size, dem_col, dem_row, dem_level);
     }
   };
 
-  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id, Transaction output_transaction_id) {
+  inline void operator()( PlateFile& output, const PlateFile& input, int32 col, int32 row, int32 level, TransactionOrNeg input_transaction_id) {
     DemWriter writer(output);
     int level_difference = log(input.default_tile_size()/
                                float(output.default_tile_size())) / log(2.) + 0.5;
-    make_toast_dem_tile(writer, input, col, row, level, level_difference,
-                        input_transaction_id, output_transaction_id);
+    make_toast_dem_tile(writer, input, col, row, level, level_difference, input_transaction_id);
   }
 };
 
@@ -201,9 +197,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 
   output.transaction_begin("plate2plate, reporting for duty", -1);
 
-  Transaction output_transaction_id = output.transaction_id();
-
-  filter.init(output, input, input.transaction_id(), output_transaction_id);
+  filter.init(output, input, input.transaction_id());
 
   VW_ASSERT(input.num_levels() < 31, ArgumentErr() << "Can't handle plates deeper than 32 levels");
 
@@ -247,8 +241,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
         // ++n;
         // if (n % 100 == 0)
         //   std::cout << "n = " << n << "  --  "<< tile.col() << " " << tile.row() << " " << tile.level() << " " << tile.transaction_id() << "\n";
-        filter(output, input, tile.col(), tile.row(), tile.level(),
-               tile.transaction_id(), output_transaction_id);
+        filter(output, input, tile.col(), tile.row(), tile.level(), tile.transaction_id());
         sub_progress.report_incremental_progress(1.0/tiles.size());
       }
       sub_progress.report_finished();
@@ -258,7 +251,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
     output.sync();
   }
 
-  filter.fini(output, input, output_transaction_id);
+  filter.fini(output, input);
 
   output.transaction_end(true);
 }

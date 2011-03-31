@@ -65,7 +65,6 @@ namespace {
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
                                   TransactionOrNeg read_transaction_id,
-                                  Transaction output_transaction_id,
                                   bool preblur,
                                   const ProgressCallback &progress_callback,
                                   int stopping_level) const {
@@ -157,7 +156,7 @@ void PlateManager<PixelT>::mipmap(int starting_level, BBox2i const& bbox,
 
             if (img && !is_transparent(img)) {
               vw_out(VerboseDebugMessage, "platefile") << "Writing " << col << " " << row << " @ " << level << "\n";
-              this->m_platefile->write_update(img, col, row, level, output_transaction_id);
+              this->m_platefile->write_update(img, col, row, level);
             }
 
             sub_sub_progress.report_incremental_progress(inc_amt);
@@ -356,7 +355,6 @@ namespace platefile {
   template void                                                                \
   PlateManager<PIXELT >::mipmap(int starting_level, BBox2i const& bbox,        \
                                 TransactionOrNeg transaction_id,               \
-                                Transaction output_transaction_id,             \
                                 bool preblur,                                  \
                                 const ProgressCallback &progress_callback,     \
                                 int stopping_level) const;                     \

@@ -60,7 +60,6 @@ namespace platefile {
     // output_transaction_id -- to use when writing
     void mipmap(int starting_level, BBox2i const& bbox,
                 TransactionOrNeg input_transaction_id,
-                Transaction output_transaction_id,
                 bool preblur,
                 const ProgressCallback &progress_callback =
                 ProgressCallback::dummy_instance(),
@@ -130,7 +129,7 @@ namespace platefile {
         typedef WritePlateFileTask<ImageViewRef<typename ViewT::pixel_type> > Job;
 
         boost::scoped_ptr<Task> task(
-          new Job(m_platefile, m_platefile->transaction_id(),
+          new Job(m_platefile,
                   tile, pyramid_level,
                   stereo_view, tweak_settings_for_terrain,
                   false, boost::numeric_cast<int>(tiles_size), progress));
@@ -145,7 +144,7 @@ namespace platefile {
       if (m_platefile->num_levels() > 1) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
-        this->mipmap(pyramid_level, affected_bbox, m_platefile->transaction_id(), m_platefile->transaction_id(),
+        this->mipmap(pyramid_level, affected_bbox, m_platefile->transaction_id(),
                      (!tweak_settings_for_terrain), // mipmap preblur = !tweak_settings_for_terrain
                      TerminalProgressCallback( "plate", mipmap_str.str()));
       }
@@ -167,7 +166,6 @@ namespace platefile {
   template <class ViewT>
   class WritePlateFileTask : public Task {
     boost::shared_ptr<PlateFile> m_platefile;
-    Transaction m_transaction_id;
     TileInfo m_tile_info;
     int m_level;
     ViewT const& m_view;
@@ -177,12 +175,11 @@ namespace platefile {
 
   public:
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile,
-                       Transaction transaction_id,
                        TileInfo const& tile_info,
                        int level, ImageViewBase<ViewT> const& view,
                        bool tweak_settings_for_terrain,
                        bool verbose, int total_num_blocks,
-                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_platefile(platefile), m_transaction_id(transaction_id),
+                       const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_platefile(platefile),
       m_tile_info(tile_info), m_level(level), m_view(view.impl()),
       m_tweak_settings_for_terrain(tweak_settings_for_terrain),
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
@@ -221,19 +218,13 @@ namespace platefile {
         switch(m_platefile->channel_type()) {
         case VW_CHANNEL_UINT8:
         case VW_CHANNEL_UINT16:
-          m_platefile->write_update(pixel_cast<PixelGrayA<uint8> >(tile),
-                                    m_tile_info.i, m_tile_info.j,
-                                    m_level, m_transaction_id);
+          m_platefile->write_update(pixel_cast<PixelGrayA<uint8> >(tile), m_tile_info.i, m_tile_info.j, m_level);
           break;
         case VW_CHANNEL_INT16:
-          m_platefile->write_update(pixel_cast<PixelGrayA<int16> >(tile),
-                                    m_tile_info.i, m_tile_info.j,
-                                    m_level, m_transaction_id);
+          m_platefile->write_update(pixel_cast<PixelGrayA<int16> >(tile), m_tile_info.i, m_tile_info.j, m_level);
           break;
         case VW_CHANNEL_FLOAT32:
-          m_platefile->write_update(pixel_cast<PixelGrayA<float32> >(tile),
-                                    m_tile_info.i, m_tile_info.j,
-                                    m_level, m_transaction_id);
+          m_platefile->write_update(pixel_cast<PixelGrayA<float32> >(tile), m_tile_info.i, m_tile_info.j, m_level);
           break;
         default:
           vw_throw(NoImplErr() << "Unsupported GrayA channel type in PlateManager.\n");
@@ -242,9 +233,7 @@ namespace platefile {
       case VW_PIXEL_RGBA:
         switch(m_platefile->channel_type()) {
         case VW_CHANNEL_UINT8:
-          m_platefile->write_update(pixel_cast<PixelRGBA<uint8> >(tile),
-                                    m_tile_info.i, m_tile_info.j,
-                                    m_level, m_transaction_id);
+          m_platefile->write_update(pixel_cast<PixelRGBA<uint8> >(tile), m_tile_info.i, m_tile_info.j, m_level);
           break;
         default:
           vw_throw(NoImplErr() << "Unsupported RGBA channel type in PlateManager.\n");
