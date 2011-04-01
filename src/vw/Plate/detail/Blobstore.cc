@@ -42,6 +42,7 @@ void Blobstore::init() {
 
   m_error_log.add(vw_out(ErrorMessage, "console"));
   m_error_log.add(audit_log());
+  m_read_blob_id = std::numeric_limits<uint32>::max();
 }
 
 Blobstore::Blobstore(const Url& u)
