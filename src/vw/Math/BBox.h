@@ -536,6 +536,9 @@ namespace math {
   typedef BBox<int32, 2> BBox2i;
   typedef BBox<int32, 3> BBox3i;
   typedef BBox<int32, 4> BBox4i;
+  typedef BBox<uint32, 2> BBox2u;
+  typedef BBox<uint32, 3> BBox3u;
+  typedef BBox<uint32, 4> BBox4u;
   typedef BBox<float64> BBoxN;
   typedef BBox<float32> BBoxNf;
   typedef BBox<int32> BBoxNi;
