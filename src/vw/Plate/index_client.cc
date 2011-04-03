@@ -55,12 +55,15 @@ void PlateInfo(const Url& url) {
   boost::shared_ptr<Index> index = Index::construct_open(url);
   const IndexHeader& hdr = index->index_header();
 
-  vw_out() << "Platefile: "
-           << "ID["          << hdr.platefile_id()      << "] "
-           << "Name["        << fs::path(url.path()).leaf()   << "] "
-           << "Filename["    << index->platefile_name() << "] "
-           << "Description[" << (hdr.has_description() ? hdr.description() : "No Description") << "] "
-           << "MaxLevel["    << index->num_levels()-1   << "]"
+  vw_out() << "Platefile:\n"
+           << "\tID["          << hdr.platefile_id()      << "]\n"
+           << "\tName["        << fs::path(url.path()).leaf()   << "]\n"
+           << "\tFilename["    << index->platefile_name() << "]\n"
+           << "\tDescription[" << (hdr.has_description() ? hdr.description() : "No Description") << "]\n"
+           << "\tMaxLevel["    << index->num_levels()-1   << "]\n"
+           << "\tTransactionRead[" << hdr.transaction_read_cursor() << "]\n"
+           << "\tTransactionWrite[" << hdr.transaction_write_cursor() << "]\n"
+           << "\tType[" << hdr.type() << "]"
            << std::endl;
 }
 
@@ -90,19 +93,22 @@ int main(int argc, char** argv) {
     ("url,u", po::value(&url), "Run an info request against this platefile url.")
     ("help,h",  "Display this help message");
 
-  po::options_description options("Allowed Options");
-  options.add(general_options);
+  po::positional_options_description p;
+  p.add("url", 1);
 
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(options).run(), vm );
+  po::store( po::command_line_parser( argc, argv ).options(general_options).positional(p).run(), vm );
   po::notify( vm );
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [-p <platefile_name>]" << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <url> " << std::endl;
   usage << general_options << std::endl;
 
   if( vm.count("help") ) {
     std::cout << usage.str();
+    return 0;
+  } else if ( !url.complete() ) {
+    std::cout << "URL is missing.\n\n" << usage.str();
     return 0;
   }
 
