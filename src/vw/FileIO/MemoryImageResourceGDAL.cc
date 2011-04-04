@@ -10,9 +10,9 @@
 #include <boost/format.hpp>
 
 namespace {
-  std::string make_fn(const char* name, unsigned tid, const void* key) {
+  std::string make_fn(const char* name, const void* key) {
     static const boost::format GDAL_MEM_FILENAME("/vsimem/vw_%s_%u_%p");
-    return std::string(boost::str(boost::format(GDAL_MEM_FILENAME) % name % tid % key));
+    return std::string(boost::str(boost::format(GDAL_MEM_FILENAME) % name % vw::Thread::id() % key));
   }
 }
 
@@ -23,7 +23,7 @@ class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress
     size_t m_len;
   protected:
     virtual void bind() {
-      const std::string src_fn(make_fn("src", Thread::id(), m_data.get()));
+      const std::string src_fn(make_fn("src", m_data.get()));
       VSIFCloseL(VSIFileFromMemBuffer(src_fn.c_str(), const_cast<uint8*>(m_data.get()), m_len, false));
       m_dataset.reset(reinterpret_cast<GDALDataset*>(GDALOpen(src_fn.c_str(), GA_ReadOnly)), GDALClose);
       if (!m_dataset) {
@@ -94,7 +94,7 @@ double SrcMemoryImageResourceGDAL::nodata_read() const {
 
 class DstMemoryImageResourceGDAL::Data : public fileio::detail::GdalIOCompress {
   protected:
-    virtual void bind() { m_fn = make_fn("dst", Thread::id(), this); }
+    virtual void bind() { m_fn = make_fn("dst", this); }
   public:
     Data(const ImageFormat &fmt) : GdalIOCompress(fmt) {}
     ~Data() {
