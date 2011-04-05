@@ -277,18 +277,8 @@ void LocalIndex::save_index_file() const {
       m_levels.push_back(new_level);
     }
 
-    // Create the logging facility
-    try {
-      m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
-      this->log() << "Reopened index \"" << this->index_filename() << "\n"
-        << m_header.DebugString() << "\n";
-    } catch (IOErr &e) {
-      // If we fail to open the log, then it's ok for now.  However, the
-      // program _will_ crash if we try to do something with the index
-      // that generates a log message.
-      vw_out(WarningMessage, "plate") << "\nWARNING: could not open index log file. "
-        << "Proceed with caution.";
-    }
+    m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
+    this->log() << "Reopened index \"" << this->index_filename() << "\n" << m_header.DebugString() << "\n";
   }
 
 /// Open an existing index from a file on disk.
@@ -305,8 +295,6 @@ LocalIndex::LocalIndex(std::string plate_filename) :
  ///   index_instance.log() << "some text for the log...\n";
  ///
  std::ostream& LocalIndex::log() {
-   if (!m_log)
-     vw_throw(LogicErr() << "LocalIndex::log() - attempted to write to log when the log wasn\'t open.");
    return (*m_log)(InfoMessage, "console");
  }
 
