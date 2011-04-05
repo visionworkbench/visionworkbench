@@ -161,7 +161,7 @@ WriteState* Blobstore::write_request(const Transaction& id) {
          << "  ( " << last_size << " != " << state->blob->size() << " )\n";
   }
 
-  audit_log() << "Opened blob " << state->blob_id << " ( size = " << state->blob->size() << " )\n";
+  vw_out(DebugMessage, "blob") << "Opened blob " << state->blob_id << " ( size = " << state->blob->size() << " )\n";
   return state.release();
 }
 
@@ -202,7 +202,7 @@ void Blobstore::write_complete(WriteState& state_) {
   state->blob.reset();
 
   // For debugging:
-  audit_log() << "Closed blob " << state->blob_id << " ( size = " << new_blob_size << " )\n";
+  vw_out(DebugMessage, "blob") << "Closed blob " << state->blob_id << " ( size = " << new_blob_size << " )\n";
 
   // Release the blob lock.
   m_index->write_complete(state->blob_id, new_blob_size);
