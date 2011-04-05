@@ -38,6 +38,12 @@ TEST(HTTPUtils, Empty) {
   EXPECT_EQ("", u1.netloc());
   EXPECT_EQ("/", u1.path());
   EXPECT_EQ("", u1.fragment());
+
+  EXPECT_EQ(Url(), u1);
+  u1.scheme("http");
+  EXPECT_NE(Url(), u1);
+
+  EXPECT_NE(Url(), Url("/"));
 }
 
 TEST(HTTPUtils, QueryMap) {

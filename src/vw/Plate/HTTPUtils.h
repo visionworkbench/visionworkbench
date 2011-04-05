@@ -12,6 +12,7 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string/join.hpp>
+#include <boost/operators.hpp>
 #include <string>
 #include <map>
 #include <vector>
@@ -71,7 +72,7 @@ class QueryMap {
     }
 };
 
-class Url {
+class Url : boost::equality_comparable<Url> {
   // Refuse to parse a url longer than this.
   static const unsigned MAX_URL_LENGTH;
 
@@ -127,6 +128,7 @@ class Url {
 
     friend std::istream& operator>>(std::istream& i, Url& val);
     friend std::ostream& operator<<(std::ostream& o, const Url& val);
+    bool operator==(const Url& x) const;
 };
 
 class PlatefileUrl : public Url {

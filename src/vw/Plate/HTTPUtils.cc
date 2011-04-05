@@ -205,6 +205,15 @@ std::istream& operator>>(std::istream& i, Url& val) {
   return i;
 }
 
+bool Url::operator==(const Url& x) const {
+  if (m_scheme != x.m_scheme)     return false;
+  if (m_netloc != x.m_netloc)     return false;
+  if (m_path != x.m_path)         return false;
+  if (m_fragment != x.m_fragment) return false;
+  if (query().serialize() != x.query().serialize()) return false;
+  return true;
+}
+
 std::ostream& operator<<(std::ostream& o, const Url& val) {
   return (o << val.string());
 }
