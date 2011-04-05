@@ -30,6 +30,18 @@ namespace {
       boost::shared_ptr<vw::platefile::Blob> blob;
       vw::uint32 blob_id;
   };
+
+  bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
+    if (a.col() != b.col())                       return false;
+    if (a.row() != b.row())                       return false;
+    if (a.level() != b.level())                   return false;
+    if (a.transaction_id() != b.transaction_id()) return false;
+    if (a.filetype() != b.filetype())             return false;
+    return true;
+  }
+  bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
+    return !(a == b);
+  }
 }
 
 namespace vw { namespace platefile { namespace detail {
@@ -130,9 +142,21 @@ Datastore::tile_range Blobstore::populate(const TileHeader* hdrs, size_t len) {
     Tile tile;
 
     try {
-      IndexRecord record = m_index->read_request(hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true);
-      tile.data = open_blob(record.blob_id(), true)->read_data(record.blob_offset());
-      tile.hdr  = hdr;
+      IndexRecord rec = m_index->read_request(hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true);
+
+      if (hdr.filetype() != rec.filetype())
+        vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
+
+      boost::shared_ptr<Blob> blob = open_blob(rec.blob_id(), true);
+
+      // This read_header is unnecessary (we should alredy have it from hdr
+      // but this check makes sure the plate is consistent
+      tile.hdr  = blob->read_header(rec.blob_offset());
+
+      if (tile.hdr != hdr)
+        vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord\n";
+
+      tile.data = blob->read_data(rec.blob_offset());
       tiles->push_back(tile);
     } catch (const TileNotFoundErr& e) {
       // I don't think this is possible if the hdrs are coming from get(). If
