@@ -80,6 +80,7 @@ class Url : boost::equality_comparable<Url> {
   QueryMap m_query;
 
   void parse(const std::string& url, bool parse_query_params);
+  bool complete() const;
 
   public:
     typedef std::vector<std::string> split_t;
@@ -123,7 +124,6 @@ class Url : boost::equality_comparable<Url> {
     std::string hostname() const;
     uint16 port() const;
 
-    bool complete() const;
     std::string string() const;
 
     friend std::istream& operator>>(std::istream& i, Url& val);

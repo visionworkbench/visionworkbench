@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   if( vm.count("help") ) {
     std::cout << usage.str();
     return 0;
-  } else if ( !url.complete() ) {
+  } else if ( url == Url() ) {
     std::cout << "URL is missing.\n\n" << usage.str();
     return 0;
   }
