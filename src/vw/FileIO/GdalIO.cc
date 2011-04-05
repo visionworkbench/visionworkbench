@@ -108,19 +108,23 @@ GdalIODecompress::~GdalIODecompress() { }
 
 bool GdalIODecompress::ready() const { return true; }
 
-void GdalIODecompress::read(uint8* buffer, size_t bufsize) {
+void GdalIODecompress::read(uint8* /*buffer*/, size_t /*bufsize*/) {
+  vw_throw(LogicErr() << "Not supported");
+}
+
+void GdalIODecompress::read(const ImageFormat& fmt, uint8* buffer, size_t bufsize) {
   Mutex::Lock lock(gdal());
   size_t skip = line_bytes();
-  VW_ASSERT(bufsize >= m_fmt.rows * skip, LogicErr() << "Buffer is too small");
-  if (m_fmt.pixel_format == VW_PIXEL_SCALAR) {
+  VW_ASSERT(bufsize >= fmt.rows * skip, LogicErr() << "Buffer is too small");
+  if (fmt.pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
-    m_dataset->RasterIO(GF_Read, 0, 0, m_fmt.cols, m_fmt.rows, reinterpret_cast<void*>(buffer), m_fmt.cols, m_fmt.rows,
-        channel_vw_to_gdal(m_fmt.channel_type), num_channels(m_fmt.pixel_format), NULL, 0, 0, 0);
+    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
+        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format), NULL, 0, 0, 0);
   } else {
     // Interleaved pixels
-    m_dataset->RasterIO(GF_Read, 0, 0, m_fmt.cols, m_fmt.rows, reinterpret_cast<void*>(buffer), m_fmt.cols, m_fmt.rows,
-        channel_vw_to_gdal(m_fmt.channel_type), num_channels(m_fmt.pixel_format), NULL,
-        m_cstride, m_rstride, 1);
+    m_dataset->RasterIO(GF_Read, 0, 0, fmt.cols, fmt.rows, reinterpret_cast<void*>(buffer), fmt.cols, fmt.rows,
+        channel_vw_to_gdal(fmt.channel_type), num_channels(fmt.pixel_format), NULL,
+        m_cstride, m_rstride, channel_size(fmt.channel_type));
   }
 }
 
@@ -222,16 +226,17 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   if (m_has_nodata && m_dataset->GetRasterBand(1)->SetNoDataValue( m_nodata ) != CE_None)
     vw_throw(IOErr() << "GdalIO: Unable to set nodata value");
 
+  CPLErr err;
   if (fmt().pixel_format == VW_PIXEL_SCALAR) {
     // Separate bands
-    m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
-                        channel_vw_to_gdal(fmt().channel_type), num_bands, NULL, 0, 0, 0);
+    err = m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
+            channel_vw_to_gdal(fmt().channel_type), num_bands, NULL, 0, 0, 0);
   } else {
     //Interleaved pixels
-    m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
-                        channel_vw_to_gdal(fmt().channel_type), num_bands, NULL,
-                        m_cstride, skip, 1);
+    err = m_dataset->RasterIO(GF_Write, 0, 0, cols, rows, const_cast<uint8*>(data), cols, rows,
+            channel_vw_to_gdal(fmt().channel_type), num_bands, NULL, m_cstride, skip, channel_size(fmt().channel_type));
   }
+  VW_ASSERT(err == CE_None, IOErr() << "GdalIO: RasterIO write failed");
   m_dataset.reset();
 }
 

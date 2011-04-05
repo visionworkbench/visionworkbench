@@ -54,19 +54,16 @@ void SrcMemoryImageResourceGDAL::read( ImageBuffer const& dst, BBox2i const& bbo
   // no conversion necessary?
   bool simple = m_data->fmt().simple_convert(dst.format);
 
-  size_t bufsize = m_data->line_bytes() * height * planes;
-
   // If we don't need to convert, we read directly into the dst buffer (using a
   // noop_deleter, so the destructor doesn't try to delete it)
-  if (simple)
-    buf.reset( reinterpret_cast<uint8*>(const_cast<void*>(dst.data)), NOP() );
-  else
-    buf.reset( new uint8[bufsize] );
-
-  m_data->read(buf.get(), bufsize);
-
-  if (simple)
+  if (simple) {
+    m_data->read(dst.format, reinterpret_cast<uint8*>(dst.data), dst.format.byte_size());
     return;
+  } else {
+    size_t bufsize = m_data->line_bytes() * height * planes;
+    buf.reset( new uint8[bufsize] );
+    m_data->read(m_data->fmt(), buf.get(), bufsize);
+  }
 
   ImageFormat src_fmt(m_data->fmt());
   src_fmt.rows = height;

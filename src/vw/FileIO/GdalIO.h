@@ -30,6 +30,7 @@ class GdalIODecompress : public ScanlineReadBackend {
     void open();
     bool ready() const;
     void read(uint8* data, size_t bufsize);
+    void read(const ImageFormat& fmt, uint8* data, size_t bufsize);
 
     bool nodata_read_ok(double& value) const;
 };

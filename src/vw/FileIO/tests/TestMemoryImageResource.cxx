@@ -116,6 +116,8 @@ vector<string> test_paths() {
   v.push_back("rgb2x2.tif");
   v.push_back("rgb4x4_halfalpha.tif");
   v.push_back("rgb4x4_alpha.tif");
+  v.push_back("rgb4x4f_alpha.tif");
+  v.push_back("rgb4x4f_band.tif");
 #endif
     return v;
 }
