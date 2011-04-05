@@ -343,6 +343,7 @@ IndexPage::search_by_location(int col, int row,
       hdr.set_row( m_base_row + page_row );
       hdr.set_level(m_level);
       hdr.set_transaction_id(it->first);
+      hdr.set_filetype(it->second.filetype());
       results.push_back(hdr);
     }
     ++it;
