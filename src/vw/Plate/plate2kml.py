@@ -154,26 +154,31 @@ class TileRegion(object):
         return region
 
 class Tile(object):
-    def __init__(self, row, col, level, filetype="png"):
+    def __init__(self, row, col, level, west=None, east=None, north=None, south=None, filetype="png"):
         self.row = row
         self.col = col
         self.level = level
+        self.west = west
+        self.east = east
+        self.north = north
+        self.south = south
         self.filetype = filetype
 
     def latlonbox(self):
-        #deg_delta = 360.0 / (2**self.level)
+        """
         lon_delta = 360.0 / (2**self.level)
         lat_delta = 180.0 / (2**self.level)
         west = -180 + self.col * lon_delta
-        south = 90 - lat_delta*(self.row+1)
         east = west + lon_delta
-        north = south + lat_delta
+        north = 90 - lat_delta * self.row
+        south = north - lat_delta
+        """
 
         llbox = factory.CreateLatLonBox()
-        llbox.set_west(west)
-        llbox.set_south(south)
-        llbox.set_east(east)
-        llbox.set_north(north)
+        llbox.set_west(self.west)
+        llbox.set_south(self.south)
+        llbox.set_east(self.east)
+        llbox.set_north(self.north)
         return llbox
 
     def bbox(self):

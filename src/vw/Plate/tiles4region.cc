@@ -7,8 +7,11 @@
 
 #include <vw/Plate/PlateFile.h>
 #include <vw/Plate/TileManipulation.h>
+#include <vw/Plate/PlateManager.h>
+#include <vw/Cartography/GeoReference.h>
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::cartography;
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -75,6 +78,7 @@ int main( int argc, char *argv[]) {
     }
 
     boost::shared_ptr<PlateFile> plate( new PlateFile(opt.plate_url) );
+    
 
     if (opt.level >= plate->index_header().num_levels()) {
         std::cout << "{\n";
@@ -83,6 +87,10 @@ int main( int argc, char *argv[]) {
         std::cout << "}";
         return 0;
     } else {
+
+        PlateManager<vw::PixelGrayA<uint8> >* pm = 
+            PlateManager<vw::PixelGrayA<uint8> >::make( plate->index_header().type(), plate);
+        vw::cartography::GeoReference georef = pm->georeference(opt.level);
 
         BBox2i region(opt.minx, opt.miny, opt.width, opt.height);
         TransactionOrNeg id(-1);
@@ -94,8 +102,19 @@ int main( int argc, char *argv[]) {
         std::list<TileHeader>::iterator i;
         for (i=tile_records.begin(); i != tile_records.end(); i++) {
             if (i != tile_records.begin()) { std::cout << ",\n"; }
-            TileHeader t = *i;
-            printf("{\"level\":%u,\"col\":%u,\"row\":%u, \"filetype\":\"%s\"}", t.level(), t.col(), t.row(), t.filetype().c_str() );
+
+            const TileHeader& t = *i;
+
+            int tile_size = plate->default_tile_size();
+            Vector2 corner1 = georef.point_to_lonlat(georef.pixel_to_point( Vector2(t.col() * tile_size, t.row() * tile_size )));
+            Vector2 corner2 = georef.point_to_lonlat(georef.pixel_to_point( Vector2((t.col()+1) * tile_size, (t.row()+1) * tile_size )));
+            float west = corner1[0];
+            float east = corner2[0];
+            float north = corner1[1];
+            float south = corner2[1];
+
+            printf("{\"level\":%u,\"col\":%u,\"row\":%u,\"west\":%f, \"east\":%f, \"north\":%f, \"south\":%f, \"filetype\":\"%s\"}", 
+                t.level(), t.col(), t.row(), west, east, north, south, t.filetype().c_str() );
         }
         printf("\n]\n");
         printf("}");
