@@ -8,12 +8,15 @@ import subprocess
 import json
 import zipfile
 import urlparse
+import multiprocessing
+import Queue # this is just imported for the Queue.Empty exception <shrug>
 
 
 DEFAULT_MAX_KMZ_FEATURES = 256
 DEFAULT_DRAW_ORDER_FACTOR = 10 # presently hardcoded: tiles will be rendererd at DRAW_ORDER_FACTOR * tile_level
 DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
 DEFAULT_REGIONATION_OFFSET = 5
+DEFAULT_WORKERS = 6
 
 class BBox(object):
     def __init__(self, minx, miny, width, height, allow_floats=False):
@@ -77,6 +80,10 @@ class TileRegion(object):
 
     def name(self):
         return "L%02dR%dC%dW%dH%d" % (self.level, self.miny, self.minx, self.width, self.height)
+
+    @property
+    def kmz_filename(self):
+        return self.name()+".kmz"
 
     def __hash__(self):
         return (self.level, self.minx, self.bbox.miny, self.bbox.width, self.bbox.height).__hash__()
@@ -229,7 +236,7 @@ class PlateDepthExceededException(PlateException):
 
 def search_tiles_by_region(platefile_url, region):
     args = '%d %d %d %d -l %d' % (region.minx, region.miny, region.width, region.height, region.level)
-    print "Searching for tiles at %s: " % args,
+    print "Searching for tiles at %s: " % region.name(),
     args = [os.path.join(options.vw_bin_path,'tiles4region'), platefile_url] + args.split(' ')
     while True:
         try:
@@ -295,15 +302,39 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     level = PlateLevel(levelno)
     netlinks = []
     hit_regions = []
+    
+    region_queue = multiprocessing.JoinableQueue()
+    output_queue = multiprocessing.Queue()
+
+    print "Launching %d workers." % options.workers
+    workers = []
+    for i in range(options.workers):
+        p = multiprocessing.Process( target=draw_region_worker, args=(region_queue, output_queue, plate, output_dir, factory) )
+        workers.append(p)
+        p.start()
+
     for region in level.regionate(restrict_to_regions=prior_hit_regions):
         try:
-            netlink = draw_region(region, plate, output_dir, factory)
+            #netlink = draw_region(region, plate, output_dir, factory)
+            region_queue.put(region)
         except PlateDepthExceededException:
             print "Hit bottom!"
             break
-        if netlink:
+    print "Waiting for join...",
+    region_queue.join()
+    print "Joined!"
+
+    for w in workers:
+        w.terminate()
+
+    while True:
+        try:
+            region = output_queue.get(False)
+            netlink = make_netlink(os.path.basename(region.kmz_filename), region, factory, name=region.name())
             netlinks.append(netlink)
             hit_regions.append(region)
+        except Queue.Empty:
+            break
 
     # clear the referenced list and replace contents with new hit_regions
     del prior_hit_regions[:]
@@ -328,13 +359,13 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
 
 def draw_region(region, plate, output_dir, factory):
     """
+    Pull a TileRegion from the region_queue.
     Render the TileRegion to KML and write it to disk.
-    Return a libkml NetworkLink object fot the file.
+    Create a libkml NetworkLink object for the file and put it on the netlink_queue.
     """
-    kmz_filename = region.name() + ".kmz"
-    netlink = make_netlink(os.path.basename(kmz_filename), region, factory, name=region.name())
-    netlinks = []
+
     goverlays = []
+    
     tiles = search_tiles_by_region(plate, region)
     if len(tiles) == 0:
         return None
@@ -346,16 +377,31 @@ def draw_region(region, plate, output_dir, factory):
     folder = factory.CreateFolder()
     for goverlay in goverlays:
         folder.add_feature(goverlay)
-    for netlink in netlinks:
-        folder.add_feature(netlink)
     kml = factory.CreateKml()
     kml.set_feature(folder)
     kmlstr = kmldom.SerializePretty(kml)
-    kmzfile = zipfile.ZipFile(os.path.join(output_dir, kmz_filename), 'w')
+    kmzfile = zipfile.ZipFile(os.path.join(output_dir, region.kmz_filename), 'w')
     kmzfile.writestr('doc.kml', kmlstr)
     kmzfile.close()
 
-    return netlink
+    return region
+
+def draw_region_worker(region_queue, output_queue, plate, output_dir, factory):
+    """
+    Loop infinitely and try to draw regions.
+    """
+    while True:
+        try:
+            region = region_queue.get(True, 3)
+        except Queue.Empty:
+            print "Region queue empty.  Retrying"
+            continue
+        try:
+            result = draw_region(region, plate, output_dir, factory)
+            if result:
+                output_queue.put(result)
+        finally:
+            region_queue.task_done()
 
 def draw_plate(platefile_url, output_dir):
     if not os.path.exists(output_dir):
@@ -374,6 +420,7 @@ def draw_plate(platefile_url, output_dir):
     while keep_drilling and level <= options.max_levels:
         print "Drawing level %d..." % level
         netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
+        keep_drilling = bool(netlink)
         if netlink: netlinks.append(netlink)
 
         for netlink in netlinks:
@@ -382,10 +429,10 @@ def draw_plate(platefile_url, output_dir):
         with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
             outfile.write(kmldom.SerializePretty(kml))
 
-        keep_drilling = bool(netlink)
         level += 1
 
     print "Done."
+    sys.exit(0)
 
         
 global options
@@ -399,6 +446,7 @@ def main():
     parser.add_option('-r','--regionation-offset', dest='regionation_offset', default=DEFAULT_REGIONATION_OFFSET)
     parser.add_option('-l','--max-level', dest='max_levels', type='int', default=9999, help="Stop drawing after this level.")
     parser.add_option('--planet', dest='planet', help="Tell GE to load this in a particular planet mode (Earth, Moon, Mars)", default="mars")
+    parser.add_option('--workers', '-w', dest='workers', type='int', help="Number of worker subprocesses to spawn", default=DEFAULT_WORKERS)
     #parser.add_option('--resume', dest='resume', action="store_true", default=False, help="Don't overwrite KMZ files if they already exist.")
     global options
     (options, args) = parser.parse_args()
