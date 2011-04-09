@@ -45,12 +45,7 @@ double azimuth, elevation, scale;
 double nodata_value;
 double blur_sigma;
 
-// Allows FileIO to correctly read/write these pixel types
-namespace vw {
-  template<> struct PixelFormatID<Vector3>   { static const PixelFormatEnum value = VW_PIXEL_XYZ; };
-}
-
-// ---------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
 //  compute_normals()
 //
@@ -61,39 +56,39 @@ namespace vw {
 // directions so that the direction of the vector in physical space
 // can be properly ascertained.  This is often contained in the (0,0)
 // and (1,1) entry of the georeference transform.
-class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3> >
+class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3f> >
 {
-  double m_u_scale, m_v_scale;
+  float m_u_scale, m_v_scale;
 
 public:
-  ComputeNormalsFunc(double u_scale, double v_scale) :
+  ComputeNormalsFunc(float u_scale, float v_scale) :
     m_u_scale(u_scale), m_v_scale(v_scale) {}
 
   BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
 
   template <class PixelAccessorT>
-  PixelMask<Vector3> operator() (PixelAccessorT const& accessor_loc) const {
+  PixelMask<Vector3f> operator() (PixelAccessorT const& accessor_loc) const {
     PixelAccessorT acc = accessor_loc;
 
     // Pick out the three altitude values.
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt1 = *acc;
+      return PixelMask<Vector3f>();
+    float alt1 = *acc;
 
     acc.advance(1,0);
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt2 = *acc;
+      return PixelMask<Vector3f>();
+    float alt2 = *acc;
 
     acc.advance(-1,1);
     if (is_transparent(*acc))
-      return PixelMask<Vector3>();
-    double alt3 = *acc;
+      return PixelMask<Vector3f>();
+    float alt3 = *acc;
 
     // Form two orthogonal vectors in the plane containing the three
     // altitude points
-    Vector3 n1(m_u_scale, 0, alt2-alt1);
-    Vector3 n2(0, m_v_scale, alt3-alt1);
+    Vector3f n1(m_u_scale, 0, alt2-alt1);
+    Vector3f n2(0, m_v_scale, alt3-alt1);
 
     // Return the vector normal to the local plane.
     return normalize(cross_prod(n1,n2));
@@ -102,42 +97,37 @@ public:
 
 template <class ViewT>
 UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> compute_normals(ImageViewBase<ViewT> const& image,
-                                                                                                              double u_scale, double v_scale) {
+                                                                                                              float u_scale, float v_scale) {
   return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>(edge_extend(image.impl(), ConstantEdgeExtension()),
                                                                                                        ComputeNormalsFunc (u_scale, v_scale));
 }
 
-class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<double> > > {
-  Vector3 m_vec;
+class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
+  Vector3f m_vec;
 public:
-  DotProdFunc(Vector3 const& vec) : m_vec(vec) {}
-  PixelMask<PixelGray<double> > operator() (PixelMask<Vector3> const& pix) const {
+  DotProdFunc(Vector3f const& vec) : m_vec(vec) {}
+  PixelMask<PixelGray<float> > operator() (PixelMask<Vector3f> const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelGray<double> >();
-    else {
-//       std::cout << "Vec1 : " << pix.child() << "   " << norm_2(pix.child()) << "\n";
-//       std::cout << "Vec2 : " << m_vec << "   " << norm_2(m_vec) << "\n";
-//       std::cout << "OVerall: " << dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec)) << "\n\n";
+      return PixelMask<PixelGray<float> >();
+    else
       return dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec));
-    }
   }
 };
 
 template <class ViewT>
-UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3 const& vec) {
+UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3f const& vec) {
   return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
 }
 
-// ---------------------------------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
 
-template <class PixelT>
 void do_hillshade(po::variables_map const& vm) {
 
   cartography::GeoReference georef;
   cartography::read_georeference(georef, input_file_name);
 
   // Select the pixel scale.
-  double u_scale, v_scale;
+  float u_scale, v_scale;
   if (scale == 0) {
     if (georef.is_projected()) {
       u_scale = georef.transform()(0,0);
@@ -151,42 +141,42 @@ void do_hillshade(po::variables_map const& vm) {
     u_scale = scale;
     v_scale = -scale;
   }
-  // For debugging:
-  //  std::cout << "\t--> Scale: " << u_scale << "  " << v_scale << "\n";
 
   // Set the direction of the light source.
-  Vector3 light_0(1,0,0);
-  Vector3 light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
+  Vector3f light_0(1,0,0);
+  Vector3f light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
 
   // Compute the surface normals
   std::cout << "Loading: " << input_file_name << ".\n";
-  DiskImageView<PixelT> disk_dem_file(input_file_name);
-  ImageViewRef<PixelGray<double> > input_image = channel_cast<double>(disk_dem_file);
+  DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
 
-  ImageViewRef<PixelMask<PixelGray<double> > > dem;
+  ImageViewRef<PixelMask<PixelGray<float> > > dem;
   SrcImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
   if (vm.count("nodata-value")) {
-    std::cout << "\t--> Masking pixel value: " << nodata_value << ".\n";
-    dem = create_mask(input_image, nodata_value);
+    vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
+    dem = create_mask(disk_dem_file, nodata_value);
   } else if ( disk_dem_rsrc->has_nodata_read() ) {
     nodata_value = disk_dem_rsrc->nodata_read();
-    std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
-    dem = create_mask(input_image, nodata_value);
+    vw_out() << "\t--> Extracted nodata value from file: "
+             << nodata_value << ".\n";
+    dem = create_mask(disk_dem_file, nodata_value);
   } else {
-    dem = pixel_cast<PixelMask<PixelGray<double> > >(input_image);
+    dem = pixel_cast<PixelMask<PixelGray<float> > >(disk_dem_file);
   }
   delete disk_dem_rsrc;
 
   if (vm.count("blur")) {
-    std::cout << "\t--> Blurring pixel with gaussian kernal.  Sigma = " << blur_sigma << "\n";
+    vw_out() << "\t--> Blurring pixel with gaussian kernal.  Sigma = "
+             << blur_sigma << "\n";
     dem = gaussian_filter(dem, blur_sigma);
   }
 
   // The final result is the dot product of the light source with the normals
-  ImageViewRef<PixelMask<PixelGray<uint8> > > shaded_image = channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
+  ImageViewRef<PixelMask<PixelGray<uint8> > > shaded_image =
+    channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
 
   // Save the result
-  std::cout << "Writing shaded relief image: " << output_file_name << "\n";
+  vw_out() << "Writing shaded relief image: " << output_file_name << "\n";
 
   DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
   rsrc.set_block_write_size(Vector2i(1024,1024));
@@ -200,13 +190,13 @@ int main( int argc, char *argv[] ) {
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
     ("help,h", "Display this help message")
-    ("input-file", po::value<std::string>(&input_file_name), "Explicitly specify the input file")
-    ("output-file,o", po::value<std::string>(&output_file_name), "Specify the output file")
-    ("azimuth,a", po::value<double>(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
-    ("elevation,e", po::value<double>(&elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
-    ("scale,s", po::value<double>(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
-    ("nodata-value", po::value<double>(&nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("blur", po::value<double>(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
+    ("input-file", po::value(&input_file_name), "Explicitly specify the input file")
+    ("output-file,o", po::value(&output_file_name), "Specify the output file")
+    ("azimuth,a", po::value(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
+    ("elevation,e", po::value(&elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
+    ("scale,s", po::value(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
+    ("nodata-value", po::value(&nodata_value), "Remap the DEM default value to the min altitude value.")
+    ("blur", po::value(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
   po::positional_options_description p;
   p.add("input-file", 1);
 
@@ -237,26 +227,7 @@ int main( int argc, char *argv[] ) {
   }
 
   try {
-    // Get the right pixel/channel type.
-    ImageFormat fmt = tools::taste_image(input_file_name);
-
-    switch(fmt.pixel_format) {
-    case VW_PIXEL_GRAY:
-    case VW_PIXEL_GRAYA:
-    case VW_PIXEL_RGB:
-    case VW_PIXEL_RGBA:
-      switch(fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_hillshade<PixelGray<uint8>   >(vm); break;
-      case VW_CHANNEL_INT16:  do_hillshade<PixelGray<int16>   >(vm); break;
-      case VW_CHANNEL_UINT16: do_hillshade<PixelGray<uint16>  >(vm); break;
-      case VW_CHANNEL_FLOAT64:do_hillshade<PixelGray<float64> >(vm); break;
-      default:                do_hillshade<PixelGray<float32> >(vm); break;
-      }
-      break;
-    default:
-      std::cout << "Error: Unsupported pixel format.\n";
-      exit(0);
-    }
+    do_hillshade(vm);
   } catch( Exception& e ) {
     std::cout << "Error: " << e.what() << std::endl;
   }
