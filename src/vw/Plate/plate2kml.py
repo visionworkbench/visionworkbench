@@ -18,30 +18,89 @@ DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
 DEFAULT_REGIONATION_OFFSET = 5
 DEFAULT_WORKERS = 6
 
+def int_or_none(val):
+    try:
+        return int(val)
+    except TypeError:
+        return None
+
 class BBox(object):
-    def __init__(self, minx, miny, width, height, allow_floats=False):
-        if allow_floats:
-            self.minx = minx
-            self.miny = miny
-            self.width = width
-            self.height = height
+    def __init__(self, minx=None, miny=None, width=None, height=None, maxx=None, maxy=None, allow_floats=False):
+        initprops =  ('minx','miny','maxx','maxy')
+        args = locals()
+        if all( args[prop] == None for prop in  ('minx','miny','maxx','maxy','width','height') ):
+            # init props are null.  initialize an empty bounding box
+            for prop in initprops:
+                setattr(self, prop, None)
         else:
-            self.minx = int(minx)
-            self.miny = int(miny)
-            self.width = int(width)
-            self.height = int(height)
+            if (minx == None) or (miny == None):
+                raise ValueError("Required: minimum x and y values")
+            if not bool(width and height) ^ bool(maxx and maxy):
+                raise ValueError("You must provide either width & height or maximum x & y values (not both)")
+
+            if width != None or height != None:
+                assert width != None and height != None and minx != None and miny != None
+                assert (not maxx and not maxy)
+                maxx = minx + width
+                maxy = miny + height
+
+            if not allow_floats:
+                for prop in initprops:
+                    setattr(self, prop, int_or_none(locals()[prop]))
+            else:
+                for prop in initprops:
+                    setattr(self, prop, locals()[prop])
+    @property
+    def width(self):
+        return self.maxx - self.minx
+    @width.setter
+    def width(self, value):
+        self.maxx = self.minx + value
+
+    @property
+    def height(self):
+        return self.maxy - self.miny
+    @height.setter
+    def height(self, value):
+        self.maxy = self.miny + value
+
+    def is_null(self):
+        if any( getattr(self,p) == None for p in ('minx','miny','maxx','maxy') ):
+            assert all( getattr(self,p) == None for p in ('minx','miny','maxx','maxy') )
+            return True
+        else:
+            return False
 
     @property
     def corners(self):
-        return ( (self.minx, self.miny), (self.minx + self.width, self.miny, self.height) )
+        return ( (self.minx, self.miny), (self.maxx, self.maxy ))
 
     def contains(self, bbox):
+        """
+        Check whether the given bounding box is inside this one and return a boolean.
+        """
         b1 = self.corners
         b2 = bbox.corners
         return b1[0][0] <= b2[0][0] and\
         b1[0][1] <= b2[0][1] and\
         b1[1][0] >= b2[1][0] and\
         b1[1][1] >= b2[1][1]
+
+    def expand(self, x,y):
+        """
+        If the given coordinates lie outside the bounds of the BBox, 
+        expand the BBox to cover them.
+        """
+        if (self.minx == None) or (x < self.minx):
+            self.minx = x
+        if (self.maxx == None) or (x > self.maxx):
+            self.maxx = x
+        if (self.miny == None) or (y < self.miny):
+            self.miny = y
+        if (self.maxy == None) or (y > self.maxy):
+            self.maxy = y
+
+
 
     def quarter(self):
         """(generator) Break out into 4 subregions, if possible"""
@@ -64,12 +123,20 @@ class TileRegion(object):
             self._bbox = bbox()
         else:
             self._bbox = bbox
+        self.latlon_bbox = BBox(allow_floats=True) # initially empty, this decouples the region's degree-space bounds from it's tile-space bounds.
+
     # TODO: semantically, row and col should be minx and miny
     @property
     def minx(self):
         return self._bbox.minx
     @property
     def miny(self):
+        return self._bbox.miny
+    @property
+    def maxx(self):
+        return self._bbox.minx
+    @property
+    def maxy(self):
         return self._bbox.miny
     @property
     def width(self):
@@ -132,13 +199,6 @@ class TileRegion(object):
         return TileRegion( level, proj_bbox )
 
     def kml_region(self):
-        #tile_deg_delta = 360.0 / (1 << self.level)
-        lat_delta = 180.0 / (2**self.level)
-        lon_delta = 360.0 / (2**self.level)
-        lon_west = -180.0 + self.minx*lon_delta
-        lon_east = lon_west + (self.width * lon_delta)
-        lat_north = 90.0 - lat_delta*(self.miny+1)
-        lat_south = lat_north - (self.height * lat_delta)
         region = factory.CreateRegion()
         
         if self.level == 1:
@@ -147,6 +207,7 @@ class TileRegion(object):
           ## is to make sure layer 1 can always be seen when zoomed out.
             #minlod, maxlod = (1,513)
             minlod, maxlod = (1,1024)
+        # TODO: If we can figure out how to tell if this is the deepest plate level, it'd be great to set the maxlod to infinity (-1)
         #    elif lowest_overlay:
         #        # end of branch
         #        minlod, maxlod = (128 ,-1)
@@ -156,7 +217,8 @@ class TileRegion(object):
             minlod, maxlod = (64, 2048)
         region.set_lod(create_lod(minlod, maxlod, factory))
         
-        latlonalt_box = create_latlonalt_square(lat_north, lat_south, lon_west, lon_east, factory)
+        assert not self.latlon_bbox.is_null() # presumably, we already added some points to the latlon_bbox with latlon_bbox.expand()
+        latlonalt_box = create_latlonalt_square(self.latlon_bbox.maxy, self.latlon_bbox.miny, self.latlon_bbox.minx, self.latlon_bbox.maxx, factory)
         region.set_latlonaltbox(latlonalt_box)
         return region
 
@@ -195,6 +257,45 @@ class Tile(object):
             1,
             1
         )    
+
+    def kml_region(self, factory):
+        region = factory.CreateRegion()
+        
+        if self.level == 1:
+          ## Top layerish. Layer 0 is never drawn because it's
+          ## boundaries are illegal (Lat range too large). So this step
+          ## is to make sure layer 1 can always be seen when zoomed out.
+            #minlod, maxlod = (1,513)
+            minlod, maxlod = (1,1024)
+        #    elif lowest_overlay:
+        #        # end of branch
+        #        minlod, maxlod = (128 ,-1)
+        else:
+            #minlod, maxlod = (128, 531)
+            #minlod, maxlod = (64, -1)
+            minlod, maxlod = (64, 2048)
+        region.set_lod(create_lod(minlod, maxlod, factory))
+        
+        latlonalt_box = create_latlonalt_square(self.north, self.south, self.west, self.east, factory)
+        region.set_latlonaltbox(latlonalt_box)
+        return region
+
+
+    def kml_overlay(self, factory):
+        goverlay = factory.CreateGroundOverlay()
+        #region = TileRegion(self.level, BBox(self.col, self.row, 1, 1)).kml_region()
+        region = self.kml_region(factory)
+        goverlay.set_region(region)
+        goverlay.set_latlonbox(self.latlonbox())
+        # TODO: maybe draw order shourld be a fcn of level
+        goverlay.set_draworder(self.level * DEFAULT_DRAW_ORDER_FACTOR) 
+
+        url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (self.level, self.col, self.row) ) + "."+self.filetype )
+        icon = factory.CreateIcon()
+        icon.set_href( str(url) )
+        goverlay.set_icon( icon )
+
+        return goverlay
         
 class PlateLevel(object): 
     def __init__(self, level):
@@ -276,7 +377,6 @@ def overlay_for_tile(tile, factory):
     region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
     goverlay.set_region(region)
     goverlay.set_latlonbox(tile.latlonbox())
-    # TODO: maybe draw order shourld be a fcn of level
     goverlay.set_draworder(tile.level * DEFAULT_DRAW_ORDER_FACTOR) 
 
     url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.col, tile.row) ) + "."+tile.filetype )
@@ -313,13 +413,16 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
         workers.append(p)
         p.start()
 
+    rcount = 0
     for region in level.regionate(restrict_to_regions=prior_hit_regions):
         try:
             #netlink = draw_region(region, plate, output_dir, factory)
             region_queue.put(region)
+            rcount += 1
         except PlateDepthExceededException:
             print "Hit bottom!"
             break
+    print "Searching %d regions at level %d" % (rcount, levelno)
     print "Waiting for join...",
     region_queue.join()
     print "Joined!"
@@ -339,6 +442,8 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     # clear the referenced list and replace contents with new hit_regions
     del prior_hit_regions[:]
     prior_hit_regions += hit_regions
+
+    print "Tiles in %d regions at level %d" % (len(netlinks), levelno)
 
     if len(netlinks) == 0:
         return None
@@ -365,14 +470,18 @@ def draw_region(region, plate, output_dir, factory):
     """
 
     goverlays = []
-    
+
     tiles = search_tiles_by_region(plate, region)
     if len(tiles) == 0:
         return None
     #if len(tiles) > options.max_features:  # TODO: Implement (or remove) max features / netlinks
     for t in tiles:
-        goverlay = overlay_for_tile(t, factory)
+        #goverlay = overlay_for_tile(t, factory)
+        goverlay = t.kml_overlay(factory)
         goverlays.append(goverlay)
+
+        region.latlon_bbox.expand(t.west,t.south)
+        region.latlon_bbox.expand(t.east,t.north)
 
     folder = factory.CreateFolder()
     for goverlay in goverlays:
@@ -394,7 +503,7 @@ def draw_region_worker(region_queue, output_queue, plate, output_dir, factory):
         try:
             region = region_queue.get(True, 3)
         except Queue.Empty:
-            print "Region queue empty.  Retrying"
+            #print "Region queue empty.  Retrying"
             continue
         try:
             result = draw_region(region, plate, output_dir, factory)
