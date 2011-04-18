@@ -1,6 +1,7 @@
 #!/usr/bin/env python2.7
 import optparse
 import sys, os
+import math
 sys.path.insert(1, '/Users/ted/local/src/libkml-1.2.0/build/lib/python2.7/site-packages') # tmo
 import kmldom
 import kmlengine
@@ -88,6 +89,7 @@ class BBox(object):
 
     def expand(self, x,y):
         """
+        Expand the bounding box if the coordinates lie outside its bounds.
         If the given coordinates lie outside the bounds of the BBox, 
         expand the BBox to cover them.
         """
@@ -214,7 +216,12 @@ class TileRegion(object):
         else:
             #minlod, maxlod = (128, 531)
             #minlod, maxlod = (64, -1)
-            minlod, maxlod = (64, 2048)
+            #minlod, maxlod = (64, max((self.height, self.width)) * 2 + 1)
+            minlod = int(math.sqrt(self.height * self.width)) * 32 - 4 #64
+            maxlod = int(math.sqrt(self.height * self.width )) * 512 * 4 + 1
+            #maxlod = -1
+            if self.level == options.max_levels:
+                maxlod = -1
         region.set_lod(create_lod(minlod, maxlod, factory))
         
         assert not self.latlon_bbox.is_null() # presumably, we already added some points to the latlon_bbox with latlon_bbox.expand()
@@ -273,7 +280,10 @@ class Tile(object):
         else:
             #minlod, maxlod = (128, 531)
             #minlod, maxlod = (64, -1)
-            minlod, maxlod = (64, 2048)
+            #minlod, maxlod = (64, 513)
+            minlod, maxlod = (64, 513)
+            if self.level == options.max_levels:
+                maxlod = -1
         region.set_lod(create_lod(minlod, maxlod, factory))
         
         latlonalt_box = create_latlonalt_square(self.north, self.south, self.west, self.east, factory)
@@ -423,9 +433,10 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
             print "Hit bottom!"
             break
     print "Searching %d regions at level %d" % (rcount, levelno)
-    print "Waiting for join...",
+    print "Waiting for join..."
     region_queue.join()
     print "Joined!"
+    region_queue.close()
 
     for w in workers:
         w.terminate()
@@ -438,6 +449,7 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
             hit_regions.append(region)
         except Queue.Empty:
             break
+    output_queue.close()
 
     # clear the referenced list and replace contents with new hit_regions
     del prior_hit_regions[:]
@@ -553,7 +565,7 @@ def main():
     parser.add_option('--vw-bin', dest="vw_bin_path", help="Location of VW bin files", default=DEFAULT_VW_BIN_PATH)
     parser.add_option('--baseurl', dest='baseurl', help="mod_plate base URL", default="http://example.tld/path/99999")
     parser.add_option('-r','--regionation-offset', dest='regionation_offset', default=DEFAULT_REGIONATION_OFFSET)
-    parser.add_option('-l','--max-level', dest='max_levels', type='int', default=9999, help="Stop drawing after this level.")
+    parser.add_option('-l','--max-level', dest='max_levels', type='int', default=9999, help="Stop drawing after this level. **It is desirable to speficy this, even if you're going to max resolution, because we use it to set the LOD for the last level of the pyramid.**")
     parser.add_option('--planet', dest='planet', help="Tell GE to load this in a particular planet mode (Earth, Moon, Mars)", default="mars")
     parser.add_option('--workers', '-w', dest='workers', type='int', help="Number of worker subprocesses to spawn", default=DEFAULT_WORKERS)
     #parser.add_option('--resume', dest='resume', action="store_true", default=False, help="Don't overwrite KMZ files if they already exist.")
