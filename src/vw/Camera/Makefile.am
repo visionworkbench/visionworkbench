@@ -32,11 +32,11 @@ endif
 
 include_HEADERS += CameraModel.h CAHVModel.h CAHVORModel.h               \
                    CameraTransform.h Exif.h ExifData.h BayerFilter.h     \
-                   PinholeModel.h
+                   PinholeModel.h CAHVOREModel.h
 
 libvwCamera_la_SOURCES += PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
               Exif.cc ExifData.cc LensDistortion.cc $(protocol_sources)  \
-              CameraModel.cc
+              CameraModel.cc CAHVOREModel.cc
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 

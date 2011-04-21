@@ -81,6 +81,7 @@ docs/workbook/workbook.toc
 /src/vw/BundleAdjustment/tests/TestControlNetworkLoad
 /src/vw/Camera/tests/TestCAHVModel
 /src/vw/Camera/tests/TestCAHVORModel
+/src/vw/Camera/tests/TestCAHVOREModel
 /src/vw/Camera/tests/TestCameraGeometry
 /src/vw/Camera/tests/TestExifData
 /src/vw/Camera/tests/TestLinearPushbroomModel

@@ -13,6 +13,7 @@ if MAKE_MODULE_CAMERA
 
 TestCAHVModel_SOURCES             = TestCAHVModel.cxx
 TestCAHVORModel_SOURCES           = TestCAHVORModel.cxx
+TestCAHVOREModel_SOURCES          = TestCAHVOREModel.cxx
 TestCameraGeometry_SOURCES        = TestCameraGeometry.cxx
 TestExifData_SOURCES              = TestExifData.cxx
 TestLinearPushbroomModel_SOURCES  = TestLinearPushbroomModel.cxx
@@ -23,8 +24,9 @@ TestAdjustedCamera_SOURCES        = TestAdjustedCamera.cxx
 #TestLensDistortion_SOURCES       = TestLensDistortion.oldtest
 #TestCameraTransform_SOURCES      = TestCameraTransform.oldtest
 
-TESTS = TestCAHVModel TestCAHVORModel TestCameraGeometry TestExifData \
-        TestLinearPushbroomModel TestPinholeModel                     \
+TESTS = TestCAHVModel TestCAHVORModel TestCAHVOREModel        \
+        TestCameraGeometry TestExifData                       \
+        TestLinearPushbroomModel TestPinholeModel             \
         TestPinholeModelCalibrate TestAdjustedCamera
 
 #include $(top_srcdir)/config/instantiate.am
