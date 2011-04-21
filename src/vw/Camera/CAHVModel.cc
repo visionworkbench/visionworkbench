@@ -6,6 +6,7 @@
 
 
 //
+#include <vw/Core/Log.h>
 #include <vw/Camera/CAHVModel.h>
 #include <boost/algorithm/string.hpp>
 
@@ -318,6 +319,23 @@ namespace camera {
     dst_camera1.A = a;
     dst_camera1.H = h;
     dst_camera1.V = v;
+  }
+
+  void CAHVModel::write(std::string const& filename ) {
+    try {
+      std::ofstream output(filename.c_str(), std::ofstream::out);
+      output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+      output.precision(20);
+
+      vw_out(InfoMessage, "camera") << "Writing CAHV file: " << filename << "\n";
+
+      output << "C = " << C[0] << " " << C[1] << " " << C[2] << "\n"
+             << "A = " << A[0] << " " << A[1] << " " << A[2] << "\n"
+             << "H = " << H[0] << " " << H[1] << " " << H[2] << "\n"
+             << "V = " << V[0] << " " << V[1] << " " << V[2] << "\n";
+    } catch ( const std::ofstream::failure& e ) {
+      vw_throw( IOErr() << "CAHVModel: Could not write file: " << filename << "(" << e.what() << ")" );
+    }
   }
 
 }} // namespace vw::camera

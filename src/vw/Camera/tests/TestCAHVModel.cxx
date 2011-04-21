@@ -17,6 +17,7 @@
 
 using namespace vw;
 using namespace vw::camera;
+using namespace vw::test;
 
 TEST( CAHVModel, PinholeConversion ) {
   Matrix3x3 pose;
@@ -136,4 +137,24 @@ TEST( CAHVModel, FakeEpipolarConversion ) {
     EXPECT_NEAR( temp[0], -40, .1 ); // doesn't correct for translation
     EXPECT_NEAR( temp[1],   0, .1 ); // but it did correct rotation.
   }
+}
+
+TEST( CAHVModel, StringWriteRead ) {
+  CAHVModel c;
+  UnlinkName file("CAHVString.cahv");
+  c.C = Vector3(76,-34,20);
+  c.A = normalize(Vector3(1,2,3));
+  c.H = Vector3(1300,123,456);
+  c.V = Vector3(345,900,157);
+  c.write(file);
+
+  CAHVModel c2(file);
+
+  EXPECT_VECTOR_NEAR( c2.C, c.C, 1e-5 );
+  EXPECT_VECTOR_NEAR( c2.C, c.camera_center(), 1e-5 );
+  EXPECT_VECTOR_NEAR( c2.A, c.A, 1e-5 );
+  EXPECT_VECTOR_NEAR( c2.H, c.H, 1e-5 );
+  EXPECT_VECTOR_NEAR( c2.V, c.V, 1e-5 );
+
+  EXPECT_STREQ( "CAHV", c2.type().c_str() );
 }

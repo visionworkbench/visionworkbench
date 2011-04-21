@@ -60,14 +60,6 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
   } catch (const std::ifstream::failure& e) {
     vw_throw( IOErr() << "CAHVORModel: Could not read file: " << filename << " (" << e.what() << ")" );
   }
-
-  // For debugging:
-  //     cout << "CameraModel_CAHV: C vector:" << C << "\n";
-  //     cout << "CameraModel_CAHV: A vector:" << A << "\n";
-  //     cout << "CameraModel_CAHV: H vector:" << H << "\n";
-  //     cout << "CameraModel_CAHV: V vector:" << V << "\n";
-  //     cout << "CameraModel_CAHV: O vector:" << O << "\n";
-  //     cout << "CameraModel_CAHV: R vector:" << R << "\n";
 }
 
 // Write CAHVOR model to file.
