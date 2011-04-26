@@ -576,8 +576,16 @@ def draw_region_worker(die_event, region_queue, output_queue, plate, output_dir,
             region_queue.task_done()
 
 def draw_plate(platefile_url, output_dir):
-    if not os.path.exists(output_dir):
-        raise Exception("output dir does not exist: ", output_dir)
+    if os.path.exists(output_dir):
+        print "Output directory already exists: %s" % output_dir
+        print "Replace? (y/n)",
+        answer = raw_input()
+        if answer.lower() != 'y':
+            exit(0)
+    else:
+        print "Creating %s" % output_dir
+        os.makedirs(output_dir)
+
     global factory
     factory = kmldom.KmlFactory.GetFactory()
     level = 0
