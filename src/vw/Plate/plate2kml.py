@@ -99,9 +99,6 @@ class BBox(object):
             return self.maxx - self.minx + 1
         else:
             return abs(self.maxx - self.minx)
-#    @width.setter
-#    def width(self, value):
-#        self.maxx = self.minx + value - 1
 
     @property
     def height(self):
@@ -109,9 +106,6 @@ class BBox(object):
             return self.maxy - self.miny + 1
         else:
             return abs(self.maxy - self.miny)
-#    @height.setter
-#    def height(self, value):
-#        self.maxy = self.miny + value - 1
 
     def is_null(self):
         if any( getattr(self,p) == None for p in ('minx','miny','maxx','maxy') ):
@@ -176,7 +170,6 @@ class TileRegion(object):
         self.latlon_bbox = BBox(discrete=False) # initially empty, this decouples the region's degree-space bounds from it's tile-space bounds.
         self.tile_degree_size = None
 
-    # TODO: semantically, row and col should be minx and miny
     @property
     def minx(self):
         return self._bbox.minx
@@ -258,18 +251,7 @@ class TileRegion(object):
           ## is to make sure layer 1 can always be seen when zoomed out.
             #minlod, maxlod = (1,513)
             minlod, maxlod = (1,1024)
-        # TODO: If we can figure out how to tell if this is the deepest plate level, it'd be great to set the maxlod to infinity (-1)
-        #    elif lowest_overlay:
-        #        # end of branch
-        #        minlod, maxlod = (128 ,-1)
         else:
-            #minlod, maxlod = (128, 531)
-            #minlod, maxlod = (64, -1)
-            #minlod, maxlod = (64, max((self.height, self.width)) * 2 + 1)
-            #minlod = int(math.sqrt(self.height * self.width)) * 32 - 4 #64
-            #maxlod = int(math.sqrt(self.height * self.width )) * 512 * 6 + 1
-            #minlod = TILE_MIN_LOD * max(self.width, self.height)
-            #maxlod = TILE_MAX_LOD * max(self.width, self.height)
             degree_width = abs(self.latlon_bbox.maxx - self.latlon_bbox.minx)
             degree_height = abs(self.latlon_bbox.maxy - self.latlon_bbox.miny)
             region_degree_size = math.sqrt(degree_width * degree_height)
@@ -277,8 +259,11 @@ class TileRegion(object):
             maxlod = int(math.ceil(TILE_MAX_LOD / self.tile_degree_size * region_degree_size))
 
 
+            # It isn't awesome that this relies on the command-line options to know when it's at the deepest level.
+            # Perhaps there is a way to get this information from the Plate directly?
             if self.level == options.max_levels:
                 maxlod = -1
+
         region.set_lod(create_lod(minlod, maxlod, factory))
         
         assert not self.latlon_bbox.is_null() # presumably, we already added some points to the latlon_bbox with latlon_bbox.expand()
@@ -340,13 +325,13 @@ class Tile(object):
           ## is to make sure layer 1 can always be seen when zoomed out.
             #minlod, maxlod = (1,513)
             minlod, maxlod = (1,1024)
-        #    elif lowest_overlay:
-        #        # end of branch
-        #        minlod, maxlod = (128 ,-1)
         else:
             minlod, maxlod = (TILE_MIN_LOD, TILE_MAX_LOD)
+
+            # Again, not awesome.  See comment for Tile's kml_region()
             if self.level == options.max_levels:
                 maxlod = -1
+
         region.set_lod(create_lod(minlod, maxlod, factory))
         
         latlonalt_box = create_latlonalt_square(self.north, self.south, self.west, self.east, factory)
@@ -356,11 +341,9 @@ class Tile(object):
 
     def kml_overlay(self, factory):
         goverlay = factory.CreateGroundOverlay()
-        #region = TileRegion(self.level, BBox(self.col, self.row, 1, 1)).kml_region()
         region = self.kml_region(factory)
         goverlay.set_region(region)
         goverlay.set_latlonbox(self.latlonbox())
-        # TODO: maybe draw order shourld be a fcn of level
         goverlay.set_draworder(self.level * DEFAULT_DRAW_ORDER_FACTOR) 
 
         url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (self.level, self.col, self.row) ) + "."+self.filetype )
@@ -476,8 +459,6 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     netlinks = []
     hit_regions = []
 
-    #region_queue = multiprocessing.JoinableQueue()
-    #output_queue = multiprocessing.Queue()
     region_queue = Queue.Queue()
     output_queue = Queue.Queue()
     die_event = threading.Event()
@@ -485,7 +466,6 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     print "Launching %d workers." % options.workers
     workers = []
     for i in range(options.workers):
-        #p = multiprocessing.Process( target=draw_region_worker, args=(region_queue, output_queue, plate, output_dir, factory) )
         p = threading.Thread(target=draw_region_worker, args=(die_event, region_queue, output_queue, plate, output_dir, factory))
         workers.append(p)
         p.start()
@@ -493,7 +473,6 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     rcount = 0
     for region in level.regionate(restrict_to_regions=prior_hit_regions):
         try:
-            #netlink = draw_region(region, plate, output_dir, factory)
             region_queue.put(region)
             rcount += 1
         except PlateDepthExceededException:
@@ -503,7 +482,6 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     print "Waiting for join..."
     region_queue.join()
     print "Joined!"
-    #region_queue.close()
 
     die_event.set()
 
@@ -518,7 +496,6 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
             output_queue.task_done()
         except Queue.Empty:
             break
-    #output_queue.close()
 
     # clear the referenced list and replace contents with new hit_regions
     del prior_hit_regions[:]
@@ -560,7 +537,6 @@ def draw_region(region, plate, output_dir, factory):
     t = tiles[0]
     region.tile_degree_size = math.sqrt(t.degree_width * t.degree_height) # this is actually consistent for the whole level.
     for t in tiles:
-        #goverlay = overlay_for_tile(t, factory)
         goverlay = t.kml_overlay(factory)
         goverlays.append(goverlay)
 
