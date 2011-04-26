@@ -147,3 +147,22 @@ TEST( CAHVORModel, StringWriteRead ) {
 
   EXPECT_STREQ( "CAHVOR", c2.type().c_str() );
 }
+
+TEST( CAHVORModel, ForwardReverse) {
+  CAHVORModel cahvor(Vector3(0.491222,-0.0717236,-1.24143),
+                     Vector3(0.921657,-0.230518,0.312107),
+                     Vector3(757.076,1071.6,160.227),
+                     Vector3(91.7479,-27.7504,1319.48),
+                     Vector3(0.920759,-0.206185,0.331197),
+                     Vector3(0.00096,-0.002183,0.018547));
+
+  for ( uint32 i = 100; i < 901; i += 100 ) {
+    for ( uint32 j = 100; j < 901; j+= 100 ) {
+      Vector2 pixel( i,j );
+      Vector3 unit = cahvor.pixel_to_vector( pixel );
+      Vector3 point = cahvor.C + 30*unit;
+      Vector2 result = cahvor.point_to_pixel( point );
+      EXPECT_VECTOR_NEAR( result, pixel, 1e-2 );
+    }
+  }
+}

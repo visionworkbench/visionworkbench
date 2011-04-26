@@ -158,3 +158,20 @@ TEST( CAHVModel, StringWriteRead ) {
 
   EXPECT_STREQ( "CAHV", c2.type().c_str() );
 }
+
+TEST( CAHVModel, ForwardReverse ) {
+  CAHVModel cahv(Vector3(0.606583,-0.036214,-0.234717),
+                 Vector3(0.708256,-0.0113108,0.705866),
+                 Vector3(365.881,275.126,361.931),
+                 Vector3(173.589,-3.95587,550.402));
+
+  for ( uint32 i = 100; i < 901; i += 100 ) {
+    for ( uint32 j = 100; j < 901; j+= 100 ) {
+      Vector2 pixel( i,j );
+      Vector3 unit = cahv.pixel_to_vector( pixel );
+      Vector3 point = cahv.C + 30*unit;
+      Vector2 result = cahv.point_to_pixel( point );
+      EXPECT_VECTOR_NEAR( result, pixel, 1e-2 );
+    }
+  }
+}
