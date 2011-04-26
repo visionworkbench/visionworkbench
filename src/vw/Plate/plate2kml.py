@@ -26,9 +26,45 @@ def int_or_none(val):
         return None
 
 class BBox(object):
-    def __init__(self, minx=None, miny=None, width=None, height=None, maxx=None, maxy=None, allow_floats=False):
+    """
+    >>> boxa = BBox(0,0,4,4)
+    >>> boxa.minx, boxa.miny, boxa.maxx, boxa.maxy, boxa.width, boxa.height
+    (0, 0, 3, 3, 4, 4)
+    
+    >>> boxb = BBox(1,1,1,1)
+    >>> boxb.minx, boxb.miny, boxb.maxx, boxb.maxy, boxb.width, boxb.height
+    (1, 1, 1, 1, 1, 1)
+
+    >>> boxa.contains(boxb)
+    True
+    >>> boxb.contains(boxa)
+    False
+    >>> boxb.is_null()
+    False
+    >>> BBox().is_null()
+    True
+    >>> bb = BBox()
+    >>> bb.expand(0,0)
+    >>> bb.is_null()
+    False
+
+    >>> boxa.expand(16,16)
+    >>> boxa.expand(-16,-16)
+    >>> boxa.minx, boxa.miny, boxa.maxx, boxa.maxy, boxa.width, boxa.height
+    (-16, -16, 16, 16, 33, 33)
+    >>> [b.corners for b in boxa.quarter()]
+    [((-16, -16), (-1, -1)), ((-16, 0), (-1, 15)), ((0, -16), (15, -1)), ((0, 0), (15, 15))]
+    
+    
+    """
+    class BBoxTypeError(Exception):
+        """Raise if a method is called that doesn't make sense for this kind of BBox"""
+        pass
+
+    def __init__(self, minx=None, miny=None, width=None, height=None, maxx=None, maxy=None, discrete=True):
         initprops =  ('minx','miny','maxx','maxy')
         args = locals()
+        self.discrete = discrete
         if all( args[prop] == None for prop in  ('minx','miny','maxx','maxy','width','height') ):
             # init props are null.  initialize an empty bounding box
             for prop in initprops:
