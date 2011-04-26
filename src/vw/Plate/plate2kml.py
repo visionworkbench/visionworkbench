@@ -1,6 +1,6 @@
 #!/usr/bin/env python2.7
 import optparse
-import sys, os
+import sys, os, time
 import math
 sys.path.insert(1, '/Users/ted/local/src/libkml-1.2.0/build/lib/python2.7/site-packages') # tmo
 import kmldom
@@ -10,8 +10,12 @@ import json
 import zipfile
 import urlparse
 import multiprocessing
+import threading
 import Queue # this is just imported for the Queue.Empty exception <shrug>
 
+
+TILE_MIN_LOD, TILE_MAX_LOD = (64, 513)
+HARD_CODED_TILE_SIZE = 256
 
 DEFAULT_MAX_KMZ_FEATURES = 256
 DEFAULT_DRAW_ORDER_FACTOR = 10 # presently hardcoded: tiles will be rendererd at DRAW_ORDER_FACTOR * tile_level
@@ -78,10 +82,12 @@ class BBox(object):
             if width != None or height != None:
                 assert width != None and height != None and minx != None and miny != None
                 assert (not maxx and not maxy)
-                maxx = minx + width
-                maxy = miny + height
+                if not self.discrete:
+                    raise BBoxTypeError("Width and height only make sense for discrete BBoxes")
+                maxx = minx + width - 1
+                maxy = miny + height - 1
 
-            if not allow_floats:
+            if self.discrete:
                 for prop in initprops:
                     setattr(self, prop, int_or_none(locals()[prop]))
             else:
@@ -89,17 +95,23 @@ class BBox(object):
                     setattr(self, prop, locals()[prop])
     @property
     def width(self):
-        return self.maxx - self.minx
-    @width.setter
-    def width(self, value):
-        self.maxx = self.minx + value
+        if  self.discrete:
+            return self.maxx - self.minx + 1
+        else:
+            return abs(self.maxx - self.minx)
+#    @width.setter
+#    def width(self, value):
+#        self.maxx = self.minx + value - 1
 
     @property
     def height(self):
-        return self.maxy - self.miny
-    @height.setter
-    def height(self, value):
-        self.maxy = self.miny + value
+        if self.discrete:
+            return self.maxy - self.miny + 1
+        else:
+            return abs(self.maxy - self.miny)
+#    @height.setter
+#    def height(self, value):
+#        self.maxy = self.miny + value - 1
 
     def is_null(self):
         if any( getattr(self,p) == None for p in ('minx','miny','maxx','maxy') ):
@@ -161,7 +173,8 @@ class TileRegion(object):
             self._bbox = bbox()
         else:
             self._bbox = bbox
-        self.latlon_bbox = BBox(allow_floats=True) # initially empty, this decouples the region's degree-space bounds from it's tile-space bounds.
+        self.latlon_bbox = BBox(discrete=False) # initially empty, this decouples the region's degree-space bounds from it's tile-space bounds.
+        self.tile_degree_size = None
 
     # TODO: semantically, row and col should be minx and miny
     @property
@@ -253,9 +266,17 @@ class TileRegion(object):
             #minlod, maxlod = (128, 531)
             #minlod, maxlod = (64, -1)
             #minlod, maxlod = (64, max((self.height, self.width)) * 2 + 1)
-            minlod = int(math.sqrt(self.height * self.width)) * 32 - 4 #64
-            maxlod = int(math.sqrt(self.height * self.width )) * 512 * 4 + 1
-            #maxlod = -1
+            #minlod = int(math.sqrt(self.height * self.width)) * 32 - 4 #64
+            #maxlod = int(math.sqrt(self.height * self.width )) * 512 * 6 + 1
+            #minlod = TILE_MIN_LOD * max(self.width, self.height)
+            #maxlod = TILE_MAX_LOD * max(self.width, self.height)
+            degree_width = abs(self.latlon_bbox.maxx - self.latlon_bbox.minx)
+            degree_height = abs(self.latlon_bbox.maxy - self.latlon_bbox.miny)
+            region_degree_size = math.sqrt(degree_width * degree_height)
+            minlod = int(TILE_MIN_LOD / self.tile_degree_size * region_degree_size)
+            maxlod = int(math.ceil(TILE_MAX_LOD / self.tile_degree_size * region_degree_size))
+
+
             if self.level == options.max_levels:
                 maxlod = -1
         region.set_lod(create_lod(minlod, maxlod, factory))
@@ -275,6 +296,15 @@ class Tile(object):
         self.north = north
         self.south = south
         self.filetype = filetype
+        self.pixel_width = HARD_CODED_TILE_SIZE
+        self.pixel_height = HARD_CODED_TILE_SIZE
+
+    @property
+    def degree_width(self):
+        return abs(self.east - self.west)
+    @property
+    def degree_height(self):
+        return abs(self.north - self.south)
 
     def latlonbox(self):
         """
@@ -314,10 +344,7 @@ class Tile(object):
         #        # end of branch
         #        minlod, maxlod = (128 ,-1)
         else:
-            #minlod, maxlod = (128, 531)
-            #minlod, maxlod = (64, -1)
-            #minlod, maxlod = (64, 513)
-            minlod, maxlod = (64, 513)
+            minlod, maxlod = (TILE_MIN_LOD, TILE_MAX_LOD)
             if self.level == options.max_levels:
                 maxlod = -1
         region.set_lod(create_lod(minlod, maxlod, factory))
@@ -448,14 +475,18 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     level = PlateLevel(levelno)
     netlinks = []
     hit_regions = []
-    
-    region_queue = multiprocessing.JoinableQueue()
-    output_queue = multiprocessing.Queue()
+
+    #region_queue = multiprocessing.JoinableQueue()
+    #output_queue = multiprocessing.Queue()
+    region_queue = Queue.Queue()
+    output_queue = Queue.Queue()
+    die_event = threading.Event()
 
     print "Launching %d workers." % options.workers
     workers = []
     for i in range(options.workers):
-        p = multiprocessing.Process( target=draw_region_worker, args=(region_queue, output_queue, plate, output_dir, factory) )
+        #p = multiprocessing.Process( target=draw_region_worker, args=(region_queue, output_queue, plate, output_dir, factory) )
+        p = threading.Thread(target=draw_region_worker, args=(die_event, region_queue, output_queue, plate, output_dir, factory))
         workers.append(p)
         p.start()
 
@@ -472,20 +503,22 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     print "Waiting for join..."
     region_queue.join()
     print "Joined!"
-    region_queue.close()
+    #region_queue.close()
 
-    for w in workers:
-        w.terminate()
+    die_event.set()
+
 
     while True:
         try:
+            time.sleep(0.1)
             region = output_queue.get(False)
             netlink = make_netlink(os.path.basename(region.kmz_filename), region, factory, name=region.name())
             netlinks.append(netlink)
             hit_regions.append(region)
+            output_queue.task_done()
         except Queue.Empty:
             break
-    output_queue.close()
+    #output_queue.close()
 
     # clear the referenced list and replace contents with new hit_regions
     del prior_hit_regions[:]
@@ -523,6 +556,9 @@ def draw_region(region, plate, output_dir, factory):
     if len(tiles) == 0:
         return None
     #if len(tiles) > options.max_features:  # TODO: Implement (or remove) max features / netlinks
+
+    t = tiles[0]
+    region.tile_degree_size = math.sqrt(t.degree_width * t.degree_height) # this is actually consistent for the whole level.
     for t in tiles:
         #goverlay = overlay_for_tile(t, factory)
         goverlay = t.kml_overlay(factory)
@@ -543,13 +579,15 @@ def draw_region(region, plate, output_dir, factory):
 
     return region
 
-def draw_region_worker(region_queue, output_queue, plate, output_dir, factory):
+def draw_region_worker(die_event, region_queue, output_queue, plate, output_dir, factory):
     """
     Loop infinitely and try to draw regions.
     """
     while True:
+        if die_event.is_set():
+            break
         try:
-            region = region_queue.get(True, 3)
+            region = region_queue.get(True, 0.1)
         except Queue.Empty:
             #print "Region queue empty.  Retrying"
             continue
@@ -558,6 +596,7 @@ def draw_region_worker(region_queue, output_queue, plate, output_dir, factory):
             if result:
                 output_queue.put(result)
         finally:
+            time.sleep(0.01)
             region_queue.task_done()
 
 def draw_plate(platefile_url, output_dir):
