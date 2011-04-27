@@ -1625,6 +1625,20 @@ namespace math {
     return VectorUnaryFunc<VectorT, ArgImagFunctor>( v.impl() );
   }
 
+  /// Floor of vector
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgFloorFunctor>
+  inline floor( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgFloorFunctor>( v.impl() );
+  }
+
+  /// Ceil of vector
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgCeilFunctor>
+  inline ceil( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgCeilFunctor>( v.impl() );
+  }
+
 } // namespace math
 
   // Typedefs for commonly-used static vector types and using

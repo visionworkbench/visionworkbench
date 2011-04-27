@@ -261,9 +261,7 @@ TEST(Vector, Real) {
       std::complex<float>(2,3),
       std::complex<float>(3,4));
 
-  EXPECT_EQ( 1, real(v)(0) );
-  EXPECT_EQ( 2, real(v)(1) );
-  EXPECT_EQ( 3, real(v)(2) );
+  EXPECT_VECTOR_EQ( real(v), Vector3f(1,2,3) );
 }
 
 TEST(Vector, Imag) {
@@ -271,9 +269,21 @@ TEST(Vector, Imag) {
       std::complex<float>(2,3),
       std::complex<float>(3,4));
 
-  EXPECT_EQ( 2, imag(v)(0) );
-  EXPECT_EQ( 3, imag(v)(1) );
-  EXPECT_EQ( 4, imag(v)(2) );
+  EXPECT_VECTOR_EQ( imag(v), Vector3f(2,3,4) );
+}
+
+TEST(Vector, Floor) {
+  Vector3 v(1.4,25.3,-13.7);
+  Vector3 o = floor(v);
+
+  EXPECT_VECTOR_EQ( o, Vector3(1,25,-14) );
+}
+
+TEST(Vector, Ceil) {
+  Vector3 v(1.4,25.3,-13.7);
+  Vector3 o = ceil(v);
+
+  EXPECT_VECTOR_EQ( o, Vector3(2,26,-13) );
 }
 
 TEST(Vector, IndexingIterator) {
