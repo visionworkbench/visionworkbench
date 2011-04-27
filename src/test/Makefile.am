@@ -4,17 +4,28 @@
 # All Rights Reserved.
 # __END_LICENSE__
 
-
 ########################################################################
 # sources
 ########################################################################
 
-SUBDIRS = vw test
+if MAKE_MODULE_CARTOGRAPHY
+if HAVE_PKG_GDAL
+geotif_generate_SOURCES = geotif-generate.cc
+geotif_generate_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CARTOGRAPHY_CPPFLAGS@
+geotif_generate_LDADD = @PKG_CARTOGRAPHY_LIBS@
+endif
+endif
 
-EXTRA_DIST = Doxyfile
+noinst_PROGRAMS = geotif-generate
 
 ########################################################################
 # general
 ########################################################################
 
+AM_CPPFLAGS = @VW_CPPFLAGS@
+AM_LDFLAGS = @VW_LDFLAGS@
+
+EXTRA_DIST = Helpers.h
+
+includedir = $(prefix)/include/test
 include $(top_srcdir)/config/rules.mak

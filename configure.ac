@@ -508,6 +508,7 @@ AC_SUBST(DEHYDRA_PLUGIN)
 AC_CONFIG_FILES([                       \
   Makefile                              \
   src/Makefile                          \
+  src/test/Makefile                     \
   src/vw/Makefile                       \
   src/vw/tools/Makefile                 \
   src/vw/gui/Makefile                   \
