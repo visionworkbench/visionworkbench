@@ -1639,6 +1639,18 @@ namespace math {
     return VectorUnaryFunc<VectorT, ArgCeilFunctor>( v.impl() );
   }
 
+  // Polynomial Evaluation of vector using Horner's Scheme
+  // Vector3(a,b,c) = a*x*x+b*x + c
+  template <class VectorT>
+  inline double polyval( VectorBase<VectorT> const& v, double x ) {
+    double b = 0.0;
+    typename VectorT::const_iterator i = v.impl().begin(), end = v.impl().end();
+    for( ; i != end; ++i ) {
+      b = *i + b*x;
+    }
+    return b;
+  }
+
 } // namespace math
 
   // Typedefs for commonly-used static vector types and using

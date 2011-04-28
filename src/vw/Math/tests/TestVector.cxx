@@ -231,6 +231,13 @@ TEST(Vector, Norms) {
   EXPECT_EQ( -2, prod(v) );
 }
 
+TEST(Vector, Polyval) {
+  Vector3 v(3,2,1);
+  EXPECT_EQ( 86,  polyval(v,5) );
+  EXPECT_EQ( 162, polyval(v,7) );
+  EXPECT_EQ( 262, polyval(v,9) );
+}
+
 TEST(Vector, Funcs) {
   Vector3f v1(1,2,3), v2(2,4,4);
 
