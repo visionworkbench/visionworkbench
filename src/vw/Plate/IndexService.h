@@ -11,6 +11,7 @@
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexService.pb.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 namespace vw {
 namespace platefile {
@@ -27,13 +28,17 @@ namespace platefile {
 
     std::string m_root_directory;
 
+    typedef boost::shared_mutex mutex_t;
+    typedef boost::shared_lock<mutex_t> read_lock_t;
+    typedef boost::unique_lock<mutex_t> write_lock_t;
+
     typedef std::map<int32, IndexServiceRecord> index_list_type;
     index_list_type m_indices;
+    mutable mutex_t m_mutex;
 
     // Private methods
     std::vector<std::string> glob_plate_filenames(std::string const& root_directory);
-    IndexServiceRecord* add_index(std::string root_directory, std::string plate_filename,
-                                  boost::shared_ptr<Index> index);
+    IndexServiceRecord* add_index(std::string plate_filename, boost::shared_ptr<Index> index);
 
     IndexServiceRecord* find_id(int32 platefile_id);
     IndexServiceRecord  find_id_throw(int32 platefile_id);

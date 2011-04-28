@@ -47,19 +47,16 @@ std::vector<std::string> IndexServiceImpl::glob_plate_filenames(std::string cons
   return result;
 }
 
-IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index(std::string root_directory,
-                                                                  std::string plate_filename,
-                                                                  boost::shared_ptr<Index> index) {
+IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index( std::string plate_filename, boost::shared_ptr<Index> index) {
+  // Build up an IndexServiceRecord
+  IndexServiceRecord rec;
+  rec.short_plate_filename = plate_filename;
+  rec.full_plate_filename = m_root_directory + "/" + plate_filename;
+  rec.index = index;
 
-    // Build up an IndexServiceRecord
-    IndexServiceRecord rec;
-    rec.short_plate_filename = plate_filename;
-    rec.full_plate_filename = root_directory + "/" + plate_filename;
-    rec.index = index;
-
-    // Store the record in a std::map by platefile_id
-    m_indices[index->index_header().platefile_id()]  = rec;
-    return &m_indices[index->index_header().platefile_id()];
+  // Store the record in a std::map by platefile_id
+  m_indices[index->index_header().platefile_id()]  = rec;
+  return &m_indices[index->index_header().platefile_id()];
 }
 
 
@@ -100,11 +97,12 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
   for (unsigned i = 0 ; i < platefiles.size(); ++i) {
     // Open each new platefile.  This will return a LocalIndex which we store using add_index()
     boost::shared_ptr<Index> idx = Index::construct_open(Url(m_root_directory + "/" + platefiles[i]));
-    this->add_index(m_root_directory, platefiles[i], idx);
+    this->add_index(platefiles[i], idx);
   }
 }
 
 void IndexServiceImpl::sync() {
+  read_lock_t rolock(m_mutex);
   BOOST_FOREACH(index_list_type::value_type& i, m_indices) {
     vw_out() << "\t--> Syncing index for " << i.second.short_plate_filename << " to disk.\n";
     i.second.index->sync();
@@ -116,8 +114,12 @@ void IndexServiceImpl::sync() {
 #define METHOD_IMPL_NOREPLY(Name, Input) \
   void IndexServiceImpl::Name(pb::RpcController*, const Input* request, RpcNullMsg*, pb::Closure* done)
 
+#define METHOD_BOILERPLATE(locktype) \
+  detail::RequireCall call(done);\
+  locktype thelock(m_mutex);
+
 METHOD_IMPL(OpenRequest, IndexOpenRequest, IndexOpenReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord *r = find_name(request->plate_name());
 
   if (!r)
@@ -129,7 +131,7 @@ METHOD_IMPL(OpenRequest, IndexOpenRequest, IndexOpenReply) {
 }
 
 METHOD_IMPL(CreateRequest, IndexCreateRequest, IndexOpenReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(write_lock_t);
   IndexServiceRecord *r = find_name(request->plate_name());
 
   const Url url(m_root_directory + "/" + request->plate_name());
@@ -139,13 +141,13 @@ METHOD_IMPL(CreateRequest, IndexCreateRequest, IndexOpenReply) {
       // no platefile on disk, then we try to create it.
       fs::create_directory(url.path());
       boost::shared_ptr<Index> idx = Index::construct_create(url, request->index_header());
-      r = this->add_index(m_root_directory, request->plate_name(), idx);
+      r = this->add_index(request->plate_name(), idx);
     } else {
       if (!r) {
       // REOPEN: If a platefile actually does appear to exist on disk,
       // but we had not previously opened it, we open it here.
       boost::shared_ptr<Index> idx = Index::construct_open(url);
-      r = this->add_index(m_root_directory, request->plate_name(), idx);
+      r = this->add_index(request->plate_name(), idx);
     }
     // OPEN: Now check that the opened/reopened index matches the requested format.
     const IndexHeader& orig = r->index->index_header();
@@ -168,7 +170,7 @@ METHOD_IMPL(CreateRequest, IndexCreateRequest, IndexOpenReply) {
 }
 
 METHOD_IMPL(InfoRequest, IndexInfoRequest, IndexInfoReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
   response->set_short_plate_filename(rec.short_plate_filename);
@@ -177,7 +179,7 @@ METHOD_IMPL(InfoRequest, IndexInfoRequest, IndexInfoReply) {
 }
 
 METHOD_IMPL(ListRequest, IndexListRequest, IndexListReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   for (index_list_type::const_iterator i = m_indices.begin(), end = m_indices.end(); i != end; ++i) {
 
     IndexServiceRecord rec = i->second;
@@ -203,7 +205,7 @@ METHOD_IMPL(ListRequest, IndexListRequest, IndexListReply) {
 }
 
 METHOD_IMPL(PageRequest, IndexPageRequest, IndexPageReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
   boost::shared_ptr<IndexPage> page =
@@ -215,7 +217,7 @@ METHOD_IMPL(PageRequest, IndexPageRequest, IndexPageReply) {
 }
 
 METHOD_IMPL(ReadRequest, IndexReadRequest, IndexReadReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
   *(response->mutable_index_record()) =
@@ -224,7 +226,7 @@ METHOD_IMPL(ReadRequest, IndexReadRequest, IndexReadReply) {
 }
 
 METHOD_IMPL(WriteRequest, IndexWriteRequest, IndexWriteReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
   uint64 size;
@@ -234,13 +236,13 @@ METHOD_IMPL(WriteRequest, IndexWriteRequest, IndexWriteReply) {
 }
 
 METHOD_IMPL_NOREPLY(WriteUpdate, IndexWriteUpdate) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->write_update(request->header(), request->record());
 }
 
 METHOD_IMPL_NOREPLY(MultiWriteUpdate, IndexMultiWriteUpdate) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   // MultiWrite updates are packetized.  We iterate over them here.
   for (int i = 0; i < request->write_updates().size(); ++i) {
     IndexWriteUpdate update = request->write_updates().Get(i);
@@ -250,52 +252,52 @@ METHOD_IMPL_NOREPLY(MultiWriteUpdate, IndexMultiWriteUpdate) {
 }
 
 METHOD_IMPL_NOREPLY(WriteComplete, IndexWriteComplete) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->write_complete(request->blob_id(), request->blob_offset());
 }
 
 METHOD_IMPL(TransactionRequest, IndexTransactionRequest, IndexTransactionReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
-  Transaction transaction_id = 
+  Transaction transaction_id =
     rec.index->transaction_request(request->description(), request->transaction_id_override());
   response->set_transaction_id(transaction_id);
 }
 
 METHOD_IMPL_NOREPLY(TransactionComplete, IndexTransactionComplete) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->transaction_complete(request->transaction_id(), request->update_read_cursor());
 }
 
 METHOD_IMPL_NOREPLY(TransactionFailed, IndexTransactionFailed) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->transaction_failed(request->transaction_id());
 }
 
 METHOD_IMPL(TransactionCursor, IndexTransactionCursorRequest, IndexTransactionCursorReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   Transaction transaction_id = rec.index->transaction_cursor();
   response->set_transaction_id(transaction_id);
 }
 
 METHOD_IMPL(NumLevelsRequest, IndexNumLevelsRequest, IndexNumLevelsReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   response->set_num_levels(rec.index->num_levels());
 }
 
 METHOD_IMPL_NOREPLY(LogRequest, IndexLogRequest) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
   rec.index->log(request->message());
 }
 
 METHOD_IMPL(TestRequest, IndexTestRequest, IndexTestReply) {
-  detail::RequireCall call(done);
+  METHOD_BOILERPLATE(read_lock_t);
   response->set_value(request->value());
 }
 
