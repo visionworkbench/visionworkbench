@@ -403,30 +403,32 @@ void do_mosaic(const Options& opt, const ProgressCallback *progress)
     }
 
     BBox2i bbox = geotx.forward_bbox( BBox2i(0,0,source.cols(),source.rows()) );
-    if ( norm_2(geotx.reverse(geotx.forward(Vector2()))) > 1 ) {
-      // Check for a fault were the forward bbox is correct, however
-      // running a reverse through the geotransform projects 360
-      // degrees off. Below seems like the only fix possible, as I
-      // believe the problem happens because Proj4's fwd_pj will
-      // always clamp to [-180,180].
-
-      // However this fix will break in the event that the projection
-      // doesn't loop back on itself. However if the projection did
-      // that, I don't believe the test condition for this section
-      // would be able to throw. This fix would also break if there
-      // was a rotation in the georeference transform. GDAL however
-      // doesn't support that.
-
-      // For an example, see WAC global mosiac with tiles past the 180
-      BBox2i correction(-geotx.reverse(geotx.forward(Vector2()))[0],0,source.cols(),source.rows());
-      source = crop(transform_only( crop( interpolate(source), correction ),
-                                    geotx ), bbox );
+    if ( global ) {
+      vw_out() << "\t--> Detected global overlay. Using cylindrical edge extension to hide the seam.\n";
+      source = crop( transform( source, geotx, source.cols(), source.rows(), CylindricalEdgeExtension() ), bbox );
     } else {
-      if (global) {
-        vw_out() << "\t--> Detected global overlay.  Using cylindrical edge extension to hide the seam.\n";
-        source = crop( transform( source, geotx, source.cols(), source.rows(), CylindricalEdgeExtension() ), bbox );
-      } else
+      if ( norm_2(geotx.reverse(geotx.forward(Vector2()))) >
+           0.01*norm_2(Vector2(source.cols(),source.rows())) ) {
+        // Check for a fault were the forward bbox is correct, however
+        // running a reverse through the geotransform projects 360
+        // degrees off. Below seems like the only fix possible, as I
+        // believe the problem happens because Proj4's fwd_pj will
+        // always clamp to [-180,180].
+
+        // However this fix will break in the event that the projection
+        // doesn't loop back on itself. However if the projection did
+        // that, I don't believe the test condition for this section
+        // would be able to throw. This fix would also break if there
+        // was a rotation in the georeference transform. GDAL however
+        // doesn't support that.
+
+        // For an example, see WAC global mosiac with tiles past the 180
+        BBox2i correction(-geotx.reverse(geotx.forward(Vector2()))[0],0,source.cols(),source.rows());
+        source = crop(transform_only( crop( interpolate(source), correction ),
+                                      geotx ), bbox );
+      } else {
         source = transform( source, geotx, bbox );
+      }
     }
 
     // Images that wrap the date line must be added to the composite

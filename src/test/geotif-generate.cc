@@ -41,6 +41,8 @@ void render_degree( ImageView<PixelGray<uint8> >& image,
   BBox2i lli_box;
   lli_box.min() = floor( ll_box.min() );
   lli_box.max() = ceil( ll_box.max() );
+  std::cout << "LL Box: " << ll_box << "\n";
+  std::cout << "LLi Box: " << lli_box << "\n";
 
   BBox2i image_box = bounding_box( image );
 
@@ -285,9 +287,19 @@ int main( int argc, char *argv[] ) {
       constant_view( PixelGray<uint8>(64), 1024, 1024 );
     cartography::GeoReference georef;
     georef.set_UTM( 10, 42 );
-    georef.set_transform( Matrix3x3(5000,0,-1000000,0,5000,-2560000,0,0,1) );
+    georef.set_transform( Matrix3x3(5000,0,-1000000,0,-5000,2560000,0,0,1) );
     render_degree( input, georef );
     write_georeferenced_image( "utm10.tif", input, georef );
+  }
+
+  { vw_out() << "Writing: UTM 60S\n";
+    ImageView<PixelGray<uint8> > input =
+      constant_view( PixelGray<uint8>(64), 1024, 1024 );
+    cartography::GeoReference georef;
+    georef.set_UTM( 60, 40 );
+    georef.set_transform( Matrix3x3(1000,0,-300000,0,-1000,5e6,0,0,1) );
+    render_degree( input, georef );
+    write_georeferenced_image( "utm60s.tif", input, georef );
   }
 
   { vw_out() << "Writing: Center -90 Sinusoidal\n";
