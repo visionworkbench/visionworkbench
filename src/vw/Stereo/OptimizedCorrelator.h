@@ -14,6 +14,7 @@
 
 // Boost
 #include <boost/thread/xtime.hpp>
+#include <numeric>
 
 namespace vw {
 namespace stereo {
@@ -66,36 +67,56 @@ namespace stereo {
       VW_ASSERT(img.impl().cols() == m_dst.cols() && img.impl().rows() == m_dst.rows(),
                 ArgumentErr() << "StereoCostFunction::box_filter() : image size (" << img.impl().cols() << " " << img.impl().rows() << ") does not match box filter size (" << m_dst.cols() << " " << m_dst.rows() << ").");
 
-      Vector<float> cSum(img.impl().cols());
+      // Explicitly rasterize our input
+      typedef typename BoxViewT::pixel_type PixelT;
+      ImageView<PixelT> input(img.impl());
+      typedef typename ImageView<typename BoxViewT::pixel_type>::pixel_accessor AccT;
+      typedef typename ImageView<float>::pixel_accessor DAccT;
 
-      // Seed the column sum buffer
-      for (int32 x = 0; x < img.impl().cols(); x++) {
-        cSum(x) = 0;
-        for (int32 ky = 0; ky < m_kernel_size; ky++) {
-          cSum(x) += img.impl()(x, ky);
+      boost::scoped_array<float> cSum( new float[input.cols()] );
+      const float* cSumBack = &cSum[input.cols()];
+
+      {
+        AccT input_col = input.origin();
+        for ( float* cfront = &cSum[0];
+              cfront < cSumBack; cfront++ ) {
+          AccT input_e = input_col;
+          *cfront = *input_e;;
+          for (int32 ky = 1; ky < m_kernel_size; ky++) {
+            input_e.next_row();
+            *cfront += *input_e;
+          }
+          input_col.next_col();
         }
       }
 
-      for (int32 y = 0; y < img.impl().rows() - m_kernel_size; y++) {
+      for (int32 y = 0; y < input.rows() - m_kernel_size; y++) {
         // Seed the row sum
         float rsum = 0;
-        for (int32 i = 0; i < m_kernel_size; i++) {
-          rsum += cSum(i);
-        }
+        rsum = std::accumulate(&cSum[0],&cSum[m_kernel_size],rsum);
 
-        for (int32 x = 0; x < img.impl().cols() - m_kernel_size; x++) {
-          m_dst(x + m_half_kernel, y + m_half_kernel) = rsum;
-          // Update the row sum
-          rsum += cSum(x + m_kernel_size) - cSum(x);
+        DAccT dst_iter = m_dst.origin().advance(m_half_kernel,y + m_half_kernel);
+        float* cback  = &cSum[0];
+        for ( float* cfront = &cSum[m_kernel_size];
+              cfront < cSumBack; cfront++ ) {
+          *dst_iter = rsum * m_kernel_size_i2;
+          dst_iter.next_col();
+          rsum += *cfront - *cback;
+          cback++;
         }
 
         // Update the column sum
-        for (int32 i = 0; i < img.impl().cols(); i++) {
-          cSum(i) += img.impl()(i, y + m_kernel_size) - img.impl()(i, y);
+        AccT front = input.origin().advance(0,y+m_kernel_size);
+        AccT back  = input.origin().advance(0,y);
+        for ( float* cfront = &cSum[0];
+              cfront < cSumBack; cfront++ ) {
+          *cfront += *front - *back;
+          front.next_col();
+          back.next_col();
         }
       }
 
-      return m_dst * m_kernel_size_i2;
+      return m_dst;
     }
   };
 
