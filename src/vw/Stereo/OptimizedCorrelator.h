@@ -109,8 +109,8 @@ namespace stereo {
                       BBox2i const& search_window,
                       int32 kern_size) : StereoCostFunction(left.impl().cols(), left.impl().rows(),
                                                                  search_window, kern_size),
-                                       m_left(copy(left.impl())),
-                                       m_right(copy(right.impl())) {
+                                       m_left(left.impl()),
+                                       m_right(right.impl()) {
       VW_ASSERT(m_left.impl().cols() == m_right.impl().cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.impl().rows() == m_right.impl().rows(), ArgumentErr() << "Left and right images not the same height");
     }
@@ -131,10 +131,10 @@ namespace stereo {
                      ImageViewBase<ViewT> const& right,
                      BBox2i const& search_window,
                      int32 kern_size) : StereoCostFunction(left.impl().cols(),
-                                                         left.impl().rows(),
-                                                         search_window, kern_size),
-                                      m_left(copy(left.impl())),
-                                      m_right(copy(right.impl()) ) {
+                                                           left.impl().rows(),
+                                                           search_window, kern_size),
+                                        m_left(left.impl()),
+                                        m_right(right.impl()) {
       VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
     }
@@ -157,8 +157,8 @@ namespace stereo {
                   BBox2i const& search_window,
                   int32 kern_size) : StereoCostFunction(left.impl().cols(), left.impl().rows(),
                                                       search_window, kern_size),
-                                   m_left(copy(left.impl())),
-                                   m_right(copy(right.impl())) {
+                                   m_left(left.impl()),
+                                   m_right(right.impl()) {
       VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
 
