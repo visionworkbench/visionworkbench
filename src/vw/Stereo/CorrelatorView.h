@@ -161,14 +161,9 @@ namespace stereo {
 
         // We crop the images to the expanded bounding box and edge
         // extend in case the new bbox extends past the image bounds.
-        //
-        // We're not making a copy as the pyramid correlator will make
-        // its own copy. It's not too important anyways since
-        // imageview are shared arrays. It should be performance
-        // tested to see if ref or straight view is faster.
-        ImageViewRef<ImagePixelT> cropped_left_image =
+        ImageView<ImagePixelT> cropped_left_image =
           crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
-        ImageViewRef<ImagePixelT> cropped_right_image =
+        ImageView<ImagePixelT> cropped_right_image =
           crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
         ImageView<MaskPixelT> cropped_left_mask =
           crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
@@ -219,10 +214,7 @@ namespace stereo {
         // Adjust the disparities to be relative to the uncropped
         // image pixel locations
         // This should just be a straight forward add
-        for (int32 v = 0; v < disparity_map.rows(); ++v)
-          for (int32 u = 0; u < disparity_map.cols(); ++u)
-            if (is_valid(disparity_map(u,v)) )
-              remove_mask(disparity_map(u,v)) += m_search_range.min();
+        disparity_map += pixel_type(m_search_range.min());
 
         // This may seem confusing, but we must crop here so that the
         // good pixel data is placed into the coordinates specified by
