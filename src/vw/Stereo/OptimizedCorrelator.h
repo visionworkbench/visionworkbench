@@ -99,7 +99,7 @@ namespace stereo {
         float* cback  = &cSum[0];
         for ( float* cfront = &cSum[m_kernel_size];
               cfront < cSumBack; cfront++ ) {
-          *dst_iter = rsum * m_kernel_size_i2;
+          *dst_iter = rsum;
           dst_iter.next_col();
           rsum += *cfront - *cback;
           cback++;
@@ -116,7 +116,7 @@ namespace stereo {
         }
       }
 
-      return m_dst;
+      return m_dst * m_kernel_size_i2;
     }
   };
 
