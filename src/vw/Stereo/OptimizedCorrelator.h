@@ -183,13 +183,13 @@ namespace stereo {
       VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
 
-      vw::ImageView<float> left_mean_sq = this->box_filter(m_left * m_left);
       m_left_mean = this->box_filter(m_left);
-      m_left_variance = left_mean_sq - m_left_mean * m_left_mean;
+      m_left_variance = this->box_filter(m_left * m_left) -
+        m_left_mean * m_left_mean;
 
-      vw::ImageView<float> right_mean_sq = this->box_filter(m_right * m_right);
       m_right_mean = this->box_filter(m_right);
-      m_right_variance = right_mean_sq - m_right_mean * m_right_mean;
+      m_right_variance = this->box_filter(m_right * m_right) -
+        m_right_mean * m_right_mean;
     }
 
     virtual ImageView<float> calculate(int32 dx, int32 dy);
