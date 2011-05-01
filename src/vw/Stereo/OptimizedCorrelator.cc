@@ -29,7 +29,8 @@ struct AbsDifferenceFunctor : BinaryReturnTemplateType<DifferenceType> {
 };
 
 template <class Image1T, class Image2T>
-inline BinaryPerPixelView<Image1T, Image2T, AbsDifferenceFunctor> abs_difference(ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2) {
+inline BinaryPerPixelView<Image1T, Image2T, AbsDifferenceFunctor>
+abs_difference(ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2) {
   return BinaryPerPixelView<Image1T, Image2T, AbsDifferenceFunctor>(image1.impl(), image2.impl(), AbsDifferenceFunctor());
 }
 
@@ -43,7 +44,8 @@ struct SqDifferenceFunctor : BinaryReturnTemplateType<DifferenceType> {
 };
 
 template <class Image1T, class Image2T>
-inline BinaryPerPixelView<Image1T, Image2T, SqDifferenceFunctor> sq_difference(ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2) {
+inline BinaryPerPixelView<Image1T, Image2T, SqDifferenceFunctor>
+sq_difference(ImageViewBase<Image1T> const& image1, ImageViewBase<Image2T> const& image2) {
   return BinaryPerPixelView<Image1T, Image2T, SqDifferenceFunctor>(image1.impl(), image2.impl(), SqDifferenceFunctor());
 }
 
@@ -52,30 +54,39 @@ inline BinaryPerPixelView<Image1T, Image2T, SqDifferenceFunctor> sq_difference(I
 // ---------------------------------------------------------------------------
 
 ImageView<float> AbsDifferenceCost::calculate(int32 dx, int32 dy) {
+  typedef ZeroEdgeExtension EdgeT;
+  typedef CropView<EdgeExtensionView<ImageView<float>, EdgeT > > OverCropT;
+
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left,ZeroEdgeExtension()), this->bbox());
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right,ZeroEdgeExtension()), right_bbox);
+  OverCropT left_window(edge_extend(m_left, EdgeT()), this->bbox());
+  OverCropT right_window(edge_extend(m_right, EdgeT()), right_bbox);
   return this->box_filter(abs_difference(left_window, right_window));
 }
 
 
 ImageView<float> SqDifferenceCost::calculate(int32 dx, int32 dy) {
+  typedef ZeroEdgeExtension EdgeT;
+  typedef CropView<EdgeExtensionView<ImageView<float>, EdgeT > > OverCropT;
+
   BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left,ZeroEdgeExtension()), this->bbox());
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right,ZeroEdgeExtension()), right_bbox);
+  OverCropT left_window(edge_extend(m_left, EdgeT()), this->bbox());
+  OverCropT right_window(edge_extend(m_right, EdgeT()), right_bbox);
   return this->box_filter(sq_difference(left_window, right_window));
 }
 
 
 ImageView<float> NormXCorrCost::calculate(int32 dx, int32 dy) {
-  BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_window(edge_extend(m_left, ZeroEdgeExtension()), this->bbox());
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_mean_window(edge_extend(m_left_mean, ZeroEdgeExtension()), this->bbox());
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > left_variance_window(edge_extend(m_left_variance, ZeroEdgeExtension()), this->bbox());
+  typedef ZeroEdgeExtension EdgeT;
+  typedef CropView<EdgeExtensionView<ImageView<float>, EdgeT > > OverCropT;
 
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_window(edge_extend(m_right, ZeroEdgeExtension()), right_bbox);
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_mean_window(edge_extend(m_right_mean, ZeroEdgeExtension()), right_bbox);
-  CropView<EdgeExtensionView<ImageView<float>, ZeroEdgeExtension> > right_variance_window(edge_extend(m_right_variance, ZeroEdgeExtension()), right_bbox);
+  BBox2i right_bbox = this->bbox() + Vector2i(dx, dy);
+  OverCropT left_window(edge_extend(m_left, EdgeT()), this->bbox());
+  OverCropT left_mean_window(edge_extend(m_left_mean, EdgeT()), this->bbox());
+  OverCropT left_variance_window(edge_extend(m_left_variance, EdgeT()), this->bbox());
+
+  OverCropT right_window(edge_extend(m_right, EdgeT()), right_bbox);
+  OverCropT right_mean_window(edge_extend(m_right_mean, EdgeT()), right_bbox);
+  OverCropT right_variance_window(edge_extend(m_right_variance, EdgeT()), right_bbox);
 
   ImageView<float> left_right_mean = this->box_filter(left_window * right_window);
 
