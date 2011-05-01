@@ -28,9 +28,9 @@ namespace stereo {
 
   protected:
     BBox2i m_left_bbox;
-    ImageView<float> m_dst;
+    ImageView<float> m_dst; // A Buffer holding box filter results
     int32 m_kernel_size;
-    float m_kernel_size_i2;
+    float m_kernel_size_i2; // 1 / kernel_size^2
     int32 m_half_kernel;
 
   public:
