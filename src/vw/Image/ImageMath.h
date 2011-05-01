@@ -404,6 +404,9 @@ namespace vw {
   /// no operation.
   VW_IMAGE_MATH_UNARY_FUNCTION(conj, vw::math::ArgConjFunctor)
 
+  /// Computes the square of each pixel in an image
+  VW_IMAGE_MATH_UNARY_FUNCTION(square, vw::math::ArgSquareFunctor)
+
 } // namespace vw
 
 #endif // __VW_IMAGE_IMAGEMATH_H__

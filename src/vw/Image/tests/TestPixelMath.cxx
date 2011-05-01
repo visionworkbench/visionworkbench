@@ -258,6 +258,15 @@ TEST( PixelMath, Conj ) {
   ASSERT_TRUE( is_of_type<ToyType<std::complex<int> > >( conj(ToyType<std::complex<int> >(1)) ) );
 }
 
+TEST( PixelMath, Square ) {
+  EXPECT_EQ( square(ToyType<double>(1.0))[0], 1.0 );
+  EXPECT_EQ( square(ToyType<double>(-1.0))[0], 1.0 );
+  EXPECT_EQ( square(ToyType<int32>(32))[0], 1024 );
+  EXPECT_EQ( square(ToyType<uint8>(2u))[0], 4 );
+  ASSERT_TRUE( is_of_type<ToyType<float> >( square(ToyType<float>(1)) ) );
+  ASSERT_TRUE( is_of_type<ToyType<int32> >( square(ToyType<int32>(1)) ) );
+}
+
 TEST( PixelMath, AcosFunctor ) {
   ToyType<double> x(0.5);
   ASSERT_TRUE( is_of_type<ToyType<double> >( vw::math::ArgAcosFunctor()(x) ) );

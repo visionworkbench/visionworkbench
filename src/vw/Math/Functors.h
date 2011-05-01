@@ -297,6 +297,13 @@ namespace math {
     }
   };
 
+  // Square Functor (so we don't have to always invoke POW)
+  struct ArgSquareFunctor : UnaryReturnSameType {
+    template <class ValT>
+    ValT operator()( ValT const& val ) const {
+      return val*val;
+    }
+  };
 
   // General-purpose accumulation functor
   template <class AccumT, class FuncT = ArgArgInPlaceSumFunctor>

@@ -201,6 +201,7 @@ namespace vw {
   VW_PIXEL_MATH_UNARY_FUNCTION(imag, vw::math::ArgImagFunctor)
   VW_PIXEL_MATH_STD_UNARY_FUNCTION(abs,  vw::math::ArgAbsFunctor)
   VW_PIXEL_MATH_UNARY_FUNCTION(conj, vw::math::ArgConjFunctor)
+  VW_PIXEL_MATH_UNARY_FUNCTION(square, vw::math::ArgSquareFunctor)
 
 } // namespace vw
 

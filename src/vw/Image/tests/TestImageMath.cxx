@@ -233,6 +233,19 @@ TEST( ImageMath, Conj ) {
   ASSERT_TRUE( has_pixel_type<std::complex<int> >( conj(ImageView<std::complex<int> >()) ) );
 }
 
+TEST( ImageMath, Square ) {
+  ImageView<double> im(2,1);
+  im(0,0) = 3; im(1,0) = -4;
+  EXPECT_EQ( square(im).cols(), im.cols() );
+  EXPECT_EQ( square(im).rows(), im.rows() );
+  EXPECT_EQ( square(im).planes(), im.planes() );
+  EXPECT_EQ( square(im)(0,0), 9 );
+  EXPECT_EQ( square(im)(1,0), 16 );
+  ASSERT_TRUE( has_pixel_type<float>( square(ImageView<float>()) ) );
+  ASSERT_TRUE( has_pixel_type<double>( square(ImageView<double>()) ) );
+  ASSERT_TRUE( has_pixel_type<int32>( square(ImageView<int32>()) ) );
+}
+
 TEST( ImageMath, MaskMath ) {
   ImageView<PixelMask<PixelGray<float> > > image(2,1);
   for ( int i = 0; i < 2; i++ )
