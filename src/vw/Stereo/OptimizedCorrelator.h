@@ -169,8 +169,8 @@ namespace stereo {
   };
 
   class NormXCorrCost : public StereoCostFunction {
-    ImageView<float> m_left, m_left_mean, m_left_variance;
-    ImageView<float> m_right, m_right_mean, m_right_variance;
+    ImageView<float> m_left, m_left_mean, m_left_precision;
+    ImageView<float> m_right, m_right_mean, m_right_precision;
 
   public:
     template<class ViewT>
@@ -185,12 +185,12 @@ namespace stereo {
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
 
       m_left_mean = copy(this->box_filter(m_left));
-      m_left_variance =
-        this->box_filter(square(m_left)) - square(m_left_mean);
+      m_left_precision =
+        1/(this->box_filter(square(m_left)) - square(m_left_mean));
 
       m_right_mean = copy(this->box_filter(m_right));
-      m_right_variance =
-        this->box_filter(square(m_right)) - square(m_right_mean);
+      m_right_precision =
+        1/(this->box_filter(square(m_right)) - square(m_right_mean));
     }
 
     virtual ImageView<float> calculate(int32 dx, int32 dy);
