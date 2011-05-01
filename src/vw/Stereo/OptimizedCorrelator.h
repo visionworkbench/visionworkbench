@@ -15,6 +15,7 @@
 // Boost
 #include <boost/thread/xtime.hpp>
 #include <numeric>
+#include <vw/Image.h>
 
 namespace vw {
 namespace stereo {
@@ -99,7 +100,7 @@ namespace stereo {
         float* cback  = &cSum[0];
         for ( float* cfront = &cSum[m_kernel_size];
               cfront < cSumBack; cfront++ ) {
-          *dst_iter = rsum;
+          *dst_iter = rsum * m_kernel_size_i2;
           dst_iter.next_col();
           rsum += *cfront - *cback;
           cback++;
@@ -116,7 +117,7 @@ namespace stereo {
         }
       }
 
-      return m_dst * m_kernel_size_i2;
+      return m_dst;
     }
   };
 
@@ -183,11 +184,11 @@ namespace stereo {
       VW_ASSERT(m_left.cols() == m_right.cols(), ArgumentErr() << "Left and right images not the same width");
       VW_ASSERT(m_left.rows() == m_right.rows(), ArgumentErr() << "Left and right images not the same height");
 
-      m_left_mean = this->box_filter(m_left);
+      m_left_mean = copy(this->box_filter(m_left));
       m_left_variance =
         this->box_filter(square(m_left)) - square(m_left_mean);
 
-      m_right_mean = this->box_filter(m_right);
+      m_right_mean = copy(this->box_filter(m_right));
       m_right_variance =
         this->box_filter(square(m_right)) - square(m_right_mean);
     }
