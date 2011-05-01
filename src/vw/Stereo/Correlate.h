@@ -111,11 +111,11 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   // No pre-processing
   class NullStereoPreprocessingFilter {
   public:
-    typedef ImageView<uint8> result_type;
+    typedef ImageView<float> result_type;
 
     template <class ViewT>
     result_type operator()(ImageViewBase<ViewT> const& view) const {
-      return channel_cast_rescale<uint8>(view.impl());
+      return view.impl();
     }
     static bool use_bit_image() { return false; }
   };
