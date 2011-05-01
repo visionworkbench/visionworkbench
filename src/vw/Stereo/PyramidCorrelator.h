@@ -37,7 +37,9 @@ namespace stereo {
     void subsample_mask_by_two(ImageView<MaskPixelT> const& input,
                                ImageView<MaskPixelT> & output) {
 
-      output.set_size(input.cols()/2,input.rows()/2);
+      if ( output.cols() != input.cols()/2 ||
+           output.rows() != input.rows()/2 )
+        output.set_size(input.cols()/2,input.rows()/2);
       int32 i, j, p;
 
       for (p = 0; p < output.planes() ; p++) {
