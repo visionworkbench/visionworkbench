@@ -88,15 +88,16 @@ ImageView<float> NormXCorrCost::calculate(int32 dx, int32 dy) {
   OverCropT right_mean_window(edge_extend(m_right_mean, EdgeT()), right_bbox);
   OverCropT right_variance_window(edge_extend(m_right_variance, EdgeT()), right_bbox);
 
-  ImageView<float> left_right_mean =
-    this->box_filter(left_window * right_window) - left_mean_window * right_mean_window;
+  //ImageView<float> left_right_mean =
+  //  this->box_filter(left_window * right_window) - left_mean_window * right_mean_window;
 
   // We take the absolute value and subtract 1 here so that
   // invalid (empty) regions of the image (which would normally
   // evaluate to zero) end up evaluating to 1.0, and areas that
   // are highly correlated are closer to zero.
   //left_right_mean -= left_mean_window * right_mean_window;
-  return 1-abs(left_right_mean*left_right_mean / ( left_variance_window * right_variance_window) );
+  //return 1-abs(left_right_mean*left_right_mean / ( left_variance_window * right_variance_window) );
+  return 1-abs(square(this->box_filter(left_window * right_window) - left_mean_window * right_mean_window) / ( left_variance_window * right_variance_window) );
 }
 
 
