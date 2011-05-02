@@ -53,7 +53,7 @@ namespace photometry {
     Vector2 cameraParams; //currently not used
     Vector3 sunPosition; //relative to the center of the Moon
     Vector3 spacecraftPosition;//relative to the center of the planet
-    
+
     int *centerLine;
     int *maxDistArray;
     int *centerLineDEM;
@@ -62,6 +62,8 @@ namespace photometry {
     int *maxVerDistArray;
     int *horCenterLineDEM;
     int *maxVerDistArrayDEM;
+    
+    Vector4 corners; // cached bounds to quickly calculate overlap
     
     /*
     vector<int> centerLine;
