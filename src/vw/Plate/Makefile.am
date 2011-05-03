@@ -47,7 +47,7 @@ include_HEADERS =           \
   ToastPlateManager.h
 
 include_HEADERS += $(protocol_headers)
-noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h
+noinst_HEADERS = mod_plate.h mod_plate_utils.h mod_plate_core.h mod_plate_handlers.h detail/Seed.h
 
 libvwPlate_la_SOURCES =      \
   Blob.cc                    \
@@ -70,7 +70,8 @@ libvwPlate_la_SOURCES =      \
   SnapshotManager.cc         \
   TileManipulation.cc        \
   ToastDem.cc                \
-  ToastPlateManager.cc
+  ToastPlateManager.cc       \
+  detail/Seed.cc
 
 
 nodist_libvwPlate_la_SOURCES = $(protocol_sources)

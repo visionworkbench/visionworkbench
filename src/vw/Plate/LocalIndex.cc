@@ -11,6 +11,7 @@
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/Blob.h>
 #include <vw/Plate/BlobManager.h>
+#include <vw/Plate/detail/Seed.h>
 
 using namespace vw;
 using namespace vw::platefile;
@@ -228,7 +229,7 @@ void LocalIndex::save_index_file() const {
    // MD5 hash of the current time and date, or something like that,
    // but little 'ol random() will probably work just fine for our
    // humble purposes.
-   srandom(boost::numeric_cast<unsigned int>(clock()));
+   plate_seed_random();
    m_header.set_platefile_id(vw::int32(random()));
 
    // Set up the IndexHeader and write it to disk.
