@@ -187,6 +187,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/rebuild_index
 /src/vw/Plate/rpc_tool
 /src/vw/Plate/snapshot
+/src/vw/Plate/dump_page
 /src/vw/Plate/blob_file_dump
 /src/vw/Plate/tiles2plate
 /src/vw/Plate/tests/TestBlobIO
