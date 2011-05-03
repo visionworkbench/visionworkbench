@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
     bool should_sync = force_sync || (Stopwatch::microtime() >= next_sync);
 
     if (should_sync) {
-      vw_out(InfoMessage) << "\nStarting sync to disk. (" << (force_sync ? "auto" : "manual") << ")\n";
+      vw_out(InfoMessage) << "\nStarting sync to disk. (" << (force_sync ? "manual" : "auto") << ")\n";
       uint64 s0 = Stopwatch::microtime();
       server.impl()->sync();
       uint64 s1 = Stopwatch::microtime();
