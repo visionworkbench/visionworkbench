@@ -129,6 +129,9 @@ void IndexPage::deserialize(std::istream& istr) {
       x.push_back(value_type(t_id, rec));
     }
   }
+
+  if (istr.peek() != EOF)
+    vw_out(WarningMessage, "platefile.index") << "Unparsed data remaining in index page.\n";
 }
 
 // ----------------------- ACCESSORS  ----------------------
