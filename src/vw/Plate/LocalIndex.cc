@@ -87,10 +87,9 @@ void LocalIndexPage::deserialize() {
   // Call up to superclass to finish deserializing.
   try {
     IndexPage::deserialize(istr);
-  } catch (vw::IOErr &e) {
+  } catch (const vw::IOErr &e) {
     // Add more useful error reporting.
-    vw_throw(IOErr() << "An error occurred while parsing an IndexEntry in "
-        << m_filename << ".");
+    vw_throw(IOErr() << "Failed to load page \"" << m_filename << "\": " << e.what());
   }
 
   m_needs_saving = false;

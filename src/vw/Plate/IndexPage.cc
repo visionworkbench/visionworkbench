@@ -81,35 +81,52 @@ void IndexPage::deserialize(std::istream& istr) {
   istr.read(reinterpret_cast<char*>(&m_page_width), sizeof(m_page_width));
   istr.read(reinterpret_cast<char*>(&m_page_height), sizeof(m_page_height));
 
+  VW_ASSERT(istr.good(), IOErr() << "while reading page size.");
+
   // Part 2: Read the sparsetable metadata
-  m_sparse_table.read_metadata(&istr);
+  if (!m_sparse_table.read_metadata(&istr))
+    vw_throw(IOErr() << "while reading sparse table metadata.");
+
+  VW_ASSERT(istr.good(), IOErr() << "after reading sparse table metadata.");
+
+  // make sure we initialize everything before we continue
+  BOOST_FOREACH(multi_value_type& x, std::make_pair(m_sparse_table.nonempty_begin(), m_sparse_table.nonempty_end()))
+    new (&x) multi_value_type();
+
+  size_t count = 0, total = m_sparse_table.num_nonempty();
 
   // Part 3: Read sparse entries
-  for (nonempty_iterator it = m_sparse_table.nonempty_begin();
-       it != m_sparse_table.nonempty_end(); ++it) {
-
+  BOOST_FOREACH(multi_value_type& x, std::make_pair(m_sparse_table.nonempty_begin(), m_sparse_table.nonempty_end())) {
+    if (count++ % 4000 == 0)
+      WHEREAMI << "reading tile slot " << count << " of " << total << std::endl;
     // Iterate over transaction_id list.
     uint32 transaction_list_size;
     istr.read(reinterpret_cast<char*>(&transaction_list_size), sizeof(transaction_list_size));
 
-    new (&(*it)) multi_value_type();
+    VW_ASSERT(istr.good(), IOErr() << "while reading transaction list size.");
+
     for (uint32 tid = 0; tid < transaction_list_size; ++tid) {
 
       // Read the transaction id
       uint32 t_id;
       istr.read(reinterpret_cast<char*>(&t_id), sizeof(t_id));
+      VW_ASSERT(istr.good(), IOErr() << "while reading a transaction id.");
 
       // Read the size (in bytes) of this protobuffer and then read
       // the protobuffer and deserialize it.
       uint16 protobuf_size;
       istr.read(reinterpret_cast<char*>(&protobuf_size), sizeof(protobuf_size));
+      VW_ASSERT(istr.good(), IOErr() << "while reading a message size.");
+
       boost::shared_array<uint8> protobuf_bytes( new uint8[protobuf_size] );
       istr.read(reinterpret_cast<char*>(protobuf_bytes.get()), protobuf_size);
+      VW_ASSERT(istr.good(), IOErr() << "while reading a message.");
+
       IndexRecord rec;
       if (!rec.ParseFromArray(protobuf_bytes.get(), protobuf_size))
-        vw_throw(IOErr() << "An error occurred while parsing an IndexEntry.");
+        vw_throw(IOErr() << "while parsing a message.");
 
-      (*it).push_back(value_type(t_id, rec));
+      x.push_back(value_type(t_id, rec));
     }
   }
 }
