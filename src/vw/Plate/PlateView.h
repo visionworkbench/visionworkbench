@@ -41,11 +41,11 @@ namespace platefile {
 
     // Standard ImageView interface methods
     int32 cols() const {
-      return (1 << (m_platefile->num_levels()-1)) * m_platefile->default_tile_size();
+      return (1 << m_current_level) * m_platefile->default_tile_size();
     }
 
     int32 rows() const {
-      return (1 << (m_platefile->num_levels()-1)) * m_platefile->default_tile_size();
+      return (1 << m_current_level) * m_platefile->default_tile_size();
     }
 
     int32 planes() const { return 1; }
@@ -56,8 +56,17 @@ namespace platefile {
       m_current_level = level;
     }
 
-    int num_levels() const {
-      return m_platefile->num_levels();
+    int num_levels() const { return m_platefile->num_levels(); }
+
+    std::list<TileHeader>
+    search_for_tiles( BBox2i image_bbox ) const {
+      const float tile_size = m_platefile->default_tile_size();
+      BBox2i query_region;
+      query_region.min() = floor(Vector2f(image_bbox.min())/tile_size);
+      query_region.max() = ceil(Vector2f(image_bbox.max())/tile_size);
+      return  m_platefile->search_by_region(m_current_level,
+                                            query_region,
+                                            -1, -1, 0);
     }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -66,75 +75,49 @@ namespace platefile {
       vw_throw(NoImplErr() << "PlateView::operator() -- not yet implemented.");
     }
 
-    // Returns the number of tiles in a certain image square
-    std::list<TileHeader>
-    search_for_tiles( BBox2i const& image_bbox, BBox2i& level_bbox,
-                      BBox2i& aligned_level_bbox ) const {
-      // Compute the bounding box at the current level.
-      int level_difference = (m_platefile->num_levels()-1) - m_current_level;
-      level_bbox = image_bbox / pow(2,level_difference);
-
-      // Grow that bounding box to align with tile boundaries
-      aligned_level_bbox = level_bbox;
-      aligned_level_bbox.min() = ( (level_bbox.min() / m_platefile->default_tile_size())
-                                  * m_platefile->default_tile_size() );
-      aligned_level_bbox.max().x() = ( int(ceilf( float(level_bbox.max().x()) /
-                                                  float(m_platefile->default_tile_size()) ))
-                                       * m_platefile->default_tile_size() );
-      aligned_level_bbox.max().y() = ( int(ceilf( float(level_bbox.max().y()) /
-                                                  float(m_platefile->default_tile_size()) ))
-                                       * m_platefile->default_tile_size() );
-
-      // Searching for tile headers
-      return m_platefile->search_by_region( m_current_level,
-                                            aligned_level_bbox/m_platefile->default_tile_size(),
-                                            -1, -1, 0 );
-    }
-
-    // Simplified access
-    std::list<TileHeader>
-    search_for_tiles( BBox2i const& image_bbox ) const {
-      BBox2i level_bbox, aligned_level_bbox;
-      return search_for_tiles( image_bbox, level_bbox,
-                               aligned_level_bbox );
-    }
-
     /// \cond INTERNAL
-    typedef CropView<TransformView<InterpolationView<EdgeExtensionView<CropView<ImageView<pixel_type> >, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> > prerasterize_type;
+    typedef CropView<ImageView<pixel_type> > prerasterize_type;
+    //typedef CropView<TransformView<InterpolationView<EdgeExtensionView<CropView<ImageView<pixel_type> >, ConstantEdgeExtension>, BilinearInterpolation>, ResampleTransform> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i bbox) const {
-
-      // Compute the bounding box at the current level.
-      int level_difference = (m_platefile->num_levels()-1) - m_current_level;
-      BBox2i level_bbox, aligned_level_bbox;
+      const int32 tile_size = m_platefile->default_tile_size();
 
       std::list<TileHeader> tileheaders =
-        search_for_tiles( bbox, level_bbox, aligned_level_bbox );
+        search_for_tiles( bbox );
+
+      if ( tileheaders.empty() )
+        return crop( ImageView<pixel_type>(constant_view(pixel_type(),
+                                                         bbox.width(), bbox.height())),
+                     BBox2i(-bbox.min().x(), -bbox.min().y(), this->cols(), this->rows()) );
 
       // Create an image of the appropriate size to rasterize tiles into.
-      ImageView<pixel_type> level_image(aligned_level_bbox.width(), aligned_level_bbox.height());
+      ImageView<pixel_type> level_image(bbox.width(),bbox.height());
 
       // Access the tiles needed for this level and copy them into place
       BOOST_FOREACH( TileHeader const& theader, tileheaders ) {
         ImageView<PixelT> tile;
         m_platefile->read( tile, theader.col(), theader.row(), theader.level(),
                            theader.transaction_id(), true );
-        BBox2i tile_bbox( m_platefile->default_tile_size()*theader.col()-aligned_level_bbox.min().x(),
-                          m_platefile->default_tile_size()*theader.row()-aligned_level_bbox.min().y(),
-                          m_platefile->default_tile_size(),
-                          m_platefile->default_tile_size() );
-        crop( level_image, tile_bbox ) = tile;
+
+        BBox2i src_bbox_cropped( tile_size*theader.col(), tile_size*theader.row(),
+                                    tile_size, tile_size );
+        src_bbox_cropped.crop( bbox );
+
+        BBox2i dst_bbox_cropped = src_bbox_cropped;
+
+        src_bbox_cropped.min() -= Vector2i(tile_size*theader.col(),
+                                           tile_size*theader.row());
+        src_bbox_cropped.max() -= Vector2i(tile_size*theader.col(),
+                                           tile_size*theader.row());
+        dst_bbox_cropped.min() -= bbox.min();
+        dst_bbox_cropped.max() -= bbox.min();
+
+        crop( level_image, dst_bbox_cropped ) =
+          crop( tile, src_bbox_cropped );
       }
 
-      // Crop the output to the original requested bbox, resample it, and return.
-      BBox2i output_bbox( level_bbox.min().x() - aligned_level_bbox.min().x(),
-                          level_bbox.min().y() - aligned_level_bbox.min().y(),
-                          level_bbox.width(), level_bbox.height() );
+      return crop( level_image,
+                   BBox2i(-bbox.min().x(), -bbox.min().y(), this->cols(), this->rows()) );
 
-      return crop(transform( crop(level_image, output_bbox),
-                             ResampleTransform( pow(2, level_difference),
-                                                pow(2, level_difference) ),
-                             ConstantEdgeExtension(), BilinearInterpolation() ),
-                  BBox2i(-bbox.min().x(), -bbox.min().y(), this->cols(), this->rows()));
     }
 
     template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
