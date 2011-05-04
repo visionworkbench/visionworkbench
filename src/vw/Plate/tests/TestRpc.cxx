@@ -105,7 +105,7 @@ TEST_P(RpcTest, Basic) {
   DoubleMessage q, a;
   for (uint32 i = 0; i < 1000; ++i) {
     q.set_num(i);
-    EXPECT_NO_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()));
+    ASSERT_NO_THROW(clients[0]->DoubleRequest(clients[0].get(), &q, &a, null_callback()));
     EXPECT_EQ(i*2, a.num());
   }
   EXPECT_EQ(1000, server->stats().get("msgs"));
@@ -174,7 +174,7 @@ class ClientTask {
 
       for (uint32 i = 0; i < MSG_COUNT; ++i) {
         q.set_num(i + offset);
-        EXPECT_NO_THROW(c->DoubleRequest(c.get(), &q, &a, null_callback()));
+        ASSERT_NO_THROW(c->DoubleRequest(c.get(), &q, &a, null_callback()));
         EXPECT_EQ(q.num() * 2, a.num());
       }
       c.reset();

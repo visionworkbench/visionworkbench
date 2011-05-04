@@ -267,12 +267,12 @@ TEST(HTTPUtils, PlatefileUrl) {
   EXPECT_EQ("pants.plate", u.name());
   EXPECT_EQ("http://rawr/", u.base().string());
 
-  EXPECT_NO_THROW(u.name("pants2.plate"));
+  ASSERT_NO_THROW(u.name("pants2.plate"));
   EXPECT_EQ("http://rawr/pants2.plate", u.string());
   EXPECT_EQ("pants2.plate", u.name());
   EXPECT_EQ("http://rawr/", u.base().string());
 
-  EXPECT_NO_THROW(u.base("moo://moo?bob=waffles"));
+  ASSERT_NO_THROW(u.base("moo://moo?bob=waffles"));
   EXPECT_EQ("moo://moo/pants2.plate?bob=waffles", u.string());
   EXPECT_EQ("pants2.plate", u.name());
   EXPECT_EQ("moo://moo/?bob=waffles", u.base().string());

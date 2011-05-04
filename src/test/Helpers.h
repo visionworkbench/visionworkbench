@@ -69,8 +69,8 @@ uint32 get_random_seed();
 // reduce the damage from using gtest internal bits, and make sure uint8 is
 // seen as numeric.
 template <typename T>
-gi::String format(const T& x) {
-  return gi::FormatForFailureMessage(_numeric(x));
+::std::string format(const T& x) {
+  return PrintToString(_numeric(x));
 }
 
 
@@ -369,6 +369,39 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
   EXPECT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
 #define ASSERT_VW_EQ(expect, actual)\
   ASSERT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
+
+#define VW_TEST_THROW_(statement, expected_exception, expected_substr, fail) \
+  GTEST_AMBIGUOUS_ELSE_BLOCKER_ \
+  if (::testing::internal::ConstCharPtr gtest_msg = "") { \
+    bool gtest_caught_expected = false; \
+    try { \
+      GTEST_SUPPRESS_UNREACHABLE_CODE_WARNING_BELOW_(statement); \
+    } \
+    catch (expected_exception const& e) { \
+      gtest_caught_expected = true; \
+      GTEST_PRED_FORMAT2_(t::IsSubstring, expected_substr, e.what(), fail);\
+    } \
+    catch (...) { \
+      gtest_msg.value = \
+          "Expected: " #statement " throws an exception of type " \
+          #expected_exception ".\n  Actual: it throws a different type."; \
+      goto GTEST_CONCAT_TOKEN_(gtest_label_testthrow_, __LINE__); \
+    } \
+    if (!gtest_caught_expected) { \
+      gtest_msg.value = \
+          "Expected: " #statement " throws an exception of type " \
+          #expected_exception ".\n  Actual: it throws nothing."; \
+      goto GTEST_CONCAT_TOKEN_(gtest_label_testthrow_, __LINE__); \
+    } \
+  } else \
+    GTEST_CONCAT_TOKEN_(gtest_label_testthrow_, __LINE__): \
+      fail(gtest_msg.value)
+
+// these are unlikely to work right in death tests or other weird circumstances.
+#define EXPECT_THROW_MSG(statement, expected_exception, expected_substr) \
+  VW_TEST_THROW_(statement, expected_exception, expected_substr, GTEST_NONFATAL_FAILURE_)
+#define ASSERT_THROW_MSG(statement, expected_exception, expected_substr) \
+  VW_TEST_THROW_(statement, expected_exception, expected_substr, GTEST_FATAL_FAILURE_)
 
 // DEPRECATED
 #define EXPECT_MATRIX_FLOAT_EQ(e, a)          EXPECT_MATRIX_NEAR(e, a, 1e20)
