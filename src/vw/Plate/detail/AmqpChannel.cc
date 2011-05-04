@@ -351,37 +351,6 @@ void AmqpChannel::basic_publish(const uint8* message, uint64 len,
   die_on_error(ret, "doing a basic.publish");
 }
 
-#if 0
-bool AmqpChannel::basic_get(std::string const& queue, SharedByteArray& message) const {
-
-  ASSERT_CHANNEL_OPEN();
-  amqp_connection_state_t state;
-  Mutex::Lock lock(m_conn->get_mutex(&state));
-
-  amqp_rpc_reply_t reply;
-  while (true) {
-    amqp_maybe_release_buffers(state);
-    reply = amqp_basic_get(state, m_channel_id, amqp_string(queue), 1);
-    check_error(reply, "doing a basic.get");
-
-    if (reply.reply.id == AMQP_BASIC_GET_EMPTY_METHOD) {
-      Thread::sleep_ms(1); // yield for a bit
-      continue;
-    }
-    if (reply.reply.id == AMQP_BASIC_GET_OK_METHOD)
-      break;
-
-    vw_throw(AMQPErr() << "Illegal AMQP response. Expected GET_OK or GET_EMPTY, got: "
-                       << amqp_method_name(reply.reply.id));
-  }
-
-  AmqpData msg;
-  read_content(state, msg);
-  message = msg.data;
-  return true;
-}
-#endif
-
 int32 AmqpChannel::timeout() const {
   return m_timeout;
 }
@@ -397,12 +366,6 @@ uint32 AmqpChannel::retries() const {
 void AmqpChannel::set_retries(uint32 x) {
   m_retries = x;
 }
-
-#if 0
-uint64 AmqpChannel::queue_depth() const {
-  return m_incoming_messages.size();
-}
-#endif
 
 std::string AmqpChannel::name() const {
   return m_human_name;
