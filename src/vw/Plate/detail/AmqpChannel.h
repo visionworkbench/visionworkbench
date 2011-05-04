@@ -32,6 +32,14 @@ namespace platefile {
   struct AmqpData {
     boost::shared_ptr<std::vector<uint8> > data;
     std::string sender;
+    bool error;
+    std::string message;
+    void reset() {
+      data.reset();
+      sender.clear();
+      message.clear();
+      error = false;
+    }
   };
 
   class AmqpChannel : public IChannel,

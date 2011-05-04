@@ -228,6 +228,9 @@ bool AmqpChannel::recv_bytes(std::vector<uint8>* bytes) {
       return false;
   }
 
+  if (d.error)
+    vw_throw(AMQPErr() << "AMQP consume thread reports: " << d.message);
+
   bytes->clear();
   bytes->reserve(d.data->size());
   std::copy(d.data->begin(), d.data->end(), std::back_inserter(*bytes));
@@ -372,7 +375,7 @@ std::string AmqpChannel::name() const {
 }
 
 class AmqpConsumeTask {
-  public:
+  private:
     typedef boost::shared_ptr<AmqpConnection> Connection;
     typedef boost::function<void (AmqpData)> Callback;
 
@@ -382,13 +385,15 @@ class AmqpConsumeTask {
     Callback m_callback;
     std::string m_queue;
     std::string m_consumer_tag;
-    bool go;
+    bool m_go;
     int m_fd;
+
+  public:
 
     AmqpConsumeTask(Connection conn, int16 channel_id, const Callback& callback,
                     std::string queue_name, std::string consumer_tag)
         : m_conn(conn), m_chan(channel_id), m_callback(callback), m_queue(queue_name),
-          m_consumer_tag(consumer_tag), go(true) {
+          m_consumer_tag(consumer_tag), m_go(true) {
 
         // This isn't totally safe, because technically the socket could be
         // changed from under us. That would break so much of the rest of the
@@ -398,59 +403,72 @@ class AmqpConsumeTask {
         m_fd = amqp_get_sockfd(state);
     }
 
-    void kill() {go = false;}
+    void kill() {m_go = false;}
 
-    void operator()() const {
-      while (go) {
-        // Waiting for frames. We don't want to hold the lock while we do that, so select here.
-        // Small timeout so it shuts down fast.
-        if (!select_helper(m_fd, 100, "select() for a method frame"))
-          continue;
-
-        amqp_frame_t method;
-
-        AmqpData msg;
-        {
-          // Okay, we should have some data. Lock!
-          amqp_connection_state_t state;
-          Mutex::Lock lock(m_conn->get_mutex(&state));
-
-          // XXX: Calling maybe_release a lot keeps our memory usage down, but
-          // perhaps we don't need to call it so often. Not clear on tradeoff.
-          amqp_maybe_release_buffers(state);
-
-          while (1) {
-            if (!go) return;
-            if (vw_simple_wait_frame(state, &method, 1000, "Waiting for a method frame"))
-              break;
-          }
-
-          // Make sure we aren't confused somehow
-          VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD,
-              AMQPErr() << "Expected a method frame, got: " << method.frame_type);
-
-          // Grab the rest of the message (if there is any)
-          if (amqp_method_has_content(method.payload.method.id))
-            read_content(state, msg);
-        }
-
-        switch (method.payload.method.id) {
-          case AMQP_BASIC_DELIVER_METHOD:
+    void operator()() {
+      AmqpData msg;
+      try {
+        while(m_go) {
+          msg.reset();
+          if (handle_one_method(msg))
             m_callback(msg);
-            break;
-          case AMQP_CONNECTION_CLOSE_METHOD: {
-            amqp_connection_close_t *m = reinterpret_cast<amqp_connection_close_t *>(method.payload.method.decoded);
-            vw_throw(AMQPErr() << "Unexpected connection close method: " << reinterpret_cast<const char*>(m->reply_text.bytes));
-          }
-          case AMQP_CHANNEL_CLOSE_METHOD: {
-            amqp_channel_close_t *m = reinterpret_cast<amqp_channel_close_t *>(method.payload.method.decoded);
-            vw_throw(AMQPErr() << "Unexpected channel close method: " << reinterpret_cast<const char*>(m->reply_text.bytes));
-          }
-          default:
-            vw_out(WarningMessage, "plate.AMQP")
-              << "Dropped " << amqp_method_name(method.payload.method.id) << " on the floor."
-              << std::endl;
         }
+      } catch (const std::exception& e) {
+        msg.reset();
+        msg.error = true;
+        msg.message = e.what();
+        m_callback(msg);
+      }
+    }
+
+    bool handle_one_method(AmqpData& msg) const {
+      // Waiting for frames. We don't want to hold the lock while we do that, so select here.
+      // Small timeout so it shuts down fast.
+      if (!select_helper(m_fd, 100, "select() for a method frame"))
+        return false;
+
+      amqp_frame_t method;
+
+      {
+        // Okay, we should have some data. Lock!
+        amqp_connection_state_t state;
+        Mutex::Lock lock(m_conn->get_mutex(&state));
+
+        // XXX: Calling maybe_release a lot keeps our memory usage down, but
+        // perhaps we don't need to call it so often. Not clear on tradeoff.
+        amqp_maybe_release_buffers(state);
+
+        while (1) {
+          if (!m_go) return false;
+          if (vw_simple_wait_frame(state, &method, 1000, "Waiting for a method frame"))
+            break;
+        }
+
+        // Make sure we aren't confused somehow
+        VW_ASSERT(method.frame_type == AMQP_FRAME_METHOD,
+            AMQPErr() << "Expected a method frame, got: " << method.frame_type);
+
+        // Grab the rest of the message (if there is any)
+        if (amqp_method_has_content(method.payload.method.id))
+          read_content(state, msg);
+      }
+
+      switch (method.payload.method.id) {
+        case AMQP_BASIC_DELIVER_METHOD:
+          return true;
+        case AMQP_CONNECTION_CLOSE_METHOD: {
+          amqp_connection_close_t *m = reinterpret_cast<amqp_connection_close_t *>(method.payload.method.decoded);
+          vw_throw(AMQPErr() << "Unexpected connection close method: " << reinterpret_cast<const char*>(m->reply_text.bytes));
+        }
+        case AMQP_CHANNEL_CLOSE_METHOD: {
+          amqp_channel_close_t *m = reinterpret_cast<amqp_channel_close_t *>(method.payload.method.decoded);
+          vw_throw(AMQPErr() << "Unexpected channel close method: " << reinterpret_cast<const char*>(m->reply_text.bytes));
+        }
+        default:
+          vw_out(WarningMessage, "plate.AMQP")
+            << "Dropped " << amqp_method_name(method.payload.method.id) << " on the floor."
+            << std::endl;
+          return false;
       }
     }
 };
