@@ -189,8 +189,8 @@ void PngIOCompress::open() {
       break;
     default:
       bit_depth = 8;
-      if ( bit_depth != int(channel_size( fmt().channel_type )) ) {
-        vw_out(WarningMessage,"fileio") << "PngIO: Output type rescaled to VW_CHANNEL_UINT8" << std::endl;
+      if ( bit_depth/8 != int(channel_size( fmt().channel_type )) ) {
+        vw_out(WarningMessage,"fileio") << "PngIO: Output type rescaled from VW_CHANNEL_" << channel_type_name(fmt().channel_type) << " to VW_CHANNEL_UINT8" << std::endl;
         m_fmt.channel_type = VW_CHANNEL_UINT8;
       }
       break;
