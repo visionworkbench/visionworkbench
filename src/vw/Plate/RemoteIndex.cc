@@ -54,9 +54,11 @@ RemoteIndexPage::RemoteIndexPage(int platefile_id,
     // to the index server as needed.
   }
 
-  // Deserialize the data from the message to populate this index page.
-  std::istringstream istr(response.page_bytes(), std::ios::binary);
-  this->deserialize(istr);
+  if (response.has_page_bytes()) {
+    // Deserialize the data from the message to populate this index page.
+    std::istringstream istr(response.page_bytes(), std::ios::binary);
+    this->deserialize(istr);
+  }
 }
 
 RemoteIndexPage::~RemoteIndexPage() {

@@ -77,6 +77,8 @@ void IndexPage::deserialize(std::istream& istr) {
 
   WHEREAMI << "[" << m_base_col << " " << m_base_row << " @ " << m_level << "]\n";
 
+  VW_ASSERT(istr.good(), IOErr() << "while beginning to deserialize.");
+
   // Part 1: Read the page size
   istr.read(reinterpret_cast<char*>(&m_page_width), sizeof(m_page_width));
   istr.read(reinterpret_cast<char*>(&m_page_height), sizeof(m_page_height));
