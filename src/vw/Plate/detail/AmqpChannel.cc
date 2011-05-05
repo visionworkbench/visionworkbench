@@ -22,6 +22,7 @@
 #include <sys/socket.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
+#include <signal.h>
 
 #include <set>
 
@@ -40,6 +41,14 @@ namespace {
   bool select_helper(int fd, int32 timeout, const std::string& context);
   bool vw_simple_wait_frame(amqp_connection_state_t conn, amqp_frame_t *frame,
                             int32 timeout, const std::string& context);
+
+  vw::RunOnce signal_once = VW_RUNONCE_INIT;
+  void block_sigpipe() {
+    vw_out(DebugMessage, "plate.AMQP") << "Ignoring SIGPIPE" << std::endl;
+    // This is sort of terrible to do in a library call, but there's really no
+    // other way to do it.
+    ::signal(SIGPIPE, SIG_IGN);
+  }
 }
 
 namespace vw {
@@ -74,6 +83,7 @@ class AmqpConnection : private boost::noncopyable {
 };
 
 AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
+  signal_once.run(block_sigpipe);
 
   m_state.reset(amqp_new_connection(), amqp_destroy_connection);
   if (!m_state.get())
