@@ -125,7 +125,7 @@ class CmpTypeEqual : public CmpWorker<CmpTypeEqual> {
     Message what(const std::string& ename, const std::string& aname, const T1& e, const T2& a) const {
       if (!boost::is_same<T1,T2>::value)
         return Message() << ename << " and " << aname << " are not the same type";
-      return Message() << gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false);
+      return Message(gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false).message());
     }
 };
 
@@ -389,37 +389,18 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
 #define EXPECT_MATRIX_NEAR(e, a, delta)       EXPECT_SEQ_NEAR(e,a,delta)
 #define ASSERT_MATRIX_NEAR(e, a, delta)       ASSERT_SEQ_NEAR(e,a,delta)
 
-template <typename T1, typename T2>
-T1 value_diff_round(const T2& x) {
-  if (boost::is_integral<T1>::value)
-    return boost::numeric_cast<T1>(::ceil(x));
-  else
-    return boost::numeric_cast<T1>(x);
-}
-
-template <typename ElemT>
-typename boost::enable_if<boost::is_integral<ElemT>, ElemT>::type
-value_diff_helper(const ElemT& a, const ElemT& b) {
-  return boost::numeric_cast<ElemT>(::abs(a - b));
-}
-
-template <typename ElemT>
-typename boost::enable_if<boost::is_floating_point<ElemT>, ElemT>::type
-value_diff_helper(const ElemT& a, const ElemT& b) {
-  return boost::numeric_cast<ElemT>(::fabs(a - b));
-}
-
 template <typename ElemT, typename Elem2T>
-typename PixelChannelType<ElemT>::type value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Elem2T>& b) {
+double value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Elem2T>& b) {
   BOOST_STATIC_ASSERT((boost::is_same<ElemT, Elem2T>::value));
-  typedef typename PixelChannelType<ElemT>::type channel_type;
-  channel_type acc = channel_type();
-  ElemT diff = a - b;
+  typedef typename CompoundChannelType<ElemT>::type channel_type;
+  double acc = 0.0;
   for( size_t c=0; c < PixelNumChannels<ElemT>::value; ++c ) {
-    const channel_type& x = compound_select_channel<const channel_type&>(diff,c);
-    acc += x * x;
+    channel_type const& a_x = compound_select_channel<channel_type const&>(a.impl(),c);
+    channel_type const& b_x = compound_select_channel<channel_type const&>(b.impl(),c);
+    double diff = double(a_x) - double(b_x);
+    acc += diff*diff;
   }
-  return value_diff_round<channel_type>(::sqrt(acc));
+  return ::sqrt(acc);
 }
 
 template <typename ElemT>
@@ -431,12 +412,12 @@ template <typename T1, typename T2>
 struct both_are_arithmetic : boost::mpl::and_<boost::is_arithmetic<T1>, boost::is_arithmetic<T2> > {};
 
 template <typename T1, typename T2>
-typename boost::enable_if<both_are_arithmetic<T1,T2>, typename DifferenceType<T1,T2>::type>::type
+typename boost::enable_if<both_are_arithmetic<T1,T2>, double>::type
 value_diff(const T1& a, const T2& b) {
   BOOST_STATIC_ASSERT(boost::is_arithmetic<T1>::value);
   BOOST_STATIC_ASSERT(boost::is_arithmetic<T2>::value);
   typedef typename DifferenceType<T1,T2>::type diff_t;
-  return value_diff_helper<diff_t>(a, b);
+  return ::fabs(double(a) - double(b));
 }
 
 }} // namespace t
