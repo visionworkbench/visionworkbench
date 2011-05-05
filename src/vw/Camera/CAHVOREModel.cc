@@ -180,7 +180,7 @@ vw::Vector3 CAHVOREModel::pixel_to_vector(vw::Vector2 const& pix) const {
   return result;
 }
 
-vw::Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
+Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
   // Base on JPL's cmod_cahvore_3d_to_2d_general
 
   // Calculate initial terms
@@ -249,4 +249,112 @@ vw::Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
   double alpha  = dot_prod(rp, A);
   return Vector2( dot_prod(rp,H) / alpha,
                   dot_prod(rp,V) / alpha );
+}
+
+CAHVModel camera::linearize_camera( CAHVOREModel const& camera_model,
+                                    Vector2i const& cahvore_image_size,
+                                    Vector2i const& cahv_image_size ) {
+  // Limit to field of view
+  const static double limfov = M_PI * 3/4; // 135 degrees field of view.
+  const bool minfov          = true;       // Yes, minimize the common field of view
+
+  CAHVModel cahv_model;
+
+  int32 i;
+  Vector3 rt, dn, p3, u3, vec1, vec2;
+  Vector2 p2;
+  double cs, x, hmin, hmax, vmin, vmax;
+  Vector2 hpts[6], vpts[6];
+
+  // scale factors
+  double hs, hc, vs, vc;
+
+  cahv_model.C = camera_model.C;
+
+  // Record the landmark 2D coordinates around the perimeter of the image
+  hpts[0] = Vector2();
+  hpts[1] = Vector2(0,(cahvore_image_size[1]-1)/2);
+  hpts[2] = Vector2(0,cahvore_image_size[1]-1);
+  hpts[3] = Vector2(cahvore_image_size[0]-1,0);
+  hpts[4] = Vector2(cahvore_image_size[0]-1,(cahvore_image_size[1]-1)/2);
+  hpts[5] = cahvore_image_size - Vector2(1,1);
+  vpts[0] = Vector2();
+  vpts[1] = Vector2((cahvore_image_size[0]-1)/2,0);
+  vpts[2] = Vector2(cahvore_image_size[0]-1,0);
+  vpts[3] = Vector2(0,cahvore_image_size[1]-1);
+  vpts[4] = Vector2((cahvore_image_size[0]-1)/2,cahvore_image_size[1]-1);
+  vpts[5] = cahvore_image_size - Vector2(1,1);
+
+  // Choose a camera axis in the middle of the image
+  p2 = (cahvore_image_size-Vector2i(1,1))/2.0;
+  u3 = camera_model.pixel_to_vector( p2 );
+  cahv_model.A = u3;
+
+  // Compute the original right and down vectors
+  dn = cross_prod(camera_model.A, camera_model.H);
+  rt = cross_prod(dn,             camera_model.A);
+  dn = normalize( dn );
+  rt = normalize( rt );
+
+  // Adjust the right and down vectors to be orthogonal to new axis
+  rt = cross_prod(dn, cahv_model.A);
+  dn = cross_prod(cahv_model.A, rt);
+  dn = normalize( dn );
+  rt = normalize( rt );
+
+  // Find horizontal and vertical fields of view
+  hmin =  1;
+  hmax = -1;
+  for (i=0; i<6; i++) {
+    u3 = camera_model.pixel_to_vector(hpts[1]);
+    x = dot_prod(dn, u3);
+    vec1 = x * dn;
+    vec2 = u3 - vec1;
+    vec2 = normalize(vec2);
+    cs = dot_prod(cahv_model.A, vec2);
+    if (hmin > cs)
+      hmin = cs;
+    if (hmax < cs)
+      hmax = cs;
+  }
+  vmin =  1;
+  vmax = -1;
+  for (i=0; i<6; i++) {
+    u3 = camera_model.pixel_to_vector(vpts[i]);
+    x = dot_prod(rt, u3);
+    vec1 = x*rt;
+    vec2 = u3 - vec1;
+    vec2 = normalize(vec2);
+    cs = dot_prod(cahv_model.A,vec2);
+    if (vmin > cs)
+      vmin = cs;
+    if (vmax < cs)
+      vmax = cs;
+  }
+
+  // Compute the all-encompassing scale factors
+  cs = (!minfov ? hmin : hmax); // logic is reverse for cos()
+  if (acos(cs) > limfov)
+    cs = cos(limfov);
+  x = cahv_image_size[0] / 2.0;
+  hs = x * cs / sqrt(1.0 - cs*cs);
+  cs = (!minfov ? vmin : vmax); // logic is reverse for cos()
+  if (acos(cs) > limfov)
+    cs = cos(limfov);
+  x = cahv_image_size[1] / 2.0;
+  vs = x * cs / sqrt(1.0 - cs*cs);
+
+  // Assign idealized image centers and coordinate angles
+  hc = (cahv_image_size[0] - 1) / 2.0;
+  vc = (cahv_image_size[1] - 1) / 2.0;
+
+  // Construct H and V
+  vec1 = hs * rt;
+  vec2 = hc * cahv_model.A;
+  cahv_model.H = vec1 + vec2;
+  vec1 = vs * dn;
+  vec2 = vc * cahv_model.A;
+  cahv_model.V = vec1 + vec2;
+
+  return cahv_model;
 }

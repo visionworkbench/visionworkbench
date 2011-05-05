@@ -85,10 +85,8 @@ namespace camera {
 
   // Function to "map" the CAHVORE parameters into CAHV:
   CAHVModel linearize_camera( CAHVOREModel const& camera_model,
-                              int32 cahvore_image_width,
-                              int32 cahvore_image_height,
-                              int32 cahv_image_width,
-                              int32 cahv_image_height );
+                              Vector2i const& cahvore_image_size,
+                              Vector2i const& cahv_image_size );
 
 }} // namespace vw::camera
 
