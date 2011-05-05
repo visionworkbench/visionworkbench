@@ -151,7 +151,9 @@ namespace camera{
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
   inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func, InterpT const& interp_func )
   {
-    typename SrcCameraT::linearized_type dst_camera = linearize_camera( src_camera, image.impl().cols(), image.impl().rows(), image.impl().cols(), image.impl().rows() );
+    typename SrcCameraT::linearized_type dst_camera =
+      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                        Vector2i(image.impl().cols(), image.impl().rows()) );
     CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
     return transform( image, ctx, edge_func, interp_func );
   }
@@ -163,7 +165,9 @@ namespace camera{
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, BilinearInterpolation>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
   inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera, EdgeT const& edge_func )
   {
-    typename SrcCameraT::linearized_type dst_camera = linearize_camera( src_camera, image.impl().cols(), image.impl().rows(), image.impl().cols(), image.impl().rows() );
+    typename SrcCameraT::linearized_type dst_camera =
+      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                        Vector2i(image.impl().cols(), image.impl().rows()) );
     CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
     return transform( image, ctx, edge_func, BilinearInterpolation() );
   }
@@ -175,7 +179,9 @@ namespace camera{
   TransformView<InterpolationView<EdgeExtensionView<ImageT, ZeroEdgeExtension>, BilinearInterpolation>, CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> >
   inline linearize_camera_transform( ImageViewBase<ImageT> const& image, SrcCameraT const& src_camera )
   {
-    typename SrcCameraT::linearized_type dst_camera = linearize_camera( src_camera, image.impl().cols(), image.impl().rows(), image.impl().cols(), image.impl().rows() );
+    typename SrcCameraT::linearized_type dst_camera =
+      linearize_camera( src_camera, Vector2i(image.impl().cols(), image.impl().rows()),
+                        Vector2i(image.impl().cols(), image.impl().rows()) );
     CameraTransform<SrcCameraT, typename SrcCameraT::linearized_type> ctx( src_camera, dst_camera );
     return transform( image, ctx, ZeroEdgeExtension(), BilinearInterpolation() );
   }

@@ -81,10 +81,11 @@ namespace camera {
   /// you are dewarping, as well as the dimensions of the dewarped
   /// cahv image (if they differ).
   CAHVModel linearize_camera( CAHVORModel const& camera_model,
-                              int32 cahvor_image_width,
-                              int32 cahvor_image_height,
-                              int32 cahv_image_width,
-                              int32 cahv_image_height );
+                              Vector2i const& cavhor_image_size,
+                              Vector2i const& cahv_image_size );
+
+  CAHVModel linearize_camera( CAHVORModel const& camera_model,
+                              int32 ix, int32 iy, int32 ox, int32 oy ) VW_DEPRECATED;
 
 }}      // namespace vw::camera
 

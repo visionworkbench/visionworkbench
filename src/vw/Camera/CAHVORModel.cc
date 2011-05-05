@@ -4,15 +4,15 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
-//
 #include <vw/Core/Log.h>
 #include <vw/Camera/CAHVORModel.h>
 #include <fstream>
 
+using namespace vw;
+
 // Overloaded constructor - this one reads in the file name
 // where the CAVHOR camera model is saved.
-vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
+camera::CAHVORModel::CAHVORModel(std::string const& filename) {
 
   try {
     std::ifstream input(filename.c_str(), std::ifstream::in);
@@ -63,7 +63,7 @@ vw::camera::CAHVORModel::CAHVORModel(std::string const& filename) {
 }
 
 // Write CAHVOR model to file.
-void vw::camera::CAHVORModel::write(std::string const& filename) {
+void camera::CAHVORModel::write(std::string const& filename) {
 
   try {
     std::ofstream output(filename.c_str(), std::ofstream::out);
@@ -89,7 +89,7 @@ void vw::camera::CAHVORModel::write(std::string const& filename) {
 #define VW_CAHVOR_CONV   1.0e-6   // covergence tolerance - check adequacy for application
 
 // CAHVOR pixel_to_vector with partial_derivative output
-vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw::Matrix<double> &partial_derivatives) const {
+Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const {
 
   // Note, vec is actually the output vector
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
@@ -266,7 +266,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix, vw:
 
 
 // pixel_to_vector (no returned partial matrix)
-vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix) const {
+Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
 
   // vec is actually the output vector, vec is just the C vector of the camera
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
@@ -365,7 +365,7 @@ vw::Vector3 vw::camera::CAHVORModel::pixel_to_vector(vw::Vector2 const& pix) con
 
 
 // vector_to_pixel with partial_derivatives
-vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point, vw::Matrix<double> &partial_derivatives) const {
+Vector2 vw::camera::CAHVORModel::point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const {
 
   Vector3 vec = point - C;
   // Based on JPL 3D to 2D POINT (not the 3D to 2D function alone).
@@ -442,7 +442,7 @@ vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point, vw
 }
 
 // vector_to_pixel without partial_derivatives
-vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point) const {
+Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point) const {
 
   Vector3 vec = point - C;
   Vector2 pix;
@@ -473,7 +473,6 @@ vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point) co
   return pix;
 }
 
-
 // linearize_camera
 //
 // Takes CAHVOR camera --> CAHV camera
@@ -484,10 +483,9 @@ vw::Vector2 vw::camera::CAHVORModel::point_to_pixel(vw::Vector3 const& point) co
 // (identical to A) and R (all terms zero) will not be output. Note
 // that image warping will be necessary in order to use the new
 // models.
-vw::camera::CAHVModel vw::camera::linearize_camera( vw::camera::CAHVORModel const& camera_model,
-                                                    vw::int32 cahvor_image_width, vw::int32 cahvor_image_height,
-                                                    vw::int32 cahv_image_width,   vw::int32 cahv_image_height ) {
-
+camera::CAHVModel camera::linearize_camera( vw::camera::CAHVORModel const& camera_model,
+                                            Vector2i const& cahvor_image_size,
+                                            Vector2i const& cahv_image_size ) {
   unsigned int minfov = 1; // set to 0 if you do not want to minimize to a common field of view
   unsigned int i;
 
@@ -500,12 +498,12 @@ vw::camera::CAHVModel vw::camera::linearize_camera( vw::camera::CAHVORModel cons
   Matrix<double> vpts(6,2);
 
   Vector<unsigned int> idims(2);
-  idims(0) = cahvor_image_width;
-  idims(1) = cahvor_image_height;
+  idims(0) = cahvor_image_size[0];
+  idims(1) = cahvor_image_size[1];
 
   Vector<unsigned int> odims(2);
-  odims(0) = cahv_image_width;
-  odims(1) = cahv_image_height;
+  odims(0) = cahv_image_size[0];
+  odims(1) = cahv_image_size[1];
 
   // Record the landmark 2D coordinates around the perimeter of the image
   pts(0,0) = hpts(0,0) = 0;
@@ -662,22 +660,21 @@ vw::camera::CAHVModel vw::camera::linearize_camera( vw::camera::CAHVORModel cons
   output_camera.H = h2;
   output_camera.V = v2;
 
-  // For debugging:
-  //       cout << "CAHVOR linearize_camera completed: Converted to CAHV: " << endl;
-  //       cout << "CAHVORModel: Linearized C vector:" << output_camera.C << "\n";
-  //       cout << "CAHVORModel: Linearized A vector:" << output_camera.A << "\n";
-  //       cout << "CAHVORModel: Linearized H vector:" << output_camera.H << "\n";
-  //       cout << "CAHVORModel: Linearized V vector:" << output_camera.V << "\n";
-
   return output_camera;
+}
+
+camera::CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
+                                            int32 ix, int32 iy, int32 ox, int32 oy ) {
+  return camera::linearize_camera( camera_model,
+                                   Vector2i( ix, iy), Vector2i(ox, oy) );
 }
 
 // Note: the second derivatives with respect to motion of the point are the
 // same as the second derivatives with respect to motion of the camera, and
 // the first derivatives are opposite.
-void vw::camera::CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
-                                                     Vector3& grad_u, Vector3& grad_v,
-                                                     Matrix3x3& hess_u, Matrix3x3& hess_v ) const {
+void camera::CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
+                                                 Vector3& grad_u, Vector3& grad_v,
+                                                 Matrix3x3& hess_u, Matrix3x3& hess_v ) const {
   // Compute the image plane position
   double xi = dot_prod(P-C,O);
   Vector3 lambda = P-C-xi*O;
