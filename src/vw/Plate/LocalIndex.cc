@@ -7,6 +7,7 @@
 
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/TemporaryFile.h>
 #include <vw/Plate/LocalIndex.h>
 #include <vw/Plate/RemoteIndex.h>
 #include <vw/Plate/Blob.h>
@@ -58,22 +59,25 @@ void LocalIndexPage::sync() {
 
 void LocalIndexPage::serialize() {
 
-  // Create the necessary directories if they do not yet exist.
+  fs::path pagename(m_filename);
+  fs::path parent(pagename.parent_path());
+
   try {
-    fs::path page_path(m_filename);
-    fs::create_directories(page_path.parent_path());
-  } catch ( fs::basic_filesystem_error<fs::path> &e ) {
-    vw_throw(IOErr() << "Could not create IndexPage.  " << e.what());
+    fs::create_directories(parent);
+  } catch ( const std::exception& e ) {
+    vw_throw(IOErr() << "Could not create IndexPage directory: " << e.what());
   }
 
-  std::ofstream ostr(m_filename.c_str(), std::ios::trunc);
-  if (!ostr.good())
-    vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " << m_filename << " for writing.");
+  std::string tmpname;
+  {
+    TemporaryFile tmp(parent.file_string(), false);
+    IndexPage::serialize(tmp);
+    tmpname = tmp.filename();
+  }
 
-  // Call up to superclass to finish serializing.
-  IndexPage::serialize(ostr);
+  if (::rename(tmpname.c_str(), m_filename.c_str()) == -1)
+    vw_throw(IOErr() << "LocalIndexPage::serialize(): failed to rename temp page to " << m_filename << ": " << ::strerror(errno));
 
-  ostr.close();
   m_needs_saving = false;
 }
 
