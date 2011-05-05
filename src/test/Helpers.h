@@ -129,12 +129,11 @@ class CmpTypeEqual : public CmpWorker<CmpTypeEqual> {
     }
 };
 
-template <typename DeltaT>
-class CmpNear : public CmpWorker<CmpNear<DeltaT> > {
+class CmpNear : public CmpWorker<CmpNear> {
     const char *dexpr;
-    const DeltaT& delta;
+    const double& delta;
   public:
-    CmpNear(const char* dexpr, const DeltaT& delta) : dexpr(dexpr), delta(delta) {}
+    CmpNear(const char* dexpr, const double& delta) : dexpr(dexpr), delta(delta) {}
 
     template <typename T1, typename T2>
     bool operator()(const T1& a, const T2& b) const { return value_diff(a, b) <= delta; }
@@ -152,11 +151,6 @@ class CmpNear : public CmpWorker<CmpNear<DeltaT> > {
       return msg;
     }
 };
-
-template <typename DeltaT>
-CmpNear<DeltaT> cmp_near(const char* dexpr, const DeltaT& delta) {
-  return CmpNear<DeltaT>(dexpr, delta);
-}
 
 #if 0
 template <typename ExpectT>
@@ -339,27 +333,27 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
 #define ASSERT_RANGE_EQ(expect0, expect1, actual0, actual1) \
   ASSERT_PRED_FORMAT4(t::check_range(t::CmpEqual()), expect0, expect1, actual0, actual1)
 #define EXPECT_RANGE_NEAR(expect0, expect1, actual0, actual1, delta) \
-  EXPECT_PRED_FORMAT4(t::check_range(t::cmp_near(#delta, delta)), expect0, expect1, actual0, actual1)
+  EXPECT_PRED_FORMAT4(t::check_range(t::CmpNear(#delta, delta)), expect0, expect1, actual0, actual1)
 #define ASSERT_RANGE_NEAR(expect0, expect1, actual0, actual1, delta) \
-  ASSERT_PRED_FORMAT4(t::check_range(t::cmp_near(#delta, delta)), expect0, expect1, actual0, actual1)
+  ASSERT_PRED_FORMAT4(t::check_range(t::CmpNear(#delta, delta)), expect0, expect1, actual0, actual1)
 
 #define EXPECT_SEQ_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
 #define ASSERT_SEQ_EQ(expect, actual)\
   ASSERT_PRED_FORMAT2(t::check_nd_range(t::CmpEqual()), expect, actual)
 #define EXPECT_SEQ_NEAR(expect, actual, delta)\
-  EXPECT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
+  EXPECT_PRED_FORMAT2(t::check_nd_range(t::CmpNear(#delta, delta)), expect, actual)
 #define ASSERT_SEQ_NEAR(expect, actual, delta)\
-  ASSERT_PRED_FORMAT2(t::check_nd_range(t::cmp_near(#delta, delta)), expect, actual)
+  ASSERT_PRED_FORMAT2(t::check_nd_range(t::CmpNear(#delta, delta)), expect, actual)
 
 #define EXPECT_VECTOR_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_range(t::CmpEqual()), expect, actual)
 #define ASSERT_VECTOR_EQ(expect, actual)\
   ASSERT_PRED_FORMAT2(t::check_range(t::CmpEqual()), expect, actual)
 #define EXPECT_VECTOR_NEAR(expect, actual, delta)\
-  EXPECT_PRED_FORMAT2(t::check_range(t::cmp_near(#delta, delta)), expect, actual)
+  EXPECT_PRED_FORMAT2(t::check_range(t::CmpNear(#delta, delta)), expect, actual)
 #define ASSERT_VECTOR_NEAR(expect, actual, delta)\
-  ASSERT_PRED_FORMAT2(t::check_range(t::cmp_near(#delta, delta)), expect, actual)
+  ASSERT_PRED_FORMAT2(t::check_range(t::CmpNear(#delta, delta)), expect, actual)
 
 #define EXPECT_TYPE_EQ( expect, actual )\
   EXPECT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual )
@@ -367,9 +361,9 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
   ASSERT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual )
 
 #define EXPECT_PIXEL_NEAR(expect, actual, delta)\
-  EXPECT_PRED_FORMAT2(t::check_one(t::cmp_near(#delta, delta)), expect, actual)
+  EXPECT_PRED_FORMAT2(t::check_one(t::CmpNear(#delta, delta)), expect, actual)
 #define ASSERT_PIXEL_NEAR(expect, actual, delta)\
-  ASSERT_PRED_FORMAT2(t::check_one(t::cmp_near(#delta, delta)), expect, actual)
+  ASSERT_PRED_FORMAT2(t::check_one(t::CmpNear(#delta, delta)), expect, actual)
 
 #define EXPECT_VW_EQ(expect, actual)\
   EXPECT_PRED_FORMAT2(t::check_one(t::CmpTypeEqual()), expect, actual)
@@ -403,9 +397,9 @@ double value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Ele
   return ::sqrt(acc);
 }
 
-template <typename ElemT>
-ElemT value_diff(const std::complex<ElemT>& a, const std::complex<ElemT>& b) {
-  return boost::numeric_cast<ElemT>(std::abs(a - b));
+template <typename T1, typename T2>
+double value_diff(const std::complex<T1>& a, const std::complex<T2>& b) {
+  return std::abs(std::complex<double>(a) - std::complex<double>(b));
 }
 
 template <typename T1, typename T2>
@@ -416,7 +410,6 @@ typename boost::enable_if<both_are_arithmetic<T1,T2>, double>::type
 value_diff(const T1& a, const T2& b) {
   BOOST_STATIC_ASSERT(boost::is_arithmetic<T1>::value);
   BOOST_STATIC_ASSERT(boost::is_arithmetic<T2>::value);
-  typedef typename DifferenceType<T1,T2>::type diff_t;
   return ::fabs(double(a) - double(b));
 }
 
