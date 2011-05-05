@@ -67,8 +67,7 @@ void LocalIndexPage::serialize() {
 
   std::ofstream ostr(m_filename.c_str(), std::ios::trunc);
   if (!ostr.good())
-    vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open "
-        << m_filename << " for writing.\n");
+    vw_throw(IOErr() << "IndexPage::serialize() failed.  Could not open " << m_filename << " for writing.");
 
   // Call up to superclass to finish serializing.
   IndexPage::serialize(ostr);
@@ -81,8 +80,7 @@ void LocalIndexPage::deserialize() {
 
   std::ifstream istr(m_filename.c_str());
   if (!istr.good())
-    vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open "
-        << m_filename << " for reading.\n");
+    vw_throw(IOErr() << "IndexPage::deserialize() failed.  Could not open " << m_filename << " for reading.");
 
   // Call up to superclass to finish deserializing.
   try {

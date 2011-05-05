@@ -237,7 +237,7 @@ namespace platefile {
                                     m_level, m_transaction_id);
           break;
         default:
-          vw_throw(NoImplErr() << "Unsupported GrayA channel type in PlateManager.\n");
+          vw_throw(NoImplErr() << "Unsupported GrayA channel type in PlateManager.");
         }
         break;
       case VW_PIXEL_RGBA:
@@ -248,11 +248,11 @@ namespace platefile {
                                     m_level, m_transaction_id);
           break;
         default:
-          vw_throw(NoImplErr() << "Unsupported RGBA channel type in PlateManager.\n");
+          vw_throw(NoImplErr() << "Unsupported RGBA channel type in PlateManager.");
         }
         break;
       default:
-        vw_throw(NoImplErr() << "Unsupported pixel type in PlateManager.\n");
+        vw_throw(NoImplErr() << "Unsupported pixel type in PlateManager.");
       }
 
       //      m_platefile->write_complete();

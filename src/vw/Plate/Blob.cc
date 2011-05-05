@@ -41,7 +41,7 @@ BlobRecord Blob::read_blob_record(uint16 &blob_record_size) const {
   bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
   if (!worked)
     vw_throw(BlobIoErr() << "read_blob_record() failed in " << m_blob_filename
-                         << " at offset " << m_fstream->tellg() << "\n");
+                         << " at offset " << m_fstream->tellg());
   return blob_record;
 }
 
@@ -102,7 +102,7 @@ TileHeader Blob::read_header(uint64 base_offset64) {
   if (m_fstream->fail()) {
     m_fstream->clear();
     vw_throw(IOErr() << "Blob::read() -- an error occurred while reading "
-             << "data from the blob file.\n");
+             << "data from the blob file.");
   }
 
   // Deserialize the header
@@ -110,7 +110,7 @@ TileHeader Blob::read_header(uint64 base_offset64) {
   bool worked = header.ParseFromArray(data.get(), boost::numeric_cast<int>(size));
   if (!worked)
     vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
-             << "from the blob file.\n");
+             << "from the blob file.");
 
   vw_out(VerboseDebugMessage, "platefile::blob")
     << "\tread_header() -- read " << size << " bytes at " << offset << " from " << m_blob_filename << "\n";
@@ -153,8 +153,7 @@ boost::shared_array<uint8> Blob::read_data(uint64 base_offset, uint64& data_size
   // Throw an exception if the read operation failed (after clearing the error bit)
   if (m_fstream->fail()) {
     m_fstream->clear();
-    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading "
-             << "data from the blob file.\n");
+    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading data from the blob file.");
   }
 
   WHEREAMI << "read " << data_size << " bytes at " << offset

@@ -210,7 +210,7 @@ IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id_neg
   multi_value_type::const_iterator it = entries.begin();
 
   if ( entries.begin() == entries.end() )
-    vw_throw(TileNotFoundErr() << "No Tiles exist at this location.\n");
+    vw_throw(TileNotFoundErr() << "No Tiles exist at this location.");
 
   // A transaction ID of -1 indicates that we should return the most
   // recent tile (which is the first entry in the list, since it is
@@ -241,7 +241,7 @@ IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id_neg
   // If we reach this point, then there are no entries before
   // the given transaction_id, so we return an empty (and invalid) record.
   vw_throw(TileNotFoundErr() << "Tiles exist at this location, "
-           << "but none before transaction_id = "  << transaction_id << "\n");
+           << "but none before transaction_id = "  << transaction_id);
   return IndexRecord(); // never reached
 }
 

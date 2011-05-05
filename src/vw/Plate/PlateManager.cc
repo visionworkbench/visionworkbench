@@ -348,7 +348,7 @@ PlateManager<PixelT>::make( std::string const& mode,
   } else if ( mode_l == "polar" ) {
     return new PolarStereoPlateManager<PixelT>(platefile);
   } else {
-    vw_throw( ArgumentErr() << "Unknown option: \"" << mode << "\".\n" );
+    vw_throw( ArgumentErr() << "Unknown option: \"" << mode << "\"." );
   }
 }
 
