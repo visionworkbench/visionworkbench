@@ -10,6 +10,7 @@
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/Debugging.h>
 
 #include <boost/algorithm/string/trim.hpp>
 #include <google/protobuf/descriptor.h>
@@ -39,18 +40,21 @@ namespace {
   }
 }
 
+#define THREAD_CHECK() \
+  VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannel created on thread " <<  m_id << " and used on thread " << Thread::id() << ". function: " << VW_CURRENT_FUNCTION)
+
 ZeroMQChannel::ZeroMQChannel(const std::string& human_name)
   : m_ctx(get_ctx()), m_human_name(human_name), m_timeout(DEFAULT_TIMEOUT), m_retries(DEFAULT_RETRIES) {}
 
 ZeroMQChannel::~ZeroMQChannel() VW_NOTHROW {
   if (m_sock) {
-    VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannels must not be shared between threads");
+    THREAD_CHECK();
     m_sock.reset();
   }
 }
 
 void ZeroMQChannel::send_bytes(const uint8* message, size_t len) {
-  VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannels must not be shared between threads");
+  THREAD_CHECK();
   // send() just queues the message. need to copy it.
   zmq::message_t rmsg(len);
   ::memcpy(rmsg.data(), message, len);
@@ -62,7 +66,7 @@ void ZeroMQChannel::send_bytes(const uint8* message, size_t len) {
 }
 
 bool ZeroMQChannel::recv_bytes(std::vector<uint8>* bytes) {
-  VW_ASSERT(m_id == Thread::id(), LogicErr() << "ZeroMQChannels must not be shared between threads");
+  THREAD_CHECK();
 
   zmq::message_t rmsg;
 
