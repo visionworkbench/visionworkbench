@@ -102,6 +102,7 @@ docs/workbook/workbook.toc
 /src/vw/Core/tests/TestFundamentalTypes
 /src/vw/Core/tests/TestLog
 /src/vw/Core/tests/TestSettings
+/src/vw/Core/tests/TestTemporaryFile
 /src/vw/Core/tests/TestThread
 /src/vw/Core/tests/TestThreadPool
 /src/vw/Core/tests/TestThreadQueue

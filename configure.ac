@@ -81,11 +81,12 @@ AX_CHECK_FUNCTION_ATTRIBUTE([deprecated])
 AX_CHECK_FUNCTION_ATTRIBUTE([warn_unused_result])
 
 # Looking for headers
-AC_CHECK_HEADERS([unistd.h pwd.h fenv.h])
+AC_CHECK_HEADERS([unistd.h pwd.h fenv.h ext/stdio_filebuf.h])
 
 # Find some functions
 AC_CHECK_FUNCS([getpwuid getpid feenableexcept])
 AC_CHECK_FUNCS([fabsl llabs exp2 log2 tgamma])
+AC_SEARCH_LIBS([mkstemps], [iberty], [], [AC_MSG_ERROR([You seem to be missing mkstemps. Please report this as a bug to $PACKAGE_BUGREPORT])])
 
 # Look for the python stuff
 AM_PATH_PYTHON([2.4], [HAVE_PYTHON=yes], [HAVE_PYTHON=no])

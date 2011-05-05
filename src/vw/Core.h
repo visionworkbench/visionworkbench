@@ -23,5 +23,6 @@
 #include <vw/Core/Cache.h>
 #include <vw/Core/ConfigParser.h>
 #include <vw/Core/ThreadQueue.h>
+#include <vw/Core/TemporaryFile.h>
 
 #endif // __VW_CORE_H__

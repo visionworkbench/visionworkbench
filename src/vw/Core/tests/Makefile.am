@@ -18,6 +18,7 @@ TestFunctors_SOURCES         = TestFunctors.cxx
 TestFundamentalTypes_SOURCES = TestFundamentalTypes.cxx
 TestLog_SOURCES              = TestLog.cxx
 TestSettings_SOURCES         = TestSettings.cxx
+TestTemporaryFile_SOURCES    = TestTemporaryFile.cxx
 TestThreadPool_SOURCES       = TestThreadPool.cxx
 TestThreadQueue_SOURCES      = TestThreadQueue.cxx
 TestThread_SOURCES           = TestThread.cxx
@@ -31,6 +32,7 @@ TESTS = \
   TestFundamentalTypes \
   TestLog \
   TestSettings \
+  TestTemporaryFile \
   TestThread \
   TestThreadPool \
   TestThreadQueue \

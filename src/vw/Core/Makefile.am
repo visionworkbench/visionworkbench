@@ -25,6 +25,7 @@ include_HEADERS = \
   Settings.h \
   Stopwatch.h \
   System.h \
+  TemporaryFile.h \
   Thread.h \
   ThreadPool.h \
   ThreadQueue.h \
@@ -41,6 +42,7 @@ libvwCore_la_SOURCES = \
   Settings.cc \
   Stopwatch.cc \
   System.cc \
+  TemporaryFile.cc \
   Thread.cc
 
 libvwCore_la_LIBADD = @MODULE_CORE_LIBS@
