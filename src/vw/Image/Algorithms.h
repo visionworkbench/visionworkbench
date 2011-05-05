@@ -132,22 +132,19 @@ namespace vw {
   template <class PixelT>
   class ChannelNormalizeRetainAlphaFunctor: public UnaryReturnSameType {
     typedef typename CompoundChannelType<PixelT>::type channel_type;
-    channel_type m_old_min, m_new_min;
-    double m_old_to_new_ratio;
+    typedef typename PixelWithoutAlpha<PixelT>::type non_alpha_type;
+    typedef ChannelNormalizeFunctor<non_alpha_type> norm_func_type;
+    UnaryCompoundFunctor<norm_func_type, non_alpha_type> m_compound_func;
   public:
     ChannelNormalizeRetainAlphaFunctor( channel_type old_min, channel_type old_max,
                                         channel_type new_min, channel_type new_max )
-      : m_old_min(old_min), m_new_min(new_min)
-    {
-      if( old_max == old_min ) { m_old_to_new_ratio = 0.0; }
-      else { m_old_to_new_ratio = (new_max - new_min)/(double)(old_max - old_min); }
-    }
+      : m_compound_func( norm_func_type( old_min, old_max, new_min, new_max ) ) {}
 
     PixelT operator()( PixelT value ) const {
       if (is_transparent(value)) return value;
       else {
         PixelT result;
-        non_alpha_channels(result) = (non_alpha_channels(value) - m_old_min) * m_old_to_new_ratio + m_new_min;
+        non_alpha_channels(result) = m_compound_func( non_alpha_channels( value ) );
         alpha_channel(result) = alpha_channel(value);
         return result;
       }

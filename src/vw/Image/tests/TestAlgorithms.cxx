@@ -66,6 +66,16 @@ TEST( Algorithms, Normalize ) {
   ImageView<PixelT > n4 = normalize(im,0,1,-2,2);
   EXPECT_PIXEL_NEAR( PixelT(0, 4, 8), n4(0,0), 1e-7 );
   EXPECT_PIXEL_NEAR( PixelT(-8,-2,2), n4(1,0), 1e-7 );
+
+  // Int16 version
+  ImageView<int16> im2(4,1);
+  im2(0,0) = -30000; im2(1,0) = -15000;
+  im2(2,0) =  15000; im2(3,0) =  30000;
+  ImageView<int16> out2 = normalize(im2,-30000,30000,0,30000);
+  EXPECT_EQ( int16(    0), out2(0,0));
+  EXPECT_EQ( int16( 7500), out2(1,0));
+  EXPECT_EQ( int16(22500), out2(2,0));
+  EXPECT_EQ( int16(30000), out2(3,0));
 }
 
 TEST( Algorithms, Threshold ) {
@@ -99,6 +109,20 @@ TEST( Algorithms, NormalizeRetainAlpha ) {
   ImageView<Px> n1 = normalize_retain_alpha(im,0,2,0,1);
   EXPECT_PIXEL_NEAR( Px( 0.5, 0.2), n1(0,0), 1e-7 );
   EXPECT_PIXEL_NEAR( Px( 1.0, 0.8), n1(1,0), 1e-7 );
+
+  // Int16 Version
+  ImageView<PixelGrayA<int16> > im2(4,1);
+  im2(0,0) = PixelGrayA<int16>(-30000,-3200);
+  im2(1,0) = PixelGrayA<int16>(-15000,100);
+  im2(2,0) = PixelGrayA<int16>( 15000,300);
+  im2(3,0) = PixelGrayA<int16>( 30000,32000);
+  ImageView<PixelGrayA<int16> > out2 =
+    normalize_retain_alpha(im2,-30000,30000,0,30000);
+
+  EXPECT_PIXEL_EQ( PixelGrayA<int16>(0,    -3200), out2(0,0) );
+  EXPECT_PIXEL_EQ( PixelGrayA<int16>(7500, 100),   out2(1,0) );
+  EXPECT_PIXEL_EQ( PixelGrayA<int16>(22500,300),   out2(2,0) );
+  EXPECT_PIXEL_EQ( PixelGrayA<int16>(30000,32000), out2(3,0) );
 }
 
 TEST( Algorithms, Grassfirealpha ) {
