@@ -65,7 +65,6 @@ namespace platefile {
       boost::shared_ptr<AmqpConsumer> locked_basic_consume(std::string const& queue, boost::function<void (AmqpData)> callback);
 
       void basic_publish(const uint8* message, uint64 len, std::string const& exchange, std::string const& routing_key) const;
-      //bool basic_get(std::string const& queue, SharedByteArray& message) const;
 
       void create_endpoint(const std::string& rabbitmq, short port, const std::string& name);
       void remove_endpoint();

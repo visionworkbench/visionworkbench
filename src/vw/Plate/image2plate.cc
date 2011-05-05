@@ -384,9 +384,9 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
     }
-
-
-  } catch (vw::Exception &e) {
+  } catch (PlatefileErr &e) {
+    vw_out() << "A platefile error occured: " << e.what() << "\n";
+  } catch (Exception &e) {
     vw_out() << "A vision workbench error occured: " << e.what() << "\n";
     exit(1);
   }

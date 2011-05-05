@@ -34,12 +34,20 @@ class RpcServerBase::Task {
     boost::shared_ptr<IChannel> m_chan;
     ThreadMap& m_stats;
     bool m_go;
+    bool m_error;
+    std::string m_error_msg;
+    vw::Mutex     m_startup_mutex;
+    vw::Condition m_startup_cond;
   public:
     Task(RpcBase* rpc, const Url& u, ThreadMap& stats)
-      : m_rpc(rpc), m_url(u), m_stats(stats), m_go(true) {}
+      : m_rpc(rpc), m_url(u), m_stats(stats), m_go(true), m_error(false), m_error_msg("") {}
 
     void operator()();
     void stop() {m_go = false;}
+    bool error() const { return m_error; }
+    Mutex&     mutex() {return m_startup_mutex;}
+    Condition& cond()  {return m_startup_cond;}
+    const std::string& error_msg() const { return m_error_msg; }
   protected:
     // return = false means timeout
     bool handle_one_request();
@@ -84,7 +92,9 @@ void ThreadMap::clear() {
 
 void RpcServerBase::launch_thread(const Url& url) {
   m_task.reset(new Task(this, url, m_stats));
+  Mutex::Lock lock(m_task->mutex());
   m_thread.reset(new Thread(m_task));
+  m_task->cond().wait(m_task->mutex());
 }
 
 RpcServerBase::RpcServerBase(const Url& url) {
@@ -104,6 +114,14 @@ void RpcServerBase::stop() {
     m_thread->join();
 }
 
+const char* RpcServerBase::error() const {
+  if (!m_task)
+    return "Server message task is gone!";
+  if (!m_task->error())
+    return 0;
+  return m_task->error_msg().c_str();
+}
+
 void RpcServerBase::bind(const Url& url) {
   launch_thread(url);
 }
@@ -121,26 +139,33 @@ bool RpcBase::debug() const {
 }
 
 void RpcServerBase::Task::operator()() {
+  Mutex::Lock lock(mutex());
   try {
     // TODO: pass something more useful than u.string()
     m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
     m_chan->set_timeout(250);
-
-    while (m_go) {
-      try {
-        handle_one_request();
-      } catch (const NetworkErr& err) {
-        vw_out(ErrorMessage) << "Network error! This is probably fatal. Recreating channel." << std::endl;
-        m_stats.add("fatal_error");
-        // TODO: pass something more useful than u.string()
-        m_chan.reset(IChannel::make_bind(m_url, m_url.string()));
-        m_chan->set_timeout(250);
-      }
-    }
-    m_chan.reset();
   } catch (const std::exception& e) {
-    std::cerr << VW_CURRENT_FUNCTION << ": caught exception: " << e.what() << std::endl;
-    std::abort();
+    m_chan.reset();
+    m_error = true;
+    m_error_msg = e.what();
+  }
+
+  cond().notify_all();
+  lock.unlock();
+
+  try {
+    if (!m_error) {
+      while (m_go) {
+        // we could try to recreate the channel here, but it's better if we die
+        // and let the clients die, too
+        handle_one_request();
+      }
+      m_chan.reset();
+    }
+  } catch (const std::exception& e) {
+    m_chan.reset();
+    m_error_msg = e.what();
+    m_error = true;
   }
 }
 
@@ -229,9 +254,11 @@ pb::RpcChannel* RpcClientBase::base_channel() {
 }
 
 void RpcClientBase::set_timeout(int32 t) {
+  VW_ASSERT(m_chan, LogicErr() << "Cannot set timeout before constructing channel");
   m_chan->set_timeout(t);
 }
 
 void RpcClientBase::set_retries(uint32 t) {
+  VW_ASSERT(m_chan, LogicErr() << "Cannot set retries before constructing channel");
   m_chan->set_retries(t);
 }

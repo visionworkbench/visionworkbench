@@ -76,7 +76,7 @@ struct RpcTest : public ::testing::TestWithParam<Url> {
   vector<Client> clients;
 
   void SetUp() {
-    make_server();
+    server.reset();
     make_clients(0);
   }
 
@@ -87,10 +87,12 @@ struct RpcTest : public ::testing::TestWithParam<Url> {
 
   void make_server() {
     ASSERT_NO_THROW(server.reset(new RpcServer<TestService>(GetParam(), new TestServiceImpl())));
-    // XXX: This is pretty lame. Unlike every other type of 0mq socket, inproc
-    // sockets must bind() before connect(). This delay makes it likely the
-    // server starts before the client.
-    Thread::sleep_ms(50);
+    ASSERT_FALSE(server->error());
+  }
+
+  void make_things(uint64 clients) {
+    make_server();
+    make_clients(clients);
   }
 
   void TearDown() {
@@ -100,7 +102,7 @@ struct RpcTest : public ::testing::TestWithParam<Url> {
 };
 
 TEST_P(RpcTest, Basic) {
-  make_clients(1);
+  ASSERT_NO_FATAL_FAILURE(make_things(1));
 
   DoubleMessage q, a;
   for (uint32 i = 0; i < 1000; ++i) {
@@ -113,7 +115,7 @@ TEST_P(RpcTest, Basic) {
 }
 
 TEST_P(RpcTest, Err) {
-  make_clients(1);
+  ASSERT_NO_FATAL_FAILURE(make_things(1));
 
   EXPECT_EQ(0, server->stats().get("msgs"));
   EXPECT_EQ(0, server->stats().get("client_error"));
@@ -135,9 +137,7 @@ TEST_P(RpcTest, Err) {
 }
 
 TEST(TestRpc, HAS_ZEROMQ(KillServerDeathTest)) {
-  // This test only works if the death test starts in a different process
-  // (so we don't get a channel collision)
-  Url u("zmq+inproc://unittest2");
+  Url u("zmq+ipc://" TEST_OBJDIR "/unittest2");
   Server server;
   Client client;
 
@@ -149,9 +149,8 @@ TEST(TestRpc, HAS_ZEROMQ(KillServerDeathTest)) {
 
   server->set_debug(true);
   q.set_num(TestServiceImpl::SERVER_ERROR);
-  EXPECT_DEATH(
-      client->DoubleRequest(client.get(), &q, &a, null_callback()),
-      "broke");
+
+  EXPECT_THROW(client->DoubleRequest(client.get(), &q, &a, null_callback()), RpcErr);
 }
 
 class ClientTask {
@@ -174,7 +173,7 @@ class ClientTask {
 
       for (uint32 i = 0; i < MSG_COUNT; ++i) {
         q.set_num(i + offset);
-        ASSERT_NO_THROW(c->DoubleRequest(c.get(), &q, &a, null_callback()));
+        c->DoubleRequest(c.get(), &q, &a, null_callback());
         EXPECT_EQ(q.num() * 2, a.num());
       }
       c.reset();
@@ -182,10 +181,12 @@ class ClientTask {
 };
 
 TEST_P(RpcTest, MultiThreadTorture) {
-  uint64 THREAD_COUNT = 20;
+  static const uint64 THREAD_COUNT = 20;
 
   typedef boost::shared_ptr<ClientTask> task_t;
   typedef boost::shared_ptr<Thread> thread_t;
+
+  ASSERT_NO_FATAL_FAILURE(make_server());
 
   vector<task_t>   tasks(THREAD_COUNT);
   vector<thread_t> threads(THREAD_COUNT);

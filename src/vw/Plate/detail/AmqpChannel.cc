@@ -177,7 +177,7 @@ void AmqpChannel::remove_endpoint() {
     amqp_connection_state_t state;
     Mutex::Lock lock(m_conn->get_mutex(&state));
     this->locked_queue_unbind(m_local_name, m_local_name, m_local_name);
-    die_on_amqp_error(amqp_channel_close(state, m_channel_id, AMQP_REPLY_SUCCESS), "closing connection");
+    die_on_amqp_error(amqp_channel_close(state, m_channel_id, AMQP_REPLY_SUCCESS), "closing channel");
     m_channel_id = -1;
   }
   m_conn.reset();
@@ -208,7 +208,7 @@ AmqpChannel::~AmqpChannel() VW_NOTHROW {
   try {
     remove_endpoint();
   } catch (const AMQPErr& e) {
-    vw_out(ErrorMessage, "plate.AMQP") << "Failed to close amqp channel: " << e.what() << std::endl;
+    vw_out(WarningMessage, "plate.AMQP") << "Failed to close amqp channel: " << e.what() << std::endl;
   }
 }
 
@@ -528,7 +528,7 @@ void die_on_amqp_error(const amqp_rpc_reply_t x, const std::string& context) {
     case AMQP_RESPONSE_LIBRARY_EXCEPTION: {
       // amqp_error_string returns a malloc'd string. use free as a custom deleter
       boost::shared_ptr<char> error(amqp_error_string(x.library_error), free);
-      vw_throw(AMQPErr() << *error << " while " << context);
+      vw_throw(AMQPErr() << error.get() << " while " << context);
     }
     case AMQP_RESPONSE_SERVER_EXCEPTION:
       switch (x.reply.id) {

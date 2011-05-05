@@ -89,6 +89,9 @@ namespace platefile {
 
       void bind(const Url& url);
       void stop();
+      // Returns NULL if everything is probably okay, and the error message if
+      // it's not okay.
+      const char* error() const;
 
       ThreadMap::Locked stats();
   };

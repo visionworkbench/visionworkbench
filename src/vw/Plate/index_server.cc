@@ -116,6 +116,11 @@ int main(int argc, char** argv) {
   boost::format status("qps[%7.1f]   total[%9u]   server_err[%9u]   client_err[%9u]\r");
 
   while(process_messages) {
+    if (server.error()) {
+      vw_out(InfoMessage) << "IO Thread has terminated with message: " << server.error() << "\n";
+      break;
+    }
+
     bool should_sync = force_sync || (Stopwatch::microtime() >= next_sync);
 
     if (should_sync) {
