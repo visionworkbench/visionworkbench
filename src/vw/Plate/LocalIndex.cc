@@ -17,6 +17,7 @@ using namespace vw;
 using namespace vw::platefile;
 
 #include <fstream>
+#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <algorithm>
@@ -153,17 +154,21 @@ std::vector<std::string> LocalIndex::blob_filenames() const {
   if ( !fs::exists( m_plate_filename ) )
     vw_throw(IOErr() << "LocalIndex::blob_filenames() -- could not open platefile directory.");
 
-  // Create a regular expression for matching the pattern 'plate_<number>.blob"
-  boost::regex re;
-  re.assign("plate_\\d+\\.blob", boost::regex_constants::icase);
+  boost::regex re("plate_(\\d+)\\.blob");
+  typedef fs::directory_iterator iter_t;
 
-  fs::directory_iterator end_itr; // default construction yields past-the-end
+  BOOST_FOREACH(const fs::path& elt, std::make_pair(iter_t(m_plate_filename), iter_t())) {
+    boost::cmatch matches;
+    if (!boost::regex_match(elt.filename().c_str(), matches, re)) {
+      vw_out(DebugMessage, "plate") << "Skipping non-blob-filename " << elt.filename() << std::endl;
+      continue;
+    }
 
-  // Iterate through the files in the platefile directory and return
-  // any that match the regex above.
-  for ( fs::directory_iterator itr( m_plate_filename ); itr != end_itr; ++itr ) {
-    if (boost::regex_match(itr->leaf(), re))
-      result.push_back(itr->leaf());
+    std::string blob_id_str(matches[1].first, matches[1].second);
+    uint32 blob_id = boost::lexical_cast<uint32>(blob_id_str);
+    if (result.size() < blob_id+1)
+      result.resize(blob_id+1);
+    result[blob_id] = elt.string();
   }
 
   return result;
@@ -379,32 +384,27 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
 
    vw_out(InfoMessage) << "Rebuilding index: " << m_plate_filename <<"\n";
 
+   // index in blob_filenames is the blobfile id
    std::vector<std::string> blob_files = this->blob_filenames();
-   for (unsigned int i = 0; i < blob_files.size(); ++i) {
-     TerminalProgressCallback tpc("plate", "\t --> Rebuild from " + blob_files[i] + " : ");
+   for (uint32 blob_id = 0; blob_id < blob_files.size(); ++blob_id) {
+     const std::string& name = blob_files[blob_id];
+     if (name.empty())
+       continue;
+
+     TerminalProgressCallback tpc("plate", "\t --> Rebuild from blob" + vw::stringify(blob_id) + " : ");
      tpc.report_progress(0);
 
-     // Extract the current blob id as an integer.
-     boost::regex re;
-     re.assign("(plate_)(\\d+)(\\.blob)", boost::regex_constants::icase);
-     boost::cmatch matches;
-     boost::regex_match(blob_files[i].c_str(), matches, re);
-     if (matches.size() != 4)
-       vw_throw(IOErr() << "PagedIndex::rebuild_index() -- could not parse blob number from blob filename.");
-     std::string blob_id_str(matches[2].first, matches[2].second);
-     int current_blob_id = atoi(blob_id_str.c_str());
+     Blob blob(name, true);
 
-     Blob blob(this->platefile_name() + "/" + blob_files[i], true);
-     Blob::iterator iter = blob.begin();
-     while (iter != blob.end()) {
-       TileHeader hdr = *iter;
-       IndexRecord rec;
-       rec.set_blob_id(current_blob_id);
-       rec.set_blob_offset(iter.current_base_offset());
+     IndexRecord rec;
+     typedef Blob::iterator iter_t;
+     for (iter_t tile = blob.begin(), end = blob.end(); tile != end; ++tile) {
+       const TileHeader& hdr = *tile;
+       rec.set_blob_id(blob_id);
+       rec.set_blob_offset(tile.current_base_offset());
        rec.set_filetype(hdr.filetype());
        this->write_update(hdr, rec);
-       tpc.report_progress(float(iter.current_base_offset()) / float(blob.size()));
-       ++iter;
+       tpc.report_progress(float(tile.current_base_offset()) / float(blob.size()));
     }
     tpc.report_finished();
   }
