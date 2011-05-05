@@ -110,7 +110,7 @@ class CmpEqual : public CmpWorker<CmpEqual> {
 
     template <typename T1, typename T2>
     Message what(const std::string& ename, const std::string& aname, const T1& e, const T2& a) const {
-      return Message(gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false).message());
+      return Message() << gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false).message();
     }
 };
 
@@ -125,7 +125,7 @@ class CmpTypeEqual : public CmpWorker<CmpTypeEqual> {
     Message what(const std::string& ename, const std::string& aname, const T1& e, const T2& a) const {
       if (!boost::is_same<T1,T2>::value)
         return Message() << ename << " and " << aname << " are not the same type";
-      return Message(gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false).message());
+      return Message() << gi::EqFailure(ename.c_str(), aname.c_str(), t::format(e), t::format(a), false).message();
     }
 };
 
