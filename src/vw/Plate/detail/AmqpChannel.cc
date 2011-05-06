@@ -419,9 +419,10 @@ class AmqpConsumeTask {
       AmqpData msg;
       try {
         while(m_go) {
-          msg.reset();
-          if (handle_one_method(msg))
+          if (handle_one_method(msg)) {
             m_callback(msg);
+            msg.reset();
+          }
         }
       } catch (const std::exception& e) {
         msg.reset();
@@ -434,7 +435,7 @@ class AmqpConsumeTask {
     bool handle_one_method(AmqpData& msg) const {
       // Waiting for frames. We don't want to hold the lock while we do that, so select here.
       // Small timeout so it shuts down fast.
-      if (!select_helper(m_fd, 100, "select() for a method frame"))
+      if (!select_helper(m_fd, 500, "select() for a method frame"))
         return false;
 
       amqp_frame_t method;
