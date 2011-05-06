@@ -64,28 +64,17 @@ namespace camera {
   }
 
   Vector3 CAHVModel::pixel_to_vector(Vector2 const& pix) const {
-    Vector3 va, vb;
-
-    // Vertical component in a plane perpendicular to the vector
-    va = V + (-(pix.y()) * A);
-
-    // Horizontal component in a plane perpendicular to the vector
-    vb = H + (-(pix.x()) * A);
 
     // Find vector
-    Vector3 vec = cross_prod(va, vb);
-
-    // Normalize vector
-    vec *= 1.0 / norm_2(vec);
+    Vector3 vec =
+      normalize(cross_prod(V - pix.y() * A,
+                           H - pix.x() * A));
 
     // The vector VxH should be pointing in the same directions as A,
     // if it isn't (because we have a left handed system), flip the
     // vector.
-    Vector3 temp = cross_prod(V, H);
-    if (dot_prod(temp, A) < 0.0){
+    if (dot_prod(cross_prod(V, H), A) < 0.0)
       vec *= -1.0;
-      //cout << "CAHV PixelToVector changed sign of vec" << endl;
-    }
     return vec;
   }
 
@@ -94,41 +83,41 @@ namespace camera {
   // --------------------------------------------------
   void CAHVModel::read_cahv(std::string const& filename) {
 
-    FILE *cahvFP = fopen(filename.c_str(), "r");
-    if (cahvFP == 0)
-      vw_throw( IOErr() << "CAHVModel::read_cahv: Could not open file\n" );
+    try {
+      std::ifstream input(filename.c_str(), std::ifstream::in);
+      input.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
-    char line[4096];
+      vw_out(InfoMessage, "camera") << "Reading CAHV file: "
+                                    << filename << ".\n";
 
-    // Scan through comments
-    fgets(line, sizeof(line), cahvFP);
-    while(line[0] == '#')
-      fgets(line, sizeof(line), cahvFP);
+      char r1, r2;
 
-    if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
-      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read C vector\n" );
-      fclose(cahvFP);
+      while (true) {
+        input.ignore(1024, 'C');
+        input >> r1;
+        if (r1 == '=')
+          break;
+      }
+      input >> C[0] >> C[1] >> C[2];
+
+      input >> r1 >> r2;
+      if (r1 != 'A' || r2 != '=')
+        vw_throw( IOErr() << "CAHVModel: Could not read A vector\n" );
+      input >> A(0) >> A(1) >> A(2);
+
+      input >> r1 >> r2;
+      if (r1 != 'H' || r2 != '=')
+        vw_throw( IOErr() << "CAHVModel: Could not read H vector\n" );
+      input >> H(0) >> H(1) >> H(2);
+
+      input >> r1 >> r2;
+      if (r1 != 'V' || r2 != '=')
+        vw_throw( IOErr() << "CAHVModel: Could not read V vector\n" );
+      input >> V(0) >> V(1) >> V(2);
+
+    } catch ( const std::ifstream::failure& e ) {
+      vw_throw( IOErr() << "CAHVModel: Could not read file: " << filename << " (" << e.what() << ")" );
     }
-
-    fgets(line, sizeof(line), cahvFP);
-    if (sscanf(line,"A = %lf %lf %lf", &A(0),&A(1), &A(2)) != 3) {
-      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read A vector\n" );
-      fclose(cahvFP);
-    }
-
-    fgets(line, sizeof(line), cahvFP);
-    if (sscanf(line,"H = %lf %lf %lf", &H(0), &H(1), &H(2)) != 3) {
-      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read H vector\n" );
-      fclose(cahvFP);
-    }
-
-    fgets(line, sizeof(line), cahvFP);
-    if (sscanf(line,"V = %lf %lf %lf", &V(0), &V(1), &V(2)) != 3) {
-      vw_throw( IOErr() << "CAHVModel::read_CAHV: Could not read V vector\n" );
-      fclose(cahvFP);
-    }
-
-    fclose(cahvFP);
   }
 
   void CAHVModel::read_pinhole(std::string const& filename) {
@@ -209,116 +198,44 @@ namespace camera {
     fclose(camFP);
   }
 
-
-  // This is a re-implementation of the Epipolar math that is easier
-  // to read, however it disagrees with the other epipolar code below
-  // slightly.  It needs another look to clean up this discrepancy,
-  // which is due to the direction chosen for Hvec. -mbroxton
-
-//   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
-//                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
-
-//     double fh, fv, hc, vc;
-//     Vector3 f, g;
-//     Vector3 A, H, V;
-
-//     // Compute a common image center and scale for the two models
-//     hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 + dot_prod(src_camera1.H, src_camera1.A) / 2.0;
-//     vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 + dot_prod(src_camera1.V, src_camera1.A) / 2.0;
-
-//     // Find the magnitude of the new H and V vectors (this will be the
-//     // average of the focal lengths of these cameras).
-//     f = cross_prod(src_camera0.A, src_camera0.H);
-//     g = cross_prod(src_camera1.A, src_camera1.H);
-//     fh = (norm_2(f) + norm_2(g)) / 2.0;
-
-//     f = cross_prod(src_camera0.A, src_camera0.V);
-//     g = cross_prod(src_camera1.A, src_camera1.V);
-//     fv = (norm_2(f) + norm_2(g)) / 2.0;
-
-//     // Use common center and scale to construct an average A vector
-//     Vector3 A_avg  = 0.5 * (src_camera0.A + src_camera1.A);
-
-//     // Then adjust A to be perpindicular to the baseline between the
-//     // two imagers.  This will move the epipoles to infinity.
-//     Vector3 Hvec = normalize(src_camera1.C - src_camera0.C);
-//     Vector3 Vvec = normalize(cross_prod(Hvec,A_avg));
-//     A = normalize(cross_prod(Vvec,Hvec));
-
-//     std::cout << "Fh: " << fh << "   Fv: " << fv << "\n";
-//     std::cout << "Ch: " << hc << "   Cv: " << vc << "\n";
-//     std::cout << "Hvec: " << Hvec << "   Vvec: " << Vvec << "\n";
-
-//     // Use the standard equations for the epipolar camera model to
-//     // determine H and V given the camera intristics and the
-//     // horizontal and vertical vectors.
-//     H = fh*Hvec + hc*A;
-//     V = fv*Vvec + vc*A;
-
-//     dst_camera0.C = src_camera0.C;
-//     dst_camera0.A = A;
-//     dst_camera0.H = H;
-//     dst_camera0.V = V;
-
-//     dst_camera1.C = src_camera1.C;
-//     dst_camera1.A = A;
-//     dst_camera1.H = H;
-//     dst_camera1.V = V;
-//   }
-
   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1) {
 
-    double hs, hc, vs, vc;
-    Vector3 f, g, hp, ap, app, vp;
-    Vector3 a, h, v;
-
     // Compute a common image center and scale for the two models
-    hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 + dot_prod(src_camera1.H, src_camera1.A) / 2.0;
-    vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 + dot_prod(src_camera1.V, src_camera1.A) / 2.0;
+    double hc = dot_prod(src_camera0.H, src_camera0.A) / 2.0 +
+      dot_prod(src_camera1.H, src_camera1.A) / 2.0;
+    double vc = dot_prod(src_camera0.V, src_camera0.A) / 2.0 +
+      dot_prod(src_camera1.V, src_camera1.A) / 2.0;
 
-    f = cross_prod(src_camera0.A, src_camera0.H);
-    g = cross_prod(src_camera1.A, src_camera1.H);
-    hs = (norm_2(f) + norm_2(g)) / 2.0;
+    double hs = norm_2(cross_prod(src_camera0.A, src_camera0.H))/2.0 +
+      norm_2(cross_prod(src_camera1.A, src_camera1.H))/2.0;
 
-    f = cross_prod(src_camera0.A, src_camera0.V);
-    g = cross_prod(src_camera1.A, src_camera1.V);
-    vs = (norm_2(f) + norm_2(g)) / 2.0;
+    double vs = norm_2(cross_prod(src_camera0.A, src_camera0.V))/2.0 +
+      norm_2(cross_prod(src_camera1.A, src_camera1.V))/2.0;
 
     // Use common center and scale to construct common A, H, V
-    app  = src_camera0.A + src_camera1.A;
+    Vector3 app  = src_camera0.A + src_camera1.A;
 
-    // Note the directionality of f here, for consistency later
-    f = src_camera1.C - src_camera0.C;
-    g = cross_prod(app, f); // alter f (CxCy) to be
-    f = cross_prod(g, app); // perpendicular to average A
+    // Note the directionality of 1 to 0, for consistency later
+    Vector3 f = cross_prod(cross_prod(app, src_camera1.C - src_camera0.C), app);
 
+    Vector3 hp;
     if (dot_prod(f, src_camera0.H) > 0)
       hp = f * hs / (norm_2(f));
     else
       hp = -f * hs / (norm_2(f));
 
-    app = 0.5 * app;
-    g = hp * dot_prod(app,hp) / (hs * hs);
-    ap = app -g;
-    a = ap/norm_2(ap);
-    f = cross_prod(a, hp);
-    vp = f * vs / hs;
-    f = hc * a;
-    h = hp + f;
-
-    f = vc * a;
-    v = vp + f;
+    app *= 0.5;
+    Vector3 g = hp * dot_prod(app,hp) / (hs * hs);
+    Vector3 a = normalize(app - g);
+    Vector3 vp = cross_prod(a, hp) * vs / hs;
 
     dst_camera0.C = src_camera0.C;
-    dst_camera0.A = a;
-    dst_camera0.H = h;
-    dst_camera0.V = v;
-
     dst_camera1.C = src_camera1.C;
-    dst_camera1.A = a;
-    dst_camera1.H = h;
-    dst_camera1.V = v;
+
+    dst_camera0.A = dst_camera1.A = a;
+    dst_camera0.H = dst_camera1.H = hp + hc * a;
+    dst_camera0.V = dst_camera1.V = vp + vc * a;
   }
 
   void CAHVModel::write(std::string const& filename ) {
