@@ -45,6 +45,13 @@ struct MemoryImageResourceTest : public ::testing::TestWithParam<std::string> {
   }
 };
 
+TEST_P(MemoryImageResourceTest, Zero) {
+  // wrong data, zero len
+  EXPECT_THROW(SrcMemoryImageResource::open(fs::extension(GetParam()), (uint8*)42,   0),  ArgumentErr);
+  // zero data, wrong len
+  EXPECT_THROW(SrcMemoryImageResource::open(fs::extension(GetParam()), NULL, 42),         ArgumentErr);
+}
+
 TEST_P(MemoryImageResourceTest, BasicRead) {
   vector<uint8> raw;
   slurp(GetParam(), raw);

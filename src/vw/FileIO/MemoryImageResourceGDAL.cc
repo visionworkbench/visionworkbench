@@ -14,6 +14,12 @@ namespace {
     static const boost::format GDAL_MEM_FILENAME("/vsimem/vw_%s_%u_%p");
     return std::string(boost::str(boost::format(GDAL_MEM_FILENAME) % name % vw::Thread::id() % key));
   }
+  // GDAL warns when GDALClose is called on a NULL, even though it's documented
+  // as being okay...
+  void GDALCloseNullOk( GDALDatasetH x) {
+    if (x)
+      ::GDALClose(x);
+  }
 }
 
 namespace vw {
@@ -25,7 +31,7 @@ class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress
     virtual void bind() {
       const std::string src_fn(make_fn("src", m_data.get()));
       VSIFCloseL(VSIFileFromMemBuffer(src_fn.c_str(), const_cast<uint8*>(m_data.get()), m_len, false));
-      m_dataset.reset(reinterpret_cast<GDALDataset*>(GDALOpen(src_fn.c_str(), GA_ReadOnly)), GDALClose);
+      m_dataset.reset(reinterpret_cast<GDALDataset*>(GDALOpen(src_fn.c_str(), GA_ReadOnly)), GDALCloseNullOk);
       if (!m_dataset) {
         VSIUnlink(src_fn.c_str());
         vw_throw(IOErr() << "Unable to open memory dataset.");
@@ -33,7 +39,10 @@ class SrcMemoryImageResourceGDAL::Data : public fileio::detail::GdalIODecompress
     }
     Data* rewind() const {vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << ": not supported");}
   public:
-    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {}
+    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {
+      VW_ASSERT(buffer, ArgumentErr() << VW_CURRENT_FUNCTION << ": buffer must be non-null");
+      VW_ASSERT(len,    ArgumentErr() << VW_CURRENT_FUNCTION << ": len must be non-zero");
+    }
 };
 
 SrcMemoryImageResourceGDAL::SrcMemoryImageResourceGDAL(boost::shared_array<const uint8> buffer, size_t len)

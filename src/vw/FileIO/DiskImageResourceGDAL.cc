@@ -45,6 +45,12 @@ namespace {
         return true;
     return false;
   }
+  // GDAL warns when GDALClose is called on a NULL, even though it's documented
+  // as being okay...
+  void GDALCloseNullOk( GDALDatasetH x ) {
+    if (x)
+      ::GDALClose(x);
+  }
 }
 
 namespace vw {
@@ -226,7 +232,7 @@ namespace vw {
   void DiskImageResourceGDAL::open( std::string const& filename )
   {
     Mutex::Lock lock(d::gdal());
-    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), GDALClose);
+    m_read_dataset_ptr.reset((GDALDataset*)GDALOpen(filename.c_str(), GA_ReadOnly), GDALCloseNullOk);
 
     if( !m_read_dataset_ptr )
       vw_throw( ArgumentErr() << "GDAL: Failed to open " << filename << "." );
@@ -377,7 +383,7 @@ namespace vw {
 
     m_write_dataset_ptr.reset(
         driver->Create( m_filename.c_str(), cols(), rows(), num_bands, gdal_pix_fmt, options ),
-        GDALClose);
+        GDALCloseNullOk);
     CSLDestroy( options );
 
     if (m_blocksize[0] == -1 || m_blocksize[1] == -1) {

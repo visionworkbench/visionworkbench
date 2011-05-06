@@ -20,6 +20,7 @@ class PngIO {
   protected:
     png_structp m_ctx;
     png_infop m_info;
+    PngIO();
 };
 
 class PngIODecompress : public PngIO, public ScanlineReadBackend {

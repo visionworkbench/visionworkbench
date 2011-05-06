@@ -17,7 +17,10 @@ class SrcMemoryImageResourceJPEG::Data : public fileio::detail::JpegIODecompress
     virtual void bind() { fileio::detail::jpeg_ptr_src(&m_ctx, m_data.get(), m_len); }
   public:
     Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_len)); r->open(); return r.release();}
-    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {}
+    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_len(len) {
+      VW_ASSERT(buffer, ArgumentErr() << VW_CURRENT_FUNCTION << ": buffer must be non-null");
+      VW_ASSERT(len,    ArgumentErr() << VW_CURRENT_FUNCTION << ": len must be non-zero");
+    }
 };
 
 SrcMemoryImageResourceJPEG::SrcMemoryImageResourceJPEG(boost::shared_array<const uint8> buffer, size_t len)

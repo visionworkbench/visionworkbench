@@ -25,7 +25,10 @@ class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
       std::copy(mgr->m_cur, mgr->m_cur+len, data);
       mgr->m_cur += len;
     }
-    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_cur(buffer.get()), m_end(buffer.get()+len) {}
+    Data(boost::shared_array<const uint8> buffer, size_t len) : m_data(buffer), m_cur(buffer.get()), m_end(buffer.get()+len) {
+      VW_ASSERT(buffer, ArgumentErr() << VW_CURRENT_FUNCTION << ": buffer must be non-null");
+      VW_ASSERT(len,    ArgumentErr() << VW_CURRENT_FUNCTION << ": len must be non-zero");
+    }
 };
 
 SrcMemoryImageResourcePNG::SrcMemoryImageResourcePNG(boost::shared_array<const uint8> buffer, size_t len)
