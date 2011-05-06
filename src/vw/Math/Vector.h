@@ -1295,6 +1295,40 @@ namespace math {
     return transpose(v.child()/s);
   }
 
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgCosFunctor> inline cos( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgCosFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgAcosFunctor> inline acos( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgAcosFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgSinFunctor> inline sin( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgSinFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgAsinFunctor> inline asin( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgAsinFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgTanFunctor> inline tan( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgTanFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgAtanFunctor> inline atan( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgAtanFunctor>( v.impl() );
+  }
+
+  template <class VectorT>
+  VectorUnaryFunc<VectorT, ArgSqrtFunctor> inline sqrt( VectorBase<VectorT> const& v ) {
+    return VectorUnaryFunc<VectorT, ArgSqrtFunctor>( v.impl() );
+  }
 
   // *******************************************************************
   // Elementwise vector comparison functions.
