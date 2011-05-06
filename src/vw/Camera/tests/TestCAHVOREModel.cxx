@@ -59,3 +59,28 @@ TEST( CAHVOREModel, StringWriteRead ) {
   EXPECT_VECTOR_NEAR( cahvore2.E, cahvore.E, 1e-5 );
   EXPECT_NEAR( cahvore2.P, cahvore.P, 1e-5 );
 }
+
+TEST( CAHVOREModel, Linearize ) {
+  CAHVOREModel cahvore(Vector3(0.606185,-0.043367,-0.234891),
+                       Vector3(0.712013,0.037316,0.701174),
+                       Vector3(353.341,474.873,350.82),
+                       Vector3(44.0102,16.904,683.916),
+                       Vector3(0.712953,0.038186,0.700171),
+                       Vector3(3e-06,-0.013032,-0.00754),
+                       Vector3(0.000942,0.00228,0.001613),
+                       3, 0.37 );
+  CAHVModel cahv =
+    linearize_camera(cahvore, Vector2i(1024,1024),
+                     Vector2i(1024,1024));
+
+  // This is not the best test, but it insures consistent performance
+  // while I compress the code.
+  EXPECT_VECTOR_NEAR(Vector3(0.606185,-0.043367,-0.234891),
+                     cahv.C, 1e-5);
+  EXPECT_VECTOR_NEAR(Vector3(0.712254,0.0290096,0.701322),
+                     cahv.A, 1e-5);
+  EXPECT_VECTOR_NEAR(Vector3(358.009,279.762,354.175),
+                     cahv.H, 1e-2);
+  EXPECT_VECTOR_NEAR(Vector3(177.463,13.6499,548.543),
+                     cahv.V, 1e-2);
+}

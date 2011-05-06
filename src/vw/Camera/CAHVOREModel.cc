@@ -7,6 +7,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Camera/CAHVOREModel.h>
 #include <fstream>
+#include <boost/foreach.hpp>
 
 using namespace vw;
 using namespace vw::camera;
@@ -259,19 +260,10 @@ CAHVModel camera::linearize_camera( CAHVOREModel const& camera_model,
   const bool minfov          = true;       // Yes, minimize the common field of view
 
   CAHVModel cahv_model;
-
-  int32 i;
-  Vector3 rt, dn, p3, u3, vec1, vec2;
-  Vector2 p2;
-  double cs, x, hmin, hmax, vmin, vmax;
-  Vector2 hpts[6], vpts[6];
-
-  // scale factors
-  double hs, hc, vs, vc;
-
   cahv_model.C = camera_model.C;
 
   // Record the landmark 2D coordinates around the perimeter of the image
+  Vector2 hpts[6], vpts[6];
   hpts[0] = Vector2();
   hpts[1] = Vector2(0,(cahvore_image_size[1]-1)/2);
   hpts[2] = Vector2(0,cahvore_image_size[1]-1);
@@ -286,75 +278,56 @@ CAHVModel camera::linearize_camera( CAHVOREModel const& camera_model,
   vpts[5] = cahvore_image_size - Vector2(1,1);
 
   // Choose a camera axis in the middle of the image
-  p2 = (cahvore_image_size-Vector2i(1,1))/2.0;
-  u3 = camera_model.pixel_to_vector( p2 );
-  cahv_model.A = u3;
+  Vector2 p2 = (cahvore_image_size-Vector2i(1,1))/2.0;
+  cahv_model.A = camera_model.pixel_to_vector( p2 );
 
   // Compute the original right and down vectors
-  dn = cross_prod(camera_model.A, camera_model.H);
-  rt = cross_prod(dn,             camera_model.A);
+  Vector3 dn = cross_prod(camera_model.A, camera_model.H);
+  Vector3 rt = normalize(cross_prod(dn,   camera_model.A));
   dn = normalize( dn );
-  rt = normalize( rt );
 
   // Adjust the right and down vectors to be orthogonal to new axis
   rt = cross_prod(dn, cahv_model.A);
-  dn = cross_prod(cahv_model.A, rt);
-  dn = normalize( dn );
+  dn = normalize(cross_prod(cahv_model.A, rt));
   rt = normalize( rt );
 
   // Find horizontal and vertical fields of view
-  hmin =  1;
-  hmax = -1;
-  for (i=0; i<6; i++) {
-    u3 = camera_model.pixel_to_vector(hpts[1]);
-    x = dot_prod(dn, u3);
-    vec1 = x * dn;
-    vec2 = u3 - vec1;
-    vec2 = normalize(vec2);
-    cs = dot_prod(cahv_model.A, vec2);
-    if (hmin > cs)
-      hmin = cs;
-    if (hmax < cs)
-      hmax = cs;
+  double hmin = 1, hmax = -1;
+  BOOST_FOREACH( Vector2 const& loop, hpts ) {
+    const Vector3 u3 = camera_model.pixel_to_vector(loop);
+    double cs = dot_prod(cahv_model.A, normalize(u3 - dot_prod(dn, u3) * dn));
+    if (hmin > cs) hmin = cs;
+    if (hmax < cs) hmax = cs;
   }
-  vmin =  1;
-  vmax = -1;
-  for (i=0; i<6; i++) {
-    u3 = camera_model.pixel_to_vector(vpts[i]);
-    x = dot_prod(rt, u3);
-    vec1 = x*rt;
-    vec2 = u3 - vec1;
-    vec2 = normalize(vec2);
-    cs = dot_prod(cahv_model.A,vec2);
-    if (vmin > cs)
-      vmin = cs;
-    if (vmax < cs)
-      vmax = cs;
+  double vmin = 1, vmax = -1;
+  BOOST_FOREACH( Vector2 const& loop, vpts ) {
+    const Vector3 u3 = camera_model.pixel_to_vector(loop);
+    double cs = dot_prod(cahv_model.A,normalize(u3 - dot_prod(rt, u3)*rt));
+    if (vmin > cs) vmin = cs;
+    if (vmax < cs) vmax = cs;
   }
 
   // Compute the all-encompassing scale factors
-  cs = (!minfov ? hmin : hmax); // logic is reverse for cos()
-  if (acos(cs) > limfov)
-    cs = cos(limfov);
-  x = cahv_image_size[0] / 2.0;
-  hs = x * cs / sqrt(1.0 - cs*cs);
-  cs = (!minfov ? vmin : vmax); // logic is reverse for cos()
-  if (acos(cs) > limfov)
-    cs = cos(limfov);
-  x = cahv_image_size[1] / 2.0;
-  vs = x * cs / sqrt(1.0 - cs*cs);
+  Vector2 cosines;
+  if ( minfov ) {
+    // use max
+    cosines = Vector2(hmax,vmax);
+  } else {
+    // use min
+    cosines = Vector2(hmin,vmin);
+  }
+  if ( acos(cosines[0]) > limfov ) cosines[0] = cos(limfov);
+  if ( acos(cosines[1]) > limfov ) cosines[1] = cos(limfov);
+  Vector2 scalars =
+    elem_quot(elem_prod(cahv_image_size/2.0,cosines),
+              sqrt(Vector2(1,1) - elem_prod(cosines,cosines)));
 
   // Assign idealized image centers and coordinate angles
-  hc = (cahv_image_size[0] - 1) / 2.0;
-  vc = (cahv_image_size[1] - 1) / 2.0;
+  Vector2 centers = (cahv_image_size - Vector2(1,1))/2.0;
 
   // Construct H and V
-  vec1 = hs * rt;
-  vec2 = hc * cahv_model.A;
-  cahv_model.H = vec1 + vec2;
-  vec1 = vs * dn;
-  vec2 = vc * cahv_model.A;
-  cahv_model.V = vec1 + vec2;
+  cahv_model.H = scalars[0] * rt + centers[0] * cahv_model.A;
+  cahv_model.V = scalars[1] * dn + centers[1] * cahv_model.A;
 
   return cahv_model;
 }
