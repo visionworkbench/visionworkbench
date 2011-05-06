@@ -7,6 +7,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Camera/CAHVORModel.h>
 #include <fstream>
+#include <boost/foreach.hpp>
 
 using namespace vw;
 
@@ -89,7 +90,8 @@ void camera::CAHVORModel::write(std::string const& filename) {
 #define VW_CAHVOR_CONV   1.0e-6   // covergence tolerance - check adequacy for application
 
 // CAHVOR pixel_to_vector with partial_derivative output
-Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix, Matrix<double> &partial_derivatives) const {
+Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix,
+                                             Matrix<double> &partial_derivatives) const {
 
   // Note, vec is actually the output vector
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
@@ -99,17 +101,17 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix, Matrix<double> 
 
   Vector3 f, g, rr, pp, wo, lambda;
 
-  Matrix<double, 3, 3> m33, n33;
+  Matrix3x3 m33, n33;
   double sgn, magv, magi;
   Vector3 t, w, v3, u3;
-  Matrix<double, 3, 3> irrt;
+  Matrix3x3 irrt;
 
   double dudt;
   Vector3 drpdx, drpdy;
-  Matrix<double, 3, 3> dldr;
+  Matrix3x3 dldr;
 
   Vector3 drdx, drdy;
-  Matrix<double, 3, 3> drpdr, drpdri;
+  Matrix3x3 drpdr, drpdri;
 
   //  The projection point is merely the C of the camera model.
   //  vec = C; This isn't needed, only vec is returned for our
@@ -267,52 +269,16 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix, Matrix<double> 
 
 // pixel_to_vector (no returned partial matrix)
 Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
-
-  // vec is actually the output vector, vec is just the C vector of the camera
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
-  // cout << "Starting CAHVOR PixelToVector w/o Partial... " << endl;
-
-  Vector3 vec;
-  int i;
-  double omega, omega_2, tau, mu, u, u_2, du, k1, k3, k5, poly, deriv;
-
-  Vector3 f, g, rr, pp, wo, lambda;
-  Matrix<double, 3, 3> m33, n33;
-
-  double sgn, magv, magi;
-  Vector3 t, w, v3, u3;
-  Matrix<double, 3, 3> irrt;
-
-  Vector3 drpdx, drpdy;
-  Matrix<double, 3, 3> dldr;
-
-  Vector3 drdx, drdy;
-  Matrix<double, 3, 3> drpdr, drpdri;
-
-  //  The projection point is merely the C of the camera model.
-  //  vec = C; not used here, as output is vec
 
   // Calculate the projection ray assuming normal vector directions,
   // neglecting distortion.
-  f = pix.y() * A; // pos2[1] in JPL code is y, and pos2[0] is x...
-  f = V - f;
-
-  g = pix.x() * A;
-  g = H - g;
-  rr = cross_prod(f,g);
-  magi = 1.0/norm_2(rr);
-  rr = magi * rr;
+  Vector3 rr = normalize(cross_prod(V - pix.y() * A,
+                                    H - pix.x() * A));
 
   // Check and optionally correct for vector directions.
-  sgn = 1;
-  t = cross_prod(V,H);
-
-  if (dot_prod(t, A) < 0) {
+  if (dot_prod(cross_prod(V,H), A) < 0)
     rr = -1.0 * rr;
-    sgn = -1;
-    //cout << "CAHVOR PixelToVector changes rr sign" << endl;
-  }
-
 
   // Remove the radial lens distortion.  Preliminary values of
   // omega, lambda, and tau are computed from the rr vector
@@ -320,22 +286,24 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
   // the equation k5*u^5 + k3*u^3 + k1*u = 1, which is solved for u
   // by means of Newton's method.  This value is used to compute the
   // corrected rr.
-  omega = dot_prod(rr, O);
-  omega_2 = omega * omega;
-  wo = omega * O;
-  lambda = rr - wo;
-  tau = dot_prod(lambda, lambda) / omega_2;
+  double omega = dot_prod(rr, O);
+  Vector3 lambda = rr - omega * O;
+  const double tau = dot_prod(lambda, lambda) / (omega*omega);
 
-  k1 = 1 + R(0);                //  1 + rho0
-  k3 = R(1) * tau;              //  rho1*tau
-  k5 = R(2) * tau*tau;  //  rho2*tau^2
+  const double k1 = 1 + R(0);        //  1 + rho0
+  const double k3 = R(1) * tau;      //  rho1*tau
+  const double k5 = R(2) * tau*tau;  //  rho2*tau^2
 
-  mu = R(0) + k3 + k5;
-  u = 1.0 - mu; // initial approximation for iterations
+  double u = 1.0 - (R(0) + k3 + k5); // initial approximation for iterations
 
-  for (i=0; i<VW_CAHVOR_MAXITER; i++) {
+  double du, poly, deriv;
+  for (int32 i=0;; i++) {
+    if (i >= VW_CAHVOR_MAXITER) {
+      vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Too many iterations (" << i << ")\n";
+      break;
+    }
 
-    u_2 = u*u;
+    double u_2 = u*u;
     poly  =  ((k5*u_2  +  k3)*u_2 + k1)*u - 1;
     deriv = (5*k5*u_2 + 3*k3)*u_2 + k1;
 
@@ -350,22 +318,13 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
     }
   }
 
-
-  if (i >= VW_CAHVOR_MAXITER) {
-    vw_out(InfoMessage, "camera") << "CAHVORModel.pixel_to_vector(): Too many iterations (" << i << ")\n";
-  }
-
-  mu = 1 - u;
-  pp = mu * lambda;
-  vec = rr - pp;
-  magv = norm_2(vec);
-  vec = 1.0/magv * vec;
-  return vec;
+  return normalize(rr - (1 - u)*lambda);
 }
 
 
 // vector_to_pixel with partial_derivatives
-Vector2 vw::camera::CAHVORModel::point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const {
+Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point,
+                                            Matrix<double> &partial_derivatives) const {
 
   Vector3 vec = point - C;
   // Based on JPL 3D to 2D POINT (not the 3D to 2D function alone).
@@ -373,7 +332,7 @@ Vector2 vw::camera::CAHVORModel::point_to_pixel(Vector3 const& point, Matrix<dou
   double alpha, beta, gamma, xh, yh;
   double omega, omega_2, tau, mu;
   Vector3 pp_c, wo, lambda;
-  Matrix<double, 3, 3> dldp, dppdp, m33, n33;
+  Matrix3x3 dldp, dppdp, m33, n33;
   Vector3 dxhdpp, dyhdpp, v3, u3;
   double dudt;
 
@@ -444,33 +403,21 @@ Vector2 vw::camera::CAHVORModel::point_to_pixel(Vector3 const& point, Matrix<dou
 // vector_to_pixel without partial_derivatives
 Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point) const {
 
+  // Convert to directional
   Vector3 vec = point - C;
-  Vector2 pix;
-  // cout << "Starting CAHVOR VectorToPixel w/o partial... " << endl;
-  double alpha, beta, gamma, xh, yh;
-  double omega, omega_2, tau, mu;
-  Vector3 pp_c, wo, lambda;
 
   // Calculate necessary quantities
-  omega = dot_prod(vec,O);
-  omega_2 = omega * omega;
-  wo = omega * O;
-  lambda = vec - wo;
-  tau = dot_prod(lambda, lambda) / omega_2;
-  mu = R(0) + (R(1) * tau) + (R(2) * tau * tau);
-  pp_c = mu * lambda;
-  pp_c = vec + pp_c;
+  double omega = dot_prod(vec,O);
+  Vector3 lambda = vec - omega * O;
+  double tau = dot_prod(lambda,lambda) / (omega*omega);
+  double mu = R(0) + (R(1) * tau) + (R(2) * tau * tau);
+  Vector3 pp_c = vec + mu * lambda;
 
-  // Calculate alpha, beta, gamma, which are
-  // dotted with a, h, v, respectively
-  alpha = dot_prod(pp_c, A);
-  beta = dot_prod(pp_c, H);
-  gamma = dot_prod(pp_c, V);
+  double alpha = dot_prod(pp_c, A);
 
   // Calculate the projection
-  pix.x() = xh = beta / alpha;
-  pix.y() = yh = gamma /alpha;
-  return pix;
+  return Vector2( dot_prod(pp_c,H) / alpha,
+                  dot_prod(pp_c,V) / alpha );
 }
 
 // linearize_camera
@@ -483,182 +430,91 @@ Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point) const {
 // (identical to A) and R (all terms zero) will not be output. Note
 // that image warping will be necessary in order to use the new
 // models.
-camera::CAHVModel camera::linearize_camera( vw::camera::CAHVORModel const& camera_model,
+camera::CAHVModel camera::linearize_camera( camera::CAHVORModel const& camera_model,
                                             Vector2i const& cahvor_image_size,
                                             Vector2i const& cahv_image_size ) {
-  unsigned int minfov = 1; // set to 0 if you do not want to minimize to a common field of view
-  unsigned int i;
 
-  Vector3 a2, h2, v2;
-  Vector3 rt, dn, p3, u3, vec1, vec2;
-  double sn, x, hmin, hmax, vmin, vmax;
-  double hs, vs, hc, vc, theta; // these used to be output parameters
-  Matrix<double> pts(12,2);
-  Matrix<double> hpts(6,2);
-  Matrix<double> vpts(6,2);
+  CAHVModel output_camera;
+  output_camera.C = camera_model.C;
 
-  Vector<unsigned int> idims(2);
-  idims(0) = cahvor_image_size[0];
-  idims(1) = cahvor_image_size[1];
-
-  Vector<unsigned int> odims(2);
-  odims(0) = cahv_image_size[0];
-  odims(1) = cahv_image_size[1];
+  static const bool minfov = true; // set to 0 if you do not want to
+                                   // minimize to a common field of
+                                   // view
 
   // Record the landmark 2D coordinates around the perimeter of the image
-  pts(0,0) = hpts(0,0) = 0;
-  pts(0,1) = hpts(0,1) = 0;
+  Vector2 hpts[6], vpts[6];
+  hpts[0] = Vector2();
+  hpts[1] = Vector2(0,(cahvor_image_size[1]-1)/2.0);
+  hpts[2] = Vector2(0,cahvor_image_size[1]-1);
+  hpts[3] = Vector2(cahvor_image_size[0]-1,0);
+  hpts[4] = Vector2(cahvor_image_size[0]-1,(cahvor_image_size[1]-1)/2.0);
+  hpts[5] = cahvor_image_size - Vector2(1,1);
+  vpts[0] = Vector2();
+  vpts[1] = Vector2((cahvor_image_size[0]-1)/2.0,0);
+  vpts[2] = Vector2(cahvor_image_size[0]-1,0);
+  vpts[3] = Vector2(0,cahvor_image_size[1]-1);
+  vpts[4] = Vector2((cahvor_image_size[0]-1)/2,cahvor_image_size[1]-1);
+  vpts[5] = cahvor_image_size - Vector2(1,1);
 
-  pts(1,0) = hpts(1,0) = 0;
-  pts(1,1) = hpts(1,1) = (idims(1)-1)/2.0;
+  BOOST_FOREACH( Vector2 const& local, vpts ) {
+    output_camera.A += camera_model.pixel_to_vector(local);
+  }
+  BOOST_FOREACH( Vector2 const& local, hpts ) {
+    output_camera.A += camera_model.pixel_to_vector(local);
+  }
+  output_camera.A = normalize(output_camera.A);
 
-  pts(2,0) = hpts(2,0) = 0;
-  pts(2,1) = hpts(2,1) = idims(1)-1;
-
-  pts(3,0) = hpts(3,0) = idims(0)-1;
-  pts(3,1) = hpts(3,1) = 0;
-
-  pts(4,0) = hpts(4,0) = idims(0)-1;
-  pts(4,1) = hpts(4,1) = (idims(1)-1)/2.0;
-
-  pts(5,0) = hpts(5,0) = idims(0)-1;
-  pts(5,1) = hpts(5,1) = idims(1)-1;
-
-  pts(6,0) = vpts(0,0) = 0;
-  pts(6,1) = vpts(0,1) = 0;
-
-  pts(7,0) = vpts(1,0) = (idims(0)-1)/2.0;
-  pts(7,1) = vpts(1,1) = 0;
-
-  pts(8,0) = vpts(2,0) = idims(0)-1;
-  pts(8,1) = vpts(2,1) = 0;
-
-  pts(9,0) = vpts(3,0) = 0;
-  pts(9,1) = vpts(3,1) = idims(1)-1;
-
-  pts(10,0) = vpts(4,0) = (idims(0)-1)/2.0;
-  pts(10,1) = vpts(4,1) = idims(1)-1;
-
-  pts(11,0) = vpts(5,0) = idims(0)-1;
-  pts(11,1) = vpts(5,1) = idims(1)-1;
-
-
-  // Choose a camera axis in the middle of the perimeter
-
-  // Think VW autofills with zeros
-  //a2.fill(0);
-  //h2.fill(0);
-  //v2.fill(0);
-
-  Vector2 LoopPixel;
-
-  for (i=0; i<12; i++) {
-
-    LoopPixel.x() = pts(i,0);
-    LoopPixel.y() = pts(i,1);
-
-    u3 = camera_model.pixel_to_vector(LoopPixel);
-    a2 = u3 + a2;
-
-  } // end get a2 loop
-
-  a2 = a2/norm_2(a2);
   // Compute the original right and down vectors
-  dn = cross_prod(camera_model.A, camera_model.H); // down vector
-  rt = cross_prod(dn, camera_model.A); // right vector
-
-  dn = dn/norm_2(dn);
-  rt = rt/norm_2(rt);
+  Vector3 dn = cross_prod(camera_model.A, camera_model.H); // down vector
+  Vector3 rt = normalize(cross_prod(dn, camera_model.A)); // right vector
+  dn = normalize(dn);
 
   // Adjust the right and down vectors to be orthogonal to new axis
-  rt = cross_prod(dn, a2);
-  dn = cross_prod(a2, rt);
-
-  dn = dn/norm_2(dn);
-  rt = rt/norm_2(rt);
+  rt = cross_prod(dn, output_camera.A);
+  dn = normalize(cross_prod(output_camera.A, rt));
+  rt = normalize(rt);
 
   // Find horizontal and vertical fields of view
 
   // Horizontal
-  hmin =  1;
-  hmax = -1;
-  Vector2 HLoopPix;
+  double hmin = 1, hmax = -1;
+  BOOST_FOREACH( Vector2 const& loop, hpts ) {
+    Vector3 u3 = camera_model.pixel_to_vector(loop);
+    double sn = norm_2(cross_prod(output_camera.A,
+                           normalize(u3 - dot_prod(dn, u3) * dn)));
+    if (hmin > sn) hmin = sn;
+    if (hmax < sn) hmax = sn;
+  }
 
-  for (i=0; i<6; i++) {
-    HLoopPix.x() = hpts(i,0);
-    HLoopPix.y() = hpts(i,1);
+  // Vertical
+  double vmin = 1, vmax = -1;
+  BOOST_FOREACH( Vector2 const& loop, vpts ) {
+    Vector3 u3 = camera_model.pixel_to_vector(loop);
+    double sn = norm_2(cross_prod(output_camera.A,
+                           normalize(u3 - dot_prod(rt, u3) * rt) ) );
+    if (vmin > sn) vmin = sn;
+    if (vmax < sn) vmax = sn;
+  }
 
-    u3 = camera_model.pixel_to_vector(HLoopPix);
-
-    x = dot_prod(dn, u3);
-    vec1 = x * dn;
-    vec2 = u3 - vec1;
-    vec2 = vec2/norm_2(vec2);
-
-    vec1 = cross_prod(a2, vec2);
-    sn = norm_2(vec1);
-
-    if (hmin > sn)
-      hmin = sn;
-    if (hmax < sn)
-      hmax = sn;
-  } // end HLoop
-
-    // Vertical
-  vmin =  1;
-  vmax = -1;
-  Vector2 VLoopPix;
-
-  for (i=0; i<6; i++) {
-
-    VLoopPix.x() = vpts(i,0);
-    VLoopPix.y() = vpts(i,1);
-
-    u3 = camera_model.pixel_to_vector(VLoopPix);
-
-    x = dot_prod(rt, u3);
-    vec1 = x * rt;
-    vec2 = u3 - vec1;
-    vec2 = vec2/norm_2(vec2);
-
-    vec1 = cross_prod(a2, vec2);
-    sn = norm_2(vec1);
-
-    if (vmin > sn)
-      vmin = sn;
-    if (vmax < sn)
-      vmax = sn;
-  } // end VLoop
-
-    // Compute the all-encompassing scale factors
-  sn = (minfov ? hmin : hmax);
-  x = odims(0) / 2.0;
-  hs = sqrt((x*x)/(sn*sn) - x*x);
-  sn = (minfov ? vmin : vmax);
-  x = odims(1) / 2.0;
-  vs = sqrt((x*x)/(sn*sn) - x*x);
+  // Compute the all-encompassing scale factors
+  Vector2 scale_factors;
+  Vector2 image_center = (cahv_image_size-Vector2(1,1))/2.0;
+  Vector2 image_center_2 = elem_prod(image_center,image_center);
+  if ( minfov ) {
+    // Use min value
+    scale_factors =
+      sqrt( elem_quot(image_center_2,
+                      Vector2(hmin*hmin,vmin*vmin)) - image_center_2 );
+  } else {
+    // Use max value
+    scale_factors =
+      sqrt( elem_quot(image_center_2,
+                      Vector2(hmax*hmax,vmax*vmax)) - image_center_2 );
+  }
 
   // Assign idealized image centers and coordinate angles
-  hc = (odims[0] - 1) / 2.0;
-  vc = (odims[1] - 1) / 2.0;
-  theta = -M_PI / 2.0;
-
-  /* Construct H and V */
-  vec1 = hs * rt;
-  vec2 = hc * a2;
-
-  h2 = vec1 + vec2;
-
-  vec1 = vs * dn;
-  vec2 = vc * a2;
-
-  v2 = vec1 + vec2;
-
-  CAHVModel output_camera;
-  output_camera.C = camera_model.C;
-  output_camera.A = a2;
-  output_camera.H = h2;
-  output_camera.V = v2;
+  output_camera.H = scale_factors[0] * rt + image_center[0] * output_camera.A;
+  output_camera.V = scale_factors[1] * dn + image_center[1] * output_camera.A;
 
   return output_camera;
 }
@@ -699,14 +555,6 @@ void camera::CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, do
   Matrix3x3 hess_tau = 2/(xi*xi) * ( I + (3*tau-1)*outer_prod(O,O)
                                      - 2*(outer_prod(O,lambda)+outer_prod(lambda,O))/xi );
   Matrix3x3 hess_mu = (R[1]+2*R[2]*tau)*hess_tau + 2*R[2]*outer_prod(grad_tau,grad_tau);
-  // hess_u(i,j) = ( dot_prod( grad_mu[j]*(I[i]-O[i]*O) + grad_mu[i]*(I[j]-O[j]*O) + lambda*hess_mu(i,j), HuA )
-  //               - dot_prod( grad_u[j]*(I[i]+mu*(I[i]-O[i]*O)+lambda*grad_mu[i], A )
-  //               - dot_prod( grad_u[i]*(I[j]+mu*(I[j]-O[j]*O)+lambda*grad_mu[j], A ) ) / denom;
-  //             = ( grad_mu[j]*(HuA[i]-O[i]*dot_prod(O,HuA))
-  //               + grad_mu[i]*(HuA[j]-O[j]*dot_prod(O,HuA))
-  //               - grad_mu[j]*((1+mu)*A[i]-mu*O[i]*dot_prod(O,A)+dot_prod(lambda,A)*grad_mu[i])
-  //               - grad_mu[i]*((1+mu)*A[j]-mu*O[j]*dot_prod(O,A)+dot_prod(lambda,A)*grad_mu[j])
-  //               + dot_prod(lambda,HuA)*hess_mu ) / denom;
   Matrix3x3 tmp_u = outer_prod( grad_mu, HuA - dot_prod(O,HuA)*O )
     + outer_prod( grad_u, mu*dot_prod(O,A)*O - dot_prod(lambda,A)*grad_mu - (1+mu)*A );
   hess_u = ( tmp_u + transpose(tmp_u) + dot_prod(lambda,HuA)*hess_mu ) / denom;
