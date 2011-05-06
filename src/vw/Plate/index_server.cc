@@ -101,6 +101,7 @@ int main(int argc, char** argv) {
   // recover and salvage the index under most unexpected error
   // conditions.
   signal(SIGINT,  sig_unexpected_shutdown);
+  signal(SIGTERM,  sig_unexpected_shutdown);
   signal(SIGUSR1, sig_sync);
 
   // Start the server task in another thread
