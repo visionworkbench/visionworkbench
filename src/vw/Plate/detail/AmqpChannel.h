@@ -34,6 +34,7 @@ namespace platefile {
     std::string sender;
     bool error;
     std::string message;
+    AmqpData() {reset();}
     void reset() {
       data.reset();
       sender.clear();
