@@ -52,7 +52,7 @@ void _check(TemporaryFile& a, uint32 line, std::string dir = "", const std::stri
     dir = vw_settings().tmp_directory();
 
   const std::string& fn = a.filename();
-  EXPECT_EQ(dir, get_directory(a));
+  EXPECT_TRUE(fs::equivalent(dir, get_directory(a))) << "Expected " << dir << ", got " << get_directory(a);
   EXPECT_EQ(suffix, get_suffix(a, suffix.size()));
   EXPECT_EQ(prefix, get_prefix(a, prefix.size()));
   EXPECT_TRUE(fs::exists(fn));
