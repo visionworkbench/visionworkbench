@@ -21,8 +21,11 @@ namespace {
 }
 
 int main(int argc, char **argv) {
+
   // Disable the user's config file
-  vw::vw_settings().set_rc_filename("");
+  if (!getenv("VW_ALLOW_CONFIG"))
+    vw::vw_settings().set_rc_filename("");
+
   ::testing::InitGoogleTest(&argc, argv);
 
   // Default to the "threadsafe" style because we can't delete our singletons
