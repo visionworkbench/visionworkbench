@@ -234,7 +234,6 @@ namespace vw {
   };
 
 
-  /// Write an image view to a resource.
   template <class ImageT>
   void block_write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
                           const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
@@ -247,13 +246,8 @@ namespace vw {
     if (progress_callback.abort_requested())
       vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
-    // Set up the threaded block writer object, which will manage
-    // rasterizing and writing images to disk one block (and one
-    // thread) at a time.
-    ThreadedBlockWriter block_writer;
-
-    const size_t rows = image.impl().rows();
-    const size_t cols = image.impl().cols();
+    const int32 rows = boost::numeric_cast<int32>(image.impl().rows());
+    const int32 cols = boost::numeric_cast<int32>(image.impl().cols());
 
     // Write the image to disk in blocks.  We may need to revisit
     // the order in which these blocks are rasterized, but for now
@@ -262,35 +256,42 @@ namespace vw {
     if (resource.has_block_write())
       block_size = resource.block_write_size();
 
-    int total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
-    vw_out(DebugMessage,"image") << "ThreadedBlockWriter: writing " << total_num_blocks << " blocks.\n";
+    size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
+    vw_out(DebugMessage,"image") << "block_write_image: writing " << total_num_blocks << " blocks.\n";
 
-    for (size_t j = 0; j < rows; j+= block_size.y()) {
-      for (size_t i = 0; i < cols; i+= block_size.x()) {
+    // Early out for easy case
+    if (total_num_blocks == 1) {
+      ImageView<typename ImageT::pixel_type> image_block = image.impl();
+      resource.write( image_block.buffer(), BBox2i(0,0,image_block.cols(),image_block.rows()) );
+    } else {
+      // Set up the threaded block writer object, which will manage rasterizing
+      // and writing images to disk one block (and one thread) at a time.
+      ThreadedBlockWriter block_writer;
 
-        // Rasterize and save this image block
-        BBox2i current_bbox(Vector2i(i,j),
-                            Vector2i(std::min<size_t>(i+block_size.x(),cols),
-                                     std::min<size_t>(j+block_size.y(),rows)));
+      for (int32 j = 0; j < rows; j+= block_size.y()) {
+        for (int32 i = 0; i < cols; i+= block_size.x()) {
+          vw_out(DebugMessage, "image") << "ImageIO scheduling block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
-        // Add a task to rasterize this image block.  A seperate task
-        // to write the results to disk is generated automatically
-        // when rasterization is complete.
-        int col_blocks = int( ceil(float(cols)/float(block_size.x())) );
-        int i_block_index = int(i/block_size.x());
-        int j_block_index = int(j/block_size.y());
-        int index = j_block_index*col_blocks+i_block_index;
+          // Rasterize and save this image block
+          BBox2i current_bbox(Vector2i(i,j),
+                              Vector2i(std::min<int32>(i+block_size.x(),cols),
+                                       std::min<int32>(j+block_size.y(),rows)));
 
-        vw_out(VerboseDebugMessage,"image") << "ThreadedBlockWriter: Adding block " << index+1 << "/"<< total_num_blocks << " : " << current_bbox << "\n";
-        block_writer.add_block(resource, image, current_bbox, index, total_num_blocks, progress_callback );
+          // Rasterize this image block by scheduling it with the block_writer.
+          int col_blocks = int( ceil(float(cols)/float(block_size.x())) );
+          int i_block_index = int(i/block_size.x());
+          int j_block_index = int(j/block_size.y());
+          int index = j_block_index*col_blocks+i_block_index;
+
+          block_writer.add_block(resource, image, current_bbox, index, total_num_blocks, progress_callback );
+        }
       }
-    }
 
-    // Start the threaded block writer and wait for all tasks to finish.
-    block_writer.process_blocks();
+      // Start the threaded block writer and wait for all tasks to finish.
+      block_writer.process_blocks();
+    }
     progress_callback.report_finished();
   }
-
 
   template <class ImageT>
   void write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
@@ -299,8 +300,10 @@ namespace vw {
     VW_ASSERT( image.impl().cols() != 0 && image.impl().rows() != 0 && image.impl().planes() != 0,
                ArgumentErr() << "write_image: cannot write an empty image to a resource" );
 
-    // Initialize the progress callback
+    // Set the progress meter to zero.
     progress_callback.report_progress(0);
+    if (progress_callback.abort_requested())
+      vw_throw( Aborted() << "Aborted by ProgressCallback" );
 
     const int32 rows = boost::numeric_cast<int32>(image.impl().rows());
     const int32 cols = boost::numeric_cast<int32>(image.impl().cols());
@@ -313,6 +316,7 @@ namespace vw {
       block_size = resource.block_write_size();
 
     size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
+    vw_out(DebugMessage,"image") << "write_image: writing " << total_num_blocks << " blocks.\n";
 
     // Early out for easy case
     if (total_num_blocks == 1) {
@@ -321,26 +325,18 @@ namespace vw {
     } else {
       for (int32 j = 0; j < rows; j+= block_size.y()) {
         for (int32 i = 0; i < cols; i+= block_size.x()) {
-
-          vw_out(DebugMessage, "fileio") << "ImageIO writing block at [" << i << " " << j << "]/["
-                                         << rows << " " << cols
-                                         << "]    size = " << block_size.x() << " x " <<  block_size.y() << "\n";
-
-          // Update the progress callback.
-          if (progress_callback.abort_requested())
-            vw_throw( Aborted() << "Aborted by ProgressCallback" );
-
-          float processed_row_blocks = float(j/block_size.y()*((cols-1)/block_size.x()+1));
-          float processed_col_blocks = float(i/block_size.x());
-          progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
+          vw_out(DebugMessage, "image") << "ImageIO writing block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
           // Rasterize and save this image block
           BBox2i current_bbox(Vector2i(i,j),
                               Vector2i(std::min<int32>(i+block_size.x(),cols),
                                        std::min<int32>(j+block_size.y(),rows)));
 
-          // Rasterize the current image block into a region of memory
-          // and send it off to the resource.
+          float processed_row_blocks = float(j/block_size.y()*((cols-1)/block_size.x()+1));
+          float processed_col_blocks = float(i/block_size.x());
+          progress_callback.report_progress((processed_row_blocks + processed_col_blocks) / static_cast<float>(total_num_blocks));
+
+          // Rasterize this image block
           ImageView<typename ImageT::pixel_type> image_block( crop(image.impl(), current_bbox) );
           ImageBuffer buf = image_block.buffer();
           resource.write( buf, current_bbox );
