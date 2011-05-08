@@ -13,21 +13,15 @@
 #ifndef __VW_FILEIO_DISKIMAGEVIEW_H__
 #define __VW_FILEIO_DISKIMAGEVIEW_H__
 
-#include <string>
-#include <map>
-
-#include <vw/Core/Cache.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/BlockRasterize.h>
-#include <vw/FileIO/DiskImageResource.h>
-
-// For multithreaded cache if available
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL == 1
-#include <vw/Image/ImageViewRef.h>
-#include <vw/FileIO/DiskImageResourceGDAL.h>
-#endif
+#include <vw/Core/Cache.h>
+#include <vw/Core/TemporaryFile.h>
 
 #include <boost/filesystem/operations.hpp>
+#include <string>
+#include <map>
 
 namespace vw {
 
@@ -120,24 +114,20 @@ namespace vw {
     template <class ViewT>
     void initialize(ImageViewBase<ViewT> const& view,
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
-      char base_name[] = "/vw_cache_XXXXXXX";
-      std::string filename = mktemp(base_name);
-      filename = m_directory+filename + "." + m_file_type;
-      vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << filename << "\n";
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-      if ( m_file_type == "tif" ) {
-        ImageViewRef<PixelT> output = pixel_cast_rescale<PixelT>(view);
-        DiskImageResourceGDAL file_rsrc( filename, output.format(),
-                                         Vector2i(vw_settings().default_tile_size(),
-                                                  vw_settings().default_tile_size()) );
-        block_write_image( file_rsrc, output, progress_callback );
-      } else {
-        write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
-      }
-#else
-      write_image(filename, pixel_cast_rescale<PixelT>(view), progress_callback);
-#endif
-      m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), filename));
+      TemporaryFile file(m_directory, false, "vw_cache_", "." + m_file_type);
+
+      vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << file.filename() << "\n";
+
+      ImageFormat fmt(view.format());
+      fmt.pixel_format = PixelFormatID<PixelT>::value;
+
+      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create( file.filename(), fmt));
+      if (r->has_block_write())
+        r->set_block_write_size(Vector2i(vw_settings().default_tile_size(), vw_settings().default_tile_size()));
+      block_write_image(*r, pixel_cast_rescale<PixelT>(view), progress_callback);
+      r->flush();
+
+      m_handle = boost::shared_ptr<DiskCacheHandle<PixelT> >(new DiskCacheHandle<PixelT>(view.impl(), file.filename()));
     }
 
   public:

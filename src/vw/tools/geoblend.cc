@@ -18,6 +18,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Filter.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
