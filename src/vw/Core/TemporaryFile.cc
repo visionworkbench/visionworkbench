@@ -11,6 +11,167 @@
 # include <ext/stdio_filebuf.h>
 #endif
 
+#if defined(VW_HAVE_MKSTEMPS) && VW_HAVE_MKSTEMPS == 1
+#  define vw_mkstemps ::mkstemps
+#else
+
+#  include <sys/types.h>
+#  include <sys/stat.h>
+#  include <fcntl.h>
+#  ifdef VW_HAVE_UNISTD_H
+#    include <unistd.h>
+#  endif
+
+#  ifdef WIN32
+#    define stat _stat
+     typedef struct _stat struct_stat;
+#  else
+     typedef struct stat struct_stat;
+#  endif
+
+namespace {
+// NOTE! arc4random replaced by random, which is not as strong.
+// This mkstemps impl is:
+/*  $OpenBSD: mktemp.c,v 1.19 2005/08/08 08:05:36 espie Exp $ */
+/*
+ * Copyright (c) 1987, 1993
+ *  The Regents of the University of California.  All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ * 3. Neither the name of the University nor the names of its contributors
+ *    may be used to endorse or promote products derived from this software
+ *    without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
+ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
+ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+ * SUCH DAMAGE.
+ */
+
+static int
+_gettemp(char *path, int *doopen, int domkdir, int slen)
+{
+  char *start, *trv, *suffp;
+  struct stat sbuf;
+  int rval;
+  pid_t pid;
+
+  if (doopen && domkdir) {
+    errno = EINVAL;
+    return(0);
+  }
+
+  for (trv = path; *trv; ++trv)
+    ;
+  trv -= slen;
+  suffp = trv;
+  --trv;
+  if (trv < path) {
+    errno = EINVAL;
+    return (0);
+  }
+  pid = getpid();
+  while (trv >= path && *trv == 'X' && pid != 0) {
+    *trv-- = (pid % 10) + '0';
+    pid /= 10;
+  }
+  while (trv >= path && *trv == 'X') {
+    char c;
+
+    pid = (random() & 0xffff) % (26+26);
+    if (pid < 26)
+      c = pid + 'A';
+    else
+      c = (pid - 26) + 'a';
+    *trv-- = c;
+  }
+  start = trv + 1;
+
+  /*
+   * check the target directory; if you have six X's and it
+   * doesn't exist this runs for a *very* long time.
+   */
+  if (doopen || domkdir) {
+    for (;; --trv) {
+      if (trv <= path)
+        break;
+      if (*trv == '/') {
+        *trv = '\0';
+        rval = stat(path, &sbuf);
+        *trv = '/';
+        if (rval != 0)
+          return(0);
+        if (!S_ISDIR(sbuf.st_mode)) {
+          errno = ENOTDIR;
+          return(0);
+        }
+        break;
+      }
+    }
+  }
+
+  for (;;) {
+    if (doopen) {
+      if ((*doopen =
+          open(path, O_CREAT|O_EXCL|O_RDWR, 0600)) >= 0)
+        return(1);
+      if (errno != EEXIST)
+        return(0);
+    } else if (domkdir) {
+      if (mkdir(path, 0700) == 0)
+        return(1);
+      if (errno != EEXIST)
+        return(0);
+    } else if (lstat(path, &sbuf))
+      return(errno == ENOENT ? 1 : 0);
+
+    /* tricky little algorithm for backward compatibility */
+    for (trv = start;;) {
+      if (!*trv)
+        return (0);
+      if (*trv == 'Z') {
+        if (trv == suffp)
+          return (0);
+        *trv++ = 'a';
+      } else {
+        if (isdigit(*trv))
+          *trv = 'a';
+        else if (*trv == 'z') /* inc from z to A */
+          *trv = 'A';
+        else {
+          if (trv == suffp)
+            return (0);
+          ++*trv;
+        }
+        break;
+      }
+    }
+  }
+  /*NOTREACHED*/
+}
+
+int vw_mkstemps(char *path, int slen)
+{
+  int fd;
+  return (_gettemp(path, &fd, 0, slen) ? fd : -1);
+}
+}
+#endif
+
 namespace vw {
 
 void TemporaryFile::init(std::string dir = "", bool delete_on_close = true, const std::string& prefix = "tmp", const std::string& suffix = "", std::ios_base::openmode mode = std::ios_base::binary|std::ios_base::out|std::ios_base::in)
@@ -23,7 +184,7 @@ void TemporaryFile::init(std::string dir = "", bool delete_on_close = true, cons
     std::string templ_s = dir + "/" + prefix + "XXXXXX" + suffix;
     boost::scoped_array<char> templ(new char[templ_s.size()+1]);
     ::strcpy(templ.get(), templ_s.c_str());
-    fd = ::mkstemps(templ.get(), suffix.size());
+    fd = vw_mkstemps(templ.get(), suffix.size());
     if (fd == -1)
       vw_throw(IOErr() << "Failed to create temporary file from template " << templ_s << ": " << ::strerror(errno));
     m_filename = std::string(templ.get());
