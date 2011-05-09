@@ -174,4 +174,8 @@ TEST( CAHVModel, ForwardReverse ) {
       EXPECT_VECTOR_NEAR( result, pixel, 1e-2 );
     }
   }
+
+  // Test Pose
+  EXPECT_VECTOR_NEAR( cahv.camera_pose().rotate(Vector3(0,0,1)),
+                      cahv.pixel_to_vector(Vector2i(512,512)), 1e-2 );
 }
