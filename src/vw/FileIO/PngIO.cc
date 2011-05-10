@@ -22,7 +22,8 @@ PngIODecompress::PngIODecompress()
   : m_read(false) {}
 
 PngIODecompress::~PngIODecompress() {
-  png_destroy_read_struct(&m_ctx, &m_info, NULL);
+  if (m_ctx)
+    png_destroy_read_struct(&m_ctx, &m_info, NULL);
 }
 
 bool PngIODecompress::ready() const {
@@ -127,7 +128,8 @@ PngIOCompress::PngIOCompress(const ImageFormat& fmt) {
 }
 
 PngIOCompress::~PngIOCompress() {
-  png_destroy_write_struct(&m_ctx, &m_info);
+  if (m_ctx)
+    png_destroy_write_struct(&m_ctx, &m_info);
 }
 
 bool PngIOCompress::ready() const {
