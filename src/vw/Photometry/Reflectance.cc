@@ -259,13 +259,15 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
   }
 
   rad_alpha = acos(cos_alpha);
-  deg_alpha = rad_alpha*180/3.141592;
+  deg_alpha = rad_alpha*180.0/M_PI;
 
   //printf("deg_alpha = %f\n", deg_alpha);
 
   //Bob Gaskell's model
   //L = exp(-deg_alpha/60.0);
 
+#if 0 // trey
+  // perfectly valid for alpha to be greater than 90?
   if (deg_alpha > 90){
     //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
     return(0.0);
@@ -274,6 +276,7 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
     //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
     return(0.0);
   }
+#endif
 
   //Alfred McEwen's model
   float A = -0.019;
@@ -340,19 +343,12 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
 
 }
 
-
-//computes a reflectance image
-//author: Ara Nefian
-float vw::photometry::computeImageReflectance(ModelParams input_img_params,
-                                              GlobalParams globalParams) {
-  int l, k;
-  int count = 0;
-  float avg_reflectance = 0.0;
-
+float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_params,
+                                                     GlobalParams globalParams,
+                                                     ImageView<PixelMask<PixelGray<float> > >& output_img) {
   std::string input_img_file = input_img_params.inputFilename;
   std::string DEM_file = input_img_params.meanDEMFilename;
   std::string shadow_file = input_img_params.shadowFilename;
-  std::string output_img_file = input_img_params.reliefFilename;;
 
   DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
   GeoReference input_img_geo;
@@ -362,97 +358,139 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
   GeoReference input_dem_geo;
   read_georeference(input_dem_geo, DEM_file);
 
-  DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
+  // warp dem to drg georef
+  ImageView<PixelGray<double> > dem_in_drg_georef_0 =
+    crop
+    (geo_transform
+     (input_dem_image,
+      input_dem_geo,
+      input_img_geo,
+      ConstantEdgeExtension(),
+      BilinearInterpolation()),
+     bounding_box(input_img));
+  
+  // grow no-data areas to avoid bogus values created by interpolating
+  // data with no-data
+  ImageView<PixelGray<double> > dem_in_drg_georef = copy(dem_in_drg_georef_0);
+  int nodata = globalParams.noDEMDataValue;
+  for (int y=1; y < (int)dem_in_drg_georef.rows()-1; y++) {
+    for (int x=1; x < (int)dem_in_drg_georef.cols()-1; x++) {
 
-  ImageView<PixelMask<PixelGray<float> > > output_img (input_img.cols(), input_img.rows());
+#define CHECK_PIX(dx,dy) \
+  if (dem_in_drg_georef_0(x+dx, y+dy) == nodata) { \
+    dem_in_drg_georef(x, y) = nodata; \
+    continue; \
+  }
 
-
-  Vector3 xyz;
-  Vector3 xyz_prior;
-  //int x, y;
-  float x, y;
-
-  // copy and paste from compiler error
-  typedef typename InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> InterpolateResult;
-
-  InterpolateResult interp_dem_image = interpolate
-    (edge_extend(input_dem_image.impl(),
-                 ConstantEdgeExtension()),
-     BilinearInterpolation());
-  //interpolate(image, BilinearInterpolation());
-
-  //initialize the nominator and denomitor images
-  for (k = 0 ; k < (int)input_img.rows(); ++k) {
-    for (l = 0; l < (int)input_img.cols(); ++l) {
-
-      Vector2 input_image_pix(l,k);
-
-      if ( is_valid(input_img(l,k)) ) {
-
-        //get the corresponding DEM value
-
-        Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_image_pix);
-        Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_image_pix));
-
-        //x = (int)input_dem_pix[0];
-        //y = (int)input_dem_pix[1];
-	x = (float)input_dem_pix[0];
-        y = (float)input_dem_pix[1];
-
-        //check for valid DEM coordinates to be within the DEM boundaries
-        if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-
-          Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-          Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);
-
-          Vector2 input_img_left_pix;
-          input_img_left_pix(0) = l-1;
-          input_img_left_pix(1) = k;
-
-          Vector2 input_img_top_pix;
-          input_img_top_pix(0) = l;
-          input_img_top_pix(1) = k-1;
-
-          //check for valid DEM pixel value and valid left and top coordinates
-          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
-
-            //determine the 3D coordinates of the pixel left of the current pixel
-            Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
-            Vector2 lon_lat_left = input_img_geo.pixel_to_lonlat(input_img_left_pix);
-            Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-            Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-
-            //determine the 3D coordinates of the pixel top of the current pixel
-            Vector2 input_dem_top_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_top_pix));
-            Vector2 lon_lat_top = input_img_geo.pixel_to_lonlat(input_img_top_pix);
-            Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-            Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-
-            Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-            //This part is the only image depedent part - START
-
-            float input_img_reflectance;
-            input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams);
-
-            output_img(l, k) = input_img_reflectance;
-
-            if ((input_img_reflectance != 0.0) && (shadowImage(l, k) == 0)){ //valid non zero reflectance
-              avg_reflectance = avg_reflectance + output_img(l,k);
-              count++;
-            }
-
-          }
-        }
-      }
+      CHECK_PIX(-1, -1);
+      CHECK_PIX(-1,  0);
+      CHECK_PIX(-1,  1);
+      CHECK_PIX( 0, -1);
+      CHECK_PIX( 0,  1);
+      CHECK_PIX( 1, -1);
+      CHECK_PIX( 1,  0);
+      CHECK_PIX( 1,  1);
     }
   }
 
-  avg_reflectance = avg_reflectance/count;
-  printf("avg_reflectance = %f\n", avg_reflectance);
-  write_georeferenced_image(output_img_file,
-                            output_img,
-                            input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+  // convert dem altitude to xyz cartesian pixels
+  ImageView<Vector3>
+    dem_xyz =
+    dem_to_point_cloud
+    (dem_in_drg_georef,
+     input_img_geo);
 
+  // transfer nodata values
+  for (int y=0; y < (int)dem_xyz.rows(); y++) {
+    for (int x=0; x < (int)dem_xyz.cols(); x++) {
+      if (dem_in_drg_georef(x, y) == nodata) {
+        dem_xyz(x, y) = Vector3();
+      }
+    }
+  }  
+
+  // convert xyz pixels to surface normals
+  ImageView<Vector3> surface_normal(dem_xyz.cols(), dem_xyz.rows());
+  for (int y=1; y < (int)surface_normal.rows(); y++) {
+    for (int x=1; x < (int)surface_normal.cols(); x++) {
+      Vector3& result = surface_normal(x, y);
+      result = Vector3();
+      
+      Vector3 base = dem_xyz(x, y);
+      if (base == Vector3()) {
+        continue;
+      }
+      Vector3 x1 = dem_xyz(x-1, y);
+      if (x1 == Vector3()) {
+        continue;
+      }
+      Vector3 y1 = dem_xyz(x, y-1);
+      if (y1 == Vector3()) {
+        continue;
+      }
+
+      Vector3 dx = base - x1;
+      Vector3 dy = base - y1;
+      result = -normalize(cross_prod(dx, dy));
+    }
+  }
+
+  // compute reflectance
+  output_img.set_size(input_img.cols(), input_img.rows());
+  for (int y=0; y < (int)output_img.rows(); y++) {
+    for (int x=0; x < (int)output_img.cols(); x++) {
+      Vector3 normal = surface_normal(x, y);
+      if (normal == Vector3()) {
+        continue;
+      }
+      Vector3 xyz = dem_xyz(x, y);
+      
+      output_img(x, y) = ComputeReflectance(normal, xyz, input_img_params, globalParams);
+    }
+  }
+
+  // compute average reflectance
+  int count = 0;
+  float reflectance_sum = 0.0;
+  DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
+  for (int y=0; y < (int)output_img.rows(); y++) {
+    for (int x=0; x < (int)output_img.cols(); x++) {
+      float refl = output_img(x, y);
+      if ((refl != 0.0) && (shadowImage(x, y) == 0)){ //valid non zero reflectance
+        reflectance_sum += refl;
+        count++;
+      }
+    }
+  }
+  float avg_reflectance = reflectance_sum / count;
+
+  printf("avg_reflectance = %f\n", avg_reflectance);
+  return avg_reflectance;
+}
+
+//computes a reflectance image
+//author: Ara Nefian
+float vw::photometry::computeImageReflectance(ModelParams input_img_params,
+                                              GlobalParams globalParams) {
+  std::string input_img_file = input_img_params.inputFilename;
+  std::string output_img_file = input_img_params.reliefFilename;;
+
+  DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
+  GeoReference input_img_geo;
+  read_georeference(input_img_geo, input_img_file);
+
+  ImageView<PixelMask<PixelGray<float> > > output_img;
+  float avg_reflectance =
+    computeImageReflectanceNoWrite(input_img_params,
+                                   globalParams,
+                                   output_img);
+
+  write_georeferenced_image
+    (output_img_file,
+     output_img,
+     input_img_geo,
+     TerminalProgressCallback("{Core}","Processing:"));
+  
   return avg_reflectance;
 }
 
@@ -490,9 +528,10 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
   Vector3 xyz_prior;
   int x, y;
 
-  ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-                                                                              ConstantEdgeExtension()),
-                                                                  BilinearInterpolation());
+  InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
+                                                 ConstantEdgeExtension()),
+                                     BilinearInterpolation());
 
 
 
