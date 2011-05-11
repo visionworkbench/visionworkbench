@@ -226,3 +226,51 @@ TEST( Algorithms, BlobIndex ) {
   EXPECT_EQ( idx(5,1), idx(6,2) ); // Verify blob 3
   EXPECT_NE( idx(6,2), idx(1,1) );
 }
+
+TEST( Algorithms, MeanFillTransparent ) {
+  typedef PixelGrayA<uint8> Px8;
+  typedef PixelRGBA<float32> PxF;
+  typedef PixelGray<float32> NoP;
+
+  {
+    ImageView<Px8> im(2,2);
+    fill( im, Px8() );
+    im(1,1) = Px8(128);
+    ImageView<Px8> r = mean_fill_transparent( im );
+    EXPECT_FALSE( is_transparent(r(1,1)) );
+    EXPECT_TRUE( is_transparent(r(0,0)) );
+    EXPECT_TRUE( is_transparent(r(1,0)) );
+    EXPECT_TRUE( is_transparent(r(0,1)) );
+    EXPECT_EQ( 128, non_alpha_channels(r(0,0)) );
+    EXPECT_EQ( 128, non_alpha_channels(r(1,0)) );
+    EXPECT_EQ( 128, non_alpha_channels(r(0,1)) );
+  }
+
+  {
+    ImageView<PxF> im(2,2);
+    fill( im, PxF() );
+    im(1,1) = PxF(PixelRGB<float32>(0.5,0.1,0.2));
+    ImageView<PxF> r = mean_fill_transparent( im );
+    EXPECT_FALSE( is_transparent(r(1,1)) );
+    EXPECT_TRUE( is_transparent(r(0,0)) );
+    EXPECT_TRUE( is_transparent(r(1,0)) );
+    EXPECT_TRUE( is_transparent(r(0,1)) );
+    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
+                  non_alpha_channels(r(0,0)) );
+    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
+                  non_alpha_channels(r(0,0)) );
+    EXPECT_VW_EQ( PixelRGB<float32>(0.5,0.1,0.2),
+                  non_alpha_channels(r(0,0)) );
+  }
+
+  {
+    ImageView<NoP> im(2,2);
+    fill( im, NoP() );
+    im(1,1) = NoP(0.7);
+    ImageView<NoP> r = mean_fill_transparent( im );
+    EXPECT_VW_EQ( NoP(), r(0,0) );
+    EXPECT_VW_EQ( NoP(), r(1,0) );
+    EXPECT_VW_EQ( NoP(), r(0,1) );
+    EXPECT_VW_EQ( NoP(0.7), r(1,1) );
+  }
+}

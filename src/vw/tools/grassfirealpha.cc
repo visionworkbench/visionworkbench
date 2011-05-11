@@ -170,11 +170,11 @@ void grassfire_nodata( Options& opt,
 
   ImageViewRef<typename PixelWithAlpha<PixelT>::type> result;
   if ( opt.filter == "linear" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc())));
   } else if ( opt.filter == "cosine" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>())));
   } else if ( opt.filter == "cosine90" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>())));
   } else {
     vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
   }
@@ -210,11 +210,11 @@ void grassfire_alpha( Options& opt,
 
   ImageViewRef<PixelT> result;
   if ( opt.filter == "linear" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,LinearTransFunc())));
   } else if ( opt.filter == "cosine" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,CosineTransFunc<inter_type>())));
   } else if ( opt.filter == "cosine90" ) {
-    result = create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>()));
+    result = mean_fill_transparent(create_alpha(input_image,per_pixel_filter(norm_dist,Cosine90TransFunc<inter_type>())));
   } else {
     vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
   }

@@ -15,6 +15,8 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/Statistics.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/EdgeExtension.h>
 
 /// Used in blobindex
 #include <boost/graph/adjacency_list.hpp>
@@ -731,6 +733,118 @@ namespace vw {
     ImageView<uint32> result( src.impl().cols(), src.impl().rows() );
     blob_index( src, result );
     return result;
+  }
+
+  // ******************************************************************
+  // MeanFillTransparent
+  // ******************************************************************
+
+  // This is a preprocess step that set the value of transparent
+  // pixels to the mean of the nearby opaque pixels. This will not
+  // produce a visible difference to the image as it only modifies
+  // completely transparent pixels. The reason for this is to remove a
+  // "bath tub ring" that happens when interpolating/resampling an
+  // image with transparent sections.
+
+  template <class ImageT>
+  class MeanFillTransparent : public ImageViewBase<MeanFillTransparent<ImageT> > {
+    ImageT m_image;
+
+    template <class SrcAccessT>
+    typename SrcAccessT::pixel_type
+    inline accumulate_mean( SrcAccessT const& src ) const {
+      typedef typename SrcAccessT::pixel_type result_type;
+      typedef typename CompoundChannelType<result_type>::type channel_type;
+      typedef typename PixelWithoutAlpha<result_type>::type non_a_type;
+      typedef typename AccumulatorType<channel_type>::type acc_type;
+      typedef typename PixelChannelCast<non_a_type,acc_type>::type non_a_acc_type;
+      non_a_acc_type sum_value;
+      acc_type weight = 0;
+
+      SrcAccessT px = src;
+      px.next_col();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.next_row();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.prev_col();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.prev_col();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.prev_row();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.prev_row();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.next_col();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+      px.next_col();
+      sum_value += non_a_acc_type(non_alpha_channels(*px))*acc_type(alpha_channel(*px));
+      weight += acc_type(alpha_channel(*px));
+
+      if ( weight <= 0 )
+        return result_type();
+
+      result_type result(sum_value / weight);
+      alpha_channel( result ) = ChannelRange<channel_type>::min();
+      return result;
+    }
+
+  public:
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef pixel_type result_type;
+    typedef ProceduralPixelAccessor<MeanFillTransparent > pixel_accessor;
+
+    MeanFillTransparent( ImageT const& image ) : m_image( image ) {}
+
+    inline int32 cols() const { return m_image.cols(); }
+    inline int32 rows() const { return m_image.rows(); }
+    inline int32 planes() const { return m_image.planes(); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline result_type helper( int32 x, int32 y, int32 p, true_type ) const {
+      if ( is_transparent(m_image(x,y,p)) ) {
+        if ( x > 1 && y > 1 && x + 1 < cols() && y + 1 < rows() )
+          return accumulate_mean( m_image.origin().advance(x, y, p ) );
+        else
+          return accumulate_mean( edge_extend(m_image, ConstantEdgeExtension()).origin().advance(x,y,p) );
+      }
+      return m_image(x,y,p);
+    }
+
+    inline result_type helper( int32 x, int32 y, int32 p, false_type ) const {
+      return m_image(x,y,p);
+    }
+
+    inline result_type operator()( int32 x, int32 y, int32 p=0 ) const {
+      return helper( x, y, p, typename PixelHasAlpha<pixel_type>::type() );
+    }
+
+    typedef MeanFillTransparent<CropView<ImageView<result_type> > > prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+      BBox2i actual = bbox;
+      actual.expand(1);
+      ImageView<result_type> src =
+        edge_extend( m_image, actual, ConstantEdgeExtension() );
+      return prerasterize_type( crop( src, -actual.min()[0], -actual.min()[1],
+                                      cols(), rows() ) );
+    }
+
+    template <class DestT>
+    inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
+    }
+  };
+
+  template <class SourceT>
+  MeanFillTransparent<SourceT>
+  inline mean_fill_transparent( ImageViewBase<SourceT> const& src ) {
+    return MeanFillTransparent<SourceT>( src.impl() );
   }
 
 } // namespace vw
