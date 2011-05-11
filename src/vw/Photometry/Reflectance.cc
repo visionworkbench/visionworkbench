@@ -372,9 +372,13 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
   //int x, y;
   float x, y;
 
-  ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-                                                                              ConstantEdgeExtension()),
-                                                                  BilinearInterpolation());
+  // copy and paste from compiler error
+  typedef typename InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation> InterpolateResult;
+
+  InterpolateResult interp_dem_image = interpolate
+    (edge_extend(input_dem_image.impl(),
+                 ConstantEdgeExtension()),
+     BilinearInterpolation());
   //interpolate(image, BilinearInterpolation());
 
   //initialize the nominator and denomitor images
