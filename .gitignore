@@ -75,6 +75,7 @@ docs/workbook/workbook.log
 docs/workbook/workbook.toc
 
 # Everything else
+/src/test/geotif-generate
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment
 /src/vw/BundleAdjustment/tests/TestCameraRelation
 /src/vw/BundleAdjustment/tests/TestControlNetwork
@@ -176,22 +177,23 @@ docs/workbook/workbook.toc
 /src/vw/Math/tests/TestQuaternion
 /src/vw/Math/tests/TestVector
 /src/vw/Mosaic/tests/TestImageComposite
+/src/vw/Plate/blob_file_dump
+/src/vw/Plate/dump_page
 /src/vw/Plate/hirise2tif
 /src/vw/Plate/image2plate
 /src/vw/Plate/index_client
 /src/vw/Plate/index_perftest
 /src/vw/Plate/index_server
 /src/vw/Plate/plate2dem
+/src/vw/Plate/plate2kml
 /src/vw/Plate/plate2plate
 /src/vw/Plate/plate2tiles
-/src/vw/Plate/plate2kml
 /src/vw/Plate/platereduce
 /src/vw/Plate/rebuild_index
 /src/vw/Plate/rpc_tool
 /src/vw/Plate/snapshot
-/src/vw/Plate/dump_page
-/src/vw/Plate/blob_file_dump
 /src/vw/Plate/tiles2plate
+/src/vw/Plate/tiles4region
 /src/vw/Plate/tests/TestBlobIO
 /src/vw/Plate/tests/TestBlobManager
 /src/vw/Plate/tests/TestHTTPUtils
