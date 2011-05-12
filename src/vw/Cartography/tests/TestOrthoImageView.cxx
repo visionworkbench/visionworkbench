@@ -15,6 +15,9 @@
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Image/Transform.h>
 
+// Must have protobuf to be able to read camera
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1 && defined(VW_HAVE_PKG_CAMERA) && VW_HAVE_PKG_CAMERA==1
+
 using namespace vw;
 using namespace vw::cartography;
 using namespace vw::test;
@@ -24,9 +27,6 @@ template <template<class> class TraitT, class T>
 static bool bool_trait( T const& /*arg*/ ) {
   return TraitT<T>::value;
 }
-
-// Must have protobuf to be able to read camera
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
 
 // Test Pattern Image
 template <class PixelT>

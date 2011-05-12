@@ -12,13 +12,13 @@
 #include <vw/Cartography/CameraBBox.h>
 #include <vw/Camera/PinholeModel.h>
 
+// Must have protobuf to be able to read camera
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1 && defined(VW_HAVE_PKG_CAMERA) && VW_HAVE_PKG_CAMERA
+
 using namespace vw;
 using namespace vw::cartography;
 using namespace vw::test;
 using namespace vw::camera;
-
-// Must have protobuf to be able to read camera
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
 
 class CameraBBoxTest :  public ::testing::Test {
 protected:
