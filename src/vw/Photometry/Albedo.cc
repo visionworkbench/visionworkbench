@@ -1285,10 +1285,35 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
     GeoReference input_dem_geo;
     read_georeference(input_dem_geo, DEM_file);
 
-    ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-                                                                                ConstantEdgeExtension()),
-                                                                                BilinearInterpolation());
+  InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation>
+    interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
+                                               ConstantEdgeExtension()),
+                                   BilinearInterpolation());
 
+#if 1
+  ImageView<PixelMask<PixelGray<float> > > refl;
+  float avg_reflectance =
+    computeImageReflectanceNoWrite(input_img_params,
+                                   globalParams,
+                                   refl);
+  
+  for (int y=0; y < (int)output_img.rows(); y++) {
+    for (int x=0; x < (int)output_img.cols(); x++) {
+      float input_img_reflectance = refl(x, y);
+      if (input_img_reflectance != 0.0){
+        if (globalParams.useWeights == 0){
+          output_img(x, y) = (float)input_img(x,y)/(input_img_params.exposureTime*input_img_reflectance);
+          numSamples(x, y) = 1;
+        } else {
+          float weight = ComputeLineWeights(Vector2(x, y), input_img_params.centerLine, input_img_params.maxDistArray);
+          output_img(x, y) = ((float)input_img(x,y)*weight)/(input_img_params.exposureTime*input_img_reflectance);
+          norm(x, y) = weight;
+          numSamples(x, y) = 1;
+        }
+      }
+    }
+  }
+#else
     int x,y;
     //initialize  output_img, and numSamples
     for (k = 0 ; k < input_img.rows(); ++k) {
@@ -1362,6 +1387,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
           }
        }
     }
+#endif
 
     for (i = 0; i < (int)overlap_img_params.size(); i++){
       /*
@@ -1391,6 +1417,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
       */
       for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
+          int x, y;
 
           Vector2 input_img_pix(l,k);
 
