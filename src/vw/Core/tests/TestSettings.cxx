@@ -34,7 +34,7 @@ TEST(Settings, HAS_CONFIG_FILE(VWrc)) {
       10 = *           # all level 10     \n\
       30 = WMS.foo     # WMS.foo level 30 \n\
                                           \n\
-      [logfile log.txt]                   \n\
+      [logfile " TEST_OBJDIR "/log.txt]   \n\
       *  = * wee                          \n\
       10 = WMS.foo                        \n\
                                           \n\
