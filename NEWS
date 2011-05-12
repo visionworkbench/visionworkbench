@@ -1,3 +1,87 @@
+*** RELEASE 2.2.0, 12 MAY 2011 ***
+CORE
+ - Fix theoretical static destruction race in Thread
+ - Add a hook for more extensible exceptions
+ - Remove the Exception(string) constructor (use Exception() << )
+ - Add a stderr warning if debug logging is turned on
+ - Move the singleton-dependent functions (vw_log, vw_settings, etc) into a new
+   System.h header
+ - Fix bugs in TypeDeduction related to non-standard types (_int64, long long,
+   long double) and char
+ - Make warnings and errors go to console by default
+ - Add a TemporaryFile iostream subclass
+ - Change default tile size to render at 256 px
+MATH
+ - Fix cases where LAPACK errors would not be detected
+ - Fix handling of const Vectors and Matrices
+ - Add LU decomposition via the Math object LUD
+ - Add floor, ceil, polyval, sin, cos, tan, asin, acos, atan, and sqrt operations to Vectors
+ - Remove reference access to Quaternions (it violated the c++ spec)
+IMAGE
+ - Split ImageResource interface into read-only and write-only interfaces. See
+   comments in ImageResource.h
+ - Modify many interfaces to use only the necessary subset of ImageResource
+ - Add an ImageResourceStream class that wraps streams
+ - Add IsFloatingPointIndexable support to the PixelAccessors
+ - Catch unrealistically-large image sizes earlier in set_size, before it risks
+   taking down your computer
+ - Overload == and << for ImageViews, and add a const_iterator
+ - Make premultiply a property of ImageFormat instead of ImageBuffer
+ - Change RotateTransform to require the axis of rotation
+ - Add ImageChannelType, a trait to get the channel type of an image (short
+   version of PixelChannelType<T::pixel_type>::type)
+ - Add square() operation for ImageViews and Pixels
+ - Fix normalize_retain_alpha to avoid value overflow
+FILEIO
+ - Port DiskImageResource to new ImageResource API
+ - Add a new class of in-memory image encoding & decoding, MemoryImageResource
+ - Clean up DiskImageView's constructor proliferation
+CARTOGRAPHY
+ - Fix a logic inversion in GeoReference
+ - Fix OrthoImageView, allowing floating and integer access methods
+ - Add std::string constructor to Datum to allow construction on standard names
+ - Speed up CameraBBox
+CAMERA
+ - Restore read support for the old-style TSAI binary camera format
+ - Add CAHVORE Model
+ - Replace linearize_camera calls to use Vector2i
+ - Add write() to CAHV Model
+MOSAIC
+ - Refactor to move more code from image2qtree
+BUNDLEADJUST
+ - Simplify pointer handling
+ - Change BA Reporter to require models to provide error functors
+ - Drop AdjustRobustSparseKGCP
+INTERESTPOINT
+ - Fix VWIP writing to make sure they can be shared between 32- and 64-bit
+   machines
+ - Add optional support for FLANN, a faster nearest-neighbor. If available, it
+   replaces KD-Tree in ipmatch
+STEREO
+ - Optimize Bayes EM subpixel code. (collapse loops, precompute consts, store
+   reused computations, remove unused code, remove FP underflows, etc)
+ - Moved research stereo code into CorrelateResearch.*
+ - Allow StereoView to solve for 1-D maps
+ - Remove unused, unexported functions
+ - Add mask checking to CorrelatorView
+ - Improve box_filter to avoid excessing copying
+TOOLS
+ - image2qtree: kml fixes
+ - image2qtree: make google maps generation work again
+ - image2qtree: refactor option handling
+TEST
+ - Add many more test utilities
+ - Finally kill off cxxtest, only gtest remains
+ - Upgrade to gtest 1.6.0
+MISC
+ - More windows compat fixes
+ - Fix warnings with autoconf 2.68
+ - Fix many conversion warnings
+ - Change most indexes to (s)?size_t instead of int (except for image)
+
+
+
+================================================================================
 *** RELEASE 2.1.0, 1 SEPTEMBER 2010 ***
 CORE
  - Add hit/miss/evict data collection for Cache
