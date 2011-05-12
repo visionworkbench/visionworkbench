@@ -26,7 +26,7 @@ noinst_PROGRAMS = geotif-generate
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
 
-EXTRA_DIST = Helpers.h
+EXTRA_DIST = Helpers.h test_main.cc
 
 includedir = $(prefix)/include/test
 include $(top_srcdir)/config/rules.mak
