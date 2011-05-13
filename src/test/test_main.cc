@@ -53,6 +53,9 @@ int main(int argc, char **argv) {
   fs::path start_dir(TEST_SRCDIR);
 
   fs::current_path(start_dir);
+  VW_ASSERT(fs::equivalent(fs::current_path(), start_dir),
+            vw::LogicErr() << "Could not change the working directory to " << start_dir);
+
   int ret = RUN_ALL_TESTS();
   fs::path end_dir = fs::current_path();
 
