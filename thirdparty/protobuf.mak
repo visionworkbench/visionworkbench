@@ -15,7 +15,8 @@ PROTOC_ARGS =
 	$(AM_V_GEN)( \
 		SRC=`cd $(abs_top_srcdir)/src && pwd` ;\
 		OBJ=`cd $(abs_top_builddir)/src && pwd` ;\
-		LCL=`cd $(abs_srcdir) && pwd` ;\
+		FILEDIR=`cd $$(dirname $<) && pwd` ;\
+		FILENAME="$$FILEDIR/$$(basename $<)" ;\
 		cd "$$SRC" && \
-		$(PROTOC) -I"$$SRC" -I"$$OBJ" --cpp_out="$$OBJ" $(PROTOC_ARGS) "$$LCL/$<" \
+		$(PROTOC) -I"$$SRC" -I"$$OBJ" --cpp_out="$$OBJ" $(PROTOC_ARGS) "$$FILENAME" \
 	)

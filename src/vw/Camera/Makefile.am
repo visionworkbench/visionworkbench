@@ -11,32 +11,48 @@
 
 if MAKE_MODULE_CAMERA
 
-protocol_headers =
-protocol_sources =
-include_HEADERS =
-libvwCamera_la_SOURCES =
-
 if HAVE_PKG_PROTOBUF
-protocol_headers += TsaiFile.pb.h
-protocol_sources += TsaiFile.pb.cc
-BUILT_SOURCES   = $(protocol_sources)
-include_HEADERS += $(protocol_headers)
+protocol_headers = TsaiFile.pb.h
+protocol_sources = TsaiFile.pb.cc
 endif
 
 if HAVE_PKG_LAPACK
-include_HEADERS += Extrinsics.h LinescanModel.h LinearPushbroomModel.h   \
-                   OrbitingPushbroomModel.h PinholeModelCalibrate.h      \
-                   LensDistortion.h CameraGeometry.h
-libvwCamera_la_SOURCES += Extrinsics.cc
+lapack_headers = \
+	CameraGeometry.h \
+	Extrinsics.h \
+	LensDistortion.h \
+	LinearPushbroomModel.h \
+	LinescanModel.h \
+	OrbitingPushbroomModel.h \
+	PinholeModelCalibrate.h
+
+lapack_sources = Extrinsics.cc
 endif
 
-include_HEADERS += CameraModel.h CAHVModel.h CAHVORModel.h               \
-                   CameraTransform.h Exif.h ExifData.h BayerFilter.h     \
-                   PinholeModel.h CAHVOREModel.h
+include_HEADERS =   \
+  BayerFilter.h     \
+  CAHVModel.h       \
+  CAHVOREModel.h    \
+  CAHVORModel.h     \
+  CameraModel.h     \
+  CameraTransform.h \
+  ExifData.h        \
+  Exif.h            \
+  PinholeModel.h    \
+  $(lapack_headers)
 
-libvwCamera_la_SOURCES += PinholeModel.cc CAHVModel.cc CAHVORModel.cc    \
-              Exif.cc ExifData.cc LensDistortion.cc $(protocol_sources)  \
-              CameraModel.cc CAHVOREModel.cc
+libvwCamera_la_SOURCES = \
+  CAHVModel.cc      \
+  CAHVOREModel.cc   \
+  CAHVORModel.cc    \
+  CameraModel.cc    \
+  Exif.cc           \
+  ExifData.cc       \
+  LensDistortion.cc \
+  PinholeModel.cc   \
+  $(lapack_sources)
+
+nodist_libvwCamera_la_SOURCES = $(protocol_sources)
 
 libvwCamera_la_LIBADD = @MODULE_CAMERA_LIBS@
 
@@ -48,12 +64,14 @@ endif
 # general
 ########################################################################
 
+BUILT_SOURCES = $(protocol_sources)
+
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 SUBDIRS = . tests
 CLEANFILES = $(protocol_headers) $(protocol_sources)
-EXTRA_DIST = TsaiFile.proto
+EXTRA_DIST = TsaiFile.proto $(protobuf_sources) $(protobuf_headers)
 
 includedir = $(prefix)/include/vw/Camera
 
