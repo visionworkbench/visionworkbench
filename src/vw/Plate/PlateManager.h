@@ -31,6 +31,21 @@ namespace platefile {
     TileInfo(int i, int j, BBox2i const& bbox) : i(i), j(j), bbox(bbox) {}
   };
 
+  // Functor for clamping alpha to channel range
+  struct ClampAlpha : UnaryReturnSameType {
+    template <class T>
+    T operator()( T const& px ) const {
+      typedef typename CompoundChannelType<T>::type ChT;
+      typedef ChannelRange<ChT> ChR;
+      T copy = px;
+      if ( alpha_channel( copy ) > ChR::max() )
+        alpha_channel( copy ) = ChR::max();
+      else if ( alpha_channel( copy ) < ChR::min() )
+        alpha_channel( copy ) = ChR::min();
+      return copy;
+    }
+  };
+
   template <class PixelT>
   class PlateManager {
   protected:
@@ -98,8 +113,9 @@ namespace platefile {
       // Find pyramid_level and transform image
       TransformRef tx(ResampleTransform(1,1)); // Transform ref doesn't
       int pyramid_level;                       // support a generic construct.
-      ImageViewRef<typename ViewT::pixel_type> stereo_view = image;
-      this->transform_image( input_georef, stereo_view, tx, pyramid_level );
+      ImageViewRef<typename ViewT::pixel_type> trans_view = image;
+      this->transform_image( input_georef, trans_view, tx, pyramid_level );
+      trans_view = per_pixel_filter( trans_view, ClampAlpha() );
 
       // Calculated affected tiles and print debug statistics
       std::list<TileInfo> tiles;
@@ -133,7 +149,7 @@ namespace platefile {
         boost::scoped_ptr<Task> task(
           new Job(m_platefile, transaction_id,
                   tile, pyramid_level,
-                  stereo_view, tweak_settings_for_terrain,
+                  trans_view, tweak_settings_for_terrain,
                   false, boost::numeric_cast<int>(tiles_size), progress));
         (*task)();
       }
