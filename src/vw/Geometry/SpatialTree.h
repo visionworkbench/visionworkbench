@@ -79,6 +79,7 @@ namespace geometry {
     GeomPrimitive *closest(const VectorT &point, double distance_threshold = -1, double *distance = 0);
     GeomPrimitive *contains(const VectorT &point);
     void contains(const VectorT &point, std::list<GeomPrimitive*> &prims);
+    void intersects(const BBoxT &box, std::list<GeomPrimitive*> &prims) const;
     void overlap_pairs(std::list<std::pair<GeomPrimitive*, GeomPrimitive*> > &overlaps);
     void print(std::ostream &os = std::cout);
     //NOTE: this can only write a 2D projection (because VRML is 3D)

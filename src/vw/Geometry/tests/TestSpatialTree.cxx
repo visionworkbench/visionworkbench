@@ -11,6 +11,8 @@
 #include <vw/Geometry/SpatialTree.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
+#include <vw/Core.h>
+#include <boost/foreach.hpp>
 #include <sstream>
 
 using namespace vw;
@@ -202,3 +204,30 @@ TEST_P(SpatialTreeTest, Basic) {
 }
 
 INSTANTIATE_TEST_CASE_P(Dims, SpatialTreeTest, test::Range(1u,5u));
+
+TEST( SpatialTreeTest, Intersect ) {
+
+  SpatialTree test(BBox2(0,0,1,1));
+
+  std::list<TestGeomPrimitive> owner;
+  for ( size_t i = 0; i < 100; i++ ) {
+    for ( size_t j = 0; j < 100; j++ ) {
+      owner.push_back(TestGeomPrimitive());
+      owner.back().min() = Vector2i(i,j)*256;
+      owner.back().max() = owner.back().min() + Vector2i(256,256);
+      test.add(&owner.back(),1);
+    }
+  }
+
+  {
+    GeomPrimitive* q = test.contains( Vector2i(1152,1152) );
+    EXPECT_FALSE( NULL == q );
+    GeomPrimitive* p = test.contains( Vector2i(2251,4951) );
+    EXPECT_FALSE( NULL == p );
+  }
+
+  std::list<GeomPrimitive*> results;
+  test.intersects( BBox2i(128,128,512,512), results );
+  EXPECT_EQ( 9, results.size() );
+
+}

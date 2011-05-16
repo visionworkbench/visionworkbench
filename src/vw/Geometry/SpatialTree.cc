@@ -532,6 +532,34 @@ namespace {
     std::list<GeomPrimitive*> *m_prims;
   };
 
+  class IntersectsAllFunctor : public ApplyFunctor {
+  public:
+    IntersectsAllFunctor(const SpatialTree::BBoxT *box) : m_box(box), m_alloc(true) {
+      m_prims = new std::list<GeomPrimitive*>;
+    }
+    IntersectsAllFunctor(const SpatialTree::BBoxT *box, std::list<GeomPrimitive*> *prims)
+      : m_box(box), m_alloc(false), m_prims(prims) {}
+    virtual ~IntersectsAllFunctor() {
+      if (m_alloc)
+        delete m_prims;
+    }
+    virtual ApplyProcessOrder process_order() const {return PROCESS_CHILDREN_BEFORE_CURRENT_NODE;}
+    virtual bool should_process(const ApplyState &state) {
+      return state.tree_node->bounding_box().intersects(*m_box);
+    }
+    virtual bool operator()(const ApplyState &state) {
+      GeomPrimitive *prim = state.list_elem->prim;
+      if (prim->bounding_box().intersects(*m_box) )
+        m_prims->push_back(prim);
+      return true; // continue processing
+    }
+    std::list<GeomPrimitive*> *get_primitives() {return m_prims;}
+  private:
+    const SpatialTree::BBoxT *m_box;
+    bool m_alloc;
+    std::list<GeomPrimitive*> *m_prims;
+  };
+
   class AllOverlapsFunctor : public ApplyFunctor {
   public:
     AllOverlapsFunctor(GeomPrimitive *overlap_prim) : m_overlap_prim(overlap_prim), m_alloc(true) {
@@ -763,6 +791,13 @@ namespace geometry {
   SpatialTree::contains(const VectorT &point,
                         std::list<GeomPrimitive*> &prims) {
     ContainsAllFunctor func(&point, &prims);
+    apply(func, m_num_quadrants, m_root_node);
+  }
+
+  void
+  SpatialTree::intersects(const BBoxT &box,
+                          std::list<GeomPrimitive*> &prims) const {
+    IntersectsAllFunctor func( &box, &prims);
     apply(func, m_num_quadrants, m_root_node);
   }
 
