@@ -80,6 +80,11 @@ namespace cartography {
     /// resulting pixel location is returned from the camera image.
     inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const {
 
+      // Check for a missing DEM pixels.
+      if ( is_transparent(m_terrain(i,j)) ) {
+        return result_type();
+      }
+
       // We need to convert the georefernced positions into a
       // cartesian coordinate system so that they can be imaged by the
       // camera model.  Doing so require we proceed through 3 steps:
@@ -91,11 +96,6 @@ namespace cartography {
       // 3. Convert to cartesian (xyz) coordinates.
       Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
       Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
-
-      // Check for a missing DEM pixels.
-      if ( is_transparent(m_terrain(i,j)) ) {
-        return result_type();
-      }
 
       // Now we can image the point using the camera model and return
       // the resulting pixel from the camera image.
