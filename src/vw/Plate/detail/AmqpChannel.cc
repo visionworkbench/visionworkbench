@@ -92,7 +92,7 @@ AmqpConnection::AmqpConnection(std::string const& hostname, int port) {
   // Open a socket and establish an amqp connection
   int fd = amqp_open_socket(hostname.c_str(), port);
   if (fd < 0)
-    vw_throw(AMQPErr() << "Failed to open AMQP socket.");
+    vw_throw(AMQPErr() << "Failed to open AMQP socket. Rabbit might not running on " << hostname << ":" << port);
 
   int flag = 1;
   die_on_error(setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(int)), "setting TCP_NODELAY");
