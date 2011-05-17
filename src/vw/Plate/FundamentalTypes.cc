@@ -92,4 +92,21 @@ std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr) 
   return (o << hdr.col() << "," << hdr.row() << "@" << hdr.level() << " (t_id = " << hdr.transaction_id() << ")");
 }
 
+bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
+  if (a.col() != b.col())                       return false;
+  if (a.row() != b.row())                       return false;
+  if (a.level() != b.level())                   return false;
+  if (a.transaction_id() != b.transaction_id()) return false;
+  if (a.filetype() != b.filetype())             return false;
+  return true;
+}
+
+bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
+  return !(a == b);
+}
+
+bool OrderHeaderByTidDesc::operator()(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) const {
+  return Transaction(a.transaction_id()) > Transaction(b.transaction_id());
+}
+
 }} // vw::platefile

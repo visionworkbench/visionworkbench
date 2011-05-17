@@ -34,10 +34,8 @@ class Blobstore : public Datastore {
     virtual Transaction transaction_begin(const std::string& description, TransactionOrNeg transaction_id_override = -1);
     virtual void transaction_end(Transaction transaction_id, bool update_read_cursor);
 
-    virtual meta_range     head(uint32 level, uint64 row, uint64 col, TransactionRange range, uint32 limit = 1);
+    virtual meta_range     head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 1);
     virtual meta_range     head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1);
-    virtual tile_range      get(uint32 level, uint64 row, uint64 col, TransactionRange range, uint32 limit = 1);
-    virtual tile_range      get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1);
     virtual tile_range populate(const TileHeader* hdrs, size_t len);
 
     //virtual Url map_to_url(uint32 level, uint32 row, uint32 col, Transaction id, std::string filetype);

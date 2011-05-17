@@ -11,6 +11,9 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <boost/operators.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/shared_container_iterator.hpp>
+#include <boost/range/iterator_range.hpp>
 
 namespace google { namespace protobuf {
   class Closure;
@@ -133,6 +136,23 @@ class TransactionRange : private std::pair<TransactionOrNeg, TransactionOrNeg> {
 // We can't edit the protobuf-generated code, so this is next best place for this
 class TileHeader;
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr);
+bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b);
+bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b);
+
+struct OrderHeaderByTidDesc {
+  bool operator()(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) const;
+};
+
+// The boost make_shared_iterator_range returns a pair rather than an iterator_range.
+// Provide a helper that does the right thing.
+template <typename ContainerT>
+boost::iterator_range<boost::shared_container_iterator<const ContainerT> >
+make_const_shared_range(boost::shared_ptr<ContainerT> c) {
+  typedef boost::shared_container_iterator<const ContainerT> iter_t;
+  iter_t begin(c->begin(), c);
+  iter_t     end(c->end(), c);
+  return boost::make_iterator_range(begin, end);
+}
 
 }} // vw::platefile
 

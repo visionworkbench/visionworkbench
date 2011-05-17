@@ -9,14 +9,6 @@
 namespace fs = boost::filesystem;
 
 namespace {
-  template <typename ContainerT>
-  boost::iterator_range<boost::shared_container_iterator<const ContainerT> >
-  make_shared_range(boost::shared_ptr<ContainerT> c) {
-    typedef boost::shared_container_iterator<const ContainerT> iter_t;
-    iter_t begin(c->begin(), c);
-    iter_t     end(c->end(), c);
-    return boost::make_iterator_range(begin, end);
-  }
   static const boost::format blob_tmpl("%s/plate_%u.blob");
 
   class BlobWriteState : public vw::platefile::WriteState {
@@ -30,18 +22,6 @@ namespace {
       boost::shared_ptr<vw::platefile::Blob> blob;
       vw::uint32 blob_id;
   };
-
-  bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
-    if (a.col() != b.col())                       return false;
-    if (a.row() != b.row())                       return false;
-    if (a.level() != b.level())                   return false;
-    if (a.transaction_id() != b.transaction_id()) return false;
-    if (a.filetype() != b.filetype())             return false;
-    return true;
-  }
-  bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {
-    return !(a == b);
-  }
 }
 
 namespace vw { namespace platefile { namespace detail {
@@ -84,7 +64,7 @@ void Blobstore::transaction_end(Transaction transaction_id, bool update_read_cur
   m_index->transaction_complete(transaction_id, update_read_cursor);
 }
 
-Datastore::meta_range Blobstore::head(uint32 level, uint64 row, uint64 col, TransactionRange range, uint32 limit) {
+Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit) {
   typedef std::vector<TileHeader> vec_t;
   boost::shared_ptr<vec_t> tiles;
 
@@ -99,7 +79,7 @@ Datastore::meta_range Blobstore::head(uint32 level, uint64 row, uint64 col, Tran
     tiles.reset(new vec_t(len));
     std::copy(hdrs.begin(), hdrs.end(), tiles->begin());
   }
-  return make_shared_range(tiles);
+  return make_const_shared_range(tiles);
 }
 
 Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit) {
@@ -117,21 +97,7 @@ Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, Tran
     tiles.reset(new vec_t(len));
     std::copy(hdrs.begin(), hdrs.end(), tiles->begin());
   }
-
-  Datastore::meta_iterator begin(tiles->begin(), tiles);
-  Datastore::meta_iterator   end(tiles->end(), tiles);
-
-  return boost::make_iterator_range(begin, end);
-}
-
-Datastore::tile_range Blobstore::get(uint32 level, uint64 row, uint64 col, TransactionRange range, uint32 limit) {
-  Datastore::meta_range r = this->head(level, row, col, range, limit);
-  return this->populate(&*r.begin(), r.size());
-}
-
-Datastore::tile_range Blobstore::get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit) {
-  Datastore::meta_range r = this->head(level, region, range, limit);
-  return this->populate(&*r.begin(), r.size());
+  return make_const_shared_range(tiles);
 }
 
 Datastore::tile_range Blobstore::populate(const TileHeader* hdrs, size_t len) {
@@ -169,7 +135,7 @@ Datastore::tile_range Blobstore::populate(const TileHeader* hdrs, size_t len) {
       error_log() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
     }
   }
-  return make_shared_range(tiles);
+  return make_const_shared_range(tiles);
 }
 
 WriteState* Blobstore::write_request(const Transaction& id) {
