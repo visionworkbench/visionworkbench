@@ -5,13 +5,19 @@
 # All Rights Reserved.
 # __END_LICENSE__
 
+"""
+plate2kml.py
+
+A tool for generating a KML image pyramid based on a remote plate.
+Dependencies:
+    - Vision Workbench, built with Plate support
+    - pykml, available from pypi: http://pypi.python.org/pypi/pykml
+    - lxml: http://lxml.de/
+"""
 
 import optparse
 import sys, os, time
 import math
-sys.path.insert(1, '/Users/ted/local/src/libkml-1.2.0/build/lib/python2.7/site-packages') # tmo
-import kmldom
-import kmlengine
 import subprocess
 import json
 import zipfile
@@ -20,6 +26,11 @@ import multiprocessing
 import threading
 import Queue # this is just imported for the Queue.Empty exception <shrug>
 
+from lxml import etree
+from pykml.factory import KML_ElementMaker as KML
+from pykml.factory import ATOM_ElementMaker as ATOM
+from pykml.factory import GX_ElementMaker as GX
+import pykml.parser
 
 TILE_MIN_LOD, TILE_MAX_LOD = (64, 513)
 HARD_CODED_TILE_SIZE = 256
@@ -35,6 +46,19 @@ def int_or_none(val):
         return int(val)
     except TypeError:
         return None
+
+
+# This copy of the OGC KML schema is distributed with pykml.  There's no guaruntee it won't go out of date.
+SCHEMA = pykml.parser.Schema("ogckml22.xsd") 
+def assert_valid(element_tree):
+    #if not SCHEMA.validate(element_tree):
+    #    raise AssertionError("ElementTree fails validation:  %s" % str(SCHEMA.schema.error_log))
+    try: 
+        val = SCHEMA.schema.assertValid(element_tree)
+    except:
+        print etree.tostring(element_tree, pretty_print=True)
+        raise
+    return val
 
 class BBox(object):
     """
@@ -250,7 +274,7 @@ class TileRegion(object):
         return TileRegion( level, proj_bbox )
 
     def kml_region(self):
-        region = factory.CreateRegion()
+        region = KML.Region()
         
         if self.level == 1:
           ## Top layerish. Layer 0 is never drawn because it's
@@ -271,11 +295,12 @@ class TileRegion(object):
             if self.level == options.max_levels:
                 maxlod = -1
 
-        region.set_lod(create_lod(minlod, maxlod, factory))
         
         assert not self.latlon_bbox.is_null() # presumably, we already added some points to the latlon_bbox with latlon_bbox.expand()
-        latlonalt_box = create_latlonalt_square(self.latlon_bbox.maxy, self.latlon_bbox.miny, self.latlon_bbox.minx, self.latlon_bbox.maxx, factory)
-        region.set_latlonaltbox(latlonalt_box)
+        latlonalt_box = create_latlonalt_square(self.latlon_bbox.maxy, self.latlon_bbox.miny, self.latlon_bbox.minx, self.latlon_bbox.maxx)
+        region.LatLonAltBox = latlonalt_box
+        region.Lod = create_lod(minlod, maxlod)
+        assert_valid(region)
         return region
 
 class Tile(object):
@@ -283,11 +308,13 @@ class Tile(object):
         self.row = row
         self.col = col
         self.level = level
+
         self.west = west
         self.east = east
         self.north = north
         self.south = south
         self.filetype = filetype
+
         self.pixel_width = HARD_CODED_TILE_SIZE
         self.pixel_height = HARD_CODED_TILE_SIZE
 
@@ -308,11 +335,13 @@ class Tile(object):
         south = north - lat_delta
         """
 
-        llbox = factory.CreateLatLonBox()
-        llbox.set_west(self.west)
-        llbox.set_south(self.south)
-        llbox.set_east(self.east)
-        llbox.set_north(self.north)
+        llbox = KML.LatLonBox(
+            KML.north(self.north),
+            KML.south(self.south),
+            KML.east(self.east),
+            KML.west(self.west),
+        )
+        assert_valid(llbox)
         return llbox
 
     def bbox(self):
@@ -323,8 +352,7 @@ class Tile(object):
             1
         )    
 
-    def kml_region(self, factory):
-        region = factory.CreateRegion()
+    def kml_region(self):
         
         if self.level == 1:
           ## Top layerish. Layer 0 is never drawn because it's
@@ -339,25 +367,25 @@ class Tile(object):
             if self.level == options.max_levels:
                 maxlod = -1
 
-        region.set_lod(create_lod(minlod, maxlod, factory))
+        region = KML.Region()
+        region.LatLonAltBox = create_latlonalt_square(self.north, self.south, self.west, self.east)
+        region.Lod = create_lod(minlod, maxlod)
         
-        latlonalt_box = create_latlonalt_square(self.north, self.south, self.west, self.east, factory)
-        region.set_latlonaltbox(latlonalt_box)
+        assert_valid(region)
         return region
 
 
-    def kml_overlay(self, factory):
-        goverlay = factory.CreateGroundOverlay()
-        region = self.kml_region(factory)
-        goverlay.set_region(region)
-        goverlay.set_latlonbox(self.latlonbox())
-        goverlay.set_draworder(self.level * DEFAULT_DRAW_ORDER_FACTOR) 
-
+    def kml_overlay(self):
         url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (self.level, self.col, self.row) ) + "."+self.filetype )
-        icon = factory.CreateIcon()
-        icon.set_href( str(url) )
-        goverlay.set_icon( icon )
 
+        goverlay = KML.GroundOverlay()
+        goverlay.Region = self.kml_region()
+        goverlay.drawOrder = KML.drawOrder(self.level * DEFAULT_DRAW_ORDER_FACTOR)
+        goverlay.Icon = KML.Icon(KML.href(url))
+        goverlay.LatLonBox = self.latlonbox()
+
+
+        assert_valid(goverlay)
         return goverlay
         
 class PlateLevel(object): 
@@ -402,6 +430,7 @@ def search_tiles_by_region(platefile_url, region):
     args = '%d %d %d %d -l %d' % (region.minx, region.miny, region.width, region.height, region.level)
     print "Searching for tiles at %s: " % region.name(),
     args = [os.path.join(options.vw_bin_path,'tiles4region'), platefile_url] + args.split(' ')
+    #print " ".join(args)
     while True:
         try:
             output = subprocess.check_output( args )
@@ -420,48 +449,54 @@ def search_tiles_by_region(platefile_url, region):
     print "FOUND %d" % len(tiles)
     return tiles
 
-def create_lod(minpix, maxpix, factory):
-    lod = factory.CreateLod()
-    lod.set_minlodpixels(minpix)
-    lod.set_maxlodpixels(maxpix)
+def create_lod(minpix, maxpix):
+    lod = KML.Lod(
+        KML.minLodPixels(minpix),
+        KML.maxLodPixels(maxpix),
+    )
+    assert_valid(lod)
     return lod
 
-def create_latlonalt_square(north, south, west, east,factory):
-    box = factory.CreateLatLonAltBox()
-    box.set_south(south)
-    box.set_north(north)
-    box.set_west(west)
-    box.set_east(east)
+def create_latlonalt_square(north, south, west, east):
+    box = KML.LatLonAltBox(
+        KML.north(north),
+        KML.south(south),
+        KML.east(east),
+        KML.west(west),
+    )
+    #assert_valid(box)
     return box
     
     
-def overlay_for_tile(tile, factory):
-    goverlay = factory.CreateGroundOverlay()
-    region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
-    goverlay.set_region(region)
-    goverlay.set_latlonbox(tile.latlonbox())
-    goverlay.set_draworder(tile.level * DEFAULT_DRAW_ORDER_FACTOR) 
+def overlay_for_tile(tile):
+    goverlay = KML.GroundOverlay()
+    goverlay.Region = TileRegion(tile.level, BBox(tile.col, tile.row, 1, 1)).kml_region()
+    goverlay.LatLonBox = tile.latlonbox()
+    goverlay.drawOrder = KML.drawOrder(tile.level * DEFAULT_DRAW_ORDER_FACTOR)
 
     url = urlparse.urljoin( options.baseurl, '/'.join( str(t) for t in (tile.level, tile.col, tile.row) ) + "."+tile.filetype )
     icon = factory.CreateIcon()
     icon.set_href( str(url) )
     goverlay.set_icon( icon )
 
+    assert_valid(goverlay)
     return goverlay
 
-def make_netlink(url, region, factory, name=None):
-    netlink = factory.CreateNetworkLink()
-    if region:
-        netlink.set_region(region.kml_region())
-    link = factory.CreateLink()
-    link.set_href(url)
-    link.set_viewrefreshmode( kmldom.VIEWREFRESHMODE_ONREGION )
-    netlink.set_link(link)
+def make_netlink(url, region, name=None):
+    netlink = KML.NetworkLink()
     if name:
-        netlink.set_name(name)
+        netlink.name = KML.name(name)
+    if region:
+        netlink.Region = region.kml_region()
+    netlink.Link = KML.Link(
+            KML.href(url),
+            KML.viewRefreshMode('onRegion'),
+        )
+
+    assert_valid(netlink)
     return netlink
 
-def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
+def draw_level(levelno, plate, output_dir, prior_hit_regions):
     level = PlateLevel(levelno)
     netlinks = []
     hit_regions = []
@@ -473,7 +508,7 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     print "Launching %d workers." % options.workers
     workers = []
     for i in range(options.workers):
-        p = threading.Thread(target=draw_region_worker, args=(die_event, region_queue, output_queue, plate, output_dir, factory))
+        p = threading.Thread(target=draw_region_worker, args=(die_event, region_queue, output_queue, plate, output_dir))
         workers.append(p)
         p.start()
 
@@ -497,7 +532,7 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
         try:
             time.sleep(0.1)
             region = output_queue.get(False)
-            netlink = make_netlink(os.path.basename(region.kmz_filename), region, factory, name=region.name())
+            netlink = make_netlink(os.path.basename(region.kmz_filename), region, name=region.name())
             netlinks.append(netlink)
             hit_regions.append(region)
             output_queue.task_done()
@@ -515,19 +550,17 @@ def draw_level(levelno, plate, output_dir, prior_hit_regions, factory):
     else:
         outfilename = os.path.join(output_dir, "%02d"%level.level+".kml")
         with open(outfilename, 'w') as outfile:
-            folder = factory.CreateFolder()
-            folder.set_name("%02d" % level.level)
+            folder = KML.Folder(KML.name( "%02d" % level.level) )
             for netlink in netlinks:
-                folder.add_feature(netlink)
-            kml = factory.CreateKml()
-            kml.set_feature(folder)
-            outfile.write( kmldom.SerializePretty( kml ) )
+                folder.append(netlink)
+            kml = KML.kml(folder)
+            assert_valid(kml)
+            outfile.write( etree.tostring( kml, pretty_print=True ) )
 
-        #return make_netlink(outfilename, level.region, factory, name="%02d"%level.level)
-        return make_netlink(os.path.basename(outfilename), None, factory, name="%02d"%level.level)
+        return make_netlink(os.path.basename(outfilename), None, name="%02d"%level.level)
 
 
-def draw_region(region, plate, output_dir, factory):
+def draw_region(region, plate, output_dir):
     """
     Pull a TileRegion from the region_queue.
     Render the TileRegion to KML and write it to disk.
@@ -544,25 +577,27 @@ def draw_region(region, plate, output_dir, factory):
     t = tiles[0]
     region.tile_degree_size = math.sqrt(t.degree_width * t.degree_height) # this is actually consistent for the whole level.
     for t in tiles:
-        goverlay = t.kml_overlay(factory)
+        goverlay = t.kml_overlay()
         goverlays.append(goverlay)
 
         region.latlon_bbox.expand(t.west,t.south)
         region.latlon_bbox.expand(t.east,t.north)
 
-    folder = factory.CreateFolder()
+    folder = KML.Folder()
     for goverlay in goverlays:
-        folder.add_feature(goverlay)
-    kml = factory.CreateKml()
-    kml.set_feature(folder)
-    kmlstr = kmldom.SerializePretty(kml)
+        folder.append(goverlay)
+
+    kml = KML.kml(folder)
+    assert_valid(kml)
+
+    kmlstr = etree.tostring(kml, pretty_print=True)
     kmzfile = zipfile.ZipFile(os.path.join(output_dir, region.kmz_filename), 'w')
     kmzfile.writestr('doc.kml', kmlstr)
     kmzfile.close()
 
     return region
 
-def draw_region_worker(die_event, region_queue, output_queue, plate, output_dir, factory):
+def draw_region_worker(die_event, region_queue, output_queue, plate, output_dir):
     """
     Loop infinitely and try to draw regions.
     """
@@ -575,7 +610,7 @@ def draw_region_worker(die_event, region_queue, output_queue, plate, output_dir,
             #print "Region queue empty.  Retrying"
             continue
         try:
-            result = draw_region(region, plate, output_dir, factory)
+            result = draw_region(region, plate, output_dir)
             if result:
                 output_queue.put(result)
         finally:
@@ -593,28 +628,25 @@ def draw_plate(platefile_url, output_dir):
         print "Creating %s" % output_dir
         os.makedirs(output_dir)
 
-    global factory
-    factory = kmldom.KmlFactory.GetFactory()
     level = 0
     keep_drilling = True
     netlinks = []
     hit_regions = []
-    folder = factory.CreateFolder()
-    kml = factory.CreateKml()
+    folder = KML.Folder()
+    kml = KML.kml(folder)
     if options.planet:
-        kml.set_hint("target=%s" % options.planet)
-    kml.set_feature(folder)
+        kml.set('hint', "target=%s" % options.planet)
     while keep_drilling and level <= options.max_levels:
         print "Drawing level %d..." % level
-        netlink = draw_level(level, platefile_url, output_dir, hit_regions, factory)
+        netlink = draw_level(level, platefile_url, output_dir, hit_regions)
         keep_drilling = bool(netlink)
         if netlink: netlinks.append(netlink)
 
         for netlink in netlinks:
-            folder.add_feature(netlink)
+            folder.append(netlink)
         print "Writing root.kml"
         with open(os.path.join(output_dir, 'root.kml'), 'w') as outfile:
-            outfile.write(kmldom.SerializePretty(kml))
+            outfile.write(etree.tostring( kml, pretty_print=True ) )
 
         level += 1
 
