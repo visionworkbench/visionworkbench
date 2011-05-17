@@ -13,7 +13,9 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/assign/list_of.hpp>
 #include <vector>
+#include <set>
 
 using std::string;
 using std::vector;
@@ -50,6 +52,11 @@ namespace {
       o << '%' << std::hex << static_cast<uint32>(tmp[0]);
       return o.str();
     }
+  }
+
+  bool is_fileish(const std::string& s) {
+    static const std::set<std::string> fileish = boost::assign::list_of("file")("dir");
+    return fileish.find(s) != fileish.end();
   }
 }
 
@@ -101,8 +108,8 @@ void Url::parse(const std::string& url, bool parse_query_params) {
   // If it's a file, there is no netloc and relative paths are supported If
   // it's not, the path must be absolute and, if it's not, the first part is
   // assumed to be a netloc
-  if (c != string::npos && m_scheme != "file") {
-    // if we found a scheme
+  if (c != string::npos && !is_fileish(m_scheme)) {
+    // if we found a scheme and it's one where we want a netloc
     // [begin, end) now contains just the netloc and the path
     size_t s = url.find('/', begin);
 
@@ -115,7 +122,6 @@ void Url::parse(const std::string& url, bool parse_query_params) {
     }
   } else {
     // if we didn't have a scheme, it's all just path now.
-    m_scheme = "file";
     m_netloc = "";
     m_path = snip(url, begin, end);
   }
@@ -153,7 +159,7 @@ QueryMap& Url::query() { return m_query; }
 
 void Url::path(const std::string& s) {
   VW_ASSERT(!s.empty(), ArgumentErr() << "Invalid path (must be non-empty)");
-  VW_ASSERT(m_scheme == "file" || s[0] == '/', ArgumentErr() << "Only file urls can be relative");
+  VW_ASSERT(is_fileish(m_scheme) || s[0] == '/', ArgumentErr() << "Only file urls can be relative");
   m_path = s;
 }
 

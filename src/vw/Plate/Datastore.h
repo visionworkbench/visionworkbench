@@ -37,6 +37,7 @@ class WriteState {
 struct Tile {
   TileHeader hdr;
   TileData   data;
+  Tile() {}
   Tile(const TileHeader& hdr)
     : hdr(hdr) {}
   Tile(const TileHeader& hdr, TileData data)

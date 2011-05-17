@@ -27,6 +27,7 @@ include_HEADERS =           \
   BlobManager.h             \
   Datastore.h               \
   detail/Blobstore.h        \
+  detail/Dirstore.h         \
   Exception.h               \
   FundamentalTypes.h        \
   HTTPUtils.h               \
@@ -56,6 +57,7 @@ libvwPlate_la_SOURCES =      \
   BlobManager.cc             \
   Datastore.cc               \
   detail/Blobstore.cc        \
+  detail/Dirstore.cc         \
   Exception.cc               \
   FundamentalTypes.cc        \
   HTTPUtils.cc               \

@@ -7,6 +7,7 @@
 
 #include <vw/Plate/FundamentalTypes.h>
 #include <vw/Plate/IndexData.pb.h>
+#include <vw/Plate/Datastore.h>
 #include <google/protobuf/service.h>
 
 namespace vw {
@@ -68,6 +69,10 @@ void Transaction::set(uint32 id) {
 Transaction::operator uint32() const VW_NOTHROW {return m_id;}
 Transaction::operator TransactionOrNeg() const VW_NOTHROW {return TransactionOrNeg(static_cast<int32>(m_id));}
 
+uint32 Transaction::MAX_POSSIBLE() {
+  return detail::MAX_TRANSACTION;
+}
+
 TransactionRange::TransactionRange(TransactionOrNeg first, TransactionOrNeg last)
   : Super(first, last)
 {
@@ -108,6 +113,10 @@ bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHea
 
 bool OrderHeaderByTidDesc::operator()(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) const {
   return Transaction(a.transaction_id()) > Transaction(b.transaction_id());
+}
+
+bool OrderTileByTidDesc::operator()(const vw::platefile::Tile& a, const vw::platefile::Tile& b) const {
+  return Transaction(a.hdr.transaction_id()) > Transaction(b.hdr.transaction_id());
 }
 
 }} // vw::platefile

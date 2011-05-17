@@ -121,6 +121,8 @@ class Transaction : public detail::TransactionBase<Transaction>,
 
     bool operator<(const Transaction& x) const;
     bool operator==(const Transaction& x) const;
+
+    static uint32 MAX_POSSIBLE();
 };
 
 class TransactionRange : private std::pair<TransactionOrNeg, TransactionOrNeg> {
@@ -137,12 +139,16 @@ std::ostream& operator<<(std::ostream& o, const vw::platefile::TransactionRange&
 
 // We can't edit the protobuf-generated code, so this is next best place for this
 class TileHeader;
+class Tile;
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr);
 bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b);
 bool operator!=(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b);
 
 struct OrderHeaderByTidDesc {
   bool operator()(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) const;
+};
+struct OrderTileByTidDesc {
+  bool operator()(const vw::platefile::Tile& a, const vw::platefile::Tile& b) const;
 };
 
 // The boost make_shared_iterator_range returns a pair rather than an iterator_range.

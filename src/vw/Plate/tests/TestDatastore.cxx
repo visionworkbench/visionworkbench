@@ -17,9 +17,9 @@ using namespace vw;
 using namespace vw::platefile;
 using namespace vw::test;
 
-struct IDatastore : public ::testing::Test {
-  boost::scoped_ptr<TemporaryFile> m_tmpfile;
-  std::string m_url;
+struct IDatastore : public ::testing::TestWithParam<std::string> {
+  boost::scoped_ptr<TemporaryDir> m_tmpdir;
+  Url m_url;
   IndexHeader m_hdr;
 
   void SetUp() {
@@ -29,14 +29,13 @@ struct IDatastore : public ::testing::Test {
     m_hdr.set_channel_type(VW_CHANNEL_UINT8);
     m_hdr.set_type("test");
 
-    m_tmpfile.reset(new TemporaryFile(TEST_OBJDIR));
-    m_url = m_tmpfile->filename();
-    m_tmpfile.reset();
-    fs::remove_all(m_url);
+    m_tmpdir.reset(new TemporaryDir(TEST_OBJDIR));
+    m_url.scheme(GetParam());
+    m_url.path(m_tmpdir->filename() + "/test.plate");
   }
 
   void TearDown() {
-    fs::remove_all(m_url);
+    fs::remove_all(m_url.path());
   }
 };
 
@@ -49,7 +48,7 @@ namespace {
 
 }
 
-TEST_F(IDatastore, Creation) {
+TEST_P(IDatastore, Creation) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_THROW(store.reset(Datastore::open(m_url)), ArgumentErr);
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
@@ -73,7 +72,7 @@ bool SortTilesByTidASC(const Tile& a, const Tile& b) {
   return a.hdr.transaction_id() < b.hdr.transaction_id();
 }
 
-TEST_F(IDatastore, TwoInsert) {
+TEST_P(IDatastore, TwoInsert) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
@@ -127,7 +126,7 @@ TEST_F(IDatastore, TwoInsert) {
   store->transaction_end(id2, true);
 }
 
-TEST_F(IDatastore, InsertRegion) {
+TEST_P(IDatastore, InsertRegion) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
@@ -186,7 +185,7 @@ TEST_F(IDatastore, InsertRegion) {
   store->transaction_end(id, true);
 }
 
-TEST_F(IDatastore, Logging) {
+TEST_P(IDatastore, Logging) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
@@ -194,8 +193,11 @@ TEST_F(IDatastore, Logging) {
   store->error_log()() << "This should produce output" << std::endl;
 }
 
-//TEST_F(IDatastore, DiffType) {
-//  boost::scoped_ptr<Datastore> store;
-//  ASSERT_NO_THROW(store.reset(Datastore::open(m_url)));
-//  Transaction id = store->transaction_begin("insert test3");
-//}
+std::vector<string> test_urls() {
+  std::vector<string> v;
+  v.push_back("file");
+  v.push_back("dir");
+  return v;
+}
+
+INSTANTIATE_TEST_CASE_P(URLs, IDatastore, ::testing::ValuesIn(test_urls()));

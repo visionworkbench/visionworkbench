@@ -1,16 +1,23 @@
 #include <vw/Plate/Datastore.h>
 #include <vw/Plate/HTTPUtils.h>
 #include <vw/Plate/detail/Blobstore.h>
+#include <vw/Plate/detail/Dirstore.h>
 
 namespace vw { namespace platefile {
 
 Datastore* Datastore::open(const Url& url) {
-  return new detail::Blobstore(url);
+  if (url.scheme() == "dir")
+    return new detail::Dirstore(url);
+  else
+    return new detail::Blobstore(url);
   //vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
 }
 
 Datastore* Datastore::open(const Url& url, const IndexHeader& d) {
-  return new detail::Blobstore(url, d);
+  if (url.scheme() == "dir")
+    return new detail::Dirstore(url, d);
+  else
+    return new detail::Blobstore(url, d);
   //vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
 }
 
