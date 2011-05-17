@@ -106,8 +106,8 @@ int main( int argc, char *argv[]) {
             const TileHeader& t = *i;
 
             int tile_size = plate->default_tile_size();
-            Vector2 corner1 = georef.point_to_lonlat(georef.pixel_to_point( Vector2(t.col() * tile_size, t.row() * tile_size )));
-            Vector2 corner2 = georef.point_to_lonlat(georef.pixel_to_point( Vector2((t.col()+1) * tile_size, (t.row()+1) * tile_size )));
+            Vector2 corner1 = georef.point_to_lonlat(georef.pixel_to_point( Vector2(t.col() * tile_size, t.row() * tile_size ) - Vector2(0.5,0.5) ));
+            Vector2 corner2 = georef.point_to_lonlat(georef.pixel_to_point( Vector2((t.col()+1) * tile_size - 1, (t.row()+1) * tile_size - 1 ) + Vector2(0.5,0.5) ));
             float west = corner1[0];
             float east = corner2[0];
             float north = corner1[1];
