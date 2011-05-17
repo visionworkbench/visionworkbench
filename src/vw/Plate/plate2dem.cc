@@ -286,7 +286,7 @@ int main( int argc, char *argv[] ) {
         do_tiles<PixelGrayA<float32> >(platefile, opt);
         break;
       default:
-        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.");
       }
       break;
     case VW_PIXEL_RGB:
@@ -297,7 +297,7 @@ int main( int argc, char *argv[] ) {
         do_tiles<PixelRGBA<uint8> >(platefile, opt);
         break;
       default:
-        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.\n");
+        vw_throw(ArgumentErr() << "Platefile contains a channel type not supported by image2plate.");
       }
       break;
     }
