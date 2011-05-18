@@ -5,15 +5,13 @@
 namespace vw { namespace platefile {
 
 Datastore* Datastore::open(const Url& url) {
-  if (url.scheme() == "blob" || url.scheme() == "file")
-    return new detail::Blobstore(url);
-  vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
+  return new detail::Blobstore(url);
+  //vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
 }
 
 Datastore* Datastore::open(const Url& url, const IndexHeader& d) {
-  if (url.scheme() == "blob" || url.scheme() == "file")
-    return new detail::Blobstore(url, d);
-  vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
+  return new detail::Blobstore(url, d);
+  //vw_throw(NoImplErr() << "Unsupported datastore scheme: " << url.scheme());
 }
 
 Datastore::tile_range Datastore::get(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit) {
