@@ -222,8 +222,6 @@ RemoteIndex::RemoteIndex(const Url& url_, IndexHeader index_header_info)
   // Send an IndexCreateRequest to the AMQP index server.
   IndexCreateRequest request;
   request.set_plate_name(m_short_plate_filename);
-  index_header_info.set_platefile_id(0);  // this takes care of this 'required'
-                                          // protobuf property, which is not set yet
   *(request.mutable_index_header()) = index_header_info;
 
   IndexOpenReply response;
