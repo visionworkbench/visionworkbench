@@ -178,11 +178,13 @@ void do_hillshade(po::variables_map const& vm) {
   // Save the result
   vw_out() << "Writing shaded relief image: " << output_file_name << "\n";
 
-  DiskImageResourceGDAL rsrc(output_file_name, shaded_image.format());
-  rsrc.set_block_write_size(Vector2i(1024,1024));
-  write_georeference(rsrc, georef);
-  write_image(rsrc, shaded_image,
-              TerminalProgressCallback( "tools.hillshade", "Writing:"));
+  boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(output_file_name,shaded_image.format()));
+  if ( r->has_block_write() )
+    r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
+                                       vw_settings().default_tile_size() ) );
+  write_georeference( *r, georef );
+  block_write_image( *r, shaded_image,
+                     TerminalProgressCallback( "tools.hillshade", "Writing:") );
 }
 
 int main( int argc, char *argv[] ) {

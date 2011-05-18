@@ -163,12 +163,23 @@ void do_colorized_dem(Options& opt) {
       copy_mask(channel_cast<uint8>(colorized_image*apply_mask(shaded_relief_image)),
                 shaded_relief_image);
     vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
-    write_georeferenced_image(opt.output_file_name, shaded_image, georef,
-                              TerminalProgressCallback( "tools.colormap", "Writing:"));
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
+    if ( r->has_block_write() )
+      r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
+                                         vw_settings().default_tile_size() ) );
+    write_georeference( *r, georef );
+    block_write_image( *r, shaded_image,
+                       TerminalProgressCallback( "tools.colormap", "Writing:") );
   } else {
     vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
-    write_georeferenced_image(opt.output_file_name, colorized_image, georef,
-                              TerminalProgressCallback( "tools.colormap", "Writing:"));
+
+    boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
+    if ( r->has_block_write() )
+      r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
+                                         vw_settings().default_tile_size() ) );
+    write_georeference( *r, georef );
+    block_write_image( *r, colorized_image,
+                       TerminalProgressCallback( "tools.colormap", "Writing:") );
   }
 }
 
