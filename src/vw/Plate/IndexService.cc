@@ -54,9 +54,13 @@ IndexServiceImpl::IndexServiceRecord* IndexServiceImpl::add_index( std::string p
   rec.full_plate_filename = m_root_directory + "/" + plate_filename;
   rec.index = index;
 
+  uint32 id = index->index_header().platefile_id();
+  VW_ASSERT(m_indices.count(id) == 0,
+            LogicErr() << "Platefile " << plate_filename << " has same id (" << id << ") as plate " << m_indices[id].short_plate_filename);
+
   // Store the record in a std::map by platefile_id
-  m_indices[index->index_header().platefile_id()]  = rec;
-  return &m_indices[index->index_header().platefile_id()];
+  m_indices[id]  = rec;
+  return &m_indices[id];
 }
 
 
