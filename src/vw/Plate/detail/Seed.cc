@@ -7,13 +7,14 @@
 
 #include <vw/Plate/detail/Seed.h>
 #include <vw/Core/Thread.h>
-#include <boost/cast.hpp>
+#include <vw/Core/Stopwatch.h>
+#include <sys/types.h>
 
 namespace {
   vw::RunOnce seed_once = VW_RUNONCE_INIT;
 
   void hidden_seed_random() {
-    srandom(boost::numeric_cast<unsigned int>(clock()));
+    srandom(vw::Stopwatch::microtime()*::getpid());
   }
 }
 
