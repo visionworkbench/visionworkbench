@@ -38,12 +38,17 @@ namespace fs = boost::filesystem;
 
 using namespace vw;
 
+struct Options {
+  Options() : nodata_value(std::numeric_limits<double>::quiet_NaN()), blur_sigma(std::numeric_limits<double>::quiet_NaN()) {}
+  // Input
+  std::string input_file_name;
 
-// Global Variables
-std::string input_file_name, output_file_name = "";
-double azimuth, elevation, scale;
-double nodata_value;
-double blur_sigma;
+  // Settings
+  std::string output_file_name;
+  double azimuth, elevation, scale;
+  double nodata_value;
+  double blur_sigma;
+};
 
 // ----------------------------------------------------------------------------
 
@@ -105,12 +110,12 @@ UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, Comput
 class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
   Vector3f m_vec;
 public:
-  DotProdFunc(Vector3f const& vec) : m_vec(vec) {}
+  DotProdFunc(Vector3f const& vec) : m_vec(normalize(vec)) {}
   PixelMask<PixelGray<float> > operator() (PixelMask<Vector3f> const& pix) const {
     if (is_transparent(pix))
       return PixelMask<PixelGray<float> >();
     else
-      return dot_prod(pix.child(),m_vec)/(norm_2(pix.child()) * norm_2(m_vec));
+      return dot_prod(pix.child(),m_vec);
   }
 };
 
@@ -121,14 +126,15 @@ UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view,
 
 // ----------------------------------------------------------------------------
 
-void do_hillshade(po::variables_map const& vm) {
+template <class PixelT>
+void do_hillshade(Options& opt) {
 
   cartography::GeoReference georef;
-  cartography::read_georeference(georef, input_file_name);
+  cartography::read_georeference(georef, opt.input_file_name);
 
   // Select the pixel scale.
   float u_scale, v_scale;
-  if (scale == 0) {
+  if (opt.scale == 0) {
     if (georef.is_projected()) {
       u_scale = georef.transform()(0,0);
       v_scale = georef.transform()(1,1);
@@ -138,37 +144,36 @@ void do_hillshade(po::variables_map const& vm) {
       v_scale = georef.transform()(1,1) * meters_per_degree;
     }
   } else {
-    u_scale = scale;
-    v_scale = -scale;
+    u_scale = opt.scale;
+    v_scale = -opt.scale;
   }
 
   // Set the direction of the light source.
   Vector3f light_0(1,0,0);
-  Vector3f light = vw::math::euler_to_rotation_matrix(elevation*M_PI/180, azimuth*M_PI/180, 0, "yzx") * light_0;
+  Vector3f light = vw::math::euler_to_rotation_matrix(opt.elevation*M_PI/180, opt.azimuth*M_PI/180, 0, "yzx") * light_0;
 
   // Compute the surface normals
-  std::cout << "Loading: " << input_file_name << ".\n";
-  DiskImageView<PixelGray<float> > disk_dem_file(input_file_name);
+  vw_out() << "Loading: " << opt.input_file_name << ".\n";
+  DiskImageView<PixelT > disk_dem_file(opt.input_file_name);
 
-  ImageViewRef<PixelMask<PixelGray<float> > > dem;
-  SrcImageResource *disk_dem_rsrc = DiskImageResource::open(input_file_name);
-  if (vm.count("nodata-value")) {
-    vw_out() << "\t--> Masking pixel value: " << nodata_value << ".\n";
-    dem = create_mask(disk_dem_file, nodata_value);
+  ImageViewRef<PixelMask<PixelT > > dem;
+  boost::scoped_ptr<SrcImageResource> disk_dem_rsrc(DiskImageResource::open(opt.input_file_name));
+  if ( !std::isnan(opt.nodata_value) ) {
+    vw_out() << "\t--> Masking pixel value: " << opt.nodata_value << ".\n";
+    dem = create_mask(disk_dem_file, opt.nodata_value);
   } else if ( disk_dem_rsrc->has_nodata_read() ) {
-    nodata_value = disk_dem_rsrc->nodata_read();
+    opt.nodata_value = disk_dem_rsrc->nodata_read();
     vw_out() << "\t--> Extracted nodata value from file: "
-             << nodata_value << ".\n";
-    dem = create_mask(disk_dem_file, nodata_value);
+             << opt.nodata_value << ".\n";
+    dem = create_mask(disk_dem_file, opt.nodata_value);
   } else {
-    dem = pixel_cast<PixelMask<PixelGray<float> > >(disk_dem_file);
+    dem = pixel_cast<PixelMask<PixelT > >(disk_dem_file);
   }
-  delete disk_dem_rsrc;
 
-  if (vm.count("blur")) {
+  if ( !std::isnan(opt.blur_sigma) ) {
     vw_out() << "\t--> Blurring pixel with gaussian kernal.  Sigma = "
-             << blur_sigma << "\n";
-    dem = gaussian_filter(dem, blur_sigma);
+             << opt.blur_sigma << "\n";
+    dem = gaussian_filter(dem, opt.blur_sigma);
   }
 
   // The final result is the dot product of the light source with the normals
@@ -176,9 +181,10 @@ void do_hillshade(po::variables_map const& vm) {
     channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
 
   // Save the result
-  vw_out() << "Writing shaded relief image: " << output_file_name << "\n";
+  vw_out() << "Writing shaded relief image: " << opt.output_file_name << "\n";
 
-  boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(output_file_name,shaded_image.format()));
+  boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,
+                                                                   shaded_image.format()));
   if ( r->has_block_write() )
     r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
                                        vw_settings().default_tile_size() ) );
@@ -187,18 +193,18 @@ void do_hillshade(po::variables_map const& vm) {
                      TerminalProgressCallback( "tools.hillshade", "Writing:") );
 }
 
-int main( int argc, char *argv[] ) {
-
+void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
   desc.add_options()
-    ("help,h", "Display this help message")
-    ("input-file", po::value(&input_file_name), "Explicitly specify the input file")
-    ("output-file,o", po::value(&output_file_name), "Specify the output file")
-    ("azimuth,a", po::value(&azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
-    ("elevation,e", po::value(&elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
-    ("scale,s", po::value(&scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
-    ("nodata-value", po::value(&nodata_value), "Remap the DEM default value to the min altitude value.")
-    ("blur", po::value(&blur_sigma), "Pre-blur the DEM with the specified sigma.");
+    ("input-file", po::value(&opt.input_file_name), "Explicitly specify the input file")
+    ("output-file,o", po::value(&opt.output_file_name), "Specify the output file")
+    ("azimuth,a", po::value(&opt.azimuth)->default_value(0), "Sets the direction tha the light source is coming from (in degrees).  Zero degrees is to the right, with positive degree counter-clockwise.")
+    ("elevation,e", po::value(&opt.elevation)->default_value(45), "Set the elevation of the light source (in degrees).")
+    ("scale,s", po::value(&opt.scale)->default_value(0), "Set the scale of a pixel (in the same units as the DTM height values.")
+    ("nodata-value", po::value(&opt.nodata_value), "Remap the DEM default value to the min altitude value.")
+    ("blur", po::value(&opt.blur_sigma), "Pre-blur the DEM with the specified sigma.")
+    ("help,h", "Display this help message");
+
   po::positional_options_description p;
   p.add("input-file", 1);
 
@@ -207,31 +213,48 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
   } catch (po::error &e) {
-    std::cout << "An error occured while parsing command line arguments.\n";
-    std::cout << "\t" << e.what() << "\n\n";
-    std::cout << desc << std::endl;
-    return 1;
+    vw_throw( ArgumentErr() << "Error parsing input:\n\t"
+              << e.what() << desc );
   }
 
-  if( vm.count("help") ) {
-    std::cout << desc << std::endl;
-    return 1;
-  }
+  if( vm.count("help") )
+    vw_throw( ArgumentErr() << desc );
 
-  if( vm.count("input-file") != 1 ) {
-    std::cout << "Error: Must specify exactly one input file!\n" << std::endl;
-    std::cout << desc << std::endl;
-    return 1;
-  }
+  if ( vm.count("input-file") != 1 )
+    vw_throw( ArgumentErr() << "Error: Must specify exactly one input file!\n\n" << desc );
 
-  if( output_file_name == "" ) {
-    output_file_name = fs::path(input_file_name).replace_extension().string() + "_HILLSHADE.tif";
-  }
+  if ( opt.output_file_name.empty() )
+    opt.output_file_name =
+      fs::path(opt.input_file_name).replace_extension().string() + "_HILLSHADE.tif";
+}
 
+int main( int argc, char *argv[] ) {
+
+  Options opt;
   try {
-    do_hillshade(vm);
-  } catch( Exception& e ) {
-    std::cout << "Error: " << e.what() << std::endl;
+    handle_arguments( argc, argv, opt );
+
+    ImageFormat fmt = tools::taste_image(opt.input_file_name);
+
+    switch(fmt.pixel_format) {
+    case VW_PIXEL_GRAY:
+    case VW_PIXEL_GRAYA:
+      switch (fmt.channel_type) {
+      case VW_CHANNEL_UINT8:  do_hillshade<PixelGray<uint8>  >( opt ); break;
+      case VW_CHANNEL_INT16:  do_hillshade<PixelGray<int16>  >( opt ); break;
+      case VW_CHANNEL_UINT16: do_hillshade<PixelGray<uint16> >( opt ); break;
+      default:                do_hillshade<PixelGray<float>  >( opt ); break;
+      }
+      break;
+    default:
+      vw_throw( ArgumentErr() << "Unsupported pixel format. The DEM image must have only one channel." );
+    }
+  } catch ( const ArgumentErr& e ) {
+    vw_out() << e.what() << std::endl;
+    return 1;
+  } catch ( const Exception& e ) {
+    std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
   }
 
   return 0;
