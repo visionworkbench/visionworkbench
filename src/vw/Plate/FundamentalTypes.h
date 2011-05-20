@@ -133,6 +133,8 @@ class TransactionRange : private std::pair<TransactionOrNeg, TransactionOrNeg> {
     TransactionOrNeg last() const;
 };
 
+std::ostream& operator<<(std::ostream& o, const vw::platefile::TransactionRange& range);
+
 // We can't edit the protobuf-generated code, so this is next best place for this
 class TileHeader;
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr);

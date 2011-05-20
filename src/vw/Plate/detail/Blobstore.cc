@@ -68,6 +68,13 @@ Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, Tran
   typedef std::vector<TileHeader> vec_t;
   boost::shared_ptr<vec_t> tiles;
 
+  vw_out(VerboseDebugMessage, "datastore") << "Blobstore::head("
+    << "level=" << level
+    << ", row=" << row
+    << ", col=" << col
+    << ", range=" << range
+    << ", limit=" << limit << ")" << std::endl;
+
   {
     std::list<TileHeader> hdrs = m_index->search_by_location(col, row, level, range.first(), range.last(), false);
     size_t len = hdrs.size();
@@ -85,6 +92,12 @@ Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, Tran
 Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit) {
   typedef std::vector<TileHeader> vec_t;
   boost::shared_ptr<vec_t> tiles;
+
+  vw_out(VerboseDebugMessage, "datastore") << "Blobstore::head("
+    << "level=" << level
+    << ", region=" << region
+    << ", range=" << range
+    << ", limit=" << limit << ")" << std::endl;
 
   {
     std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last(), 0, false);

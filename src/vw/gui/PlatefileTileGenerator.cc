@@ -126,9 +126,7 @@ boost::shared_ptr<SrcImageResource> generate_tile_impl(TileLocator const& tile_i
 
 boost::shared_ptr<SrcImageResource> PlatefileTileGenerator::generate_tile(TileLocator const& tile_info) {
 
-  vw_out(DebugMessage, "gui") << "Request to generate platefile tile "
-                              << tile_info.col << " " << tile_info.row
-                              << " @ " << tile_info.level << "\n";
+  vw_out(DebugMessage, "gui.platefile") << "generate_tile: " << tile_info << std::endl;
 
   VW_DELEGATE_BY_PIXEL_TYPE(generate_tile_impl, tile_info, m_platefile)
 

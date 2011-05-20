@@ -85,7 +85,11 @@ TransactionOrNeg TransactionRange::last() const {
   if (second.newest())
     return second;
   else
-    return second.promote()+1;
+    return second.promote();
+}
+
+std::ostream& operator<<(std::ostream& o, const vw::platefile::TransactionRange& range) {
+  return (o << "range(" << range.first() << "," << range.last() << ")");
 }
 
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr) {

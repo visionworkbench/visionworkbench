@@ -260,8 +260,7 @@ namespace platefile {
 
     /// Read one ore more images at a specified location in the
     /// platefile by specifying a range of transaction ids of
-    /// interest.  This range is inclusive of the first entry, but not
-    /// the last entry: [ begin_transaction_id, end_transaction_id )
+    /// interest.  This range is inclusive at both ends.
     ///
     /// This is mostly useful when compositing tiles during mipmapping.
     std::list<TileHeader>

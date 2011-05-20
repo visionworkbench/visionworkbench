@@ -103,8 +103,7 @@ namespace detail {
                                                    bool fetch_one_additional_entry = false) const = 0;
 
     /// Return multiple tile headers that match the specified
-    /// transaction id range.  This range is inclusive of the first
-    /// entry, but not the last entry: [ begin_transaction_id, end_transaction_id )
+    /// transaction id range.  This range is inclusive at both ends.
     virtual std::list<TileHeader> search_by_location(int col, int row, int level,
                                                      TransactionOrNeg start_transaction_id,
                                                      TransactionOrNeg end_transaction_id,

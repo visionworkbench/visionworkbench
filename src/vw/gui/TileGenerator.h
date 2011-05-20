@@ -52,6 +52,8 @@ namespace gui {
     }
   };
 
+  std::ostream& operator<<(std::ostream& o, const TileLocator& l);
+
   // Given a tile index, return the bounding box of that tile coverage
   // in the bottom (i.e. highest resolution) level of the source image
   // pyramid.

@@ -36,6 +36,10 @@ void ConstantSrc::read( ImageBuffer const& dst, BBox2i const& bbox ) const {
   convert(dst, src, true);
 }
 
+std::ostream& operator<<(std::ostream& o, const TileLocator& l) {
+  o << l.col << "," << l.row << "@" << l.level << ", t=" << l.transaction_id << " exact=" << (l.exact_transaction_id_match ? "YES" : "NO");
+  return o;
+}
 
 BBox2i tile_to_bbox(Vector2i tile_size, int col, int row, int level, int max_level) {
   if (col < 0 || row < 0 || col >= (1 << max_level) || row >= (1 << max_level) ) {

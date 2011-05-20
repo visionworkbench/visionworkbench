@@ -826,10 +826,12 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
 
   switch (event->key()) {
   case Qt::Key_Plus:   // Increase transaction id
+  case Qt::Key_Equal:
     m_current_transaction_id++;
     m_gl_texture_cache->clear();
     break;
   case Qt::Key_Minus:  // Decrease transaction id
+  case Qt::Key_Underscore:
     m_current_transaction_id--;
     m_gl_texture_cache->clear();
     break;
