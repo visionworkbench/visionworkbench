@@ -103,7 +103,7 @@ namespace platefile {
     template <class ViewT>
     void insert( ImageViewBase<ViewT> const& imagebase,
                  std::string const& description,
-                 int transaction_id_override,
+                 TransactionOrNeg transaction_id_override,
                  cartography::GeoReference const& input_georef,
                  bool tweak_settings_for_terrain, bool /*verbose*/ = false,
                  const ProgressCallback &progress = ProgressCallback::dummy_instance()) {

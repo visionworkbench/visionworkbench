@@ -34,8 +34,100 @@ namespace po = boost::program_options;
 #include <boost/filesystem/convenience.hpp>
 namespace fs = boost::filesystem;
 
-// Global variables
-bool g_debug;
+using boost::optional;
+
+VW_DEFINE_EXCEPTION(Usage, Exception);
+
+template <typename T>
+std::istream& operator>>(std::istream& i, optional<T>& val) {
+  T x;
+  i >> x;
+  val = x;
+  return i;
+}
+
+struct Options {
+  optional<Url> url;
+  optional<TransactionOrNeg> transaction_id;
+  std::string filetype;
+  optional<double> nodata_value;
+  std::string mode;
+  size_t tile_size;
+  optional<float> jpeg_quality;
+  optional<unsigned> png_compression;
+  size_t cache_size;
+  bool terrain;
+  double nudge_x;
+  double nudge_y;
+  bool force_lunar;
+  bool force_mars;
+  optional<double> force_spherical;
+  bool force_float;
+  bool debug;
+  bool help;
+  std::vector<std::string> image_files;
+  optional<float> north, south, east, west;
+  bool manual;
+  bool global;
+
+  Options() :
+    filetype("png"),
+    mode("toast"),
+    tile_size(256),
+    cache_size(512),
+    terrain(false),
+    nudge_x(0),
+    nudge_y(0),
+    force_lunar(false),
+    force_mars(false),
+    force_float(false),
+    debug(false),
+    help(false),
+    manual(false),
+    global(false)
+    {}
+
+
+  void validate() {
+    VW_ASSERT(!help, Usage());
+    VW_ASSERT(image_files.size() > 0, Usage() << "Need at least one input image");
+    VW_ASSERT(url, Usage() << "Output url required");
+    if (global || north || south || east || west) {
+      VW_ASSERT(image_files.size() == 1,
+          Usage() << "Cannot override georeference information on multiple images");
+      VW_ASSERT(global || (north && south && east && west),
+          Usage() << "If you provide one, you must provide all of: --north --south --east --west");
+      if (global) {
+        north = 90; south = -90; east = 180; west = -180;
+      }
+      manual = true;
+    }
+    if (transaction_id) {
+      if (transaction_id.get() < 1)
+        vw_throw(Usage() << "Transaction ID must be > 0 (got " << transaction_id.get() << ")");
+    } else
+      transaction_id = -1;
+
+    VW_ASSERT(bool(force_lunar) + bool(force_mars) + bool(force_spherical) < 2,
+              Usage() << "Cannot force more than one of: lunar, mars, spherical");
+
+    if (transaction_id && image_files.size() != 1)
+      vw_throw(Usage() << "You cannot override the transaction-id while processing multiple images");
+
+    if (transaction_id && transaction_id.get() < 1u)
+      vw_throw(Usage() << "you must specify a positive transaction-id.");
+
+    VW_ASSERT(mode == "toast" || mode == "equi" || mode == "polar",
+        Usage() << "Unknown mode: " << mode);
+
+    vw_settings().set_system_cache_size( cache_size*1024*1024 );
+
+    if (jpeg_quality)
+      DiskImageResourceJPEG::set_default_quality( jpeg_quality.get() );
+    if (png_compression)
+      DiskImageResourcePNG::set_default_compression_level( png_compression.get() );
+  }
+};
 
 // --------------------------------------------------------------------------
 //                                DO_MOSAIC
@@ -44,63 +136,51 @@ bool g_debug;
 template <class ViewT>
 void do_mosaic(boost::shared_ptr<PlateFile> platefile,
                ImageViewBase<ViewT> const& view,
-               std::string filename, int transaction_id_override,
-               GeoReference const& georef, std::string output_mode,
-               bool tweak_settings_for_terrain) {
+               std::string filename, GeoReference const& georef, const Options& opt) {
   typedef typename ViewT::pixel_type PixelT;
 
-  PlateManager<PixelT>* pm =
-    PlateManager<PixelT>::make( output_mode, platefile );
+  typedef PlateManager<PixelT> PM;
 
-  pm->insert(view.impl(), filename, transaction_id_override, georef,
-             tweak_settings_for_terrain, g_debug,
-             TerminalProgressCallback( "plate.tools.image2plate",
-                                       "\t    Processing") );
-  delete pm;
+  boost::scoped_ptr<PM> pm(PM::make(opt.mode, platefile));
+
+  pm->insert(view.impl(), filename, opt.transaction_id.get(), georef,
+             opt.terrain, opt.debug, TerminalProgressCallback( "plate.tools.image2plate", "\t    Processing") );
 }
 
 // --------------------------------------------------------------------------
 //                                    MAIN
 // --------------------------------------------------------------------------
 
-int main( int argc, char *argv[] ) {
-  Url url;
-  std::string tile_filetype;
-  std::string output_mode;
-  int tile_size;
-  int transaction_id_override = -1;
-  float jpeg_quality;
-  int png_compression;
-  unsigned cache_size;
-  double nodata_value = 0;
-  double nudge_x=0, nudge_y=0;
-  std::vector<std::string> image_files;
-  double user_spherical_datum;
-
-  po::options_description general_options("Turns georeferenced image(s) into a TOAST quadtree.\n\nGeneral Options");
+bool handle_options( int argc, char *argv[], Options& opt ) {
+  po::options_description general_options("Insert image into a platefile.\n\nGeneral Options");
   general_options.add_options()
-    ("output-name,o", po::value<Url>(&url), "Specify the URL of the platefile.")
-    ("transaction-id,t", po::value<int>(&transaction_id_override), "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
-    ("file-type", po::value<std::string>(&tile_filetype)->default_value("png"), "Output file type")
-    ("nodata-value", po::value<double>(&nodata_value), "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
-    ("mode,m", po::value<std::string>(&output_mode)->default_value("toast"), "Output mode [toast, equi, polar]")
-    ("tile-size", po::value<int>(&tile_size)->default_value(256), "Tile size, in pixels")
-    ("jpeg-quality", po::value<float>(&jpeg_quality)->default_value(0.95f), "JPEG quality factor (0.0 to 1.0)")
-    ("png-compression", po::value<int>(&png_compression)->default_value(3), "PNG compression level (0 to 9)")
-    ("cache", po::value<unsigned>(&cache_size)->default_value(512), "Source data cache size, in megabytes")
-    ("terrain", "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
-    ("nudge-x", po::value<double>(&nudge_x), "Nudge the image, in projected coordinates")
-    ("nudge-y", po::value<double>(&nudge_y), "Nudge the image, in projected coordinates")
-    ("force-lunar-datum", "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
-    ("force-mars-datum", "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
-    ("force-spherical-datum", po::value<double>(&user_spherical_datum), "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
-    ("force-float", "Force the platefile to use a channel type of float.")
-    ("debug", "Display helpful debugging messages.")
-    ("help,h", "Display this help message");
+    ("output-name,o",         po::value(&opt.url),               "Specify the URL of the platefile.")
+    ("transaction-id,t",      po::value(&opt.transaction_id),    "Specify the transaction_id to use for this transaction. If you don't specify one, one will be automatically assigned.\n")
+    ("file-type",             po::value(&opt.filetype),          "Output file type")
+    ("nodata-value",          po::value(&opt.nodata_value),      "Explicitly set the value to treat as na data (i.e. transparent) in the input file.")
+    ("mode,m",                po::value(&opt.mode),              "Output mode [toast, equi, polar]")
+    ("tile-size",             po::value(&opt.tile_size),         "Tile size, in pixels")
+    ("jpeg-quality",          po::value(&opt.jpeg_quality),      "JPEG quality factor (0.0 to 1.0)")
+    ("png-compression",       po::value(&opt.png_compression),   "PNG compression level (0 to 9)")
+    ("cache",                 po::value(&opt.cache_size),        "Source data cache size, in megabytes")
+    ("terrain",               po::bool_switch(&opt.terrain),     "Tweak a few settings that are best for terrain platefiles. Turns on nearest neighbor sampling in mipmapping and zero out semi-transparent pixels.")
+    ("nudge-x",               po::value(&opt.nudge_x),           "Nudge the image, in projected coordinates")
+    ("nudge-y",               po::value(&opt.nudge_y),           "Nudge the image, in projected coordinates")
+    ("force-lunar-datum",     po::bool_switch(&opt.force_lunar), "Use the lunar spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-mars-datum",      po::bool_switch(&opt.force_mars),  "Use the Mars spherical datum for the input images' geographic coordinate systems, even if they are not encoded to do so.")
+    ("force-spherical-datum", po::value(&opt.force_spherical),   "Choose an arbitrary input spherical datum to use for input images', overriding the existing datum.")
+    ("force-float",           po::bool_switch(&opt.force_float), "Force the platefile to use a channel type of float.")
+    ("north",                 po::value(&opt.north),             "The northernmost latitude in projection units")
+    ("south",                 po::value(&opt.south),             "The southernmost latitude in projection units")
+    ("east",                  po::value(&opt.east),              "The easternmost longitude in projection units")
+    ("west",                  po::value(&opt.west),              "The westernmost longitude in projection units")
+    ("global",                po::bool_switch(&opt.global),      "Override image size to global (in lonlat)")
+    ("debug",                 po::bool_switch(&opt.debug),       "Display helpful debugging messages.")
+    ("help,h",                po::bool_switch(&opt.help),        "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-file", po::value<std::vector<std::string> >(&image_files));
+    ("input-file", po::value(&opt.image_files));
 
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
@@ -112,283 +192,207 @@ int main( int argc, char *argv[] ) {
   usage << "Usage: " << argv[0] << " [options] <filename>..." <<std::endl << std::endl;
   usage << general_options << std::endl;
 
-  po::variables_map vm;
   try {
+    po::variables_map vm;
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (const po::error &e) {
-    std::cout << "An error occured while parsing command line arguments: " << e.what() << std::endl;
-    std::cout << usage.str();
-    return 0;
+    opt.validate();
+  } catch (const po::error& e) {
+    std::cerr << usage.str() << std::endl
+              << "Failed to parse command line arguments:" << std::endl
+              << "\t" << e.what() << std::endl;
+    return false;
+  } catch (const Usage& e) {
+    const char* msg = e.what();
+    std::cerr << usage.str() << std::endl;
+    if (::strlen(msg) > 0)
+      std::cerr << std::endl << "Invalid argument:" << std::endl << "\t" << msg << std::endl;
+    return false;
   }
+  return true;
+}
 
-  if( vm.count("help") ) {
-    std::cout << usage.str();
-    return 0;
-  }
+void run(const Options& opt) {
+  boost::shared_ptr<PlateFile> platefile;
+  {
+    std::string filetype = opt.filetype;
 
-  if( vm.count("input-file") < 1 ) {
-    std::cerr << "Error: must specify at least one input file!" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
-  if( vm.count("output-name") != 1 ) {
-    std::cerr << "Error: must specify a url!" << std::endl << std::endl;
-    std::cout << usage.str();
-    return 1;
-  }
-
-  //------------------------- SET DEFAULT OPTIONS -----------------------------
-
-  DiskImageResourceJPEG::set_default_quality( jpeg_quality );
-  DiskImageResourcePNG::set_default_compression_level( png_compression );
-  vw_settings().set_system_cache_size( cache_size*1024*1024 );
-
-  //-------------------------- OPEN THE PLATE FILE ------------------------------
-
-  // For new plate files, we adopt the pixel and channel type of the
-  // first image.  If the platefile already exists, then this is
-  // ignored and the native pixel and channel type of the platefile is
-  // used instead.
-  PixelFormatEnum pixel_format;
-  ChannelTypeEnum channel_type;
-  try {
-
-    DiskImageResource *rsrc = DiskImageResource::open(image_files[0]);
-    pixel_format = rsrc->pixel_format();
-    channel_type = rsrc->channel_type();
+    // For new plate files, we adopt the pixel and channel type of the
+    // first image.  If the platefile already exists, then this is
+    // ignored and the native pixel and channel type of the platefile is
+    // used instead.
+    boost::scoped_ptr<DiskImageResource> rsrc(DiskImageResource::open(opt.image_files[0]));
+    PixelFormatEnum pixel_format = rsrc->pixel_format();
+    ChannelTypeEnum channel_type = rsrc->channel_type();
 
     // Plate files should always have an alpha channel.
     if (pixel_format == VW_PIXEL_GRAY)
       pixel_format = VW_PIXEL_GRAYA;
     if (pixel_format == VW_PIXEL_RGB)
       pixel_format = VW_PIXEL_RGBA;
-    delete rsrc;
 
     // User override for channel type
-    if (vm.count("force-float")) {
+    if (opt.force_float) {
       std::cout << "\t--> Processing image using a 32-bit floating point channel type.\n";
       std::cout << "\t    Overriding channel type for 32-bit float: setting it to TIFF.\n";
       channel_type = VW_CHANNEL_FLOAT32;
-      tile_filetype = "tif";
+      filetype = "tif";
     }
 
-  } catch (const vw::Exception &e) {
-    vw_out(ErrorMessage) << "An error occured: " << e.what() << "\n";
-    exit(1);
+    std::cout << "\nOpening plate file: " << opt.url.get() << std::endl;
+    platefile.reset( new PlateFile(opt.url.get(), opt.mode, "", opt.tile_size, filetype, pixel_format, channel_type) );
   }
 
-  // Set the debug level
-  if (vm.count("debug")) {
-    g_debug = true;
-  } else {
-    g_debug = false;
-  }
+  BOOST_FOREACH(const std::string& filename, opt.image_files) {
+    VW_ASSERT(fs::exists(filename), ArgumentErr() << "No such file: " << filename);
 
-  if (vm.count("transaction-id") && image_files.size() != 1) {
-    std::cout << "Error: you cannot override the transaction-id while processing multiple images with " << argv[0] << ".\n";
-    exit(1);
-  }
+    std::cout << "\t--> Building full-resolution tiles for " << filename << "\n";
 
-  if (vm.count("transaction-id") && transaction_id_override < 1) {
-    vw_out() << "Error: you must specify a positive transaction-id.\n";
-    exit(1);
-  }
+    // Load the pixel type, channel type, and nodata value, and
+    // georeferencing info for this image.
+    boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::open(filename) );
 
-  // Create both platefile managers (we only end up using one... this
-  // just makes the code a little more readable.)
-  if (output_mode != "toast" && output_mode != "equi" &&
-      output_mode != "polar" ) {
-    vw_out() << "Unknown mode type passed in using --mode: " << output_mode
-             << ".  Exiting.\n";
-    exit(1);
-  }
-  try {
+    optional<double> nodata_value;
+    if (opt.nodata_value) {
+      nodata_value = opt.nodata_value.get();
+      std::cout << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
+    } else if ( rsrc->has_nodata_read() ) {
+      nodata_value = rsrc->nodata_read();
+      std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+    }
 
-    std::cout << "\nOpening plate file: " << url << "\n";
-    boost::shared_ptr<PlateFile> platefile =
-      boost::shared_ptr<PlateFile>( new PlateFile(url, output_mode, "",
-                                                  tile_size, tile_filetype,
-                                                  pixel_format, channel_type));
+    // Load the georef.  If none is found, assume Plate Caree.
+    GeoReference georef;
+    {
+      DiskImageResourceGDAL diskrsrc( filename );
 
-    // Process each image individually
-    for ( unsigned i = 0; i < image_files.size(); ++i ) {
-
-      // Check to see if the image exists.
-      if ( !fs::exists(image_files[i]) ) {
-        vw_out() << "Error: could not open image file named \"" << image_files[i] << "\"";
-        exit(1);
+      bool fail_read_georef = false;
+      try {
+        fail_read_georef = !read_georeference( georef, diskrsrc );
+      } catch ( InputErr const& e ) {
+        vw_out(ErrorMessage) << "Input " << diskrsrc.filename() << " has malformed georeferencing information.\n";
+        fail_read_georef = true;
       }
 
-      std::cout << "\t--> Building full-resolution tiles for " << image_files[i] << "\n";
-
-      // Load the pixel type, channel type, and nodata value, and
-      // georeferencing info for this image.
-      boost::shared_ptr<DiskImageResource> rsrc( DiskImageResource::open(image_files[i]) );
-
-      bool has_nodata_value = false;
-      if (vm.count("nodata-value")) {
-        has_nodata_value = true;
-        std::cout << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
-      } else if ( rsrc->has_nodata_read() ) {
-        has_nodata_value = true;
-        nodata_value = rsrc->nodata_read();
-        std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
-      } else {
-        nodata_value = 0;
+      if(opt.force_lunar) {
+        const double LUNAR_RADIUS = 1737400;
+        vw_out() << "\t--> Using standard lunar spherical datum: " << LUNAR_RADIUS << "\n";
+        cartography::Datum datum("D_MOON", "MOON", "Reference Meridian", LUNAR_RADIUS, LUNAR_RADIUS, 0.0);
+        georef.set_datum(datum);
+      } else if(opt.force_mars) {
+        const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
+        vw_out() << "\t--> Using standard MOLA spherical datum: " << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
+        cartography::Datum datum("D_MARS", "MARS", "Reference Meridian", MOLA_PEDR_EQUATORIAL_RADIUS, MOLA_PEDR_EQUATORIAL_RADIUS, 0.0);
+        georef.set_datum(datum);
+      } else if(opt.force_spherical) {
+        vw_out() << "\t--> Using user-supplied spherical datum: " << opt.force_spherical << "\n";
+        cartography::Datum datum("USER SUPPLIED DATUM", "SPHERICAL DATUM", "Reference Meridian", opt.force_spherical.get(), opt.force_spherical.get(), 0.0);
+        georef.set_datum(datum);
       }
 
-      // Load the georef.  If none is found, assume Plate Caree.
-      GeoReference georef;
-      {
-        DiskImageResourceGDAL diskrsrc( image_files[i] );
-        read_georeference( georef, diskrsrc );
-
-        if(vm.count("force-lunar-datum")) {
-          const double LUNAR_RADIUS = 1737400;
-          vw_out() << "\t--> Using standard lunar spherical datum: "
-                   << LUNAR_RADIUS << "\n";
-          cartography::Datum datum("D_MOON",
-                                   "MOON",
-                                   "Reference Meridian",
-                                   LUNAR_RADIUS,
-                                   LUNAR_RADIUS,
-                                   0.0);
-          georef.set_datum(datum);
-        } else if(vm.count("force-mars-datum")) {
-          const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
-          vw_out() << "\t--> Using standard MOLA spherical datum: "
-                   << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
-          cartography::Datum datum("D_MARS",
-                                   "MARS",
-                                   "Reference Meridian",
-                                   MOLA_PEDR_EQUATORIAL_RADIUS,
-                                   MOLA_PEDR_EQUATORIAL_RADIUS,
-                                   0.0);
-          georef.set_datum(datum);
-        } else if(vm.count("force-spherical-datum")) {
-          vw_out() << "\t--> Using user-supplied spherical datum: "
-                   << user_spherical_datum << "\n";
-          cartography::Datum datum("USER SUPPLIED DATUM",
-                                   "SPHERICAL DATUM",
-                                   "Reference Meridian",
-                                   user_spherical_datum,
-                                   user_spherical_datum,
-                                   0.0);
-          georef.set_datum(datum);
-        }
-      }
-      if( georef.transform() == identity_matrix<3>() ) {
-        std::cout << "\t    No georeferencing info found for " << image_files[i]
-                  << ".  Assuming global plate carree." << std::endl;
-        Matrix3x3 M;
-        M(0,0) = 360.0 / rsrc->cols();
-        M(0,2) = -180.0;
-        M(1,1) = -180.0 / rsrc->rows();
-        M(1,2) = 90.0;
-        M(2,2) = 1;
-        georef.set_transform( M );
-      }
-
-      // Apply nudge factors
-      if( vm.count("nudge-x") || vm.count("nudge-y") ) {
-        Matrix3x3 m = georef.transform();
-        m(0,2) += nudge_x;
-        m(1,2) += nudge_y;
+      if( opt.manual ) {
+        Matrix3x3 m;
+        m(0,0) = double(opt.east.get() - opt.west.get()) / diskrsrc.cols();
+        m(0,2) = opt.west.get();
+        m(1,1) = double(opt.south.get() - opt.north.get()) / diskrsrc.rows();
+        m(1,2) = opt.north.get();
+        m(2,2) = 1;
         georef.set_transform( m );
-      }
+      } else if ( fail_read_georef )
+        vw_throw(IOErr() << "Image " << diskrsrc.filename() << " missing input georeference. Please provide --north --south --east and --west.");
+    }
 
-      PixelFormatEnum rsrc_pixel_frmt = rsrc->pixel_format();
-      ChannelTypeEnum rsrc_channel_type = rsrc->channel_type();
+    // Apply nudge factors
+    if( opt.nudge_x || opt.nudge_y ) {
+      Matrix3x3 m = georef.transform();
+      m(0,2) += opt.nudge_x;
+      m(1,2) += opt.nudge_y;
+      georef.set_transform( m );
+    }
 
-      // User override for channel type
-      if (vm.count("force-float")) {
-        std::cout << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
-        rsrc_channel_type = VW_CHANNEL_FLOAT32;
+    PixelFormatEnum rsrc_pixel_frmt = rsrc->pixel_format();
+    ChannelTypeEnum rsrc_channel_type = rsrc->channel_type();
 
-        // Turn off automatic rescaling when reading in images
-        DiskImageResource::set_default_rescale(false);
-      }
+    // User override for channel type
+    if (opt.force_float) {
+      std::cout << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
+      rsrc_channel_type = VW_CHANNEL_FLOAT32;
 
-      // Dispatch to the compositer based on the pixel type of this mosaic.
-      switch(rsrc_pixel_frmt) {
+      // Turn off automatic rescaling when reading in images
+      DiskImageResource::set_default_rescale(false);
+    }
+
+    // Dispatch to the compositer based on the pixel type of this mosaic.
+    switch(rsrc_pixel_frmt) {
       case VW_PIXEL_GRAY:
       case VW_PIXEL_GRAYA:
         switch(rsrc_channel_type) {
-        case VW_CHANNEL_UINT8:
-        case VW_CHANNEL_UINT16:
-          if (has_nodata_value)
-            do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
-                                                boost::numeric_cast<uint8>(nodata_value))),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          break;
-        case VW_CHANNEL_INT16:
-          if (has_nodata_value)
-            do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(image_files[i]),
-                                                boost::numeric_cast<int16>(nodata_value))),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          break;
-        case VW_CHANNEL_FLOAT32:
-          if (has_nodata_value) {
-            do_mosaic(platefile,
-                      mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(image_files[i]),
-                                                boost::numeric_cast<float32>(nodata_value))),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          } else
-            do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          break;
-        default:
-          vw_out() << "Image contains a channel type not supported by image2plate.\n";
-          exit(1);
+          case VW_CHANNEL_UINT8:
+          case VW_CHANNEL_UINT16:
+            if (nodata_value)
+              do_mosaic(platefile,
+                  mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(filename), boost::numeric_cast<uint8>(nodata_value.get()))),
+                  filename, georef, opt);
+            else
+              do_mosaic(platefile, DiskImageView<PixelGrayA<uint8> >(filename),
+                  filename, georef, opt);
+            break;
+          case VW_CHANNEL_INT16:
+            if (nodata_value)
+              do_mosaic(platefile,
+                  mask_to_alpha(create_mask(DiskImageView<PixelGray<int16> >(filename), boost::numeric_cast<int16>(nodata_value.get()))),
+                  filename, georef, opt);
+            else
+              do_mosaic(platefile, DiskImageView<PixelGrayA<int16> >(filename),
+                  filename, georef, opt);
+            break;
+          case VW_CHANNEL_FLOAT32:
+            if (nodata_value) {
+              do_mosaic(platefile,
+                  mask_to_alpha(create_mask(DiskImageView<PixelGray<float32> >(filename), boost::numeric_cast<float32>(nodata_value.get()))),
+                  filename, georef, opt);
+            } else
+              do_mosaic(platefile, DiskImageView<PixelGrayA<float32> >(filename),
+                  filename, georef, opt);
+            break;
+          default:
+            vw_throw(NoImplErr() << "Image contains a channel type not supported by image2plate.");
         }
         break;
 
       case VW_PIXEL_RGB:
       case VW_PIXEL_RGBA:
         switch(rsrc->channel_type()) {
-        case VW_CHANNEL_UINT8:
-          if (has_nodata_value)
-            do_mosaic(platefile,
-                      pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(image_files[i]),
-                                                                              boost::numeric_cast<uint8>(nodata_value)))),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          else
-            do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(image_files[i]),
-                      image_files[i], transaction_id_override, georef,
-                      output_mode, vm.count("terrain"));
-          break;
-        default:
-          vw_out() << "Platefile contains a channel type not supported by image2plate.\n";
-          exit(1);
+          case VW_CHANNEL_UINT8:
+            if (nodata_value)
+              do_mosaic(platefile,
+                  pixel_cast<PixelRGBA<uint8> >(mask_to_alpha(create_mask(DiskImageView<PixelGray<uint8> >(filename), boost::numeric_cast<uint8>(nodata_value.get())))),
+                  filename, georef, opt);
+            else
+              do_mosaic(platefile, DiskImageView<PixelRGBA<uint8> >(filename),
+                  filename, georef, opt);
+            break;
+          default:
+            vw_throw(NoImplErr() << "Image contains a channel type not supported by image2plate.");
         }
         break;
       default:
-        vw_out() << "Image contains a pixel type not supported by image2plate.\n";
-        exit(1);
-      }
+        vw_throw(NoImplErr() << "Image contains a channel type not supported by image2plate.");
     }
-  } catch (const PlatefileErr& e) {
-    vw_out() << "A platefile error occured: " << e.what() << "\n";
-  } catch (const Exception& e) {
-    vw_out() << "A vision workbench error occured: " << e.what() << "\n";
-    exit(1);
   }
+}
 
+int main(int argc, char **argv) {
+  Options opt;
+  if (!handle_options(argc, argv, opt))
+    return 1;
+  try {
+    run(opt);
+    return 0;
+  } catch (PlatefileErr &e) {
+    vw_out(ErrorMessage) << "A platefile error occured: " << e.what() << "\n";
+  } catch (Exception &e) {
+    vw_out(ErrorMessage) << "Runtime Error: " << e.what() << "\n";
+  }
+  return 1;
 }
