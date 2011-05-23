@@ -106,9 +106,8 @@ boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename_) {
         return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
       else
         return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(u.path()) );
-    } else if (u.scheme() == "pf" && fs::extension(u.path()) == ".plate") {
-      std::cout << "Loading: " << u.path() << "\n";
-      return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(u.string()) );
+    } else if (fs::extension(u.path()) == ".plate") {
+        return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(u.string()) );
     } else {
       std::cerr << "Could not open " << u << ":\n\t" << "No handler for url scheme " << u.scheme() << std::endl;
     }
