@@ -164,10 +164,10 @@ namespace platefile {
           // If the tile isn't in our cache, then we take the
           // performance hit and read the tile from the platefile.
           m_platefile->read(new_tile, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true); // exact_transaction_match
-        } catch (BlobIoErr &e) {
-          m_platefile->error_log() << "BlobIoErr, tile[" << hdr << ": " << e.what() << "\n";
-        } catch (IOErr &e) {
-          m_platefile->error_log() << "IOErr, tile[" << hdr << ": " << e.what() << "\n";
+        } catch (const BlobIoErr &e) {
+          m_platefile->error_log() << "BlobIoErr, tile[" << hdr << "]: " << e.what() << "\n";
+        } catch (const IOErr &e) {
+          m_platefile->error_log() << "IOErr, tile[" << hdr << "]: " << e.what() << "\n";
         }
 
         // Save the tile to the read cache.

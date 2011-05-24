@@ -389,9 +389,9 @@ int main(int argc, char **argv) {
   try {
     run(opt);
     return 0;
-  } catch (PlatefileErr &e) {
+  } catch (const PlatefileErr& e) {
     vw_out(ErrorMessage) << "A platefile error occured: " << e.what() << "\n";
-  } catch (Exception &e) {
+  } catch (const Exception& e) {
     vw_out(ErrorMessage) << "Runtime Error: " << e.what() << "\n";
   }
   return 1;
