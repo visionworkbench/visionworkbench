@@ -10,24 +10,31 @@
 
 #include <vw/Plate/Datastore.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/Cache.h>
 
 namespace vw { namespace platefile {
   class Blob;
   class ReadBlob;
 namespace detail {
   class Index;
+  class BlobOpener;
 
 class Blobstore : public Datastore {
   private:
     boost::shared_ptr<Index> m_index;
-    uint32 m_read_blob_id;
-    boost::shared_ptr<Blob> m_read_blob;
+
+    // these blob cache bits should only be touched inside open_blob
+    typedef Cache::Handle<BlobOpener> handle_t;
+    std::map<uint32, handle_t> m_handles;
+    vw::Cache m_read_cache;
+    vw::Mutex m_handle_lock;
+    boost::shared_ptr<ReadBlob>  open_read_blob(uint32 blob_id);
+    boost::shared_ptr<Blob>     open_write_blob(uint32 blob_id);
 
     typedef MultiOutputStream<char> log_t;
     log_t m_error_log;
 
     void init();
-    boost::shared_ptr<Blob> open_blob(uint32 blob_id, bool readonly);
   public:
     Blobstore(const Url& u);
     Blobstore(const Url& u, const IndexHeader& d);

@@ -9,6 +9,7 @@
 namespace fs = boost::filesystem;
 
 namespace {
+  static const size_t DEFAULT_BLOB_CACHE_SIZE = 8;
   static const boost::format blob_tmpl("%s/plate_%u.blob");
 
   class BlobWriteState : public vw::platefile::WriteState {
@@ -22,9 +23,24 @@ namespace {
       boost::shared_ptr<vw::platefile::Blob> blob;
       vw::uint32 blob_id;
   };
+
 }
 
 namespace vw { namespace platefile { namespace detail {
+
+class BlobOpener {
+    std::string fn;
+  public:
+    typedef ReadBlob value_type;
+    BlobOpener(const Index& idx, uint32 blob_id) {
+      boost::format blob_name(blob_tmpl);
+      fn = str(blob_name % idx.platefile_name() % blob_id);
+    }
+    size_t size() const {return 1;}
+    boost::shared_ptr<value_type> generate() const {
+      return boost::shared_ptr<value_type>(new ReadBlob(fn));
+    }
+};
 
 void Blobstore::init() {
   const std::string& name = m_index->platefile_name();
@@ -34,27 +50,26 @@ void Blobstore::init() {
 
   m_error_log.add(vw_out(ErrorMessage, "console"));
   m_error_log.add(audit_log());
-  m_read_blob_id = std::numeric_limits<uint32>::max();
 }
 
 Blobstore::Blobstore(const Url& u)
-  : m_index(Index::construct_open(u)) {init();}
+  : m_index(Index::construct_open(u)), m_read_cache(DEFAULT_BLOB_CACHE_SIZE) {init();}
 
 Blobstore::Blobstore(const Url& u, const IndexHeader& d)
-  : m_index(Index::construct_create(u, d)) {init();}
+  : m_index(Index::construct_create(u, d)), m_read_cache(DEFAULT_BLOB_CACHE_SIZE) {init();}
 
-boost::shared_ptr<Blob> Blobstore::open_blob(uint32 blob_id, bool readonly) {
+boost::shared_ptr<ReadBlob> Blobstore::open_read_blob(uint32 blob_id) {
+  Mutex::Lock lock(m_handle_lock);
+  if (m_handles.count(blob_id) == 0)
+    m_handles.insert(std::make_pair(blob_id, m_read_cache.insert(BlobOpener(*m_index, blob_id))));
+  return m_handles[blob_id];
+}
+
+boost::shared_ptr<Blob> Blobstore::open_write_blob(uint32 blob_id) {
+  Mutex::Lock lock(m_handle_lock);
   boost::format blob_name(blob_tmpl);
-
-  if (readonly) {
-    if (blob_id != m_read_blob_id) {
-      m_read_blob.reset(new Blob(str(blob_name % m_index->platefile_name() % blob_id), readonly));
-      m_read_blob_id = blob_id;
-    }
-    return m_read_blob;
-  } else {
-    return boost::shared_ptr<Blob>(new Blob(str(blob_name % m_index->platefile_name() % blob_id), readonly));
-  }
+  // TODO: Should I invalidate a read blob if you write to it? I don't think it's necessary...
+  return boost::shared_ptr<Blob>(new Blob(str(blob_name % m_index->platefile_name() % blob_id)));
 }
 
 Transaction Blobstore::transaction_begin(const std::string& description, TransactionOrNeg override) {
