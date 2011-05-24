@@ -295,7 +295,7 @@ TEST_F(LocalIndexTiles, ReadWrite) {
   // Now, let's save the data to disk, and then read it back.
   {
     index.reset(new LocalIndex(plate_path));
-    blob.reset(new Blob(blob_path));
+    boost::scoped_ptr<ReadBlob> blob(new ReadBlob(blob_path));
 
     // Read the data back from the index
     IndexRecord out_rec;

@@ -55,11 +55,28 @@ const uint8 BlobIOTest::test_data[BlobIOTest::data_size] = {0,1,2,3,4,5,6,7,8,9,
 TEST_F(BlobIOTest, WriteThenRead) {
 
   // First test, creates a new blob file.
+  int64 offset;
   {
     Blob blob(blob_path);
 
     // Write the data to the file.
-    int64 offset = blob.write(hdr, test_data, data_size);
+    offset = blob.write(hdr, test_data, data_size);
+
+    // Test reading of the data
+    TileData verify_data = blob.read_data(offset);
+    EXPECT_RANGE_EQ(test_data+0, test_data+data_size, verify_data->begin(), verify_data->end());
+
+    // Test Reading of the header
+    TileHeader hdr2 = blob.read_header(offset);
+    EXPECT_EQ(hdr.filetype(), hdr2.filetype());
+    EXPECT_EQ(hdr.col(), hdr2.col());
+    EXPECT_EQ(hdr.row(), hdr2.row());
+    EXPECT_EQ(hdr.level(), hdr2.level());
+  }
+
+  // Verify that a read-only blob does it right
+  {
+    ReadBlob blob(blob_path);
 
     // Test reading of the data
     TileData verify_data = blob.read_data(offset);
@@ -78,14 +95,21 @@ TEST_F(BlobIOTest, WriteThenRead) {
     Blob blob(blob_path);
 
     // Write the data to the file.
-    int64 offset = blob.write(hdr, test_data, data_size);
+    offset = blob.write(hdr, test_data, data_size);
 
     // Read it back in.
     TileData verify_data = blob.read_data(offset);
     EXPECT_RANGE_EQ(test_data+0, test_data+data_size, verify_data->begin(), verify_data->end());
   }
+
+  {
+    ReadBlob blob(blob_path);
+    TileData verify_data = blob.read_data(offset);
+    EXPECT_RANGE_EQ(test_data+0, test_data+data_size, verify_data->begin(), verify_data->end());
+  }
 }
 
+#if 0
 // This test needs to be updated with some test material (and it should use the
 // fixture, and not use hard-coded paths)
 TEST_F(BlobIOTest, DISABLED_WriteFromFile) {
@@ -137,6 +161,7 @@ TEST_F(BlobIOTest, DISABLED_WriteFromFile) {
   fs::remove(f2);
   fs::remove("/tmp/foo2.blob");
 }
+#endif
 
 TEST_F(BlobIOTest, Iterator) {
 
@@ -172,7 +197,7 @@ TEST_F(BlobIOTest, Iterator) {
   // Create an iterator
   Blob::iterator iter = blob.begin();
 
-  TileHeader result = *iter;
+  TileHeader result = iter->hdr;
   EXPECT_EQ( dummy_header0.col(), result.col() );
   EXPECT_EQ( dummy_header0.row(), result.row() );
   EXPECT_EQ( dummy_header0.level(), result.level() );
@@ -181,7 +206,7 @@ TEST_F(BlobIOTest, Iterator) {
   ASSERT_NE( iter, blob.end() );
 
   ++iter;
-  result = *iter;
+  result = iter->hdr;
   EXPECT_EQ( dummy_header1.col(), result.col() );
   EXPECT_EQ( dummy_header1.row(), result.row() );
   EXPECT_EQ( dummy_header1.level(), result.level() );
@@ -190,7 +215,7 @@ TEST_F(BlobIOTest, Iterator) {
   ASSERT_NE( blob.end(), iter );
 
   ++iter;
-  result = *iter;
+  result = iter->hdr;
   EXPECT_EQ( dummy_header2.col(), result.col() );
   EXPECT_EQ( dummy_header2.row(), result.row() );
   EXPECT_EQ( dummy_header2.level(), result.level() );

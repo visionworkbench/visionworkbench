@@ -26,7 +26,7 @@ namespace detail {
   class Index;
 }
 
-class Blob;
+class ReadBlob;
 class IndexService;
 
 template <typename ServiceT>
@@ -53,9 +53,9 @@ class PlateModule {
     };
 
     struct BlobCacheEntry {
-      boost::shared_ptr<Blob> blob;
+      boost::shared_ptr<ReadBlob> blob;
       int platefile_id;
-      BlobCacheEntry(boost::shared_ptr<Blob> b, int id) :
+      BlobCacheEntry(boost::shared_ptr<ReadBlob> b, int id) :
         blob(b), platefile_id(id) {}
     };
 
@@ -67,7 +67,7 @@ class PlateModule {
 
     const IndexCacheEntry& get_index(const std::string& id_str) const;
 
-    const boost::shared_ptr<Blob> get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const;
+    const boost::shared_ptr<ReadBlob> get_blob(int platefile_id, const std::string& plate_filename, uint32 blob_id) const;
     void sync_index_cache() const;
 
     std::ostream& logger(MessageLevel level, bool child_id = true) const;

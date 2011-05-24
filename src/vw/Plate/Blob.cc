@@ -21,159 +21,141 @@
 
 #define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
 
+#if 0
+FileSize       = uint64
+BlobRecordSize = uint16
+TileData       = uint8*
+Blob = FileSize FileSize FileSize (BlobRecordSize BlobRecord TileHeader TileData)*
+#endif
+
+namespace {
+  typedef vw::uint16 BlobRecordSizeType;
+}
+
 namespace vw {
 namespace platefile {
   using detail::BlobRecord;
 
-BlobRecord Blob::read_blob_record(uint16 &blob_record_size) const {
+void ReadBlob::check_fail(const char* c1, const char* c2) const {
+  if (m_fstream->fail()) {
+    m_fstream->clear();
+    vw_throw(BlobIoErr() << "BlobIoErr occured on blob " << m_blob_filename << " while " << c1 << " " << c2);
+  }
+}
 
-  WHEREAMI << "[Filename: " << m_blob_filename
-           << " Offset: " << m_fstream->tellg() << "]\n";
+void ReadBlob::read_at(uint64 offset64, char* dst, uint64 size, const char* context) const {
+  if (m_fstream->eof())
+    m_fstream->clear();
 
-  // Read the blob record
-  m_fstream->read(reinterpret_cast<char*>(&blob_record_size), sizeof(blob_record_size));
-  WHEREAMI << "[blob_record_size: " << blob_record_size << "]\n";
+  std::streamoff offset = boost::numeric_cast<std::streamoff>(offset64);
+  m_fstream->seekg(offset, std::ios_base::beg);
+  check_fail(context, "while seeking");
+  m_fstream->read(dst, boost::numeric_cast<std::streamsize>(size));
+  check_fail(context, "while reading data");
+}
+
+uint32 tile_header_offset(const uint32& base_offset, const BlobRecord& blob_record, const BlobRecordSizeType& blob_record_size) {
+  // The overall blob metadata includes the uint16 of the blob_record_size in
+  // addition to the size of the blob_record itself.  The offsets stored in the
+  // blob_record are relative to the END of the blob_record.  We compute this
+  // offset here.
+  uint64 blob_offset_metadata = sizeof(BlobRecordSizeType) + blob_record_size;
+  uint64 offset64 = base_offset + blob_offset_metadata + blob_record.header_offset();
+  return boost::numeric_cast<uint32>(offset64);
+}
+
+uint32 tile_data_offset(const uint32& base_offset, const BlobRecord& blob_record, const BlobRecordSizeType& blob_record_size) {
+  uint64 blob_offset_metadata = sizeof(BlobRecordSizeType) + blob_record_size;
+  uint64 offset64 = base_offset + blob_offset_metadata + blob_record.data_offset();
+  return boost::numeric_cast<uint32>(offset64);
+}
+
+BlobRecord ReadBlob::read_blob_record(const uint32& base_offset, BlobRecordSizeType& blob_record_size) const {
+  read_at(base_offset, (char*)&blob_record_size, sizeof(BlobRecordSizeType), "reading blob record size");
 
   boost::shared_array<uint8> blob_rec_data(new uint8[blob_record_size]);
   m_fstream->read(reinterpret_cast<char*>(blob_rec_data.get()), blob_record_size);
-  WHEREAMI << "read complete.\n";
+  check_fail("reading a blob record");
 
   BlobRecord blob_record;
-  bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  blob_record_size);
-  if (!worked)
-    vw_throw(BlobIoErr() << "read_blob_record() failed in " << m_blob_filename
-                         << " at offset " << m_fstream->tellg());
+  bool worked = blob_record.ParseFromArray(blob_rec_data.get(),  boost::numeric_cast<int>(blob_record_size));
+  VW_ASSERT(worked, BlobIoErr() << "failed to parse blob record in " << m_blob_filename << " at base_offset " << base_offset);
   return blob_record;
 }
 
-bool Blob::iterator::equal (iterator const& iter) const {
+TileHeader ReadBlob::read_tile_header(const uint32& base_offset, const BlobRecord& blob_record, const BlobRecordSizeType& blob_record_size) const {
+  uint64 offset = tile_header_offset(base_offset, blob_record, blob_record_size);
+  uint64 size   = blob_record.header_size();
+
+  boost::scoped_array<uint8> data(new uint8[size]);
+  read_at(offset, (char*)data.get(), size, "reading a tile header");
+
+  TileHeader header;
+  bool worked = header.ParseFromArray(data.get(), boost::numeric_cast<int>(size));
+  VW_ASSERT(worked, BlobIoErr() << "read_tile_record() failed in " << m_blob_filename << " at offset " << m_fstream->tellg());
+  return header;
+}
+
+TileData ReadBlob::read_tile_data(const uint32& base_offset, const BlobRecord& blob_record, const BlobRecordSizeType& blob_record_size) const {
+  uint64 offset = tile_data_offset(base_offset, blob_record, blob_record_size);
+  uint64 size   = blob_record.data_size();
+
+  TileData data(new std::vector<uint8>(size));
+  read_at(offset, (char*)(&data->operator[](0)), size, "reading tile data");
+  return data;
+}
+
+bool ReadBlob::iterator::equal(iterator const& iter) const {
   return m_blob->m_blob_filename == iter.m_blob->m_blob_filename
       && m_current_base_offset == iter.m_current_base_offset;
 }
 
-void Blob::iterator::increment() {
+void ReadBlob::iterator::increment() {
   m_current_base_offset = m_blob->next_base_offset(m_current_base_offset);
 }
 
-TileHeader Blob::iterator::dereference() const {
-  return m_blob->read_header(m_current_base_offset);
+BlobTileRecord ReadBlob::iterator::dereference() const {
+  return m_blob->read_record(m_current_base_offset);
 }
 
-Blob::iterator::iterator( Blob *blob, uint64 base_offset )
+ReadBlob::iterator::iterator( ReadBlob *blob, uint64 base_offset )
   : m_blob(blob), m_current_base_offset(base_offset) {}
 
-uint64 Blob::iterator::current_base_offset() const { return m_current_base_offset; }
+uint64 ReadBlob::iterator::current_base_offset() const { return m_current_base_offset; }
 
-TileHeader Blob::read_header(uint64 base_offset64) {
-
-  vw_out(VerboseDebugMessage, "platefile::blob")
-    << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
-
+TileHeader ReadBlob::read_header(uint64 base_offset64) {
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
   std::streamoff base_offset = boost::numeric_cast<std::streamoff>(base_offset64);
-
-  // Seek to the requested offset and read the header and data offset
-  m_fstream->seekg(base_offset, std::ios_base::beg);
-
   // Read the blob record
-  uint16 blob_record_size;
-  BlobRecord blob_record = this->read_blob_record(blob_record_size);
-
-  // The overall blob metadata includes the uint16 of the
-  // blob_record_size in addition to the size of the blob_record
-  // itself.  The offsets stored in the blob_record are relative to
-  // the END of the blob_record.  We compute this offset here.
-  // This type-size juggling is to make sure we end up with sane behavior
-  // on both 32-bit and 64-bit
-  uint32 blob_offset_metadata = boost::numeric_cast<uint32>(sizeof(blob_record_size) + blob_record_size);
-  size_t size = boost::numeric_cast<size_t>(blob_record.header_size());
-  uint64 offset64 = base_offset + blob_offset_metadata + blob_record.header_offset();
-
-  std::streamoff offset = boost::numeric_cast<std::streamoff>(offset64);
-
-  // Allocate an array of the appropriate size to read the data.
-  boost::shared_array<uint8> data(new uint8[size]);
-
-  vw_out(VerboseDebugMessage, "platefile::blob")
-    << "\tread_header() -- data offset: " << offset << " size: " << size << "\n";
-
-  m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read(reinterpret_cast<char*>(data.get()), size);
-
-  // Throw an exception if the read operation failed (after clearing the error bit)
-  if (m_fstream->fail()) {
-    m_fstream->clear();
-    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading "
-             << "data from the blob file.");
-  }
-
-  // Deserialize the header
-  TileHeader header;
-  bool worked = header.ParseFromArray(data.get(), boost::numeric_cast<int>(size));
-  if (!worked)
-    vw_throw(IOErr() << "Blob::read() -- an error occurred while deserializing the header "
-             << "from the blob file.");
-
-  vw_out(VerboseDebugMessage, "platefile::blob")
-    << "\tread_header() -- read " << size << " bytes at " << offset << " from " << m_blob_filename << "\n";
-
-  return header;
+  BlobRecordSizeType blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(base_offset, blob_record_size);
+  return this->read_tile_header(base_offset, blob_record, blob_record_size);
 }
 
-TileData Blob::read_data(vw::uint64 base_offset) {
+TileData ReadBlob::read_data(vw::uint64 base_offset) {
   uint64 offset, size;
   std::string dontcare;
   read_sendfile(base_offset, dontcare, offset, size);
 
   TileData data(new std::vector<uint8>(size));
-
-  m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read(reinterpret_cast<char*>(&data->operator[](0)), size);
-
-  // Throw an exception if the read operation failed (after clearing the error bit)
-  if (m_fstream->fail()) {
-    m_fstream->clear();
-    vw_throw(IOErr() << VW_CURRENT_FUNCTION << ": failed to read from blob.");
-  }
-
+  read_at(offset, (char*)(&data->operator[](0)), size, "reading tile data");
   return data;
 }
 
-boost::shared_array<uint8> Blob::read_data(uint64 base_offset, uint64& data_size) {
-
-  uint64 offset;
-  std::string dontcare;
-
-  read_sendfile(base_offset, dontcare, offset, data_size);
-
-  // Allocate an array of the appropriate size to read the data.
-  boost::shared_array<uint8> data(new uint8[data_size]);
-
-  m_fstream->seekg(offset, std::ios_base::beg);
-  m_fstream->read(reinterpret_cast<char*>(data.get()), data_size);
-
-  // Throw an exception if the read operation failed (after clearing the error bit)
-  if (m_fstream->fail()) {
-    m_fstream->clear();
-    vw_throw(IOErr() << "Blob::read() -- an error occurred while reading data from the blob file.");
-  }
-
-  WHEREAMI << "read " << data_size << " bytes at " << offset
-           << " from " << m_blob_filename << "\n";
-  return data;
-}
-
-uint64 Blob::next_base_offset(uint64 current_base_offset) {
-
-  WHEREAMI << "[current_base_offset: " <<  current_base_offset << "]\n";
-
-  // Seek to the requested offset and read the header and data offset
-  m_fstream->seekg(current_base_offset, std::ios_base::beg);
-
-  // Read the blob record
+BlobTileRecord ReadBlob::read_record(vw::uint64 base_offset) {
+  BlobTileRecord ret;
   uint16 blob_record_size;
-  BlobRecord blob_record = this->read_blob_record(blob_record_size);
+  ret.rec  = read_blob_record(base_offset, blob_record_size);
+  ret.hdr  = read_tile_header(base_offset, ret.rec, blob_record_size);
+  ret.data = read_tile_data(base_offset, ret.rec, blob_record_size);
+  return ret;
+}
 
-  uint64 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+uint64 ReadBlob::next_base_offset(uint64 current_base_offset) {
+  BlobRecordSizeType blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(current_base_offset, blob_record_size);
+
+  uint64 blob_offset_metadata = sizeof(BlobRecordSizeType) + blob_record_size;
   uint64 next_offset = current_base_offset + blob_offset_metadata + blob_record.data_offset() + blob_record.data_size();
 
   WHEREAMI << "[next_offset: " <<  next_offset << "]\n";
@@ -182,65 +164,58 @@ uint64 Blob::next_base_offset(uint64 current_base_offset) {
 }
 
 /// Returns the data size
-uint64 Blob::data_size(uint64 base_offset) const {
-
-  WHEREAMI << "[base_offset: " <<  base_offset << "]\n";
-
-  // Seek to the requested offset and read the header and data offset
-  m_fstream->seekg(base_offset, std::ios_base::beg);
+uint64 ReadBlob::data_size(uint64 base_offset) const {
 
   // Read the blob record
-  uint16 blob_record_size;
-  BlobRecord blob_record = this->read_blob_record(blob_record_size);
-
-  WHEREAMI << "[result size: " <<  blob_record.data_size() << "]\n";
+  BlobRecordSizeType blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(base_offset, blob_record_size);
 
   return blob_record.data_size();
 }
 
+ReadBlob::ReadBlob(const std::string& filename, bool skip_init)
+  : m_blob_filename(filename)
+{
+  if (!skip_init)
+    init();
+}
+
+ReadBlob::ReadBlob(const std::string& filename)
+  : m_blob_filename(filename)
+{ init(); }
+
+void ReadBlob::init() {
+  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), std::ios::in | std::ios::binary));
+  VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not open blob file " << m_blob_filename);
+  m_end_of_file_ptr = read_end_of_file_ptr();
+  WHEREAMI << m_blob_filename << std::endl;
+}
+
+ReadBlob::~ReadBlob() {
+  WHEREAMI << m_blob_filename << "\n";
+}
 
 // Constructor stores the blob filename for reading & writing
-Blob::Blob(std::string filename, bool readonly)
-  : m_blob_filename(filename), m_write_count(0)
+Blob::Blob(const std::string& filename_)
+  : ReadBlob(filename_, true), m_write_count(0)
 {
+  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), std::ios::in | std::ios::out | std::ios::binary));
 
-  if (readonly) {
-    m_fstream.reset(new std::fstream(m_blob_filename.c_str(),
-                                     std::ios::in | std::ios::binary));
-    if (!m_fstream->is_open())
-        vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");
+  // If the file is not open, then that means that we need to create it.
+  // (Note: the C++ standard does not let you create a file when you specify
+  // std::ios::in., hence the gymnastics here.)
+  if (!m_fstream->is_open()) {
+    m_fstream->clear();
+    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::binary);
+    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
 
-    WHEREAMI << filename << " (READONLY)\n";
-  } else {
-    m_fstream.reset(new std::fstream(m_blob_filename.c_str(),
-                                     std::ios::in | std::ios::out | std::ios::binary));
-    // If the file is not open, then that means that we need to create
-    // it.  (Note: the C++ standard does not let you create a file
-    // when you specify std::ios::in., hence the gymnastics here.)
-    if (!m_fstream->is_open()) {
-      m_fstream->clear();                                   // Clear error status
-      m_fstream->open(filename.c_str(),                     // Create new file
-                      std::ios::out|std::ios::binary);
-      if (!m_fstream->is_open())                            // Check for errors
-        vw_throw(BlobIoErr() << "Could not create blob file \"" << m_blob_filename << "\".");
-      m_end_of_file_ptr = 3 * sizeof(uint64);
-      this->write_end_of_file_ptr(m_end_of_file_ptr);       // Initialize EOF pointer
-      m_fstream->close();                                   // Close output-only file
-      m_fstream->open(filename.c_str(),                     // Reopen as read/write
-                      std::ios::out|std::ios::in|std::ios::binary);
-    }
-
-    // Set up the fstream so that it throws an exception.
-    m_fstream->exceptions ( std::fstream::eofbit | std::fstream::failbit | std::fstream::badbit );
-
-    WHEREAMI << filename << " (READ/WRITE)\n";
+    m_end_of_file_ptr = 3 * sizeof(uint64);
+    this->write_end_of_file_ptr(m_end_of_file_ptr);
+    m_fstream->close();
+    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::in|std::ios::binary);
+    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
   }
-
-  if (!m_fstream->is_open())
-    vw_throw(BlobIoErr() << "Could not open blob file \"" << m_blob_filename << "\".");
-
-  // Set the cached copy of the end_of_file_ptr.
-  m_end_of_file_ptr = read_end_of_file_ptr();
+  WHEREAMI << m_blob_filename << std::endl;
 }
 
 /// Destructor: make sure that we have written the end of file ptr.
@@ -249,19 +224,16 @@ Blob::~Blob() {
   WHEREAMI << m_blob_filename << "\n";
 }
 
-void Blob::read_sendfile(uint64 base_offset, std::string& filename, uint64& offset, uint64& size) {
-  // Seek to the requested offset and read the header and data offset
-  m_fstream->seekg(base_offset, std::ios_base::beg);
-
+void ReadBlob::read_sendfile(uint64 base_offset, std::string& filename, uint64& offset, uint64& size) {
   // Read the blob record
-  uint16 blob_record_size;
-  BlobRecord blob_record = this->read_blob_record(blob_record_size);
+  BlobRecordSizeType blob_record_size;
+  BlobRecord blob_record = this->read_blob_record(boost::numeric_cast<std::streamoff>(base_offset), blob_record_size);
 
   // The overall blob metadata includes the uint16 of the
   // blob_record_size in addition to the size of the blob_record
   // itself.  The offsets stored in the blob_record are relative to
   // the END of the blob_record.  We compute this offset here.
-  uint64 blob_offset_metadata = sizeof(blob_record_size) + blob_record_size;
+  uint64 blob_offset_metadata = sizeof(BlobRecordSizeType) + blob_record_size;
 
   size     = blob_record.data_size();
   offset   = base_offset + blob_offset_metadata + blob_record.data_offset();
@@ -269,7 +241,6 @@ void Blob::read_sendfile(uint64 base_offset, std::string& filename, uint64& offs
 }
 
 void Blob::write_end_of_file_ptr(uint64 ptr) {
-
   // We write the end of file pointer three times, because that
   // pretty much gurantees that at least two versions of the
   // pointer will agree if the program terminates for some reason
@@ -279,17 +250,21 @@ void Blob::write_end_of_file_ptr(uint64 ptr) {
   data[1] = ptr;
   data[2] = ptr;
 
-  // The end of file ptr is stored at the beginning of the blob
-  // file.
-  m_fstream->seekg(0, std::ios_base::beg);
-  m_fstream->write(reinterpret_cast<char*>(&data), 3*sizeof(ptr));
+  if (m_fstream->eof())
+    m_fstream->clear();
+  // The end of file ptr is stored at the beginning of the blob file.
+  m_fstream->seekp(0, std::ios_base::beg);
+  check_fail("Failed to seek to beginning of blob for EOF ptr write");
+  m_fstream->write(reinterpret_cast<char*>(&data), 3*sizeof(uint64));
+  check_fail("Failed to write end of file ptr");
 }
 
-uint64 Blob::read_end_of_file_ptr() const {
+uint64 ReadBlob::read_end_of_file_ptr() const {
   uint64 data[3];
 
-  // The end of file ptr is stored at the beginning of the blob
-  // file.
+  // The end of file ptr is stored at the beginning of the blob file.
+  if (m_fstream->eof())
+    m_fstream->clear();
   m_fstream->seekg(0, std::ios_base::beg);
   m_fstream->read(reinterpret_cast<char*>(data), 3*sizeof(uint64));
 
@@ -303,16 +278,14 @@ uint64 Blob::read_end_of_file_ptr() const {
   // because this blob file might be corrupt.
   if ((data[0] == data[1]) && (data[0] == data[2]))
     return data[0];
-  else if (data[0] == data[1])
+  else if (data[0] == data[1] || data[0] == data[2])
     return data[0];
   else if (data[1] == data[2])
     return data[1];
-  else if (data[0] == data[2])
-    return data[0];
   else {
-    vw_out(ErrorMessage) << "\nWARNING: end of file ptr in blobfile " << m_blob_filename
-                         << " is inconsistent.  This file may be corrupt.  Proceed with caution.\n";
-    m_fstream->seekg(0, std::ios_base::end);
+    vw_out(ErrorMessage) << "end of file ptr in blobfile " << m_blob_filename << " is inconsistent. This file may be corrupt. Proceed with caution.\n";
+    if (m_fstream->eof())
+      m_fstream->seekg(0, std::ios_base::end);
     return m_fstream->tellg();
   }
 }
@@ -322,7 +295,10 @@ uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size
   // Store the current offset of the end of the file.  We'll
   // return that at the end of this function.
   std::streamoff base_offset = boost::numeric_cast<std::streamoff>(m_end_of_file_ptr);
+  if (m_fstream->eof())
+    m_fstream->clear();
   m_fstream->seekp(base_offset, std::ios_base::beg);
+  check_fail("seeking to write a tile header");
 
   // Create the blob record and write it to the blob file.
   BlobRecord blob_record;
@@ -333,22 +309,23 @@ uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size
 
   // Write the actual blob record size first.  This will help us
   // read and deserialize this protobuffer later on.
-  uint16 blob_record_size = boost::numeric_cast<uint16>(blob_record.ByteSize());
-  m_fstream->write(reinterpret_cast<char*>(&blob_record_size), sizeof(blob_record_size));
+  BlobRecordSizeType blob_record_size = boost::numeric_cast<BlobRecordSizeType>(blob_record.ByteSize());
+  m_fstream->write(reinterpret_cast<char*>(&blob_record_size), sizeof(BlobRecordSizeType));
+  check_fail("writing a blob record size");
   blob_record.SerializeToOstream(m_fstream.get());
+  check_fail("writing a blob record");
 
   // Serialize the header.
   header.SerializeToOstream(m_fstream.get());
+  check_fail("writing a tile header");
 
   // And write the data.
   m_fstream->write(reinterpret_cast<const char*>(data), boost::numeric_cast<size_t>(data_size));
+  check_fail("writing tile data");
 
   // Write the data at the end of the file and return the offset
   // of the beginning of this data file.
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Blob::write() -- writing "
-                                                     << data_size
-                                                     << " bytes to "
-                                                     << m_blob_filename << "\n";
+  vw_out(VerboseDebugMessage, "platefile::blob") << "Blob::write() -- wrote " << data_size << " bytes to " << m_blob_filename << "\n";
 
   // Update the in-memory copy of the end-of-file pointer
   m_end_of_file_ptr = m_fstream->tellg();
@@ -366,46 +343,7 @@ uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size
   return base_offset;
 }
 
-/// Read data out of the blob and save it as its own file on disk.
-void Blob::read_to_file(std::string dest_file, uint64 offset) {
-  TileData data = this->read_data(offset);
-
-  // Open the dest_file and write to it.
-  std::ofstream ostr(dest_file.c_str(), std::ios::binary);
-
-  if (!ostr.is_open())
-    vw_throw(IOErr() << VW_CURRENT_FUNCTION << ": could not open dst file for writing");
-
-  ostr.write(reinterpret_cast<char*>(&data->operator[](0)), data->size());
-  ostr.close();
-}
-
-void Blob::write_from_file(std::string source_file, TileHeader const& header, uint64& base_offset) {
-  // Open the source_file and read data from it.
-  std::ifstream istr(source_file.c_str(), std::ios::binary);
-
-  if (!istr.is_open())
-    vw_throw(IOErr() << "Blob::write_from_file() -- could not open source file for reading.");
-
-  // Seek to the end and allocate the proper number of bytes of
-  // memory, and then seek back to the beginning.
-  istr.seekg(0, std::ios_base::end);
-  std::streamoff loc = istr.tellg();
-  VW_ASSERT(loc > 0, IOErr() << "Failed to identify file length");
-  istr.seekg(0, std::ios_base::beg);
-
-  size_t data_size = static_cast<size_t>(loc);
-
-  // Read the data into a temporary memory buffer.
-  boost::scoped_array<uint8> data(new uint8[data_size]);
-  istr.read(reinterpret_cast<char*>(data.get()), data_size);
-  istr.close();
-
-  base_offset = this->write(header, data.get(), data_size);
-}
-
-
-const std::string& Blob::filename() const {
+const std::string& ReadBlob::filename() const {
   return m_blob_filename;
 }
 

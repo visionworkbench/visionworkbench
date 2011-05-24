@@ -126,16 +126,18 @@ Datastore::tile_range Blobstore::populate(const TileHeader* hdrs, size_t len) {
       if (hdr.filetype() != rec.filetype())
         vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
 
-      boost::shared_ptr<Blob> blob = open_blob(rec.blob_id(), true);
+      boost::shared_ptr<ReadBlob> blob = open_read_blob(rec.blob_id());
+
+      BlobTileRecord tile_rec = blob->read_record(rec.blob_offset());
 
       // This read_header is unnecessary (we should alredy have it from hdr
       // but this check makes sure the plate is consistent
-      tile.hdr  = blob->read_header(rec.blob_offset());
+      tile.hdr  = tile_rec.hdr;
 
       if (tile.hdr != hdr)
         vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord\n";
 
-      tile.data = blob->read_data(rec.blob_offset());
+      tile.data = tile_rec.data;
       tiles->push_back(tile);
     } catch (const TileNotFoundErr& e) {
       // I don't think this is possible if the hdrs are coming from get(). If
@@ -156,7 +158,7 @@ WriteState* Blobstore::write_request(const Transaction& id) {
   std::auto_ptr<BlobWriteState> state(new BlobWriteState(id));
 
   state->blob_id = m_index->write_request(last_size);
-  state->blob = open_blob(state->blob_id, false);
+  state->blob = open_write_blob(state->blob_id);
 
   if (last_size != 0 && last_size != state->blob->size()) {
     error_log() << "last close size did not match current size when opening "

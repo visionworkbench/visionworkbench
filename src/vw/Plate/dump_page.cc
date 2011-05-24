@@ -32,21 +32,21 @@ struct Options {
   //std::string output;
 };
 
-boost::shared_ptr<Blob> open_blob(const Url& url, uint32 blob_id) {
+boost::shared_ptr<ReadBlob> open_blob(const Url& url, uint32 blob_id) {
   static const boost::format blob_tmpl("%s/plate_%u.blob");
   static uint32 last_blob_id = std::numeric_limits<uint32>::max();
-  static boost::shared_ptr<Blob> last_blob;
+  static boost::shared_ptr<ReadBlob> last_blob;
 
   if (blob_id != last_blob_id) {
     boost::format blob_name(blob_tmpl);
-    last_blob.reset(new Blob(boost::str(blob_name % url.path() % blob_id), true));
+    last_blob.reset(new ReadBlob(boost::str(blob_name % url.path() % blob_id)));
     last_blob_id = blob_id;
   }
   return last_blob;
 }
 
 void dump_tile(const Url& url, uint32 blob_id, uint64 blob_offset) {
-  boost::shared_ptr<Blob> blob = open_blob(url, blob_id);
+  boost::shared_ptr<ReadBlob> blob = open_blob(url, blob_id);
   TileHeader hdr = blob->read_header(blob_offset);
   std::cerr << "   => TID=" << hdr.transaction_id() << " COL=" << hdr.col() << " ROW=" << hdr.row() << " LEVEL=" << hdr.level() << std::endl;
 }

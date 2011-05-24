@@ -189,7 +189,7 @@ int PlateModule::status(const ApacheRequest& r, int /*flags*/) const {
   return OK;
 }
 
-const boost::shared_ptr<Blob> PlateModule::get_blob(int platefile_id, const string& plate_filename, uint32 blob_id) const {
+const boost::shared_ptr<ReadBlob> PlateModule::get_blob(int platefile_id, const string& plate_filename, uint32 blob_id) const {
   std::ostringstream ostr;
   ostr << plate_filename << "/plate_" << blob_id << ".blob";
   const string& filename = ostr.str();
@@ -204,7 +204,7 @@ const boost::shared_ptr<Blob> PlateModule::get_blob(int platefile_id, const stri
       return blob->second.blob;
   }
 
-  boost::shared_ptr<Blob> ret( new Blob(filename, true) );
+  boost::shared_ptr<ReadBlob> ret( new ReadBlob(filename) );
 
   if (m_conf->use_blob_cache)
     blob_cache.insert(std::make_pair(filename, BlobCacheEntry(ret, platefile_id)));

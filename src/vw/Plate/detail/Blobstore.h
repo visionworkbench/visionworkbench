@@ -13,6 +13,7 @@
 
 namespace vw { namespace platefile {
   class Blob;
+  class ReadBlob;
 namespace detail {
   class Index;
 

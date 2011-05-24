@@ -117,7 +117,7 @@ int vw::platefile::handle_image(const ApacheRequest& r) {
   try {
     mod_plate().logger(VerboseDebugMessage) << "Fetching blob" << std::endl;
     // Grab a blob from the blob cache by filename
-    boost::shared_ptr<Blob> blob = mod_plate().get_blob(id, index.filename, idx_record.blob_id());
+    boost::shared_ptr<ReadBlob> blob = mod_plate().get_blob(id, index.filename, idx_record.blob_id());
 
     mod_plate().logger(VerboseDebugMessage) << "Fetching data from blob" << std::endl;
     // And calculate the sendfile(2) parameters

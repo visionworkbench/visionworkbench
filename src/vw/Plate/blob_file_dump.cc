@@ -6,11 +6,11 @@
 
 
 #include <vw/Plate/Blob.h>
+#include <vw/Plate/FundamentalTypes.h>
 
 using namespace vw;
 using namespace vw::platefile;
 
-#include <boost/shared_ptr.hpp>
 #include <boost/program_options.hpp>
 #include <boost/foreach.hpp>
 namespace po = boost::program_options;
@@ -18,7 +18,7 @@ namespace po = boost::program_options;
 int main( int argc, char *argv[] ) {
 
   std::string blob_name;
-  int transaction_id;
+  TransactionOrNeg transaction_id;
 
   po::options_description general_options("Writes out all inner images of a blob.\n\nGeneral Options");
   general_options.add_options()
@@ -63,22 +63,24 @@ int main( int argc, char *argv[] ) {
 
   // -------------------
 
-  Blob blob( blob_name, true );
+  ReadBlob blob(blob_name);
 
   size_t dot = blob_name.rfind('.');
   std::string blob_prefix = blob_name.substr(0,dot);
 
   std::cout << "Started!\n";
 
-  for ( Blob::iterator it = blob.begin(); it != blob.end(); it++ ) {
-    if ( transaction_id < 0 ||
-         it->transaction_id() == uint64(transaction_id) ) {
-      std::ostringstream ostr;
-      ostr << blob_prefix << "_" << it.current_base_offset() << "_"
-           << it->col() << "_" << it->row() << "_" << it->level()
-           << "." << it->filetype();
-      blob.read_to_file( ostr.str(), it.current_base_offset() );
-    }
+  BOOST_FOREACH(const BlobTileRecord& rec, blob) {
+    if (transaction_id >= 0 && rec.hdr.transaction_id() != transaction_id)
+      continue;
+    std::ostringstream ostr;
+    ostr << blob_prefix << "_" << rec.hdr.level() << "_" << rec.hdr.row() << "_" << rec.hdr.col() << "." << rec.hdr.filetype();
+
+    std::ofstream ofile(ostr.str().c_str(), std::ios::binary);
+    VW_ASSERT(ofile.is_open(), IOErr() << "could not open dst file for writing (" << ostr.str() << ")");
+    ofile.write(reinterpret_cast<char*>(&rec.data->operator[](0)), rec.data->size());
+    VW_ASSERT(!ofile.fail(), IOErr() << ": failed to write to " << ostr.str());
+    ofile.close();
   }
 
   std::cout << "Finished!\n";

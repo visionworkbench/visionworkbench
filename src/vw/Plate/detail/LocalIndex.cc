@@ -387,16 +387,16 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
      TerminalProgressCallback tpc("plate", "\t --> Rebuild from blob" + vw::stringify(blob_id) + " : ");
      tpc.report_progress(0);
 
-     Blob blob(name, true);
+     ReadBlob blob(name);
 
      IndexRecord rec;
      typedef Blob::iterator iter_t;
      for (iter_t tile = blob.begin(), end = blob.end(); tile != end; ++tile) {
-       const TileHeader& hdr = *tile;
+       const BlobTileRecord& hdr = *tile;
        rec.set_blob_id(blob_id);
        rec.set_blob_offset(tile.current_base_offset());
-       rec.set_filetype(hdr.filetype());
-       this->write_update(hdr, rec);
+       rec.set_filetype(hdr.hdr.filetype());
+       this->write_update(hdr.hdr, rec);
        tpc.report_progress(float(tile.current_base_offset()) / float(blob.size()));
     }
     tpc.report_finished();
