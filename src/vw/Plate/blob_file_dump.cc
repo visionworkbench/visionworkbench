@@ -44,7 +44,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
     return 0;

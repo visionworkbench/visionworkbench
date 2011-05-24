@@ -43,7 +43,7 @@ namespace vw {
 %exception _homography {
   try {
     $action
-  } catch (vw::ArgumentErr& e) {
+  } catch (const vw::ArgumentErr& e) {
     PyErr_SetString(PyExc_TypeError, const_cast<char*>(e.what()));
     SWIG_fail;
   }

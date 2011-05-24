@@ -276,7 +276,7 @@ namespace ba {
             unweighted_error = cmeasure->dominant() -
               m_model(i, camera_idx,m_model.A_parameters(camera_idx),
                       m_model.B_parameters(i));
-          } catch ( camera::PixelToRayErr &e ) {
+          } catch (const camera::PixelToRayErr& e) {
             vw_out(WarningMessage,"ba") << "Unable to calculate starting error for point";
           }
           double mag = norm_2(unweighted_error);

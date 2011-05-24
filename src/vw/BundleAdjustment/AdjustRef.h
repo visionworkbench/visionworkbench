@@ -155,7 +155,7 @@ namespace ba {
               this->m_model(i, camera_idx,
                             this->m_model.A_parameters(camera_idx),
                             this->m_model.B_parameters(i));
-          } catch ( camera::PixelToRayErr &e ) {}
+          } catch (const camera::PixelToRayErr& e) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
           subvector(error,2*idx,2) = unweighted_error * weight;
@@ -296,7 +296,7 @@ namespace ba {
               this->m_model(i, camera_idx,
                             this->m_model.A_parameters(camera_idx)-cam_delta,
                             this->m_model.B_parameters(i)-pt_delta);
-          } catch ( camera::PixelToRayErr &e ) {}
+          } catch (const camera::PixelToRayErr& e) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
           subvector(new_error,2*idx,2) = unweighted_error * weight;

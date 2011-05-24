@@ -160,7 +160,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
                                    error ) );
           error_sum += error;
         }
-      } catch ( camera::PixelToRayErr e ) { /* Just let it go */ }
+      } catch ( const camera::PixelToRayErr& ) { /* Just let it go */ }
     }
   }
 
@@ -174,7 +174,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
     try {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
                        camera_models[j]->pixel_to_vector(cp[0].position())*10 );
-    } catch ( camera::PixelToRayErr e ) {
+    } catch ( const camera::PixelToRayErr& ) {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
                        camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,10)) );
     }

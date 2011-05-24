@@ -259,7 +259,7 @@ namespace platefile {
                             current_hdr.col(), current_hdr.row(),
                             current_hdr.level(), current_hdr.transaction_id(),
                             true); // exact_transaction_match
-          } catch (BlobIoErr &e) {
+          } catch (const BlobIoErr &e) {
             // If we get a BlobIO error, that's bad news, but not worth
             // killing the snapshot for.  Instead we log the error here and move
             // onto the next location.
@@ -269,7 +269,7 @@ namespace platefile {
                  << " (t_id = " << current_hdr.transaction_id() << "): " << e.what();
             m_platefile->log(ostr.str());
             vw_out(ErrorMessage) << ostr.str() << "\n";
-          } catch (IOErr &e) {
+          } catch (const IOErr &e) {
             // If we get a IoErr error, that's bad news, but not worth
             // killing the snapshot for.  Instead we log the error here and move
             // onto the next location.

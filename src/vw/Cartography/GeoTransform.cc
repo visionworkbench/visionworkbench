@@ -82,7 +82,7 @@ namespace cartography {
     while ( l1.is_good() ) {
       try {
         r.grow( this->forward( *l1 ) );
-      } catch ( cartography::ProjectionErr const& e ) {}
+      } catch ( const cartography::ProjectionErr& e ) {}
       ++l1;
     }
     BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
@@ -90,7 +90,7 @@ namespace cartography {
     while ( l2.is_good() ) {
       try {
         r.grow( this->forward( *l2 ) );
-      } catch ( cartography::ProjectionErr const& e ) {}
+      } catch ( const cartography::ProjectionErr& e ) {}
       ++l2;
     }
 
@@ -103,7 +103,7 @@ namespace cartography {
     while ( l1.is_good() ) {
       try {
         r.grow( this->reverse( *l1 ) );
-      } catch ( cartography::ProjectionErr const& e ) {}
+      } catch ( const cartography::ProjectionErr& e ) {}
       ++l1;
     }
     BresenhamLine l2( bbox.min() + Vector2i(bbox.width(),0),
@@ -111,7 +111,7 @@ namespace cartography {
     while ( l2.is_good() ) {
       try {
         r.grow( this->reverse( *l2 ) );
-      } catch ( cartography::ProjectionErr const& e ) {}
+      } catch ( const cartography::ProjectionErr& e ) {}
       ++l2;
     }
 

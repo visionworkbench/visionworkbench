@@ -16,7 +16,7 @@ void grow_bbox( cartography::BresenhamLine l,
   while ( l.is_good() ) {
     try {
       box.grow( georef.pixel_to_lonlat( *l ) );
-    } catch ( cartography::ProjectionErr const& e ) {}
+    } catch ( const cartography::ProjectionErr& e ) {}
     ++l;
   }
 }

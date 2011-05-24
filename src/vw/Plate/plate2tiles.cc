@@ -55,7 +55,7 @@ void save_toast_tile(std::string base_output_name, boost::shared_ptr<PlateFile> 
     // transaction_id = -1 returns the latest tile available
     platefile->read_to_file(ostr.str(), col, row, level, transaction_id);
 
-  } catch (TileNotFoundErr &e) {
+  } catch (const TileNotFoundErr& e) {
     //    std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n";
   }
 }
@@ -104,7 +104,7 @@ void save_gigapan_tile(std::string base_output_name, boost::shared_ptr<PlateFile
     // transaction_id = -1 returns the latest tile available
     platefile->read_to_file(filename, col, row, level, transaction_id);
 
-  } catch (TileNotFoundErr &e) {
+  } catch (const TileNotFoundErr& e) {
     //    std::cout << "\t--> [ " << col << " " << row << " " << level << "] : Missing tile\n";
   }
 }
@@ -226,7 +226,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
     return 0;

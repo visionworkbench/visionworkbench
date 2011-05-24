@@ -888,7 +888,7 @@ generate_control_network(base_rng_type &rng, CameraVector &cameras, int &min_tie
       try {
         img_point = cameras[i].point_to_pixel(world_point);
       }
-      catch (vw::camera::PointToPixelErr()) {
+      catch (const vw::camera::PointToPixelErr&) {
         // ignore; just go back and check the next camera
         continue;
       }

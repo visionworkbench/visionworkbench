@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
   main_window.show();
   try {
     app.exec();
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception& e) {
     vw_out() << "An unexpected error occurred: " << e.what() << "\nExiting\n\n";
   }
 

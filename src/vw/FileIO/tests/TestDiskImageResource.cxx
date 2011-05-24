@@ -30,7 +30,7 @@ static void test_extension(string const& fn_base)
   try {
     write_image(fn, img1);
     read_image(img2, fn);
-  } catch (vw::NoImplErr &e) {
+  } catch (const vw::NoImplErr& e) {
     // this doesn't represent a test failure, just a lack of test coverage
     return;
   }

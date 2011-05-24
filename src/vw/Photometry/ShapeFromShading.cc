@@ -701,7 +701,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
 
         printf("Go, kb = %d, lb = %d\n", kb, lb);
 
-      } catch (ArgumentErr &/*e*/) {
+      } catch (const ArgumentErr& /*e*/) {
 
         std::cout << "Error @ (kb,lb) = (" << kb << "," << lb << ")\n";
         //std::cout << "Exception caught: " << ArgumentErr.what() << "\n";

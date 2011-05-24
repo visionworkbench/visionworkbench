@@ -166,7 +166,7 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     vw_throw(Usage() << "Error parsing input:\n\t" << e.what() << "\n" << options );
   }
 

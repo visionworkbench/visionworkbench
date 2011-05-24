@@ -240,7 +240,7 @@ GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
   bool fail_read_georef = false;
   try {
     fail_read_georef = !read_georeference( input_georef, *file );
-  } catch ( InputErr const& e ) {
+  } catch ( const InputErr& e ) {
     vw_out(ErrorMessage) << "Input " << file->filename() << " has malformed georeferencing information.\n";
     fail_read_georef = true;
   }

@@ -133,7 +133,7 @@ void do_colorized_dem(Options& opt) {
         opt.lut_map[ ( key - opt.min_val ) / ( opt.max_val - opt.min_val ) ] =
           pair.second;
       }
-    } catch ( boost::bad_lexical_cast const& e ) {
+    } catch ( const boost::bad_lexical_cast& e ) {
       continue;
     }
   }
@@ -227,7 +227,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_desc).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     vw_throw( ArgumentErr() << "Error parsing input:\n\t"
               << e.what() << general_options );
   }
@@ -299,7 +299,7 @@ int main( int argc, char *argv[] ) {
           value[1] = boost::numeric_cast<uint8>(boost::lexical_cast<int>(*iter)); iter++;
           if ( iter == tokens.end()) vw_throw( IOErr() << "Unable to read input LUT" );
           value[2] = boost::numeric_cast<uint8>(boost::lexical_cast<int>(*iter));
-        } catch ( boost::bad_lexical_cast const& e ) {
+        } catch ( const boost::bad_lexical_cast& e ) {
           std::getline( lut_file, line );
           continue;
         }

@@ -122,7 +122,7 @@ int vw::platefile::handle_image(const ApacheRequest& r) {
     // And calculate the sendfile(2) parameters
     blob->read_sendfile(idx_record.blob_offset(), filename, offset, size);
 
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception& e) {
     vw_throw(ServerError() << "Could not load blob data: " << e.what());
   }
 

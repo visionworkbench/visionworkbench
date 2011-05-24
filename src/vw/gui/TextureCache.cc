@@ -218,7 +218,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     // the texture_id to satisfy the request.
     return rec->texture_id;
 
-  } catch (gui::TileNotFoundErr &e) {
+  } catch (const gui::TileNotFoundErr& e) {
 
     // If the tile isn't found or hasn't been properly initialized
     // yet, we need to add an entry to the cache and then cause the

@@ -385,7 +385,7 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
           // Solves lhs = rhs * x, and stores the result in-place in lhs.
           try {
             solve_symmetric_nocopy(rhs,lhs);
-          } catch (ArgumentErr &/*e*/) {} // Do Nothing
+          } catch (const ArgumentErr& /*e*/) {} // Do Nothing
 
           //normalize the mean of the noise
           mean_noise = mean_noise_tmp/sum_gamma_noise;

@@ -281,7 +281,7 @@ void LocalIndex::save_index_file() const {
       m_log = boost::shared_ptr<LogInstance>( new LogInstance(this->log_filename()) );
       this->log() << "Reopened index \"" << this->index_filename() << "\n"
         << m_header.DebugString() << "\n";
-    } catch (IOErr &e) {
+    } catch (const IOErr &e) {
       // If we fail to open the log, then it's ok for now.  However, the
       // program _will_ crash if we try to do something with the index
       // that generates a log message.

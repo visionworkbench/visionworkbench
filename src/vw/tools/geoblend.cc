@@ -311,7 +311,7 @@ int main( int argc, char *argv[] ) {
     try {
       po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
       po::notify( vm );
-    } catch(po::error &e) {
+    } catch (const po::error& e) {
       std::cout << "An error occured while parsing command line arguments.\n";
       std::cout << "\t" << e.what() << "\n\n";
       std::cout << usage.str();
@@ -421,7 +421,7 @@ int main( int argc, char *argv[] ) {
     }
 
   }
-  catch( std::exception &err ) {
+  catch (const std::exception& err) {
     vw::vw_out(vw::ErrorMessage) << "Error: " << err.what() << std::endl << "Aborting!" << std::endl;
     return 1;
   }

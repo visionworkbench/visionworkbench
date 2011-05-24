@@ -144,11 +144,11 @@ void vw::DiskImageResourceOpenEXR::open( std::string const& filename )
     } else {
       m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
     }
-  } catch (Iex::ErrnoExc e) { // Catches non existant files
+  } catch (const Iex::ErrnoExc& e) { // Catches non existant files
     vw_throw( vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
-  } catch (Iex::InputExc e) { // Catches non open exr image
+  } catch (const Iex::InputExc& e) { // Catches non open exr image
     vw_throw( vw::ArgumentErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
-  } catch (Iex::BaseExc e) {
+  } catch (const Iex::BaseExc& e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: could not open " << filename << ":\n\t" << e.what() );
   }
 }
@@ -185,7 +185,7 @@ void vw::DiskImageResourceOpenEXR::set_tiled_write(int32 tile_width, int32 tile_
       header.lineOrder() = Imf::RANDOM_Y;
 
     m_output_file_ptr = new Imf::TiledOutputFile(m_filename.c_str(), header);
-  } catch (Iex::BaseExc e) {
+  } catch (const Iex::BaseExc& e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
   }
 }
@@ -222,7 +222,7 @@ void vw::DiskImageResourceOpenEXR::set_scanline_write(int32 scanlines_per_block)
     m_block_size = Vector2i(m_format.cols,m_openexr_rows_per_block);
     m_output_file_ptr = new Imf::OutputFile(m_filename.c_str(), header);
 
-  } catch (Iex::BaseExc e) {
+  } catch (const Iex::BaseExc& e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to create " << m_filename << ".\n\t" << e.what() );
   }
 }
@@ -330,7 +330,7 @@ void vw::DiskImageResourceOpenEXR::read( ImageBuffer const& dest, BBox2i const& 
 
     convert( dest, src_image.buffer(), m_rescale );
 
-  } catch (Iex::BaseExc e) {
+  } catch (const Iex::BaseExc& e) {
     vw_throw( vw::IOErr() << "Failed to open " << m_filename << " using the OpenEXR image reader.\n\t" << e.what() );
   }
 }
@@ -382,7 +382,7 @@ void vw::DiskImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const& 
       out->writePixels (bbox.height());
     }
 
-  } catch (Iex::BaseExc e) {
+  } catch (const Iex::BaseExc& e) {
     vw_throw( vw::IOErr() << "DiskImageResourceOpenEXR: Failed to write " << m_filename << ".\n\t" << e.what() );
   }
 

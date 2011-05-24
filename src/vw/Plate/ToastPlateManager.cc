@@ -108,7 +108,7 @@ ToastPlateManager<PixelT>::fetch_child_tile(int x, int y, int level,
   ImageView<PixelT> tile;
   try {
     this->m_platefile->read(tile, x, y, level, transaction_id, true); // exact_transaction_match == true
-  } catch (TileNotFoundErr &e) { /* No Op */ }
+  } catch (const TileNotFoundErr& e) { /* No Op */ }
 
   // Regardless of what happened above, we return the tile here.  If
   // the read failed, the tile will be an empty image.

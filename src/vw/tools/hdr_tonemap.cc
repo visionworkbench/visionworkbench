@@ -108,7 +108,7 @@ int main( int argc, char *argv[] ) {
       exit(1);
     }
 
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception& e) {
     vw_out() << argv[0] << ": a Vision Workbench error occurred: \n\t" << e.what() << "\nExiting.\n\n";
     return 1;
   }

@@ -163,7 +163,7 @@ namespace ba {
             unweighted_error = (**fiter).m_location -
               this->m_model(i,j,this->m_model.A_parameters(j),
                             this->m_model.B_parameters(i));
-          } catch ( camera::PixelToRayErr &e ) {}
+          } catch (const camera::PixelToRayErr& e) {}
 
           Vector2 pixel_sigma = (**fiter).m_scale;
           Matrix2x2 inverse_cov;
@@ -438,7 +438,7 @@ namespace ba {
           try {
             unweighted_error = (**fiter).m_location -
               this->m_model(i,j,new_a,new_b);
-          } catch ( camera::PixelToRayErr &e ) {}
+          } catch (const camera::PixelToRayErr& e) {}
 
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (**fiter).m_scale;

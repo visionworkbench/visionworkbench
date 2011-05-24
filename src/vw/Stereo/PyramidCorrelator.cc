@@ -23,7 +23,7 @@ PyramidCorrelator::subdivide_bboxes(ImageView<PixelDisp > const& disparity_map,
   BBox2f disp_range;
   try {
     disp_range = get_disparity_range(crop(disparity_map, box_div_2));
-  } catch ( std::exception &/*e*/ ) {
+  } catch (const std::exception& /*e*/) {
     // If there are no good pixels, don't add this box
     if (count_valid_pixels(crop(valid_pad, box_div_2)) == 0)
       return result;
@@ -84,7 +84,7 @@ void PyramidCorrelator::write_debug_images(int32 n, ImageViewRef<PixelDisp> cons
   BBox2f disp_range;
   try {
     disp_range = get_disparity_range(disparity_map);
-  } catch ( std::exception & /*e*/ ) {
+  } catch (const std::exception& /*e*/) {
     // There was no good pixels
     disp_range = BBox2f();
   }

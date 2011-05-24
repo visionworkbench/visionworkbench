@@ -38,7 +38,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
-  } catch ( po::error &e ) {
+  } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
     std::cout << desc;
@@ -63,7 +63,7 @@ int main( int argc, char *argv[] ) {
     ImageView<PixelRGB<float> > result = camera::inverse_bayer_filter(image);
     write_image( output_file_name, result );
   }
-  catch( Exception& e ) {
+  catch (const Exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
   }
 

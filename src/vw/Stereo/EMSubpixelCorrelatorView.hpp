@@ -161,7 +161,7 @@ namespace vw {
       try {
         search_range = get_disparity_range(crop(m_course_disparity, bbox));
       }
-      catch ( std::exception &e ) {
+      catch (const std::exception& e) {
         search_range = BBox2i();
       }
 

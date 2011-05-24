@@ -16,7 +16,7 @@ int main( int argc, char *argv[] ) {
     read_image( image, argv[1] );
     write_image( argv[2], image );
   }
-  catch( vw::Exception& e ) {
+  catch( const vw::Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;
     std::cerr << "Usage: vwconvert <source> <destination>" << std::endl;
     return 1;

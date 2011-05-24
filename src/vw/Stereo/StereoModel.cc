@@ -105,7 +105,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
 
     return result;
 
-  } catch (vw::camera::PixelToRayErr &/*e*/) {
+  } catch (const vw::camera::PixelToRayErr& /*e*/) {
     error = 0;
     return Vector3();
   }

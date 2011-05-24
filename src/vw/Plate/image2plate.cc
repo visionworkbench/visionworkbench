@@ -116,7 +116,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error &e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
     return 0;
@@ -174,7 +174,7 @@ int main( int argc, char *argv[] ) {
       tile_filetype = "tif";
     }
 
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception &e) {
     vw_out(ErrorMessage) << "An error occured: " << e.what() << "\n";
     exit(1);
   }
@@ -384,9 +384,9 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
     }
-  } catch (PlatefileErr &e) {
+  } catch (const PlatefileErr& e) {
     vw_out() << "A platefile error occured: " << e.what() << "\n";
-  } catch (Exception &e) {
+  } catch (const Exception& e) {
     vw_out() << "A vision workbench error occured: " << e.what() << "\n";
     exit(1);
   }

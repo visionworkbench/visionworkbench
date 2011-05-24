@@ -15,7 +15,7 @@
   try {
     $action
   }
-  catch (vw::Exception const& e) {
+  catch (const vw::Exception& e) {
     // If there is an existing Python exception, we just pass it along.
     // It's a shame we that lose much of the stack trace on the C++ side,
     // but life is suffering.

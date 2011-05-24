@@ -223,7 +223,7 @@ int main( int argc, char *argv[] ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch( po::error &e) {
+  } catch (const po::error& e) {
     std::cout << "An error occurred while parsing command line options.\n\n";
     std::cout << usage.str();
   }
@@ -365,7 +365,7 @@ int main( int argc, char *argv[] ) {
 
     // update_read_cursor == true below.
     platefile->transaction_complete( write_transaction_id, true );
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting\n\n";
   }
 

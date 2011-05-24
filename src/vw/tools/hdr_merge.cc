@@ -113,7 +113,7 @@ int main( int argc, char *argv[] ) {
     // Create the HDR images and write the results to the file
     write_image(output_filename, HighDynamicRangeView<PixelRGB<float> > (images, curves, brightness_values), tpc);
 
-  } catch (vw::Exception &e) {
+  } catch (const vw::Exception& e) {
     vw_out() << argv[0] << ": a Vision Workbench error occurred: \n\t"
              << e.what() << "\nExiting.\n\n";
     return 1;

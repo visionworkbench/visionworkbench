@@ -99,7 +99,7 @@ void process_args(Options& opt, int argc, char *argv[]) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     vw_throw(Usage() << "Could not parse command line arguments: " << usage.str());
   }
 

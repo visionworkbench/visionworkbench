@@ -73,7 +73,7 @@ Vector2 PlatefileTileGenerator::minmax() {
     loc.row = 0;
     loc.level = 0;
     VW_DELEGATE_BY_PIXEL_TYPE(minmax_impl, loc, m_platefile)
-  } catch (platefile::TileNotFoundErr &e) {
+  } catch (const platefile::TileNotFoundErr& e) {
     return Vector2(0,1);
   }
 }
@@ -100,7 +100,7 @@ PixelRGBA<float32> PlatefileTileGenerator::sample(int /*x*/, int /*y*/, int /*le
   try {
     return PixelRGBA<float32>(1.0, 0.0, 0.0, 1.0);
     //    VW_DELEGATE_BY_PIXEL_TYPE(sample_tile_impl, tile_loc, px_loc)
-  } catch (platefile::TileNotFoundErr &e) {
+  } catch (const platefile::TileNotFoundErr& e) {
     ImageView<PixelGrayA<uint8> > blank_tile(1,1);
     return PixelRGBA<float32>();
   }
@@ -116,9 +116,9 @@ boost::shared_ptr<SrcImageResource> generate_tile_impl(TileLocator const& tile_i
                     tile_info.level, tile_info.transaction_id,
                     tile_info.exact_transaction_id_match);
 
-  } catch (platefile::TileNotFoundErr &e) {
+  } catch (const platefile::TileNotFoundErr& e) {
     return boost::shared_ptr<SrcImageResource>(make_point_src(PixelRGBA<uint8>(0, 20, 0, 255)));
-  } catch (vw::IOErr &e) {
+  } catch (const vw::IOErr& e) {
     std::cout << "WARNING: AMQP ERROR -- " << e.what() << "\n";
   }
   return boost::shared_ptr<SrcImageResource>( new ViewImageResource(tile) );

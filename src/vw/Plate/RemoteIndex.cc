@@ -46,7 +46,7 @@ RemoteIndexPage::RemoteIndexPage(int platefile_id,
   IndexPageReply response;
   try {
     m_client->PageRequest(m_client.get(), &request, &response, null_callback());
-  } catch (TileNotFoundErr &e) {
+  } catch (const TileNotFoundErr& e) {
     // If the remote server doesn't have this index page, that's ok.
     // Doing nothing here will create an empty index page in this
     // local cache.  If we end up writing data to the local page, then

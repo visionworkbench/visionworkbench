@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n";
     std::cout << "\t" << e.what() << "\n\n";
     std::cout << usage.str();
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
           std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
           exit(0);
         }
-      } catch (vw::math::RANSACErr const& e ) {
+      } catch (const vw::math::RANSACErr& e ) {
         std::cout << "RANSAC Failed: " << e.what() << "\n";
         continue;
       }

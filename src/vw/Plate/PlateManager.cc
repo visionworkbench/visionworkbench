@@ -205,7 +205,7 @@ void PlateManager<PixelT>::generate_mipmap_tile(
         this->m_platefile->read(dest, child_col, child_row, level+1, transaction_id, true); // exact_transaction
         crop(super,tile_size*i,tile_size*j,tile_size,tile_size) = dest;
         found = true;
-      } catch (TileNotFoundErr &e) { /*Do Nothing*/ }
+      } catch (const TileNotFoundErr& e) { /*Do Nothing*/ }
     }
   }
 

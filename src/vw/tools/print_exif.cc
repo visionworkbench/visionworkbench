@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     printf("LuminanceValue: %f\n", exif.get_luminance_value());
 
 
-  } catch (ExifErr &e) {
+  } catch (const ExifErr& e) {
     std::cout << "An EXIF error occurred: " << e.what() << "\n";
   }
 

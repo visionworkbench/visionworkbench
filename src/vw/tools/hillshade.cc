@@ -212,7 +212,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   try {
     po::store( po::command_line_parser( argc, argv ).options(desc).positional(p).run(), vm );
     po::notify( vm );
-  } catch (po::error &e) {
+  } catch (const po::error& e) {
     vw_throw( ArgumentErr() << "Error parsing input:\n\t"
               << e.what() << desc );
   }

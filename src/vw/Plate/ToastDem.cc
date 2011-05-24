@@ -83,7 +83,7 @@ namespace platefile {
     try {
       // Read the tile & prepare the interpolation view for sampling it.
       platefile.read(src_tile, col, row, level, input_transaction_id);
-    } catch (TileNotFoundErr &e) {
+    } catch (const TileNotFoundErr& e) {
       // Do nothing if the tile does not exist
       return false;
     }

@@ -408,7 +408,7 @@ namespace vw {
             }
 
           }
-          catch(vw::Exception &e) {
+          catch (const vw::Exception& e) {
             soln = gradient;
             //std::cout << "using gradient " << std::endl;
           }
