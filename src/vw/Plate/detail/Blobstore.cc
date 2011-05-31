@@ -128,43 +128,77 @@ Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, Tran
   return make_const_shared_range(tiles);
 }
 
-Datastore::tile_range Blobstore::populate(const TileHeader* hdrs, size_t len) {
-  typedef std::vector<Tile> vec_t;
-  boost::shared_ptr<vec_t> tiles(new vec_t());
+struct SortByPage {
+  const Index& idx;
+  SortByPage(const Index& idx) : idx(idx) {}
+  bool operator()(const TileHeader& a, const TileHeader& b) {
+    return idx.page_id(a.col(), a.row(), a.level()) < idx.page_id(b.col(), b.row(), b.level());
+  }
+};
 
-  BOOST_FOREACH(const TileHeader& hdr, boost::make_iterator_range(hdrs, hdrs+len)) {
-    Tile tile;
+struct SortByIndexRecord {
+  typedef std::pair<IndexRecord, TileHeader> pair_t;
+  bool operator()(const pair_t& a, const pair_t& b)
+  {
+    if (a.first.blob_id() == b.first.blob_id())
+      return a.first.blob_offset() < b.first.blob_offset();
+    return a.first.blob_id() < b.first.blob_id();
+  }
+};
 
+Datastore::tile_range Blobstore::populate(TileHeader* hdrs_, size_t len) {
+  // first, sort by page to keep page accesses together
+  std::sort(hdrs_, hdrs_+len, SortByPage(*m_index));
+
+  std::vector<std::pair<IndexRecord, TileHeader> > recs;
+  recs.reserve(len);
+
+  //if (hdr.filetype() != rec.filetype())
+  //  vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
+
+  BOOST_FOREACH(const TileHeader& hdr, boost::make_iterator_range(hdrs_, hdrs_+len)) {
     try {
       IndexRecord rec = m_index->read_request(hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true);
-
-      if (hdr.filetype() != rec.filetype())
-        vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
-
-      boost::shared_ptr<ReadBlob> blob = open_read_blob(rec.blob_id());
-
-      BlobTileRecord tile_rec = blob->read_record(rec.blob_offset());
-
-      // This read_header is unnecessary (we should alredy have it from hdr
-      // but this check makes sure the plate is consistent
-      tile.hdr  = tile_rec.hdr;
-
-      if (tile.hdr != hdr)
-        vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord\n";
-
-      tile.data = tile_rec.data;
-      tiles->push_back(tile);
+      recs.push_back(std::make_pair(rec, hdr));
     } catch (const TileNotFoundErr& e) {
       // I don't think this is possible if the hdrs are coming from get(). If
       // they're not coming from get(), the user created their own TileHeader
       // array incorrectly. In either case, this is a canary of something
       // really bad being wrong.
       vw_throw(LogicErr() << "Blobstore::populate(): cannot populate nonexistent tile: " << hdr);
+    }
+  }
+
+  // Now we have index records... sort them by blob and then by offset, so we
+  // keep blob reads together and in order. We need to keep the headers sorted
+  // in the same order, too
+  std::sort(recs.begin(), recs.end(), SortByIndexRecord());
+
+  typedef std::vector<Tile> vec_t;
+  boost::shared_ptr<vec_t> tiles(new vec_t());
+  tiles->reserve(len);
+
+  for (size_t i = 0; i < len; ++i) {
+    const IndexRecord& rec = recs[i].first;
+    const TileHeader&  hdr = recs[i].second;
+
+    try {
+      boost::shared_ptr<ReadBlob> blob = open_read_blob(rec.blob_id());
+      BlobTileRecord tile_rec = blob->read_record(rec.blob_offset());
+      if (tile_rec.hdr != hdr) {
+        vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord. skipping.\n";
+        continue;
+      }
+      Tile tile;
+      tile.hdr  = tile_rec.hdr;
+      tile.data = tile_rec.data;
+      tiles->push_back(tile);
     } catch (const IOErr& e) {
       // These are bad, and might indicate corruption, but probably shouldn't kill everything.
       error_log() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
     }
   }
+
   return make_const_shared_range(tiles);
 }
 

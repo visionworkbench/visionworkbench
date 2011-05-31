@@ -151,7 +151,7 @@ message IndexTransactionCursorReply {
 }
 
 message IndexNumLevelsReply {
-  required int32 num_levels = 1;
+  required uint32 num_levels = 1;
 }
 
 message IndexTestReply {

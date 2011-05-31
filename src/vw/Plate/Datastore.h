@@ -69,8 +69,10 @@ class Datastore {
     virtual tile_range      get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1);
 
     // The return of this is not guaranteed to be 'len' elements; if errors
-    // occur on some of the fetches, they will be dropped.
-    virtual tile_range populate(const TileHeader* hdrs, size_t len) = 0;
+    // occur on some of the fetches, they will be dropped. Order is not
+    // guaranteed, either. 'hdrs' is non-const to allow implementations to sort
+    // without copying; hdrs will not be resized, only swapped.
+    virtual tile_range populate(TileHeader* hdrs, size_t len) = 0;
 
     // Return a url that should work to retrieve tile data [might be unimplemented]
     //virtual Url map_to_url(uint32 level, uint32 row, uint32 col, Transaction id, std::string filetype) = 0;

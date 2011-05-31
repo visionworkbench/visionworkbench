@@ -25,8 +25,8 @@ using namespace vw::platefile::detail;
 #include <algorithm>
 namespace fs = boost::filesystem;
 
-LocalIndexPage::LocalIndexPage(std::string filename, int level, int base_col,
-                               int base_row, int page_width, int page_height)
+LocalIndexPage::LocalIndexPage(std::string filename, uint32 level, uint32 base_col,
+                               uint32 base_row, uint32 page_width, uint32 page_height)
   : IndexPage(level, base_col, base_row, page_width, page_height),
     m_filename(filename), m_needs_saving(false)
 {
@@ -103,8 +103,8 @@ void LocalIndexPage::deserialize() {
  //                    LOCAL INDEX PAGE GENERATOR
  // ----------------------------------------------------------------------
 
- LocalPageGenerator::LocalPageGenerator( std::string filename, int level, int base_col,
-                                         int base_row, int page_width, int page_height)
+ LocalPageGenerator::LocalPageGenerator( std::string filename, uint32 level, uint32 base_col,
+                                         uint32 base_row, uint32 page_width, uint32 page_height)
  : m_filename( filename ), m_level(level), m_base_col(base_col), m_base_row(base_row),
    m_page_width(page_width), m_page_height(page_height) {}
 
@@ -116,7 +116,7 @@ LocalPageGenerator::generate() const {
 }
 
 boost::shared_ptr<PageGeneratorBase>
-LocalPageGeneratorFactory::create(int level, int base_col, int base_row, int page_width, int page_height)
+LocalPageGeneratorFactory::create(uint32 level, uint32 base_col, uint32 base_row, uint32 page_width, uint32 page_height)
 {
   // Generate a filename
   std::ostringstream filename;
@@ -277,7 +277,7 @@ void LocalIndex::save_index_file() const {
     ifstr.close();
 
     // Load Index Levels for PagedIndex
-    for (int level = 0; level < this->num_levels(); ++level) {
+    for (uint32 level = 0; level < this->num_levels(); ++level) {
       boost::shared_ptr<IndexLevel> new_level( new IndexLevel(m_page_gen_factory, level,
             m_page_width, m_page_height,
             m_default_cache_size) );
@@ -406,7 +406,7 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
 // -----------------------    I/O      ----------------------
 
 /// Writing, pt. 1: Reserve a blob lock
-int LocalIndex::write_request(uint64 &size) {
+uint32 LocalIndex::write_request(uint64 &size) {
   return m_blob_manager->request_lock(size);
 }
 
@@ -428,7 +428,7 @@ void LocalIndex::write_update(TileHeader const& header, IndexRecord const& recor
 }
 
 /// Writing, pt. 3: Signal the completion
-void LocalIndex::write_complete(int blob_id, uint64 blob_offset) {
+void LocalIndex::write_complete(uint32 blob_id, uint64 blob_offset) {
   m_blob_manager->release_lock(blob_id, blob_offset);
 }
 

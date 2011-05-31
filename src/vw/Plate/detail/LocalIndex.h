@@ -35,8 +35,8 @@ namespace detail {
   public:
     /// Create or open a page file.
     LocalIndexPage(std::string filename,
-                   int level, int base_col, int base_row,
-                   int page_width, int page_height);
+                   uint32 level, uint32 base_col, uint32 base_row,
+                   uint32 page_width, uint32 page_height);
 
     virtual ~LocalIndexPage();
 
@@ -55,12 +55,12 @@ namespace detail {
   // loads a index page from disk.
   class LocalPageGenerator : public PageGeneratorBase {
     std::string m_filename;
-    int m_level, m_base_col, m_base_row;
-    int m_page_width, m_page_height;
+    uint32 m_level, m_base_col, m_base_row;
+    uint32 m_page_width, m_page_height;
 
   public:
-    LocalPageGenerator( std::string filename, int level, int base_col, int base_row,
-                        int page_width, int page_height );
+    LocalPageGenerator( std::string filename, uint32 level, uint32 base_col, uint32 base_row,
+                        uint32 page_width, uint32 page_height );
     virtual ~LocalPageGenerator() {}
 
     /// Generate an IndexPage.  If no file exists with the name
@@ -78,8 +78,8 @@ namespace detail {
       m_plate_filename(plate_filename) {}
     virtual ~LocalPageGeneratorFactory() {}
 
-    virtual boost::shared_ptr<PageGeneratorBase> create(int level, int base_col, int base_row,
-                                                        int page_width, int page_height);
+    virtual boost::shared_ptr<PageGeneratorBase> create(uint32 level, uint32 base_col, uint32 base_row,
+                                                        uint32 page_width, uint32 page_height);
 
     virtual std::string who() const;
   };
@@ -127,23 +127,23 @@ namespace detail {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(uint64 &size);
+    virtual uint32 write_request(uint64 &size);
 
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
     virtual void write_update(TileHeader const& header, IndexRecord const& record);
 
     /// Writing, pt. 3: Signal the completion
-    virtual void write_complete(int blob_id, uint64 blob_offset);
+    virtual void write_complete(uint32 blob_id, uint64 blob_offset);
 
     // ----------------------- PROPERTIES  ----------------------
 
-    virtual int version() const { return m_header.version(); }
+    virtual uint32 version() const { return m_header.version(); }
     virtual std::string platefile_name() const { return m_plate_filename; }
     virtual IndexHeader index_header() const { return m_header; }
-    virtual int32 tile_size() const { return m_header.tile_size(); }
+    virtual uint32 tile_size() const { return m_header.tile_size(); }
     virtual std::string tile_filetype() const { return m_header.tile_filetype(); }
-    virtual int32 num_levels() const { return m_header.num_levels(); }
+    virtual uint32 num_levels() const { return m_header.num_levels(); }
 
     virtual PixelFormatEnum pixel_format() const {
       return PixelFormatEnum(m_header.pixel_format());

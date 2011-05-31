@@ -52,8 +52,8 @@ class RemoteIndex::LogRequestSink : public io::sink {
 
 RemoteIndexPage::RemoteIndexPage(int platefile_id,
                                  boost::shared_ptr<IndexClient> client,
-                                 int level, int base_col, int base_row,
-                                 int page_width, int page_height)
+                                 uint32 level, uint32 base_col, uint32 base_row,
+                                 uint32 page_width, uint32 page_height)
   : IndexPage(level, base_col, base_row, page_width, page_height),
     m_platefile_id(platefile_id), m_client(client)
 {
@@ -133,8 +133,8 @@ void RemoteIndexPage::sync() {
 
 RemotePageGenerator::RemotePageGenerator( int platefile_id,
                                           boost::shared_ptr<IndexClient> client,
-                                          int level, int base_col, int base_row,
-                                          int page_width, int page_height)
+                                          uint32 level, uint32 base_col, uint32 base_row,
+                                          uint32 page_width, uint32 page_height)
   : m_platefile_id(platefile_id), m_client(client), m_level(level),
     m_base_col(base_col), m_base_row(base_row),
     m_page_width(page_width), m_page_height(page_height) {}
@@ -147,7 +147,7 @@ RemotePageGenerator::generate() const {
 }
 
 boost::shared_ptr<PageGeneratorBase>
-RemotePageGeneratorFactory::create(int level, int base_col, int base_row, int page_width, int page_height) {
+RemotePageGeneratorFactory::create(uint32 level, uint32 base_col, uint32 base_row, uint32 page_width, uint32 page_height) {
   //VW_ASSERT(m_platefile_id != -1 && m_rpc_controller && m_index_service,
   //          LogicErr() << "Error: RemotePageGeneratorFactory has not yet been initialized.");
 
@@ -255,7 +255,7 @@ RemoteIndex::~RemoteIndex() {}
 
 // Writing, pt. 1: Locks a blob and returns the blob id that can
 // be used to write a tile.
-int RemoteIndex::write_request(uint64 &size) {
+uint32 RemoteIndex::write_request(uint64 &size) {
   IndexWriteRequest request;
   request.set_platefile_id(m_platefile_id);
 
@@ -271,7 +271,7 @@ std::ostream& RemoteIndex::log() {
 }
 
 /// Writing, pt. 3: Signal the completion
-void RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
+void RemoteIndex::write_complete(uint32 blob_id, uint64 blob_offset) {
 
   // First we make sure that we flush the write queue by synchronizing
   // all of the pages back to the index_server!  Otherwise the write
@@ -316,7 +316,7 @@ void RemoteIndex::write_complete(int blob_id, uint64 blob_offset) {
 //   return results;
 // }
 
-vw::int32 RemoteIndex::num_levels() const {
+vw::uint32 RemoteIndex::num_levels() const {
   IndexNumLevelsRequest request;
   request.set_platefile_id(m_platefile_id);
   IndexNumLevelsReply response;
@@ -324,7 +324,7 @@ vw::int32 RemoteIndex::num_levels() const {
 
   // Make sure that the local (cached) number of levels matches the
   // number of levels on the server.
-  for (int level = boost::numeric_cast<int>(m_levels.size()); level < response.num_levels(); ++level) {
+  for (uint32 level = m_levels.size(); level < response.num_levels(); ++level) {
     boost::shared_ptr<IndexLevel> new_level(
         new IndexLevel(m_page_gen_factory, level, m_page_width, m_page_height, m_default_cache_size) );
     m_levels.push_back(new_level);
@@ -334,7 +334,7 @@ vw::int32 RemoteIndex::num_levels() const {
   return response.num_levels();
 }
 
-vw::int32 RemoteIndex::version() const {
+vw::uint32 RemoteIndex::version() const {
   return m_index_header.version();
 }
 
@@ -346,7 +346,7 @@ IndexHeader RemoteIndex::index_header() const {
   return m_index_header;
 }
 
-vw::int32 RemoteIndex::tile_size() const {
+vw::uint32 RemoteIndex::tile_size() const {
   return m_index_header.tile_size();
 }
 

@@ -42,8 +42,8 @@ namespace detail {
 
     RemoteIndexPage(int platefile_id,
                     boost::shared_ptr<IndexClient> client,
-                    int level, int base_col, int base_row,
-                    int page_width, int page_height);
+                    uint32 level, uint32 base_col, uint32 base_row,
+                    uint32 page_width, uint32 page_height);
 
     virtual ~RemoteIndexPage();
 
@@ -61,14 +61,14 @@ namespace detail {
   class RemotePageGenerator : public PageGeneratorBase {
     int m_platefile_id;
     boost::shared_ptr<IndexClient> m_client;
-    int m_level, m_base_col, m_base_row;
-    int m_page_width, m_page_height;
+    uint32 m_level, m_base_col, m_base_row;
+    uint32 m_page_width, m_page_height;
 
   public:
     RemotePageGenerator( int platefile_id,
                          boost::shared_ptr<IndexClient> client,
-                         int level, int base_col, int base_row,
-                         int page_width, int page_height );
+                         uint32 level, uint32 base_col, uint32 base_row,
+                         uint32 page_width, uint32 page_height );
     virtual ~RemotePageGenerator() {}
 
     /// Generate an IndexPage.  If no IndexPage exists on the Remote
@@ -88,7 +88,7 @@ namespace detail {
     virtual ~RemotePageGeneratorFactory() {}
 
     virtual boost::shared_ptr<PageGeneratorBase>
-    create(int level, int base_col, int base_row, int page_width, int page_height);
+    create(uint32 level, uint32 base_col, uint32 base_row, uint32 page_width, uint32 page_height);
 
     virtual std::string who() const;
   };
@@ -124,22 +124,22 @@ namespace detail {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual int write_request(uint64 &size);
+    virtual uint32 write_request(uint64 &size);
 
     /// Writing, pt. 3: Signal the completion
-    virtual void write_complete(int blob_id, uint64 blob_offset);
+    virtual void write_complete(uint32 blob_id, uint64 blob_offset);
 
     /// Log a message to the platefile log.
     virtual std::ostream& log();
 
     virtual IndexHeader index_header() const;
 
-    virtual int32 version() const;
-    virtual int32 num_levels() const;
+    virtual uint32 version() const;
+    virtual uint32 num_levels() const;
 
     virtual std::string platefile_name() const;
 
-    virtual int32 tile_size() const;
+    virtual uint32 tile_size() const;
     virtual std::string tile_filetype() const;
 
     virtual PixelFormatEnum pixel_format() const;

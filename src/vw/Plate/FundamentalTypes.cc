@@ -93,7 +93,7 @@ std::ostream& operator<<(std::ostream& o, const vw::platefile::TransactionRange&
 }
 
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TileHeader& hdr) {
-  return (o << hdr.col() << "," << hdr.row() << "@" << hdr.level() << " (t_id = " << hdr.transaction_id() << ")");
+  return (o << hdr.col() << "," << hdr.row() << "@" << hdr.level() << " (t_id = " << hdr.transaction_id() << ", type=" << hdr.filetype() << ")");
 }
 
 bool operator==(const vw::platefile::TileHeader& a, const vw::platefile::TileHeader& b) {

@@ -23,8 +23,8 @@ using namespace vw::platefile::detail;
 //                            INDEX PAGE
 // ----------------------------------------------------------------------
 
-IndexPage::IndexPage(int level, int base_col, int base_row,
-                     int page_width, int page_height) :
+IndexPage::IndexPage(uint32 level, uint32 base_col, uint32 base_row,
+                     uint32 page_width, uint32 page_height) :
   m_level(level), m_base_col(base_col), m_base_row(base_row),
   m_page_width(page_width), m_page_height(page_height) {
 
@@ -194,10 +194,7 @@ void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 ///   - Setting exact_match to true forces an exact transaction_id
 ///   match.
 ///
-IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id_neg, bool exact_match) const {
-
-  VW_ASSERT( col >= 0 && row >= 0,
-             TileNotFoundErr() << "IndexPage::get() failed.  Column and row indices must be positive.");
+IndexRecord IndexPage::get(uint32 col, uint32 row, TransactionOrNeg transaction_id_neg, bool exact_match) const {
 
   // Compute page_col and row
   int32 page_col = col % m_page_width;
@@ -246,7 +243,7 @@ IndexRecord IndexPage::get(int col, int row, TransactionOrNeg transaction_id_neg
 
 void IndexPage::append_if_in_region( std::list<TileHeader> &results,
                                      multi_value_type const& candidates,
-                                     int col, int row, BBox2i const& region,
+                                     uint32 col, uint32 row, BBox2i const& region,
                                      uint32 min_num_matches) const {
 
   // Check to see if the tile is in the specified region.
@@ -281,8 +278,8 @@ IndexPage::search_by_region(BBox2i const& region,
             ArgumentErr() << VW_CURRENT_FUNCTION << ": received a null set range ["
                           << start_transaction_id << "," << end_transaction_id << "]");
 
-  for (int row = 0; row < m_page_height; ++row) {
-    for (int col = 0; col < m_page_width; ++col) {
+  for (uint32 row = 0; row < m_page_height; ++row) {
+    for (uint32 col = 0; col < m_page_width; ++col) {
       if (m_sparse_table.test(row*m_page_width + col)) {
 
         // Iterate over entries.
@@ -335,16 +332,16 @@ IndexPage::search_by_region(BBox2i const& region,
 }
 
 std::list<TileHeader>
-IndexPage::search_by_location(int col, int row,
+IndexPage::search_by_location(uint32 col, uint32 row,
                               TransactionOrNeg start_transaction_id,
                               TransactionOrNeg end_transaction_id,
                               bool fetch_one_additional_entry) const {
 
-  int32 page_col = col % m_page_width;
-  int32 page_row = row % m_page_height;
+  uint32 page_col = col % m_page_width;
+  uint32 page_row = row % m_page_height;
 
   // Basic bounds checking
-  VW_ASSERT(page_col >= 0 && page_col < m_page_width && page_row >= 0 && page_row < m_page_height,
+  VW_ASSERT(page_col < m_page_width && page_row < m_page_height,
             TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index ["
             << page_col << " " << page_row << "]");
 

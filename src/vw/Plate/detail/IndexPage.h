@@ -34,20 +34,20 @@ namespace detail {
     typedef google::sparsetable<multi_value_type>::nonempty_iterator nonempty_iterator;
 
   protected:
-    int m_level, m_base_col, m_base_row;
-    int m_page_width, m_page_height;
+    uint32 m_level, m_base_col, m_base_row;
+    uint32 m_page_width, m_page_height;
     google::sparsetable<multi_value_type> m_sparse_table;
 
     void append_if_in_region( std::list<TileHeader> &results,
                               multi_value_type const& candidates,
-                              int col, int row, BBox2i const& region, uint32 min_num_matches) const;
+                              uint32 col, uint32 row, BBox2i const& region, uint32 min_num_matches) const;
 
 
   public:
 
     /// Create or open a page file.
-    IndexPage(int level, int base_col, int base_row,
-              int page_width, int page_height);
+    IndexPage(uint32 level, uint32 base_col, uint32 base_row,
+              uint32 page_width, uint32 page_height);
 
     virtual ~IndexPage();
 
@@ -81,7 +81,7 @@ namespace detail {
     ///   - Setting exact_match to true forces an exact transaction_id
     ///   match.
     ///
-    IndexRecord get(int col, int row, TransactionOrNeg transaction_id, bool exact_match = false) const;
+    IndexRecord get(uint32 col, uint32 row, TransactionOrNeg transaction_id, bool exact_match = false) const;
 
     /// Return multiple index entries that match the specified
     /// transaction id range.  This range is inclusive of the first
@@ -92,12 +92,12 @@ namespace detail {
     /// IndexRecord.
     ///
     /// Note: this function is mostly used when creating snapshots.
-    multi_value_type multi_get(int col, int row,
+    multi_value_type multi_get(uint32 col, uint32 row,
                                TransactionOrNeg begin_transaction_id, TransactionOrNeg end_transaction_id) const;
 
     /// Return the number of valid entries in this page.  (Remember
     /// that this is a sparse store of IndexRecords.)
-    int sparse_size() { return boost::numeric_cast<int>(m_sparse_table.num_nonempty()); }
+    uint32 sparse_size() { return boost::numeric_cast<uint32>(m_sparse_table.num_nonempty()); }
 
     /// Returns a list of valid tiles in this IndexPage.
     ///
@@ -117,7 +117,7 @@ namespace detail {
     /// IndexRecord.
     ///
     /// Note: this function is mostly used when creating snapshots.
-    std::list<TileHeader> search_by_location(int col, int row,
+    std::list<TileHeader> search_by_location(uint32 col, uint32 row,
                                              TransactionOrNeg start_transaction_id,
                                              TransactionOrNeg end_transaction_id,
                                              bool fetch_one_additional_entry) const;
@@ -144,8 +144,8 @@ namespace detail {
   public:
     virtual ~PageGeneratorFactory() {}
     virtual boost::shared_ptr<PageGeneratorBase>
-      create(int level, int base_col, int base_row,
-             int page_width, int page_height) = 0;
+      create(uint32 level, uint32 base_col, uint32 base_row,
+             uint32 page_width, uint32 page_height) = 0;
     // Who is this factory manufacturing pages for? (human-readable)
     virtual std::string who() const = 0;
   };

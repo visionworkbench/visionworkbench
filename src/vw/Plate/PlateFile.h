@@ -251,18 +251,12 @@ namespace platefile {
 
     /// Returns a list of valid tiles that match this level, region, and
     /// range of transaction_id's.  Returns a list of TileHeaders with
-    /// col/row/level and transaction_id of the most recent tile at each
-    /// valid location.  Note: there may be other tiles in the transaction
-    /// range at this col/row/level, but valid_tiles() only returns the
-    /// first one.
-    std::list<TileHeader>
-    search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
+    /// col/row/level and transaction_id of every tile at each valid location within the range.
+    std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
 
     /// Read one ore more images at a specified location in the
     /// platefile by specifying a range of transaction ids of
     /// interest.  This range is inclusive at both ends.
-    ///
-    /// This is mostly useful when compositing tiles during mipmapping.
     std::list<TileHeader>
     search_by_location(int col, int row, int level, const TransactionRange& range);
   };

@@ -44,7 +44,7 @@ class Blobstore : public Datastore {
 
     virtual meta_range     head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 1);
     virtual meta_range     head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1);
-    virtual tile_range populate(const TileHeader* hdrs, size_t len);
+    virtual tile_range populate(TileHeader* hdrs, size_t len);
 
     //virtual Url map_to_url(uint32 level, uint32 row, uint32 col, Transaction id, std::string filetype);
     //virtual Url map_to_url(const TileHeader& t);

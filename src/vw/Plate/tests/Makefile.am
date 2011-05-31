@@ -20,6 +20,7 @@ BUILT_SOURCES = $(protocol_sources)
 
 TestBlobIO_SOURCES            = TestBlobIO.cxx
 TestBlobManager_SOURCES       = TestBlobManager.cxx
+TestDatastore_SOURCES         = TestDatastore.cxx
 TestHTTPUtils_SOURCES         = TestHTTPUtils.cxx
 TestIndexPage_SOURCES         = TestIndexPage.cxx
 TestLocalIndex_SOURCES        = TestLocalIndex.cxx

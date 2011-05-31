@@ -60,7 +60,9 @@ namespace detail {
 
     /// Grab an IndexPage.  Useful if you want to serialize it by hand
     /// to disk.
-    virtual boost::shared_ptr<IndexPage> page_request(int col, int row, int level) const = 0;
+    virtual boost::shared_ptr<IndexPage> page_request(uint32 col, uint32 row, uint32 level) const = 0;
+
+    virtual uint64 page_id(uint32 col, uint32 row, uint32 level) const = 0;
 
     /// Attempt to access a tile in the index.  Throws an
     /// TileNotFoundErr if the tile cannot be found.
@@ -74,18 +76,18 @@ namespace detail {
     ///
     /// A transaction ID of -1 indicates that we should return the
     /// most recent tile, regardless of its transaction id.
-    virtual IndexRecord read_request(int col, int row, int depth, TransactionOrNeg transaction_id, bool exact_transaction_match = false) = 0;
+    virtual IndexRecord read_request(uint32 col, uint32 row, uint32 depth, TransactionOrNeg transaction_id, bool exact_transaction_match = false) = 0;
 
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.
-    virtual int write_request(uint64 &size) = 0;
+    virtual uint32 write_request(uint64 &size) = 0;
 
     /// Writing, pt. 2: Supply information to update the index and
     /// unlock the blob id.
     virtual void write_update(TileHeader const& header, IndexRecord const& record) = 0;
 
     /// Writing, pt. 3: Signal the completion of the write operation.
-    virtual void write_complete(int blob_id, uint64 blob_offset) = 0;
+    virtual void write_complete(uint32 blob_id, uint64 blob_offset) = 0;
 
 
     // ----------------------- PROPERTIES  ----------------------
@@ -96,7 +98,7 @@ namespace detail {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
-    virtual std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region,
+    virtual std::list<TileHeader> search_by_region(uint32 level, vw::BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
                                                    TransactionOrNeg end_transaction_id,
                                                    uint32 min_num_matches,
@@ -104,19 +106,19 @@ namespace detail {
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive at both ends.
-    virtual std::list<TileHeader> search_by_location(int col, int row, int level,
+    virtual std::list<TileHeader> search_by_location(uint32 col, uint32 row, uint32 level,
                                                      TransactionOrNeg start_transaction_id,
                                                      TransactionOrNeg end_transaction_id,
                                                      bool fetch_one_additional_entry = false) const = 0;
 
     virtual IndexHeader index_header() const = 0;
 
-    virtual int32 version() const = 0;
-    virtual int32 num_levels() const = 0;
+    virtual uint32 version() const = 0;
+    virtual uint32 num_levels() const = 0;
 
     virtual std::string platefile_name() const = 0;
 
-    virtual int32 tile_size() const = 0;
+    virtual uint32 tile_size() const = 0;
     virtual std::string tile_filetype() const = 0;
 
     virtual PixelFormatEnum pixel_format() const = 0;
