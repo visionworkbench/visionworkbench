@@ -101,15 +101,13 @@ namespace detail {
     virtual std::list<TileHeader> search_by_region(uint32 level, vw::BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
                                                    TransactionOrNeg end_transaction_id,
-                                                   uint32 min_num_matches,
-                                                   bool fetch_one_additional_entry = false) const = 0;
+                                                   uint32 min_num_matches) const = 0;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive at both ends.
     virtual std::list<TileHeader> search_by_location(uint32 col, uint32 row, uint32 level,
                                                      TransactionOrNeg start_transaction_id,
-                                                     TransactionOrNeg end_transaction_id,
-                                                     bool fetch_one_additional_entry = false) const = 0;
+                                                     TransactionOrNeg end_transaction_id) const = 0;
 
     virtual IndexHeader index_header() const = 0;
 

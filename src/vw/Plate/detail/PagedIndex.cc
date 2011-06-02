@@ -125,8 +125,7 @@ std::list<TileHeader>
 IndexLevel::search_by_region(BBox2i const& region,
                              TransactionOrNeg start_transaction_id,
                              TransactionOrNeg end_transaction_id,
-                             uint32 min_num_matches,
-                             bool fetch_one_additional_entry) const {
+                             uint32 min_num_matches) const {
 
   // Start by computing the search range in pages based on the requested region.
   int32 min_level_col = region.min().x() / m_page_width;
@@ -144,7 +143,7 @@ IndexLevel::search_by_region(BBox2i const& region,
       boost::shared_ptr<IndexPage> page = load_page(level_col * m_page_width, level_row * m_page_height);
 
       // Accumulate valid tiles that overlap with region from this IndexPage.
-      std::list<TileHeader> sub_result = page->search_by_region(region, start_transaction_id, end_transaction_id, min_num_matches, fetch_one_additional_entry);
+      std::list<TileHeader> sub_result = page->search_by_region(region, start_transaction_id, end_transaction_id, min_num_matches);
       result.splice(result.end(), sub_result);
     }
   }
@@ -155,11 +154,10 @@ IndexLevel::search_by_region(BBox2i const& region,
 std::list<TileHeader>
 IndexLevel::search_by_location(uint32 col, uint32 row,
                                TransactionOrNeg start_transaction_id,
-                               TransactionOrNeg end_transaction_id,
-                               bool fetch_one_additional_entry) const {
+                               TransactionOrNeg end_transaction_id) const {
 
   boost::shared_ptr<IndexPage> page = load_page(col, row);
-  return page->search_by_location(col, row, start_transaction_id, end_transaction_id, fetch_one_additional_entry);
+  return page->search_by_location(col, row, start_transaction_id, end_transaction_id);
 }
 
 
@@ -236,31 +234,24 @@ void PagedIndex::write_update(TileHeader const& header, IndexRecord const& recor
 std::list<TileHeader>
 PagedIndex::search_by_region(uint32 level, BBox2i const& region,
                              TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
-                             uint32 min_num_matches,
-                             bool fetch_one_additional_entry) const {
+                             uint32 min_num_matches) const {
 
   // If the level does not exist, we return an empty list.
   if (level >= m_levels.size())
     return std::list<TileHeader>();
 
   // Otherwise, we delegate to the search_by_region() method for that level.
-  return m_levels[level]->search_by_region(region,
-                                           start_transaction_id, end_transaction_id,
-                                           min_num_matches, fetch_one_additional_entry);
+  return m_levels[level]->search_by_region(region, start_transaction_id, end_transaction_id, min_num_matches);
 }
 
 std::list<TileHeader>
 PagedIndex::search_by_location(uint32 col, uint32 row, uint32 level,
-                               TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
-                               bool fetch_one_additional_entry = false) const {
+                               TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id) const {
 
   // If the level does not exist, we return an empty list.
   if (level >= m_levels.size())
     return std::list<TileHeader>();
 
   // Otherwise, we delegate to the search_by_location() method for that level.
-  return m_levels[level]->search_by_location(col, row,
-                                             start_transaction_id, end_transaction_id,
-                                             fetch_one_additional_entry);
-
+  return m_levels[level]->search_by_location(col, row, start_transaction_id, end_transaction_id);
 }

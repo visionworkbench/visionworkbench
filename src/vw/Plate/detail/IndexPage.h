@@ -105,8 +105,7 @@ namespace detail {
     std::list<TileHeader> search_by_region(vw::BBox2i const& region,
                                            TransactionOrNeg start_transaction_id,
                                            TransactionOrNeg end_transaction_id,
-                                           uint32 min_num_matches,
-                                           bool fetch_one_additional_entry) const;
+                                           uint32 min_num_matches) const;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive of the first
@@ -119,8 +118,7 @@ namespace detail {
     /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> search_by_location(uint32 col, uint32 row,
                                              TransactionOrNeg start_transaction_id,
-                                             TransactionOrNeg end_transaction_id,
-                                             bool fetch_one_additional_entry) const;
+                                             TransactionOrNeg end_transaction_id) const;
 
   };
 

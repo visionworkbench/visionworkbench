@@ -269,8 +269,7 @@ std::list<TileHeader>
 IndexPage::search_by_region(BBox2i const& region,
                             TransactionOrNeg start_transaction_id,
                             TransactionOrNeg end_transaction_id,
-                            uint32 min_num_matches,
-                            bool fetch_one_additional_entry) const {
+                            uint32 min_num_matches) const {
   std::list<TileHeader> results;
 
   // empty range means something broke upstream
@@ -308,17 +307,9 @@ IndexPage::search_by_region(BBox2i const& region,
 
           // now iterate from that one until we go outside the transaction range.
           BOOST_FOREACH(const value_type& v, boost::make_iterator_range(begin, entries.end())) {
-            if (v.first >= start_transaction_id)
-              candidates.push_back(v);
-            else {
-              // For snapshotting, we need to fetch one additional entry
-              // outside of the specified range.  This next tile represents the
-              // "top" tile in the mosaic for entries that may not have been
-              // part of the last snapshot.
-              if (fetch_one_additional_entry)
-                candidates.push_back(v);
+            if (v.first < start_transaction_id)
               break;
-            }
+            candidates.push_back(v);
           }
         }
 
@@ -351,32 +342,19 @@ IndexPage::search_by_location(uint32 col, uint32 row,
 
   // If there are, then we apply the transaction_id filters to select the requested ones.
   std::list<TileHeader> results;
-  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
-  multi_value_type::const_iterator it = entries.begin();
-  while (it != entries.end() && it->first >= start_transaction_id) {
-    if (it->first >= start_transaction_id && it->first <= end_transaction_id) {
+
+  BOOST_FOREACH(const value_type& elt, m_sparse_table[page_row*m_page_width + page_col]) {
+    if (elt.first < start_transaction_id)
+      break;
+    if (elt.first <= end_transaction_id) {
       TileHeader hdr;
       hdr.set_col( m_base_col + page_col );
       hdr.set_row( m_base_row + page_row );
       hdr.set_level(m_level);
-      hdr.set_transaction_id(it->first);
-      hdr.set_filetype(it->second.filetype());
+      hdr.set_transaction_id(elt.first);
+      hdr.set_filetype(elt.second.filetype());
       results.push_back(hdr);
     }
-    ++it;
-  }
-
-  // For snapshotting, we need to fetch one additional entry
-  // outside of the specified range.  This next tile
-  // represents the "top" tile in the mosaic for entries that
-  // may not have been part of the last snapshot.
-  if (fetch_one_additional_entry && it != entries.end()) {
-    TileHeader hdr;
-    hdr.set_col( m_base_col + page_col );
-    hdr.set_row( m_base_row + page_row );
-    hdr.set_level(m_level);
-    hdr.set_transaction_id(it->first);
-    results.push_back(hdr);
   }
 
   return results;

@@ -91,7 +91,7 @@ Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, Tran
     << ", limit=" << limit << ")" << std::endl;
 
   {
-    std::list<TileHeader> hdrs = m_index->search_by_location(col, row, level, range.first(), range.last(), false);
+    std::list<TileHeader> hdrs = m_index->search_by_location(col, row, level, range.first(), range.last());
     size_t len = hdrs.size();
     if (limit > 0 && len > limit) {
       hdrs.resize(limit);
@@ -115,7 +115,7 @@ Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, Tran
     << ", limit=" << limit << ")" << std::endl;
 
   {
-    std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last(), 0, false);
+    std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last(), 0);
     size_t len = hdrs.size();
     if (limit > 0 && len > limit) {
       hdrs.resize(limit);

@@ -67,13 +67,11 @@ namespace detail {
     std::list<TileHeader> search_by_region(BBox2i const& region,
                                            TransactionOrNeg start_transaction_id,
                                            TransactionOrNeg end_transaction_id,
-                                           uint32 min_num_matches,
-                                           bool fetch_one_additional_entry) const;
+                                           uint32 min_num_matches) const;
 
     /// Returns a list of valid tiles at this level and specified location
     std::list<TileHeader> search_by_location(uint32 col, uint32 row,
-                                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
-                                             bool fetch_one_additional_entry = false) const;
+                                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id) const;
   };
 
   // --------------------------------------------------------------------
@@ -160,15 +158,13 @@ namespace detail {
     virtual std::list<TileHeader> search_by_region(uint32 level, BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
                                                    TransactionOrNeg end_transaction_id,
-                                                   uint32 min_num_matches,
-                                                   bool fetch_one_additional_entry) const;
+                                                   uint32 min_num_matches) const;
 
     /// Returns a list of tile headers for a given tile location in
     /// the mosaic, subject to the specified transaction_id range.
     virtual std::list<TileHeader> search_by_location(uint32 col, uint32 row, uint32 level,
                                                      TransactionOrNeg start_transaction_id,
-                                                     TransactionOrNeg end_transaction_id,
-                                                     bool fetch_one_additional_entry) const;
+                                                     TransactionOrNeg end_transaction_id) const;
 
   };
 
