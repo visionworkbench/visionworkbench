@@ -138,11 +138,6 @@ void PlateFile::write_complete() {
 ///
 /// A transaction ID of -1 indicates that we should return the
 /// most recent tile, regardless of its transaction id.
-//IndexRecord PlateFile::read_record(int col, int row, int level,
-//                                                                 TransactionOrNeg transaction_id,
-//                                                                 bool exact_transaction_match) {
-//  return m_index->read_request(col, row, level, transaction_id, exact_transaction_match);
-//}
 
 void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type_) {
 

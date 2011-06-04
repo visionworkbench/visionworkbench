@@ -63,10 +63,12 @@ class Datastore {
     //virtual Transaction transaction_write_cursor() const = 0;
 
     // TILE READ. limit is the limit within a single tile slot
-    virtual meta_range     head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 1) = 0;
-    virtual meta_range     head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1) = 0;
-    virtual tile_range      get(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 1);
-    virtual tile_range      get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 1);
+    // head()'s return order will be in transaction order, descending.
+    // get()'s  return order will be arbitrary.
+    virtual meta_range     head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0) = 0;
+    virtual meta_range     head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0) = 0;
+    virtual tile_range      get(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0);
+    virtual tile_range      get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0);
 
     // The return of this is not guaranteed to be 'len' elements; if errors
     // occur on some of the fetches, they will be dropped. Order is not
