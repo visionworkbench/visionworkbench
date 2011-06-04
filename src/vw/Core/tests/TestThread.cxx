@@ -147,3 +147,9 @@ TEST(Thread, TimedWait) {
   EXPECT_FALSE(c.timed_wait(m, 0, ReturnFalse()));
   EXPECT_TRUE (c.timed_wait(m, 0, ReturnTrue()));
 }
+
+TEST(Thread, ReaderLock) {
+  Mutex m;
+  Mutex::ReadLock lock1(m);
+  Mutex::ReadLock lock2(m);
+}

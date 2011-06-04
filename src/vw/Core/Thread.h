@@ -79,25 +79,33 @@ namespace vw {
   // --------------------------------------------------------------
 
   // A simple mutual exclusion class.
-  class Mutex : private boost::mutex {
+  class Mutex : private boost::shared_mutex {
 
-    friend class Lock;
+    friend class WriteLock;
+    friend class ReadLock;
 
   public:
     inline Mutex() {}
 
-    void lock()   { boost::mutex::lock(); }
-    void unlock() { boost::mutex::unlock(); }
+    void lock()          { boost::shared_mutex::lock(); }
+    void lock_shared()   { boost::shared_mutex::lock_shared(); }
+    void unlock()        { boost::shared_mutex::unlock(); }
+    void unlock_shared() { boost::shared_mutex::unlock_shared(); }
 
     // A scoped lock class, used to lock and unlock a Mutex.
-    class Lock : private boost::unique_lock<Mutex>,
-                 private boost::noncopyable {
-
-    public:
-      inline Lock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
-      void lock()   { boost::unique_lock<Mutex>::lock(); }
-      void unlock() { boost::unique_lock<Mutex>::unlock(); }
+    class WriteLock : private boost::unique_lock<Mutex>, private boost::noncopyable {
+      public:
+        inline WriteLock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
+        void lock()       { boost::unique_lock<Mutex>::lock(); }
+        void unlock()     { boost::unique_lock<Mutex>::unlock(); }
     };
+    class ReadLock : private boost::shared_lock<Mutex>, private boost::noncopyable {
+      public:
+        inline ReadLock( Mutex &mutex ) : boost::shared_lock<Mutex>( mutex ) {}
+        void lock()       { boost::shared_lock<Mutex>::lock(); }
+        void unlock()     { boost::shared_lock<Mutex>::unlock(); }
+    };
+    typedef class WriteLock Lock;
   };
 
   // A simple mutual exclusion class.
