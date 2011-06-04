@@ -253,7 +253,7 @@ void IndexPage::append_if_in_region( std::list<TileHeader> &results,
     hdr.set_col( m_base_col + col );
     hdr.set_row( m_base_row + row );
     hdr.set_level(m_level);
-
+    hdr.set_filetype(candidates.begin()->second.filetype());
     // Return the transaction ID of the first result in the list.
     hdr.set_transaction_id(candidates.begin()->first);
     results.push_back(hdr);
