@@ -192,11 +192,11 @@ namespace {
 // You can overload this method from a subclass to change the
 // behavior of the LogRuleSet.
 bool vw::LogRuleSet::operator() (int log_level, std::string const& log_namespace) {
-  Mutex::Lock lock(m_mutex);
+  Mutex::ReadLock lock(m_mutex);
 
   std::string lower_namespace = boost::to_lower_copy(log_namespace);
 
-  for (rules_type::iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
+  for (rules_type::const_iterator it = m_rules.begin(); it != m_rules.end(); ++it) {
     const int&         rule_lvl = it->first;
     const std::string& rule_ns  = it->second;
 
