@@ -97,10 +97,7 @@ namespace platefile {
 
   namespace detail {
     BBox2i move_down(const BBox2i& input, uint32 level_change) {
-      BBox2i output(input);
-      output.min() *= 1<<(level_change+1);
-      output.max() *= 1<<(level_change+1);
-      return output;
+      return input * (1 << level_change);
     }
 
     void collect(boost::shared_ptr<PlateFile> plate, tilemap_t& all_tiles, uint32 col, uint32 row, uint32 level, vw::BBox2i const& target_region, uint32 target_level, const TransactionRange& range)
