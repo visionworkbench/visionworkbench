@@ -248,16 +248,8 @@ void IndexPage::append_if_in_region( std::list<TileHeader> &results,
 
   // Check to see if the tile is in the specified region.
   Vector2i loc( m_base_col + col, m_base_row + row);
-  if ( region.contains( loc ) && candidates.size() >= min_num_matches ) {
-    TileHeader hdr;
-    hdr.set_col( m_base_col + col );
-    hdr.set_row( m_base_row + row );
-    hdr.set_level(m_level);
-    hdr.set_filetype(candidates.begin()->second.filetype());
-    // Return the transaction ID of the first result in the list.
-    hdr.set_transaction_id(candidates.begin()->first);
-    results.push_back(hdr);
-  }
+  if ( region.contains( loc ) && candidates.size() >= min_num_matches )
+    results.push_back(hdr_from_index(col, row, *candidates.begin()));
 }
 
 /// Returns a list of valid tiles in this IndexPage.  Returns a list
@@ -270,13 +262,13 @@ IndexPage::search_by_region(BBox2i const& region,
                             TransactionOrNeg start_transaction_id,
                             TransactionOrNeg end_transaction_id,
                             uint32 min_num_matches) const {
-  std::list<TileHeader> results;
 
   // empty range means something broke upstream
   VW_ASSERT(start_transaction_id <= end_transaction_id,
             ArgumentErr() << VW_CURRENT_FUNCTION << ": received a null set range ["
                           << start_transaction_id << "," << end_transaction_id << "]");
 
+  std::list<TileHeader> results;
   for (uint32 row = 0; row < m_page_height; ++row) {
     for (uint32 col = 0; col < m_page_width; ++col) {
       if (m_sparse_table.test(row*m_page_width + col)) {
@@ -299,21 +291,14 @@ IndexPage::search_by_region(BBox2i const& region,
           // those with many entries (i.e. tiles near the root of the
           // mosaic), you will most likely be searching for recently
           // added tiles, which are sorted to the beginning.
-
-          // Transactions are stored in descending order. Find the first one that is <= end_transaction_id
-          multi_value_type::const_iterator begin =
-            std::find_if(entries.begin(), entries.end(),
-                         boost::bind(std::greater_equal<TransactionOrNeg>(), end_transaction_id, boost::bind(&value_type::first,_1)));
-
-          // now iterate from that one until we go outside the transaction range.
-          BOOST_FOREACH(const value_type& v, boost::make_iterator_range(begin, entries.end())) {
-            if (v.first < start_transaction_id)
+          BOOST_FOREACH(const value_type& elt, entries) {
+            if (elt.first < start_transaction_id)
               break;
-            candidates.push_back(v);
+            if (elt.first >= end_transaction_id)
+              candidates.push_back(elt);
           }
         }
 
-        // Do the region check.
         append_if_in_region( results, candidates, col, row, region, min_num_matches );
       }
     }
@@ -325,35 +310,34 @@ IndexPage::search_by_region(BBox2i const& region,
 std::list<TileHeader>
 IndexPage::search_by_location(uint32 col, uint32 row,
                               TransactionOrNeg start_transaction_id,
-                              TransactionOrNeg end_transaction_id,
-                              bool fetch_one_additional_entry) const {
+                              TransactionOrNeg end_transaction_id) const {
+
+  // empty range means something broke upstream
+  VW_ASSERT(start_transaction_id <= end_transaction_id,
+            ArgumentErr() << VW_CURRENT_FUNCTION << ": received a null set range ["
+                          << start_transaction_id << "," << end_transaction_id << "]");
 
   uint32 page_col = col % m_page_width;
   uint32 page_row = row % m_page_height;
 
-  // Basic bounds checking
-  VW_ASSERT(page_col < m_page_width && page_row < m_page_height,
-            TileNotFoundErr() << "IndexPage::read_headers() failed.  Invalid index ["
-            << page_col << " " << page_row << "]");
+  std::list<TileHeader> results;
 
   // Check first to make sure that there are actually tiles at this location.
   if (!m_sparse_table.test(page_row*m_page_width + page_col))
-    return std::list<TileHeader>();
+    return results;
 
-  // If there are, then we apply the transaction_id filters to select the requested ones.
-  std::list<TileHeader> results;
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
+  if (entries.size() == 0)
+    return results;
 
-  BOOST_FOREACH(const value_type& elt, m_sparse_table[page_row*m_page_width + page_col]) {
-    if (elt.first < start_transaction_id)
-      break;
-    if (elt.first <= end_transaction_id) {
-      TileHeader hdr;
-      hdr.set_col( m_base_col + page_col );
-      hdr.set_row( m_base_row + page_row );
-      hdr.set_level(m_level);
-      hdr.set_transaction_id(elt.first);
-      hdr.set_filetype(elt.second.filetype());
-      results.push_back(hdr);
+  if (start_transaction_id.newest() && end_transaction_id.newest())
+    results.push_back(hdr_from_index(page_col, page_row, *entries.begin()));
+  else {
+    BOOST_FOREACH(const value_type& elt, entries) {
+      if (elt.first < start_transaction_id)
+        break;
+      if (elt.first <= end_transaction_id)
+        results.push_back(hdr_from_index(page_col, page_row, elt));
     }
   }
 

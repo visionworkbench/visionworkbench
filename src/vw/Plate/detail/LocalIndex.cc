@@ -157,7 +157,7 @@ std::vector<std::string> LocalIndex::blob_filenames() const {
   std::vector<std::string> result;
 
   if ( !fs::exists( m_plate_filename ) )
-    vw_throw(IOErr() << "LocalIndex::blob_filenames() -- could not open platefile directory.");
+    vw_throw(IOErr() << "Could not list blob filenames for plate (" << m_plate_filename << "): no such directory");
 
   boost::regex re("plate_(\\d+)\\.blob");
   typedef fs::directory_iterator iter_t;
@@ -262,7 +262,7 @@ void LocalIndex::save_index_file() const {
   void LocalIndex::open_impl() {
     // First, check to make sure the platefile directory exists.
     if ( !fs::exists( m_plate_filename ) )
-      vw_throw(IOErr() << "Could not open platefile: \"" << m_plate_filename << "\" for reading.");
+      vw_throw(ArgumentErr() << "Could not open local platefile (" << m_plate_filename << "): no such directory");
 
     // The load the index file & parse the IndexHeader protobuffer
     std::ifstream ifstr( this->index_filename().c_str() );

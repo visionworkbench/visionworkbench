@@ -42,6 +42,15 @@ namespace detail {
                               multi_value_type const& candidates,
                               uint32 col, uint32 row, BBox2i const& region, uint32 min_num_matches) const;
 
+    TileHeader hdr_from_index(uint32 rel_col, uint32 rel_row, const value_type& elt) const {
+      TileHeader hdr;
+      hdr.set_col( m_base_col + rel_col );
+      hdr.set_row( m_base_row + rel_row );
+      hdr.set_level(m_level);
+      hdr.set_transaction_id(elt.first);
+      hdr.set_filetype(elt.second.filetype());
+      return hdr;
+    }
 
   public:
 

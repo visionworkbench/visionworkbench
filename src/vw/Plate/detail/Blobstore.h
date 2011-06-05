@@ -23,11 +23,11 @@ class Blobstore : public Datastore {
   private:
     boost::shared_ptr<Index> m_index;
 
+    vw::Cache m_read_cache;
+    vw::Mutex m_handle_lock;
     // these blob cache bits should only be touched inside open_blob
     typedef Cache::Handle<BlobOpener> handle_t;
     std::map<uint32, handle_t> m_handles;
-    vw::Cache m_read_cache;
-    vw::Mutex m_handle_lock;
     boost::shared_ptr<ReadBlob>  open_read_blob(uint32 blob_id);
     boost::shared_ptr<Blob>     open_write_blob(uint32 blob_id);
 

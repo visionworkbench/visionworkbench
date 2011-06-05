@@ -43,7 +43,7 @@ IndexLevel::IndexLevel(boost::shared_ptr<PageGeneratorFactory> page_gen_factory,
 uint32 IndexLevel::page_id(uint32 col, uint32 row) const {
   const size_t MAX_IDX = 1 << m_level;
   VW_ASSERT( col < MAX_IDX && row < MAX_IDX,
-             LogicErr() << "IndexLevel::page_id(" << col << "," << row << ") (level=" << m_level << "): Invalid index");
+             TileNotFoundErr() << "IndexLevel::page_id(" << col << "," << row << ") (level=" << m_level << "): Invalid index");
 
   uint32 page_col = col / m_page_width;
   uint32 page_row = row / m_page_height;
