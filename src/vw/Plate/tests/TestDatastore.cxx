@@ -18,18 +18,8 @@ using namespace vw::platefile;
 using namespace vw::test;
 
 struct IDatastore : public ::testing::Test {
-  TemporaryFile m_url;
-  std::string m_fn;
-
-  IDatastore() : m_url(TEST_OBJDIR), m_fn(m_url.filename()) {
-    m_url.flush();
-    fs::remove(m_fn);
-  }
-
-  ~IDatastore() {
-    fs::remove_all(m_fn);
-  }
-
+  boost::scoped_ptr<TemporaryFile> m_tmpfile;
+  std::string m_url;
   IndexHeader m_hdr;
 
   void SetUp() {
@@ -38,9 +28,16 @@ struct IDatastore : public ::testing::Test {
     m_hdr.set_pixel_format(VW_PIXEL_RGBA);
     m_hdr.set_channel_type(VW_CHANNEL_UINT8);
     m_hdr.set_type("test");
+
+    m_tmpfile.reset(new TemporaryFile(TEST_OBJDIR));
+    m_url = m_tmpfile->filename();
+    m_tmpfile.reset();
+    fs::remove_all(m_url);
   }
 
-  void TearDown() { }
+  void TearDown() {
+    fs::remove_all(m_url);
+  }
 };
 
 namespace {
@@ -54,10 +51,10 @@ namespace {
 
 TEST_F(IDatastore, Creation) {
   boost::scoped_ptr<Datastore> store;
-  ASSERT_THROW(store.reset(Datastore::open(m_fn)), ArgumentErr);
-  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
+  ASSERT_THROW(store.reset(Datastore::open(m_url)), ArgumentErr);
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
   store.reset();
-  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn)));
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_url)));
 
   IndexHeader hdr = store->index_header();
   EXPECT_EQ(m_hdr.tile_size(),     hdr.tile_size());
@@ -78,7 +75,7 @@ bool SortTilesByTidASC(const Tile& a, const Tile& b) {
 
 TEST_F(IDatastore, TwoInsert) {
   boost::scoped_ptr<Datastore> store;
-  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
   Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
   EXPECT_EQ(0, r.size());
@@ -131,7 +128,7 @@ TEST_F(IDatastore, TwoInsert) {
 
 TEST_F(IDatastore, InsertRegion) {
   boost::scoped_ptr<Datastore> store;
-  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
   Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
   EXPECT_EQ(0, r.size());
@@ -189,6 +186,6 @@ TEST_F(IDatastore, InsertRegion) {
 
 //TEST_F(IDatastore, DiffType) {
 //  boost::scoped_ptr<Datastore> store;
-//  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn)));
+//  ASSERT_NO_THROW(store.reset(Datastore::open(m_url)));
 //  Transaction id = store->transaction_begin("insert test3");
 //}
