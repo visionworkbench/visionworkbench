@@ -7,15 +7,30 @@
 
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
+#include <vw/Plate/Datastore.h>
+#include <vw/Core/TemporaryFile.h>
+#include <boost/filesystem/operations.hpp>
+namespace fs = boost::filesystem;
 
 using namespace std;
 using namespace vw;
 using namespace vw::platefile;
 using namespace vw::test;
 
-struct IDatastore : public ::testing::TestWithParam<Url> {
-  static const char TYPE1[];
-  static const char TYPE2[];
+struct IDatastore : public ::testing::Test {
+  TemporaryFile m_url;
+  std::string m_fn;
+
+  IDatastore() : m_url(TEST_OBJDIR), m_fn(m_url.filename()) {
+    m_url.flush();
+    fs::remove(m_fn);
+  }
+
+  ~IDatastore() {
+    fs::remove_all(m_fn);
+  }
+
+  IndexHeader m_hdr;
 
   void SetUp() {
     m_hdr.set_tile_size(256);
@@ -25,75 +40,87 @@ struct IDatastore : public ::testing::TestWithParam<Url> {
     m_hdr.set_type("test");
   }
 
-  void TearDown() {
-    clients.resize(0);
-    server.reset();
-  }
+  void TearDown() { }
 };
-static const char IDatastore::TYPE[] = "test";
-static const char IDatastore::TYPE[] = "test2";
 
-TEST_P(IDatastore, Creation) {
-  boost::scoped_ptr<Datastore> store;
-  EXPECT_THROW(store = Datastore::open(GetParam()), ArgumentErr);
-  EXPECT_NO_THROW(store = Datastore::open(GetParam(), m_hdr));
-  store.reset();
-  EXPECT_NO_THROW(store = Datastore::open(GetParam()));
-  EXPECT_EQ(m_hdr, store->index_header());
+namespace {
+  typedef uint32 val_t;
+
+  static const char TYPE1[] = "test";
+  static const char TYPE2[] = "test2";
+  static const val_t vA = 6765, vB = 10946, vC = 17711, vD = 28657, vE = 46368, vF = 75025, vG = 121393;
+
 }
 
-TEST_P(IDatastore, Insert) {
-
+TEST_F(IDatastore, Creation) {
   boost::scoped_ptr<Datastore> store;
-  EXPECT_NO_THROW(store = Datastore::open(GetParam()));
+  ASSERT_THROW(store.reset(Datastore::open(m_fn)), ArgumentErr);
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
+  store.reset();
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn)));
+
+  IndexHeader hdr = store->index_header();
+  EXPECT_EQ(m_hdr.tile_size(),     hdr.tile_size());
+  EXPECT_EQ(m_hdr.tile_filetype(), hdr.tile_filetype());
+  EXPECT_EQ(m_hdr.pixel_format(),  hdr.pixel_format());
+  EXPECT_EQ(m_hdr.channel_type(),  hdr.channel_type());
+  EXPECT_EQ(m_hdr.type(),          hdr.type());
+  EXPECT_EQ(m_hdr.description(),   hdr.description());
+
+  EXPECT_EQ(0, hdr.num_levels());
+  EXPECT_EQ(0, hdr.transaction_read_cursor());
+  EXPECT_EQ(1, hdr.transaction_write_cursor());
+}
+
+bool SortTilesByTidASC(const Tile& a, const Tile& b) {
+  return a.hdr.transaction_id() < b.hdr.transaction_id();
+}
+
+TEST_F(IDatastore, TwoInsert) {
+  boost::scoped_ptr<Datastore> store;
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
 
   Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
   EXPECT_EQ(0, r.size());
 
-  boost::scoped_ptr<Datastore::WriteState> state1, state2;
-  Transaction id1, id2;
+  boost::scoped_ptr<WriteState> state1, state2;
+  Transaction id1(0), id2(0);
 
-  EXPECT_THROW(state1 = store->write_request(1), LogicErr);
-  EXPECT_NO_THROW(id1 = store->transaction_begin("insert test1"));
-  EXPECT_NO_THROW(id2 = store->transaction_begin("insert test2"));
+  // ideally this would throw, but not sure how to detect if a transaction has never been started.
+  // ASSERT_THROW(state1.reset(store->write_request(1)), LogicErr);
+  ASSERT_NO_THROW(id1 = store->transaction_begin("insert test1"));
+  ASSERT_NO_THROW(id2 = store->transaction_begin("insert test2"));
   EXPECT_GT(id2, id1);
 
-  EXPECT_NO_THROW(state1 = store->write_request(id1));
-  EXPECT_NO_THROW(state2 = store->write_request(id2));
+  ASSERT_NO_THROW(state1.reset(store->write_request(id1)));
+  ASSERT_NO_THROW(state2.reset(store->write_request(id2)));
 
-  typedef uint32 val_t;
-  static const val_t FIRST_VAL = 42;
-  val_t val(FIRST_VAL);
+  store->write_update(*state1, 0, 0, 0, TYPE1, reinterpret_cast<const uint8*>(&vA), sizeof(val_t));
+  store->write_update(*state2, 0, 0, 0, TYPE1, reinterpret_cast<const uint8*>(&vB), sizeof(val_t));
 
-  store->write_update(*state1, 0, 0, 0, TYPE1, (char*)&val, sizeof(val_t));
-  val++;
-  store->write_update(*state2, 0, 0, 0, TYPE1, (char*)&val, sizeof(val_t));
+  r = store->head(0, 0, 0, TransactionRange(-1));       EXPECT_EQ(1, r.size());
+  r = store->head(0, 0, 0, TransactionRange(id1));      EXPECT_EQ(1, r.size());
+  r = store->head(0, 0, 0, TransactionRange(id2));      EXPECT_EQ(1, r.size());
+  r = store->head(0, 0, 0, TransactionRange(id2+1));    EXPECT_EQ(0, r.size());
+  r = store->head(0, 0, 0, TransactionRange(id1, id2)); EXPECT_EQ(2, r.size());
 
-  r = store->head(0, 0, 0, TransactionRange(-1));
-  EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id1));
-  EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id2));
-  EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id2+1));
-  EXPECT_EQ(0, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id1, id2));
-  EXPECT_EQ(2, r.size());
   // Transactions should be returned in DESC order
-  EXPECT_GT(r[0].transaction_id() > r[1].transaction_id());
+  ASSERT_GT(r[0].transaction_id(), r[1].transaction_id());
 
   Datastore::tile_range tiles = store->populate(&(*r.begin()), r.end()-r.begin());
   EXPECT_EQ(2, tiles.size());
-  EXPECT_EQ(FIRST_VAL+1, *reinterpret_cast<val_t*>(&tiles[0].data->operator[](0)))
-  EXPECT_EQ(FIRST_VAL,   *reinterpret_cast<val_t*>(&tiles[1].data->operator[](0)))
+  vector<Tile> ret(tiles.begin(), tiles.end());
+  sort(ret.begin(), ret.end(), SortTilesByTidASC);
 
-  val++;
-  store->write_update(*state1, 0, 0, 0, TYPE2, (char*)&val, sizeof(val_t));
+  EXPECT_EQ(vA, *reinterpret_cast<val_t*>(&ret[0].data->operator[](0)));
+  EXPECT_EQ(vB, *reinterpret_cast<val_t*>(&ret[1].data->operator[](0)));
 
-  tiles = store->get(0, 0, 0, id1);
+  store->write_update(*state1, 0, 0, 0, TYPE2, reinterpret_cast<const uint8*>(&vC), sizeof(val_t));
+
+  tiles = store->get(0, 0, 0, TransactionRange(id1));
   EXPECT_EQ(1, tiles.size());
   EXPECT_EQ(string(TYPE2), tiles[0].hdr.filetype());
-  EXPECT_EQ(FIRST_VAL+2, *reinterpret_cast<val_t*>(&tiles[0].data->operator[](0)));
+  EXPECT_EQ(vC, *reinterpret_cast<val_t*>(&tiles[0].data->operator[](0)));
 
   store->write_complete(*state1);
   store->write_complete(*state2);
@@ -102,22 +129,66 @@ TEST_P(IDatastore, Insert) {
   store->transaction_end(id2, true);
 }
 
-TEST_P(IDatastore, DiffType) {
+TEST_F(IDatastore, InsertRegion) {
   boost::scoped_ptr<Datastore> store;
-  EXPECT_NO_THROW(store = Datastore::open(GetParam()));
-  Transaction id = store->transaction_begin("insert test3");
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn, m_hdr)));
+
+  Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
+  EXPECT_EQ(0, r.size());
+
+  boost::scoped_ptr<WriteState> state;
+  Transaction id(0);
+
+  ASSERT_NO_THROW(id = store->transaction_begin("insert test3"));
+  ASSERT_NO_THROW(state.reset(store->write_request(id)));
+
+  // |A| | | |   (level 2) (row,col)
+  // | |B|C| |   (0,0) (1,1) (1,2)
+  // | |D| |E|   (2,1) (2,3)
+  // | | |F| |   (3,2)
+  store->write_update(*state, 2, 0, 0, TYPE1, reinterpret_cast<const uint8*>(&vA), sizeof(val_t));
+  store->write_update(*state, 2, 1, 1, TYPE1, reinterpret_cast<const uint8*>(&vB), sizeof(val_t));
+  store->write_update(*state, 2, 1, 2, TYPE1, reinterpret_cast<const uint8*>(&vC), sizeof(val_t));
+  store->write_update(*state, 2, 2, 1, TYPE1, reinterpret_cast<const uint8*>(&vD), sizeof(val_t));
+  store->write_update(*state, 2, 2, 3, TYPE1, reinterpret_cast<const uint8*>(&vE), sizeof(val_t));
+  store->write_update(*state, 2, 3, 2, TYPE1, reinterpret_cast<const uint8*>(&vF), sizeof(val_t));
+
+  r = store->head(0, 0, 0, TransactionRange(-1)); EXPECT_EQ(0, r.size());
+
+  #define CHECK(lvl, zone, count)\
+    r = store->head(lvl, zone, TransactionRange(-1));    EXPECT_EQ(count, r.size());\
+    r = store->head(lvl, zone, TransactionRange(0, id)); EXPECT_EQ(count, r.size());
+
+  CHECK(2, BBox2u(0,0,1,1), 1);
+  CHECK(2, BBox2u(1,1,1,1), 1);
+  CHECK(2, BBox2u(1,2,1,1), 1);
+  CHECK(2, BBox2u(2,1,1,1), 1);
+  CHECK(2, BBox2u(2,3,1,1), 1);
+  CHECK(2, BBox2u(3,2,1,1), 1);
+  CHECK(2, BBox2u(0,1,1,1), 0);
+  CHECK(2, BBox2u(3,3,1,1), 0);
+
+  CHECK(2, BBox2u(0,0,2,2), 2);
+  CHECK(2, BBox2u(0,1,2,2), 2);
+  CHECK(2, BBox2u(0,2,2,2), 1);
+  CHECK(2, BBox2u(1,0,2,2), 2);
+  CHECK(2, BBox2u(1,1,2,2), 3);
+  CHECK(2, BBox2u(1,2,2,2), 2);
+  CHECK(2, BBox2u(2,0,2,2), 1);
+  CHECK(2, BBox2u(2,1,2,2), 2);
+  CHECK(2, BBox2u(2,2,2,2), 2);
+
+  CHECK(2, BBox2u(0,0,3,3), 4);
+  CHECK(2, BBox2u(0,1,3,3), 4);
+  CHECK(2, BBox2u(1,0,3,3), 4);
+  CHECK(2, BBox2u(1,1,3,3), 5);
+
+  store->write_complete(*state);
+  store->transaction_end(id, true);
 }
 
-TEST_P(IDatastore, Cleanup) {
-  Url u(GetParam());
-  if (u.scheme() == "file")
-    fs::remove_all(u.path());
-}
-
-std::vector<Url> test_urls() {
-  std::vector<Url> v;
-  v.push_back(TemporaryFile(TEST_OBJDIR, false));
-  return v;
-}
-
-INSTANTIATE_TEST_CASE_P(URLs, IDatastore, ::testing::ValuesIn(test_urls()));
+//TEST_F(IDatastore, DiffType) {
+//  boost::scoped_ptr<Datastore> store;
+//  ASSERT_NO_THROW(store.reset(Datastore::open(m_fn)));
+//  Transaction id = store->transaction_begin("insert test3");
+//}

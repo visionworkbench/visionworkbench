@@ -38,6 +38,7 @@ endif
 check_PROGRAMS = \
   TestBlobIO \
   TestBlobManager \
+  TestDatastore \
   TestHTTPUtils \
   TestIndexPage \
   TestLocalIndex \
