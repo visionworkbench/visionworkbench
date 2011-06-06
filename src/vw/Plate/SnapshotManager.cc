@@ -142,8 +142,7 @@ namespace platefile {
       return 0;
 
     // Create a tile into which we will accumulate composited data.
-    ImageView<PixelT> composite_tile(m_platefile->default_tile_size(),
-        m_platefile->default_tile_size());
+    ImageView<PixelT> composite_tile(m_platefile->default_tile_size(), m_platefile->default_tile_size());
 
     vw_out(DebugMessage, "plate::snapshot") << "Starting Compositing run...\n";
     int num_composited = 0;
@@ -232,23 +231,11 @@ namespace platefile {
 
 
 template <class PixelT>
-void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region,
-                                       TransactionRange read_transaction_range) const {
-
-  // Subdivide the bbox into smaller workunits if necessary.
-  // This helps to keep operations efficient.
-  std::list<BBox2i> tile_workunits = bbox_tiles(tile_region, 1024, 1024);
-  for ( std::list<BBox2i>::iterator region_iter = tile_workunits.begin();
-        region_iter != tile_workunits.end(); ++region_iter) {
-
-    // Create an empty list of composite tiles and then kick off the
-    // recursive snapshotting process.
-    int num_tiles_updated = snapshot_helper(0, 0, 0, *region_iter, level, read_transaction_range);
-
+void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange read_transaction_range) const {
+  BOOST_FOREACH(const BBox2i& region, bbox_tiles(tile_region, 1024, 1024)) {
+    int num_tiles_updated = snapshot_helper(0, 0, 0, region, level, read_transaction_range);
     if (num_tiles_updated > 0)
-      vw_out() << "\t--> Snapshot " << *region_iter << " @ level " << level
-               << " (" << num_tiles_updated << " tiles updated).\n";
-
+      vw_out() << "\t--> Snapshot " << *region_iter << " @ level " << level << " (" << num_tiles_updated << " tiles updated).\n";
   }
 }
 
