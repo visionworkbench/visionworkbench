@@ -158,6 +158,9 @@ namespace platefile {
     std::pair<TileHeader, TileData>
     read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
 
+    Datastore::tile_range
+    batch_read(TileHeader* hdrs, size_t len) const;
+
     /// Read an image from the specified tile location in the plate file.
     ///
     /// By default, this call to read will return a tile with the MOST

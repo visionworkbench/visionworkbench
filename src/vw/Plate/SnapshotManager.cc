@@ -231,9 +231,11 @@ namespace platefile {
 
 
 template <class PixelT>
-void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange read_transaction_range) const {
+void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range) const {
   BOOST_FOREACH(const BBox2i& region, bbox_tiles(tile_region, 1024, 1024)) {
-    int num_tiles_updated = snapshot_helper(0, 0, 0, region, level, read_transaction_range);
+    std::list<TileHeader> hdrs = m_platefile->search_by_region(level, move_down(region, 1), range);
+
+
     if (num_tiles_updated > 0)
       vw_out() << "\t--> Snapshot " << *region_iter << " @ level " << level << " (" << num_tiles_updated << " tiles updated).\n";
   }
