@@ -31,8 +31,6 @@ namespace {
 PlateFile::PlateFile(const Url& url)
   : m_data(Datastore::open(url))
 {
-  m_error_log.add(vw_out(ErrorMessage, "console"));
-  m_error_log.add(m_data->audit_log());
   vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
 }
 
@@ -40,8 +38,6 @@ PlateFile::PlateFile(const Url& url, std::string type, std::string description, 
                      PixelFormatEnum pixel_format, ChannelTypeEnum channel_type)
   : m_data(Datastore::open(url, make_hdr(type, description, tile_size, tile_filetype, pixel_format, channel_type)))
 {
-  m_error_log.add(vw_out(ErrorMessage, "console"));
-  m_error_log.add(m_data->audit_log());
   vw_out(DebugMessage, "platefile") << "Constructed new platefile: " << url.string() << "\n";
 }
 
@@ -61,7 +57,7 @@ uint32 PlateFile::num_levels() const { return m_data->num_levels(); }
 
 void PlateFile::sync() const { m_data->flush(); }
 
-void PlateFile::log(std::string message) { m_data->audit_log() << message; }
+void PlateFile::log(std::string message) { m_data->audit_log()() << message; }
 
 const Transaction& PlateFile::transaction_begin(const std::string& transaction_description, TransactionOrNeg transaction_id_override) {
   m_transaction.reset(new Transaction(m_data->transaction_begin(transaction_description, transaction_id_override)));
@@ -170,8 +166,8 @@ PlateFile::search_by_location(int col, int row, int level, const TransactionRang
 }
 
 std::ostream& PlateFile::audit_log() {
-  return m_data->audit_log();
+  return m_data->audit_log()();
 }
 std::ostream& PlateFile::error_log() {
-  return m_error_log;
+  return m_data->error_log()();
 }

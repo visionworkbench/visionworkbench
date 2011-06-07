@@ -31,9 +31,6 @@ class Blobstore : public Datastore {
     boost::shared_ptr<ReadBlob>  open_read_blob(uint32 blob_id);
     boost::shared_ptr<Blob>     open_write_blob(uint32 blob_id);
 
-    typedef MultiOutputStream<char> log_t;
-    log_t m_error_log;
-
     void init();
   public:
     Blobstore(const Url& u);
@@ -57,8 +54,8 @@ class Blobstore : public Datastore {
     virtual IndexHeader index_header() const;
 
     // LOGGING
-    virtual std::ostream& audit_log();
-    virtual std::ostream& error_log();
+    virtual Datastore::Logger audit_log() const;
+    virtual Datastore::Logger error_log() const;
 };
 
 

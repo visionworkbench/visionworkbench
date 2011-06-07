@@ -5,8 +5,10 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
+#include <boost/iostreams/filtering_stream.hpp>
 
 namespace fs = boost::filesystem;
+namespace io = boost::iostreams;
 
 namespace {
   static const size_t DEFAULT_BLOB_CACHE_SIZE = 8;
@@ -47,9 +49,6 @@ void Blobstore::init() {
 
   VW_ASSERT(fs::exists(name),       ArgumentErr() << "Plate directory " << name << " must exist. (This datastore does not support remote data)");
   VW_ASSERT(fs::is_directory(name), LogicErr() << "Plate " << name << " is not a directory.");
-
-  m_error_log.add(vw_out(ErrorMessage, "console"));
-  m_error_log.add(audit_log());
 }
 
 Blobstore::Blobstore(const Url& u)
@@ -195,7 +194,7 @@ Datastore::tile_range Blobstore::populate(TileHeader* hdrs_, size_t len) {
       tiles->push_back(tile);
     } catch (const IOErr& e) {
       // These are bad, and might indicate corruption, but probably shouldn't kill everything.
-      error_log() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
+      error_log()() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
     }
   }
 
@@ -210,7 +209,7 @@ WriteState* Blobstore::write_request(const Transaction& id) {
   state->blob = open_write_blob(state->blob_id);
 
   if (last_size != 0 && last_size != state->blob->size()) {
-    error_log() << "last close size did not match current size when opening "
+    error_log()() << "last close size did not match current size when opening "
          << state->blob->filename()
          << "  ( " << last_size << " != " << state->blob->size() << " )\n";
   }
@@ -273,11 +272,26 @@ IndexHeader Blobstore::index_header() const {
 }
 
 // LOGGING
-std::ostream& Blobstore::audit_log() {
-  return m_index->log();
+Datastore::Logger Blobstore::audit_log() const {
+  return boost::bind(&Index::log, boost::ref(m_index));
 }
-std::ostream& Blobstore::error_log() {
-  return m_error_log;
+
+namespace {
+  struct LogHelper {
+    Index& i;
+    typedef io::filtering_stream<io::output> log_t;
+    boost::shared_ptr<log_t> log;
+    LogHelper(Index& i) : i(i), log(new log_t()) {}
+    std::ostream& operator()() {
+      log->push(i.log());
+      log->push(vw_out(ErrorMessage, "console"));
+      return *log;
+    }
+  };
+}
+
+Datastore::Logger Blobstore::error_log() const {
+  return LogHelper(*m_index);
 }
 
 

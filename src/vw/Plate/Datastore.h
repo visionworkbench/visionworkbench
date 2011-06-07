@@ -17,6 +17,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/shared_container_iterator.hpp>
 #include <boost/range/iterator_range.hpp>
+#include <boost/function.hpp>
 #include <vector>
 
 namespace vw {
@@ -44,6 +45,7 @@ class Datastore {
     typedef boost::iterator_range<meta_iterator> meta_range;
     typedef boost::shared_container_iterator<const std::vector<Tile> > tile_iterator;
     typedef boost::iterator_range<tile_iterator> tile_range;
+    typedef boost::function<std::ostream&(void)> Logger;
 
     // without 'header', throws an exception if there is no datastore at that url.
     // with 'header',    if there is no datastore, creates it and uses header
@@ -102,9 +104,9 @@ class Datastore {
 
     // LOGGING
     // Use the audit log for events that should be recorded for posterity next to the datastore
-    virtual std::ostream& audit_log() = 0;
+    virtual Logger audit_log() const = 0;
     // a sane thing for error_log to do is log to audit_log() and vw_out(ErrorMessage, "console")
-    virtual std::ostream& error_log() = 0;
+    virtual Logger error_log() const = 0;
 };
 
 }}

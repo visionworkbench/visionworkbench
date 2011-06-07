@@ -105,18 +105,13 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
 
-#include <boost/iostreams/tee.hpp>
-#include <boost/iostreams/stream.hpp>
 #include <sstream>
 
 namespace vw {
 namespace platefile {
 
   class PlateFile {
-    typedef MultiOutputStream<char> log_t;
-
     boost::shared_ptr<Datastore> m_data;
-    log_t m_error_log;
     boost::shared_ptr<Transaction> m_transaction;
     boost::shared_ptr<WriteState> m_write_state;
   public:
