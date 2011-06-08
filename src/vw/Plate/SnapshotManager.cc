@@ -16,6 +16,8 @@
 namespace vw {
 namespace platefile {
 
+#if 0
+
   typedef std::map<uint32, TileHeader> tilemap_t;
 
   // ----------------------- WeightedAvg blending -------------------------------
@@ -94,12 +96,14 @@ namespace platefile {
     // If not child tiles were found, then this is a leaf node.
     return true;
   }
+#endif
 
   namespace detail {
     BBox2i move_down(const BBox2i& input, uint32 level_change) {
       return input * (1 << level_change);
     }
 
+#if 0
     void collect(boost::shared_ptr<PlateFile> plate, tilemap_t& all_tiles, uint32 col, uint32 row, uint32 level, vw::BBox2i const& target_region, uint32 target_level, const TransactionRange& range)
     {
       std::list<TileHeader> tiles = plate->search_by_location(col, row, level, range);
@@ -119,8 +123,10 @@ namespace platefile {
           if (move_down(BBox2i(col2, row2, 1, 1), target_level - level).intersects(target_region))
             collect(plate, all_tiles, col2, row2, level+1, target_region, target_level, range);
     }
+#endif
   }
 
+#if 0
   template <class PixelT>
   int SnapshotManager<PixelT>::snapshot_helper(uint32 current_col,
         uint32 current_row,
@@ -228,13 +234,81 @@ namespace platefile {
       return 0;
     }
   }
+#endif
 
+struct CmpTuple {
+  template <typename T1, typename T2>
+  bool operator()(const boost::tuple<T1, T2>& a, const boost::tuple<T1, T2>& b) {
+    if (a.get<0>() != b.get<0>())
+      return a.get<0>() < b.get<0>();
+    return a.get<1>() < b.get<1>();
+  }
+  template <typename T1, typename T2, typename T3>
+  bool operator()(const boost::tuple<T1, T2, T3>& a, const boost::tuple<T1, T2, T3>& b) {
+    if (a.get<0>() != b.get<0>())
+      return a.get<0>() < b.get<0>();
+    else if (a.get<1>() != b.get<1>())
+      return a.get<1>() < b.get<1>();
+    return a.get<2>() < b.get<2>();
+  }
+};
+
+struct SortByTidDesc {
+  bool operator()(const TileHeader& a, const TileHeader& b)
+  {
+    return b.transaction_id() < a.transaction_id();
+  }
+};
 
 template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range) const {
+  typedef boost::tuple<uint32, uint32, uint32> rowcoltid_t;
+  typedef boost::tuple<uint32, uint32> rowcol_t;
+  typedef ImageView<PixelT> image_t;
+
+  // row, col at target level, tile headers from next level down (sorted in Tid order)
+  typedef std::map<rowcol_t, std::vector<TileHeader>, CmpTuple>    composite_map_t;
+  // Cache of parsed images
+  typedef std::map<rowcoltid_t, image_t, CmpTuple>  tile_cache_t;
+
+  composite_map_t composite_map;
+  tile_cache_t tile_cache;
+
+  // XXX: This will make it so the snapshot tiles go on top of the existing tiles at a level
+  // This ensures zoom consistency at the expense of possible canonical data.
+  // This can be switched by demoting the priority of the output transaction
+
+  // Divide up the region into moderately-sized chunks
   BOOST_FOREACH(const BBox2i& region, bbox_tiles(tile_region, 1024, 1024)) {
-    std::list<TileHeader> hdrs = m_platefile->search_by_region(level, detail::move_down(region, 1), range);
-    //vw_out() << "\t--> Snapshot " << region << " @ level " << level << " (" << num_tiles_updated << " tiles updated).\n";
+    // Grab all tiles that the chunk depends on (one level below) and sort them by tid
+    BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level, detail::move_down(region, 1), range)) {
+      composite_map_t::mapped_type& h = composite_map[rowcol_t(hdr.row(), hdr.col())];
+      h.push_back(hdr);
+      push_heap(h.begin(), h.end(), SortByTidDesc());
+      tile_cache[rowcoltid_t(hdr.row(), hdr.col(), hdr.transaction_id())] = image_t();
+    }
+    // XXX: Doesn't look up tiles
+
+    // now iterate the output tile set and create the composites
+    BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
+      sort_heap(t.second.begin(), t.second.end(), SortByTidDesc());
+      mosaic::ImageComposite<PixelT> composite;
+      composite.set_draft_mode(true);
+      // Insert the images into the composite from highest to lowest tid (already sorted due to sort_heap)
+      BOOST_FOREACH(TileHeader& hdr, t.second) {
+        image_t& img = tile_cache[rowcoltid_t(hdr.row(), hdr.col(), hdr.transaction_id())];
+        if (!img) {
+          vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
+          continue;
+        }
+        composite.insert(img, 0, 0);
+        if (is_opaque(img))
+          break;
+      }
+      composite.prepare();
+      image_t tile = composite;
+      m_platefile->write_update(tile, t.first.get<1>(), t.first.get<0>(), level);
+    }
   }
 }
 
