@@ -184,6 +184,14 @@ TEST_F(IDatastore, InsertRegion) {
   store->transaction_end(id, true);
 }
 
+TEST_F(IDatastore, Logging) {
+  boost::scoped_ptr<Datastore> store;
+  ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
+
+  store->audit_log()() << "I can't really check that this worked, but I can at least call it" << std::endl;
+  store->error_log()() << "This should produce output" << std::endl;
+}
+
 //TEST_F(IDatastore, DiffType) {
 //  boost::scoped_ptr<Datastore> store;
 //  ASSERT_NO_THROW(store.reset(Datastore::open(m_url)));

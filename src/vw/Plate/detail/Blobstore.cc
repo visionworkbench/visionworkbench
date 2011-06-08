@@ -5,7 +5,8 @@
 #include <boost/foreach.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/format.hpp>
-#include <boost/iostreams/filtering_stream.hpp>
+#include <boost/iostreams/tee.hpp>
+#include <boost/iostreams/stream.hpp>
 
 namespace fs = boost::filesystem;
 namespace io = boost::iostreams;
@@ -279,12 +280,14 @@ Datastore::Logger Blobstore::audit_log() const {
 namespace {
   struct LogHelper {
     Index& i;
-    typedef io::filtering_stream<io::output> log_t;
+    typedef io::tee_device<std::ostream, std::ostream> tee_t;
+    typedef io::stream<tee_t> log_t;
+    boost::shared_ptr<tee_t> tee;
     boost::shared_ptr<log_t> log;
-    LogHelper(Index& i) : i(i), log(new log_t()) {}
+    LogHelper(Index& i) : i(i) {}
     std::ostream& operator()() {
-      log->push(i.log());
-      log->push(vw_out(ErrorMessage, "console"));
+      tee.reset(new tee_t(i.log(), vw_out(ErrorMessage, "console")));
+      log.reset(new log_t(*tee));
       return *log;
     }
   };
