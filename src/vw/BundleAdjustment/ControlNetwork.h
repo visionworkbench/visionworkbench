@@ -250,8 +250,12 @@ namespace ba {
     ControlMeasure& operator[] (size_t index) { return m_measures[index]; }
     const ControlMeasure& operator[] (size_t index) const { return m_measures[index]; }
 
-    /// Clear all the control measures associated with this control point.
+    /// Vector access methods
     void clear() { m_measures.clear(); }
+    void resize(size_t sz) { m_measures.resize( sz ); }
+    size_t capacity() const { return m_measures.capacity(); }
+    bool empty() const { return m_measures.empty(); }
+    void reserve(size_t sz) { m_measures.reserve(sz); }
 
     /// Locate a control measure that is equal to the query.  Returns
     /// this->size() if no match is found.
@@ -379,8 +383,12 @@ namespace ba {
     ControlPoint& operator[] (size_t index) { return m_control_points[index]; }
     const ControlPoint& operator[] (size_t index) const { return m_control_points[index]; }
 
-    /// Clear all the control points associated with this control network.
+    /// Vector capacity interface
     void clear() { m_control_points.clear(); }
+    void resize(size_t sz) { m_control_points.resize(sz); }
+    size_t capacity() const { return m_control_points.capacity(); }
+    bool empty() const { return m_control_points.empty(); }
+    void reserve(size_t sz) { m_control_points.reserve(sz); }
 
     /// Locate a control point that contains the control measure that
     /// is equal to the query.  Returns this->size() if no match is
