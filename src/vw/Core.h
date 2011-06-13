@@ -24,5 +24,6 @@
 #include <vw/Core/ConfigParser.h>
 #include <vw/Core/ThreadQueue.h>
 #include <vw/Core/TemporaryFile.h>
+#include <vw/Core/ProgressCallback.h>
 
 #endif // __VW_CORE_H__
