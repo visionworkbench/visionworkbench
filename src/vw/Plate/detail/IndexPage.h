@@ -48,7 +48,8 @@ namespace detail {
       hdr.set_row( m_base_row + rel_row );
       hdr.set_level(m_level);
       hdr.set_transaction_id(elt.first);
-      hdr.set_filetype(elt.second.filetype());
+      if (elt.second.has_filetype())
+        hdr.set_filetype(elt.second.filetype());
       return hdr;
     }
 
