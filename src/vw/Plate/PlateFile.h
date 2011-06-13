@@ -250,6 +250,7 @@ namespace platefile {
     /// Returns a list of valid tiles that match this level, region, and
     /// range of transaction_id's.  Returns a list of TileHeaders with
     /// col/row/level and transaction_id of every tile at each valid location within the range.
+    /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
     std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
 
     /// Read one ore more images at a specified location in the

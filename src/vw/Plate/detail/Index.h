@@ -98,6 +98,7 @@ namespace detail {
     /// valid location.  Note: there may be other tiles in the transaction
     /// range at this col/row/level, but valid_tiles() only returns the
     /// first one.
+    /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
     virtual std::list<TileHeader> search_by_region(uint32 level, vw::BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
                                                    TransactionOrNeg end_transaction_id,

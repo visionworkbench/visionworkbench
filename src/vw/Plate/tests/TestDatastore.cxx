@@ -77,7 +77,8 @@ TEST_F(IDatastore, TwoInsert) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
-  Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
+  Datastore::TileSearch r;
+  store->head(r, 0, 0, 0, TransactionRange(-1));
   EXPECT_EQ(0, r.size());
 
   boost::scoped_ptr<WriteState> state1, state2;
@@ -95,18 +96,18 @@ TEST_F(IDatastore, TwoInsert) {
   store->write_update(*state1, 0, 0, 0, TYPE1, reinterpret_cast<const uint8*>(&vA), sizeof(val_t));
   store->write_update(*state2, 0, 0, 0, TYPE1, reinterpret_cast<const uint8*>(&vB), sizeof(val_t));
 
-  r = store->head(0, 0, 0, TransactionRange(-1));       EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id1));      EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id2));      EXPECT_EQ(1, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id2+1));    EXPECT_EQ(0, r.size());
-  r = store->head(0, 0, 0, TransactionRange(id1, id2)); EXPECT_EQ(2, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(-1));       EXPECT_EQ(1, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(id1));      EXPECT_EQ(1, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(id2));      EXPECT_EQ(1, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(id2+1));    EXPECT_EQ(0, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(id1, id2)); EXPECT_EQ(2, r.size());
 
   // Transactions should be returned in DESC order
-  ASSERT_GT(r[0].transaction_id(), r[1].transaction_id());
+  ASSERT_GT(r[0].hdr.transaction_id(), r[1].hdr.transaction_id());
 
-  Datastore::tile_range tiles = store->populate(&(*r.begin()), r.end()-r.begin());
-  EXPECT_EQ(2, tiles.size());
-  vector<Tile> ret(tiles.begin(), tiles.end());
+  store->populate(r);
+  EXPECT_EQ(2, r.size());
+  vector<Tile> ret(r.begin(), r.end());
   sort(ret.begin(), ret.end(), SortTilesByTidASC);
 
   EXPECT_EQ(vA, *reinterpret_cast<val_t*>(&ret[0].data->operator[](0)));
@@ -114,10 +115,10 @@ TEST_F(IDatastore, TwoInsert) {
 
   store->write_update(*state1, 0, 0, 0, TYPE2, reinterpret_cast<const uint8*>(&vC), sizeof(val_t));
 
-  tiles = store->get(0, 0, 0, TransactionRange(id1));
-  EXPECT_EQ(1, tiles.size());
-  EXPECT_EQ(string(TYPE2), tiles[0].hdr.filetype());
-  EXPECT_EQ(vC, *reinterpret_cast<val_t*>(&tiles[0].data->operator[](0)));
+  store->get(r, 0, 0, 0, TransactionRange(id1));
+  EXPECT_EQ(1, r.size());
+  EXPECT_EQ(string(TYPE2), r[0].hdr.filetype());
+  EXPECT_EQ(vC, *reinterpret_cast<val_t*>(&r[0].data->operator[](0)));
 
   store->write_complete(*state1);
   store->write_complete(*state2);
@@ -130,7 +131,8 @@ TEST_F(IDatastore, InsertRegion) {
   boost::scoped_ptr<Datastore> store;
   ASSERT_NO_THROW(store.reset(Datastore::open(m_url, m_hdr)));
 
-  Datastore::meta_range r = store->head(0, 0, 0, TransactionRange(-1));
+  Datastore::TileSearch r;
+  store->head(r, 0, 0, 0, TransactionRange(-1));
   EXPECT_EQ(0, r.size());
 
   boost::scoped_ptr<WriteState> state;
@@ -150,11 +152,11 @@ TEST_F(IDatastore, InsertRegion) {
   store->write_update(*state, 2, 2, 3, TYPE1, reinterpret_cast<const uint8*>(&vE), sizeof(val_t));
   store->write_update(*state, 2, 3, 2, TYPE1, reinterpret_cast<const uint8*>(&vF), sizeof(val_t));
 
-  r = store->head(0, 0, 0, TransactionRange(-1)); EXPECT_EQ(0, r.size());
+  store->head(r, 0, 0, 0, TransactionRange(-1)); EXPECT_EQ(0, r.size());
 
   #define CHECK(lvl, zone, count)\
-    r = store->head(lvl, zone, TransactionRange(-1));    EXPECT_EQ(count, r.size());\
-    r = store->head(lvl, zone, TransactionRange(0, id)); EXPECT_EQ(count, r.size());
+    store->head(r, lvl, zone, TransactionRange(-1));    EXPECT_EQ(count, r.size());\
+    store->head(r, lvl, zone, TransactionRange(0, id)); EXPECT_EQ(count, r.size());
 
   CHECK(2, BBox2u(0,0,1,1), 1);
   CHECK(2, BBox2u(1,1,1,1), 1);

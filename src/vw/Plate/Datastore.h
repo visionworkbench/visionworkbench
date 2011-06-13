@@ -37,14 +37,15 @@ class WriteState {
 struct Tile {
   TileHeader hdr;
   TileData   data;
+  Tile(const TileHeader& hdr)
+    : hdr(hdr) {}
+  Tile(const TileHeader& hdr, TileData data)
+    : hdr(hdr), data(data) {}
 };
 
 class Datastore {
   public:
-    typedef boost::shared_container_iterator<const std::vector<TileHeader> > meta_iterator;
-    typedef boost::iterator_range<meta_iterator> meta_range;
-    typedef boost::shared_container_iterator<const std::vector<Tile> > tile_iterator;
-    typedef boost::iterator_range<tile_iterator> tile_range;
+    typedef std::vector<Tile> TileSearch;
     typedef boost::function<std::ostream&(void)> Logger;
 
     // without 'header', throws an exception if there is no datastore at that url.
@@ -66,21 +67,22 @@ class Datastore {
 
     // TILE READ. limit is the limit within a single tile slot
     // head()'s return order will be in transaction order, descending.
-    // get()'s  return order will be arbitrary.
-    virtual meta_range     head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0) = 0;
-    virtual meta_range     head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0) = 0;
-    virtual tile_range      get(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0);
-    virtual tile_range      get(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0);
-
-    // The return of this is not guaranteed to be 'len' elements; if errors
-    // occur on some of the fetches, they will be dropped. Order is not
-    // guaranteed, either. 'hdrs' is non-const to allow implementations to sort
-    // without copying; hdrs will not be resized, only swapped.
-    virtual tile_range populate(TileHeader* hdrs, size_t len) = 0;
+    // get()'s  return order will be arbitrary. The return reference is the
+    // same as the input reference, it's just there for code flow.
+    /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
+    virtual TileSearch& head(TileSearch& tiles, uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0) = 0;
+    virtual TileSearch& head(TileSearch& tiles, uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0) = 0;
+    virtual TileSearch&  get(TileSearch& tiles, uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit = 0);
+    virtual TileSearch&  get(TileSearch& tiles, uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit = 0);
 
     // Return a url that should work to retrieve tile data [might be unimplemented]
     //virtual Url map_to_url(uint32 level, uint32 row, uint32 col, Transaction id, std::string filetype) = 0;
     //virtual Url map_to_url(const TileHeader& t);
+
+    // The return of this is not guaranteed to be the same size as the input;
+    // if errors occur on some of the fetches, they will be dropped. Order is
+    // not guaranteed, either.
+    virtual TileSearch& populate(TileSearch& hdrs) = 0;
 
     // TILE WRITE
     virtual WriteState* write_request(const Transaction& id) VW_WARN_UNUSED = 0;

@@ -79,10 +79,7 @@ void Blobstore::transaction_end(Transaction transaction_id, bool update_read_cur
   m_index->transaction_complete(transaction_id, update_read_cursor);
 }
 
-Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit) {
-  typedef std::vector<TileHeader> vec_t;
-  boost::shared_ptr<vec_t> tiles;
-
+Datastore::TileSearch& Blobstore::head(TileSearch& buf, uint32 level, uint32 row, uint32 col, TransactionRange range, uint32 limit) {
   vw_out(VerboseDebugMessage, "datastore") << "Blobstore::head("
     << "level=" << level
     << ", row=" << row
@@ -90,6 +87,7 @@ Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, Tran
     << ", range=" << range
     << ", limit=" << limit << ")" << std::endl;
 
+  buf.clear();
   {
     std::list<TileHeader> hdrs = m_index->search_by_location(col, row, level, range.first(), range.last());
     size_t len = hdrs.size();
@@ -98,22 +96,20 @@ Datastore::meta_range Blobstore::head(uint32 level, uint32 row, uint32 col, Tran
       len = limit;
     }
 
-    tiles.reset(new vec_t(len));
-    std::copy(hdrs.begin(), hdrs.end(), tiles->begin());
+    buf.reserve(len);
+    std::copy(hdrs.begin(), hdrs.end(), std::back_inserter(buf));
   }
-  return make_const_shared_range(tiles);
+  return buf;
 }
 
-Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit) {
-  typedef std::vector<TileHeader> vec_t;
-  boost::shared_ptr<vec_t> tiles;
-
+Datastore::TileSearch& Blobstore::head(TileSearch& buf, uint32 level,   const BBox2u& region, TransactionRange range, uint32 limit) {
   vw_out(VerboseDebugMessage, "datastore") << "Blobstore::head("
     << "level=" << level
     << ", region=" << region
     << ", range=" << range
     << ", limit=" << limit << ")" << std::endl;
 
+  buf.clear();
   {
     std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last(), 0);
     size_t len = hdrs.size();
@@ -122,65 +118,62 @@ Datastore::meta_range Blobstore::head(uint32 level,   const BBox2u& region, Tran
       len = limit;
     }
 
-    tiles.reset(new vec_t(len));
-    std::copy(hdrs.begin(), hdrs.end(), tiles->begin());
+    buf.reserve(len);
+    std::copy(hdrs.begin(), hdrs.end(), std::back_inserter(buf));
   }
-  return make_const_shared_range(tiles);
+  return buf;
 }
 
 struct SortByPage {
   const Index& idx;
   SortByPage(const Index& idx) : idx(idx) {}
-  bool operator()(const TileHeader& a, const TileHeader& b) {
-    return idx.page_id(a.col(), a.row(), a.level()) < idx.page_id(b.col(), b.row(), b.level());
+  bool operator()(const Tile& a, const Tile& b) {
+    return idx.page_id(a.hdr.col(), a.hdr.row(), a.hdr.level()) < idx.page_id(b.hdr.col(), b.hdr.row(), b.hdr.level());
   }
 };
 
 struct SortByIndexRecord {
-  typedef std::pair<IndexRecord, TileHeader> pair_t;
-  bool operator()(const pair_t& a, const pair_t& b)
+  bool operator()(const IndexRecord& a, const IndexRecord& b)
   {
-    if (a.first.blob_id() == b.first.blob_id())
-      return a.first.blob_offset() < b.first.blob_offset();
-    return a.first.blob_id() < b.first.blob_id();
+    if (a.blob_id() == b.blob_id())
+      return a.blob_offset() < b.blob_offset();
+    return a.blob_id() < b.blob_id();
   }
 };
 
-Datastore::tile_range Blobstore::populate(TileHeader* hdrs_, size_t len) {
+Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
   // first, sort by page to keep page accesses together
-  std::sort(hdrs_, hdrs_+len, SortByPage(*m_index));
-
-  std::vector<std::pair<IndexRecord, TileHeader> > recs;
-  recs.reserve(len);
+  std::sort(hdrs.begin(), hdrs.end(), SortByPage(*m_index));
 
   //if (hdr.filetype() != rec.filetype())
   //  vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
 
-  BOOST_FOREACH(const TileHeader& hdr, boost::make_iterator_range(hdrs_, hdrs_+len)) {
+  typedef std::map<IndexRecord, Tile*, SortByIndexRecord> map_t;
+  map_t recs;
+
+  BOOST_FOREACH(Tile& tile, hdrs) {
     try {
-      IndexRecord rec = m_index->read_request(hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true);
-      recs.push_back(std::make_pair(rec, hdr));
+      IndexRecord rec = m_index->read_request(tile.hdr.col(), tile.hdr.row(), tile.hdr.level(), tile.hdr.transaction_id(), true);
+      recs[rec] = &tile;
     } catch (const TileNotFoundErr& e) {
       // I don't think this is possible if the hdrs are coming from get(). If
       // they're not coming from get(), the user created their own TileHeader
       // array incorrectly. In either case, this is a canary of something
       // really bad being wrong.
-      vw_throw(LogicErr() << "Blobstore::populate(): cannot populate nonexistent tile: " << hdr);
+      vw_throw(LogicErr() << "Blobstore::populate(): cannot populate nonexistent tile: " << tile.hdr);
     }
   }
+  VW_ASSERT(recs.size() == hdrs.size(), LogicErr() << "TileHeaders and IndexRecords should be 1:1");
 
-  // Now we have index records... sort them by blob and then by offset, so we
-  // keep blob reads together and in order. We need to keep the headers sorted
-  // in the same order, too
-  std::sort(recs.begin(), recs.end(), SortByIndexRecord());
+  // keys in a std::map are sorted in ascending order according to the
+  // comparison function.  SortByIndexRecord sorts by by blob and then by
+  // offset, so we keep blob reads together and in order. We need to keep the
+  // headers sorted in the same order, too
 
-  typedef std::vector<Tile> vec_t;
-  boost::shared_ptr<vec_t> tiles(new vec_t());
-  tiles->reserve(len);
-
-  for (size_t i = 0; i < len; ++i) {
-    const IndexRecord& rec = recs[i].first;
-    const TileHeader&  hdr = recs[i].second;
+  BOOST_FOREACH(map_t::value_type& tile, recs) {
+    const IndexRecord& rec = tile.first;
+    const TileHeader&  hdr = tile.second->hdr;
+    Tile& t = *tile.second;
 
     try {
       boost::shared_ptr<ReadBlob> blob = open_read_blob(rec.blob_id());
@@ -189,17 +182,14 @@ Datastore::tile_range Blobstore::populate(TileHeader* hdrs_, size_t len) {
         vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord. skipping.\n";
         continue;
       }
-      Tile tile;
-      tile.hdr  = tile_rec.hdr;
-      tile.data = tile_rec.data;
-      tiles->push_back(tile);
+      t.data = tile_rec.data;
     } catch (const IOErr& e) {
       // These are bad, and might indicate corruption, but probably shouldn't kill everything.
       error_log()() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
     }
   }
 
-  return make_const_shared_range(tiles);
+  return hdrs;
 }
 
 WriteState* Blobstore::write_request(const Transaction& id) {

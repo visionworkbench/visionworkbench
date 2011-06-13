@@ -26,6 +26,9 @@ namespace {
     hdr.set_channel_type(channel_type);
     return hdr;
   }
+  TileHeader just_header(const Tile& t) {
+    return t.hdr;
+  }
 }
 
 PlateFile::PlateFile(const Url& url)
@@ -82,7 +85,8 @@ const Transaction& PlateFile::transaction_id() const {
 std::pair<TileHeader, TileData>
 PlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match) const {
   TransactionRange range(exact_transaction_match ? transaction_id : 0, transaction_id);
-  Datastore::tile_range hits = m_data->get(level, row, col, range);
+  Datastore::TileSearch hits;
+  m_data->get(hits, level, row, col, range, 1);
   if (hits.size() == 0)
     vw_throw(TileNotFoundErr() << "No tiles found.");
 
@@ -151,17 +155,19 @@ void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int r
 
 std::list<TileHeader>
 PlateFile::search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const {
-  Datastore::meta_range r = m_data->head(level, region, range, 0);
+  Datastore::TileSearch r;
+  m_data->head(r, level, region, range, 0);
   std::list<TileHeader> tiles;
-  tiles.insert(tiles.begin(), r.begin(), r.end());
+  std::transform(r.begin(), r.end(), tiles.begin(), just_header);
   return tiles;
 }
 
 std::list<TileHeader>
 PlateFile::search_by_location(int col, int row, int level, const TransactionRange& range) {
-  Datastore::meta_range r = m_data->head(level, row, col, range, 0);
+  Datastore::TileSearch r;
+  m_data->head(r, level, row, col, range, 0);
   std::list<TileHeader> tiles;
-  tiles.insert(tiles.begin(), r.begin(), r.end());
+  std::transform(r.begin(), r.end(), tiles.begin(), just_header);
   return tiles;
 }
 
