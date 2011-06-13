@@ -268,6 +268,12 @@ IndexPage::search_by_region(BBox2i const& region,
             ArgumentErr() << VW_CURRENT_FUNCTION << ": received a null set range ["
                           << start_transaction_id << "," << end_transaction_id << "]");
 
+  if (region.min().x() < 0 || region.min().y() < 0)
+    vw_out(WarningMessage) << VW_CURRENT_FUNCTION << ": " << "asked for a region < 0: " << region << std::endl;
+  const int32 MAX_IDX = 1 << m_level;
+  if (region.max().x() > MAX_IDX || region.max().y() > MAX_IDX)
+    vw_out(WarningMessage) << VW_CURRENT_FUNCTION << ": " << "asked for a region outside valid area for level " << m_level << ": " << region << std::endl;
+
   std::list<TileHeader> results;
   for (uint32 row = 0; row < m_page_height; ++row) {
     for (uint32 col = 0; col < m_page_width; ++col) {
