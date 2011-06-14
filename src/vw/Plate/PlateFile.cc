@@ -93,6 +93,11 @@ PlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bo
   return std::make_pair(hits.begin()->hdr, hits.begin()->data);
 }
 
+Datastore::TileSearch&
+PlateFile::batch_read(Datastore::TileSearch& hdrs) const {
+  return m_data->populate(hdrs);
+}
+
 namespace {
   void dump_to_file(const std::string& filename, const vw::uint8* data, size_t size) {
     std::ofstream f(filename.c_str(), std::ios::binary);
