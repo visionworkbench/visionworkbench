@@ -25,7 +25,7 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 struct Options {
-  Options() : west(0), east(0), north(0), south(0), tile_size(0),
+  Options() : west(0), east(0), north(0), south(0), tile_size(0), tile_ppd(0),
               tile_size_deg(0), pds_dem_mode(false), pds_imagery_mode(false) {}
 
   // Input for project file
@@ -77,14 +77,14 @@ template <class PixelT>
 void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
   PlateCarreePlateManager<PixelT> pm(platefile);
-  cartography::GeoReference output_georef;
-  output_georef = pm.georeference(platefile->num_levels()-1);
+  cartography::GeoReference output_georef =
+    pm.georeference(opt.level);
 
   cartography::Datum datum;
   datum.set_well_known_datum( opt.output_datum );
   output_georef.set_datum( datum );
 
-  PlateView<PixelT> plate_view(opt.plate_file_name);
+  PlateView<PixelT> plate_view(platefile);
   if ( opt.level != -1 )
     plate_view.set_level( opt.level );
   ImageViewRef<PixelT> plate_view_ref = plate_view;
