@@ -30,6 +30,7 @@ class LocalIndexTest : public ::testing::Test {
     index_hdr.set_tile_filetype("tiff");
     index_hdr.set_pixel_format(VW_PIXEL_RGB);
     index_hdr.set_channel_type(VW_CHANNEL_UINT8);
+    index_hdr.set_type("rawr");
 
     // And a sample tile header to clone
     tile_hdr.set_filetype("tiff");
@@ -147,6 +148,7 @@ TEST(LocalIndex, IndexRecord) {
   write_hdr.set_col(1);
   write_hdr.set_row(1);
   write_hdr.set_level(2);
+  write_hdr.set_transaction_id(1);
 
   std::ofstream ostr(name.c_str(), std::ios::binary);
   write_hdr.SerializeToOstream(&ostr);
@@ -161,6 +163,7 @@ TEST(LocalIndex, IndexRecord) {
   EXPECT_EQ(write_hdr.row(), read_hdr.row());
   EXPECT_EQ(write_hdr.level(), read_hdr.level());
   EXPECT_EQ(write_hdr.filetype(), read_hdr.filetype());
+  EXPECT_EQ(write_hdr.transaction_id(), read_hdr.transaction_id());
 }
 
 TEST_F(LocalIndexTest, WriteRead) {

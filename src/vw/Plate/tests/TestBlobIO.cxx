@@ -41,6 +41,7 @@ class BlobIOTest : public ::testing::Test {
     hdr.set_col(0);
     hdr.set_row(0);
     hdr.set_level(0);
+    hdr.set_transaction_id(1);
   }
 
   static const size_t data_size = 20;

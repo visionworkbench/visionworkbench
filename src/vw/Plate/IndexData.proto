@@ -14,17 +14,17 @@ message TileHeader {
   required uint32 col = 5;
   required uint32 row = 6;
   required uint32 level = 7;
-  optional uint32 transaction_id = 8 [ default = 0 ];
+  required uint32 transaction_id = 8;
   optional string filetype = 10 [ default = 'jpg' ];
 }
 
 message IndexHeader {
-  optional uint32 tile_size = 2;     // tile width/heigh in pixels
-  optional string tile_filetype = 3; // file type [e.g. tif, png, or jpg]
-  optional int32 pixel_format = 4;   // see vw/Image/PixelTypeInfo.h
-  optional int32 channel_type = 5;   // see vw/Image/PixelTypeInfo.h
-  optional string type = 6;          // platefile type [ toast, kml, or gigapan ]
-  optional string description = 7;   // textual description
+  required uint32 tile_size = 2;     // tile width/heigh in pixels
+  required string tile_filetype = 3; // file type [e.g. tif, png, or jpg]
+  required int32 pixel_format = 4;   // see vw/Image/PixelTypeInfo.h
+  required int32 channel_type = 5;   // see vw/Image/PixelTypeInfo.h
+  required string type = 6;          // platefile type [ toast, kml, or gigapan ]
+  optional string description = 7 [default = ""];   // textual description
 
   // These are private and should be considered read-only
   optional uint32 platefile_id = 1;  // a unique number that identifies this platefile
