@@ -229,7 +229,6 @@ void AmqpChannel::send_bytes(const uint8* message, size_t len) {
 }
 
 bool AmqpChannel::recv_bytes(std::vector<uint8>* bytes) {
-  vw_out(VerboseDebugMessage, "plate.AMQP") << m_human_name << " waiting for data for " << this->timeout() << "ms" << std::endl;
   AmqpData d;
   if (this->timeout() == -1)
     this->m_incoming_messages.wait_pop(d);
