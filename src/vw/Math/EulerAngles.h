@@ -149,10 +149,10 @@ namespace math {
     double test = q[0]*q[2]-q[3]*q[1];
     // Testing for gimbal lock, if we're within 0.2 degrees of the poles
     if ( test > 0.499999 ) {
-      vw_out( WarningMessage, "math" ) << "Q2E_XYZ: North Gimbal Lock!\n";
+      VW_OUT( WarningMessage, "math" ) << "Q2E_XYZ: North Gimbal Lock!\n";
       return Vector3( -2*atan2(q[3],q[0]), M_PI/2, 0 );
     } else if ( test < -0.499999 ) {
-      vw_out( WarningMessage, "math" ) << "Q2E_XYZ: South Gimbal Lock!\n";
+      VW_OUT( WarningMessage, "math" ) << "Q2E_XYZ: South Gimbal Lock!\n";
       return Vector3( 2*atan2(q[3],q[0]), -M_PI/2, 0 );
     }
     return Vector3 ( atan2( 2*(q[0]*q[1]+q[2]*q[3]),

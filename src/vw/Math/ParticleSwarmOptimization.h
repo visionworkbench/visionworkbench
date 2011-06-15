@@ -53,7 +53,7 @@ namespace math {
     // external loop - run the whole PSO multiple times in case it gets in some local optimum
     // in function of the initial conditions and/or the development over time
     for (int start = 0; start < restarts; start++) {
-      if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << std::endl;
+      if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << std::endl;
 
       // initialize x random and v zero
       for (unsigned int i = 0; i < x.size(); i++) {
@@ -70,7 +70,7 @@ namespace math {
         x_hat_val[i] = func(x_hat[i]);
       }
 
-      if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " initialized particles" << std::endl;
+      if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " initialized particles" << std::endl;
 
       // search globally minimum particle
       for (unsigned int i = 0; i < x.size(); i++) {
@@ -80,7 +80,7 @@ namespace math {
         }
       }
 
-      if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " found globally max particle with val " << g_hat_val << std::endl;
+      if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " found globally max particle with val " << g_hat_val << std::endl;
 
       // create two random number vectors with elements 0..1
       DomainT r1, r2;
@@ -89,7 +89,7 @@ namespace math {
 
       // iterate
       for (unsigned int iter = 0; iter < n_iter; iter++) {
-        if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start << "/" << restarts << " iteration " << iter << "/" << n_iter << std::endl;
+        if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start << "/" << restarts << " iteration " << iter << "/" << n_iter << std::endl;
 
         // update all particles
         for (unsigned int i = 0; i < x.size(); i++) {
@@ -108,19 +108,19 @@ namespace math {
           if (norm > v_max*v_max)
             v[i] /= vw::sqrt(norm);
 
-          if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO x = " << x[i] << " with velocity v = " << v[i] << std::endl;
+          if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO x = " << x[i] << " with velocity v = " << v[i] << std::endl;
 
           // update local maximum
           double x_i_val = func(x[i]);
           if (x_i_val < x_hat_val[i]) {
-            if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " iteration " << iter << "/" << n_iter << " new local minimum " << x_i_val << std::endl;
+            if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " iteration " << iter << "/" << n_iter << " new local minimum " << x_i_val << std::endl;
             x_hat[i] = x[i];
             x_hat_val[i] = x_i_val;
           }
 
           // update global maximum
           if (x_i_val < g_hat_val) {
-            if (verbose) vw::vw_out(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " iteration " << iter << "/" << n_iter << " new global minimum " << x_i_val << std::endl;
+            if (verbose) VW_OUT(vw::VerboseDebugMessage, "math") << "PSO run " << start+1 << "/" << restarts << " iteration " << iter << "/" << n_iter << " new global minimum " << x_i_val << std::endl;
             g_hat = x[i];
             g_hat_val = x_i_val;
           }

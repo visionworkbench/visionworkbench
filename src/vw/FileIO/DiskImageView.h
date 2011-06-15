@@ -93,7 +93,7 @@ namespace vw {
     }
 
     ~DiskCacheHandle() {
-      vw_out(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
+      VW_OUT(DebugMessage, "fileio") << "DiskCacheImageView: deleting temporary cache file: " << m_filename << "\n";
       boost::filesystem::remove( m_filename );
     }
 
@@ -116,7 +116,7 @@ namespace vw {
                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
       TemporaryFile file(m_directory, false, "vw_cache_", "." + m_file_type);
 
-      vw_out(InfoMessage, "fileio") << "Creating disk cache of image in: " << file.filename() << "\n";
+      VW_OUT(InfoMessage, "fileio") << "Creating disk cache of image in: " << file.filename() << "\n";
 
       ImageFormat fmt(view.format());
       fmt.pixel_format = PixelFormatID<PixelT>::value;

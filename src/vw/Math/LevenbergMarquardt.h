@@ -183,9 +183,9 @@ namespace math {
     typename ImplT::result_type error = model.difference(observation, h);
     double norm_start = norm_2(error);
 
-    vw_out(DebugMessage, "math") << "LM: initial guess for the model is " << seed << std::endl;
-    vw_out(VerboseDebugMessage, "math") << "LM: starting error " << error << std::endl;
-    vw_out(DebugMessage, "math") << "LM: starting norm is: " << norm_start << std::endl;
+    VW_OUT(DebugMessage, "math") << "LM: initial guess for the model is " << seed << std::endl;
+    VW_OUT(VerboseDebugMessage, "math") << "LM: starting error " << error << std::endl;
+    VW_OUT(DebugMessage, "math") << "LM: starting norm is: " << norm_start << std::endl;
 
     // Solution may already be good enough
     if (norm_start < abs_tolerance)
@@ -195,7 +195,7 @@ namespace math {
     while (!done){
 
       bool shortCircuit = false;
-      vw_out(DebugMessage, "math") << "LM: outer iteration " << ++outer_iter << "   x = " << x << std::endl;
+      VW_OUT(DebugMessage, "math") << "LM: outer iteration " << ++outer_iter << "   x = " << x << std::endl;
 
       // Compute the value, derivative, and hessian of the cost function
       // at the current point.  These remain valid until the parameter
@@ -207,7 +207,7 @@ namespace math {
       // Difference between observed and predicted and error (2-norm of difference)
       error = model.difference(observation, h);
       norm_start = norm_2(error);
-      //vw_out(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
+      //VW_OUT(DebugMessage, "math") << "LM: outer iteration starting robust norm: " << norm_start << std::endl;
 
       // Measurement Jacobian
       typename ImplT::jacobian_type J = model.jacobian(x);
@@ -239,8 +239,8 @@ namespace math {
         typename ImplT::result_type error_try = model.difference(observation, h_try);
         norm_try = norm_2(error_try);
 
-        //vw_out(VerboseDebugMessage, "math") << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
-        //vw_out(DebugMessage, "math") << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
+        //VW_OUT(VerboseDebugMessage, "math") << "LM: inner iteration " << iterations << " error is " << error_try << std::endl;
+        //VW_OUT(DebugMessage, "math") << "\tLM: inner iteration " << iterations << " norm is " << norm_try << std::endl;
 
         if (norm_try > norm_start)
           // Increase lambda and try again
@@ -248,30 +248,30 @@ namespace math {
 
         ++iterations; // Sanity check on iterations in this loop
         if (iterations > 5) {
-          //vw_out(DebugMessage, "math") << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
+          //VW_OUT(DebugMessage, "math") << "\n****LM: too many inner iterations - short circuiting\n" << std::endl;
           shortCircuit = true;
           norm_try = norm_start;
         }
-        //vw_out(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
+        //VW_OUT(DebugMessage, "math") << "\tlambda = " << lambda << std::endl;
       }
 
       // Percentage change convergence criterion
       if (((norm_start-norm_try)/norm_start) < rel_tolerance) {
         status = optimization::eConvergedRelTolerance;
-        vw_out(DebugMessage, "math") << "CONVERGED TO RELATIVE TOLERANCE\n";
+        VW_OUT(DebugMessage, "math") << "CONVERGED TO RELATIVE TOLERANCE\n";
         done = true;
       }
 
       // Absolute error convergence criterion
       if (norm_try < abs_tolerance) {
         status = optimization::eConvergedAbsTolerance;
-        vw_out(DebugMessage, "math") << "CONVERGED TO ABSOLUTE TOLERANCE\n";
+        VW_OUT(DebugMessage, "math") << "CONVERGED TO ABSOLUTE TOLERANCE\n";
         done = true;
       }
 
       // Max iterations convergence criterion
       if (outer_iter >= max_iterations) {
-        vw_out(DebugMessage, "math") << "REACHED MAX ITERATIONS!";
+        VW_OUT(DebugMessage, "math") << "REACHED MAX ITERATIONS!";
         done = true;
       }
 
@@ -286,10 +286,10 @@ namespace math {
 
       // Decrease lambda
       lambda /= 10;
-      //vw_out(DebugMessage, "math") << "lambda = " << lambda << std::endl;
-      //vw_out(DebugMessage, "math") << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
+      //VW_OUT(DebugMessage, "math") << "lambda = " << lambda << std::endl;
+      //VW_OUT(DebugMessage, "math") << "LM: end of outer iteration " << outer_iter << " with error " << norm_try << std::endl;
     }
-    vw_out(DebugMessage, "math") << "LM: finished with: " << outer_iter << "\n";
+    VW_OUT(DebugMessage, "math") << "LM: finished with: " << outer_iter << "\n";
     return x;
   }
 

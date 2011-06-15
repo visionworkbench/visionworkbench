@@ -247,7 +247,7 @@ TemporaryFile::~TemporaryFile() {
   m_buf.reset();
   if (m_delete)
     if (::remove(m_filename.c_str()) == -1 && errno != ENOENT)
-      vw_out(WarningMessage) << "Failed to remove temporary file " << m_filename << ": " << ::strerror(errno) << std::endl;
+      VW_OUT(WarningMessage) << "Failed to remove temporary file " << m_filename << ": " << ::strerror(errno) << std::endl;
 }
 
 const std::string& TemporaryFile::filename() const {return m_filename;}

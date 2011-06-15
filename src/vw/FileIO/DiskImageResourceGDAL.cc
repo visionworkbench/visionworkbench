@@ -159,7 +159,7 @@ namespace vw {
     std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
 
     BOOST_FOREACH( std::string const& i, gdal_format_string ) {
-      vw_out(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << i << std::endl;
+      VW_OUT(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << i << std::endl;
       driver = GetGDALDriverManager()->GetDriverByName(i.c_str());
       if( driver == NULL )
         continue;
@@ -167,7 +167,7 @@ namespace vw {
       if (need_create) {
         char** metadata = driver->GetMetadata();
         if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
-          vw_out(WarningMessage, "fileio") << "GDAL driver " << i << " does not support create." << std::endl;
+          VW_OUT(WarningMessage, "fileio") << "GDAL driver " << i << " does not support create." << std::endl;
           driver = NULL;
           unsupported_driver = true;
         }
@@ -177,7 +177,7 @@ namespace vw {
         break;
     }
     if (!driver)
-      vw_out(DebugMessage, "fileio") << "Could not get GDAL driver for filename:" << filename << std::endl;
+      VW_OUT(DebugMessage, "fileio") << "Could not get GDAL driver for filename:" << filename << std::endl;
     return std::make_pair(driver, unsupported_driver);
   }
 
@@ -243,18 +243,18 @@ namespace vw {
     m_format.cols = dataset->GetRasterXSize();
     m_format.rows = dataset->GetRasterYSize();
 
-    vw_out(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
+    VW_OUT(DebugMessage, "fileio") << "\n\tMetadata description: " << dataset->GetDescription() << std::endl;
     char** metadata = dataset->GetMetadata();
-    vw_out(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
+    VW_OUT(DebugMessage, "fileio") << "\tCount: " << CSLCount(metadata) << std::endl;
     for (int i = 0; i < CSLCount(metadata); i++) {
-      vw_out(DebugMessage, "fileio") << "\t\t" << CSLGetField(metadata,i) << std::endl;
+      VW_OUT(DebugMessage, "fileio") << "\t\t" << CSLGetField(metadata,i) << std::endl;
     }
 
-    vw_out(DebugMessage, "fileio") << "\tDriver: " <<
+    VW_OUT(DebugMessage, "fileio") << "\tDriver: " <<
       dataset->GetDriver()->GetDescription() <<
       dataset->GetDriver()->GetMetadataItem( GDAL_DMD_LONGNAME ) << std::endl;
 
-    vw_out(DebugMessage, "fileio") << "\tSize is " <<
+    VW_OUT(DebugMessage, "fileio") << "\tSize is " <<
       dataset->GetRasterXSize() << "x" <<
       dataset->GetRasterYSize() << "x" <<
       dataset->GetRasterCount() << std::endl;

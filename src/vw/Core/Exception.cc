@@ -27,7 +27,7 @@ namespace {
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
       e.default_throw();
 #else
-      vw::vw_out(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
+      vw::VW_OUT(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;
 #endif
       std::abort();
     }

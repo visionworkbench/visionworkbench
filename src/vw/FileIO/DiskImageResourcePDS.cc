@@ -180,7 +180,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
     // Otherwise, we set the data filename to be the same as the
     // filename that contains the image header.
     if (value[0] == '\"' && value[value.size()-1] == '\"') {
-      vw_out(InfoMessage, "fileio") << "PDS header points to a seperate data file: " << value << ".\n";
+      VW_OUT(InfoMessage, "fileio") << "PDS header points to a seperate data file: " << value << ".\n";
       m_pds_data_filename = value.substr(1,value.size()-2);
       m_image_data_offset = 0;
     } else {
@@ -234,7 +234,7 @@ void vw::DiskImageResourcePDS::open( std::string const& filename ) {
   m_format.pixel_format = planes_to_pixel_format(m_format.planes);
   if (m_format.pixel_format != VW_PIXEL_SCALAR) m_format.planes = 1;
 
-  vw_out(DebugMessage, "fileio")
+  VW_OUT(DebugMessage, "fileio")
     << "Opening PDS Image\n"
     << "\tImage Dimensions: " << m_format.cols << "x" << m_format.rows << "x" << m_format.planes << "\n"
     << "\tImage Format: " << m_format.channel_type << "   " << m_format.pixel_format << "\n";

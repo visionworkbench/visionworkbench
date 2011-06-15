@@ -211,7 +211,7 @@ vw::DiskImageResource* vw::DiskImageResource::open( std::string const& filename 
     OpenMapType::iterator i = open_map->find( extension );
     if( i != open_map->end() ) {
       DiskImageResource* rsrc = i->second( filename );
-      vw_out(DebugMessage,"fileio") << "Produce DiskImageResource of type: " << rsrc->type() << "\n";
+      VW_OUT(DebugMessage,"fileio") << "Produce DiskImageResource of type: " << rsrc->type() << "\n";
       return rsrc;
     }
   }

@@ -50,7 +50,7 @@ namespace vw {
 
     inline result_type operator()( int32 x, int32 y, int32 p = 0 ) const {
 #if VW_DEBUG_LEVEL > 1
-      vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << "," << p << ")" << std::endl;
+      VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << "," << p << ")" << std::endl;
 #endif
       if ( m_cache_ptr ) {
         // Early-out optimization for single-block resources
@@ -93,7 +93,7 @@ namespace vw {
         : m_view(view), m_dest(dest), m_offset(offset) {}
       void operator()( BBox2i const& bbox ) const {
 #if VW_DEBUG_LEVEL > 1
-        vw_out(VerboseDebugMessage, "image") << "BlockRasterizeView::RasterizeFunctor( " << bbox << " )" << std::endl;
+        VW_OUT(VerboseDebugMessage, "image") << "BlockRasterizeView::RasterizeFunctor( " << bbox << " )" << std::endl;
 #endif
         if( m_view.m_cache_ptr ) {
           int32 ix=bbox.min().x()/m_view.m_block_size.x(), iy=bbox.min().y()/m_view.m_block_size.y();

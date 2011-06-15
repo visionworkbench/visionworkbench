@@ -81,7 +81,7 @@ namespace vw {
       ~WorkerThread() {}
       void operator()() {
         do {
-          vw_out(DebugMessage, "thread") << "ThreadPool: running worker thread "
+          VW_OUT(DebugMessage, "thread") << "ThreadPool: running worker thread "
                                          << m_thread_id << "\n";
           (*m_task)();
           m_task->signal_finished();
@@ -124,7 +124,7 @@ namespace vw {
     // *************************************************************
     void worker_thread_complete(int worker_id) {
       m_active_workers--;
-      vw_out(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
+      VW_OUT(DebugMessage, "thread") << "ThreadPool: terminating worker thread " << worker_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
 
       // Erase the worker thread from the list of active threads
       VW_ASSERT(worker_id >= 0 && worker_id < int(m_running_threads.size()),
@@ -170,7 +170,7 @@ namespace vw {
         boost::shared_ptr<Thread> thread(new Thread(next_worker));
         m_running_threads[next_available_thread_id] = thread;
         m_active_workers++;
-        vw_out(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
+        VW_OUT(DebugMessage, "thread") << "ThreadPool: creating worker thread " << next_available_thread_id << ".  [ " << m_active_workers << " / " << m_max_workers << " now active ]\n";
       }
     }
 

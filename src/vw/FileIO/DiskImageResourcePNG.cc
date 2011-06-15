@@ -349,7 +349,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
           break;
 #endif
         default:
-          vw_out(WarningMessage, "fileio") << "Unsupported PNG comment type in PNG read!" << std::endl;
+          VW_OUT(WarningMessage, "fileio") << "Unsupported PNG comment type in PNG read!" << std::endl;
           continue;
       }
       comments.push_back( c );

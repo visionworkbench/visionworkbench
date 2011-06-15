@@ -186,7 +186,7 @@ namespace vw {
         boost::shared_array<PixelT> data( new (std::nothrow) PixelT[size] );
         if (!data) {
           // print it and throw it for the benefit of OSX, which doesn't print the exception what() on terminate()
-          vw_out(ErrorMessage)   << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!" << std::endl;
+          VW_OUT(ErrorMessage)   << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!" << std::endl;
           vw_throw(ArgumentErr() << "Cannot allocate enough memory for a " << cols << "x" << rows << "x" << planes << " image: too many bytes!");
         }
         m_data = data;

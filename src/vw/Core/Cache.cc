@@ -15,15 +15,15 @@
 void vw::Cache::allocate( size_t size ) {
   while( m_size+size > m_max_size ) {
     if( ! m_last_valid ) {
-      vw_out(WarningMessage, "console") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
-      vw_out(WarningMessage, "cache") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
+      VW_OUT(WarningMessage, "console") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
+      VW_OUT(WarningMessage, "cache") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
       break;
     }
     m_last_valid->invalidate();
     m_evictions++;
   }
   m_size += size;
-  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
+  VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
 void vw::Cache::resize( size_t size ) {
@@ -37,7 +37,7 @@ void vw::Cache::resize( size_t size ) {
 
 void vw::Cache::deallocate( size_t size ) {
   m_size -= size;
-  VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
+  VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
 // Move the cache line to the top of the valid list.

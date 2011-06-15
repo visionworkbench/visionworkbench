@@ -37,13 +37,13 @@ void vw::TerminalProgressCallback::print_progress() const {
     for( int i=0; i<pi; ++i ) p << "*";
     for( int i=m_bar_length; i>pi; --i ) p << ".";
     p << "] " << std::setprecision(m_precision) << std::fixed << (m_progress*100.0) << "%";
-    vw_out(m_level, m_namespace) << p.str() << std::flush;
+    VW_OUT(m_level, m_namespace) << p.str() << std::flush;
   }
 }
 
 void vw::TerminalProgressCallback::report_aborted(std::string why) const {
   Mutex::Lock lock(m_mutex);
-  vw_out(m_level, m_namespace) << " Aborted: " << why << std::endl;
+  VW_OUT(m_level, m_namespace) << " Aborted: " << why << std::endl;
 }
 
 void vw::TerminalProgressCallback::report_finished() const {
@@ -52,7 +52,7 @@ void vw::TerminalProgressCallback::report_finished() const {
   std::ostringstream p;
   for ( uint32 i = 0; i < cbar_length; i++ )
     p << "*";
-  vw_out(m_level, m_namespace) << "\r" << m_pre_progress_text
+  VW_OUT(m_level, m_namespace) << "\r" << m_pre_progress_text
                                << "[" << p.str() << "] Complete!\n";
 }
 

@@ -246,10 +246,10 @@ void DiskImageResourceJPEG::create( std::string const& filename,
   // warning message.
   if (format.pixel_format == VW_PIXEL_GRAYA) {
     m_format.pixel_format = VW_PIXEL_GRAY;
-    vw_out(DebugMessage, "fileio") << "DiskImageResourceJPEG: Warning. alpha channel removed.  ";
+    VW_OUT(DebugMessage, "fileio") << "DiskImageResourceJPEG: Warning. alpha channel removed.  ";
   } else if (format.pixel_format == VW_PIXEL_RGBA) {
     m_format.pixel_format = VW_PIXEL_RGB;
-    vw_out(DebugMessage, "fileio") << "DiskImageResourceJPEG: Warning. alpha channel removed.  ";
+    VW_OUT(DebugMessage, "fileio") << "DiskImageResourceJPEG: Warning. alpha channel removed.  ";
   }
 }
 

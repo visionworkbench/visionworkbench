@@ -243,9 +243,9 @@ namespace math {
         inliers( H, p1, p2, try1, try2 );
       }
       // For debugging
-      vw_out(InfoMessage, "interest_point") << "\nRANSAC Summary:" << std::endl;
-      vw_out(InfoMessage, "interest_point") << "\tFit = " << H << std::endl;
-      vw_out(InfoMessage, "interest_point") << "\tInliers / Total  = " << try1.size() << " / " << p1.size() << "\n\n";
+      VW_OUT(InfoMessage, "interest_point") << "\nRANSAC Summary:" << std::endl;
+      VW_OUT(InfoMessage, "interest_point") << "\tFit = " << H << std::endl;
+      VW_OUT(InfoMessage, "interest_point") << "\tInliers / Total  = " << try1.size() << " / " << p1.size() << "\n\n";
       return H;
     }
 

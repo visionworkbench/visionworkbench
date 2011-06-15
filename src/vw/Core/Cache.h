@@ -127,7 +127,7 @@ namespace vw {
       CacheLine( Cache& cache, GeneratorT const& generator )
         : CacheLineBase(cache,core::detail::pointerish(generator)->size()), m_generator(generator), m_generation_count(0)
       {
-        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache creating CacheLine " << info() << "\n"; )
+        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " << info() << "\n"; )
         Mutex::Lock cache_lock(cache.m_mutex);
         CacheLineBase::invalidate();
       }
@@ -135,14 +135,14 @@ namespace vw {
       virtual ~CacheLine() {
         Mutex::Lock cache_lock(cache().m_mutex);
         invalidate();
-        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
+        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
         remove();
       }
 
       virtual void invalidate() {
         Mutex::Lock line_lock(m_mutex);
         if( ! m_value ) return;
-        VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
+        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
         CacheLineBase::invalidate();
         CacheLineBase::deallocate();
         m_value.reset();
@@ -161,7 +161,7 @@ namespace vw {
         if( !m_value ) {
           m_generation_count++;
           hit = false;
-          VW_CACHE_DEBUG( vw_out(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; )
+          VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; )
           {
             Mutex::Lock cache_lock(cache().m_mutex);
             CacheLineBase::allocate();

@@ -98,9 +98,9 @@ namespace math {
     void print_vertices() {
       for ( vertex_iterator iter = m_vertices.begin();
             iter != m_vertices.end(); ++iter) {
-        vw_out(DebugMessage, "math") << "\tSIMPLEX: " << (*iter).first << "[" << (*iter).second << "]   ";
+        VW_OUT(DebugMessage, "math") << "\tSIMPLEX: " << (*iter).first << "[" << (*iter).second << "]   ";
       }
-      vw_out(InfoMessage, "math") << "\n";
+      VW_OUT(InfoMessage, "math") << "\n";
     }
 
     DomainT location() { return lowest_vertex().first; }
@@ -184,8 +184,8 @@ namespace math {
     status = optimization::eNelderMeadConvergedRelTolerance;
 
     if (verbose) {
-      vw_out(InfoMessage, "math") << "Nelder Mead Optimizer:\n";
-      vw_out(InfoMessage, "math") << "\tTol: " << tolerance << "   MaxIter: " << max_iterations << "   Restarts: " << restarts << "\n";
+      VW_OUT(InfoMessage, "math") << "Nelder Mead Optimizer:\n";
+      VW_OUT(InfoMessage, "math") << "\tTol: " << tolerance << "   MaxIter: " << max_iterations << "   Restarts: " << restarts << "\n";
     }
 
     // Restart the simplex several times -- this prevents false
@@ -203,11 +203,11 @@ namespace math {
         delta = simplex.update();
         ++iterations;
         if (verbose && iterations % 100 == 0)
-          vw_out(DebugMessage, "math") << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
+          VW_OUT(DebugMessage, "math") << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
       }
 
       if (verbose)
-        vw_out(DebugMessage, "math") << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
+        VW_OUT(DebugMessage, "math") << "\t" << iterations << ": " << simplex.location() << "[" << simplex.value() << "]\n";
 
       // Store the best result so far.
       result = simplex.location();

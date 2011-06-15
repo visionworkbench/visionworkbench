@@ -31,7 +31,7 @@ static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const c
   if (eErrClass == CE_Fatal)
     vw::vw_throw(vw::IOErr()  << "GdalIO: " << msg << " (code = " << nError << ")");
   else
-    vw::vw_out(lvl, "fileio") << "GdalIO: " << msg << " (code = " << nError << ")" << std::endl;
+    VW_OUT(lvl, "fileio") << "GdalIO: " << msg << " (code = " << nError << ")" << std::endl;
 }
 
 // GDAL is not thread-safe, so we keep a global GDAL lock (pointed to

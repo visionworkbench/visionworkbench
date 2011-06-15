@@ -128,7 +128,7 @@ namespace math {
       VW_ASSERT( m.impl().rows() == m_matrix.size1() &&
                  m.impl().cols() == m_matrix.size2(), ArgumentErr() << "Matrix must have dimensions "
                  << m_matrix.size1() << "x" << m_matrix.size2() << "." );
-      vw_out(vw::WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
+      VW_OUT(vw::WarningMessage, "math") << "Sparsity destroyed in generic assignment to MatrixSparseSkyline.\n";
       for ( size_t i = 0; i < m.rows(); i++ ) {
         for ( size_t j = 0; j < m.cols(); j++ ) {
           (*this)(i,j) = m(i,j);
@@ -641,7 +641,7 @@ namespace math {
     boost::property_map<Graph,boost::vertex_index_t>::type
       index_map = get(boost::vertex_index, G);
 
-    vw_out(DebugMessage,"math") << "-> CutHill McKee starting B: "
+    VW_OUT(DebugMessage,"math") << "-> CutHill McKee starting B: "
                                 << boost::bandwidth(G) << "\n";
 
     // Solving for CutHill McKee
@@ -658,7 +658,7 @@ namespace math {
     // Finding new bandwidth for debug purposes
     for (size_type c = 0; c != inv_perm.size(); ++c )
       perm[index_map[inv_perm[c]]] = c;
-    vw_out(DebugMessage,"math") << "-> CutHill McKee ending B: "
+    VW_OUT(DebugMessage,"math") << "-> CutHill McKee ending B: "
                                 << boost::bandwidth(G, make_iterator_property_map(&perm[0], index_map, perm[0])) << "\n";
 
     return lookup_chart;

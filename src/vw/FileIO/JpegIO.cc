@@ -146,14 +146,14 @@ void JpegIOCompress::open() {
       m_ctx.in_color_space = JCS_UNKNOWN;
       break;
     case VW_PIXEL_GRAYA:
-      vw_out(DebugMessage, "fileio") << "JpegIOCompress: Warning: alpha channel removed." << std::endl;;
+      VW_OUT(DebugMessage, "fileio") << "JpegIOCompress: Warning: alpha channel removed." << std::endl;;
       m_fmt.pixel_format = VW_PIXEL_GRAY;
     case VW_PIXEL_GRAY:
       m_ctx.input_components = 1;
       m_ctx.in_color_space = JCS_GRAYSCALE;
       break;
     case VW_PIXEL_RGBA:
-      vw_out(DebugMessage, "fileio") << "JpegIOCompress: Warning: alpha channel removed." << std::endl;;
+      VW_OUT(DebugMessage, "fileio") << "JpegIOCompress: Warning: alpha channel removed." << std::endl;;
       m_fmt.pixel_format = VW_PIXEL_RGB;
     case VW_PIXEL_RGB:
       m_ctx.input_components = 3;

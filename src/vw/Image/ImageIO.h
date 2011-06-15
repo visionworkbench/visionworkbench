@@ -159,7 +159,7 @@ namespace vw {
 
       virtual ~WriteBlockTask() {}
       virtual void operator() () {
-        vw_out(DebugMessage, "image") << "Writing block " << m_idx << " at " << m_bbox << "\n";
+        VW_OUT(DebugMessage, "image") << "Writing block " << m_idx << " at " << m_bbox << "\n";
         m_resource.write( m_image_block.buffer(), m_bbox );
         m_write_finish_event.notify();
       }
@@ -192,7 +192,7 @@ namespace vw {
 
         m_write_finish_event.wait(m_index);
 
-        vw_out(DebugMessage, "image") << "Rasterizing block " << m_index << " at " << m_bbox << "\n";
+        VW_OUT(DebugMessage, "image") << "Rasterizing block " << m_index << " at " << m_bbox << "\n";
         // Rasterize the block
         ImageView<typename ViewT::pixel_type> image_block( crop(m_image, m_bbox) );
 
@@ -257,7 +257,7 @@ namespace vw {
       block_size = resource.block_write_size();
 
     size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
-    vw_out(DebugMessage,"image") << "block_write_image: writing " << total_num_blocks << " blocks.\n";
+    VW_OUT(DebugMessage,"image") << "block_write_image: writing " << total_num_blocks << " blocks.\n";
 
     // Early out for easy case
     if (total_num_blocks == 1) {
@@ -270,7 +270,7 @@ namespace vw {
 
       for (int32 j = 0; j < rows; j+= block_size.y()) {
         for (int32 i = 0; i < cols; i+= block_size.x()) {
-          vw_out(DebugMessage, "image") << "ImageIO scheduling block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
+          VW_OUT(DebugMessage, "image") << "ImageIO scheduling block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
           // Rasterize and save this image block
           BBox2i current_bbox(Vector2i(i,j),
@@ -316,7 +316,7 @@ namespace vw {
       block_size = resource.block_write_size();
 
     size_t total_num_blocks = ((rows-1)/block_size.y()+1) * ((cols-1)/block_size.x()+1);
-    vw_out(DebugMessage,"image") << "write_image: writing " << total_num_blocks << " blocks.\n";
+    VW_OUT(DebugMessage,"image") << "write_image: writing " << total_num_blocks << " blocks.\n";
 
     // Early out for easy case
     if (total_num_blocks == 1) {
@@ -325,7 +325,7 @@ namespace vw {
     } else {
       for (int32 j = 0; j < rows; j+= block_size.y()) {
         for (int32 i = 0; i < cols; i+= block_size.x()) {
-          vw_out(DebugMessage, "image") << "ImageIO writing block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
+          VW_OUT(DebugMessage, "image") << "ImageIO writing block at [" << i << " " << j << "]/[" << rows << " " << cols << "] blocksize = " << block_size.x() << " x " <<  block_size.y() << "\n";
 
           // Rasterize and save this image block
           BBox2i current_bbox(Vector2i(i,j),

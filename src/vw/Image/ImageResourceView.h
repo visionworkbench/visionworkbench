@@ -66,7 +66,7 @@ namespace vw {
     result_type operator()( int32 x, int32 y, int32 plane=0 ) const {
       Mutex::Lock lock(*m_rsrc_mutex);
 #if VW_DEBUG_LEVEL > 1
-      vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
+      VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << ")" << std::endl;
 #endif
       ImageView<PixelT> buffer(1,1,m_planes);
       read_image( buffer, *m_rsrc, BBox2i(x,y,1,1) );
@@ -87,7 +87,7 @@ namespace vw {
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
       Mutex::Lock lock(*m_rsrc_mutex);
 #if VW_DEBUG_LEVEL > 1
-      vw_out(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;
+      VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;
 #endif
       read_image( dest, *m_rsrc, bbox );
     }

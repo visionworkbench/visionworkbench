@@ -41,5 +41,5 @@ vw::Timer::~Timer() {
   double duration = boost::numeric_cast<double>(end.tv_sec - m_begin.tv_sec);
   duration += boost::numeric_cast<double>(end.tv_usec - m_begin.tv_usec)/1.0e6;
 #endif
-  vw_out(m_level, m_log_namespace) << m_desc << ": " << duration << std::endl;
+  VW_OUT(m_level, m_log_namespace) << m_desc << ": " << duration << std::endl;
 }
