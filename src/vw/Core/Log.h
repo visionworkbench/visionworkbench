@@ -476,6 +476,14 @@ namespace vw {
       m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp) );
       m_console_log->rule_set() = rule_set;
     }
+
+    /// A mostly non-locking check to determine if this Log object has any
+    /// stream that is open for a requested log level and namespace.
+    ///
+    /// LogRuleSets still lock on access of their operator().
+    /// We're also using shared_ptr, which lock on access.
+    bool is_enabled( int log_level = vw::InfoMessage,
+                     std::string const& log_namespace="console" );
   };
 
   /// The vision workbench logging operator.  Use this to generate a
@@ -483,6 +491,10 @@ namespace vw {
   /// log_namespace.
   std::ostream& vw_out( int log_level = vw::InfoMessage,
                         std::string const& log_namespace = "console" );
+
+  /// A macro for vw_out that allows for lazy evaluation. It achieves
+  /// this by putting a conditional around the stream operation.
+#define VW_OUT(...) if(::vw::vw_log().is_enabled(__VA_ARGS__)) ::vw::vw_out(__VA_ARGS__)
 
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log

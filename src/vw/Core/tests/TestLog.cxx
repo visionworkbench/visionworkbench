@@ -477,3 +477,44 @@ TEST(Log, WarningsCanBeTurnedOff4) {
   const std::string& x = sstr.str();
   ASSERT_TRUE(x.empty());
 }
+
+TEST(Log, LazyIsEnabled) {
+  vw_log().console_log().rule_set().add_rule(InfoMessage, "test");
+
+  EXPECT_TRUE(  vw_log().is_enabled() );
+  EXPECT_FALSE( vw_log().is_enabled(DebugMessage) );
+  EXPECT_TRUE(  vw_log().is_enabled(InfoMessage,"test") );
+  EXPECT_FALSE( vw_log().is_enabled(DebugMessage,"test") );
+  EXPECT_FALSE( vw_log().is_enabled(InfoMessage,"other") );
+
+  std::ostringstream sstr;
+  boost::shared_ptr<LogInstance> new_log(new LogInstance(sstr));
+  new_log->rule_set().add_rule(EveryMessage, "other");
+  vw_log().add(new_log);
+
+  EXPECT_TRUE(  vw_log().is_enabled(InfoMessage,"other") );
+  EXPECT_TRUE(  vw_log().is_enabled(VerboseDebugMessage,"other") );
+
+  // How it should work with a macro
+  std::ostringstream sstr2;
+  boost::shared_ptr<LogInstance> new_log2(new LogInstance(sstr2, false));
+  new_log2->rule_set().clear();
+  new_log2->rule_set().add_rule(InfoMessage,"other2");
+  vw_log().add(new_log2);
+
+  VW_OUT(InfoMessage,"other2") << "Printed" << std::flush;
+  VW_OUT(DebugMessage,"other2") << "NotPrinted" << std::flush;
+  EXPECT_EQ( "Printed", sstr2.str() );
+
+  // This would then be lazy
+  uint64 start = vw::Stopwatch::microtime();
+  VW_OUT(DebugMessage,"other2") << slow(1, "Not Printed") << std::flush;
+  uint64 stop  = vw::Stopwatch::microtime();
+  EXPECT_LT(stop-start, 200000u);
+
+  // Make sure default options still work with the variadic
+  // macro. This would fail to compile if it didn't work.
+  raii fix(boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(sstr),      LogRuleSet(),  false),
+           boost::bind(&Log::set_console_stream, boost::ref(vw_log()), boost::ref(std::cout), LogRuleSet(), false));
+  VW_OUT() << "You should see me once\n";
+}

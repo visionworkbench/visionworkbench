@@ -10,6 +10,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Settings.h>
+#include <boost/foreach.hpp>
 
 // C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
@@ -122,6 +123,18 @@ std::ostream& vw::Log::operator() (int log_level, std::string const& log_namespa
 
     return *stream;
   }
+}
+
+bool vw::Log::is_enabled( int log_level,
+                          std::string const& log_namespace ) {
+  // Early exit option before iterating through m_logs
+  if ( m_console_log->rule_set()(log_level, log_namespace) )
+    return true;
+  BOOST_FOREACH( boost::shared_ptr<LogInstance> log_instance, m_logs ) {
+    if ( log_instance->rule_set()(log_level, log_namespace) )
+      return true;
+  }
+  return false;
 }
 
 vw::LogRuleSet::LogRuleSet( LogRuleSet const& copy_log) {
