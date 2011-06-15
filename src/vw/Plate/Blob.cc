@@ -267,6 +267,7 @@ uint64 ReadBlob::read_end_of_file_ptr() const {
     m_fstream->clear();
   m_fstream->seekg(0, std::ios_base::beg);
   m_fstream->read(reinterpret_cast<char*>(data), 3*sizeof(uint64));
+  check_fail("Failed to read end of file ptr");
 
   // Make sure the read ptr is valid by comparing the three
   // entries.
