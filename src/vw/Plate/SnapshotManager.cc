@@ -13,281 +13,103 @@
 #include <boost/foreach.hpp>
 #include <set>
 
-namespace vw {
-namespace platefile {
+namespace {
 
-#if 0
+  using namespace vw;
+  using namespace vw::platefile;
 
-  typedef std::map<uint32, TileHeader> tilemap_t;
+  typedef boost::tuple<uint32, uint32, uint32> rowcoltid_t;
+  typedef boost::tuple<uint32, uint32>         rowcol_t;
+  typedef boost::tuple<uint32, TileHeader>     tile_order_t;
 
-  // ----------------------- WeightedAvg blending -------------------------------
+  BBox2i move_down(const BBox2i& input, uint32 level_change) {
+    return input * (1 << level_change);
+  }
 
-  // Performs alpha blending with un-premultiplied alpha
-  template <class PixelT>
-  struct WeightedAvgBlendFunctor : ReturnFixedType<PixelT> {
-    inline PixelT operator()( PixelT const& pixel_a, PixelT const& pixel_b ) const {
-      typedef typename PixelChannelType<PixelT>::type channel_type;
+  rowcol_t parent_tile(const uint32 row, const uint32 col) {
+    return rowcol_t(row/2, col/2);
+  }
 
-      // Extract the alpha channels
-      channel_type weight_a = alpha_channel(pixel_a);
-      channel_type weight_b = alpha_channel(pixel_b);
-
-      // Compute the new pixel values
-      //      PixelT result = pixel_a * weight_a + pixel_b * weight_b * (1-weight_a); // For debugging: alpha blending
-      PixelT result = pixel_a * weight_a + pixel_b * (1-weight_a);
-
-
-      // This check in necessary to make sure that NaNs and Inf, -Inf
-      // don't slip through the cracks.  This can happen sometimes
-      // when you mask out bad values, but leave the NaNs in the
-      // grayscale channel of the image.  The NaN will propagate
-      // through the computation regardless of whether they are
-      // "masked out", and appear in the output DEM.  This prevents
-      // this from ever happening!
-      if (result[0] != result[0]) {
-        return PixelT();
-      }
-
-      // Compute the new weight value as the max of the individual weight values.
-      //      result.a() = weight_a + weight_b * (1-weight_a);   // For debugging: alpha blending
-      result.a() = std::max(weight_a, weight_b);
-
-      // This check ensures that the data value in the snapshot is
-      // zero if the alpha value is zero.
-      if (result.a() == 0)
-        return PixelT();
-
-      return result;
+  struct CmpTuple {
+    template <typename T1, typename T2>
+    bool operator()(const boost::tuple<T1, T2>& a, const boost::tuple<T1, T2>& b) {
+      if (a.get<0>() != b.get<0>())
+        return a.get<0>() < b.get<0>();
+      return a.get<1>() < b.get<1>();
+    }
+    template <typename T1, typename T2, typename T3>
+    bool operator()(const boost::tuple<T1, T2, T3>& a, const boost::tuple<T1, T2, T3>& b) {
+      if (a.get<0>() != b.get<0>())
+        return a.get<0>() < b.get<0>();
+      else if (a.get<1>() != b.get<1>())
+        return a.get<1>() < b.get<1>();
+      return a.get<2>() < b.get<2>();
     }
   };
 
-
-  /// Create a new view which is the alpha blended version of two
-  /// image views.  Image A ends up on top of image B.
-  template <class ImageT>
-  inline BinaryPerPixelView<ImageT, ImageT, WeightedAvgBlendFunctor<typename ImageT::pixel_type> > weighted_avg_blend( ImageViewBase<ImageT> const& image_a, ImageViewBase<ImageT> const& image_b ) {
-    VW_ASSERT( image_a.impl().rows() == image_b.impl().rows() &&
-               image_a.impl().cols() == image_b.impl().cols(),
-               ArgumentErr()
-               << "platefile::weighted_avg_blend() failed.  Image dimensions do not match." );
-
-    return BinaryPerPixelView<ImageT,ImageT,WeightedAvgBlendFunctor<typename ImageT::pixel_type> >( image_a.impl(), image_b.impl() );
-  }
-
-  // -----------------------   Utilities   -------------------------------
-
-  bool is_leaf(boost::shared_ptr<PlateFile> platefile, TileHeader const& tile_header) {
-
-    uint32 current_col = tile_header.col();
-    uint32 current_row = tile_header.row();
-
-    for (uint32 new_row = current_row*2; new_row < current_row*2+2; ++new_row) {
-      for (uint32 new_col = current_col*2; new_col < current_col*2+2; ++new_col) {
-
-        std::list<TileHeader> tile_records =
-          platefile->search_by_location(new_col, new_row, tile_header.level() + 1, TransactionRange(tile_header.transaction_id()));
-
-          // If this node has child tiles, then it is not a leaf node.
-          if (tile_records.size() > 0)
-            return false;
-      }
-    }
-
-    // If not child tiles were found, then this is a leaf node.
-    return true;
-  }
-#endif
-
-  namespace detail {
-    BBox2i move_down(const BBox2i& input, uint32 level_change) {
-      return input * (1 << level_change);
-    }
-
-#if 0
-    void collect(boost::shared_ptr<PlateFile> plate, tilemap_t& all_tiles, uint32 col, uint32 row, uint32 level, vw::BBox2i const& target_region, uint32 target_level, const TransactionRange& range)
+  struct SortByTidDesc {
+    bool operator()(const tile_order_t& a, const tile_order_t& b)
     {
-      std::list<TileHeader> tiles = plate->search_by_location(col, row, level, range);
-      // This branch is empty. nothing to find.
-      if (tiles.empty())
-        return;
-
-      // Add the current level to the list (we already verified that these are in-region)
-      BOOST_FOREACH(const TileHeader& t, tiles)
-        all_tiles.insert(std::make_pair(t.transaction_id(), t));
-
-      if (target_level == level)
-        return;
-
-      for (uint32 row2 = row*2; row2 < row*2+2; ++row2)
-        for (uint32 col2 = col*2; col2 < col*2+2; ++col2)
-          if (move_down(BBox2i(col2, row2, 1, 1), target_level - level).intersects(target_region))
-            collect(plate, all_tiles, col2, row2, level+1, target_region, target_level, range);
+      return b.get<0>() < a.get<0>();
     }
-#endif
+  };
+
+  // row, col at target level, tile headers from next level down (sorted in Tid order)
+  typedef std::map<rowcol_t, std::vector<tile_order_t>, CmpTuple> composite_map_t;
+  // Cache of parsed images
+  template <typename PixelT>
+  struct tile_cache_t : public std::map<rowcoltid_t, ImageView<PixelT>, CmpTuple> {};
+
+  // composite_order_override lets you override the composite order
+  void schedule_tile(const TileHeader& hdr, std::vector<tile_order_t>& stack, Datastore::TileSearch& tile_lookup, int32 composite_order_override) {
+    stack.push_back(boost::make_tuple(composite_order_override == -1 ? hdr.transaction_id() : boost::numeric_cast<uint32>(composite_order_override), hdr));
+    push_heap(stack.begin(), stack.end(), SortByTidDesc());
+    tile_lookup.push_back(hdr);
   }
 
-#if 0
-  template <class PixelT>
-  int SnapshotManager<PixelT>::snapshot_helper(uint32 current_col,
-        uint32 current_row,
-        uint32 current_level,
-        vw::BBox2i const& target_region,
-        uint32 target_level,
-        TransactionRange read_transaction_range) const
-  {
-
-    tilemap_t composite_tiles;
-    detail::collect(m_platefile, composite_tiles, current_col, current_row, current_level, target_region, target_level, read_transaction_range);
-    vw_out(DebugMessage, "plate::snapshot") << "Collected tiles for snapshot: " << composite_tiles.size() << std::endl;
-
-    // If we arrive at the target level and find that we have fewer
-    // than two tiles to composite, then there's no actual
-    // compositing that needs to be done.  We can safely bail on
-    // this tile.
-    if (composite_tiles.size() < 2)
-      return 0;
-
-    // Create a tile into which we will accumulate composited data.
-    ImageView<PixelT> composite_tile(m_platefile->default_tile_size(), m_platefile->default_tile_size());
-
-    vw_out(DebugMessage, "plate::snapshot") << "Starting Compositing run...\n";
-    int num_composited = 0;
-
-    BOOST_REVERSE_FOREACH(const tilemap_t::value_type& tile, composite_tiles) {
-      const TileHeader& hdr = tile.second;
-      ImageView<PixelT> new_tile(m_platefile->default_tile_size(), m_platefile->default_tile_size());
-
-      // Tile access is highly localized during snapshotting, so it
-      // speeds things up considerably to cache them here.  We check
-      // the cache first and then read the tile from the platefile
-      // if nothing is found.
-      if ( !(this->restore_tile(new_tile, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id())) ) {
-        try {
-          // If the tile isn't in our cache, then we take the
-          // performance hit and read the tile from the platefile.
-          m_platefile->read(new_tile, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id(), true); // exact_transaction_match
-        } catch (const BlobIoErr &e) {
-          m_platefile->error_log() << "BlobIoErr, tile[" << hdr << "]: " << e.what() << "\n";
-        } catch (const IOErr &e) {
-          m_platefile->error_log() << "IOErr, tile[" << hdr << "]: " << e.what() << "\n";
-        }
-
-        // Save the tile to the read cache.
-        this->save_tile(new_tile, hdr.col(), hdr.row(), hdr.level(), hdr.transaction_id());
-      }
-
-      vw_out(DebugMessage, "plate::snapshot") << "\t--> Adding tile: " << hdr << "\n";
-
-      // If this is the first tile in this location, it's already at
-      // the target_level, and it's opaque (which is a very common
-      // case), then we don't need to save it as part of the
-      // snapshot since its already the top tile in the snapshot.
-      // This optimization saves us both space and time!
-      if ( hdr.level() == target_level && &tile == &(*composite_tiles.rbegin()) && is_opaque(new_tile) ) {
-        return 0;
-      }
-
-      // If we are compositing a tile from a lower resolution in the
-      // pyramid, it needs to be supersampled and cropped before we
-      // can use it here.
-      if (hdr.level() != target_level) {
-
-        new_tile = resample_img_from_level(
-            new_tile, hdr.col(), hdr.row(), hdr.level(), current_col, current_row, target_level);
-
-
-      }
-
-      // Add the new tile UNDERNEATH the tiles we have already composited.
-      //
-      // If we are snapshotting terrain, we do this with a weighted
-      // average.  Otherwise we use normal alpha blending.
-      if (m_tweak_settings_for_terrain) {
-        composite_tile = weighted_avg_blend(composite_tile, new_tile);
-      } else {
-        vw::mosaic::ImageComposite<PixelT> composite;
-        composite.insert(new_tile, 0, 0);
-        composite.insert(composite_tile, 0, 0);
-        composite.set_draft_mode( true );
-        composite.prepare();
-        composite_tile = composite;
-      }
-      ++num_composited;
-
-      // Check to see if the composite tile is opaque.  If it is,
-      // then there's no point in compositing any more tiles because
-      // they will end up hidden anyway.
-      if ( is_opaque(composite_tile) ) {
-        break;
-      }
-    }
-
-    if (num_composited > 0) {
-      // -- debug
-      vw_out(DebugMessage, "plate::snapshot")  << "\t    Compositing " << current_col << " "
-        << current_row << " @ " << current_level
-        << "  [ " << num_composited << " ]\n";
-
-      m_platefile->write_update(composite_tile, current_col, current_row, current_level);
-      return 1;
-    } else {
-      return 0;
-    }
+  template <typename PixelT>
+  void parse_image_and_store(const Tile& t, tile_cache_t<PixelT>& tile_cache) {
+    ImageView<PixelT>& image = tile_cache[rowcoltid_t(t.hdr.row(), t.hdr.col(), t.hdr.transaction_id())];
+    boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(t.hdr.filetype(), &t.data->operator[](0), t.data->size()));
+    read_image(image, *r);
   }
-#endif
+} // anon
 
-struct CmpTuple {
-  template <typename T1, typename T2>
-  bool operator()(const boost::tuple<T1, T2>& a, const boost::tuple<T1, T2>& b) {
-    if (a.get<0>() != b.get<0>())
-      return a.get<0>() < b.get<0>();
-    return a.get<1>() < b.get<1>();
-  }
-  template <typename T1, typename T2, typename T3>
-  bool operator()(const boost::tuple<T1, T2, T3>& a, const boost::tuple<T1, T2, T3>& b) {
-    if (a.get<0>() != b.get<0>())
-      return a.get<0>() < b.get<0>();
-    else if (a.get<1>() != b.get<1>())
-      return a.get<1>() < b.get<1>();
-    return a.get<2>() < b.get<2>();
-  }
-};
+namespace vw {
+namespace platefile {
 
-struct SortByTidDesc {
-  bool operator()(const TileHeader& a, const TileHeader& b)
-  {
-    return b.transaction_id() < a.transaction_id();
-  }
-};
+std::ostream& operator<<(std::ostream& o, const rowcoltid_t& hdr) {
+  return (o << hdr.get<1>() << "," << hdr.get<0>() << " (t_id = " << hdr.get<2>() << ")");
+}
 
 template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range) const {
-  typedef boost::tuple<uint32, uint32, uint32> rowcoltid_t;
-  typedef boost::tuple<uint32, uint32> rowcol_t;
   typedef ImageView<PixelT> image_t;
-
-  // row, col at target level, tile headers from next level down (sorted in Tid order)
-  typedef std::map<rowcol_t, std::vector<TileHeader>, CmpTuple>    composite_map_t;
-  // Cache of parsed images
-  typedef std::map<rowcoltid_t, image_t, CmpTuple>  tile_cache_t;
-
-  composite_map_t composite_map;
-  tile_cache_t tile_cache;
-
-  // XXX: This will make it so the snapshot tiles go on top of the existing tiles at a level
-  // This ensures zoom consistency at the expense of possible canonical data.
-  // This can be switched by demoting the priority of the output transaction
 
   // Divide up the region into moderately-sized chunks
   BOOST_FOREACH(const BBox2i& region, bbox_tiles(tile_region, 1024, 1024)) {
-    // Grab all tiles that the chunk depends on (one level below) and sort them by tid
-    BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level, detail::move_down(region, 1), range)) {
-      composite_map_t::mapped_type& h = composite_map[rowcol_t(hdr.row(), hdr.col())];
-      h.push_back(hdr);
-      push_heap(h.begin(), h.end(), SortByTidDesc());
-      tile_cache[rowcoltid_t(hdr.row(), hdr.col(), hdr.transaction_id())] = image_t();
+    // Declare these inside the loop so we keep the memory use down to a dull roar
+    composite_map_t composite_map;
+    tile_cache_t<PixelT> tile_cache;
+
+    {
+      // List of tiles we need to fetch
+      Datastore::TileSearch tile_lookup;
+
+      // Grab the tiles in the zone
+      BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level, region, range))
+        schedule_tile(hdr, composite_map[rowcol_t(hdr.row(), hdr.col())], tile_lookup, -1);
+
+      // Grab the result of the previous level snapshot
+      BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level+1, move_down(region, 1), TransactionRange(m_platefile->transaction_id())))
+        schedule_tile(hdr, composite_map[parent_tile(hdr.row(), hdr.col())], tile_lookup, 0);
+
+      // Now load the images from disk, decode them, and store them back to the cache
+      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
+        if (t.data)
+          parse_image_and_store(t, tile_cache);
+      }
     }
-    // XXX: Doesn't look up tiles
 
     // now iterate the output tile set and create the composites
     BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
@@ -295,7 +117,8 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       mosaic::ImageComposite<PixelT> composite;
       composite.set_draft_mode(true);
       // Insert the images into the composite from highest to lowest tid (already sorted due to sort_heap)
-      BOOST_FOREACH(TileHeader& hdr, t.second) {
+      BOOST_FOREACH(const tile_order_t& order, t.second) {
+        const TileHeader& hdr = order.get<1>();
         image_t& img = tile_cache[rowcoltid_t(hdr.row(), hdr.col(), hdr.transaction_id())];
         if (!img) {
           vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
@@ -305,7 +128,11 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
         if (is_opaque(img))
           break;
       }
-      composite.prepare();
+      if (composite.cols() == 0 || composite.rows() == 0) {
+        vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << t.first.get<0>() << " col=" << t.first.get<1>() << std::endl;
+        continue;
+      }
+      composite.prepare(BBox2i(0,0,m_platefile->default_tile_size(), m_platefile->default_tile_size()));
       image_t tile = composite;
       m_platefile->write_update(tile, t.first.get<1>(), t.first.get<0>(), level);
     }
