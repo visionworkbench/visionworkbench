@@ -344,12 +344,12 @@ namespace vw {
     LogRuleSet( LogRuleSet const& copy_log);
     LogRuleSet& operator=( LogRuleSet const& copy_log);
 
-    void add_rule(int log_level, std::string log_namespace);
+    void add_rule(int log_level, std::string const& log_namespace);
     void clear();
 
     // You can overload this method from a subclass to change the
     // behavior of the LogRuleSet.
-    virtual bool operator() (int log_level, std::string log_namespace);
+    virtual bool operator() (int log_level, std::string const& log_namespace);
   };
 
 
@@ -367,7 +367,7 @@ namespace vw {
 
     // Initialize a log from a filename.  A new internal ofstream is
     // created to stream log messages to disk.
-    LogInstance(std::string log_filename, bool prepend_infostamp = true);
+    LogInstance(std::string const& log_filename, bool prepend_infostamp = true);
 
     // Initialize a log using an already open stream.  Warning: The
     // log stores the stream by reference, so you MUST delete the log
@@ -383,7 +383,7 @@ namespace vw {
     /// This method return an ostream that you can write a log message
     /// to if the rule_set matches the log level and namespace
     /// provided.  Otherwise, a null ostream is returned.
-    std::ostream& operator() (int log_level, std::string log_namespace="console");
+    std::ostream& operator() (int log_level, std::string const& log_namespace="console");
 
     /// Access the rule set for this log object.
     LogRuleSet& rule_set() { return m_rule_set; }
@@ -438,7 +438,7 @@ namespace vw {
     /// The returned stream object proxy's for the various log streams
     /// being managed by the system log that match the log_level and
     /// log_namespace.
-    std::ostream& operator() (int log_level, std::string log_namespace="console");
+    std::ostream& operator() (int log_level, std::string const& log_namespace="console");
 
     /// Add a stream to the Log manager.  You may optionally specify a
     /// LogRuleSet.
@@ -482,7 +482,7 @@ namespace vw {
   /// message in the system log using the given log_level and
   /// log_namespace.
   std::ostream& vw_out( int log_level = vw::InfoMessage,
-                        std::string log_namespace = "console" );
+                        std::string const& log_namespace = "console" );
 
   /// Deprecated: Set the debug level for the system console log.  You
   /// can exercise much more fine grained control over the system log

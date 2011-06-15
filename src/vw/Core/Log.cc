@@ -51,7 +51,7 @@ namespace {
 // ---------------------------------------------------
 // Basic stream support
 // ---------------------------------------------------
-std::ostream& vw::vw_out( int log_level, std::string log_namespace ) {
+std::ostream& vw::vw_out( int log_level, std::string const& log_namespace ) {
   return vw_log()(log_level, log_namespace);
 }
 
@@ -66,7 +66,7 @@ void vw::set_output_stream( std::ostream& stream ) {
 // ---------------------------------------------------
 // LogInstance Methods
 // ---------------------------------------------------
-vw::LogInstance::LogInstance(std::string log_filename, bool prepend_infostamp) : m_prepend_infostamp(prepend_infostamp) {
+vw::LogInstance::LogInstance(std::string const& log_filename, bool prepend_infostamp) : m_prepend_infostamp(prepend_infostamp) {
   // Open file and place the insertion pointer at the end of the file (ios_base::ate)
   m_log_ostream_ptr = new std::ofstream(log_filename.c_str(), std::ios::app);
   if (! static_cast<std::ofstream*>(m_log_ostream_ptr)->is_open())
@@ -81,7 +81,7 @@ vw::LogInstance::LogInstance(std::ostream& log_ostream, bool prepend_infostamp) 
                                                                                   m_log_ostream_ptr(NULL),
                                                                                   m_prepend_infostamp(prepend_infostamp) {}
 
-std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namespace) {
+std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log_namespace) {
   if (m_rule_set(log_level, log_namespace)) {
     if (m_prepend_infostamp)
       m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
@@ -97,7 +97,7 @@ std::ostream& vw::LogInstance::operator() (int log_level, std::string log_namesp
 }
 
 
-std::ostream& vw::Log::operator() (int log_level, std::string log_namespace) {
+std::ostream& vw::Log::operator() (int log_level, std::string const& log_namespace) {
   // First, check to see if the rc file has been updated.
   // Reload the rulesets if it has.
   vw_settings().reload_config();
@@ -137,7 +137,7 @@ vw::LogRuleSet& vw::LogRuleSet::operator=( LogRuleSet const& copy_log) {
 vw::LogRuleSet::LogRuleSet() { }
 vw::LogRuleSet::~LogRuleSet() { }
 
-void vw::LogRuleSet::add_rule(int log_level, std::string log_namespace) {
+void vw::LogRuleSet::add_rule(int log_level, std::string const& log_namespace) {
   ssize_t count = std::count(log_namespace.begin(), log_namespace.end(), '*');
   if (count > 1)
     vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: only one wildcard is supported.");
@@ -191,7 +191,7 @@ namespace {
 
 // You can overload this method from a subclass to change the
 // behavior of the LogRuleSet.
-bool vw::LogRuleSet::operator() (int log_level, std::string log_namespace) {
+bool vw::LogRuleSet::operator() (int log_level, std::string const& log_namespace) {
   Mutex::Lock lock(m_mutex);
 
   std::string lower_namespace = boost::to_lower_copy(log_namespace);
