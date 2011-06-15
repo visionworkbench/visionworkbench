@@ -19,8 +19,8 @@ message BlobRecord {
 // metadata about that tile is stored alongside the tile itself in the
 // blobfile in a TileRecord protobufer (see below).
 message IndexRecord {
-  optional int32 blob_id = 1 [default = -1];
-  optional uint64 blob_offset = 2 [default = 0];
+  required int32 blob_id = 1 [default = -1];
+  required uint64 blob_offset = 2 [default = 0];
   optional string filetype = 3 [default = "default_to_index"];
 }
 

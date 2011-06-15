@@ -15,7 +15,7 @@ message TileHeader {
   required uint32 row = 6;
   required uint32 level = 7;
   required uint32 transaction_id = 8;
-  optional string filetype = 10 [ default = 'jpg' ];
+  optional string filetype = 10 [default = 'unknown'];
 }
 
 message IndexHeader {
