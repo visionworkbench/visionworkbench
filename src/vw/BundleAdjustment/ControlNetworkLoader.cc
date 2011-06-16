@@ -137,14 +137,15 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
 void vw::ba::triangulate_control_point( ControlPoint& cp,
                                         std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                         double const& minimum_angle ) {
-  std::vector< Vector3 > positions;
+  Vector3 position_sum;
   double error = 0, error_sum = 0;
+  size_t count = 0;
 
   // 4.1.) Building a listing of triangulation
-  for ( unsigned j = 0, k = 1; k < cp.size(); j++, k++ ) {
+  for ( size_t j = 0, k = 1; k < cp.size(); j++, k++ ) {
     // Make sure camera centers are not equal
-    int j_cam_id = cp[j].image_id();
-    int k_cam_id = cp[k].image_id();
+    size_t j_cam_id = cp[j].image_id();
+    size_t k_cam_id = cp[k].image_id();
     if ( norm_2( camera_models[j_cam_id]->camera_center( cp[j].position() ) -
                  camera_models[k_cam_id]->camera_center( cp[k].position() ) ) > 1e-6 ) {
 
@@ -155,9 +156,8 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
         if ( sm.convergence_angle( cp[j].position(),
                                    cp[k].position() ) >
              minimum_angle ) {
-          positions.push_back( sm( cp[j].position(),
-                                   cp[k].position(),
-                                   error ) );
+	  count++;
+	  position_sum += sm( cp[j].position(), cp[k].position(), error );
           error_sum += error;
         }
       } catch ( const camera::PixelToRayErr& ) { /* Just let it go */ }
@@ -165,12 +165,12 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
   }
 
   // 4.2.) Summing, Averaging, and Storing
-  if ( positions.empty() ) {
+  if ( !count ) {
     vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
     // At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general'
     // area.
-    int j = cp[0].image_id();
+    size_t j = cp[0].image_id();
     try {
       cp.set_position( camera_models[j]->camera_center(cp[0].position()) +
                        camera_models[j]->pixel_to_vector(cp[0].position())*10 );
@@ -179,10 +179,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
                        camera_models[j]->camera_pose(cp[0].position()).rotate(Vector3(0,0,10)) );
     }
   } else {
-    error_sum /= positions.size();
-    Vector3 position_avg;
-    for ( unsigned j = 0; j < positions.size(); j++ )
-      position_avg += positions[j]/positions.size();
-    cp.set_position( position_avg );
+    error_sum /= double(count);
+    cp.set_position( position_sum / double(count) );
   }
 }
