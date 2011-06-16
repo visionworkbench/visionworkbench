@@ -123,14 +123,14 @@ namespace ba {
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
       // Reseting the values for U, V, epsilon
-      for ( size_t j = 0; j < this->m_model.num_cameras(); j++ ) {
-        U[j] = matrix_camera_camera();
-        epsilon_a[j] = vector_camera();
-      }
-      for ( size_t i = 0; i < this->m_model.num_points(); i++ ) {
-        V[i] = matrix_point_point();
-        epsilon_b[i] = vector_point();
-      }
+      BOOST_FOREACH( matrix_camera_camera& element, U )
+        element = matrix_camera_camera();
+      BOOST_FOREACH( vector_camera& element, epsilon_a )
+        element = vector_camera();
+      BOOST_FOREACH( matrix_point_point& element, V )
+        element = matrix_point_point();
+      BOOST_FOREACH( vector_point& element, epsilon_b )
+        element = vector_point();
 
       size_t num_cam_params = BundleAdjustModelT::camera_params_n;
       size_t num_pt_params = BundleAdjustModelT::point_params_n;
@@ -141,9 +141,8 @@ namespace ba {
       time.reset(new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba"));
       double error_total = 0; // assume this is r^T\Sigma^{-1}r
       for ( size_t j = 0; j < m_crn.size(); j++ ) {
-        for ( crn_iter fiter = m_crn[j].begin();
-              fiter != m_crn[j].end(); fiter++ ) {
-          size_t i = (**fiter).m_point_id;
+        BOOST_FOREACH( boost::shared_ptr<JFeature> measure, m_crn[j] ) {
+          size_t i = measure->m_point_id;
 
           matrix_2_camera A =
             this->m_model.A_jacobian( i, j,
@@ -157,7 +156,7 @@ namespace ba {
           // Apply robust cost function weighting
           Vector2 error;
           try {
-            error = (**fiter).m_location -
+            error = measure->m_location -
               this->m_model(i,j,this->m_model.A_parameters(j),
                             this->m_model.B_parameters(i) );
           } catch (const camera::PixelToRayErr& e) {}
@@ -169,7 +168,7 @@ namespace ba {
           }
 
           Matrix2x2 inverse_cov;
-          Vector2 pixel_sigma = (**fiter).m_scale;
+          Vector2 pixel_sigma = measure->m_scale;
           inverse_cov(0,0) = 1/(pixel_sigma(0)*pixel_sigma(0));
           inverse_cov(1,1) = 1/(pixel_sigma(1)*pixel_sigma(1));
           error_total += .5 * transpose(error) *
@@ -180,7 +179,7 @@ namespace ba {
           V[i] += transpose(B) * inverse_cov * B;
           epsilon_a[j] += transpose(A) * inverse_cov * error;
           epsilon_b[i] += transpose(B) * inverse_cov * error;
-          (**fiter).m_w = transpose(A) * inverse_cov * B;
+          measure->m_w = transpose(A) * inverse_cov * B;
         }
       }
       time.reset();
@@ -189,8 +188,8 @@ namespace ba {
       time.reset(new Timer("Solving for Camera and GCP error:",DebugMessage,"ba"));
       if ( this->m_use_camera_constraint )
         for ( size_t j = 0; j < U.size(); ++j ) {
-          matrix_camera_camera inverse_cov;
-          inverse_cov = this->m_model.A_inverse_covariance(j);
+          matrix_camera_camera inverse_cov =
+            this->m_model.A_inverse_covariance(j);
           U[j] += inverse_cov;
           vector_camera eps_a = this->m_model.A_target(j)-this->m_model.A_parameters(j);
           error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
@@ -216,15 +215,15 @@ namespace ba {
       if ( this->m_iterations == 1 && this->m_lambda == 1e-3 ) {
         time.reset(new Timer("Solving for Lambda:", DebugMessage, "ba"));
         double max = 0.0;
-        for (size_t i = 0; i < U.size(); ++i)
+        BOOST_FOREACH( matrix_camera_camera& element, U )
           for (size_t j = 0; j < BundleAdjustModelT::camera_params_n; ++j){
-            if (fabs(U[i](j,j)) > max)
-              max = fabs(U[i](j,j));
+            if (fabs(element(j,j)) > max)
+              max = fabs(element(j,j));
           }
-        for (size_t i = 0; i < V.size(); ++i)
+        BOOST_FOREACH( matrix_point_point& element, V )
           for (size_t j = 0; j < BundleAdjustModelT::point_params_n; ++j) {
-            if ( fabs(V[i](j,j)) > max)
-              max = fabs(V[i](j,j));
+            if ( fabs(element(j,j)) > max)
+              max = fabs(element(j,j));
           }
         this->m_lambda = max * 1e-10;
         time.reset();
@@ -239,16 +238,16 @@ namespace ba {
         matrix_camera_camera u_lambda;
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
-        for ( size_t i = 0; i < U.size(); ++i )
-          U[i] += u_lambda;
+        BOOST_FOREACH( matrix_camera_camera& element, U )
+          element += u_lambda;
       }
 
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
-        for ( size_t i = 0; i < V.size(); ++i )
-          V[i] += v_lambda;
+        BOOST_FOREACH( matrix_point_point& element, V )
+          element += v_lambda;
       }
       time.reset();
 
