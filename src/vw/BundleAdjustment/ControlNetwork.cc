@@ -10,6 +10,7 @@
 
 #include <vw/BundleAdjustment/ControlNetwork.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 // Time Headers
 #include <boost/thread/xtime.hpp>
@@ -79,7 +80,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style of measure
-  void ControlMeasure::write_binary( std::ostream &f ) {
+  void ControlMeasure::write_binary( std::ostream &f ) const {
     // Writing out all the strings first
     f << m_serialNumber << char(0) << m_date_time << char(0)
       << m_description << char(0) << m_chooserName << char(0);
@@ -121,7 +122,7 @@ namespace ba {
   }
 
   /// Write an isis style measure
-  void ControlMeasure::write_isis( std::ostream &f ) {
+  void ControlMeasure::write_isis( std::ostream &f ) const {
     f << "    Group = ControlMeasure\n";
     f << "      SerialNumber   = " << m_serialNumber << std::endl;
     f << "      MeasureType    = ";
@@ -340,7 +341,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style of point
-  void ControlPoint::write_binary( std::ostream &f ) {
+  void ControlPoint::write_binary( std::ostream &f ) const {
     // Writing out the string first
     f << m_id << char(0);
     // Writing the binary data
@@ -355,8 +356,8 @@ namespace ba {
     int size = m_measures.size();
     f.write((char*)&(size), sizeof(size));
     // Rolling through the measures
-    for ( int m = 0; m < size; m++ )
-      m_measures[m].write_binary( f );
+    BOOST_FOREACH( ControlMeasure const& cm, m_measures )
+      cm.write_binary( f );
   }
 
   /// Reading a compressed binary style of point
@@ -375,6 +376,7 @@ namespace ba {
     int size;
     f.read((char*)&(size),             sizeof (size));
     m_measures.clear();
+    m_measures.reserve(size);
     // Reading in all the measures
     for ( int m = 0; m < size; m++ ) {
       m_measures.push_back( ControlMeasure(f, FmtBinary) );
@@ -400,11 +402,10 @@ namespace ba {
       f << "    Ignore    = True\n";
 
     // Rolling through measures
-    for ( unsigned m = 0; m < size(); m++ ) {
+    BOOST_FOREACH( ControlMeasure const& m, m_measures ) {
       f << std::endl;
-      m_measures[m].write_isis( f );
+      m.write_isis( f );
     }
-
     f << "  End_Object\n";
   }
 
@@ -504,9 +505,9 @@ namespace ba {
   void ControlNetwork::add_control_point(ControlPoint const& point) {
     // Checking for GCPs (if this network supposedly doesn't contain
     // control networks)
-    if ( m_type != ControlNetwork::ImageToGround )
-      if ( point.type() == ControlPoint::GroundControlPoint )
-        m_type = ControlNetwork::ImageToGround;
+    if ( m_type != ControlNetwork::ImageToGround &&
+         point.type() == ControlPoint::GroundControlPoint )
+      m_type = ControlNetwork::ImageToGround;
 
     m_control_points.push_back(point);
   }
@@ -515,10 +516,14 @@ namespace ba {
   void ControlNetwork::add_control_points(std::vector<ControlPoint> const& points) {
     // Checking for GCPs (if this network supposedly doesn't contain
     // control networks)
-    if ( m_type != ControlNetwork::ImageToGround )
-      for ( unsigned p = 0; p < points.size(); p++ )
-        if ( points[p].type() == ControlPoint::GroundControlPoint )
+    if ( m_type != ControlNetwork::ImageToGround ) {
+      BOOST_FOREACH( ControlPoint const& cp, points ) {
+        if ( cp.type() == ControlPoint::GroundControlPoint ) {
           m_type = ControlNetwork::ImageToGround;
+          break;
+        }
+      }
+    }
 
     m_control_points.insert(m_control_points.end(), points.begin(), points.end());
   }
@@ -544,7 +549,7 @@ namespace ba {
   }
 
   /// Write a compressed binary style control network
-  void ControlNetwork::write_binary( std::string filename ) {
+  void ControlNetwork::write_binary( std::string filename ) const {
 
     // Recording the modified time
     m_modified = isis_style_time_string();
@@ -565,8 +570,8 @@ namespace ba {
     int size = m_control_points.size();
     f.write((char*)&(size), sizeof(size));
     // Rolling through the control points
-    for ( int p = 0; p < size; p++ )
-      m_control_points[p].write_binary( f );
+    BOOST_FOREACH( ControlPoint const& cp, m_control_points )
+      cp.write_binary( f );
 
     f.close();
   }
@@ -594,11 +599,11 @@ namespace ba {
 
     // Clearing anything left in this control network
     m_control_points.clear();
+    m_control_points.reserve( size );
 
     // Reading in all the control points
-    for ( int p = 0; p < size; p++ ) {
+    for ( int p = 0; p < size; p++ )
       m_control_points.push_back( ControlPoint( f, FmtBinary ) );
-    }
 
     f.close();
   }
@@ -613,13 +618,14 @@ namespace ba {
     filename += ".net";
 
     // Making sure all the control points have unique IDs
-    for ( unsigned p = 0; p < m_control_points.size(); p++ ) {
-      if (m_control_points[p].id() == "Null" ||
-          m_control_points[p].id() == "" ) {
+    size_t cpcount = 0;
+    BOOST_FOREACH( ControlPoint& cp, m_control_points ) {
+      if ( cp.id() == "Null" || cp.id() == "" ) {
         std::ostringstream ostr;
-        ostr << std::setw(9) << std::setfill('0') << p;
-        m_control_points[p].set_id( ostr.str() );
+        ostr << std::setw(9) << std::setfill('0') << cpcount;
+        cp.set_id( ostr.str() );
       }
+      cpcount++;
     }
 
     // Opening file
@@ -645,9 +651,9 @@ namespace ba {
     f << "  Description  = " << m_description << "\n";
 
     // Rolling through the control points
-    for ( unsigned m = 0; m < size(); m++ ) {
+    BOOST_FOREACH( ControlPoint& cp, m_control_points ) {
       f << std::endl;
-      m_control_points[m].write_isis( f );
+      cp.write_isis( f );
     }
 
     f << "End_Object\nEnd\n";
@@ -758,16 +764,16 @@ namespace ba {
 
   std::ostream& operator<<( std::ostream& os, ControlPoint const& point) {
     os << "[Control Point: " << point.position() << "] ";
-    for (unsigned m=0; m<point.size(); ++m)
-      os << point[m] << " ";
+    BOOST_FOREACH( ControlMeasure const& cm, point )
+      os << cm << " ";
     os << "\n";
     return os;
   }
 
   std::ostream& operator<<( std::ostream& os, ControlNetwork const& cnet) {
     os << "Control Network: " << cnet.size() << " points.\n";
-    for (unsigned p=0; p<cnet.size(); ++p)
-      os << "\t" << cnet[p];
+    BOOST_FOREACH( ControlPoint const& cp, cnet )
+      os << "\t" << cp;
     os << "\n";
     return os;
   }
@@ -776,7 +782,7 @@ namespace ba {
   void read_pvl_property( std::ostringstream& ostr,
                           std::vector<std::string>& tokens ) {
     ostr.str("");
-    for ( unsigned i = 1; i < tokens.size(); i++ )
+    for ( size_t i = 1; i < tokens.size(); i++ )
       if ( i > 1 )
         ostr << " " << tokens[i];
       else

@@ -121,11 +121,11 @@ namespace ba {
       VW_DEBUG_ASSERT(this->m_control_net->size() == this->m_model.num_points(), LogicErr() << "BundleAdjustment::update() : Number of bundles does not match the number of points in the bundle adjustment model.");
 
       // Reseting the values for U, V, and epsilon.
-      for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ ) {
+      for ( size_t j = 0; j < this->m_model.num_cameras(); j++ ) {
         U[j] = matrix_camera_camera();
         epsilon_a[j] = vector_camera();
       }
-      for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+      for ( size_t i = 0; i < this->m_model.num_points(); i++ ) {
         V[i] = matrix_point_point();
         epsilon_b[i] = vector_point();
       }
@@ -147,10 +147,10 @@ namespace ba {
       // matrix.
       time.reset(new Timer("Solve for Image Error, Jacobian, U, V, and W:", DebugMessage, "ba"));
       double robust_objective = 0.0;
-      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+      for ( size_t j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
-          uint32 i = (**fiter).m_point_id;
+          size_t i = (**fiter).m_point_id;
 
           matrix_2_camera A = this->m_model.A_jacobian(i,j,this->m_model.A_parameters(j),
                                                        this->m_model.B_parameters(i));
@@ -245,14 +245,14 @@ namespace ba {
         matrix_camera_camera u_lambda;
         u_lambda.set_identity();
         u_lambda *= this->m_lambda;
-        for ( uint32 i = 0; i < U.size(); ++i )
+        for ( size_t i = 0; i < U.size(); ++i )
           U[i] += u_lambda;
       }
       {
         matrix_point_point v_lambda;
         v_lambda.set_identity();
         v_lambda *= this->m_lambda;
-        for ( uint32 i = 0; i < V.size(); ++i )
+        for ( size_t i = 0; i < V.size(); ++i )
           V[i] += v_lambda;
       }
       time.reset();
@@ -268,17 +268,17 @@ namespace ba {
       }
 
       // Compute V inverse
-      for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+      for ( size_t i = 0; i < this->m_model.num_points(); i++ ) {
         Matrix<double> V_temp = V[i];
         chol_inverse( V_temp );
         V_inverse[i] = transpose(V_temp)*V_temp;
       }
 
       // Compute Y and finish constructing e.
-      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+      for ( size_t j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
-          uint32 i = (**fiter).m_point_id;
+          size_t i = (**fiter).m_point_id;
           // Compute the blocks of Y
           (**fiter).m_y = (**fiter).m_w * V_inverse[i];
           // Flatten the block structure to compute 'e'
@@ -298,7 +298,7 @@ namespace ba {
       // below.
       math::MatrixSparseSkyline<double> S(this->m_model.num_cameras()*num_cam_params,
                                           this->m_model.num_cameras()*num_cam_params);
-      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+      for ( size_t j = 0; j < m_crn.size(); j++ ) {
         { // Filling in diagonal
           matrix_camera_camera S_jj;
 
@@ -312,19 +312,19 @@ namespace ba {
           S_jj += U[j];
 
           // Loading into sparse matrix
-          uint32 offset = j * num_cam_params;
-          for ( uint32 aa = 0; aa < num_cam_params; aa++ ) {
-            for ( uint32 bb = aa; bb < num_cam_params; bb++ ) {
+          size_t offset = j * num_cam_params;
+          for ( size_t aa = 0; aa < num_cam_params; aa++ ) {
+            for ( size_t bb = aa; bb < num_cam_params; bb++ ) {
               S( offset+bb, offset+aa ) = S_jj(aa,bb);  // Transposing
             }
           }
         }
 
         // Filling in off diagonal
-        for ( uint32 k = j+1; k < m_crn.size(); k++ ) {
+        for ( size_t k = j+1; k < m_crn.size(); k++ ) {
           typedef boost::weak_ptr<JFeature> w_ptr;
           typedef boost::shared_ptr<JFeature> f_ptr;
-          typedef std::multimap< uint32, f_ptr >::iterator mm_iterator;
+          typedef std::multimap< size_t, f_ptr >::iterator mm_iterator;
           std::pair< mm_iterator, mm_iterator > feature_range;
           feature_range = m_crn[j].map.equal_range( k );
 
@@ -387,7 +387,7 @@ namespace ba {
 
         // Building right half, sum( WijT * delta_aj )
         std::vector< vector_point > right_delta_b( this->m_model.num_points() );
-        for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+        for ( size_t j = 0; j < m_crn.size(); j++ ) {
           for ( crn_iter fiter = m_crn[j].begin();
                 fiter != m_crn[j].end(); fiter++ ) {
             right_delta_b[ (**fiter).m_point_id ] += transpose( (**fiter).m_w ) *
@@ -396,7 +396,7 @@ namespace ba {
         }
 
         // Solving for delta b
-        for ( uint32 i = 0; i < this->m_model.num_points(); i++ ) {
+        for ( size_t i = 0; i < this->m_model.num_points(); i++ ) {
           Vector<double> delta_temp = epsilon_b[i] - right_delta_b[i];
           Matrix<double> hessian = V[i];
           solve( delta_temp, hessian );
@@ -407,11 +407,11 @@ namespace ba {
 
       //Predicted improvement for Fletcher modification
       double dS = 0;
-      for ( uint32 j = 0; j < this->m_model.num_cameras(); j++ )
+      for ( size_t j = 0; j < this->m_model.num_cameras(); j++ )
         dS += transpose(subvector(delta_a,j*num_cam_params,num_cam_params))
           * ( this->m_lambda * subvector(delta_a,j*num_cam_params,num_cam_params) +
               epsilon_a[j] );
-      for ( uint32 i = 0; i < this->m_model.num_points(); i++ )
+      for ( size_t i = 0; i < this->m_model.num_points(); i++ )
         dS += transpose(subvector(delta_b,i*num_pt_params,num_pt_params))
           * ( this->m_lambda * subvector(delta_b,i*num_pt_params,num_pt_params) +
               epsilon_b[i] );
@@ -422,10 +422,10 @@ namespace ba {
       // -------------------------------
       time.reset(new Timer("Solve for Updated Error", DebugMessage, "ba"));
       double new_robust_objective = 0;
-      for ( uint32 j = 0; j < m_crn.size(); j++ ) {
+      for ( size_t j = 0; j < m_crn.size(); j++ ) {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
-          uint32 i = (**fiter).m_point_id;
+          size_t i = (**fiter).m_point_id;
 
           // Computer error vector
           vector_camera new_a = this->m_model.A_parameters(j) +

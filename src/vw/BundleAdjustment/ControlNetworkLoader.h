@@ -43,8 +43,9 @@ namespace ba {
     namespace fs = boost::filesystem;
 
     // Creating a version of image_files that doesn't contain the path
-    std::map<std::string,unsigned> image_lookup;
-    for (unsigned i = 0; i < image_files.size(); i++ ) {
+    typedef std::map<std::string,size_t> LookupType;
+    LookupType image_lookup;
+    for (size_t i = 0; i < image_files.size(); i++ ) {
       image_lookup[image_files[i]] = i;
       image_lookup[fs::path(image_files[i]).filename()] = i;
     }
@@ -94,8 +95,7 @@ namespace ba {
       std::vector<Vector2>::iterator m_iter_loc = measure_locations.begin();
       std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
       while ( m_iter_loc != measure_locations.end() ) {
-        std::map<std::string,unsigned>::iterator it;
-        it = image_lookup.find(*m_iter_name);
+        LookupType::iterator it = image_lookup.find(*m_iter_name);
         if ( it != image_lookup.end() ) {
           vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
                                     << " #" << it->second << std::endl;
@@ -123,8 +123,9 @@ namespace ba {
     namespace fs = boost::filesystem;
 
     // Creating a version of image_files that doesn't contain the path
-    std::map<std::string,unsigned> image_lookup;
-    for (unsigned i = 0; i < image_files.size(); i++ ) {
+    typedef std::map<std::string,size_t> LookupType;
+    LookupType image_lookup;
+    for (size_t i = 0; i < image_files.size(); i++ ) {
       image_lookup[image_files[i]] = i;
       image_lookup[fs::path(image_files[i]).filename()] = i;
     }
@@ -145,14 +146,12 @@ namespace ba {
         bool failed_to_index = false;
         // Fixing indexing
         BOOST_FOREACH( ControlMeasure & cm, cp ) {
-          std::map<std::string,unsigned>::iterator it;
-          it = image_lookup.find(cm.serial());
-          if ( it != image_lookup.end() ) {
+          LookupType::iterator it = image_lookup.find(cm.serial());
+          if ( it != image_lookup.end() )
             cm.set_image_id(it->second);
-          } else {
+          else
             vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
                                         << cm.serial() << std::endl;
-          }
         }
 
         if ( failed_to_index )

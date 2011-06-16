@@ -9,6 +9,7 @@
 ///
 
 #include <vw/BundleAdjustment/CameraRelation.h>
+#include <boost/foreach.hpp>
 
 namespace vw {
 namespace ba {
@@ -54,9 +55,9 @@ namespace ba {
     typedef boost::weak_ptr<FeatureT> w_ptr;
     typedef typename std::list<f_ptr>::iterator list_it;
     typedef typename std::list<f_ptr>::const_iterator list_cit;
-    typedef typename std::map<uint32,w_ptr>::const_iterator map_cit;
+    typedef typename std::map<size_t,w_ptr>::const_iterator map_cit;
 
-    for ( uint32 j = 0; j < m_nodes.size(); j++ ) {
+    for ( size_t j = 0; j < m_nodes.size(); j++ ) {
       // Building maps for all features
       for ( list_it fiter = m_nodes[j].relations.begin();
             fiter != m_nodes[j].relations.end(); fiter++ ) {
@@ -71,7 +72,7 @@ namespace ba {
         // Iterating through all features that our feature connects to
         for ( map_cit miter = (**fiter).m_map.begin();
               miter != (**fiter).m_map.end(); miter++ ) {
-          m_nodes[j].map.insert( std::pair<uint32,f_ptr>( (*miter).first, *fiter  ) );
+          m_nodes[j].map.insert( std::make_pair( (*miter).first, *fiter  ) );
         }
       } // end iterating through this camera's features
     }   // end iterating through cameras
@@ -83,31 +84,33 @@ namespace ba {
     typedef boost::weak_ptr<FeatureT> w_ptr;
     m_nodes.clear();
 
-    for ( uint32 cp_i = 0; cp_i < cnet.size(); cp_i++ ) {
+    for ( size_t cp_i = 0; cp_i < cnet.size(); cp_i++ ) {
       std::vector<f_ptr> features_added;
       // Building up features to be added and linking to camera nodes
-      for ( ControlPoint::const_iterator cmiter = cnet[cp_i].begin();
-            cmiter != cnet[cp_i].end(); cmiter++ ) {
+      BOOST_FOREACH( ControlMeasure const& cm, cnet[cp_i] ) {
         // Seeing if a camera node exists for this measure
-        if ( unsigned(cmiter->image_id()) >= this->size() ) {
-          for ( uint32 i = this->size();
-                i <= unsigned(cmiter->image_id()); i++ ) {
+        if ( cm.image_id() >= this->size() ) {
+          for ( size_t i = this->size();
+                i <= cm.image_id(); i++ ) {
             this->add_node( CameraNode<FeatureT>( i, "" ) );
           }
         }
 
         // Appending to list
-        features_added.push_back( f_ptr( new FeatureT(*cmiter, cp_i) ) );
+        features_added.push_back( f_ptr( new FeatureT(cm, cp_i) ) );
 
         // Attaching to camera node
-        (*this)[cmiter->image_id()].relations.push_back( features_added.back() );
+        (*this)[cm.image_id()].relations.push_back( features_added.back() );
       }
 
       // Doubly Linking features together
-      for ( uint32 i = 0; i < features_added.size() - 1; i++ ) {
-        for ( uint32 j = i+1; j < features_added.size(); j++ ) {
-          features_added[i]->connection( w_ptr(features_added[j]), false );
-          features_added[j]->connection( w_ptr(features_added[i]), false );
+      typedef typename std::vector<f_ptr>::iterator fvi_ptr;
+      for ( fvi_ptr first = features_added.begin();
+            first < features_added.end() - 1; first++ ) {
+        for ( fvi_ptr second = first + 1;
+              second < features_added.end(); second++ ) {
+          (*first)->connection( w_ptr( *second ), false );
+          (*second)->connection( w_ptr( *first ), false );
         }
       }
 
@@ -134,7 +137,7 @@ namespace ba {
     {
       TerminalProgressCallback progress("ba","Assembly:  ");
       progress.report_progress(0);
-      for ( uint32 i = 0; i < crn.size() - 1; i++ ) {
+      for ( size_t i = 0; i < crn.size() - 1; i++ ) {
         progress.report_progress(float(i)/float(crn.size()-1));
         typedef boost::weak_ptr<FeatureT> w_ptr;
         typedef boost::shared_ptr<FeatureT> f_ptr;
@@ -170,21 +173,19 @@ namespace ba {
 
           // 5.) Checking for spiral error
           {
-            std::list<unsigned> previous_camera;
+            std::list<size_t> previous_camera;
             bool match = false;
             for ( w_list_iter interest = interestpts.begin();
                   interest != interestpts.end(); interest++ ) {
-              for ( std::list<unsigned>::iterator previous = previous_camera.begin();
-                    previous != previous_camera.end(); previous++ ) {
-                if ((*previous) == (*interest).lock()->m_camera_id) {
+              BOOST_FOREACH( size_t previous, previous_camera ) {
+                if ( previous == interest->lock()->m_camera_id ) {
                   match = true;
                   break;
                 }
               }
               previous_camera.push_back( (*interest).lock()->m_camera_id );
-              if ( match ) {
+              if ( match )
                 continue;
-              }
             }
             if ( match ) {
               spiral_error_count++;

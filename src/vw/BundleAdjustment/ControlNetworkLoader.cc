@@ -40,7 +40,7 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
 
   // 1.) Build CRN (pop on cameras)
   CameraRelationNetwork<IPFeature> crn;
-  for ( unsigned i = 0; i < image_files.size(); i++ ) {
+  for ( size_t i = 0; i < image_files.size(); i++ ) {
     fs::path image_path( image_files[i] );
     crn.add_node( CameraNode<IPFeature>( i,
                                          image_path.stem() ) );
@@ -51,9 +51,9 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
     TerminalProgressCallback progress("ba","Match Files: ");
     progress.report_progress(0);
     int32 num_load_rejected = 0, num_loaded = 0;
-    for ( unsigned i = 0; i < image_files.size(); ++i ) {
+    for ( size_t i = 0; i < image_files.size(); ++i ) {
       progress.report_progress(float(i)/float(image_files.size()));
-      for ( unsigned j = i+1; j < image_files.size(); ++j ) {
+      for ( size_t j = i+1; j < image_files.size(); ++j ) {
         std::string match_filename =
           fs::path( image_files[i] ).replace_extension().string() + "__" +
           fs::path( image_files[j] ).stem() + ".match";
@@ -85,7 +85,7 @@ void vw::ba::build_control_network( ControlNetwork& cnet,
 
           // Checking to see if features already exist, adding if they
           // don't, then linking them.
-          for ( unsigned k = 0; k < ip1.size(); k++ ) {
+          for ( size_t k = 0; k < ip1.size(); k++ ) {
             f_itr ipfeature1 = std::find_if( crn[i].begin(),
                                              crn[i].end(),
                                              ContainsEqualIP( ip1[k] ) );

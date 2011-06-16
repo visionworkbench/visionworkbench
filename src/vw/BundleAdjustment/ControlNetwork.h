@@ -168,8 +168,8 @@ namespace ba {
     /// File I/O
     void read_binary( std::istream& f );
     void read_isis( std::istream& f );
-    void write_binary( std::ostream &f );
-    void write_isis( std::ostream &f );
+    void write_binary( std::ostream &f ) const;
+    void write_isis( std::ostream &f ) const;
 
   };
 
@@ -280,7 +280,7 @@ namespace ba {
     /// File I/O
     void read_binary( std::istream& f );
     void read_isis( std::istream& f );
-    void write_binary( std::ostream &f );
+    void write_binary( std::ostream &f ) const;
     void write_isis( std::ostream &f );
 
   };
@@ -299,7 +299,7 @@ namespace ba {
     std::string m_targetName;         // Name of the target
     std::string m_networkId;          // Network Id
     std::string m_created;            // Creation Date
-    std::string m_modified;           // Data Last Modified
+    mutable std::string m_modified;   // Data Last Modified
     std::string m_description;        // Text description of network
     std::string m_userName;           // The user who created the network
 
@@ -398,7 +398,7 @@ namespace ba {
     /// File I/O
     void read_binary( std::string const& filename );
     void read_isis( std::string const& filename );
-    void write_binary( std::string filename );
+    void write_binary( std::string filename ) const;
     void write_isis( std::string filename );
 
   };
