@@ -103,8 +103,8 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
                                                       BBox2i const& search_window,
                                                       ProgressCallback const& progress) {
 
-  int32 width = cost_function->cols();
-  int32 height = cost_function->rows();
+  const int32 width = cost_function->cols();
+  const int32 height = cost_function->rows();
 
   ImageView<DisparityScore<float> > result_buf(width, height);
   ImageView<float> cost_buf(width, height);
@@ -113,6 +113,8 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
   int32 total_iterations = (search_window.width() + 1) * (search_window.height() + 1);
 
   BBox2i left_bbox = cost_function->bbox();
+  const int32 left_box_width = left_bbox.width();   // To avoid fuction call deep for loop
+  const int32 left_box_height = left_bbox.height();
   for (int32 dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
     for (int32 dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
       BBox2i right_bbox = cost_function->bbox() + Vector2i (dx,dy);
@@ -125,10 +127,10 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
 
       CropView<ImageView<DisparityScore<float> > >::pixel_accessor result_row_acc = result_buf_window.origin();
       CropView<ImageView<float> >::pixel_accessor cost_buf_row_acc = cost_buf_window.origin();
-      for (int32 y = 0; y < left_bbox.height(); y++) {
+      for (int32 y = 0; y < left_box_height; y++) {
         CropView<ImageView<DisparityScore<float> > >::pixel_accessor result_col_acc = result_row_acc;
         CropView<ImageView<float> >::pixel_accessor cost_buf_col_acc = cost_buf_row_acc;
-        for (int32 x = 0; x < left_bbox.width(); x++) {
+        for (int32 x = 0; x < left_box_width; x++) {
           if (*cost_buf_col_acc < (*result_col_acc).best) {
             (*result_col_acc).best = *cost_buf_col_acc;
             (*result_col_acc).hdisp = dx;
