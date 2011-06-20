@@ -81,8 +81,9 @@ namespace vw {
   /// the same type as its first argument.
   struct BinaryReturn1stType {
     /// \cond INTERNAL
-    template<class Arg1T, class Arg2T>
-    struct result {
+    template <class Args> struct result;
+    template <class FuncT, class Arg1T, class Arg2T>
+    struct result<FuncT(Arg1T,Arg2T)> {
       typedef Arg1T type;
     };
     /// \endcond
@@ -92,8 +93,9 @@ namespace vw {
   /// the same type as its second argument.
   struct BinaryReturn2ndType {
     /// \cond INTERNAL
-    template<class Arg1T, class Arg2T>
-    struct result {
+    template <class Args> struct result;
+    template<class FuncT, class Arg1T, class Arg2T>
+    struct result<FuncT(Arg1T,Arg2T)> {
       typedef Arg2T type;
     };
     /// \endcond
