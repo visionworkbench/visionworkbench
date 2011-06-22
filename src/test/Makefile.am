@@ -14,10 +14,9 @@ if HAVE_PKG_GDAL
 geotif_generate_SOURCES = geotif-generate.cc
 geotif_generate_CPPFLAGS = @VW_CPPFLAGS@ @PKG_CARTOGRAPHY_CPPFLAGS@
 geotif_generate_LDADD = @PKG_CARTOGRAPHY_LIBS@
-endif
-endif
-
 noinst_PROGRAMS = geotif-generate
+endif
+endif
 
 ########################################################################
 # general
