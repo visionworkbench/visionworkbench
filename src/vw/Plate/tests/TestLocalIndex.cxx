@@ -355,9 +355,9 @@ TEST_F(LocalIndexTiles, ValidTiles) {
 
 
   // Test valid_tiles() call at level 0;
-  std::list<TileHeader> tiles = index->search_by_region(0, BBox2i(0,0,1,1), tid.minimum(), tid.maximum(), 1);
+  std::list<TileHeader> tiles = index->search_by_region(0, BBox2i(0,0,1,1), tid.minimum(), tid.maximum());
   EXPECT_EQ(1, tiles.size());
 
-  tiles = index->search_by_region(1, BBox2i(0,0,2,2), tid.minimum(), tid.maximum(), 1);
+  tiles = index->search_by_region(1, BBox2i(0,0,2,2), tid.minimum(), tid.maximum());
   EXPECT_EQ(4, tiles.size());
 }

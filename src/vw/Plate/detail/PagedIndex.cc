@@ -124,8 +124,7 @@ void IndexLevel::set(TileHeader const& header, IndexRecord const& rec) {
 std::list<TileHeader>
 IndexLevel::search_by_region(BBox2i const& region,
                              TransactionOrNeg start_transaction_id,
-                             TransactionOrNeg end_transaction_id,
-                             uint32 min_num_matches) const {
+                             TransactionOrNeg end_transaction_id) const {
 
   // Start by computing the search range in pages based on the requested region.
   int32 min_level_col = region.min().x() / m_page_width;
@@ -143,7 +142,7 @@ IndexLevel::search_by_region(BBox2i const& region,
       boost::shared_ptr<IndexPage> page = load_page(level_col * m_page_width, level_row * m_page_height);
 
       // Accumulate valid tiles that overlap with region from this IndexPage.
-      std::list<TileHeader> sub_result = page->search_by_region(region, start_transaction_id, end_transaction_id, min_num_matches);
+      std::list<TileHeader> sub_result = page->search_by_region(region, start_transaction_id, end_transaction_id);
       result.splice(result.end(), sub_result);
     }
   }
@@ -233,15 +232,14 @@ void PagedIndex::write_update(TileHeader const& header, IndexRecord const& recor
 /// first one.
 std::list<TileHeader>
 PagedIndex::search_by_region(uint32 level, BBox2i const& region,
-                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id,
-                             uint32 min_num_matches) const {
+                             TransactionOrNeg start_transaction_id, TransactionOrNeg end_transaction_id) const {
 
   // If the level does not exist, we return an empty list.
   if (level >= m_levels.size())
     return std::list<TileHeader>();
 
   // Otherwise, we delegate to the search_by_region() method for that level.
-  return m_levels[level]->search_by_region(region, start_transaction_id, end_transaction_id, min_num_matches);
+  return m_levels[level]->search_by_region(region, start_transaction_id, end_transaction_id);
 }
 
 std::list<TileHeader>

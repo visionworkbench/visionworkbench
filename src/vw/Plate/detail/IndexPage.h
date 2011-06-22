@@ -40,7 +40,7 @@ namespace detail {
 
     void append_if_in_region( std::list<TileHeader> &results,
                               multi_value_type const& candidates,
-                              uint32 col, uint32 row, BBox2i const& region, uint32 min_num_matches) const;
+                              uint32 col, uint32 row, BBox2i const& region) const;
 
     TileHeader hdr_from_index(uint32 rel_col, uint32 rel_row, const value_type& elt) const {
       TileHeader hdr;
@@ -114,8 +114,7 @@ namespace detail {
     /// Note: this function is mostly used when creating snapshots.
     std::list<TileHeader> search_by_region(vw::BBox2i const& region,
                                            TransactionOrNeg start_transaction_id,
-                                           TransactionOrNeg end_transaction_id,
-                                           uint32 min_num_matches) const;
+                                           TransactionOrNeg end_transaction_id) const;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive of the first

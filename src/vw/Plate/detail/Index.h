@@ -101,8 +101,7 @@ namespace detail {
     /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
     virtual std::list<TileHeader> search_by_region(uint32 level, vw::BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
-                                                   TransactionOrNeg end_transaction_id,
-                                                   uint32 min_num_matches) const = 0;
+                                                   TransactionOrNeg end_transaction_id) const = 0;
 
     /// Return multiple tile headers that match the specified
     /// transaction id range.  This range is inclusive at both ends.

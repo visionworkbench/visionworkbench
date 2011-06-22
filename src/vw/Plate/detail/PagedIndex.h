@@ -66,8 +66,7 @@ namespace detail {
     /// Returns a list of valid tiles at this level.
     std::list<TileHeader> search_by_region(BBox2i const& region,
                                            TransactionOrNeg start_transaction_id,
-                                           TransactionOrNeg end_transaction_id,
-                                           uint32 min_num_matches) const;
+                                           TransactionOrNeg end_transaction_id) const;
 
     /// Returns a list of valid tiles at this level and specified location
     std::list<TileHeader> search_by_location(uint32 col, uint32 row,
@@ -157,8 +156,7 @@ namespace detail {
     /// first one.
     virtual std::list<TileHeader> search_by_region(uint32 level, BBox2i const& region,
                                                    TransactionOrNeg start_transaction_id,
-                                                   TransactionOrNeg end_transaction_id,
-                                                   uint32 min_num_matches) const;
+                                                   TransactionOrNeg end_transaction_id) const;
 
     /// Returns a list of tile headers for a given tile location in
     /// the mosaic, subject to the specified transaction_id range.

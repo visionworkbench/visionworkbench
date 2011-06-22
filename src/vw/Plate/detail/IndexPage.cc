@@ -243,13 +243,14 @@ IndexRecord IndexPage::get(uint32 col, uint32 row, TransactionOrNeg transaction_
 
 void IndexPage::append_if_in_region( std::list<TileHeader> &results,
                                      multi_value_type const& candidates,
-                                     uint32 col, uint32 row, BBox2i const& region,
-                                     uint32 min_num_matches) const {
+                                     uint32 col, uint32 row, BBox2i const& region) const {
 
+  BOOST_FOREACH(const value_type& t, candidates) {
+    Vector2i loc( m_base_col + col, m_base_row + row);
+    if ( region.contains( loc ) )
+      results.push_back(hdr_from_index(col, row, t));
+  }
   // Check to see if the tile is in the specified region.
-  Vector2i loc( m_base_col + col, m_base_row + row);
-  if ( region.contains( loc ) && candidates.size() >= min_num_matches )
-    results.push_back(hdr_from_index(col, row, *candidates.begin()));
 }
 
 /// Returns a list of valid tiles in this IndexPage.  Returns a list
@@ -260,8 +261,7 @@ void IndexPage::append_if_in_region( std::list<TileHeader> &results,
 std::list<TileHeader>
 IndexPage::search_by_region(BBox2i const& region,
                             TransactionOrNeg start_transaction_id,
-                            TransactionOrNeg end_transaction_id,
-                            uint32 min_num_matches) const {
+                            TransactionOrNeg end_transaction_id) const {
 
   // empty range means something broke upstream
   VW_ASSERT(start_transaction_id <= end_transaction_id,
@@ -305,7 +305,7 @@ IndexPage::search_by_region(BBox2i const& region,
           }
         }
 
-        append_if_in_region( results, candidates, col, row, region, min_num_matches );
+        append_if_in_region( results, candidates, col, row, region );
       }
     }
   }

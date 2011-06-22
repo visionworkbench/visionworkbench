@@ -142,7 +142,7 @@ Datastore::TileSearch& Blobstore::head(TileSearch& buf, uint32 level,   const BB
 
   buf.clear();
   {
-    std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last(), 0);
+    std::list<TileHeader> hdrs = m_index->search_by_region(level, region, range.first(), range.last());
     size_t len = hdrs.size();
     if (limit > 0 && len > limit) {
       hdrs.resize(limit);
