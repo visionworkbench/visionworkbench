@@ -132,18 +132,6 @@ void PlateFile::write_complete() {
   m_write_state.reset();
 }
 
-/// Read a record out of the platefile.
-///
-/// By default, this call to read will return a tile with the MOST
-/// RECENT transaction_id <= to the transaction_id you specify
-/// here in the function arguments (if a tile exists).  However,
-/// setting exact_transaction_match = true will force the
-/// PlateFile to search for a tile that has the EXACT SAME
-/// transaction_id as the one that you specify.
-///
-/// A transaction ID of -1 indicates that we should return the
-/// most recent tile, regardless of its transaction id.
-
 void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type_) {
 
   std::string type = type_;
