@@ -21,7 +21,6 @@ namespace {
       virtual std::string what() const {
         return std::string("BlobWriteState[id = " + vw::stringify(blob_id) + "]");
       }
-
       vw::platefile::Transaction transaction;
       boost::shared_ptr<vw::platefile::Blob> blob;
       vw::uint32 blob_id;
@@ -172,6 +171,10 @@ struct SortByIndexRecord {
   }
 };
 
+bool HasData(const Tile& t) {
+  return t.data;
+}
+
 Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
   // first, sort by page to keep page accesses together
   std::sort(hdrs.begin(), hdrs.end(), SortByPage(*m_index));
@@ -198,6 +201,7 @@ Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
   // offset, so we keep blob reads together and in order. We need to keep the
   // headers sorted in the same order, too
 
+  bool prune = false;
   BOOST_FOREACH(map_t::value_type& tile, recs) {
     const IndexRecord& rec = tile.first;
     const TileHeader&  hdr = tile.second->hdr;
@@ -217,10 +221,20 @@ Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
       // Must copy the tilerec one, because we won't necessarily have a filetype in the search
       t.hdr  = tile_rec.hdr;
       t.data = tile_rec.data;
+    } catch (const BlobIoErr& e) {
+      // These are bad, and might indicate corruption, but probably shouldn't kill everything.
+      error_log()() << "BlobIoErr while reading tile " << hdr << ": " << e.what() << std::endl;
+      prune = true;
     } catch (const IOErr& e) {
       // These are bad, and might indicate corruption, but probably shouldn't kill everything.
       error_log()() << "IOErr while reading tile " << hdr << ": " << e.what() << std::endl;
+      prune = true;
     }
+  }
+
+  if (prune) {
+    TileSearch::iterator i = std::partition(hdrs.begin(), hdrs.end(), HasData);
+    hdrs.erase(i, hdrs.end());
   }
 
   return hdrs;

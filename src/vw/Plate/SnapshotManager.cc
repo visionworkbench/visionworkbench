@@ -135,16 +135,15 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       }
 
       // Now load the images from disk, decode them, and store them back to the cache
-      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
-        if (t.data)
-          parse_image_and_store(t, tile_cache);
-      }
+      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup))
+        parse_image_and_store(t, tile_cache);
 
       // Now look up all the child tiles, and compose/downsample them to the target layer
       BOOST_FOREACH(const composite_map_t::value_type& t, intermediate_map) {
         const rowcol_t    dest_loc(t.first.get<0>(), t.first.get<1>());
         const rowcoltid_t dest_loc_tid(t.first.get<0>(), t.first.get<1>(), 0);
         const std::vector<tile_order_t>& children = t.second;
+        VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
         VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
 
         std::map<uint32, image_t> c;
