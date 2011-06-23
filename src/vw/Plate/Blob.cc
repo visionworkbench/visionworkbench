@@ -277,11 +277,12 @@ Blob::Blob(const std::string& filename_)
     VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
 
     m_end_of_file_ptr = 3 * sizeof(uint64);
-    this->write_end_of_file_ptr(m_end_of_file_ptr);
+    flush();
     m_fstream->close();
     m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::in|std::ios::binary);
     VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
   }
+  m_end_of_file_ptr = read_end_of_file_ptr();
   WHEREAMI << m_blob_filename << std::endl;
 }
 
