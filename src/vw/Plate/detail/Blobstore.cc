@@ -241,17 +241,10 @@ Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
 }
 
 WriteState* Blobstore::write_request(const Transaction& id) {
-  uint64 last_size;
   std::auto_ptr<BlobWriteState> state(new BlobWriteState(id));
 
-  state->blob_id = m_index->write_request(last_size);
+  state->blob_id = m_index->write_request();
   state->blob = open_write_blob(state->blob_id);
-
-  if (last_size != 0 && last_size != state->blob->size()) {
-    error_log()() << "last close size did not match current size when opening "
-         << state->blob->filename()
-         << "  ( " << last_size << " != " << state->blob->size() << " )\n";
-  }
 
   vw_out(DebugMessage, "blob") << "Opened blob " << state->blob_id << " ( size = " << state->blob->size() << " )\n";
   return state.release();
@@ -303,7 +296,7 @@ void Blobstore::write_complete(WriteState& state_) {
   vw_out(DebugMessage, "blob") << "Closed blob " << state->blob_id << " ( size = " << new_blob_size << " )\n";
 
   // Release the blob lock.
-  m_index->write_complete(state->blob_id, new_blob_size);
+  m_index->write_complete(state->blob_id);
 
   state->blob_id = 0;
 }

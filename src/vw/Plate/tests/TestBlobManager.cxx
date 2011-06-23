@@ -6,69 +6,114 @@
 
 
 #include <gtest/gtest.h>
-#include <vw/Plate/Exception.h>
+#include <test/Helpers.h>
 #include <vw/Plate/BlobManager.h>
+#include <vw/Plate/Exception.h>
+#include <boost/filesystem/convenience.hpp>
+#include <fstream>
 
 using namespace vw;
 using namespace vw::platefile;
+using namespace vw::test;
+namespace fs = boost::filesystem;
 
 class BlobManagerTest : public ::testing::Test {
   protected:
-  virtual void SetUp() {
-    // Initial blobs = 1, max_blobs = 4;
-    bm.reset(new BlobManager(1024, 1, 4));
-  }
-  boost::shared_ptr<BlobManager> bm;
+    UnlinkName blob_dir;
+
+    virtual void SetUp() {
+      blob_dir = UnlinkName("BlobDir");
+      fs::create_directory(blob_dir);
+      bm.reset(new BlobManager(blob_dir));
+    }
+
+    void write_to_blob(uint32 blob_id, const char* text, size_t len) {
+      std::string fn(bm->name_from_id(blob_id));
+      std::ofstream f(fn.c_str(), std::ios::binary|std::ios::trunc|std::ios::out);
+      ASSERT_TRUE(f.is_open()) << "Failed to open " << fn;
+      ASSERT_TRUE(f.good());
+      f.write(text, len);
+      ASSERT_TRUE(f.good());
+      f.close();
+      ASSERT_TRUE(f.good());
+    }
+
+    boost::shared_ptr<BlobManager> bm;
 };
 
 
 TEST_F(BlobManagerTest, Basic) {
-  EXPECT_EQ( 1u, bm->num_blobs() );
+  ASSERT_EQ( 0, bm->num_blobs() );
 
-  uint64 offset;
   // Test basic lock with one blob_id
-  int blob_id = bm->request_lock(offset);
-  EXPECT_EQ( 0, blob_id );
-  bm->release_lock(blob_id, offset);
+  uint32 blob_id = bm->request_lock();
+  ASSERT_EQ( 0, blob_id );
+  bm->release_lock(blob_id);
 
   // Test basic lock after release
-  blob_id = bm->request_lock(offset);
-  EXPECT_EQ( 0, blob_id );
-  bm->release_lock(blob_id, offset);
+  blob_id = bm->request_lock();
+  ASSERT_EQ( 0, blob_id );
+  bm->release_lock(blob_id);
 }
 
 TEST_F(BlobManagerTest, TwoRequests) {
-  uint64 offset1, offset2;
   // Test basic lock with two outstanding requests
-  int blob_id1 = bm->request_lock(offset1);
-  int blob_id2 = bm->request_lock(offset2);
-  EXPECT_EQ( 0, blob_id1 );
-  EXPECT_EQ( 1, blob_id2 );
-  bm->release_lock(blob_id1, offset1);
-  bm->release_lock(blob_id2, offset2);
+  uint32 blob_id1 = bm->request_lock();
+  uint32 blob_id2 = bm->request_lock();
+  ASSERT_EQ( 0, blob_id1 );
+  ASSERT_EQ( 1, blob_id2 );
+  bm->release_lock(blob_id1);
+  bm->release_lock(blob_id2);
 }
 
-TEST_F(BlobManagerTest, MaxRequests) {
-  uint64 offset;
-  // Max out the number of blobs.
-  (void)bm->request_lock(offset);
-  (void)bm->request_lock(offset);
-  (void)bm->request_lock(offset);
-  (void)bm->request_lock(offset);
+TEST_F(BlobManagerTest, Sizes) {
+  ASSERT_EQ( 0, bm->num_blobs() );
+  ASSERT_THROW(bm->blob_size(0), ArgumentErr);
 
-  EXPECT_THROW((void)bm->request_lock(offset), BlobLimitErr);
+  uint32 blob_id = bm->request_lock();
+  ASSERT_EQ(0, bm->blob_size(blob_id));
+  bm->release_lock(blob_id);
+
+  ASSERT_EQ(0, bm->blob_size(blob_id));
+
+  blob_id = bm->request_lock();
+  write_to_blob(blob_id, "rawr!", 5);
+  ASSERT_NO_FATAL_FAILURE();
+
+  ASSERT_EQ(0, bm->blob_size(blob_id));
+  bm->release_lock(blob_id);
+  ASSERT_EQ(5, bm->blob_size(blob_id));
 }
 
-TEST_F(BlobManagerTest, AddToOffset) {
-  uint64 offset1, offset2;
-  int blob1, blob2;
+TEST_F(BlobManagerTest, Scan) {
+  ASSERT_EQ( 0, bm->num_blobs() );
 
-  blob1 = bm->request_lock(offset1);
-  offset1+=1024;
-  bm->release_lock(blob1, offset1);
+  uint32 id1 = bm->request_lock(),
+         id2 = bm->request_lock(),
+         id3 = bm->request_lock();
 
-  blob2 = bm->request_lock(offset2);
-  ASSERT_EQ(blob1, blob2);
-  EXPECT_EQ(offset1, offset2);
-  bm->release_lock(blob2, offset2);
+  write_to_blob(id1, "abcdefg", 2);
+  ASSERT_NO_FATAL_FAILURE();
+  write_to_blob(id2, "abcdefg", 4);
+  ASSERT_NO_FATAL_FAILURE();
+  write_to_blob(id3, "abcdefg", 6);
+  ASSERT_NO_FATAL_FAILURE();
+
+  bm->release_lock(id1);
+  bm->release_lock(id2);
+  bm->release_lock(id3);
+
+  ASSERT_EQ(3, bm->num_blobs());
+
+  EXPECT_EQ(2, bm->blob_size(id1));
+  EXPECT_EQ(4, bm->blob_size(id2));
+  EXPECT_EQ(6, bm->blob_size(id3));
+
+  // Make sure we scanned the directory properly
+  bm.reset(new BlobManager(blob_dir));
+  ASSERT_EQ(3, bm->num_blobs());
+
+  EXPECT_EQ(2, bm->blob_size(id1));
+  EXPECT_EQ(4, bm->blob_size(id2));
+  EXPECT_EQ(6, bm->blob_size(id3));
 }

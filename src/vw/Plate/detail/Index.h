@@ -80,14 +80,14 @@ namespace detail {
 
     /// Writing, pt. 1: Locks a blob and returns the blob id that can
     /// be used to write a tile.
-    virtual uint32 write_request(uint64 &size) = 0;
+    virtual uint32 write_request() = 0;
 
     /// Writing, pt. 2: Supply information to update the index and
     /// unlock the blob id.
     virtual void write_update(TileHeader const& header, IndexRecord const& record) = 0;
 
     /// Writing, pt. 3: Signal the completion of the write operation.
-    virtual void write_complete(uint32 blob_id, uint64 blob_offset) = 0;
+    virtual void write_complete(uint32 blob_id) = 0;
 
 
     // ----------------------- PROPERTIES  ----------------------

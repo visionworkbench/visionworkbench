@@ -99,11 +99,10 @@ class LocalIndexTiles : public LocalIndexTest {
   }
 
   void index_write(const TileHeader &hdr, IndexRecord &rec) {
-    uint64 old_offset;
-    rec.set_blob_id( index->write_request(old_offset) );
+    rec.set_blob_id( index->write_request() );
     rec.set_blob_offset(blob->write(hdr, test_data, test_size));
     index->write_update(hdr, rec);
-    index->write_complete(rec.blob_id(), rec.blob_offset());
+    index->write_complete(rec.blob_id());
   }
 
 #define check_tile_hdr(expected, actual) do {\

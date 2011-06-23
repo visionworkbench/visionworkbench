@@ -255,13 +255,12 @@ RemoteIndex::~RemoteIndex() {}
 
 // Writing, pt. 1: Locks a blob and returns the blob id that can
 // be used to write a tile.
-uint32 RemoteIndex::write_request(uint64 &size) {
+uint32 RemoteIndex::write_request() {
   IndexWriteRequest request;
   request.set_platefile_id(m_platefile_id);
 
   IndexWriteReply response;
   m_client->WriteRequest(m_client.get(), &request, &response, null_callback());
-  size = response.size();
   return response.blob_id();
 }
 
@@ -271,7 +270,7 @@ std::ostream& RemoteIndex::log() {
 }
 
 /// Writing, pt. 3: Signal the completion
-void RemoteIndex::write_complete(uint32 blob_id, uint64 blob_offset) {
+void RemoteIndex::write_complete(uint32 blob_id) {
 
   // First we make sure that we flush the write queue by synchronizing
   // all of the pages back to the index_server!  Otherwise the write
@@ -282,7 +281,6 @@ void RemoteIndex::write_complete(uint32 blob_id, uint64 blob_offset) {
   IndexWriteComplete request;
   request.set_platefile_id(m_platefile_id);
   request.set_blob_id(blob_id);
-  request.set_blob_offset(blob_offset);
 
   RpcNullMsg response;
   m_client->WriteComplete(m_client.get(), &request, &response, null_callback());

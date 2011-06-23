@@ -124,10 +124,10 @@ namespace detail {
 
     // Writing, pt. 1: Locks a blob and returns the blob id that can
     // be used to write a tile.
-    virtual uint32 write_request(uint64 &size);
+    virtual uint32 write_request();
 
     /// Writing, pt. 3: Signal the completion
-    virtual void write_complete(uint32 blob_id, uint64 blob_offset);
+    virtual void write_complete(uint32 blob_id);
 
     /// Log a message to the platefile log.
     virtual std::ostream& log();

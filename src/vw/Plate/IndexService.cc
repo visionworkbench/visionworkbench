@@ -234,10 +234,8 @@ METHOD_IMPL(WriteRequest, IndexWriteRequest, IndexWriteReply) {
   METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
 
-  uint64 size;
-  int blob_id = rec.index->write_request(size);
+  uint32 blob_id = rec.index->write_request();
   response->set_blob_id(blob_id);
-  response->set_size(size);
 }
 
 METHOD_IMPL_NOREPLY(WriteUpdate, IndexWriteUpdate) {
@@ -259,7 +257,7 @@ METHOD_IMPL_NOREPLY(MultiWriteUpdate, IndexMultiWriteUpdate) {
 METHOD_IMPL_NOREPLY(WriteComplete, IndexWriteComplete) {
   METHOD_BOILERPLATE(read_lock_t);
   IndexServiceRecord rec = find_id_throw(request->platefile_id());
-  rec.index->write_complete(request->blob_id(), request->blob_offset());
+  rec.index->write_complete(request->blob_id());
 }
 
 METHOD_IMPL(TransactionRequest, IndexTransactionRequest, IndexTransactionReply) {

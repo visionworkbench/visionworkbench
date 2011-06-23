@@ -135,16 +135,9 @@ namespace detail {
     virtual IndexRecord read_request(uint32 col, uint32 row, uint32 level,
                                      TransactionOrNeg transaction_id, bool exact_transaction_match = false);
 
-    // Writing, pt. 1: Locks a blob and returns the blob id that can
-    // be used to write a tile.
-    virtual uint32 write_request(uint64 &size) = 0;
-
     // Writing, pt. 2: Supply information to update the index and
     // unlock the blob id.
     virtual void write_update(TileHeader const& header, IndexRecord const& record);
-
-    /// Writing, pt. 3: Signal the completion
-    virtual void write_complete(uint32 blob_id, uint64 blob_offset) = 0;
 
     // ----------------------- PROPERTIES  ----------------------
 

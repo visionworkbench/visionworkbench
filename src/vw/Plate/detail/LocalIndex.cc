@@ -196,7 +196,7 @@ void LocalIndex::save_index_file() const {
  /// Create a new index.
  LocalIndex::LocalIndex( std::string plate_filename, IndexHeader new_index_info)
   : PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) )),
-   m_plate_filename(plate_filename), m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() ))
+   m_plate_filename(plate_filename), m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager(m_plate_filename) ))
 {
    // Create subdirectory for storing hard copies of index pages.
    std::string base_index_path = plate_filename + "/index";
@@ -291,8 +291,7 @@ void LocalIndex::save_index_file() const {
 /// Open an existing index from a file on disk.
 LocalIndex::LocalIndex(std::string plate_filename) :
   PagedIndex(boost::shared_ptr<PageGeneratorFactory>( new LocalPageGeneratorFactory(plate_filename) ) ),  // superclass constructor
-  m_plate_filename(plate_filename),
-  m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager() ))
+  m_plate_filename(plate_filename), m_blob_manager(boost::shared_ptr<BlobManager>( new BlobManager(m_plate_filename) ))
 {
   open_impl();
 }
@@ -406,8 +405,8 @@ Transaction LocalIndex::transaction_request(std::string transaction_description,
 // -----------------------    I/O      ----------------------
 
 /// Writing, pt. 1: Reserve a blob lock
-uint32 LocalIndex::write_request(uint64 &size) {
-  return m_blob_manager->request_lock(size);
+uint32 LocalIndex::write_request() {
+  return m_blob_manager->request_lock();
 }
 
 /// Writing, pt. 1: Reserve a blob lock
@@ -428,7 +427,7 @@ void LocalIndex::write_update(TileHeader const& header, IndexRecord const& recor
 }
 
 /// Writing, pt. 3: Signal the completion
-void LocalIndex::write_complete(uint32 blob_id, uint64 blob_offset) {
-  m_blob_manager->release_lock(blob_id, blob_offset);
+void LocalIndex::write_complete(uint32 blob_id) {
+  m_blob_manager->release_lock(blob_id);
 }
 

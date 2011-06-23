@@ -7,141 +7,127 @@
 
 #include <vw/Plate/BlobManager.h>
 #include <vw/Plate/Exception.h>
+#include <vw/Core/Debugging.h>
 
 // Vision Workbench
 #include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
 
+#include <boost/format.hpp>
+#include <boost/filesystem/operations.hpp>
+#include <boost/foreach.hpp>
+#include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
+
+namespace fs = boost::filesystem;
+
+namespace {
+  static const vw::uint64 BLOB_MAX_SIZE = 1825361100; // 1.7 GB
+  static const boost::format blob_tmpl("%s/plate_%u.blob");
+}
+
+#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
+
 namespace vw {
 namespace platefile {
 
-// Move to the next blob, wrapping around if we reach the end.
-void BlobManager::increment_blob_index(int &blob_index) {
-  ++blob_index;
-  if (blob_index >= int(m_blob_locks.size()))
-    blob_index = 0;
+const uint64 BlobManager::BLOB_MIN_WRITABLE_SCORE = 2;
+
+uint64 BlobManager::BlobKey::score() const {
+  if (locked)          return 1;
+  if (size > BLOB_MAX_SIZE) return 0;
+  return size + BLOB_MIN_WRITABLE_SCORE;
 }
 
-// A method to poll for an available blob.  Returns -1 if there
-// are no blobs available.
-int BlobManager::get_next_available_blob() {
+bool BlobManager::BlobKey::can_write() const {
+  return score() >= BLOB_MIN_WRITABLE_SCORE;
+}
 
-  // Move the starting point for our search forward one so that we
-  // don't always return the same general set of blobs.
-  increment_blob_index(m_blob_index);
+std::string BlobManager::name_from_id(uint32 blob_id) const {
+  boost::format blob_name(blob_tmpl);
+  return boost::str(blob_name % m_directory % blob_id);
+}
 
-  // Blobs should only stay locked for a split second.  If they remain
-  // locked for much longer than that, then there is a very good
-  // chance the mosaicking client that requested the lock has died.
-  //
-  // XXX: These timeouts are a bad idea!  Disabling for now.
-  //
-  //  m_blob_locks[m_blob_index].unlock_if_timeout();
+uint32 BlobManager::num_blobs() const {
+  Mutex::Lock lock(m_mutex);
+  return m_blobs.size();
+}
 
-  // If the next blob_id happens to be unlocked and not full, then we
-  // return it immediately.
-  if ( !(m_blob_locks[m_blob_index].locked) &&
-       m_blob_locks[m_blob_index].current_blob_offset < m_max_blob_size)
-    return m_blob_index;
+uint64 BlobManager::blob_size(uint32 blob_id) const {
+  Mutex::Lock lock(m_mutex);
+  const blob_by_id_t& lookup = m_blobs.get<0>();
+  blob_by_id_t::const_iterator i = lookup.find(blob_id);
+  VW_ASSERT(i != lookup.end(), ArgumentErr() << "No such blob id " << blob_id);
+  return i->size;
+}
 
-  // If not, then we neet to search.  Set the starting point so that
-  // we can tell when we've wrapped all the way around..
-  int starting_blob = m_blob_index;
-  increment_blob_index(m_blob_index);
-  // XXX: These timeouts are a bad idea!  Disabling for now.
-  //
-  //  m_blob_locks[m_blob_index].unlock_if_timeout();
+uint32 BlobManager::request_lock() {
+  WHEREAMI << std::endl;
+  Mutex::Lock lock(m_mutex);
+  blob_by_score_t& lookup = m_blobs.get<1>();
 
-  while (m_blob_index != starting_blob) {
+  blob_by_score_t::iterator i = lookup.begin();
+  if (i == lookup.end() || !i->can_write())
+    return locked_add_blob();
 
-    // If we find a blob that is both unlocked and not full, then we
-    // return its ID.
-    if ( !(m_blob_locks[m_blob_index].locked) &&
-         m_blob_locks[m_blob_index].current_blob_offset < m_max_blob_size) {
-      return m_blob_index;
-    }
+  VW_ASSERT(!i->locked, LogicErr() << "Tried to lock an already-locked blob");
+  lookup.modify(i, BlobKey::SetLock(true));
 
-    // Otherwise, we increment m_blob_index and try again.
-    increment_blob_index(m_blob_index);
+  return i->id;
+}
 
-    // XXX: These timeouts are a bad idea!  Disabling for now.
-    //
-    //    m_blob_locks[m_blob_index].unlock_if_timeout();
+uint32 BlobManager::locked_add_blob() {
+  WHEREAMI << std::endl;
+
+  uint32 next_id = 0;
+  const blob_by_id_t& lookup = m_blobs.get<0>();
+  blob_by_id_t::const_reverse_iterator i = lookup.rbegin();
+
+  if (i != lookup.rend())
+    next_id = i->id + 1;
+
+  std::pair<blob_tracker_t::iterator, bool> ret = m_blobs.insert(BlobKey(0, next_id, true));
+  VW_ASSERT(ret.second, LogicErr() << "Failed to add blob " << next_id);
+  return next_id;
+}
+
+void BlobManager::release_lock(uint32 blob_id) {
+  WHEREAMI << "release " << blob_id << std::endl;
+  Mutex::Lock lock(m_mutex);
+  blob_by_id_t& lookup = m_blobs.get<0>();
+  blob_by_id_t::iterator i = lookup.find(blob_id);
+  VW_ASSERT(i != lookup.end(), ArgumentErr() << "No such blob id " << blob_id);
+  VW_ASSERT(i->locked, LogicErr() << "Tried to unlock already-unlocked blob");
+
+  std::string fn = name_from_id(blob_id);
+
+  uint64 size = 0;
+  if (fs::exists(fn))
+    size = fs::file_size(fn);
+
+  lookup.modify(i, BlobKey::SetUnlockSize(size));
+}
+
+BlobManager::BlobManager(const std::string& directory)
+  : m_directory(directory)
+{
+  if (!fs::exists(directory))
+    return;
+  boost::regex re("plate_(\\d+)\\.blob");
+  typedef fs::directory_iterator iter_t;
+
+  BOOST_FOREACH(const fs::path& p, boost::make_iterator_range(iter_t(directory), iter_t())) {
+    boost::cmatch matches;
+    if (!boost::regex_match(p.filename().c_str(), matches, re))
+      continue;
+
+    std::string blob_id_str(matches[1].first, matches[1].second);
+    uint32 blob_id = boost::lexical_cast<uint32>(blob_id_str);
+
+    std::pair<blob_tracker_t::iterator, bool> ret = m_blobs.insert(BlobKey(fs::file_size(p), blob_id, false));
+    VW_ASSERT(ret.second, LogicErr() << "Failed to add blob " << blob_id);
   }
-
-  // If we have reached this point, then no valid blobs were found.
-  // They must all be full or locked.  If that's the case, then we
-  // create a new one here, stick it on the end, and return that new
-  // blob_id.  (Unless we have reached max_blobs, in which case we
-  // return -1.)
-  if (m_blob_locks.size() >= m_max_blobs) {
-    return -1;
-  } else {
-    BlobCacheRecord rec;
-    m_blob_locks.push_back(rec);
-    return boost::numeric_cast<int>(m_blob_locks.size()) - 1;
-  }
-}
-
-/// Create a new blob manager.  The max_blob_size is specified in
-/// units of megabytes.
-BlobManager::BlobManager(uint64 max_blob_size, int initial_nblobs, unsigned max_blobs) :
-  m_max_blob_size(max_blob_size * 1024 * 1024), m_max_blobs(max_blobs), m_blob_index(0) {
-
-  VW_ASSERT(initial_nblobs >=1, ArgumentErr() << "BlobManager: inital_nblobs must be >= 1.");
-
-  // Initialize the blob locks.  Set them all to 'unlocked'
-  // (i.e. false)
-  m_blob_locks.resize(initial_nblobs);
-  for (unsigned i=0; i < m_blob_locks.size(); ++i) {
-    m_blob_locks[i].current_blob_offset = 0;
-    m_blob_locks[i].locked = false;
-  }
-}
-
-/// Return the number of blobs currently in use.
-unsigned BlobManager::num_blobs() {
-  Mutex::Lock lock(m_mutex);
-  return boost::numeric_cast<unsigned>(m_blob_locks.size());
-}
-
-uint64 BlobManager::max_blob_size() {
-  Mutex::Lock lock(m_mutex);
-  return m_max_blob_size;
-}
-
-/// Request a blob to write to that has sufficient space to write at
-/// least 'size' bytes.  Returns the blob index of a locked blob
-/// that you have sole access to write to.
-///
-/// size is specified in bytes.
-//
-// TODO: This is pretty simple logic, and would not be very
-// efficient because it blocks on write if it catches up to a blob
-// that is still locked.  We should add real blob selection logic
-// here at a later date.
-int BlobManager::request_lock(uint64 &size) {
-  Mutex::Lock lock(m_mutex);
-
-  // First, we check to see if the next blob is free.  If not, we
-  // wait for a release event and recheck.
-  int next_available_blob = get_next_available_blob();
-  if (next_available_blob == -1)
-    vw_throw(BlobLimitErr() << "Unable to create more blob files. "
-             << "The blob limit has been reached.");
-
-  // Then we lock it, increment the blob index, and return it.
-  m_blob_locks[next_available_blob].lock();
-  size = m_blob_locks[next_available_blob].current_blob_offset;
-  return next_available_blob;
-}
-
-// Release the blob lock and update its write index (essentially
-// "committing" the write to the blob when you are finished with it.).
-void BlobManager::release_lock(int blob_id, uint64 blob_offset) {
-  Mutex::Lock lock(m_mutex);
-  m_blob_locks[blob_id].unlock(blob_offset);
 }
 
 }} // namespace vw::platefile
