@@ -111,6 +111,7 @@ namespace detail {
 
     virtual IndexHeader index_header() const = 0;
 
+    virtual uint32 platefile_id() const = 0;
     virtual uint32 version() const = 0;
     virtual uint32 num_levels() const = 0;
 

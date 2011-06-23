@@ -144,6 +144,7 @@ namespace detail {
     virtual uint32 tile_size() const { return m_header.tile_size(); }
     virtual std::string tile_filetype() const { return m_header.tile_filetype(); }
     virtual uint32 num_levels() const { return m_header.num_levels(); }
+    virtual uint32 platefile_id() const {return m_header.platefile_id(); }
 
     virtual PixelFormatEnum pixel_format() const {
       return PixelFormatEnum(m_header.pixel_format());

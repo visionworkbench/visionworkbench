@@ -61,10 +61,6 @@ class Datastore {
     // Updates the write cursor. Also updates the read cursor if update_read_cursor is true.
     virtual void transaction_end(Transaction transaction_id, bool update_read_cursor) = 0;
 
-    // Read and Write cursors
-    //virtual Transaction transaction_read_cursor() const = 0;
-    //virtual Transaction transaction_write_cursor() const = 0;
-
     // TILE READ. limit is the limit within a single tile slot
     // head()'s return order will be in transaction order, descending.
     // get()'s  return order will be arbitrary. The return reference is the
@@ -92,17 +88,19 @@ class Datastore {
 
 
     // DEFAULT METADATA
+
+    // These functions are variant, and may cause network IO.
     virtual IndexHeader index_header() const = 0;
-    //virtual std::string name() const = 0;
+    virtual uint32 num_levels() const = 0;
+    //virtual Transaction transaction_read_cursor() const = 0;
+    //virtual Transaction transaction_write_cursor() const = 0;
 
-    virtual uint32 id() const;
-    virtual uint32 num_levels() const;
-
-    virtual uint32 tile_size() const;
-    virtual std::string tile_filetype() const;
-
-    virtual PixelFormatEnum pixel_format() const;
-    virtual ChannelTypeEnum channel_type() const;
+    // These functions are invariant once the plate is constructed, and may be cached.
+    virtual uint32 id() const = 0;
+    virtual uint32 tile_size() const = 0;
+    virtual std::string tile_filetype() const = 0;
+    virtual PixelFormatEnum pixel_format() const = 0;
+    virtual ChannelTypeEnum channel_type() const = 0;
 
     // LOGGING
     // Use the audit log for events that should be recorded for posterity next to the datastore

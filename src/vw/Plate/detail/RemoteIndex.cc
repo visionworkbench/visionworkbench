@@ -286,22 +286,25 @@ void RemoteIndex::write_complete(uint32 blob_id) {
   m_client->WriteComplete(m_client.get(), &request, &response, null_callback());
 }
 
-vw::uint32 RemoteIndex::num_levels() const {
-  IndexNumLevelsRequest request;
-  request.set_platefile_id(m_platefile_id);
-  IndexNumLevelsReply response;
-  m_client->NumLevelsRequest(m_client.get(), &request, &response, null_callback());
+void RemoteIndex::update_header() const {
+  IndexInfoRequest q;
+  q.set_platefile_id(m_platefile_id);
+  IndexInfoReply a;
+  m_client->InfoRequest(m_client.get(), &q, &a, null_callback());
+  m_index_header = a.index_header();
 
   // Make sure that the local (cached) number of levels matches the
   // number of levels on the server.
-  for (uint32 level = m_levels.size(); level < response.num_levels(); ++level) {
+  for (uint32 level = m_levels.size(); level < m_index_header.num_levels(); ++level) {
     boost::shared_ptr<IndexLevel> new_level(
         new IndexLevel(m_page_gen_factory, level, m_page_width, m_page_height, m_default_cache_size) );
     m_levels.push_back(new_level);
   }
+}
 
-  // Return the number of levels.
-  return response.num_levels();
+vw::uint32 RemoteIndex::num_levels() const {
+  update_header();
+  return m_index_header.num_levels();
 }
 
 vw::uint32 RemoteIndex::version() const {
@@ -313,7 +316,12 @@ std::string RemoteIndex::platefile_name() const {
 }
 
 IndexHeader RemoteIndex::index_header() const {
+  update_header();
   return m_index_header;
+}
+
+uint32 RemoteIndex::platefile_id() const {
+  return m_index_header.platefile_id();
 }
 
 vw::uint32 RemoteIndex::tile_size() const {

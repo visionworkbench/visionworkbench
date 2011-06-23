@@ -305,9 +305,13 @@ void Blobstore::flush() {
   m_index->sync();
 }
 
-IndexHeader Blobstore::index_header() const {
-  return m_index->index_header();
-}
+IndexHeader Blobstore::index_header() const     { return m_index->index_header();  }
+uint32 Blobstore::num_levels() const            { return m_index->num_levels();    }
+uint32 Blobstore::id() const                    { return m_index->platefile_id();  }
+uint32 Blobstore::tile_size() const             { return m_index->tile_size();     }
+std::string Blobstore::tile_filetype() const    { return m_index->tile_filetype(); }
+PixelFormatEnum Blobstore::pixel_format() const { return m_index->pixel_format();  }
+ChannelTypeEnum Blobstore::channel_type() const { return m_index->channel_type();  }
 
 // LOGGING
 Datastore::Logger Blobstore::audit_log() const {

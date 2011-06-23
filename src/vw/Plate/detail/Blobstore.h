@@ -66,7 +66,16 @@ class Blobstore : public Datastore {
     virtual void write_complete(WriteState& id);
     virtual void flush();
 
+    // These functions are variant, and may cause network IO.
     virtual IndexHeader index_header() const;
+    virtual uint32 num_levels() const;
+
+    // These functions are invariant once the plate is constructed, and may be cached.
+    virtual uint32 id() const;
+    virtual uint32 tile_size() const;
+    virtual std::string tile_filetype() const;
+    virtual PixelFormatEnum pixel_format() const;
+    virtual ChannelTypeEnum channel_type() const;
 
     // LOGGING
     virtual Datastore::Logger audit_log() const;

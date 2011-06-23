@@ -102,7 +102,7 @@ namespace detail {
     int m_platefile_id;
     std::string m_short_plate_filename;
     std::string m_full_plate_filename;
-    IndexHeader m_index_header;
+    mutable IndexHeader m_index_header;
 
     // Remote connection
     boost::shared_ptr<IndexClient> m_client;
@@ -111,6 +111,8 @@ namespace detail {
     struct LogRequestSink;
     friend class RemoteIndex::LogRequestSink;
     boost::shared_ptr<std::ostream> m_logger;
+
+    void update_header() const;
 
   public:
     /// Constructor (for opening an existing index)
@@ -134,6 +136,7 @@ namespace detail {
 
     virtual IndexHeader index_header() const;
 
+    virtual uint32 platefile_id() const;
     virtual uint32 version() const;
     virtual uint32 num_levels() const;
 
