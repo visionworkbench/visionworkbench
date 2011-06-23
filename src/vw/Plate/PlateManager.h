@@ -157,7 +157,7 @@ namespace platefile {
       m_platefile->sync();
 
       // Mipmap the tiles.
-      if (m_platefile->num_levels() > 1) {
+      if (pyramid_level > 0) {
         std::ostringstream mipmap_str;
         mipmap_str << "\t--> Mipmapping from level " << pyramid_level << ": ";
         this->mipmap(pyramid_level, affected_bbox, m_platefile->transaction_id(),
