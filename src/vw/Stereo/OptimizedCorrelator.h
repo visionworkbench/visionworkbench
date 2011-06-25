@@ -295,10 +295,13 @@ namespace stereo {
       }
 
       ImageView<PixelMask<Vector2f> > result_l2r = stereo::correlate(l2r_cost_and_blur, m_search_window);
-      ImageView<PixelMask<Vector2f> > result_r2l = stereo::correlate(r2l_cost_and_blur, r2l_window);
 
-      // Cross check the left and right disparity maps
-      cross_corr_consistency_check(result_l2r, result_r2l, m_cross_correlation_threshold, false);
+      if ( m_cross_correlation_threshold >= 0 ) {
+        ImageView<PixelMask<Vector2f> > result_r2l = stereo::correlate(r2l_cost_and_blur, r2l_window);
+
+        // Cross check the left and right disparity maps
+        cross_corr_consistency_check(result_l2r, result_r2l, m_cross_correlation_threshold, false);
+      }
 
       return result_l2r;
     }
