@@ -120,6 +120,12 @@ void IndexLevel::set(TileHeader const& header, IndexRecord const& rec) {
   page->set(header, rec);
 }
 
+namespace {
+  uint32 round_to(uint32 val, uint32 stride) {
+    return (val / stride) * stride;
+  }
+}
+
 /// Returns a list of valid tiles at this level.
 std::list<TileHeader>
 IndexLevel::search_by_region(BBox2i const& region,
@@ -127,19 +133,19 @@ IndexLevel::search_by_region(BBox2i const& region,
                              TransactionOrNeg end_transaction_id) const {
 
   // Start by computing the search range in pages based on the requested region.
-  int32 min_level_col = region.min().x() / m_page_width;
-  int32 min_level_row = region.min().y() / m_page_height;
+  uint32 min_level_col = round_to(region.min().x(), m_page_width);
+  uint32 min_level_row = round_to(region.min().y(), m_page_height);
 
-  int32 max_level_col = static_cast<int32>(ceilf(float(region.max().x()) / float(m_page_width)));
-  int32 max_level_row = static_cast<int32>(ceilf(float(region.max().y()) / float(m_page_height)));
+  uint32 max_level_col = round_to(region.max().x() + m_page_width  - 1,  m_page_width);
+  uint32 max_level_row = round_to(region.max().y() + m_page_height - 1, m_page_height);
 
   WHEREAMI << "[" << min_level_col << " " << min_level_row << "]" << " to [" << max_level_col << " " << max_level_row << "]\n";
 
   // Iterate over the pages that overlap with the region of interest.
   std::list<TileHeader> result;
-  for (int32 level_row = min_level_row; level_row < max_level_row; ++level_row) {
-    for (int32 level_col = min_level_col; level_col < max_level_col; ++level_col) {
-      boost::shared_ptr<IndexPage> page = load_page(level_col * m_page_width, level_row * m_page_height);
+  for (uint32 level_row = min_level_row; level_row < max_level_row; level_row += m_page_height) {
+    for (uint32 level_col = min_level_col; level_col < max_level_col; level_col += m_page_width) {
+      boost::shared_ptr<IndexPage> page = load_page(level_col, level_row);
 
       // Accumulate valid tiles that overlap with region from this IndexPage.
       std::list<TileHeader> sub_result = page->search_by_region(region, start_transaction_id, end_transaction_id);

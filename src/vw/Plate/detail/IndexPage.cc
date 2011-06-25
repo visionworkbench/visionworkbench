@@ -300,7 +300,7 @@ IndexPage::search_by_region(BBox2i const& region,
           BOOST_FOREACH(const value_type& elt, entries) {
             if (elt.first < start_transaction_id)
               break;
-            if (elt.first >= end_transaction_id)
+            if (elt.first <= end_transaction_id)
               candidates.push_back(elt);
           }
         }
