@@ -82,10 +82,7 @@ TransactionOrNeg TransactionRange::first() const {
   return Super::first;
 }
 TransactionOrNeg TransactionRange::last() const {
-  if (second.newest())
-    return second;
-  else
-    return second.promote();
+  return Super::second;
 }
 
 std::ostream& operator<<(std::ostream& o, const vw::platefile::TransactionRange& range) {
