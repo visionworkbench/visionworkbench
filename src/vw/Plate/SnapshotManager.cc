@@ -187,27 +187,10 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
 // Create a full snapshot of every level and every region in the mosaic.
 template <class PixelT>
 void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_range) const {
-
-  for (uint32 level = 0; level < m_platefile->num_levels(); ++level) {
-
-    // For debugging:
-    // for (int level = 0; level < 10; ++level) {
-
-    // Snapshot the entire region at each level.  These region will be
-    // broken down into smaller work units in snapshot().
-    uint32 region_size = 1 << level;
-    uint32 subdivided_region_size = region_size / 16;
-    if (subdivided_region_size < 1024) subdivided_region_size = 1024;
-    BBox2i full_region(0,0,region_size,region_size);
-    std::list<BBox2i> workunits = bbox_tiles(full_region,
-                                             subdivided_region_size,
-                                             subdivided_region_size);
-    for ( std::list<BBox2i>::iterator region_iter = workunits.begin();
-          region_iter != workunits.end(); ++region_iter) {
-      snapshot(level, *region_iter, read_transaction_range);
-    }
-  }
+  for (int32 level = m_platefile->num_levels()-1; level >= 0; --level)
+    snapshot(level, move_down(BBox2i(0,0,1,1), level), read_transaction_range);
 }
+
 }} // namespace vw::platefile
 
 // Explicit template instatiation
