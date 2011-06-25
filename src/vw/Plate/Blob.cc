@@ -143,6 +143,8 @@ TileData ReadBlob::read_data(vw::uint64 base_offset) {
 }
 
 BlobTileRecord ReadBlob::read_record(vw::uint64 base_offset) {
+  VW_ASSERT(base_offset >= 24, LogicErr() << "No base_offset will ever be < 24. Something's wrong.");
+
   BlobTileRecord ret;
   uint16 blob_record_size;
   ret.rec  = read_blob_record(base_offset, blob_record_size);
@@ -300,6 +302,7 @@ void Blob::flush() {
 
 
 uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size) {
+  VW_ASSERT(m_end_of_file_ptr >= 24, LogicErr() << "What? This shouldn't happen.");
 
   // Store the current offset of the end of the file.  We'll
   // return that at the end of this function.
