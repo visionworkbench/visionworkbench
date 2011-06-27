@@ -306,9 +306,60 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     return num_good_pix;
   }
 
- void cross_corr_consistency_check(ImageView<PixelMask<Vector2f> > &L2R,
-                                  ImageView<PixelMask<Vector2f> > const& R2L,
-                                  double cross_corr_threshold, bool verbose = false);
+  template <class ImageT1, class ImageT2>
+  void cross_corr_consistency_check( ImageViewBase<ImageT1> const& l2r,
+                                     ImageViewBase<ImageT2> const& r2l,
+                                     float cross_corr_threshold, bool verbose = false ) {
+    int32 l2r_rows = l2r.impl().rows(), l2r_cols = l2r.impl().cols(),
+      r2l_rows = r2l.impl().rows(), r2l_cols = r2l.impl().cols();
+    size_t count = 0, match_count = 0;
+
+    if (verbose)
+      vw_out(InfoMessage, "stereo") << "\tCrosscorr threshold: "
+                                    << cross_corr_threshold << "\n";
+    VW_DEBUG_ASSERT( cross_corr_threshold >= 0,
+                     ArgumentErr() << "cross_corr_consistency_check: the threshold is less than 0." );
+
+    typename ImageT1::pixel_accessor l2r_row = l2r.impl().origin();
+    for ( int32 r = 0; r < l2r_rows; ++r ) {
+      typename ImageT1::pixel_accessor l2r_col = l2r_row;
+      for ( int32 c = 0; c < l2r_cols; ++c ) {
+
+        int32 r2l_x = c + (*l2r_col)[0];
+        int32 r2l_y = r + (*l2r_col)[1];
+
+        if ( r2l_x < 0 || r2l_x >= r2l_cols ||
+             r2l_y < 0 || r2l_y >= r2l_rows ) {
+          // Verify that we are in image bounds
+          invalidate( *l2r_col );
+        } else if ( !is_valid( *l2r_col ) ||
+                    !is_valid( r2l.impl()(r2l_x,r2l_y ) ) ) {
+          // Verify that both are not missing
+          invalidate( *l2r_col );
+        } else if ( cross_corr_threshold >= fabs((*l2r_col)[0] + r2l.impl()(r2l_x,r2l_y)[0]) &&
+                    cross_corr_threshold >= fabs((*l2r_col)[1] + r2l.impl()(r2l_x,r2l_y)[1]) ) {
+          // Actually check the correlation consistency
+          //
+          // Since the hdisp for the R2L and L2R buffers will be opposite
+          // in sign, we determine their similarity by *summing* them, rather
+          // than differencing them as you might expect.
+          count++;
+          match_count++;
+        } else {
+          match_count++;
+          invalidate( *l2r_col );
+        }
+
+        l2r_col.next_col();
+      }
+      l2r_row.next_row();
+    }
+
+    if (verbose)
+      vw_out(InfoMessage, "stereo") << "\tCross-correlation retained " << count
+                                    << " / " << match_count << " matches ("
+                                    << ((float)count/match_count*100) << " percent).\n";
+  }
 
 #include <vw/Stereo/Correlate.tcc>
 
