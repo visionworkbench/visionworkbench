@@ -8,9 +8,15 @@
 #ifndef __VW_PLATE_DETAIL_BLOBSTORE_H__
 #define __VW_PLATE_DETAIL_BLOBSTORE_H__
 
+#include <vw/Plate/Blob.h>
 #include <vw/Plate/Datastore.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Cache.h>
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/sequenced_index.hpp>
+#include <boost/multi_index/mem_fun.hpp>
+
 
 namespace vw { namespace platefile {
   class Blob;
@@ -23,11 +29,20 @@ class Blobstore : public Datastore {
   private:
     boost::shared_ptr<Index> m_index;
 
-    vw::Cache m_read_cache;
-    vw::Mutex m_handle_lock;
-    // these blob cache bits should only be touched inside open_blob
-    typedef Cache::Handle<BlobOpener> handle_t;
-    std::map<uint32, handle_t> m_handles;
+    //typedef boost::multi_index_container<boost::reference_wrapper<ReadBlob>,
+    typedef boost::multi_index_container<boost::shared_ptr<ReadBlob>,
+              boost::multi_index::indexed_by<boost::multi_index::sequenced<>, 
+                                             boost::multi_index::hashed_unique<boost::multi_index::const_mem_fun<ReadBlob, const std::string&, &ReadBlob::filename> > > > read_cache_t;
+
+    typedef read_cache_t::nth_index<0>::type read_cache_by_age_t;
+    typedef read_cache_t::nth_index<1>::type read_cache_by_filename_t;
+
+    typedef std::map<uint32, boost::shared_ptr<Blob> > write_cache_t;
+
+    read_cache_t  m_read_cache;
+    write_cache_t m_write_cache;
+    vw::Mutex m_mutex;
+
     boost::shared_ptr<ReadBlob>  open_read_blob(uint32 blob_id);
     boost::shared_ptr<Blob>     open_write_blob(uint32 blob_id);
 

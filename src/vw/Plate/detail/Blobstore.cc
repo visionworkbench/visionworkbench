@@ -53,23 +53,54 @@ void Blobstore::init() {
 }
 
 Blobstore::Blobstore(const Url& u)
-  : m_index(Index::construct_open(u)), m_read_cache(DEFAULT_BLOB_CACHE_SIZE) {init();}
+  : m_index(Index::construct_open(u)) {init();}
 
 Blobstore::Blobstore(const Url& u, const IndexHeader& d)
-  : m_index(Index::construct_create(u, d)), m_read_cache(DEFAULT_BLOB_CACHE_SIZE) {init();}
+  : m_index(Index::construct_create(u, d)) {init();}
 
 boost::shared_ptr<ReadBlob> Blobstore::open_read_blob(uint32 blob_id) {
-  Mutex::Lock lock(m_handle_lock);
-  if (m_handles.count(blob_id) == 0)
-    m_handles.insert(std::make_pair(blob_id, m_read_cache.insert(BlobOpener(*m_index, blob_id))));
-  return m_handles[blob_id];
+  Mutex::Lock lock(m_mutex);
+
+  write_cache_t::const_iterator i = m_write_cache.find(blob_id);
+  if (i != m_write_cache.end())
+    return i->second;
+
+  read_cache_by_filename_t& fn_cache = m_read_cache.get<1>();
+
+  boost::format blob_name(blob_tmpl);
+  const std::string fn = boost::str(blob_name % m_index->platefile_name() % blob_id);
+
+  read_cache_by_filename_t::const_iterator j = fn_cache.find(fn);
+  if (j != fn_cache.end()) {
+    read_cache_by_age_t::iterator k = m_read_cache.project<0>(j);
+    m_read_cache.relocate(m_read_cache.begin(), k);
+    return *k;
+  } else {
+    boost::shared_ptr<ReadBlob> blob(new ReadBlob(fn));
+    std::pair<read_cache_t::iterator, bool> i = m_read_cache.push_front(blob);
+    VW_ASSERT(i.second, LogicErr() << "We just checked for the key " << fn << " and it's gone now!");
+    if (m_read_cache.size() > DEFAULT_BLOB_CACHE_SIZE)
+      m_read_cache.pop_back();
+    return *i.first;
+  }
 }
 
 boost::shared_ptr<Blob> Blobstore::open_write_blob(uint32 blob_id) {
-  Mutex::Lock lock(m_handle_lock);
+  Mutex::Lock lock(m_mutex);
+
+  VW_ASSERT(m_write_cache.count(blob_id) == 0, LogicErr() << "Cannot open a blob for writing more than once [tried " << blob_id << "]");
+
   boost::format blob_name(blob_tmpl);
-  // TODO: Should I invalidate a read blob if you write to it? I don't think it's necessary...
-  return boost::shared_ptr<Blob>(new Blob(str(blob_name % m_index->platefile_name() % blob_id)));
+  const std::string fn = boost::str(blob_name % m_index->platefile_name() % blob_id);
+  boost::shared_ptr<Blob>& blob = m_write_cache[blob_id];
+  blob.reset(new Blob(fn));
+
+  // Expire the blob from the read cache, since we just opened it for write. It
+  // will be opened from the write cache next time.
+  // TODO: We should repopulate the cache entry, not just remove it
+  read_cache_by_filename_t& fn_cache = m_read_cache.get<1>();
+  fn_cache.erase(fn);
+  return blob;
 }
 
 Transaction Blobstore::transaction_begin(const std::string& description, TransactionOrNeg override) {
@@ -145,9 +176,6 @@ Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
   // first, sort by page to keep page accesses together
   std::sort(hdrs.begin(), hdrs.end(), SortByPage(*m_index));
 
-  //if (hdr.filetype() != rec.filetype())
-  //  vw_out(WarningMessage) << "input TileHeader doesn't match IndexRecord [filetype] [" << hdr.filetype() << " vs " << rec.filetype() << "]\n";
-
   typedef std::map<IndexRecord, Tile*, SortByIndexRecord> map_t;
   map_t recs;
 
@@ -178,10 +206,16 @@ Datastore::TileSearch& Blobstore::populate(TileSearch& hdrs) {
     try {
       boost::shared_ptr<ReadBlob> blob = open_read_blob(rec.blob_id());
       BlobTileRecord tile_rec = blob->read_record(rec.blob_offset());
-      if (tile_rec.hdr != hdr) {
-        vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord. skipping.\n";
+      if (tile_rec.hdr.col() != hdr.col()
+          || tile_rec.hdr.row() != hdr.row()
+          || tile_rec.hdr.level() != hdr.level()
+          || tile_rec.hdr.transaction_id() != hdr.transaction_id()
+          || (hdr.has_filetype() && hdr.filetype().size() && tile_rec.hdr.filetype() != hdr.filetype())) {
+        vw_out(ErrorMessage) << "output TileHeader doesn't match IndexRecord. skipping. [" << tile_rec.hdr << "] vs [" << hdr << "]\n";
         continue;
       }
+      // Must copy the tilerec one, because we won't necessarily have a filetype in the search
+      t.hdr  = tile_rec.hdr;
       t.data = tile_rec.data;
     } catch (const IOErr& e) {
       // These are bad, and might indicate corruption, but probably shouldn't kill everything.
@@ -242,8 +276,14 @@ void Blobstore::write_complete(WriteState& state_) {
   // Fetch the size from the blob.
   uint64 new_blob_size = state->blob->size();
 
-  // Close the blob for writing.
-  state->blob.reset();
+  {
+    Mutex::Lock lock(m_mutex);
+
+    // The blob might still technically be open for writing (in the read
+    // cache), so flush it and drop our reference to it.
+    state->blob->flush();
+    state->blob.reset();
+  }
 
   // For debugging:
   vw_out(DebugMessage, "blob") << "Closed blob " << state->blob_id << " ( size = " << new_blob_size << " )\n";
