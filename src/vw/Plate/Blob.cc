@@ -195,35 +195,6 @@ ReadBlob::~ReadBlob() {
   WHEREAMI << m_blob_filename << "\n";
 }
 
-// Constructor stores the blob filename for reading & writing
-Blob::Blob(const std::string& filename_)
-  : ReadBlob(filename_, true), m_write_count(0)
-{
-  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), std::ios::in | std::ios::out | std::ios::binary));
-
-  // If the file is not open, then that means that we need to create it.
-  // (Note: the C++ standard does not let you create a file when you specify
-  // std::ios::in., hence the gymnastics here.)
-  if (!m_fstream->is_open()) {
-    m_fstream->clear();
-    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::binary);
-    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
-
-    m_end_of_file_ptr = 3 * sizeof(uint64);
-    this->write_end_of_file_ptr(m_end_of_file_ptr);
-    m_fstream->close();
-    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::in|std::ios::binary);
-    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
-  }
-  WHEREAMI << m_blob_filename << std::endl;
-}
-
-/// Destructor: make sure that we have written the end of file ptr.
-Blob::~Blob() {
-  this->write_end_of_file_ptr(m_end_of_file_ptr);
-  WHEREAMI << m_blob_filename << "\n";
-}
-
 void ReadBlob::read_sendfile(uint64 base_offset, std::string& filename, uint64& offset, uint64& size) {
   // Read the blob record
   BlobRecordSizeType blob_record_size;
@@ -290,6 +261,42 @@ uint64 ReadBlob::read_end_of_file_ptr() const {
     return m_fstream->tellg();
   }
 }
+
+// Constructor stores the blob filename for reading & writing
+Blob::Blob(const std::string& filename_)
+  : ReadBlob(filename_, true), m_write_count(0)
+{
+  m_fstream.reset(new std::fstream(m_blob_filename.c_str(), std::ios::in | std::ios::out | std::ios::binary));
+
+  // If the file is not open, then that means that we need to create it.
+  // (Note: the C++ standard does not let you create a file when you specify
+  // std::ios::in., hence the gymnastics here.)
+  if (!m_fstream->is_open()) {
+    m_fstream->clear();
+    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::binary);
+    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
+
+    m_end_of_file_ptr = 3 * sizeof(uint64);
+    this->write_end_of_file_ptr(m_end_of_file_ptr);
+    m_fstream->close();
+    m_fstream->open(m_blob_filename.c_str(), std::ios::out|std::ios::in|std::ios::binary);
+    VW_ASSERT(m_fstream->is_open(), BlobIoErr() << "Could not create blob file " << m_blob_filename);
+  }
+  WHEREAMI << m_blob_filename << std::endl;
+}
+
+/// Destructor: make sure that we have written the end of file ptr.
+Blob::~Blob() {
+  flush();
+  WHEREAMI << m_blob_filename << "\n";
+}
+
+void Blob::flush() {
+  this->write_end_of_file_ptr(m_end_of_file_ptr);
+  m_fstream->flush();
+  WHEREAMI << m_blob_filename << "\n";
+}
+
 
 uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size) {
 

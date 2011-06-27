@@ -150,6 +150,9 @@ namespace platefile {
       /// shared_arrays.  Returns the base_offset where the data was
       /// written to the blob file.
       vw::uint64 write(TileHeader const& header, const uint8* data, uint64 data_size);
+
+      // Flush all pending changes
+      void flush();
   };
 
 }} // namespace vw::platefile
