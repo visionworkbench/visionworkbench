@@ -25,6 +25,30 @@ namespace platefile {
   // tile the space of the larger bbox.
   std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int height);
 
+  template <class PixelT>
+  void mipmap_one_tile(ImageView<PixelT>& dest, uint32 tile_size, const ImageView<PixelT>& UL, const ImageView<PixelT>& UR, const ImageView<PixelT>& LL, const ImageView<PixelT>& LR)
+  {
+    VW_ASSERT(!UL || (UL.cols() == int32(tile_size) && UL.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
+    VW_ASSERT(!UR || (UR.cols() == int32(tile_size) && UR.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
+    VW_ASSERT(!LL || (LL.cols() == int32(tile_size) && LL.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
+    VW_ASSERT(!LR || (LR.cols() == int32(tile_size) && LR.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
+    VW_ASSERT(UL || UR || LL || LR, LogicErr() << "Must compose at least one tile");
+
+    ImageView<PixelT> super(2*tile_size, 2*tile_size);
+
+    if (UL) crop(super, 0,         0,         tile_size, tile_size) = UL;
+    if (UR) crop(super, tile_size, 0,         tile_size, tile_size) = UR;
+    if (LL) crop(super, 0,         tile_size, tile_size, tile_size) = LL;
+    if (LR) crop(super, tile_size, tile_size, tile_size, tile_size) = LR;
+
+    // We subsample after blurring with a standard 2x2 box filter.
+    std::vector<float> kernel(2);
+    kernel[0] = kernel[1] = 0.5;
+
+    dest = crop(subsample( separable_convolution_filter( super, kernel, kernel, 1, 1, ConstantEdgeExtension() ), 2),
+                0,0,tile_size,tile_size);
+  }
+
   // Resample image by reaching up a few levels and using the data there.
   template <typename PixelT>
   ImageView<PixelT> resample_img_from_level(const ImageView<PixelT> &src_tile, int src_col, int src_row,
