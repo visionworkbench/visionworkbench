@@ -72,7 +72,6 @@ struct Options {
 
   Options() :
     filetype("png"),
-    mode("toast"),
     tile_size(256),
     cache_size(512),
     terrain(false),
