@@ -25,8 +25,8 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 struct Options {
-  Options() : west(0), east(0), north(0), south(0), tile_size(0), tile_ppd(0),
-              tile_size_deg(0), pds_dem_mode(false), pds_imagery_mode(false) {}
+  Options() : west(0), east(0), north(0), south(0), tile_size(0),
+              tile_size_deg(0), tile_ppd(0), pds_dem_mode(false), pds_imagery_mode(false) {}
 
   // Input for project file
   std::string plate_file_name;
