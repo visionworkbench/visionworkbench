@@ -75,6 +75,15 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   disparity_map =
     correlate( input1, input2, preprocessing<NULLOP>(),
                search_volume, kernel_size,
+               ABSOLUTE_DIFFERENCE, 2 );
+  ASSERT_EQ( input1.cols(), disparity_map.cols() );
+  ASSERT_EQ( input1.rows(), disparity_map.rows() );
+  check_error( disparity_map, .983, .99, "Absolute Difference" );
+
+
+  disparity_map =
+    correlate( input1, input2, preprocessing<NULLOP>(),
+               search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
@@ -83,7 +92,23 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   disparity_map =
     correlate( input1, input2, preprocessing<NULLOP>(),
                search_volume, kernel_size,
+               SQUARED_DIFFERENCE, 2 );
+  ASSERT_EQ( input1.cols(), disparity_map.cols() );
+  ASSERT_EQ( input1.rows(), disparity_map.rows() );
+  check_error( disparity_map, .966, .99, "Squared Difference" );
+
+  disparity_map =
+    correlate( input1, input2, preprocessing<NULLOP>(),
+               search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
+  ASSERT_EQ( input1.cols(), disparity_map.cols() );
+  ASSERT_EQ( input1.rows(), disparity_map.rows() );
+  check_error( disparity_map, .966, .99, "Cross Correlation" );
+
+  disparity_map =
+    correlate( input1, input2, preprocessing<NULLOP>(),
+               search_volume, kernel_size,
+               CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
   check_error( disparity_map, .966, .99, "Cross Correlation" );

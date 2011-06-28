@@ -9,6 +9,7 @@
 
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/ImageMath.h>
+#include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/rewrite/Algorithms.h>
 #include <vw/Stereo/rewrite/CostFunctions.h>
 

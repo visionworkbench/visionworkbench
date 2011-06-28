@@ -36,7 +36,7 @@ namespace rewrite {
                      PreFilterT const& prefilter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                     float consistency_threshold = 0 ) :
+                     float consistency_threshold = -1 ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
       m_prefilter(prefilter), m_search_region(search_region), m_kernel_size(kernel_size),
       m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {}
@@ -68,39 +68,81 @@ namespace rewrite {
 
       // 3.) Correlate with options that they requested
       ImageView<pixel_type> result;
+      // Shutting off the consistency check
       switch ( m_cost_type ) {
       case CROSS_CORRELATION:
         result =
           best_of_search_convolution<NCCCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                      m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                      left_region - left_region.min(),
-                                      m_search_region.size() + Vector2i(1,1),
-                                      m_kernel_size );
+                                               m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                               left_region - left_region.min(),
+                                               m_search_region.size() + Vector2i(1,1),
+                                               m_kernel_size );
         break;
       case SQUARED_DIFFERENCE:
         result =
           best_of_search_convolution<SquaredCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                      m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                      left_region - left_region.min(),
-                                      m_search_region.size() + Vector2i(1,1),
-                                      m_kernel_size );
+                                                   m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                                   left_region - left_region.min(),
+                                                   m_search_region.size() + Vector2i(1,1),
+                                                   m_kernel_size );
         break;
       case ABSOLUTE_DIFFERENCE:
       default:
         result =
           best_of_search_convolution<AbsoluteCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                      m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                      left_region - left_region.min(),
-                                      m_search_region.size() + Vector2i(1,1),
-                                      m_kernel_size );
+                                                    m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                                    left_region - left_region.min(),
+                                                    m_search_region.size() + Vector2i(1,1),
+                                                    m_kernel_size );
+      }
+
+      // 4.0 ) Do a consistency check if they asked for it
+      if ( m_consistency_threshold >= 0 ) {
+        ImageView<pixel_type> rl_result;
+
+        switch ( m_cost_type ) {
+        case CROSS_CORRELATION:
+          // Getting the crops correctly here is not important as best
+          // of search convolution will recrop. The important bit is
+          // just aligning up the origins.
+          rl_result =
+            best_of_search_convolution<NCCCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                                 m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+                                                 right_region - right_region.min(),
+                                                 m_search_region.size() + Vector2i(1,1),
+                                                 m_kernel_size ) -
+            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+          break;
+        case SQUARED_DIFFERENCE:
+          // Getting the crops correctly here is not important as best
+          // of search convolution will recrop. The important bit is
+          // just aligning up the origins.
+          rl_result =
+            best_of_search_convolution<SquaredCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                                     m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+                                                     right_region - right_region.min(),
+                                                     m_search_region.size() + Vector2i(1,1),
+                                                     m_kernel_size ) -
+            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+          break;
+        case ABSOLUTE_DIFFERENCE:
+        default:
+          // Getting the crops correctly here is not important as best
+          // of search convolution will recrop. The important bit is
+          // just aligning up the origins.
+          rl_result =
+            best_of_search_convolution<AbsoluteCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+                                                      m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+                                                      right_region - right_region.min(),
+                                                      m_search_region.size() + Vector2i(1,1),
+                                                      m_kernel_size ) -
+            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+        }
+        stereo::cross_corr_consistency_check( result, rl_result,
+                                              m_consistency_threshold, false );
       }
       VW_DEBUG_ASSERT( bbox.size() == bounding_box(result).size(),
                        MathErr() << "CorrelationView::prerasterize got a bad return from best_of_search_convolution." );
-
-      // 4.) Do the correlation consistency check
-      if ( m_consistency_threshold > 0 ) {
-        vw_throw( NoImplErr() << "CorrelationView::prerasterize does not have consistency check implemented." );
-      }
 
       // 5.) Convert back to original coordinates
       result += pixel_type(m_search_region.min());
@@ -120,7 +162,7 @@ namespace rewrite {
              PreFilterT const& filter,
              BBox2i const& search_region, Vector2i const& kernel_size,
              CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-             float consistency_threshold = 0 ) {
+             float consistency_threshold = -1 ) {
     typedef CorrelationView<Image1T,Image2T,PreFilterT> result_type;
     return result_type( left.impl(), right.impl(), filter, search_region,
                         kernel_size, cost_type, consistency_threshold );
