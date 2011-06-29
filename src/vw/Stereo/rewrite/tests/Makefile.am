@@ -16,8 +16,10 @@ TestPreFilter_SOURCES       = TestPreFilter.cxx
 TestCostFunctions_SOURCES   = TestCostFunctions.cxx
 TestCorrelation_SOURCES     = TestCorrelation.cxx
 TestCorrelationView_SOURCES = TestCorrelationView.cxx
+TestPyramidCorrelationView_SOURCES = TestPyramidCorrelationView.cxx
 
-TESTS = TestAlgorithms TestPreFilter TestCostFunctions TestCorrelation TestCorrelationView
+TESTS = TestAlgorithms TestPreFilter TestCostFunctions			\
+  TestCorrelation TestCorrelationView TestPyramidCorrelationView
 
 #include $(top_srcdir)/config/instantiate.am
 

@@ -47,7 +47,7 @@ namespace rewrite {
                      kernel_size[1] <= left_region.height(),
                      ArgumentErr() << "best_of_search_convolution: Kernel size too large of active region." );
     VW_DEBUG_ASSERT( search_volume[0] > 0 && search_volume[1] > 0,
-                     ArgumentErr() << "best_of_search_convoluiton: Search volume must be greater than 0" );
+                     ArgumentErr() << "best_of_search_convolution: Search volume must be greater than 0" );
     VW_DEBUG_ASSERT( left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
                      left_region.max().x() <= left.impl().cols() &&
                      left_region.max().y() <= left.impl().rows(),
