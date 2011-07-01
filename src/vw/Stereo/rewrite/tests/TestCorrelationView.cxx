@@ -203,7 +203,7 @@ TEST_F( CorrelationViewGRAYU8, LaplacianOfGaussian) {
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .89, .99, "Absolute Difference" );
+  check_error( disparity_map, .81, .99, "Absolute Difference" );
 
   disparity_map =
     correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
