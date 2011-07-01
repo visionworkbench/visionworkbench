@@ -122,7 +122,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .90, .999, "Cross Correlation" );
+  check_error( disparity_map, .87, .99, "Cross Correlation" );
 }
 
 TEST_F( PyramidViewGRAYF32, NullPreprocess ) {

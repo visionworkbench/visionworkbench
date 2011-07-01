@@ -130,4 +130,8 @@ TEST( AlgorithmsTest, FastBoxChar ) {
   EXPECT_EQ( 500, output(0,0) );
   EXPECT_EQ( 510, output(2,0) );
   EXPECT_EQ( 450, output(1,1) );
+
+  // Really force the fact that we are not over flowing
+  std::fill( input.begin(), input.end(), 255 );
+  EXPECT_EQ( 6375, fast_box_sum<accum_type>( input, Vector2i(5,5) )(0,0) );
 }

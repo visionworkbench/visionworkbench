@@ -228,9 +228,9 @@ TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
     correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
-  ASSERT_EQ( input1.cols(), disparity_map.cols() ); // It is very odd that this is having problems
+  ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .5, .99, "Absolute Difference" );
+  check_error( disparity_map, .93, .99, "Absolute Difference" );
 
   disparity_map =
     correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
@@ -246,7 +246,7 @@ TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .93, .99, "Cross Correlation" );
+  check_error( disparity_map, .92, .99, "Cross Correlation" );
 }
 
 TEST_F( CorrelationViewGRAYF32, LaplacianOfGaussian) {

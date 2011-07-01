@@ -110,6 +110,14 @@ TEST_F( CostFunctionU8, SquaredDiff ) {
   EXPECT_VW_EQ( rpixel_type( 8100 ), result(0,1) );
   EXPECT_VW_EQ( rpixel_type( 8100 ), result(1,0) );
   EXPECT_VW_EQ( rpixel_type( pow(ChannelRange<channel_type>::max(),2) ), result(1,1) );
+
+  ImageView<uint8> input3(2,1), input4(2,1);
+  input3(0,0) = input4(1,0) = 0;
+  input3(1,0) = input4(0,0) = 255;
+  result_type result2 =
+    SquaredCost<image_type,true>(input3,input4,Vector2i(2,1))(input3,input4);
+  EXPECT_EQ( 65025, result2(0,0) );
+  EXPECT_EQ( 65025, result2(1,0) );
 }
 
 TEST_F( CostFunctionRGBU8, SquaredDiff ) {

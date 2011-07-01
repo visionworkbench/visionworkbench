@@ -297,8 +297,8 @@ namespace rewrite {
     inline void cost_modification( ImageView<pixel_accumulator_type>& cost_metric,
                                    Vector2i const& disparity ) const {
       cost_metric =
-        (16 * cost_metric) / ( sqrt( left_variance * crop(right_variance,
-                                                          bounding_box(left_variance)+disparity)) / 16 );
+        (64 * cost_metric) / ( sqrt( left_variance * crop(right_variance,
+                                                          bounding_box(left_variance)+disparity) ) / 64 );
     }
 
     inline bool quality_comparison( accumulator_type cost,
