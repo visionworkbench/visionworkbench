@@ -31,6 +31,8 @@ namespace rewrite {
     typedef typename PixelChannelCast<PixelT,AccumulatorType>::type AccumT;
 
     ViewT const& input( image.impl() );
+    VW_DEBUG_ASSERT( input.cols() >= kernel[0] && input.rows() >= kernel[1],
+                     ArgumentErr() << "fast_box_sum: Image is not big enough for kernel." );
 
     // Allocating output
     ImageView<AccumT> output( input.cols()-kernel[0]+1,
@@ -43,10 +45,10 @@ namespace rewrite {
     {
       PAccT col_input = input.origin();
       for ( AccumT* col = &col_sum[0];
-            col < col_sum_end; col++ ) {
+            col < col_sum_end; col++ ) { // These
         PAccT row_input = col_input;
         *col = *row_input;
-        for ( int32 ky = 1; ky < kernel[1]; ky++ ) {
+        for ( int32 ky = 1; ky < kernel[1]; ky++ ) { // Loops should probably be swapped
           row_input.next_row();
           *col += *row_input;
         }
@@ -60,7 +62,7 @@ namespace rewrite {
     PAccT src_row_front = input.origin().advance(0,kernel[1]);
     for ( int32 y = 0; y < output.rows() - 1; y++ ) {
       // Seed row sum
-      AccumT row_sum = 0;
+      AccumT row_sum(0);
       row_sum = std::accumulate(&col_sum[0],&col_sum[kernel[0]],
                                 row_sum);
 
@@ -78,7 +80,8 @@ namespace rewrite {
       PAccT src_col_back = src_row_back;
       PAccT src_col_front = src_row_front;
       for ( AccumT* col = &col_sum[0]; col < col_sum_end; col++ ) {
-        *col += *src_col_front - *src_col_back;
+        *col += *src_col_front; // We do this in 2 lines to avoid casting.
+        *col -= *src_col_back;  // I'm unsure if the assembly is still do that.
         src_col_back.next_col();
         src_col_front.next_col();
       }
@@ -90,7 +93,7 @@ namespace rewrite {
 
     { // Perform last sum down the line
       // Seed row sum
-      AccumT row_sum = 0;
+      AccumT row_sum(0);
       row_sum = std::accumulate(&col_sum[0],&col_sum[kernel[0]],
                                 row_sum);
 

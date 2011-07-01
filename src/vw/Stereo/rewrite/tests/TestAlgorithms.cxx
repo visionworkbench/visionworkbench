@@ -5,6 +5,7 @@
 // __END_LICENSE__
 
 #include <gtest/gtest.h>
+#include <test/Helpers.h>
 
 #include <vw/Stereo/rewrite/Algorithms.h>
 #include <vw/Stereo/rewrite/CostFunctions.h>
@@ -134,4 +135,28 @@ TEST( AlgorithmsTest, FastBoxChar ) {
   // Really force the fact that we are not over flowing
   std::fill( input.begin(), input.end(), 255 );
   EXPECT_EQ( 6375, fast_box_sum<accum_type>( input, Vector2i(5,5) )(0,0) );
+}
+
+TEST( AlgorithmsTest, FastBoxPixelU8 ) {
+  ImageView<PixelGray<uint8> > input(7,5);
+  std::fill( input.begin(), input.end(), PixelGray<uint8>(27) );
+  std::fill( &input(0,0), &input(6,0)+1, PixelGray<uint8>(40) );
+
+  typedef AbsAccumulatorType<uint8>::type accum_type;
+
+  EXPECT_EQ( 3, fast_box_sum<accum_type>( input, Vector2i(5,3) ).cols() );
+  EXPECT_EQ( 3, fast_box_sum<accum_type>( input, Vector2i(5,3) ).rows() );
+  ASSERT_TRUE( has_pixel_type<PixelGray<int16> >( fast_box_sum<accum_type>( input, Vector2i(5,3) ) ) );
+  EXPECT_EQ( 5, fast_box_sum<accum_type>( input, Vector2i(3,3) ).cols() );
+  EXPECT_EQ( 3, fast_box_sum<accum_type>( input, Vector2i(3,3) ).rows() );
+
+  ImageView<PixelGray<int16> > output = fast_box_sum<accum_type>( input, Vector2i(5,3) );
+  EXPECT_VW_EQ( PixelGray<int16>(470), output(0,0) );
+  EXPECT_VW_EQ( PixelGray<int16>(470), output(1,0) );
+  EXPECT_VW_EQ( PixelGray<int16>(470), output(2,0) );
+  EXPECT_VW_EQ( PixelGray<int16>(405), output(0,1) );
+  EXPECT_VW_EQ( PixelGray<int16>(405), output(1,1) );
+  EXPECT_VW_EQ( PixelGray<int16>(405), output(2,1) );
+  EXPECT_VW_EQ( PixelGray<int16>(405), output(0,2) );
+  EXPECT_VW_EQ( PixelGray<int16>(405), output(2,2) );
 }
