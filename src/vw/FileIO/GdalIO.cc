@@ -207,6 +207,7 @@ void GdalIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_
   char** options = NULL;
 
   try {
+    options = CSLSetNameValue( options, "COMPRESS", "LZW" );
     if(fmt().pixel_format == VW_PIXEL_GRAYA || fmt().pixel_format == VW_PIXEL_RGBA)
       options = CSLSetNameValue( options, "ALPHA", "YES" );
 
