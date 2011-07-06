@@ -17,12 +17,14 @@ TestEndianness_SOURCES        = TestEndianness.cxx
 TestBlockFileIO_SOURCES       = TestBlockFileIO.cxx
 TestGDALFeatures_SOURCES      = TestGDALFeatures.cxx
 TestMemoryImageResource_SOURCES = TestMemoryImageResource.cxx
+TestTemporaryFile_SOURCES    = TestTemporaryFile.cxx
 
 TESTS = \
   TestBlockFileIO \
   TestDiskImageResource \
   TestDiskImageView \
   TestMemoryImageResource \
+  TestTemporaryFile \
   TestEndianness \
   TestGDALFeatures
 

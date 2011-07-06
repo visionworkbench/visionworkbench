@@ -7,7 +7,7 @@
 
 #include <vw/Core/ProgressCallback.h>
 #include <vw/Core/Log.h>
-#include <vw/Core/TemporaryFile.h>
+#include <vw/FileIO/TemporaryFile.h>
 #include <vw/Plate/detail/LocalIndex.h>
 #include <vw/Plate/detail/RemoteIndex.h>
 #include <vw/Plate/Blob.h>

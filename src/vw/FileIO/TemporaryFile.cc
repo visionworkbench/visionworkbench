@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Core/TemporaryFile.h>
+#include <vw/FileIO/TemporaryFile.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>

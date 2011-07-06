@@ -14,10 +14,10 @@
 #define __VW_FILEIO_DISKIMAGEVIEW_H__
 
 #include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/TemporaryFile.h>
 #include <vw/Image/ImageResourceView.h>
 #include <vw/Image/BlockRasterize.h>
 #include <vw/Core/Cache.h>
-#include <vw/Core/TemporaryFile.h>
 
 #include <boost/filesystem/operations.hpp>
 #include <string>

@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include <test/Helpers.h>
 #include <vw/Plate/Datastore.h>
-#include <vw/Core/TemporaryFile.h>
+#include <vw/FileIO/TemporaryFile.h>
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 

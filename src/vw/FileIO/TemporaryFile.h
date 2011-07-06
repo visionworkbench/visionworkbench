@@ -21,7 +21,6 @@ class TemporaryFile : public std::iostream {
     std::string m_filename;
     bool m_delete;
 
-
     void init(std::string dir, bool delete_on_close, const std::string& prefix, const std::string& suffix, std::ios_base::openmode mode);
   public:
     // defaults:
