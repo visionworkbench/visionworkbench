@@ -30,7 +30,15 @@ string get_directory(const TemporaryFile& f) {
   return fs::path(f.filename()).parent_path().string();
 }
 
+string get_directory(const TemporaryDir& f) {
+  return fs::path(f.filename()).parent_path().string();
+}
+
 string get_prefix(const TemporaryFile& f, size_t len) {
+  return fs::path(f.filename()).leaf().substr(0, len);
+}
+
+string get_prefix(const TemporaryDir& f, size_t len) {
   return fs::path(f.filename()).leaf().substr(0, len);
 }
 
@@ -111,4 +119,30 @@ TEST(TemporaryFile, Basic) {
     check4(e, TEST_OBJDIR, "prefix", "suffix");
     TemporaryFile f(TEST_OBJDIR, true, "prefix", "suffix", std::ios::out);
     check5(f, TEST_OBJDIR, "prefix", "suffix", false);
+}
+
+#define checkdir0(a)           _checkdir(a,__LINE__)
+#define checkdir1(a,b)         _checkdir(a,__LINE__,b)
+#define checkdir2(a,b,c)       _checkdir(a,__LINE__,b,c)
+
+void _checkdir(TemporaryDir& a, uint32 line, std::string dir = "", const std::string& prefix = "tmp") {
+  SCOPED_TRACE(::testing::Message() << "line " << line);
+
+  if (dir.empty())
+    dir = vw_settings().tmp_directory();
+
+  const std::string& fn = a.filename();
+  EXPECT_TRUE(fs::equivalent(dir, get_directory(a))) << "Expected " << dir << ", got " << get_directory(a);
+  EXPECT_EQ(prefix, get_prefix(a, prefix.size()));
+  EXPECT_TRUE(fs::exists(fn));
+  EXPECT_TRUE(fs::is_directory(fn));
+}
+
+TEST(TemporaryFile, Dir) {
+  TemporaryDir a;
+  checkdir0(a);
+  TemporaryDir b(TEST_OBJDIR);
+  checkdir1(b, TEST_OBJDIR);
+  TemporaryDir c(TEST_OBJDIR, true, "prefix");
+  checkdir2(c, TEST_OBJDIR, "prefix");
 }

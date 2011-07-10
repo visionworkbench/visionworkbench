@@ -41,6 +41,22 @@ class TemporaryFile : public std::iostream {
     const std::string& filename() const;
 };
 
+class TemporaryDir {
+  private:
+    std::string m_filename;
+    bool m_delete;
+
+    void init(std::string dir, bool delete_on_close, const std::string& prefix);
+  public:
+    TemporaryDir();
+    TemporaryDir(const std::string& dir);
+    TemporaryDir(const std::string& dir, bool delete_on_close);
+    TemporaryDir(const std::string& dir, bool delete_on_close, const std::string& prefix);
+    ~TemporaryDir();
+
+    const std::string& filename() const;
+};
+
 }
 
 #endif

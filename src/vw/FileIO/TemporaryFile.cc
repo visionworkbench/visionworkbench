@@ -10,9 +10,12 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>
 #include <boost/scoped_array.hpp>
+#include <boost/filesystem/convenience.hpp>
 #include <cerrno>
 #include <cstring>
 #include <vw/config.h>
+
+namespace fs = boost::filesystem;
 
 #if defined(VW_HAVE_EXT_STDIO_FILEBUF_H) && VW_HAVE_EXT_STDIO_FILEBUF_H == 1
 # include <ext/stdio_filebuf.h>
@@ -248,5 +251,46 @@ TemporaryFile::~TemporaryFile() {
 }
 
 const std::string& TemporaryFile::filename() const {return m_filename;}
+
+void TemporaryDir::init(std::string dir = "", bool delete_on_close = true, const std::string& prefix = "tmp") {
+  if (dir.empty())
+    dir = vw_settings().tmp_directory();
+
+  {
+    std::string templ_s = dir + "/" + prefix + "XXXXXX";
+    boost::scoped_array<char> templ(new char[templ_s.size()+1]);
+    ::strcpy(templ.get(), templ_s.c_str());
+    char *ret = ::mkdtemp(templ.get());
+    VW_ASSERT(ret, IOErr() << "Failed to create temporary dir from template " << templ_s << ": " << ::strerror(errno));
+    m_filename = std::string(templ.get());
+  }
+
+  m_delete = delete_on_close;
+}
+
+TemporaryDir::TemporaryDir() {
+  init();
+}
+
+TemporaryDir::TemporaryDir(const std::string& dir) {
+  init(dir);
+}
+
+TemporaryDir::TemporaryDir(const std::string& dir, bool delete_on_close) {
+  init(dir, delete_on_close);
+}
+
+TemporaryDir::TemporaryDir(const std::string& dir, bool delete_on_close, const std::string& prefix) {
+  init(dir, delete_on_close, prefix);
+}
+
+TemporaryDir::~TemporaryDir() {
+  if (m_delete)
+    fs::remove_all(m_filename);
+}
+
+const std::string& TemporaryDir::filename() const {
+  return m_filename;
+}
 
 } // namespace vw
