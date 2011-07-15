@@ -32,108 +32,6 @@ void safe_measurement( ip::InterestPoint& ip ) {
   if ( ip.scale <= 0 ) ip.scale = 10;
 }
 
-void vw::ba::build_control_network( ControlNetwork& cnet,
-                                    std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
-                                    std::vector<std::string> const& image_files,
-                                    int min_matches ) {
-  cnet.clear();
-
-  // 1.) Build CRN (pop on cameras)
-  CameraRelationNetwork<IPFeature> crn;
-  for ( size_t i = 0; i < image_files.size(); i++ ) {
-    fs::path image_path( image_files[i] );
-    crn.add_node( CameraNode<IPFeature>( i,
-                                         image_path.stem() ) );
-  }
-
-  // 2.) Load up matches into CRN
-  {
-    TerminalProgressCallback progress("ba","Match Files: ");
-    progress.report_progress(0);
-    int32 num_load_rejected = 0, num_loaded = 0;
-    for ( size_t i = 0; i < image_files.size(); ++i ) {
-      progress.report_progress(float(i)/float(image_files.size()));
-      for ( size_t j = i+1; j < image_files.size(); ++j ) {
-        std::string match_filename =
-          fs::path( image_files[i] ).replace_extension().string() + "__" +
-          fs::path( image_files[j] ).stem() + ".match";
-
-        if ( !fs::exists( match_filename ) )
-          continue;
-
-        std::vector<ip::InterestPoint> ip1, ip2;
-        ip::read_binary_match_file( match_filename, ip1, ip2 );
-        if ( int( ip1.size() ) < min_matches ) {
-          vw_out(VerboseDebugMessage,"ba") << "\t" << match_filename << "    "
-                                           << i << " <-> " << j << " : "
-                                           << ip1.size() << " matches. [rejected]\n";
-          num_load_rejected += ip1.size();
-        } else {
-          vw_out(VerboseDebugMessage,"ba") << "\t" << match_filename << "    "
-                                           << i << " <-> " << j << " : "
-                                           << ip1.size() << " matches.\n";
-          num_loaded += ip1.size();
-
-          // Remove descriptors from interest points and correct scale
-          std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
-          std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
-          std::for_each( ip1.begin(), ip1.end(), safe_measurement );
-          std::for_each( ip2.begin(), ip2.end(), safe_measurement );
-
-          typedef boost::shared_ptr< IPFeature > f_ptr;
-          typedef std::list< f_ptr >::iterator f_itr;
-
-          // Checking to see if features already exist, adding if they
-          // don't, then linking them.
-          for ( size_t k = 0; k < ip1.size(); k++ ) {
-            f_itr ipfeature1 = std::find_if( crn[i].begin(),
-                                             crn[i].end(),
-                                             ContainsEqualIP( ip1[k] ) );
-            f_itr ipfeature2 = std::find_if( crn[j].begin(),
-                                             crn[j].end(),
-                                             ContainsEqualIP( ip2[k] ) );
-            if ( ipfeature1 == crn[i].end() ) {
-              crn[i].relations.push_front( f_ptr( new IPFeature( ip1[k], i ) ) );
-              ipfeature1 = crn[i].begin();
-            }
-            if ( ipfeature2 == crn[j].end() ) {
-              crn[j].relations.push_front( f_ptr( new IPFeature( ip2[k], j ) ) );
-              ipfeature2 = crn[j].begin();
-            }
-
-            // Doubly linking
-            (*ipfeature1)->connection( *ipfeature2, false );
-            (*ipfeature2)->connection( *ipfeature1, false );
-          }
-
-        }
-      } // end j for loop
-    }   // end i for loop
-    progress.report_finished();
-    if ( num_load_rejected != 0 ) {
-      vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
-                                  << " matches due to inadequacy.\n";
-      vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
-    }
-  }
-
-  // 3.) Building Control Network
-  crn.write_controlnetwork( cnet );
-
-  // 4.) Triangulating Positions
-  {
-    TerminalProgressCallback progress("ba", "Triangulating:");
-    progress.report_progress(0);
-    double inc_prog = 1.0/double(cnet.size());
-    double min_angle = 5.0*M_PI/180.0;
-    BOOST_FOREACH( ControlPoint& cpoint, cnet ) {
-      progress.report_incremental_progress( inc_prog );
-      triangulate_control_point( cpoint, camera_models, min_angle );
-    }
-    progress.report_finished();
-  }
-}
-
 void vw::ba::triangulate_control_point( ControlPoint& cp,
                                         std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                         double const& minimum_angle ) {
@@ -181,5 +79,124 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
   } else {
     error_sum /= double(count);
     cp.set_position( position_sum / double(count) );
+  }
+}
+
+void vw::ba::build_control_network( ba::ControlNetwork& cnet,
+                                     std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                     std::vector<std::string> const& image_files,
+                                     size_t min_matches,
+                                     std::vector<std::string> const& directories ) {
+  cnet.clear();
+
+  // We can't guarantee that image_files is sorted, so we make a
+  // std::map to give ourselves a sorted list and access to a binary
+  // search.
+  std::map<std::string,size_t> image_prefix_map;
+  size_t count = 0;
+  ba::CameraRelationNetwork<ba::IPFeature> crn;
+  BOOST_FOREACH( std::string const& file, image_files ) {
+    fs::path file_path(file);
+    image_prefix_map[file_path.replace_extension().string()] = count;
+    crn.add_node( ba::CameraNode<ba::IPFeature>( count,
+                                                 file_path.stem() ) );
+    count++;
+  }
+
+  // Searching through the directories available to us.
+  size_t num_load_rejected = 0, num_loaded = 0;
+  BOOST_FOREACH( std::string const& directory, directories ) {
+    vw_out(VerboseDebugMessage,"ba") << "\tOpening directory \""
+                                     << directory << "\".\n";
+    fs::directory_iterator end_itr;
+    for ( fs::directory_iterator obj( directory ); obj != end_itr; ++obj ) {
+
+      // Skip if not a file
+      if ( !fs::is_regular_file( obj->status() ) ) continue;
+      // Skip if not a match file
+      if ( obj->path().extension() != ".match" ) continue;
+
+      // Pull out the prefixes that made up that match file
+      std::string match_base = obj->path().stem();
+      size_t split_pt = match_base.find("__");
+      if ( split_pt == std::string::npos ) continue;
+      std::string prefix1 = match_base.substr(0,split_pt);
+      std::string prefix2 = match_base.substr(split_pt+2,match_base.size()-split_pt-2);
+
+      // Extract the image indices that correspond to image prefixes.
+      typedef std::map<std::string,size_t>::iterator MapIterator;
+      MapIterator it1 = image_prefix_map.find( prefix1 );
+      MapIterator it2 = image_prefix_map.find( prefix2 );
+      if ( it1 == image_prefix_map.end() ||
+           it2 == image_prefix_map.end() ) continue;
+
+      // Actually read in the file as it seems we've found something correct
+      std::vector<ip::InterestPoint> ip1, ip2;
+      ip::read_binary_match_file( obj->string(), ip1, ip2 );
+      if ( ip1.size() < min_matches ) {
+        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->string() << "    "
+                                         << it1->second << " <-> " << it2->second << " : "
+                                         << ip1.size() << " matches. [rejected]\n";
+        num_load_rejected += ip1.size();
+      } else {
+        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->string() << "    "
+                                         << it1->second << " <-> " << it2->second << " : "
+                                         << ip1.size() << " matches.\n";
+        num_loaded += ip1.size();
+
+        // Remove descriptors from interest points and correct scale
+        std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
+        std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
+        std::for_each( ip1.begin(), ip1.end(), safe_measurement );
+        std::for_each( ip2.begin(), ip2.end(), safe_measurement );
+
+        typedef boost::shared_ptr< ba::IPFeature > f_ptr;
+        typedef std::list< f_ptr >::iterator f_itr;
+
+        // Checking to see if features already exist, adding if they
+        // don't, then linking them.
+        for ( size_t k = 0; k < ip1.size(); k++ ) {
+          f_itr ipfeature1 = std::find_if( crn[it1->second].begin(),
+                                           crn[it1->second].end(),
+                                           ContainsEqualIP( ip1[k] ) );
+          f_itr ipfeature2 = std::find_if( crn[it2->second].begin(),
+                                           crn[it2->second].end(),
+                                           ContainsEqualIP( ip2[k] ) );
+          if ( ipfeature1 == crn[it1->second].end() ) {
+            crn[it1->second].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], it1->second ) ) );
+            ipfeature1 = crn[it1->second].begin();
+          }
+          if ( ipfeature2 == crn[it2->second].end() ) {
+            crn[it2->second].relations.push_front( f_ptr( new ba::IPFeature( ip2[k], it2->second ) ) );
+            ipfeature2 = crn[it2->second].begin();
+          }
+
+          // Doubly linking
+          (*ipfeature1)->connection( *ipfeature2, false );
+          (*ipfeature2)->connection( *ipfeature1, false );
+        }
+      }
+    }
+  } // end search through directories
+  if ( num_load_rejected != 0 ) {
+    vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
+                                << " matches due to inadequacy.\n";
+    vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
+  }
+
+  // Building control network
+  crn.write_controlnetwork( cnet );
+
+  // Triangulating Positions
+  {
+    TerminalProgressCallback progress("ba", "Triangulating:");
+    progress.report_progress(0);
+    double inc_prog = 1.0/double(cnet.size());
+    double min_angle = 5.0*M_PI/180.0;
+    BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
+      progress.report_incremental_progress(inc_prog );
+      ba::triangulate_control_point( cpoint, camera_models, min_angle );
+    }
+    progress.report_finished();
   }
 }
