@@ -13,6 +13,7 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/Filter.h>
 #include <vw/Math/BBox.h>
 #include <list>
 
@@ -26,7 +27,7 @@ namespace platefile {
   std::list<vw::BBox2i> bbox_tiles(vw::BBox2i const& bbox, int width, int height);
 
   template <class PixelT>
-  void mipmap_one_tile(ImageView<PixelT>& dest, uint32 tile_size, const ImageView<PixelT>& UL, const ImageView<PixelT>& UR, const ImageView<PixelT>& LL, const ImageView<PixelT>& LR)
+  void mipmap_one_tile(ImageView<PixelT>& dest, uint32 tile_size, const ImageView<PixelT>& UL, const ImageView<PixelT>& UR, const ImageView<PixelT>& LL, const ImageView<PixelT>& LR, bool blur = true)
   {
     VW_ASSERT(!UL || (UL.cols() == int32(tile_size) && UL.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
     VW_ASSERT(!UR || (UR.cols() == int32(tile_size) && UR.rows() == int32(tile_size)), LogicErr() << "Tiles must be the same size as tile_size");
@@ -45,8 +46,10 @@ namespace platefile {
     std::vector<float> kernel(2);
     kernel[0] = kernel[1] = 0.5;
 
-    dest = crop(subsample( separable_convolution_filter( super, kernel, kernel, 1, 1, ConstantEdgeExtension() ), 2),
-                0,0,tile_size,tile_size);
+    if (blur)
+      dest = subsample( separable_convolution_filter( super, kernel, kernel, 1, 1, ConstantEdgeExtension() ), 2);
+    else
+      dest = subsample( super, 2 );
   }
 
   // Resample image by reaching up a few levels and using the data there.
