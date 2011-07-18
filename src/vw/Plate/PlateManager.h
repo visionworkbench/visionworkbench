@@ -147,8 +147,7 @@ namespace platefile {
         boost::scoped_ptr<Task> task(
           new Job(m_platefile,
                   tile, pyramid_level,
-                  trans_view, tweak_settings_for_terrain,
-                  false, boost::numeric_cast<int>(tiles_size), progress));
+                  trans_view, false, boost::numeric_cast<int>(tiles_size), progress));
         (*task)();
       }
       progress.report_finished();
@@ -185,7 +184,6 @@ namespace platefile {
     TileInfo m_tile_info;
     int m_level;
     ViewT const& m_view;
-    bool m_tweak_settings_for_terrain;
     bool m_verbose;
     SubProgressCallback m_progress;
 
@@ -193,11 +191,9 @@ namespace platefile {
     WritePlateFileTask(boost::shared_ptr<PlateFile> platefile,
                        TileInfo const& tile_info,
                        int level, ImageViewBase<ViewT> const& view,
-                       bool tweak_settings_for_terrain,
                        bool verbose, int total_num_blocks,
                        const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) : m_platefile(platefile),
       m_tile_info(tile_info), m_level(level), m_view(view.impl()),
-      m_tweak_settings_for_terrain(tweak_settings_for_terrain),
       m_verbose(verbose), m_progress(progress_callback,0.0,1.0/float(total_num_blocks)) {}
 
     virtual ~WritePlateFileTask() {}
@@ -208,12 +204,7 @@ namespace platefile {
                                         << m_tile_info.bbox << "\n";
 
       // Generate the tile from the image data
-      ImageView<typename ViewT::pixel_type> tile;
-      // if (m_tweak_settings_for_terrain) {
-      //   tile = clear_nonopaque_pixels(crop(m_view, m_tile_info.bbox));
-      // } else {
-        tile = crop(m_view, m_tile_info.bbox);
-      // }
+      ImageView<typename ViewT::pixel_type> tile = crop(m_view, m_tile_info.bbox);
 
       // If this tile contains no data at all, then we bail early without
       // doing anything.
