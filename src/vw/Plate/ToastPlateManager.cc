@@ -163,12 +163,23 @@ void ToastPlateManager<PixelT>::generate_mipmap_tile(
     dest = subsample( crop( super, tile_size-1, tile_size-1, 2*tile_size, 2*tile_size ), 2 );
 }
 
+template <class PixelT>
+void ToastPlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region, TransactionOrNeg read_transaction_id, bool preblur, const ProgressCallback &progress_callback) const
+{
+  vw_throw(NoImplErr() << "ToastPlateManager: new mipmap isn't implemented yet");
+}
+
 
 // Explicit template instatiation
 namespace vw {
 namespace platefile {
 
 #define VW_INSTANTIATE_TOAST_PLATEMANAGER_TYPES(PIXELT)                 \
+  template void                                                                \
+  ToastPlateManager<PIXELT >::mipmap(uint32 starting_level, BBox2i const& bbox,     \
+                                TransactionOrNeg transaction_id,               \
+                                bool preblur,                                  \
+                                const ProgressCallback &progress_callback) const; \
   template void                                                         \
   ToastPlateManager<PIXELT >::transform_image(                          \
                                cartography::GeoReference const& georef, \

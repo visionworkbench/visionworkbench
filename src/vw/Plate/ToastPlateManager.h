@@ -35,6 +35,8 @@ namespace platefile {
 
     ImageView<PixelT> fetch_child_tile(
         int x, int y, int level, TransactionOrNeg transaction_id) const;
+
+    virtual void mipmap(uint32 starting_level, BBox2i const& bbox, TransactionOrNeg input_transaction_id, bool preblur, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
   };
 
 }} // namespace vw::plate

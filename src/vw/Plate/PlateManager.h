@@ -73,24 +73,7 @@ namespace platefile {
     //         tiles.
     // input_transaction_id -- to use when reading
     // output_transaction_id -- to use when writing
-    void mipmap(int starting_level, BBox2i const& bbox,
-                TransactionOrNeg input_transaction_id,
-                bool preblur,
-                const ProgressCallback &progress_callback =
-                ProgressCallback::dummy_instance(),
-                int stopping_level = -1) const;
-
-    // This function generates a specific mipmap tile at the given
-    // col, row, and level, and transaction_id.  It is left to a
-    // subclass of PlateManager to implement.
-    //
-    // Set preblur to false if you want straight decimation during
-    // mipmapping. Otherwise you will get a nice, low-pass filtered
-    // version in the mipmap.
-    //
-    // If bool(dest) is false, no data was found.
-    virtual void generate_mipmap_tile(ImageView<PixelT>& dest,
-        int col, int row, int level, TransactionOrNeg read_transaction_id, bool preblur) const;
+    virtual void mipmap(uint32 starting_level, BBox2i const& bbox, TransactionOrNeg input_transaction_id, bool preblur, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
 
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;
