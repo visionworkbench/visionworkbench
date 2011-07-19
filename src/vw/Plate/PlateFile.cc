@@ -159,7 +159,7 @@ std::list<TileHeader>
 PlateFile::search_by_location(int col, int row, int level, const TransactionRange& range) {
   Datastore::TileSearch r;
   m_data->head(r, level, row, col, range, 0);
-  std::list<TileHeader> tiles;
+  std::list<TileHeader> tiles(r.size());
   std::transform(r.begin(), r.end(), tiles.begin(), just_header);
   return tiles;
 }
