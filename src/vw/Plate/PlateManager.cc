@@ -206,7 +206,6 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region,
   level_data<PixelT> scratch1, scratch2;
   level_data<PixelT> *curr = &scratch1, *prev = &scratch2;
   uint32 total_tiles;
-  uint32 current;
   {
     Datastore::TileSearch tiles;
     BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(starting_level, region, read_transaction_id)) {
@@ -216,13 +215,12 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region,
     }
 
     // Approximate that loading the tiles from disk is 3% of the total work
-    SubProgressCallback tile_load_pc(progress_callback, 0, 0.03 / tiles.size());
-    current = 0;
+    d::RememberCallback tile_load_pc(progress_callback, 0.03, tiles.size());
     BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tiles)) {
       ImageView<PixelT>& image = curr->cache[d::rowcol_t(t.hdr.row(), t.hdr.col())];
       boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(t.hdr.filetype(), &t.data->operator[](0), t.data->size()));
       read_image(image, *r);
-      tile_load_pc.report_incremental_progress(1);
+      tile_load_pc.tick();
     }
     tile_load_pc.report_finished();
     // total number of tiles that need to be generated from this is a geometic
@@ -237,34 +235,33 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region,
     total_tiles = (tiles.size() / (1-r)) - tiles.size();
   }
 
-  SubProgressCallback mosaic_pc(progress_callback, 0.03 / total_tiles, 1. / total_tiles);
-  float prog = 0;
-  for (int32 level = starting_level-1; level >= 0; --level)
   {
-    std::swap(curr, prev); // point prev at 'current'
-    curr->clear();         // and dump the old 'prev'
+    d::RememberCallback mosaic_pc(progress_callback, 0.97, total_tiles);
+    for (int32 level = starting_level-1; level >= 0; --level)
+    {
+      std::swap(curr, prev); // point prev at 'current'
+      curr->clear();         // and dump the old 'prev'
 
-    // assign the previous-level hdrs to their parents
-    BOOST_FOREACH(const composite_map_t::value_type& v, prev->hdrs)
-      curr->hdrs[d::parent_tile(d::therow(v.first), d::thecol(v.first))].push_back(v.first);
+      // assign the previous-level hdrs to their parents
+      BOOST_FOREACH(const composite_map_t::value_type& v, prev->hdrs)
+        curr->hdrs[d::parent_tile(d::therow(v.first), d::thecol(v.first))].push_back(v.first);
 
-    // build the new tiles
-    BOOST_FOREACH(const composite_map_t::value_type& v, curr->hdrs) {
-      const d::rowcol_t& parent = v.first;
-      const std::vector<d::rowcol_t>& children = v.second;
-      VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
-      VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
+      // build the new tiles
+      BOOST_FOREACH(const composite_map_t::value_type& v, curr->hdrs) {
+        const d::rowcol_t& parent = v.first;
+        const std::vector<d::rowcol_t>& children = v.second;
+        VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
+        VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
 
-      std::map<uint32, image_t> c;
-      BOOST_FOREACH(const d::rowcol_t& child, children)
-        c[d::calc_composite_id(parent, child)] = prev->cache[child];
+        std::map<uint32, image_t> c;
+        BOOST_FOREACH(const d::rowcol_t& child, children)
+          c[d::calc_composite_id(parent, child)] = prev->cache[child];
 
-      image_t& new_image = curr->cache[parent];
-      mipmap_one_tile(new_image, m_platefile->default_tile_size(), c[0], c[1], c[2], c[3], preblur);
-      m_platefile->write_update(new_image, d::thecol(parent), d::therow(parent), level);
-      prog++;
-      if (prog > total_tiles) prog = total_tiles;
-      mosaic_pc.report_progress(prog);
+        image_t& new_image = curr->cache[parent];
+        mipmap_one_tile(new_image, m_platefile->default_tile_size(), c[0], c[1], c[2], c[3], preblur);
+        m_platefile->write_update(new_image, d::thecol(parent), d::therow(parent), level);
+        mosaic_pc.tick();
+      }
     }
   }
   progress_callback.report_finished();

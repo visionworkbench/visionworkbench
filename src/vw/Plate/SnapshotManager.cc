@@ -39,19 +39,6 @@ namespace {
   }
 }
 
-namespace {
-  class RememberSPC : public SubProgressCallback {
-    double m_count, m_total;
-    public:
-      RememberSPC(const ProgressCallback &parent, double percent, double total)
-        : SubProgressCallback(parent, parent.progress(), parent.progress() + percent), m_count(0), m_total(total) {}
-      void tick() {
-        m_count += 1;
-        this->report_fractional_progress(m_count, m_total);
-      }
-  };
-}
-
 namespace vw {
 namespace platefile {
 
@@ -91,7 +78,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       }
 
       // Now load the images from disk, decode them, and store them back to the cache
-      RememberSPC tile_load_pc(progress, 0.2, tile_lookup.size());
+      d::RememberCallback tile_load_pc(progress, 0.2, tile_lookup.size());
       BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
         parse_image_and_store(t, tile_cache);
         tile_load_pc.tick();
@@ -99,7 +86,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
     }
 
     {
-      RememberSPC subtile_composite_pc(progress, 0.64, intermediate_map.size());
+      d::RememberCallback subtile_composite_pc(progress, 0.64, intermediate_map.size());
       // Now look up all the child tiles, and compose/downsample them to the target layer
       BOOST_FOREACH(const composite_map_t::value_type& t, intermediate_map) {
         const d::rowcol_t    dest_loc(d::therow(t.first), d::thecol(t.first));
@@ -120,7 +107,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
     }
 
     {
-      RememberSPC composite_pc(progress, 0.16, composite_map.size());
+      d::RememberCallback composite_pc(progress, 0.16, composite_map.size());
       // now iterate the output tile set and create the composites
       BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
         std::sort(t.second.begin(), t.second.end(), d::SortByTidDesc());

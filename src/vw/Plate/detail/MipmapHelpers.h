@@ -61,6 +61,22 @@ struct SortByTidDesc {
   }
 };
 
+class RememberCallback : public SubProgressCallback {
+    double m_count, m_total;
+  public:
+    RememberCallback(const ProgressCallback &parent, double percent, double total)
+      : SubProgressCallback(parent, parent.progress(), parent.progress() + percent), m_count(0), m_total(total) {}
+    void tick() {
+      m_count += 1;
+      if (m_count > m_total) m_count = m_total;
+      this->report_fractional_progress(m_count, m_total);
+    }
+    ~RememberCallback() {
+      // Calling a virtual function from a destructor is bad :/
+      if (m_count < m_total)
+        SubProgressCallback::report_progress(1);
+    }
+};
 }
 
 inline std::ostream& operator<<(std::ostream& o, const detail::rowcoltid_t& hdr) {
