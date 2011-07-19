@@ -39,18 +39,32 @@ namespace {
   }
 }
 
+namespace {
+  class RememberSPC : public SubProgressCallback {
+    double m_count, m_total;
+    public:
+      RememberSPC(const ProgressCallback &parent, double percent, double total)
+        : SubProgressCallback(parent, parent.progress(), parent.progress() + percent), m_count(0), m_total(total) {}
+      void tick() {
+        m_count += 1;
+        this->report_fractional_progress(m_count, m_total);
+      }
+  };
+}
 
 namespace vw {
 namespace platefile {
 
 template <class PixelT>
-void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range) const {
+void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress_) const {
   typedef ImageView<PixelT> image_t;
 
   // Divide up the region into moderately-sized chunks
-  BOOST_FOREACH(const BBox2i& region, bbox_tiles(tile_region, 1024, 1024)) {
-    // Declare these inside the loop so we keep the memory use down to a dull roar
+  std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
+  BOOST_FOREACH(const BBox2i& region, regions) {
+    SubProgressCallback progress(progress_, progress_.progress(), progress_.progress() + 1./regions.size());
 
+    // Declare these inside the loop so we keep the memory use down to a dull roar
     // This map holds the headers for the parent/dest tiles and the tiles used to generate them
     composite_map_t composite_map;
     // This map holds the headers for the parent/dest tiles and the tiles that are a level below that need to be composed and downsampled first
@@ -77,9 +91,15 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       }
 
       // Now load the images from disk, decode them, and store them back to the cache
-      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup))
+      RememberSPC tile_load_pc(progress, 0.2, tile_lookup.size());
+      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
         parse_image_and_store(t, tile_cache);
+        tile_load_pc.tick();
+      }
+    }
 
+    {
+      RememberSPC subtile_composite_pc(progress, 0.64, intermediate_map.size());
       // Now look up all the child tiles, and compose/downsample them to the target layer
       BOOST_FOREACH(const composite_map_t::value_type& t, intermediate_map) {
         const d::rowcol_t    dest_loc(d::therow(t.first), d::thecol(t.first));
@@ -95,42 +115,50 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
         // use tid 0 as the dest, to make sure it ends up under the other tiles
         mipmap_one_tile(tile_cache[dest_loc_tid], m_platefile->default_tile_size(), c[0], c[1], c[2], c[3]);
         composite_map[dest_loc].push_back(boost::make_tuple(0, dest_loc_tid));
+        subtile_composite_pc.tick();
       }
     }
 
-    // now iterate the output tile set and create the composites
-    BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
-      std::sort(t.second.begin(), t.second.end(), d::SortByTidDesc());
-      mosaic::ImageComposite<PixelT> composite;
-      composite.set_draft_mode(true);
-      // Insert the images into the composite from highest to lowest tid (already sorted due to sort_heap)
-      BOOST_FOREACH(const d::tile_order_t& order, t.second) {
-        const d::rowcoltid_t& hdr = order.get<1>();
-        image_t& img = tile_cache[d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr))];
-        if (!img) {
-          vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
+    {
+      RememberSPC composite_pc(progress, 0.16, composite_map.size());
+      // now iterate the output tile set and create the composites
+      BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
+        std::sort(t.second.begin(), t.second.end(), d::SortByTidDesc());
+        mosaic::ImageComposite<PixelT> composite;
+        composite.set_draft_mode(true);
+        // Insert the images into the composite from highest to lowest tid (already sorted due to sort_heap)
+        BOOST_FOREACH(const d::tile_order_t& order, t.second) {
+          const d::rowcoltid_t& hdr = order.get<1>();
+          image_t& img = tile_cache[d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr))];
+          if (!img) {
+            vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
+            continue;
+          }
+          composite.insert(img, 0, 0);
+          if (is_opaque(img))
+            break;
+        }
+        if (composite.cols() == 0 || composite.rows() == 0) {
+          vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
           continue;
         }
-        composite.insert(img, 0, 0);
-        if (is_opaque(img))
-          break;
+        composite.prepare(BBox2i(0,0,m_platefile->default_tile_size(), m_platefile->default_tile_size()));
+        image_t tile = composite;
+        m_platefile->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
+        composite_pc.tick();
       }
-      if (composite.cols() == 0 || composite.rows() == 0) {
-        vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
-        continue;
-      }
-      composite.prepare(BBox2i(0,0,m_platefile->default_tile_size(), m_platefile->default_tile_size()));
-      image_t tile = composite;
-      m_platefile->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
     }
   }
+  progress_.report_finished();
 }
 
 // Create a full snapshot of every level and every region in the mosaic.
 template <class PixelT>
 void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_range) const {
-  for (int32 level = m_platefile->num_levels()-1; level >= 0; --level)
-    snapshot(level, d::move_down(BBox2i(0,0,1,1), level), read_transaction_range);
+  for (int32 level = m_platefile->num_levels()-1; level >= 0; --level) {
+    TerminalProgressCallback prog("plate.snapshot", std::string("Snapshot level ") + stringify(level));
+    snapshot(level, d::move_down(BBox2i(0,0,1,1), level), read_transaction_range, prog);
+  }
 }
 
 }} // namespace vw::platefile
@@ -138,7 +166,7 @@ void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_ra
 // Explicit template instatiation
 #define _VW_INSTANTIATE(Px)\
   template\
-  void vw::platefile::SnapshotManager<Px >::snapshot(uint32 level, BBox2i const& bbox, TransactionRange) const;\
+  void vw::platefile::SnapshotManager<Px >::snapshot(uint32 level, BBox2i const& bbox, TransactionRange, const ProgressCallback &progress) const;\
   template\
   void vw::platefile::SnapshotManager<Px >::full_snapshot(TransactionRange) const;
 

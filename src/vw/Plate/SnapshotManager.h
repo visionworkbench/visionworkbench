@@ -39,7 +39,7 @@ namespace platefile {
     //   start_transaction_id -- select a transaction_id to use when accessing tiles.
     //   end_transaction_id -- select a transaction_id to use when accessing tiles.
     //
-    void snapshot(uint32 level, BBox2i const& bbox, TransactionRange read_transaction_range) const;
+    void snapshot(uint32 level, BBox2i const& bbox, TransactionRange read_transaction_range, const ProgressCallback &progress = ProgressCallback::dummy_instance()) const;
 
     // Create a full snapshot of every level and every region in the mosaic.
     void full_snapshot(TransactionRange read_transaction_range) const;
