@@ -237,7 +237,7 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region,
     total_tiles = (tiles.size() / (1-r)) - tiles.size();
   }
 
-  SubProgressCallback mosaic_pc(progress_callback, 0, 0.97 / total_tiles);
+  SubProgressCallback mosaic_pc(progress_callback, 0.03 / total_tiles, 1. / total_tiles);
   float prog = 0;
   for (int32 level = starting_level-1; level >= 0; --level)
   {
