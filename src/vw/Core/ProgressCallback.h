@@ -67,7 +67,7 @@ namespace vw {
     }
 
     // Helper method which computes progress and calls report_progress
-    void report_fractional_progress(double n, double total) const {
+    virtual void report_fractional_progress(double n, double total) const {
       report_progress(fabs(total) < 1e-30 ? 0 : n/total);
     }
 
@@ -105,9 +105,8 @@ namespace vw {
     const double m_from;
     const double m_to;
   public:
-    SubProgressCallback(const ProgressCallback &parent,
-                        double from, double to) :
-      m_parent(parent), m_from(from), m_to(to) {}
+    SubProgressCallback(const ProgressCallback &parent, double from, double to)
+      : m_parent(parent), m_from(from), m_to(to) {}
     virtual void report_progress(double progress) const {
       double parent_progress = m_from + (m_to - m_from)*progress;
       m_parent.report_progress(parent_progress);
@@ -118,6 +117,9 @@ namespace vw {
     }
     virtual void report_aborted(std::string why="") const {
       m_parent.report_aborted(why);
+    }
+    virtual void report_finished() const {
+      m_parent.report_progress(m_to);
     }
     virtual bool abort_requested() const { return m_parent.abort_requested(); }
     virtual void request_abort() const { m_parent.request_abort(); }
