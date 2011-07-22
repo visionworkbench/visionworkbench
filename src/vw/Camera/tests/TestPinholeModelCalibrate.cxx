@@ -39,7 +39,7 @@ double mean_error( PinholeModel const& camera,
 double mean_error( PinholeModel const& camera,
                    std::vector<Vector2> const& pixels,
                    std::vector<Vector3> const& points,
-                   std::vector<int> const& indices ) {
+                   std::vector<size_t> const& indices ) {
   VW_ASSERT(indices.size() > 0, LogicErr() << "mean_error: refusing to divide by zero");
   double mean = 0;
   for (uint32 j = 0; j < indices.size(); j++)
@@ -62,7 +62,7 @@ double mean_sqr_error(PinholeModel const& camera,
 double mean_sqr_error( PinholeModel const& camera,
                        std::vector<Vector2> const& pixels,
                        std::vector<Vector3> const& points,
-                       std::vector<int> const& indices) {
+                       std::vector<size_t> const& indices) {
   VW_ASSERT(indices.size() > 0, LogicErr() << "mean_sqr_error: refusing to divide by zero");
   double mean = 0;
   for (uint32 j = 0; j < indices.size(); j++)
@@ -370,49 +370,49 @@ TEST( PinholeModelCalibrate, Ransac ) {
   const unsigned lm_iter = 5; // number of levenberg marquardt iterations at every ransac iteration
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
 
   {
     PinholeModel c(m);
-    std::vector<int> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
+    std::vector<size_t> inliers( pinholemodel_calibrate_ransac<PinholeModelSerializeTranslation, PinholeModelSerializeRotation, PinholeModelSerializeIntrinsic, PinholeModelSerializeTSAI>(c, pixels, points, inlier_threshold, ransac_iter, lm_iter) );
     EXPECT_LT(ransac_inlier_threshold, inliers.size()); // only critical if this fails repeatably, as ransac classification depends on random numbers
     EXPECT_LT(mean_error(c, pixels, points, inliers), inlier_threshold);
   }
