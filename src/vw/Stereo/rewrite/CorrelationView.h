@@ -73,16 +73,16 @@ namespace rewrite {
       switch ( m_cost_type ) {
       case CROSS_CORRELATION:
         result =
-          best_of_search_convolution<NCCCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                               m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+          best_of_search_convolution<NCCCost>( crop(m_prefilter.filter(m_left_image),left_region),
+                                               crop(m_prefilter.filter(m_right_image),right_region),
                                                left_region - left_region.min(),
                                                m_search_region.size() + Vector2i(1,1),
                                                m_kernel_size );
         break;
       case SQUARED_DIFFERENCE:
         result =
-          best_of_search_convolution<SquaredCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                                   m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+          best_of_search_convolution<SquaredCost>( crop(m_prefilter.filter(m_left_image),left_region),
+                                                   crop(m_prefilter.filter(m_right_image),right_region),
                                                    left_region - left_region.min(),
                                                    m_search_region.size() + Vector2i(1,1),
                                                    m_kernel_size );
@@ -90,8 +90,8 @@ namespace rewrite {
       case ABSOLUTE_DIFFERENCE:
       default:
         result =
-          best_of_search_convolution<AbsoluteCost>( m_prefilter.filter(crop(edge_extend(m_left_image),left_region)),
-                                                    m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
+          best_of_search_convolution<AbsoluteCost>( crop(m_prefilter.filter(m_left_image),left_region),
+                                                    crop(m_prefilter.filter(m_right_image),right_region),
                                                     left_region - left_region.min(),
                                                     m_search_region.size() + Vector2i(1,1),
                                                     m_kernel_size );
@@ -107,8 +107,8 @@ namespace rewrite {
           // of search convolution will recrop. The important bit is
           // just aligning up the origins.
           rl_result =
-            best_of_search_convolution<NCCCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                                 m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+            best_of_search_convolution<NCCCost>( crop(m_prefilter.filter(m_right_image),right_region),
+                                                 crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
                                                  right_region - right_region.min(),
                                                  m_search_region.size() + Vector2i(1,1),
                                                  m_kernel_size ) -
@@ -119,8 +119,8 @@ namespace rewrite {
           // of search convolution will recrop. The important bit is
           // just aligning up the origins.
           rl_result =
-            best_of_search_convolution<SquaredCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                                     m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+            best_of_search_convolution<SquaredCost>( crop(m_prefilter.filter(m_right_image),right_region),
+                                                     crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
                                                      right_region - right_region.min(),
                                                      m_search_region.size() + Vector2i(1,1),
                                                      m_kernel_size ) -
@@ -132,8 +132,8 @@ namespace rewrite {
           // of search convolution will recrop. The important bit is
           // just aligning up the origins.
           rl_result =
-            best_of_search_convolution<AbsoluteCost>( m_prefilter.filter(crop(edge_extend(m_right_image),right_region)),
-                                                      m_prefilter.filter(crop(edge_extend(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1)))),
+            best_of_search_convolution<AbsoluteCost>( crop(m_prefilter.filter(m_right_image),right_region),
+                                                      crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
                                                       right_region - right_region.min(),
                                                       m_search_region.size() + Vector2i(1,1),
                                                       m_kernel_size ) -
@@ -277,8 +277,9 @@ namespace rewrite {
         left_region.max() += half_kernel * max_upscaling;
         BBox2i right_region = left_region + m_search_region.min();
         right_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
-        left_pyramid[0] = m_prefilter.filter(crop(edge_extend(m_left_image),left_region));
-        righ_pyramid[0] = m_prefilter.filter(crop(edge_extend(m_right_image),right_region));
+        left_pyramid[0] = crop(edge_extend(m_left_image),left_region);
+        righ_pyramid[0] = crop(edge_extend(m_right_image),right_region);
+
 
         // Szeliski's book recommended this simple kernel. This
         // operation is quickly becoming a time sink, we might
@@ -291,7 +292,11 @@ namespace rewrite {
         for ( int32 i = 0; i < max_pyramid_levels; i++ ) {
           left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
           righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
+          left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
+          righ_pyramid[i] = m_prefilter.filter(righ_pyramid[i]);
         }
+        left_pyramid[max_pyramid_levels] = m_prefilter.filter(left_pyramid[max_pyramid_levels]);
+        righ_pyramid[max_pyramid_levels] = m_prefilter.filter(righ_pyramid[max_pyramid_levels]);
       }
 
       // 3.0) Actually perform correlation now
