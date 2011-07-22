@@ -19,7 +19,7 @@ include_HEADERS = Detector.h Descriptor.h Matcher.h Extrema.h	\
 		  IntegralDetector.h BoxFilter.h IntegralDescriptor.h
 
 libvwInterestPoint_la_SOURCES = InterestData.cc Descriptor.cc   \
-	          IntegralDetector.cc IntegralInterestOperator.cc
+	          IntegralDetector.cc IntegralInterestOperator.cc Matcher.cc
 libvwInterestPoint_la_LIBADD = @MODULE_INTERESTPOINT_LIBS@
 
 lib_LTLIBRARIES = libvwInterestPoint.la
