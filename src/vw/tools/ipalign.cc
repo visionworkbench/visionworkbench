@@ -190,7 +190,7 @@ void align_images( Options & opt ) {
     std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
     Matrix<double> align_matrix;
 
-    std::vector<int> indices;
+    std::vector<size_t> indices;
     if ( opt.homography ) {
       math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), opt.inlier_threshold);
       align_matrix = ransac(ransac_ip2,ransac_ip1);
@@ -203,7 +203,7 @@ void align_images( Options & opt ) {
 
     if ( opt.save_intermediate ) {
       std::vector<InterestPoint> final_ip1, final_ip2;
-      BOOST_FOREACH( int& index, indices ) {
+      BOOST_FOREACH( size_t& index, indices ) {
         final_ip1.push_back(matched_ip1[index]);
         final_ip2.push_back(matched_ip2[index]);
       }

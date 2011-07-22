@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 
       std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
       std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
-      std::vector<int> indices;
+      std::vector<size_t> indices;
       try {
         // RANSAC is used to fit a transform between the matched sets
         // of points.  Points that don't meet this geometric
@@ -194,6 +194,7 @@ int main(int argc, char** argv) {
           std::cout << "\t--> Fundamental: " << F << "\n";
           indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "none") {
+          indices.reserve( matched_ip1.size() );
           for ( size_t i = 0; i < matched_ip1.size(); ++i )
             indices.push_back(i);
         } else {
@@ -207,7 +208,7 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << indices.size() << " final matches.\n";
 
       std::vector<InterestPoint> final_ip1, final_ip2;
-      BOOST_FOREACH( int& index, indices ) {
+      BOOST_FOREACH( size_t& index, indices ) {
         final_ip1.push_back(matched_ip1[index]);
         final_ip2.push_back(matched_ip2[index]);
       }

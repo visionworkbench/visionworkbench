@@ -154,9 +154,9 @@ namespace math {
 
     // Returns the list of inlier indices.
     template <class ContainerT1, class ContainerT2>
-    std::vector<int> inlier_indices(typename FittingFuncT::result_type const& H,
+    std::vector<size_t> inlier_indices(typename FittingFuncT::result_type const& H,
                                     std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
-      std::vector<int> result;
+      std::vector<size_t> result;
       for (size_t i=0; i<p1.size(); i++)
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
           result.push_back(i);
