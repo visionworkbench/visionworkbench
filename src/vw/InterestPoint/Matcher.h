@@ -415,10 +415,36 @@ namespace ip {
   };
 
 
-//////////////////////////////////////////////////////////////////////////////
-// Convenience Typedefs
-typedef InterestPointMatcher< L2NormMetric, NullConstraint > DefaultMatcher;
-typedef InterestPointMatcher< L2NormMetric, ScaleOrientationConstraint > ConstraintedMatcher;
+  //////////////////////////////////////////////////////////////////////////////
+  // Convenience Typedefs
+  typedef InterestPointMatcher< L2NormMetric, NullConstraint > DefaultMatcher;
+  typedef InterestPointMatcher< L2NormMetric, ScaleOrientationConstraint > ConstraintedMatcher;
+
+  void remove_duplicates(std::vector<InterestPoint>& ip1,
+                         std::vector<InterestPoint>& ip2) {
+    VW_ASSERT( ip1.size() == ip2.size(),
+               ArgumentErr() << "Input vectors are not the same size.");
+    std::vector<InterestPoint> ip1_fltr, ip2_fltr;
+    ip1_fltr.reserve( ip1.size() );
+    ip2_fltr.reserve( ip2.size() );
+
+    for ( size_t i = 0; i < ip1.size(); ++i ) {
+      bool bad_entry = false;
+      for ( size_t j = i + 1; j < ip1.size(); ++j ) {
+        if ( (ip1[i].x == ip1[j].x && ip1[i].y == ip1[j].y) ||
+             (ip2[i].x == ip2[j].x && ip2[i].y == ip2[j].y) ) {
+          bad_entry = true;
+          break;
+        }
+      }
+      if (!bad_entry) {
+        ip1_fltr.push_back( ip1[i] );
+        ip2_fltr.push_back( ip2[i] );
+      }
+    }
+    ip1 = ip1_fltr;
+    ip2 = ip2_fltr;
+  }
 
 }} // namespace vw::ip
 
