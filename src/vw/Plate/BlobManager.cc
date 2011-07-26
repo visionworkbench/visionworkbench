@@ -23,7 +23,7 @@
 namespace fs = boost::filesystem;
 
 namespace {
-  static const vw::uint64 BLOB_MAX_SIZE = 1825361100; // 1.7 GB
+  static const vw::uint64 BLOB_MAX_SIZE = 1717986920; // 1.6 GB
   static const boost::format blob_tmpl("%s/plate_%u.blob");
 }
 
