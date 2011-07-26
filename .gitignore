@@ -197,6 +197,7 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tiles4region
 /src/vw/Plate/tests/TestBlobIO
 /src/vw/Plate/tests/TestBlobManager
+/src/vw/Plate/tests/TestDatastore
 /src/vw/Plate/tests/TestHTTPUtils
 /src/vw/Plate/tests/TestIndexPage
 /src/vw/Plate/tests/TestLocalIndex
