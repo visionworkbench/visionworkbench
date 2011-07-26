@@ -48,7 +48,8 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
 
   const uint64 TILE_BYTES  = m_platefile->default_tile_size() * m_platefile->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
   const uint64 CACHE_BYTES = uint64(2) * 1024 * 1024 * 1024; // 2GB
-  const uint64 REGION_SIZE = boost::numeric_cast<uint64>(sqrt(CACHE_BYTES / TILE_BYTES));
+  const uint64 REGION_SIZE = 1 << boost::numeric_cast<uint32>(::floor(::log(::sqrt(CACHE_BYTES / TILE_BYTES)) / ::log(2)));
+  VW_ASSERT(REGION_SIZE > 0, LogicErr() << "Cannot iterate regions with REGION_SIZE 0");
 
   // Divide up the region into moderately-sized chunks
   std::list<BBox2i> regions = bbox_tiles(tile_region, REGION_SIZE, REGION_SIZE);
