@@ -639,3 +639,16 @@ TEST( PixelTypes, ChannelName ) {
 #undef test1
 
 }
+
+TEST( PixelTypes, PixelSize ) {
+#define test(y, x) EXPECT_EQ((y), uint32(PixelNumBytes< x >::value))
+  test(1,  PixelGray<uint8>);
+  test(2,  PixelGrayA<uint8>);
+  test(4,  PixelGray<float>);
+  test(8,  PixelGrayA<float>);
+  test(3,  PixelRGB<uint8>);
+  test(4,  PixelRGBA<uint8>);
+  test(12, PixelRGB<float>);
+  test(16, PixelRGBA<float>);
+#undef test
+}

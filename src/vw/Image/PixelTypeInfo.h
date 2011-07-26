@@ -60,6 +60,11 @@ namespace vw {
     typedef typename PixelChannelType<typename T::pixel_type>::type type;
   };
 
+  template <class T>
+  struct PixelNumBytes {
+    static const uint32 value =  uint32(PixelNumChannels<T>::value) * sizeof(typename PixelChannelType<T>::type);
+  };
+
   // *******************************************************************
   // Pixel channel standard range computation logic
   //
