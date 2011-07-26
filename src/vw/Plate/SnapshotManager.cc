@@ -46,20 +46,18 @@ template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress_) const {
   typedef ImageView<PixelT> image_t;
 
+  const uint64 TILE_BYTES  = m_platefile->default_tile_size() * m_platefile->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
+  const uint64 CACHE_BYTES = uint64(2) * 1024 * 1024 * 1024; // 2GB
+  const uint64 REGION_SIZE = boost::numeric_cast<uint64>(sqrt(CACHE_BYTES / TILE_BYTES));
+
   // Divide up the region into moderately-sized chunks
-  std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
+  std::list<BBox2i> regions = bbox_tiles(tile_region, REGION_SIZE, REGION_SIZE);
   BOOST_FOREACH(const BBox2i& region, regions) {
     SubProgressCallback progress(progress_, progress_.progress(), progress_.progress() + 1./regions.size());
 
     // Declare these inside the loop so we keep the memory use down to a dull roar
-    // This map holds the headers for the parent/dest tiles and the tiles used to generate them
+    // This map holds the headers for the current level
     composite_map_t composite_map;
-    // This map holds the headers for the parent/dest tiles and the tiles that are a level below that need to be composed and downsampled first
-    // The key is parent tile (same as the composite_map) and the value is a
-    // 4-elt vector, the index of which identifies where to compose the image
-    // [i.e. 0==UL, 1==UR, 2==LL, 3==LR]
-    composite_map_t intermediate_map;
-
     tile_cache_t<PixelT> tile_cache;
 
     {
@@ -70,13 +68,6 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level, region, range))
         schedule_tile(hdr, composite_map[d::rowcol_t(hdr.row(), hdr.col())], tile_lookup, hdr.transaction_id());
 
-      // Grab the result of the previous level snapshot
-      BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level+1, d::move_down(region, 1), TransactionRange(m_platefile->transaction_id()))) {
-        d::rowcol_t parent = d::parent_tile(hdr.row(), hdr.col());
-        uint32 composite_id = d::calc_composite_id(parent, hdr);
-        schedule_tile(hdr, intermediate_map[parent], tile_lookup, composite_id);
-      }
-
       // Now load the images from disk, decode them, and store them back to the cache
       d::RememberCallback tile_load_pc(progress, 0.2, tile_lookup.size());
       BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
@@ -86,34 +77,13 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
     }
 
     {
-      d::RememberCallback subtile_composite_pc(progress, 0.64, intermediate_map.size());
-      // Now look up all the child tiles, and compose/downsample them to the target layer
-      BOOST_FOREACH(const composite_map_t::value_type& t, intermediate_map) {
-        const d::rowcol_t    dest_loc(d::therow(t.first), d::thecol(t.first));
-        const d::rowcoltid_t dest_loc_tid(d::therow(t.first), d::thecol(t.first), 0);
-        const std::vector<d::tile_order_t>& children = t.second;
-        VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
-        VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
-
-        std::map<uint32, image_t> c;
-        BOOST_FOREACH(const d::tile_order_t& order, children)
-          c[order.get<0>()] = tile_cache[order.get<1>()];
-
-        // use tid 0 as the dest, to make sure it ends up under the other tiles
-        mipmap_one_tile(tile_cache[dest_loc_tid], m_platefile->default_tile_size(), c[0], c[1], c[2], c[3]);
-        composite_map[dest_loc].push_back(boost::make_tuple(0, dest_loc_tid));
-        subtile_composite_pc.tick();
-      }
-    }
-
-    {
-      d::RememberCallback composite_pc(progress, 0.16, composite_map.size());
+      d::RememberCallback composite_pc(progress, 0.8, composite_map.size());
       // now iterate the output tile set and create the composites
       BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
         std::sort(t.second.begin(), t.second.end(), d::SortByTidDesc());
         mosaic::ImageComposite<PixelT> composite;
         composite.set_draft_mode(true);
-        // Insert the images into the composite from highest to lowest tid (already sorted due to sort_heap)
+        // Insert the images into the composite from highest to lowest tid (already sorted due to SoryByTidDesc)
         BOOST_FOREACH(const d::tile_order_t& order, t.second) {
           const d::rowcoltid_t& hdr = order.get<1>();
           image_t& img = tile_cache[d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr))];
