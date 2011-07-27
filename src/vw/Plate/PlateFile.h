@@ -110,140 +110,136 @@
 namespace vw {
 namespace platefile {
 
-  class PlateFile {
-    boost::shared_ptr<Datastore> m_data;
-    boost::shared_ptr<Transaction> m_transaction;
-    boost::shared_ptr<WriteState> m_write_state;
-  public:
-    PlateFile(const Url& url);
+  class ReadOnlyPlateFile {
+    protected:
+      boost::shared_ptr<Datastore> m_data;
+      ReadOnlyPlateFile(const Url& url, std::string type, std::string description, uint32 tile_size, std::string tile_filetype, PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
 
-    PlateFile(const Url& url, std::string type, std::string description,
-              uint32 tile_size, std::string tile_filetype,
-              PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
+    public:
+      ReadOnlyPlateFile(const Url& url);
 
-    /// The destructor saves the platefile to disk.
-    virtual ~PlateFile() {}
+      /// The destructor saves the platefile to disk.
+      virtual ~ReadOnlyPlateFile() {}
 
-    /// Returns the name of the root directory containing the plate file.
-    //std::string name() const;
+      IndexHeader index_header() const;
+      std::string default_file_type() const;
+      uint32 default_tile_size() const;
+      PixelFormatEnum pixel_format() const;
+      ChannelTypeEnum channel_type() const;
+      uint32 num_levels() const;
 
-    /// Returns the name of the root directory containing the plate file.
-    IndexHeader index_header() const;
+      /// Read data directly to a file on disk. You supply a base name
+      /// (without the file's image extension).  The image extension
+      /// will be appended automatically for you based on the filetype
+      /// in the TileHeader.
+      std::pair<std::string, TileHeader>
+      read_to_file(std::string const& base_name, int col, int row, int level,
+                   TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
 
-    /// Returns the file type used to store tiles in this plate file.
-    std::string default_file_type() const;
+      std::pair<TileHeader, TileData>
+      read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
 
-    uint32 default_tile_size() const;
+      Datastore::TileSearch&
+      batch_read(Datastore::TileSearch&) const;
 
-    PixelFormatEnum pixel_format() const;
+      /// Read an image from the specified tile location in the plate file.
+      ///
+      /// By default, this call to read will return a tile with the MOST
+      /// RECENT transaction_id <= to the transaction_id you specify
+      /// here in the function arguments (if a tile exists).  However,
+      /// setting exact_transaction_match = true will force the
+      /// PlateFile to search for a tile that has the EXACT SAME
+      /// transaction_id as the one that you specify.
+      ///
+      /// A transaction ID of -1 indicates that we should return the most recent
+      /// tile, regardless of its transaction id. This trumps everything including
+      /// exact_transaction_match.
+      template <class ViewT>
+      TileHeader read(ViewT &view, int col, int row, int level,
+                      TransactionOrNeg transaction_id, bool exact_transaction_match = false) const {
 
-    ChannelTypeEnum channel_type() const;
-
-    uint32 num_levels() const;
-
-    void sync() const;
-
-    std::ostream& audit_log();
-    std::ostream& error_log();
-    void log(std::string message) VW_DEPRECATED;
-
-    /// Read data directly to a file on disk. You supply a base name
-    /// (without the file's image extension).  The image extension
-    /// will be appended automatically for you based on the filetype
-    /// in the TileHeader.
-    std::pair<std::string, TileHeader>
-    read_to_file(std::string const& base_name, int col, int row, int level,
-                 TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
-
-    std::pair<TileHeader, TileData>
-    read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
-
-    Datastore::TileSearch&
-    batch_read(Datastore::TileSearch&) const;
-
-    /// Read an image from the specified tile location in the plate file.
-    ///
-    /// By default, this call to read will return a tile with the MOST
-    /// RECENT transaction_id <= to the transaction_id you specify
-    /// here in the function arguments (if a tile exists).  However,
-    /// setting exact_transaction_match = true will force the
-    /// PlateFile to search for a tile that has the EXACT SAME
-    /// transaction_id as the one that you specify.
-    ///
-    /// A transaction ID of -1 indicates that we should return the most recent
-    /// tile, regardless of its transaction id. This trumps everything including
-    /// exact_transaction_match.
-    template <class ViewT>
-    TileHeader read(ViewT &view, int col, int row, int level,
-                    TransactionOrNeg transaction_id, bool exact_transaction_match = false) const {
-
-      std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
-      boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(ret.first.filetype(), &ret.second->operator[](0), ret.second->size()));
-      read_image(view, *r);
-      return ret.first;
-    }
-
-    /// Writing, pt. 1: Locks a blob and returns the blob id that can
-    /// be used to write tiles.
-    void write_request();
-
-    /// Writing, pt. 2: Write an image to the specified tile location
-    /// in the plate file.
-    template <class ViewT>
-    void write_update(ImageViewBase<ViewT> const& view, int col, int row, int level) {
-
-      std::string type = this->default_file_type();
-      if (type == "auto") {
-        // This specialization saves us TONS of space by storing opaque tiles
-        // as jpgs.  However it does come at a small cost of having to conduct
-        // this extra check to see if the tile is opaque or not.
-        if ( is_opaque(view.impl()) )
-          type = "jpg";
-        else
-          type = "png";
+        std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
+        boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(ret.first.filetype(), &ret.second->operator[](0), ret.second->size()));
+        read_image(view, *r);
+        return ret.first;
       }
-      boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, view.format()));
-      write_image(*r, view);
-      this->write_update(r->data(), r->size(), col, row, level, type);
-    }
 
-    /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
-    /// tile location. Use the filetype to identify the data later; empty type
-    /// means "platefile default".
-    void write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type = "");
+      /// Returns a list of valid tiles that match this level, region, and
+      /// range of transaction_id's.  Returns a list of TileHeaders with
+      /// col/row/level and transaction_id of every tile at each valid location within the range.
+      /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
+      std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
 
-    /// Writing, pt. 3: Signal the completion of the write operation.
-    void write_complete();
+      /// Read one ore more images at a specified location in the
+      /// platefile by specifying a range of transaction ids of
+      /// interest.  This range is inclusive at both ends.
+      std::list<TileHeader>
+      search_by_location(int col, int row, int level, const TransactionRange& range);
+  };
 
-    // --------------------- TRANSACTIONS ------------------------
+  class PlateFile : public ReadOnlyPlateFile {
+      boost::shared_ptr<Transaction> m_transaction;
+      boost::shared_ptr<WriteState> m_write_state;
+    public:
+      PlateFile(const Url& url);
 
-    // Clients are expected to make a transaction request whenever
-    // they start a self-contained chunk of mosaicking work.  .
-    virtual const Transaction& transaction_begin(const std::string& description, TransactionOrNeg transaction_id_override);
+      PlateFile(const Url& url, std::string type, std::string description,
+                uint32 tile_size, std::string tile_filetype,
+                PixelFormatEnum pixel_format, ChannelTypeEnum channel_type);
 
-    // Resume a previous transaction (useful for multi-process runs). You are
-    // responsible for making sure transaction_begin was run previously.
-    virtual void transaction_resume(const Transaction& tid);
+      void sync() const;
 
-    // Once a chunk of work is complete, clients can "commit" their
-    // work to the mosaic by issuding a transaction_complete method.
-    virtual void transaction_end(bool update_read_cursor);
+      std::ostream& audit_log();
+      std::ostream& error_log();
+      void log(std::string message) VW_DEPRECATED;
 
-    virtual const Transaction& transaction_id() const;
+      /// Writing, pt. 1: Locks a blob and returns the blob id that can
+      /// be used to write tiles.
+      void write_request();
 
-    // ----------------------- UTILITIES --------------------------
+      /// Writing, pt. 2: Write an image to the specified tile location
+      /// in the plate file.
+      template <class ViewT>
+      void write_update(ImageViewBase<ViewT> const& view, int col, int row, int level) {
 
-    /// Returns a list of valid tiles that match this level, region, and
-    /// range of transaction_id's.  Returns a list of TileHeaders with
-    /// col/row/level and transaction_id of every tile at each valid location within the range.
-    /// Note: the region is EXCLUSIVE: i.e. BBox2i(0,0,1,1) does not include the point (1,1)
-    std::list<TileHeader> search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const;
+        std::string type = this->default_file_type();
+        if (type == "auto") {
+          // This specialization saves us TONS of space by storing opaque tiles
+          // as jpgs.  However it does come at a small cost of having to conduct
+          // this extra check to see if the tile is opaque or not.
+          if ( is_opaque(view.impl()) )
+            type = "jpg";
+          else
+            type = "png";
+        }
+        boost::scoped_ptr<DstMemoryImageResource> r(DstMemoryImageResource::create(type, view.format()));
+        write_image(*r, view);
+        this->write_update(r->data(), r->size(), col, row, level, type);
+      }
 
-    /// Read one ore more images at a specified location in the
-    /// platefile by specifying a range of transaction ids of
-    /// interest.  This range is inclusive at both ends.
-    std::list<TileHeader>
-    search_by_location(int col, int row, int level, const TransactionRange& range);
+      /// Writing, pt. 2, alternate: Write raw data (as a tile) to a specified
+      /// tile location. Use the filetype to identify the data later; empty type
+      /// means "platefile default".
+      void write_update(const uint8* data, uint64 data_size, int col, int row, int level, const std::string& type = "");
+
+      /// Writing, pt. 3: Signal the completion of the write operation.
+      void write_complete();
+
+      // --------------------- TRANSACTIONS ------------------------
+
+      // Clients are expected to make a transaction request whenever
+      // they start a self-contained chunk of mosaicking work.  .
+      virtual const Transaction& transaction_begin(const std::string& description, TransactionOrNeg transaction_id_override);
+
+      // Resume a previous transaction (useful for multi-process runs). You are
+      // responsible for making sure transaction_begin was run previously.
+      virtual void transaction_resume(const Transaction& tid);
+
+      // Once a chunk of work is complete, clients can "commit" their
+      // work to the mosaic by issuding a transaction_complete method.
+      virtual void transaction_end(bool update_read_cursor);
+
+      virtual const Transaction& transaction_id() const;
   };
 
 }} // namespace vw::plate

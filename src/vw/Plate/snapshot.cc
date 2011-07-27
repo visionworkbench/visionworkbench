@@ -140,10 +140,9 @@ public:
 // --------------------------------------------------------------------------
 
 template <class PixelT>
-void do_snapshot(boost::shared_ptr<PlateFile> platefile,
-                 SnapshotParameters snapshot_parameters) {
+void do_snapshot(boost::shared_ptr<ReadOnlyPlateFile> input_plate, boost::shared_ptr<PlateFile> output_plate, SnapshotParameters snapshot_parameters) {
 
-  SnapshotManager<PixelT> sm( platefile, snapshot_parameters.tweak_settings_for_terrain );
+  SnapshotManager<PixelT> sm( input_plate, output_plate, snapshot_parameters.tweak_settings_for_terrain );
   if (snapshot_parameters.level != -1) {
 
     if (snapshot_parameters.write_transaction_id == -1) {
@@ -152,23 +151,23 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
       exit(1);
     }
 
-    platefile->audit_log()
+    output_plate->audit_log()
       << "Started multi-part snapshot (t_id = " << snapshot_parameters.write_transaction_id
       << ") -- level:" << snapshot_parameters.level
       << " region: " << snapshot_parameters.region << "\n";
 
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
-    platefile->write_request();
+    output_plate->write_request();
 
     // If the user has specified a region, then we
     sm.snapshot(snapshot_parameters.level, snapshot_parameters.region,
                 TransactionRange( snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id));
 
     // Release the blob id lock.
-    platefile->write_complete();
+    output_plate->write_complete();
 
-    platefile->audit_log()
+    output_plate->audit_log()
       << "Finished multi-part snapshot (t_id = " << snapshot_parameters.write_transaction_id
       << ") -- level:" << snapshot_parameters.level
       << " region: " << snapshot_parameters.region << "\n";
@@ -176,22 +175,22 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
   } else {
 
     // If no region was specified, then we build a snapshot of the entire
-    // platefile.
+    // output_plate.
 
     // Request a transaction (write_transaction_id might be -1, and that's okay)
     const std::string description = "Full snapshot (requested t_id:  " + vw::stringify(snapshot_parameters.write_transaction_id) + ")";
-    platefile->transaction_begin(description, snapshot_parameters.write_transaction_id);
+    output_plate->transaction_begin(description, snapshot_parameters.write_transaction_id);
 
     // Grab a lock on a blob file to use for writing tiles during
     // the two operations below.
-    platefile->write_request();
+    output_plate->write_request();
 
     // Do a full snapshot
     sm.full_snapshot(TransactionRange(snapshot_parameters.begin_transaction_id, snapshot_parameters.end_transaction_id));
 
     // Release the blob id lock and note that the transaction is finished.
-    platefile->write_complete();
-    platefile->transaction_end(true);
+    output_plate->write_complete();
+    output_plate->transaction_end(true);
   }
 
 }
@@ -202,7 +201,7 @@ void do_snapshot(boost::shared_ptr<PlateFile> platefile,
 
 int main( int argc, char *argv[] ) {
 
-  Url url;
+  Url input_url, output_url;
   std::string start_description;
   std::string output_mode;
   std::string range_string;
@@ -211,17 +210,18 @@ int main( int argc, char *argv[] ) {
 
   po::options_description general_options("\nCreate a snapshot of a quadtree.  If no options are supplied, this utility will create a snapshot of the entire platefile starting with read_cursor and going to the max transaction_id.\n\nGeneral options");
   general_options.add_options()
-    ("start", po::value<std::string>(&start_description), "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
+    ("start", po::value(&start_description) , "where arg = <description> - Starts a new multi-part snapshot.  Returns the transaction_id for this snapshot as a return value.")
     ("finish", "Finish a multi-part snapshot.")
-    ("transaction-id,t", po::value(&transaction_id), "Transaction ID to use for starting/finishing/or snapshotting.")
-    ("transaction-range", po::value<std::string>(&range_string), "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin, t_end] (inclusive).")
-    ("region", po::value<std::string>(&region_string), "where arg = <ul_x>,<ul_y>:<lr_x>,<lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
-    ("terrain", "Tweak settings for terrain.")
-    ("help,h", "Display this help message");
+    ("transaction-id,t",  po::value(&transaction_id)                                                                                                                     , "Transaction ID to use for starting/finishing/or snapshotting.")
+    ("transaction-range", po::value(&range_string)      , "where arg = <t_begin>:<t_end> - Creates a snapshot of the mosaic by compositing together tiles from the transaction_ids in the range [t_begin , t_end] (inclusive).")
+    ("region",       po::value(&region_string)     , "where arg = <ul_x>                                                                                                                            , <ul_y>:<lr_x>                                                    , <lr_y>@<level> - Limit the snapshot to the region bounded by these upper left (ul) and lower right (lr) coordinates at the level specified.")
+    ("terrain",      "Tweak settings for terrain.")
+    ("output-plate,o", po::value(&output_url),         "output to this plate instead of the input plate")
+    ("help,h",       "Display this help message");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
-    ("input-file", po::value(&url), "");
+    ("input-file", po::value(&input_url), "");
 
   po::options_description options("Allowed Options");
   options.add(general_options).add(hidden_options);
@@ -257,20 +257,19 @@ int main( int argc, char *argv[] ) {
   try {
 
     //--------------------------- OPEN THE PLATE FILE -----------------------------
+    boost::shared_ptr<ReadOnlyPlateFile> input_plate;
+    boost::shared_ptr<PlateFile> output_plate;
 
-    std::cout << "\nOpening input plate file: " << url.string() << "\n";
-    boost::shared_ptr<PlateFile> platefile =
-      boost::shared_ptr<PlateFile>( new PlateFile(url) );
-
-    // std::cout << "\nOpening output plate file: " << output_url << "\n";
-    // boost::shared_ptr<PlateFile> output_platefile =
-    //   boost::shared_ptr<PlateFile>( new PlateFile(output_url,
-    //                                               input_platefile->index_header().type(),
-    //                                               input_platefile->index_header().description(),
-    //                                               input_platefile->default_tile_size(),
-    //                                               input_platefile->default_file_type(),
-    //                                               input_platefile->pixel_format(),
-    //                                               input_platefile->channel_type()) );
+    if (output_url != Url() && (output_url != input_url)) {
+      std::cout << "\nOpening input plate file: " << input_url.string() << "\n";
+      input_plate.reset(new ReadOnlyPlateFile(input_url));
+      std::cout << "\nOpening output plate file: " << output_url.string() << "\n";
+      output_plate.reset(new PlateFile(output_url, input_plate->index_header().type(), input_plate->index_header().description(), input_plate->index_header().tile_size(), input_plate->index_header().tile_filetype(), input_plate->pixel_format(), input_plate->channel_type()));
+    } else {
+      std::cout << "\nOpening plate file: " << input_url.string() << "\n";
+      output_plate.reset(new PlateFile(input_url));
+      input_plate = output_plate;
+    }
 
     //------------------------ START/FINISH TRANSACTION ---------------------------
 
@@ -280,9 +279,9 @@ int main( int argc, char *argv[] ) {
         exit(1);
       }
 
-      Transaction t = platefile->transaction_begin(start_description, transaction_id);
+      Transaction t = output_plate->transaction_begin(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
-      vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
+      vw_out() << "Plate has " << input_plate->num_levels() << " levels.\n";
       exit(0);
     }
 
@@ -291,11 +290,11 @@ int main( int argc, char *argv[] ) {
       exit(1);
     }
 
-    platefile->transaction_resume(transaction_id.promote());
+    output_plate->transaction_resume(transaction_id.promote());
 
     if (vm.count("finish")) {
       // Update the read cursor when the snapshot is complete!
-      platefile->transaction_end(true);
+      output_plate->transaction_end(true);
       vw_out() << "Transaction " << transaction_id << " complete.\n";
       exit(0);
     }
@@ -308,17 +307,17 @@ int main( int argc, char *argv[] ) {
                                        transaction_id, vm.count("terrain"));
 
     // Dispatch to the compositer based on the pixel type of this mosaic.
-    switch(platefile->pixel_format()) {
+    switch(input_plate->pixel_format()) {
     case VW_PIXEL_GRAYA:
-      switch(platefile->channel_type()) {
+      switch(input_plate->channel_type()) {
       case VW_CHANNEL_UINT8:
-        do_snapshot<PixelGrayA<uint8> >(platefile, snapshot_params);
+        do_snapshot<PixelGrayA<uint8> >(input_plate, output_plate, snapshot_params);
         break;
       case VW_CHANNEL_INT16:
-        do_snapshot<PixelGrayA<int16> >(platefile, snapshot_params);
+        do_snapshot<PixelGrayA<int16> >(input_plate, output_plate, snapshot_params);
         break;
       case VW_CHANNEL_FLOAT32:
-        do_snapshot<PixelGrayA<float32> >(platefile, snapshot_params);
+        do_snapshot<PixelGrayA<float32> >(input_plate, output_plate, snapshot_params);
         break;
       default:
         vw_throw(ArgumentErr() << "Image contains a channel type not supported by snapshot.\n");
@@ -327,9 +326,9 @@ int main( int argc, char *argv[] ) {
       break;
 
     case VW_PIXEL_RGBA:
-      switch(platefile->channel_type()) {
+      switch(input_plate->channel_type()) {
       case VW_CHANNEL_UINT8:
-        do_snapshot<PixelRGBA<uint8> >(platefile, snapshot_params);
+        do_snapshot<PixelRGBA<uint8> >(input_plate, output_plate, snapshot_params);
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by snapshot.\n";

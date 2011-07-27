@@ -46,7 +46,7 @@ template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress_) const {
   typedef ImageView<PixelT> image_t;
 
-  const uint64 TILE_BYTES  = m_platefile->default_tile_size() * m_platefile->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
+  const uint64 TILE_BYTES  = m_write_plate->default_tile_size() * m_write_plate->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
   const uint64 CACHE_BYTES = uint64(2) * 1024 * 1024 * 1024; // 2GB
   const uint64 REGION_SIZE = 1 << boost::numeric_cast<uint32>(::floor(::log(::sqrt(CACHE_BYTES / TILE_BYTES)) / ::log(2)));
   VW_ASSERT(REGION_SIZE > 0, LogicErr() << "Cannot iterate regions with REGION_SIZE 0");
@@ -66,12 +66,12 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       Datastore::TileSearch tile_lookup;
 
       // Grab the tiles in the zone
-      BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(level, region, range))
+      BOOST_FOREACH(const TileHeader& hdr, m_read_plate->search_by_region(level, region, range))
         schedule_tile(hdr, composite_map[d::rowcol_t(hdr.row(), hdr.col())], tile_lookup, hdr.transaction_id());
 
       // Now load the images from disk, decode them, and store them back to the cache
       d::RememberCallback tile_load_pc(progress, 0.2, tile_lookup.size());
-      BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tile_lookup)) {
+      BOOST_FOREACH(const Tile& t, m_read_plate->batch_read(tile_lookup)) {
         parse_image_and_store(t, tile_cache);
         tile_load_pc.tick();
       }
@@ -100,9 +100,9 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
           vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
           continue;
         }
-        composite.prepare(BBox2i(0,0,m_platefile->default_tile_size(), m_platefile->default_tile_size()));
+        composite.prepare(BBox2i(0,0,m_write_plate->default_tile_size(), m_write_plate->default_tile_size()));
         image_t tile = composite;
-        m_platefile->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
+        m_write_plate->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
         composite_pc.tick();
       }
     }
@@ -113,7 +113,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
 // Create a full snapshot of every level and every region in the mosaic.
 template <class PixelT>
 void SnapshotManager<PixelT>::full_snapshot(TransactionRange read_transaction_range) const {
-  for (int32 level = m_platefile->num_levels()-1; level >= 0; --level) {
+  for (int32 level = m_read_plate->num_levels()-1; level >= 0; --level) {
     TerminalProgressCallback prog("plate.snapshot", std::string("Snapshot level ") + stringify(level));
     snapshot(level, d::move_down(BBox2i(0,0,1,1), level), read_transaction_range, prog);
   }

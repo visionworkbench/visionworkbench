@@ -31,32 +31,37 @@ namespace {
   }
 }
 
-PlateFile::PlateFile(const Url& url)
+ReadOnlyPlateFile::ReadOnlyPlateFile(const Url& url)
   : m_data(Datastore::open(url))
 {
   vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
 }
 
-PlateFile::PlateFile(const Url& url, std::string type, std::string description, uint32 tile_size, std::string tile_filetype,
+ReadOnlyPlateFile::ReadOnlyPlateFile(const Url& url, std::string type, std::string description, uint32 tile_size, std::string tile_filetype,
                      PixelFormatEnum pixel_format, ChannelTypeEnum channel_type)
   : m_data(Datastore::open(url, make_hdr(type, description, tile_size, tile_filetype, pixel_format, channel_type)))
 {
   vw_out(DebugMessage, "platefile") << "Constructed new platefile: " << url.string() << "\n";
 }
 
-//std::string PlateFile::name() const { return m_data->name(); }
+PlateFile::PlateFile(const Url& url)
+  : ReadOnlyPlateFile(url) {}
 
-IndexHeader PlateFile::index_header() const { return m_data->index_header(); }
+PlateFile::PlateFile(const Url& url, std::string type, std::string description, uint32 tile_size, std::string tile_filetype,
+                     PixelFormatEnum pixel_format, ChannelTypeEnum channel_type)
+  : ReadOnlyPlateFile(url, type, description, tile_size, tile_filetype, pixel_format, channel_type) {}
 
-std::string PlateFile::default_file_type() const { return m_data->tile_filetype(); }
+IndexHeader ReadOnlyPlateFile::index_header() const { return m_data->index_header(); }
 
-uint32 PlateFile::default_tile_size() const { return m_data->tile_size(); }
+std::string ReadOnlyPlateFile::default_file_type() const { return m_data->tile_filetype(); }
 
-PixelFormatEnum PlateFile::pixel_format() const { return m_data->pixel_format(); }
+uint32 ReadOnlyPlateFile::default_tile_size() const { return m_data->tile_size(); }
 
-ChannelTypeEnum PlateFile::channel_type() const { return m_data->channel_type(); }
+PixelFormatEnum ReadOnlyPlateFile::pixel_format() const { return m_data->pixel_format(); }
 
-uint32 PlateFile::num_levels() const { return m_data->num_levels(); }
+ChannelTypeEnum ReadOnlyPlateFile::channel_type() const { return m_data->channel_type(); }
+
+uint32 ReadOnlyPlateFile::num_levels() const { return m_data->num_levels(); }
 
 void PlateFile::sync() const { m_data->flush(); }
 
@@ -83,7 +88,7 @@ const Transaction& PlateFile::transaction_id() const {
 }
 
 std::pair<TileHeader, TileData>
-PlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match) const {
+ReadOnlyPlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bool exact_transaction_match) const {
   TransactionRange range(exact_transaction_match ? transaction_id : 0, transaction_id);
   Datastore::TileSearch hits;
   m_data->get(hits, level, row, col, range, 1);
@@ -94,7 +99,7 @@ PlateFile::read(int col, int row, int level, TransactionOrNeg transaction_id, bo
 }
 
 Datastore::TileSearch&
-PlateFile::batch_read(Datastore::TileSearch& hdrs) const {
+ReadOnlyPlateFile::batch_read(Datastore::TileSearch& hdrs) const {
   return m_data->populate(hdrs);
 }
 
@@ -109,7 +114,7 @@ namespace {
 }
 
 std::pair<std::string, TileHeader>
-PlateFile::read_to_file(std::string const& base_name, int col, int row, int level,
+ReadOnlyPlateFile::read_to_file(std::string const& base_name, int col, int row, int level,
                         TransactionOrNeg transaction_id, bool exact_transaction_match) const
 {
   std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
@@ -147,7 +152,7 @@ void PlateFile::write_update(const uint8* data, uint64 data_size, int col, int r
 }
 
 std::list<TileHeader>
-PlateFile::search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const {
+ReadOnlyPlateFile::search_by_region(int level, vw::BBox2i const& region, const TransactionRange& range) const {
   Datastore::TileSearch r;
   m_data->head(r, level, region, range, 0);
   std::list<TileHeader> tiles(r.size());
@@ -156,7 +161,7 @@ PlateFile::search_by_region(int level, vw::BBox2i const& region, const Transacti
 }
 
 std::list<TileHeader>
-PlateFile::search_by_location(int col, int row, int level, const TransactionRange& range) {
+ReadOnlyPlateFile::search_by_location(int col, int row, int level, const TransactionRange& range) {
   Datastore::TileSearch r;
   m_data->head(r, level, row, col, range, 0);
   std::list<TileHeader> tiles(r.size());

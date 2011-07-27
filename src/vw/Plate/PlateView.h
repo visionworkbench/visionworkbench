@@ -21,7 +21,7 @@ namespace platefile {
   /// cached by this view to increase read speeds.
   template <class PixelT>
   class PlateView : public ImageViewBase<PlateView<PixelT> > {
-    boost::shared_ptr<PlateFile> m_platefile;
+    boost::shared_ptr<ReadOnlyPlateFile> m_platefile;
     int m_current_level;
 
   public:

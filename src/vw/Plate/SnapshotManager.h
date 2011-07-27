@@ -17,15 +17,17 @@ namespace vw {
 namespace platefile {
 
   class PlateFile;
+  class ReadOnlyPlateFile;
 
   template <class PixelT>
   class SnapshotManager {
     protected:
-      boost::shared_ptr<PlateFile> m_platefile;
+      boost::shared_ptr<ReadOnlyPlateFile> m_read_plate;
+      boost::shared_ptr<PlateFile> m_write_plate;
 
     public:
-      SnapshotManager(boost::shared_ptr<PlateFile> platefile, bool tweak_settings_for_terrain)
-        : m_platefile(platefile) {
+      SnapshotManager(boost::shared_ptr<ReadOnlyPlateFile> read_plate, boost::shared_ptr<PlateFile> write_plate, bool tweak_settings_for_terrain)
+        : m_read_plate(read_plate), m_write_plate(write_plate) {
         VW_ASSERT(!tweak_settings_for_terrain, NoImplErr() << "Terrain snapshotting is currently unimplemented");
       }
 
