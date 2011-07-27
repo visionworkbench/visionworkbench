@@ -183,7 +183,7 @@ namespace ip {
       typedef typename PixelChannelType<typename ViewT::pixel_type>::type channel_type;
       ImageView<channel_type> iimage = IntegralImage(support);
 
-      double sqr_length = 0;
+      channel_type sqr_length = 0;
 
       // Iterate through scales
       IterT fill = first;
@@ -235,9 +235,11 @@ namespace ip {
       VW_DEBUG_ASSERT( fill == last, LogicErr() << "Allocated Vector size does not appear to match code's expectations." );
 
       // Normalizing
-      sqr_length = sqrt(sqr_length);
+      float sqr_length_inv = 1.0f / sqrt(float(sqr_length));
+      if ( !std::isnormal(sqr_length_inv) )
+        sqr_length_inv = 0.0f;
       for ( ; first != last; first++ )
-        (*first) /= sqr_length;
+        (*first) *= sqr_length_inv;
     }
 
     int support_size() { return 42; }
