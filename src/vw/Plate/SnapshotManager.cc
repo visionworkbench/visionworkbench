@@ -37,6 +37,34 @@ namespace {
     boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(t.hdr.filetype(), &t.data->operator[](0), t.data->size()));
     read_image(image, *r);
   }
+
+  template <typename PixelT>
+  void mosaic_in_tid_order(ImageView<PixelT>& out, const size_t size, const tile_cache_t<PixelT>& tile_cache, std::vector<d::tile_order_t>& tiles) {
+    typedef ImageView<PixelT> image_t;
+    typedef tile_cache_t<PixelT> cache_t;
+
+    std::sort(tiles.begin(), tiles.end(), d::SortByTidDesc());
+    mosaic::ImageComposite<PixelT> composite;
+    composite.set_draft_mode(true);
+    // Insert the images into the composite from highest to lowest tid (already sorted due to SoryByTidDesc)
+    BOOST_FOREACH(const d::tile_order_t& order, tiles) {
+      const d::rowcoltid_t& hdr = order.get<1>();
+      typename cache_t::const_iterator i = tile_cache.find(d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr)));
+      if (i == tile_cache.end()) {
+        vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
+        continue;
+      }
+      composite.insert(i->second, 0, 0);
+      if (is_opaque(i->second))
+        break;
+    }
+    if (composite.cols() == 0 || composite.rows() == 0) {
+      out.reset();
+      return;
+    }
+    composite.prepare(BBox2i(0,0,size,size));
+    out = composite;
+  }
 }
 
 namespace vw {
@@ -81,27 +109,12 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       d::RememberCallback composite_pc(progress, 0.8, composite_map.size());
       // now iterate the output tile set and create the composites
       BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
-        std::sort(t.second.begin(), t.second.end(), d::SortByTidDesc());
-        mosaic::ImageComposite<PixelT> composite;
-        composite.set_draft_mode(true);
-        // Insert the images into the composite from highest to lowest tid (already sorted due to SoryByTidDesc)
-        BOOST_FOREACH(const d::tile_order_t& order, t.second) {
-          const d::rowcoltid_t& hdr = order.get<1>();
-          image_t& img = tile_cache[d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr))];
-          if (!img) {
-            vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
-            continue;
-          }
-          composite.insert(img, 0, 0);
-          if (is_opaque(img))
-            break;
-        }
-        if (composite.cols() == 0 || composite.rows() == 0) {
+        image_t tile;
+        mosaic_in_tid_order(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
+        if (!tile) {
           vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
           continue;
         }
-        composite.prepare(BBox2i(0,0,m_write_plate->default_tile_size(), m_write_plate->default_tile_size()));
-        image_t tile = composite;
         m_write_plate->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
         composite_pc.tick();
       }
