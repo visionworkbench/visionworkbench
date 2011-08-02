@@ -12,6 +12,7 @@
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Image/ImageView.h>
 #include <boost/foreach.hpp>
+#include <boost/lambda/construct.hpp>
 
 namespace d = vw::platefile::detail;
 
@@ -20,16 +21,10 @@ namespace {
   using namespace vw::platefile;
 
   // row, col at target level, tile headers from next level down (sorted in Tid order)
-  typedef std::map<d::rowcol_t, std::vector<d::tile_order_t> > composite_map_t;
+  typedef std::map<d::rowcol_t, std::vector<TileHeader> > composite_map_t;
   // Cache of parsed images
   template <typename PixelT>
   struct tile_cache_t : public std::map<d::rowcoltid_t, ImageView<PixelT> > {};
-
-  // composite_order_override lets you override the composite order
-  void schedule_tile(const TileHeader& hdr, std::vector<d::tile_order_t>& stack, Datastore::TileSearch& tile_lookup, uint32 order) {
-    stack.push_back(boost::make_tuple(order, d::rowcoltid_t(hdr.row(), hdr.col(), hdr.transaction_id())));
-    tile_lookup.push_back(hdr);
-  }
 
   template <typename PixelT>
   void parse_image_and_store(const Tile& t, tile_cache_t<PixelT>& tile_cache) {
@@ -39,16 +34,15 @@ namespace {
   }
 
   template <typename PixelT>
-  void mosaic_in_tid_order(ImageView<PixelT>& out, const size_t size, const tile_cache_t<PixelT>& tile_cache, std::vector<d::tile_order_t>& tiles) {
+  void mosaic_in_tid_order(ImageView<PixelT>& out, const size_t size, const tile_cache_t<PixelT>& tile_cache, std::vector<TileHeader>& tiles) {
     typedef ImageView<PixelT> image_t;
     typedef tile_cache_t<PixelT> cache_t;
 
     std::sort(tiles.begin(), tiles.end(), d::SortByTidDesc());
     mosaic::ImageComposite<PixelT> composite;
     composite.set_draft_mode(true);
-    // Insert the images into the composite from highest to lowest tid (already sorted due to SoryByTidDesc)
-    BOOST_FOREACH(const d::tile_order_t& order, tiles) {
-      const d::rowcoltid_t& hdr = order.get<1>();
+    // Insert the images into the composite from highest to lowest tid (already sorted due to SortByTidDesc)
+    BOOST_FOREACH(const TileHeader& hdr, tiles) {
       typename cache_t::const_iterator i = tile_cache.find(d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr)));
       if (i == tile_cache.end()) {
         vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
@@ -74,41 +68,40 @@ template <class PixelT>
 void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress_) const {
   typedef ImageView<PixelT> image_t;
 
+  // The byte size of an uncompressed image
   const uint64 TILE_BYTES  = m_write_plate->default_tile_size() * m_write_plate->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
-  const uint64 CACHE_BYTES = uint64(2) * 1024 * 1024 * 1024; // 2GB
-  const uint64 REGION_SIZE = 1 << boost::numeric_cast<uint32>(::floor(::log(::sqrt(CACHE_BYTES / TILE_BYTES)) / ::log(2)));
-  VW_ASSERT(REGION_SIZE > 0, LogicErr() << "Cannot iterate regions with REGION_SIZE 0");
+  const uint64 CACHE_BYTES = vw_settings().system_cache_size();
+  const uint64 CACHE_TILES = CACHE_BYTES / TILE_BYTES;
+  // This is an arbitrary value, to hopefully catch pathlogically-small cache sizes
+  VW_ASSERT(CACHE_TILES > 100, LogicErr() << "You will have many problems if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")");
+
+  Datastore::TileSearch tile_lookup;
+  tile_lookup.reserve(CACHE_TILES);
 
   // Divide up the region into moderately-sized chunks
-  std::list<BBox2i> regions = bbox_tiles(tile_region, REGION_SIZE, REGION_SIZE);
+  std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
   BOOST_FOREACH(const BBox2i& region, regions) {
     SubProgressCallback progress(progress_, progress_.progress(), progress_.progress() + 1./regions.size());
 
-    // Declare these inside the loop so we keep the memory use down to a dull roar
+    tile_lookup.clear();
+
     // This map holds the headers for the current level
     composite_map_t composite_map;
-    tile_cache_t<PixelT> tile_cache;
 
-    {
-      // List of tiles we need to fetch
-      Datastore::TileSearch tile_lookup;
+    // Grab the tiles in the zone
+    BOOST_FOREACH(const TileHeader& hdr, m_read_plate->search_by_region(level, region, range))
+      composite_map[d::rowcol_t(hdr.row(), hdr.col())].push_back(hdr);
 
-      // Grab the tiles in the zone
-      BOOST_FOREACH(const TileHeader& hdr, m_read_plate->search_by_region(level, region, range))
-        schedule_tile(hdr, composite_map[d::rowcol_t(hdr.row(), hdr.col())], tile_lookup, hdr.transaction_id());
+    d::RememberCallback pc(progress, 1, composite_map.size());
 
-      // Now load the images from disk, decode them, and store them back to the cache
-      d::RememberCallback tile_load_pc(progress, 0.2, tile_lookup.size());
-      BOOST_FOREACH(const Tile& t, m_read_plate->batch_read(tile_lookup)) {
-        parse_image_and_store(t, tile_cache);
-        tile_load_pc.tick();
-      }
-    }
+    // queue up CACHE_TILES worth of tiles
+    BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
+      if (tile_lookup.size() + t.second.size() >= CACHE_TILES) {
+        VW_ASSERT(tile_lookup.size() > 0, LogicErr() << "Your cache size in tiles (" << CACHE_TILES << ") is smaller than the required minimum of " << t.second.size());
 
-    {
-      d::RememberCallback composite_pc(progress, 0.8, composite_map.size());
-      // now iterate the output tile set and create the composites
-      BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
+        tile_cache_t<PixelT> tile_cache;
+        BOOST_FOREACH(const Tile& t, m_read_plate->batch_read(tile_lookup))
+          parse_image_and_store(t, tile_cache);
         image_t tile;
         mosaic_in_tid_order(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
         if (!tile) {
@@ -116,8 +109,10 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
           continue;
         }
         m_write_plate->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
-        composite_pc.tick();
+        pc.tick(tile_lookup.size());
+        tile_lookup.clear();
       }
+      std::transform(t.second.begin(), t.second.end(), tile_lookup.end(), boost::lambda::constructor<Tile>());
     }
   }
   progress_.report_finished();

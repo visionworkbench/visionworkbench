@@ -10,16 +10,21 @@
 #include <boost/assign/list_of.hpp>
 #include <boost/tuple/tuple.hpp>
 #include <boost/tuple/tuple_comparison.hpp>
+#include <vw/Plate/IndexData.pb.h>
+#include <vw/Math/BBox.h>
+#include <vw/Core/ProgressCallback.h>
 
 namespace vw { namespace platefile { namespace detail {
+
+using namespace vw;
 
 typedef boost::tuple<uint32, uint32, uint32> rowcoltid_t;
 typedef boost::tuple<uint32, uint32>         rowcol_t;
 typedef boost::tuple<uint32, rowcoltid_t>    tile_order_t;
 
-inline uint32 therow(const TileHeader& h) { return h.row(); }
-inline uint32 thecol(const TileHeader& h) { return h.col(); }
-inline uint32 thetid(const TileHeader& h) { return h.transaction_id(); }
+inline uint32 therow(const platefile::TileHeader& h) { return h.row(); }
+inline uint32 thecol(const platefile::TileHeader& h) { return h.col(); }
+inline uint32 thetid(const platefile::TileHeader& h) { return h.transaction_id(); }
 inline uint32 therow(const rowcoltid_t& h) { return h.get<0>(); }
 inline uint32 thecol(const rowcoltid_t& h) { return h.get<1>(); }
 inline uint32 thetid(const rowcoltid_t& h) { return h.get<2>(); }
@@ -59,6 +64,10 @@ struct SortByTidDesc {
   {
     return b.get<0>() < a.get<0>();
   }
+  template <typename T>
+  bool operator()(const T& a, const T& b) {
+    return thetid(b) < thetid(a);
+  }
 };
 
 class RememberCallback : public SubProgressCallback {
@@ -66,8 +75,8 @@ class RememberCallback : public SubProgressCallback {
   public:
     RememberCallback(const ProgressCallback &parent, double percent, double total)
       : SubProgressCallback(parent, parent.progress(), parent.progress() + percent), m_count(0), m_total(total) {}
-    void tick() {
-      m_count += 1;
+    void tick(uint32 count = 1) {
+      m_count += count;
       if (m_count > m_total) m_count = m_total;
       this->report_fractional_progress(m_count, m_total);
     }
