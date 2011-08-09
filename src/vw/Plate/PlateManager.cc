@@ -195,75 +195,106 @@ namespace {
   };
 }
 
+namespace {
+
+// Given a bottom tile count, approximate the total count of tiles for the pyramid
+uint32 approximate_total_tiles(const BBox2i& region, uint32 bottom_tile_count) {
+  // total number of tiles that need to be generated from this is a geometic
+  // sum with r between 0.5 (for rectangle base) and 0.25 (for square base).
+  // (geometic sum: E(n=0..inf)(a*r^n) = a / (1-r))
+  float w = region.width(), h = region.height();
+  //squareness will range from 1 (square) to asmptotic 0 (rect)
+  float squareness = (w < h) ? w/h : h/w;
+  // they tend toward rect, so range it from 0.5 to 0.3
+  float r = ((1-squareness) * 0.2) + 0.3;
+  // take off the top layer, we already have it
+  return bottom_tile_count / (1-r);
+}
+
+template <typename PixelT>
+void load_tiles(PlateFile& plate, Datastore::TileSearch& headers, tile_cache_t<PixelT>& cache, d::RememberCallback& pc) {
+  BOOST_FOREACH(const Tile& t, plate.batch_read(headers)) {
+    ImageView<PixelT>& image = cache[d::rowcol_t(t.hdr.row(), t.hdr.col())];
+    boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(t.hdr.filetype(), &t.data->operator[](0), t.data->size()));
+    read_image(image, *r);
+    pc.tick();
+  }
+}
+
+template <class PixelT>
+void fast_mipmap( PlateFile& plate, uint32 starting_level, level_data<PixelT>* src_data, bool preblur, d::RememberCallback& mosaic_pc)
+{
+  typedef ImageView<PixelT> image_t;
+  level_data<PixelT> scratch;
+  level_data<PixelT> *curr = src_data, *prev = &scratch;
+
+  for (int32 level = starting_level-1; level >= 0; --level)
+  {
+    std::swap(curr, prev); // point prev at 'current'
+    curr->clear();         // and dump the old 'prev'
+
+    // assign the previous-level hdrs to their parents
+    BOOST_FOREACH(const composite_map_t::value_type& v, prev->hdrs)
+      curr->hdrs[d::parent_tile(d::therow(v.first), d::thecol(v.first))].push_back(v.first);
+
+    // build the new tiles
+    BOOST_FOREACH(const composite_map_t::value_type& v, curr->hdrs) {
+      const d::rowcol_t& parent = v.first;
+      const std::vector<d::rowcol_t>& children = v.second;
+      VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
+      VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
+
+      std::map<uint32, image_t> c;
+      BOOST_FOREACH(const d::rowcol_t& child, children)
+        c[d::calc_composite_id(parent, child)] = prev->cache[child];
+
+      image_t& new_image = curr->cache[parent];
+      mipmap_one_tile(new_image, plate.default_tile_size(), c[0], c[1], c[2], c[3], preblur);
+      plate.write_update(new_image, d::thecol(parent), d::therow(parent), level);
+      mosaic_pc.tick();
+    }
+  }
+}
+
+}
+
 template <class PixelT>
 void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& region,
                                   TransactionOrNeg read_transaction_id,
                                   bool preblur,
                                   const ProgressCallback &progress_callback) const
 {
-  typedef ImageView<PixelT> image_t;
+  const uint64 TILE_BYTES  = m_platefile->default_tile_size() * m_platefile->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
+  const uint64 CACHE_BYTES = vw_settings().system_cache_size();
+  const uint64 CACHE_TILES = CACHE_BYTES / TILE_BYTES;
+  VW_ASSERT(CACHE_TILES > 100, LogicErr() << "You will have many problems if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")");
 
-  level_data<PixelT> scratch1, scratch2;
-  level_data<PixelT> *curr = &scratch1, *prev = &scratch2;
+  level_data<PixelT> scratch;
+  level_data<PixelT> *curr = &scratch;
   uint32 total_tiles;
   {
     Datastore::TileSearch tiles;
     BOOST_FOREACH(const TileHeader& hdr, m_platefile->search_by_region(starting_level, region, read_transaction_id)) {
       tiles.push_back(hdr);
-      // prime the entry and just use the default constructor
+      // prime the entry and just use the default constructor (we don't need
+      // the data, just the region, because the data comes from the batch_read)
       curr->hdrs[d::rowcol_t(hdr.row(), hdr.col())] = composite_map_t::mapped_type();
     }
 
     // Approximate that loading the tiles from disk is 3% of the total work
     d::RememberCallback tile_load_pc(progress_callback, 0.03, tiles.size());
-    BOOST_FOREACH(const Tile& t, m_platefile->batch_read(tiles)) {
-      ImageView<PixelT>& image = curr->cache[d::rowcol_t(t.hdr.row(), t.hdr.col())];
-      boost::scoped_ptr<SrcImageResource> r(SrcMemoryImageResource::open(t.hdr.filetype(), &t.data->operator[](0), t.data->size()));
-      read_image(image, *r);
-      tile_load_pc.tick();
-    }
+    load_tiles<PixelT>(*m_platefile, tiles, curr->cache, tile_load_pc);
     tile_load_pc.report_finished();
-    // total number of tiles that need to be generated from this is a geometic
-    // sum with r between 0.5 (for rectangle base) and 0.25 (for square base).
-    // (geometic sum: E(n=0..inf)(a*r^n) = a / (1-r))
-    float w = region.width(), h = region.height();
-    //squareness will range from 1 (square) to asmptotic 0 (rect)
-    float squareness = (w < h) ? w/h : h/w;
-    // they tend toward rect, so range it from 0.5 to 0.3
-    float r = ((1-squareness) * 0.2) + 0.3;
-    // take off the top layer, we already have it
-    total_tiles = (tiles.size() / (1-r)) - tiles.size();
+
+    // take the top layer off the count, we already have it
+    total_tiles = approximate_total_tiles(region, tiles.size()) - tiles.size();
   }
 
   {
     d::RememberCallback mosaic_pc(progress_callback, 0.97, total_tiles);
-    for (int32 level = starting_level-1; level >= 0; --level)
-    {
-      std::swap(curr, prev); // point prev at 'current'
-      curr->clear();         // and dump the old 'prev'
-
-      // assign the previous-level hdrs to their parents
-      BOOST_FOREACH(const composite_map_t::value_type& v, prev->hdrs)
-        curr->hdrs[d::parent_tile(d::therow(v.first), d::thecol(v.first))].push_back(v.first);
-
-      // build the new tiles
-      BOOST_FOREACH(const composite_map_t::value_type& v, curr->hdrs) {
-        const d::rowcol_t& parent = v.first;
-        const std::vector<d::rowcol_t>& children = v.second;
-        VW_ASSERT(children.size() > 0,  LogicErr() << "How can there be zero here?");
-        VW_ASSERT(children.size() <= 4, LogicErr() << "How can there be more than four here?");
-
-        std::map<uint32, image_t> c;
-        BOOST_FOREACH(const d::rowcol_t& child, children)
-          c[d::calc_composite_id(parent, child)] = prev->cache[child];
-
-        image_t& new_image = curr->cache[parent];
-        mipmap_one_tile(new_image, m_platefile->default_tile_size(), c[0], c[1], c[2], c[3], preblur);
-        m_platefile->write_update(new_image, d::thecol(parent), d::therow(parent), level);
-        mosaic_pc.tick();
-      }
-    }
+    fast_mipmap(*m_platefile, starting_level-1, curr, preblur, mosaic_pc);
   }
+
   progress_callback.report_finished();
 }
 
