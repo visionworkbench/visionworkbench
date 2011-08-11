@@ -20,6 +20,10 @@ namespace vw {
 
 namespace platefile {
 
+  namespace detail {
+    class RememberCallback;
+  }
+
   template <class ViewT>
   class WritePlateFileTask;
 
@@ -58,6 +62,10 @@ namespace platefile {
     virtual void transform_image( cartography::GeoReference const& georef,
                                   ImageViewRef<PixelT>& image,
                                   TransformRef& txref, int& level ) const = 0;
+
+    void slow_mipmap( uint32 level,          std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
+    void fast_mipmap( uint32 starting_level, std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
+    uint64 calc_cache_tile_count() const;
 
   public:
     PlateManager(boost::shared_ptr<PlateFile> platefile) : m_platefile(platefile) {}

@@ -190,6 +190,7 @@ void PagedIndex::sync() {
 // ----------------------- READ/WRITE REQUESTS  ----------------------
 
 uint64 PagedIndex::page_id(uint32 col, uint32 row, uint32 level) const {
+  VW_ASSERT(level < m_levels.size(), ArgumentErr() << "Cannot request page_id for a level that doesn't exist");
   // Use the upper 32 bits for level, and the bottom for level-page-id
   return m_levels[level]->page_id(col, row);
 }

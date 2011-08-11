@@ -65,9 +65,7 @@ namespace vw {
 namespace platefile {
 
 template <class PixelT>
-void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress_) const {
-  typedef ImageView<PixelT> image_t;
-
+void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, TransactionRange range, const ProgressCallback &progress) const {
   // The byte size of an uncompressed image
   const uint64 TILE_BYTES  = m_write_plate->default_tile_size() * m_write_plate->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
   const uint64 CACHE_BYTES = vw_settings().system_cache_size();
@@ -75,15 +73,10 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
   // This is an arbitrary value, to hopefully catch pathlogically-small cache sizes
   VW_ASSERT(CACHE_TILES > 100, LogicErr() << "You will have many problems if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")");
 
-  Datastore::TileSearch tile_lookup;
-  tile_lookup.reserve(CACHE_TILES);
-
   // Divide up the region into moderately-sized chunks
   std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
   BOOST_FOREACH(const BBox2i& region, regions) {
-    SubProgressCallback progress(progress_, progress_.progress(), progress_.progress() + 1./regions.size());
-
-    tile_lookup.clear();
+    SubProgressCallback region_pc(progress, progress.progress(), progress.progress() + 1./regions.size());
 
     // This map holds the headers for the current level
     composite_map_t composite_map;
@@ -92,30 +85,59 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
     BOOST_FOREACH(const TileHeader& hdr, m_read_plate->search_by_region(level, region, range))
       composite_map[d::rowcol_t(hdr.row(), hdr.col())].push_back(hdr);
 
-    d::RememberCallback pc(progress, 1, composite_map.size());
+    if (composite_map.size() == 0) {
+      region_pc.report_finished();
+      continue;
+    }
 
-    // queue up CACHE_TILES worth of tiles
-    BOOST_FOREACH(composite_map_t::value_type& t, composite_map) {
-      if (tile_lookup.size() + t.second.size() >= CACHE_TILES) {
-        VW_ASSERT(tile_lookup.size() > 0, LogicErr() << "Your cache size in tiles (" << CACHE_TILES << ") is smaller than the required minimum of " << t.second.size());
+    d::RememberCallback pc(region_pc, 1, composite_map.size());
 
-        tile_cache_t<PixelT> tile_cache;
-        BOOST_FOREACH(const Tile& t, m_read_plate->batch_read(tile_lookup))
-          parse_image_and_store(t, tile_cache);
-        image_t tile;
-        mosaic_in_tid_order(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
+    composite_map_t::const_iterator i = composite_map.begin(), end = composite_map.end();
+
+    do {
+      // queue up CACHE_TILES worth of tiles into composite_batch
+      size_t size = 0;
+      composite_map_t composite_batch;
+
+      for (; i != end; ++i) {
+        if (size + i->second.size() <= CACHE_TILES) {
+          composite_batch.insert(*i);
+          size += i->second.size();
+        }
+      }
+      if (composite_batch.size() == 0)
+        continue;
+
+      Datastore::TileSearch tile_lookup;
+      tile_cache_t<PixelT> tile_cache;
+
+      BOOST_FOREACH(const composite_map_t::value_type& t, composite_batch) {
+        //std::cerr << "Batching tiles for " << t.first << ": ";
+        //std::transform(t.second.begin(), t.second.end(), std::ostream_iterator<uint32>(std::cerr, ", "), boost::bind(&TileHeader::transaction_id, _1));
+        //std::cerr << " (currently have " << tile_lookup.size() << "/" << CACHE_TILES << ")" << std::endl;
+        std::copy(t.second.begin(), t.second.end(), std::back_inserter(tile_lookup));
+      }
+
+      BOOST_FOREACH(const Tile& t, m_read_plate->batch_read(tile_lookup))
+        parse_image_and_store(t, tile_cache);
+      tile_lookup.clear();
+
+      BOOST_FOREACH(composite_map_t::value_type& t, composite_batch) {
+        ImageView<PixelT> tile;
+        mosaic_in_tid_order<PixelT>(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
         if (!tile) {
           vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
           continue;
         }
         m_write_plate->write_update(tile, d::thecol(t.first), d::therow(t.first), level);
-        pc.tick(tile_lookup.size());
-        tile_lookup.clear();
+        pc.tick();
       }
-      std::transform(t.second.begin(), t.second.end(), tile_lookup.end(), boost::lambda::constructor<Tile>());
-    }
+      composite_batch.clear();
+      size = 0;
+    } while (i != end);
+    region_pc.report_finished();
   }
-  progress_.report_finished();
+  progress.report_finished();
 }
 
 // Create a full snapshot of every level and every region in the mosaic.

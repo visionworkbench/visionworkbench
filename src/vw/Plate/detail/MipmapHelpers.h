@@ -71,11 +71,12 @@ struct SortByTidDesc {
 };
 
 class RememberCallback : public SubProgressCallback {
-    double m_count, m_total;
+    mutable double m_count;
+    double m_total;
   public:
     RememberCallback(const ProgressCallback &parent, double percent, double total)
       : SubProgressCallback(parent, parent.progress(), parent.progress() + percent), m_count(0), m_total(total) {}
-    void tick(uint32 count = 1) {
+    void tick(uint32 count = 1) const {
       m_count += count;
       if (m_count > m_total) m_count = m_total;
       this->report_fractional_progress(m_count, m_total);
