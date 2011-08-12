@@ -216,7 +216,8 @@ AX_LOG([using PKG_PATHS=$PKG_PATHS])
 # library options
 ##################################################
 
-AX_ARG_WITH(num-threads, [4], [cpp-int], [set the default number of processing threads for multi-threaded operations])
+AX_ARG_WITH(num-threads, [4],   [cpp-int], [set the default number of processing threads for multi-threaded operations])
+AX_ARG_WITH(cache-size,  [768], [cpp-int], [set the default cache size (in MB)])
 AC_MSG_NOTICE([VW will use $NUM_THREADS THREADS by default])
 
 
