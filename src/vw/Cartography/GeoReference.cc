@@ -280,6 +280,7 @@ namespace cartography {
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
     boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") );
     for (unsigned int i = 0; i < input_strings.size(); ++i) {
+      const std::string& key = input_strings[i];
 
       // Pick out the parts of the projection string that pertain to
       // map projections.  We essentially want to eliminate all of
@@ -287,24 +288,26 @@ namespace cartography {
       // handled by interacting directly with the
       // OGRSpatialReference below. This is sort of messy, but it's
       // the easiest way to do this, as far as I can tell.
-      if ((input_strings[i].find("+proj=") == 0) ||
-          (input_strings[i].find("+x_0=") == 0) ||
-          (input_strings[i].find("+y_0=") == 0) ||
-          (input_strings[i].find("+lon") == 0) ||
-          (input_strings[i].find("+lat") == 0) ||
-          (input_strings[i].find("+k=") == 0) ||
-          (input_strings[i].find("+lat_ts=") == 0) ||
-          (input_strings[i].find("+ns") == 0) ||
-          (input_strings[i].find("+no_cut") == 0) ||
-          (input_strings[i].find("+h=") == 0) ||
-          (input_strings[i].find("+W=") == 0) ||
-          (input_strings[i].find("+units=") == 0) ||
-          (input_strings[i].find("+zone=") == 0)) {
-        output_strings.push_back(input_strings[i]);
-      } else if ((input_strings[i].find("+ellps=") == 0) ||
-                 (input_strings[i].find("+datum=") == 0)) {
+      if (key == "+k=0") {
+        vw_out(WarningMessage) << "Input contained an illegal scale_factor of zero. Ignored." << std::endl;
+      } else if ((key.find("+proj=") == 0) ||
+          (key.find("+x_0=") == 0) ||
+          (key.find("+y_0=") == 0) ||
+          (key.find("+lon") == 0) ||
+          (key.find("+lat") == 0) ||
+          (key.find("+k=") == 0) ||
+          (key.find("+lat_ts=") == 0) ||
+          (key.find("+ns") == 0) ||
+          (key.find("+no_cut") == 0) ||
+          (key.find("+h=") == 0) ||
+          (key.find("+W=") == 0) ||
+          (key.find("+units=") == 0) ||
+          (key.find("+zone=") == 0)) {
+        output_strings.push_back(key);
+      } else if ((key.find("+ellps=") == 0) ||
+                 (key.find("+datum=") == 0)) {
         // We put these in the proj4_str for the Datum class.
-        datum_strings.push_back(input_strings[i]);
+        datum_strings.push_back(key);
       }
     }
     std::ostringstream strm;
