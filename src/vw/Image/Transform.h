@@ -497,7 +497,7 @@ namespace vw {
   inline compose( TransformBase<Tx1T> const& tx1,
                   TransformBase<Tx2T> const& tx2,
                   TransformBase<Tx3T> const& tx3,
-                  TransformBase<Tx3T> const& tx4 ) {
+                  TransformBase<Tx4T> const& tx4 ) {
     typedef CompositionTransform<Tx1T,CompositionTransform<Tx2T,CompositionTransform<Tx3T,Tx4T> > > result_type;
     return result_type( tx1.impl(), compose( tx2, tx3, tx4 ) );
   }
