@@ -30,6 +30,7 @@
 #include <vw/Image/PixelTypes.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/convenience.hpp>
+#include <boost/foreach.hpp>
 namespace fs = boost::filesystem;
 
 namespace d = vw::fileio::detail;
@@ -156,25 +157,24 @@ namespace vw {
     // Open the appropriate GDAL I/O driver, depending on the fileFormat
     // argument specified by the user.
     std::list<std::string> gdal_format_string = gdal_file_format_from_filename::format(filename);
-    std::list<std::string>::iterator i;
 
-    for( i = gdal_format_string.begin(); i != gdal_format_string.end() && driver == NULL; i++ )
-    {
-      vw_out(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << (*i) << std::endl;
-      driver = GetGDALDriverManager()->GetDriverByName((*i).c_str());
+    BOOST_FOREACH( std::string const& i, gdal_format_string ) {
+      vw_out(DebugMessage, "fileio") << "Trying to retrieve GDAL Driver with the following type: " << i << std::endl;
+      driver = GetGDALDriverManager()->GetDriverByName(i.c_str());
       if( driver == NULL )
         continue;
 
-      if (need_create)
-      {
+      if (need_create) {
         char** metadata = driver->GetMetadata();
-        if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) )
-        {
-          vw_out(WarningMessage, "fileio") << "GDAL driver " << (*i) << " does not support create." << std::endl;
+        if( !CSLFetchBoolean( metadata, GDAL_DCAP_CREATE, FALSE ) ) {
+          vw_out(WarningMessage, "fileio") << "GDAL driver " << i << " does not support create." << std::endl;
           driver = NULL;
           unsupported_driver = true;
         }
       }
+
+      if ( driver != NULL )
+        break;
     }
     if (!driver)
       vw_out(DebugMessage, "fileio") << "Could not get GDAL driver for filename:" << filename << std::endl;
@@ -314,7 +314,7 @@ namespace vw {
   void DiskImageResourceGDAL::create( std::string const& filename,
                                       ImageFormat const& format,
                                       Vector2i block_size,
-                                      std::map<std::string,std::string> const& user_options )
+                                      Options const& user_options )
   {
     VW_ASSERT(format.planes == 1 || format.pixel_format==VW_PIXEL_SCALAR,
               NoImplErr() << "DiskImageResourceGDAL: Cannot create " << filename << "\n\t"
@@ -370,7 +370,8 @@ namespace vw {
     // larger than the output image. It prohibits some viewers from
     // working correctly (OSX's preview).
     if (m_blocksize[0] != -1 && m_blocksize[1] != -1 &&
-        m_format.cols >= m_blocksize[0] && m_format.rows >= m_blocksize[1]) {
+        int32(m_format.cols) >= m_blocksize[0] &&
+        int32(m_format.rows) >= m_blocksize[1]) {
       std::ostringstream x_str, y_str;
       x_str << m_blocksize[0];
       y_str << m_blocksize[1];
@@ -379,9 +380,8 @@ namespace vw {
       options = CSLSetNameValue( options, "BLOCKYSIZE", y_str.str().c_str() );
     }
 
-    for( std::map<std::string,std::string>::const_iterator i=m_options.begin(); i!=m_options.end(); ++i ) {
-      options = CSLSetNameValue( options, i->first.c_str(), i->second.c_str() );
-    }
+    BOOST_FOREACH( Options::value_type const& i, m_options )
+      options = CSLSetNameValue( options, i.first.c_str(), i.second.c_str() );
 
     GDALDataType gdal_pix_fmt = vw_channel_id_to_gdal_pix_fmt::value(m_format.channel_type);
 
@@ -391,7 +391,8 @@ namespace vw {
     CSLDestroy( options );
 
     if ( m_blocksize[0] < 0 || m_blocksize[1] < 0 ||
-         m_format.cols < m_blocksize[0] || m_format.rows < m_blocksize[1] ) {
+         int32(m_format.cols) < m_blocksize[0] ||
+         int32(m_format.rows) < m_blocksize[1] ) {
       m_blocksize = default_block_size();
     }
   }
