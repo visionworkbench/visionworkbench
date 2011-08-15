@@ -365,8 +365,12 @@ namespace vw {
         m_format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL || m_format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL) {
       options = CSLSetNameValue( options, "PHOTOMETRIC", "RGB" );
     }
-    // If the user has specified a block size, we set the option for it here.
-    if (m_blocksize[0] != -1 && m_blocksize[1] != -1) {
+    // If the user has specified a block size, we set the option for
+    // it here. Also we protect the user from setting a blocksize
+    // larger than the output image. It prohibits some viewers from
+    // working correctly (OSX's preview).
+    if (m_blocksize[0] != -1 && m_blocksize[1] != -1 &&
+        m_format.cols >= m_blocksize[0] && m_format.rows >= m_blocksize[1]) {
       std::ostringstream x_str, y_str;
       x_str << m_blocksize[0];
       y_str << m_blocksize[1];
@@ -386,7 +390,8 @@ namespace vw {
         GDALCloseNullOk);
     CSLDestroy( options );
 
-    if (m_blocksize[0] == -1 || m_blocksize[1] == -1) {
+    if ( m_blocksize[0] < 0 || m_blocksize[1] < 0 ||
+         m_format.cols < m_blocksize[0] || m_format.rows < m_blocksize[1] ) {
       m_blocksize = default_block_size();
     }
   }
