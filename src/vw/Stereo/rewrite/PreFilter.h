@@ -28,8 +28,11 @@ namespace rewrite {
 
   template <>
   struct preprocessing<NULLOP> {
-    template <class ImageT> ImageT
-    filter( ImageViewBase<ImageT> const& image ) const { return image.impl(); }
+    template <class ImageT>
+    EdgeExtensionView<ImageT,ConstantEdgeExtension>
+    filter( ImageViewBase<ImageT> const& image ) const {
+      return edge_extend(image.impl(),ConstantEdgeExtension());
+    }
   };
 
   template <>
@@ -50,9 +53,9 @@ namespace rewrite {
     preprocessing( float size ) : kernel_width(size) {}
 
     template <class ImageT>
-    BinaryPerPixelView<ImageT,SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>,vw::ArgArgDifferenceFunctor>
+    BinaryPerPixelView<EdgeExtensionView<ImageT, ConstantEdgeExtension>,SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>,vw::ArgArgDifferenceFunctor>
     filter( ImageViewBase<ImageT> const& image ) const {
-      return image.impl() - gaussian_filter( image.impl(), kernel_width );
+      return edge_extend(image.impl(),ConstantEdgeExtension()) - gaussian_filter( image.impl(), kernel_width );
     }
   };
 
