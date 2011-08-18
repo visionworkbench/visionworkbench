@@ -7,10 +7,31 @@
 
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Math/Vector.h>
+#include <vw/Math/LevenbergMarquardt.h>
 
-using namespace vw;
-using namespace vw::stereo;
+namespace vw {
+namespace stereo {
+  namespace detail {
+    class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
+      const camera::CameraModel *m_camera1, *m_camera2;
+
+    public:
+      typedef Vector<double,4> result_type;
+      typedef Vector<double,3> domain_type;
+      typedef Matrix<double> jacobian_type;
+
+      PointLMA( camera::CameraModel const* cam1,
+                camera::CameraModel const* cam2 ) :
+        m_camera1(cam1), m_camera2(cam2) {}
+
+      inline result_type operator()( domain_type const& x ) const {
+        Vector4 output;
+        subvector(output,0,2) = m_camera1->point_to_pixel( x );
+        subvector(output,2,2) = m_camera2->point_to_pixel( x );
+        return output;
+      }
+    };
+  }
 
 ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                            ImageView<double> &error) const {
@@ -86,16 +107,21 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
     // This threshold was chosen empirically for now, but should
     // probably be revisited once a more rigorous analysis has
     // been completed. -mbroxton (11-MAR-07)
-    if ( 1-dot_prod(vecFromA, vecFromB) < 1e-4) {
+    if ( (1-dot_prod(vecFromA, vecFromB) < 1e-4 && !m_least_squares) ||
+         (1-dot_prod(vecFromA, vecFromB) < 1e-5 && m_least_squares) ) {
       error = 0;
       return Vector3();
     }
 
     Vector3 originA = m_camera1->camera_center(pix1);
     Vector3 originB = m_camera2->camera_center(pix2);
-    Vector3 result =  triangulate_point(originA, vecFromA,
-                                        originB, vecFromB,
-                                        error);
+    Vector3 result =
+      triangulate_point(originA, vecFromA,
+                        originB, vecFromB,
+                        error);
+
+    if ( m_least_squares )
+      refine_point(pix1, pix2, result);
 
     // Reflect points that fall behind one of the two cameras
     if ( dot_prod(result - originA, vecFromA) < 0 ||
@@ -105,15 +131,44 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
 
     return result;
 
-  } catch (const vw::camera::PixelToRayErr& /*e*/) {
+  } catch (const camera::PixelToRayErr& /*e*/) {
     error = 0;
     return Vector3();
   }
 }
 
 double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const {
-  Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
-  Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
-  return acos(dot_prod(vecFromA, vecFromB));
+  return acos(dot_prod(m_camera1->pixel_to_vector(pix1),
+                       m_camera2->pixel_to_vector(pix2)));
 }
 
+Vector3 StereoModel::triangulate_point(Vector3 const& pointA,
+                                       Vector3 const& vecFromA,
+                                       Vector3 const& pointB,
+                                       Vector3 const& vecFromB,
+                                       double& error) const {
+
+  Vector3 v12 = cross_prod(vecFromA, vecFromB);
+  Vector3 v1 = cross_prod(v12, vecFromA);
+  Vector3 v2 = cross_prod(v12, vecFromB);
+
+  Vector3 closestPointA = pointA + dot_prod(v2, pointB-pointA)/dot_prod(v2, vecFromA)*vecFromA;
+  Vector3 closestPointB = pointB + dot_prod(v1, pointA-pointB)/dot_prod(v1, vecFromB)*vecFromB;
+
+  error = norm_2(closestPointA - closestPointB);
+  return 0.5 * (closestPointA + closestPointB);
+}
+
+void StereoModel::refine_point(Vector2 const& pix1,
+                               Vector2 const& pix2,
+                               Vector3& point) const {
+  detail::PointLMA model( m_camera1, m_camera2 );
+  Vector4 objective( pix1[0], pix1[1], pix2[0], pix2[1] );
+  int status = 0;
+  Vector3 npoint = levenberg_marquardt( model, point,
+                                        objective, status );
+  if ( status > 0 )
+    point = npoint;
+}
+
+}} // vw::stereo

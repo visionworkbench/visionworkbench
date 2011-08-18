@@ -20,15 +20,19 @@ namespace camera {
 namespace stereo {
 
   class StereoModel {
+    const camera::CameraModel *m_camera1, *m_camera2;
+    bool m_least_squares;
 
   public:
 
     //------------------------------------------------------------------
     // Constructors / Destructors
     //------------------------------------------------------------------
-    StereoModel(vw::camera::CameraModel const* camera_model1,
-                vw::camera::CameraModel const* camera_model2) :
-      m_camera1(camera_model1), m_camera2(camera_model2) {}
+    StereoModel(camera::CameraModel const* camera_model1,
+                camera::CameraModel const* camera_model2,
+                bool least_squares_refine = false) :
+      m_camera1(camera_model1), m_camera2(camera_model2),
+      m_least_squares(least_squares_refine) {}
 
     //------------------------------------------------------------------
     // Public Methods
@@ -37,6 +41,9 @@ namespace stereo {
     /// Apply a stereo model to a disparity map to produce an image of
     /// XYZ points.  Missing pixels in the disparity map will result
     /// in zero vector pixels in the point image.
+    ///
+    /// Users really shouldn't use this method, the ideal method is
+    /// the 'stereo_triangulate' in StereoView.h.
     ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                   ImageView<double> &error ) const;
 
@@ -67,28 +74,11 @@ namespace stereo {
                               Vector3 const& vecFromA,
                               Vector3 const& pointB,
                               Vector3 const& vecFromB,
-                              double& error) const {
+                              double& error) const;
 
-      Vector3 v12 = cross_prod(vecFromA, vecFromB);
-      Vector3 v1 = cross_prod(v12, vecFromA);
-      Vector3 v2 = cross_prod(v12, vecFromB);
-
-      Vector3 closestPointA = pointA + dot_prod(v2, pointB-pointA)/dot_prod(v2, vecFromA)*vecFromA;
-      Vector3 closestPointB = pointB + dot_prod(v1, pointA-pointB)/dot_prod(v1, vecFromB)*vecFromB;
-
-      Vector3 errorVec = closestPointA - closestPointB;
-      error = norm_2(errorVec);
-
-      return 0.5 * (closestPointA + closestPointB);
-    }
-
-  private:
-
-    //------------------------------------------------------------------
-    // Internal Variables
-    //------------------------------------------------------------------
-    const vw::camera::CameraModel* m_camera1;
-    const vw::camera::CameraModel* m_camera2;
+    void refine_point( Vector2 const& pix1,
+                       Vector2 const& pix2,
+                       Vector3& point ) const;
   };
 
 }}      // namespace vw::stereo
