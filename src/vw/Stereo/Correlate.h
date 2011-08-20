@@ -265,12 +265,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
   adjust_weight_image(ImageView<float> &weight,
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
                       ImageView<float> const& weight_template) {
-
-    int32 center_pix_x = weight_template.cols()/2;
-    int32 center_pix_y = weight_template.rows()/2;
-    PixelMask<Vector2f> center_pix =
-      disparity_map_patch(center_pix_x, center_pix_y);
-
     float sum = 0;
     int32 num_good_pix = 0;
     typedef ImageView<float>::pixel_accessor IViewFAcc;

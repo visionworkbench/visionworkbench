@@ -307,9 +307,9 @@ namespace ba {
                                   camera_models[cam2_index].get() );
 
           double error;
-          Vector3 pos = sm( (*network)[i][j].position(),
-                            (*network)[i][j+1].position(),
-                            error );
+          sm( (*network)[i][j].position(),
+              (*network)[i][j+1].position(),
+              error );
           stereo_errors.push_back(error);
         }
       }
@@ -331,9 +331,9 @@ namespace ba {
             stereo::StereoModel sm( camera_models[cam1_index].get(),
                                     camera_models[cam2_index].get() );
             double error;
-            Vector3 pos = sm( (*network)[i][j].position(),
-                              (*network)[i][j+1].position(),
-                              error );
+            sm( (*network)[i][j].position(),
+                (*network)[i][j+1].position(),
+                error );
             stereo_gcp_errors.push_back(error);
           }
         }

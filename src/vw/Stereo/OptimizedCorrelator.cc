@@ -117,8 +117,6 @@ ImageView<PixelMask<Vector2f> > vw::stereo::correlate(boost::shared_ptr<StereoCo
   const int32 left_box_height = left_bbox.height();
   for (int32 dy = search_window.min().y(); dy <= search_window.max().y(); dy++) {
     for (int32 dx = search_window.min().x(); dx <= search_window.max().x(); dx++) {
-      BBox2i right_bbox = cost_function->bbox() + Vector2i (dx,dy);
-
       CropView<ImageView<DisparityScore<float> > > result_buf_window(result_buf, left_bbox);
       CropView<ImageView<float> > cost_buf_window(cost_buf, left_bbox);
 
