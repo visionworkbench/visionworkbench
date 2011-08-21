@@ -50,7 +50,8 @@ namespace boost {
 // ssize_t is not in the c++ spec (just POSIX) but it's important. If you've
 // arrived here due to a compile error, something else has previously defined
 // ssize_t in a way that is incorrect.
-BOOST_STATIC_ASSERT(std::numeric_limits<ssize_t>::is_signed && sizeof(ssize_t) == sizeof(size_t));
+BOOST_STATIC_ASSERT(std::numeric_limits<ssize_t>::is_signed);
+BOOST_STATIC_ASSERT(sizeof(ssize_t) == sizeof(size_t));
 
 namespace vw {
 
