@@ -12,6 +12,7 @@
 #include <vw/Plate/PlateFile.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/Filter.h>
 #include <boost/foreach.hpp>
 
 namespace vw {

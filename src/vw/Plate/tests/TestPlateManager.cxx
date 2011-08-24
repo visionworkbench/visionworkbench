@@ -49,7 +49,7 @@ protected:
     platename = UnlinkName("test.plate");
     platefile =
       boost::shared_ptr<PlateFile>( new PlateFile( Url(platename),
-                                                   "", "", 256, "",
+                                                   "equi", "", 256, "png",
                                                    VW_PIXEL_GRAYA,
                                                    VW_CHANNEL_UINT8) );
     platemanager = boost::shared_ptr<PlateCarreeExposed<PixelT> >( new PlateCarreeExposed<PixelT>( platefile ) );
@@ -161,4 +161,31 @@ TEST_F( PlateCarreeExposedTest, SingleTile ) {
   ImageView<PixelT > raster = crop(image_ref,
                                    tiles.begin()->bbox);
   EXPECT_FALSE( is_transparent( raster ) );
+}
+
+TEST_F( PlateCarreeExposedTest, SlowMipmap ) {
+  typedef PixelGrayA<uint8> pixel_t;
+
+  uint64 cache_size_before = vw_settings().system_cache_size();
+
+  // Setting the cache size to 8 tiles.
+  vw_settings().set_system_cache_size(4 * 256 * 256 * uint32(PixelNumBytes<pixel_t>::value));
+
+  Matrix3x3 affine = identity_matrix<3>();
+  affine(1,1) = -360.0/1024.0;
+  affine(0,0) = 360.0/1024.0;
+  affine(1,2) = 90;
+  GeoReference georef(Datum(), affine);
+  ImageView<pixel_t> blank(1024,512);
+  fill( blank, pixel_t(255));
+
+  platemanager->insert(blank,"",1,georef,false);
+  EXPECT_EQ( 8, platefile->search_by_region( 2, BBox2i(0,0,4,4),
+                                             TransactionRange(1,1) ).size() );
+  EXPECT_EQ( 4, platefile->search_by_region( 1, BBox2i(0,0,2,2),
+                                             TransactionRange(1,1) ).size() );
+  EXPECT_EQ( 1, platefile->search_by_region( 0, BBox2i(0,0,1,1),
+                                             TransactionRange(1,1) ).size() );
+
+  vw_settings().set_system_cache_size(cache_size_before);
 }
