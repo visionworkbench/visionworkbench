@@ -73,7 +73,7 @@ struct Options {
   Options() :
     filetype("png"),
     tile_size(256),
-    cache_size(512),
+    cache_size(0),
     terrain(false),
     nudge_x(0),
     nudge_y(0),
@@ -119,7 +119,8 @@ struct Options {
     VW_ASSERT(mode == "toast" || mode == "equi" || mode == "polar",
         Usage() << "Unknown mode: " << mode);
 
-    vw_settings().set_system_cache_size( cache_size*1024*1024 );
+    if (cache_size)
+      vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
     if (jpeg_quality)
       DiskImageResourceJPEG::set_default_quality( jpeg_quality.get() );
