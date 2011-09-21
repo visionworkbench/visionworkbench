@@ -37,18 +37,18 @@ void draw_line( ImageViewBase<ImageT>& image,
        !bound.contains( end ) )
     return;
   Vector2i delta = end - start;
-  for ( float r=0; r<1.0; r+=1/norm_2(delta) ) {
+  float inc_amt = 1/norm_2(delta);
+  for ( float r=0; r<1.0; r+=inc_amt ) {
     int i = (int)(0.5 + start.x() + r*float(delta.x()) );
     int j = (int)(0.5 + start.y() + r*float(delta.y()) );
     image.impl()(i,j) = value;
   }
 }
 
-static void write_debug_image( std::string out_file_name,
-                               std::string input_file_name,
+static void write_debug_image( std::string const& out_file_name,
+                               std::string const& input_file_name,
                                InterestPointList const& ip ) {
   vw_out() << "Writing debug image: " << out_file_name << "\n";
-  DiskImageView<PixelGray<uint8> > image( input_file_name );
 
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
@@ -63,7 +63,14 @@ static void write_debug_image( std::string out_file_name,
 
   vw_out(InfoMessage,"interest_point") << "\t > Drawing raster:\n";
   ImageView<PixelRGB<uint8> > oimage;
-  oimage = pixel_cast<PixelRGB<uint8> >(image*0.5);
+  boost::scoped_ptr<DiskImageResource> irsrc( DiskImageResource::open(input_file_name) );
+  if ( irsrc->has_nodata_read() ) {
+    oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >( *irsrc ),
+										   irsrc->nodata_read()))) * 0.5 );
+  } else {
+    oimage = pixel_cast_rescale<PixelRGB<uint8> >(normalize(DiskImageView<PixelGray<float> >( *irsrc )) * 0.5);
+  }
+
   for ( InterestPointList::const_iterator point = ip.begin();
         point != ip.end(); ++point ) {
     float norm_i = (point->interest - min)/diff;
@@ -92,12 +99,11 @@ static void write_debug_image( std::string out_file_name,
     }
   }
 
-  DiskImageResource *rsrc = DiskImageResource::create(out_file_name,
-                                                      oimage.format() );
+  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create(out_file_name,
+								       oimage.format() ) );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
   block_write_image( *rsrc, oimage,
                      TerminalProgressCallback( "tools.ipfind","\t : ") );
-
 }
 
 int main(int argc, char** argv) {
@@ -118,6 +124,7 @@ int main(int argc, char** argv) {
     ("num-threads", po::value(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
     ("tile-size,t", po::value(&tile_size), "Specify the tile size for processing interest points. (Useful when working with large images).")
     ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
+    ("normalize", "Normalize the input, use for images that have non standard values such as ISIS cube files.")
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
@@ -196,8 +203,13 @@ int main(int argc, char** argv) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
     std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
-    DiskImageResource *image_rsrc = DiskImageResource::open( input_file_names[i] );
-    DiskImageView<PixelGray<float> > image(image_rsrc);
+    boost::scoped_ptr<DiskImageResource> image_rsrc( DiskImageResource::open( input_file_names[i] ) );
+    DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
+    ImageViewRef<PixelGray<float> > image = raw_image;
+    if ( vm.count("normalize") && image_rsrc->has_nodata_read() )
+      image = apply_mask(normalize(create_mask(raw_image,image_rsrc->nodata_read())));
+    else if ( vm.count("normalize") )
+      image = normalize(raw_image);
 
     // Potentially mask image on a no data value
     if ( image_rsrc->has_nodata_read() )
@@ -253,8 +265,8 @@ int main(int argc, char** argv) {
 
     // Removing Interest Points on nodata or within 1/px
     if ( image_rsrc->has_nodata_read() ) {
-      float nodata_value = image_rsrc->nodata_read();
-      ImageViewRef<PixelMask<PixelGray<float> > > image_mask = create_mask(image,nodata_value);
+      ImageViewRef<PixelMask<PixelGray<float> > > image_mask =
+        create_mask(raw_image,image_rsrc->nodata_read());
       BBox2i bound = bounding_box( image_mask );
       bound.contract(1);
       int before_size = ip.size();
@@ -289,8 +301,8 @@ int main(int argc, char** argv) {
     vw_out() << "\t Found " << ip.size() << " points.\n";
 
     // Additional Culling for the entire image
-    ip.sort();
-    if ( (max_points > 0) && (ip.size() > max_points) ) {
+    if ( max_points > 0  && ip.size() > max_points ) {
+      ip.sort();
       ip.resize(max_points);
       vw_out() << "\t Culled to " << ip.size() << " points.\n";
     }
@@ -319,12 +331,11 @@ int main(int argc, char** argv) {
       write_binary_ip_file(file_prefix + ".vwip", ip);
 
     // Write Debug image
-    if (vm.count("debug-image")) {
-      std::string output_file_name =
-        file_prefix + "_debug.jpg";
-      write_debug_image( output_file_name,
+    if (vm.count("debug-image"))
+      write_debug_image( file_prefix + "_debug.jpg",
                          input_file_names[i],
                          ip );
-    }
   }
+
+  return 0;
 }

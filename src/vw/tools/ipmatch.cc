@@ -38,23 +38,35 @@ static void write_match_image(std::string const& out_file_name,
   if (matched_ip1.empty())
     return;
 
-  DiskImageView<PixelRGB<uint8> > src1(file1);
-  DiskImageView<PixelRGB<uint8> > src2(file2);
+  boost::scoped_ptr<vw::DiskImageResource> irsrc1( DiskImageResource::open(file1) );
+  boost::scoped_ptr<vw::DiskImageResource> irsrc2( DiskImageResource::open(file2) );
 
   // Work out the scaling to produce the subsampled images. These
   // values are choosen just allow a reasonable rendering time.
   float sub_scale =
-    sqrt(1500.0 * 1500.0 / float(src1.cols() * src1.rows()));
+    sqrt(1500.0 * 1500.0 / float(irsrc1->format().cols * irsrc1->format().rows));
   sub_scale +=
-    sqrt(1500.0 * 1500.0 / float(src2.cols() * src2.rows()));
+    sqrt(1500.0 * 1500.0 / float(irsrc2->format().cols * irsrc2->format().rows));
   sub_scale /= 2;
   if ( sub_scale > 1 ) sub_scale = 1;
 
   mosaic::ImageComposite<PixelRGB<uint8> > composite;
-  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(resample(src1.impl(), sub_scale))),
-		   0, 0 );
-  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(resample(src2.impl(), sub_scale))),
-		   int32(src1.impl().cols() * sub_scale), 0 );
+  if ( irsrc1->has_nodata_read() ) {
+    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc1),
+												     irsrc1->nodata_read()))), sub_scale)),
+		      0, 0 );
+  } else {
+    composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), sub_scale)),
+		      0, 0 );
+  }
+  if ( irsrc2->has_nodata_read() ) {
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc2),
+												    irsrc2->nodata_read()))), sub_scale)),
+		     int32(irsrc1->format().cols * sub_scale), 0 );
+  } else {
+    composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc2)), sub_scale)),
+		     int32(irsrc1->format().cols * sub_scale), 0 );
+  }
   composite.set_draft_mode( true );
   composite.prepare();
 
@@ -64,7 +76,7 @@ static void write_match_image(std::string const& out_file_name,
   // Draw a red line between matching interest points
   for (size_t k = 0; k < matched_ip1.size(); ++k) {
     Vector2f start(matched_ip1[k].x, matched_ip1[k].y);
-    Vector2f end(matched_ip2[k].x+src1.impl().cols(), matched_ip2[k].y);
+    Vector2f end(matched_ip2[k].x+irsrc1->format().cols, matched_ip2[k].y);
     start *= sub_scale;
     end   *= sub_scale;
     float inc_amt = 1/norm_2(end-start);
