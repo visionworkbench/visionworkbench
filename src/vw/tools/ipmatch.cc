@@ -29,11 +29,11 @@ namespace fs = boost::filesystem;
 
 // Draw the two images side by side with matching interest points
 // shown with lines.
-static void write_match_image(std::string out_file_name,
+static void write_match_image(std::string const& out_file_name,
                               std::string const& file1,
                               std::string const& file2,
-                              std::vector<InterestPoint> matched_ip1,
-                              std::vector<InterestPoint> matched_ip2) {
+                              std::vector<InterestPoint> const& matched_ip1,
+                              std::vector<InterestPoint> const& matched_ip2) {
   // Skip image pairs with no matches.
   if (matched_ip1.empty())
     return;
@@ -41,9 +41,20 @@ static void write_match_image(std::string out_file_name,
   DiskImageView<PixelRGB<uint8> > src1(file1);
   DiskImageView<PixelRGB<uint8> > src2(file2);
 
+  // Work out the scaling to produce the subsampled images. These
+  // values are choosen just allow a reasonable rendering time.
+  float sub_scale =
+    sqrt(1500.0 * 1500.0 / float(src1.cols() * src1.rows()));
+  sub_scale +=
+    sqrt(1500.0 * 1500.0 / float(src2.cols() * src2.rows()));
+  sub_scale /= 2;
+  if ( sub_scale > 1 ) sub_scale = 1;
+
   mosaic::ImageComposite<PixelRGB<uint8> > composite;
-  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(src1.impl())),0,0);
-  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(src2.impl())),src1.impl().cols(),0);
+  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(resample(src1.impl(), sub_scale))),
+		   0, 0 );
+  composite.insert(pixel_cast<PixelRGB<uint8> >(channel_cast_rescale<uint8>(resample(src2.impl(), sub_scale))),
+		   int32(src1.impl().cols() * sub_scale), 0 );
   composite.set_draft_mode( true );
   composite.prepare();
 
@@ -51,10 +62,13 @@ static void write_match_image(std::string out_file_name,
   ImageView<PixelRGB<uint8> > comp = composite;
 
   // Draw a red line between matching interest points
-  for (size_t i = 0; i < matched_ip1.size(); ++i) {
-    Vector2 start(matched_ip1[i].x, matched_ip1[i].y);
-    Vector2 end(matched_ip2[i].x+src1.impl().cols(), matched_ip2[i].y);
-    for (float r=0; r<1.0; r+=1/norm_2(end-start)){
+  for (size_t k = 0; k < matched_ip1.size(); ++k) {
+    Vector2f start(matched_ip1[k].x, matched_ip1[k].y);
+    Vector2f end(matched_ip2[k].x+src1.impl().cols(), matched_ip2[k].y);
+    start *= sub_scale;
+    end   *= sub_scale;
+    float inc_amt = 1/norm_2(end-start);
+    for (float r=0; r<1.0; r+=inc_amt ){
       int i = (int)(0.5 + start.x() + r*(end.x()-start.x()));
       int j = (int)(0.5 + start.y() + r*(end.y()-start.y()));
       if (i >=0 && j >=0 && i < comp.cols() && j < comp.rows())
@@ -62,7 +76,9 @@ static void write_match_image(std::string out_file_name,
     }
   }
 
-  write_image(out_file_name, comp);
+  boost::scoped_ptr<vw::DiskImageResource> rsrc( DiskImageResource::create(out_file_name, comp.format()) );
+  block_write_image( *rsrc, comp,
+		     TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
 }
 
 int main(int argc, char** argv) {
@@ -143,8 +159,8 @@ int main(int argc, char** argv) {
       remove_duplicates(matched_ip1, matched_ip2);
       vw_out() << "Found " << matched_ip1.size() << " putative matches.\n";
 
-      std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
-      std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+      std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1),
+	ransac_ip2 = iplist_to_vectorlist(matched_ip2);
       std::vector<size_t> indices;
       try {
         // RANSAC is used to fit a transform between the matched sets
@@ -174,11 +190,12 @@ int main(int argc, char** argv) {
           for ( size_t i = 0; i < matched_ip1.size(); ++i )
             indices.push_back(i);
         } else {
-          std::cout << "Unknown RANSAC constraint type: " << ransac_constraint << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
-          exit(0);
+          vw_out() << "Unknown RANSAC constraint type: " << ransac_constraint
+		   << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
+	  return 1;
         }
       } catch (const vw::math::RANSACErr& e ) {
-        std::cout << "RANSAC Failed: " << e.what() << "\n";
+        vw_out() << "RANSAC Failed: " << e.what() << "\n";
         continue;
       }
       vw_out() << "Found " << indices.size() << " final matches.\n";
@@ -189,20 +206,19 @@ int main(int argc, char** argv) {
         final_ip2.push_back(matched_ip2[index]);
       }
 
-      std::string output_filename =
-        fs::path(input_file_names[i]).replace_extension().string() + "__" +
-        fs::path(input_file_names[j]).stem() + ".match";
-      write_binary_match_file(output_filename, final_ip1, final_ip2);
+      std::string output_prefix =
+	fs::path(input_file_names[i]).replace_extension().string() + "__" +
+        fs::path(input_file_names[j]).stem();
+      write_binary_match_file(output_prefix+".match", final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
-        std::string matchimage_filename =
-          fs::path(input_file_names[i]).replace_extension().string() + "__" +
-          fs::path(input_file_names[j]).stem() + ".png";
-        write_match_image(matchimage_filename,
+        write_match_image(output_prefix+".tif",
                           input_file_names[i], input_file_names[j],
                           final_ip1, final_ip2);
       }
     }
   }
+
+  return 0;
 }
 
