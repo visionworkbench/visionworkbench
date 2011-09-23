@@ -17,9 +17,10 @@ TestPointImageManipulation_SOURCES = TestPointImageManipulation.cxx
 TestToastTransform_SOURCES         = TestToastTransform.cxx
 TestCameraBBox_SOURCES             = TestCameraBBox.cxx
 TestOrthoImageView_SOURCES         = TestOrthoImageView.cxx
+TestDatum_SOURCES                  = TestDatum.cxx
 
 TESTS = TestGeoReference TestGeoTransform TestPointImageManipulation   \
-        TestToastTransform TestCameraBBox TestOrthoImageView
+        TestToastTransform TestCameraBBox TestOrthoImageView TestDatum
 
 #include $(top_srcdir)/config/instantiate.am
 

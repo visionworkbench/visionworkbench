@@ -1,0 +1,12 @@
+package vw.cartography;
+
+message DatumDesc {
+  required string name = 1;
+  required string spheroid_name = 2;
+  required string meridian_name = 3;
+  required double semi_major_axis = 4;
+  required double semi_minor_axis = 5;
+  required double meridian_offset = 6;
+  required bool geocentric = 7;
+  required string proj_str = 8;
+}

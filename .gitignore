@@ -95,6 +95,7 @@ docs/workbook/workbook.toc
 /src/vw/Cartography/tests/TestToastTransform
 /src/vw/Cartography/tests/TestCameraBBox
 /src/vw/Cartography/tests/TestOrthoImageView
+/src/vw/Cartography/tests/TestDatum
 /src/vw/Core/tests/log.txt
 /src/vw/Core/tests/TestCache
 /src/vw/Core/tests/TestCompoundTypes
