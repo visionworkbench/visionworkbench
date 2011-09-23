@@ -22,8 +22,8 @@ camerabbox_sources = CameraBBox.cc
 endif
 
 if HAVE_PKG_PROTOBUF
-protocol_headers = DatumDesc.pb.h
-protocol_sources = DatumDesc.pb.cc
+protocol_headers = DatumDesc.pb.h GeoReferenceDesc.pb.h
+protocol_sources = DatumDesc.pb.cc GeoReferenceDesc.pb.cc
 endif
 
 include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
@@ -58,7 +58,7 @@ AM_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 SUBDIRS = . tests
 CLEANFILES = $(protocol_headers) $(protocol_sources)
-EXTRA_DIST = DatumDesc.proto $(protocol_headers) $(protocol_sources)
+EXTRA_DIST = DatumDesc.proto GeoReferenceDesc.proto $(protocol_headers) $(protocol_sources)
 
 includedir = $(prefix)/include/vw/Cartography
 detaildir = $(includedir)/detail

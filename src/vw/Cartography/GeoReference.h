@@ -17,6 +17,10 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+#include <vw/Cartography/GeoReferenceDesc.pb.h>
+#endif
+
 // Forward declaration of Proj.4 things. C++ needs forward declaration of
 // typedefs so we can call it PJ instead of PJconsts. Bad if Proj ever
 // changes their struct names; we suddenly have a difficult to find bug.
@@ -91,6 +95,14 @@ namespace cartography {
 
     /// Takes a geodetic datum and an affine transformation matrix
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform);
+
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+    /// Construct a GeoReference from a GeoReferenceDesc
+    GeoReference(GeoReferenceDesc desc);
+
+    /// Create a GeoReferenceDesc for the georef
+    GeoReferenceDesc build_desc();
+#endif
 
     /// Destructor.
     virtual ~GeoReference() {}

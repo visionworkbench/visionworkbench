@@ -1,0 +1,16 @@
+package vw.cartography;
+
+import "vw/Cartography/DatumDesc.proto";
+
+message GeoReferenceDesc {
+  enum PixelInterpretation {
+    PixelAsArea = 0;
+    PixelAsPoint = 1;
+  }
+
+  required DatumDesc datum = 1;
+  required PixelInterpretation pixel_interpretation = 2;
+  repeated double transform = 3;
+  required bool is_projected = 4;
+  required string proj_projection_str = 5;
+}

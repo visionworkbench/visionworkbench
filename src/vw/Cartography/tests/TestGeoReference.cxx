@@ -15,6 +15,42 @@ using namespace vw;
 using namespace vw::cartography;
 using namespace vw::test;
 
+
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
+TEST( GeoReference, GeoReferenceDesc) {
+  GeoReference georef;
+  georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+  georef.set_well_known_geogcs("WGS84");
+
+  Matrix3x3 affine;
+  affine(0,0) = 0.01; // 100 pix/degree
+  affine(1,1) = -0.01; // 100 pix/degree
+  affine(2,2) = 1;
+  affine(0,2) = 30;   // 30 deg east
+  affine(1,2) = -35;  // 35 deg south
+  georef.set_transform(affine);
+
+  GeoReference desc = georef.build_desc();
+
+  GeoReference georef2(desc);
+
+  EXPECT_EQ(georef.build_desc().DebugString(), georef2.build_desc().DebugString());
+
+  Vector2 pix = georef.point_to_pixel(Vector2(30,-35));
+  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
+  pix = georef2.point_to_pixel(Vector2(30,-35));
+  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
+
+
+  georef.set_pixel_interpretation(GeoReference::PixelAsArea);
+  georef2.set_pixel_interpretation(GeoReference::PixelAsArea);
+  pix = georef.point_to_pixel(Vector2(30,-35));
+  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
+  pix = georef2.point_to_pixel(Vector2(30,-35));
+  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
+}
+#endif
+
 TEST( GeoReference, BasicGeographic ) {
   GeoReference georef;
   georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);

@@ -88,6 +88,33 @@ namespace cartography {
     init_proj();
   }
 
+  GeoReference::GeoReference(GeoReferenceDesc desc) {
+    VW_ASSERT(desc.transform_size() == 9, 
+              IOErr() << "GeoReference::GeoReference: Unexpected number of elements in transform");
+
+    typedef MatrixProxy<double, 3, 3> Matrix3x3P;
+
+    m_datum = Datum(*desc.mutable_datum());
+    m_pixel_interpretation = static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
+    set_transform(Matrix3x3P(desc.mutable_transform()->mutable_data()));  
+    m_is_projected = desc.is_projected();
+    m_proj_projection_str = desc.proj_projection_str();
+    
+    init_proj(); 
+  }
+
+  GeoReferenceDesc GeoReference::build_desc() {
+    GeoReferenceDesc desc;
+
+    *(desc.mutable_datum()) = m_datum.build_desc();
+    desc.set_pixel_interpretation(static_cast<GeoReferenceDesc::PixelInterpretation>(m_pixel_interpretation));
+    std::copy(m_transform.begin(), m_transform.end(), RepeatedFieldBackInserter(desc.mutable_transform()));
+    desc.set_is_projected(m_is_projected);
+    desc.set_proj_projection_str(m_proj_projection_str);
+
+    return desc;
+  }
+
   void GeoReference::set_transform(Matrix3x3 transform) {
     m_transform = transform;
     m_shifted_transform = m_transform;

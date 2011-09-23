@@ -50,7 +50,7 @@ namespace cartography {
     /// representation.
     ///
     /// The default pixel interpretation for GeoReference is PixelAsArea
-    enum PixelInterpretation { PixelAsArea, PixelAsPoint };
+    enum PixelInterpretation { PixelAsArea = 0, PixelAsPoint = 1 };
 
   protected:
     PixelInterpretation m_pixel_interpretation;
