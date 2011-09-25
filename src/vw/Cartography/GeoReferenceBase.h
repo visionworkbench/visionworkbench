@@ -10,6 +10,8 @@
 
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Cartography/Datum.h>
+#include <vw/Image/Transform.h> // For grow_bbox_to_int
+#include <vw/Image/Algorithms.h> // For bounding_box
 
 namespace vw {
 namespace cartography {
@@ -103,17 +105,44 @@ namespace cartography {
       return point_to_pixel(lonlat_to_point(lat_lon));
     }
 
+    /// For a given pixel bbox, return the corresponding bbox in projected
+    /// space
+    virtual BBox2 pixel_to_point_bbox(BBox2i pixel_bbox) const {
+      BBox2 point_bbox;
+      point_bbox.grow(pixel_to_point(pixel_bbox.min()));
+      point_bbox.grow(pixel_to_point(pixel_bbox.max()));
+      point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y())));
+      point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x(), pixel_bbox.min().y())));
+      return point_bbox;
+    }
+
+    /// For a bbox in projected space, return the corresponding bbox in
+    /// pixels on the image 
+    virtual BBox2i point_to_pixel_bbox(BBox2 point_bbox) const {
+      BBox2 pixel_bbox;
+      pixel_bbox.grow(point_to_pixel(point_bbox.min()));
+      pixel_bbox.grow(point_to_pixel(point_bbox.max()));
+      pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.min().x(), point_bbox.max().y())));
+      pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.max().x(), point_bbox.min().y())));
+      return grow_bbox_to_int(pixel_bbox);
+    }
+
+    /// For a given pixel bbox, return the corresponding bbox in
+    /// Geographic (lon, lat) coordinates
+    virtual BBox2 pixel_to_lonlat_bbox(BBox2i pixel_bbox) const;
+
+    /// For a given bbox in Geographic coordinates, return the corresponding 
+    /// bbox in image pixel coordinates
+    virtual BBox2i lonlat_to_pixel_bbox(BBox2 lonlat_bbox) const;
+
+    // TODO: Probably should implement point_to_lonlat_bbox and 
+    // lonlat_to_point_bbox for completeness sake, but right now they're 
+    // not needed for anything
+
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
     template <class ViewT>
-    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const {
-      BBox2 bbox;
-      bbox.grow(pixel_to_point(Vector2(0,0)));
-      bbox.grow(pixel_to_point(Vector2(view.impl().cols(),0)));
-      bbox.grow(pixel_to_point(Vector2(0,view.impl().rows())));
-      bbox.grow(pixel_to_point(Vector2(view.impl().cols(), view.impl().rows())));
-      return bbox;
-    }
+    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const VW_DEPRECATED;
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
@@ -123,46 +152,19 @@ namespace cartography {
     ///
     /// Assumption: that the projection is continuous.
     template <class ViewT>
-    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
-      BBox2 bbox;
-      int x;
-      int y;
-      Vector2 pix;
+    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const VW_DEPRECATED;
 
-      // As all the projections are continuous, we can just walk the
-      // edges to find the bounding box.
-      // Walk the top & bottom (technically past the edge of pixel space) rows
-      x = view.impl().rows();
-      for(y=0; y < view.impl().cols(); y++) {
-          bbox.grow(pixel_to_lonlat(Vector2(0,y)));
-          bbox.grow(pixel_to_lonlat(Vector2(x,y)));
-      }
-      // Walk the left & right (technically past the edge of pixel space) columns
-      y = view.impl().cols();
-      for(x=0; x < view.impl().rows(); x++) {
-          bbox.grow(pixel_to_lonlat(Vector2(x,0)));
-          bbox.grow(pixel_to_lonlat(Vector2(x,y)));
-      }
-
-      // Do we cross the north or south pole? Have to cover that case
-      // specially. Fortunately it's easy, because (anything, 90) or
-      // (anything, -90) will always be in the image.
-      // North pole:
-      pix = lonlat_to_pixel(Vector2(0, 90));
-      if(0 <= pix[0] && pix[0] <= view.impl().rows() &&
-         0 <= pix[1] && pix[1] <= view.impl().cols()) {
-          bbox.grow(Vector2(0, 90));
-      }
-      // South pole:
-      pix = lonlat_to_pixel(Vector2(0, -90));
-      if(0 <= pix[0] && pix[0] <= view.impl().rows() &&
-         0 <= pix[1] && pix[1] <= view.impl().cols()) {
-          bbox.grow(Vector2(0, -90));
-      }
-
-      return bbox;
-    }
   };
+
+  template <class ViewT>
+  BBox2 GeoReferenceBase::bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_point_bbox(vw::bounding_box(view.impl()));
+  }
+
+  template <class ViewT>
+  BBox2 GeoReferenceBase::lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
+  }
 
 }} // namespace vw::cartography
 

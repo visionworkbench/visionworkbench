@@ -172,7 +172,6 @@ namespace cartography {
     /// corresponding pixel coordinates in the image.
     virtual Vector2 point_to_pixel(Vector2 loc) const;
 
-
     /// For a point in the projected space, compute the position of
     /// that point in unprojected (Geographic) coordinates (lat,lon).
     virtual Vector2 point_to_lonlat(Vector2 loc) const;
@@ -180,6 +179,25 @@ namespace cartography {
     /// Given a position in geographic coordinates (lat,lon), compute
     /// the location in the projected coordinate system.
     virtual Vector2 lonlat_to_point(Vector2 lon_lat) const;
+
+    /// For a bbox in pixel coordinates, find what that bbox covers
+    /// in lonlat 
+    virtual BBox2 pixel_to_lonlat_bbox(BBox2i pixel_bbox) const {
+      if (!m_is_projected) {
+        return pixel_to_point_bbox(pixel_bbox);
+      }
+      
+      return GeoReferenceBase::pixel_to_lonlat_bbox(pixel_bbox);
+    }
+
+    /// For a bbox in lonlat, find the bbox in pixel coordinates
+    virtual BBox2i lonlat_to_pixel_bbox(BBox2 lonlat_bbox) const {
+      if (!m_is_projected) {
+        return point_to_pixel_bbox(lonlat_bbox);
+      }
+      
+      return GeoReferenceBase::lonlat_to_pixel_bbox(lonlat_bbox);
+    }
   };
 
   inline std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
