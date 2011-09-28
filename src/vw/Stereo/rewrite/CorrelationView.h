@@ -112,7 +112,7 @@ namespace rewrite {
                                                  right_region - right_region.min(),
                                                  m_search_region.size() + Vector2i(1,1),
                                                  m_kernel_size ) -
-            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+            pixel_type(m_search_region.size()+Vector2i(1,1));
           break;
         case SQUARED_DIFFERENCE:
           // Getting the crops correctly here is not important as best
@@ -124,7 +124,7 @@ namespace rewrite {
                                                      right_region - right_region.min(),
                                                      m_search_region.size() + Vector2i(1,1),
                                                      m_kernel_size ) -
-            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+            pixel_type(m_search_region.size()+Vector2i(1,1));
           break;
         case ABSOLUTE_DIFFERENCE:
         default:
@@ -137,7 +137,7 @@ namespace rewrite {
                                                       right_region - right_region.min(),
                                                       m_search_region.size() + Vector2i(1,1),
                                                       m_kernel_size ) -
-            PixelMask<Vector2i>(m_search_region.size()+Vector2i(1,1));
+            pixel_type(m_search_region.size()+Vector2i(1,1));
         }
         stereo::cross_corr_consistency_check( result, rl_result,
                                               m_consistency_threshold, false );
@@ -477,7 +477,7 @@ namespace rewrite {
                 crop(left_pyramid[level],left_region),
                 crop(righ_pyramid[level],righ_region),
                 left_region - left_region.min(),
-                zone.second.size(), m_kernel_size ) + pixel_type(zone.second.min());
+                zone.second.size(), m_kernel_size );
             break;
           case SQUARED_DIFFERENCE:
             crop(disparity,zone.first) =
@@ -485,7 +485,7 @@ namespace rewrite {
                 crop(left_pyramid[level],left_region),
                 crop(righ_pyramid[level],righ_region),
                 left_region - left_region.min(),
-                zone.second.size(), m_kernel_size ) + pixel_type(zone.second.min());
+                zone.second.size(), m_kernel_size );
             break;
           case ABSOLUTE_DIFFERENCE:
           default:
@@ -494,8 +494,47 @@ namespace rewrite {
                 crop(left_pyramid[level],left_region),
                 crop(righ_pyramid[level],righ_region),
                 left_region - left_region.min(),
-                zone.second.size(), m_kernel_size ) + pixel_type(zone.second.min());
+                zone.second.size(), m_kernel_size );
           }
+
+          if ( m_consistency_threshold >= 0 && level == 0 ) {
+            ImageView<pixel_type> rl_result;
+
+            switch ( m_cost_type ) {
+            case CROSS_CORRELATION:
+              rl_result =
+                best_of_search_convolution<NCCCost>(
+                  crop(righ_pyramid[0],righ_region),
+                  crop(left_pyramid[0],left_region-zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+              break;
+            case SQUARED_DIFFERENCE:
+              rl_result =
+                best_of_search_convolution<SquaredCost>(
+                  crop(righ_pyramid[0],righ_region),
+                  crop(left_pyramid[0],left_region-zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+              break;
+            case ABSOLUTE_DIFFERENCE:
+            default:
+              rl_result =
+               best_of_search_convolution<AbsoluteCost>(
+                  crop(righ_pyramid[0],righ_region),
+                  crop(left_pyramid[0],left_region-zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+            }
+            pixel_type l2r = disparity(zone.first.min()[0],zone.first.min()[1]);
+            pixel_type r2l = rl_result(l2r[0],l2r[1]);
+            stereo::cross_corr_consistency_check( crop(disparity,zone.first),
+                                                  rl_result, m_consistency_threshold, false );
+          }
+
+          // Fix the offset
+          crop(disparity,zone.first) += pixel_type(zone.second.min());
+
         } // end of zone loop
 
         // 3.2) Refine search estimates but never let them go beyond
