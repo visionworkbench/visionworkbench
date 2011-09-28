@@ -9,7 +9,6 @@
 #include <vw/Core/Log.h>
 #include <vw/Camera/CAHVModel.h>
 #include <boost/algorithm/string.hpp>
-#include <vw/Math/Vector.h>
 
 namespace vw {
 namespace camera {
@@ -77,21 +76,6 @@ namespace camera {
     if (dot_prod(cross_prod(V, H), A) < 0.0)
       vec *= -1.0;
     return vec;
-  }
-
-  Quat CAHVModel::camera_pose(Vector2 const& /*pix*/) const {
-    // rotation from camera to world
-    Quat rot1( normalize(cross_prod(Vector3(0,0,1),A)),
-               acos(dot_prod(Vector3(0,0,1),normalize(A))) );
-    Vector3 x_p_axis = rot1.rotate(Vector3(1,0,0));
-    // We don't use H directly as it is tilted forward to set the
-    // origin of the pixels.
-    Vector3 x_obj = normalize(cross_prod(V,A));
-    Quat rot2( A, -acos(dot_prod(x_p_axis,x_obj)) );
-    std::cout << "Degree: " << -acos(dot_prod(x_p_axis,x_obj)) << "\n";
-    std::cout << "A:      " << A << "\n";
-    std::cout << "Cross of rotate: " << cross_prod(x_p_axis,x_obj) << "\n";
-    return rot2 * rot1;
   }
 
   // --------------------------------------------------
