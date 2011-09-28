@@ -15,8 +15,9 @@ TestStereoModel_SOURCES  = TestStereoModel.cxx
 TestDisparity_SOURCES    = TestDisparity.cxx
 TestCorrelator_SOURCES   = TestCorrelator.cxx
 TestSubPixel_SOURCES     = TestSubPixel.cxx
+TestCorrelate_SOURCES    = TestCorrelate.cxx
 
-TESTS = TestStereoModel TestDisparity TestCorrelator TestSubPixel
+TESTS = TestStereoModel TestDisparity TestCorrelator TestSubPixel TestCorrelate
 
 #include $(top_srcdir)/config/instantiate.am
 
