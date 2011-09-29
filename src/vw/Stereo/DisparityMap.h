@@ -16,6 +16,8 @@
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Transform.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/Statistics.h>
 
 // For the PixelDisparity math.
 #include <boost/operators.hpp>
@@ -44,7 +46,7 @@ namespace stereo {
       return BBox2f(0,0,0,0);
     }
     return BBox2f(accumulator.minimum(),
-		  accumulator.maximum());
+                  accumulator.maximum());
   }
 
   //  missing_pixel_image()
@@ -76,45 +78,126 @@ namespace stereo {
   /// disparity map to be masked, this view will eliminate any pixels
   /// in the disparity map that correspond to locations in the mask
   /// that contain a value of zero.
-  template <class PixelT, class MaskViewT>
-  struct DisparityMaskFunc: public vw::ReturnFixedType<PixelT>  {
+  template <class ViewT, class MaskView1T, class MaskView2T>
+  class DisparityMaskView : public ImageViewBase<DisparityMaskView<ViewT, MaskView1T, MaskView2T> > {
+    ViewT m_input_view;
+    MaskView1T m_mask1_view;
+    MaskView2T m_mask2_view;
+    BBox2i m_search_range;
 
-    MaskViewT const& m_left_mask;
-    MaskViewT const& m_right_mask;
+  public:
+    typedef typename ViewT::pixel_type pixel_type;
+    typedef typename ViewT::pixel_type result_type;
+    typedef ProceduralPixelAccessor<DisparityMaskView> pixel_accessor;
 
-    DisparityMaskFunc( MaskViewT const& left_mask, MaskViewT const& right_mask) :
-      m_left_mask(left_mask), m_right_mask(right_mask) {}
-
-    PixelT operator() (PixelT const& pix, Vector2 const& loc) const {
-      if ( !is_valid(pix) ||
-           loc[0] < 0 || loc[0] >= m_left_mask.cols() ||
-           loc[1] < 0 || loc[1] >= m_left_mask.rows() ||
-           loc[0]+pix[0] < 0 || loc[0]+pix[0] >= m_right_mask.cols() ||
-           loc[1]+pix[1] < 0 || loc[1]+pix[1] >= m_right_mask.rows() ||
-           m_left_mask(vw::int32(loc[0]),vw::int32(loc[1])) == 0 ||
-           m_right_mask(vw::int32(loc[0]+pix[0]),vw::int32(loc[1]+pix[1])) == 0 ){
-        return PixelT();
-      } else
-        return pix;
+    DisparityMaskView( ImageViewBase<ViewT> const& image,
+                       ImageViewBase<MaskView1T> const& mask1,
+                       ImageViewBase<MaskView2T> const& mask2,
+                       BBox2i const& search_range = BBox2i() ) :
+      m_input_view(image.impl()), m_mask1_view(mask1.impl()), m_mask2_view(mask2.impl()), m_search_range( search_range ) {
+      VW_DEBUG_ASSERT( image.impl().cols() == mask1.impl().cols() &&
+                       image.impl().rows() == mask1.impl().rows(),
+                       ArgumentErr() << "disparity_mask: input and left mask are not same dimensions." );
     }
+
+    // Standard required ImageView interface
+    inline int32 cols() const { return m_input_view.cols(); }
+    inline int32 rows() const { return m_input_view.rows(); }
+    inline int32 planes() const { return m_input_view.planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
+    inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const {
+      if ( m_mask1_view(i,j,p) == 0 ||
+           !is_valid(m_input_view(i,j,p)) ||
+           i+m_input_view(i,j,p)[0] < 0 || i+m_input_view(i,j,p)[0] >= m_mask2_view.cols() ||
+           j+m_input_view(i,j,p)[1] < 0 || j+m_input_view(i,j,p)[1] >= m_mask2_view.rows() ||
+           m_mask2_view(i+m_input_view(i,j,p)[0],j+m_input_view(i,j,p)[1],p) == 0 )
+        return result_type();
+      return m_input_view(i,j,p);
+    }
+
+    // Block rasterization section that does actual work
+    typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type> >, CropView<ImageView<typename MaskView1T::pixel_type> >, typename MaskView2T::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+      typedef typename MaskView1T::pixel_type Mask1PT;
+      typedef typename ViewT::pixel_type ViewPT;
+
+      // Prerasterize Mask1 as we'll always be using i. I'm not using
+      // the prerasterize type as I want to make sure I can write to
+      // this memory space.
+      CropView<ImageView<Mask1PT> > mask1_preraster =
+        crop(ImageView<Mask1PT>(crop(m_mask1_view,bbox)),-bbox.min().x(),-bbox.min().y(),cols(),rows());
+
+      // Check to see if mask1 is even occupied, if not let's not
+      // prerasterize anything and let this view just return a blank
+      // disparity map.
+      //
+      // This call should have an early exit version.
+      if ( sum_of_pixel_values(mask1_preraster.child()) == 0 )
+        return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
+                                  mask1_preraster, m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+
+      // We have bbox so now we know what sections of the
+      // right mask to prerasterize.
+      if ( m_search_range != BBox2i() ) {
+        BBox2i right_bbox = bbox;
+        right_bbox.min() += m_search_range.min();
+        right_bbox.max() += m_search_range.max();
+        right_bbox.crop( bounding_box(m_mask2_view) );
+
+        typename MaskView2T::prerasterize_type mask2_preraster =
+          m_mask2_view.prerasterize(right_bbox);
+        if ( sum_of_pixel_values(crop(mask2_preraster,right_bbox)) == 0 ) {
+          // It appears the right mask is completely empty. In order
+          // to make this view early exit, we'll set the left mask to
+          // entire zero.
+          fill( mask1_preraster.child(), Mask1PT() );
+          return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
+                                    mask1_preraster, m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+        }
+
+        // Actually rasterize the disparity
+        return prerasterize_type( crop(ImageView<ViewPT>(crop(m_input_view,bbox)),
+                                       -bbox.min().x(), -bbox.min().y(), cols(), rows() ),
+                                  mask1_preraster, mask2_preraster );
+      }
+
+      // If we don't know the search range, prerasterize the
+      // disparity and work it out by reading the data.
+      CropView<ImageView<ViewPT> > disp_preraster =
+        crop( ImageView<ViewPT>( crop(m_input_view, bbox) ),
+              -bbox.min().x(), -bbox.min().y(), cols(), rows() );
+      typedef typename UnmaskedPixelType<ViewPT>::type accum_t;
+      PixelAccumulator<EWMinMaxAccumulator<accum_t> > accumulator;
+      for_each_pixel( disp_preraster.child(), accumulator );
+      if ( !accumulator.is_valid() )
+        return prerasterize_type( disp_preraster,
+                                  mask1_preraster,
+                                  m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+      accum_t input_min = accumulator.minimum();
+      accum_t input_max = accumulator.maximum();
+      BBox2i preraster(bbox.min() + Vector2i(input_min[0],input_min[1]),
+                       bbox.max() + Vector2i(input_max[0],input_max[1]) );
+      preraster.crop( bounding_box( m_input_view ) );
+      // The bottom might be a little confusing. We're rasterizing the
+      // part of mask2 that we know the input disparity will actually
+      // touch.
+      return prerasterize_type( disp_preraster,
+                                mask1_preraster,
+                                m_mask2_view.prerasterize(preraster) );
+    }
+
+    template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
 
-  /// Remove pixels in the disparity map that correspond to locations
-  /// where the left or right image mask is invalid. This function
-  /// also removes any pixels that fall outside the bounds of
-  /// the left or right mask image.
-  template <class ViewT, class MaskViewT>
-  BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, DisparityMaskFunc<typename ViewT::pixel_type,MaskViewT> >
-  disparity_mask ( ImageViewBase<ViewT> const& disparity_map,
-                   ImageViewBase<MaskViewT> const& left_mask,
-                   ImageViewBase<MaskViewT> const& right_mask ) {
-    // idiom her to pass the location (in pixel coordinates) into the
-    // functor along with the pixel value at that location.
-    typedef DisparityMaskFunc<typename ViewT::pixel_type,MaskViewT> func_type;
-    typedef BinaryPerPixelView<ViewT, PerPixelIndexView<VectorIndexFunctor>, func_type > view_type;
-    return view_type(disparity_map.impl(),
-                     pixel_index_view(disparity_map.impl()),
-                     func_type(left_mask.impl(), right_mask.impl()));
+  template <class ViewT, class MaskView1T, class MaskView2T>
+  DisparityMaskView<ViewT, MaskView1T, MaskView2T>
+  disparity_mask( ImageViewBase<ViewT> const& disparity_map,
+                  ImageViewBase<MaskView1T> const& left_mask,
+                  ImageViewBase<MaskView2T> const& right_mask,
+                  BBox2i const& search_range = BBox2i() ) {
+    return DisparityMaskView<ViewT,MaskView1T,MaskView2T>(disparity_map.impl(),left_mask.impl(),right_mask.impl(), search_range);
   }
 
   //  disparity_range_mask()
