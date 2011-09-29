@@ -666,7 +666,7 @@ namespace vw {
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       // FIXME Warning: This does not respect floating-point offsets!
-      m_child.rasterize( dest, bbox+Vector2i(int(m_ci),int(m_cj)) );
+      vw::rasterize( prerasterize(bbox), dest, bbox );
     }
     /// \endcond
   };
