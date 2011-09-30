@@ -15,6 +15,12 @@
 namespace vw {
 namespace cartography {
 
+  // Define a specific exception for proj to throw.  It's derived from
+  // ArgumentErr both because that's what used to be thrown here, and also
+  // because basically every error proj.4 returns is due to some variety of bad
+  // input.
+  VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
+
   /// The georeference class contains the mapping from image
   /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
   /// or possibly meters in a UTM grid cell, etc.).  It must also
@@ -125,7 +131,7 @@ namespace cartography {
 
     /// For a given bbox in Geographic coordinates, return the corresponding
     /// bbox in image pixel coordinates
-    virtual BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox) const;
+    virtual BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
 
     // TODO: Probably should implement point_to_lonlat_bbox and
     // lonlat_to_point_bbox for completeness sake, but right now they're

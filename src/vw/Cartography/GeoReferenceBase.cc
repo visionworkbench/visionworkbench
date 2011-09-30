@@ -4,6 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
+#include <vw/Cartography/detail/BresenhamLine.h>
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/Image/Transform.h>
 
@@ -22,73 +23,85 @@ namespace cartography {
   }
 
   BBox2 GeoReferenceBase::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
-    // TODO: This should be tested with all the different projections
-
     BBox2 lonlat_bbox;
 
-    // As all the projections are continuous, we can just walk the
-    // edges to find the lonlat bounding box.
-
-    // We take 10 samples per edge
-    const int nsamples = 10;
-
-    for(int i = 0; i < nsamples; i++) {
-      // Walk the top & bottom (technically past the edge of pixel space) rows
-      double x = pixel_bbox.min().x() + double(i) / nsamples * pixel_bbox.width();
-      lonlat_bbox.grow(pixel_to_lonlat(Vector2(x,pixel_bbox.min().y())));
-      lonlat_bbox.grow(pixel_to_lonlat(Vector2(x,pixel_bbox.max().y())));
-
-      // Walk the left & right (technically past the edge of pixel space) columns
-      double y = pixel_bbox.min().y() + double(i) / nsamples * pixel_bbox.height();
-      lonlat_bbox.grow(pixel_to_lonlat(Vector2(pixel_bbox.min().x(),y)));
-      lonlat_bbox.grow(pixel_to_lonlat(Vector2(pixel_bbox.max().x(),y)));
+    // Testing the parameter of the pixel bbox
+    for ( int32 x=pixel_bbox.min().x(); x<pixel_bbox.max().x(); ++x ) {
+      try {
+        lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.min().y()) ));
+        lonlat_bbox.grow(pixel_to_lonlat( Vector2(x,pixel_bbox.max().y()-1) ));
+      } catch ( const cartography::ProjectionErr& e ) {}
+    }
+    for ( int32 y=pixel_bbox.min().y()+1; y<pixel_bbox.max().y()-1; ++y ) {
+      try {
+        lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.min().x(),y) ));
+        lonlat_bbox.grow(pixel_to_lonlat( Vector2(pixel_bbox.max().x()-1,y) ));
+      } catch ( const cartography::ProjectionErr& e ) {}
     }
 
-    // Do we cross the north or south pole? Have to cover that case
-    // specially. Fortunately it's easy, because (anything, 90) or
-    // (anything, -90) will always be in the image.
-
-    // TODO: Should this be done with Bresham lines through the
-    // image instead?
-
-    // North pole:
-    if (pixel_bbox.contains(lonlat_to_pixel(Vector2(0, 90)))) {
-        lonlat_bbox.grow(Vector2(0, 90));
+    // Drawing an X inside the bbox. This covers the poles. It will
+    // produce a lonlat boundary that is within at least one pixel of
+    // the pole. This will also help catch terminator boundaries from
+    // orthographic projections.
+    BresenhamLine l1( pixel_bbox.min(), pixel_bbox.max() );
+    while ( l1.is_good() ) {
+      try {
+        lonlat_bbox.grow( pixel_to_lonlat( *l1 ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l1;
     }
-
-    // South pole:
-    if (pixel_bbox.contains(lonlat_to_pixel(Vector2(0, -90)))) {
-        lonlat_bbox.grow(Vector2(0, -90));
+    BresenhamLine l2( pixel_bbox.min() + Vector2i(pixel_bbox.width(),0),
+                      pixel_bbox.max() - Vector2i(pixel_bbox.width(),0) );
+    while ( l2.is_good() ) {
+      try {
+        lonlat_bbox.grow( pixel_to_lonlat( *l2 ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l2;
     }
 
     return lonlat_bbox;
   }
 
-  BBox2i GeoReferenceBase::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox) const {
-    // TODO: This should be tested with all the different projections
+  BBox2i GeoReferenceBase::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
+    // Alternatively this function could avoid the nsamples
+    // option. The sample discrete step could just be this average
+    // size of pixel in degrees.
 
     BBox2 pixel_bbox;
 
-    // As all the projections are continuous, we can just walk the
-    // edges to find the lonlat bounding box.
-
-    // We take 10 samples per edge
-    const int nsamples = 10;
-
-    for(int i = 0; i < nsamples; i++) {
-      // Walk the top & bottom (technically past the edge of pixel space) rows
-      double x = lonlat_bbox.min().x() + double(i) / nsamples * lonlat_bbox.width();
-      pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.min().y())));
-      pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.max().y())));
+    Vector2 lower_fraction(lonlat_bbox.width()/double(nsamples),
+                           lonlat_bbox.height()/double(nsamples));
+    for(size_t i = 0; i < nsamples; i++) {
+      try {
+        // Walk the top & bottom (technically past the edge of pixel space) rows
+        double x = lonlat_bbox.min().x() + double(i) * lower_fraction.x();
+        pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.min().y())));
+        pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.max().y())));
 
 
-      // Walk the left & right (technically past the edge of pixel space) columns
-      double y = lonlat_bbox.min().y() + double(i) / nsamples * lonlat_bbox.height();
-      pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.min().x(),y)));
-      pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.max().x(),y)));
+        // Walk the left & right (technically past the edge of pixel space) columns
+        double y = lonlat_bbox.min().y() + double(i) * lower_fraction.y();
+        pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.min().x(),y)));
+        pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.max().x(),y)));
+      } catch ( const cartography::ProjectionErr& e ) {}
     }
 
-    // TODO: Do poles need to be taken into account?
+    // It is possible that this may not required. However in the
+    // cartography it seems better to be rigorous than sorry.
+    BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
+    while ( l1.is_good() ) {
+      try {
+        pixel_bbox.grow( lonlat_to_pixel( elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min() ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l1;
+    }
+    BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
+    while ( l2.is_good() ) {
+      try {
+        pixel_bbox.grow( lonlat_to_pixel( elem_prod(Vector2(*l2),lower_fraction) + lonlat_bbox.min() ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l2;
+    }
 
     return grow_bbox_to_int(pixel_bbox);
   }
