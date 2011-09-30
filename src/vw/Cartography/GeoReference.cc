@@ -88,6 +88,7 @@ namespace cartography {
     init_proj();
   }
 
+#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   GeoReference::GeoReference(GeoReferenceDesc desc) {
     VW_ASSERT(desc.transform_size() == 9, 
               IOErr() << "GeoReference::GeoReference: Unexpected number of elements in transform");
@@ -114,6 +115,7 @@ namespace cartography {
 
     return desc;
   }
+#endif
 
   void GeoReference::set_transform(Matrix3x3 transform) {
     m_transform = transform;
