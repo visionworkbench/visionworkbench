@@ -5,18 +5,30 @@
 // __END_LICENSE__
 
 #include <vw/Cartography/GeoReferenceBase.h>
+#include <vw/Image/Transform.h>
 
 namespace vw {
 namespace cartography {
 
-  BBox2 GeoReferenceBase::pixel_to_lonlat_bbox(BBox2i pixel_bbox) const {
+  /// For a bbox in projected space, return the corresponding bbox in
+  /// pixels on the image
+  BBox2i GeoReferenceBase::point_to_pixel_bbox(BBox2 const& point_bbox) const {
+    BBox2 pixel_bbox;
+    pixel_bbox.grow(point_to_pixel(point_bbox.min()));
+    pixel_bbox.grow(point_to_pixel(point_bbox.max()));
+    pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.min().x(), point_bbox.max().y())));
+    pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.max().x(), point_bbox.min().y())));
+    return grow_bbox_to_int(pixel_bbox);
+  }
+
+  BBox2 GeoReferenceBase::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
     // TODO: This should be tested with all the different projections
 
     BBox2 lonlat_bbox;
 
     // As all the projections are continuous, we can just walk the
-    // edges to find the lonlat bounding box. 
-    
+    // edges to find the lonlat bounding box.
+
     // We take 10 samples per edge
     const int nsamples = 10;
 
@@ -36,7 +48,7 @@ namespace cartography {
     // specially. Fortunately it's easy, because (anything, 90) or
     // (anything, -90) will always be in the image.
 
-    // TODO: Should this be done with Bresham lines through the 
+    // TODO: Should this be done with Bresham lines through the
     // image instead?
 
     // North pole:
@@ -52,14 +64,14 @@ namespace cartography {
     return lonlat_bbox;
   }
 
-  BBox2i GeoReferenceBase::lonlat_to_pixel_bbox(BBox2 lonlat_bbox) const {
+  BBox2i GeoReferenceBase::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox) const {
     // TODO: This should be tested with all the different projections
 
     BBox2 pixel_bbox;
 
     // As all the projections are continuous, we can just walk the
-    // edges to find the lonlat bounding box. 
-    
+    // edges to find the lonlat bounding box.
+
     // We take 10 samples per edge
     const int nsamples = 10;
 

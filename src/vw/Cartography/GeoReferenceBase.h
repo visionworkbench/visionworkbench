@@ -9,9 +9,8 @@
 #define __VW_CARTOGRAPHY_GEOREFERENCE_H__
 
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/Cartography/Datum.h>
-#include <vw/Image/Transform.h> // For grow_bbox_to_int
-#include <vw/Image/Algorithms.h> // For bounding_box
 
 namespace vw {
 namespace cartography {
@@ -117,26 +116,19 @@ namespace cartography {
     }
 
     /// For a bbox in projected space, return the corresponding bbox in
-    /// pixels on the image 
-    virtual BBox2i point_to_pixel_bbox(BBox2 point_bbox) const {
-      BBox2 pixel_bbox;
-      pixel_bbox.grow(point_to_pixel(point_bbox.min()));
-      pixel_bbox.grow(point_to_pixel(point_bbox.max()));
-      pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.min().x(), point_bbox.max().y())));
-      pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.max().x(), point_bbox.min().y())));
-      return grow_bbox_to_int(pixel_bbox);
-    }
+    /// pixels on the image
+    virtual BBox2i point_to_pixel_bbox(BBox2 const& point_bbox) const;
 
     /// For a given pixel bbox, return the corresponding bbox in
     /// Geographic (lon, lat) coordinates
-    virtual BBox2 pixel_to_lonlat_bbox(BBox2i pixel_bbox) const;
+    virtual BBox2 pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const;
 
-    /// For a given bbox in Geographic coordinates, return the corresponding 
+    /// For a given bbox in Geographic coordinates, return the corresponding
     /// bbox in image pixel coordinates
-    virtual BBox2i lonlat_to_pixel_bbox(BBox2 lonlat_bbox) const;
+    virtual BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox) const;
 
-    // TODO: Probably should implement point_to_lonlat_bbox and 
-    // lonlat_to_point_bbox for completeness sake, but right now they're 
+    // TODO: Probably should implement point_to_lonlat_bbox and
+    // lonlat_to_point_bbox for completeness sake, but right now they're
     // not needed for anything
 
     /// Return the box that bounds the area represented by the
