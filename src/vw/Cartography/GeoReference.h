@@ -92,7 +92,7 @@ namespace cartography {
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
     /// Construct a GeoReference from a GeoReferenceDesc
-    GeoReference(GeoReferenceDesc desc);
+    GeoReference(GeoReferenceDesc const& desc);
 
     /// Create a GeoReferenceDesc for the georef
     GeoReferenceDesc build_desc();

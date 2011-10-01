@@ -67,7 +67,7 @@ namespace cartography {
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
     /// Build a constructor from a DatumDesc
-    Datum(DatumDesc desc) :
+    Datum(DatumDesc const& desc) :
         m_name(desc.name()),
         m_spheroid_name(desc.spheroid_name()),
         m_meridian_name(desc.meridian_name()),

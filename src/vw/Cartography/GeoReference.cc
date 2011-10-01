@@ -89,15 +89,13 @@ namespace cartography {
   }
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-  GeoReference::GeoReference(GeoReferenceDesc desc) {
+  GeoReference::GeoReference(GeoReferenceDesc const& desc) {
     VW_ASSERT(desc.transform_size() == 9, 
               IOErr() << "GeoReference::GeoReference: Unexpected number of elements in transform");
 
-    typedef MatrixProxy<double, 3, 3> Matrix3x3P;
-
-    m_datum = Datum(*desc.mutable_datum());
+    m_datum = Datum(desc.datum());
     m_pixel_interpretation = static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
-    set_transform(Matrix3x3P(desc.mutable_transform()->mutable_data()));  
+    set_transform(Matrix3x3(desc.transform().data()));  
     m_is_projected = desc.is_projected();
     m_proj_projection_str = desc.proj_projection_str();
     
