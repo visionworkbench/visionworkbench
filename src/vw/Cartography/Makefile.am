@@ -33,6 +33,10 @@ include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
                   Projection.h ToastTransform.h $(gdal_headers)         \
                   $(camerabbox_headers)
 
+if HAVE_PKG_PROTOBUF
+include_HEADERS += $(protocol_headers)
+endif
+
 detail_HEADERS =  detail/BresenhamLine.h
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
