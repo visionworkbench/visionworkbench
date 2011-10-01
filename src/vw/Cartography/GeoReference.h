@@ -90,6 +90,9 @@ namespace cartography {
     /// Takes a geodetic datum and an affine transformation matrix
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform);
 
+    /// Takes a geodetic datum and an affine transformation matrix and pixel interpretation
+    GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation);
+
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
     /// Construct a GeoReference from a GeoReferenceDesc
     GeoReference(GeoReferenceDesc const& desc);

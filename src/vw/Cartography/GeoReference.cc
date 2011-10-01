@@ -88,6 +88,13 @@ namespace cartography {
     init_proj();
   }
 
+  GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation) : 
+    GeoReferenceBase(datum, pixel_interpretation) {
+    set_transform(transform);
+    set_geographic();
+    init_proj();
+  }
+
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   GeoReference::GeoReference(GeoReferenceDesc const& desc) {
     VW_ASSERT(desc.transform_size() == 9, 

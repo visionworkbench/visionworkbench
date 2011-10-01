@@ -73,6 +73,9 @@ namespace cartography {
     /// Takes a geodetic datum.
     GeoReferenceBase(Datum const& datum) : m_pixel_interpretation( GeoReferenceBase::PixelAsArea ), m_datum(datum) {}
 
+    /// Takes a geodetic datum and pixel interpretation
+    GeoReferenceBase(Datum const& datum, PixelInterpretation pixel_interpretation) : m_pixel_interpretation( pixel_interpretation ), m_datum(datum) {}
+
     /// Destructor.
     virtual ~GeoReferenceBase() {}
 
