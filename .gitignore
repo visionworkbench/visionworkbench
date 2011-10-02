@@ -225,6 +225,12 @@ docs/workbook/workbook.toc
 /src/vw/Stereo/tests/TestStereoModel
 /src/vw/Stereo/tests/TestSubPixel
 /src/vw/Stereo/rewrite/tests/TestAlgorithms
+/src/vw/Stereo/rewrite/tests/TestCorrelation
+/src/vw/Stereo/rewrite/tests/TestCorrelationView
+/src/vw/Stereo/rewrite/tests/TestCostFunctions
+/src/vw/Stereo/rewrite/tests/TestPreFilter
+/src/vw/Stereo/rewrite/tests/TestSubpixelView
+/src/vw/Stereo/rewrite/tests/TestPyramidCorrelationView
 /src/vw/tools/ba_test
 /src/vw/tools/ba_unit_test_data
 /src/vw/tools/bayer

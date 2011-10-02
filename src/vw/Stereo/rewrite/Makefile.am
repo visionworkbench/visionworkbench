@@ -11,8 +11,8 @@
 
 if MAKE_MODULE_STEREO
 
-rewrite_headers = Algorithms.h Correlation.h    \
-        CostFunctions.h CorrelationView.h PreFilter.h
+rewrite_headers = Algorithms.h Correlation.h CostFunctions.h  \
+        CorrelationView.h PreFilter.h SubpixelView.h
 
 rewrite_sources =
 

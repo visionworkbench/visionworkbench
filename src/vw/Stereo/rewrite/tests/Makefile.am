@@ -17,9 +17,11 @@ TestCostFunctions_SOURCES   = TestCostFunctions.cxx
 TestCorrelation_SOURCES     = TestCorrelation.cxx
 TestCorrelationView_SOURCES = TestCorrelationView.cxx
 TestPyramidCorrelationView_SOURCES = TestPyramidCorrelationView.cxx
+TestSubpixelView_SOURCES    = TestSubpixelView.cxx
 
 TESTS = TestAlgorithms TestPreFilter TestCostFunctions			\
-  TestCorrelation TestCorrelationView TestPyramidCorrelationView
+  TestCorrelation TestCorrelationView TestPyramidCorrelationView        \
+  TestSubpixelView
 
 #include $(top_srcdir)/config/instantiate.am
 
