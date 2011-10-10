@@ -7,6 +7,8 @@
 #ifndef __VW_STEREO_REWRITE_CORRELATION_VIEW_H__
 #define __VW_STEREO_REWRITE_CORRELATION_VIEW_H__
 
+#include <vw/Core/Exception.h>
+#include <vw/Core/Stopwatch.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Stereo/rewrite/Correlation.h>
 #include <boost/foreach.hpp>
@@ -56,6 +58,11 @@ namespace rewrite {
     // Block rasterization section that does actual work
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
+
+#if VW_DEBUG_LEVEL > 0
+      Stopwatch watch;
+      watch.start();
+#endif
 
       // 1.) Expand the left raster region by the kernel size.
       Vector2i half_kernel = m_kernel_size/2;
@@ -147,6 +154,12 @@ namespace rewrite {
 
       // 5.) Convert back to original coordinates
       result += pixel_type(m_search_region.min());
+
+#if VW_DEBUG_LEVEL > 0
+      watch.stop();
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << "\n";
+#endif
+
       return prerasterize_type( result, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
     }
 
@@ -220,6 +233,11 @@ namespace rewrite {
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
+#if VW_DEBUG_LEVEL > 0
+      Stopwatch watch;
+      watch.start();
+#endif
+
       // 1.0) Determining the number of levels to process
       //      There's a maximum base on kernel size. There's also
       //      maximum defined by the search range. Here we determine
@@ -256,7 +274,7 @@ namespace rewrite {
         kernel[1] = kernel[3] = 4.0/16.0;
         kernel[2] = 6.0/16.0;
 
-        for ( int32 i = 0; i < max_pyramid_levels; i++ ) {
+        for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
           left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
           righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
           left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
@@ -273,7 +291,7 @@ namespace rewrite {
                                              bbox.height()/max_upscaling),
                                     BBox2i(0,0,m_search_region.width()/max_upscaling+1,
                                            m_search_region.height()/max_upscaling+1)) );
-      for ( int32 level = max_pyramid_levels; level >= 0; level--) {
+      for ( int32 level = max_pyramid_levels; level >= 0; --level) {
         int32 scaling = 1 << level;
         disparity.set_size( bbox.width()/scaling, bbox.height()/scaling );
 
@@ -389,6 +407,11 @@ namespace rewrite {
 
       VW_DEBUG_ASSERT( bbox.size() == bounding_box(disparity).size(),
                        MathErr() << "PyramidCorrelation: Solved disparity doesn't match requested bbox size." );
+
+#if VW_DEBUG_LEVEL > 0
+      watch.stop();
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << "\n";
+#endif
 
       // 4.0) Reposition our result back into the global
       // solution. Also we need to correct for the offset we applied

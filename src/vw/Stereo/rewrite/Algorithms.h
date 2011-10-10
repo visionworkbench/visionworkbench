@@ -45,14 +45,13 @@ namespace rewrite {
     const AccumT* col_sum_end = &col_sum[input.cols()];
     {
       PAccT row_input = input.origin();
-      for ( int32 ky = 0; ky < kernel[1]; ky++ ) {
+      for ( int32 ky = kernel[1]; ky; --ky ) {
         PAccT col_input = row_input;
-        for ( AccumT *col = &col_sum[0];
-              col < col_sum_end; col++ ) {
-          *col += *col_input;
+        AccumT *col = &col_sum[0];
+        while ( col != col_sum_end ) {
+          *col++ += *col_input;
           col_input.next_col();
         }
-
         row_input.next_row();
       }
     }
@@ -61,18 +60,18 @@ namespace rewrite {
     OAccT dst = output.origin();
     PAccT src_row_back = input.origin();
     PAccT src_row_front = input.origin().advance(0,kernel[1]);
-    for ( int32 y = 0; y < output.rows() - 1; y++ ) {
+    for ( int32 y = output.rows() - 1; y; --y ) {
       // Seed row sum
       AccumT row_sum(0);
       row_sum = std::accumulate(&col_sum[0],&col_sum[kernel[0]],
                                 row_sum);
 
       // Sum down the row line
-      for ( AccumT *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
-            cfront < col_sum_end; ++cback, ++cfront ) {
+      AccumT const *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
+      while( cfront != col_sum_end ) {
         *dst = row_sum;
         dst.next_col();
-        row_sum += *cfront - *cback;
+        row_sum += *cfront++ - *cback++;
       }
       *dst = row_sum;
       dst.next_col();
@@ -80,7 +79,7 @@ namespace rewrite {
       // Update column sums
       PAccT src_col_back = src_row_back;
       PAccT src_col_front = src_row_front;
-      for ( AccumT* col = &col_sum[0]; col < col_sum_end; col++ ) {
+      for ( AccumT* col = &col_sum[0]; col != col_sum_end; ++col ) {
         *col += *src_col_front; // We do this in 2 lines to avoid casting.
         *col -= *src_col_back;  // I'm unsure if the assembly is still doing that.
         src_col_back.next_col();
@@ -99,14 +98,13 @@ namespace rewrite {
                                 row_sum);
 
       // Sum down the row line
-      for ( AccumT *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
-            cfront < col_sum_end; ++cback, ++cfront ) {
+      AccumT const *cback = &col_sum[0], *cfront = &col_sum[kernel[0]];
+      while( cfront != col_sum_end ) {
         *dst = row_sum;
         dst.next_col();
-        row_sum += *cfront - *cback;
+        row_sum += *cfront++ - *cback++;
       }
       *dst = row_sum;
-      dst.next_col();
     }
 
     return output;

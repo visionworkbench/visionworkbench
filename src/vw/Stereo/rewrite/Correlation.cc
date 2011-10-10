@@ -129,18 +129,17 @@ namespace rewrite {
       } else if ( failed.size() == 3 ) {
         // 3 failed to split can I merge ?
         std::list<SearchParam>::const_iterator it1 = failed.begin(), it2 = failed.begin();
-        it2++;
+        ++it2;
         if ( ( it1->first.min().x() == it2->first.min().x() ||
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
           BBox2i merge = it1->first;
           expand_bbox( merge, it2->first );
           list.push_back( SearchParam( merge, it1->second ) );
-          it2++;
-          list.push_back( *it2 );
+          list.push_back( *++it2 );
           return true;
         }
-        it1++; it2++;
+        ++it1; ++it2;
         if ( ( it1->first.min().x() == it2->first.min().x() ||
                it1->first.min().y() == it2->first.min().y() ) &&
              it1->second == it2->second ) {
@@ -157,8 +156,7 @@ namespace rewrite {
           BBox2i merge = it1->first;
           expand_bbox( merge, it2->first );
           list.push_back( SearchParam( merge, it1->second ) );
-          it1++;
-          list.push_back( *it1 );
+          list.push_back( *++it1 );
           return true;
         }
         // Push only the bombed regions, possibly a merge step could go here

@@ -73,15 +73,16 @@ namespace rewrite {
     Vector2i result_size = left_region.size() - kernel_size + Vector2i(1,1);
     ImageView<PixelMask<Vector2i> > disparity_map( result_size[0],
                                                    result_size[1] );
+    std::fill( disparity_map.data(), disparity_map.data() + prod(result_size),
+               PixelMask<Vector2i>(Vector2i()) );
     // First channel is best, second is worst.
     ImageView<QualT> quality_map( result_size[0], result_size[1] );
     ImageView<AccumT> cost_metric( result_size[0], result_size[1] );
 
     // Convolve across search volume
-    for ( int32 dx = 0; dx < search_volume[0]; ++dx ) {
-      for ( int32 dy = 0; dy < search_volume[1]; ++dy ) {
-        Vector2i disparity(dx,dy);
-
+    Vector2i disparity(0,0);
+    for ( ; disparity.y() != search_volume[1]; ++disparity.y() ) {
+      for ( disparity.x() = 0; disparity.x() != search_volume[0]; ++disparity.x() ) {
         // There's only one raster here. Fast box sum calls each pixel
         // individually by pixel accessor. It only calls each pixel
         // once so there's no reason to copy/rasterize the cost result
@@ -99,49 +100,44 @@ namespace rewrite {
         // These conditionals might be served outside of the iteration
         // of dx and dy. It would make the code slightly longer but
         // would avoid a conditional inside a double loop.
-        AccumT* cost_ptr     = &cost_metric(0,0);
-        AccumT* cost_ptr_end = &cost_metric(cost_metric.cols()-1,
-                                            cost_metric.rows()-1)+1;
-        QualT* quality_ptr   = &quality_map(0,0);
-        PixelMask<Vector2i>* disparity_ptr = &disparity_map(0,0);
+        const AccumT* cost_ptr     = cost_metric.data();
+        const AccumT* cost_ptr_end = cost_metric.data() + prod(result_size);
+        QualT* quality_ptr   = quality_map.data();
+        PixelMask<Vector2i>* disparity_ptr = disparity_map.data();
         if ( disparity != Vector2i() ) {
           // Normal comparison operations
           while ( cost_ptr != cost_ptr_end ) {
             if ( cost_function.quality_comparison( *cost_ptr, quality_ptr->first ) ) {
               // Better than best?
               quality_ptr->first = *cost_ptr;
-              *disparity_ptr = PixelMask<Vector2i>(disparity);
+              disparity_ptr->child() = disparity;
             } else if ( !cost_function.quality_comparison( *cost_ptr, quality_ptr->second ) ) {
               // Worse than worse
               quality_ptr->second = *cost_ptr;
             }
-            cost_ptr++;
-            quality_ptr++;
-            disparity_ptr++;
+            ++cost_ptr;
+            ++quality_ptr;
+            ++disparity_ptr;
           }
         } else {
           // Initializing quality_map and disparity_map with first result
           while ( cost_ptr != cost_ptr_end ) {
-            *disparity_ptr = PixelMask<Vector2i>(disparity);
-            quality_ptr->first = quality_ptr->second = *cost_ptr;
-            cost_ptr++;
-            quality_ptr++;
-            disparity_ptr++;
+            quality_ptr->first = quality_ptr->second = *cost_ptr++;
+            ++quality_ptr;
           }
         }
       }
     }
 
     // Determine validity of result
-    QualT* quality_ptr            = &quality_map(0,0);
-    QualT* quality_ptr_end        = &quality_map(quality_map.cols()-1,
-                                                 quality_map.rows()-1)+1;
-    PixelMask<Vector2i>* disp_ptr = &disparity_map(0,0);
+    const QualT* quality_ptr            = quality_map.data();
+    const QualT* quality_ptr_end  = quality_map.data() + prod(result_size);
+    PixelMask<Vector2i>* disp_ptr = disparity_map.data();
     while ( quality_ptr != quality_ptr_end ) {
       if ( quality_ptr->first == quality_ptr->second )
         invalidate( *disp_ptr );
-      quality_ptr++;
-      disp_ptr++;
+      ++quality_ptr;
+      ++disp_ptr;
     }
 
     return disparity_map;
