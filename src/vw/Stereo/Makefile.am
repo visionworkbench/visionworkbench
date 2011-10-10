@@ -11,10 +11,9 @@
 
 if MAKE_MODULE_STEREO
 
-rewrite_headers = rewrite/Algorithms.h rewrite/Correlation.h    \
-        rewrite/CostFunctions.h rewrite/CorrelationView.h
-
-rewrite_sources =
+# Headers are referenced in the rewrite directory
+# rewrite_headers =
+rewrite_sources = rewrite/Correlation.cc
 
 include_HEADERS = Correlate.h ReferenceCorrelator.h             \
         OptimizedCorrelator.h DisparityMap.h StereoModel.h      \
