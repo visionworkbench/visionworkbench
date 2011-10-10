@@ -9,6 +9,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <numeric>
+#include <valarray>
 
 namespace vw {
 namespace stereo {
@@ -40,19 +41,19 @@ namespace rewrite {
     typedef typename ImageView<AccumT>::pixel_accessor OAccT;
 
     // Start column sum
-    boost::scoped_array<AccumT> col_sum( new AccumT[ input.cols() ] );
+    std::valarray<AccumT> col_sum(  input.cols() );
     const AccumT* col_sum_end = &col_sum[input.cols()];
     {
-      PAccT col_input = input.origin();
-      for ( AccumT* col = &col_sum[0];
-            col < col_sum_end; col++ ) { // These
-        PAccT row_input = col_input;
-        *col = *row_input;
-        for ( int32 ky = 1; ky < kernel[1]; ky++ ) { // Loops should probably be swapped
-          row_input.next_row();
-          *col += *row_input;
+      PAccT row_input = input.origin();
+      for ( int32 ky = 0; ky < kernel[1]; ky++ ) {
+        PAccT col_input = row_input;
+        for ( AccumT *col = &col_sum[0];
+              col < col_sum_end; col++ ) {
+          *col += *col_input;
+          col_input.next_col();
         }
-        col_input.next_col();
+
+        row_input.next_row();
       }
     }
 
@@ -81,7 +82,7 @@ namespace rewrite {
       PAccT src_col_front = src_row_front;
       for ( AccumT* col = &col_sum[0]; col < col_sum_end; col++ ) {
         *col += *src_col_front; // We do this in 2 lines to avoid casting.
-        *col -= *src_col_back;  // I'm unsure if the assembly is still do that.
+        *col -= *src_col_back;  // I'm unsure if the assembly is still doing that.
         src_col_back.next_col();
         src_col_front.next_col();
       }
