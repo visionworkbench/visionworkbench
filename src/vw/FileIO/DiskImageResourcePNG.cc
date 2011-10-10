@@ -36,7 +36,7 @@ static void png_error_handler(png_structp /*png_ptr*/, png_const_charp error_msg
 
 // Default PNG file creation options, and related functions.
 namespace {
-  static int default_compression_level = Z_BEST_COMPRESSION;
+  static int default_compression_level = 6;  // 9 = Z_BEST_COMPRESSION; 6 does just about as well.
 }
 
 DiskImageResourcePNG::Options::Options() {
@@ -175,7 +175,7 @@ struct DiskImageResourcePNG::vw_png_read_context:
                << outer->m_filename << " is not a valid PNG file.");
 
     // Must call this as we're using fstream and not FILE*
-    png_set_read_fn(ctx.ptr, reinterpret_cast<voidp>(ctx.file.get()), read_data);
+    png_set_read_fn(ctx.ptr, reinterpret_cast<png_voidp>(ctx.file.get()), read_data);
 
     // Rewind to the beginning of the file.
     png_set_sig_bytes(ctx.ptr, 8);
@@ -380,10 +380,10 @@ struct DiskImageResourcePNG::vw_png_write_context:
     int channels  = num_channels(outer->m_format.pixel_format);
     int bit_depth;
 
-    png_set_compression_level(ctx.ptr, Z_BEST_SPEED);
+    png_set_compression_level(ctx.ptr, 1);  // 1 = Z_BEST_SPEED in libpng 1.2.5
 
     // Must call this as we're using fstream and not FILE*
-    png_set_write_fn(ctx.ptr, reinterpret_cast<voidp>(ctx.file.get()), write_data, flush_data);
+    png_set_write_fn(ctx.ptr, reinterpret_cast<png_voidp>(ctx.file.get()), write_data, flush_data);
 
     // anything else will be converted to UINT8
     switch (outer->m_format.channel_type) {

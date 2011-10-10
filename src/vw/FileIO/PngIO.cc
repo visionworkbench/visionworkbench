@@ -150,7 +150,7 @@ void PngIOCompress::write(const uint8* data, size_t bufsize, size_t rows, size_t
   size_t skip = cols * chan_bytes();
   VW_ASSERT(bufsize >= rows * skip, LogicErr() << "Buffer is too small");
 
-  png_set_compression_level(m_ctx, Z_BEST_SPEED);
+  png_set_compression_level(m_ctx, 1);  // 1 = Z_BEST_SPEED in libpng 1.2.5
 
   {
     png_uint_32 width, height;

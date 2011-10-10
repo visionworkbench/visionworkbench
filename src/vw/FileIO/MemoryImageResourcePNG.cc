@@ -16,7 +16,7 @@ class SrcMemoryImageResourcePNG::Data : public fileio::detail::PngIODecompress {
     const uint8 * m_cur;
     const uint8 * const m_end;
   protected:
-    virtual void bind() { png_set_read_fn(m_ctx, reinterpret_cast<voidp>(this), &SrcMemoryImageResourcePNG::Data::read_fn); }
+    virtual void bind() { png_set_read_fn(m_ctx, reinterpret_cast<png_voidp>(this), &SrcMemoryImageResourcePNG::Data::read_fn); }
   public:
     Data* rewind() const VW_WARN_UNUSED {std::auto_ptr<Data> r(new Data(m_data, m_end-m_data.get())); r->open(); return r.release();}
 
@@ -85,7 +85,7 @@ class DstMemoryImageResourcePNG::Data : public fileio::detail::PngIOCompress {
 
   protected:
     virtual void bind() {
-      png_set_write_fn(m_ctx, reinterpret_cast<voidp>(this), &this_type::write_fn, &this_type::flush_fn);
+      png_set_write_fn(m_ctx, reinterpret_cast<png_voidp>(this), &this_type::write_fn, &this_type::flush_fn);
     }
   public:
     Data(const ImageFormat &fmt) : PngIOCompress(fmt) {}
