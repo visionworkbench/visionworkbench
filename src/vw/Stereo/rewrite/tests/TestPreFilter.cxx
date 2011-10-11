@@ -36,13 +36,13 @@ typedef PreProcess<PixelGray<float> > PreProcessGRAYF32;
 
 TEST_F( PreProcessGRAYU8, NullFilter ) {
   image_type result =
-    preprocessing<NULLOP>().filter( input );
+    NullOperation().filter( input );
   EXPECT_VW_EQ( input, result );
 }
 
 TEST_F( PreProcessGRAYU8, LOGFilter ) {
   image_type result =
-    preprocessing<LAPLACIAN_OF_GAUSSIAN>(25).filter( input );
+    LaplacianOfGaussian(25).filter( input );
   image_type truth =
     laplacian_filter(gaussian_filter( input, 25 ));
   EXPECT_VW_EQ( truth, result );
@@ -50,7 +50,7 @@ TEST_F( PreProcessGRAYU8, LOGFilter ) {
 
 TEST_F( PreProcessGRAYU8, ZeroMeanFilter ) {
   image_type result =
-    preprocessing<SUBTRACTED_MEAN>(25).filter( input );
+    SubtractedMean(25).filter( input );
   image_type truth =
     input - gaussian_filter( input, 25 );
   EXPECT_VW_EQ( truth, result );
@@ -58,13 +58,13 @@ TEST_F( PreProcessGRAYU8, ZeroMeanFilter ) {
 
 TEST_F( PreProcessGRAYI16, NullFilter ) {
   image_type result =
-    preprocessing<NULLOP>().filter( input );
+    NullOperation().filter( input );
   EXPECT_VW_EQ( input, result );
 }
 
 TEST_F( PreProcessGRAYI16, LOGFilter ) {
   image_type result =
-    preprocessing<LAPLACIAN_OF_GAUSSIAN>(25).filter( input );
+    LaplacianOfGaussian(25).filter( input );
   image_type truth =
     laplacian_filter(gaussian_filter( input, 25 ));
   EXPECT_VW_EQ( truth, result );
@@ -72,7 +72,7 @@ TEST_F( PreProcessGRAYI16, LOGFilter ) {
 
 TEST_F( PreProcessGRAYI16, ZeroMeanFilter ) {
   image_type result =
-    preprocessing<SUBTRACTED_MEAN>(25).filter( input );
+    SubtractedMean(25).filter( input );
   image_type truth =
     input - gaussian_filter( input, 25 );
   EXPECT_VW_EQ( truth, result );
@@ -80,13 +80,13 @@ TEST_F( PreProcessGRAYI16, ZeroMeanFilter ) {
 
 TEST_F( PreProcessGRAYF32, NullFilter ) {
   image_type result =
-    preprocessing<NULLOP>().filter( input );
+    NullOperation().filter( input );
   EXPECT_VW_EQ( input, result );
 }
 
 TEST_F( PreProcessGRAYF32, LOGFilter ) {
   image_type result =
-    preprocessing<LAPLACIAN_OF_GAUSSIAN>(25).filter( input );
+    LaplacianOfGaussian(25).filter( input );
   image_type truth =
     laplacian_filter(gaussian_filter( input, 25 ));
   EXPECT_VW_EQ( truth, result );
@@ -94,7 +94,7 @@ TEST_F( PreProcessGRAYF32, LOGFilter ) {
 
 TEST_F( PreProcessGRAYF32, ZeroMeanFilter ) {
   image_type result =
-    preprocessing<SUBTRACTED_MEAN>(25).filter( input );
+    SubtractedMean(25).filter( input );
   image_type truth =
     input - gaussian_filter( input, 25 );
   EXPECT_VW_EQ( truth, result );

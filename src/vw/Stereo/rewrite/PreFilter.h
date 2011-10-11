@@ -13,21 +13,16 @@ namespace vw {
 namespace stereo {
 namespace rewrite {
 
-  // Enum of operations
-  enum PreFilterType {
-    NULLOP,
-    LAPLACIAN_OF_GAUSSIAN,
-    SUBTRACTED_MEAN
+  // This is a base class that is used in other code to make sure the
+  // user is passing an actual pre-processing filter as opposed to say
+  // an 'int'.
+  template <class ImplT>
+  struct PreFilterBase {
+    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
   };
 
-  template <int type>
-  struct preprocessing {
-    template <class ImageT> ImageT
-    filter( ImageViewBase<ImageT> const& image ) const { return image.impl(); }
-  };
-
-  template <>
-  struct preprocessing<NULLOP> {
+  struct NullOperation : public PreFilterBase<NullOperation> {
     template <class ImageT>
     EdgeExtensionView<ImageT,ConstantEdgeExtension>
     filter( ImageViewBase<ImageT> const& image ) const {
@@ -35,10 +30,9 @@ namespace rewrite {
     }
   };
 
-  template <>
-  struct preprocessing<LAPLACIAN_OF_GAUSSIAN> {
+  struct LaplacianOfGaussian : public PreFilterBase<LaplacianOfGaussian> {
     float kernel_width;
-    preprocessing( float size ) : kernel_width(size) {}
+    LaplacianOfGaussian( float size ) : kernel_width(size) {}
 
     template <class ImageT>
     ConvolutionView<SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>, ImageView<typename DefaultKernelT<typename ImageT::pixel_type>::type>, ConstantEdgeExtension>
@@ -47,10 +41,9 @@ namespace rewrite {
     }
   };
 
-  template <>
-  struct preprocessing<SUBTRACTED_MEAN> {
+  struct SubtractedMean : public PreFilterBase<SubtractedMean> {
     float kernel_width;
-    preprocessing( float size ) : kernel_width(size) {}
+    SubtractedMean( float size ) : kernel_width(size) {}
 
     template <class ImageT>
     BinaryPerPixelView<EdgeExtensionView<ImageT, ConstantEdgeExtension>,SeparableConvolutionView<ImageT, typename DefaultKernelT<typename ImageT::pixel_type>::type, ConstantEdgeExtension>,vw::ArgArgDifferenceFunctor>

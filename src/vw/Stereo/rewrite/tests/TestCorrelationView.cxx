@@ -65,7 +65,7 @@ typedef CorrelationViewTest<uint8>             CorrelationViewU8;
 TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -73,7 +73,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .983, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -82,7 +82,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
 
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -90,7 +90,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -98,7 +98,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -106,7 +106,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Cross Correlation" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -117,7 +117,7 @@ TEST_F( CorrelationViewGRAYU8, NullPreprocess ) {
 TEST_F( CorrelationViewGRAYI16, NullPreprocess ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -125,7 +125,7 @@ TEST_F( CorrelationViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .983, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -133,7 +133,7 @@ TEST_F( CorrelationViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -144,7 +144,7 @@ TEST_F( CorrelationViewGRAYI16, NullPreprocess ) {
 TEST_F( CorrelationViewGRAYF32, NullPreprocess ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -152,7 +152,7 @@ TEST_F( CorrelationViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .983, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -160,7 +160,7 @@ TEST_F( CorrelationViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -171,7 +171,7 @@ TEST_F( CorrelationViewGRAYF32, NullPreprocess ) {
 TEST_F( CorrelationViewU8, NullPreprocess ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -179,7 +179,7 @@ TEST_F( CorrelationViewU8, NullPreprocess ) {
   check_error( disparity_map, .983, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -187,7 +187,7 @@ TEST_F( CorrelationViewU8, NullPreprocess ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<NULLOP>(),
+    correlate( input1, input2, NullOperation(),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -198,7 +198,7 @@ TEST_F( CorrelationViewU8, NullPreprocess ) {
 TEST_F( CorrelationViewGRAYU8, LaplacianOfGaussian) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -206,7 +206,7 @@ TEST_F( CorrelationViewGRAYU8, LaplacianOfGaussian) {
   check_error( disparity_map, .81, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -214,7 +214,7 @@ TEST_F( CorrelationViewGRAYU8, LaplacianOfGaussian) {
   check_error( disparity_map, .8, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -225,7 +225,7 @@ TEST_F( CorrelationViewGRAYU8, LaplacianOfGaussian) {
 TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -233,7 +233,7 @@ TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
   check_error( disparity_map, .93, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -241,7 +241,7 @@ TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
   check_error( disparity_map, .93, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -251,7 +251,7 @@ TEST_F( CorrelationViewGRAYU8, SubtractedMean ) {
 
 TEST_F( CorrelationViewGRAYF32, LaplacianOfGaussian) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -259,7 +259,7 @@ TEST_F( CorrelationViewGRAYF32, LaplacianOfGaussian) {
   check_error( disparity_map, .7, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -267,7 +267,7 @@ TEST_F( CorrelationViewGRAYF32, LaplacianOfGaussian) {
   check_error( disparity_map, .64, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+    correlate( input1, input2, LaplacianOfGaussian(1.4),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -278,7 +278,7 @@ TEST_F( CorrelationViewGRAYF32, LaplacianOfGaussian) {
 TEST_F( CorrelationViewGRAYF32, SubtractedMean ) {
   // Percentage correct should never go below 77.4%
   ImageView<PixelMask<Vector2i> > disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -286,7 +286,7 @@ TEST_F( CorrelationViewGRAYF32, SubtractedMean ) {
   check_error( disparity_map, .974, .99, "Absolute Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -294,7 +294,7 @@ TEST_F( CorrelationViewGRAYF32, SubtractedMean ) {
   check_error( disparity_map, .966, .99, "Squared Difference" );
 
   disparity_map =
-    correlate( input1, input2, preprocessing<SUBTRACTED_MEAN>(5),
+    correlate( input1, input2, SubtractedMean(5),
                search_volume, kernel_size,
                CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );

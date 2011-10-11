@@ -75,7 +75,7 @@ typedef PyramidViewTest<uint8>             PyramidViewU8;
 
 TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -83,7 +83,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .91, .999, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -91,7 +91,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .91, .990, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -99,7 +99,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -107,7 +107,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .90, .990, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -115,7 +115,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Cross Correlation" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -125,7 +125,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
 
 TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -133,7 +133,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .91, .999, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -141,7 +141,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .91, .990, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -149,7 +149,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -157,7 +157,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .90, .990, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -165,7 +165,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
   check_error( disparity_map, .87, .99, "Cross Correlation" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -175,7 +175,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
 
 TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -183,7 +183,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .91, .999, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -191,7 +191,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .91, .990, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -199,7 +199,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -207,7 +207,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .90, .990, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -215,7 +215,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Cross Correlation" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -225,7 +225,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
 
 TEST_F( PyramidViewU8, NullPreprocess ) {
   ImageView<PixelMask<Vector2i> > disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -233,7 +233,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
   check_error( disparity_map, .91, .999, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        ABSOLUTE_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -241,7 +241,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
   check_error( disparity_map, .91, .990, "Absolute Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -249,7 +249,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        SQUARED_DIFFERENCE, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -257,7 +257,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
   check_error( disparity_map, .90, .990, "Squared Difference" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
@@ -265,7 +265,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
   check_error( disparity_map, .90, .999, "Cross Correlation" );
 
   disparity_map =
-    pyramid_correlate( input1, input2, preprocessing<NULLOP>(),
+    pyramid_correlate( input1, input2, NullOperation(),
                        search_volume, kernel_size,
                        CROSS_CORRELATION, 2 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );

@@ -76,7 +76,7 @@ TEST( ParabolaSubpixel, NullTest ) {
 
   ImageView<PixelMask<Vector2f> > fdisparity =
     parabola_subpixel( disparity, left, right,
-                       preprocessing<NULLOP>(),
+                       NullOperation(),
                        Vector2i(3,3) );
   EXPECT_EQ( fdisparity.cols(), 5 );
   EXPECT_EQ( fdisparity.rows(), 5 );
@@ -87,7 +87,7 @@ TEST( ParabolaSubpixel, NullTest ) {
 
   fdisparity =
     parabola_subpixel( disparity, left, right,
-                       preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+                       LaplacianOfGaussian(1.4),
                        Vector2i(3,3) );
   EXPECT_EQ( fdisparity.cols(), 5 );
   EXPECT_EQ( fdisparity.rows(), 5 );
@@ -105,7 +105,7 @@ typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
 TEST_F( SubPixelCorrelate95Test, Parabola ) {
   ImageView<PixelMask<Vector2f> > disparity_map =
     parabola_subpixel( starting_disp, image1, image2,
-                       preprocessing<LAPLACIAN_OF_GAUSSIAN>(1.4),
+                       LaplacianOfGaussian(1.4),
                        Vector2i(7,7) );
 
   int32 invalid_count = 0;

@@ -211,10 +211,10 @@ namespace rewrite {
     ParabolaSubpixelView(ImageViewBase<DImageT> const& disparity,
                          ImageViewBase<Image1T> const& left_image,
                          ImageViewBase<Image2T> const& right_image,
-                         PreFilterT const& prefilter,
+                         PreFilterBase<PreFilterT> const& prefilter,
                          Vector2i const& kernel_size ) :
       m_disparity( disparity.impl() ), m_left_image( left_image.impl() ),
-      m_right_image( right_image.impl() ), m_prefilter( prefilter ),
+      m_right_image( right_image.impl() ), m_prefilter( prefilter.impl() ),
       m_kernel_size( kernel_size ) {
       VW_ASSERT( m_disparity.cols() == m_left_image.cols() &&
                  m_disparity.rows() == m_left_image.rows(),
@@ -290,11 +290,11 @@ namespace rewrite {
   parabola_subpixel( ImageViewBase<DImageT> const& disparity,
                      ImageViewBase<Image1T> const& left_image,
                      ImageViewBase<Image2T> const& right_image,
-                     PreFilterT const& prefilter,
+                     PreFilterBase<PreFilterT> const& prefilter,
                      Vector2i const& kernel_size ) {
     typedef ParabolaSubpixelView<DImageT, Image1T, Image2T, PreFilterT> result_type;
     return result_type( disparity.impl(), left_image.impl(), right_image.impl(),
-                        prefilter, kernel_size );
+                        prefilter.impl(), kernel_size );
   }
 
 }}} // end namespace vw::stereo::rewrite

@@ -36,12 +36,12 @@ namespace rewrite {
 
     CorrelationView( ImageViewBase<Image1T> const& left,
                      ImageViewBase<Image2T> const& right,
-                     PreFilterT const& prefilter,
+                     PreFilterBase<PreFilterT> const& prefilter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
                      float consistency_threshold = -1 ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
-      m_prefilter(prefilter), m_search_region(search_region), m_kernel_size(kernel_size),
+      m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
       m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {}
 
     // Standard required ImageView interfaces
@@ -173,12 +173,12 @@ namespace rewrite {
   CorrelationView<Image1T,Image2T,PreFilterT>
   correlate( ImageViewBase<Image1T> const& left,
              ImageViewBase<Image2T> const& right,
-             PreFilterT const& filter,
+             PreFilterBase<PreFilterT> const& filter,
              BBox2i const& search_region, Vector2i const& kernel_size,
              CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
              float consistency_threshold = -1 ) {
     typedef CorrelationView<Image1T,Image2T,PreFilterT> result_type;
-    return result_type( left.impl(), right.impl(), filter, search_region,
+    return result_type( left.impl(), right.impl(), filter.impl(), search_region,
                         kernel_size, cost_type, consistency_threshold );
   }
 
@@ -203,12 +203,12 @@ namespace rewrite {
 
     PyramidCorrelationView( ImageViewBase<Image1T> const& left,
                             ImageViewBase<Image2T> const& right,
-                            PreFilterT const& prefilter,
+                            PreFilterBase<PreFilterT> const& prefilter,
                             BBox2i const& search_region, Vector2i const& kernel_size,
                             CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
                             float consistency_threshold = -1 ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
-      m_prefilter(prefilter), m_search_region(search_region), m_kernel_size(kernel_size),
+      m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
       m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {
       // Calculating max pyramid levels according to the supplied
       // search region.
@@ -431,12 +431,12 @@ namespace rewrite {
   PyramidCorrelationView<Image1T,Image2T,PreFilterT>
   pyramid_correlate( ImageViewBase<Image1T> const& left,
                      ImageViewBase<Image2T> const& right,
-                     PreFilterT const& filter,
+                     PreFilterBase<PreFilterT> const& filter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
                      float consistency_threshold = -1 ) {
     typedef PyramidCorrelationView<Image1T,Image2T,PreFilterT> result_type;
-    return result_type( left.impl(), right.impl(), filter, search_region,
+    return result_type( left.impl(), right.impl(), filter.impl(), search_region,
                         kernel_size, cost_type, consistency_threshold );
   }
 
