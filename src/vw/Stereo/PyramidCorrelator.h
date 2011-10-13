@@ -210,9 +210,9 @@ namespace stereo {
         // Clean up the disparity map by rejecting outliers in the lower
         // resolution levels of the pyramid.  These are some settings that
         // seem to work well in practice.
-        int32 rm_half_kernel = 5;
-        float rm_min_matches_percent = 0.5;
-        float rm_threshold = 3.0;
+        const int32 rm_half_kernel = 5;
+        const float rm_min_matches_percent = 0.5;
+        const float rm_threshold = 3.0;
 
         ImageView<PixelDisp> disparity_map_clean =
           disparity_mask(disparity_clean_up(new_disparity_map,
