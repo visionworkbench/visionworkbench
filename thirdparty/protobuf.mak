@@ -4,7 +4,6 @@
 
 SUFFIXES += .proto .pb.cc
 
-PROTOC = protoc
 PROTOC_ARGS =
 
 # This bit of pwd uglyness is because autoconf 2.59 & automake 1.9.6 don't

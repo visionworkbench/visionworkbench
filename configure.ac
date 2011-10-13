@@ -361,6 +361,10 @@ AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
 AX_PKG(ZEROMQ,     [], [-lzmq],      [zmq.hpp])
 AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
+AC_PATH_TOOL( PROTOC, [protoc], [no], [$PKG_PATHS_PROTOBUF/bin])
+if test x"$PROTOC" = "xno" && test x"$HAVE_PKG_PROTOBUF" = "xyes"; then
+  AC_MSG_ERROR([cannot find protoc used by protobuf])
+fi
 AX_PKG(LIBKML,   [BOOST_THREAD BOOST Z], [-lkmlengine -lkmldom -lkmlbase -lminizip], [kml/engine/kmz_file.h])
 AX_PKG(OPENCV,     [], [-lcxcore],   [opencv/cxcore.h])
 AX_PKG(FLANN,      [], [-lflann_cpp],[flann/flann.hpp])
