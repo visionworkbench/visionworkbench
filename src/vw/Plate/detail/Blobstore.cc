@@ -298,6 +298,9 @@ void Blobstore::write_complete(WriteState& state_) {
   // Release the blob lock.
   m_index->write_complete(state->blob_id);
 
+  // Release cache
+  m_write_cache.erase(state->blob_id);
+
   state->blob_id = 0;
 }
 
