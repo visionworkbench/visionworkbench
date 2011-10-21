@@ -38,10 +38,10 @@ namespace {
     typedef ImageView<PixelT> image_t;
     typedef tile_cache_t<PixelT> cache_t;
 
-    std::sort(tiles.begin(), tiles.end(), d::SortByTidDesc());
+    std::sort(tiles.begin(), tiles.end(), d::SortByTid());
     mosaic::ImageComposite<PixelT> composite;
     composite.set_draft_mode(true);
-    // Insert the images into the composite from highest to lowest tid (already sorted due to SortByTidDesc)
+    // Insert the images into the composite from lowest to highest tid
     BOOST_FOREACH(const TileHeader& hdr, tiles) {
       typename cache_t::const_iterator i = tile_cache.find(d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr)));
       if (i == tile_cache.end()) {

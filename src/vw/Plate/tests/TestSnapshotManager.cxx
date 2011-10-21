@@ -54,12 +54,12 @@ protected:
     fill(objective, PixelT() );
     inc_objective.set_size(256,256);
     fill(inc_objective, PixelT() );
-    fill(crop(inc_objective,0,0,2,256), PixelT(1,1) );
-    fill(crop(objective,2,0,1,256), PixelT(1) );
-    fill(crop(objective,3,0,1,256), PixelT(2) );
-    fill(crop(objective,4,0,1,256), PixelT(3) );
-    fill(crop(objective,5,0,1,256), PixelT(4) );
-    fill(crop(objective,6,0,1,256), PixelT(5) );
+    fill(crop(inc_objective,0,0,1,256), PixelT(1,1) );
+    fill(crop(objective,1,0,1,256), PixelT(1) );
+    fill(crop(objective,2,0,1,256), PixelT(2) );
+    fill(crop(objective,3,0,1,256), PixelT(3) );
+    fill(crop(objective,4,0,1,256), PixelT(4) );
+    fill(crop(objective,5,0,2,256), PixelT(5) );
   }
 
   ImageView<PixelT> objective;

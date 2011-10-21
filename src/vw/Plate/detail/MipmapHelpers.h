@@ -70,6 +70,17 @@ struct SortByTidDesc {
   }
 };
 
+// Ascending order
+struct SortByTid {
+  bool operator()(const tile_order_t& a, const tile_order_t& b) {
+    return a.get<0>() < b.get<0>();
+  }
+  template <typename T>
+  bool operator()(const T& a, const T& b) {
+    return thetid(a) < thetid(b);
+  }
+};
+
 class RememberCallback : public SubProgressCallback {
     mutable double m_count;
     double m_total;
