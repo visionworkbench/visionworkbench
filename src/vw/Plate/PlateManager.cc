@@ -330,7 +330,7 @@ uint64 PlateManager<PixelT>::calc_cache_tile_count() const {
   const uint64 CACHE_TILES = CACHE_BYTES / TILE_BYTES;
   VW_ASSERT( CACHE_TILES >= 4, LogicErr() << "Cache too small to load dependencies of higher tiles. Increase cache size! (currently you can only store " << CACHE_TILES << ")" );
   if ( CACHE_TILES < 100 )
-    vw_out(WarningMessage) << "You may lose a lot of speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")";
+    vw_out(WarningMessage) << "You may lose a lot of speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
   return CACHE_TILES;
 }
 

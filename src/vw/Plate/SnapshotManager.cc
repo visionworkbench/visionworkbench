@@ -70,8 +70,11 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
   const uint64 TILE_BYTES  = m_write_plate->default_tile_size() * m_write_plate->default_tile_size() * uint32(PixelNumBytes<PixelT>::value);
   const uint64 CACHE_BYTES = vw_settings().system_cache_size();
   const uint64 CACHE_TILES = CACHE_BYTES / TILE_BYTES;
-  // This is an arbitrary value, to hopefully catch pathlogically-small cache sizes
-  VW_ASSERT(CACHE_TILES > 100, LogicErr() << "You will have many problems if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")");
+  VW_ASSERT( CACHE_TILES > 1, LogicErr() << "Cache too small to process any tiles in snapshot." );
+  // This is an arbitrary value, to hopefully catch
+  // pathlogically-small cache sizes
+  if ( CACHE_TILES < 100 )
+    vw_out(WarningMessage) << "You will lose a lot speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
 
   // Divide up the region into moderately-sized chunks
   std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
@@ -99,10 +102,15 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       size_t size = 0;
       composite_map_t composite_batch;
 
+      composite_map_t::const_iterator i_before = i;
       for (; i != end; ++i) {
         if (size + i->second.size() <= CACHE_TILES) {
           composite_batch.insert(*i);
           size += i->second.size();
+        } else {
+          VW_ASSERT( i_before != i,
+                     LogicErr() << "Cache too small to perform composite. Stuck in infinite loop." );
+          break;
         }
       }
       if (composite_batch.size() == 0)

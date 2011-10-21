@@ -28,6 +28,7 @@ TestModPlate_SOURCES          = TestModPlate.cxx
 TestPlateManager_SOURCES      = TestPlateManager.cxx
 TestRpc_SOURCES               = TestRpc.cxx $(protocol_sources)
 TestRpcChannel_SOURCES        = TestRpcChannel.cxx
+TestSnapshotManager_SOURCES   = TestSnapshotManager.cxx
 TestTileManipulation_SOURCES  = TestTileManipulation.cxx
 TestTransactions_SOURCES      = TestTransactions.cxx
 
@@ -46,6 +47,7 @@ check_PROGRAMS = \
   TestPlateManager \
   TestRpc \
   TestRpcChannel \
+  TestSnapshotManager \
   TestTileManipulation \
   TestTransactions
 
