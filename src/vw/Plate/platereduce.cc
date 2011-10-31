@@ -266,18 +266,16 @@ struct Options {
   // Input
   Url url;
   int32 level;
-  TransactionOrNeg start_trans_id;
-  TransactionOrNeg end_trans_id;
+  TransactionOrNeg start_trans_id, end_trans_id;
   std::string start_description;
-  bool start, finish;
+  bool finish;
 
   // Output
   string function;
   TransactionOrNeg transaction_id;
 
   // For spawning multiple jobs
-  int32 job_id;
-  int32 num_jobs;
+  int32 job_id, num_jobs;
 };
 
 void handle_arguments(int argc, char *argv[], Options& opt) {
@@ -290,8 +288,8 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     ("level,l", po::value(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out and show the number of levels available.")
     ("function,f", po::value(&opt.function)->default_value("WeightedAvg"), "Functions that are available are [WeightedAvg RobustMean WeightedVar]")
     ("transaction-id,t",po::value(&opt.transaction_id)->default_value(2000), "Transaction id to write to")
-    ("start", po::value<std::string>(&opt.start_description), "Starts a multi-part plate reduce.")
-    ("finish", "Finish a multi-part plate reduce")
+    ("start", po::value(&opt.start_description), "Starts a multi-part plate reduce.")
+    ("finish", po::bool_switch(&opt.finish)->default_value(false), "Finish a multi-part plate reduce")
     ("help,h", "Display this help message");
 
   po::options_description hidden_options("");
@@ -312,9 +310,6 @@ void handle_arguments(int argc, char *argv[], Options& opt) {
     vw_throw( ArgumentErr() << "Error parsing input:\n\t"
               << e.what() << options );
   }
-
-  opt.start = vm.count("start");
-  opt.finish = vm.count("finish");
 
   std::ostringstream usage;
   usage << "Usage: " << argv[0] << " <plate_filename> [options]\n";
@@ -378,12 +373,14 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   boost::shared_ptr<PlateFile> platefile =
     boost::shared_ptr<PlateFile>( new PlateFile(opt.url) );
 
-  if ( opt.start ) {
+  if ( !opt.start_description.empty() ) {
     platefile->transaction_begin(opt.start_description, opt.transaction_id );
     vw_out() << "Transaction started with ID = " << platefile->transaction_id() << "\n";
     vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
     exit(0);
   }
+
+  platefile->transaction_resume(opt.transaction_id.promote());
 
   if ( opt.finish ) {
     // Update the read cursor when the snapshot is complete!
@@ -391,8 +388,6 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
     vw_out() << "Transaction " << opt.transaction_id << " complete.\n";
     exit(0);
   }
-
-  platefile->transaction_resume(opt.transaction_id.promote());
 
   if ( opt.level < 0 || opt.level >= boost::numeric_cast<int32>(platefile->num_levels()) ) {
     vw_throw( ArgumentErr() << "Incorrect level selection, "
@@ -415,6 +410,11 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   }
   vw_out() << "Job " << opt.job_id << "/" << opt.num_jobs << " has "
            << mworkunits.size() << " work units.\n";
+
+  platefile->audit_log()
+    << "Started multi-part reduce (t_id = " << opt.transaction_id
+    << ") -- level:" << opt.level
+    << " jobid:" << opt.job_id << "/" << opt.num_jobs << "\n";
 
   platefile->write_request();
 
@@ -452,6 +452,10 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   }
 
   platefile->write_complete();
+  platefile->audit_log()
+    << "Finished multi-part reduce (t_id = " << opt.transaction_id
+    << ") -- level:" << opt.level
+    << " jobid:" << opt.job_id << "/" << opt.num_jobs << "\n";
 }
 
 int main( int argc, char *argv[] ) {
