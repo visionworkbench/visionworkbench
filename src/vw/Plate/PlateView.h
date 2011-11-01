@@ -23,6 +23,7 @@ namespace platefile {
   class PlateView : public ImageViewBase<PlateView<PixelT> > {
     boost::shared_ptr<ReadOnlyPlateFile> m_platefile;
     int m_current_level;
+    TransactionOrNeg m_transaction_id;
 
   public:
     typedef PixelT pixel_type;
@@ -31,12 +32,14 @@ namespace platefile {
 
     PlateView(const Url& url)
       : m_platefile( new PlateFile(url) ),
-        m_current_level(m_platefile->num_levels()-1)
+        m_current_level(m_platefile->num_levels()-1),
+        m_transaction_id(-1)
     { }
 
     PlateView(boost::shared_ptr<PlateFile> plate)
       : m_platefile( plate ),
-        m_current_level(m_platefile->num_levels()-1)
+        m_current_level(m_platefile->num_levels()-1),
+        m_transaction_id(-1)
     { }
 
     // Standard ImageView interface methods
@@ -56,6 +59,10 @@ namespace platefile {
       m_current_level = level;
     }
 
+    void set_transaction(TransactionOrNeg t) {
+      m_transaction_id = t;
+    }
+
     int num_levels() const { return m_platefile->num_levels(); }
 
     std::list<TileHeader>
@@ -64,7 +71,7 @@ namespace platefile {
       BBox2i query_region;
       query_region.min() = floor(Vector2f(image_bbox.min())/tile_size);
       query_region.max() = ceil(Vector2f(image_bbox.max())/tile_size);
-      return m_platefile->search_by_region(m_current_level, query_region, TransactionRange(-1));
+      return m_platefile->search_by_region(m_current_level, query_region, TransactionRange(m_transaction_id));
     }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }

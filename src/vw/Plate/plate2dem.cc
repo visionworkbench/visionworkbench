@@ -36,6 +36,7 @@ struct Options {
   double tile_ppd;
   bool pds_dem_mode, pds_imagery_mode;
   int level;
+  TransactionOrNeg transaction_id;
 
   // Output
   std::string output_datum, output_prefix;
@@ -85,6 +86,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
   output_georef.set_datum( datum );
 
   PlateView<PixelT> plate_view(platefile);
+  plate_view.set_transaction(opt.transaction_id);
   if ( opt.level != -1 )
     plate_view.set_level( opt.level );
   ImageViewRef<PixelT> plate_view_ref = plate_view;
@@ -105,17 +107,22 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
     // Double check
     curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
                       output_georef.lonlat_to_pixel(Vector2(1,0)));
+    VW_DEBUG_ASSERT( fabs(curr_ppd - opt.tile_ppd) < 1e-3,
+                     MathErr() << "Objective PPD is wrong" );
   }
-  std::cout << "Converting " << opt.plate_file_name << " to " << opt.output_prefix << "\n";
-  std::cout << output_georef << "\n";
+  vw_out() << "Converting " << opt.plate_file_name << " to " << opt.output_prefix << "\n";
+  vw_out() << output_georef << "\n";
 
   // Get the output georeference.
-  vw::BBox2i output_bbox;
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.north)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.north)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.south)));
-  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.south)));
-  std::cout << "\t--> Output bbox: " << output_bbox << "\n";
+  BBox2i output_bbox;
+  Vector2 half_pixel( output_georef.transform()(0,0)/2,
+                      output_georef.transform()(1,1)/2 );
+
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.north)+half_pixel));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.north)+half_pixel));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.south)+half_pixel));
+  output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.south)+half_pixel));
+  vw_out() << "\t--> Output bbox: " << output_bbox << "\n";
 
   if ( opt.tile_size_deg > 0 ) {
     if ( opt.tile_ppd > 0 ) {
@@ -133,50 +140,49 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
   std::vector<BBox2i> crop_bboxes = image_blocks(crop(plate_view_ref, output_bbox),
                                                  opt.tile_size, opt.tile_size);
 
-  for (unsigned i = 0; i < crop_bboxes.size(); ++i) {
+  BOOST_FOREACH( BBox2i crop_box, crop_bboxes ) {
     // The crop bboxes start at (0,0), and we want them to start at
     // the upper left corner of the output_bbox.
-    crop_bboxes[i].min() += output_bbox.min();
-    crop_bboxes[i].max() += output_bbox.min();
+    crop_box.min() += output_bbox.min();
+    crop_box.max() += output_bbox.min();
 
     { // Checking to see if this section is transparent
       std::list<TileHeader> theaders =
-        plate_view.search_for_tiles( crop_bboxes[i] / scale_change );
+        plate_view.search_for_tiles( crop_box / scale_change );
       if (theaders.empty())
         continue;
     }
 
     cartography::GeoReference tile_georef = output_georef;
-    Vector2 top_left_ll = output_georef.pixel_to_lonlat(crop_bboxes[i].min());
+    Vector2 top_left_ll =
+      output_georef.pixel_to_lonlat(Vector2(crop_box.min()) - Vector2(0.5,0.5));
     Matrix3x3 T = tile_georef.transform();
     T(0,2) = top_left_ll(0);
     T(1,2) = top_left_ll(1);
     tile_georef.set_transform(T);
 
-    std::cout << "\t--> Generating tile " << (i+1) << " / " << crop_bboxes.size()
-              << " : " << crop_bboxes[i] << "\n"
+    std::cout << "\t--> Generating tile " << crop_box << "\n"
               << "\t    with transform  "
               << tile_georef.transform() << "\n";
 
     std::ostringstream output_filename;
-    output_filename << opt.output_prefix << "_"
-                    << abs(int32(top_left_ll[0]));
-    if ( top_left_ll[0] < 0 )
-      output_filename << "W_";
-    else
-      output_filename << "E_";
-    output_filename << abs(int32(top_left_ll[1]));
-    if ( top_left_ll[1] >= 0 )
-      output_filename << "N.tif";
-    else
-      output_filename << "S.tif";
+    output_filename << opt.output_prefix << "_";
+    if ( top_left_ll[0] < 0 ) {
+      output_filename << abs(int32(top_left_ll[0]-0.5)) << "W_";
+    } else {
+      output_filename << abs(int32(top_left_ll[0]+0.5)) << "E_";
+    }
+    if ( top_left_ll[1] >= 0 ) {
+      output_filename << abs(int32(top_left_ll[1]+0.5)) << "N.tif";
+    } else {
+      output_filename << abs(int32(top_left_ll[1]-0.5)) << "S.tif";
+    }
 
-    ImageView<PixelT> cropped_view = crop(plate_view_ref, crop_bboxes[i]);
     DiskImageResourceGDAL::Options gdal_options;
     gdal_options["COMPRESS"] = "LZW";
 
     if ( opt.pds_dem_mode ) {
-      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(cropped_view)),-32767);
+      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,int16>::type > dem_image = apply_mask(alpha_to_mask(channel_cast<int16>(crop(plate_view_ref, crop_box))),-32767);
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
       rsrc.set_nodata_write( -32767 );
@@ -184,7 +190,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
       write_image(rsrc, dem_image,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
     } else if ( opt.pds_imagery_mode ) {
-      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = convert_to_pds_imagery( cropped_view );
+      ImageViewRef<typename CompoundChannelCast<typename PixelWithoutAlpha<PixelT>::type ,uint8>::type > dem_image = convert_to_pds_imagery( crop(plate_view_ref, crop_box) );
       DiskImageResourceGDAL rsrc(output_filename.str(), dem_image.format(),
                                  Vector2i(256,256), gdal_options);
       rsrc.set_nodata_write( 0 );
@@ -192,6 +198,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
       write_image(rsrc, dem_image,
                   TerminalProgressCallback( "plate.tools", "\t    Writing: "));
     } else {
+      ImageViewRef<PixelT> cropped_view = crop(plate_view_ref, crop_box);
       DiskImageResourceGDAL rsrc(output_filename.str(), cropped_view.format(),
                                  Vector2i(256,256), gdal_options);
       write_georeference(rsrc, tile_georef);
@@ -206,6 +213,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("Chops platefile into georeferenced squares.\n\nGeneral Options");
   general_options.add_options()
     ("output-prefix,o", po::value(&opt.output_prefix), "Specify the base output directory")
+    ("transaction-id", po::value(&opt.transaction_id)->default_value(-1), "Transaction inside the plate to use as input. -1 will pull the top most.")
     ("level,l", po::value(&opt.level)->default_value(-1), "Level inside the plate in which to process. -1 will error out at show the number of levels available.")
     ("west,w", po::value(&opt.west)->default_value(-180), "Specify west edge of the region to extract (deg).")
     ("east,e", po::value(&opt.east)->default_value(180), "Specify east edge of the region to extract (deg).")
