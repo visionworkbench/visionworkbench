@@ -18,7 +18,7 @@ namespace vw {
 namespace cartography {
 
   // Constructor
-    GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
+  GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
     m_src_georef(src_georef), m_dst_georef(dst_georef) {
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
@@ -138,7 +138,5 @@ namespace cartography {
       }
     }
   }
-
-
 }} // namespace vw::cartography
 

@@ -284,6 +284,18 @@ namespace cartography {
     } // namespace vw::cartography::output::tms
   } // namespace vw::cartography::output
 
+  // Simple GeoReference modification tools
+  GeoReference crop( GeoReference const& input,
+                     int32 upper_left_x, int32 upper_left_y,
+                     int32 width=0, int32 height=0 );
+  GeoReference crop( GeoReference const& input,
+                     BBox2i const& bbox );
+
+  GeoReference resample( GeoReference const& input,
+                         double scale_x, double scale_y );
+  GeoReference resample( GeoReference const& input,
+                         double scale );
+
 }} // namespace vw::cartography
 
 #endif // __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__

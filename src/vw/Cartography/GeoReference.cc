@@ -459,4 +459,50 @@ namespace cartography {
   ProjContext::~ProjContext() {
     pj_free(m_proj_ptr);
   }
+
+  // Simple GeoReference modification tools
+  GeoReference crop( GeoReference const& input,
+                     int32 upper_left_x, int32 upper_left_y,
+                     int32 width, int32 height ) {
+    Vector2 top_left_ll;
+    if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
+      top_left_ll = input.pixel_to_lonlat( Vector2(upper_left_x, upper_left_y ) - Vector2(0.5,0.5) );
+    } else {
+      top_left_ll = input.pixel_to_lonlat( Vector2(upper_left_x, upper_left_y ) );
+    }
+    GeoReference output = input;
+    Matrix3x3 T = output.transform();
+    T(0,2) = top_left_ll[0];
+    T(1,2) = top_left_ll[1];
+    output.set_transform(T);
+    return output;
+  }
+
+  GeoReference crop( GeoReference const& input,
+                     BBox2i const& bbox ) {
+    return crop(input, bbox.min().x(), bbox.min().y(),
+                bbox.width(), bbox.height());
+  }
+
+  GeoReference resample( GeoReference const& input,
+                         double scale_x, double scale_y ) {
+    GeoReference output = input;
+    Matrix3x3 T = output.transform();
+    T(0,0) /= scale_x;
+    T(1,1) /= scale_y;
+    if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
+      Vector2 top_left_ll =
+        input.pixel_to_lonlat( -Vector2(0.5 / scale_x, 0.5 / scale_y) );
+      T(0,2) = top_left_ll[0];
+      T(1,2) = top_left_ll[1];
+    }
+    output.set_transform(T);
+    return output;
+  }
+
+  GeoReference resample( GeoReference const& input,
+                         double scale ) {
+    return resample(input, scale, scale );
+  }
+
 }} // vw::cartography
