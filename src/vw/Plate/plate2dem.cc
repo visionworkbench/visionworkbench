@@ -98,11 +98,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
     scale_change = opt.tile_ppd / curr_ppd;
     plate_view_ref = resample( plate_view, scale_change, scale_change,
                                ZeroEdgeExtension());
-    Matrix3x3 scale;
-    scale.set_identity();
-    scale(0,0) /= scale_change;
-    scale(1,1) /= scale_change;
-    output_georef.set_transform( output_georef.transform()*scale );
+    output_georef = resample( output_georef, scale_change );
 
     // Double check
     curr_ppd = norm_2(output_georef.lonlat_to_pixel(Vector2(0,0))-
@@ -153,13 +149,8 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
         continue;
     }
 
-    cartography::GeoReference tile_georef = output_georef;
-    Vector2 top_left_ll =
-      output_georef.pixel_to_lonlat(Vector2(crop_box.min()) - Vector2(0.5,0.5));
-    Matrix3x3 T = tile_georef.transform();
-    T(0,2) = top_left_ll(0);
-    T(1,2) = top_left_ll(1);
-    tile_georef.set_transform(T);
+    cartography::GeoReference tile_georef =
+      crop( output_georef, crop_box );
 
     std::cout << "\t--> Generating tile " << crop_box << "\n"
               << "\t    with transform  "
@@ -167,6 +158,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
 
     std::ostringstream output_filename;
     output_filename << opt.output_prefix << "_";
+    Vector2 top_left_ll = tile_georef.pixel_to_lonlat(Vector2());
     if ( top_left_ll[0] < 0 ) {
       output_filename << abs(int32(top_left_ll[0]-0.5)) << "W_";
     } else {
