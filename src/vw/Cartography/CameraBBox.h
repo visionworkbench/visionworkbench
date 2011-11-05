@@ -140,7 +140,7 @@ namespace cartography {
     class CameraDEMBBoxHelper {
       GeoReference m_georef;
       boost::shared_ptr<camera::CameraModel> m_camera;
-      ImageViewBase<DEMImageT> const& m_dem;
+      DEMImageT m_dem;
       double m_z_scale;
       Vector2 m_last_intersect;
 
@@ -152,7 +152,7 @@ namespace cartography {
       CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem_image,
                            GeoReference const& georef,
                            boost::shared_ptr<camera::CameraModel> camera,
-                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
+                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
         m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
       }
 
