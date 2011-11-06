@@ -294,7 +294,7 @@ void PlateManager<PixelT>::slow_mipmap( uint32 output_level, std::list<TileHeade
 }
 
 template <class PixelT>
-void PlateManager<PixelT>::fast_mipmap( uint32 starting_output_level, std::list<TileHeader>& input_hdrs, bool preblur, const d::RememberCallback& pc) const
+void PlateManager<PixelT>::fast_mipmap( uint32 starting_output_level, int32 stopping_level, std::list<TileHeader>& input_hdrs, bool preblur, const d::RememberCallback& pc) const
 {
   typedef ImageView<PixelT> image_t;
   level_data<PixelT> scratch1, scratch2;
@@ -310,7 +310,7 @@ void PlateManager<PixelT>::fast_mipmap( uint32 starting_output_level, std::list<
 
   cache_consume_tiles<PixelT>(*m_platefile, tiles, curr->cache);
 
-  for (int32 level = starting_output_level; level >= 0; --level)
+  for (int32 level = starting_output_level; level >= stopping_level; --level)
   {
     std::swap(curr, prev); // point prev at 'current'
     curr->clear();         // and dump the old 'prev'
@@ -338,13 +338,14 @@ template <class PixelT>
 void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& starting_region,
                                   TransactionOrNeg read_transaction_id,
                                   bool preblur,
-                                  const ProgressCallback &progress_callback) const
+                                  const ProgressCallback &progress_callback,
+                                  uint32 stopping_level ) const
 {
   const uint64 CACHE_TILES = calc_cache_tile_count();
 
   BBox2i input_region(starting_region);
 
-  for (int32 output_level = starting_level-1; output_level >= 0; --output_level)
+  for (int32 output_level = starting_level-1; output_level >= stopping_level; --output_level)
   {
     std::list<TileHeader> hdrs = m_platefile->search_by_region(output_level+1, input_region, read_transaction_id);
     size_t hdrs_size = hdrs.size();
@@ -360,7 +361,7 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& starting_
     else {
       uint32 remaining_tiles = approximate_total_tiles(input_region, hdrs.size()) - hdrs.size();
       vw_out(VerboseDebugMessage, "platefile") << "\nFAST_MIPMAP, level " << output_level << ", tile_count(" << hdrs_size << ") less than " << CACHE_TILES / 2 << "(~" << remaining_tiles << " tiles left)" << std::endl;
-      fast_mipmap(output_level, hdrs, preblur, d::RememberCallback(progress_callback, float(output_level)/starting_level, remaining_tiles));
+      fast_mipmap(output_level, stopping_level, hdrs, preblur, d::RememberCallback(progress_callback, float(output_level)/starting_level, remaining_tiles));
       break;
     }
     input_region = move_up(input_region);
@@ -395,7 +396,8 @@ namespace platefile {
   PlateManager<PIXELT >::mipmap(uint32 starting_level, BBox2i const& bbox,     \
                                 TransactionOrNeg transaction_id,               \
                                 bool preblur,                                  \
-                                const ProgressCallback &progress_callback) const; \
+                                const ProgressCallback &progress_callback,     \
+                                uint32 stopping_level ) const;                 \
   template void                                                                \
   PlateManager<PIXELT >::affected_tiles(BBox2i const& image_size,              \
                                         TransformRef const& tx, int tile_size, \

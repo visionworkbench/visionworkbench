@@ -171,6 +171,9 @@ rpc_tool_LDADD = $(PLATE_LOCAL_LIBS)
 hirise2tif_SOURCES = hirise2tif.cc
 hirise2tif_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 
+mipmap_SOURCES = mipmap.cc
+mipmap_LDADD   = $(PLATE_LOCAL_LIBS)
+
 platecopy_SOURCES = platecopy.cc
 platecopy_LDADD   = $(PLATE_LOCAL_LIBS)
 
@@ -194,6 +197,7 @@ bin_PROGRAMS =   \
   index_client   \
   index_perftest \
   index_server   \
+  mipmap         \
   platecopy      \
   plate2dem      \
   platetransform \

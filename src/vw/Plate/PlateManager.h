@@ -64,8 +64,8 @@ namespace platefile {
                                   ImageViewRef<PixelT>& image,
                                   TransformRef& txref, int& level ) const = 0;
 
-    void slow_mipmap( uint32 level,          std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
-    void fast_mipmap( uint32 starting_level, std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
+    void slow_mipmap( uint32 level, std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
+    void fast_mipmap( uint32 starting_level, int32 stopping_level, std::list<TileHeader>& src_hdrs, bool preblur, const detail::RememberCallback& pc) const;
     uint64 calc_cache_tile_count() const;
 
   public:
@@ -82,7 +82,7 @@ namespace platefile {
     //         tiles.
     // input_transaction_id -- to use when reading
     // output_transaction_id -- to use when writing
-    virtual void mipmap(uint32 starting_level, BBox2i const& bbox, TransactionOrNeg input_transaction_id, bool preblur, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance()) const;
+    virtual void mipmap(uint32 starting_level, BBox2i const& bbox, TransactionOrNeg input_transaction_id, bool preblur, const ProgressCallback &progress_callback = ProgressCallback::dummy_instance(), uint32 stopping_level=0) const;
 
     // Provides user a georeference for a particular level of the pyramid
     virtual cartography::GeoReference georeference( int level ) const = 0;
