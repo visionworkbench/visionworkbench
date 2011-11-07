@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 # __BEGIN_LICENSE__
 # Copyright (C) 2006-2011 United States Government as represented by
 # the Administrator of the National Aeronautics and Space Administration.
@@ -37,7 +37,8 @@ HARD_CODED_TILE_SIZE = 256
 
 DEFAULT_MAX_KMZ_FEATURES = 256
 DEFAULT_DRAW_ORDER_FACTOR = 10 # presently hardcoded: tiles will be rendererd at DRAW_ORDER_FACTOR * tile_level
-DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
+#DEFAULT_VW_BIN_PATH = '/Users/ted/local/bin/'
+DEFAULT_VW_BIN_PATH = '/big/local/visionworkbench/bin'
 DEFAULT_REGIONATION_OFFSET = 5
 DEFAULT_WORKERS = 6
 
@@ -433,14 +434,20 @@ def search_tiles_by_region(platefile_url, region):
     #print " ".join(args)
     while True:
         try:
-            output = subprocess.check_output( args )
+            #output = subprocess.check_output( args )
+            p = subprocess.Popen( args , stdout=subprocess.PIPE)
+            output, stdin = p.communicate()
             break
         except subprocess.CalledProcessError, e:
             print "%s RETRYING" % str(e)
             continue
     response = json.loads(output)
     if response['ok']:
-        tiles = [ Tile(**t) for t in response['result'] ]
+        #tiles = [ Tile(**t) for t in response['result'] ]
+        tiles = []
+        for t in response['result']:
+            t = dict((str(k), v) for k,v in t.items())
+            tiles.append(Tile(**t))
     else:
         if response['error'] == "TOO DEEP":
             raise PlateDepthExceededException()
