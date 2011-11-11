@@ -772,7 +772,7 @@ public:
     for (unsigned j=0; j < a.size();++j) {
       Vector3 position_correction = subvector(a[j],0,3);
       Vector3 p = subvector(a[j],3,3);
-      Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2],"xyz");
+      //Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2],"xyz");
 
       camera::CAHVORModel cam;
       cam.C = position_correction;

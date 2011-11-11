@@ -990,9 +990,9 @@ void write_control_network(boost::shared_ptr<ControlNetwork> cnet, int num_camer
     ControlPoint cp = *cnet_iter;
     Vector3 pos = cp.position();
     cnetos << pos[0] << "\t" << pos[1] << "\t" << pos[2] << "\t";
-    for (int i = 0; i < num_cameras; i++) {
+    for (size_t i = 0; i < num_cameras; i++) {
       bool match = false;
-      for (unsigned j = 0; j < cp.size(); j++) {
+      for (size_t j = 0; j < cp.size(); j++) {
         ControlMeasure cm = cp[j];
         if (cm.image_id() == i) {
           Vector2 cmpos = cm.position();

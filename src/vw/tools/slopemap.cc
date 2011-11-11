@@ -168,7 +168,6 @@ Vector2 uneven_grid (const ::Options& opt, int x, int y, DiskImageView<ImageT> i
         if(!opt.spherically_defined) {
           Vector3 neighbor=pixel_to_cart(Vector2(x+i,y+j),img,GR);
           Vector3 neighbor_below_rescale=normalize(neighbor)*(norm_2(center_below)/dot_prod(normalize(neighbor),center_normal));
-          Vector2 lonlat=GR.pixel_to_lonlat(Vector2(x,y));
           Vector3 v=neighbor_below_rescale-center_below;
           //or, project both onto tangent plane...
           rises(ct,0)=(img(x+i,y+j)-img(x,y))/norm_2(v);
