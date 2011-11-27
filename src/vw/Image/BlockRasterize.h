@@ -67,12 +67,12 @@ namespace vw {
     ImageT const& child() const { return *m_child; }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       ImageView<pixel_type> buf( bbox.width(), bbox.height(), planes() );
       rasterize( buf, bbox );
       return CropView<ImageView<pixel_type> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       RasterizeFunctor<DestT> rasterizer( *this, dest, bbox.min() );
       BlockProcessor<RasterizeFunctor<DestT> > process( rasterizer, m_block_size, m_num_threads );
       process(bbox);

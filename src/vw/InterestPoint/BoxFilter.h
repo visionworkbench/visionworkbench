@@ -104,10 +104,10 @@ namespace ip {
 
     /// Rasterize function
     typedef BoxFilterView<typename IntegralT::prerasterize_type> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       return prerasterize_type( m_integral.prerasterize(bbox), m_filter );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox);
     }
   };

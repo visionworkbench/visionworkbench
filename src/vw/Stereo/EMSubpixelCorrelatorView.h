@@ -121,9 +121,9 @@ namespace vw {
 
       /// \cond INTERNAL
       typedef CropView<ImageView<result_type> > prerasterize_type;
-      inline prerasterize_type prerasterize(BBox2i bbox) const;
+      inline prerasterize_type prerasterize(BBox2i const& bbox) const;
 
-      template <class DestT> inline void rasterize(DestT const& dest, BBox2i bbox) const {
+      template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
         vw::rasterize(prerasterize(bbox), dest, bbox);
       }
 

@@ -79,12 +79,12 @@ namespace vw {
     const SrcImageResource *resource() const { return m_rsrc.get(); }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       ImageView<PixelT> buf( bbox.width(), bbox.height() );
       rasterize( buf, bbox );
       return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       Mutex::Lock lock(*m_rsrc_mutex);
 #if VW_DEBUG_LEVEL > 1
       VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing bbox " << bbox << std::endl;

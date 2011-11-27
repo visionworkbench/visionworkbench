@@ -374,7 +374,7 @@ namespace vw {
       VW_OUT(VerboseDebugMessage, "image") << "EdgeExtensionView: prerasterizing child view with bbox " << src_bbox << ".\n";
       return prerasterize_type(m_image.prerasterize(src_bbox), m_xoffset, m_yoffset, m_cols, m_rows, m_extension_func );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
   };
 
   template <class ImageT, class ExtensionT>

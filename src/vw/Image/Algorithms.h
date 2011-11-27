@@ -826,7 +826,7 @@ namespace vw {
     }
 
     typedef MeanFillTransparent<CropView<ImageView<result_type> > > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       BBox2i actual = bbox;
       actual.expand(1);
       ImageView<result_type> src =
@@ -836,7 +836,7 @@ namespace vw {
     }
 
     template <class DestT>
-    inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
   };

@@ -664,11 +664,11 @@ namespace vw {
 
     /// \cond INTERNAL
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       if( m_mapper.tolerance() > 0.0 ) {
         ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
         TransformView<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height );

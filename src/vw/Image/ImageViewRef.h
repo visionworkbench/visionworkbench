@@ -121,7 +121,7 @@ namespace vw {
     virtual pixel_accessor origin() const = 0;
 
     virtual bool sparse_check( BBox2i const& bbox ) const = 0;
-    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const = 0;
+    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i const& bbox ) const = 0;
   };
 
   // ImageViewRef class implementation
@@ -144,7 +144,7 @@ namespace vw {
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
     virtual bool sparse_check( BBox2i const& bbox ) const { return vw::sparse_check( m_view, bbox ); }
-    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i bbox ) const { m_view.rasterize( dest, bbox ); }
+    virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i const& bbox ) const { m_view.rasterize( dest, bbox ); }
 
     ViewT const& child() const { return m_view; }
   };
@@ -202,7 +202,7 @@ namespace vw {
     /// \cond INTERNAL
     typedef CropView<ImageView<PixelT> > prerasterize_type;
 
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       // If we're wrapping a plain ImageView, we can avoid copying the data.
       ImageViewRefImpl<ImageView<PixelT> > *image_ptr = dynamic_cast<ImageViewRefImpl<ImageView<PixelT> >*>( m_view.get() );
       if( image_ptr ) return CropView<ImageView<PixelT> >( image_ptr->child(), 0, 0, cols(), rows() );
@@ -212,7 +212,7 @@ namespace vw {
       return CropView<ImageView<PixelT> >( buf, BBox2i(-bbox.min().x(),-bbox.min().y(),cols(),rows()) );
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
 
@@ -220,7 +220,7 @@ namespace vw {
     // an ImageView with the proper pixel type.  This cannot be templatized
     // or otherwise generalized because it calls m_view's virtual rasterize
     // method.
-    inline void rasterize( ImageView<PixelT> const& dest, BBox2i bbox ) const {
+    inline void rasterize( ImageView<PixelT> const& dest, BBox2i const& bbox ) const {
       m_view->rasterize( dest, bbox );
     }
     /// \endcond

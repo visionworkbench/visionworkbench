@@ -152,7 +152,7 @@ namespace vw {
     // prerasterize( ... ) const;
     template <class ImagePixelT>
     typename EMSubpixelCorrelatorView<ImagePixelT>::prerasterize_type
-    EMSubpixelCorrelatorView<ImagePixelT>::prerasterize(BBox2i bbox) const {
+    EMSubpixelCorrelatorView<ImagePixelT>::prerasterize(BBox2i const& bbox) const {
       vw_out(InfoMessage, "stereo") << "EMSubpixelCorrelatorView: rasterizing image block " << bbox << ".\n";
 
       // Find the range of disparity values for this patch.

@@ -141,7 +141,7 @@ namespace vw {
     }
 
     typedef ConvolutionView<CropView<ImageView<typename ImageT::pixel_type> >, KernelT, NoEdgeExtension> prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       int32 ci = (m_kernel.cols()-1-m_ci), cj = (m_kernel.rows()-1-m_cj);
       BBox2i src_bbox( bbox.min().x() - ci, bbox.min().y() - cj,
                        bbox.width() + (m_kernel.cols()-1), bbox.height() + (m_kernel.rows()-1) );
@@ -150,7 +150,7 @@ namespace vw {
                                 m_kernel.child(), m_ci, m_cj, NoEdgeExtension() );
     }
 
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       vw::rasterize( prerasterize(bbox), dest, bbox );
     }
   };
@@ -243,7 +243,7 @@ namespace vw {
     // However, that is deterimined at run time and would impact
     // the prerasterize_type, so we cannot easily do that.
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
-    inline prerasterize_type prerasterize( BBox2i bbox ) const {
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       ImageView<pixel_type> dest( bbox.width(), bbox.height(), m_image.planes() );
       rasterize( dest, bbox );
       return CropView<ImageView<pixel_type> >(dest,BBox2i(-bbox.min().x(),-bbox.min().y(),
@@ -255,7 +255,7 @@ namespace vw {
     // get right, and convolution is generally a much more expensive
     // operation than a single extra copy.
     template <class DestT>
-    void rasterize( DestT const& dest, BBox2i bbox ) const {
+    void rasterize( DestT const& dest, BBox2i const& bbox ) const {
       size_t ni = m_i_kernel.size(), nj = m_j_kernel.size();
       if( ni==0 && nj==0 ) {
         return edge_extend(m_image,m_edge).rasterize(dest,bbox);
