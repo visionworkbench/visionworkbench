@@ -102,9 +102,9 @@ namespace rewrite {
         // would avoid a conditional inside a double loop.
         const AccumT* cost_ptr     = cost_metric.data();
         const AccumT* cost_ptr_end = cost_metric.data() + prod(result_size);
-        QualT* quality_ptr   = quality_map.data();
+        QualT* quality_ptr         = quality_map.data();
         PixelMask<Vector2i>* disparity_ptr = disparity_map.data();
-        if ( disparity != Vector2i() ) {
+        if ( disparity != Vector2i(0,0) ) {
           // Normal comparison operations
           while ( cost_ptr != cost_ptr_end ) {
             if ( cost_function.quality_comparison( *cost_ptr, quality_ptr->first ) ) {
@@ -122,7 +122,8 @@ namespace rewrite {
         } else {
           // Initializing quality_map and disparity_map with first result
           while ( cost_ptr != cost_ptr_end ) {
-            quality_ptr->first = quality_ptr->second = *cost_ptr++;
+            quality_ptr->first = quality_ptr->second = *cost_ptr;
+            ++cost_ptr;
             ++quality_ptr;
           }
         }
@@ -130,7 +131,7 @@ namespace rewrite {
     }
 
     // Determine validity of result
-    const QualT* quality_ptr            = quality_map.data();
+    const QualT* quality_ptr      = quality_map.data();
     const QualT* quality_ptr_end  = quality_map.data() + prod(result_size);
     PixelMask<Vector2i>* disp_ptr = disparity_map.data();
     while ( quality_ptr != quality_ptr_end ) {

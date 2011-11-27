@@ -248,27 +248,30 @@ namespace rewrite {
       int32 max_pyramid_levels = std::floor(log(smallest_bbox)/log(2.0f) - log(largest_kernel)/log(2.0f));
       if ( m_max_level_by_search < max_pyramid_levels )
         max_pyramid_levels = m_max_level_by_search;
+      if ( max_pyramid_levels < 1 )
+	max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
       // 2.0) Build the pyramid
       std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid(max_pyramid_levels + 1 );
       std::vector<ImageView<typename Image2T::pixel_type> > righ_pyramid(max_pyramid_levels + 1 );
       int32 max_upscaling = 1 << max_pyramid_levels;
+      BBox2i left_global_region, right_global_region;
       {
         // Here we apply the prefilter first. However it might be that
         // we should build the gaussian pyramid first and then apply
         // the filter to each region separately.
-        BBox2i left_region = bbox;
-        left_region.min() -= half_kernel * max_upscaling;
-        left_region.max() += half_kernel * max_upscaling;
-        BBox2i right_region = left_region + m_search_region.min();
-        right_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
-        left_pyramid[0] = crop(edge_extend(m_left_image),left_region);
-        righ_pyramid[0] = crop(edge_extend(m_right_image),right_region);
+        left_global_region = bbox;
+        left_global_region.min() -= half_kernel * max_upscaling;
+        left_global_region.max() += half_kernel * max_upscaling;
+        right_global_region = left_global_region + m_search_region.min();
+        right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
+        left_pyramid[0] = crop(edge_extend(m_left_image),left_global_region);
+        righ_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
 
 #if VW_DEBUG_LEVEL > 0
-        vw_out(DebugMessage,"stereo") << " > Left ROI: " << left_region
-                                      << "\n > Right ROI: " << right_region << "\n";
+        vw_out(DebugMessage,"stereo") << " > Left ROI: " << left_global_region
+                                      << "\n > Right ROI: " << right_global_region << "\n";
 #endif
 
         // Szeliski's book recommended this simple kernel. This
@@ -337,21 +340,22 @@ namespace rewrite {
 
           if ( m_consistency_threshold >= 0 && level == 0 ) {
             ImageView<pixel_type> rl_result;
-
+	    ImageViewRef<typename Image1T::pixel_type> left_expanded =
+	      crop(edge_extend(m_left_image),left_region-zone.second.size()+left_global_region.min());
+	    ImageViewRef<typename Image2T::pixel_type> righ_expanded =
+	      crop(edge_extend(m_right_image),righ_region+right_global_region.min());
             switch ( m_cost_type ) {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -359,8 +363,7 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
@@ -516,6 +519,8 @@ namespace rewrite {
       int32 max_pyramid_levels = std::floor(log(smallest_bbox)/log(2.0f) - log(largest_kernel)/log(2.0f));
       if ( m_max_level_by_search < max_pyramid_levels )
         max_pyramid_levels = m_max_level_by_search;
+      if ( max_pyramid_levels < 1 )
+	max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
       // 2.0) Build the pyramid
@@ -524,25 +529,26 @@ namespace rewrite {
       std::vector<ImageView<typename Mask1T::pixel_type> > left_mask_pyramid(max_pyramid_levels + 1 );
       std::vector<ImageView<typename Mask2T::pixel_type> > righ_mask_pyramid(max_pyramid_levels + 1 );
       int32 max_upscaling = 1 << max_pyramid_levels;
+      BBox2i left_global_region, right_global_region;
       {
         // Here we apply the prefilter first. However it might be that
         // we should build the gaussian pyramid first and then apply
         // the filter to each region separately.
-        BBox2i left_region = bbox;
-        left_region.min() -= half_kernel * max_upscaling;
-        left_region.max() += half_kernel * max_upscaling;
-        BBox2i right_region = left_region + m_search_region.min();
-        right_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
-        left_pyramid[0] = crop(edge_extend(m_left_image),left_region);
-        righ_pyramid[0] = crop(edge_extend(m_right_image),right_region);
+        left_global_region = bbox;
+        left_global_region.min() -= half_kernel * max_upscaling;
+        left_global_region.max() += half_kernel * max_upscaling;
+        right_global_region = left_global_region + m_search_region.min();
+        right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
+        left_pyramid[0] = crop(edge_extend(m_left_image),left_global_region);
+        righ_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
         BBox2i right_mask = bbox + m_search_region.min();
         right_mask.max() += m_search_region.size();
         left_mask_pyramid[0] = crop(edge_extend(m_left_mask),bbox);
         righ_mask_pyramid[0] = crop(edge_extend(m_right_mask),right_mask);
 
 #if VW_DEBUG_LEVEL > 0
-        vw_out(DebugMessage,"stereo") << " > Left ROI: " << left_region
-                                      << "\n > Right ROI: " << right_region << "\n";
+        vw_out(DebugMessage,"stereo") << " > Left ROI: " << left_global_region
+                                      << "\n > Right ROI: " << right_global_region << "\n";
 #endif
 
         // Szeliski's book recommended this simple kernel. This
@@ -575,8 +581,7 @@ namespace rewrite {
                                            m_search_region.height()/max_upscaling+1)) );
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
         int32 scaling = 1 << level;
-        disparity.set_size( left_mask_pyramid[level].cols(),
-                            left_mask_pyramid[level].rows() );
+        disparity.set_size( left_mask_pyramid[level] );
         Vector2i region_offset = max_upscaling*half_kernel/scaling;
 
         // 3.1) Process each zone with their refined search estimates
@@ -616,21 +621,22 @@ namespace rewrite {
 
           if ( m_consistency_threshold >= 0 && level == 0 ) {
             ImageView<pixel_type> rl_result;
-
+	    ImageViewRef<typename Image1T::pixel_type> left_expanded =
+	      crop(edge_extend(m_left_image),left_region-zone.second.size()+left_global_region.min());
+	    ImageViewRef<typename Image2T::pixel_type> righ_expanded =
+	      crop(edge_extend(m_right_image),righ_region+right_global_region.min());
             switch ( m_cost_type ) {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -638,8 +644,7 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-                  crop(righ_pyramid[0],righ_region),
-                  crop(left_pyramid[0],left_region-zone.second.size()),
+		  righ_expanded, left_expanded,
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
@@ -650,7 +655,6 @@ namespace rewrite {
 
           // Fix the offset
           crop(disparity,zone.first) += pixel_type(zone.second.min());
-
         } // end of zone loop
 
         // 3.2a) Clean up the disparity and mask pixels so that we
@@ -684,8 +688,10 @@ namespace rewrite {
           scaling >>= 1;
           BBox2i scale_search_region = (m_search_region - m_search_region.min())/scaling;
           scale_search_region.max() += Vector2i(1,1);
+	  BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
           BOOST_FOREACH( SearchParam& zone, zones ) {
             zone.first *= 2;
+	    zone.first.crop( next_zone_size );
             zone.second *= 2;
             zone.second.expand(1); // This is practically required. Our
             // correlation will fail if the search has only one
