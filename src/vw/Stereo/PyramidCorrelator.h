@@ -211,7 +211,6 @@ namespace stereo {
         float rm_min_matches_percent = 0.5;
         float rm_threshold = 3.0;
 
-
         ImageView<PixelDisp> disparity_map_clean =
           disparity_mask(disparity_clean_up(new_disparity_map,
                                             rm_half_kernel, rm_half_kernel,
@@ -345,6 +344,10 @@ namespace stereo {
         right_pyramid[n] = subsample(gaussian_filter(right_pyramid[n-1],1.2),2);
         subsample_mask_by_two(left_masks[n-1],left_masks[n]);
         subsample_mask_by_two(right_masks[n-1],right_masks[n]);
+        left_masks[n] = crop(edge_extend(left_masks[n]),
+                             bounding_box(left_pyramid[n]));
+        right_masks[n] = crop(edge_extend(right_masks[n]),
+                              bounding_box(right_pyramid[n]));
       }
 
       int32 mask_padding = std::max(m_kernel_size[0], m_kernel_size[1])/2;
