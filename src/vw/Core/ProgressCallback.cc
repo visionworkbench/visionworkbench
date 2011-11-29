@@ -9,7 +9,7 @@
 #include <vw/Core/ProgressCallback.h>
 
 namespace {
-  vw::ProgressCallback g_dummy_progress_callback_instance;
+  vw::NullProgressCallback g_dummy_progress_callback_instance;
 }
 
 const vw::ProgressCallback &vw::ProgressCallback::dummy_instance() {

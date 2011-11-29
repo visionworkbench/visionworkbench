@@ -205,6 +205,19 @@ namespace vw {
     std::string message_namespace() const { return m_namespace; }
   };
 
+  /// A Dummy or Null progress callback that has no mutexs and does
+  /// nothing. This object is a place holder in the event the user would
+  /// like to use a Terminal Progress Callback.
+  class NullProgressCallback : public ProgressCallback {
+  public:
+    virtual void report_progress(double /*progress*/) const {}
+    virtual void report_incremental_progress(double /*incremental_progress*/) const {}
+    virtual void report_aborted(std::string /*why*/="") const {}
+    virtual void report_finished() const {}
+    virtual void report_fractional_progress(double /*n*/, double /*total*/) const {}
+    virtual void request_abort() const {}
+  };
+
 } // namespace vw
 
 #endif // __VW_CORE_FUNDAMENTALTYPES_H__
