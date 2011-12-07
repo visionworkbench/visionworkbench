@@ -11,6 +11,7 @@
 #include <vw/Plate/TileManipulation.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/UtilityViews.h>
 #include <boost/foreach.hpp>
 #include <boost/lambda/construct.hpp>
 
@@ -38,9 +39,10 @@ namespace {
     typedef ImageView<PixelT> image_t;
     typedef tile_cache_t<PixelT> cache_t;
 
-    std::sort(tiles.begin(), tiles.end(), d::SortByTid());
-    mosaic::ImageComposite<PixelT> composite;
-    composite.set_draft_mode(true);
+    // We arrange in descending order, so that when the higher level
+    // tiles fill the output completely, we'll stop inserting.
+    out = constant_view(PixelT(), size, size);
+    std::sort(tiles.begin(), tiles.end(), d::SortByTidDesc());
     // Insert the images into the composite from lowest to highest tid
     BOOST_FOREACH(const TileHeader& hdr, tiles) {
       typename cache_t::const_iterator i = tile_cache.find(d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr)));
@@ -48,16 +50,19 @@ namespace {
         vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
         continue;
       }
+
+      // Insert the next lower tile and then lay the previous
+      // composite on top. If this new combination is opaque, we've
+      // finished the snapshot.
+      mosaic::ImageComposite<PixelT> composite;
+      composite.set_draft_mode(true);
       composite.insert(i->second, 0, 0);
-      if (is_opaque(i->second))
-        break;
+      composite.insert( out, 0, 0 );
+      composite.prepare(BBox2i(0,0,size,size));
+      out = composite;
+      if ( is_opaque( out ) )
+        return;
     }
-    if (composite.cols() == 0 || composite.rows() == 0) {
-      out.reset();
-      return;
-    }
-    composite.prepare(BBox2i(0,0,size,size));
-    out = composite;
   }
 }
 
@@ -131,6 +136,20 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
       tile_lookup.clear();
 
       BOOST_FOREACH(composite_map_t::value_type& t, composite_batch) {
+
+        // Early exit condition if there is only one tile
+        if (t.second.size() == 1 ) {
+          typename tile_cache_t<PixelT>::const_iterator i =
+            tile_cache.find(d::rowcoltid_t(d::therow(t.second[0]), d::thecol(t.second[0]), d::thetid(t.second[0])));
+          if ( i == tile_cache.end() ) {
+            vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << t.second[0] << std::endl;
+            continue;
+          }
+          m_write_plate->write_update(i->second, d::thecol(t.first), d::therow(t.first), level);
+          continue;
+        }
+
+        // Perform an actual composite if there are multiple tiles to be inserted
         ImageView<PixelT> tile;
         mosaic_in_tid_order<PixelT>(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
         if (!tile) {
