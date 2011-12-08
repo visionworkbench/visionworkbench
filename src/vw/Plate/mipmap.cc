@@ -38,7 +38,7 @@ public:
                     std::string const& region_string,
                     std::string const& level_string,
                     TransactionOrNeg tid ) :
-    mode(mode), transaction_id(tid) {
+    transaction_id(tid), mode(mode) {
 
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep(",:@");
@@ -109,7 +109,6 @@ int main( int argc, char *argv[] ) {
   Url plate_url;
   std::string mode, region_string, level_string;
   TransactionOrNeg transaction_id;
-  int level;
   bool help;
 
   po::options_description general_options("\nUtility for mipmapping a transaction ID that exists only on one level");
@@ -131,7 +130,7 @@ int main( int argc, char *argv[] ) {
   p.add("url", 1);
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " [options] <filename>..." <<std::endl << std::endl;
+  usage << "Usage: " << argv[0] << " [options] <url>..." << std::endl << std::endl;
   usage << general_options << std::endl;
 
   try {
@@ -150,9 +149,12 @@ int main( int argc, char *argv[] ) {
     return 1;
   }
 
-  MipmapParameters mipmap_params(mode, region_string, level_string, transaction_id);
-
   try {
+    MipmapParameters mipmap_params(mode, region_string, level_string, transaction_id);
+
+    VW_ASSERT(mode == "toast" || mode == "equi" || mode == "polar",
+              IOErr() << "Unknown projection mode: " << mode);
+
     boost::shared_ptr<PlateFile> platefile( new PlateFile(plate_url) );
     switch(platefile->pixel_format()) {
     case VW_PIXEL_GRAYA:
@@ -184,8 +186,8 @@ int main( int argc, char *argv[] ) {
       vw_throw(ArgumentErr() << "Image contains a pixel type not supported by snapshot.\n");
     }
   } catch ( const vw::Exception& e ) {
-    std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
-    return 0;
+    vw_out() << "An error occured: " << e.what() << "\nExiting.\n\n";
+    return 1;
   }
 
   return 0;
