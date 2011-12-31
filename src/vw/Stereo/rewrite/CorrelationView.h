@@ -345,16 +345,16 @@ namespace rewrite {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -362,8 +362,8 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
@@ -637,16 +637,16 @@ namespace rewrite {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -654,8 +654,8 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-                  crop(righ_pyramid[level],righ_region),
-                  crop(left_pyramid[level],left_region - zone.second.size()),
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
