@@ -249,7 +249,7 @@ namespace rewrite {
       if ( m_max_level_by_search < max_pyramid_levels )
         max_pyramid_levels = m_max_level_by_search;
       if ( max_pyramid_levels < 1 )
-	max_pyramid_levels = 0;
+        max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
       // 2.0) Build the pyramid
@@ -340,22 +340,21 @@ namespace rewrite {
 
           if ( m_consistency_threshold >= 0 && level == 0 ) {
             ImageView<pixel_type> rl_result;
-	    ImageViewRef<typename Image1T::pixel_type> left_expanded =
-	      crop(edge_extend(m_left_image),left_region-zone.second.size()+left_global_region.min());
-	    ImageViewRef<typename Image2T::pixel_type> righ_expanded =
-	      crop(edge_extend(m_right_image),righ_region+right_global_region.min());
+
             switch ( m_cost_type ) {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -363,7 +362,8 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
@@ -381,6 +381,17 @@ namespace rewrite {
         // the search region defined by the user
         if ( level != 0 ) {
           zones.clear();
+
+          // 3.2a) Filter the disparity so we are not processing more
+          // that we need to.
+          const int32 rm_half_kernel = 5;
+          const float rm_min_matches_percent = 0.5;
+          const float rm_threshold = 3.0;
+          disparity = disparity_clean_up(disparity,
+                                         rm_half_kernel, rm_half_kernel,
+                                         rm_threshold,
+                                         rm_min_matches_percent);
+
           subdivide_regions( disparity, bounding_box(disparity), zones, m_kernel_size );
 
           if (0) {
@@ -520,7 +531,7 @@ namespace rewrite {
       if ( m_max_level_by_search < max_pyramid_levels )
         max_pyramid_levels = m_max_level_by_search;
       if ( max_pyramid_levels < 1 )
-	max_pyramid_levels = 0;
+        max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
       // 2.0) Build the pyramid
@@ -621,22 +632,21 @@ namespace rewrite {
 
           if ( m_consistency_threshold >= 0 && level == 0 ) {
             ImageView<pixel_type> rl_result;
-	    ImageViewRef<typename Image1T::pixel_type> left_expanded =
-	      crop(edge_extend(m_left_image),left_region-zone.second.size()+left_global_region.min());
-	    ImageViewRef<typename Image2T::pixel_type> righ_expanded =
-	      crop(edge_extend(m_right_image),righ_region+right_global_region.min());
+
             switch ( m_cost_type ) {
             case CROSS_CORRELATION:
               rl_result =
                 best_of_search_convolution<NCCCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
             case SQUARED_DIFFERENCE:
               rl_result =
                 best_of_search_convolution<SquaredCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
               break;
@@ -644,7 +654,8 @@ namespace rewrite {
             default:
               rl_result =
                best_of_search_convolution<AbsoluteCost>(
-		  righ_expanded, left_expanded,
+                  crop(righ_pyramid[level],righ_region),
+                  crop(left_pyramid[level],left_region - zone.second.size()),
                   righ_region - righ_region.min(),
                   zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
             }
@@ -657,15 +668,23 @@ namespace rewrite {
           crop(disparity,zone.first) += pixel_type(zone.second.min());
         } // end of zone loop
 
-        // 3.2a) Clean up the disparity and mask pixels so that we
-        // don't refine them on the next level.
-        disparity = disparity_mask(disparity,left_mask_pyramid[level],
-                                   righ_mask_pyramid[level]);
-
         // 3.2) Refine search estimates but never let them go beyond
         // the search region defined by the user
         if ( level != 0 ) {
           zones.clear();
+
+          // 3.2a) Filter the disparity so we are not processing more
+          // that we need to.
+          const int32 rm_half_kernel = 5;
+          const float rm_min_matches_percent = 0.5;
+          const float rm_threshold = 3.0;
+          disparity = disparity_mask(disparity_clean_up(disparity,
+                                                        rm_half_kernel, rm_half_kernel,
+                                                        rm_threshold,
+                                                        rm_min_matches_percent),
+                                     left_mask_pyramid[level],
+                                     righ_mask_pyramid[level]);
+
           subdivide_regions( disparity, bounding_box(disparity), zones, m_kernel_size );
 
           if (0) {
@@ -688,10 +707,10 @@ namespace rewrite {
           scaling >>= 1;
           BBox2i scale_search_region = (m_search_region - m_search_region.min())/scaling;
           scale_search_region.max() += Vector2i(1,1);
-	  BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
+          BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
           BOOST_FOREACH( SearchParam& zone, zones ) {
             zone.first *= 2;
-	    zone.first.crop( next_zone_size );
+            zone.first.crop( next_zone_size );
             zone.second *= 2;
             zone.second.expand(1); // This is practically required. Our
             // correlation will fail if the search has only one
