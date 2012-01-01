@@ -8,7 +8,7 @@
 // versions of geoblend into different object files. It works by using
 // the PIXEL_TYPE macro.
 
-#include <vw/Tools/geoblend.h>
+#include <vw/tools/geoblend.h>
 
 using namespace vw;
 

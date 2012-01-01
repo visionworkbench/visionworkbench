@@ -11,7 +11,7 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vw/Tools/geoblend.h>
+#include <vw/tools/geoblend.h>
 
 // Global Variables that are defined by the command line
 std::vector<std::string> image_files;

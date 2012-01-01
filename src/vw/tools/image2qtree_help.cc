@@ -8,7 +8,7 @@
 // versions of image2qtree into different object files. It works by using
 // the PIXEL_TYPE macro.
 
-#include <vw/Tools/image2qtree.h>
+#include <vw/tools/image2qtree.h>
 
 #define INSTANTIATE_CUSTOM_MOSAIC(PIXELTYPEMACRO, CHANNELTYPE) INSTANTIATE_CUSTOM_MOSAIC_(PIXELTYPEMACRO, CHANNELTYPE)
 
