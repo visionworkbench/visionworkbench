@@ -19,6 +19,7 @@ libvwTools_la_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 lib_LTLIBRARIES = libvwTools.la
 
 COMMON_LIBS = libvwTools.la
+noinst_LIBRARIES =
 
 # Command-line tools based on the Camera module
 if MAKE_MODULE_CAMERA
@@ -103,7 +104,22 @@ image2qtree_SOURCES = image2qtree.cc
 image2qtree_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 # Creates a blended composite from multiple georeferenced images
 geoblend_SOURCES = geoblend.cc
-geoblend_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
+geoblend_ARCHIVES = libgeoblend_gray.a libgeoblend_graya.a     \
+        libgeoblend_rgb.a  libgeoblend_rgba.a
+geoblend_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS) \
+        $(geoblend_ARCHIVES)
+# The many archive files are to help speed compile times and to lower
+# the overall memory requirement during compiling.
+noinst_LIBRARIES += $(geoblend_ARCHIVES)
+libgeoblend_gray_a_SOURCES = geoblend_help.cc
+libgeoblend_gray_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelGray
+libgeoblend_graya_a_SOURCES = geoblend_help.cc
+libgeoblend_graya_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelGrayA
+libgeoblend_rgb_a_SOURCES = geoblend_help.cc
+libgeoblend_rgb_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGB
+libgeoblend_rgba_a_SOURCES = geoblend_help.cc
+libgeoblend_rgba_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGBA
+
 # Creates a TOAST quadtree from multiple georeferenced images
 image2toast_SOURCES = image2toast.cc
 image2toast_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
