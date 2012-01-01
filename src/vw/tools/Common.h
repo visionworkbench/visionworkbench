@@ -68,52 +68,58 @@ class Tristate {
 
 }} // namespace vw::tools
 
-#define VW_DEFINE_ENUM(name, len, tuple) \
-class name {\
-  public:\
-    enum Value {BOOST_PP_TUPLE_REM(len)tuple};\
-    static const Value elems[len];\
-    static size_t count() {return len;}\
-  private:\
-    typedef std::map<Value, std::string> s_t;\
-    typedef std::map<std::string, Value> v_t;\
-    static const s_t m_sm; \
-    static const v_t m_vm; \
-    Value m_val; \
-  public:\
-    name() {} \
-    name(Value v) : m_val(v) {} \
-    name(const std::string& v) : m_val(vw::tools::detail::get(m_vm, boost::to_upper_copy(v))) {}\
-    const std::string& string() const {\
-      return vw::tools::detail::get(m_sm, m_val);\
-    }\
-    operator Value() const {return value();} \
-    Value value() const {\
-      return m_val; \
-    }\
-    friend std::istream& operator>>(std::istream& in, name& val) {\
-      std::string str;\
-      in >> str;\
-      val = name(str); \
-      return in;\
-    }\
-    friend std::ostream& operator<<(std::ostream& out, const name& val) {\
-      out << val.string();\
-      return out;\
-    }\
-    static std::string list(const std::string& delim = ", ") { \
-      std::string ret;\
-      BOOST_FOREACH(const Value& v, elems) {\
-        if (v != elems[0])\
-          ret += delim;\
-        ret += name(v).string();\
-      }\
-      return ret;\
-    } \
-};\
-const name::Value name::elems[len] = {BOOST_PP_TUPLE_REM(len)tuple}; \
-const name::s_t name::m_sm = boost::assign::map_list_of BOOST_PP_SEQ_TRANSFORM(VW_PP_ELEM_TO_ELEM_STRING, 0, BOOST_PP_TUPLE_TO_SEQ(len, tuple));\
-const name::v_t name::m_vm = boost::assign::map_list_of BOOST_PP_SEQ_TRANSFORM(VW_PP_ELEM_TO_STRING_ELEM, 0, BOOST_PP_TUPLE_TO_SEQ(len, tuple));
+// For situations when you need to define the channel in a header
+#define VW_DEFINE_ENUM_PROTO(name, len, tuple)  \
+  class name {                                  \
+  public:                                       \
+    enum Value {BOOST_PP_TUPLE_REM(len)tuple};  \
+    static const Value elems[len];              \
+    static size_t count() {return len;}         \
+  private:                                      \
+    typedef std::map<Value, std::string> s_t;   \
+    typedef std::map<std::string, Value> v_t;   \
+    static const s_t m_sm;                      \
+    static const v_t m_vm;                      \
+    Value m_val;                                \
+  public:                                       \
+    name() {}                                   \
+  name(Value v) : m_val(v) {}                                           \
+  name(const std::string& v) : m_val(vw::tools::detail::get(m_vm, boost::to_upper_copy(v))) {} \
+    const std::string& string() const {                                 \
+      return vw::tools::detail::get(m_sm, m_val);                       \
+    }                                                                   \
+    operator Value() const {return value();}                            \
+    Value value() const {                                               \
+      return m_val;                                                     \
+    }                                                                   \
+    friend std::istream& operator>>(std::istream& in, name& val) {      \
+      std::string str;                                                  \
+      in >> str;                                                        \
+      val = name(str);                                                  \
+      return in;                                                        \
+    }                                                                   \
+    friend std::ostream& operator<<(std::ostream& out, const name& val) { \
+      out << val.string();                                              \
+      return out;                                                       \
+    }                                                                   \
+    static std::string list(const std::string& delim = ", ") {          \
+      std::string ret;                                                  \
+      BOOST_FOREACH(const Value& v, elems) {                            \
+        if (v != elems[0])                                              \
+          ret += delim;                                                 \
+        ret += name(v).string();                                        \
+      }                                                                 \
+      return ret;                                                       \
+    }                                                                   \
+  };
 
+#define VW_DEFINE_ENUM_DEF(name, len, tuple)                            \
+  const name::Value name::elems[len] = {BOOST_PP_TUPLE_REM(len)tuple};  \
+  const name::s_t name::m_sm = boost::assign::map_list_of BOOST_PP_SEQ_TRANSFORM(VW_PP_ELEM_TO_ELEM_STRING, 0, BOOST_PP_TUPLE_TO_SEQ(len, tuple)); \
+  const name::v_t name::m_vm = boost::assign::map_list_of BOOST_PP_SEQ_TRANSFORM(VW_PP_ELEM_TO_STRING_ELEM, 0, BOOST_PP_TUPLE_TO_SEQ(len, tuple));
+
+#define VW_DEFINE_ENUM(name, len, tuple)        \
+  VW_DEFINE_ENUM_PROTO(name, len, tuple);       \
+  VW_DEFINE_ENUM_DEF(name, len, tuple);
 
 #endif
