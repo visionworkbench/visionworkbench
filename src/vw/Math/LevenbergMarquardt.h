@@ -195,7 +195,8 @@ namespace math {
     while (!done){
 
       bool shortCircuit = false;
-      VW_OUT(DebugMessage, "math") << "LM: outer iteration " << ++outer_iter << "   x = " << x << std::endl;
+      outer_iter++;
+      VW_OUT(DebugMessage, "math") << "LM: outer iteration " << outer_iter << "   x = " << x << std::endl;
 
       // Compute the value, derivative, and hessian of the cost function
       // at the current point.  These remain valid until the parameter
