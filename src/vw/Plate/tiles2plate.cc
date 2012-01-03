@@ -362,6 +362,7 @@ int main( int argc, char *argv[] ) {
     platefile->transaction_end( true );
   } catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting\n\n";
+    return 1;
   }
 
   return 0;

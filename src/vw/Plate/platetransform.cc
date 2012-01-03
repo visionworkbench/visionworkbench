@@ -257,8 +257,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
 }
 
 // Blah blah boilerplate
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
   Options opt;
   try {
     handle_arguments(argc, argv, opt);

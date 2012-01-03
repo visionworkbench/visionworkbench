@@ -51,12 +51,12 @@ int main( int argc, char *argv[] ) {
   } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   if( vm.count("help") ) {
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   if( vm.count("url") < 1 ) {
@@ -83,7 +83,8 @@ int main( int argc, char *argv[] ) {
 
   }  catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
-    exit(1);
+    return 1;
   }
 
+  return 0;
 }

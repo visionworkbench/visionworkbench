@@ -377,7 +377,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
     platefile->transaction_begin(opt.start_description, opt.transaction_id );
     vw_out() << "Transaction started with ID = " << platefile->transaction_id() << "\n";
     vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
-    exit(0);
+    return;
   }
 
   platefile->transaction_resume(opt.transaction_id.promote());
@@ -386,7 +386,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
     // Update the read cursor when the snapshot is complete!
     platefile->transaction_end(true);
     vw_out() << "Transaction " << opt.transaction_id << " complete.\n";
-    exit(0);
+    return;
   }
 
   if ( opt.level < 0 || opt.level >= boost::numeric_cast<int32>(platefile->num_levels()) ) {

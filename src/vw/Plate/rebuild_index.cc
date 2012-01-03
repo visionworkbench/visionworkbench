@@ -73,7 +73,7 @@ int main( int argc, char *argv[] ) {
     std::string index_str = filename + "/index";
     if (!fs::exists(filename)) {
       std::cout << "Error: could not open platefile: \"" << filename << "\".\n";
-      exit(1);
+      return 1;
     }
 
     if (fs::exists(index_str)) {
@@ -83,15 +83,16 @@ int main( int argc, char *argv[] ) {
       if (user_input == "y")
         fs::remove_all(index_str);
       else
-        exit(0);
+        return 0;
     }
 
     detail::LocalIndex index(filename);
     index.rebuild_index();
 
- }  catch (const vw::Exception& e) {
+  } catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
-    exit(1);
+    return 1;
   }
 
+  return 0;
 }

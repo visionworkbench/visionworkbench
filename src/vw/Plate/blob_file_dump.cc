@@ -47,18 +47,18 @@ int main( int argc, char *argv[] ) {
   } catch (const po::error& e) {
     std::cout << "An error occured while parsing command line arguments.\n\n";
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   if( vm.count("help") ) {
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   if( blob_name.empty() ) {
     std::cerr << "Error: must specify a platefile url.\n";
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   // -------------------
@@ -84,4 +84,6 @@ int main( int argc, char *argv[] ) {
   }
 
   std::cout << "Finished!\n";
+
+  return 0;
 }

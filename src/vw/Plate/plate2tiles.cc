@@ -143,10 +143,8 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
                           header_iter->col(), header_iter->row(),
                           header_iter->level(), header_iter->transaction_id());
       } else {
-        vw_out() << "Error -- unknown output format: " << output_format << "\n";
-        exit(1);
+        vw_throw( ArgumentErr() << "unknown ouput format: " << output_format );
       }
-
     }
   }
 }
@@ -236,8 +234,8 @@ int main( int argc, char *argv[] ) {
   }
 
   if( vm.count("plate-file") != 1 ) {
-    std::cerr << "Error: must specify an input platefile!" << std::endl << std::endl;
-    std::cout << usage.str();
+    vw_out(ErrorMessage) << "Error: must specify an input platefile!" << std::endl << std::endl;
+    vw_out() << usage.str();
     return 1;
   }
 
@@ -246,4 +244,6 @@ int main( int argc, char *argv[] ) {
 
   // Spider across the platefile, saving all valid tiles.
   do_all_levels(plate_file_name, output_file_name, output_format, transaction_id);
+
+  return 0;
 }

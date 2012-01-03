@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
 
   if( vm.count("help") ) {
     std::cout << usage.str();
-    return 0;
+    return 1;
   }
 
   boost::scoped_ptr<IndexClient> client(conn(url));
@@ -69,5 +69,7 @@ int main(int argc, char** argv) {
     t1 = Stopwatch::microtime();
     std::cout << 1000000. * float(BATCH_SIZE) / float(t1-t0) << " msg/s" << std::endl;
   }
+
+  return 0;
 }
 

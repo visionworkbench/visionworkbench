@@ -20,8 +20,7 @@ namespace po = boost::program_options;
 class CopyParameters {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
-    exit(1);
+    vw_throw( ArgumentErr() << "Error parsing arguments for --" << arg << " : " << params );
   }
 
 public:
@@ -214,14 +213,14 @@ int main( int argc, char *argv[] ) {
     if (vm.count("start")) {
       Transaction t = output_plate->transaction_begin(start_description, transaction_output_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
-      exit(0);
+      return 0;
     }
 
     if (vm.count("finish")) {
       output_plate->transaction_resume(transaction_output_id.promote());
       output_plate->transaction_end(true);
       vw_out() << "Transaction " << transaction_output_id << " complete.\n";
-      exit(0);
+      return 0;
     }
 
     CopyParameters copy_params(region_string,
@@ -240,7 +239,7 @@ int main( int argc, char *argv[] ) {
         do_copy<PixelGrayA<float32> >(input_plate, output_plate, copy_params); break;
       default:
         vw_throw(ArgumentErr() << "Plate contains a channel type not supported by platecopy.\n");
-        exit(1);
+        return 1;
       }
       break;
     case VW_PIXEL_RGBA:
@@ -249,16 +248,16 @@ int main( int argc, char *argv[] ) {
         do_copy<PixelRGBA<uint8> >(input_plate, output_plate, copy_params); break;
       default:
         vw_throw(ArgumentErr() << "Plate contains a channel type not supported by platecopy.\n");
-        exit(1);
+        return 1;
       }
       break;
     default:
       std::cout << "Plate contains a pixel type not supported by snapshot.\n";
-      exit(1);
+      return 1;
     }
   } catch ( const vw::Exception& e ) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
-    exit(1);
+    return 1;
   }
 
   return 0;

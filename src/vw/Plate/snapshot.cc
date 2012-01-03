@@ -43,8 +43,7 @@ namespace po = boost::program_options;
 class SnapshotParameters {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
-    exit(1);
+    vw_throw( ArgumentErr() << "Error parsing arguments for --" << arg << " : " << params );
   }
 
 public:
@@ -70,10 +69,8 @@ public:
     // STEP 1 : PARSE RANGE STRING
 
     if (range_string.empty()) {
-      std::cout << "Error: You must specify a transaction_id range "
-                << "with the --transaction-range option.\n";
-      exit(1);
-
+      vw_throw( ArgumentErr() << "Error: You must specify a transaction_id range "
+                << "with the --transaction-range option.\n" );
     } else {
 
       // If the range string is not empty, we attempt to parse the
@@ -146,9 +143,8 @@ void do_snapshot(boost::shared_ptr<ReadOnlyPlateFile> input_plate, boost::shared
   if (snapshot_parameters.level != -1) {
 
     if (snapshot_parameters.write_transaction_id == -1) {
-      vw_out(ErrorMessage) << "Error: you must specify a transaction_id for this snapshot "
-                           << "using the --transaction_id flag.";
-      exit(1);
+      vw_throw( ArgumentErr() << "Error: you must specify a transaction_id for this snapshot "
+                << "using the --transaction_id flag." );
     }
 
     output_plate->audit_log()
@@ -275,19 +271,19 @@ int main( int argc, char *argv[] ) {
 
     if (vm.count("start")) {
       if (!vm.count("transaction-id")) {
-        std::cout << "You must specify a transaction-id if you use --start.\n";
-        exit(1);
+        vw_out() << "You must specify a transaction-id if you use --start.\n";
+        return 1;
       }
 
       Transaction t = output_plate->transaction_begin(start_description, transaction_id);
       vw_out() << "Transaction started with ID = " << t << "\n";
       vw_out() << "Plate has " << input_plate->num_levels() << " levels.\n";
-      exit(0);
+      return 0;
     }
 
     if (transaction_id.newest()) {
       vw_out() << "You must specify a transaction-id if you are not starting a new one.\n";
-      exit(1);
+      return 1;
     }
 
     output_plate->transaction_resume(transaction_id.promote());
@@ -296,7 +292,7 @@ int main( int argc, char *argv[] ) {
       // Update the read cursor when the snapshot is complete!
       output_plate->transaction_end(true);
       vw_out() << "Transaction " << transaction_id << " complete.\n";
-      exit(0);
+      return 0;
     }
 
     //---------------------------- SNAPSHOT REQUEST -------------------------------
@@ -321,7 +317,7 @@ int main( int argc, char *argv[] ) {
         break;
       default:
         vw_throw(ArgumentErr() << "Image contains a channel type not supported by snapshot.\n");
-        exit(1);
+        return 1;
       }
       break;
 
@@ -332,17 +328,18 @@ int main( int argc, char *argv[] ) {
         break;
       default:
         std::cout << "Platefile contains a channel type not supported by snapshot.\n";
-        exit(1);
+        return 1;
       }
       break;
     default:
       std::cout << "Image contains a pixel type not supported by snapshot.\n";
-      exit(1);
+      return 1;
     }
 
   }  catch (const vw::Exception& e) {
     std::cout << "An error occured: " << e.what() << "\nExiting.\n\n";
-    exit(1);
+    return 1;
   }
 
+  return 0;
 }

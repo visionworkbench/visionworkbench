@@ -24,8 +24,7 @@ namespace po = boost::program_options;
 class MipmapParameters {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
-    exit(1);
+    vw_throw( ArgumentErr() << "Error parsing arguments for --" << arg << " : " << params );
   }
 
 public:

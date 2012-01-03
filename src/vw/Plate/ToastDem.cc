@@ -264,12 +264,10 @@ bool vw::platefile::make_toast_dem_tile(const ToastDemWriter& writer,
                                                        level_difference,
                                                        input_transaction_id);
   } else {
-    std::cout << "Could not convert to toast_dem.  "
-              << "Unsupported channel type in platefile: " << platefile.channel_type() << "\n";
-    exit(0);
+    vw_throw( ArgumentErr() << "Could not convert to toast_dem. "
+              << "Unsupported channel type in platefile: " << platefile.channel_type() );
   }
   return false;
-
 }
 
 namespace {

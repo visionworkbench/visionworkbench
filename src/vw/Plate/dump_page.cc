@@ -130,5 +130,8 @@ int main(int argc, char** argv) {
     run(opt);
   } catch (const std::exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
+    return 1;
   }
+
+  return 0;
 }
