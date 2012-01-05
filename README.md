@@ -18,7 +18,7 @@ If your contribution is significant, you may be asked to sign a contributor agre
 - Subscription required; Send an empty email message with the subject 'subscribe' (without the quotes) to [vision-workbench-request@lists.nasa.gov][listr].
 - Send your messages to [vision-workbench@lists.nasa.gov][list].
 
-[home]: http://ti.arc.nasa.gov/projects/visionworkbench
+[home]: http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nasa-vision-workbench/
 [repo]: http://github.com/visionworkbench/visionworkbench
 [bugs]: http://github.com/visionworkbench/visionworkbench/issues
 [list]: mailto:vision-workbench@lists.nasa.gov
