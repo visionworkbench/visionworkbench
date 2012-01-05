@@ -197,14 +197,14 @@ void IndexPage::set(TileHeader const& header, IndexRecord const& record) {
 IndexRecord IndexPage::get(uint32 col, uint32 row, TransactionOrNeg transaction_id_neg, bool exact_match) const {
 
   // Compute page_col and row
-  int32 page_col = col % m_page_width;
-  int32 page_row = row % m_page_height;
+  uint32 page_col = col % m_page_width;
+  uint32 page_row = row % m_page_height;
 
   // Interate over entries.
   multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
   multi_value_type::const_iterator it = entries.begin();
 
-  if ( entries.begin() == entries.end() )
+  if ( it == entries.end() )
     vw_throw(TileNotFoundErr() << "No Tiles exist at this location.");
 
   // A transaction ID of -1 indicates that we should return the most
@@ -240,6 +240,39 @@ IndexRecord IndexPage::get(uint32 col, uint32 row, TransactionOrNeg transaction_
   return IndexRecord(); // never reached
 }
 
+IndexPage::multi_value_type
+IndexPage::multi_get(uint32 col, uint32 row,
+                     TransactionOrNeg begin_transaction_id, TransactionOrNeg end_transaction_id) const {
+  // Compute page_col and row
+  uint32 page_col = col % m_page_width;
+  uint32 page_row = row % m_page_height;
+
+  // Interate over entries.
+  multi_value_type const& entries = m_sparse_table[page_row*m_page_width + page_col];
+  multi_value_type::const_iterator it = entries.begin();
+
+  if ( it == entries.end() )
+    vw_throw(TileNotFoundErr() << "No Tiles exist at this location.");
+  if ( begin_transaction_id <= 1 && end_transaction_id == detail::MAX_TRANSACTION )
+    return entries;
+
+  multi_value_type result;
+  if ( begin_transaction_id.newest() && end_transaction_id.newest() ) {
+    // Pull only the top most transaction
+    result.push_back( *it );
+    return result;
+  } else {
+    // Pull only items that our in our transaction range
+    BOOST_FOREACH(const value_type& elt, entries ) {
+      if ( elt.first < begin_transaction_id )
+        break;
+      if ( elt.first <= end_transaction_id)
+        result.push_back(elt);
+    }
+  }
+
+  return result;
+}
 
 void IndexPage::append_if_in_region( std::list<TileHeader> &results,
                                      multi_value_type const& candidates,
