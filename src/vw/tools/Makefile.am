@@ -106,8 +106,8 @@ image2qtree_ARCHIVES = libimage2qtree_grayau8.a libimage2qtree_grayau16.a \
         libimage2qtree_grayai16.a libimage2qtree_grayaf32.a               \
         libimage2qtree_rgbau8.a libimage2qtree_rgbau16.a                  \
         libimage2qtree_rgbai16.a libimage2qtree_rgbaf32.a
-image2qtree_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS) \
-        $(image2qtree_ARCHIVES)
+image2qtree_LDADD = $(image2qtree_ARCHIVES) @PKG_CARTOGRAPHY_LIBS@        \
+        @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 # The many archive files are to help speed compile times
 noinst_LIBRARIES += $(image2qtree_ARCHIVES)
 libimage2qtree_grayau8_a_SOURCES = image2qtree_help.cc
@@ -132,8 +132,8 @@ libimage2qtree_rgbaf32_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGBA -DCHAN
 geoblend_SOURCES = geoblend.cc
 geoblend_ARCHIVES = libgeoblend_gray.a libgeoblend_graya.a     \
         libgeoblend_rgb.a  libgeoblend_rgba.a
-geoblend_LDADD = @PKG_CARTOGRAPHY_LIBS@ @PKG_MOSAIC_LIBS@ $(COMMON_LIBS) \
-        $(geoblend_ARCHIVES)
+geoblend_LDADD = $(geoblend_ARCHIVES) @PKG_CARTOGRAPHY_LIBS@   \
+        @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
 # The many archive files are to help speed compile times and to lower
 # the overall memory requirement during compiling.
 noinst_LIBRARIES += $(geoblend_ARCHIVES)
