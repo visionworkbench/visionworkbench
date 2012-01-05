@@ -189,6 +189,9 @@ blob_file_dump_LDADD   = $(PLATE_LOCAL_LIBS)
 dump_page_SOURCES = dump_page.cc
 dump_page_LDADD   = $(PLATE_LOCAL_LIBS)
 
+query_blob_content_SOURCES = query_blob_content.cc
+query_blob_content_LDADD   = $(PLATE_LOCAL_LIBS)
+
 bin_PROGRAMS =   \
   blob_file_dump \
   dump_page      \
@@ -203,6 +206,7 @@ bin_PROGRAMS =   \
   platetransform \
   plate2tiles    \
   platereduce    \
+  query_blob_content \
   rebuild_index  \
   rpc_tool       \
   snapshot       \
