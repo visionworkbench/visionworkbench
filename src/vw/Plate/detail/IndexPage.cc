@@ -307,9 +307,15 @@ IndexPage::search_by_region(BBox2i const& region,
   if (region.max().x() > MAX_IDX || region.max().y() > MAX_IDX)
     vw_out(WarningMessage) << VW_CURRENT_FUNCTION << ": " << "asked for a region outside valid area for level " << m_level << ": " << region << std::endl;
 
+  // Search through the entries in the index page which are in the current region.
+  uint32 beg_row = (uint32)std::max((int32)0,             (int32)region.min().y() - (int32)m_base_row);
+  uint32 end_row = (uint32)std::min((int32)m_page_height, (int32)region.max().y() - (int32)m_base_row);
+  uint32 beg_col = (uint32)std::max((int32)0,             (int32)region.min().x() - (int32)m_base_col);
+  uint32 end_col = (uint32)std::min((int32)m_page_width,  (int32)region.max().x() - (int32)m_base_col);
+
   std::list<TileHeader> results;
-  for (uint32 row = 0; row < m_page_height; ++row) {
-    for (uint32 col = 0; col < m_page_width; ++col) {
+  for (uint32 row = beg_row; row < end_row; ++row) {
+    for (uint32 col = beg_col; col < end_col; ++col) {
       if (m_sparse_table.test(row*m_page_width + col)) {
 
         // Iterate over entries.
