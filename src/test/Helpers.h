@@ -8,7 +8,7 @@
 #ifndef __VW_TESTS_CONFIG_TEST_H__
 #define __VW_TESTS_CONFIG_TEST_H__
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <cmath>
 #include <complex>
 #include <string>
