@@ -24,7 +24,7 @@ class CopyParameters {
   }
 
 public:
-  int level;
+  uint32 level;
   TransactionOrNeg transaction_input_id, transaction_output_id;
   BBox2i region;
 
@@ -40,8 +40,8 @@ public:
 
       // If the region string is empty, then the user has not
       // specified the region.  We record this by setting the level to
-      // -1;
-      level = -1;
+      // max level
+      level = std::numeric_limits<uint32>::max();
 
     } else {
 
@@ -76,7 +76,7 @@ public:
 };
 
 template <class PixelT>
-void copy_job( int level, BBox2i const& region,
+void copy_job( uint32 level, BBox2i const& region,
                TransactionOrNeg input_tid,
                boost::shared_ptr<ReadOnlyPlateFile> input_plate,
                boost::shared_ptr<PlateFile> output_plate,
@@ -117,7 +117,7 @@ template <class PixelT>
 void do_copy(boost::shared_ptr<ReadOnlyPlateFile> input_plate,
              boost::shared_ptr<PlateFile> output_plate,
              CopyParameters& copy_parameters ) {
-  if (copy_parameters.level != -1 ) {
+  if (copy_parameters.level != std::numeric_limits<uint32>::max() ) {
     output_plate->transaction_resume(copy_parameters.transaction_output_id.promote());
     output_plate->audit_log()
       << "Started multi-part copy (t_id = " << copy_parameters.transaction_output_id
@@ -140,11 +140,31 @@ void do_copy(boost::shared_ptr<ReadOnlyPlateFile> input_plate,
     output_plate->transaction_begin("Full copy (requested t_if: " + vw::stringify(copy_parameters.transaction_output_id) + ")",
                                     copy_parameters.transaction_output_id );
 
-    for ( int32 level = 0; level < input_plate->num_levels(); level++ ) {
-      copy_job<PixelT>(level, d::move_down(BBox2i(0,0,1,1), level),
-                       copy_parameters.transaction_input_id,
-                       input_plate, output_plate,
-                       TerminalProgressCallback("plate.tools.platecopy","Level: " + stringify(level)));
+    // We don't do the whole level in one write request as we might
+    // put too much into a single blob. So the math below works out
+    // how big of a region 2GB worth of data is.
+    const uint64 tile_bytes = output_plate->default_tile_size() * output_plate->default_tile_size() * uint64(PixelNumBytes<PixelT>::value);
+    const uint64 max_write_size = 1024u * 1024u * 1024u * 2u;
+    const uint64 max_region_size = sqrt( max_write_size / tile_bytes );
+    output_plate->audit_log() << "Region processing size is: " << max_region_size << "\n";
+
+    for ( uint32 level = 0; level < input_plate->num_levels(); level++ ) {
+      BBox2i level_region = d::move_down(BBox2i(0,0,1,1), level);
+      TerminalProgressCallback tpc("plate.tools.platecopy","Level: " + stringify(level));
+
+      std::list<BBox2i> job_regions = bbox_tiles( level_region, max_region_size, max_region_size );
+      float start_percent = 0, inc_percent = 1.0 / float(job_regions.size());
+      BOOST_FOREACH( BBox2i const& job_region, job_regions ) {
+        output_plate->write_request();
+        output_plate->audit_log() << "Processing: " << job_region << "\n";
+        copy_job<PixelT>(level, job_region,
+                         copy_parameters.transaction_input_id,
+                         input_plate, output_plate,
+                         SubProgressCallback( tpc, start_percent, start_percent + inc_percent ));
+        output_plate->write_complete();
+        start_percent += inc_percent;
+      }
+      tpc.report_finished();
     }
 
     output_plate->transaction_end(true);
