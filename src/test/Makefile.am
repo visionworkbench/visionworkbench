@@ -26,6 +26,8 @@ AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
 
 EXTRA_DIST = Helpers.h test_main.cc image2qtree_test.py
+clean-local:
+	-rm -rf image2qtree.out
 
 includedir = $(prefix)/include/test
 include $(top_srcdir)/config/rules.mak

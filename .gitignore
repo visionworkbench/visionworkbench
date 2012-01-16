@@ -76,6 +76,7 @@ docs/workbook/workbook.toc
 
 # Everything else
 /src/test/geotif-generate
+/src/test/image2qtree.out
 /src/vw/BundleAdjustment/tests/TestBundleAdjustment
 /src/vw/BundleAdjustment/tests/TestCameraRelation
 /src/vw/BundleAdjustment/tests/TestControlNetwork
@@ -104,6 +105,7 @@ docs/workbook/workbook.toc
 /src/vw/Core/tests/TestFundamentalTypes
 /src/vw/Core/tests/TestLog
 /src/vw/Core/tests/TestSettings
+/src/vw/Core/tests/TestTemporaryFile
 /src/vw/Core/tests/TestThread
 /src/vw/Core/tests/TestThreadPool
 /src/vw/Core/tests/TestThreadQueue
@@ -185,11 +187,15 @@ docs/workbook/workbook.toc
 /src/vw/Plate/index_client
 /src/vw/Plate/index_perftest
 /src/vw/Plate/index_server
+/src/vw/Plate/mipmap
 /src/vw/Plate/plate2dem
 /src/vw/Plate/plate2kml
 /src/vw/Plate/plate2plate
 /src/vw/Plate/plate2tiles
+/src/vw/Plate/platecopy
 /src/vw/Plate/platereduce
+/src/vw/Plate/platetransform
+/src/vw/Plate/query_blob_content
 /src/vw/Plate/rebuild_index
 /src/vw/Plate/rpc_tool
 /src/vw/Plate/snapshot
@@ -202,9 +208,11 @@ docs/workbook/workbook.toc
 /src/vw/Plate/tests/TestIndexPage
 /src/vw/Plate/tests/TestLocalIndex
 /src/vw/Plate/tests/TestModPlate
+/src/vw/Plate/tests/TestPlateGeoReference
 /src/vw/Plate/tests/TestPlateManager
 /src/vw/Plate/tests/TestRpc
 /src/vw/Plate/tests/TestRpcChannel
+/src/vw/Plate/tests/TestSnapshotManager
 /src/vw/Plate/tests/TestTileManipulation
 /src/vw/Plate/tests/TestTransactions
 /src/vw/Python/vw/_*.cpp
