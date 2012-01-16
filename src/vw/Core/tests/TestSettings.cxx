@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
 #include <test/Helpers.h>

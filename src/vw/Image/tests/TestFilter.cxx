@@ -6,7 +6,7 @@
 
 
 // TestFilter.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Image/Filter.h>
 #include <vw/Image/ImageView.h>

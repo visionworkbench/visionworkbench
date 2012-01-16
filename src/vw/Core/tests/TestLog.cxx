@@ -20,7 +20,7 @@
 #include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 using namespace vw;
 

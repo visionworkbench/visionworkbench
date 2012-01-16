@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Camera/CAHVORModel.h>
 #include <vw/Math/Vector.h>

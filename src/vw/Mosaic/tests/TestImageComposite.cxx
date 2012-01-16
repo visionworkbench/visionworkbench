@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Mosaic/ImageComposite.h>
 
 using namespace std;

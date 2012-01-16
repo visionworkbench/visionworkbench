@@ -6,7 +6,7 @@
 
 
 // TestGeoTransform.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 
 #include <vw/Cartography/GeoReference.h>

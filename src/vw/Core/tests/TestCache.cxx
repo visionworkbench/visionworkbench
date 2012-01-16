@@ -6,7 +6,7 @@
 
 
 #include <memory>
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>

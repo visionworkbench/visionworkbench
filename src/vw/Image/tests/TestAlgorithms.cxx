@@ -6,7 +6,7 @@
 
 
 // Image/tests/TestAlgorithms.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageView.h>

@@ -9,7 +9,7 @@
 #include <ctime>
 #include <cstdlib>
 #include <vw/Math/Quaternion.h>
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 using namespace vw;
 

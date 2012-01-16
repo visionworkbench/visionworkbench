@@ -6,7 +6,7 @@
 
 
 // TestBlockFileIO.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <test/Helpers.h>

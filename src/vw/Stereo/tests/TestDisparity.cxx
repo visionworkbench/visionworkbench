@@ -6,7 +6,7 @@
 
 
 // TestDisparity.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Stereo/DisparityMap.h>
 #include <vw/Image/ImageView.h>

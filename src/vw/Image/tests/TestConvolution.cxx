@@ -6,7 +6,7 @@
 
 
 // TestConvolution.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Image/Convolution.h>
 #include <vw/Image/ImageView.h>

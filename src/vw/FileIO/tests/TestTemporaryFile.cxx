@@ -7,7 +7,7 @@
 
 #include <vw/FileIO/TemporaryFile.h>
 #include <vw/Core/Settings.h>
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/convenience.hpp>

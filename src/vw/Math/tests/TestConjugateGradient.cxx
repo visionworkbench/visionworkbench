@@ -6,7 +6,7 @@
 
 
 // TestConjugateGradient.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/ConjugateGradient.h>
 

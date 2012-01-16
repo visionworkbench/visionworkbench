@@ -6,7 +6,7 @@
 
 
 // TestManipulation.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>

@@ -4,7 +4,7 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 #include <boost/lexical_cast.hpp>
 #include <vw/Image/ImageMath.h>

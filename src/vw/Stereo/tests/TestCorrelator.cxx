@@ -6,7 +6,7 @@
 
 
 // TestCorrelator.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/Image/UtilityViews.h>
 #include <vw/Stereo/CorrelatorView.h>

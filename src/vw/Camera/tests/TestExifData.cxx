@@ -6,7 +6,7 @@
 
 
 // TestExifData
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <cstdio>
 #include <vw/Camera/Exif.h>

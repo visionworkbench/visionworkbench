@@ -6,7 +6,7 @@
 
 
 // TestMaskedPixelMath.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Image.h>
 #include <test/Helpers.h>
 

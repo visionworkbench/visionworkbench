@@ -6,7 +6,7 @@
 
 
 // TestImageMath.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/config.h>
 #include <vw/Image/ImageMath.h>

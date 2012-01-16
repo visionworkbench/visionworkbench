@@ -30,7 +30,7 @@ EXTRA_DIST = \
   thirdparty/gtest/CHANGES \
   thirdparty/gtest/CONTRIBUTORS \
   thirdparty/gtest/COPYING \
-  thirdparty/gtest/include/gtest/gtest.h \
+  thirdparty/gtest/include/gtest/gtest_VW.h \
   thirdparty/gtest/README \
   thirdparty/gtest/src/gtest-all.cc \
   thirdparty/gtest/src/gtest_main.cc

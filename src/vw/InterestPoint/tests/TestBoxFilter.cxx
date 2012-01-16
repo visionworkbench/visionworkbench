@@ -6,7 +6,7 @@
 
 
 // TestBoxFilter.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 
 #include <vw/InterestPoint/IntegralImage.h>
 #include <vw/InterestPoint/BoxFilter.h>

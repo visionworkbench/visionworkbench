@@ -6,7 +6,7 @@
 
 
 // TestDiskImageResource.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/FileIO.h>
 #include <vw/FileIO/DiskImageResource_internal.h>
 #include <vw/Image/PixelTypes.h>

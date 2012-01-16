@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/config.h>
 #include <vw/Math/Functors.h>
 

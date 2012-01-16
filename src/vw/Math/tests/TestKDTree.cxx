@@ -6,7 +6,7 @@
 
 
 #include <vector>
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Math/KDTree.h>
 
 using std::vector;

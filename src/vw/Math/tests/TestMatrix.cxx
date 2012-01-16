@@ -6,7 +6,7 @@
 
 
 // TestMatrix.h
-#include <gtest/gtest.h>
+#include <gtest/gtest_VW.h>
 #include <vw/Math/Matrix.h>
 
 using namespace vw;
