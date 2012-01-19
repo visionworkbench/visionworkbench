@@ -309,15 +309,15 @@ struct DiskImageResourcePNG::vw_png_read_context:
   }
 
   // Fetches the comments out of the PNG when we first open it.
-  void read_comments()
-  {
+  void read_comments() {
     if( comments_loaded ) return;
     advance(outer->rows()-current_line);
-    png_read_end(ctx.ptr, ctx.info_end);
+    png_read_end(ctx.ptr, ctx.info);
     comments_loaded = true;
 
     png_text *text_ptr;
-    int num_comments = png_get_text(ctx.ptr, ctx.info_end, &text_ptr, 0);
+    int num_text;
+    int num_comments = png_get_text(ctx.ptr, ctx.info, &text_ptr, &num_text);
     comments.clear();
     for ( int i=0; i<num_comments; ++i )
     {
@@ -367,12 +367,12 @@ private:
 
 // Context for writing
 struct DiskImageResourcePNG::vw_png_write_context:
-  public DiskImageResourcePNG::vw_png_context
-{
+  public DiskImageResourcePNG::vw_png_context {
   png_context_t ctx;
+  bool comments_written;
 
   vw_png_write_context(DiskImageResourcePNG *outer, const DiskImageResourcePNG::Options &options):
-    vw_png_context(outer), ctx(outer->m_filename.c_str(), png_context_t::PNG_WRITE)
+    vw_png_context(outer), ctx(outer->m_filename.c_str(), png_context_t::PNG_WRITE), comments_written(false)
   {
     // Set some needed values.
     int width     = outer->m_format.cols;
@@ -472,6 +472,48 @@ struct DiskImageResourcePNG::vw_png_write_context:
 
     png_write_image(ctx.ptr, row_pointers.get());
     png_write_end(ctx.ptr, ctx.info);
+  }
+
+  void read_comments() {
+    if (!comments_written)
+      vw_throw( ArgumentErr() << "DiskImageResourcePNG: No comments written to be read." );
+  }
+
+  void write_comments( std::vector<DiskImageResourcePNG::Comment> const& c ) {
+    comments = c;
+    comments_written = true;
+
+    // Convert vector of comments into the PNG format
+    png_textp text = new png_text[comments.size()];
+    for ( size_t i = 0; i < comments.size(); i++ ) {
+      text[i].key =  strcpy( new char[comments[i].key.size()],
+                             comments[i].key.c_str() );
+      text[i].text = strcpy( new char[comments[i].text.size()],
+                             comments[i].text.c_str() );
+      text[i].text_length = comments[i].text.size();
+      text[i].compression = comments[i].compressed;
+#ifdef PNG_iTXt_SUPPORTED
+      text[i].itxt_length = 0;
+      text[i].lang = strcpy( new char[comments[i].lang.size()],
+                             comments[i].lang.c_str() );
+      text[i].lang_key = strcpy( new char[comments[i].lang_key.size()],
+                                 comments[i].lang_key.c_str() );
+#endif
+    }
+
+    // Actually write the comments
+    png_set_text(ctx.ptr, ctx.info, text, comments.size() );
+
+    // Clean up
+    for ( size_t i = 0; i < comments.size(); i++ ) {
+      delete[] text[i].key;
+      delete[] text[i].text;
+#ifdef PNG_iTXt_SUPPORTED
+      delete[] text[i].lang;
+      delete[] text[i].lang_key;
+#endif
+    }
+    delete[] text;
   }
 
 private:
@@ -628,6 +670,13 @@ std::string const& DiskImageResourcePNG::get_comment_key( unsigned i ) const {
 std::string const& DiskImageResourcePNG::get_comment_value( unsigned i ) const {
   m_ctx->read_comments();
   return get_comment(i).text;
+}
+
+void DiskImageResourcePNG::write_comments( std::vector<DiskImageResourcePNG::Comment> const& comments ) {
+  vw_png_write_context *ctx = dynamic_cast<vw_png_write_context*>(m_ctx.get());
+  if ( !ctx )
+    vw_throw( ArgumentErr() << "DiskImageResourcePNG: Attempting to write comments on a file opened for reading." );
+  ctx->write_comments( comments );
 }
 
 /***********************************************************************

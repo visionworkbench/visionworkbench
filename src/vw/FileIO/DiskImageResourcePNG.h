@@ -77,6 +77,7 @@ namespace vw {
     Comment const& get_comment( unsigned i ) const;
     std::string const& get_comment_key  ( unsigned i ) const;
     std::string const& get_comment_value( unsigned i ) const;
+    void write_comments( std::vector<Comment> const& comments );
 
     // Options that can be passed in while writing. The default is
     // generally 'good enough'.

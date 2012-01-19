@@ -354,3 +354,45 @@ TEST( DiskImageResource, WrongFiles ) {
   EXPECT_THROW(r.reset(DiskImageResourcePBM::construct_open("rgb2x2.tif")),
                vw::ArgumentErr);
 }
+
+TEST( DiskImageResource, PNGComments ) {
+  ImageView<PixelGray<uint8> > data(4,4);
+  for ( size_t i = 0; i < 16; i++ ) {
+    data.data()[i] = (uint8)i;
+  }
+  UnlinkName write_name("test_comments.png");
+  { // Test writing
+    DiskImageResourcePNG write_rsrc( write_name, data.format() );
+    EXPECT_THROW( write_rsrc.num_comments(),
+                  vw::ArgumentErr );
+
+    // Defining some comments
+    std::vector<DiskImageResourcePNG::Comment> write_comments(2);
+    write_comments[0].key = write_comments[0].text =
+      "Monkey";
+    write_comments[1].key = write_comments[1].text =
+      "Cow";
+    write_comments[0].utf8 = write_comments[0].compressed =
+      write_comments[1].utf8 = write_comments[1].compressed = false;
+    write_rsrc.write_comments( write_comments );
+
+    EXPECT_NO_THROW( write_rsrc.num_comments() );
+    EXPECT_EQ( 2, write_rsrc.num_comments() );
+
+    write_image( write_rsrc, data,
+                 ProgressCallback::dummy_instance() );
+  }
+
+  { // Test reading
+    DiskImageResourcePNG read_rsrc( write_name );
+    ImageView<PixelGray<uint8> > read_data;
+    read_image( read_data, read_rsrc );
+    EXPECT_EQ( data, read_data );
+
+    ASSERT_EQ( 2, read_rsrc.num_comments() );
+    EXPECT_EQ( "Monkey", read_rsrc.get_comment_key( 0 ) );
+    EXPECT_EQ( "Monkey", read_rsrc.get_comment_value( 0 ) );
+    EXPECT_EQ( "Cow", read_rsrc.get_comment_key( 1 ) );
+    EXPECT_EQ( "Cow", read_rsrc.get_comment_value( 1 ) );
+  }
+}
