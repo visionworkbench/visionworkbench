@@ -45,7 +45,7 @@ namespace vw {
     int32 m_num_pixels;
 #endif
     PixelT *m_ptr;
-    ssize_t m_cstride, m_rstride, m_pstride;
+    ssize_t m_rstride, m_pstride;
   public:
     typedef PixelT pixel_type;
     typedef PixelT& result_type;
@@ -53,24 +53,24 @@ namespace vw {
 
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
     MemoryStridingPixelAccessor( PixelT *ptr,
-                                 ssize_t cstride, ssize_t rstride, ssize_t pstride,
+                                 ssize_t rstride, ssize_t pstride,
                                  int32 cols, int32 rows, int32 planes)
       : m_base_ptr(ptr), m_num_pixels(cols * rows * planes),
-        m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {}
+        m_ptr(ptr), m_rstride(rstride), m_pstride(pstride) {}
 #else
-    MemoryStridingPixelAccessor( PixelT *ptr, ssize_t cstride, ssize_t rstride, ssize_t pstride )
-      : m_ptr(ptr), m_cstride(cstride), m_rstride(rstride), m_pstride(pstride) {
+    MemoryStridingPixelAccessor( PixelT *ptr, ssize_t rstride, ssize_t pstride )
+      : m_ptr(ptr), m_rstride(rstride), m_pstride(pstride) {
     }
 #endif
 
-    inline MemoryStridingPixelAccessor& next_col()   { m_ptr += m_cstride; return *this; }
-    inline MemoryStridingPixelAccessor& prev_col()   { m_ptr -= m_cstride; return *this; }
+    inline MemoryStridingPixelAccessor& next_col()   { ++m_ptr; return *this; }
+    inline MemoryStridingPixelAccessor& prev_col()   { --m_ptr; return *this; }
     inline MemoryStridingPixelAccessor& next_row()   { m_ptr += m_rstride; return *this; }
     inline MemoryStridingPixelAccessor& prev_row()   { m_ptr -= m_rstride; return *this; }
     inline MemoryStridingPixelAccessor& next_plane() { m_ptr += m_pstride; return *this; }
     inline MemoryStridingPixelAccessor& prev_plane() { m_ptr -= m_pstride; return *this; }
     inline MemoryStridingPixelAccessor& advance( ssize_t dc, ssize_t dr, ssize_t dp=0 ) {
-      m_ptr += dc*m_cstride + dr*m_rstride + dp*m_pstride;
+      m_ptr += dc + dr*m_rstride + dp*m_pstride;
       return *this;
     }
 

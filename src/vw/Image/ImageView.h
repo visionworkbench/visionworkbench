@@ -49,7 +49,7 @@ namespace vw {
     boost::shared_array<PixelT> m_data;
     int32 m_cols, m_rows, m_planes;
     PixelT *m_origin;
-    ssize_t m_cstride, m_rstride, m_pstride;
+    ssize_t m_rstride, m_pstride;
 
   public:
     /// The base type of the image.
@@ -66,7 +66,7 @@ namespace vw {
 
     /// Constructs an empty image with zero size.
     ImageView()
-      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0),
         m_rstride(0), m_pstride(0) {}
 
     /// Copy-constructs a view pointing to the same data.
@@ -76,12 +76,12 @@ namespace vw {
       : ImageViewBase<ImageView<PixelT> >(other),
         m_data(other.m_data), m_cols(other.m_cols),
         m_rows(other.m_rows), m_planes(other.m_planes),
-        m_origin(other.m_origin), m_cstride(other.m_cstride),
+        m_origin(other.m_origin),
         m_rstride(other.m_rstride), m_pstride(other.m_pstride) {}
 
     /// Constructs an empty image with the given dimensions.
     ImageView( int32 cols, int32 rows, int32 planes=1 )
-      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0),
         m_rstride(0), m_pstride(0) {
       set_size( cols, rows, planes );
     }
@@ -89,7 +89,7 @@ namespace vw {
     /// Constructs an image view and rasterizes the given view into it.
     template <class ViewT>
     ImageView( ViewT const& view )
-      : m_cols(0), m_rows(0), m_planes(0), m_origin(0), m_cstride(0),
+      : m_cols(0), m_rows(0), m_planes(0), m_origin(0),
         m_rstride(0), m_pstride(0) {
       set_size( view.cols(), view.rows(), view.planes() );
       view.rasterize( *this, BBox2i(0,0,view.cols(),view.rows()) );
@@ -136,10 +136,10 @@ namespace vw {
     /// Returns a pixel_accessor pointing to the top-left corner of the first plane.
     inline pixel_accessor origin() const {
 #if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
-      return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride,
+      return pixel_accessor( m_origin, m_rstride, m_pstride,
                              cols(), rows(), planes() );
 #else
-      return pixel_accessor( m_origin, m_cstride, m_rstride, m_pstride );
+      return pixel_accessor( m_origin, m_rstride, m_pstride );
 #endif
     }
 
@@ -149,7 +149,7 @@ namespace vw {
       if (col < 0 || col >= cols() || row < 0 || row >= rows() || plane < 0 || plane >= planes())
         vw_throw(ArgumentErr() << "ImageView::operator() - invalid index [" << col << " " << row << " " << plane << "] for ImageView with dimensions [" << cols() << " " << rows() << " " << planes() << "]");
 #endif
-      return *(m_origin + col*m_cstride + row*m_rstride + plane*m_pstride);
+      return *(m_origin + col + row*m_rstride + plane*m_pstride);
     }
 
     /// Adjusts the size of the image, allocating a new buffer if the size has changed.
@@ -196,7 +196,6 @@ namespace vw {
       m_rows = rows;
       m_planes = planes;
       m_origin = m_data.get();
-      m_cstride = 1;
       m_rstride = cols;
       m_pstride = rows*cols;
 
@@ -224,7 +223,7 @@ namespace vw {
       m_data.reset();
       m_cols = m_rows = m_planes = 0;
       m_origin = 0;
-      m_cstride = m_rstride = m_pstride = 0;
+      m_rstride = m_pstride = 0;
     }
 
     /// Returns a pointer to the origin of the image in memory.
