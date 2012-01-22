@@ -325,8 +325,10 @@ struct DiskImageResourcePNG::vw_png_read_context:
       c.key = text_ptr[i].key;
       c.text = text_ptr[i].text;
 #ifdef PNG_iTXt_SUPPORTED
-      c.lang = text_ptr[i].lang;
-      c.lang_key = text_ptr[i].lang_key;
+      if ( text_ptr[i].lang )
+        c.lang = text_ptr[i].lang;
+      if ( text_ptr[i].lang_key )
+        c.lang_key = text_ptr[i].lang_key;
 #endif
       switch( text_ptr[i].compression )
       {
