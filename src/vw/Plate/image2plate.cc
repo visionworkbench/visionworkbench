@@ -270,22 +270,22 @@ void run(const Options& opt) {
       try {
         fail_read_georef = !read_georeference( georef, diskrsrc );
       } catch ( InputErr const& e ) {
-        vw_out(ErrorMessage) << "Input " << diskrsrc.filename() << " has malformed georeferencing information.\n";
+        VW_OUT(ErrorMessage) << "Input " << diskrsrc.filename() << " has malformed georeferencing information.\n";
         fail_read_georef = true;
       }
 
       if(opt.force_lunar) {
         const double LUNAR_RADIUS = 1737400;
-        vw_out() << "\t--> Using standard lunar spherical datum: " << LUNAR_RADIUS << "\n";
+        VW_OUT() << "\t--> Using standard lunar spherical datum: " << LUNAR_RADIUS << "\n";
         cartography::Datum datum("D_MOON", "MOON", "Reference Meridian", LUNAR_RADIUS, LUNAR_RADIUS, 0.0);
         georef.set_datum(datum);
       } else if(opt.force_mars) {
         const double MOLA_PEDR_EQUATORIAL_RADIUS = 3396000.0;
-        vw_out() << "\t--> Using standard MOLA spherical datum: " << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
+        VW_OUT() << "\t--> Using standard MOLA spherical datum: " << MOLA_PEDR_EQUATORIAL_RADIUS << "\n";
         cartography::Datum datum("D_MARS", "MARS", "Reference Meridian", MOLA_PEDR_EQUATORIAL_RADIUS, MOLA_PEDR_EQUATORIAL_RADIUS, 0.0);
         georef.set_datum(datum);
       } else if(opt.force_spherical) {
-        vw_out() << "\t--> Using user-supplied spherical datum: " << opt.force_spherical << "\n";
+        VW_OUT() << "\t--> Using user-supplied spherical datum: " << opt.force_spherical << "\n";
         cartography::Datum datum("USER SUPPLIED DATUM", "SPHERICAL DATUM", "Reference Meridian", opt.force_spherical.get(), opt.force_spherical.get(), 0.0);
         georef.set_datum(datum);
       }
@@ -390,9 +390,9 @@ int main(int argc, char **argv) {
     run(opt);
     return 0;
   } catch (const PlatefileErr& e) {
-    vw_out(ErrorMessage) << "A platefile error occured: " << e.what() << "\n";
+    VW_OUT(ErrorMessage) << "A platefile error occured: " << e.what() << "\n";
   } catch (const Exception& e) {
-    vw_out(ErrorMessage) << "Runtime Error: " << e.what() << "\n";
+    VW_OUT(ErrorMessage) << "Runtime Error: " << e.what() << "\n";
   }
   return 1;
 }

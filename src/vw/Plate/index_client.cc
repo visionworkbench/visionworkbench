@@ -56,7 +56,7 @@ void PlateInfo(const Url& url) {
   boost::shared_ptr<Index> index = Index::construct_open(url);
   const IndexHeader& hdr = index->index_header();
 
-  vw_out() << "Platefile:\n"
+  VW_OUT() << "Platefile:\n"
            << "\tID["          << hdr.platefile_id()      << "]\n"
            << "\tName["        << fs::path(url.path()).leaf()   << "]\n"
            << "\tFilename["    << index->platefile_name() << "]\n"
@@ -78,9 +78,9 @@ void ListPlates(const Url& url) {
   std::cerr << "Listing plates!" << std::endl;
   client->ListRequest(client.get(), &request, &reply, null_callback());
 
-  vw_out() << "Got Plates:" << std::endl;
-  std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(vw_out(), " "));
-  vw_out() << std::endl;
+  VW_OUT() << "Got Plates:" << std::endl;
+  std::copy(reply.platefile_names().begin(), reply.platefile_names().end(), std::ostream_iterator<std::string>(::vw::vw_out(), " "));
+  VW_OUT() << std::endl;
 
   BOOST_FOREACH(const std::string& name, reply.platefile_names())
     PlateInfo(PlatefileUrl(url, name));

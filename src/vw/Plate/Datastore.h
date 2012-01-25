@@ -106,7 +106,7 @@ class Datastore {
     // LOGGING
     // Use the audit log for events that should be recorded for posterity next to the datastore
     virtual Logger audit_log() const = 0;
-    // a sane thing for error_log to do is log to audit_log() and vw_out(ErrorMessage, "console")
+    // a sane thing for error_log to do is log to audit_log() and VW_OUT(ErrorMessage, "console")
     virtual Logger error_log() const = 0;
 };
 

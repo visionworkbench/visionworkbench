@@ -375,8 +375,8 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
 
   if ( !opt.start_description.empty() ) {
     platefile->transaction_begin(opt.start_description, opt.transaction_id );
-    vw_out() << "Transaction started with ID = " << platefile->transaction_id() << "\n";
-    vw_out() << "Plate has " << platefile->num_levels() << " levels.\n";
+    VW_OUT() << "Transaction started with ID = " << platefile->transaction_id() << "\n";
+    VW_OUT() << "Plate has " << platefile->num_levels() << " levels.\n";
     return;
   }
 
@@ -385,7 +385,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
   if ( opt.finish ) {
     // Update the read cursor when the snapshot is complete!
     platefile->transaction_end(true);
-    vw_out() << "Transaction " << opt.transaction_id << " complete.\n";
+    VW_OUT() << "Transaction " << opt.transaction_id << " complete.\n";
     return;
   }
 
@@ -408,7 +408,7 @@ void do_run( Options& opt, ReduceBase<ReduceT>& reduce ) {
       mworkunits.push_back(c);
     count++;
   }
-  vw_out() << "Job " << opt.job_id << "/" << opt.num_jobs << " has "
+  VW_OUT() << "Job " << opt.job_id << "/" << opt.num_jobs << " has "
            << mworkunits.size() << " work units.\n";
 
   platefile->audit_log()
@@ -481,7 +481,7 @@ int main( int argc, char *argv[] ) {
     }
 
   } catch ( const ArgumentErr& e ) {
-    vw_out() << e.what() << std::endl;
+    VW_OUT() << e.what() << std::endl;
     return 1;
   } catch ( const Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

@@ -88,7 +88,7 @@ void copy_job( uint32 level, BBox2i const& region,
   // This is an arbitrary value, to hopefully catch
   // pathlogically-small cache sizes
   if ( CACHE_TILES < 100 )
-    vw_out(WarningMessage) << "You will lose a lot speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
+    VW_OUT(WarningMessage) << "You will lose a lot speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
 
   std::list<BBox2i> sub_regions = bbox_tiles(region, 512, 512);
   float inc_amt = 1./float(sub_regions.size());
@@ -232,14 +232,14 @@ int main( int argc, char *argv[] ) {
 
     if (vm.count("start")) {
       Transaction t = output_plate->transaction_begin(start_description, transaction_output_id);
-      vw_out() << "Transaction started with ID = " << t << "\n";
+      VW_OUT() << "Transaction started with ID = " << t << "\n";
       return 0;
     }
 
     if (vm.count("finish")) {
       output_plate->transaction_resume(transaction_output_id.promote());
       output_plate->transaction_end(true);
-      vw_out() << "Transaction " << transaction_output_id << " complete.\n";
+      VW_OUT() << "Transaction " << transaction_output_id << " complete.\n";
       return 0;
     }
 

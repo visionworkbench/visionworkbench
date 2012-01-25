@@ -128,7 +128,7 @@ void do_level(int level, BBox2i tile_region, boost::shared_ptr<PlateFile> platef
     std::list<TileHeader> tile_records = platefile->search_by_region(level, *region_iter, TransactionRange(transaction_id));
 
     if (!tile_records.empty()) {
-      vw_out() << "\t--> Exporting " << tile_records.size() << " tiles in " << *region_iter
+      VW_OUT() << "\t--> Exporting " << tile_records.size() << " tiles in " << *region_iter
                << " @ level " << level << "\n";
     }
 
@@ -234,8 +234,8 @@ int main( int argc, char *argv[] ) {
   }
 
   if( vm.count("plate-file") != 1 ) {
-    vw_out(ErrorMessage) << "Error: must specify an input platefile!" << std::endl << std::endl;
-    vw_out() << usage.str();
+    VW_OUT(ErrorMessage) << "Error: must specify an input platefile!" << std::endl << std::endl;
+    VW_OUT() << usage.str();
     return 1;
   }
 

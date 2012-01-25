@@ -330,7 +330,7 @@ uint64 PlateManager<PixelT>::calc_cache_tile_count() const {
   const uint64 CACHE_TILES = CACHE_BYTES / TILE_BYTES;
   VW_ASSERT( CACHE_TILES >= 4, LogicErr() << "Cache too small to load dependencies of higher tiles. Increase cache size! (currently you can only store " << CACHE_TILES << ")" );
   if ( CACHE_TILES < 100 )
-    vw_out(WarningMessage) << "You may lose a lot of speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
+    VW_OUT(WarningMessage) << "You may lose a lot of speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
   return CACHE_TILES;
 }
 
@@ -355,12 +355,12 @@ void PlateManager<PixelT>::mipmap(uint32 starting_level, BBox2i const& starting_
     // memory, and worst case is that both levels have the same number of
     // tiles.
     if (hdrs_size > CACHE_TILES / 2) {
-      vw_out(VerboseDebugMessage, "platefile") << "\nSLOW_MIPMAP, level " << output_level << ", tile_count(" << hdrs_size << ") greater than " << CACHE_TILES / 2 << std::endl;
+      VW_OUT(VerboseDebugMessage, "platefile") << "\nSLOW_MIPMAP, level " << output_level << ", tile_count(" << hdrs_size << ") greater than " << CACHE_TILES / 2 << std::endl;
       slow_mipmap(output_level, hdrs, preblur, d::RememberCallback(progress_callback, float(1)/starting_level, hdrs_size));
     }
     else {
       uint32 remaining_tiles = approximate_total_tiles(input_region, hdrs.size()) - hdrs.size();
-      vw_out(VerboseDebugMessage, "platefile") << "\nFAST_MIPMAP, level " << output_level << ", tile_count(" << hdrs_size << ") less than " << CACHE_TILES / 2 << "(~" << remaining_tiles << " tiles left)" << std::endl;
+      VW_OUT(VerboseDebugMessage, "platefile") << "\nFAST_MIPMAP, level " << output_level << ", tile_count(" << hdrs_size << ") less than " << CACHE_TILES / 2 << "(~" << remaining_tiles << " tiles left)" << std::endl;
       fast_mipmap(output_level, stopping_level, hdrs, preblur, d::RememberCallback(progress_callback, float(output_level)/starting_level, remaining_tiles));
       break;
     }

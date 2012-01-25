@@ -106,8 +106,8 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
     VW_DEBUG_ASSERT( fabs(curr_ppd - opt.tile_ppd) < 1e-3,
                      MathErr() << "Objective PPD is wrong" );
   }
-  vw_out() << "Converting " << opt.plate_file_name << " to " << opt.output_prefix << "\n";
-  vw_out() << output_georef << "\n";
+  VW_OUT() << "Converting " << opt.plate_file_name << " to " << opt.output_prefix << "\n";
+  VW_OUT() << output_georef << "\n";
 
   // Get the output georeference.
   BBox2i output_bbox;
@@ -118,7 +118,7 @@ void do_tiles(boost::shared_ptr<PlateFile> platefile, Options& opt) {
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.north)+half_pixel));
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.west, opt.south)+half_pixel));
   output_bbox.grow(output_georef.lonlat_to_pixel(Vector2(opt.east, opt.south)+half_pixel));
-  vw_out() << "\t--> Output bbox: " << output_bbox << "\n";
+  VW_OUT() << "\t--> Output bbox: " << output_bbox << "\n";
 
   if ( opt.tile_size_deg > 0 ) {
     if ( opt.tile_ppd > 0 ) {
@@ -303,7 +303,7 @@ int main( int argc, char *argv[] ) {
     }
 
   } catch ( const ArgumentErr& e ) {
-    vw_out() << e.what() << std::endl;
+    VW_OUT() << e.what() << std::endl;
     return 1;
   } catch ( const Exception& e ) {
     std::cerr << "VW Error: " << e.what() << std::endl;

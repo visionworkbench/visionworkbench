@@ -87,7 +87,7 @@ struct ToastDem : public FilterBase<ToastDem> {
     // Write null tiles for the levels we don't have data for
     int level_difference = log(input.default_tile_size()/float(output.default_tile_size())) / log(2.) + 0.5;
 
-    vw_out() << "Creating null tiles for a level difference of " << level_difference << std::endl;
+    VW_OUT() << "Creating null tiles for a level difference of " << level_difference << std::endl;
 
     uint64 bytes;
     boost::shared_array<uint8> null_tile = toast_dem_null_tile(bytes);
@@ -204,7 +204,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
   uint32 bottom_level = min(input.num_levels(), opt.bottom_level+1);
 
   for (uint32 level = 0; level < bottom_level; ++level) {
-    vw_out(InfoMessage) << "\nProcessing level " << level << " of " << bottom_level-1 << ".  ";
+    VW_OUT(InfoMessage) << "\nProcessing level " << level << " of " << bottom_level-1 << ".  ";
     TerminalProgressCallback tpc("plate.plate2plate.progress", "");
     vw::Timer timer( "\t    Processing time in seconds" );
 
@@ -218,7 +218,7 @@ void run(Options& opt, FilterBase<FilterT>& filter) {
                                           subdivided_region_size,
                                           subdivided_region_size);
 
-    vw_out(InfoMessage) << "Region"   << full_region << " has " << boxes1.size() << " bboxes\n";
+    VW_OUT(InfoMessage) << "Region"   << full_region << " has " << boxes1.size() << " bboxes\n";
 
     float region_counter = 0;
     BOOST_FOREACH( const BBox2i& region1, boxes1 ) {

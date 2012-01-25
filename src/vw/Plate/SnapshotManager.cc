@@ -47,7 +47,7 @@ namespace {
     BOOST_FOREACH(const TileHeader& hdr, tiles) {
       typename cache_t::const_iterator i = tile_cache.find(d::rowcoltid_t(d::therow(hdr), d::thecol(hdr), d::thetid(hdr)));
       if (i == tile_cache.end()) {
-        vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
+        VW_OUT(WarningMessage, "platefile.snapshot") << "Failed to load image for " << hdr << std::endl;
         continue;
       }
 
@@ -79,7 +79,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
   // This is an arbitrary value, to hopefully catch
   // pathlogically-small cache sizes
   if ( CACHE_TILES < 100 )
-    vw_out(WarningMessage) << "You will lose a lot speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
+    VW_OUT(WarningMessage) << "You will lose a lot speed to thrashing if you can't cache at least 100 tiles (you can only store " << CACHE_TILES << ")\n";
 
   // Divide up the region into moderately-sized chunks
   std::list<BBox2i> regions = bbox_tiles(tile_region, 1024, 1024);
@@ -142,7 +142,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
           typename tile_cache_t<PixelT>::const_iterator i =
             tile_cache.find(d::rowcoltid_t(d::therow(t.second[0]), d::thecol(t.second[0]), d::thetid(t.second[0])));
           if ( i == tile_cache.end() ) {
-            vw_out(WarningMessage, "platefile.snapshot") << "Failed to load image for " << t.second[0] << std::endl;
+            VW_OUT(WarningMessage, "platefile.snapshot") << "Failed to load image for " << t.second[0] << std::endl;
             continue;
           }
           m_write_plate->write_update(i->second, d::thecol(t.first), d::therow(t.first), level);
@@ -153,7 +153,7 @@ void SnapshotManager<PixelT>::snapshot(uint32 level, BBox2i const& tile_region, 
         ImageView<PixelT> tile;
         mosaic_in_tid_order<PixelT>(tile, m_write_plate->default_tile_size(), tile_cache, t.second);
         if (!tile) {
-          vw_out(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
+          VW_OUT(WarningMessage, "platefile.snapshot") << "Empty tile list, skipping writing tile row=" << d::therow(t.first) << " col=" << d::thecol(t.first) << std::endl;
           continue;
         }
         m_write_plate->write_update(tile, d::thecol(t.first), d::therow(t.first), level);

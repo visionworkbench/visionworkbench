@@ -271,18 +271,18 @@ int main( int argc, char *argv[] ) {
 
     if (vm.count("start")) {
       if (!vm.count("transaction-id")) {
-        vw_out() << "You must specify a transaction-id if you use --start.\n";
+        VW_OUT() << "You must specify a transaction-id if you use --start.\n";
         return 1;
       }
 
       Transaction t = output_plate->transaction_begin(start_description, transaction_id);
-      vw_out() << "Transaction started with ID = " << t << "\n";
-      vw_out() << "Plate has " << input_plate->num_levels() << " levels.\n";
+      VW_OUT() << "Transaction started with ID = " << t << "\n";
+      VW_OUT() << "Plate has " << input_plate->num_levels() << " levels.\n";
       return 0;
     }
 
     if (transaction_id.newest()) {
-      vw_out() << "You must specify a transaction-id if you are not starting a new one.\n";
+      VW_OUT() << "You must specify a transaction-id if you are not starting a new one.\n";
       return 1;
     }
 
@@ -291,7 +291,7 @@ int main( int argc, char *argv[] ) {
     if (vm.count("finish")) {
       // Update the read cursor when the snapshot is complete!
       output_plate->transaction_end(true);
-      vw_out() << "Transaction " << transaction_id << " complete.\n";
+      VW_OUT() << "Transaction " << transaction_id << " complete.\n";
       return 0;
     }
 

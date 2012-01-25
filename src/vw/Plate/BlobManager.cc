@@ -27,7 +27,7 @@ namespace {
   static const boost::format blob_tmpl("%s/plate_%u.blob");
 }
 
-#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
+#define WHEREAMI if(::vw::vw_log().is_enabled(VerboseDebugMessage, "platefile.blob")) ::vw::vw_out(VerboseDebugMessage, "platefile.blob")
 
 namespace vw {
 namespace platefile {

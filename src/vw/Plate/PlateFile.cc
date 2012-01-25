@@ -34,14 +34,14 @@ namespace {
 ReadOnlyPlateFile::ReadOnlyPlateFile(const Url& url)
   : m_data(Datastore::open(url))
 {
-  vw_out(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
+  VW_OUT(DebugMessage, "platefile") << "Re-opened plate file: \"" << url.string() << "\"\n";
 }
 
 ReadOnlyPlateFile::ReadOnlyPlateFile(const Url& url, std::string type, std::string description, uint32 tile_size, std::string tile_filetype,
                      PixelFormatEnum pixel_format, ChannelTypeEnum channel_type)
   : m_data(Datastore::open(url, make_hdr(type, description, tile_size, tile_filetype, pixel_format, channel_type)))
 {
-  vw_out(DebugMessage, "platefile") << "Constructed new platefile: " << url.string() << "\n";
+  VW_OUT(DebugMessage, "platefile") << "Constructed new platefile: " << url.string() << "\n";
 }
 
 PlateFile::PlateFile(const Url& url)

@@ -121,7 +121,7 @@ namespace platefile {
       size_t tiles_size = tiles.size();
       m_platefile->transaction_begin( description, transaction_id_override );
 
-      vw_out(InfoMessage, "platefile")
+      VW_OUT(InfoMessage, "platefile")
         << "\t    Rasterizing " << tiles_size << " image tiles.\n"
         << "\t    Platefile ID: " << (m_platefile->index_header().platefile_id()) << "\n"
         << "\t    Transaction ID: " << m_platefile->transaction_id() << "\n"
@@ -190,7 +190,7 @@ namespace platefile {
 
     virtual ~WritePlateFileTask() {}
     virtual void operator() () {
-      vw_out(DebugMessage, "platefile") << "\t    Generating tile: [ "
+      VW_OUT(DebugMessage, "platefile") << "\t    Generating tile: [ "
                                         << m_tile_info.i << " " << m_tile_info.j
                                         << " @ level " <<  m_level << "]    BBox: "
                                         << m_tile_info.bbox << "\n";

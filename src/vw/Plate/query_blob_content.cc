@@ -136,20 +136,20 @@ int main( int argc, char *argv[] ) {
     tpc.report_finished();
 
     if ( blob_contents.empty() ) {
-      vw_out() << "Index makes no mention of that blob ID\n";
+      VW_OUT() << "Index makes no mention of that blob ID\n";
       return 0;
     }
 
     // Print out the results of what was supposed to be in the blob.
-    vw_out() << "Supposed contents of Blob = " << opt.blob_id << std::endl;
-    vw_out() << "Offset | Level, Row, Col, Tid\n";
+    VW_OUT() << "Supposed contents of Blob = " << opt.blob_id << std::endl;
+    VW_OUT() << "Offset | Level, Row, Col, Tid\n";
     for ( std::map<size_t,Vector4u>::const_iterator it = blob_contents.begin();
           it != blob_contents.end(); it++ ) {
-      vw_out() << it->first << " " << it->second << std::endl;
+      VW_OUT() << it->first << " " << it->second << std::endl;
     }
 
   } catch ( const ArgumentErr& e ) {
-    vw_out() << e.what() << std::endl;
+    VW_OUT() << e.what() << std::endl;
     return 1;
   } catch ( const Exception& e ) {
     std::cerr << "VW Error: " << e.what() << std::endl;

@@ -86,7 +86,7 @@ void PlateCarreePlateManager<PixelT>::transform_image(
   // Rebuild the transform
   geotx = cartography::GeoTransform( input_georef, output_georef );
   BBox2i output_bbox = geotx.forward_bbox(bounding_box(image));
-  vw_out() << "\t    Placing image at level " << level
+  VW_OUT() << "\t    Placing image at level " << level
            << " with bbox " << output_bbox << "\n"
            << "\t    (Total KML resolution at this level =  "
            << resolution << " pixels.)\n";

@@ -81,7 +81,7 @@ const PlateModule::IndexCacheEntry& PlateModule::get_index(const string& id_str)
 
 
 std::ostream& PlateModule::logger(MessageLevel level, bool child_id) const {
-  std::ostream& out = vw_out(level, "plate.apache");
+  std::ostream& out = ::vw::vw_out(level, "plate.apache");
 
   if (child_id)
     out << "Child[" << getpid() << "]: ";

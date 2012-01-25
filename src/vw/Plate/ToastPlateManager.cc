@@ -48,7 +48,7 @@ void ToastPlateManager<PixelT>::transform_image(
   cartography::ToastTransform toast_tx( georef, resolution );
   BBox2i output_bbox = toast_tx.forward_bbox(bounding_box(image));
 
-  vw_out(InfoMessage, "platefile")
+  VW_OUT(InfoMessage, "platefile")
     << "\t    Placing image at level " << level
     << " with bbox " << output_bbox << "\n"
     << "\t    (Total TOAST resolution at this level =  "

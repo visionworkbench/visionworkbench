@@ -97,7 +97,7 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
   // platefile is any directory ending in *.plate.
   std::vector<std::string> platefiles = glob_plate_filenames(m_root_directory);
   if (platefiles.size() < 1)
-    vw_out(InfoMessage, "plate:index_service") << "Warning: could not find any platefiles in the root directory.";
+    VW_OUT(InfoMessage, "plate:index_service") << "Warning: could not find any platefiles in the root directory.";
 
   for (unsigned i = 0 ; i < platefiles.size(); ++i) {
     // Open each new platefile.  This will return a LocalIndex which we store using add_index()
@@ -109,7 +109,7 @@ IndexServiceImpl::IndexServiceImpl(std::string root_directory) :
 void IndexServiceImpl::sync() {
   read_lock_t rolock(m_mutex);
   BOOST_FOREACH(index_list_type::value_type& i, m_indices) {
-    vw_out() << "\t--> Syncing index for " << i.second.short_plate_filename << " to disk.\n";
+    VW_OUT() << "\t--> Syncing index for " << i.second.short_plate_filename << " to disk.\n";
     i.second.index->sync();
   }
 }

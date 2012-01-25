@@ -33,7 +33,7 @@ PolarStereoPlateManager<PixelT>::georeference( int level, bool north_pole,
 template <class PixelT>
 cartography::GeoReference
 PolarStereoPlateManager<PixelT>::georeference( int level ) const {
-  vw_out(WarningMessage, "plate") << "Return PolarStereoGraphic georeference that is north pole regardless of data!";
+  VW_OUT(WarningMessage, "plate") << "Return PolarStereoGraphic georeference that is north pole regardless of data!";
   return this->georeference( level, true, cartography::Datum("WGS84") );
 }
 
@@ -84,14 +84,14 @@ void PolarStereoPlateManager<PixelT>::transform_image(
 
   geotx = cartography::GeoTransform( georef, output_georef );
   BBox2i output_bbox = geotx.forward_bbox( bounding_box(image) );
-  vw_out() << "\t    Placing image at level " << level
+  VW_OUT() << "\t    Placing image at level " << level
            << " with bbox " << output_bbox << "\n"
            << "\t    (Total Stereographic resolution at this level =  "
            << requested_pixels_per_meters*2*georef.datum().semi_major_axis() << " pixels.)\n";
   if ( is_north )
-    vw_out() << "\t    This is a North Pole image.\n";
+    VW_OUT() << "\t    This is a North Pole image.\n";
   else
-    vw_out() << "\t    This is a South Pole image.\n";
+    VW_OUT() << "\t    This is a South Pole image.\n";
 
   // Perform transform and rewrite to input
   ImageViewRef<PixelT> holding =

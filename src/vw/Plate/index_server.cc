@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
   RpcServer<IndexServiceImpl> server(opt.url, new IndexServiceImpl(opt.root));
   server.set_debug(opt.debug);
 
-  vw_out(InfoMessage) << "Starting index server\n\n";
+  VW_OUT(InfoMessage) << "Starting index server\n\n";
   uint64 sync_interval_us = uint64(opt.sync_interval * 60000000);
   uint64 t0 = Stopwatch::microtime(), t1;
   uint64 next_sync = t0 + sync_interval_us;
@@ -118,19 +118,19 @@ int main(int argc, char** argv) {
 
   while(process_messages) {
     if (server.error()) {
-      vw_out(InfoMessage) << "IO Thread has terminated with message: " << server.error() << "\n";
+      VW_OUT(InfoMessage) << "IO Thread has terminated with message: " << server.error() << "\n";
       break;
     }
 
     bool should_sync = force_sync || (Stopwatch::microtime() >= next_sync);
 
     if (should_sync) {
-      vw_out(InfoMessage) << "\nStarting sync to disk. (" << (force_sync ? "manual" : "auto") << ")\n";
+      VW_OUT(InfoMessage) << "\nStarting sync to disk. (" << (force_sync ? "manual" : "auto") << ")\n";
       uint64 s0 = Stopwatch::microtime();
       server.impl()->sync();
       uint64 s1 = Stopwatch::microtime();
       next_sync = s1 + sync_interval_us;
-      vw_out(InfoMessage) << "Sync complete (took " << float(s1-s0) / 1e6  << " seconds).\n";
+      VW_OUT(InfoMessage) << "Sync complete (took " << float(s1-s0) / 1e6  << " seconds).\n";
       force_sync = false;
     }
 
@@ -153,14 +153,14 @@ int main(int argc, char** argv) {
     float dt = float(t1 - t0) / 1e6f;
     t0 = t1;
 
-    vw_out(InfoMessage)
+    VW_OUT(InfoMessage)
       << status % (float(total_dt)/dt) % total % lose % draw
       << std::flush;
 
     Thread::sleep_ms(500);
   }
 
-  vw_out(InfoMessage) << "\nShutting down the index service safely.\n";
+  VW_OUT(InfoMessage) << "\nShutting down the index service safely.\n";
   server.stop();
   server.impl()->sync();
 

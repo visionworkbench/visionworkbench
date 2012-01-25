@@ -188,7 +188,7 @@ int vw::platefile::handle_wtml(const ApacheRequest& r) {
     // WWT can only handle jpg, png, and tif
     if (!show_all_layers) {
       if (filetype != "jpg" && filetype != "png" && filetype != "tif" && filetype != "auto") {
-        vw_out(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
+        VW_OUT(VerboseDebugMessage) << "Rejecting filetype " << filetype << " for WTML." << std::endl;
         continue;
       }
     }

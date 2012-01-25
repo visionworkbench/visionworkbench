@@ -228,7 +228,7 @@ bool RpcServerBase::Task::handle_one_request() {
     a_wrap.mutable_error()->set_code(RpcErrorMsg::REMOTE_ERROR);
     a_wrap.mutable_error()->set_msg(e.what());
     m_stats.add("server_error");
-    vw_out(WarningMessage) << "Server Error: " << e.what() << std::endl;
+    VW_OUT(WarningMessage) << "Server Error: " << e.what() << std::endl;
     if (m_rpc->debug()) {
       m_chan->send_message(a_wrap);
       throw;

@@ -298,7 +298,7 @@ int main( int argc, char *argv[] ) {
                 fs::path(opt.output_name) / (opt.output_name+".kml") );
 
   } catch ( const ArgumentErr& e ) {
-    vw_out() << e.what() << std::endl;
+    VW_OUT() << e.what() << std::endl;
     return 1;
   } catch ( const Exception& e ) {
     std::cerr << "Error: " << e.what() << std::endl;

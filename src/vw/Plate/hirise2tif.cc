@@ -52,7 +52,7 @@ using namespace vw::mosaic;
 class ImageStats {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
+    VW_OUT(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
     exit(1);
   }
 
@@ -221,7 +221,7 @@ public:
 class ImageGeorefs {
 
   void error(std::string arg, std::string const& params) {
-    vw_out(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
+    VW_OUT(ErrorMessage) << "Error parsing arguments for --" << arg << " : " << params << "\n";
     exit(1);
   }
 

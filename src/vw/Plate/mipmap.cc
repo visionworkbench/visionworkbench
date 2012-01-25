@@ -137,14 +137,14 @@ int main( int argc, char *argv[] ) {
     po::store( po::command_line_parser( argc, argv ).options(options).positional(p).run(), vm );
     po::notify( vm );
   } catch (const po::error& e ) {
-    vw_out() << usage.str() << std::endl
+    VW_OUT() << usage.str() << std::endl
              << "Failed to parse command line arguments:" << std::endl
              << "\t" << e.what() << std::endl;
     return 1;
   }
 
   if ( help || plate_url == Url() ) {
-    vw_out() << usage.str() << "\n";;
+    VW_OUT() << usage.str() << "\n";;
     return 1;
   }
 
@@ -185,7 +185,7 @@ int main( int argc, char *argv[] ) {
       vw_throw(ArgumentErr() << "Image contains a pixel type not supported by snapshot.\n");
     }
   } catch ( const vw::Exception& e ) {
-    vw_out() << "An error occured: " << e.what() << "\nExiting.\n\n";
+    VW_OUT() << "An error occured: " << e.what() << "\nExiting.\n\n";
     return 1;
   }
 

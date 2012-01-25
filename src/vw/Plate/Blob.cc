@@ -19,7 +19,7 @@
 #include <boost/shared_array.hpp>
 #include <boost/scoped_array.hpp>
 
-#define WHEREAMI (vw::vw_out(VerboseDebugMessage, "platefile.blob") << VW_CURRENT_FUNCTION << ": ")
+#define WHEREAMI if(::vw::vw_log().is_enabled(VerboseDebugMessage, "platefile.blob")) ::vw::vw_out(VerboseDebugMessage, "platefile.blob")
 
 #if 0
 FileSize       = uint64
@@ -124,7 +124,7 @@ ReadBlob::iterator::iterator( ReadBlob *blob, uint64 base_offset )
 uint64 ReadBlob::iterator::current_base_offset() const { return m_current_base_offset; }
 
 TileHeader ReadBlob::read_header(uint64 base_offset64) {
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
+  VW_OUT(VerboseDebugMessage, "platefile::blob") << "Entering read_header() -- " <<" base_offset: " <<  base_offset64 << "\n";
   std::streamoff base_offset = boost::numeric_cast<std::streamoff>(base_offset64);
   // Read the blob record
   BlobRecordSizeType blob_record_size;
@@ -257,7 +257,7 @@ uint64 ReadBlob::read_end_of_file_ptr() const {
   else if (data[1] == data[2])
     return data[1];
   else {
-    vw_out(ErrorMessage) << "end of file ptr in blobfile " << m_blob_filename << " is inconsistent. This file may be corrupt. Proceed with caution.\n";
+    VW_OUT(ErrorMessage) << "end of file ptr in blobfile " << m_blob_filename << " is inconsistent. This file may be corrupt. Proceed with caution.\n";
     if (m_fstream->eof())
       m_fstream->seekg(0, std::ios_base::end);
     return m_fstream->tellg();
@@ -337,7 +337,7 @@ uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size
 
   // Write the data at the end of the file and return the offset
   // of the beginning of this data file.
-  vw_out(VerboseDebugMessage, "platefile::blob") << "Blob::write() -- wrote " << data_size << " bytes to " << m_blob_filename << "\n";
+  VW_OUT(VerboseDebugMessage, "platefile::blob") << "Blob::write() -- wrote " << data_size << " bytes to " << m_blob_filename << "\n";
 
   // Update the in-memory copy of the end-of-file pointer
   m_end_of_file_ptr = m_fstream->tellg();
