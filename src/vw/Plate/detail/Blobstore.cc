@@ -244,7 +244,7 @@ WriteState* Blobstore::write_request(const Transaction& id) {
   std::auto_ptr<BlobWriteState> state(new BlobWriteState(id));
 
   state->blob_id = m_index->write_request();
-  state->blob = open_write_blob(state->blob_id);
+  state->blob    = open_write_blob(state->blob_id);
 
   vw_out(DebugMessage, "blob") << "Opened blob " << state->blob_id << " ( size = " << state->blob->size() << " )\n";
   return state.release();
@@ -256,6 +256,25 @@ void Blobstore::write_update(WriteState& state_, uint32 level, uint32 row, uint3
 
   BlobWriteState* state = dynamic_cast<BlobWriteState*>(&state_);
   VW_ASSERT(state, LogicErr() << "Cannot pass write states between different implementations!");
+
+  vw_out(DebugMessage, "blob") << "Attempting to write " << size << " to blob "
+                               << state->blob_id << " ( size = " << state->blob->size() << " )\n";
+
+  // Check to see if we are exceeding our 32 bit pointer. All of the
+  // Index Code and Blob Store code actually passes around a 64bit
+  // pointer. It's only the Blob I/O that uses 32 bit pointers on
+  // seek. We could make that 64bit, but instead lets write another
+  // blob file. This way we have precision to know when we are going
+  // to overflow instead of relying on break down.
+  if ( size + state->blob->size() >= (uint64(0x1) << 32) ) {
+    write_complete( state_ );
+    // We don't call write_request as that would require us modifing a
+    // pointer (WriteState) which is owned by a shared pointer in
+    // PlateFile.
+    state->blob_id = m_index->write_request();
+    state->blob    = open_write_blob(state->blob_id);
+    vw_out(DebugMessage, "blob") << "Switched over to blob " << state->blob_id << " ( size = " << state->blob->size() << " )\n";
+  }
 
   TileHeader header;
   header.set_level(level);
