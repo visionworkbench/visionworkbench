@@ -646,6 +646,3 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
   return reflectance_ratio;
 }
-
-
-
