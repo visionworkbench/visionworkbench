@@ -1539,7 +1539,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
     
     
-    /*
+    /* 
     ImageView<PixelMask<PixelRGB<uint8> > > albedo_img (input_img.cols(), input_img.rows());
     for (k = 0 ; k < input_img.rows(); ++k) {
        for (l = 0; l < input_img.cols(); ++l) {
