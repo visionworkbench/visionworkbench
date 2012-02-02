@@ -253,61 +253,79 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
                   (radius*(1-e2)+p.z()) * slat );
 }
 
+// This algorithm is a non-iterative algorithm from "An analytical
+// method to transform geocentric into geodetic coordinates" by Hugues
+// Vermeille, Journal of Geodesy 2011.
+//
+// This is an improvement over the 1988/Proj4's implementation as it's
+// a smidgen faster and it still works near the center of the datum.
+vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& cart ) const {
+  const double a2 = m_semi_major_axis * m_semi_major_axis;
+  const double b2 = m_semi_minor_axis * m_semi_minor_axis;
+  const double e2 = 1 - b2 / a2;
+  const double e4 = e2 * e2;
 
-// This function is based heavily on the similar
-// Proj.4 function pj_Convert_Geocentric_To_Geodetic.
-vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& p ) const {
-  double a = m_semi_major_axis;
-  double b = m_semi_minor_axis;
-  double a2 = a * a;
-  double b2 = b * b;
-  double e2 = (a2 - b2) / a2;
+  double xy_dist = sqrt( cart[0] * cart[0] + cart[1] * cart[1] );
+  double p = ( cart[0] * cart[0] + cart[1] * cart[1] ) / a2;
+  double q = ( 1 - e2 ) * cart[2] * cart[2] / a2;
+  double r = ( p + q - e4 ) / 6.0;
+  double r3 = r * r * r;
 
-  static const double epsilon = 1.0e-12;
-  static const double epsilon2 = epsilon*epsilon;
-  static const int maxiter = 30;
+  Vector3 llh;
 
-  double normxy = sqrt(p.x()*p.x()+p.y()*p.y()); // distance between semi-minor axis and location
-  double normp = norm_2(p);                      // distance between center and location
-
-  double lon=0.0, alt=0.0;
-
-  // compute the longitude
-  if ( normxy/a < epsilon ) {
-    // special case for the origin
-    if ( normp/a < epsilon ) {
-      return Vector3(0,90,-b);
-    }
-  }
-  else {
-    lon = atan2(p.y(),p.x()) / (M_PI/180);
-  }
-
-  // The following iterative algorithm was developped by
-  // "Institut fur Erdmessung", University of Hannover, July 1988.
-  // Internet: www.ife.uni-hannover.de
-  double cgcl = normxy/normp;     // cos of geocentric latitude
-  double sgcl = p.z()/normp;      // sin of geocentric latitude
-  double rx = 1.0/sqrt(1.0-e2*(2.0-e2)*cgcl*cgcl);
-  double clat = cgcl*(1.0-e2)*rx; // cos of geodetic latitude estimate
-  double slat = sgcl*rx;          // sin of geodetic latitude estimate
-
-  // loop to find lat (in quadrature) until |lat[i]-lat[i-1]|<epsilon, roughly
-  for( int i=0; i<maxiter; ++i ) {
-    double ri = a/sqrt(1.0-e2*slat*slat); // radius at estimated location
-    alt = normxy*clat+p.z()*slat-ri*(1.0-e2*slat*slat);
-    double rk = e2*ri/(ri+alt);
-    rx = 1.0/sqrt(1.0-rk*(2.0-rk)*cgcl*cgcl);
-    double new_clat = cgcl*(1.0-rk)*rx;
-    double new_slat = sgcl*rx;
-    // sin(lat[i]-lat[i-1]) ~= lat[i]-lat[i-1]
-    double sdlat = new_slat*clat-new_clat*slat;
-    clat = new_clat;
-    slat = new_slat;
-    if( sdlat*sdlat < epsilon2 ) break;
+  double evolute = 8 * r3 + e4 * p * q;
+  double u = std::numeric_limits<double>::quiet_NaN();
+  if ( evolute > 0 ) {
+    // outside the evolute
+    double right_inside_pow = sqrt(e4 * p * q);
+    double sqrt_evolute = sqrt( evolute );
+    u = r + 0.5 * pow(sqrt_evolute + right_inside_pow,2.0/3.0) +
+      0.5 * pow(sqrt_evolute - right_inside_pow,2.0/3.0);
+  } else if ( fabs(cart[2]) < std::numeric_limits<double>::epsilon() ) {
+    // On the equator plane
+    llh[1] = 0;
+    llh[2] = norm_2( cart ) - m_semi_major_axis;
+  } else if ( evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon() ) {
+    // On or inside the evolute
+    double atan_result = atan2( sqrt( e4 * p * q ), sqrt( -evolute ) + sqrt(-8 * r3) );
+    u = -4 * r * sin( 2.0 / 3.0 * atan_result ) *
+      cos( M_PI / 6.0 + 2.0 / 3.0 * atan_result );
+  } else if ( fabs(q) < std::numeric_limits<double>::epsilon() and p <= e4 ) {
+    // In the singular disc
+    llh[2] = -m_semi_major_axis * sqrt(1 - e2) * sqrt(e2 - p) / sqrt(e2);
+    llh[1] = 2 * atan2( sqrt(e4 - p), sqrt(e2*(e2 - p)) + sqrt(1-e2) * sqrt(p) );
+  } else {
+    // Near the cusps of the evolute
+    double inside_pow = sqrt(evolute) + sqrt(e4 * p * q);
+    u = r + 0.5 * pow(inside_pow,2.0/3.0) +
+      2 * r * r * pow(inside_pow,-2.0/3.0);
   }
 
-  return Vector3( lon - m_meridian_offset, atan(slat/fabs(clat))/(M_PI/180), alt );
+  if (!std::isnan(u) ) {
+    double v = sqrt( u * u + e4 * q );
+    double u_v = u + v;
+    double w = e2 * ( u_v - q ) / ( 2 * v );
+    double k = u_v / ( w + sqrt( w * w + u_v ) );
+    double D = k * xy_dist / ( k + e2 );
+    double dist_2 = D * D + cart[2] * cart[2];
+    llh[2] = ( k + e2 - 1 ) * sqrt( dist_2 ) / k;
+    llh[1] = 2 * atan2( cart[2], sqrt( dist_2 ) + D );
+  }
+
+  if ( xy_dist + cart[0] > ( sqrt(2) - 1 ) * cart[1] ) {
+    // Longitude is between -135 and 135
+    llh[0] = 360.0 * atan2( cart[1], xy_dist + cart[0] ) / M_PI;
+  } else if ( xy_dist + cart[1] < ( sqrt(2) + 1 ) * cart[0] ) {
+    // Longitude is between -225 and 45
+    llh[0] = - 90.0 + 360.0 * atan2( cart[0], xy_dist - cart[1] ) / M_PI;
+  } else {
+    // Longitude is between -45 and 225
+    llh[0] = 90.0 - 360.0 * atan2( cart[0], xy_dist + cart[1] ) / M_PI;
+  }
+  llh[0] -= m_meridian_offset;
+  llh[1] *= 180.0 / M_PI;
+
+  return llh;
 }
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {

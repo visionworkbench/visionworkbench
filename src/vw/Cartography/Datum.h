@@ -122,7 +122,7 @@ namespace cartography {
 
     double inverse_flattening() const;
 
-    /// Return cartesian (ECEF) coordinates of geodetic coordinates p
+    /// Return cartesian (ECEF) coordinates of geodetic coordinates p [Lon, Lat, Altitude]
     Vector3 geodetic_to_cartesian( Vector3 const& p ) const;
 
     /// Return rotation matrix for converting NED vectors
