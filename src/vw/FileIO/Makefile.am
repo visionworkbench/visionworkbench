@@ -28,8 +28,8 @@ endif
 
 if HAVE_PKG_OPENEXR
 if ENABLE_EXCEPTIONS
-openexr_headers = DiskImageResourceOpenEXR.h
-openexr_sources = DiskImageResourceOpenEXR.cc
+openexr_headers = DiskImageResourceOpenEXR.h MemoryImageResourceOpenEXR.h
+openexr_sources = DiskImageResourceOpenEXR.cc MemoryImageResourceOpenEXR.cc
 endif
 endif
 
