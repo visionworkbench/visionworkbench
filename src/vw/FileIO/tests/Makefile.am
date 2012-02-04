@@ -41,7 +41,7 @@ AM_LDFLAGS  = @VW_LDFLAGS@ @PKG_FILEIO_LIBS@
 
 check_PROGRAMS = $(TESTS)
 
-EXTRA_DIST = mural.jpg mural.png png16.png rgb2x2.jpg rgb2x2.png rgb2x2.tif rgb4x4_alpha.png rgb4x4_alpha.tif rgb4x4f_alpha.tif rgb4x4f_band.tif rgb4x4_halfalpha.png rgb4x4_halfalpha.tif
+EXTRA_DIST = mural.jpg mural.png png16.png rgb2x2.jpg rgb2x2.png rgb2x2.tif rgb4x4_alpha.png rgb4x4_alpha.tif rgb4x4f_alpha.tif rgb4x4f_band.tif rgb4x4_halfalpha.png rgb4x4_halfalpha.tif rgb2x2.exr
 
 CLEANFILES = tmp.png tmp.tif rwtest.* test-png16.png cropped.mural.* mural.tif nodata.tif
 

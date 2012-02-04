@@ -78,6 +78,9 @@ protected:
     case 1: // TIF
       filename = TEST_SRCDIR"/rgb2x2.tif"; break;
     case 2: // JPG
+      filename = TEST_SRCDIR"/rgb2x2.jpg"; break;
+    case 3: // OpenEXR
+      filename = TEST_SRCDIR"/rgb2x2.exr"; break;
     default:
       filename = TEST_SRCDIR"/rgb2x2.jpg"; break;
     }
@@ -202,6 +205,11 @@ TEST_F( WriteReadImageRGBU8JPG, DISABLED_RGB_U8_JPG ) {}
 
 typedef WriteReadImage<PixelRGB<float>, 2> WriteReadImageRGBF32JPG;
 TEST_F( WriteReadImageRGBF32JPG, DISABLED_RGB_F32_JPG ) {}
+#endif
+
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+typedef ReadImage<PixelRGB<float>, 3> ReadImageRGBF32EXR;
+TEST_F( ReadImageRGBF32EXR, RGB_F32_EXR ) {}
 #endif
 
 TEST( DiskImageResource, TestPBM ) {
