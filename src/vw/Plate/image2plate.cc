@@ -233,20 +233,23 @@ void run(const Options& opt) {
 
     // User override for channel type
     if (opt.force_float) {
-      std::cout << "\t--> Processing image using a 32-bit floating point channel type.\n";
-      std::cout << "\t    Overriding channel type for 32-bit float: setting it to TIFF.\n";
+      vw_out() << "\t--> Processing image using a 32-bit floating point channel type.\n";
+      if (boost::to_lower_copy(opt.filetype) != "exr" &&
+          boost::to_lower_copy(opt.filetype) != "tif" ) {
+        vw_out() << "\t    Overriding channel type for 32-bit float: setting it to OpenEXR.\n";
+        filetype = "exr";
+      }
       channel_type = VW_CHANNEL_FLOAT32;
-      filetype = "tif";
     }
 
-    std::cout << "\nOpening plate file: " << opt.url.get() << std::endl;
+    vw_out() << "\nOpening plate file: " << opt.url.get() << " [" << filetype << "]\n";
     platefile.reset( new PlateFile(opt.url.get(), opt.mode, "", opt.tile_size, filetype, pixel_format, channel_type) );
   }
 
   BOOST_FOREACH(const std::string& filename, opt.image_files) {
     VW_ASSERT(fs::exists(filename), ArgumentErr() << "No such file: " << filename);
 
-    std::cout << "\t--> Building full-resolution tiles for " << filename << "\n";
+    vw_out() << "\t--> Building full-resolution tiles for " << filename << "\n";
 
     // Load the pixel type, channel type, and nodata value, and
     // georeferencing info for this image.
@@ -255,10 +258,10 @@ void run(const Options& opt) {
     optional<double> nodata_value;
     if (opt.nodata_value) {
       nodata_value = opt.nodata_value.get();
-      std::cout << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
+      vw_out() << "\t--> Using user-supplied nodata value: " << nodata_value << ".\n";
     } else if ( rsrc->has_nodata_read() ) {
       nodata_value = rsrc->nodata_read();
-      std::cout << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
+      vw_out() << "\t--> Extracted nodata value from file: " << nodata_value << ".\n";
     }
 
     // Load the georef.  If none is found, assume Plate Caree.
@@ -315,7 +318,7 @@ void run(const Options& opt) {
 
     // User override for channel type
     if (opt.force_float) {
-      std::cout << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
+      vw_out() << "\t--> Forcing floating point tiles, and disabling image autoscaling.\n";
       rsrc_channel_type = VW_CHANNEL_FLOAT32;
 
       // Turn off automatic rescaling when reading in images
