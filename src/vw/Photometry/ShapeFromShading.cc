@@ -330,7 +330,7 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
         //------------------------------------------------------------------------------------------------------------------------------------------
         //compute the weights matrix
         if (globalParams.useWeights == 1){
-          weightsArray(r,r) = ComputeLineWeights(input_img_pix, inputImgParams.centerLine, inputImgParams.maxDistArray);
+          weightsArray(r,r) = ComputeLineWeightsHV(input_img_pix, inputImgParams.hCenterLine, inputImgParams.hMaxDistArray, inputImgParams.vCenterLine, inputImgParams.vMaxDistArray);
         }
         else{
           weightsArray(r,r) = 1;
@@ -434,7 +434,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
         //-----------------------------------------------------------------------------------------------------------------
         //compute the weights matrix
         if (globalParams.useWeights == 1){
-          weightsArray(r,r) = ComputeLineWeights(overlap_pix, overlapImgParams.centerLine, overlapImgParams.maxDistArray);
+          weightsArray(r,r) = ComputeLineWeightsHV(overlap_pix, overlapImgParams.hCenterLine, overlapImgParams.hMaxDistArray, overlapImgParams.vCenterLine, overlapImgParams.vMaxDistArray);
         }
         else{
           weightsArray(r,r) = 1;

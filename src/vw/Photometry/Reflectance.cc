@@ -31,6 +31,7 @@ using namespace vw::cartography;
 #include <vw/Photometry/Albedo.h>
 #include <vw/Photometry/Exposure.h>
 #include <vw/Photometry/Reconstruct.h>
+#include <vw/Photometry/Misc.h>
 using namespace vw::photometry;
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
@@ -343,9 +344,11 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
 
 }
 
-float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_params,
+float vw::photometry::computeImageReflectanceNoWrite(bool useTiles, std::vector<ImageRecord> & DEMTiles,
+                                                     std::vector<int> & overlap, ModelParams input_img_params,
                                                      GlobalParams globalParams,
                                                      ImageView<PixelMask<PixelGray<float> > >& output_img) {
+  
   std::string input_img_file = input_img_params.inputFilename;
   std::string DEM_file = input_img_params.meanDEMFilename;
   std::string shadow_file = input_img_params.shadowFilename;
@@ -354,21 +357,91 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
   GeoReference input_img_geo;
   read_georeference(input_img_geo, input_img_file);
 
-  DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
-  GeoReference input_dem_geo;
-  read_georeference(input_dem_geo, DEM_file);
-
   // warp dem to drg georef
-  ImageView<PixelGray<double> > dem_in_drg_georef_0 =
-    crop
-    (geo_transform
-     (input_dem_image,
-      input_dem_geo,
-      input_img_geo,
-      ConstantEdgeExtension(),
-      BilinearInterpolation()),
-     bounding_box(input_img));
-  
+  ImageView<PixelGray<double> > dem_in_drg_georef_0(input_img.cols(), input_img.rows());
+  if (!useTiles){
+    DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
+    GeoReference input_dem_geo;
+    read_georeference(input_dem_geo, DEM_file);
+    dem_in_drg_georef_0 =
+      crop
+      (geo_transform
+       (input_dem_image,
+        input_dem_geo,
+        input_img_geo,
+        ConstantEdgeExtension(),
+        BilinearInterpolation()),
+       bounding_box(input_img)
+       );
+  }else{
+
+    int nodata = globalParams.noDEMDataValue;
+    for (int y=0; y < (int)dem_in_drg_georef_0.rows(); y++) {
+      for (int x=0; x < (int)dem_in_drg_georef_0.cols(); x++) {
+        dem_in_drg_georef_0(x, y) = nodata;
+      }
+    }
+    
+    // Iterate over the drg tiles
+    for (int i = 0; i < (int)overlap.size(); i++){
+      std::string overlapDEMTileFile = DEMTiles[overlap[i]].path;
+
+      // This can be made more efficient, don't iterate over all pixels
+      // This code is duplicated in Shape.cc and Reflectance.cc and other places
+      DiskImageView<PixelGray<float> >  overlapDEMTile(overlapDEMTileFile);
+      GeoReference overlap_DEM_geo;
+      read_georeference(overlap_DEM_geo, overlapDEMTileFile);
+      ImageViewRef<PixelGray<float> >  interp_overlapDEMTile = interpolate(edge_extend(overlapDEMTile.impl(),
+                                                                                       ConstantEdgeExtension()),
+                                                                           BilinearInterpolation());
+      
+      
+      // Iterate only over the portion of dem_in_drg_georef_0 intersecting the DEM tile
+      Vector2 beg = input_img_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(0, 0)));
+      Vector2 end = input_img_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(overlapDEMTile.cols(), overlapDEMTile.rows())));
+      int pad = 2; // Use due to round-off errors when rounding. Should not be necessary.
+
+      int beg_row = std::max(0, (int)floor(beg(1)) - pad);
+      int end_row = std::min(dem_in_drg_georef_0.rows(), (int)ceil(end(1)) + pad);
+      int beg_col = std::max(0, (int)floor(beg(0)) - pad);
+      int end_col = std::min(dem_in_drg_georef_0.cols(), (int)ceil(end(0)) + pad);
+//       std::cout << "xxx row: " << 0 << ' ' << beg_row << ' ' << end_row << ' ' << dem_in_drg_georef_0.rows()
+//                 << std::endl;
+//       std::cout << "xxx col: " << 0 << ' ' << beg_col << ' ' << end_col << ' ' << dem_in_drg_georef_0.cols()
+//                 << std::endl;
+      for (int k = beg_row; k < end_row; ++k) {
+        for (int l = beg_col; l < end_col; ++l) {
+          //for (unsigned k = 0 ; k < (unsigned)dem_in_drg_georef_0.rows(); ++k) {
+          //for (unsigned l = 0; l < (unsigned)dem_in_drg_georef_0.cols(); ++l) {
+          
+          Vector2 input_DEM_pix(l,k);
+          
+          //check for overlap between the output image and the input DEM image
+          Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_DEM_pix));
+          float x = overlap_dem_pix[0];
+          float y = overlap_dem_pix[1];
+          
+          //check for valid DEM coordinates
+          if ((x >= 0) && (x < overlapDEMTile.cols()) && (y >= 0) && (y < overlapDEMTile.rows())){
+            if ( overlapDEMTile(x, y) != globalParams.noDEMDataValue ) {
+              dem_in_drg_georef_0(l, k) = interp_overlapDEMTile(x, y);
+            }
+          }
+        }
+      }
+      
+    }
+  }
+
+#if 0
+  std::cout << std::endl;
+  std::string tmp  = "./" + prefix_from_filename(sufix_from_filename(input_img_file)) + "_dem.tif";
+  std::cout << "xxx Writing " << tmp << std::endl;
+  write_georeferenced_image(tmp,
+                            dem_in_drg_georef_0,
+                            input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+#endif
+    
   // grow no-data areas to avoid bogus values created by interpolating
   // data with no-data
   ImageView<PixelGray<double> > dem_in_drg_georef = copy(dem_in_drg_georef_0);
@@ -470,7 +543,9 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
 
 //computes a reflectance image
 //author: Ara Nefian
-float vw::photometry::computeImageReflectance(ModelParams input_img_params,
+float vw::photometry::computeImageReflectance(bool useTiles, std::vector<ImageRecord> & DEMTiles,
+                                              std::vector<int> & overlap,
+                                              ModelParams input_img_params,
                                               GlobalParams globalParams) {
   std::string input_img_file = input_img_params.inputFilename;
   std::string output_img_file = input_img_params.reliefFilename;;
@@ -481,10 +556,13 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
   ImageView<PixelMask<PixelGray<float> > > output_img;
   float avg_reflectance =
-    computeImageReflectanceNoWrite(input_img_params,
+    computeImageReflectanceNoWrite(useTiles, DEMTiles, overlap,
+                                   input_img_params,
                                    globalParams,
                                    output_img);
 
+
+  std::cout << "Writing " << output_img_file << std::endl;
   write_georeferenced_image
     (output_img_file,
      output_img,
@@ -646,6 +724,3 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
   return reflectance_ratio;
 }
-
-
-

@@ -103,7 +103,8 @@ void vw::photometry::SaveExposureInfoToFile(ModelParams modelParams)
 {
   FILE *fp;
   fp = fopen((char*)(modelParams.exposureFilename).c_str(), "w");
-  fprintf(fp, "%f", modelParams.exposureTime);
+  std::cout << "Writing " << modelParams.exposureFilename << std::endl;
+  fprintf(fp, "%f\n", modelParams.exposureTime);
   fclose(fp);
 }
 
@@ -111,11 +112,12 @@ void vw::photometry::ReadExposureInfoFromFile(ModelParams *modelParams)
 {
   FILE *fp;
   fp = fopen((char*)(modelParams->exposureFilename).c_str(), "r");
+  //std::cout << "Reading " << modelParams->exposureFilename << std::endl;
   if (fp == NULL){
     modelParams->exposureTime = 1;
   }
   else{
-    fscanf(fp, "%f", &(modelParams->exposureTime));
+    fscanf(fp, "%f\n", &(modelParams->exposureTime));
     fclose(fp);
   }
 }
@@ -249,7 +251,7 @@ void vw::photometry::ComputeExposureAlbedo(ModelParams *currModelParams,
             }
             else{
               //float weight = ComputeWeights(curr_sample_pix, currModelParams->center2D, currModelParams->maxDistance);
-              float weight = ComputeLineWeights(curr_sample_pix, currModelParams->centerLine, currModelParams->maxDistArray);
+              float weight = ComputeLineWeightsHV(curr_sample_pix, currModelParams->hCenterLine, currModelParams->hMaxDistArray, currModelParams->vCenterLine, currModelParams->vMaxDistArray);
               delta_nominator = delta_nominator + error*gradient*weight;
               delta_denominator = delta_denominator + gradient*gradient*weight;
             }

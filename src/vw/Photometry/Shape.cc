@@ -52,6 +52,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
   unsigned l, k;
 
   std::string input_DEM_file = input_img_params.DEMFilename;
+  
   std::string mean_DEM_file = input_img_params.meanDEMFilename;
   std::string var2_DEM_file = input_img_params.var2DEMFilename;
 
@@ -85,7 +86,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
           numSamples(l, k) = 1;
         }
         else{
-          float weight = ComputeLineWeights(input_DEM_pix, input_img_params.centerLineDEM, input_img_params.maxDistArrayDEM);
+          float weight = ComputeLineWeightsHV(input_DEM_pix, input_img_params.hCenterLineDEM, input_img_params.hMaxDistArrayDEM, input_img_params.vCenterLineDEM, input_img_params.vMaxDistArrayDEM);
           mean_DEM_image(l, k) = (float)input_DEM_image(l,k)*weight;
           //weight added by Ara 08/28
           var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k)*weight;
@@ -131,7 +132,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
                 numSamples(l, k) = (int)numSamples(l, k) + 1;
               }
               else{
-                float weight = ComputeLineWeights(overlap_dem_pix, overlap_img_params[i].centerLineDEM, overlap_img_params[i].maxDistArrayDEM);
+                float weight = ComputeLineWeightsHV(overlap_dem_pix, overlap_img_params[i].hCenterLineDEM, overlap_img_params[i].hMaxDistArrayDEM, overlap_img_params[i].vCenterLineDEM, overlap_img_params[i].vMaxDistArrayDEM);
                 mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*weight;
                 //weight added by Ara 08/28/
                 var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y)*weight;
@@ -169,6 +170,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
     }
   }
 
+  std::cout << "Writing " << mean_DEM_file << std::endl;
   write_georeferenced_image(mean_DEM_file,
                             mean_DEM_image,
                             input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
@@ -176,6 +178,87 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
   write_georeferenced_image(var2_DEM_file,
                             var2_DEM_image,
                             input_DEM_geo, TerminalProgressCallback("{Core}","Processing:"));
+
+}
+
+//initializes the DEM tile
+void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
+                                     std::string meanDEMTileFile,
+                                     std::vector<ImageRecord> & DEMImages,
+                                     std::vector<int> & overlap,
+                                     GlobalParams globalParams) {
+  
+  int i;
+  unsigned l, k;
+
+  DiskImageView< PixelGray<float> >  blankTile(blankTileFile);
+  GeoReference DEMTileGeo;
+  read_georeference(DEMTileGeo, blankTileFile);
+  std::cout << "Reading " << blankTileFile << std::endl;
+
+  ImageView<PixelGray<int> > numSamples(blankTile.cols(), blankTile.rows());
+  ImageView<PixelGray<float> > meanDEMTile(blankTile.cols(), blankTile.rows());
+
+  for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
+    for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
+      numSamples     (l, k) = 0;
+      meanDEMTile (l, k) = globalParams.noDEMDataValue;
+    }
+  }
+
+
+  //std::cout << blankTileFile << " overlaps with: "; 
+  for (i = 0; i < (int)overlap.size(); i++){
+    
+    std::string overlapDEM = DEMImages[overlap[i]].path;
+
+    //std::cout << overlapDEM << " ";
+
+    // This code is duplicated in Shape.cc and Reflectance.cc and other places
+    DiskImageView<PixelGray<float> >  overlap_DEM_image(overlapDEM); //boost::int16_t
+    std::cout << "Reading: " << overlapDEM << std::endl; 
+    GeoReference overlap_DEM_geo;
+    read_georeference(overlap_DEM_geo, overlapDEM);
+    ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
+                                                                                        ConstantEdgeExtension()),
+                                                                            BilinearInterpolation());
+    for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
+      for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
+
+        Vector2 input_DEM_pix(l,k);
+
+        //check for overlap between the output image and the input DEM image
+        Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(DEMTileGeo.pixel_to_lonlat(input_DEM_pix));
+        float x = overlap_dem_pix[0];
+        float y = overlap_dem_pix[1];
+        
+        //check for valid DEM coordinates
+        if ((x >= 0) && (x < overlap_DEM_image.cols()) && (y >= 0) && (y < overlap_DEM_image.rows())){
+          if ( overlap_DEM_image(x, y) != globalParams.noDEMDataValue ) {
+            if (numSamples(l, k) == 0){
+              meanDEMTile(l, k) = (float)interp_overlap_DEM_image(x, y);
+            }else{
+              meanDEMTile(l, k) = meanDEMTile(l, k) + (float)interp_overlap_DEM_image(x, y);
+            }
+            numSamples(l, k) = numSamples(l, k) + 1;
+          }
+        }
+      }
+    }
+  }
+
+  for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
+    for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
+      if (numSamples(l, k) > 1){
+        meanDEMTile(l, k) = (float)meanDEMTile(l, k)/numSamples(l, k);
+      }
+    }
+  }
+  
+  std::cout << "Writing: " << meanDEMTileFile << std::endl;
+  write_georeferenced_image(meanDEMTileFile,
+                            meanDEMTile,
+                            DEMTileGeo, TerminalProgressCallback("{Core}","Processing:"));
 
 }
 

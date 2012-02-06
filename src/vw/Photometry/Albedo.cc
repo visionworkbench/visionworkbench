@@ -4,7 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
 #include <iostream>
 #include <fstream>
 
@@ -24,15 +23,6 @@ using namespace vw::cartography;
 #include <vw/Photometry/Weights.h>
 
 using namespace vw::photometry;
-
-//josh - moved to ReconstructError.cc and changed name to ComputeError
-//float ComputeError_Albedo(float intensity, float T,
-//                          float albedo, float reflectance,
-//                          Vector3 /*xyz*/, Vector3 /*xyz_prior*/) {
-//  float error;
-//  error = (intensity-T*albedo*reflectance);
-//  return error;
-//}
 
 float ComputeGradient_Albedo(float T, float reflectance) {
   float grad;
@@ -59,7 +49,7 @@ void vw::photometry::InitImageMosaic(ModelParams input_img_params,
     read_georeference(input_img_geo, input_img_file);
 
     DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
-
+    
     ImageView<PixelMask<PixelGray<float> > > output_img (input_img.cols(), input_img.rows());
 
     printf("temp mem allocation-START\n");
@@ -87,7 +77,7 @@ void vw::photometry::InitImageMosaic(ModelParams input_img_params,
                   numSamples(l, k) = 1;
               }
               else{
-                  float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
+                  float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
                   output_img(l, k) = ((float)input_img(l,k)*weight)/(input_img_params.exposureTime*input_img_reflectance);
                   norm(l, k) = weight;
                   numSamples(l, k) = 1;
@@ -143,7 +133,7 @@ void vw::photometry::InitImageMosaic(ModelParams input_img_params,
                               numSamples(l, k) = numSamples(l,k) + 1;
                           }
                           else{
-                             float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
+                             float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
                              output_img(l, k) = (float)output_img(l, k) + ((float)overlap_img_pixel*weight)/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
                              numSamples(l, k) = numSamples(l,k) + 1;
                              norm(l,k) = norm(l,k) + weight;
@@ -248,7 +238,7 @@ void vw::photometry::InitImageMosaicByBlocks(ModelParams input_img_params,
                       numSamples(l, k) = 1;
                    }
                    else{
-                      float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
+                      float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
                       output_img(jj,ii) = ((float)input_img(jj,ii)*weight)/(input_img_params.exposureTime*input_img_reflectance);
                       norm(l, k) = weight;
                       numSamples(l, k) = 1;
@@ -313,7 +303,7 @@ void vw::photometry::InitImageMosaicByBlocks(ModelParams input_img_params,
                             numSamples(l, k) = numSamples(l,k) + 1;
                          }
                          else{
-                             float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
+                             float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
                              output_img(jj,ii) = (float)output_img(jj,ii) + ((float)overlap_img_pixel*weight)/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
                              numSamples(l, k) = numSamples(l,k) + 1;
                              norm(l,k) = norm(l,k) + weight;
@@ -429,7 +419,7 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
                   denominator(l, k) = input_albedo_grad*input_albedo_grad;
               }
               else{
-                  float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
+                  float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
                   nominator(l, k)   = input_albedo_grad*input_img_error*weight;
                   denominator(l, k) = input_albedo_grad*input_albedo_grad*weight;
               }
@@ -495,7 +485,7 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
                          denominator(l, k) = denominator(l, k) + overlap_albedo_grad*overlap_albedo_grad;
                      }
                      else{
-                         float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
+                         float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
                          nominator(l, k)   = nominator(l,k) + overlap_albedo_grad*overlap_img_error*weight;
                          denominator(l, k) = denominator(l,k) + overlap_albedo_grad*overlap_albedo_grad*weight;
                      }
@@ -532,14 +522,187 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
 //Below are the functions for albedo reconstruction
 //-------------------------------------------------------------------------------
 
+//initializes the current albedo tile
+void
+vw::photometry::InitAlbedoTile(std::string blankTileFile,
+                               std::string albedoTileFile,
+                               std::vector<ModelParams> overlap_img_params,
+                               GlobalParams globalParams){
+    
+    int i, l, k;
+
+    DiskImageView<PixelMask<PixelGray<float> > >  blankTile(blankTileFile);
+    std::cout << "Reading " << blankTileFile << std::endl;
+    ImageView<PixelMask<PixelGray<float> > > albedoTile (blankTile.cols(), blankTile.rows());
+    GeoReference albedoTile_geo;
+    read_georeference(albedoTile_geo, blankTileFile);
+
+    ImageView<PixelGray<int> > numSamples(albedoTile.cols(), albedoTile.rows());
+    ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
+    
+    //initialize  albedoTile, and numSamples
+    for (k = 0 ; k < albedoTile.rows(); ++k) {
+        for (l = 0; l < albedoTile.cols(); ++l) {
+          albedoTile(l, k) = 0;
+          albedoTile(l, k).validate();
+          numSamples(l, k) = 0;
+          norm      (l, k) = 0;
+        }
+    }
+    
+    for (i = 0; i < (int)overlap_img_params.size(); i++){
+      
+      printf("overlap_img = %s with %s\n", albedoTileFile.c_str(), overlap_img_params[i].inputFilename.c_str());
+
+      // Overlap image
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
+      GeoReference overlap_geo;
+      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img
+        = interpolate(edge_extend(overlap_img.impl(),  ConstantEdgeExtension()),  BilinearInterpolation());
+      
+      // Overlap shadow
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage
+        = interpolate(edge_extend(overlapShadowImage.impl(), ConstantEdgeExtension()), BilinearInterpolation());
+
+      // Overlap reflectance
+      std::string reflectance_file = overlap_img_params[i].reliefFilename;
+      DiskImageView<PixelMask<PixelGray<float> > > reflectance_image(reflectance_file);
+      GeoReference reflectance_geo;
+      read_georeference(reflectance_geo, reflectance_file);
+      ImageViewRef<PixelMask<PixelGray<float> > >  interp_reflectance_image
+        = interpolate(edge_extend(reflectance_image.impl(), ConstantEdgeExtension()),  BilinearInterpolation());
+
+      // Speed things up here! Iterate over a subblock only
+
+      Vector2 beg = albedoTile_geo.lonlat_to_pixel(overlap_geo.pixel_to_lonlat(Vector2(0, 0)));
+      Vector2 end = albedoTile_geo.lonlat_to_pixel(overlap_geo.pixel_to_lonlat(Vector2(overlap_img.cols(), overlap_img.rows())));
+
+      int pad = 2; // Use due to round-off errors when rounding. Should not be necessary.
+      // Iterate only over the intersection of the overlap image with the tile
+      for (k = std::max(0, (int)floor(beg(1)) - pad);
+           k < std::min(albedoTile.rows(), (int)ceil(end(1)) + pad); ++k) {
+        for (l = std::max(0, (int)floor(beg(0)) - pad);
+             l < std::min(albedoTile.cols(), (int)ceil(end(0)) + pad); ++l) {
+
+          Vector2 albedoTile_pix(l,k);
+
+          if ( is_valid(albedoTile(l,k)) ) {
+
+              //get the corresponding reflectance value
+              Vector2 lon_lat = albedoTile_geo.pixel_to_lonlat(albedoTile_pix);
+	     
+              Vector2 reflectance_pix = reflectance_geo.lonlat_to_pixel(lon_lat);
+              float x = reflectance_pix[0];
+              float y = reflectance_pix[1];
+
+              //check for valid reflectance_image coordinates
+              if ((x>=0) && (x < reflectance_image.cols()) && (y>=0) && (y< reflectance_image.rows())){
+	
+                if (is_valid(interp_reflectance_image(x,y))){
+                 
+                  //check for overlap between the output image and the input DEM image
+                  Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(lon_lat);
+                  float overlap_x = overlap_pix[0];
+                  float overlap_y = overlap_pix[1];
+                  
+                  //image dependent part of the code  - START
+                  PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
+                  
+                  //check for valid overlap_img coordinates
+                  //TO DO: remove shadow pixels in the overlap_img.
+                  if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+                    
+                    if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
+                      
+                      float overlap_img_reflectance = interp_reflectance_image(x,y);
+                      
+                      if (overlap_img_reflectance != 0.0){
+                        if (globalParams.useWeights == 0){
+                          albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
+                          numSamples(l, k) = numSamples(l,k) + 1;
+                        }
+                        else{
+                          float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
+                          float expRefl    = overlap_img_params[i].exposureTime*overlap_img_reflectance;
+                          
+                          //New averaging
+                          albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel*expRefl*weight;
+                          norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+
+                          // Old averaging
+                          //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/ expRefl;
+                          //norm(l,k) = norm(l,k) + weight;
+                          
+                          numSamples(l, k) = numSamples(l,k) + 1;
+
+                        }
+                      }
+                      
+                    }//if
+                  }//if
+                  
+                  //image dependent part of the code  - END
+                }
+              }
+          }
+        }
+      }
+    }
+    
+    //compute the mean albedo value
+    int numValid = 0;
+    for (k = 0 ; k < albedoTile.rows(); ++k) {
+      for (l = 0; l < albedoTile.cols(); ++l) {
+
+        if ( albedoTile(l,k) == 0){
+          albedoTile(l,k).invalidate();
+        }
+        
+        if ( (is_valid(albedoTile(l,k))) && (numSamples(l, k) != 0) ) {
+          
+          albedoTile(l,k).validate();
+          
+          if (globalParams.useWeights == 0){
+            albedoTile(l, k) = albedoTile(l, k)/numSamples(l,k);
+          }
+          else{
+            albedoTile(l, k) = albedoTile(l, k)/norm(l,k);
+          }
+          numValid++;
+        }
+        
+      }
+    }
+
+    printf("numValid = %d, total = %d\n", numValid, albedoTile.rows()*albedoTile.cols());
+    
+    //TODO: compute the albedo variance (standard deviation)
+    
+#if  0
+    std::string weights_file = albedoTileFile, str2 = "DRG";
+    weights_file.replace(weights_file.find(str2),str2.length(),"wt");
+    std::cout << "Writing the weights to "  <<  weights_file << std::endl;
+    write_georeferenced_image(weights_file,
+                              channel_cast<uint8>(clamp(weights_img,0.0,255.0)),
+                              albedoTile_geo, TerminalProgressCallback("{Core}","Processing:"));
+#endif
+    
+    //write in the albedo image
+    std::cout << "Writing: " << albedoTileFile << std::endl;
+    write_georeferenced_image(albedoTileFile,
+                              channel_cast<uint8>(clamp(albedoTile,0.0,255.0)),
+                              albedoTile_geo, TerminalProgressCallback("{Core}","Processing:"));
+}
+
+
 //initializes the albedo mosaic
 //TO DO: build the version that does the blockwise processing to deal with large scale images
 void
 vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                                  std::vector<ModelParams> overlap_img_params,
                                  GlobalParams globalParams) {
-    int horBlockSize = 500;
-    int verBlockSize = 500;
     
     int i, l, k;
     std::string input_img_file = input_img_params.inputFilename;
@@ -558,18 +721,15 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
     ImageView<PixelGray<int> > numSamples(input_img.cols(), input_img.rows());
     ImageView<PixelGray<float> > norm(input_img.cols(), input_img.rows());
 
+    //ImageView<PixelGray<float> > weights_img(input_img.cols(), input_img.rows());
  
     DiskImageView<PixelMask<PixelGray<float> > > reflectance_image(reflectance_file);
     GeoReference reflectance_geo;
     read_georeference(reflectance_geo, reflectance_file);
-
     ImageViewRef<PixelMask<PixelGray<float> > >  interp_reflectance_image = interpolate(edge_extend(reflectance_image.impl(),
 											ConstantEdgeExtension()),
 									    BilinearInterpolation());
 
-
-    int numHorBlocks = input_img.cols()/horBlockSize + 1;
-    int numVerBlocks = input_img.rows()/verBlockSize + 1;
 
     int x,y;
     //initialize  output_img, and numSamples
@@ -601,18 +761,39 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                           numSamples(l, k) = 1;
                       }
                       else{
-                         float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
-                         output_img(l, k) = ((float)input_img(l,k)*weight)/(input_img_params.exposureTime*input_img_reflectance);
-                         norm(l, k) = weight;
-                         numSamples(l, k) = 1;
+                          float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
+                          float expRefl = input_img_params.exposureTime*input_img_reflectance;
+
+                          // New averaging
+                          output_img(l, k)  = ((float)input_img(l,k))*expRefl*weight;
+                          norm(l, k)        = expRefl*expRefl*weight;
+
+                          // Old averaging
+                          //output_img(l, k) = ((float)input_img(l,k)*weight)/expRefl;
+                          //norm(l, k) = weight;
+                          
+                          numSamples(l, k)  = 1;
+                          //weights_img(l, k) = weight;
+
+                          
                       }
                   }
                 }
-             }
-          }
-       }
+              }
+           }
+        }
     }
 
+#if  0
+    //initialize  output_img, and numSamples
+    for (k = 0 ; k < input_img.rows(); ++k) {
+      for (l = 0; l < input_img.cols(); ++l) {
+        double val = weights_img(l, k)[0];
+        weights_img(l, k) = std::min(255.0, val*155.0);
+      }
+    }
+#endif
+    
     for (i = 0; i < (int)overlap_img_params.size(); i++){
       
       printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
@@ -635,13 +816,13 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
       
       for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
-
+          
           Vector2 input_img_pix(l,k);
-
+          
           if ( is_valid(input_img(l,k)) ) {
-
-              //get the corresponding reflectance value
-              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
+            
+            //get the corresponding reflectance value
+            Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
 	     
               Vector2 reflectance_pix = reflectance_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
               float x = reflectance_pix[0];
@@ -674,10 +855,20 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                               numSamples(l, k) = numSamples(l,k) + 1;
                           }
                           else{
-                             float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
-                             output_img(l, k) = (float)output_img(l, k) + ((float)overlap_img_pixel*weight)/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
-                             numSamples(l, k) = numSamples(l,k) + 1;
-                             norm(l,k) = norm(l,k) + weight;
+                            float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
+                            float expRefl    = overlap_img_params[i].exposureTime*overlap_img_reflectance;
+
+                            //New averaging
+                            output_img(l, k) = (float)output_img(l, k) + (float)overlap_img_pixel*expRefl*weight;
+                            norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+                            
+                            // Old averaging
+                            //output_img(l, k) = (float)output_img(l, k) + ((float)overlap_img_pixel*weight)/ expRefl;
+                            //norm(l,k) = norm(l,k) + weight;
+                            
+                            numSamples(l, k) = numSamples(l,k) + 1;
+
+
                           }
                       }
 
@@ -718,13 +909,23 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
     printf("numValid = %d, total = %d\n", numValid, input_img.rows()*input_img.cols());
     
     //TODO: compute the albedo variance (standard deviation)
-   
-   
+
+#if  0
+    std::string weights_file = output_img_file, str2 = "DRG";
+    weights_file.replace(weights_file.find(str2),str2.length(),"wt");
+    std::cout << "Writing the weights to "  <<  weights_file << std::endl;
+    write_georeferenced_image(weights_file,
+                              channel_cast<uint8>(clamp(weights_img,0.0,255.0)),
+                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+#endif
+    
     //write in the albedo image
+    std::cout << "Writing: " << output_img_file << std::endl;
     write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
     
+
 }
 
 
@@ -848,7 +1049,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
                          denominator(l, k) = input_albedo_grad*input_albedo_grad;
                          }
                      else{
-                         float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
+                         float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
                          nominator(l, k)   = input_albedo_grad*input_img_error*weight;
                          denominator(l, k) = input_albedo_grad*input_albedo_grad*weight;
                      }
@@ -962,7 +1163,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
                          else{
 
                            //float weight = ComputeWeights(overlap_pix, overlap_img_params[i].center2D, overlap_img_params[i].maxDistance);
-                            float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
+                            float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
                             nominator(l, k)   = nominator(l,k) + overlap_albedo_grad*overlap_img_error*weight;
                             denominator(l, k) = denominator(l,k) + overlap_albedo_grad*overlap_albedo_grad*weight;
                          }
@@ -1254,7 +1455,8 @@ void
 vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
                                       std::vector<ModelParams> overlap_img_params,
                                       GlobalParams globalParams) {
-
+  // code turned off!
+#if 0
     fprintf(stderr, "\n");
     fprintf(stderr, "**********************************************************************\n");
     fprintf(stderr, "**********************************************************************\n");
@@ -1305,7 +1507,10 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
           output_img(x, y) = (float)input_img(x,y)/(input_img_params.exposureTime*input_img_reflectance);
           numSamples(x, y) = 1;
         } else {
-          float weight = ComputeLineWeights(Vector2(x, y), input_img_params.centerLine, input_img_params.maxDistArray);
+          float weight = ComputeLineWeightsHV(Vector2(x, y), 
+                                              input_img_params.hCenterLine, input_img_params.hMaxDistArray,
+                                              input_img_params.vCenterLine, input_img_params.vMaxDistArray
+                                              );
           output_img(x, y) = ((float)input_img(x,y)*weight)/(input_img_params.exposureTime*input_img_reflectance);
           norm(x, y) = weight;
           numSamples(x, y) = 1;
@@ -1376,7 +1581,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
                           numSamples(l, k) = 1;
                       }
                       else{
-                         float weight = ComputeLineWeights(input_image_pix, input_img_params.centerLine, input_img_params.maxDistArray);
+                         float weight = ComputeLineWeightsHV(input_image_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
                          output_img(l, k) = ((float)input_img(l,k)*weight)/(input_img_params.exposureTime*input_img_reflectance);
                          norm(l, k) = weight;
                          numSamples(l, k) = 1;
@@ -1484,7 +1689,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
                               numSamples(l, k) = numSamples(l,k) + 1;
                           }
                           else{
-                             float weight = ComputeLineWeights(overlap_pix, overlap_img_params[i].centerLine, overlap_img_params[i].maxDistArray);
+                             float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
                              output_img(l, k) = (float)output_img(l, k) + ((float)overlap_img_pixel*weight)/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
                              numSamples(l, k) = numSamples(l,k) + 1;
                              norm(l,k) = norm(l,k) + weight;
@@ -1559,4 +1764,5 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
     write_georeferenced_image(output_img_file, albedo_img,
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
     */
+#endif
 }

@@ -67,7 +67,8 @@ namespace photometry {
                                                     Vector3 viewPos,
                                                     Vector3 xyz,
                                                     Vector3 normal);
-  float computeImageReflectance(ModelParams input_img_params,
+  float computeImageReflectance(bool useTiles, std::vector<ImageRecord> & DEMTiles,
+                                std::vector<int> & overlap, ModelParams input_img_params,
                                 GlobalParams globalParams);
   float ComputeReflectance(Vector3 normal, Vector3 xyz,
                            ModelParams input_img_params,
@@ -75,7 +76,9 @@ namespace photometry {
   float computeImageReflectance(ModelParams input_img_params,
                                 ModelParams overlap_img_params,
                                 GlobalParams globalParams);
-  float computeImageReflectanceNoWrite(ModelParams input_img_params,
+  float computeImageReflectanceNoWrite(bool useTiles, std::vector<ImageRecord> & DEMTiles,
+                                       std::vector<int> & overlap,
+                                       ModelParams input_img_params,
                                        GlobalParams globalParams,
                                        ImageView<PixelMask<PixelGray<float> > >& output_img);
   

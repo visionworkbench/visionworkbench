@@ -30,6 +30,11 @@ namespace photometry {
                          std::vector<ModelParams> overlap_img_params,
                          GlobalParams globalParams);
 
+  void InitAlbedoTile(std::string blankTileFile,
+                      std::string albedoTileFile,
+                      std::vector<ModelParams> overlap_img_params,
+                      GlobalParams globalParams);
+
   //albedo mosaic functions
   void InitAlbedoMosaic(ModelParams input_img_params,
                         std::vector<ModelParams> overlap_img_params,

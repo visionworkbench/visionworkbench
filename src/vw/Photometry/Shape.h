@@ -26,6 +26,11 @@ namespace photometry {
   void InitDEM(ModelParams input_img_params,
                std::vector<ModelParams> overlap_img_params,
                GlobalParams globalParams);
+  void InitMeanDEMTile(std::string blankTileFile,
+                       std::string meanDEMTileFile,
+                       std::vector<ImageRecord> & DEMImages,
+                       std::vector<int> & overlap,
+                       GlobalParams globalParams);
   void ComputeSaveDEM(std::string curr_input_file, std::string prev_input_file,
                       std::string curr_output_file, std::string DEM_file,
                       ModelParams currModelParams,
