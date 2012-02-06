@@ -52,7 +52,6 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
   unsigned l, k;
 
   std::string input_DEM_file = input_img_params.DEMFilename;
-  
   std::string mean_DEM_file = input_img_params.meanDEMFilename;
   std::string var2_DEM_file = input_img_params.var2DEMFilename;
 
@@ -86,7 +85,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
           numSamples(l, k) = 1;
         }
         else{
-          float weight = ComputeLineWeightsHV(input_DEM_pix, input_img_params.hCenterLineDEM, input_img_params.hMaxDistArrayDEM, input_img_params.vCenterLineDEM, input_img_params.vMaxDistArrayDEM);
+          float weight = ComputeLineWeights(input_DEM_pix, input_img_params.centerLineDEM, input_img_params.maxDistArrayDEM);
           mean_DEM_image(l, k) = (float)input_DEM_image(l,k)*weight;
           //weight added by Ara 08/28
           var2_DEM_image(l, k) = (float)input_DEM_image(l,k)*(float)input_DEM_image(l,k)*weight;
@@ -132,7 +131,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
                 numSamples(l, k) = (int)numSamples(l, k) + 1;
               }
               else{
-                float weight = ComputeLineWeightsHV(overlap_dem_pix, overlap_img_params[i].hCenterLineDEM, overlap_img_params[i].hMaxDistArrayDEM, overlap_img_params[i].vCenterLineDEM, overlap_img_params[i].vMaxDistArrayDEM);
+                float weight = ComputeLineWeights(overlap_dem_pix, overlap_img_params[i].centerLineDEM, overlap_img_params[i].maxDistArrayDEM);
                 mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*weight;
                 //weight added by Ara 08/28/
                 var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y)*weight;

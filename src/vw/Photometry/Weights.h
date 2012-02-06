@@ -16,22 +16,18 @@
 namespace vw {
 namespace photometry {
 
-  int* ComputeImageHCenterLine(std::string input_img_file,
-                              int **r_hMaxDistArray);
-  int* ComputeDEMHCenterLine(std::string input_DEM_file, int noDataDEMVal,
-                            int **r_hMaxDistArray);
-  int* ComputeImageVCenterLine(std::string input_img_file,
-                                 int **r_hMaxDistArray);
-  int* ComputeDEMVCenterLine(std::string input_DEM_file, int noDataDEMVal,
-                               int **r_hMaxDistArray);
-  float ComputeLineWeightsH(Vector2 pix, int *hCenterLine,
-                           int *hMaxDistArray);
-  float ComputeLineWeightsV(Vector2 pix, int *hCenterLine,
-                            int *hMaxDistArray);
-  float ComputeLineWeightsHV(Vector2 pix,
-                             int *hCenterLine, int *hMaxDistArray,
-                             int *vCenterLine, int *vMaxDistArray
-                             );
+  int* ComputeImageCenterLine(std::string input_img_file,
+                              int **r_maxDistArray);
+  int* ComputeDEMCenterLine(std::string input_DEM_file, int noDataDEMVal,
+                            int **r_maxDistArray);
+  int* ComputeImageHorCenterLine(std::string input_img_file,
+                                 int **r_maxDistArray);
+  int* ComputeDEMHorCenterLine(std::string input_DEM_file, int noDataDEMVal,
+                               int **r_maxDistArray);
+  float ComputeLineWeights(Vector2 pix, int *centerLine,
+                           int *maxDistArray);
+  float ComputeLineWeightsV(Vector2 pix, int *centerLine,
+                            int *maxDistArray);
   void SaveWeightsParamsToFile(struct ModelParams modelParams);
   void ReadWeightsParamsFromFile(struct ModelParams *modelParams);
 
