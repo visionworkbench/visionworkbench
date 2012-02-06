@@ -95,7 +95,7 @@ namespace vw {
     /// Invalidates this pixel, setting its valid bit to zero.
     void invalidate() { m_valid = ChannelRange<channel_type>::min(); }
 
-    /// Invalidates this pixel, setting its valid bit to 1;
+    /// Validates this pixel, setting its valid bit to 1;
     void validate() { m_valid = ChannelRange<channel_type>::max(); }
 
     /// Switching valid to what it was not previously
