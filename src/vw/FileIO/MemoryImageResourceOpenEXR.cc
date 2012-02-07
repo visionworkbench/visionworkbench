@@ -7,6 +7,7 @@
 #include <vw/FileIO/MemoryImageResourceOpenEXR.h>
 #include <vw/Core/Debugging.h>
 
+#include <ImfInt64.h>
 #include <ImfInputFile.h>
 #include <ImfOutputFile.h>
 #include <ImfIO.h>
