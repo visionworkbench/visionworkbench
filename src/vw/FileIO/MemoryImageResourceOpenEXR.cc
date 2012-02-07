@@ -152,21 +152,50 @@ ImageFormat SrcMemoryImageResourceOpenEXR::format() const {
   return m_data->format;
 }
 
-class DstMemoryImageResourceOpenEXR::Data : public Imf::OStream, public std::ostringstream {
-public:
-  Data(ImageFormat const& fmt) : OStream(""), std::ostringstream(), format(fmt) {}
+// This could be std::ostringstream, but I couldn't figure out a way
+// to get a pointer to the persistant memory underneath the
+// structure. str() provides a temporary copy.
+class DstMemoryImageResourceOpenEXR::Data : public Imf::OStream {
+  boost::shared_array<char> m_array;
+  size_t m_perceived_size, m_actual_size, m_index;
 
-  virtual void write ( const char c[], int n ) {
-    std::ostringstream::write( c, n);
+  // Attempts to double current memory usage or meet the minimum
+  // demand.
+  void increase_size( size_t min_size ) {
+    size_t new_size = m_actual_size * 2 < min_size ? min_size : m_actual_size * 2;
+    boost::shared_array<char> new_array( new char[new_size] );
+    m_actual_size = new_size;
+    std::memcpy( new_array.get(), m_array.get(), m_perceived_size );
+    m_array.swap( new_array );
   }
 
-  virtual Imath::Int64 tellp () {
-    return std::ostringstream::tellp();
+public:
+  Data(ImageFormat const& fmt) : OStream(""), m_array( new char[512] ),
+                                 m_perceived_size(0), m_actual_size(512),
+                                 m_index(0), format(fmt) {}
+
+  char* data() const { return m_array.get(); }
+
+  virtual void write( const char c[], int n ) {
+    if ( m_index + n >= m_actual_size )
+      increase_size(m_index+n);
+    std::memcpy( m_array.get() + m_index, c, n );
+    m_index += n;
+    m_perceived_size += n;
+  }
+
+  virtual Imath::Int64 tellp() {
+    return m_index;
   }
 
   virtual void seekp( Imath::Int64 pos ) {
-    std::ostringstream::seekp( pos );
+    if ( pos >= m_actual_size )
+      increase_size(pos + 1);
+    m_index = size_t( pos );
   }
+
+  size_t size() const { return m_perceived_size; }
+  size_t actual_size() const { return m_actual_size; }
 
   ImageFormat format;
   std::vector<std::string> labels;
@@ -236,9 +265,9 @@ void DstMemoryImageResourceOpenEXR::write( ImageBuffer const& src, BBox2i const&
 }
 
 const uint8* DstMemoryImageResourceOpenEXR::data() const {
-  return (const uint8*)m_data->str().c_str();
+  return (const uint8*)m_data->data();
 }
 
 size_t DstMemoryImageResourceOpenEXR::size() const {
-  return m_data->str().size();
+  return m_data->size();
 }
