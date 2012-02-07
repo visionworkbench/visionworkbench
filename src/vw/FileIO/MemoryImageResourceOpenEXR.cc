@@ -41,10 +41,10 @@ public:
     vw_throw( NoImplErr() << "readMemoryMapped should never be called." );
     return NULL;
   }
-  virtual Imath::Int64 tellg() {
+  virtual Imf::Int64 tellg() {
     return std::istringstream::tellg();
   }
-  virtual void seekg( Imath::Int64 pos ) {
+  virtual void seekg( Imf::Int64 pos ) {
     std::istringstream::seekg( pos );
   }
   virtual void clear() {
@@ -185,11 +185,11 @@ public:
     m_perceived_size += n;
   }
 
-  virtual Imath::Int64 tellp() {
+  virtual Imf::Int64 tellp() {
     return m_index;
   }
 
-  virtual void seekp( Imath::Int64 pos ) {
+  virtual void seekp( Imf::Int64 pos ) {
     if ( pos >= m_actual_size )
       increase_size(pos + 1);
     m_index = size_t( pos );
