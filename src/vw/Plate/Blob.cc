@@ -327,23 +327,9 @@ uint64 Blob::write(TileHeader const& header, const uint8* data, uint64 data_size
   blob_record.SerializeToOstream(m_fstream.get());
   check_fail("writing a blob record");
 
-#if defined(__APPLE__)
-  // This code seems ludicrous, because it is. Apple's gcc4.2 lines up
-  // the the encoded header and data in memory. In then proceeds to
-  // overwrite the first byte of data by accident when it runs a
-  // std::memcopy(a, b, 3). It's actually editting the fourth byte!
-  // Backtrace points to a specials sse4.2 version of memcopy. I'm
-  // assuming this is a packed instruction mistake.
-  int32 leading_data = *((int*)data);
-#endif
-
   // Serialize the header.
   header.SerializeToOstream(m_fstream.get());
   check_fail("writing a tile header");
-
-#if defined(__APPLE__)
-  *((int*)data) = leading_data;
-#endif
 
   // And write the data.
   m_fstream->write(reinterpret_cast<const char*>(data), boost::numeric_cast<size_t>(data_size));
