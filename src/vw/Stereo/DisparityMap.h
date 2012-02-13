@@ -176,8 +176,8 @@ namespace stereo {
                                   m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
       accum_t input_min = accumulator.minimum();
       accum_t input_max = accumulator.maximum();
-      BBox2i preraster(bbox.min() + Vector2i(input_min[0],input_min[1]),
-                       bbox.max() + Vector2i(input_max[0],input_max[1]) );
+      BBox2i preraster(bbox.min() + floor(Vector2f(input_min[0],input_min[1])),
+                       bbox.max() + ceil(Vector2(input_max[0],input_max[1])) );
       preraster.crop( bounding_box( m_input_view ) );
       // The bottom might be a little confusing. We're rasterizing the
       // part of mask2 that we know the input disparity will actually
