@@ -135,7 +135,8 @@ namespace camera {
 
       // Check to make sure that this is a valid pixel
       if (int(round(v)) < 0 || int(round(v)) >= int(m_line_times.size()))
-        vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
+        vw_throw( PixelToRayErr() << "LinescanModel: requested pixel "
+                  << pix << " is not on a valid scanline." );
 
       // The view_matrix takes vectors from the camera (extrinsic)
       // coordinate system to the world frame
@@ -149,10 +150,8 @@ namespace camera {
       // between pixels.
       int y = int(floor(pix[1]));
       double normy = pix[1] - y;
-      double approx_line_time = double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
-
-      Quaternion<double> pose = m_pose_func(approx_line_time);
-      Matrix<double,3,3> rotation_matrix = transpose(pose.rotation_matrix());
+      double approx_line_time =
+        double( m_line_times[y] + (m_line_times[y+1] - m_line_times[y]) * normy );
 
       // The viewplane is the [pointing_vec cross u_vec] plane of the
       // camera coordinate system.  Assuming the origin of the
@@ -160,15 +159,17 @@ namespace camera {
       // plane is at pointing_vec = +f, and the pixel position in
       // camera coordinates is:
       double pixel_pos_u = (u + m_sample_offset) * m_across_scan_pixel_size;
-      Vector<double, 3> pixel_direction = pixel_pos_u * m_u_vec + m_focal_length * m_pointing_vec;
+      Vector<double, 3> pixel_direction =
+        pixel_pos_u * m_u_vec + m_focal_length * m_pointing_vec;
 
       // Transform to world coordinates using the rigid rotation
-      return normalize(rotation_matrix * pixel_direction);
+      return normalize(m_pose_func(approx_line_time).rotate(pixel_direction));
     }
 
     virtual Vector3 camera_center(Vector2 const& pix = Vector2() ) const {
       // Check to make sure that this is a valid pixel
-      if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
+      if (int(round(pix[1])) < 0 ||
+          int(round(pix[1])) >= int(m_line_times.size()))
         vw_throw( PixelToRayErr() << "LinescanModel: requested pixel " << pix << " is not on a valid scanline." );
 
       // The v pixel need not be an integer in every case, therefore
@@ -182,7 +183,7 @@ namespace camera {
     }
 
     /// Returns the pose (as a quaternion) of the camera for a given
-    /// pixel.
+    /// pixel. Pose is the rotation from camera coordinates to world.
     virtual Quaternion<double> camera_pose(Vector2 const& pix) const {
       // Check to make sure that this is a valid pixel
       if (int(round(pix[1])) < 0 || int(round(pix[1])) >= int(m_line_times.size()))
