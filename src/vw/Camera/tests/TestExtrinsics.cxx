@@ -44,10 +44,10 @@ TEST( Extrinsics, HermitePositionInterpolation ) {
 TEST( Extrinsics, LinearTime ) {
   LinearTimeInterpolation time( 5, 0.1 );
 
-  EXPECT_EQ( 5, time(0) );
-  EXPECT_EQ( 6, time(10) );
-  EXPECT_EQ( 4, time(-10) );
-  EXPECT_EQ( -1, time(-60) );
+  EXPECT_NEAR( 5, time(0), 1e-12 );
+  EXPECT_NEAR( 6, time(10), 1e-12 );
+  EXPECT_NEAR( 4, time(-10), 1e-12 );
+  EXPECT_NEAR( -1, time(-60), 1e-12 );
 }
 
 TEST( Extrinsics, TLCTime ) {
@@ -62,13 +62,13 @@ TEST( Extrinsics, TLCTime ) {
   TLCTimeInterpolation interp( tlc, -4 );
 
   // Assert data points are still the same
-  EXPECT_EQ( -1, interp(1) );
-  EXPECT_EQ( 0, interp(2) );
-  EXPECT_EQ( 0.5, interp(4) );
+  EXPECT_NEAR( -1, interp(1), 1e-12 );
+  EXPECT_NEAR( 0, interp(2), 1e-12 );
+  EXPECT_NEAR( 0.5, interp(4), 1e-12 );
 
   // Check that interpolation is happening between points
-  EXPECT_EQ( -0.5, interp(1.5) );
-  EXPECT_EQ( 0.25, interp(3) );
-  EXPECT_EQ( -2, interp(0) );
-  EXPECT_EQ( 1, interp(6) );
+  EXPECT_NEAR( -0.5, interp(1.5), 1e-12 );
+  EXPECT_NEAR( 0.25, interp(3), 1e-12 );
+  EXPECT_NEAR( -2, interp(0), 1e-12 );
+  EXPECT_NEAR( 1, interp(6), 1e-12 );
 }
