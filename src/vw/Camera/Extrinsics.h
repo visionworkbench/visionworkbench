@@ -89,6 +89,31 @@ namespace camera {
     Vector3 operator()( double t ) const;
   };
 
+  class PiecewiseAPositionInterpolation {
+    std::vector<Vector3> m_position, m_velocity;
+    double m_t0, m_dt;
+  public:
+    PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
+                                     std::vector<Vector3> const& velocity_samples,
+                                     double t0, double dt ) :
+      m_position( position_samples ), m_velocity( velocity_samples ),
+      m_t0(t0), m_dt(dt) {}
+
+    Vector3 operator()( double t ) const;
+  };
+
+  class LinearPiecewisePositionInterpolation {
+    std::vector<Vector3> m_position;
+    double m_t0, m_dt;
+  public:
+    LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
+                                  double t0, double dt ) :
+      m_position( position_samples ), m_t0(t0), m_dt(dt) {}
+
+    Vector3 operator()( double t ) const;
+  };
+
+
   // --------------------------------------------------------------------------
   // POSE INTERPOLATION
   // --------------------------------------------------------------------------

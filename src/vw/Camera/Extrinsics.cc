@@ -71,9 +71,38 @@ Vector3 HermitePositionInterpolation::operator()( double t ) const {
     poly[i+1] = norm_t * poly[i];
 
   return dot_prod(Vector4(1,0,-3,2), poly) * m_position[low_i] +
-    dot_prod(Vector4(0,1,-2,1), poly) * m_velocity[low_i] +
+    dot_prod(Vector4(0,1,-2,1), poly) * ( m_velocity[low_i] * m_dt ) +
     dot_prod(Vector4(0,0,3,-2), poly) * m_position[high_i] +
-    dot_prod(Vector4(0,0,-1,1), poly) * m_velocity[high_i];
+    dot_prod(Vector4(0,0,-1,1), poly) * ( m_velocity[high_i] * m_dt );
+}
+
+Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
+             ArgumentErr() << "Cannot extrapolate position for time "
+             << t << ". Out of range." );
+
+  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+  double offset_t = t - (m_t0 + m_dt * low_i);
+
+  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt;
+  return m_position[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
+}
+
+Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
+             ArgumentErr() << "Cannot extrapolate position for time "
+             << t << ". Out of range." );
+
+  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+
+  double low_t = m_t0 + m_dt * low_i;
+  double norm_t = ( t - low_t) / m_dt;
+
+  Vector3 result = m_position[low_i] + norm_t * ( m_position[high_i] - m_position[low_i] );
+
+  return result;
 }
 
 Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
@@ -160,5 +189,6 @@ double TLCTimeInterpolation::operator()( double line ) const {
   if ( m != m_m.begin() ) {
     m--; b--;
   }
+
   return line  * m->second + b->second;
 }
