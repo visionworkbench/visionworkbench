@@ -10,6 +10,7 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/PointImageManipulation.h>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 using namespace vw;
 using namespace vw::cartography;
@@ -39,7 +40,8 @@ TEST( PointImageManipulation, XYZ_to_LonLat ) {
   EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
 }
 
-// These are the more general operators which can actually handle squished datums.
+// These are the more general operators which can actually handle
+// squished datums.
 TEST( PointImageManipulation, GeodeticCartesian ) {
   ImageView<Vector3> geodetic(2,2);
   geodetic(0,0) = Vector3( 90, 10, 100 );
@@ -51,9 +53,9 @@ TEST( PointImageManipulation, GeodeticCartesian ) {
   ImageView<Vector3> result_moon = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,moon),moon);
   ImageView<Vector3> result_earth = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,earth),earth);
   EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_moon.begin(), result_moon.begin()+3, 1e-9 );
-  EXPECT_TRUE( isnan(result_moon(1,1).z()) );
+  EXPECT_TRUE( boost::math::isnan(result_moon(1,1).z()) );
   EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 1e-9 );
-  EXPECT_TRUE( isnan(result_earth(1,1).z()) );
+  EXPECT_TRUE( boost::math::isnan(result_earth(1,1).z()) );
 }
 
 TEST( PointImageManipulation, CartesianGeodetic ) {
