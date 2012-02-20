@@ -41,7 +41,8 @@ detail_HEADERS =  detail/BresenhamLine.h
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
-                  GeoReferenceBase.cc $(gdal_sources) $(camerabbox_sources)
+                  GeoReferenceBase.cc PointImageManipulation.cc         \
+                  $(gdal_sources) $(camerabbox_sources)
 
 nodist_libvwCartography_la_SOURCES = $(protocol_sources)
 

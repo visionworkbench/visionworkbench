@@ -25,99 +25,140 @@
 namespace vw {
 namespace cartography {
 
-  // --------------------- CHANGE OF PROJECTION ----------------------
-
-  /// Move from a source projection to a destination projection.  The
-  /// altitude value (that is, the third value in the vector) is left
-  /// untouched.
-  class ReprojectPointFunctor : public UnaryReturnSameType {
-    GeoReference m_src, m_dst;
-
-  public:
-    ReprojectPointFunctor(GeoReference const& src, GeoReference const& dst) : m_src(src), m_dst(dst) {}
-
-    template <class T>
-    T operator()(T const& p) const {
-      Vector<typename T::value_type,2> lon_lat = m_dst.lonlat_to_point(m_src.point_to_lonlat(subvector(p,0,2)));
-      return T(lon_lat(0), lon_lat(1),
-               p(2)+m_src.datum().radius(lon_lat(0), lon_lat(1))-m_dst.datum().radius(lon_lat(0), lon_lat(1)));
-    }
-  };
-
-  // This version of the functor assumes that the point inputs are
-  // unprojected (lon, lat, radius) and then projects them when forward = true.
-  // When forward = false, the point inputs are assumed to be projected, and then
-  // unprojects them.
-  class ProjectPointFunctor : public UnaryReturnSameType {
-    GeoReference m_dst;
-    bool m_forward;
-
-  public:
-    ProjectPointFunctor(GeoReference const& dst, bool forward = true) : m_dst(dst), m_forward(forward) {}
-
-    template <class T>
-    T operator()(T const& p) const {
-      if (p == T()) return p;
-      Vector<typename T::value_type,2> lon_lat = m_dst.lonlat_to_point(subvector(p,0,2));
-      typename T::value_type offset = m_dst.datum().radius(lon_lat(0), lon_lat(1));
-      return T(lon_lat(0), lon_lat(1),
-               m_forward ? p(2) - offset : p(2) + offset);
-    }
-  };
-
+  // Functors. View operations are lower in this file.
   template <class PixelT>
-  class DemToPointImageFunctor : public ReturnFixedType<Vector3> {
-      GeoReference m_georef;
-    public:
-      DemToPointImageFunctor(GeoReference georef) : m_georef(georef) {}
+  class DemToGeodetic : public ReturnFixedType<Vector3> {
+    GeoReference m_georef;
+  public:
+    DemToGeodetic(GeoReference const& georef) : m_georef(georef) {}
 
-      Vector3 operator()(Vector2 loc, PixelT alt) const {
-        if (is_transparent(alt))
-          return Vector3();
+    Vector3 operator()(Vector2 const& loc, PixelT alt) const {
+      if (is_transparent(alt))
+        return Vector3();
 
-        Vector3 result;
-        subvector(result, 0, 2) = m_georef.pixel_to_lonlat(loc);
-        result.z() = alt;
+      Vector3 result;
+      subvector(result, 0, 2) = m_georef.pixel_to_lonlat(loc);
+      result.z() = alt;
 
-        return result;
-      }
+      return result;
+    }
   };
 
-  /// Takes an ImageView of Vector<ElemT,3> in some source projected space
-  /// with (lon,lat,alt) or (x,y,alt) and returns an ImageView of
-  /// vectors that are in the destination projection.
-  ///
-  /// Note: The following assumes latitude is measured from the
-  /// equatorial plane with north positive. This is different than
-  /// normal spherical coordinate conversion where the equivalent
-  /// angle is measured from the positive z axis.
-  //
-  /// Note: notice that the order of the returned triple is longitude,
-  /// latitude, radius.  This ordering of lon/lat is consistent with
-  /// the notion of horizontal (x) and vertical (y) coordinates in an
-  /// image.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, ReprojectPointFunctor>
-  inline reproject_point_image( ImageViewBase<ImageT> const& image, GeoReference const& src_georef, GeoReference const& dst_georef) {
-    return UnaryPerPixelView<ImageT,ReprojectPointFunctor>( image.impl(), ReprojectPointFunctor(src_georef, dst_georef) );
-  }
+  class GeodeticToCartesian : public ReturnFixedType<Vector3> {
+    Datum m_datum;
+  public:
+    GeodeticToCartesian(Datum const& d) : m_datum(d) {}
 
-  // This variant, which only accepts a destination projection,
-  // assumes that the source points are [lon, lat, radius] values.
-  template <class ImageT>
-  UnaryPerPixelView<ImageT, ProjectPointFunctor>
-  inline project_point_image( ImageViewBase<ImageT> const& image, GeoReference const& dst_georef, bool forward=true) {
-    return UnaryPerPixelView<ImageT,ProjectPointFunctor>( image.impl(), ProjectPointFunctor(dst_georef, forward) );
-  }
+    Vector3 operator()( Vector3 const& v ) const;
+  };
 
-  // This utility function converts a DEM to a point image
+  class CartesianToGeodetic : public ReturnFixedType<Vector3> {
+    Datum m_datum;
+  public:
+    CartesianToGeodetic(Datum const& d) : m_datum(d) {}
+
+    Vector3 operator()( Vector3 const& v ) const;
+  };
+
+  class GeodeticToProjection : public ReturnFixedType<Vector3> {
+    GeoReference m_reference;
+  public:
+    GeodeticToProjection( GeoReference const& r ) : m_reference(r) {}
+
+    Vector3 operator()( Vector3 const& v ) const;
+  };
+
+  class ProjectionToGeodetic : public ReturnFixedType<Vector3> {
+    GeoReference m_reference;
+  public:
+    ProjectionToGeodetic( GeoReference const& r ) : m_reference(r) {}
+
+    Vector3 operator()( Vector3 const& v ) const;
+  };
+
+  class GeodeticToPoint : public ReturnFixedType<Vector3> {
+    GeoReference m_reference;
+  public:
+    GeodeticToPoint( GeoReference const& r ) : m_reference(r) {}
+
+    Vector3 operator()( Vector3 const& v ) const;
+  };
+
+  class PointToGeodetic : public ReturnFixedType<Vector3> {
+    GeoReference m_reference;
+  public:
+    PointToGeodetic( GeoReference const& r ) : m_reference(r) {}
+
+    Vector3 operator()( Vector3 const& v ) const;
+  };
+
+  // Image View operations
   template <class ImageT>
-  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToPointImageFunctor<typename ImageT::pixel_type> >
-  inline dem_to_point_image(ImageViewBase<ImageT> const& dem, GeoReference georef) {
-    typedef DemToPointImageFunctor<typename ImageT::pixel_type> func_type;
+  BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, DemToGeodetic<typename ImageT::pixel_type> >
+  inline dem_to_geodetic(ImageViewBase<ImageT> const& dem, GeoReference const& georef) {
+    typedef DemToGeodetic<typename ImageT::pixel_type> func_type;
     typedef BinaryPerPixelView<PerPixelIndexView<VectorIndexFunctor>, ImageT, func_type> result_type;
     func_type func(georef);
     return result_type(pixel_index_view(dem), dem.impl(), func);
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,GeodeticToCartesian>
+  inline geodetic_to_cartesian( ImageViewBase<ImageT> const& lla_image, Datum const& d ) {
+    typedef UnaryPerPixelView<ImageT,GeodeticToCartesian> result_type;
+    return result_type(lla_image.impl(), GeodeticToCartesian(d) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,CartesianToGeodetic>
+  inline cartesian_to_geodetic( ImageViewBase<ImageT> const& xyz_image, Datum const& d ) {
+    typedef UnaryPerPixelView<ImageT,CartesianToGeodetic> result_type;
+    return result_type(xyz_image.impl(), CartesianToGeodetic(d) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,GeodeticToCartesian>
+  inline geodetic_to_cartesian( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,GeodeticToCartesian> result_type;
+    return result_type(lla_image.impl(), GeodeticToCartesian(r.datum()) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,CartesianToGeodetic>
+  inline cartesian_to_geodetic( ImageViewBase<ImageT> const& xyz_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,CartesianToGeodetic> result_type;
+    return result_type(xyz_image.impl(), CartesianToGeodetic(r.datum()) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,GeodeticToProjection>
+  inline geodetic_to_projection( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,GeodeticToProjection> result_type;
+    return result_type(lla_image.impl(), GeodeticToProjection(r) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,ProjectionToGeodetic>
+  inline projection_to_geodetic( ImageViewBase<ImageT> const& prj_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,ProjectionToGeodetic> result_type;
+    return result_type(prj_image.impl(), ProjectionToGeodetic(r));
+  }
+
+  // Point is the intermediate projection step that is in units of the
+  // projection not pixels. The only difference between projection and
+  // point is an affine transform.
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,GeodeticToPoint>
+  inline geodetic_to_point( ImageViewBase<ImageT> const& lla_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,GeodeticToPoint> result_type;
+    return result_type(lla_image.impl(), GeodeticToPoint(r) );
+  }
+
+  template <class ImageT>
+  UnaryPerPixelView<ImageT,PointToGeodetic>
+  inline point_to_geodetic( ImageViewBase<ImageT> const& point_image, GeoReference const& r ) {
+    typedef UnaryPerPixelView<ImageT,PointToGeodetic> result_type;
+    return result_type(point_image.impl(), PointToGeodetic(r));
   }
 }} // namespace vw::cartography
 
