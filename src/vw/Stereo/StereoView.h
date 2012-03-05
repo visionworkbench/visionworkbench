@@ -167,19 +167,37 @@ namespace stereo {
     int32 rejected_points() const { return m_state->rejected_points; }
     int32 total_points() const { return m_state->total_points; }
 
-    Vector3 operator() (Vector3 const& pix) const {
+    template <class ElemT>
+    Vector<ElemT,3> operator() (Vector<ElemT,3> const& pix) const {
       m_state->total_points++;
-      if (pix != Vector3() ) {
+      if (pix != Vector<ElemT,3>() ) {
         double dist = norm_2(pix - m_origin);
         if ((m_near_radius != 0 && dist < m_near_radius) ||
             (m_far_radius != 0 && dist > m_far_radius)) {
           m_state->rejected_points++;
-          return Vector3();
+          return Vector<ElemT,3>();
         } else {
           return pix;
         }
       }
-      return Vector3();
+      return Vector<ElemT,3>();
+    }
+
+    // A version that is carrying error
+    template <class ElemT>
+    Vector<ElemT,4> operator() (Vector<ElemT,4> const& pix) const {
+      m_state->total_points++;
+      if (subvector(pix,0,3) != Vector<ElemT,3>() ) {
+        double dist = norm_2(subvector(pix,0,3) - m_origin);
+        if ((m_near_radius != 0 && dist < m_near_radius) ||
+            (m_far_radius != 0 && dist > m_far_radius)) {
+          m_state->rejected_points++;
+          return Vector<ElemT,4>();
+        } else {
+          return pix;
+        }
+      }
+      return Vector<ElemT,4>();
     }
   };
 
