@@ -19,50 +19,54 @@
 
 // Boost
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 // Proj.4
 #include <projects.h>
 
-
-bool vw::cartography::read_georeference( vw::cartography::GeoReference& georef,
-                                         vw::ImageResource const& resource ) {
-
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  DiskImageResourceGDAL const* gdal =
-    dynamic_cast<DiskImageResourceGDAL const*>( &resource );
-  if( gdal ) return read_gdal_georeference( georef, *gdal );
-#endif
-
-  DiskImageResourcePDS const* pds =
-    dynamic_cast<DiskImageResourcePDS const*>( &resource );
-  if( pds ) return read_pds_georeference( georef, *pds );
-  return false;
-}
-
-void vw::cartography::write_georeference( vw::ImageResource& resource, vw::cartography::GeoReference const& georef ) {
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  DiskImageResourceGDAL* gdal = dynamic_cast<DiskImageResourceGDAL*>( &resource );
-  if( gdal ) return write_gdal_georeference( *gdal, georef );
-#endif
-  // DiskImageResourcePDS is currently read-only, so we don't bother checking for it.
-  vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
-}
-
 namespace vw {
 namespace cartography {
 
+  bool read_georeference( GeoReference& georef,
+                          ImageResource const& resource ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+    DiskImageResourceGDAL const* gdal =
+      dynamic_cast<DiskImageResourceGDAL const*>( &resource );
+    if( gdal ) return read_gdal_georeference( georef, *gdal );
+#endif
+
+    DiskImageResourcePDS const* pds =
+      dynamic_cast<DiskImageResourcePDS const*>( &resource );
+    if( pds ) return read_pds_georeference( georef, *pds );
+    return false;
+  }
+
+  void write_georeference( ImageResource& resource,
+                           GeoReference const& georef ) {
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+    DiskImageResourceGDAL* gdal =
+      dynamic_cast<DiskImageResourceGDAL*>( &resource );
+    if ( gdal ) return write_gdal_georeference( *gdal, georef );
+#endif
+    // DiskImageResourcePDS is currently read-only, so we don't bother
+    // checking for it.
+    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+  }
 
   std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
   }
 
   std::string GeoReference::overall_proj4_str() const {
-    std::string proj4_str = m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
+    std::string proj4_str =
+      m_proj_projection_str + " " + m_datum.proj4_str() + " +no_defs";
     return proj4_str;
   }
 
   void GeoReference::init_proj() {
-    m_proj_context = boost::shared_ptr<ProjContext>(new ProjContext(overall_proj4_str()));
+    m_proj_context =
+      boost::shared_ptr<ProjContext>(new ProjContext(overall_proj4_str()));
   }
 
   /// Construct a default georeference.  This georeference will use
@@ -74,7 +78,8 @@ namespace cartography {
     init_proj();
   }
 
-  /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
+  /// Takes a geodetic datum.  The affine transform defaults to the
+  /// identity matrix.
   GeoReference::GeoReference(Datum const& datum) : GeoReferenceBase(datum){
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
@@ -82,13 +87,16 @@ namespace cartography {
   }
 
   /// Takes a geodetic datum and an affine transformation matrix
-  GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform) : GeoReferenceBase(datum) {
+  GeoReference::GeoReference(Datum const& datum,
+                             Matrix<double,3,3> const& transform) : GeoReferenceBase(datum) {
     set_transform(transform);
     set_geographic();
     init_proj();
   }
 
-  GeoReference::GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation) : 
+  GeoReference::GeoReference(Datum const& datum,
+                             Matrix<double,3,3> const& transform,
+                             PixelInterpretation pixel_interpretation) :
     GeoReferenceBase(datum, pixel_interpretation) {
     set_transform(transform);
     set_geographic();
@@ -97,16 +105,17 @@ namespace cartography {
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
   GeoReference::GeoReference(GeoReferenceDesc const& desc) {
-    VW_ASSERT(desc.transform_size() == 9, 
+    VW_ASSERT(desc.transform_size() == 9,
               IOErr() << "GeoReference::GeoReference: Unexpected number of elements in transform");
 
     m_datum = Datum(desc.datum());
-    m_pixel_interpretation = static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
-    set_transform(Matrix3x3(desc.transform().data()));  
+    m_pixel_interpretation =
+      static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
+    set_transform(Matrix3x3(desc.transform().data()));
     m_is_projected = desc.is_projected();
     m_proj_projection_str = desc.proj_projection_str();
-    
-    init_proj(); 
+
+    init_proj();
   }
 
   GeoReferenceDesc GeoReference::build_desc() {
@@ -169,7 +178,10 @@ namespace cartography {
 
   void GeoReference::set_equirectangular(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=eqc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +lat_ts=" << latitude_of_true_scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=eqc +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +lat_ts=" << latitude_of_true_scale
+         << " +x_0=" << false_easting << " +y_0=" << false_northing
+         << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -177,7 +189,8 @@ namespace cartography {
 
   void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0="
+         << false_easting << " +y_0=" << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -185,7 +198,10 @@ namespace cartography {
 
   void GeoReference::set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=merc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +lat_ts=" << latitude_of_true_scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=merc +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +lat_ts=" << latitude_of_true_scale
+         << " +x_0=" << false_easting << " +y_0=" << false_northing
+         << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -193,7 +209,9 @@ namespace cartography {
 
   void GeoReference::set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=tmerc +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=tmerc +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +k=" << scale << " +x_0=" << false_easting
+         << " +y_0=" << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -201,7 +219,9 @@ namespace cartography {
 
   void GeoReference::set_orthographic(double center_latitude, double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=ortho +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=ortho +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +x_0=" << false_easting << " +y_0="
+         << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -209,7 +229,9 @@ namespace cartography {
 
   void GeoReference::set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=sterea +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=sterea +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +k=" << scale << " +x_0=" << false_easting
+         << " +y_0=" << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -217,7 +239,9 @@ namespace cartography {
 
   void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +k=" << scale << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +k=" << scale << " +x_0=" << false_easting
+         << " +y_0=" << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -225,7 +249,9 @@ namespace cartography {
 
   void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=laea +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=laea +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +x_0=" << false_easting << " +y_0="
+         << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -233,7 +259,10 @@ namespace cartography {
 
   void GeoReference::set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
-    strm << "+proj=lcc +lat_1=" << std_parallel_1 << " +lat_2=" << std_parallel_2 << " +lon_0=" << center_longitude << " +lat_0=" << center_latitude << " +x_0=" << false_easting << " +y_0=" << false_northing << " +units=m";
+    strm << "+proj=lcc +lat_1=" << std_parallel_1 << " +lat_2="
+         << std_parallel_2 << " +lon_0=" << center_longitude << " +lat_0="
+         << center_latitude << " +x_0=" << false_easting << " +y_0="
+         << false_northing << " +units=m";
     m_proj_projection_str = strm.str();
     m_is_projected = true;
     init_proj();
@@ -271,15 +300,11 @@ namespace cartography {
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
     std::string proj4_str = proj_str_tmp;
     CPLFree( proj_str_tmp );
-    // For debugging:
-    //      vw_out() << "PROJ in --> " << proj4_str << "\n";
 
-    std::vector<std::string> input_strings;
-    std::vector<std::string> output_strings;
-    std::vector<std::string> datum_strings;
+    std::vector<std::string> input_strings, output_strings, datum_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
     boost::split( input_strings, trimmed_proj4_str, boost::is_any_of(" ") );
-    for (unsigned int i = 0; i < input_strings.size(); ++i) {
+    for (size_t i = 0; i < input_strings.size(); ++i) {
       const std::string& key = input_strings[i];
 
       // Pick out the parts of the projection string that pertain to
@@ -311,11 +336,8 @@ namespace cartography {
       }
     }
     std::ostringstream strm;
-    for (unsigned int i = 0; i < output_strings.size(); ++i) {
-      strm << output_strings[i] << " ";
-    }
-    // For debugging:
-    //      vw_out() << "     out --> " << strm.str() << "\n";
+    BOOST_FOREACH( std::string const& element, output_strings )
+      strm << element << " ";
 
     // If the file contains no projection related information, we
     // supply proj.4 with a "default" interpretation that the file
@@ -348,11 +370,11 @@ namespace cartography {
     datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
     // Set the proj4 string for datum.
     std::stringstream datum_proj4_ss;
-    for(unsigned i=0; i < datum_strings.size(); i++)
-      datum_proj4_ss << datum_strings[i] << ' ';
+    BOOST_FOREACH( std::string const& element, datum_strings )
+      datum_proj4_ss << element << " ";
     // Add the current proj4 string in the case that our ellipse/datum
     // values are empty.
-    if(boost::trim_copy(datum_proj4_ss.str()) == "")
+    if ( boost::trim_copy(datum_proj4_ss.str()) == "" )
       datum_proj4_ss << datum.proj4_str();
     datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
     set_datum(datum);
@@ -363,7 +385,7 @@ namespace cartography {
   /// pixel in this georeferenced space.
   Vector2 GeoReference::pixel_to_point(Vector2 pix) const {
     Vector2 loc;
-    Matrix<double,3,3> M = this->vw_native_transform();
+    Matrix3x3 M = this->vw_native_transform();
     double denom = pix[0] * M(2,0) + pix[1] * M(2,1) + M(2,2);
     loc[0] = (pix[0] * M(0,0) + pix[1] * M(0,1) + M(0,2)) / denom;
     loc[1] = (pix[0] * M(1,0) + pix[1] * M(1,1) + M(1,2)) / denom;
@@ -374,7 +396,7 @@ namespace cartography {
   /// corresponding pixel coordinates in the image.
   Vector2 GeoReference::point_to_pixel(Vector2 loc) const {
     Vector2 pix;
-    Matrix<double,3,3> M = this->vw_native_inverse_transform();
+    Matrix3x3 M = this->vw_native_inverse_transform();
     double denom = loc[0] * M(2,0) + loc[1] * M(2,1) + M(2,2);
     pix[0] = (loc[0] * M(0,0) + loc[1] * M(0,1) + M(0,2)) / denom;
     pix[1] = (loc[0] * M(1,0) + loc[1] * M(1,1) + M(1,2)) / denom;
@@ -434,7 +456,7 @@ namespace cartography {
     boost::split( arg_strings, trimmed_proj4_str, boost::is_any_of(" ") );
 
     char** strings = new char*[arg_strings.size()];
-    for ( unsigned i = 0; i < arg_strings.size(); ++i ) {
+    for ( size_t i = 0; i < arg_strings.size(); ++i ) {
       strings[i] = new char[2048];
       strncpy(strings[i], arg_strings[i].c_str(), 2048);
     }

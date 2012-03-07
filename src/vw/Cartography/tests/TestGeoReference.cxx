@@ -238,44 +238,72 @@ TEST( GeoReference, IOLoop ) {
   test_transform(1,1) = 4.5; test_transform(1,2) = 6.3;
   test_transform(2,2) = 1; test_transform(2,1) = 0;
 
-  Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
+  {
+    Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
+    GeoReference test_georeference( test_datum, test_transform );
 
-  GeoReference test_georeference( test_datum, test_transform );
-
-  UnlinkName test_filename( "georeference_test.tif" );
-  ASSERT_NO_THROW(
+    UnlinkName test_filename( "georeference_test.tif" );
+    ASSERT_NO_THROW(
       write_georeferenced_image( test_filename, test_image,
                              test_georeference ));
 
-  // Reading back in and comparing
-  GeoReference retn_georeference;
-  ImageView<PixelRGB<float> > retn_image;
-  EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georeference,
-                                         test_filename ) );
+    // Reading back in and compare
+    GeoReference retn_georeference;
+    ImageView<PixelRGB<float> > retn_image;
+    EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georeference,
+                                           test_filename ) );
 
-  typedef ImageView<PixelRGB<float> >::iterator iterator;
-  for ( iterator test = test_image.begin(), retn = retn_image.begin();
-        test != test_image.end(); test++, retn++ )
-    EXPECT_PIXEL_EQ( *retn, *test );
+    typedef ImageView<PixelRGB<float> >::iterator iterator;
+    for ( iterator test = test_image.begin(), retn = retn_image.begin();
+          test != test_image.end(); test++, retn++ )
+      EXPECT_PIXEL_EQ( *retn, *test );
 
-  EXPECT_STREQ( boost::trim_copy(retn_georeference.proj4_str()).c_str(),
-                boost::trim_copy(test_georeference.proj4_str()).c_str() );
-  EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
-                           test_georeference.transform() );
+    EXPECT_STREQ( boost::trim_copy(retn_georeference.proj4_str()).c_str(),
+                  boost::trim_copy(test_georeference.proj4_str()).c_str() );
+    EXPECT_MATRIX_DOUBLE_EQ( retn_georeference.transform(),
+                             test_georeference.transform() );
 
-  EXPECT_STREQ( retn_georeference.gml_str().c_str(),
-                test_georeference.gml_str().c_str() );
+    EXPECT_STREQ( retn_georeference.gml_str().c_str(),
+                  test_georeference.gml_str().c_str() );
 
-  std::ostringstream retn_ostr, test_ostr;
-  retn_ostr << retn_georeference;
-  test_ostr << test_georeference;
-  EXPECT_STREQ( boost::erase_all_copy(retn_ostr.str()," ").c_str(),
-                boost::erase_all_copy(test_ostr.str()," ").c_str() );
+    std::ostringstream retn_ostr, test_ostr;
+    retn_ostr << retn_georeference;
+    test_ostr << test_georeference;
+    EXPECT_STREQ( boost::erase_all_copy(retn_ostr.str()," ").c_str(),
+                  boost::erase_all_copy(test_ostr.str()," ").c_str() );
+  }
 
-  UnlinkName fail_filename("bird.png");
-  EXPECT_THROW( write_georeferenced_image( fail_filename, test_image,
-                                           test_georeference ),
-                NoImplErr );
+  { // Test that spherical is handled correctly
+    Datum test_datum("D_MOON");
+    GeoReference test_georef( test_datum, test_transform );
+
+    UnlinkName test_filename( "georeference_test.tif" );
+    ASSERT_NO_THROW(
+      write_georeferenced_image( test_filename, test_image,
+                                 test_georef ));
+    // Read back in and compare
+    GeoReference retn_georef;
+    ImageView<PixelRGB<float> > retn_image;
+    EXPECT_TRUE( read_georeferenced_image( retn_image, retn_georef,
+                                           test_filename ) );
+
+    EXPECT_STREQ( boost::trim_copy(retn_georef.proj4_str()).c_str(),
+                  boost::trim_copy(test_georef.proj4_str()).c_str() );
+    EXPECT_MATRIX_DOUBLE_EQ( retn_georef.transform(),
+                             test_georef.transform() );
+
+    EXPECT_STREQ( retn_georef.gml_str().c_str(),
+                  test_georef.gml_str().c_str() );
+  }
+
+  { // Test that georef png can't be written
+    UnlinkName fail_filename("bird.png");
+    Datum test_datum( "monkey", "dog", "cow", 7800, 6600, 3 );
+    GeoReference test_georeference( test_datum, test_transform );
+    EXPECT_THROW( write_georeferenced_image( fail_filename, test_image,
+                                             test_georeference ),
+                  NoImplErr );
+  }
 }
 
 TEST(GeoReference, BoundingBoxNoProj) {

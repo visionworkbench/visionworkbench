@@ -66,15 +66,18 @@ namespace cartography {
       return false;
     }
 
-    // Georeference functions need not be invertible.  When we perform a reverse
-    // lookup (e.g. during a geotransformation) we rely on PROJ.4 to pick one
-    // possible value.  However, the georeference might actually place the image
-    // at another (equivalent) location in the projected space.  This is hard to
-    // recover from at run-time, and we currently have no generic solution to this
-    // problem.  In the mean time, we at least test whether the georefernce is
-    // likely to run into this problem (and warn the user) by checking whether
-    // forward- and reverse-projecting the origin pixel lands us back at the origin.
-    Vector2 origin = georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
+    // Georeference functions need not be invertible.  When we perform
+    // a reverse lookup (e.g. during a geotransformation) we rely on
+    // PROJ.4 to pick one possible value.  However, the georeference
+    // might actually place the image at another (equivalent) location
+    // in the projected space.  This is hard to recover from at
+    // run-time, and we currently have no generic solution to this
+    // problem.  In the mean time, we at least test whether the
+    // georefernce is likely to run into this problem (and warn the
+    // user) by checking whether forward- and reverse-projecting the
+    // origin pixel lands us back at the origin.
+    Vector2 origin =
+      georef.lonlat_to_pixel( georef.pixel_to_lonlat( Vector2() ) );
     if( origin.x()*origin.x() + origin.y()*origin.y() > 0.1 ) {
       vw_out(WarningMessage) << "read_gdal_georeference(): WARNING! Resource file " <<
         resource.filename() << " contains a non-normal georeference.  Bad things "
@@ -82,7 +85,6 @@ namespace cartography {
     }
     return true;
   }
-
 
   void write_gdal_georeference( DiskImageResourceGDAL& resource,
                                 GeoReference const& georef ) {
@@ -92,8 +94,10 @@ namespace cartography {
       vw_throw( LogicErr() << "GeoReferenceHelperGDAL: Could not write georeference. No file has been opened." );
 
     // Store the transform matrix
-    double geo_transform[6] = { georef.transform()(0,2), georef.transform()(0,0), georef.transform()(0,1),
-                                georef.transform()(1,2), georef.transform()(1,0), georef.transform()(1,1) };
+    double geo_transform[6] =
+      { georef.transform()(0,2), georef.transform()(0,0),
+        georef.transform()(0,1), georef.transform()(1,2),
+        georef.transform()(1,0), georef.transform()(1,1) };
     dataset->SetGeoTransform( geo_transform );
 
     // This is a little ridiculous, but GDAL can't write geotiffs
@@ -103,15 +107,22 @@ namespace cartography {
     //
     // However, we first set the datum parameters in the
     // ORGSpatialReference object directly.
+    //
+    // For perfect spheres, we set the inverse flattening to
+    // zero. This is making us compliant with OpenGIS Implementation
+    // Specification: CTS 12.3.10.2. In short, we are not allowed to
+    // write infinity as most tools, like ArcGIS, can't read that.
     OGRSpatialReference gdal_spatial_ref;
+    Datum const& datum = georef.datum();
     gdal_spatial_ref.importFromProj4(georef.proj4_str().c_str());
     gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
-                                georef.datum().name().c_str(),
-                                georef.datum().spheroid_name().c_str(),
-                                georef.datum().semi_major_axis(),
-                                georef.datum().inverse_flattening(),
-                                georef.datum().meridian_name().c_str(),
-                                georef.datum().meridian_offset() );
+                                datum.name().c_str(),
+                                datum.spheroid_name().c_str(),
+                                datum.semi_major_axis(),
+                                datum.semi_major_axis() == datum.semi_minor_axis() ?
+                                0 : datum.inverse_flattening(),
+                                datum.meridian_name().c_str(),
+                                datum.meridian_offset() );
 
     char* wkt_str_tmp;
     gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
