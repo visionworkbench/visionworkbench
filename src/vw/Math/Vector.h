@@ -1096,34 +1096,6 @@ namespace math {
   // Basic elementwise mathematical vector operators and functions.
   // *******************************************************************
 
-  /// Negation of a vector.
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgNegationFunctor>
-  inline operator-( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgNegationFunctor>( v.impl() );
-  }
-
-  /// Negation of a transposed vector.
-  template <class VectorT>
-  VectorTranspose<const VectorUnaryFunc<VectorT, ArgNegationFunctor> >
-  inline operator-( VectorTranspose<VectorT> const& v ) {
-    return transpose(-v.child());
-  }
-
-  /// Absolute of an image.
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgAbsFunctor>
-  inline abs( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgAbsFunctor>( v.impl() );
-  }
-
-  /// Absolute of a transposed vector
-  template <class VectorT>
-  VectorTranspose<const VectorUnaryFunc<VectorT, ArgAbsFunctor> >
-  inline abs( VectorTranspose<VectorT> const& v ) {
-    return transpose(abs(v.child()));
-  }
-
   /// Elementwise sum of two vectors.
   template <class Vector1T, class Vector2T>
   VectorBinaryFunc<Vector1T, Vector2T, ArgArgSumFunctor>
@@ -1295,40 +1267,39 @@ namespace math {
     return transpose(v.child()/s);
   }
 
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgCosFunctor> inline cos( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgCosFunctor>( v.impl() );
+#define __VW_UNARY_VECTOR_FUNCTOR(name,func)                                      \
+  template <class VectorT>                                                        \
+  VectorUnaryFunc<VectorT, func> inline name( VectorBase<VectorT> const& v ) {    \
+    return VectorUnaryFunc<VectorT, func>( v.impl() );                            \
+  }                                                                               \
+                                                                                  \
+  template <class VectorT>                                                        \
+  VectorTranspose<const VectorUnaryFunc<VectorT, func> >                          \
+  inline name( VectorTranspose<VectorT> const& v ) {                              \
+    return transpose(name(v.child()));                                            \
   }
 
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgAcosFunctor> inline acos( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgAcosFunctor>( v.impl() );
-  }
+  __VW_UNARY_VECTOR_FUNCTOR(operator-,ArgNegationFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(cos,ArgCosFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(acos,ArgAcosFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(sin,ArgSinFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(asin,ArgAsinFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(tan,ArgTanFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(atan,ArgAtanFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(sqrt,ArgSqrtFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(exp,ArgExpFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(cosh,ArgCoshFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(sinh,ArgSinhFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(tanh,ArgTanhFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(log,ArgLogFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(log10,ArgLog10Functor)
+  __VW_UNARY_VECTOR_FUNCTOR(real,ArgRealFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(imag,ArgImagFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(floor,ArgFloorFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(ceil,ArgCeilFunctor)
+  __VW_UNARY_VECTOR_FUNCTOR(abs,ArgAbsFunctor)
 
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgSinFunctor> inline sin( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgSinFunctor>( v.impl() );
-  }
-
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgAsinFunctor> inline asin( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgAsinFunctor>( v.impl() );
-  }
-
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgTanFunctor> inline tan( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgTanFunctor>( v.impl() );
-  }
-
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgAtanFunctor> inline atan( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgAtanFunctor>( v.impl() );
-  }
-
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgSqrtFunctor> inline sqrt( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgSqrtFunctor>( v.impl() );
-  }
+#undef __VW_UNARY_VECTOR_FUNCTOR
 
   // *******************************************************************
   // Elementwise vector comparison functions.
@@ -1643,34 +1614,6 @@ namespace math {
     Vector1T const& v1 = v1_.impl();
     Vector2T const& v2 = v2_.impl();
     return result_type( v1[1]*v2[2]-v1[2]*v2[1], v1[2]*v2[0]-v1[0]*v2[2], v1[0]*v2[1]-v1[1]*v2[0] );
-  }
-
-  /// Real part of of a (complex) vector.
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgRealFunctor>
-  inline real( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgRealFunctor>( v.impl() );
-  }
-
-  /// Imaginary part of of a (complex) vector.
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgImagFunctor>
-  inline imag( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgImagFunctor>( v.impl() );
-  }
-
-  /// Floor of vector
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgFloorFunctor>
-  inline floor( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgFloorFunctor>( v.impl() );
-  }
-
-  /// Ceil of vector
-  template <class VectorT>
-  VectorUnaryFunc<VectorT, ArgCeilFunctor>
-  inline ceil( VectorBase<VectorT> const& v ) {
-    return VectorUnaryFunc<VectorT, ArgCeilFunctor>( v.impl() );
   }
 
   // Polynomial Evaluation of vector using Horner's Scheme
