@@ -182,6 +182,14 @@ namespace vw {
     ResampleTransform( double x_scaling, double y_scaling ) :
       m_xfactor( x_scaling ) , m_yfactor( y_scaling ) {}
 
+    template <class VectorT>
+    ResampleTransform( VectorBase<VectorT> const& v ) {
+      VW_ASSERT( v.impl().size() == 2,
+                 ArgumentErr() << "Vector must have 2 dimensions" );
+      m_xfactor = v.impl()[0];
+      m_yfactor = v.impl()[1];
+    }
+
     inline Vector2 reverse( Vector2 const& p ) const {
       return Vector2( p(0) / m_xfactor, p(1) / m_yfactor );
     }
@@ -200,6 +208,14 @@ namespace vw {
   public:
     TranslateTransform(double x_translation, double y_translation) :
       m_xtrans( x_translation ) , m_ytrans( y_translation ) {}
+
+    template <class VectorT>
+    TranslateTransform( VectorBase<VectorT> const& v ) {
+      VW_ASSERT( v.impl().size() == 2,
+                 ArgumentErr() << "Vector must have 2 dimensions" );
+      m_xtrans = v.impl()[0];
+      m_ytrans = v.impl()[1];
+    }
 
     inline Vector2 reverse(const Vector2 &p) const {
       return Vector2( p(0) - m_xtrans, p(1) - m_ytrans );
