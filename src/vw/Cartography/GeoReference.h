@@ -286,10 +286,10 @@ namespace cartography {
 
   // Simple GeoReference modification tools
   GeoReference crop( GeoReference const& input,
-                     int32 upper_left_x, int32 upper_left_y,
-                     int32 width=0, int32 height=0 );
+                     double upper_left_x, double upper_left_y,
+                     double width=0, double height=0 );
   GeoReference crop( GeoReference const& input,
-                     BBox2i const& bbox );
+                     BBox2 const& bbox );
 
   GeoReference resample( GeoReference const& input,
                          double scale_x, double scale_y );
