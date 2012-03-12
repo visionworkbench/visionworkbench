@@ -239,12 +239,25 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
   float reflectance;
   float L;
 
+  double len = dot_prod(normal, normal);
+  if (abs(len - 1.0) > 1.0e-4){
+    std::cerr << "Error: Expecting unit normal in the reflectance computation, in "
+              << __FILE__ << " at line " << __LINE__ << std::endl;
+    exit(1);
+  }
+
   //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
   //sun coordinates relative to the xyz point on the Moon surface
   //Vector3 sunDirection = -normalize(sunPos-xyz);
   Vector3 sunDirection = normalize(sunPos-xyz);
   float mu_0 = dot_prod(sunDirection,normal);
 
+  double tol = 0.3;
+  if (mu_0 < tol){
+    // Sun is too low, reflectance is too close to 0, the albedo will be inaccurate
+    return 0;
+  }
+  
   //compute  /mu = cosine of the angle between the viewer direction and the surface normal.
   //viewer coordinates relative to the xyz point on the Moon surface
   Vector3 viewDirection = normalize(viewPos-xyz);
@@ -312,6 +325,8 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
     //printf("negative reflectance\n");
     reflectance = 0;
   }
+  
+
   return reflectance;
 }
 
@@ -344,8 +359,86 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
 
 }
 
-float vw::photometry::computeImageReflectanceNoWrite(bool useTiles, std::vector<ImageRecord> & DEMTiles,
-                                                     std::vector<int> & overlap, ModelParams input_img_params,
+void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > const& DEMTile,
+                                                cartography::GeoReference const& DEMGeo,
+                                                GlobalParams globalParams,
+                                                ImageView<Vector3> & dem_xyz,
+                                                ImageView<Vector3> & surface_normal){
+
+  int nodata = globalParams.noDEMDataValue;
+
+  // convert dem altitude to xyz cartesian pixels
+  dem_xyz = dem_to_point_cloud(DEMTile, DEMGeo);
+  
+  // transfer nodata values
+  for (int y=0; y < (int)dem_xyz.rows(); y++) {
+    for (int x=0; x < (int)dem_xyz.cols(); x++) {
+      if (DEMTile(x, y) == nodata) {
+        dem_xyz(x, y) = Vector3();
+      }
+    }
+  }  
+
+  // Init the surface normal to zero
+  surface_normal.set_size(dem_xyz.cols(), dem_xyz.rows());
+  for (int y=0; y < (int)surface_normal.rows(); y++) {
+    for (int x=0; x < (int)surface_normal.cols(); x++) {
+      surface_normal(x, y) = Vector3();
+    }
+  }
+  
+  // convert xyz pixels to surface normals
+  for (int y=1; y < (int)surface_normal.rows(); y++) {
+    for (int x=1; x < (int)surface_normal.cols(); x++) {
+      
+      Vector3 base = dem_xyz(x, y);
+      if (base == Vector3()) {
+        continue;
+      }
+      Vector3 x1 = dem_xyz(x-1, y);
+      if (x1 == Vector3()) {
+        continue;
+      }
+      Vector3 y1 = dem_xyz(x, y-1);
+      if (y1 == Vector3()) {
+        continue;
+      }
+
+      Vector3 dx = base - x1;
+      Vector3 dy = base - y1;
+      surface_normal(x, y) = -normalize(cross_prod(dx, dy));
+    }
+  }
+
+  return;
+}
+
+void vw::photometry::computeReflectanceAux(ImageView<Vector3> const& dem_xyz,
+                                           ImageView<Vector3> const& surface_normal,
+                                           ModelParams input_img_params,
+                                           GlobalParams globalParams,
+                                           ImageView<PixelMask<PixelGray<float> > >& outputReflectance) {
+
+  //std::cout << "---sun        " << input_img_params.sunPosition << std::endl;
+  //std::cout << "---spacecraft " << input_img_params.spacecraftPosition << std::endl;
+  outputReflectance.set_size(surface_normal.cols(), surface_normal.rows());
+  for (int y=0; y < (int)outputReflectance.rows(); y++) {
+    for (int x=0; x < (int)outputReflectance.cols(); x++) {
+      Vector3 normal = surface_normal(x, y);
+      if (normal == Vector3()) {
+        outputReflectance(x, y) = 0;
+        outputReflectance(x, y).invalidate();
+      }else{
+        Vector3 xyz = dem_xyz(x, y);
+        outputReflectance(x, y) = ComputeReflectance(normal, xyz, input_img_params, globalParams);
+      }
+    }
+  }
+  
+  return;
+}
+
+float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_params,
                                                      GlobalParams globalParams,
                                                      ImageView<PixelMask<PixelGray<float> > >& output_img) {
   
@@ -359,84 +452,24 @@ float vw::photometry::computeImageReflectanceNoWrite(bool useTiles, std::vector<
 
   // warp dem to drg georef
   ImageView<PixelGray<double> > dem_in_drg_georef_0(input_img.cols(), input_img.rows());
-  if (!useTiles){
-    DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
-    GeoReference input_dem_geo;
-    read_georeference(input_dem_geo, DEM_file);
-    dem_in_drg_georef_0 =
-      crop
-      (geo_transform
-       (input_dem_image,
-        input_dem_geo,
-        input_img_geo,
-        ConstantEdgeExtension(),
-        BilinearInterpolation()),
-       bounding_box(input_img)
-       );
-  }else{
-
-    int nodata = globalParams.noDEMDataValue;
-    for (int y=0; y < (int)dem_in_drg_georef_0.rows(); y++) {
-      for (int x=0; x < (int)dem_in_drg_georef_0.cols(); x++) {
-        dem_in_drg_georef_0(x, y) = nodata;
-      }
-    }
-    
-    // Iterate over the drg tiles
-    for (int i = 0; i < (int)overlap.size(); i++){
-      std::string overlapDEMTileFile = DEMTiles[overlap[i]].path;
-
-      // This can be made more efficient, don't iterate over all pixels
-      // This code is duplicated in Shape.cc and Reflectance.cc and other places
-      DiskImageView<PixelGray<float> >  overlapDEMTile(overlapDEMTileFile);
-      GeoReference overlap_DEM_geo;
-      read_georeference(overlap_DEM_geo, overlapDEMTileFile);
-      ImageViewRef<PixelGray<float> >  interp_overlapDEMTile = interpolate(edge_extend(overlapDEMTile.impl(),
-                                                                                       ConstantEdgeExtension()),
-                                                                           BilinearInterpolation());
-      
-      
-      // Iterate only over the portion of dem_in_drg_georef_0 intersecting the DEM tile
-      Vector2 beg = input_img_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(0, 0)));
-      Vector2 end = input_img_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(overlapDEMTile.cols(), overlapDEMTile.rows())));
-      int pad = 2; // Use due to round-off errors when rounding. Should not be necessary.
-
-      int beg_row = std::max(0, (int)floor(beg(1)) - pad);
-      int end_row = std::min(dem_in_drg_georef_0.rows(), (int)ceil(end(1)) + pad);
-      int beg_col = std::max(0, (int)floor(beg(0)) - pad);
-      int end_col = std::min(dem_in_drg_georef_0.cols(), (int)ceil(end(0)) + pad);
-//       std::cout << "xxx row: " << 0 << ' ' << beg_row << ' ' << end_row << ' ' << dem_in_drg_georef_0.rows()
-//                 << std::endl;
-//       std::cout << "xxx col: " << 0 << ' ' << beg_col << ' ' << end_col << ' ' << dem_in_drg_georef_0.cols()
-//                 << std::endl;
-      for (int k = beg_row; k < end_row; ++k) {
-        for (int l = beg_col; l < end_col; ++l) {
-          //for (unsigned k = 0 ; k < (unsigned)dem_in_drg_georef_0.rows(); ++k) {
-          //for (unsigned l = 0; l < (unsigned)dem_in_drg_georef_0.cols(); ++l) {
-          
-          Vector2 input_DEM_pix(l,k);
-          
-          //check for overlap between the output image and the input DEM image
-          Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_DEM_pix));
-          float x = overlap_dem_pix[0];
-          float y = overlap_dem_pix[1];
-          
-          //check for valid DEM coordinates
-          if ((x >= 0) && (x < overlapDEMTile.cols()) && (y >= 0) && (y < overlapDEMTile.rows())){
-            if ( overlapDEMTile(x, y) != globalParams.noDEMDataValue ) {
-              dem_in_drg_georef_0(l, k) = interp_overlapDEMTile(x, y);
-            }
-          }
-        }
-      }
-      
-    }
-  }
-
+  DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
+  GeoReference input_dem_geo;
+  read_georeference(input_dem_geo, DEM_file);
+  dem_in_drg_georef_0 =
+    crop
+    (geo_transform
+     (input_dem_image,
+      input_dem_geo,
+      input_img_geo,
+      ConstantEdgeExtension(),
+      BilinearInterpolation()),
+     bounding_box(input_img)
+     );
+  
 #if 0
   std::cout << std::endl;
   std::string tmp  = "./" + prefix_from_filename(sufix_from_filename(input_img_file)) + "_dem.tif";
-  std::cout << "xxx Writing " << tmp << std::endl;
+  std::cout << "Writing " << tmp << std::endl;
   write_georeferenced_image(tmp,
                             dem_in_drg_georef_0,
                             input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
@@ -466,62 +499,17 @@ float vw::photometry::computeImageReflectanceNoWrite(bool useTiles, std::vector<
     }
   }
 
-  // convert dem altitude to xyz cartesian pixels
-  ImageView<Vector3>
-    dem_xyz =
-    dem_to_point_cloud
-    (dem_in_drg_georef,
-     input_img_geo);
-
-  // transfer nodata values
-  for (int y=0; y < (int)dem_xyz.rows(); y++) {
-    for (int x=0; x < (int)dem_xyz.cols(); x++) {
-      if (dem_in_drg_georef(x, y) == nodata) {
-        dem_xyz(x, y) = Vector3();
-      }
-    }
-  }  
-
-  // convert xyz pixels to surface normals
-  ImageView<Vector3> surface_normal(dem_xyz.cols(), dem_xyz.rows());
-  for (int y=1; y < (int)surface_normal.rows(); y++) {
-    for (int x=1; x < (int)surface_normal.cols(); x++) {
-      Vector3& result = surface_normal(x, y);
-      result = Vector3();
-      
-      Vector3 base = dem_xyz(x, y);
-      if (base == Vector3()) {
-        continue;
-      }
-      Vector3 x1 = dem_xyz(x-1, y);
-      if (x1 == Vector3()) {
-        continue;
-      }
-      Vector3 y1 = dem_xyz(x, y-1);
-      if (y1 == Vector3()) {
-        continue;
-      }
-
-      Vector3 dx = base - x1;
-      Vector3 dy = base - y1;
-      result = -normalize(cross_prod(dx, dy));
-    }
-  }
-
-  // compute reflectance
-  output_img.set_size(input_img.cols(), input_img.rows());
-  for (int y=0; y < (int)output_img.rows(); y++) {
-    for (int x=0; x < (int)output_img.cols(); x++) {
-      Vector3 normal = surface_normal(x, y);
-      if (normal == Vector3()) {
-        continue;
-      }
-      Vector3 xyz = dem_xyz(x, y);
-      
-      output_img(x, y) = ComputeReflectance(normal, xyz, input_img_params, globalParams);
-    }
-  }
-
+  ImageView<Vector3> dem_xyz;
+  ImageView<Vector3> surface_normal;
+  computeXYZandSurfaceNormal(dem_in_drg_georef, input_img_geo, globalParams, // Inputs 
+                             dem_xyz, surface_normal        // Outputs
+                             );
+  computeReflectanceAux(dem_xyz, surface_normal,  
+                        input_img_params,
+                        globalParams,  
+                        output_img
+                        );
+  
   // compute average reflectance
   int count = 0;
   float reflectance_sum = 0.0;
@@ -541,11 +529,114 @@ float vw::photometry::computeImageReflectanceNoWrite(bool useTiles, std::vector<
   return avg_reflectance;
 }
 
+float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
+                                                     std::vector<ImageRecord> & DEMTiles,
+                                                     std::vector<int> & overlap, ModelParams input_img_params,
+                                                     GlobalParams globalParams){
+
+  // Compute the average reflectance of the current image.  For that,
+  // we will iterate over all tiles overlapping with the image, and
+  // accumulate the results.
+  
+  // We will keep in mind that the tiles partially overlap, so when we
+  // accumulate the results we will ignore the padded region of the
+  // tile (of size pixelPadding).
+  
+  std::string input_img_file = input_img_params.inputFilename;
+  DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
+  GeoReference input_img_geo;
+  read_georeference(input_img_geo, input_img_file);
+
+  //std::string shadow_file = input_img_params.shadowFilename;
+  //DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
+
+  int count = 0;
+  double reflectance_sum = 0.0;
+
+  // Iterate over the DEM tiles
+  for (int i = 0; i < (int)overlap.size(); i++){
+
+    std::string DEMTileFile = DEMTiles[overlap[i]].path;
+    std::cout << "Reading file: "<< DEMTileFile << std::endl;
+    DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
+    GeoReference DEMGeo;
+    read_georeference(DEMGeo, DEMTileFile);
+    ImageView<Vector3> dem_xyz, surface_normal;
+    vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, globalParams,
+                                               dem_xyz, surface_normal
+                                               );
+    ImageView<PixelMask<PixelGray<float> > > Reflectance;
+    computeReflectanceAux(dem_xyz, surface_normal,
+                          input_img_params, globalParams,  
+                          Reflectance // output
+                          );
+    
+    InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<float> > >,
+      ConstantEdgeExtension>, BilinearInterpolation>
+      interp_reflectance = interpolate(Reflectance,
+                                       BilinearInterpolation(), ConstantEdgeExtension());
+
+    Vector2 beg_tile_lonlat = DEMGeo.pixel_to_lonlat(Vector2(0, 0));
+    Vector2 end_tile_lonlat = DEMGeo.pixel_to_lonlat(Vector2(Reflectance.cols() - 1, Reflectance.rows() - 1));
+
+    // Snap to the corners of the tile proper, thus ignoring the
+    // padded region of the tile. We assume that the padding is small
+    // compared to the tile size.
+    double beg_tile_x = tileSize*round(beg_tile_lonlat(0)/tileSize);
+    double beg_tile_y = tileSize*round(beg_tile_lonlat(1)/tileSize);
+    double end_tile_x = tileSize*round(end_tile_lonlat(0)/tileSize);
+    double end_tile_y = tileSize*round(end_tile_lonlat(1)/tileSize);
+
+    // Iterate only over the portion of the image intersecting the DEM tile
+    Vector2 beg_pixel = input_img_geo.lonlat_to_pixel(Vector2(beg_tile_x, beg_tile_y));
+    Vector2 end_pixel = input_img_geo.lonlat_to_pixel(Vector2(end_tile_x, end_tile_y));
+    int beg_row = std::max(0,                (int)floor(beg_pixel(1)));
+    int end_row = std::min(input_img.rows(), (int)ceil(end_pixel(1)));
+    int beg_col = std::max(0,                (int)floor(beg_pixel(0)));
+    int end_col = std::min(input_img.cols(), (int)ceil(end_pixel(0)));
+    for (int k = beg_row; k < end_row; ++k) {
+      for (int l = beg_col; l < end_col; ++l) {
+
+        Vector2 input_img_pix(l,k);
+
+        Vector2 reflectance_lonlat = input_img_geo.pixel_to_lonlat(input_img_pix);
+        double rx = reflectance_lonlat(0), ry = reflectance_lonlat(1);
+        // Note that beg_tile_x < end_tile_x BUT end_tile_y < beg_tile_y.
+        bool isInTile = (beg_tile_x <= rx && rx < end_tile_x && end_tile_y <= ry && ry < beg_tile_y);
+        if (!isInTile) continue;
+
+        //check for valid DEM coordinates
+        Vector2 reflectance_pix = DEMGeo.lonlat_to_pixel(reflectance_lonlat);
+        float x = reflectance_pix[0];
+        float y = reflectance_pix[1];
+        float t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
+        if ( is_valid(input_img(l, k)) && ( (float)input_img(l, k) >= t) ) {
+          if ( (x>=0) && (x <= Reflectance.cols()-1) && (y>=0) && (y<= Reflectance.rows()-1)){
+            // Check that all four grid points used for interpolation are valid
+            if ( is_valid(Reflectance( floor(x), floor(y))) && (float)Reflectance( floor(x), floor(y) ) != 0 &&
+                 is_valid(Reflectance( floor(x), ceil (y))) && (float)Reflectance( floor(x), ceil(y)  ) != 0 &&
+                 is_valid(Reflectance( ceil (x), floor(y))) && (float)Reflectance( ceil (x), floor(y) ) != 0 &&
+                 is_valid(Reflectance( ceil (x), ceil (y))) && (float)Reflectance( ceil (x), ceil(y)  ) != 0
+                 ){
+              reflectance_sum += interp_reflectance(x, y);
+              count++;
+            }
+          }
+        }
+      }
+    }
+    //system("echo reflectance top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+  }
+  
+  float avg_reflectance = (float)(reflectance_sum/count);
+
+  printf("avg_reflectance = %f\n", avg_reflectance);
+  return avg_reflectance;
+}
+
 //computes a reflectance image
 //author: Ara Nefian
-float vw::photometry::computeImageReflectance(bool useTiles, std::vector<ImageRecord> & DEMTiles,
-                                              std::vector<int> & overlap,
-                                              ModelParams input_img_params,
+float vw::photometry::computeImageReflectance(ModelParams input_img_params,
                                               GlobalParams globalParams) {
   std::string input_img_file = input_img_params.inputFilename;
   std::string output_img_file = input_img_params.reliefFilename;;
@@ -556,8 +647,7 @@ float vw::photometry::computeImageReflectance(bool useTiles, std::vector<ImageRe
 
   ImageView<PixelMask<PixelGray<float> > > output_img;
   float avg_reflectance =
-    computeImageReflectanceNoWrite(useTiles, DEMTiles, overlap,
-                                   input_img_params,
+    computeImageReflectanceNoWrite(input_img_params,
                                    globalParams,
                                    output_img);
 
@@ -619,7 +709,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
   read_georeference(overlap_geo, overlap_img_file);
 
   DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_shadow_file);
-
+  
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                             ConstantEdgeExtension()),
                                                                                 BilinearInterpolation());
@@ -660,7 +750,7 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
           input_img_top_pix(1) = k-1;
 
           //check for valid DEM pixel value and valid left and top coordinates
-          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue/*-10000*/)){
+          if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
 
             //determine the 3D coordinates of the pixel left of the current pixel
             Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));

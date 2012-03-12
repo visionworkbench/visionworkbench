@@ -169,7 +169,7 @@ ComputeBlockGeometry(ImageViewBase<ViewT> const& dem, GeoReference const &demGeo
   //GeoTransform trans(drgGeo, demGeo);
   //transform(dem, trans);
 
-  cout<<"Compute Block Geometry" <<endl;
+  //cout<<"Compute Block Geometry" <<endl;
 
   int eVerBlockSize = verBlockSize+1;
   int eHorBlockSize = horBlockSize+1;
@@ -272,14 +272,14 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
     int kb, int lb, ModelParams inputImgParams, GlobalParams globalParams,
     vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray,
     vector<Vector3> const &xyzTOPArray, vector<Vector3> const &normalArray,
-    Matrix<float, numJacobianRows, numJacobianCols>  &jacobianArray,
-    Vector<float, numJacobianRows>  &errorVectorArray,
-    Matrix<float, numJacobianRows, numJacobianRows>  &weightsArray)
+    Matrix<float>  &jacobianArray,
+    Vector<float>  &errorVectorArray,
+    Matrix<float>  &weightsArray)
 {
 
   int r, c;
 
-  cout<<"Compute Block Jacobian" <<endl;
+  //cout<<"Compute Block Jacobian" <<endl;
   for (r = 0; r < numJacobianRows-1; r++){//last row is always zero
 
     int k = r/(horBlockSize+1); //row index in the extended block
@@ -366,12 +366,11 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
     ModelParams inputImgParams,  ModelParams overlapImgParams, GlobalParams globalParams,
     vector<Vector3> const &xyzArray, vector<Vector3> const &xyzLEFTArray,
     vector<Vector3> const &xyzTOPArray, vector<Vector3> const &normalArray,
-    Matrix<float, numJacobianRows, numJacobianCols> &jacobianArray,
-    Vector<float, numJacobianRows> &errorVectorArray,
-    Matrix<float, numJacobianRows, numJacobianRows>  &weightsArray)
+    Matrix<float> &jacobianArray,
+    Vector<float> &errorVectorArray,
+    Matrix<float> &weightsArray)
 {
 
-  cout<<"Compute Overlap Block Jacobian" <<endl;
   int r, c;
 
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapImage = interpolate(edge_extend(overlapImage.impl(),ConstantEdgeExtension()),
@@ -403,7 +402,6 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
         c = k*horBlockSize + l;//same point
         //not computed for the last row and last column of the extended block
         if ((k < verBlockSize) && (l < horBlockSize)){
-
           float recDer = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
               xyzTOPArray[r], normalArray[r],
               overlapImgParams, 0)
@@ -465,6 +463,7 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
 //call function for the update of the height map. main call function for shape from shading - from multiple images
 void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<ModelParams> overlapImgParams, GlobalParams globalParams)
 {
+
   std::string inputImgFilename = inputImgParams.inputFilename;//the original DRG
   std::string shadowFilename = inputImgParams.shadowFilename; //shadow map
   std::string albedoFilename = inputImgParams.outputFilename; //albedo map
@@ -493,7 +492,6 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
   //copy meanDEM 2 sfsDEM
   sfsDEM = copy(meanDEM);
 
-
   DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadowFilename);
 
   DiskImageView<PixelMask<PixelGray<uint8> > >  inputImage(inputImgFilename);
@@ -506,16 +504,32 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
         ConstantEdgeExtension()),
       BilinearInterpolation());
 
-  Vector<float, numJacobianCols> lhs;
-  Matrix<float, numJacobianCols, numJacobianCols> rhs;
+  //Vector<float, numJacobianCols> lhs;
+  //Matrix<float, numJacobianCols, numJacobianCols> rhs;
+  Vector<float> lhs; lhs.set_size(numJacobianCols);
+  Matrix<float> rhs; rhs.set_size(numJacobianCols, numJacobianCols);
 
-  vector<Matrix<float, numJacobianRows, numJacobianCols> >jacobianArray;
-  vector<Matrix<float, numJacobianRows, numJacobianRows> >weightsArray;
-  vector<Vector<float, numJacobianRows> > errorVectorArray;
+  // vector<Matrix<float, numJacobianRows, numJacobianCols> >jacobianArray; // old static allocation
+  vector<Matrix<float> >jacobianArray;
   jacobianArray.resize(numOverlapImages+1);
+  for (int m = 0; m < (int)jacobianArray.size(); m++){
+    jacobianArray[m].set_size(numJacobianRows, numJacobianCols);
+  }
+    
+  // vector<Matrix<float, numJacobianRows, numJacobianRows> >weightsArray; // old static allocation
+  vector<Matrix<float> >weightsArray;
   weightsArray.resize(numOverlapImages+1);
-  errorVectorArray.resize(numOverlapImages+1);
+  for (int m = 0; m < (int)weightsArray.size(); m++){
+    weightsArray[m].set_size(numJacobianRows, numJacobianRows);
+  }
 
+  //  vector<Vector<float, numJacobianRows> > errorVectorArray; // old static allocation
+  vector<Vector<float> > errorVectorArray;
+  errorVectorArray.resize(numOverlapImages+1);
+  for (int m = 0; m < (int)errorVectorArray.size(); m++){
+    errorVectorArray[m].set_size(numJacobianRows);
+  }
+  
   float recDer, recDerLEFT, recDerTOP, recErr;
 
   int numHorBlocks = meanDEM.cols()/horBlockSize + 1;
@@ -546,9 +560,9 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
 
       printf("kb = %d, lb=%d, numVerBlocks = %d, numHorBlocks = %d\n", kb, lb, numVerBlocks, numHorBlocks);
 
-      int n = 0;
-
       //josh - shouldn't we check the extended image for valid points?
+      //determine invalid blocks in the input image - START
+      int n = 0;
       for (int k = 0 ; k < verBlockSize; ++k){
         for (int l = 0; l < horBlockSize; ++l) {
           int ii = kb*verBlockSize+k; //row index for the entire image
@@ -565,6 +579,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
         printf("kb = %d, lb=%d is skipped\n", kb, lb);
         continue;
       }
+      //determine invalid blocks in the input image - END
 
       //initialization of the error vector
       for (int m = 0; m < numOverlapImages + 1; m++){
@@ -594,7 +609,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
         }
       }
 
-      //TO DO: reset xyzArray, xyzLEFT and xyzTOP
+     //TO DO: reset xyzArray, xyzLEFT and xyzTOP
       ComputeBlockGeometry(interp_dem_image, DEM_geo,
           inputImage, inputImg_geo, kb, lb,
           inputImgParams, globalParams,
@@ -654,10 +669,8 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
             inputImgParams, overlapImgParams[m], globalParams,
             xyzArray, xyzLEFTArray, xyzTOPArray,normalArray,
             jacobianArray[m+1], errorVectorArray[m+1], weightsArray[m+1]);
-
-      }
-
-
+      }// end iterations over overlap images
+      
       //reset the right hand side - square matrix of size BlockArea x BlockArea: rhs = J^T x J
       for (int ii = 0; ii < numJacobianCols; ii++) {
         for (int jj = 0; jj < numJacobianCols; jj++){
@@ -668,29 +681,25 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
       for (int ii = 0; ii < numJacobianCols; ii++){
         lhs(ii) = 0.0;
       }
-
       //compute lhs and rhs
       for (int m = 0; m < numOverlapImages+1; m++){
         rhs = rhs + transpose(jacobianArray[m])*weightsArray[m]*jacobianArray[m];
         lhs = lhs + transpose(jacobianArray[m])*weightsArray[m]*errorVectorArray[m];
       }
-
       //solves lhs = rhs*x and stores results in lhs
       try {
-
         solve_symmetric_nocopy(rhs,lhs);
-
         for (int k = 0 ; k < verBlockSize; ++k) {
           for (int l = 0; l < horBlockSize; ++l) {
 
             int ii = kb*verBlockSize+k; //row index for the entire image
             int jj = lb*horBlockSize+l; //col index for the entire image
 
-            if ((ii < inputImage.rows()) && (jj < inputImage.cols())){
+            if ((ii < meanDEM.rows()) && (jj < meanDEM.cols())){
               //local index in the vector that describes the block image; assumes row-wise concatenation.
               int l_index = k*horBlockSize+l;
-
-              //std::cout << "sfs_before( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) <<  std::endl;
+              
+              std::cout << "sfs_before( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) <<  std::endl;
               sfsDEM(jj, ii) = sfsDEM(jj, ii) + lhs(l_index);
               errorHeight(jj, ii) = lhs(l_index);
               std::cout << "sfs_after( " << jj << "," << ii << ")=" << (float)sfsDEM(jj,ii) << ", lhs after= " << lhs(l_index) << std::endl;
@@ -701,10 +710,10 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
 
         printf("Go, kb = %d, lb = %d\n", kb, lb);
 
-      } catch (const ArgumentErr& /*e*/) {
+      } catch (const ArgumentErr& e) {
 
         std::cout << "Error @ (kb,lb) = (" << kb << "," << lb << ")\n";
-        //std::cout << "Exception caught: " << ArgumentErr.what() << "\n";
+        std::cout << "Exception caught: " << e.what() << "\n";
         //std::cout << "PRERHS: " << pre_rhs << "\n";
         //std::cout << "PRELHS: " << pre_lhs << "\n\n";
         //std::cout << "RHS: " << rhs << "\n";
@@ -721,6 +730,7 @@ void vw::photometry::UpdateHeightMap(ModelParams inputImgParams, std::vector<Mod
   }//kb
 
   //write in the updated DEM
+  std::cout << "Writing: " << sfsDEMFilename << std::endl;
   write_georeferenced_image(sfsDEMFilename, sfsDEM,
       DEM_geo, TerminalProgressCallback("photometry","Processing:"));
   //write in the error in terms of height

@@ -45,6 +45,7 @@ void upsample_image(std::string output_file, std::string input_file, int upsampl
   int cols = (image.cols())*upsampleFactor, rows = (image.rows())*upsampleFactor;
   ImageView<PixelGray<float> >  tm_image(cols, rows);
 
+  // This is the wrong way of doing interpolation. See the Stereo module for the right way.
   ImageViewRef<PixelGray<float> >   interp = interpolate(edge_extend(image.impl(),
                                                                      ConstantEdgeExtension()),
                                                          BilinearInterpolation());
@@ -85,6 +86,7 @@ void subsample_image(std::string output_file, std::string input_file) {
   ImageView<PixelMask<PixelGray<uint8> > > tm_image(cols, rows);
 
 
+  // Wrong way of doing interpolation
   ImageViewRef<PixelMask<PixelGray<uint8> > >  interp = interpolate(edge_extend(image.impl(),
                                                                                 ConstantEdgeExtension()),
                                                                     BilinearInterpolation());
@@ -133,6 +135,7 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   // Random numbers
   srandom((unsigned int) clock());
 
+  // Wrong way of doing interpolation
   ImageViewRef<typename ViewT::pixel_type> interp_image1 = interpolate(edge_extend(image1.impl(),
                                                                        ConstantEdgeExtension()),
                                                                        BilinearInterpolation());

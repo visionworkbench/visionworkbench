@@ -95,13 +95,14 @@ void vw::photometry::InitImageMosaic(ModelParams input_img_params,
       GeoReference overlap_geo;
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
+      // This is the wrong way of doing interpolation. The the Stereo module for  the right way.
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),
                                                                                     BilinearInterpolation());
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
-                                                                                           ConstantEdgeExtension()),
-                                                                                           BilinearInterpolation());
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlap_img_params[i].shadowFilename);
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
+                                                                                                         ConstantEdgeExtension()),
+                                                                                             BilinearInterpolation());
 
       for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
@@ -123,7 +124,7 @@ void vw::photometry::InitImageMosaic(ModelParams input_img_params,
 
               //check for valid overlap_img coordinates
               //TO DO: remove shadow pixels in the overlap_img.
-              if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y < overlap_img.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+              if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y < overlap_img.rows()) && (interp_overlap_shadow_image(x, y) == 0)){
 
                     if ( is_valid(overlap_img_pixel) ) { //overlaping area between input_img and overlap_img
 
@@ -257,13 +258,14 @@ void vw::photometry::InitImageMosaicByBlocks(ModelParams input_img_params,
            DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
            GeoReference overlap_geo;
            read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
-
+           // This is the wrong way of doing interpolation
            ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                          ConstantEdgeExtension()),
                                                                                          BilinearInterpolation());
 
-           DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
-           ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+           DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlap_img_params[i].shadowFilename);
+           // This is the wrong way of doing interpolation
+           ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
                                                                                                ConstantEdgeExtension()),
                                                                                                BilinearInterpolation());
 
@@ -293,7 +295,7 @@ void vw::photometry::InitImageMosaicByBlocks(ModelParams input_img_params,
 
                    //check for valid overlap_img coordinates
                    //TO DO: remove shadow pixels in the overlap_img.
-                   if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y < overlap_img.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+                   if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y < overlap_img.rows()) && (interp_overlap_shadow_image(x, y) == 0)){
 
                      if ( is_valid(overlap_img_pixel) ) { //overlaping area between input_img and overlap_img
 
@@ -440,13 +442,13 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
 
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
-
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlap_img_params[i].shadowFilename);
+      // This is the wrong way of doing interpolation
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),
                                                                                     BilinearInterpolation());
-
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+      // This is the wrong way of doing interpolation
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
                                                                                            ConstantEdgeExtension()),
                                                                                            BilinearInterpolation());
 
@@ -465,7 +467,7 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
               PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(x, y);
 
               //check for valid overlap_img coordinates and non-shadow pixels
-              if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interpOverlapShadowImage(x, y) == 0){
+              if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interp_overlap_shadow_image(x, y) == 0){
 
                  if (is_valid(overlap_img_pixel)) { //common area between input_img and overlap_img
 
@@ -518,17 +520,90 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
 
 }
 
+
+bool getSubImageWithMargin(// Inputs
+                           Vector2 begLonLat, Vector2 endLonLat,
+                           std::string imageFile,
+                           // Outputs
+                           ImageView<PixelMask<PixelGray<float> > > & subImage,
+                           GeoReference & sub_geo){
+  
+  // Read from disk only the portion of image whose pixel lon lat
+  // values are in between begLonLat and endLonLat.  Adjust the
+  // georeference accordingly. This is necessary to save on memory
+  // for large images.
+  
+  // IMPORTANT: We assume that the input image is uint8, and we will
+  // convert the portion we read into float.  Also we read a few more
+  // pixels on each side, to help later with interpolation.
+  
+  int extra = 2;
+  DiskImageView<PixelMask<PixelGray<uint8> > > input_img(imageFile);
+  GeoReference input_geo;
+  read_georeference(input_geo, imageFile);
+
+  Vector2 begPix = input_geo.lonlat_to_pixel(begLonLat);
+  Vector2 endPix = input_geo.lonlat_to_pixel(endLonLat);
+
+  int beg_col = std::max(0,                (int)floor(begPix(0)) - extra);
+  int end_col = std::min(input_img.cols(), (int)ceil(endPix(0))  + extra);
+  int beg_row = std::max(0,                (int)floor(begPix(1)) - extra);
+  int end_row = std::min(input_img.rows(), (int)ceil(endPix(1))  + extra);
+  
+  if (beg_col >= end_col || beg_row >= end_row) return false;
+  
+  subImage.set_size(end_col - beg_col, end_row - beg_row);
+  for (int col = beg_col; col < end_col; col++){
+    for (int row = beg_row; row < end_row; row++){
+      subImage(col - beg_col, row - beg_row) = input_img(col, row); // uint8 --> float
+    }
+  }
+  
+  sub_geo = input_geo;
+  Matrix3x3 T = sub_geo.transform();
+  Vector2 oldCorner = input_geo.pixel_to_lonlat(Vector2(0, 0));
+  Vector2 newCorner = input_geo.pixel_to_lonlat(Vector2(beg_col, beg_row));
+  T(0,2) += newCorner(0) - oldCorner(0);
+  T(1,2) += newCorner(1) - oldCorner(1);
+  sub_geo.set_transform(T);
+
+  //system("echo 1albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+  
+  return true;
+}
+
 //-------------------------------------------------------------------------------
 //Below are the functions for albedo reconstruction
 //-------------------------------------------------------------------------------
 
+template<class T>
+void dumpImageToFile(T & img, std::string fileName){
+
+  printf("dumping %s\n", fileName.c_str());
+
+  std::ofstream fs(fileName.c_str());
+  fs.precision(20);
+  
+  for (int k = 0 ; k < img.rows(); ++k) {
+    for (int l = 0; l < img.cols(); ++l) {
+      fs << (double)img(l, k) << " ";
+    }
+    fs << std::endl;
+  }
+  fs.close();
+}
+
 //initializes the current albedo tile
 void
 vw::photometry::InitAlbedoTile(std::string blankTileFile,
+                               std::string DEMTileFile,
                                std::string albedoTileFile,
-                               std::vector<ModelParams> overlap_img_params,
+                               std::vector<ModelParams> & overlap_img_params,
                                GlobalParams globalParams){
-    
+
+  // for  the given tile, read all the images which overlap with it, and do a weighted average
+  // involving the images, weights, reflectance, and exposure. This will be the albedo.
+  
     int i, l, k;
 
     DiskImageView<PixelMask<PixelGray<float> > >  blankTile(blankTileFile);
@@ -537,6 +612,15 @@ vw::photometry::InitAlbedoTile(std::string blankTileFile,
     GeoReference albedoTile_geo;
     read_georeference(albedoTile_geo, blankTileFile);
 
+    DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
+    std::cout << "Reading file: "<< DEMTileFile << std::endl;
+    GeoReference DEMGeo;
+    read_georeference(DEMGeo, DEMTileFile);
+    ImageView<Vector3> dem_xyz, surface_normal;
+    vw::photometry::computeXYZandSurfaceNormal(DEMTile.impl(), DEMGeo, globalParams,
+                                               dem_xyz, surface_normal
+                                               );
+    
     ImageView<PixelGray<int> > numSamples(albedoTile.cols(), albedoTile.rows());
     ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
     
@@ -552,96 +636,114 @@ vw::photometry::InitAlbedoTile(std::string blankTileFile,
     
     for (i = 0; i < (int)overlap_img_params.size(); i++){
       
+      //ImageView<float> A; A.set_size(albedoTile.cols(), albedoTile.rows());
+      //ImageView<float> W; W.set_size(albedoTile.cols(), albedoTile.rows());
+      //ImageView<float> R; R.set_size(albedoTile.cols(), albedoTile.rows());
+      //ImageView<float> I; I.set_size(albedoTile.cols(), albedoTile.rows());
+
+      // Read the weights only if really needed
+      if (globalParams.useWeights != 0){
+        bool useTiles = true;
+        ReadWeightsParamsFromFile(useTiles, &overlap_img_params[i]);
+      }
+                      
       printf("overlap_img = %s with %s\n", albedoTileFile.c_str(), overlap_img_params[i].inputFilename.c_str());
 
-      // Overlap image
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
+      // The georeference for  the entire overlap image
+      GeoReference overlap_geo_orig;
+      read_georeference(overlap_geo_orig, overlap_img_params[i].inputFilename);
+
+      // Read only the portion of the overlap image which intersects the current tile to save on memory.
+      // Create the approrpriate georeference for it.
+      ImageView<PixelMask<PixelGray<float> > > overlap_img;
       GeoReference overlap_geo;
-      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img
-        = interpolate(edge_extend(overlap_img.impl(),  ConstantEdgeExtension()),  BilinearInterpolation());
+      Vector2 begTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(0, 0));
+      Vector2 endTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(albedoTile.cols()-1, albedoTile.rows()-1));
+      bool success = getSubImageWithMargin(// Inputs
+                                           begTileLonLat, endTileLonLat, overlap_img_params[i].inputFilename,  
+                                           // Outputs
+                                           overlap_img, overlap_geo
+                                           );
+      if (!success) continue;
       
-      // Overlap shadow
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage
-        = interpolate(edge_extend(overlapShadowImage.impl(), ConstantEdgeExtension()), BilinearInterpolation());
+      InterpolationView<EdgeExtensionView<ImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
+        interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
+      //system("echo 2albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+  
+      ImageView<PixelMask<PixelGray<float> > > overlapReflectance;
+      computeReflectanceAux(dem_xyz, surface_normal,  
+                            overlap_img_params[i],
+                            globalParams,  
+                            overlapReflectance
+                            );
 
-      // Overlap reflectance
-      std::string reflectance_file = overlap_img_params[i].reliefFilename;
-      DiskImageView<PixelMask<PixelGray<float> > > reflectance_image(reflectance_file);
-      GeoReference reflectance_geo;
-      read_georeference(reflectance_geo, reflectance_file);
-      ImageViewRef<PixelMask<PixelGray<float> > >  interp_reflectance_image
-        = interpolate(edge_extend(reflectance_image.impl(), ConstantEdgeExtension()),  BilinearInterpolation());
-
-      // Speed things up here! Iterate over a subblock only
-
-      Vector2 beg = albedoTile_geo.lonlat_to_pixel(overlap_geo.pixel_to_lonlat(Vector2(0, 0)));
-      Vector2 end = albedoTile_geo.lonlat_to_pixel(overlap_geo.pixel_to_lonlat(Vector2(overlap_img.cols(), overlap_img.rows())));
-
-      int pad = 2; // Use due to round-off errors when rounding. Should not be necessary.
-      // Iterate only over the intersection of the overlap image with the tile
-      for (k = std::max(0, (int)floor(beg(1)) - pad);
-           k < std::min(albedoTile.rows(), (int)ceil(end(1)) + pad); ++k) {
-        for (l = std::max(0, (int)floor(beg(0)) - pad);
-             l < std::min(albedoTile.cols(), (int)ceil(end(0)) + pad); ++l) {
+      for (k = 0; k < albedoTile.rows(); ++k) {
+        for (l = 0; l < albedoTile.cols(); ++l) {
 
           Vector2 albedoTile_pix(l,k);
 
           if ( is_valid(albedoTile(l,k)) ) {
 
-              //get the corresponding reflectance value
               Vector2 lon_lat = albedoTile_geo.pixel_to_lonlat(albedoTile_pix);
-	     
-              Vector2 reflectance_pix = reflectance_geo.lonlat_to_pixel(lon_lat);
-              float x = reflectance_pix[0];
-              float y = reflectance_pix[1];
+              
+              //check for overlap between the output image and the input DEM image
+              Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(lon_lat);
+              float overlap_x = overlap_pix[0];
+              float overlap_y = overlap_pix[1];
 
-              //check for valid reflectance_image coordinates
-              if ((x>=0) && (x < reflectance_image.cols()) && (y>=0) && (y< reflectance_image.rows())){
-	
-                if (is_valid(interp_reflectance_image(x,y))){
-                 
-                  //check for overlap between the output image and the input DEM image
-                  Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(lon_lat);
-                  float overlap_x = overlap_pix[0];
-                  float overlap_y = overlap_pix[1];
+              //image dependent part of the code  - START
+              
+              //check for valid overlap_img coordinates
+              //TO DO: remove shadow pixels in the overlap_img.
+              // Check that all four grid points used for interpolation are valid
+              
+              float t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
+              int j0 = (int)floor(overlap_x), j1 = (int)ceil(overlap_x);
+              int i0 = (int)floor(overlap_y), i1 = (int)ceil(overlap_y);
+              if ( (overlap_x >= 0) && (overlap_x <= overlap_img.cols()-1 )         &&
+                   (overlap_y >= 0) && (overlap_y <= overlap_img.rows()-1 )         &&
+                   is_valid(overlap_img(j0, i0)) && (float)overlap_img(j0, i0) >= t &&
+                   is_valid(overlap_img(j0, i1)) && (float)overlap_img(j0, i1) >= t &&
+                   is_valid(overlap_img(j1, i0)) && (float)overlap_img(j1, i0) >= t &&
+                   is_valid(overlap_img(j1, i1)) && (float)overlap_img(j1, i1) >= t
+                   ){
+                //if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interp_overlap_shadow_image(overlap_x, overlap_y) == 0)){
+                
+                PixelMask<PixelGray<float> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
+                
+                if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
                   
-                  //image dependent part of the code  - START
-                  PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
+                  float overlap_img_reflectance = overlapReflectance(l, k);
                   
-                  //check for valid overlap_img coordinates
-                  //TO DO: remove shadow pixels in the overlap_img.
-                  if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interpOverlapShadowImage(x, y) == 0)){
-                    
-                    if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
+                  if (overlap_img_reflectance != 0.0){
+                    if (globalParams.useWeights == 0){
+                      albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
+                      numSamples(l, k) = numSamples(l,k) + 1;
+                    }
+                    else{
+                      // We need the pixel coordinates in the ENTIRE image, as opposed to its coordiantes
+                      // in the subimage, for the purpose of computing the weight.
+                      Vector2 overlap_pix_orig = overlap_geo_orig.lonlat_to_pixel(lon_lat);
+                      float weight  = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
+                      float expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
                       
-                      float overlap_img_reflectance = interp_reflectance_image(x,y);
-                      
-                      if (overlap_img_reflectance != 0.0){
-                        if (globalParams.useWeights == 0){
-                          albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
-                          numSamples(l, k) = numSamples(l,k) + 1;
-                        }
-                        else{
-                          float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i].hCenterLine, overlap_img_params[i].hMaxDistArray, overlap_img_params[i].vCenterLine, overlap_img_params[i].vMaxDistArray);
-                          float expRefl    = overlap_img_params[i].exposureTime*overlap_img_reflectance;
-                          
-                          //New averaging
-                          albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel*expRefl*weight;
-                          norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+                      //New averaging
+                      albedoTile(l, k) = (float)albedoTile(l, k) + (float)overlap_img_pixel*expRefl*weight;
+                      norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
 
-                          // Old averaging
-                          //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/ expRefl;
-                          //norm(l,k) = norm(l,k) + weight;
-                          
-                          numSamples(l, k) = numSamples(l,k) + 1;
-
-                        }
-                      }
+                      //A(l, k) = (float)overlap_img_pixel/expRefl;
+                      //W(l, k) = weight;
+                      //R(l, k) = (float)overlap_img_reflectance;
+                      //I(l, k) = (float)overlap_img_pixel;
                       
-                    }//if
-                  }//if
+                      // Old averaging
+                      //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/expRefl;
+                      //norm(l,k) = norm(l,k) + weight;
+                      
+                      numSamples(l, k) = numSamples(l,k) + 1;
+                      
+                    }
+                  }
                   
                   //image dependent part of the code  - END
                 }
@@ -649,6 +751,16 @@ vw::photometry::InitAlbedoTile(std::string blankTileFile,
           }
         }
       }
+
+      //std::cout << "sun and spacecraft: " << overlap_img_params[i].inputFilename  << ' '
+      //          << overlap_img_params[i].sunPosition  << ' ' << overlap_img_params[i].spacecraftPosition
+      //          << std::endl;
+      
+      //std::ostringstream S; S << (1000 + i);
+      //dumpImageToFile(A, "albedo"      + S.str() + ".txt");
+      //dumpImageToFile(W, "weight"      + S.str() + ".txt");
+      //dumpImageToFile(R, "reflectance" + S.str() + ".txt");
+      //dumpImageToFile(I, "image"       + S.str() + ".txt");
     }
     
     //compute the mean albedo value
@@ -710,35 +822,36 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
     std::string shadow_file = input_img_params.shadowFilename;
     std::string output_img_file = input_img_params.outputFilename;
 
-
-    DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
+    // Read the uint8 data from disk. Copy it to float, to be able to interpolate accurately.
+    ImageView<PixelMask<PixelGray<float> > > input_img
+      = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(input_img_file));
     GeoReference input_img_geo;
     read_georeference(input_img_geo, input_img_file);
 
-    DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
+    DiskImageView<PixelMask<PixelGray<uint8> > > shadowImage(shadow_file);
+    
+    DiskImageView<PixelMask<PixelGray<float> > > reflectance_image(reflectance_file);
+    GeoReference reflectance_geo;
+    read_georeference(reflectance_geo, reflectance_file);
+    InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_reflectance_image = interpolate(reflectance_image.impl(), BilinearInterpolation(), ConstantEdgeExtension());
+    // Wrong below
+    //ImageViewRef<PixelMask<PixelGray<float> > >  interp_reflectance_image
+    //  = interpolate(edge_extend(reflectance_image.impl(), ConstantEdgeExtension()),
+    //                BilinearInterpolation());
 
     ImageView<PixelMask<PixelGray<float> > > output_img (input_img.cols(), input_img.rows());
     ImageView<PixelGray<int> > numSamples(input_img.cols(), input_img.rows());
     ImageView<PixelGray<float> > norm(input_img.cols(), input_img.rows());
-
     //ImageView<PixelGray<float> > weights_img(input_img.cols(), input_img.rows());
  
-    DiskImageView<PixelMask<PixelGray<float> > > reflectance_image(reflectance_file);
-    GeoReference reflectance_geo;
-    read_georeference(reflectance_geo, reflectance_file);
-    ImageViewRef<PixelMask<PixelGray<float> > >  interp_reflectance_image = interpolate(edge_extend(reflectance_image.impl(),
-											ConstantEdgeExtension()),
-									    BilinearInterpolation());
-
-
-    int x,y;
     //initialize  output_img, and numSamples
     for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
 
            numSamples(l, k) = 0;
            Vector2 input_image_pix(l,k);
-
+          
            if ( is_valid(input_img(l,k)) && ( shadowImage(l, k) == 0)) { //valid image point
 
               //compute the local reflectance
@@ -784,54 +897,66 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
         }
     }
 
-#if  0
-    //initialize  output_img, and numSamples
-    for (k = 0 ; k < input_img.rows(); ++k) {
-      for (l = 0; l < input_img.cols(); ++l) {
-        double val = weights_img(l, k)[0];
-        weights_img(l, k) = std::min(255.0, val*155.0);
-      }
-    }
-#endif
-    
+    //for (k = 0 ; k < input_img.rows(); ++k) {
+    //  for (l = 0; l < input_img.cols(); ++l) {
+    //    float val = weights_img(l, k)[0];
+    //    weights_img(l, k) = std::min(255.0, val*155.0);
+    //  }
+    //}
+
     for (i = 0; i < (int)overlap_img_params.size(); i++){
       
       printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
 
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
+      // Read the images from disk and copy them into float, to get higher precision
+      // when interpolating.
+      ImageView<PixelMask<PixelGray<float> > >  overlap_img
+        = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(overlap_img_params[i].inputFilename));
+      InterpolationView<EdgeExtensionView<ImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
+        interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
+      //DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
+      //ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
+      //                                                                              ConstantEdgeExtension()),
+      //                                                                              BilinearInterpolation());
+      
       GeoReference overlap_geo;
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
-                                                                                    ConstantEdgeExtension()),
-                                                                                    BilinearInterpolation());
+    std::string overlap_reflectance_file = overlap_img_params[i].reliefFilename;
+    DiskImageView<PixelMask<PixelGray<float> > >   overlap_reflectance_image(overlap_reflectance_file);
+    InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_overlap_reflectance_image
+      = interpolate(overlap_reflectance_image, BilinearInterpolation(), ConstantEdgeExtension());
+    //ImageViewRef<PixelMask<PixelGray<float> > >  interp_overlap_reflectance_image
+    //  = interpolate(edge_extend(overlap_reflectance_image.impl(),
+    // ConstantEdgeExtension()), BilinearInterpolation());
+    GeoReference overlap_reflectance_geo;
+    read_georeference(overlap_reflectance_geo, overlap_reflectance_file);
 
-
-      
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
-
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
-												      ConstantEdgeExtension()),
-											  BilinearInterpolation());
-      
+    DiskImageView<PixelMask<PixelGray<uint8> > > overlap_shadow_image(overlap_img_params[i].shadowFilename);
+    InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > >, ConstantEdgeExtension>, BilinearInterpolation>
+    interp_overlap_shadow_image = interpolate(overlap_shadow_image, BilinearInterpolation(), ConstantEdgeExtension());
+    //ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image
+    //  = interpolate(edge_extend(overlap_shadow_image.impl(), ConstantEdgeExtension()), BilinearInterpolation());
+    
       for (k = 0 ; k < input_img.rows(); ++k) {
         for (l = 0; l < input_img.cols(); ++l) {
           
           Vector2 input_img_pix(l,k);
           
           if ( is_valid(input_img(l,k)) ) {
-            
-            //get the corresponding reflectance value
-            Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
-	     
-              Vector2 reflectance_pix = reflectance_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
-              float x = reflectance_pix[0];
-              float y = reflectance_pix[1];
 
-              //check for valid reflectance_image coordinates
-              if ((x>=0) && (x < reflectance_image.cols()) && (y>=0) && (y< reflectance_image.rows())){
+              //get the corresponding overlap_reflectance value
+              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
+	     
+              Vector2 overlap_reflectance_pix = overlap_reflectance_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
+              float x = overlap_reflectance_pix[0];
+              float y = overlap_reflectance_pix[1];
+
+              //check for valid overlap_reflectance_image coordinates
+              if ((x>=0) && (x < overlap_reflectance_image.cols()) && (y>=0) && (y< overlap_reflectance_image.rows())){
 	
-                if (is_valid(interp_reflectance_image(x,y))){
+                if (is_valid(interp_overlap_reflectance_image(x,y))){
                  
                   //check for overlap between the output image and the input DEM image
                   Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
@@ -839,15 +964,15 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
                   float overlap_y = overlap_pix[1];
 
                   //image dependent part of the code  - START
-                  PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
+                  PixelMask<PixelGray<float> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
 
                   //check for valid overlap_img coordinates
                   //TO DO: remove shadow pixels in the overlap_img.
-                  if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interpOverlapShadowImage(x, y) == 0)){
+                  if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interp_overlap_shadow_image(x, y) == 0)){
 
                     if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 
-                      float overlap_img_reflectance = interp_reflectance_image(x,y);
+                      float overlap_img_reflectance = interp_overlap_reflectance_image(x,y);
 
                       if (overlap_img_reflectance != 0.0){
                           if (globalParams.useWeights == 0){
@@ -902,28 +1027,28 @@ vw::photometry::InitAlbedoMosaic(ModelParams input_img_params,
               }
 	      numValid++;
          }
-
-      }
+         
+       }
     }
 
-    printf("numValid = %d, total = %d\n", numValid, input_img.rows()*input_img.cols());
-    
-    //TODO: compute the albedo variance (standard deviation)
+   printf("numValid = %d, total = %d\n", numValid, input_img.rows()*input_img.cols());
 
-#if  0
-    std::string weights_file = output_img_file, str2 = "DRG";
-    weights_file.replace(weights_file.find(str2),str2.length(),"wt");
-    std::cout << "Writing the weights to "  <<  weights_file << std::endl;
-    write_georeferenced_image(weights_file,
-                              channel_cast<uint8>(clamp(weights_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
-#endif
-    
-    //write in the albedo image
+    //TODO: compute the albedo variance (standard deviation)
+   
+//write in the albedo image
     std::cout << "Writing: " << output_img_file << std::endl;
     write_georeferenced_image(output_img_file,
                               channel_cast<uint8>(clamp(output_img,0.0,255.0)),
                               input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+    //write_georeferenced_image(output_img_file,
+    //                          output_img,
+    //                          input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
+    //std::string weights_file = output_img_file, str2 = "DRG";
+    //weights_file.replace(weights_file.find(str2),str2.length(),"wt");
+    //std::cout << "Writing the weights to "  <<  weights_file << std::endl;
+    //write_georeferenced_image(weights_file,
+    //                          channel_cast<uint8>(clamp(weights_img,0.0,255.0)),
+    //                          input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
     
 
 }
@@ -968,6 +1093,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
     Vector3 xyz_prior;
     int x, y;
 
+    // This is the wrong way of doing interpolation
     ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
                                                                                 ConstantEdgeExtension()),
                                                                                 BilinearInterpolation());
@@ -1075,13 +1201,15 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
      
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlap_img_params[i].shadowFilename);
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlap_img_params[i].shadowFilename);
 
+      // This is the wrong way of doing interpolation
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),
                                                                                     BilinearInterpolation());
 
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+      // This is the wrong way of doing interpolation
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
                                                                                            ConstantEdgeExtension()),
                                                                                            BilinearInterpolation());
 
@@ -1143,7 +1271,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
 
                   //check for valid overlap_img coordinates
                   //TO DO: remove shadow pixels in the overlap_img.
-                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interpOverlapShadowImage(x, y) == 0){
+                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interp_overlap_shadow_image(x, y) == 0){
 
                     if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 
@@ -1334,14 +1462,14 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
 //      GeoReference overlap_geo;
 //      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 //
-//      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(/*overlapShadowFileArray[i]*/overlap_img_params[i].shadowFilename);
+//      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(/*overlapShadowFileArray[i]*/overlap_img_params[i].shadowFilename);
 //
 //
 //      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
 //                                                                                    ConstantEdgeExtension()),
 //                                                                                    BilinearInterpolation());
 //
-//      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+//      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
 //                                                                                           ConstantEdgeExtension()),
 //                                                                                           BilinearInterpolation());
 //
@@ -1403,7 +1531,7 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
 //
 //                  //check for valid overlap_img coordinates
 //                  //remove shadow pixels in the overlap_img.
-//                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interpOverlapShadowImage(x, y) == 0){
+//                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interp_overlap_shadow_image(x, y) == 0){
 //
 //                    if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 //
@@ -1487,6 +1615,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
     GeoReference input_dem_geo;
     read_georeference(input_dem_geo, DEM_file);
 
+    // This is the wrong way of doing interpolation
   InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation>
     interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
                                                ConstantEdgeExtension()),
@@ -1608,15 +1737,16 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
       GeoReference overlap_geo;
       read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
 
+      // This is the wrong way of doing interpolation
       ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
                                                                                     ConstantEdgeExtension()),
                                                                                     BilinearInterpolation());
 
 
       /*
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlapShadowImage(overlapShadowFileArray[i]);
+      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlapShadowFileArray[i]);
 
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interpOverlapShadowImage = interpolate(edge_extend(overlapShadowImage.impl(),
+      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
                                                                                            ConstantEdgeExtension()),
                                                                                             BilinearInterpolation());
       */
@@ -1677,7 +1807,7 @@ vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
 
                   //check for valid overlap_img coordinates
                   //TO DO: remove shadow pixels in the overlap_img.
-                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows())/* && (interpOverlapShadowImage(x, y) == 0)*/){
+                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows())/* && (interp_overlap_shadow_image(x, y) == 0)*/){
 
                     if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 

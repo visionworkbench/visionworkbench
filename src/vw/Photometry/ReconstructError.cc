@@ -69,6 +69,7 @@ vw::photometry::ComputeReconstructionErrorMap(ModelParams input_img_params,
   Vector3 xyz_prior;
   int x, y;
 
+  // Wrong way of doing interpolation. See the Stereo module for the right way.
   ImageViewRef<PixelGray<float> > interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
         ConstantEdgeExtension()),
       BilinearInterpolation());

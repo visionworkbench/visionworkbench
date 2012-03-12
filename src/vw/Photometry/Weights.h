@@ -32,8 +32,8 @@ namespace photometry {
                              int *hCenterLine, int *hMaxDistArray,
                              int *vCenterLine, int *vMaxDistArray
                              );
-  void SaveWeightsParamsToFile(struct ModelParams modelParams);
-  void ReadWeightsParamsFromFile(struct ModelParams *modelParams);
+  void SaveWeightsParamsToFile(bool useTiles,  struct ModelParams modelParams);
+  void ReadWeightsParamsFromFile(bool useTiles, struct ModelParams *modelParams);
 
 }} // end vw::photometry
 

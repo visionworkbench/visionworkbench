@@ -162,9 +162,10 @@ vw::photometry::ComputeImageHCenterLine(std::string input_img_file,
       //printf("cl[%d] = %d, maxDist[%d] = %d\n", k, hCenterLine[k], k, hMaxDistArray[k]);
    }
 
+    *r_hMaxDistArray = hMaxDistArray;
 
-
-   *r_hMaxDistArray = hMaxDistArray;
+    //system("echo hWeight top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+    
    return hCenterLine;
 }
 
@@ -210,7 +211,10 @@ vw::photometry::ComputeImageVCenterLine(std::string input_img_file,
       //printf("cl[%d] = %d, maxDist[%d] = %d\n", k, vCenterLine[k], k, vMaxDistArray[k]);
    }
 
-   *r_vMaxDistArray = vMaxDistArray;
+    *r_vMaxDistArray = vMaxDistArray;
+
+    //system("echo vWeight top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+    
    return vCenterLine;
 }
 
@@ -308,9 +312,13 @@ vw::photometry::ComputeDEMVCenterLine(std::string input_DEM_file,int noDataDEMVa
 float
 vw::photometry::ComputeLineWeightsH(Vector2 pix,
                                     int *hCenterLine, int *hMaxDistArray){
-  int maxDist = hMaxDistArray[(int)pix[1]]/2.0;
-  int center = hCenterLine[(int)pix[1]];
-  float dist = fabs((int)pix[0]-center);
+
+  // We round below, to avoid issues when we are within numerical value
+  // to an integer value for pix[1].
+  // To do: Need to do interpolation here.
+  int maxDist = hMaxDistArray[(int)round(pix[1])]/2.0;
+  int center  = hCenterLine[(int)round(pix[1])];
+  float dist  = fabs(pix[0]-center);
   float a;
   float b;
 
@@ -327,10 +335,11 @@ vw::photometry::ComputeLineWeightsH(Vector2 pix,
 
 float
 vw::photometry::ComputeLineWeightsV(Vector2 pix,
-                                    int *vCenterLine, int *vMaxDistArray) {
-  int maxDist = vMaxDistArray[(int)pix[0]]/2.0;
-  int center = vCenterLine[(int)pix[0]];
-  float dist = fabs((int)pix[1]-center);
+                                    int *vCenterLine, int *vMaxDistArray){
+  // See the notes at ComputeLineWeightsH().
+  int maxDist = vMaxDistArray[(int)round(pix[0])]/2.0;
+  int center  = vCenterLine[(int)round(pix[0])];
+  float dist  = fabs(pix[1]-center);
   float a;
   float b;
 
@@ -360,63 +369,66 @@ vw::photometry::ComputeLineWeightsHV(Vector2 pix,
 
 // Saves weights to file.
 void 
-vw::photometry::SaveWeightsParamsToFile(struct ModelParams modelParams)
+vw::photometry::SaveWeightsParamsToFile(bool useTiles, struct ModelParams modelParams)
 {
 
   FILE *fp;
   fp = fopen((char*)(modelParams.weightFilename).c_str(), "w");
   std::cout << "Writing " << modelParams.weightFilename << std::endl;
-  DiskImageView<PixelGray<float> >   dem(modelParams.DEMFilename);
-  DiskImageView<PixelMask<PixelGray<uint8> > >  drg(modelParams.inputFilename);
 
-  // Horizontal
-  for (int i = 0; i < (int)dem.rows(); i++){
-      fprintf(fp, "%d ", modelParams.hCenterLineDEM[i]);
-  }
-  fprintf(fp, "\n");
-
-  for (int i = 0; i < (int)dem.rows(); i++){
-      fprintf(fp, "%d ", modelParams.hMaxDistArrayDEM[i]);
-  }
-  fprintf (fp, "\n");
-
+  // Horizonal DRG
+  DiskImageView<PixelMask<PixelGray<uint8> > > drg(modelParams.inputFilename);
   for (int i = 0; i < (int)drg.rows(); i++){
       fprintf(fp, "%d ", modelParams.hCenterLine[i]);
   }
   fprintf(fp, "\n");
-
   for (int i = 0; i < (int)drg.rows(); i++){
       fprintf(fp, "%d ", modelParams.hMaxDistArray[i]);
   }
   fprintf(fp,"\n");
   
-  // Vertical
-  
-  for (int i = 0; i < (int)dem.cols(); i++){
-      fprintf(fp, "%d ", modelParams.vCenterLineDEM[i]);
-  }
-  fprintf(fp, "\n");
-
-  for (int i = 0; i < (int)dem.cols(); i++){
-      fprintf(fp, "%d ", modelParams.vMaxDistArrayDEM[i]);
-  }
-  fprintf (fp, "\n");
-
+  // Vertical DRG
   for (int i = 0; i < (int)drg.cols(); i++){
       fprintf(fp, "%d ", modelParams.vCenterLine[i]);
   }
   fprintf(fp, "\n");
-
   for (int i = 0; i < (int)drg.cols(); i++){
       fprintf(fp, "%d ", modelParams.vMaxDistArray[i]);
   }
   fprintf(fp,"\n");
+
+  // We don't need the weights for the DEM if there are no tiles
+  if (useTiles){
+    fclose(fp);
+    return;
+  }
+  
+  // Horizontal DEM
+  DiskImageView<PixelGray<float> > dem(modelParams.DEMFilename);
+  for (int i = 0; i < (int)dem.rows(); i++){
+      fprintf(fp, "%d ", modelParams.hCenterLineDEM[i]);
+  }
+  fprintf(fp, "\n");
+  for (int i = 0; i < (int)dem.rows(); i++){
+      fprintf(fp, "%d ", modelParams.hMaxDistArrayDEM[i]);
+  }
+  fprintf (fp, "\n");
+
+  // Vertical DEM
+  for (int i = 0; i < (int)dem.cols(); i++){
+      fprintf(fp, "%d ", modelParams.vCenterLineDEM[i]);
+  }
+  fprintf(fp, "\n");
+  for (int i = 0; i < (int)dem.cols(); i++){
+      fprintf(fp, "%d ", modelParams.vMaxDistArrayDEM[i]);
+  }
+  fprintf (fp, "\n");
   
   fclose(fp);
 }
 
 void 
-vw::photometry::ReadWeightsParamsFromFile(struct ModelParams *modelParams)
+vw::photometry::ReadWeightsParamsFromFile(bool useTiles, struct ModelParams *modelParams)
 {
   FILE *fp;
 
@@ -426,63 +438,62 @@ vw::photometry::ReadWeightsParamsFromFile(struct ModelParams *modelParams)
     return;
   }
 
-  DiskImageView<PixelGray<float> >   dem(modelParams->DEMFilename);
-  DiskImageView<PixelMask<PixelGray<uint8> > >  drg(modelParams->inputFilename);
-
-  // Horizontal
-  
-  modelParams->hCenterLineDEM = new int[dem.rows()];
-  modelParams->hMaxDistArrayDEM = new int[dem.rows()];
-  for (int i = 0; i < (int)dem.rows(); i++){
-    fscanf(fp, "%d ", &(modelParams->hCenterLineDEM[i]));
-  }
-  fscanf(fp, "\n");
-  
-  for (int i = 0; i < (int)dem.rows(); i++){
-    fscanf(fp, "%d ", &(modelParams->hMaxDistArrayDEM[i]));
-  }
-  fscanf (fp, "\n");
-  
-  modelParams->hCenterLine = new int[drg.rows()];
+  // Horizontal DRG
+  DiskImageView<PixelMask<PixelGray<uint8> > > drg(modelParams->inputFilename);
+  modelParams->hCenterLine   = new int[drg.rows()];
   modelParams->hMaxDistArray = new int[drg.rows()];
-   
   for (int i = 0; i < (int)drg.rows(); i++){
     fscanf(fp, "%d ", &(modelParams->hCenterLine[i]));
   }
   fscanf(fp, "\n");
-
   for (int i = 0; i < (int)drg.rows(); i++){
     fscanf(fp, "%d ", &(modelParams->hMaxDistArray[i]));
   }
   fscanf(fp,"\n");
 
-  // Vertical
+  // Vertical DRG
+  modelParams->vCenterLine   = new int[drg.cols()];
+  modelParams->vMaxDistArray = new int[drg.cols()];
+  for (int i = 0; i < (int)drg.cols(); i++){
+    fscanf(fp, "%d ", &(modelParams->vCenterLine[i]));
+  }
+  fscanf(fp, "\n");
+  for (int i = 0; i < (int)drg.cols(); i++){
+    fscanf(fp, "%d ", &(modelParams->vMaxDistArray[i]));
+  }
+  fscanf(fp,"\n");
+
+  // We don't need the weights for the DEM if there are no tiles
+  if (useTiles){
+    fclose(fp);
+    return;
+  }
+    
+  // Horizontal DEM
+  DiskImageView<PixelGray<float> >  dem(modelParams->DEMFilename);
+  modelParams->hCenterLineDEM   = new int[dem.rows()];
+  modelParams->hMaxDistArrayDEM = new int[dem.rows()];
+  for (int i = 0; i < (int)dem.rows(); i++){
+    fscanf(fp, "%d ", &(modelParams->hCenterLineDEM[i]));
+  }
+  fscanf(fp, "\n");
+  for (int i = 0; i < (int)dem.rows(); i++){
+    fscanf(fp, "%d ", &(modelParams->hMaxDistArrayDEM[i]));
+  }
+  fscanf (fp, "\n");
   
-  modelParams->vCenterLineDEM = new int[dem.cols()];
+  // Vertical DEM
+  modelParams->vCenterLineDEM   = new int[dem.cols()];
   modelParams->vMaxDistArrayDEM = new int[dem.cols()];
   for (int i = 0; i < (int)dem.cols(); i++){
     fscanf(fp, "%d ", &(modelParams->vCenterLineDEM[i]));
   }
   fscanf(fp, "\n");
-  
   for (int i = 0; i < (int)dem.cols(); i++){
     fscanf(fp, "%d ", &(modelParams->vMaxDistArrayDEM[i]));
   }
   fscanf (fp, "\n");
-  
-  modelParams->vCenterLine = new int[drg.cols()];
-  modelParams->vMaxDistArray = new int[drg.cols()];
-   
-  for (int i = 0; i < (int)drg.cols(); i++){
-    fscanf(fp, "%d ", &(modelParams->vCenterLine[i]));
-  }
-  fscanf(fp, "\n");
 
-  for (int i = 0; i < (int)drg.cols(); i++){
-    fscanf(fp, "%d ", &(modelParams->vMaxDistArray[i]));
-  }
-  fscanf(fp,"\n");
-  
   fclose(fp);
   
 }

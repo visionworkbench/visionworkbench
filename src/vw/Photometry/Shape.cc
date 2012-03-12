@@ -52,9 +52,8 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
   unsigned l, k;
 
   std::string input_DEM_file = input_img_params.DEMFilename;
-  
-  std::string mean_DEM_file = input_img_params.meanDEMFilename;
-  std::string var2_DEM_file = input_img_params.var2DEMFilename;
+  std::string mean_DEM_file  = input_img_params.meanDEMFilename;
+  std::string var2_DEM_file  = input_img_params.var2DEMFilename;
 
   DiskImageView<PixelGray<float> >  input_DEM_image(input_DEM_file);
   GeoReference input_DEM_geo;
@@ -78,7 +77,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
 
       Vector2 input_DEM_pix(l,k);
 
-      if ( input_DEM_image(l,k) != globalParams.noDEMDataValue/*-10000*/ ) {
+      if ( input_DEM_image(l,k) != globalParams.noDEMDataValue ) {
 
         if (globalParams.useWeights == 0){
           mean_DEM_image(l, k) = (float)input_DEM_image(l,k);
@@ -100,21 +99,24 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
   for (i = 0; i < (int) overlap_img_params.size(); i++){
 
     printf("DEM = %s\n", overlap_img_params[i].DEMFilename.c_str());
-    DiskImageView<PixelGray<float> >  overlap_DEM_image(overlap_img_params[i].DEMFilename);
+    DiskImageView<PixelGray<float> > overlap_DEM_image(overlap_img_params[i].DEMFilename);
+
+    InterpolationView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_overlap_DEM_image = interpolate(overlap_DEM_image, BilinearInterpolation(), ConstantEdgeExtension());
+    // Wrong
+    //ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image
+    //= interpolate(edge_extend(overlap_DEM_image.impl(), ConstantEdgeExtension()), BilinearInterpolation());
+    
     GeoReference overlap_DEM_geo;
     read_georeference(overlap_DEM_geo, overlap_img_params[i].DEMFilename);
 
-
-    ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
-                                                                                        ConstantEdgeExtension()),
-                                                                            BilinearInterpolation());
 
     for (k = 0 ; k < (unsigned)input_DEM_image.rows(); ++k) {
       for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
 
         Vector2 input_DEM_pix(l,k);
 
-        if ( input_DEM_image(l,k) != globalParams.noDEMDataValue/*-10000*/ ) {
+        if ( input_DEM_image(l,k) != globalParams.noDEMDataValue ) {
 
           //check for overlap between the output image and the input DEM image
           Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(input_DEM_geo.pixel_to_lonlat(input_DEM_pix));
@@ -122,10 +124,15 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
           float y = overlap_dem_pix[1];
 
           //check for valid DEM coordinates
-          if ((x>=0) && (x < overlap_DEM_image.cols()) && (y>=0) && (y< overlap_DEM_image.rows())){
+          if ((x>=0) && (x <= overlap_DEM_image.cols()-1) && (y>=0) && (y<= overlap_DEM_image.rows()-1)){
 
-            if ( overlap_DEM_image(x, y) != globalParams.noDEMDataValue/*-10000*/ ) {
-
+            // Check that all four grid points used for interpolation are valid
+            if ( overlap_DEM_image( floor(x), floor(y) ) != globalParams.noDEMDataValue &&
+                 overlap_DEM_image( floor(x), ceil(y)  ) != globalParams.noDEMDataValue &&
+                 overlap_DEM_image( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
+                 overlap_DEM_image( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
+                 ){
+              
               if (globalParams.useWeights == 0){
                 mean_DEM_image(l, k) = (float)mean_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y);
                 var2_DEM_image(l, k) = (float)var2_DEM_image(l, k) + (float)interp_overlap_DEM_image(x, y)*(float)interp_overlap_DEM_image(x, y);
@@ -150,7 +157,7 @@ void vw::photometry::InitDEM( ModelParams input_img_params,
     for (l = 0; l < (unsigned)input_DEM_image.cols(); ++l) {
 
       //compute variance only where the mean DEM is valid
-      if ( input_DEM_image(l,k) != globalParams.noDEMDataValue/*-10000*/ ) {
+      if ( input_DEM_image(l,k) != globalParams.noDEMDataValue ) {
 
         if ((globalParams.useWeights == 0) && (numSamples(l,k)!=0)){
           mean_DEM_image(l, k) = mean_DEM_image(l, k)/numSamples(l,k);
@@ -201,27 +208,30 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
 
   for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
     for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
-      numSamples     (l, k) = 0;
-      meanDEMTile (l, k) = globalParams.noDEMDataValue;
+      numSamples (l, k) = 0;
+      meanDEMTile(l, k) = globalParams.noDEMDataValue;
     }
   }
 
-
   //std::cout << blankTileFile << " overlaps with: "; 
   for (i = 0; i < (int)overlap.size(); i++){
-    
+
+    // Copy to a float data structure for higher precision.
     std::string overlapDEM = DEMImages[overlap[i]].path;
-
-    //std::cout << overlapDEM << " ";
-
-    // This code is duplicated in Shape.cc and Reflectance.cc and other places
-    DiskImageView<PixelGray<float> >  overlap_DEM_image(overlapDEM); //boost::int16_t
     std::cout << "Reading: " << overlapDEM << std::endl; 
+    ImageView<PixelGray<float> > overlap_DEM_image = copy(DiskImageView<PixelGray<int16> > (overlapDEM));
+    //ImageView<PixelGray<float> > overlap_DEM_image = copy(DiskImageView<PixelGray<float> > (overlapDEM));
+
     GeoReference overlap_DEM_geo;
     read_georeference(overlap_DEM_geo, overlapDEM);
-    ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
-                                                                                        ConstantEdgeExtension()),
-                                                                            BilinearInterpolation());
+    InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >,
+                                        ConstantEdgeExtension>, BilinearInterpolation>
+      interp_overlap_DEM_image = interpolate(overlap_DEM_image, BilinearInterpolation(), ConstantEdgeExtension());
+    // Wrong below
+    //ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image
+    // = interpolate(edge_extend(overlap_DEM_image.impl(),  ConstantEdgeExtension()),
+    //BilinearInterpolation());
+    
     for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
       for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
 
@@ -233,8 +243,14 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
         float y = overlap_dem_pix[1];
         
         //check for valid DEM coordinates
-        if ((x >= 0) && (x < overlap_DEM_image.cols()) && (y >= 0) && (y < overlap_DEM_image.rows())){
-          if ( overlap_DEM_image(x, y) != globalParams.noDEMDataValue ) {
+        if ((x>=0) && (x <= overlap_DEM_image.cols()-1) && (y>=0) && (y<= overlap_DEM_image.rows()-1)){
+
+          // Check that all four grid points used for interpolation are valid
+          if ( overlap_DEM_image( floor(x), floor(y) ) != globalParams.noDEMDataValue &&
+               overlap_DEM_image( floor(x), ceil(y)  ) != globalParams.noDEMDataValue &&
+               overlap_DEM_image( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
+               overlap_DEM_image( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
+               ){
             if (numSamples(l, k) == 0){
               meanDEMTile(l, k) = (float)interp_overlap_DEM_image(x, y);
             }else{
@@ -259,6 +275,8 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   write_georeferenced_image(meanDEMTileFile,
                             meanDEMTile,
                             DEMTileGeo, TerminalProgressCallback("{Core}","Processing:"));
+
+  //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
 
 }
 
@@ -316,6 +334,7 @@ void DetectDEMOutliers( std::string input_DEM_file,
       read_georeference(overlap_DEM_geo, overlap_DEM_files[i]);
 
 
+      // This is the wrong way of doing interpolation. The the Stereo module for  the right way.
       ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image = interpolate(edge_extend(overlap_DEM_image.impl(),
                                                                               ConstantEdgeExtension()),
                                                                               BilinearInterpolation());
@@ -400,7 +419,7 @@ void vw::photometry::ComputeSaveDEM(std::string curr_input_file,
     //printf("exposure_time = %f, a_rescale = %f, b_rescale = %f\n",
     //        currModelParams.exposureTime, currModelParams.rescalingParams[0], currModelParams.rescalingParams[1]);
     printf("exposure_time = %f\n", currModelParams.exposureTime);
-
+    // This is the wrong way of doing interpolation. See the Stereo module for the right way.
     ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_prev_image = interpolate(edge_extend(prev_image.impl(),
                                                                                  ConstantEdgeExtension()),
                                                                                  BilinearInterpolation());

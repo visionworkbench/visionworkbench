@@ -31,8 +31,9 @@ namespace photometry {
                          GlobalParams globalParams);
 
   void InitAlbedoTile(std::string blankTileFile,
+                      std::string DEMTileFile,
                       std::string albedoTileFile,
-                      std::vector<ModelParams> overlap_img_params,
+                      std::vector<ModelParams> & overlap_img_params,
                       GlobalParams globalParams);
 
   //albedo mosaic functions
