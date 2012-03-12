@@ -10,10 +10,8 @@
 
 #include <vw/FileIO/ScanlineIO.h>
 
-extern "C" {
 #include <gdal_priv.h>
 #include <cpl_multiproc.h>
-}
 
 namespace vw {
   class Mutex;

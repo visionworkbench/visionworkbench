@@ -10,12 +10,14 @@
 #include <test/Helpers.h>
 
 #include <vw/Cartography/PointImageManipulation.h>
+#include <boost/math/special_functions/fpclassify.hpp>
 
 using namespace vw;
 using namespace vw::cartography;
 using namespace vw::test;
 
-TEST( PointImageManip, XYZ_to_LonLat ) {
+// Spherical transform that is ignorant of flattened datums.
+TEST( PointImageManipulation, XYZ_to_LonLat ) {
   // Test a full forward and reverse transformation
   Vector3 xyz(-2197110.000000, 1741355.875000, 1898886.875000);
   Vector3 lon_lat_alt = xyz_to_lon_lat_radius(xyz);
@@ -38,3 +40,34 @@ TEST( PointImageManip, XYZ_to_LonLat ) {
   EXPECT_VECTOR_NEAR( xyz, xyz2, 1e-2 );
 }
 
+// These are the more general operators which can actually handle
+// squished datums.
+TEST( PointImageManipulation, GeodeticCartesian ) {
+  ImageView<Vector3> geodetic(2,2);
+  geodetic(0,0) = Vector3( 90, 10, 100 );
+  geodetic(0,1) = Vector3(); // An actual valid measurement.
+  geodetic(1,0) = Vector3( 10, 89, 9  );
+  geodetic(1,1) = Vector3(0, 0, std::numeric_limits<double>::quiet_NaN() ); // invalid measure.
+
+  Datum moon("D_MOON"), earth("WGS84");
+  ImageView<Vector3> result_moon = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,moon),moon);
+  ImageView<Vector3> result_earth = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,earth),earth);
+  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_moon.begin(), result_moon.begin()+3, 1e-9 );
+  EXPECT_TRUE( boost::math::isnan(result_moon(1,1).z()) );
+  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 1e-9 );
+  EXPECT_TRUE( boost::math::isnan(result_earth(1,1).z()) );
+}
+
+TEST( PointImageManipulation, CartesianGeodetic ) {
+  ImageView<Vector3> cartesian(2,2);
+  cartesian(0,0) = Vector3(1737892,80,5320);
+  cartesian(1,0) = Vector3(50,-190,-80);
+  cartesian(0,1) = Vector3(33e8, -1e5, 0);
+  cartesian(1,1) = Vector3(); // Invalid in for cartesian
+
+  Datum moon("D_MOON"), earth("WGS84");
+  ImageView<Vector3> result_moon = geodetic_to_cartesian(cartesian_to_geodetic(cartesian,moon),moon);
+  ImageView<Vector3> result_earth = geodetic_to_cartesian(cartesian_to_geodetic(cartesian,earth),earth);
+  EXPECT_SEQ_NEAR( cartesian, result_moon, 1e-6 );
+  EXPECT_SEQ_NEAR( cartesian, result_earth, 1e-6 );
+}

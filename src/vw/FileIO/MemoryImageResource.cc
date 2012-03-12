@@ -20,6 +20,10 @@
 #  include <vw/FileIO/MemoryImageResourceGDAL.h>
 #endif
 
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#  include <vw/FileIO/MemoryImageResourceOpenEXR.h>
+#endif
+
 #include <boost/assign/list_of.hpp>
 #include <boost/lambda/construct.hpp>
 #include <boost/function.hpp>
@@ -52,6 +56,10 @@ namespace {
     OPEN("tiff",       GDAL)
     OPEN("image/tiff", GDAL)
 #endif
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+    OPEN("exr",        OpenEXR)
+    OPEN("image/exr",  OpenEXR)
+#endif
     ;
 
   create_map_t create_map = boost::assign::list_of<std::pair<std::string, create_func> >
@@ -68,6 +76,10 @@ namespace {
     CREAT("tif",        GDAL)
     CREAT("tiff",       GDAL)
     CREAT("image/tiff", GDAL)
+#endif
+#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+    CREAT("exr",        OpenEXR)
+    CREAT("image/exr",  OpenEXR)
 #endif
     ;
 

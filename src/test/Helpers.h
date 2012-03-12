@@ -430,6 +430,20 @@ double value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Ele
   return ::sqrt(acc);
 }
 
+template <typename Vec1T, typename Vec2T>
+double value_diff(const vw::VectorBase<Vec1T>& a, const vw::VectorBase<Vec2T>& b) {
+  BOOST_STATIC_ASSERT((boost::is_same<typename Vec1T::value_type,typename Vec2T::value_type>::value));
+  double acc = 0.0;
+  typename Vec2T::const_iterator it2 = b.impl().begin();
+  for (typename Vec1T::const_iterator it1 = a.impl().begin();
+       it1 != a.impl().end(); it1++ ) {
+    double diff = double(*it1) - double(*it2);
+    acc += diff*diff;
+    it2++;
+  }
+  return ::sqrt(acc);
+}
+
 template <typename T1, typename T2>
 double value_diff(const std::complex<T1>& a, const std::complex<T2>& b) {
   return std::abs(std::complex<double>(a) - std::complex<double>(b));

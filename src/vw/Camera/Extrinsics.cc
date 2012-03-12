@@ -51,6 +51,60 @@ Curve3DPositionInterpolation::Curve3DPositionInterpolation(
   m_cached_fit = coeff;
 }
 
+Vector3 Curve3DPositionInterpolation::operator()( double t ) const {
+  Vector3 T(1, t, t*t);
+  return m_cached_fit * T;
+}
+
+Vector3 HermitePositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
+             ArgumentErr() << "Cannot extrapolate position for time "
+             << t << ". Out of range." );
+
+  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+
+  double low_t = m_t0 + m_dt * low_i;
+  double norm_t = ( t - low_t) / m_dt;
+  Vector4 poly(1,0,0,0);
+  for ( size_t i = 0; i < 3; i++ )
+    poly[i+1] = norm_t * poly[i];
+
+  return dot_prod(Vector4(1,0,-3,2), poly) * m_position[low_i] +
+    dot_prod(Vector4(0,1,-2,1), poly) * ( m_velocity[low_i] * m_dt ) +
+    dot_prod(Vector4(0,0,3,-2), poly) * m_position[high_i] +
+    dot_prod(Vector4(0,0,-1,1), poly) * ( m_velocity[high_i] * m_dt );
+}
+
+Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
+             ArgumentErr() << "Cannot extrapolate position for time "
+             << t << ". Out of range." );
+
+  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+  double offset_t = t - (m_t0 + m_dt * low_i);
+
+  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt;
+  return m_position[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
+}
+
+Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_position.size() - 1),
+             ArgumentErr() << "Cannot extrapolate position for time "
+             << t << ". Out of range." );
+
+  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i = low_i + 1;
+
+  double low_t = m_t0 + m_dt * low_i;
+  double norm_t = ( t - low_t) / m_dt;
+
+  Vector3 result = m_position[low_i] + norm_t * ( m_position[high_i] - m_position[low_i] );
+
+  return result;
+}
+
 Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
                                    Quat const& b, int spin) const {
   const double SLERP_EPSILON = 1.0E-6;              // a tiny number
@@ -96,22 +150,17 @@ Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
 
 Quat SLERPPoseInterpolation::operator()(double t) const {
   // Make sure that t lies within the range [t0, t0+dt*length(points)]
-  if ((t < m_t0) || (t > m_t0+m_dt*m_pose_samples.size())) {
-    vw_out() << "Time: " << t << "   min: " << m_t0
-             << "   max: " << (m_t0+m_dt*m_pose_samples.size()) <<"\n";
-    vw_throw( ArgumentErr() << "Cannot extrapolate point for time "
-              << t << ". Out of valid range." );
-  }
+  VW_ASSERT( t >= m_t0 && t < m_t0 + m_dt * (m_pose_samples.size() - 1),
+             ArgumentErr() << "Cannot extrapolate point for time "
+             << t << ". Out of valid range." );
 
   size_t low_ind = (size_t)floor( (t-m_t0) / m_dt );
-  size_t high_ind = (size_t)ceil( (t-m_t0) / m_dt );
+  size_t high_ind = low_ind + 1;
 
   // If there are not enough points to interpolate at the end, we
   // will limit the high_ind here.
-  if ( high_ind > m_pose_samples.size() ) {
+  if ( high_ind >= m_pose_samples.size() ) {
     vw_throw( ArgumentErr() << "Attempted to interpolate a quaternion past the last available control point." );
-  } else if (high_ind == m_pose_samples.size()) {
-    high_ind = m_pose_samples.size() - 1;
   }
 
   double low_t =  m_t0 + m_dt * low_ind;
@@ -119,4 +168,27 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
 
   return this->slerp(norm_t, m_pose_samples[low_ind],
                      m_pose_samples[high_ind], 0);
+}
+
+double LinearTimeInterpolation::operator()( double line ) const {
+  return m_dt * line + m_t0;
+}
+
+TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
+                                           double time_offset ) {
+  for ( size_t i = 0; i < tlc.size() - 1; i++ ) {
+    double t = time_offset + tlc[i].second;
+    m_m[tlc[i].first] = ( tlc[i].second - tlc[i+1].second ) / ( tlc[i].first - tlc[i+1].first );
+    m_b[tlc[i].first] = t - m_m[tlc[i].first] * tlc[i].first;
+  }
+}
+
+double TLCTimeInterpolation::operator()( double line ) const {
+  map_type::const_iterator m = m_m.lower_bound( line );
+  map_type::const_iterator b = m_b.lower_bound( line );
+  if ( m != m_m.begin() ) {
+    m--; b--;
+  }
+
+  return line  * m->second + b->second;
 }

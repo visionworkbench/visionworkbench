@@ -18,6 +18,8 @@
 #include <vw/Math/LinearAlgebra.h>
 
 #include <iostream>
+#include <map>
+#include <vector>
 
 namespace vw {
 namespace camera {
@@ -69,10 +71,46 @@ namespace camera {
     /// The call operator evaluates the curve at the given time t.
     /// See the constructor documentation for a summary of the
     /// mathematical operations that are carried out in this function.
-    Vector3 operator()(double t) const {
-      Vector3 T(1, t, t*t);
-      return m_cached_fit * T;
-    }
+    Vector3 operator()(double t) const;
+  };
+
+  // Cubic Hermite Spline interpolation or CSpline. Assumes you
+  // provide the velocity measurements.
+  class HermitePositionInterpolation {
+    std::vector<Vector3> m_position, m_velocity;
+    double m_t0, m_dt;
+  public:
+    HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
+                                  std::vector<Vector3> const& velocity_samples,
+                                  double t0, double dt ) :
+      m_position( position_samples ), m_velocity( velocity_samples ),
+      m_t0(t0), m_dt(dt) {}
+
+    Vector3 operator()( double t ) const;
+  };
+
+  class PiecewiseAPositionInterpolation {
+    std::vector<Vector3> m_position, m_velocity;
+    double m_t0, m_dt;
+  public:
+    PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
+                                     std::vector<Vector3> const& velocity_samples,
+                                     double t0, double dt ) :
+      m_position( position_samples ), m_velocity( velocity_samples ),
+      m_t0(t0), m_dt(dt) {}
+
+    Vector3 operator()( double t ) const;
+  };
+
+  class LinearPiecewisePositionInterpolation {
+    std::vector<Vector3> m_position;
+    double m_t0, m_dt;
+  public:
+    LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
+                                  double t0, double dt ) :
+      m_position( position_samples ), m_t0(t0), m_dt(dt) {}
+
+    Vector3 operator()( double t ) const;
   };
 
 
@@ -106,6 +144,33 @@ namespace camera {
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
 
+  };
+
+  // --------------------------------------------------------------------------
+  // POSE INTERPOLATION
+  // --------------------------------------------------------------------------
+
+  class LinearTimeInterpolation {
+    double m_t0, m_dt;
+
+  public:
+    LinearTimeInterpolation( double initial_time, double time_per_line ) :
+      m_t0( initial_time ), m_dt( time_per_line ) {}
+
+    double operator()( double line ) const;
+  };
+
+  class TLCTimeInterpolation {
+    typedef std::map<double, double> map_type;
+    map_type m_m, m_b; // Tables keyed on line: time = m * line + b;
+
+  public:
+    // TLC is straight from the IMG XML tag from Digital Globe
+    // products. The pairings are expected to be <Line, Time>.
+    TLCTimeInterpolation( std::vector<std::pair<double, double> > const& tlc,
+                          double time_offset = 0 );
+
+    double operator()( double line ) const;
   };
 
 }} // namespace vw::camera
