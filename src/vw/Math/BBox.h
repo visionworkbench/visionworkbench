@@ -545,9 +545,22 @@ namespace math {
 
   /// A helper function to grow a floating-point bounding box
   /// to the smallest enclosing integer bounding box.
-  inline BBox2i grow_bbox_to_int( BBox2 const bbox ) {
-    return BBox2i( Vector2i( (int32)floor(bbox.min().x()), (int32)floor(bbox.min().y()) ),
-                   Vector2i( (int32)ceil(bbox.max().x()), (int32)ceil(bbox.max().y())) );
+  template <class BBoxT1, class RealT1, size_t DimN1>
+  inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
+  grow_bbox_to_int( math::BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
+    BBox<int32,DimN1> result;
+    for ( size_t i = 0; i < DimN1; i++ ) {
+      result.min()[i] = (int32)floor(bbox.min()[i]);
+      result.max()[i] = (int32)floor(bbox.max()[i])+1;
+    }
+    return result;
+  }
+
+  // For BBoxes that are already int, do nothing
+  template <class BBoxT1, class RealT1, size_t DimN1>
+  inline typename boost::enable_if<boost::is_integral<RealT1>,BBox<RealT1,DimN1> >::type
+  grow_bbox_to_int( math::BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
+    return bbox;
   }
 } // namespace vw
 

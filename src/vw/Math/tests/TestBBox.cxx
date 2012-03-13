@@ -5,7 +5,7 @@
 // __END_LICENSE__
 
 
-#include <gtest/gtest_VW.h>
+#include <test/Helpers.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/BBox.h>
 
@@ -375,4 +375,20 @@ TEST(BBox, Math) {
   EXPECT_DOUBLE_EQ( 2, b2.min()[1] );
   EXPECT_DOUBLE_EQ( 3, b2.max()[0] );
   EXPECT_DOUBLE_EQ( 6, b2.max()[1] );
+}
+
+TEST(BBox, GrowBBoxToInt ) {
+  BBox2 input( Vector2(0.2,-1.7),
+               Vector2(0.9,-.2) );
+  BBox2i output = grow_bbox_to_int( input );
+  EXPECT_VECTOR_EQ( Vector2i(0,-2), output.min() );
+  EXPECT_VECTOR_EQ( Vector2i(1,0), output.max() );
+  input.max() = Vector2(2,3);
+  output = grow_bbox_to_int( input );
+  EXPECT_VECTOR_EQ( Vector2i(3,4), output.max() );
+
+  // Verify that the int case does nothing to the data
+  output = grow_bbox_to_int( BBox2i(-1,-2,4,4) );
+  EXPECT_VECTOR_EQ( Vector2i(-1,-2), output.min() );
+  EXPECT_VECTOR_EQ( Vector2i(3,2), output.max() );
 }
