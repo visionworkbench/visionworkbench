@@ -28,13 +28,6 @@ static const double VW_DEFAULT_MAX_TRANSFORM_IMAGE_SIZE = 1e10; // Ten gigapixel
 
 namespace vw {
 
-  /// A helper function to grow a floating-point bounding box
-  /// to the smallest enclosing integer bounding box.
-  inline BBox2i grow_bbox_to_int( BBox2 const bbox ) {
-    return BBox2i( Vector2i( (int32)floor(bbox.min().x()), (int32)floor(bbox.min().y()) ),
-                   Vector2i( (int32)floor(bbox.max().x())+1, (int32)floor(bbox.max().y())+1 ) );
-  }
-
   enum FunctionType {
     ConvexFunction,
     ContinuousFunction,

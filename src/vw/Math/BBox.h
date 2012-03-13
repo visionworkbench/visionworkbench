@@ -543,6 +543,12 @@ namespace math {
   typedef BBox<float32> BBoxNf;
   typedef BBox<int32> BBoxNi;
 
+  /// A helper function to grow a floating-point bounding box
+  /// to the smallest enclosing integer bounding box.
+  inline BBox2i grow_bbox_to_int( BBox2 const bbox ) {
+    return BBox2i( Vector2i( (int32)floor(bbox.min().x()), (int32)floor(bbox.min().y()) ),
+                   Vector2i( (int32)ceil(bbox.max().x()), (int32)ceil(bbox.max().y())) );
+  }
 } // namespace vw
 
 #endif // __VW_MATH_BBOX_H__
