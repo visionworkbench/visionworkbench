@@ -19,11 +19,12 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
-  template <class PreprocFilterT, class ImageT>
-  class SubpixelView : public ImageViewBase<SubpixelView<PreprocFilterT, ImageT> > {
+  template <class PreprocFilterT, class ImageT1, class ImageT2, class ImageTD>
+  class SubpixelView : public ImageViewBase<SubpixelView<PreprocFilterT, ImageT1, ImageT2, ImageTD> > {
 
-    ImageViewRef<PixelMask<Vector2f> > m_disparity_map;
-    ImageT m_left_image, m_right_image;
+    ImageTD m_disparity_map;
+    ImageT1 m_left_image;
+    ImageT2 m_right_image;
 
     // General Settings
     Vector2i m_kernel_size;
@@ -37,18 +38,17 @@ namespace stereo {
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<SubpixelView> pixel_accessor;
 
-    template <class DisparityViewT>
-    SubpixelView(DisparityViewT const& disparity_map,
-                 ImageT const& left_image,
-                 ImageT const& right_image,
+    SubpixelView(ImageViewBase<ImageTD> const& disparity_map,
+                 ImageViewBase<ImageT1> const& left_image,
+                 ImageViewBase<ImageT2> const& right_image,
                  int32 kern_width, int32 kern_height,
                  bool do_horizontal_subpixel,
                  bool do_vertical_subpixel,
                  int32 which_subpixel,
                  PreprocFilterT preproc_filter,
-                 bool verbose) : m_disparity_map(disparity_map),
-                                 m_left_image(left_image),
-                                 m_right_image(right_image),
+                 bool verbose) : m_disparity_map(disparity_map.impl()),
+                                 m_left_image(left_image.impl()),
+                                 m_right_image(right_image.impl()),
                                  m_kernel_size(Vector2i(kern_width,kern_height)),
                                  m_do_h_subpixel(do_horizontal_subpixel),
                                  m_do_v_subpixel(do_vertical_subpixel),
@@ -56,14 +56,14 @@ namespace stereo {
                                  m_preproc_filter(preproc_filter),
                                  m_verbose(verbose) {
       // Basic assertions
-      VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
-                (left_image.impl().rows() == right_image.impl().rows()) &&
-                (disparity_map.impl().cols() == right_image.impl().cols()) &&
-                (disparity_map.impl().cols() == right_image.impl().cols()),
+      VW_ASSERT((m_left_image.cols() == m_right_image.cols()) &&
+                (m_left_image.rows() == m_right_image.rows()) &&
+                (m_disparity_map.cols() == m_right_image.cols()) &&
+                (m_disparity_map.cols() == m_right_image.cols()),
                 ArgumentErr() << "SubpixelView::SubpixelView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
 
-      VW_ASSERT((left_image.channels() == 1) && (left_image.impl().planes() == 1) &&
-                (right_image.channels() == 1) && (right_image.impl().planes() == 1),
+      VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
+                (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
                 ArgumentErr() << "SubpixelView::SubpixelView(): multi-channel, multi-plane images not supported.\n");
     }
 
@@ -84,8 +84,16 @@ namespace stereo {
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i bbox) const {
 
+      // Early exit for no subpixel
+      if ( !m_which_subpixel )
+        return crop(ImageView<pixel_type>(crop(m_disparity_map,bbox)),
+                    BBox2i(-bbox.min()[0],-bbox.min()[1],
+                           m_left_image.cols(), m_left_image.rows()));
+
       // Find the range of disparity values for this patch.
-      BBox2i search_range = get_disparity_range(crop(m_disparity_map, bbox));
+      ImageView<pixel_type > disparity_map_patch =
+        crop(m_disparity_map, bbox);
+      BBox2i search_range = get_disparity_range(disparity_map_patch);
 
       // The area in the right image that we'll be searching is
       // determined by the bbox of the left image plus the search
@@ -115,7 +123,7 @@ namespace stereo {
                                                left_crop_bbox));
       right_image_patch = m_preproc_filter(crop(edge_extend(m_right_image,ZeroEdgeExtension()),
                                                 right_crop_bbox));
-      ImageView<PixelMask<Vector2f> > disparity_map_patch =
+      disparity_map_patch =
         crop(edge_extend(m_disparity_map, ZeroEdgeExtension()),
              left_crop_bbox);
 
@@ -127,7 +135,8 @@ namespace stereo {
       switch (m_which_subpixel){
 
       case 0 : // No Subpixel
-        break;
+        break; // This shouldn't be hit because of early exit
+               // condition above.
       case 1 : // Parabola Subpixel
         subpixel_correlation_parabola(disparity_map_patch,
                                       left_image_patch,
@@ -141,7 +150,7 @@ namespace stereo {
           const int32 pyramid_levels = 2;
           std::vector< ImageView<float> > l_patches, r_patches;
           std::vector<BBox2i> rois;
-          ImageView<PixelMask<Vector2f> > d_subpatch;
+          ImageView<pixel_type > d_subpatch;
 
           // I'd like for image subsampling to use a gaussian when
           // downsampling however it was introducing some edge effects
@@ -179,7 +188,7 @@ namespace stereo {
             else
               crop_bbox = BBox2i(0,0,left_image_patch.cols(),
                                  left_image_patch.rows());
-            ImageView<PixelMask<Vector2f> > d_subpatch_buf =
+            ImageView<pixel_type > d_subpatch_buf =
               crop(disparity_upsample(edge_extend(d_subpatch)), crop_bbox);
             d_subpatch = d_subpatch_buf;
           }
@@ -222,32 +231,32 @@ namespace stereo {
     /// \endcond
   };
 
-  template <class PreprocFilterT, class ImageT, class DisparityT>
-  SubpixelView<PreprocFilterT, ImageT>
+  template <class PreprocFilterT, class ImageT1, class ImageT2, class DisparityT>
+  SubpixelView<PreprocFilterT, ImageT1, ImageT2, DisparityT>
   subpixel_refine( ImageViewBase<DisparityT> const& disparity_map,
-                   ImageViewBase<ImageT> const& left_image,
-                   ImageViewBase<ImageT> const& right_image,
+                   ImageViewBase<ImageT1> const& left_image,
+                   ImageViewBase<ImageT2> const& right_image,
                    int32 kern_width, int32 kern_height,
                    bool do_horizontal, bool do_vertical,
                    int32 which_subpixel, PreprocFilterT const& filter,
                    bool verbose = false ) {
-    typedef SubpixelView<PreprocFilterT,ImageT> result_type;
+    typedef SubpixelView<PreprocFilterT,ImageT1, ImageT2, DisparityT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),
                         right_image.impl(), kern_width, kern_height,
                         do_horizontal, do_vertical, which_subpixel, filter,
                         verbose );
   }
 
-  template <class PreprocFilterT, class ImageT, class DisparityT>
-  SubpixelView<PreprocFilterT, ImageT>
+  template <class PreprocFilterT, class ImageT1, class ImageT2, class DisparityT>
+  SubpixelView<PreprocFilterT, ImageT1, ImageT2, DisparityT>
   subpixel_refine( ImageViewBase<DisparityT> const& disparity_map,
-                   ImageViewBase<ImageT> const& left_image,
-                   ImageViewBase<ImageT> const& right_image,
+                   ImageViewBase<ImageT1> const& left_image,
+                   ImageViewBase<ImageT2> const& right_image,
                    Vector2i const& kernel_size,
                    bool do_horizontal, bool do_vertical,
                    int32 which_subpixel, PreprocFilterT const& filter,
                    bool verbose = false ) {
-    typedef SubpixelView<PreprocFilterT,ImageT> result_type;
+    typedef SubpixelView<PreprocFilterT,ImageT1,ImageT2,DisparityT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),
                         right_image.impl(), kernel_size[0], kernel_size[1],
                         do_horizontal, do_vertical, which_subpixel, filter,
