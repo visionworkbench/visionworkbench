@@ -251,9 +251,9 @@ namespace stereo {
       m_cost_blur(cost_blur),
       m_correlator_type(correlator_type) {}
 
-    template <class ViewT, class PreProcFilterT>
-    ImageView<PixelMask<Vector2f> > operator()(ImageViewBase<ViewT> const& image0,
-                                               ImageViewBase<ViewT> const& image1,
+    template <class View1T, class View2T, class PreProcFilterT>
+    ImageView<PixelMask<Vector2f> > operator()(ImageViewBase<View1T> const& image0,
+                                               ImageViewBase<View2T> const& image1,
                                                PreProcFilterT const& preproc_filter) {
 
       // Check to make sure that image0 and image1 have equal dimensions

@@ -46,8 +46,10 @@ namespace stereo {
     typedef ProceduralPixelAccessor<CorrelatorView> pixel_accessor;
 
     template <class ImageT, class MaskT>
-    CorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
-                   ImageViewBase<MaskT> const& left_mask, ImageViewBase<MaskT> const& right_mask,
+    CorrelatorView(ImageViewBase<ImageT> const& left_image,
+                   ImageViewBase<ImageT> const& right_image,
+                   ImageViewBase<MaskT> const& left_mask,
+                   ImageViewBase<MaskT> const& right_mask,
                    PreProcFuncT const& preproc_func,
                    bool do_pyramid_correlator = true ) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
@@ -152,19 +154,15 @@ namespace stereo {
         left_crop_bbox.max() += m_kernpad;
 
         // Log some helpful debugging info
-        vw_out(DebugMessage, "stereo") << "\t search_range:    "
-                                       << m_search_range << std::endl;
-        vw_out(DebugMessage, "stereo") << "\t left_crop_bbox:  "
-                                       << left_crop_bbox << std::endl;
-        vw_out(DebugMessage, "stereo") << "\t right_crop_bbox: "
+        VW_OUT(DebugMessage, "stereo") << "\t search_range:    "
+                                       << m_search_range << std::endl
+                                       << "\t left_crop_bbox:  "
+                                       << left_crop_bbox << std::endl
+                                       << "\t right_crop_bbox: "
                                        << right_crop_bbox << std::endl;
 
         // We crop the images to the expanded bounding box and edge
         // extend in case the new bbox extends past the image bounds.
-        ImageView<ImagePixelT> cropped_left_image =
-          crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox);
-        ImageView<ImagePixelT> cropped_right_image =
-          crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox);
         ImageView<MaskPixelT> cropped_left_mask =
           crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
         ImageView<MaskPixelT> cropped_right_mask =
@@ -179,9 +177,9 @@ namespace stereo {
           // We have all of the settings adjusted.  Now we just have to
           // run the correlator.
           if ( m_do_pyramid_correlator ) {
-            PyramidCorrelator correlator(BBox2(0,0,m_search_range.width(),
-                                               m_search_range.height()),
-                                         Vector2i(m_kernel_size[0], m_kernel_size[1]),
+            PyramidCorrelator correlator(BBox2i(0,0,m_search_range.width(),
+                                                m_search_range.height()),
+                                         m_kernel_size,
                                          m_cross_corr_threshold, m_corr_score_threshold,
                                          m_cost_blur, m_correlator_type, m_num_pyramid_levels);
 
@@ -194,20 +192,23 @@ namespace stereo {
               correlator.set_debug_mode(m_debug_prefix + ostr.str());
             }
 
-            disparity_map = correlator( cropped_left_image, cropped_right_image,
-                                        cropped_left_mask, cropped_right_mask,
-                                        m_preproc_func);
+            disparity_map =
+              correlator( crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox),
+                          crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox),
+                          cropped_left_mask, cropped_right_mask,
+                          m_preproc_func);
           } else {
-            OptimizedCorrelator correlator(BBox2(0,0,m_search_range.width(),
-                                                 m_search_range.height()),
+            OptimizedCorrelator correlator(BBox2i(0,0,m_search_range.width(),
+                                                  m_search_range.height()),
                                            m_kernel_size[0],
                                            m_cross_corr_threshold, m_corr_score_threshold,
                                            m_cost_blur, m_correlator_type );
-            disparity_map = disparity_mask(correlator( cropped_left_image,
-                                                       cropped_right_image,
-                                                       m_preproc_func ),
-                                           cropped_left_mask,
-                                           cropped_right_mask );
+            disparity_map =
+              disparity_mask(correlator( crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox),
+                                         crop(edge_extend(m_right_image, ZeroEdgeExtension()), right_crop_bbox),
+                                         m_preproc_func ),
+                             cropped_left_mask,
+                             cropped_right_mask );
           }
         } // Ending scope of crops
 
