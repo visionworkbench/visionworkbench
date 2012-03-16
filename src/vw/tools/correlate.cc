@@ -38,7 +38,6 @@ int main( int argc, char *argv[] ) {
     int v_corr_min, v_corr_max;
     int xkernel, ykernel;
     int lrthresh;
-    float corrscore_thresh;
     int cost_blur;
     int correlator_type;
     bool found_alignment = false;
@@ -58,7 +57,6 @@ int main( int argc, char *argv[] ) {
       ("xkernel", po::value(&xkernel)->default_value(15), "Horizontal correlation kernel size")
       ("ykernel", po::value(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value(&lrthresh)->default_value(2), "Left/right correspondence threshold")
-      ("csthresh", po::value(&corrscore_thresh)->default_value(1.0), "Correlation score rejection threshold (1.0 is Off <--> 2.0 is Aggressive outlier rejection")
       ("cost-blur", po::value(&cost_blur)->default_value(1), "Kernel size for bluring the cost image")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
       ("hsubpix", "Enable horizontal sub-pixel correlation")
@@ -143,11 +141,10 @@ int main( int argc, char *argv[] ) {
       else
         disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
     } else if (vm.count("pyramid")) {
-      vw::stereo::PyramidCorrelator correlator( BBox2(Vector2(h_corr_min, v_corr_min),
+      vw::stereo::PyramidCorrelator correlator( BBox2i(Vector2(h_corr_min, v_corr_min),
                                                       Vector2(h_corr_max, v_corr_max)),
                                                 Vector2i(xkernel, ykernel),
                                                 lrthresh,
-                                                corrscore_thresh,
                                                 cost_blur,
                                                 corr_type);
       correlator.set_debug_mode("debug");
@@ -163,7 +160,6 @@ int main( int argc, char *argv[] ) {
                                                          Vector2(h_corr_max, v_corr_max)),
                                                   xkernel,
                                                   lrthresh,
-                                                  corrscore_thresh,
                                                   cost_blur,
                                                   corr_type);
       {

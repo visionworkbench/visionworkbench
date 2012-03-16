@@ -30,7 +30,6 @@ namespace stereo {
     BBox2i m_search_range;
     Vector2i m_kernel_size;
     float m_cross_corr_threshold;
-    float m_corr_score_threshold;
     int32 m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     std::string m_debug_prefix;
@@ -77,7 +76,6 @@ namespace stereo {
         m_search_range = BBox2i(-50,-50,100,100);
         m_kernel_size = Vector2i(24,24);
         m_cross_corr_threshold = 2.0;
-        m_corr_score_threshold = 1.3;
         m_cost_blur = 1;
         m_correlator_type = ABS_DIFF_CORRELATOR;
 
@@ -107,9 +105,6 @@ namespace stereo {
 
       void set_cross_corr_threshold(float threshold) { m_cross_corr_threshold = threshold; }
       float cross_corr_threshold() const { return m_cross_corr_threshold; }
-
-      void set_corr_score_threshold(float threshold) { m_corr_score_threshold = threshold; }
-      float corr_score_threshold() const { return m_corr_score_threshold; }
 
       /// Turn on debugging output.  The debug_file_prefix string is
       /// used as a prefix for all debug image files.
@@ -180,7 +175,7 @@ namespace stereo {
             PyramidCorrelator correlator(BBox2i(0,0,m_search_range.width(),
                                                 m_search_range.height()),
                                          m_kernel_size,
-                                         m_cross_corr_threshold, m_corr_score_threshold,
+                                         m_cross_corr_threshold,
                                          m_cost_blur, m_correlator_type, m_num_pyramid_levels);
 
             // For debugging: this saves the disparity map at various
@@ -201,7 +196,7 @@ namespace stereo {
             OptimizedCorrelator correlator(BBox2i(0,0,m_search_range.width(),
                                                   m_search_range.height()),
                                            m_kernel_size[0],
-                                           m_cross_corr_threshold, m_corr_score_threshold,
+                                           m_cross_corr_threshold,
                                            m_cost_blur, m_correlator_type );
             disparity_map =
               disparity_mask(correlator( crop(edge_extend(m_left_image, ZeroEdgeExtension()), left_crop_bbox),
@@ -243,7 +238,6 @@ namespace stereo {
     os << "\txcorr thresh: " << view.cross_corr_threshold() << "\n";
     os << "\tcost blur: " << view.cost_blur() << "\n";
     os << "\tcorrelator type: " << view.correlator_type() << "\n";
-    os << "\tcorrscore rejection thresh: " << view.corr_score_threshold() << "\n";
     os << "---------------------------------------------------------------\n";
     return os;
   }

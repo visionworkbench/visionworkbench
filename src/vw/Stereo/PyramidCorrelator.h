@@ -23,7 +23,6 @@ namespace stereo {
     BBox2f m_initial_search_range;
     Vector2i m_kernel_size;
     float m_cross_correlation_threshold;
-    float m_corrscore_rejection_threshold;
     int32 m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
     size_t m_pyramid_levels;
@@ -264,7 +263,6 @@ namespace stereo {
                                                      Vector2i(int(floor(search_range.max().x())), int(ceil(search_range.max().y()))) ),
                                               m_kernel_size[0],
                                               m_cross_correlation_threshold,
-                                              m_corrscore_rejection_threshold,
                                               m_cost_blur, m_correlator_type);
       return correlator( left_image.impl(),
                          right_image.impl(),
@@ -280,14 +278,12 @@ namespace stereo {
     PyramidCorrelator(BBox2f const& initial_search_range,
                       Vector2i const& kernel_size,
                       float cross_correlation_threshold = 1,
-                      float corrscore_rejection_threshold = 1.0,
                       int32 cost_blur = 1,
                       stereo::CorrelatorType correlator_type = ABS_DIFF_CORRELATOR,
                       size_t pyramid_levels = 4) :
       m_initial_search_range(initial_search_range),
       m_kernel_size(kernel_size),
       m_cross_correlation_threshold(cross_correlation_threshold),
-      m_corrscore_rejection_threshold(corrscore_rejection_threshold),
       m_cost_blur(cost_blur),
       m_correlator_type(correlator_type),
       m_pyramid_levels(pyramid_levels) {

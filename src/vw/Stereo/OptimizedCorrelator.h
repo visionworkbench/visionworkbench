@@ -231,7 +231,6 @@ namespace stereo {
     BBox2i m_search_window;
     int32 m_kern_size;
     float m_cross_correlation_threshold;
-    float m_corrscore_rejection_threshold;
     int32 m_cost_blur;
     stereo::CorrelatorType m_correlator_type;
 
@@ -241,13 +240,11 @@ namespace stereo {
     OptimizedCorrelator(BBox2i const& search_window,
                         int32 const& kernel_size,
                         float const& cross_correlation_threshold,
-                        float const& corrscore_rejection_threshold,
                         int32 const& cost_blur = 1,
                         stereo::CorrelatorType correlator_type = ABS_DIFF_CORRELATOR ) :
       m_search_window(search_window),
       m_kern_size(kernel_size),
       m_cross_correlation_threshold(cross_correlation_threshold),
-      m_corrscore_rejection_threshold(corrscore_rejection_threshold),
       m_cost_blur(cost_blur),
       m_correlator_type(correlator_type) {}
 
