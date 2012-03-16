@@ -101,8 +101,11 @@ vw::photometry::ReadExposureInfoFile(std::string exposureFilename,
 
 void vw::photometry::SaveExposureInfoToFile(ModelParams modelParams)
 {
+  // Append the current exposure to the file.
+  // This way when we do multiple albedo iterations we keep all the
+  // exposures.
   FILE *fp;
-  fp = fopen((char*)(modelParams.exposureFilename).c_str(), "w");
+  fp = fopen((char*)(modelParams.exposureFilename).c_str(), "a");
   std::cout << "Writing " << modelParams.exposureFilename << std::endl;
   fprintf(fp, "%f\n", modelParams.exposureTime);
   fclose(fp);
@@ -110,15 +113,21 @@ void vw::photometry::SaveExposureInfoToFile(ModelParams modelParams)
 
 void vw::photometry::ReadExposureInfoFromFile(ModelParams *modelParams)
 {
-  FILE *fp;
-  fp = fopen((char*)(modelParams->exposureFilename).c_str(), "r");
+  // Read the latest exposure from the file
+
+  std::ifstream fp((modelParams->exposureFilename).c_str());
   //std::cout << "Reading " << modelParams->exposureFilename << std::endl;
-  if (fp == NULL){
+  if (!fp.is_open()){
     modelParams->exposureTime = 1;
   }
   else{
-    fscanf(fp, "%f\n", &(modelParams->exposureTime));
-    fclose(fp);
+    float val = 0;
+    std::cout << "Reading from: " << modelParams->exposureFilename << std::endl;
+    while( (!fp.eof()) && (fp >> val) ){
+      std::cout << "Read value: " << val << std::endl;
+      modelParams->exposureTime = val;
+    }
+    fp.close();
   }
 }
 

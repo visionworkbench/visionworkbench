@@ -21,6 +21,7 @@ using namespace vw::cartography;
 #include <vw/Photometry/Shape.h>
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Weights.h>
+#include <vw/Photometry/Misc.h>
 using namespace vw::photometry;
 
 float ComputeGradient_DEM(float /*intensity*/, float T,
@@ -216,14 +217,20 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   //std::cout << blankTileFile << " overlaps with: "; 
   for (i = 0; i < (int)overlap.size(); i++){
 
-    // Copy to a float data structure for higher precision.
-    std::string overlapDEM = DEMImages[overlap[i]].path;
-    std::cout << "Reading: " << overlapDEM << std::endl; 
-    ImageView<PixelGray<float> > overlap_DEM_image = copy(DiskImageView<PixelGray<int16> > (overlapDEM));
-    //ImageView<PixelGray<float> > overlap_DEM_image = copy(DiskImageView<PixelGray<float> > (overlapDEM));
-
+    std::string overlapDEMFile = DEMImages[overlap[i]].path;
     GeoReference overlap_DEM_geo;
-    read_georeference(overlap_DEM_geo, overlapDEM);
+
+    Vector2 begTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(0, 0));
+    Vector2 endTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(meanDEMTile.cols()-1, meanDEMTile.rows()-1));
+    ImageView<PixelGray<float> > overlap_DEM_image;
+      
+    // Get just the portion of the DEM image which overlaps with the current tile
+    bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
+      (begTileLonLat, endTileLonLat, overlapDEMFile,  // Inputs
+       overlap_DEM_image, overlap_DEM_geo             // Outputs
+       );
+    if (!success) continue;
+    
     InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >,
                                         ConstantEdgeExtension>, BilinearInterpolation>
       interp_overlap_DEM_image = interpolate(overlap_DEM_image, BilinearInterpolation(), ConstantEdgeExtension());
@@ -251,6 +258,7 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
                overlap_DEM_image( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
                overlap_DEM_image( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
                ){
+            
             if (numSamples(l, k) == 0){
               meanDEMTile(l, k) = (float)interp_overlap_DEM_image(x, y);
             }else{
@@ -261,6 +269,7 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
         }
       }
     }
+    //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   }
 
   for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
@@ -276,7 +285,6 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
                             meanDEMTile,
                             DEMTileGeo, TerminalProgressCallback("{Core}","Processing:"));
 
-  //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
 
 }
 

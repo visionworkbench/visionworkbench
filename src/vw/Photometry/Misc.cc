@@ -34,9 +34,50 @@ using namespace vw::cartography;
 #include <vw/Photometry/Shape.h>
 using namespace vw::photometry;
 
+// Upsample a geo-referenced tiff image. Care is taken to deal properly with invalid pixels.
+void vw::photometry::upsample_uint8_image(std::string output_file, std::string input_file, int upsampleFactor){
+  
+  GeoReference geo;
+  read_georeference(geo, input_file);
+  DiskImageView<PixelMask<PixelGray<uint8> > > img(input_file);
+
+  int cols = (img.cols())*upsampleFactor, rows = (img.rows())*upsampleFactor;
+  ImageView<PixelMask<PixelGray<uint8> > > up_img(cols, rows);
+  
+  InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > >, ConstantEdgeExtension>, BilinearInterpolation>
+    interp_img = interpolate(img, BilinearInterpolation(), ConstantEdgeExtension());
+  
+  for (int x=0; x<cols; ++x){
+    for (int y=0; y<rows; ++y){
+      
+      double xx = (double)x/upsampleFactor;
+      double yy = (double)y/upsampleFactor;
+
+      if ( is_valid(img( floor(xx), floor(yy))) &&
+           is_valid(img( floor(xx), ceil (yy))) &&
+           is_valid(img( ceil (xx), floor(yy))) &&
+           is_valid(img( ceil (xx), ceil (yy)))
+           ){
+        up_img(x, y) = interp_img(xx, yy);
+        up_img(x, y).validate();
+      }else{
+        up_img(x, y) = 0;
+        up_img(x, y).invalidate();
+      }
+    }
+  }
+  
+  Matrix<double> H = geo.transform();
+  H(0,0) /= upsampleFactor;
+  H(1,1) /= upsampleFactor;
+  geo.set_transform(H);
+
+  std::cout << "Writing: " << output_file << std::endl;
+  write_georeferenced_image(output_file, up_img, geo, TerminalProgressCallback("photometry","Processing:"));
+  return;
+}
 
 //upsamples a geo referenced tiff image by four- used in sfs
-
 void upsample_image(std::string output_file, std::string input_file, int upsampleFactor) {
   GeoReference geo;
   read_georeference(geo, input_file);
@@ -336,5 +377,62 @@ std::vector<std::string> parse_command_arguments(int argc, char *argv[] ) {
         return input_files;
 }
 
+void vw::photometry::getTileCornersWithoutPadding(// Inputs
+                                                  int numCols, int numRows,
+                                                  cartography::GeoReference const& geoRef,
+                                                  double tileSize, int pixelPadding,
+                                                  // Outputs
+                                                  double & min_x, double & max_x,
+                                                  double & min_y, double & max_y
+                                                  ){
+  
+  // Given a tile which we know is padded by pixelPadding on each side, find the lon-lat coordinates
+  // of the tile corners without the padding.
+  
+  // The functions applyPaddingToTileCorners() and getTileCornersWithoutPadding() are intimately
+  // related.
+  
+  // The north-west and south-east tile corners
+  Vector2 tile_NW = geoRef.pixel_to_lonlat(Vector2(pixelPadding, pixelPadding));
+  Vector2 tile_SE = geoRef.pixel_to_lonlat(Vector2(numCols - 1 - pixelPadding, numRows - 1 - pixelPadding));
 
+  // Snap to the corners of the tile proper, ignoring the half-pixel discrepancy
+  // which I still need to understand. 
+  min_x = tileSize*round(tile_NW(0)/tileSize);
+  max_x = tileSize*round(tile_SE(0)/tileSize);
+  min_y = tileSize*round(tile_SE(1)/tileSize);
+  max_y = tileSize*round(tile_NW(1)/tileSize);
+  
+  return;
+}
+  
 
+void vw::photometry::applyPaddingToTileCorners(// Inputs
+                                               cartography::GeoReference const& geoRef,
+                                               int pixelPadding,
+                                               double min_x, double max_x,
+                                               double min_y, double max_y,
+                                               // Outputs
+                                               double & min_x_padded, double & max_x_padded,
+                                               double & min_y_padded, double & max_y_padded){
+  
+  // Given a tile, put a padding of pixelPadding pixels on each side. Return the lon-lat
+  // coordinates of the obtained tile.
+  
+  // The functions applyPaddingToTileCorners() and getTileCornersWithoutPadding() are intimately
+  // related.
+  
+  // Upper left corner lon lat
+  Vector2 A = Vector2(min_x, max_y);
+  
+  // Right and down by pixelPadding
+  Vector2 B = geoRef.pixel_to_lonlat(geoRef.lonlat_to_pixel(A) + Vector2(pixelPadding, pixelPadding));
+  Vector2 D = B - A;
+  
+  // Careful with the signs below.
+  min_x_padded = min_x - D(0); max_x_padded = max_x + D(0);
+  min_y_padded = min_y + D(1); max_y_padded = max_y - D(1);
+
+  return;
+}
+  

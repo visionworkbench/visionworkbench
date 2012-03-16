@@ -67,9 +67,13 @@ namespace photometry {
                              ImageView<PixelMask<PixelGray<float> > >& outputReflectance);
 
   
-  float computeAvgReflectanceOverTiles(double tileSize, std::vector<ImageRecord> & DEMTiles,
-                                       std::vector<int> & overlap, ModelParams input_img_params,
-                                       GlobalParams globalParams);
+  float computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
+                                                       int pixelPadding, double tileSize,
+                                                       std::vector<ImageRecord> & DEMTiles,
+                                                       std::vector<ImageRecord> & albedoTiles,
+                                                       std::vector<int> & overlap,
+                                                       ModelParams input_img_params,
+                                                       GlobalParams globalParams);
   
   float computeImageReflectanceNoWrite(ModelParams input_img_params,
                                        GlobalParams globalParams,

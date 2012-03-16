@@ -16,6 +16,13 @@
 namespace vw {
 namespace photometry {
 
+  void ComputeImageCenterLines(std::string input_img_file,
+                               int **r_hMaxDistArray,
+                               int **r_hCenterLine,
+                               int **r_vMaxDistArray,
+                               int **r_vCenterLine
+                               );
+  
   int* ComputeImageHCenterLine(std::string input_img_file,
                               int **r_hMaxDistArray);
   int* ComputeDEMHCenterLine(std::string input_DEM_file, int noDataDEMVal,

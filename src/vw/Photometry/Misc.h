@@ -20,7 +20,10 @@
 #include <vw/Photometry/Reconstruct.h>
 
 namespace vw {
-namespace photometry {
+  namespace photometry {
+
+    void upsample_uint8_image(std::string output_file, std::string input_file, int upsampleFactor);
+    
   //upsamples a DEM by an upsampleFactor
   void upsample_image(std::string output_file, std::string input_file, int upsampleFactor);
 
@@ -78,7 +81,97 @@ namespace photometry {
 
   std::vector<std::string> parse_command_arguments(int argc, char *argv[] );
 
+  void getTileCornersWithoutPadding(// Inputs
+                                    int numCols, int numRows,
+                                    cartography::GeoReference const& geoRef,
+                                    double tileSize, int pixelPadding,
+                                    // Outputs
+                                    double & min_x, double & max_x,
+                                    double & min_y, double & max_y
+                                    );
+  
+  void applyPaddingToTileCorners(// Inputs
+                                 cartography::GeoReference const& geoRef,
+                                 int pixelPadding,
+                                 double min_x, double max_x,
+                                 double min_y, double max_y,
+                                 // Outputs
+                                 double & min_x_padded, double & max_x_padded,
+                                 double & min_y_padded, double & max_y_padded);
 
+  template <class pixelInType, class pixelOutType>
+  bool getSubImageWithMargin(// Inputs
+                             Vector2 begLonLat, Vector2 endLonLat,
+                             std::string imageFile,
+                             // Outputs
+                             ImageView<pixelOutType>   & subImage,
+                             cartography::GeoReference & sub_geo){
+    
+    // Read from disk only the portion of image whose pixel lon lat
+    // values are in between begLonLat and endLonLat.  Adjust the
+    // georeference accordingly. This is necessary to save on memory
+    // for large images.
+    
+    // IMPORTANT: We assume that the input image is of pixelInType, and
+    // we will convert the portion we read into pixelOutType.  Also we
+    // read a few more pixels on each side, to help later with
+    // interpolation.
+  
+    int extra = 2;
+    DiskImageView<pixelInType> input_img(imageFile);
+    std::cout << "Reading: " << imageFile << std::endl;
+    
+    cartography::GeoReference input_geo;
+    read_georeference(input_geo, imageFile);
+
+    Vector2 begPix = input_geo.lonlat_to_pixel(begLonLat);
+    Vector2 endPix = input_geo.lonlat_to_pixel(endLonLat);
+
+    int beg_col = std::max(0,                (int)floor(begPix(0)) - extra);
+    int end_col = std::min(input_img.cols(), (int)ceil(endPix(0))  + extra);
+    int beg_row = std::max(0,                (int)floor(begPix(1)) - extra);
+    int end_row = std::min(input_img.rows(), (int)ceil(endPix(1))  + extra);
+  
+    if (beg_col >= end_col || beg_row >= end_row) return false;
+  
+    subImage.set_size(end_col - beg_col, end_row - beg_row);
+    for (int col = beg_col; col < end_col; col++){
+      for (int row = beg_row; row < end_row; row++){
+        // Not the pixelInType to pixelOutType conversion below
+        subImage(col - beg_col, row - beg_row) = input_img(col, row); 
+      }
+    }
+  
+    sub_geo = input_geo;
+    Matrix3x3 T = sub_geo.transform();
+    Vector2 oldCorner = input_geo.pixel_to_lonlat(Vector2(0, 0));
+    Vector2 newCorner = input_geo.pixel_to_lonlat(Vector2(beg_col, beg_row));
+    T(0,2) += newCorner(0) - oldCorner(0);
+    T(1,2) += newCorner(1) - oldCorner(1);
+    sub_geo.set_transform(T);
+
+    //system("echo getSubImageWithMargin top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+  
+    return true;
+  }
+
+  template<class T>
+  void dumpImageToFile(T & img, std::string fileName){
+    
+    printf("dumping %s\n", fileName.c_str());
+    
+    std::ofstream fs(fileName.c_str());
+    fs.precision(20);
+    
+    for (int k = 0 ; k < img.rows(); ++k) {
+      for (int l = 0; l < img.cols(); ++l) {
+        fs << (double)img(l, k) << " ";
+      }
+      fs << std::endl;
+    }
+    fs.close();
+  }
+    
 }} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_MISC_H__

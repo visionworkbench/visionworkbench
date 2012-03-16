@@ -120,6 +120,97 @@ float ComputeWeights(Vector2 pix, Vector2 C, float maxDistance)
 }
 */
 
+void vw::photometry::ComputeImageCenterLines(std::string input_img_file,
+                                             int **r_hMaxDistArray,
+                                             int **r_hCenterLine,
+                                             int **r_vMaxDistArray,
+                                             int **r_vCenterLine
+                                             ){
+
+  // Compute the center of the image.
+  
+  // A re-implementation of ComputeImageHCenterLine and ComputeImageVCenterLine
+  // which is more efficient and uses less memory since it does only one
+  // pass through the image.
+  
+  printf("file=%s\n",input_img_file.c_str());
+  
+  // *r_hCenterLine = ComputeImageHCenterLine(input_img_file, r_hMaxDistArray);
+  // *r_vCenterLine = ComputeImageVCenterLine(input_img_file, r_vMaxDistArray);
+  
+  DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
+  int numRows = input_img.rows();
+  int numCols = input_img.cols();
+
+  // Arrays to be returned out of this function
+  int *hCenterLine   = new int [numRows];
+  int *hMaxDistArray = new int [numRows];
+  int *vCenterLine   = new int [numCols];
+  int *vMaxDistArray = new int [numCols];
+
+  // Temporary arrays
+  int *minValInRow = new int[numRows];
+  int *maxValInRow = new int[numRows];
+  int *minValInCol = new int[numCols];
+  int *maxValInCol = new int[numCols];
+
+  for (int k = 0; k < numRows; k++){
+    minValInRow[k] = numCols;
+    maxValInRow[k] = 0;
+  }
+  for (int l = 0; l < numCols; l++){
+    minValInCol[l] = numRows;
+    maxValInCol[l] = 0;
+  }
+    
+  for (int k = 0 ; k < numRows; ++k) {
+    for (int l = 0; l < numCols; ++l) {
+
+      if ( !is_valid(input_img(l,k)) ) continue;
+            
+      if (l < minValInRow[k]) minValInRow[k] = l;
+      if (l > maxValInRow[k]) maxValInRow[k] = l;
+      
+      if (k < minValInCol[l]) minValInCol[l] = k;
+      if (k > maxValInCol[l]) maxValInCol[l] = k;
+      
+    }
+  }
+    
+  for (int k = 0 ; k < numRows; ++k) {
+    hCenterLine   [k] = (minValInRow[k] + maxValInRow[k])/2;
+    hMaxDistArray [k] =  maxValInRow[k] - minValInRow[k];
+    if (hMaxDistArray[k] < 0){
+      hMaxDistArray[k]=0;
+    }
+    //printf("cl[%d] = %d, maxDist[%d] = %d\n", k, hCenterLine[k], k, hMaxDistArray[k]);
+  }
+
+  for (int l = 0 ; l < numCols; ++l) {
+    vCenterLine   [l] = (minValInCol[l] + maxValInCol[l])/2;
+    vMaxDistArray [l] =  maxValInCol[l] - minValInCol[l];
+    if (vMaxDistArray[l] < 0){
+      vMaxDistArray[l]=0;
+    }
+    //printf("cl[%d] = %d, maxDist[%d] = %d\n", l, vCenterLine[l], l, vMaxDistArray[l]);
+  }
+
+    
+  *r_hMaxDistArray = hMaxDistArray;
+  *r_hCenterLine   = hCenterLine;
+  *r_vMaxDistArray = vMaxDistArray;
+  *r_vCenterLine   = vCenterLine;
+
+  delete [] minValInRow;
+  delete [] maxValInRow;
+  delete [] minValInCol;
+  delete [] maxValInCol;
+    
+  //system("echo Weight top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+    
+  return;
+}
+
 int*
 vw::photometry::ComputeImageHCenterLine(std::string input_img_file,
                                        int **r_hMaxDistArray) {
@@ -188,7 +279,7 @@ vw::photometry::ComputeImageVCenterLine(std::string input_img_file,
 
     //initialize  output_img, and numSamples
     for (k = 0 ; k < (int)input_img.cols(); ++k) {
-
+      
         minVal = input_img.rows();
         maxVal = 0;
         for (l = 0; l < (int)input_img.rows(); ++l) {

@@ -32,6 +32,7 @@ using namespace vw::cartography;
 #include <vw/Photometry/Exposure.h>
 #include <vw/Photometry/Reconstruct.h>
 #include <vw/Photometry/Misc.h>
+#include <vw/Photometry/Weights.h>
 using namespace vw::photometry;
 
 //generates the normal of a point p1 from the 3D coordinates of p1, p2, p3
@@ -366,7 +367,7 @@ void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > con
                                                 ImageView<Vector3> & surface_normal){
 
   int nodata = globalParams.noDEMDataValue;
-
+ 
   // convert dem altitude to xyz cartesian pixels
   dem_xyz = geodetic_to_cartesian( dem_to_geodetic( DEMTile, DEMGeo ),
                                    DEMGeo.datum() );
@@ -530,18 +531,26 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
   return avg_reflectance;
 }
 
-float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
-                                                     std::vector<ImageRecord> & DEMTiles,
-                                                     std::vector<int> & overlap, ModelParams input_img_params,
-                                                     GlobalParams globalParams){
+float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
+                                                                     int pixelPadding, double tileSize,
+                                                                     std::vector<ImageRecord> & DEMTiles,
+                                                                     std::vector<ImageRecord> & albedoTiles,
+                                                                     std::vector<int> & overlap,
+                                                                     ModelParams input_img_params,
+                                                                     GlobalParams globalParams){
 
-  // Compute the average reflectance of the current image.  For that,
-  // we will iterate over all tiles overlapping with the image, and
-  // accumulate the results.
+  // Compute the average reflectance of the current image, or update
+  // the exposure of that image. Both of these operations use very similar
+  // logic. Namely, we will iterate over all tiles overlapping with
+  // the image, and accumulate the results.
   
   // We will keep in mind that the tiles partially overlap, so when we
   // accumulate the results we will ignore the padded region of the
   // tile (of size pixelPadding).
+
+  // Use double precision for the intermediate computations, even though
+  // the input and output are float, as the float type is not precise
+  // enough when accumulating a lot of numbers.
   
   std::string input_img_file = input_img_params.inputFilename;
   DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
@@ -551,9 +560,19 @@ float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
   //std::string shadow_file = input_img_params.shadowFilename;
   //DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
 
+  if (globalParams.useWeights != 0 && (!compAvgRefl)){
+    // Read the weights only if we update the exposure
+    bool useTiles = true;
+    ReadWeightsParamsFromFile(useTiles, &input_img_params);
+  }
+  
+  // Quantities needed for computing reflectance
   int count = 0;
   double reflectance_sum = 0.0;
 
+  // Quantities needed for updating the exposure
+  double numerator = 0.0, denominator = 0.0;
+  
   // Iterate over the DEM tiles
   for (int i = 0; i < (int)overlap.size(); i++){
 
@@ -577,20 +596,33 @@ float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
       interp_reflectance = interpolate(Reflectance,
                                        BilinearInterpolation(), ConstantEdgeExtension());
 
-    Vector2 beg_tile_lonlat = DEMGeo.pixel_to_lonlat(Vector2(0, 0));
-    Vector2 end_tile_lonlat = DEMGeo.pixel_to_lonlat(Vector2(Reflectance.cols() - 1, Reflectance.rows() - 1));
+    ImageView<PixelMask<PixelGray<double> > > albedoTile;
+    if (!compAvgRefl){
+      // To update exposure need the current albedo
+      std::string albedoTileFile = albedoTiles[overlap[i]].path;
+      std::cout << "Reading " << albedoTileFile << std::endl;
+      albedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
+    }
+    InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<double> > >, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_albedo = interpolate(albedoTile,
+                                  BilinearInterpolation(), ConstantEdgeExtension());
+    
 
-    // Snap to the corners of the tile proper, thus ignoring the
-    // padded region of the tile. We assume that the padding is small
-    // compared to the tile size.
-    double beg_tile_x = tileSize*round(beg_tile_lonlat(0)/tileSize);
-    double beg_tile_y = tileSize*round(beg_tile_lonlat(1)/tileSize);
-    double end_tile_x = tileSize*round(end_tile_lonlat(0)/tileSize);
-    double end_tile_y = tileSize*round(end_tile_lonlat(1)/tileSize);
-
+    // We need to keep in mind that the tile is padded with pixelPadding pixels on each side.
+    // To avoid double counting pixels, skip them if they are part of the padding and not
+    // of the tile proper.
+    double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
+    getTileCornersWithoutPadding(// Inputs
+                                 Reflectance.cols(), Reflectance.rows(), DEMGeo,  
+                                 tileSize, pixelPadding,  
+                                 // Outputs
+                                 min_tile_x, max_tile_x,  
+                                 min_tile_y, max_tile_y
+                                 );
+    
     // Iterate only over the portion of the image intersecting the DEM tile
-    Vector2 beg_pixel = input_img_geo.lonlat_to_pixel(Vector2(beg_tile_x, beg_tile_y));
-    Vector2 end_pixel = input_img_geo.lonlat_to_pixel(Vector2(end_tile_x, end_tile_y));
+    Vector2 beg_pixel = input_img_geo.lonlat_to_pixel(Vector2(min_tile_x, max_tile_y));
+    Vector2 end_pixel = input_img_geo.lonlat_to_pixel(Vector2(max_tile_x, min_tile_y));
     int beg_row = std::max(0,                (int)floor(beg_pixel(1)));
     int end_row = std::min(input_img.rows(), (int)ceil(end_pixel(1)));
     int beg_col = std::max(0,                (int)floor(beg_pixel(0)));
@@ -600,27 +632,38 @@ float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
 
         Vector2 input_img_pix(l,k);
 
-        Vector2 reflectance_lonlat = input_img_geo.pixel_to_lonlat(input_img_pix);
-        double rx = reflectance_lonlat(0), ry = reflectance_lonlat(1);
-        // Note that beg_tile_x < end_tile_x BUT end_tile_y < beg_tile_y.
-        bool isInTile = (beg_tile_x <= rx && rx < end_tile_x && end_tile_y <= ry && ry < beg_tile_y);
+        Vector2 lonlat = input_img_geo.pixel_to_lonlat(input_img_pix);
+        double lx = lonlat(0), ly = lonlat(1);
+        bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
         if (!isInTile) continue;
 
         //check for valid DEM coordinates
-        Vector2 reflectance_pix = DEMGeo.lonlat_to_pixel(reflectance_lonlat);
-        float x = reflectance_pix[0];
-        float y = reflectance_pix[1];
-        float t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
-        if ( is_valid(input_img(l, k)) && ( (float)input_img(l, k) >= t) ) {
+        Vector2 reflectance_pix = DEMGeo.lonlat_to_pixel(lonlat);
+        double x = reflectance_pix[0];
+        double y = reflectance_pix[1];
+        double t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
+        if ( is_valid(input_img(l, k)) && ( (double)input_img(l, k) >= t) ) {
           if ( (x>=0) && (x <= Reflectance.cols()-1) && (y>=0) && (y<= Reflectance.rows()-1)){
             // Check that all four grid points used for interpolation are valid
-            if ( is_valid(Reflectance( floor(x), floor(y))) && (float)Reflectance( floor(x), floor(y) ) != 0 &&
-                 is_valid(Reflectance( floor(x), ceil (y))) && (float)Reflectance( floor(x), ceil(y)  ) != 0 &&
-                 is_valid(Reflectance( ceil (x), floor(y))) && (float)Reflectance( ceil (x), floor(y) ) != 0 &&
-                 is_valid(Reflectance( ceil (x), ceil (y))) && (float)Reflectance( ceil (x), ceil(y)  ) != 0
+            if ( is_valid(Reflectance( floor(x), floor(y))) && (double)Reflectance( floor(x), floor(y) ) != 0 &&
+                 is_valid(Reflectance( floor(x), ceil (y))) && (double)Reflectance( floor(x), ceil(y)  ) != 0 &&
+                 is_valid(Reflectance( ceil (x), floor(y))) && (double)Reflectance( ceil (x), floor(y) ) != 0 &&
+                 is_valid(Reflectance( ceil (x), ceil (y))) && (double)Reflectance( ceil (x), ceil(y)  ) != 0
                  ){
-              reflectance_sum += interp_reflectance(x, y);
-              count++;
+              double R = interp_reflectance(x, y);
+
+              if (compAvgRefl){
+                reflectance_sum += R;
+                count++;
+              }else{
+                // Update the exposure
+                // We assume that the DEM, reflectance, and albedo are on the same grid
+                double weight = ComputeLineWeightsHV(input_img_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
+                double A  = interp_albedo(x, y); // we assume albedo, reflectance, and DEM are on the same grid
+                double RA = R*A;
+                numerator   += ((double)input_img(l, k) - input_img_params.exposureTime*RA)*RA*weight;
+                denominator += RA*RA*weight;
+              }
             }
           }
         }
@@ -628,11 +671,20 @@ float vw::photometry::computeAvgReflectanceOverTiles(double tileSize,
     }
     //system("echo reflectance top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   }
-  
-  float avg_reflectance = (float)(reflectance_sum/count);
 
-  printf("avg_reflectance = %f\n", avg_reflectance);
-  return avg_reflectance;
+  if (compAvgRefl){
+    // Compute the average reflectance
+    double avg_reflectance = reflectance_sum/count;
+    printf("avg_reflectance = %f\n", avg_reflectance);
+    return avg_reflectance;
+  }else{
+    // Update the exposure
+    double exposure = input_img_params.exposureTime + numerator/denominator;
+    printf("updated exposure is = %f\n", exposure);
+    return exposure;
+  }
+
+  return 0;
 }
 
 //computes a reflectance image
