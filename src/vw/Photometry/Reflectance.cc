@@ -368,8 +368,9 @@ void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > con
   int nodata = globalParams.noDEMDataValue;
 
   // convert dem altitude to xyz cartesian pixels
-  dem_xyz = dem_to_point_cloud(DEMTile, DEMGeo);
-  
+  dem_xyz = geodetic_to_cartesian( dem_to_geodetic( DEMTile, DEMGeo ),
+                                   DEMGeo.datum() );
+
   // transfer nodata values
   for (int y=0; y < (int)dem_xyz.rows(); y++) {
     for (int x=0; x < (int)dem_xyz.cols(); x++) {
