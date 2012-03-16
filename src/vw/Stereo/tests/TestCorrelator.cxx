@@ -30,24 +30,6 @@ protected:
     fill(mask,PixelMask<uint8>(255));
   }
 
-  template <class ViewT, class MViewT, class PreProcT>
-  CorrelatorView<typename ViewT::pixel_type,
-                 typename MViewT::pixel_type,
-                 PreProcT>
-  correlate( ImageViewBase<ViewT> const& input1,
-             ImageViewBase<ViewT> const& input2,
-             ImageViewBase<MViewT> const& mask,
-             PreProcT const& proc,
-             stereo::CorrelatorType type = stereo::ABS_DIFF_CORRELATOR ) {
-    typedef typename ViewT::pixel_type pixel_type;
-    typedef typename MViewT::pixel_type mask_type;
-    CorrelatorView<pixel_type,mask_type,PreProcT> corr( input1, input2, mask, mask, proc, false );
-    corr.set_search_range( BBox2i(0,0,6,6) );
-    corr.set_kernel_size(  Vector2i(7,7)   );
-    corr.set_correlator_options( 1, type );
-    return corr;
-  }
-
   template <class ViewT>
   void check_error( ImageViewBase<ViewT> const& input,
                     float success = 0.9 ) {
@@ -72,18 +54,21 @@ TEST_F( BasicCorrelationTest, NullPreprocess ) {
   typedef NullStereoPreprocessingFilter FilterT;
 
   ImageView<PixelMask<Vector2f> > disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::ABS_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::ABS_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.95 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::SQR_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::SQR_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.93 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::NORM_XCORR_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::NORM_XCORR_CORRELATOR, 1, false );
   check_error( disparity_map, 0.95 );
 }
 
@@ -91,18 +76,21 @@ TEST_F( BasicCorrelationTest, SlogPreprocess ) {
   typedef SlogStereoPreprocessingFilter FilterT;
 
   ImageView<PixelMask<Vector2f> > disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::ABS_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::ABS_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.84 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::SQR_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::SQR_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.84 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::NORM_XCORR_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::NORM_XCORR_CORRELATOR, 1, false );
   check_error( disparity_map, 0.915 );
 }
 
@@ -110,18 +98,21 @@ TEST_F( BasicCorrelationTest, LogPreprocess ) {
   typedef LogStereoPreprocessingFilter FilterT;
 
   ImageView<PixelMask<Vector2f> > disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::ABS_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::ABS_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.85 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::SQR_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::SQR_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.81 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::NORM_XCORR_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::NORM_XCORR_CORRELATOR, 1, false );
   check_error( disparity_map, 0.89 );
 }
 
@@ -129,17 +120,20 @@ TEST_F( BasicCorrelationTest, BlurPreprocess ) {
   typedef BlurStereoPreprocessingFilter FilterT;
 
   ImageView<PixelMask<Vector2f> > disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::ABS_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::ABS_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.79 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::SQR_DIFF_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::SQR_DIFF_CORRELATOR, 1, false );
   check_error( disparity_map, 0.75 );
 
   disparity_map =
-    correlate( image1, image2, mask, FilterT(),
-               stereo::NORM_XCORR_CORRELATOR );
+    correlate( image1, image2, mask, mask, FilterT(),
+               BBox2i(0,0,6,6), Vector2i(7,7),
+               stereo::NORM_XCORR_CORRELATOR, 1, false );
   check_error( disparity_map, 0.79 );
 }

@@ -19,11 +19,13 @@ namespace vw {
 namespace stereo {
 
   /// An image view for performing image correlation
-  template <class ImagePixelT, class MaskPixelT, class PreProcFuncT>
-  class CorrelatorView : public ImageViewBase<CorrelatorView<ImagePixelT, MaskPixelT, PreProcFuncT> > {
+  template <class Image1T, class Image2T, class Mask1T, class Mask2T, class PreProcFuncT>
+  class CorrelatorView : public ImageViewBase<CorrelatorView<Image1T,Image2T,Mask1T,Mask2T,PreProcFuncT> > {
 
-    ImageViewRef<ImagePixelT> m_left_image, m_right_image;
-    ImageViewRef<MaskPixelT> m_left_mask, m_right_mask;
+    Image1T m_left_image;
+    Image2T m_right_image;
+    Mask1T m_left_mask;
+    Mask2T m_right_mask;
     PreProcFuncT m_preproc_func;
 
     // Settings
@@ -44,11 +46,10 @@ namespace stereo {
     typedef pixel_type result_type;
     typedef ProceduralPixelAccessor<CorrelatorView> pixel_accessor;
 
-    template <class ImageT, class MaskT>
-    CorrelatorView(ImageViewBase<ImageT> const& left_image,
-                   ImageViewBase<ImageT> const& right_image,
-                   ImageViewBase<MaskT> const& left_mask,
-                   ImageViewBase<MaskT> const& right_mask,
+    CorrelatorView(ImageViewBase<Image1T> const& left_image,
+                   ImageViewBase<Image2T> const& right_image,
+                   ImageViewBase<Mask1T> const& left_mask,
+                   ImageViewBase<Mask2T> const& right_mask,
                    PreProcFuncT const& preproc_func,
                    bool do_pyramid_correlator = true ) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
@@ -56,25 +57,25 @@ namespace stereo {
       m_preproc_func(preproc_func), m_do_pyramid_correlator(do_pyramid_correlator) {
 
         // Basic assertions
-        VW_ASSERT((left_image.impl().cols() == right_image.impl().cols()) &&
-                  (left_image.impl().rows() == right_image.impl().rows()),
+        VW_ASSERT((m_left_image.cols() == m_right_image.cols()) &&
+                  (m_left_image.rows() == m_right_image.rows()),
                   ArgumentErr() << "CorrelatorView::CorrelatorView(): input image dimensions do not agree.\n");
 
-        VW_ASSERT((left_image.impl().cols() == left_mask.impl().cols()) &&
-                  (left_image.impl().rows() == left_mask.impl().rows()),
+        VW_ASSERT((m_left_image.cols() == m_left_mask.cols()) &&
+                  (m_left_image.rows() == m_left_mask.rows()),
                   ArgumentErr() << "CorrelatorView::CorrelatorView(): input image and mask image dimensions do not agree.\n");
 
-        VW_ASSERT((left_image.impl().cols() == right_mask.impl().cols()) &&
-                  (left_image.impl().rows() == right_mask.impl().rows()),
+        VW_ASSERT((m_left_image.cols() == m_right_mask.cols()) &&
+                  (m_left_image.rows() == m_right_mask.rows()),
                   ArgumentErr() << "CorrelatorView::CorrelatorView(): input image and mask image dimensions do not agree.\n");
 
-        VW_ASSERT((left_image.channels() == 1) && (left_image.impl().planes() == 1) &&
-                  (right_image.channels() == 1) && (right_image.impl().planes() == 1),
+        VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
+                  (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
                   ArgumentErr() << "CorrelatorView::CorrelatorView(): multi-channel, multi-plane images not supported.\n");
 
         // Set some sensible default values
         m_search_range = BBox2i(-50,-50,100,100);
-        m_kernel_size = Vector2i(24,24);
+        m_kernel_size = Vector2i(23,23);
         m_cross_corr_threshold = 2.0;
         m_cost_blur = 1;
         m_correlator_type = ABS_DIFF_CORRELATOR;
@@ -87,10 +88,10 @@ namespace stereo {
       }
 
       // Basic accessor functions
-      void set_search_range(BBox2i range) { m_search_range = range; }
+      void set_search_range(BBox2i const& range) { m_search_range = range; }
       BBox2i search_range() const { return m_search_range; }
 
-      void set_kernel_size(Vector2i size) {
+      void set_kernel_size(Vector2i const& size) {
         m_kernel_size = size;
         m_kernpad = m_kernel_size*pow(2,m_num_pyramid_levels-1)/2;
       }
@@ -124,7 +125,7 @@ namespace stereo {
 
       /// \cond INTERNAL
       typedef CropView<ImageView<pixel_type> > prerasterize_type;
-      inline prerasterize_type prerasterize(BBox2i bbox) const {
+      inline prerasterize_type prerasterize(BBox2i const& bbox) const {
         vw_out(DebugMessage, "stereo") << "CorrelatorView: rasterizing image block " << bbox << ".\n";
 
         // The area in the right image that we'll be searching is
@@ -158,9 +159,9 @@ namespace stereo {
 
         // We crop the images to the expanded bounding box and edge
         // extend in case the new bbox extends past the image bounds.
-        ImageView<MaskPixelT> cropped_left_mask =
+        ImageView<typename Mask1T::pixel_type> cropped_left_mask =
           crop(edge_extend(m_left_mask, ZeroEdgeExtension()), left_crop_bbox);
-        ImageView<MaskPixelT> cropped_right_mask =
+        ImageView<typename Mask2T::pixel_type> cropped_right_mask =
           crop(edge_extend(m_right_mask, ZeroEdgeExtension()), right_crop_bbox);
 
         // The result that we return
@@ -223,15 +224,39 @@ namespace stereo {
       }
 
       template <class DestT>
-      inline void rasterize(DestT const& dest, BBox2i bbox) const {
+      inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
         vw::rasterize(prerasterize(bbox), dest, bbox);
       }
       /// \endcond
   };
 
+  /// Helper function so one doesn't have to type the expanded type
+  template <class View1T, class View2T, class Mask1T, class Mask2T, class PreProcT>
+  CorrelatorView<View1T,View2T,Mask1T,Mask2T,PreProcT>
+  correlate( ImageViewBase<View1T> const& left_image,
+             ImageViewBase<View2T> const& right_image,
+             ImageViewBase<Mask1T> const& left_mask,
+             ImageViewBase<Mask2T> const& right_mask,
+             PreProcT const& preproc_func,
+             BBox2i const& search_range = BBox2i(-50,-50,100,100),
+             Vector2i const& kernel = Vector2i(23,23),
+             stereo::CorrelatorType correlator_type = stereo::ABS_DIFF_CORRELATOR,
+             int32 cost_blur = 1,
+             bool do_pyramid_correlator = true ) {
+    typedef CorrelatorView<View1T,View2T,Mask1T,Mask2T,PreProcT> result_type;
+    result_type result( left_image.impl(), right_image.impl(),
+                        left_mask.impl(), right_mask.impl(),
+                        preproc_func, do_pyramid_correlator );
+    result.set_search_range( search_range );
+    result.set_kernel_size( kernel );
+    result.set_correlator_options(cost_blur, correlator_type);
+    return result;
+  }
+
+
   /// Summarize a CorrelatorView object
-  template <class ImagePixelT, class MaskPixelT, class PreProcFuncT>
-  std::ostream& operator<<( std::ostream& os, CorrelatorView<ImagePixelT,MaskPixelT,PreProcFuncT> const& view ) {
+  template <class Image1T, class Image2T, class Mask1T, class Mask2T, class PreProcFuncT>
+  std::ostream& operator<<( std::ostream& os, CorrelatorView<Image1T,Image2T,Mask1T,Mask2T,PreProcFuncT> const& view ) {
     os << "------------------------- CorrelatorView ----------------------\n";
     os << "\tsearch range: " << view.search_range() << "\n";
     os << "\tkernel size : " << view.kernel_size() << "\n";
