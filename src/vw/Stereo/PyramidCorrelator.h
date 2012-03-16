@@ -92,10 +92,10 @@ namespace stereo {
     // matching using a pyramid based approach.
     template <class ChannelT, class PreProcFilterT>
     ImageView<PixelDisp>
-    do_correlation(std::vector<ImageView<ChannelT> > left_pyramid,
-                   std::vector<ImageView<ChannelT> > right_pyramid,
-                   std::vector<ImageView<uint8> > left_masks,
-                   std::vector<ImageView<uint8> > right_masks,
+    do_correlation(std::vector<ImageView<ChannelT> > const& left_pyramid,
+                   std::vector<ImageView<ChannelT> > const& right_pyramid,
+                   std::vector<ImageView<uint8> > const& left_masks,
+                   std::vector<ImageView<uint8> > const& right_masks,
                    PreProcFilterT const& preproc_filter) {
 
       std::vector<uint8> x_kern(m_kernel_size.x()),
@@ -188,14 +188,14 @@ namespace stereo {
 
           // Place this block in the proper place in the complete
           // disparity map.
-          ImageViewRef<ChannelT> block1 =
-            crop(edge_extend(left_pyramid[n],ReflectEdgeExtension()),left_block);
-          ImageViewRef<ChannelT> block2 =
-            crop(edge_extend(right_pyramid[n],ReflectEdgeExtension()),right_block);
           ImageView<PixelDisp> disparity_block =
-            this->correlate( block1, block2, adjusted_search_range,
-                             Vector2f(h_disp_offset, v_disp_offset),
-                             preproc_filter );
+            correlate( crop(edge_extend(left_pyramid[n],ReflectEdgeExtension()),
+                            left_block),
+                       crop(edge_extend(right_pyramid[n],ReflectEdgeExtension()),
+                            right_block),
+                       adjusted_search_range,
+                       Vector2f(h_disp_offset, v_disp_offset),
+                       preproc_filter );
 
           crop(new_disparity_map, nominal_blocks[r]) =
             crop(disparity_block, m_kernel_size[0], m_kernel_size[1],
@@ -253,9 +253,9 @@ namespace stereo {
       return disparity_map;
     }
 
-    template <class ViewT, class PreProcFilterT>
-    ImageView<PixelDisp > correlate(ImageViewBase<ViewT> const& left_image,
-                                    ImageViewBase<ViewT> const& right_image,
+    template <class View1T, class View2T, class PreProcFilterT>
+    ImageView<PixelDisp > correlate(ImageViewBase<View1T> const& left_image,
+                                    ImageViewBase<View2T> const& right_image,
                                     BBox2f const& search_range,
                                     Vector2f const& offset,
                                     PreProcFilterT const& preproc_filter) {
@@ -277,8 +277,8 @@ namespace stereo {
     ///
     /// Set pyramid_levels to 0 to force the use of a single pyramid
     /// level (essentially disabling pyramid correlation).
-    PyramidCorrelator(BBox2f initial_search_range,
-                      Vector2i kernel_size,
+    PyramidCorrelator(BBox2f const& initial_search_range,
+                      Vector2i const& kernel_size,
                       float cross_correlation_threshold = 1,
                       float corrscore_rejection_threshold = 1.0,
                       int32 cost_blur = 1,
@@ -299,14 +299,14 @@ namespace stereo {
     /// used as a prefix for all debug image files.
     void set_debug_mode(std::string const& debug_file_prefix) { m_debug_prefix = debug_file_prefix; }
 
-    template <class ViewT, class MaskViewT, class PreProcFilterT>
-    ImageView<PixelDisp > operator() (ImageViewBase<ViewT> const& left_image,
-                                      ImageViewBase<ViewT> const& right_image,
-                                      ImageViewBase<MaskViewT> const& left_mask,
-                                      ImageViewBase<MaskViewT> const& right_mask,
+    template <class View1T, class View2T, class Mask1T, class Mask2T, class PreProcFilterT>
+    ImageView<PixelDisp > operator() (ImageViewBase<View1T> const& left_image,
+                                      ImageViewBase<View2T> const& right_image,
+                                      ImageViewBase<Mask1T> const& left_mask,
+                                      ImageViewBase<Mask2T> const& right_mask,
                                       PreProcFilterT const& preproc_filter) {
 
-      typedef typename ViewT::pixel_type pixel_type;
+      typedef typename View1T::pixel_type pixel_type;
       typedef typename PixelChannelType<pixel_type>::type channel_type;
 
       VW_ASSERT(left_image.impl().cols() == right_image.impl().cols() &&
