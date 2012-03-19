@@ -66,7 +66,7 @@ static void write_debug_image( std::string const& out_file_name,
   boost::scoped_ptr<DiskImageResource> irsrc( DiskImageResource::open(input_file_name) );
   if ( irsrc->has_nodata_read() ) {
     oimage = pixel_cast_rescale<PixelRGB<uint8> >(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >( *irsrc ),
-										   irsrc->nodata_read()))) * 0.5 );
+                                                                                   irsrc->nodata_read()))) * 0.5 );
   } else {
     oimage = pixel_cast_rescale<PixelRGB<uint8> >(normalize(DiskImageView<PixelGray<float> >( *irsrc )) * 0.5);
   }
@@ -100,7 +100,7 @@ static void write_debug_image( std::string const& out_file_name,
   }
 
   boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create(out_file_name,
-								       oimage.format() ) );
+                                                                       oimage.format() ) );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
   block_write_image( *rsrc, oimage,
                      TerminalProgressCallback( "tools.ipfind","\t : ") );
@@ -113,6 +113,7 @@ int main(int argc, char** argv) {
   uint32 max_points;
   int tile_size, num_threads;
   ImageView<double> integral;
+  bool no_orientation;
 
   const float IDEAL_LOG_THRESHOLD = .03;
   const float IDEAL_OBALOG_THRESHOLD = .07;
@@ -132,6 +133,7 @@ int main(int argc, char** argv) {
     ("gain,g", po::value(&ip_gain)->default_value(1.0), "Increasing this number will increase the gain at which interest points are detected.")
     ("max-points", po::value(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
     ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
+    ("no-orientation", po::bool_switch(&no_orientation), "Shutoff rotational invariance")
 
     // Descriptor generator options
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
@@ -185,7 +187,7 @@ int main(int argc, char** argv) {
           interest_operator == "log" ||
           interest_operator == "obalog" ) ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-              << ". Options are : [ Harris, LoG, OBALoG ]\n";
+             << ". Options are : [ Harris, LoG, OBALoG ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -194,7 +196,7 @@ int main(int argc, char** argv) {
           descriptor_generator == "sgrad" ||
           descriptor_generator == "sgrad2" ) ) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
-              << ". Options are : [ Patch, PCA, SGrad, SGrad2 ]\n";
+             << ". Options are : [ Patch, PCA, SGrad, SGrad2 ]\n";
     exit(0);
   }
 
@@ -223,7 +225,7 @@ int main(int argc, char** argv) {
     int number_tiles = (image.cols()/vw_settings().default_tile_size()+1) *
       (image.rows()/vw_settings().default_tile_size()+1);
     uint32 tile_max_points = uint32(float(max_points)/float(number_tiles))*2; // A little over shoot
-                                                                     // incase the tile is empty
+    // incase the tile is empty
     if ( max_points == 0 ) tile_max_points = 0; // No culling
     else if ( tile_max_points < 50 ) tile_max_points = 50;
 
@@ -305,6 +307,13 @@ int main(int argc, char** argv) {
       ip.sort();
       ip.resize(max_points);
       vw_out() << "\t Culled to " << ip.size() << " points.\n";
+    }
+
+    // Delete the orientation value if requested
+    if ( no_orientation ) {
+      BOOST_FOREACH( InterestPoint& i, ip ) {
+        i.orientation = 0;
+      }
     }
 
     // Generate descriptors for interest points.
