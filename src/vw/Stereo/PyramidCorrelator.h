@@ -55,9 +55,9 @@ namespace stereo {
     };
 
     template <class ViewT>
-    SubsampleView<UnaryPerPixelAccessorView<ViewT, SubsampleMaskByTwoFunc> >
+    SubsampleView<UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, SubsampleMaskByTwoFunc> >
     subsample_mask_by_two( ImageViewBase<ViewT> const& input ) {
-      return subsample(UnaryPerPixelAccessorView<ViewT,SubsampleMaskByTwoFunc>(input.impl(), SubsampleMaskByTwoFunc() ),2);
+      return subsample(per_pixel_accessor_filter(input.impl(), SubsampleMaskByTwoFunc()),2);
     }
 
     // Iterate over the nominal blocks, creating output blocks for correlation
