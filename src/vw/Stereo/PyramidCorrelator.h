@@ -31,29 +31,33 @@ namespace stereo {
 
     std::string m_debug_prefix;
 
-    // Reduce the image size by a factor of two by averaging the pixels
-    template <class MaskPixelT>
-    void subsample_mask_by_two(ImageView<MaskPixelT> const& input,
-                               ImageView<MaskPixelT> & output) {
+    struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
+      BBox2i work_area() const { return BBox2i(0,0,2,2); }
 
-      if ( output.cols() != input.cols()/2 ||
-           output.rows() != input.rows()/2 )
-        output.set_size(input.cols()/2,input.rows()/2);
-      int32 i, j, p;
+      template <class PixelAccessorT>
+      typename boost::remove_reference<typename PixelAccessorT::pixel_type>::type
+      operator()( PixelAccessorT acc ) const {
 
-      for (p = 0; p < output.planes() ; p++) {
-        for (i = 0; i < output.cols(); i++) {
-          for (j = 0; j < output.rows(); j++) {
-            if (!input(2*i     , 2*j    ,p) ||
-                !input(2*i + 1 , 2*j    ,p) ||
-                !input(2*i     , 2*j + 1,p) ||
-                !input(2*i + 1 , 2*j + 1,p) )
-              output(i,j,p) =  MaskPixelT();
-            else
-              output(i,j,p) = ScalarTypeLimits<MaskPixelT>::highest();
-          }
-        }
+        typedef typename PixelAccessorT::pixel_type PixelT;
+
+        uint8 count = 0;
+        if ( *acc ) count++;
+        acc.next_col();
+        if ( *acc ) count++;
+        acc.advance(-1,1);
+        if ( *acc ) count++;
+        acc.next_col();
+        if ( *acc ) count++;
+        if ( count > 1 )
+          return PixelT(ScalarTypeLimits<PixelT>::highest());
+        return PixelT();
       }
+    };
+
+    template <class ViewT>
+    SubsampleView<UnaryPerPixelAccessorView<ViewT, SubsampleMaskByTwoFunc> >
+    subsample_mask_by_two( ImageViewBase<ViewT> const& input ) {
+      return subsample(UnaryPerPixelAccessorView<ViewT,SubsampleMaskByTwoFunc>(input.impl(), SubsampleMaskByTwoFunc() ),2);
     }
 
     // Iterate over the nominal blocks, creating output blocks for correlation
@@ -217,15 +221,12 @@ namespace stereo {
                                             rm_min_matches_percent),
                          left_masks[n], right_masks[n]);
 
-        if (n == ssize_t(m_pyramid_levels) - 1) {
+        if (n == ssize_t(m_pyramid_levels) - 1 || n == 0) {
           // At the highest level of the pyramid, use the cleaned version
           // of the disparity map just obtained (since there are no
           // previous results to learn from)
-          disparity_map = disparity_map_clean;
-        } else if (n == 0) {
           // At the last level, return the raw results from the correlator
-          disparity_map = disparity_mask(new_disparity_map,
-                                         left_masks[n], right_masks[n]);
+          disparity_map = disparity_map_clean;
         } else {
           // If we have a missing pixel that correlated properly in
           // the previous pyramid level, use the disparity found at
@@ -244,7 +245,7 @@ namespace stereo {
         }
 
         // Debugging output at each level
-        if (m_debug_prefix.size() > 0)
+        if (!m_debug_prefix.empty())
           write_debug_images(n, disparity_map, nominal_blocks);
       }
       prog.report_finished();
@@ -338,18 +339,37 @@ namespace stereo {
       for (size_t n = 1; n < m_pyramid_levels; ++n) {
         left_pyramid[n] =  subsample(gaussian_filter(left_pyramid[n-1],1.2),2);
         right_pyramid[n] = subsample(gaussian_filter(right_pyramid[n-1],1.2),2);
-        subsample_mask_by_two(left_masks[n-1],left_masks[n]);
-        subsample_mask_by_two(right_masks[n-1],right_masks[n]);
+        left_masks[n] = subsample_mask_by_two(left_masks[n-1]);
+        right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
         left_masks[n] = crop(edge_extend(left_masks[n]),
                              bounding_box(left_pyramid[n]));
         right_masks[n] = crop(edge_extend(right_masks[n]),
                               bounding_box(right_pyramid[n]));
       }
 
-      int32 mask_padding = std::max(m_kernel_size[0], m_kernel_size[1])/2;
-      for (size_t n = 0; n < m_pyramid_levels; ++n) {
-        left_masks[n] = apply_mask(edge_mask(left_masks[n], 0, mask_padding),0);
-        right_masks[n] = apply_mask(edge_mask(right_masks[n], 0, mask_padding),0);
+      Vector2i half_kernel = m_kernel_size/2;
+      for (size_t n = 0; n < m_pyramid_levels; ++n ) {
+        // Black out the masks a half kernel in from each edge. This
+        // is remove noise which might play with our search ranges.
+        // Far left
+        BBox2i region(0,0,half_kernel.x(),left_masks[n].rows());
+        fill(crop(left_masks[n], region),0);
+        fill(crop(right_masks[n], region),0);
+        // Very top
+        region = BBox2i(half_kernel.x(),0,
+                        left_masks[n].cols()-half_kernel.x(),half_kernel.y());
+        fill(crop(left_masks[n], region),0);
+        fill(crop(right_masks[n], region),0);
+        // Right
+        region = BBox2i(left_masks[n].cols()-half_kernel.x(),half_kernel.y(),
+                        half_kernel.x(),left_masks[n].rows()-half_kernel.y());
+        fill(crop(left_masks[n], region),0);
+        fill(crop(right_masks[n], region),0);
+        // Bottom
+        region = BBox2i(half_kernel.x(),left_masks[n].rows()-half_kernel.y(),
+                        left_masks[n].cols()-2*half_kernel.x(),half_kernel.y());
+        fill(crop(left_masks[n], region),0);
+        fill(crop(right_masks[n], region),0);
       }
 
       return do_correlation(left_pyramid, right_pyramid,
