@@ -330,10 +330,21 @@ namespace stereo {
       std::vector<ImageView<channel_type> > left_pyramid(m_pyramid_levels), right_pyramid(m_pyramid_levels);
       std::vector<ImageView<uint8> > left_masks(m_pyramid_levels), right_masks(m_pyramid_levels);
 
+      // Render the lowest level
       left_pyramid[0] =  pixel_cast<channel_type>(left_image);
       right_pyramid[0] = pixel_cast<channel_type>(right_image);
       left_masks[0] =    pixel_cast<uint8>(left_mask);
       right_masks[0] =   pixel_cast<uint8>(right_mask);
+
+      // Calculate local mean of input images
+      channel_type left_mean =
+        mean_pixel_value(subsample(copy_mask(left_pyramid[0],create_mask(left_masks[0],0)),2));
+      channel_type right_mean =
+        mean_pixel_value(subsample(copy_mask(right_pyramid[0],create_mask(right_masks[0],0)),2));
+
+      // Write mean color to nodata of input images
+      left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_masks[0],0)), left_mean);
+      right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],create_mask(right_masks[0],0)), right_mean);
 
       // Produce the image pyramid
       for (size_t n = 1; n < m_pyramid_levels; ++n) {
@@ -345,31 +356,6 @@ namespace stereo {
                              bounding_box(left_pyramid[n]));
         right_masks[n] = crop(edge_extend(right_masks[n]),
                               bounding_box(right_pyramid[n]));
-      }
-
-      Vector2i half_kernel = m_kernel_size/2;
-      for (size_t n = 0; n < m_pyramid_levels; ++n ) {
-        // Black out the masks a half kernel in from each edge. This
-        // is remove noise which might play with our search ranges.
-        // Far left
-        BBox2i region(0,0,half_kernel.x(),left_masks[n].rows());
-        fill(crop(left_masks[n], region),0);
-        fill(crop(right_masks[n], region),0);
-        // Very top
-        region = BBox2i(half_kernel.x(),0,
-                        left_masks[n].cols()-half_kernel.x(),half_kernel.y());
-        fill(crop(left_masks[n], region),0);
-        fill(crop(right_masks[n], region),0);
-        // Right
-        region = BBox2i(left_masks[n].cols()-half_kernel.x(),half_kernel.y(),
-                        half_kernel.x(),left_masks[n].rows()-half_kernel.y());
-        fill(crop(left_masks[n], region),0);
-        fill(crop(right_masks[n], region),0);
-        // Bottom
-        region = BBox2i(half_kernel.x(),left_masks[n].rows()-half_kernel.y(),
-                        left_masks[n].cols()-2*half_kernel.x(),half_kernel.y());
-        fill(crop(left_masks[n], region),0);
-        fill(crop(right_masks[n], region),0);
       }
 
       return do_correlation(left_pyramid, right_pyramid,
