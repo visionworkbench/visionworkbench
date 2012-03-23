@@ -446,13 +446,10 @@ vw::photometry::ComputeLineWeightsV(Vector2 pix,
 }
 
 float
-vw::photometry::ComputeLineWeightsHV(Vector2 pix,
-                                     int *hCenterLine, int *hMaxDistArray,
-                                     int *vCenterLine, int *vMaxDistArray
-                                     )
+vw::photometry::ComputeLineWeightsHV(Vector2 pix, struct ModelParams modelParams)
 {
-  float weightH = ComputeLineWeightsH(pix, hCenterLine, hMaxDistArray);
-  float weightV = ComputeLineWeightsV(pix, vCenterLine, vMaxDistArray);
+  float weightH = ComputeLineWeightsH(pix, modelParams.hCenterLine, modelParams.hMaxDistArray);
+  float weightV = ComputeLineWeightsV(pix, modelParams.vCenterLine, modelParams.vMaxDistArray);
   float weight = weightH*weightV;
   return weight;
 }

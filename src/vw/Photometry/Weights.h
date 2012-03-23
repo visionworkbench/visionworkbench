@@ -35,11 +35,8 @@ namespace photometry {
                            int *hMaxDistArray);
   float ComputeLineWeightsV(Vector2 pix, int *hCenterLine,
                             int *hMaxDistArray);
-  float ComputeLineWeightsHV(Vector2 pix,
-                             int *hCenterLine, int *hMaxDistArray,
-                             int *vCenterLine, int *vMaxDistArray
-                             );
-  void SaveWeightsParamsToFile(bool useTiles,  struct ModelParams modelParams);
+  float ComputeLineWeightsHV    (Vector2 pix,   struct ModelParams modelParams);
+  void SaveWeightsParamsToFile  (bool useTiles, struct ModelParams modelParams);
   void ReadWeightsParamsFromFile(bool useTiles, struct ModelParams *modelParams);
 
 }} // end vw::photometry

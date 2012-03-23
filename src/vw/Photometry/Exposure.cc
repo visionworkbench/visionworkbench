@@ -260,7 +260,7 @@ void vw::photometry::ComputeExposureAlbedo(ModelParams *currModelParams,
             }
             else{
               //float weight = ComputeWeights(curr_sample_pix, currModelParams->center2D, currModelParams->maxDistance);
-              float weight = ComputeLineWeightsHV(curr_sample_pix, currModelParams->hCenterLine, currModelParams->hMaxDistArray, currModelParams->vCenterLine, currModelParams->vMaxDistArray);
+              float weight = ComputeLineWeightsHV(curr_sample_pix, *currModelParams);
               delta_nominator = delta_nominator + error*gradient*weight;
               delta_denominator = delta_denominator + gradient*gradient*weight;
             }

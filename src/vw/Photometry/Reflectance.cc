@@ -666,7 +666,7 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
               }else{
                 // Update the exposure
                 // We assume that the DEM, reflectance, and albedo are on the same grid
-                double weight = ComputeLineWeightsHV(input_img_pix, input_img_params.hCenterLine, input_img_params.hMaxDistArray, input_img_params.vCenterLine, input_img_params.vMaxDistArray);
+                double weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
                 double A  = interp_albedo(x, y); // we assume albedo, reflectance, and DEM are on the same grid
                 double RA = R*A;
                 numerator   += ((double)input_img(l, k) - input_img_params.exposureTime*RA)*RA*weight;
