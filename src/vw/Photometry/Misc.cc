@@ -36,6 +36,12 @@ using namespace vw::photometry;
 
 // Upsample a geo-referenced tiff image. Care is taken to deal properly with invalid pixels.
 void vw::photometry::upsample_uint8_image(std::string output_file, std::string input_file, int upsampleFactor){
+
+  // Note: This is function is not quite correct. I noticed that the
+  // original and upsampled image are not exactly on top of each
+  // other. The georeference may need a bit of adjustment. I think
+  // there is a good example in orthoproject.cc in Stereo Pipeline
+  // about how to transform an image correctly.
   
   GeoReference geo;
   read_georeference(geo, input_file);
@@ -47,9 +53,9 @@ void vw::photometry::upsample_uint8_image(std::string output_file, std::string i
   InterpolationView<EdgeExtensionView<DiskImageView<PixelMask<PixelGray<uint8> > >, ConstantEdgeExtension>, BilinearInterpolation>
     interp_img = interpolate(img, BilinearInterpolation(), ConstantEdgeExtension());
   
-  for (int x=0; x<cols; ++x){
-    for (int y=0; y<rows; ++y){
-      
+  for (int y=0; y<rows; ++y){
+    for (int x=0; x<cols; ++x){
+
       double xx = (double)x/upsampleFactor;
       double yy = (double)y/upsampleFactor;
 

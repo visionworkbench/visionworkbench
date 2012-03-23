@@ -195,6 +195,13 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
                                      std::vector<ImageRecord> & DEMImages,
                                      std::vector<int> & overlap,
                                      GlobalParams globalParams) {
+
+  // For a given tile, find all the input DEM tiles overlapping with
+  // it, combine them into one combined DEM, and then interpolate that
+  // combined DEM at all pixels of the desired tile.
+
+  // To make things a bit more efficient, when creating the combined
+  // DEM, we take only pixels not too far from the desired tile.
   
   int i;
   unsigned l, k;
@@ -204,81 +211,108 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   read_georeference(DEMTileGeo, blankTileFile);
   std::cout << "Reading " << blankTileFile << std::endl;
 
-  ImageView<PixelGray<int> > numSamples(blankTile.cols(), blankTile.rows());
+  // The final result after interpolation will go here.
   ImageView<PixelGray<float> > meanDEMTile(blankTile.cols(), blankTile.rows());
-
   for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
     for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
-      numSamples (l, k) = 0;
       meanDEMTile(l, k) = globalParams.noDEMDataValue;
     }
   }
 
-  //std::cout << blankTileFile << " overlaps with: "; 
-  for (i = 0; i < (int)overlap.size(); i++){
+  // Find the combined DEM image as mentioned earlier.
+  ImageView<PixelGray<float> > combined_DEM;
+  GeoReference combined_DEM_geo;
+  int start = 0;
+  for (i = start; i < (int)overlap.size(); i++){
 
     std::string overlapDEMFile = DEMImages[overlap[i]].path;
     GeoReference overlap_DEM_geo;
 
     Vector2 begTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(0, 0));
     Vector2 endTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(meanDEMTile.cols()-1, meanDEMTile.rows()-1));
-    ImageView<PixelGray<float> > overlap_DEM_image;
-      
+    ImageView<PixelGray<float> > overlap_DEM;
+
     // Get just the portion of the DEM image which overlaps with the current tile
     bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
       (begTileLonLat, endTileLonLat, overlapDEMFile,  // Inputs
-       overlap_DEM_image, overlap_DEM_geo             // Outputs
+       overlap_DEM, overlap_DEM_geo                   // Outputs
        );
     if (!success) continue;
+
+    if ( i == start){
+      // The first iteration. The right time to initialize combined_DEM and create its GeoReference.
+      Vector2 begPixel = overlap_DEM_geo.lonlat_to_pixel(begTileLonLat);
+      Vector2 endPixel = overlap_DEM_geo.lonlat_to_pixel(endTileLonLat);
+
+      // Make the image a bit larger than necessary to help with
+      // bilinear interpolation below. A padding of 1 pixel would
+      // probably be enough here.
+      int extra = 2;
+      begPixel(0) = floor(begPixel(0)) - extra; begPixel(1) = floor(begPixel(1)) - extra;
+      endPixel(0) = ceil(endPixel(0))  + extra; endPixel(1) = ceil(endPixel(1))  + extra;
+      int numCols = (int)round(endPixel(0) - begPixel(0));
+      int numRows = (int)round(endPixel(1) - begPixel(1));
+      combined_DEM.set_size(numCols, numRows);
+      for (int row = 0; row < combined_DEM.rows(); row++){
+        for (int col = 0; col < combined_DEM.cols(); col++){
+          combined_DEM(col, row) = globalParams.noDEMDataValue;
+        }
+      }
+      
+      // In combined_DEM_geo, the (0, 0) pixel will where
+      // begPixel is in overlap_DEM_geo.
+      combined_DEM_geo = vw::cartography::crop(overlap_DEM_geo, begPixel(0), begPixel(1));
+    }
     
-    InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >,
-                                        ConstantEdgeExtension>, BilinearInterpolation>
-      interp_overlap_DEM_image = interpolate(overlap_DEM_image, BilinearInterpolation(), ConstantEdgeExtension());
-    // Wrong below
-    //ImageViewRef<PixelGray<float> >  interp_overlap_DEM_image
-    // = interpolate(edge_extend(overlap_DEM_image.impl(),  ConstantEdgeExtension()),
-    //BilinearInterpolation());
-    
-    for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
-      for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
-
-        Vector2 input_DEM_pix(l,k);
-
-        //check for overlap between the output image and the input DEM image
-        Vector2 overlap_dem_pix = overlap_DEM_geo.lonlat_to_pixel(DEMTileGeo.pixel_to_lonlat(input_DEM_pix));
-        float x = overlap_dem_pix[0];
-        float y = overlap_dem_pix[1];
-        
-        //check for valid DEM coordinates
-        if ((x>=0) && (x <= overlap_DEM_image.cols()-1) && (y>=0) && (y<= overlap_DEM_image.rows()-1)){
-
-          // Check that all four grid points used for interpolation are valid
-          if ( overlap_DEM_image( floor(x), floor(y) ) != globalParams.noDEMDataValue &&
-               overlap_DEM_image( floor(x), ceil(y)  ) != globalParams.noDEMDataValue &&
-               overlap_DEM_image( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
-               overlap_DEM_image( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
-               ){
-            
-            if (numSamples(l, k) == 0){
-              meanDEMTile(l, k) = (float)interp_overlap_DEM_image(x, y);
-            }else{
-              meanDEMTile(l, k) = meanDEMTile(l, k) + (float)interp_overlap_DEM_image(x, y);
-            }
-            numSamples(l, k) = numSamples(l, k) + 1;
-          }
+    for (int col = 0; col < overlap_DEM.cols(); col++){
+      for (int row = 0; row < overlap_DEM.rows(); row++){
+        Vector2 pix = combined_DEM_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(col, row)));
+        int lCol = (int)round(pix(0));
+        int lRow = (int)round(pix(1));
+        if (0 <= lCol && lCol < combined_DEM.cols() &&
+            0 <= lRow && lRow < combined_DEM.rows() &&
+            overlap_DEM(col, row) != globalParams.noDEMDataValue
+            ){
+          combined_DEM(lCol, lRow) = overlap_DEM(col, row);
         }
       }
     }
-    //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
-  }
+  } // Done visiting the overlapping images
+  
+  InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation>
+    interp_combined_DEM = interpolate(combined_DEM, BilinearInterpolation(), ConstantEdgeExtension());
+  // Wrong below
+  //ImageViewRef<PixelGray<float> >  interp_combined_DEM
+  // = interpolate(edge_extend(combined_DEM.impl(),  ConstantEdgeExtension()),
+  //BilinearInterpolation());
 
+  // Interpolate
   for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
     for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
-      if (numSamples(l, k) > 1){
-        meanDEMTile(l, k) = (float)meanDEMTile(l, k)/numSamples(l, k);
+      
+      Vector2 input_DEM_pix(l,k);
+      
+      //check for overlap between the output image and the input DEM image
+      Vector2 combined_pix = combined_DEM_geo.lonlat_to_pixel(DEMTileGeo.pixel_to_lonlat(input_DEM_pix));
+      float x = combined_pix[0];
+      float y = combined_pix[1];
+        
+      //check for valid DEM coordinates
+      if ((x>=0) && (x <= combined_DEM.cols()-1) && (y>=0) && (y<= combined_DEM.rows()-1)){
+
+        // Check that all four grid points used for interpolation are valid
+        if ( combined_DEM( floor(x), floor(y) ) != globalParams.noDEMDataValue &&
+             combined_DEM( floor(x), ceil(y)  ) != globalParams.noDEMDataValue &&
+             combined_DEM( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
+             combined_DEM( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
+             ){
+          meanDEMTile(l, k) = (float)interp_combined_DEM(x, y);
+        }
       }
     }
   }
+
+  //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   
   std::cout << "Writing: " << meanDEMTileFile << std::endl;
   write_georeferenced_image(meanDEMTileFile,
@@ -286,6 +320,7 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
                             DEMTileGeo, TerminalProgressCallback("{Core}","Processing:"));
 
 
+  return;
 }
 
 

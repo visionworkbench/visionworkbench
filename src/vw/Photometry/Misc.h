@@ -135,20 +135,15 @@ namespace vw {
     if (beg_col >= end_col || beg_row >= end_row) return false;
   
     subImage.set_size(end_col - beg_col, end_row - beg_row);
-    for (int col = beg_col; col < end_col; col++){
-      for (int row = beg_row; row < end_row; row++){
-        // Not the pixelInType to pixelOutType conversion below
+    for (int row = beg_row; row < end_row; row++){
+      for (int col = beg_col; col < end_col; col++){
+        // Note the pixelInType to pixelOutType conversion below
         subImage(col - beg_col, row - beg_row) = input_img(col, row); 
       }
     }
   
-    sub_geo = input_geo;
-    Matrix3x3 T = sub_geo.transform();
-    Vector2 oldCorner = input_geo.pixel_to_lonlat(Vector2(0, 0));
-    Vector2 newCorner = input_geo.pixel_to_lonlat(Vector2(beg_col, beg_row));
-    T(0,2) += newCorner(0) - oldCorner(0);
-    T(1,2) += newCorner(1) - oldCorner(1);
-    sub_geo.set_transform(T);
+    // In sub_geo, the (0, 0) pixel will where (beg_col, beg_row) is in input_geo.
+    sub_geo = vw::cartography::crop(input_geo, beg_col, beg_row);
 
     //system("echo getSubImageWithMargin top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   
@@ -171,7 +166,7 @@ namespace vw {
     }
     fs.close();
   }
-    
+
 }} // end vw::photometry
 
 #endif//__VW_PHOTOMETRY_MISC_H__

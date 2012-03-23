@@ -30,7 +30,7 @@ namespace photometry {
                          std::vector<ModelParams> overlap_img_params,
                          GlobalParams globalParams);
 
-  double InitOrUpdateAlbedoTile(bool initTile,
+  double InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                                 int pixelPadding, double tileSize,
                                 std::string blankTileFile,
                                 std::string DEMTileFile,

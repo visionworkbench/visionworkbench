@@ -581,35 +581,41 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, DEMTileFile);
-    ImageView<Vector3> dem_xyz, surface_normal;
-    vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, globalParams,
-                                               dem_xyz, surface_normal
-                                               );
     ImageView<PixelMask<PixelGray<float> > > Reflectance;
-    computeReflectanceAux(dem_xyz, surface_normal,
-                          input_img_params, globalParams,  
-                          Reflectance // output
-                          );
-    
+    {
+      // Do things in a block to deallocate fast the quantities dem_xyz and surface_normal which
+      // are needed only temporarily. They take a lot of memory being images of vectors.
+      ImageView<Vector3> dem_xyz, surface_normal;
+      vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, globalParams,
+                                                 dem_xyz, surface_normal
+                                                 );
+      computeReflectanceAux(dem_xyz, surface_normal,
+                            input_img_params, globalParams,  
+                            Reflectance // output
+                            );
+      //system("echo reflectance_xyz top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+    }
+
     InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<float> > >,
-      ConstantEdgeExtension>, BilinearInterpolation>
+                                        ConstantEdgeExtension>, BilinearInterpolation>
       interp_reflectance = interpolate(Reflectance,
                                        BilinearInterpolation(), ConstantEdgeExtension());
-
-    ImageView<PixelMask<PixelGray<double> > > albedoTile;
+    
+    
+    ImageView<PixelMask<PixelGray<float> > > albedoTile;
     if (!compAvgRefl){
       // To update exposure need the current albedo
       std::string albedoTileFile = albedoTiles[overlap[i]].path;
       std::cout << "Reading " << albedoTileFile << std::endl;
       albedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
     }
-    InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<double> > >, ConstantEdgeExtension>, BilinearInterpolation>
+    InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
       interp_albedo = interpolate(albedoTile,
                                   BilinearInterpolation(), ConstantEdgeExtension());
-    
+
 
     // We need to keep in mind that the tile is padded with pixelPadding pixels on each side.
-    // To avoid double counting pixels, skip them if they are part of the padding and not
+    // To avoid double-counting pixels, skip them if they are part of the padding and not
     // of the tile proper.
     double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
     getTileCornersWithoutPadding(// Inputs
@@ -637,6 +643,8 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
         bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
         if (!isInTile) continue;
 
+        //if (k%2 != 0 && l%2 != 0) continue; // Skip some points when computing the exposure to save time
+          
         //check for valid DEM coordinates
         Vector2 reflectance_pix = DEMGeo.lonlat_to_pixel(lonlat);
         double x = reflectance_pix[0];

@@ -521,13 +521,51 @@ void vw::photometry::UpdateImageMosaic(ModelParams input_img_params,
 
 }
 
+namespace {
+  
+  template <class realType>
+  void cropImageAndGeoRefInPlace(// Inputs
+                                 Vector2 begLonLat, Vector2 endLonLat,
+                                 ImageView< PixelMask<PixelGray<realType> > > & Image,
+                                 cartography::GeoReference & geoRef){
+
+    // Crop an image to the region with corners given by begLonLat,
+    // endLonLat.  Adjust the GeoReference accordingly.  The point
+    // begLonLat is the upper-left region corner, and endLonLat is the
+    // lower-right region corner.
+    
+    // This is not a general purpose routine, it gets tweaked as
+    // needed for the purpose of saving albedo, and that's why it does
+    // not belong in a shared file.
+    
+    Vector2 begPixel = geoRef.lonlat_to_pixel(begLonLat);
+    Vector2 endPixel = geoRef.lonlat_to_pixel(endLonLat);
+
+    int begCol = std::max(0, (int)round(begPixel(0)));
+    int begRow = std::max(0, (int)round(begPixel(1)));
+    // We add 1 below to keep the bottom/right pixels which
+    // intersect the boundary of the desired box.
+    int endCol = std::min( Image.cols(), (int)round(endPixel(0))+1 );
+    int endRow = std::min( Image.rows(), (int)round(endPixel(1))+1 );
+
+    int numCols = std::max(endCol - begCol, 0);
+    int numRows = std::max(endRow - begRow, 0);
+
+    Image = crop(Image, BBox2i(begCol, begRow, numCols, numRows));
+    geoRef = vw::cartography::crop(geoRef, begCol, begRow);
+
+    return;
+  }
+  
+}    
+
 //-------------------------------------------------------------------------------
 //Below are the functions for albedo reconstruction
 //-------------------------------------------------------------------------------
 
 //initializes the current albedo tile
 double
-vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
+vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                                        int pixelPadding, double tileSize,
                                        std::string blankTileFile,
                                        std::string DEMTileFile,
@@ -545,21 +583,24 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
     
     DiskImageView<PixelMask<PixelGray<uint8> > >  blankTile(blankTileFile);
     std::cout << "Reading " << blankTileFile << std::endl;
-    ImageView<PixelMask<PixelGray<double> > > albedoTile (blankTile.cols(), blankTile.rows());
+    ImageView<PixelMask<PixelGray<float> > > albedoTile (blankTile.cols(), blankTile.rows());
     GeoReference albedoTile_geo;
     read_georeference(albedoTile_geo, blankTileFile);
 
-    DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
-    std::cout << "Reading file: "<< DEMTileFile << std::endl;
-    GeoReference DEMGeo;
-    read_georeference(DEMGeo, DEMTileFile);
     ImageView<Vector3> dem_xyz, surface_normal;
-    vw::photometry::computeXYZandSurfaceNormal(DEMTile.impl(), DEMGeo, globalParams,
-                                               dem_xyz, surface_normal
-                                               );
+    {
+      // Use a block to de-allocate DEMTile as soon as it is no longer needed.
+      DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
+      std::cout << "Reading file: "<< DEMTileFile << std::endl;
+      GeoReference DEMGeo;
+      read_georeference(DEMGeo, DEMTileFile);
+      vw::photometry::computeXYZandSurfaceNormal(DEMTile.impl(), DEMGeo, globalParams,
+                                                 dem_xyz, surface_normal
+                                                 );
+    }
     
     ImageView<PixelGray<int> > numSamples(albedoTile.cols(), albedoTile.rows());
-    ImageView<PixelGray<double> > norm(albedoTile.cols(), albedoTile.rows());
+    ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
     
     //initialize  albedoTile, and numSamples
     for (k = 0 ; k < albedoTile.rows(); ++k) {
@@ -572,7 +613,7 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
     }
 
     // If we update the albedo, we need to read in the albedo before the update.
-    ImageView<PixelMask<PixelGray<double> > > inputAlbedoTile;
+    ImageView<PixelMask<PixelGray<float> > > inputAlbedoTile;
     if (!initTile){
       std::cout << "Reading " << albedoTileFile << std::endl;
       inputAlbedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
@@ -608,7 +649,7 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
       GeoReference overlap_geo;
       Vector2 begTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(0, 0));
       Vector2 endTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(albedoTile.cols()-1, albedoTile.rows()-1));
-      bool success = getSubImageWithMargin< PixelMask<PixelGray<uint8> >, PixelMask<PixelGray<float> > >
+       bool success = getSubImageWithMargin< PixelMask<PixelGray<uint8> >, PixelMask<PixelGray<float> > >
         (// Inputs
          begTileLonLat, endTileLonLat, overlap_img_params[i].inputFilename,  
          // Outputs
@@ -618,7 +659,6 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
       
       InterpolationView<EdgeExtensionView<ImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
         interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
-      //system("echo albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   
       ImageView<PixelMask<PixelGray<float> > > overlapReflectance;
       computeReflectanceAux(dem_xyz, surface_normal,  
@@ -717,7 +757,7 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
       //std::cout << "sun and spacecraft: " << overlap_img_params[i].inputFilename  << ' '
       //          << overlap_img_params[i].sunPosition  << ' ' << overlap_img_params[i].spacecraftPosition
       //          << std::endl;
-      
+      //system("echo albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
     }
     
     //compute the mean albedo value
@@ -756,15 +796,13 @@ vw::photometry::InitOrUpdateAlbedoTile(bool initTile,
     printf("numValid = %d, total = %d\n", numValid, albedoTile.rows()*albedoTile.cols());
     
     //TODO: compute the albedo variance (standard deviation)
-    
-#if  0
-    std::string weights_file = albedoTileFile, str2 = "DRG";
-    weights_file.replace(weights_file.find(str2),str2.length(),"wt");
-    std::cout << "Writing the weights to "  <<  weights_file << std::endl;
-    write_georeferenced_image(weights_file,
-                              channel_cast<uint8>(clamp(weights_img,0.0,255.0)),
-                              albedoTile_geo, TerminalProgressCallback("{Core}","Processing:"));
-#endif
+
+    if (isLastIter){
+      // Remove the temporary work padding if this is the last iteration.
+      cropImageAndGeoRefInPlace(Vector2(min_tile_x, max_tile_y), Vector2(max_tile_x, min_tile_y),
+                                albedoTile, albedoTile_geo // inputs-outputs
+                                );
+    }
     
     //write in the albedo image
     std::cout << "Writing: " << albedoTileFile << std::endl;
