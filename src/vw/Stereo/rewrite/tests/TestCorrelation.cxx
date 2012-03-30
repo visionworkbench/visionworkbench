@@ -4,7 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#include <gtest/gtest.h>
 #include <test/Helpers.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
