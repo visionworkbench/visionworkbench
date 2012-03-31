@@ -199,6 +199,35 @@ namespace rewrite {
     float m_consistency_threshold; // < 0 = means don't do a consistency check
     int32 m_max_level_by_search;
 
+    struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
+      BBox2i work_area() const { return BBox2i(0,0,2,2); }
+
+      template <class PixelAccessorT>
+      typename boost::remove_reference<typename PixelAccessorT::pixel_type>::type
+      operator()( PixelAccessorT acc ) const {
+
+        typedef typename PixelAccessorT::pixel_type PixelT;
+
+        uint8 count = 0;
+        if ( *acc ) count++;
+        acc.next_col();
+        if ( *acc ) count++;
+        acc.advance(-1,1);
+        if ( *acc ) count++;
+        acc.next_col();
+        if ( *acc ) count++;
+        if ( count > 1 )
+          return PixelT(ScalarTypeLimits<PixelT>::highest());
+        return PixelT();
+      }
+    };
+
+    template <class ViewT>
+    SubsampleView<UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, SubsampleMaskByTwoFunc> >
+    subsample_mask_by_two( ImageViewBase<ViewT> const& input ) const {
+      return subsample(per_pixel_accessor_filter(input.impl(), SubsampleMaskByTwoFunc()),2);
+    }
+
   public:
     typedef PixelMask<Vector2i> pixel_type;
     typedef PixelMask<Vector2i> result_type;
@@ -275,15 +304,36 @@ namespace rewrite {
         right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
         left_pyramid[0] = crop(edge_extend(m_left_image),left_global_region);
         righ_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
-        BBox2i right_mask = bbox + m_search_region.min();
-        right_mask.max() += m_search_region.size();
-        left_mask_pyramid[0] = crop(edge_extend(m_left_mask),bbox);
-        righ_mask_pyramid[0] = crop(edge_extend(m_right_mask),right_mask);
+        left_mask_pyramid[0] =
+          crop(edge_extend(m_left_mask,ConstantEdgeExtension()),
+               left_global_region);
+        righ_mask_pyramid[0] =
+          crop(edge_extend(m_right_mask,ConstantEdgeExtension()),
+               right_global_region);
 
 #if VW_DEBUG_LEVEL > 0
         VW_OUT(DebugMessage,"stereo") << " > Left ROI: " << left_global_region
                                       << "\n > Right ROI: " << right_global_region << "\n";
 #endif
+
+        // Fill in the nodata of the left and right images with a mean
+        // pixel value. This helps with the edge quality of a DEM.
+        typename Image1T::pixel_type left_mean =
+          mean_pixel_value(subsample(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)),2));
+        typename Image2T::pixel_type righ_mean =
+          mean_pixel_value(subsample(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)),2));
+        left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
+        righ_pyramid[0] = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
+
+        // Don't actually need the whole over cropped disparity
+        // mask. We only need the active region. I over cropped before
+        // just to calculate the mean color value options.
+        BBox2i right_mask = bbox + m_search_region.min();
+        right_mask.max() += m_search_region.size();
+        left_mask_pyramid[0] =
+          crop(left_mask_pyramid[0],bbox - left_global_region.min());
+        righ_mask_pyramid[0] =
+          crop(righ_mask_pyramid[0],right_mask - right_global_region.min());
 
         // Szeliski's book recommended this simple kernel. This
         // operation is quickly becoming a time sink, we might
@@ -300,8 +350,8 @@ namespace rewrite {
           righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
           left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
           righ_pyramid[i] = m_prefilter.filter(righ_pyramid[i]);
-          left_mask_pyramid[i+1] = threshold(separable_convolution_filter(subsample(threshold(left_mask_pyramid[i],0,1),2),mask_kern,mask_kern), 0, 255);
-          righ_mask_pyramid[i+1] = threshold(separable_convolution_filter(subsample(threshold(righ_mask_pyramid[i],0,1),2),mask_kern,mask_kern), 0, 255);
+          left_mask_pyramid[i+1] = subsample_mask_by_two(left_mask_pyramid[i]);
+          righ_mask_pyramid[i+1] = subsample_mask_by_two(righ_mask_pyramid[i]);
         }
         left_pyramid[max_pyramid_levels] = m_prefilter.filter(left_pyramid[max_pyramid_levels]);
         righ_pyramid[max_pyramid_levels] = m_prefilter.filter(righ_pyramid[max_pyramid_levels]);
@@ -428,8 +478,15 @@ namespace rewrite {
             f.close();
           }
           scaling >>= 1;
-          BBox2i scale_search_region = (m_search_region - m_search_region.min())/scaling;
-          scale_search_region.max() += Vector2i(1,1);
+          // Scale search range defines the maximum search range that
+          // is possible in the next step. This (at lower levels) will
+          // actually be larger than the search range that the user
+          // specified. We are able to due this because we are taking
+          // advantage of the half kernel padding needed at the hight
+          // level of the pyramid.
+          BBox2i scale_search_region(0,0,
+                                     righ_pyramid[level-1].cols() - left_pyramid[level-1].cols(),
+                                     righ_pyramid[level-1].rows() - left_pyramid[level-1].rows() );
           BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
           BOOST_FOREACH( SearchParam& zone, zones ) {
             zone.first *= 2;
