@@ -352,10 +352,6 @@ namespace stereo {
         right_pyramid[n] = subsample(gaussian_filter(right_pyramid[n-1],1.2),2);
         left_masks[n] = subsample_mask_by_two(left_masks[n-1]);
         right_masks[n] = subsample_mask_by_two(right_masks[n-1]);
-        left_masks[n] = crop(edge_extend(left_masks[n]),
-                             bounding_box(left_pyramid[n]));
-        right_masks[n] = crop(edge_extend(right_masks[n]),
-                              bounding_box(right_pyramid[n]));
       }
 
       return do_correlation(left_pyramid, right_pyramid,
