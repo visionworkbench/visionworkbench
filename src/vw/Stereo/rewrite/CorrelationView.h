@@ -318,10 +318,24 @@ namespace rewrite {
 
         // Fill in the nodata of the left and right images with a mean
         // pixel value. This helps with the edge quality of a DEM.
-        typename Image1T::pixel_type left_mean =
-          mean_pixel_value(subsample(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)),2));
-        typename Image2T::pixel_type righ_mean =
-          mean_pixel_value(subsample(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)),2));
+        typename Image1T::pixel_type left_mean;
+        typename Image2T::pixel_type righ_mean;
+        try {
+          left_mean =
+            mean_pixel_value(subsample(copy_mask(left_pyramid[0],
+                                                 create_mask(left_mask_pyramid[0],0)),2));
+          righ_mean =
+            mean_pixel_value(subsample(copy_mask(righ_pyramid[0],
+                                                 create_mask(righ_mask_pyramid[0],0)),2));
+        } catch ( const ArgumentErr& err ) {
+          // Mean pixel value will throw an argument error if there
+          // are no valid pixels. If that happens, it means either the
+          // left or the right image is full masked.
+          return prerasterize_type(ImageView<pixel_type>(bbox.width(),
+                                                         bbox.height()),
+                                   -bbox.min().x(), -bbox.min().y(),
+                                   cols(), rows() );
+        }
         left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
         righ_pyramid[0] = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
 
