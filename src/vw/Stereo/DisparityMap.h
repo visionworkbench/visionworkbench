@@ -334,14 +334,14 @@ namespace stereo {
   }
 
   template <class ViewT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, RemoveOutliersFunc<typename ViewT::pixel_type> >
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RemoveOutliersFunc<typename ViewT::pixel_type> >
   remove_outliers(ImageViewBase<ViewT> const& disparity_map,
                   int32 half_h_kernel, int32 half_v_kernel,
                   double pixel_threshold,
                   double rejection_threshold) {
     typedef RemoveOutliersFunc<typename ViewT::pixel_type> func_type;
-    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>, func_type > view_type;
-    return view_type(edge_extend(disparity_map.impl(), ZeroEdgeExtension()),
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, func_type > view_type;
+    return view_type(edge_extend(disparity_map.impl(), ConstantEdgeExtension()),
                      func_type(half_h_kernel, half_v_kernel,
                                pixel_threshold, rejection_threshold));
   }
@@ -359,9 +359,9 @@ namespace stereo {
   /// that must "match" the center pixel if that pixel is to be
   /// considered an inlier. ([0..1.0]).
   template <class ViewT>
-  inline UnaryPerPixelAccessorView< EdgeExtensionView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ZeroEdgeExtension>,
+  inline UnaryPerPixelAccessorView< EdgeExtensionView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
                                                                                  RemoveOutliersFunc<typename ViewT::pixel_type> >,
-                                                       ZeroEdgeExtension>,
+                                                       ConstantEdgeExtension>,
                                     RemoveOutliersFunc<typename ViewT::pixel_type> >
   disparity_clean_up(ImageViewBase<ViewT> const& disparity_map,
                      int32 h_half_kernel, int32 v_half_kernel,
