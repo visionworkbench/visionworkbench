@@ -441,24 +441,38 @@ namespace rewrite {
           crop(disparity,zone.first) += pixel_type(zone.second.min());
         } // end of zone loop
 
-        // 3.2) Refine search estimates but never let them go beyond
+        // 3.2a) Filter the disparity so we are not processing more
+        // than we need to.
+        const int32 rm_half_kernel = 5;
+        const float rm_min_matches_percent = 0.5;
+        const float rm_threshold = 3.0;
+        if ( level != 0 ) {
+          disparity =
+            disparity_mask(disparity_clean_up(disparity,
+                                              rm_half_kernel, rm_half_kernel,
+                                              rm_threshold,
+                                              rm_min_matches_percent),
+                           left_mask_pyramid[level],
+                           righ_mask_pyramid[level]);
+        } else {
+          // We don't do a single hot pixel check on the final level
+          // as it leaves a border.
+          disparity =
+            disparity_mask(remove_outliers(disparity,
+                                           rm_half_kernel, rm_half_kernel,
+                                           rm_threshold,
+                                           rm_min_matches_percent),
+                           left_mask_pyramid[level],
+                           righ_mask_pyramid[level]);
+        }
+
+        // 3.2c) Refine search estimates but never let them go beyond
         // the search region defined by the user
         if ( level != 0 ) {
           zones.clear();
 
-          // 3.2a) Filter the disparity so we are not processing more
-          // that we need to.
-          const int32 rm_half_kernel = 5;
-          const float rm_min_matches_percent = 0.5;
-          const float rm_threshold = 3.0;
-          disparity = disparity_mask(disparity_clean_up(disparity,
-                                                        rm_half_kernel, rm_half_kernel,
-                                                        rm_threshold,
-                                                        rm_min_matches_percent),
-                                     left_mask_pyramid[level],
-                                     righ_mask_pyramid[level]);
-
-          subdivide_regions( disparity, bounding_box(disparity), zones, m_kernel_size );
+          subdivide_regions( disparity, bounding_box(disparity),
+                             zones, m_kernel_size );
 
           if (0) {
             BBox2i scaled = bbox/2;
@@ -492,7 +506,7 @@ namespace rewrite {
             zone.first *= 2;
             zone.first.crop( next_zone_size );
             zone.second *= 2;
-            zone.second.expand(1); // This is practically required. Our
+            zone.second.expand(2); // This is practically required. Our
             // correlation will fail if the search has only one
             // solution.
             zone.second.crop( scale_search_region );
