@@ -34,8 +34,11 @@ namespace rewrite {
     // 1.) Is this region too small? Must we stop?
     if ( prod(current_bbox.size()) <= 200 ||
          current_bbox.width() < 16 || current_bbox.height() < 16 ){
+      BBox2i expanded = current_bbox;
+      expanded.expand(1);
+      expanded.crop( bounding_box( disparity ) );
       PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
-      for_each_pixel( crop(disparity,current_bbox), accumulator );
+      for_each_pixel( crop(disparity, expanded), accumulator );
       if ( !accumulator.is_valid() ) return true;
 
       list.push_back( SearchParam( current_bbox,
