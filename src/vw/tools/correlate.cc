@@ -109,8 +109,6 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<PixelGray<float> > left = edge_extend(left_disk_image,0,0,cols,rows);
     ImageViewRef<PixelGray<float> > right = edge_extend(right_disk_image,0,0,cols,rows);
 
-    ImageViewRef<uint8> left_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(left)),1);
-    ImageViewRef<uint8> right_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(right)),1);
 
     stereo::CostFunctionType corr_type = ABSOLUTE_DIFFERENCE;
     if (correlator_type == 1)
@@ -118,18 +116,18 @@ int main( int argc, char *argv[] ) {
     else if (correlator_type == 2)
       corr_type = CROSS_CORRELATION;
 
-    ImageView<PixelMask<Vector2f> > disparity_map;
+    ImageViewRef<PixelMask<Vector2i> > disparity_map;
     if (vm.count("pyramid")) {
-      vw::Timer corr_timer("Correlation Time");
       disparity_map =
-        stereo::pyramid_correlate( left, right, left_mask, right_mask,
+        stereo::pyramid_correlate( left, right,
+                                   constant_view( uint8(255), left ),
+                                   constant_view( uint8(255), right ),
                                    stereo::LaplacianOfGaussian(log),
                                    BBox2i(Vector2i(h_corr_min, v_corr_min),
                                           Vector2i(h_corr_max, v_corr_max)),
                                    Vector2i(xkernel, ykernel),
                                    corr_type, lrthresh );
     } else {
-      vw::Timer corr_timer("Correlation Time");
       disparity_map =
         stereo::correlate( left, right,
                            stereo::LaplacianOfGaussian(log),
@@ -139,18 +137,28 @@ int main( int argc, char *argv[] ) {
                            corr_type, lrthresh );
     }
 
-    ImageViewRef<PixelMask<Vector2f> > result = disparity_map;
+    ImageViewRef<PixelMask<Vector2f> > result = pixel_cast<PixelMask<Vector2f> >(disparity_map);
     if ( found_alignment )
-      result = transform_disparities(disparity_map, HomographyTransform(alignment) );
+      result = pixel_cast<PixelMask<Vector2f> >(transform_disparities(disparity_map, HomographyTransform(alignment) ) );
+
+    // Actually invoke the raster
+    {
+      vw::Timer corr_timer("Correlation Time");
+      boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create("disparity.tif",result.format()));
+      r->set_block_write_size( Vector2i(1024,1024) );
+      block_write_image( *r, result,
+                         TerminalProgressCallback( "", "Rendering: ") );
+    }
 
     // Write disparity debug images
-    BBox2 disp_range = get_disparity_range(result);
+    DiskImageView<PixelMask<Vector2f> > solution("disparity.tif");
+    BBox2 disp_range = get_disparity_range(solution);
     std::cout << "Found disparity range: " << disp_range << "\n";
-    ImageViewRef<float32> horizontal = apply_mask(copy_mask(clamp(normalize(select_channel(result,0), disp_range.min().x(), disp_range.max().x(),0,1)),result));
-    ImageViewRef<float32> vertical = apply_mask(copy_mask(clamp(normalize(select_channel(result,1), disp_range.min().y(), disp_range.max().y(),0,1)),result));
 
-    write_image( "x_disparity.png", channel_cast_rescale<uint8>(horizontal) );
-    write_image( "y_disparity.png", channel_cast_rescale<uint8>(vertical) );
+    write_image( "x_disparity.tif",
+                 channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,0), disp_range.min().x(), disp_range.max().x(),0,255)),solution))) );
+    write_image( "y_disparity.tif",
+                 channel_cast<uint8>(apply_mask(copy_mask(clamp(normalize(select_channel(solution,1), disp_range.min().y(), disp_range.max().y(),0,255)),solution))) );
   }
   catch (const vw::Exception& e) {
     std::cerr << "Error: " << e.what() << std::endl;
