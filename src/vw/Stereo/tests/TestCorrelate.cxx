@@ -6,7 +6,7 @@
 
 
 // TestDisparity.h
-#include <gtest/gtest.h>
+#include <test/Helpers.h>
 
 #include <vw/Stereo/Correlate.h>
 #include <vw/Image.h>
