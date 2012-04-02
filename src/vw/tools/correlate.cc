@@ -22,9 +22,8 @@ namespace fs = boost::filesystem;
 #include <vw/Image.h>
 #include <vw/FileIO.h>
 #include <vw/InterestPoint/InterestData.h>
-#include <vw/Stereo/OptimizedCorrelator.h>
-#include <vw/Stereo/ReferenceCorrelator.h>
-#include <vw/Stereo/PyramidCorrelator.h>
+#include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/CostFunctions.h>
 
 using namespace vw;
 using namespace vw::stereo;
@@ -33,12 +32,11 @@ int main( int argc, char *argv[] ) {
   try {
 
     std::string left_file_name, right_file_name;
-    float log, slog;
-    int h_corr_min, h_corr_max;
-    int v_corr_min, v_corr_max;
-    int xkernel, ykernel;
+    float log;
+    int32 h_corr_min, h_corr_max;
+    int32 v_corr_min, v_corr_max;
+    int32 xkernel, ykernel;
     int lrthresh;
-    int cost_blur;
     int correlator_type;
     bool found_alignment = false;
     Matrix3x3 alignment;
@@ -48,24 +46,17 @@ int main( int argc, char *argv[] ) {
       ("help,h", "Display this help message")
       ("left", po::value(&left_file_name), "Explicitly specify the \"left\" input file")
       ("right", po::value(&right_file_name), "Explicitly specify the \"right\" input file")
-      ("slog", po::value(&slog)->default_value(1.0), "Apply SLOG filter with the given sigma, or 0 to disable")
-      ("log", po::value(&log)->default_value(0.0), "Apply LOG filter with the given sigma, or 0 to disable")
-      ("h-corr-min", po::value(&h_corr_min)->default_value(0), "Minimum horizontal disparity")
-      ("h-corr-max", po::value(&h_corr_max)->default_value(0), "Maximum horizontal disparity")
-      ("v-corr-min", po::value(&v_corr_min)->default_value(5), "Minimum vertical disparity")
+      ("log", po::value(&log)->default_value(1.4), "Apply LOG filter with the given sigma, or 0 to disable")
+      ("h-corr-min", po::value(&h_corr_min)->default_value(-30), "Minimum horizontal disparity")
+      ("h-corr-max", po::value(&h_corr_max)->default_value(-30), "Maximum horizontal disparity")
+      ("v-corr-min", po::value(&v_corr_min)->default_value(-5), "Minimum vertical disparity")
       ("v-corr-max", po::value(&v_corr_max)->default_value(5), "Maximum vertical disparity")
       ("xkernel", po::value(&xkernel)->default_value(15), "Horizontal correlation kernel size")
       ("ykernel", po::value(&ykernel)->default_value(15), "Vertical correlation kernel size")
       ("lrthresh", po::value(&lrthresh)->default_value(2), "Left/right correspondence threshold")
-      ("cost-blur", po::value(&cost_blur)->default_value(1), "Kernel size for bluring the cost image")
       ("correlator-type", po::value(&correlator_type)->default_value(0), "0 - Abs difference; 1 - Sq Difference; 2 - NormXCorr")
-      ("hsubpix", "Enable horizontal sub-pixel correlation")
-      ("vsubpix", "Enable vertical sub-pixel correlation")
       ("affine-subpix", "Enable affine adaptive sub-pixel correlation (slower, but more accurate)")
-      ("reference", "Use the slower, simpler reference correlator")
       ("pyramid", "Use the pyramid based correlator")
-      ("bitimage", "Force the use of the optimized bit-image correlator")
-      ("nonbitimage", "Fore the use of the slower, non bit-image optimized correlator")
       ;
     po::positional_options_description p;
     p.add("left", 1);
@@ -121,54 +112,31 @@ int main( int argc, char *argv[] ) {
     ImageViewRef<uint8> left_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(left)),1);
     ImageViewRef<uint8> right_mask = select_channel(edge_mask(pixel_cast_rescale<uint8>(right)),1);
 
-    stereo::CorrelatorType corr_type = ABS_DIFF_CORRELATOR; // the default
+    stereo::CostFunctionType corr_type = ABSOLUTE_DIFFERENCE;
     if (correlator_type == 1)
-      corr_type = SQR_DIFF_CORRELATOR;
+      corr_type = SQUARED_DIFFERENCE;
     else if (correlator_type == 2)
-      corr_type = NORM_XCORR_CORRELATOR;
+      corr_type = CROSS_CORRELATION;
 
     ImageView<PixelMask<Vector2f> > disparity_map;
-    if (vm.count("reference")) {
-      vw::stereo::ReferenceCorrelator correlator( h_corr_min, h_corr_max,
-                                                  v_corr_min, v_corr_max,
-                                                  xkernel, ykernel,
-                                                  true, lrthresh,
-                                                  (vm.count("hsubpix")>0),
-                                                  (vm.count("vsubpix")>0),
-                                                  (vm.count("affine-subpix")>0) );
-      if (log > 0)
-        disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
-      else
-        disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
-    } else if (vm.count("pyramid")) {
-      vw::stereo::PyramidCorrelator correlator( BBox2i(Vector2(h_corr_min, v_corr_min),
-                                                      Vector2(h_corr_max, v_corr_max)),
-                                                Vector2i(xkernel, ykernel),
-                                                lrthresh,
-                                                cost_blur,
-                                                corr_type);
-      correlator.set_debug_mode("debug");
-      {
-        vw::Timer corr_timer("Correlation Time");
-        if (log > 0)
-          disparity_map = correlator( left, right, left_mask, right_mask, stereo::LogStereoPreprocessingFilter(log));
-        else
-          disparity_map = correlator( left, right, left_mask, right_mask, stereo::SlogStereoPreprocessingFilter(slog));
-      }
+    if (vm.count("pyramid")) {
+      vw::Timer corr_timer("Correlation Time");
+      disparity_map =
+        stereo::pyramid_correlate( left, right, left_mask, right_mask,
+                                   stereo::LaplacianOfGaussian(log),
+                                   BBox2i(Vector2i(h_corr_min, v_corr_min),
+                                          Vector2i(h_corr_max, v_corr_max)),
+                                   Vector2i(xkernel, ykernel),
+                                   corr_type, lrthresh );
     } else {
-      vw::stereo::OptimizedCorrelator correlator( BBox2i(Vector2(h_corr_min, v_corr_min),
-                                                         Vector2(h_corr_max, v_corr_max)),
-                                                  xkernel,
-                                                  lrthresh,
-                                                  cost_blur,
-                                                  corr_type);
-      {
-        vw::Timer corr_timer("Correlation Time");
-        if (log > 0)
-          disparity_map = correlator( left, right, stereo::LogStereoPreprocessingFilter(log));
-        else
-          disparity_map = correlator( left, right, stereo::SlogStereoPreprocessingFilter(slog));
-      }
+      vw::Timer corr_timer("Correlation Time");
+      disparity_map =
+        stereo::correlate( left, right,
+                           stereo::LaplacianOfGaussian(log),
+                           BBox2i(Vector2i(h_corr_min, v_corr_min),
+                                  Vector2i(h_corr_max, v_corr_max)),
+                           Vector2i(xkernel, ykernel),
+                           corr_type, lrthresh );
     }
 
     ImageViewRef<PixelMask<Vector2f> > result = disparity_map;

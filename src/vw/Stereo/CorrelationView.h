@@ -11,6 +11,7 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/FileIO.h>
+#include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/Correlation.h>
 #include <boost/foreach.hpp>
 
