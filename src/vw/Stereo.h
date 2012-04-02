@@ -12,15 +12,23 @@
 #ifndef __VW_STEREO_H__
 #define __VW_STEREO_H__
 
+#include <vw/Stereo/AffineMixtureComponent.h>
+#include <vw/Stereo/Algorithms.h>
+#include <vw/Stereo/Correlate.h>
+#include <vw/Stereo/CorrelateResearch.h>
+#include <vw/Stereo/Correlation.h>
+#include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/CostFunctions.h>
 #include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/EMSubpixelCorrelatorView.h>
+#include <vw/Stereo/GammaMixtureComponent.h>
+#include <vw/Stereo/GaussianMixtureComponent.h>
+#include <vw/Stereo/MixtureComponent.h>
+#include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Stereo/StereoView.h>
-#include <vw/Stereo/OptimizedCorrelator.h>
-#include <vw/Stereo/ReferenceCorrelator.h>
-#include <vw/Stereo/PyramidCorrelator.h>
-#include <vw/Stereo/CorrelatorView.h>
 #include <vw/Stereo/SubpixelView.h>
-#include <vw/Stereo/EMSubpixelCorrelatorView.h>
+#include <vw/Stereo/UniformMixtureComponent.h>
 
 #endif // __VW_STEREO_H__
 
