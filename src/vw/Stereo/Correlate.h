@@ -225,42 +225,6 @@ VW_DEFINE_EXCEPTION(CorrelatorErr, vw::Exception);
     return ret;
   }
 
-  /// For a given set of images, compute the optimal disparity (minimum
-  /// SOAD) at position left_image(i,j) for the given correlation window
-  /// settings.
-  ///
-  /// The left_image and right_image must have the same dimensions, but
-  /// this is only checked here if debugging is enabled.
-  template <class ChannelT>
-  inline PixelMask<Vector2f>
-  compute_disparity(ImageView<ChannelT> &left_image,
-                    ImageView<ChannelT> &right_image,
-                    int32 i, int32 j,
-                    int32 kern_width, int32 kern_height,
-                    int32 min_h_disp, int32 max_h_disp,
-                    int32 min_v_disp, int32 max_v_disp) {
-
-    typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
-    accum_type min_soad = std::numeric_limits<accum_type>::max(); // Impossibly large
-    PixelMask<Vector2f> best_disparity;
-    invalidate(best_disparity);
-    for (int32 ii = min_h_disp; ii <= max_h_disp; ++ii) {
-      for (int32 jj = min_v_disp; jj <= max_v_disp; ++jj) {
-        accum_type soad = compute_soad(&(left_image(0,0)), &(right_image(0,0)),
-                                       j, i, ii, jj,kern_width, kern_height,
-                                       left_image.cols(), left_image.rows());
-        if (soad != CorrelatorFailureValue<ChannelT>()
-            && soad < min_soad) {
-          min_soad = soad;
-          validate( best_disparity );
-          best_disparity[0] = ii;
-          best_disparity[1] = jj;
-        }
-      }
-    }
-    return best_disparity;
-  }
-
   inline int
   adjust_weight_image(ImageView<float> &weight,
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,

@@ -15,18 +15,15 @@ if MAKE_MODULE_STEREO
 # rewrite_headers =
 rewrite_sources = rewrite/Correlation.cc
 
-include_HEADERS = Correlate.h ReferenceCorrelator.h             \
-        OptimizedCorrelator.h DisparityMap.h StereoModel.h      \
-        PyramidCorrelator.h StereoView.h CorrelatorView.h       \
-        SubpixelView.h EMSubpixelCorrelatorView.h               \
-        MixtureComponent.h GammaMixtureComponent.h              \
-        GaussianMixtureComponent.h                              \
-        AffineMixtureComponent.h UniformMixtureComponent.h      \
-        EMSubpixelCorrelatorView.hpp CorrelateResearch.h        \
-        Correlate.tcc CorrelateResearch.tcc
+include_HEADERS = AffineMixtureComponent.h Correlate.h Correlate.tcc	\
+        CorrelateResearch.h CorrelateResearch.tcc DisparityMap.h	\
+        EMSubpixelCorrelatorView.h EMSubpixelCorrelatorView.hpp		\
+        GammaMixtureComponent.h GaussianMixtureComponent.h		\
+        MixtureComponent.h StereoModel.h StereoView.h SubpixelView.h \
+        UniformMixtureComponent.h
 
-libvwStereo_la_SOURCES = StereoModel.cc PyramidCorrelator.cc            \
-        Correlate.cc OptimizedCorrelator.cc EMSubpixelCorrelatorView.cc \
+libvwStereo_la_SOURCES = StereoModel.cc          \
+        Correlate.cc  EMSubpixelCorrelatorView.cc \
         CorrelateResearch.cc $(rewrite_sources)
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@

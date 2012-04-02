@@ -9,7 +9,6 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Image/UtilityViews.h>
-#include <vw/Stereo/CorrelatorView.h>
 #include <vw/Stereo/SubpixelView.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image.h>  // write_image
