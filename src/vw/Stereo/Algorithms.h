@@ -4,8 +4,8 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_REWRITE_ALGORITHMS_H__
-#define __VW_STEREO_REWRITE_ALGORITHMS_H__
+#ifndef __VW_STEREO_ALGORITHMS_H__
+#define __VW_STEREO_ALGORITHMS_H__
 
 #include <vw/Image/ImageView.h>
 #include <numeric>
@@ -13,7 +13,6 @@
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   // This quickly sums pixels in a box. This does not COPY the
   // image. It is okay to crop an image before feeding to this
@@ -110,6 +109,6 @@ namespace rewrite {
     return output;
   }
 
-}}}
+}}
 
-#endif//__VW_STEREO_REWRITE_ALGORITHMS_H__
+#endif//__VW_STEREO_ALGORITHMS_H__

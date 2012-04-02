@@ -4,18 +4,17 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_REWRITE_CORRELATION_H__
-#define __VW_STEREO_REWRITE_CORRELATION_H__
+#ifndef __VW_STEREO_CORRELATION_H__
+#define __VW_STEREO_CORRELATION_H__
 
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Stereo/Correlate.h>
-#include <vw/Stereo/rewrite/Algorithms.h>
-#include <vw/Stereo/rewrite/CostFunctions.h>
+#include <vw/Stereo/Algorithms.h>
+#include <vw/Stereo/CostFunctions.h>
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   // This actually RASTERIZES/COPY the input images. It then makes an
   // allocation to store current costs.
@@ -167,6 +166,6 @@ namespace rewrite {
                           Vector2i const& kernel_size,
                           int32 fail_count = 0 );
 
-}}}
+}}
 
-#endif//__VW_STEREO_REWRITE_CORRELATION_H__
+#endif//__VW_STEREO_CORRELATION_H__

@@ -538,8 +538,6 @@ AC_CONFIG_FILES([                       \
   src/vw/HDR/tests/Makefile             \
   src/vw/Stereo/Makefile                \
   src/vw/Stereo/tests/Makefile          \
-  src/vw/Stereo/rewrite/Makefile        \
-  src/vw/Stereo/rewrite/tests/Makefile  \
   src/vw/GPU/Makefile                   \
   src/vw/GPU/tests/Makefile             \
   src/vw/Geometry/Makefile              \

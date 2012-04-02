@@ -6,10 +6,10 @@
 
 #include <test/Helpers.h>
 
-#include <vw/Stereo/rewrite/PreFilter.h>
+#include <vw/Stereo/PreFilter.h>
 
 using namespace vw;
-using namespace vw::stereo::rewrite;
+using namespace vw::stereo;
 
 template <typename PixelT>
 class PreProcess : public ::testing::Test {

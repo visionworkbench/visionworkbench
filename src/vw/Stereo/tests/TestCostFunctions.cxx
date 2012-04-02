@@ -7,10 +7,10 @@
 #include <test/Helpers.h>
 
 #include <vw/Image/ImageView.h>
-#include <vw/Stereo/rewrite/CostFunctions.h>
+#include <vw/Stereo/CostFunctions.h>
 
 using namespace vw;
-using namespace vw::stereo::rewrite;
+using namespace vw::stereo;
 
 template <typename PixelT>
 class CostFunction : public ::testing::Test {

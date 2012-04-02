@@ -4,19 +4,18 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_REWRITE_CORRELATION_VIEW_H__
-#define __VW_STEREO_REWRITE_CORRELATION_VIEW_H__
+#ifndef __VW_STEREO_CORRELATION_VIEW_H__
+#define __VW_STEREO_CORRELATION_VIEW_H__
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Stopwatch.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/FileIO.h>
-#include <vw/Stereo/rewrite/Correlation.h>
+#include <vw/Stereo/Correlation.h>
 #include <boost/foreach.hpp>
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   /// An image view for performing image correlation
   template <class Image1T, class Image2T, class PreFilterT>
@@ -27,7 +26,7 @@ namespace rewrite {
     PreFilterT m_prefilter;
     BBox2i m_search_region;
     Vector2i m_kernel_size;
-    rewrite::CostFunctionType m_cost_type;
+    CostFunctionType m_cost_type;
     float m_consistency_threshold; // 0 = means don't do a consistency check
 
   public:
@@ -195,7 +194,7 @@ namespace rewrite {
     PreFilterT m_prefilter;
     BBox2i m_search_region;
     Vector2i m_kernel_size;
-    rewrite::CostFunctionType m_cost_type;
+    CostFunctionType m_cost_type;
     float m_consistency_threshold; // < 0 = means don't do a consistency check
     int32 m_max_level_by_search;
 
@@ -566,6 +565,6 @@ namespace rewrite {
                         kernel_size, cost_type, consistency_threshold );
   }
 
-}}} // namespace vw::stereo::rewrite
+}} // namespace vw::stereo
 
-#endif//__VW_STEREO_REWRITE_CORRELATION_VIEW_H__
+#endif//__VW_STEREO_CORRELATION_VIEW_H__

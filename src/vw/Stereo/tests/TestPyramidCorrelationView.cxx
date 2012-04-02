@@ -6,14 +6,14 @@
 
 #include <test/Helpers.h>
 
-#include <vw/Stereo/rewrite/PreFilter.h>
-#include <vw/Stereo/rewrite/CorrelationView.h>
+#include <vw/Stereo/PreFilter.h>
+#include <vw/Stereo/CorrelationView.h>
 #include <boost/random/linear_congruential.hpp>
 
 #include <vw/Image.h>
 
 using namespace vw;
-using namespace vw::stereo::rewrite;
+using namespace vw::stereo;
 
 template <typename PixelT>
 class PyramidViewTest : public ::testing::Test {

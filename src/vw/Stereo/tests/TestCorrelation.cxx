@@ -8,13 +8,13 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/UtilityViews.h>
 #include <vw/Image/Algorithms.h>
-#include <vw/Stereo/rewrite/CostFunctions.h>
-#include <vw/Stereo/rewrite/Correlation.h>
+#include <vw/Stereo/CostFunctions.h>
+#include <vw/Stereo/Correlation.h>
 
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
-using namespace vw::stereo::rewrite;
+using namespace vw::stereo;
 
 template <typename  PixelT>
 class Correlation : public ::testing::Test {

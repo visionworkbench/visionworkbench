@@ -4,14 +4,13 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_REWRITE_PREFILTER_H__
-#define __VW_STEREO_REWRITE_PREFILTER_H__
+#ifndef __VW_STEREO_PREFILTER_H__
+#define __VW_STEREO_PREFILTER_H__
 
 #include <vw/Image/Filter.h>
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   // This is a base class that is used in other code to make sure the
   // user is passing an actual pre-processing filter as opposed to say
@@ -52,6 +51,6 @@ namespace rewrite {
     }
   };
 
-}}} // end namespace vw::stereo::rewrite
+}} // end namespace vw::stereo
 
-#endif//__VW_STEREO_REWRITE_PREFILTER_H__
+#endif//__VW_STEREO_PREFILTER_H__

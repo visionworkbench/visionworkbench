@@ -6,14 +6,12 @@
 
 
 // TestCorrelator.h
-#include <gtest/gtest_VW.h>
+#include <test/Helpers.h>
 
-#include <vw/Image/UtilityViews.h>
+#include <vw/Image.h>
 #include <vw/Stereo/SubpixelView.h>
-#include <vw/Image/Transform.h>
-#include <vw/Image.h>  // write_image
 #include <vw/FileIO.h>
-
+#include <boost/foreach.hpp>
 #include <boost/random/linear_congruential.hpp>
 
 using namespace vw;
@@ -79,6 +77,56 @@ typedef SubPixelCorrelateTest<95> SubPixelCorrelate95Test;
 typedef SubPixelCorrelateTest<90> SubPixelCorrelate90Test;
 typedef SubPixelCorrelateTest<80> SubPixelCorrelate80Test;
 typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
+
+// Testing Parabola Subpixel View
+//--------------------------------------------------------------
+TEST( ParabolaSubpixel, NullTest ) {
+  ImageView<PixelMask<Vector2i> > disparity(5,5);
+  fill( disparity, PixelMask<Vector2i>(Vector2i(1,1)) );
+  ImageView<float> left(5,5), right(5,5);
+  fill( left, 0.5 );
+  fill( right, 0.6 );
+
+  ImageView<PixelMask<Vector2f> > fdisparity =
+    parabola_subpixel( disparity, left, right,
+                       NullOperation(),
+                       Vector2i(3,3) );
+  EXPECT_EQ( fdisparity.cols(), 5 );
+  EXPECT_EQ( fdisparity.rows(), 5 );
+  BOOST_FOREACH( PixelMask<Vector2f> const& fdisp, fdisparity ) {
+    EXPECT_TRUE( is_valid( fdisp ) );
+    EXPECT_VECTOR_NEAR( fdisp.child(), Vector2f(1,1), 0.1 );
+  }
+
+  fdisparity =
+    parabola_subpixel( disparity, left, right,
+                       LaplacianOfGaussian(1.4),
+                       Vector2i(3,3) );
+  EXPECT_EQ( fdisparity.cols(), 5 );
+  EXPECT_EQ( fdisparity.rows(), 5 );
+  BOOST_FOREACH( PixelMask<Vector2f> const& fdisp, fdisparity ) {
+    EXPECT_TRUE( is_valid( fdisp ) );
+    EXPECT_VECTOR_NEAR( fdisp.child(), Vector2f(1,1), 0.1 );
+  }
+}
+
+typedef SubPixelCorrelateTest<95> SubPixelCorrelate95Test;
+typedef SubPixelCorrelateTest<90> SubPixelCorrelate90Test;
+typedef SubPixelCorrelateTest<80> SubPixelCorrelate80Test;
+typedef SubPixelCorrelateTest<70> SubPixelCorrelate70Test;
+
+TEST_F( SubPixelCorrelate95Test, Parabola ) {
+  ImageView<PixelMask<Vector2f> > disparity_map =
+    parabola_subpixel( starting_disp, image1, image2,
+                       LaplacianOfGaussian(1.4),
+                       Vector2i(7,7) );
+
+  int32 invalid_count = 0;
+  double error = check_error( disparity_map, invalid_count );
+  EXPECT_LT(error, 0.6);
+  EXPECT_LE(invalid_count, 0);
+}
+
 
 // Testing Parabola SubPixel
 //--------------------------------------------------------------

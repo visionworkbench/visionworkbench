@@ -4,16 +4,15 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#ifndef __VW_STEREO_REWRITE_COSTFUNCTIONS_H__
-#define __VW_STEREO_REWRITE_COSTFUNCTIONS_H__
+#ifndef __VW_STEREO_COSTFUNCTIONS_H__
+#define __VW_STEREO_COSTFUNCTIONS_H__
 
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/ImageMath.h>
-#include <vw/Stereo/rewrite/Algorithms.h>
+#include <vw/Stereo/Algorithms.h>
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   template <template<class> class ResultT>
   struct BinaryReturnUnaryTemplateBind1st {
@@ -307,6 +306,6 @@ namespace rewrite {
     }
   };
 
-}}}
+}}
 
-#endif//__VW_STEREO_REWRITE_COSTFUNCTIONS_H__
+#endif//__VW_STEREO_COSTFUNCTIONS_H__

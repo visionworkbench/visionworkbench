@@ -11,12 +11,20 @@
 
 if MAKE_MODULE_STEREO
 
-TestStereoModel_SOURCES  = TestStereoModel.cxx
-TestDisparity_SOURCES    = TestDisparity.cxx
-TestSubPixel_SOURCES     = TestSubPixel.cxx
-TestCorrelate_SOURCES    = TestCorrelate.cxx
+TestAlgorithms_SOURCES    = TestAlgorithms.cxx
+TestCorrelate_SOURCES     = TestCorrelate.cxx
+TestCorrelationView_SOURCES = TestCorrelationView.cxx
+TestCorrelation_SOURCES   = TestCorrelation.cxx
+TestCostFunctions_SOURCES = TestCostFunctions.cxx
+TestDisparity_SOURCES     = TestDisparity.cxx
+TestPreFilter_SOURCES     = TestPreFilter.cxx
+TestPyramidCorrelationView_SOURCES = TestPyramidCorrelationView.cxx
+TestStereoModel_SOURCES   = TestStereoModel.cxx
+TestSubPixel_SOURCES      = TestSubPixel.cxx
 
-TESTS = TestStereoModel TestDisparity TestCorrelate TestSubPixel
+TESTS = TestAlgorithms TestCorrelate TestCorrelationView	\
+	TestCostFunctions TestDisparity TestPreFilter		\
+	TestPyramidCorrelationView TestStereoModel TestSubPixel
 
 #include $(top_srcdir)/config/instantiate.am
 

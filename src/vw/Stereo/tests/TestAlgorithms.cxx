@@ -6,11 +6,11 @@
 
 #include <test/Helpers.h>
 
-#include <vw/Stereo/rewrite/Algorithms.h>
-#include <vw/Stereo/rewrite/CostFunctions.h>
+#include <vw/Stereo/Algorithms.h>
+#include <vw/Stereo/CostFunctions.h>
 
 using namespace vw;
-using namespace vw::stereo::rewrite;
+using namespace vw::stereo;
 
 template <class T1, class T2>
 static bool has_pixel_type( T2 ) {

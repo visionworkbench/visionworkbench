@@ -4,11 +4,10 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-#include <vw/Stereo/rewrite/Correlation.h>
+#include <vw/Stereo/Correlation.h>
 
 namespace vw {
 namespace stereo {
-namespace rewrite {
 
   inline int32 area( BBox2i const& a ) {
     int32 width = a.width();
@@ -193,4 +192,4 @@ namespace rewrite {
     return true;
   }
 
-}}} // end namespace vw::stereo::rewrite
+}} // end namespace vw::stereo
