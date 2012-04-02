@@ -67,7 +67,7 @@ namespace vw {
 static void tiff_warning_handler(const char* module, const char* frmt, va_list ap) {
   char msg[VW_ERROR_BUFFER_SIZE];
   vsnprintf( msg, VW_ERROR_BUFFER_SIZE, frmt, ap );
-  vw::VW_OUT(vw::WarningMessage, "fileio") << "DiskImageResourceTIFF (" << (module?module:"none") << ") Warning: " << msg << std::endl;
+  VW_OUT(vw::WarningMessage, "fileio") << "DiskImageResourceTIFF (" << (module?module:"none") << ") Warning: " << msg << std::endl;
 }
 
 /// Handle libTIFF error conditions by vw_throwing an IOErr with the
