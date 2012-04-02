@@ -603,14 +603,22 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                                                  );
     }
     
+    ImageView<PixelGray<int> > pixelState(albedoTile.cols(), albedoTile.rows());
     ImageView<PixelGray<int> > numSamples(albedoTile.cols(), albedoTile.rows());
     ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
-    
+
+    enum {pixelIsInvalid, pixelIsBlack, pixelIsValidAndNonBlack};
+
     //initialize  albedoTile, and numSamples
     for (int k = 0 ; k < albedoTile.rows(); ++k) {
         for (int l = 0; l < albedoTile.cols(); ++l) {
           albedoTile(l, k) = 0;
           albedoTile(l, k).validate();
+          // Set pixelState to pixelIsInvalid. It will become
+          // pixelIsValidAndNonBlack if it is ever valid and non-black,
+          // and pixelIsBlack if it is always black whenever it is
+          // valid.
+          pixelState(l, k) = pixelIsInvalid;
           numSamples(l, k) = 0;
           norm      (l, k) = 0;
         }
@@ -695,20 +703,32 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
               double t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
               int j0 = (int)floor(overlap_x), j1 = (int)ceil(overlap_x);
               int i0 = (int)floor(overlap_y), i1 = (int)ceil(overlap_y);
-              if ( (overlap_x >= 0) && (overlap_x <= overlap_img.cols()-1 )          &&
-                   (overlap_y >= 0) && (overlap_y <= overlap_img.rows()-1 )          &&
-                   is_valid(overlap_img(j0, i0)) && (double)overlap_img(j0, i0) >= t &&
-                   is_valid(overlap_img(j0, i1)) && (double)overlap_img(j0, i1) >= t &&
-                   is_valid(overlap_img(j1, i0)) && (double)overlap_img(j1, i0) >= t &&
-                   is_valid(overlap_img(j1, i1)) && (double)overlap_img(j1, i1) >= t
+              
+              if ( (overlap_x >= 0) && (overlap_x <= overlap_img.cols()-1 )        &&
+                   (overlap_y >= 0) && (overlap_y <= overlap_img.rows()-1 )        &&
+                   is_valid(overlap_img(j0, i0))  && is_valid(overlap_img(j0, i1)) &&
+                   is_valid(overlap_img(j1, i0))  && is_valid(overlap_img(j1, i1)) 
                    ){
+
+                // We have a valid pixel. It is then black unless proven otherwise.
+                if (pixelState(l, k) == pixelIsInvalid) pixelState(l, k) = pixelIsBlack;
+                
+                bool isBlack = !((double)overlap_img(j0, i0) >= t &&
+                                 (double)overlap_img(j0, i1) >= t &&
+                                 (double)overlap_img(j1, i0) >= t &&
+                                 (double)overlap_img(j1, i1) >= t
+                                 );
+                if (isBlack) continue; // Nothing to do
+                
+                pixelState(l, k) = pixelIsValidAndNonBlack;
+                
                 //if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interp_overlap_shadow_image(overlap_x, overlap_y) == 0)){
+                
+                double overlap_img_reflectance = (double)overlapReflectance(l, k);
                 
                 PixelMask<PixelGray<float> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
                 
                 if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
-                  
-                  double overlap_img_reflectance = (double)overlapReflectance(l, k);
                   
                   if (overlap_img_reflectance != 0.0){
                     if (globalParams.useWeights == 0){
@@ -722,9 +742,9 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                       double weight  = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i]);
                       double expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
 
-                      //New averaging
                       if (initTile){
                         
+                        //New averaging
                         albedoTile(l, k) = (double)albedoTile(l, k) + ((double)overlap_img_pixel)*expRefl*weight;
                         norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
 
@@ -769,13 +789,14 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
     int numValid = 0;
     for (int k = 0 ; k < albedoTile.rows(); ++k) {
       for (int l = 0; l < albedoTile.cols(); ++l) {
-
+        
+        // Take into account the no-data pixels
         if (initTile){
-          // Init tile
-          if ( albedoTile(l,k) == 0 ) albedoTile(l,k).invalidate();
+          if ( pixelState(l, k) == pixelIsInvalid ) albedoTile(l,k).invalidate(); // no data
         }else{
           // Update tile
-          if (!is_valid(inputAlbedoTile(l, k))) albedoTile(l,k).invalidate();
+          if ( (!is_valid(inputAlbedoTile(l, k))) ||
+               (pixelState(l, k) == pixelIsInvalid) ) albedoTile(l,k).invalidate();
         }
         
         if ( (is_valid(albedoTile(l,k))) && (numSamples(l, k) != 0) ) {

@@ -222,62 +222,15 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   // Find the combined DEM image as mentioned earlier.
   ImageView<PixelGray<float> > combined_DEM;
   GeoReference combined_DEM_geo;
-  int start = 0;
-  for (i = start; i < (int)overlap.size(); i++){
-
-    std::string overlapDEMFile = DEMImages[overlap[i]].path;
-    GeoReference overlap_DEM_geo;
-
-    Vector2 begTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(0, 0));
-    Vector2 endTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(meanDEMTile.cols()-1, meanDEMTile.rows()-1));
-    ImageView<PixelGray<float> > overlap_DEM;
-
-    // Get just the portion of the DEM image which overlaps with the current tile
-    bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
-      (begTileLonLat, endTileLonLat, overlapDEMFile,  // Inputs
-       overlap_DEM, overlap_DEM_geo                   // Outputs
-       );
-    if (!success) continue;
-
-    if ( i == start){
-      // The first iteration. The right time to initialize combined_DEM and create its GeoReference.
-      Vector2 begPixel = overlap_DEM_geo.lonlat_to_pixel(begTileLonLat);
-      Vector2 endPixel = overlap_DEM_geo.lonlat_to_pixel(endTileLonLat);
-
-      // Make the image a bit larger than necessary to help with
-      // bilinear interpolation below. A padding of 1 pixel would
-      // probably be enough here.
-      int extra = 2;
-      begPixel(0) = floor(begPixel(0)) - extra; begPixel(1) = floor(begPixel(1)) - extra;
-      endPixel(0) = ceil(endPixel(0))  + extra; endPixel(1) = ceil(endPixel(1))  + extra;
-      int numCols = (int)round(endPixel(0) - begPixel(0));
-      int numRows = (int)round(endPixel(1) - begPixel(1));
-      combined_DEM.set_size(numCols, numRows);
-      for (int row = 0; row < combined_DEM.rows(); row++){
-        for (int col = 0; col < combined_DEM.cols(); col++){
-          combined_DEM(col, row) = globalParams.noDEMDataValue;
-        }
-      }
-      
-      // In combined_DEM_geo, the (0, 0) pixel will where
-      // begPixel is in overlap_DEM_geo.
-      combined_DEM_geo = vw::cartography::crop(overlap_DEM_geo, begPixel(0), begPixel(1));
-    }
-    
-    for (int col = 0; col < overlap_DEM.cols(); col++){
-      for (int row = 0; row < overlap_DEM.rows(); row++){
-        Vector2 pix = combined_DEM_geo.lonlat_to_pixel(overlap_DEM_geo.pixel_to_lonlat(Vector2(col, row)));
-        int lCol = (int)round(pix(0));
-        int lRow = (int)round(pix(1));
-        if (0 <= lCol && lCol < combined_DEM.cols() &&
-            0 <= lRow && lRow < combined_DEM.rows() &&
-            overlap_DEM(col, row) != globalParams.noDEMDataValue
-            ){
-          combined_DEM(lCol, lRow) = overlap_DEM(col, row);
-        }
-      }
-    }
-  } // Done visiting the overlapping images
+  Vector2 begTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(0, 0));
+  Vector2 endTileLonLat = DEMTileGeo.pixel_to_lonlat(Vector2(meanDEMTile.cols()-1, meanDEMTile.rows()-1));
+  std::vector<std::string> overlapDEMVec;
+  for (int i = 0; i < (int)overlap.size(); i++){
+    overlapDEMVec.push_back(DEMImages[overlap[i]].path);
+  }
+  readDEMTilesIntersectingBox(globalParams.noDEMDataValue, begTileLonLat, endTileLonLat, overlapDEMVec, // Inputs
+                              combined_DEM, combined_DEM_geo                                            // Outputs
+                              );
   
   InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation>
     interp_combined_DEM = interpolate(combined_DEM, BilinearInterpolation(), ConstantEdgeExtension());

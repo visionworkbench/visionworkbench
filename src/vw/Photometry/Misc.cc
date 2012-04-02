@@ -441,4 +441,168 @@ void vw::photometry::applyPaddingToTileCorners(// Inputs
 
   return;
 }
+
+void vw::photometry::readDEMTilesIntersectingBox(// Inputs
+                                                 double noDEMDataValue,
+                                                 Vector2 boxNW, Vector2 boxSE,
+                                                 std::vector<std::string> const& DEMTiles,
+                                                 // Outputs
+                                                 ImageView<PixelGray<float> > & combinedDEM,
+                                                 cartography::GeoReference    & combinedDEM_geo){
   
+  // Given a set of int16 DEM tiles and a box, get all the pixels from
+  // all the tiles which are contained within the box. The newly
+  // created image will be float.
+
+  // The box is specified by the North-West and South-East corners.
+
+  // First thing initialize the outputs
+  combinedDEM.set_size(0, 0);
+  combinedDEM_geo = GeoReference();
+
+  bool isFirstImage = true;
+  for (int i = 0; i < (int)DEMTiles.size(); i++){
+    
+    std::string DEMTileFile = DEMTiles[i];
+    GeoReference DEMTile_geo;
+
+    // Get just the portion of the tile which overlaps with the current box
+    ImageView<PixelGray<float> > DEMTile;
+    bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
+      (boxNW, boxSE, DEMTileFile, // Inputs
+       DEMTile, DEMTile_geo       // Outputs
+       );
+    if (!success) continue;
+    
+    if (isFirstImage){
+      isFirstImage = false;
+      // The first iteration. The right time to initialize combinedDEM and create its GeoReference.
+      Vector2 begPixel = DEMTile_geo.lonlat_to_pixel(boxNW);
+      Vector2 endPixel = DEMTile_geo.lonlat_to_pixel(boxSE);
+
+      // Make the image a bit larger than necessary to help with
+      // bilinear interpolation below. A padding of 1 pixel would
+      // probably be enough here.
+      int extra = 2;
+      begPixel(0) = floor(begPixel(0)) - extra; begPixel(1) = floor(begPixel(1)) - extra;
+      endPixel(0) = ceil(endPixel(0))  + extra; endPixel(1) = ceil(endPixel(1))  + extra;
+      int numCols = (int)round(endPixel(0) - begPixel(0));
+      int numRows = (int)round(endPixel(1) - begPixel(1));
+      combinedDEM.set_size(numCols, numRows);
+      for (int row = 0; row < combinedDEM.rows(); row++){
+        for (int col = 0; col < combinedDEM.cols(); col++){
+          combinedDEM(col, row) = noDEMDataValue;
+        }
+      }
+      
+      // In combinedDEM_geo, the (0, 0) pixel will where
+      // begPixel is in DEMTile_geo.
+      combinedDEM_geo = vw::cartography::crop(DEMTile_geo, begPixel(0), begPixel(1));
+    }
+    
+    for (int col = 0; col < DEMTile.cols(); col++){
+      for (int row = 0; row < DEMTile.rows(); row++){
+        Vector2 pix = combinedDEM_geo.lonlat_to_pixel(DEMTile_geo.pixel_to_lonlat(Vector2(col, row)));
+        int lCol = (int)round(pix(0));
+        int lRow = (int)round(pix(1));
+        if (0 <= lCol && lCol < combinedDEM.cols() &&
+            0 <= lRow && lRow < combinedDEM.rows() &&
+            DEMTile(col, row) != noDEMDataValue
+            ){
+          combinedDEM(lCol, lRow) = DEMTile(col, row);
+        }
+      }
+    }
+  } // Done visiting the overlapping tiles
+
+  return;
+}
+
+void vw::photometry::listTifsInDir(const std::string & dirName,
+                                   std::vector<std::string> & tifsInDir
+                                   ){
+  
+  tifsInDir.clear();
+  
+  fs::path dir(dirName);
+  if ( !fs::exists(dirName) || !fs::is_directory(dirName ) ) return;
+
+  fs::directory_iterator end_iter; // default construction yields past-the-end
+  for  ( fs::directory_iterator dir_iter(dirName); dir_iter != end_iter; ++dir_iter)
+    {
+      if (! fs::is_regular_file(dir_iter->status()) ) continue;
+      std::string fileName = (*dir_iter).string();
+      int len = fileName.size();
+      if (len >= 4 && fileName.substr(len - 4, 4) == ".tif"){
+        //std::cout << "Now adding " << fileName << std::endl;
+        tifsInDir.push_back( fileName );
+      }
+    }
+
+  // Sort the files in lexicographic order
+  std::sort(tifsInDir.begin(), tifsInDir.end());
+  
+  return;
+}
+
+void vw::photometry::writeSunAndSpacecraftPosition(std::string prefix,
+                                                   std::string sunFile, std::string spacecraftFile,
+                                                   Vector3 sunPosition, Vector3 spacecraftPosition){
+
+  // convert from meters to kilometers
+  double tokm = 0.001;
+  sunPosition        *= tokm;
+  spacecraftPosition *= tokm;
+  
+  std::ofstream sunF(sunFile.c_str());
+  sunF.precision(16);
+  sunF << prefix << " "
+       << sunPosition(0) << " "
+       << sunPosition(1) << " "
+       << sunPosition(2)<< std::endl;
+  sunF.close();
+  
+  std::ofstream spacecraftF(spacecraftFile.c_str());
+  spacecraftF.precision(16);
+  spacecraftF << prefix << " "
+              << spacecraftPosition(0) << " "
+              << spacecraftPosition(1) << " "
+              << spacecraftPosition(2)<< std::endl;
+  spacecraftF.close();
+  
+  return;
+}
+
+std::string vw::photometry::getFirstElevenCharsFromFileName(std::string fileName){
+
+  // Out of path/to/AS15-M-1723_1724-DEM.tif extract the 11 characters
+  // "AS15-M-1723".
+  int index = fileName.rfind("/");
+  if (index != -1) fileName.erase(0, index + 1);
+  
+  return fileName.substr(0, 11);
+}
+
+void vw::photometry::indexFilesByKey(std::string dirName, std::map<std::string, std::string> & index){
+
+  // Create the map: AS15-M-1723 -> path/to/AS15-M-1723_1724-DEM.tif
+  // for all the files in the given directory.
+
+  index.clear();
+  
+  fs::path dir(dirName);
+  if ( !fs::exists(dirName) || !fs::is_directory(dirName ) ){
+    std::cerr << "Cannot find directory: " << dirName << std::endl;
+    exit(1);
+  }
+  
+  fs::directory_iterator end_iter; // default construction yields past-the-end
+  for (fs::directory_iterator dir_iter(dirName); dir_iter != end_iter; ++dir_iter){
+    if (!fs::is_regular_file(dir_iter->status())) continue;
+    std::string fileName = (*dir_iter).string();
+    index[ getFirstElevenCharsFromFileName(fileName) ] = fileName;
+  }
+
+  return;
+}
+

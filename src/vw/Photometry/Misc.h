@@ -90,15 +90,34 @@ namespace vw {
                                     double & min_y, double & max_y
                                     );
   
-  void applyPaddingToTileCorners(// Inputs
-                                 cartography::GeoReference const& geoRef,
-                                 int pixelPadding,
-                                 double min_x, double max_x,
-                                 double min_y, double max_y,
-                                 // Outputs
-                                 double & min_x_padded, double & max_x_padded,
-                                 double & min_y_padded, double & max_y_padded);
+    void applyPaddingToTileCorners(// Inputs
+                                   cartography::GeoReference const& geoRef,
+                                   int pixelPadding,
+                                   double min_x, double max_x,
+                                   double min_y, double max_y,
+                                   // Outputs
+                                   double & min_x_padded, double & max_x_padded,
+                                   double & min_y_padded, double & max_y_padded);
+    
+    void readDEMTilesIntersectingBox(// Inputs
+                                     double noDEMDataValue,
+                                     Vector2 boxNW, Vector2 boxSE,
+                                     std::vector<std::string> const& DEMTiles,
+                                     // Outputs
+                                     ImageView<PixelGray<float> > & combinedDEM,
+                                     cartography::GeoReference    & combinedDEM_geo);
 
+    void listTifsInDir(const std::string & dirName,
+                       std::vector<std::string> & tifsInDir
+                       );
+
+    void writeSunAndSpacecraftPosition(std::string prefix, std::string sunFile, std::string spacecraftFile,
+                                       Vector3 sunPosition, Vector3 spacecraftPosition);
+    
+    std::string getFirstElevenCharsFromFileName(std::string fileName);
+    
+    void indexFilesByKey(std::string dirName, std::map<std::string, std::string> & index);
+    
   template <class pixelInType, class pixelOutType>
   bool getSubImageWithMargin(// Inputs
                              Vector2 begLonLat, Vector2 endLonLat,
@@ -119,7 +138,7 @@ namespace vw {
   
     int extra = 2;
     DiskImageView<pixelInType> input_img(imageFile);
-    std::cout << "Reading: " << imageFile << std::endl;
+    //std::cout << "Reading: " << imageFile << std::endl;
     
     cartography::GeoReference input_geo;
     read_georeference(input_geo, imageFile);

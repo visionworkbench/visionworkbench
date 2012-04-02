@@ -53,6 +53,7 @@ namespace photometry {
     //float exposureInitRefValue;//this will be removed
     //int exposureInitRefIndex;//this will be removed
     float TRConst;
+    int extractDrgFromCubes;
     int updateAlbedo, updateExposure, updateHeight, initAlbedoTiles;
     int useWeights;
     int saveWeights;
