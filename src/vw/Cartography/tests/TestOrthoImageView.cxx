@@ -133,12 +133,31 @@ TEST_F( OrthoImageTest, OrthoImageRun ) {
   EXPECT_LT( camloc[0], 5725 );
   EXPECT_LT( camloc[1], 5725 );
   EXPECT_EQ( ortho(12,4)[0], test_pattern_view(PixelGray<uint8>(), 5725, 5725)(camloc[0],camloc[1])[0] );
+
+  // Test the version of orthoproject which distinguishes no-data vs
+  // no-processed-data.
+  ImageView<PixelMask<float> > maskedDEM = DEM;
+  for (int col =  0; col < maskedDEM.cols()/2; col++){ 
+    for (int row =  0; row < maskedDEM.rows()/2; row++){
+      // Make some pixels transparent in the input
+      maskedDEM(col, row).invalidate();
+    }
+  }
+  ImageView<PixelGrayA<uint8> > ortho_NP =
+    orthoproject_markNoProcessedData(interpolate(maskedDEM, BicubicInterpolation()), moon,
+                                     test_pattern_view(PixelGrayA<uint8>(),5725,5725),
+                                     apollo, BicubicInterpolation(),
+                                     ZeroEdgeExtension() );
+  EXPECT_EQ(ortho_NP(0, 0),  PixelGrayA<uint8>(0,0));    // transparent pixel, no-data
+  EXPECT_EQ(ortho_NP(5, 6),  PixelGrayA<uint8>(0,255));  // black pixel, no-processed-data
+  EXPECT_EQ(ortho_NP(19, 4), PixelGrayA<uint8>(27,255)); // non-transparent and non-black pixel
+    
 }
 
 
 TEST_F( OrthoImageTest, OrthoTraits ) {
   OrthoImageView<ImageView<float>,TestPatternView<PixelGray<uint8> >,
-    BicubicInterpolation, ZeroEdgeExtension>
+    BicubicInterpolation, ZeroEdgeExtension, false>
   ortho_nonfloat( DEM, moon, TestPatternView<PixelGray<uint8> >(5725,5725),
                   apollo, BicubicInterpolation(), ZeroEdgeExtension() );
 
@@ -146,7 +165,7 @@ TEST_F( OrthoImageTest, OrthoTraits ) {
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( ortho_nonfloat ) );
 
   OrthoImageView<InterpolationView<ImageView<float>,BicubicInterpolation>,TestPatternView<PixelGray<uint8> >,
-    BicubicInterpolation, ZeroEdgeExtension>
+    BicubicInterpolation, ZeroEdgeExtension, false>
   ortho_float( InterpolationView<ImageView<float>,BicubicInterpolation>(DEM),
                moon, TestPatternView<PixelGray<uint8> >(5725,5725),
                apollo, BicubicInterpolation(), ZeroEdgeExtension() );

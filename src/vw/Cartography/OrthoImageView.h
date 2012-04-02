@@ -25,8 +25,8 @@ namespace cartography {
   /// This image view assumes the dimensions and georeferencing of the
   /// Terrain image (i.e. the DTM), but it assumes the pixel type of
   /// the camera image.
-  template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  class OrthoImageView : public ImageViewBase<OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > {
+  template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT, bool markNoProcessedData>
+  class OrthoImageView : public ImageViewBase<OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, markNoProcessedData> > {
 
     typedef typename boost::mpl::if_<IsFloatingPointIndexable<TerrainImageT>, double, int32>::type offset_type;
 
@@ -78,33 +78,73 @@ namespace cartography {
     /// compute a 3D point corresponding to this location in the DTM.
     /// This point is then "imaged" by the camera model and the
     /// resulting pixel location is returned from the camera image.
+
+    // We need to convert the georefernced positions into a
+    // cartesian coordinate system so that they can be imaged by the
+    // camera model.  Doing so require we proceed through 3 steps:
+    //
+    // 1. Convert from the projection used for the terrain into
+    //    lon,lat,altitude.
+    // 2. Add in the offset from the datum that was used, which
+    //    converts from altitude to planetary radius.
+    // 3. Convert to cartesian (xyz) coordinates.
+
     inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const {
 
-      // Check for a missing DEM pixels.
-      if ( is_transparent(m_terrain(i,j)) ) {
-        return result_type();
+      if (!markNoProcessedData){ // This 'if' will be evaluated at compile time
+
+        // Default behavior, don't mark no-processed-data separately from no-data
+
+        // Check for missing DEM pixels.
+        if ( is_transparent(m_terrain(i,j)) ) {
+          return result_type();
+        }
+        
+        Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
+        Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
+        
+        // Now we can image the point using the camera model and return
+        // the resulting pixel from the camera image.
+        Vector2 pix = m_camera_model->point_to_pixel(xyz);
+        return m_camera_image(pix[0], pix[1], p);
+        
+      }else{
+
+        // Do mark no-processed-data separately from no-data
+        
+        // Check for missing DEM pixels.
+        double terrainHeight;
+        if (is_transparent(m_terrain(i,j)) ){
+          terrainHeight = 0.0;
+        }else{
+          terrainHeight = Helper<typename TerrainImageT::pixel_type>(i,j);            
+        }
+      
+        Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
+        Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), terrainHeight ) );
+        
+        // Now we can image the point using the camera model and return
+        // the resulting pixel from the camera image.
+        Vector2 pix = m_camera_model->point_to_pixel(xyz);
+        result_type ans = m_camera_image(pix[0], pix[1], p);
+
+        if ( is_transparent(m_terrain(i,j)) ){
+          if (0 <= pix[0] && pix[0] < m_camera_image.cols() &&
+              0 <= pix[1] && pix[1] < m_camera_image.rows() 
+              ){
+            // No processed data, return a black pixel
+            return result_type(0.0);
+          }else{
+            // No data, return a transparent pixel
+            return result_type();
+          }
+        }
+        return ans;
       }
-
-      // We need to convert the georefernced positions into a
-      // cartesian coordinate system so that they can be imaged by the
-      // camera model.  Doing so require we proceed through 3 steps:
-      //
-      // 1. Convert from the projection used for the terrain into
-      //    lon,lat,altitude.
-      // 2. Add in the offset from the datum that was used, which
-      //    converts from altitude to planetary radius.
-      // 3. Convert to cartesian (xyz) coordinates.
-      Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-      Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
-
-      // Now we can image the point using the camera model and return
-      // the resulting pixel from the camera image.
-      Vector2 pix = m_camera_model->point_to_pixel(xyz);
-      return m_camera_image(pix[0], pix[1], p);
     }
-
+    
     /// \cond INTERNAL
-    typedef OrthoImageView<typename TerrainImageT::prerasterize_type, CameraImageT, InterpT, EdgeT> prerasterize_type;
+    typedef OrthoImageView<typename TerrainImageT::prerasterize_type, CameraImageT, InterpT, EdgeT, markNoProcessedData> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       return prerasterize_type( m_terrain.prerasterize(bbox),
                                 m_georef, m_camera_image_ref,
@@ -118,22 +158,35 @@ namespace cartography {
   // Functional API
   // --------------------------------------------------------------------------
   template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>
-  orthoproject( ImageViewBase<TerrainImageT> const& terrain_image,
-                GeoReference const& georef,
-                ImageViewBase<CameraImageT> const& camera_image,
-                boost::shared_ptr<vw::camera::CameraModel> camera_model,
-                InterpT const& interp_func,
-                EdgeT const& edge_extend_func) {
-    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
+  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>
+  orthoproject(ImageViewBase<TerrainImageT> const& terrain_image,
+               GeoReference const& georef,
+               ImageViewBase<CameraImageT> const& camera_image,
+               boost::shared_ptr<vw::camera::CameraModel> camera_model,
+               InterpT const& interp_func,
+               EdgeT const& edge_extend_func) {
+    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
+  }
+
+  // A special version of orthoproject which will distinguish no-processed-data
+  // from no-data.
+  template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
+  OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>
+  orthoproject_markNoProcessedData(ImageViewBase<TerrainImageT> const& terrain_image,
+                                   GeoReference const& georef,
+                                   ImageViewBase<CameraImageT> const& camera_image,
+                                   boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                                   InterpT const& interp_func,
+                                   EdgeT const& edge_extend_func) {
+    return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
   }
 
 } // namespace cartography
 
   /// \cond INTERNAL
   // Type traits
-  template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT>
-  struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT> > : public IsFloatingPointIndexable<TerrainImageT> {};
+  template <class TerrainImageT, class CameraImageT, class InterpT, class EdgeT, bool markNoProcessedData>
+  struct IsFloatingPointIndexable< cartography::OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, markNoProcessedData> > : public IsFloatingPointIndexable<TerrainImageT> {};
   /// \endcond
 
 } // namespace vw
