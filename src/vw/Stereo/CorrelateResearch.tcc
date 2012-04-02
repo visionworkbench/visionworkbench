@@ -6,6 +6,7 @@
 
 
 #include <vw/Stereo/CorrelateResearch.h>
+#include <vw/Stereo/LaplacianOfGaussian.h>
 #include <vw/Math/Matrix.h>
 
 #include <vw/Core/Stopwatch.h>
@@ -85,8 +86,10 @@ namespace stereo {
 
 
     for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
-      ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
-      ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+      ImageView<ChannelT> left_image =
+        LaplacianOfGaussian( blur_sigma ).filter( left_input_image );
+      ImageView<ChannelT> right_image =
+        LaplacianOfGaussian( blur_sigma ).filter( right_input_image );
 
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.
@@ -334,8 +337,10 @@ namespace stereo {
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
 
     for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
-      ImageView<ChannelT> left_image = LogStereoPreprocessingFilter(blur_sigma)(left_input_image);
-      ImageView<ChannelT> right_image = LogStereoPreprocessingFilter(blur_sigma)(right_input_image);
+      ImageView<ChannelT> left_image =
+        LaplacianOfGaussian( blur_sigma ).filter( left_input_image );
+      ImageView<ChannelT> right_image =
+        LaplacianOfGaussian( blur_sigma ).filter( right_input_image );
 
       // This is the maximum number of pixels that the solution can be
       // adjusted by affine subpixel refinement.

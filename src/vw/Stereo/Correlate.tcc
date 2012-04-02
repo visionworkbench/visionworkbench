@@ -6,94 +6,49 @@
 
 
 namespace detail {
-  inline float find_minimum(float lt, float mid, float rt) {
-    float a = (rt+lt)*0.5-mid;
-    float b = (rt-lt)*0.5;
-    return -b/(2.0*a);
-  }
+  // is_equal_elements, tells if all the elements are equal to each other
+  template <class T>
+  struct IsEqualElements {
+    bool result;
 
-// is_equal_elements, tells if all the elements are equal to each other
-template <class T>
-struct IsEqualElements {
-  bool result;
+    IsEqualElements() : result(true), m_comparing(false) {}
 
-  IsEqualElements() : result(true), m_comparing(false) {}
-
-  void operator()( T const& i ) {
-    if ( m_comparing ) {
-      result = result && (*m_first_element == i);
-    } else {
-      m_comparing = true;
-      m_first_element = &i;
+    void operator()( T const& i ) {
+      if ( m_comparing ) {
+        result = result && (*m_first_element == i);
+      } else {
+        m_comparing = true;
+        m_first_element = &i;
+      }
     }
-  }
-protected:
-  bool m_comparing;
-  T const* m_first_element;
-};
+  protected:
+    bool m_comparing;
+    T const* m_first_element;
+  };
 
-// Find the minimun of a 2d hyperbolic surface that is fit to the
-// nine points around and including the peak in the disparity map.
-// This gives better subpixel resolution when both horizontal and
-// vertical subpixel is requested.
-//
-// The equation of the surface we are fitting is:
-//    z = ax^2 + by^2 + cxy + dx + ey + f
-template <class VectorT, class MatrixT>
-static Vector2f find_minimum_2d(VectorBase<VectorT> &points,
-                                MatrixBase<MatrixT> &pinvA) {
-  IsEqualElements<typename VectorT::value_type> is_same =
-    std::for_each( points.impl().begin(), points.impl().end(),
-                   IsEqualElements<typename VectorT::value_type>() );
-  if ( is_same.result ) // Avoid divide zero errors later
-    return Vector2f();
-  Vector2f offset;
+  ///-------------------------------------------------------------------------
 
-  // First, compute the parameters of the hyperbolic surface by
-  // fitting the nine points in 'points' using a linear least
-  // squares fit.  This process is fairly fast, since we have
-  // already pre-computed the inverse of the A matrix in Ax = b.
-  Vector<float> x = pinvA * points;
+  inline ImageView<float>
+  compute_spatial_weight_image(int32 kern_width, int32 kern_height,
+                               float two_sigma_sqr) {
+    int32 center_pix_x = kern_width/2;
+    int32 center_pix_y = kern_height/2;
+    float sum;
 
-  // With these parameters, we have a closed form expression for
-  // the surface.  We compute the derivative, and find the point
-  // where the slope is zero.  This is our maximum.
-  //
-  //  Max is at [x,y] where:
-  //   dz/dx = 2ax + cy + d = 0
-  //   dz/dy = 2by + cx + e = 0
-  //
-  // Of course, we optimize this computation a bit by unrolling it
-  // by hand beforehand.
-  float denom = 4 * x(0) * x(1) - (x(2) * x(2));
-  offset[0] = ( x(2) * x(4) - 2 * x(1) * x(3) ) / denom;
-  offset[1] = ( x(2) * x(3) - 2 * x(0) * x(4) ) / denom;
-  return offset;
-}
-
-///-------------------------------------------------------------------------
-
-inline ImageView<float>
-compute_spatial_weight_image(int32 kern_width, int32 kern_height,
-                             float two_sigma_sqr) {
-  int32 center_pix_x = kern_width/2;
-  int32 center_pix_y = kern_height/2;
-  float sum;
-
-  sum = 0.0;
-  ImageView<float> weight(kern_width, kern_height);
-  for (int32 j = 0; j < kern_height; ++j) {
-    for (int32 i = 0; i < kern_width; ++i ) {
-      weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
-                            (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
-      sum += weight(i,j);
+    sum = 0.0;
+    ImageView<float> weight(kern_width, kern_height);
+    for (int32 j = 0; j < kern_height; ++j) {
+      for (int32 i = 0; i < kern_width; ++i ) {
+        weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
+                              (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
+        sum += weight(i,j);
+      }
     }
+
+    weight /= sum;
+
+    return weight;
   }
-
-  weight /= sum;
-
-  return weight;
-}
 
 }
 
@@ -132,7 +87,7 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
 
   // Interpolated Input Images
   InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-          interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+    interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
 
   // This is the maximum number of pixels that the solution can be
   // adjusted by affine subpixel refinement.
@@ -189,7 +144,7 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
       // Compute the base weight image
       int32 good_pixels =
         adjust_weight_image(w, crop(disparity_map, current_window),
-                                            weight_template);
+                            weight_template);
 
       // Skip over pixels for which there are very few good matches
       // in the neighborhood.
@@ -307,7 +262,7 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
               // add this to the update equation.
               float weight  = robust_weight*(*w_ptr);
               if ( weight < 1e-26 ) {
-                 // avoid underflow
+                // avoid underflow
                 I_x_ptr.next_col();
                 I_y_ptr.next_col();
                 left_image_patch_ptr.next_col();
@@ -401,41 +356,41 @@ subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map
           left_image_patch_row = left_image_patch.origin();
 
           for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
-            CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
-            CropViewTAcc left_image_patch_ptr = left_image_patch_row;
-            int32 gamma_iy = jj + kern_half_height;
-            float xx_partial = x_base + d[1] * jj + d[2];
-            float yy_partial = y_base + d[4] * jj + d[5];
-            float delta_x_partial = d_em[1] * jj + d_em[2];
-            float delta_y_partial = d_em[4] * jj + d_em[5];
+          CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
+          CropViewTAcc left_image_patch_ptr = left_image_patch_row;
+          int32 gamma_iy = jj + kern_half_height;
+          float xx_partial = x_base + d[1] * jj + d[2];
+          float yy_partial = y_base + d[4] * jj + d[5];
+          float delta_x_partial = d_em[1] * jj + d_em[2];
+          float delta_y_partial = d_em[4] * jj + d_em[5];
 
-            for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
-              // First we compute the pixel offset for the right image
-              // and the error for the current pixel.
-              int32 gamma_ix = ii + kern_half_width;
-              float xx = d[0] * ii + xx_partial;
-              float yy = d[3] * ii + yy_partial;
-              float delta_x = d_em[0] * ii + delta_x_partial;
-              float delta_y = d_em[3] * ii + delta_y_partial;
+          for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
+          // First we compute the pixel offset for the right image
+          // and the error for the current pixel.
+          int32 gamma_ix = ii + kern_half_width;
+          float xx = d[0] * ii + xx_partial;
+          float yy = d[3] * ii + yy_partial;
+          float delta_x = d_em[0] * ii + delta_x_partial;
+          float delta_y = d_em[3] * ii + delta_y_partial;
 
-              ChannelT interpreted_px = right_interp_image(xx,yy);
-              float I_e_val = interpreted_px - (*left_image_patch_ptr);
-              float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
-                delta_y*(*I_y_ptr);
-              float temp_noise = interpreted_px - mean_noise;
+          ChannelT interpreted_px = right_interp_image(xx,yy);
+          float I_e_val = interpreted_px - (*left_image_patch_ptr);
+          float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
+          delta_y*(*I_y_ptr);
+          float temp_noise = interpreted_px - mean_noise;
 
-              var2_noise_tmp += temp_noise*temp_noise*
-                gamma_noise(gamma_ix, gamma_iy);
-              var2_plane_tmp += temp_plane*temp_plane*
-                gamma_plane(gamma_ix, gamma_iy);
+          var2_noise_tmp += temp_noise*temp_noise*
+          gamma_noise(gamma_ix, gamma_iy);
+          var2_plane_tmp += temp_plane*temp_plane*
+          gamma_plane(gamma_ix, gamma_iy);
 
-              I_x_ptr.next_col();
-              I_y_ptr.next_col();
-              left_image_patch_ptr.next_col();
-            }
-            I_x_row.next_row();
-            I_y_row.next_row();
-            left_image_patch_row.next_row();
+          I_x_ptr.next_col();
+          I_y_ptr.next_col();
+          left_image_patch_ptr.next_col();
+          }
+          I_x_row.next_row();
+          I_y_row.next_row();
+          left_image_patch_row.next_row();
           }
 
           confidence_image(x,y) = in_curr_sum_I_e_val;
@@ -521,7 +476,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
 
   // Interpolated Input Images
   InterpolationView<EdgeExtensionView<ImageView<ChannelT>, ZeroEdgeExtension>, BilinearInterpolation> right_interp_image =
-          interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
+    interpolate(right_image, BilinearInterpolation(), ZeroEdgeExtension());
 
   // This is the maximum number of pixels that the solution can be
   // adjusted by affine subpixel refinement.
@@ -578,7 +533,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
       // Compute the base weight image
       int32 good_pixels =
         adjust_weight_image(w, crop(disparity_map, current_window),
-                                            weight_template);
+                            weight_template);
 
       // Skip over pixels for which there are very few good matches
       // in the neighborhood.
@@ -691,7 +646,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
               // add this to the update equation.
               float weight  = gamma_plane*(*w_ptr);
               if ( weight < 1e-26 ) {
-                 // avoid underflow
+                // avoid underflow
                 I_x_ptr.next_col();
                 I_y_ptr.next_col();
                 left_image_patch_ptr.next_col();
@@ -818,142 +773,4 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
         remove_mask(disparity_map(x,y)) += Vector2f(d[2],d[5]);
     } // X increment
   } // Y increment
-}
-
-template<class ChannelT> void
-subpixel_correlation_parabola(ImageView<PixelMask<Vector2f> > &disparity_map,
-                              ImageView<ChannelT> const& left_image,
-                              ImageView<ChannelT> const& right_image,
-                              int32 kern_width, int32 kern_height,
-                              bool do_horizontal_subpixel,
-                              bool do_vertical_subpixel,
-                              bool /*verbose*/ = false) {
-  typedef typename CorrelatorAccumulatorType<ChannelT>::type accum_type;
-
-  VW_ASSERT(left_image.cols() == right_image.cols() && left_image.cols() == disparity_map.cols() &&
-            left_image.rows() == right_image.rows() && left_image.rows() == disparity_map.rows(),
-            ArgumentErr() << "subpixel_correlation: input image dimensions do not agree.\n");
-
-  int32 height = disparity_map.rows();
-  int32 width = disparity_map.cols();
-
-  ChannelT *new_img0 = &(left_image(0,0));
-  ChannelT *new_img1 = &(right_image(0,0));
-
-  // Bail out if no subpixel computation has been requested
-  if (!do_horizontal_subpixel && !do_vertical_subpixel) return;
-
-  // We get a considerable speedup in our 2d subpixel correlation if
-  // we go ahead and compute the pseudoinverse of the A matrix (where
-  // each row in A is [ x^2 y^2 xy x y 1] (our 2d parabolic surface)
-  // for the range of x = [-1:1] and y = [-1:1].
-  static float pinvA_data[] =
-    { 1.0/6,  1.0/6,  1.0/6, -1.0/3, -1.0/3, -1.0/3,  1.0/6,  1.0/6,  1.0/6,
-      1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,  1.0/6, -1.0/3,  1.0/6,
-      1.0/4,    0.0, -1.0/4,    0.0,    0.0,    0.0, -1.0/4,    0.0,  1.0/4,
-      -1.0/6, -1.0/6, -1.0/6,    0.0,    0.0,   0.0,  1.0/6,  1.0/6,  1.0/6,
-      -1.0/6,    0.0,  1.0/6, -1.0/6,    0.0, 1.0/6, -1.0/6,    0.0,  1.0/6,
-      -1.0/9,  2.0/9, -1.0/9,  2.0/9,  5.0/9, 2.0/9, -1.0/9,  2.0/9, -1.0/9 };
-  MatrixProxy<float,6,9> pinvA(pinvA_data);
-  for (int32 r = 0; r < height; r++) {
-    for (int32 c = 0; c < width; c++) {
-      if ( !is_valid(disparity_map(c,r) ) )
-        continue;
-
-      int32 hdisp = int32(disparity_map(c,r)[0]);
-      int32 vdisp = int32(disparity_map(c,r)[1]);
-
-      accum_type mid = compute_soad(new_img0, new_img1,
-                                    r, c, hdisp, vdisp,
-                                    kern_width, kern_height,
-                                    width, height);
-
-      if (do_horizontal_subpixel && !do_vertical_subpixel) {
-        // If only horizontal subpixel resolution is requested
-        accum_type lt = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp-1, vdisp,
-                                     kern_width, kern_height,
-                                     width, height);
-        accum_type rt = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp+1, vdisp,
-                                     kern_width, kern_height,
-                                     width, height);
-
-        if ((mid <= lt && mid < rt) || (mid <= rt && mid < lt))
-          disparity_map(c,r)[0] += detail::find_minimum(lt, mid, rt);
-        else
-          invalidate( disparity_map(c,r) );
-      } else if (do_vertical_subpixel && !do_horizontal_subpixel) {
-        // If only vertical subpixel resolution is requested
-        accum_type up = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp, vdisp-1,
-                                     kern_width, kern_height,
-                                     width, height);
-        accum_type dn = compute_soad(new_img0, new_img1,
-                                     r, c, hdisp, vdisp+1,
-                                     kern_width, kern_height,
-                                     width, height);
-
-        if ((mid <= up && mid < dn) || (mid <= dn && mid < up))
-          disparity_map(c,r)[1] += detail::find_minimum(up, mid, dn);
-        else
-          invalidate(disparity_map(c,r));
-      } else if (do_vertical_subpixel && do_horizontal_subpixel) {
-        // If both vertical and horizontal subpixel resolution is
-        // requested, we try to fit a 2d hyperbolic surface using
-        // the 9 points surrounding the peak SOAD value.
-        //
-        // We place the soad values into a vector using the
-        // following indices (i.e. index 4 is the max disparity
-        // value)
-        //
-        //     0  3  6
-        //     1  4  7
-        //     2  5  8
-        Vector<accum_type,9> points;
-
-        points(0) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp-1, vdisp-1,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(1) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp-1, vdisp,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(2) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp-1, vdisp+1,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(3) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp, vdisp-1,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(4) = mid;
-        points(5) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp, vdisp+1,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(6) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp+1, vdisp-1,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(7) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp+1, vdisp,
-                                 kern_width, kern_height,
-                                 width, height);
-        points(8) = compute_soad(new_img0, new_img1,
-                                 r, c, hdisp+1, vdisp+1,
-                                 kern_width, kern_height,
-                                 width, height);
-        Vector2f offset = detail::find_minimum_2d(points, pinvA);
-
-        // This prevents us from adding in large offsets for
-        // poorly fit data.
-        if (norm_2(offset) < 5.0)
-          remove_mask(disparity_map(c,r)) += offset;
-        else
-          invalidate(disparity_map);
-      }
-    } // c loop
-  }   // r loop
 }
