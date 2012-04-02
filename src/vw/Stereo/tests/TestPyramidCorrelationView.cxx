@@ -82,7 +82,7 @@ TEST_F( PyramidViewGRAYU8, NullPreprocess ) {
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .9985, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -150,7 +150,7 @@ TEST_F( PyramidViewGRAYI16, NullPreprocess ) {
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .9985, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -218,7 +218,7 @@ TEST_F( PyramidViewGRAYF32, NullPreprocess ) {
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .9985, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
@@ -286,7 +286,7 @@ TEST_F( PyramidViewU8, NullPreprocess ) {
                        ABSOLUTE_DIFFERENCE, -1 );
   ASSERT_EQ( input1.cols(), disparity_map.cols() );
   ASSERT_EQ( input1.rows(), disparity_map.rows() );
-  check_error( disparity_map, .91, .9985, "Absolute Difference" );
+  check_error( disparity_map, .909, .9985, "Absolute Difference" );
 
   disparity_map =
     pyramid_correlate( input1, input2,
