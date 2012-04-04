@@ -17,12 +17,12 @@
 
 using namespace vw;
 
-template <class PixelT>
+template <typename T>
 class MaskedViewTest : public ::testing::Test {
-protected:
-  typedef PixelT Px;
+public:
+  typedef T Px;
   typedef typename PixelChannelType<Px>::type ChT;
-  typedef PixelMask<PixelT> MPx;
+  typedef PixelMask<T> MPx;
 
   MaskedViewTest() {}
 
@@ -46,100 +46,55 @@ protected:
 typedef MaskedViewTest<uint8> MaskedViewU8Test;
 typedef MaskedViewTest<PixelGray<float> > MaskedViewGrayTest;
 
-TEST_F( MaskedViewU8Test, create_mask ) {
-  ImageView<Px> non(2,1);
+typedef ::testing::Types<uint8, int16, uint16, float, double, PixelGray<uint8>, PixelGray<int16>, PixelGray<uint16>, PixelGray<float>, PixelRGB<uint8>, PixelRGB<int16>, PixelRGB<uint16>, PixelRGB<float> > MyTypes;
+TYPED_TEST_CASE( MaskedViewTest, MyTypes );
+
+TYPED_TEST( MaskedViewTest, create_mask ) {
+  ImageView<typename TestFixture::Px> non(2,1);
   non(0,0) = 10;
   non(1,0) = 0;
-  ImageView<MPx> c = create_mask(non);
-  EXPECT_EQ( 10, c(0,0) );
-  EXPECT_EQ( 0, c(1,0) );
+  ImageView<typename TestFixture::MPx> c = create_mask(non);
+  EXPECT_EQ( typename TestFixture::Px(10), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(0), c(1,0).child() );
   EXPECT_TRUE( is_valid(c(0,0)) );
   EXPECT_FALSE( is_valid(c(1,0)) );
 
   non(1,0) = 20;
   c = create_mask(non,20);
-  EXPECT_EQ( 10, c(0,0) );
-  EXPECT_EQ( 0, c(1,0) );
+  EXPECT_EQ( typename TestFixture::Px(10), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(0), c(1,0).child() );
   EXPECT_TRUE( is_valid(c(0,0)) );
   EXPECT_FALSE( is_valid(c(1,0)) );
 }
 
-TEST_F( MaskedViewGrayTest, create_mask ) {
-  ImageView<Px> non(2,1);
-  non(0,0) = 10;
-  non(1,0) = 0;
-  ImageView<MPx> c = create_mask(non);
-  EXPECT_EQ( 10, c(0,0) );
-  EXPECT_EQ( 0, c(1,0) );
-  EXPECT_TRUE( is_valid(c(0,0)) );
-  EXPECT_FALSE( is_valid(c(1,0)) );
-
-  non(1,0) = 20;
-  c = create_mask(non,20);
-  EXPECT_EQ( 10, c(0,0) );
-  EXPECT_EQ( 0, c(1,0) );
-  EXPECT_TRUE( is_valid(c(0,0)) );
-  EXPECT_FALSE( is_valid(c(1,0)) );
-}
-
-TEST_F( MaskedViewU8Test, apply_mask ) {
-  ImageView<Px> c = apply_mask(a);
+TYPED_TEST( MaskedViewTest, apply_mask ) {
+  ImageView<typename TestFixture::Px> c = apply_mask(this->a);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 0, c(0,1) );
-  EXPECT_EQ( 0, c(1,1) );
-  ImageView<Px> d = apply_mask(a,200);
-  EXPECT_EQ( 1, d(0,0) );
-  EXPECT_EQ( 2, d(1,0) );
-  EXPECT_EQ( 200, d(0,1) );
-  EXPECT_EQ( 200, d(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0) );
+  EXPECT_EQ( typename TestFixture::Px(2), c(1,0) );
+  EXPECT_EQ( typename TestFixture::Px(0), c(0,1) );
+  EXPECT_EQ( typename TestFixture::Px(0), c(1,1) );
+  ImageView<typename TestFixture::Px> d = apply_mask(this->a,200);
+  EXPECT_EQ( typename TestFixture::Px(1), d(0,0) );
+  EXPECT_EQ( typename TestFixture::Px(2), d(1,0) );
+  EXPECT_EQ( typename TestFixture::Px(200), d(0,1) );
+  EXPECT_EQ( typename TestFixture::Px(200), d(1,1) );
 }
 
-TEST_F( MaskedViewGrayTest, apply_mask ) {
-  ImageView<Px> c = apply_mask(a);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 0, c(0,1) );
-  EXPECT_EQ( 0, c(1,1) );
-  ImageView<Px> d = apply_mask(a,200);
-  EXPECT_EQ( 1, d(0,0) );
-  EXPECT_EQ( 2, d(1,0) );
-  EXPECT_EQ( 200, d(0,1) );
-  EXPECT_EQ( 200, d(1,1) );
-}
-
-TEST_F( MaskedViewU8Test, copy_mask ) {
-  ImageView<Px> in(2,2);
-  in(0,0) = Px(9); in(1,0) = Px(8);
-  in(0,1) = Px(1); in(1,1) = Px(4);
-  ImageView<MPx> c = copy_mask(in,a);
+TYPED_TEST( MaskedViewTest, copy_mask ) {
+  ImageView<typename TestFixture::Px> in(2,2);
+  in(0,0) = typename TestFixture::Px(9); in(1,0) = typename TestFixture::Px(8);
+  in(0,1) = typename TestFixture::Px(1); in(1,1) = typename TestFixture::Px(4);
+  ImageView<typename TestFixture::MPx> c = copy_mask(in,this->a);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
   EXPECT_TRUE( is_valid(c(0,0)) );
   EXPECT_TRUE( is_valid(c(1,0)) );
   EXPECT_FALSE(is_valid(c(0,1)) );
   EXPECT_FALSE(is_valid(c(1,1)) );
-  EXPECT_EQ( 9, c(0,0) );
-  EXPECT_EQ( 8, c(1,0) );
-  EXPECT_EQ( 1, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
-}
-
-TEST_F( MaskedViewGrayTest, copy_mask ) {
-  ImageView<Px> in(2,2);
-  in(0,0) = Px(9); in(1,0) = Px(8);
-  in(0,1) = Px(1); in(1,1) = Px(4);
-  ImageView<MPx> c = copy_mask(in,a);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_TRUE( is_valid(c(0,0)) );
-  EXPECT_TRUE( is_valid(c(1,0)) );
-  EXPECT_FALSE(is_valid(c(0,1)) );
-  EXPECT_FALSE(is_valid(c(1,1)) );
-  EXPECT_EQ( 9, c(0,0) );
-  EXPECT_EQ( 8, c(1,0) );
-  EXPECT_EQ( 1, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(9), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(8), c(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
 TEST_F( MaskedViewGrayTest, mask_to_alpha ) {
@@ -168,11 +123,12 @@ TEST_F( MaskedViewGrayTest, alpha_to_mask ) {
   EXPECT_TRUE( is_valid(a(1,1)) );
 }
 
-TEST_F( MaskedViewU8Test, edge_mask ) {
-  ImageView<Px> c(4,4);
-  fill( c, Px(1) );
-  c(0,0) = Px(); c(0,1) = Px(); c(0,2) = Px(); c(2,1) = Px();
-  ImageView<MPx> d = edge_mask( c );
+TYPED_TEST( MaskedViewTest, edge_mask ) {
+  ImageView<typename TestFixture::Px> c(4,4);
+  fill( c, typename TestFixture::Px(1) );
+  c(0,0) = typename TestFixture::Px(); c(0,1) = typename TestFixture::Px();
+  c(0,2) = typename TestFixture::Px(); c(2,1) = typename TestFixture::Px();
+  ImageView<typename TestFixture::MPx> d = edge_mask( c );
   EXPECT_FALSE( is_valid(d(0,0)) );
   EXPECT_FALSE( is_valid(d(0,2)) );
   EXPECT_TRUE( is_valid(d(2,1)) );
@@ -182,130 +138,72 @@ TEST_F( MaskedViewU8Test, edge_mask ) {
   EXPECT_FALSE( is_valid(d(3,0)) );
 }
 
-TEST_F( MaskedViewGrayTest, edge_mask ) {
-  ImageView<Px> c(4,4);
-  fill( c, Px(1) );
-  c(0,0) = Px(); c(0,1) = Px(); c(0,2) = Px(); c(2,1) = Px();
-  ImageView<MPx> d = edge_mask( c );
-  EXPECT_FALSE( is_valid(d(0,0)) );
-  EXPECT_FALSE( is_valid(d(0,2)) );
-  EXPECT_TRUE( is_valid(d(2,1)) );
-  EXPECT_TRUE( is_valid(d(2,2)) );
-  EXPECT_FALSE( is_valid(d(3,3)) );
-  EXPECT_FALSE( is_valid(d(0,3)) );
-  EXPECT_FALSE( is_valid(d(3,0)) );
-}
-
-TEST_F( MaskedViewU8Test, validate_mask ) {
-  ImageView<MPx> c = validate_mask(a);
+TYPED_TEST( MaskedViewTest, validate_mask ) {
+  ImageView<typename TestFixture::MPx> c = validate_mask(this->a);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
   EXPECT_TRUE( is_valid(c(0,0)) );
   EXPECT_TRUE( is_valid(c(1,0)) );
   EXPECT_TRUE( is_valid(c(0,1)) );
   EXPECT_TRUE( is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 4, c(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
-TEST_F( MaskedViewGrayTest, validate_mask ) {
-  ImageView<MPx> c = validate_mask(a);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_TRUE( is_valid(c(0,0)) );
-  EXPECT_TRUE( is_valid(c(1,0)) );
-  EXPECT_TRUE( is_valid(c(0,1)) );
-  EXPECT_TRUE( is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 4, c(1,1) );
-}
-
-TEST_F( MaskedViewU8Test, invalidate_mask ) {
-  ImageView<MPx> c = invalidate_mask(a);
+TYPED_TEST( MaskedViewTest, invalidate_mask ) {
+  ImageView<typename TestFixture::MPx> c = invalidate_mask(this->a);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
   EXPECT_FALSE( is_valid(c(0,0)) );
   EXPECT_FALSE( is_valid(c(1,0)) );
   EXPECT_FALSE( is_valid(c(0,1)) );
   EXPECT_FALSE( is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 4, c(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
-TEST_F( MaskedViewGrayTest, invalidate_mask ) {
-  ImageView<MPx> c = invalidate_mask(a);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_FALSE( is_valid(c(0,0)) );
-  EXPECT_FALSE( is_valid(c(1,0)) );
-  EXPECT_FALSE( is_valid(c(0,1)) );
-  EXPECT_FALSE( is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 4, c(1,1) );
-}
-
-TEST_F( MaskedViewU8Test, union_mask ) {
-  ImageView<MPx> c = union_mask(a,b);
+TYPED_TEST( MaskedViewTest, union_mask ) {
+  ImageView<typename TestFixture::MPx> c = union_mask(this->a,this->b);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
   EXPECT_FALSE( is_valid(c(1,1)) );
   EXPECT_TRUE(  is_valid(c(0,0)) );
   EXPECT_TRUE(  is_valid(c(0,1)) );
   EXPECT_TRUE(  is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 3, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(2), c(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(3), c(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
-TEST_F( MaskedViewGrayTest, union_mask ) {
-  ImageView<MPx> c = union_mask(a,b);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_FALSE( is_valid(c(1,1)) );
-  EXPECT_TRUE(  is_valid(c(0,0)) );
-  EXPECT_TRUE(  is_valid(c(0,1)) );
-  EXPECT_TRUE(  is_valid(c(1,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 3, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
-}
-
-TEST_F( MaskedViewU8Test, intersect_mask ) {
-  ImageView<MPx> c = intersect_mask(a,b);
+TYPED_TEST( MaskedViewTest, intersect_mask ) {
+  ImageView<typename TestFixture::MPx> c =
+    intersect_mask(this->a,this->b);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
   EXPECT_FALSE( is_valid(c(1,1)) );
   EXPECT_FALSE( is_valid(c(1,0)) );
   EXPECT_FALSE( is_valid(c(0,1)) );
   EXPECT_TRUE(  is_valid(c(0,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 3, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(2), c(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(3), c(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
-TEST_F( MaskedViewGrayTest, intersect_mask ) {
-  ImageView<MPx> c = intersect_mask(a,b);
-  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_FALSE( is_valid(c(1,1)) );
-  EXPECT_FALSE( is_valid(c(1,0)) );
-  EXPECT_FALSE( is_valid(c(0,1)) );
-  EXPECT_TRUE(  is_valid(c(0,0)) );
-  EXPECT_EQ( 1, c(0,0) );
-  EXPECT_EQ( 2, c(1,0) );
-  EXPECT_EQ( 3, c(0,1) );
-  EXPECT_EQ( 4, c(1,1) );
+TYPED_TEST( MaskedViewTest, invert_mask ) {
+  this->b = invert_mask(this->a);
+  EXPECT_EQ( 2, this->b.cols() ); EXPECT_EQ( 2, this->b.rows() );
+  EXPECT_NE( is_valid(this->a(0,0)), is_valid(this->b(0,0)) );
+  EXPECT_NE( is_valid(this->a(1,0)), is_valid(this->b(1,0)) );
+  EXPECT_NE( is_valid(this->a(0,1)), is_valid(this->b(0,1)) );
+  EXPECT_NE( is_valid(this->a(1,1)), is_valid(this->b(1,1)) );
 }
 
-TEST_F( MaskedViewU8Test, invert_mask ) {
-  b = invert_mask(a);
-  EXPECT_EQ( 2, b.cols() ); EXPECT_EQ( 2, b.rows() );
-  EXPECT_NE( is_valid(a(0,0)), is_valid(b(0,0)) );
-  EXPECT_NE( is_valid(a(1,0)), is_valid(b(1,0)) );
-  EXPECT_NE( is_valid(a(0,1)), is_valid(b(0,1)) );
-  EXPECT_NE( is_valid(a(1,1)), is_valid(b(1,1)) );
-}
+TYPED_TEST( MaskedViewTest, create_apply_mask ) {
+  this->a(0,1).validate();
+  this->a(1,1).validate();
 
-TEST_F( MaskedViewGrayTest, invert_mask ) {
-  b = invert_mask(a);
-  EXPECT_EQ( 2, b.cols() ); EXPECT_EQ( 2, b.rows() );
-  EXPECT_NE( is_valid(a(0,0)), is_valid(b(0,0)) );
-  EXPECT_NE( is_valid(a(1,0)), is_valid(b(1,0)) );
-  EXPECT_NE( is_valid(a(0,1)), is_valid(b(0,1)) );
-  EXPECT_NE( is_valid(a(1,1)), is_valid(b(1,1)) );
+  ImageView<typename TestFixture::Px> c =
+    apply_mask(create_mask(apply_mask(this->a),3));
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,0) );
+  EXPECT_EQ( typename TestFixture::Px(2), c(1,0) );
+  EXPECT_EQ( typename TestFixture::Px(0), c(0,1) );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1) );
 }

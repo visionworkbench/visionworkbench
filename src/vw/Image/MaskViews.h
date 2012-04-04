@@ -74,7 +74,7 @@ namespace vw {
       }
     };
 
-    typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
       if ( m_is_threshold ) {
         if ( CompoundNumChannels<PixelT>::value > 1)
           vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of pixels with multiple channels.");
@@ -117,7 +117,7 @@ namespace vw {
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view ) {
-    return create_mask( view, typename ViewT::pixel_type() );
+    return create_mask( view.impl(), typename ViewT::pixel_type() );
   }
 
   // Indicate that create_mask is "reasonably fast" and should never
@@ -135,11 +135,11 @@ namespace vw {
   /// pixel value passed in as value.  The value is T() by default.
   ///
   template <class PixelT>
-  class ApplyPixelMask : public ReturnFixedType<PixelT const&> {
+  class ApplyPixelMask : public ReturnFixedType<PixelT> {
     PixelT m_nodata_value;
   public:
     ApplyPixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
-    PixelT const& operator()( PixelMask<PixelT> const& value ) const {
+    inline PixelT operator()( PixelMask<PixelT> const& value ) const {
       return value.valid() ? value.child() : m_nodata_value;
     }
   };
@@ -157,7 +157,7 @@ namespace vw {
   template <class ViewT>
   UnaryPerPixelView<ViewT,ApplyPixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> >
   apply_mask( ImageViewBase<ViewT> const& view ) {
-    return apply_mask( view, typename UnmaskedPixelType<typename ViewT::pixel_type>::type() );
+    return apply_mask( view.impl(), typename UnmaskedPixelType<typename ViewT::pixel_type>::type() );
   }
 
   // Indicate that apply_mask is "reasonably fast" and should never
