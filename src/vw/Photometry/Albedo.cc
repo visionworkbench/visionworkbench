@@ -565,7 +565,7 @@ namespace {
 
 //initializes the current albedo tile
 double
-vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
+vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile, bool useReflectance,
                                        int pixelPadding, double tileSize,
                                        std::string blankTileFile,
                                        std::string DEMTileFile,
@@ -587,12 +587,12 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
     
     DiskImageView<PixelMask<PixelGray<uint8> > >  blankTile(blankTileFile);
     std::cout << "Reading " << blankTileFile << std::endl;
-    ImageView<PixelMask<PixelGray<float> > > albedoTile (blankTile.cols(), blankTile.rows());
+    ImageView<PixelMask<PixelGray<float> > > albedoTile(blankTile.cols(), blankTile.rows());
     GeoReference albedoTile_geo;
     read_georeference(albedoTile_geo, blankTileFile);
 
     ImageView<Vector3> dem_xyz, surface_normal;
-    {
+    if (useReflectance){
       // Use a block to de-allocate DEMTile as soon as it is no longer needed.
       DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
       std::cout << "Reading file: "<< DEMTileFile << std::endl;
@@ -604,12 +604,11 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
     }
     
     ImageView<PixelGray<int> > pixelState(albedoTile.cols(), albedoTile.rows());
-    ImageView<PixelGray<int> > numSamples(albedoTile.cols(), albedoTile.rows());
     ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
 
     enum {pixelIsInvalid, pixelIsBlack, pixelIsValidAndNonBlack};
 
-    //initialize  albedoTile, and numSamples
+    //initialize  albedoTile
     for (int k = 0 ; k < albedoTile.rows(); ++k) {
         for (int l = 0; l < albedoTile.cols(); ++l) {
           albedoTile(l, k) = 0;
@@ -619,7 +618,6 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
           // and pixelIsBlack if it is always black whenever it is
           // valid.
           pixelState(l, k) = pixelIsInvalid;
-          numSamples(l, k) = 0;
           norm      (l, k) = 0;
         }
     }
@@ -644,7 +642,8 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
     for (int i = 0; i < (int)overlap_img_params.size(); i++){
       
       // Read the weights only if really needed
-      if (globalParams.useWeights != 0){
+      bool useWeights = (globalParams.useWeights != 0);
+      if (useWeights){
         bool useTiles = true;
         ReadWeightsParamsFromFile(useTiles, &overlap_img_params[i]);
       }
@@ -674,12 +673,23 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
         interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
   
       ImageView<PixelMask<PixelGray<float> > > overlapReflectance;
-      computeReflectanceAux(dem_xyz, surface_normal,  
-                            overlap_img_params[i],
-                            globalParams,  
-                            overlapReflectance
-                            );
-
+      if (useReflectance){
+        computeReflectanceAux(dem_xyz, surface_normal,  
+                              overlap_img_params[i],
+                              globalParams,  
+                              overlapReflectance // output
+                              );
+      }else{
+        // The reflectance is set to 1.
+        overlapReflectance.set_size(albedoTile.cols(), albedoTile.rows());
+        for (int row = 0; row < (int)albedoTile.rows(); row++){
+          for (int col = 0; col < (int)albedoTile.cols(); col++){
+            overlapReflectance(col, row) = 1.0;
+            overlapReflectance(col, row).validate();
+          }
+        }
+      }
+      
       for (int k = 0; k < albedoTile.rows(); ++k) {
         for (int l = 0; l < albedoTile.cols(); ++l) {
 
@@ -731,45 +741,43 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                 if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
                   
                   if (overlap_img_reflectance != 0.0){
-                    if (globalParams.useWeights == 0){
-                      albedoTile(l, k) = (double)albedoTile(l, k) + (double)overlap_img_pixel/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
-                      numSamples(l, k) = numSamples(l,k) + 1;
-                    }
-                    else{
+                    
+                    double weight = 1.0;
+                    if (useWeights){
                       // We need the pixel coordinates in the ENTIRE image, as opposed to its coordinates
                       // in the subimage, for the purpose of computing the weight.
                       Vector2 overlap_pix_orig = overlap_geo_orig.lonlat_to_pixel(lon_lat);
-                      double weight  = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i]);
-                      double expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
-
-                      if (initTile){
-                        
-                        //New averaging
-                        albedoTile(l, k) = (double)albedoTile(l, k) + ((double)overlap_img_pixel)*expRefl*weight;
-                        norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
-
-                        // Old averaging
-                        //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/expRefl;
-                        //norm(l,k) = norm(l,k) + weight;
-                        
-                      }else if (is_valid(inputAlbedoTile(l, k))){
-
-                        // Update the albedo
-                        double error = (double)overlap_img_pixel - ((double)inputAlbedoTile(l, k))*expRefl;
-                        albedoTile(l, k) = (double)albedoTile(l, k) + error*expRefl*weight;
-                        norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
-
-                        double lx = lon_lat(0), ly = lon_lat(1);
-                        bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
-                        if (isInTile){
-                          // Accumulate the cost function only for pixels in the tile proper rather than
-                          // in the padded region
-                          costFunVal += error*error*weight; // Weighted sum of squares
-                        }
-                      }
-
-                      numSamples(l, k) = numSamples(l,k) + 1;
+                      weight = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i]);
                     }
+                    
+                    double expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
+                    
+                    if (initTile){
+                      
+                      //New averaging
+                      albedoTile(l, k) = (double)albedoTile(l, k) + ((double)overlap_img_pixel)*expRefl*weight;
+                      norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+                      
+                      // Old averaging
+                      //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/expRefl;
+                      //norm(l,k) = norm(l,k) + weight;
+                      
+                    }else if (is_valid(inputAlbedoTile(l, k))){
+                      
+                      // Update the albedo
+                      double error = (double)overlap_img_pixel - ((double)inputAlbedoTile(l, k))*expRefl;
+                      albedoTile(l, k) = (double)albedoTile(l, k) + error*expRefl*weight;
+                      norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+                      
+                      double lx = lon_lat(0), ly = lon_lat(1);
+                      bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
+                      if (isInTile){
+                        // Accumulate the cost function only for pixels in the tile proper rather than
+                        // in the padded region
+                        costFunVal += error*error*weight; // Weighted sum of squares
+                      }
+                    }
+                    
                   }
                   
                   //image dependent part of the code  - END
@@ -799,14 +807,11 @@ vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile,
                (pixelState(l, k) == pixelIsInvalid) ) albedoTile(l,k).invalidate();
         }
         
-        if ( (is_valid(albedoTile(l,k))) && (numSamples(l, k) != 0) ) {
+        if ( (is_valid(albedoTile(l,k))) && (norm(l, k) != 0) ) {
           
           albedoTile(l,k).validate();
           
-          if (globalParams.useWeights == 0){
-            albedoTile(l, k) = albedoTile(l, k)/numSamples(l,k);
-          }
-          else if (initTile){
+          if (initTile){
             // Init tile
             albedoTile(l, k) = albedoTile(l, k)/norm(l,k);
           }else{

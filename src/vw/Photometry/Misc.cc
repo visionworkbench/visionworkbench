@@ -468,6 +468,7 @@ void vw::photometry::readDEMTilesIntersectingBox(// Inputs
 
     // Get just the portion of the tile which overlaps with the current box
     ImageView<PixelGray<float> > DEMTile;
+    //std::cout << "Will read: " << DEMTileFile  << std::endl;
     bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
       (boxNW, boxSE, DEMTileFile, // Inputs
        DEMTile, DEMTile_geo       // Outputs

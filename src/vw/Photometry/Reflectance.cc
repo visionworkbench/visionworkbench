@@ -532,6 +532,7 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
 }
 
 float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
+                                                                     bool useReflectance,
                                                                      int pixelPadding, double tileSize,
                                                                      std::vector<ImageRecord> & DEMTiles,
                                                                      std::vector<ImageRecord> & albedoTiles,
@@ -560,7 +561,8 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
   //std::string shadow_file = input_img_params.shadowFilename;
   //DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
 
-  if (globalParams.useWeights != 0 && (!compAvgRefl)){
+  bool useWeights = (globalParams.useWeights != 0);
+  if (useWeights && (!compAvgRefl)){
     // Read the weights only if we update the exposure
     bool useTiles = true;
     ReadWeightsParamsFromFile(useTiles, &input_img_params);
@@ -582,9 +584,11 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     GeoReference DEMGeo;
     read_georeference(DEMGeo, DEMTileFile);
     ImageView<PixelMask<PixelGray<float> > > Reflectance;
-    {
-      // Do things in a block to deallocate fast the quantities dem_xyz and surface_normal which
-      // are needed only temporarily. They take a lot of memory being images of vectors.
+    if (useReflectance){
+      // Declare dem_xyz and surface_normal in a block to de-allocate
+      // fast the quantities dem_xyz and surface_normal which are
+      // needed only temporarily. They take a lot of memory being
+      // images of vectors.
       ImageView<Vector3> dem_xyz, surface_normal;
       vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, globalParams,
                                                  dem_xyz, surface_normal
@@ -594,8 +598,17 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
                             Reflectance // output
                             );
       //system("echo reflectance_xyz top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+    }else{
+      // The reflectance is set to 1.
+      Reflectance.set_size(DEMTile.cols(), DEMTile.rows());
+      for (int row = 0; row < (int)DEMTile.rows(); row++){
+        for (int col = 0; col < (int)DEMTile.cols(); col++){
+          Reflectance(col, row) = 1.0;
+          Reflectance(col, row).validate();
+        }
+      }
     }
-
+    
     InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<float> > >,
                                         ConstantEdgeExtension>, BilinearInterpolation>
       interp_reflectance = interpolate(Reflectance,
@@ -604,7 +617,7 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     
     ImageView<PixelMask<PixelGray<float> > > albedoTile;
     if (!compAvgRefl){
-      // To update exposure need the current albedo
+      // Update the exposure. Need the current albedo.
       std::string albedoTileFile = albedoTiles[overlap[i]].path;
       std::cout << "Reading " << albedoTileFile << std::endl;
       albedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
@@ -619,7 +632,7 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     // of the tile proper.
     double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
     getTileCornersWithoutPadding(// Inputs
-                                 Reflectance.cols(), Reflectance.rows(), DEMGeo,  
+                                 DEMTile.cols(),  DEMTile.rows(), DEMGeo,  
                                  tileSize, pixelPadding,  
                                  // Outputs
                                  min_tile_x, max_tile_x,  
@@ -666,7 +679,8 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
               }else{
                 // Update the exposure
                 // We assume that the DEM, reflectance, and albedo are on the same grid
-                double weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
+                double weight = 1.0;
+                if (useWeights) weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
                 double A  = interp_albedo(x, y); // we assume albedo, reflectance, and DEM are on the same grid
                 double RA = R*A;
                 numerator   += ((double)input_img(l, k) - input_img_params.exposureTime*RA)*RA*weight;

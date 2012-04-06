@@ -68,6 +68,7 @@ namespace photometry {
 
   
   float computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
+                                                       bool useReflectance,
                                                        int pixelPadding, double tileSize,
                                                        std::vector<ImageRecord> & DEMTiles,
                                                        std::vector<ImageRecord> & albedoTiles,
