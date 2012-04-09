@@ -66,7 +66,7 @@ namespace stereo {
 
   template <class ViewT>
   UnaryPerPixelView<ViewT, MissingPixelImageFunc<typename ViewT::pixel_type> >
-  missing_pixel_image(ImageViewBase<ViewT> &image) {
+  missing_pixel_image(ImageViewBase<ViewT> const& image) {
     return per_pixel_filter(image.impl(), MissingPixelImageFunc<typename ViewT::pixel_type>());
   }
 
