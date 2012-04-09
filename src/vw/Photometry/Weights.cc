@@ -120,7 +120,7 @@ float ComputeWeights(Vector2 pix, Vector2 C, float maxDistance)
 }
 */
 
-void vw::photometry::ComputeImageCenterLines(struct ModelParams modelParams){
+void vw::photometry::ComputeImageCenterLines(struct ModelParams & modelParams){
 
   // Compute the center of the image.
   

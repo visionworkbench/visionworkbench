@@ -16,7 +16,7 @@
 namespace vw {
 namespace photometry {
 
-  void ComputeImageCenterLines(struct ModelParams modelParams);
+  void ComputeImageCenterLines(struct ModelParams & modelParams);
   
   int* ComputeImageHCenterLine(std::string input_img_file,
                               int **r_hMaxDistArray);
