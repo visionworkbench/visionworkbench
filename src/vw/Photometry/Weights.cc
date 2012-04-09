@@ -120,20 +120,17 @@ float ComputeWeights(Vector2 pix, Vector2 C, float maxDistance)
 }
 */
 
-void vw::photometry::ComputeImageCenterLines(std::string input_img_file,
-                                             int **r_hMaxDistArray,
-                                             int **r_hCenterLine,
-                                             int **r_vMaxDistArray,
-                                             int **r_vCenterLine
-                                             ){
+void vw::photometry::ComputeImageCenterLines(struct ModelParams modelParams){
 
   // Compute the center of the image.
   
   // A re-implementation of ComputeImageHCenterLine and ComputeImageVCenterLine
   // which is more efficient and uses less memory since it does only one
   // pass through the image.
+
+  std::string input_img_file = modelParams.inputFilename;
   
-  printf("file=%s\n",input_img_file.c_str());
+  printf("file=%s\n", input_img_file.c_str());
   
   // *r_hCenterLine = ComputeImageHCenterLine(input_img_file, r_hMaxDistArray);
   // *r_vCenterLine = ComputeImageVCenterLine(input_img_file, r_vMaxDistArray);
@@ -196,10 +193,10 @@ void vw::photometry::ComputeImageCenterLines(std::string input_img_file,
   }
 
     
-  *r_hMaxDistArray = hMaxDistArray;
-  *r_hCenterLine   = hCenterLine;
-  *r_vMaxDistArray = vMaxDistArray;
-  *r_vCenterLine   = vCenterLine;
+  modelParams.hMaxDistArray = hMaxDistArray;
+  modelParams.hCenterLine   = hCenterLine;
+  modelParams.vMaxDistArray = vMaxDistArray;
+  modelParams.vCenterLine   = vCenterLine;
 
   delete [] minValInRow;
   delete [] maxValInRow;
@@ -207,7 +204,17 @@ void vw::photometry::ComputeImageCenterLines(std::string input_img_file,
   delete [] maxValInCol;
     
   //system("echo Weight top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
-    
+  
+#if 0 // Debugging code
+  ImageView< PixelGray<double> >  weights(input_img.cols(), input_img.rows());
+  for (int row = 0; row < weights.rows(); row++){
+    for (int col = 0; col < weights.cols(); col++){
+      weights(col, row) = ComputeLineWeightsHV(Vector2(col, row), modelParams);
+      //std::cout << "weight is " << weights(col, row) << std::endl;
+    }
+  }
+#endif
+  
   return;
 }
 
@@ -407,19 +414,16 @@ vw::photometry::ComputeLineWeightsH(Vector2 pix,
   // We round below, to avoid issues when we are within numerical value
   // to an integer value for pix[1].
   // To do: Need to do interpolation here.
-  int maxDist = hMaxDistArray[(int)round(pix[1])]/2.0;
-  int center  = hCenterLine[(int)round(pix[1])];
-  float dist  = fabs(pix[0]-center);
-  float a;
-  float b;
+  float maxDist = hMaxDistArray[(int)round(pix[1])]/2.0;
+  float center  = hCenterLine[(int)round(pix[1])];
+  float dist    = fabs(pix[0]-center);
 
-  if (maxDist == 0){
-      maxDist = 1;
-  }
+  if (maxDist == 0) return 0;
 
-  a = -1.0/(float)maxDist;
-  b = 1;
-  float weight = a*dist + b;
+  float a      = -1.0/maxDist;
+  float b      = 1.0;
+  float weight = std::max(float(0.0), a*dist + b);
+
   //printf("i = %d, j = %d, weight = %f\n", (int)pix[1], (int)pix[0], weight);
   return weight;
 }
@@ -428,19 +432,16 @@ float
 vw::photometry::ComputeLineWeightsV(Vector2 pix,
                                     int *vCenterLine, int *vMaxDistArray){
   // See the notes at ComputeLineWeightsH().
-  int maxDist = vMaxDistArray[(int)round(pix[0])]/2.0;
-  int center  = vCenterLine[(int)round(pix[0])];
-  float dist  = fabs(pix[1]-center);
-  float a;
-  float b;
+  float maxDist = vMaxDistArray[(int)round(pix[0])]/2.0;
+  float center  = vCenterLine[(int)round(pix[0])];
+  float dist    = fabs(pix[1]-center);
 
-  if (maxDist == 0){
-      maxDist = 1;
-  }
+  if (maxDist == 0) return 0;
 
-  a = -1.0/(float)maxDist;
-  b = 1;
-  float weight = a*dist + b;
+  float a      = -1.0/(float)maxDist;
+  float b      = 1.0;
+  float weight = std::max(float(0.0), a*dist + b);
+  
   //printf("i = %d, j = %d, weight = %f\n", (int)pix[1], (int)pix[0], weight);
   return weight;
 }
