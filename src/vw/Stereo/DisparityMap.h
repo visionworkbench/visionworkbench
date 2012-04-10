@@ -359,19 +359,22 @@ namespace stereo {
   /// that must "match" the center pixel if that pixel is to be
   /// considered an inlier. ([0..1.0]).
   template <class ViewT>
-  inline UnaryPerPixelAccessorView< EdgeExtensionView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
-                                                                                 RemoveOutliersFunc<typename ViewT::pixel_type> >,
-                                                       ConstantEdgeExtension>,
-                                    RemoveOutliersFunc<typename ViewT::pixel_type> >
+  inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
+                                                              RemoveOutliersFunc<typename ViewT::pixel_type> >, RemoveOutliersFunc<typename ViewT::pixel_type> >
   disparity_clean_up(ImageViewBase<ViewT> const& disparity_map,
                      int32 h_half_kernel, int32 v_half_kernel,
                      double pixel_threshold, double rejection_threshold) {
     // Remove outliers first using user specified parameters, and then
     // using a heuristic that isolates single pixel outliers.
-    return remove_outliers(remove_outliers(disparity_map.impl(),
-                                           h_half_kernel, v_half_kernel,
-                                           pixel_threshold, rejection_threshold),
-                           1, 1, 1.0, 0.75);
+    typedef RemoveOutliersFunc<typename ViewT::pixel_type> func_type;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
+                                      func_type > inner_type;
+    typedef UnaryPerPixelAccessorView<inner_type,
+                                      func_type > outer_type;
+    return outer_type(remove_outliers(disparity_map.impl(),
+                                      h_half_kernel, v_half_kernel,
+                                      pixel_threshold, rejection_threshold),
+                      func_type( 1, 1, 1.0, 0.75 ) );
   }
 
 
