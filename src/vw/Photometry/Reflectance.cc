@@ -87,56 +87,48 @@ Vector3 get_normal(Vector2 lon_lat){
 }
 */
 
-//reads the 3D position of the Sun in Moon centric cordinates
-//char *filename: the filename with the sun positions (sunposition.txt)
-//int numEntres: number of entries in the sun position file
-std::vector<Vector3>
-vw::photometry::ReadSunPosition( std::string const& filename,
-                                 int const& numEntries ) {
-  std::vector<Vector3> sunPositions(numEntries);
 
+// Read from file the 3D position of the sun or spacecraft in Moon-centric coordinates.
+// We assume that each line in the file has the form:
+// some_text/AS15-M-0073_some_text -1353012.8795685 151848979.22428 689542.65035626
+// We will use the 11-character string "AS15-M-0073" as a unique identifier.
+void
+vw::photometry::ReadSunOrSpacecraftPosition(std::string const& filename,             // Input
+                                            std::map<std::string, Vector3> & records // Output
+                                            ){
+
+  records.clear();
+  
   std::ifstream infile( filename.c_str() );
-  if ( infile.is_open() ) {
-    for ( int i = 0; i < numEntries; i++ ) {
-      if ( !infile.good() )
-        vw_throw( IOErr() << "Sun Position file does not have enough entries for the "
-                  << numEntries << " requested." );
-      std::string imgname;
-      infile >> imgname >> sunPositions[i][0]
-             >> sunPositions[i][1] >> sunPositions[i][2];
-    }
-  } else {
-    vw_throw( IOErr() << "Unable to open Sun Position file: " << filename );
+  if ( !infile.is_open() ) {
+    std::cerr << "ERROR: Could not read file: " << filename << std::endl;
+    exit(1);
   }
+
+
+  while ( infile.good() ){
+    std::string line, key;
+    Vector3 val;
+    getline (infile, line);
+    std::istringstream lh(line);
+    if (line == "") continue;
+    if (! ( lh >> key >> val[0] >> val[1] >> val[2] ) ){
+      std::cerr << "ERROR: Unable to read from file: " << filename << " the line: '" << line << "'" << std::endl;
+      exit(1);
+    }
+
+    key = getFirstElevenCharsFromFileName(key);
+    if (records.find(key) != records.end()){
+      std::cerr << "ERROR: Duplicate key: " << key << " in file: " << filename << std::endl;
+      exit(1);
+    }
+    
+    records[key] = val;
+  }
+  
   infile.close();
 
-  return sunPositions;
-}
-
-//reads the 3D position of the Spacecraft in Moon centric cordinates
-//char *filename: the filename with the sun positions (sunposition.txt)
-//int numEntres: number of entries in the sun position file
-std::vector<Vector3>
-vw::photometry::ReadSpacecraftPosition(std::string const& filename,
-                                       int const& numEntries) {
-  std::vector<Vector3> spacecraftPositions(numEntries);
-
-  std::ifstream infile( filename.c_str() );
-  if ( infile.is_open() ) {
-    for ( int i = 0; i < numEntries; i++ ) {
-      if ( !infile.good() )
-        vw_throw( IOErr() << "Spacecraft Position file does not have enough entries for the "
-                  << numEntries << " requested." );
-      std::string imgname;
-      infile >> imgname >> spacecraftPositions[i][0]
-             >> spacecraftPositions[i][1] >> spacecraftPositions[i][2];
-    }
-  } else {
-    vw_throw( IOErr() << "Unable to open Spacecraft Position file: " << filename );
-  }
-  infile.close();
-
-  return spacecraftPositions;
+  return;
 }
 
 /*

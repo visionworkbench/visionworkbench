@@ -17,6 +17,7 @@
 #endif
 
 #include <string>
+#include <map>
 #include <vw/Math/Vector.h>
 
 #include <vw/Photometry/Reconstruct.h>
@@ -27,11 +28,10 @@ namespace photometry {
   Vector3 computeNormalFrom3DPointsGeneral(Vector3 p1, Vector3 p2, Vector3 p3);
   Vector3 computeNormalFrom3DPoints(Vector3 p1, Vector3 p2, Vector3 p3);
 
-  std::vector<Vector3> ReadSunPosition(std::string const& filename,
-                                       int const& numEntries);
-  std::vector<Vector3> ReadSpacecraftPosition(std::string const& filename,
-                                              int const& numEntries);
-
+  void ReadSunOrSpacecraftPosition(std::string const& filename,             // Input
+                                   std::map<std::string, Vector3> & records // Output
+                                   );
+  
   float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
   float computeLambertianReflectanceFromNormal(Vector3 sunPos,
                                                Vector3 xyz, Vector3 normal);
