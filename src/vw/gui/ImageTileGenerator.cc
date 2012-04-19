@@ -87,7 +87,7 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
       exit(0);
-      }
+    }
 
     break;
 
@@ -97,7 +97,10 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
                                                 tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
       return do_image_tilegen<PixelRGB<uint16> >(m_rsrc, tile_bbox,
-                                                tile_info.level, this->num_levels());
+                                                 tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+      return do_image_tilegen<PixelRGB<float> >( m_rsrc, tile_bbox,
+                                                 tile_info.level, this->num_levels());
     } else {
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
@@ -113,6 +116,9 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
       return do_image_tilegen<PixelRGBA<uint16> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+      return do_image_tilegen<PixelRGBA<float> >(m_rsrc, tile_bbox,
+                                                 tile_info.level, this->num_levels());
     } else {
       std::cout << "This image has a channel type that is not yet support by vwv.\n";
       std::cout << "Exiting...\n\n";
