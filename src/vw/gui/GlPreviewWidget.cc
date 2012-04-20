@@ -724,59 +724,66 @@ void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
 void GlPreviewWidget::mousePressEvent(QMouseEvent *event) {
   m_show_legend = true;
   lastPos = event->pos();
+  m_last_gain = m_gain;     // Store this so the user can do linear
+  m_last_offset = m_offset; // and nonlinear steps.
+  m_last_gamma = m_gamma;
+  m_last_viewport_min = QPoint( m_current_viewport.min().x(),
+                                m_current_viewport.min().y() );
   updateCurrentMousePosition();
 }
 
 void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
-  // Left mouse button moves the image around
-  if (event->buttons() & Qt::LeftButton) {
-    float x_diff = float(event->x() - lastPos.x()) / m_viewport_width;
-    float y_diff = float(event->y() - lastPos.y()) / m_viewport_height;
-    float ticks;
-    float width = m_current_viewport.width();
-    float height = m_current_viewport.height();
+  // Diff variables are just the movement of the mouse normalized to
+  // 0.0-1.0;
+  float x_diff = float(event->x() - lastPos.x()) / m_viewport_width;
+  float y_diff = float(event->y() - lastPos.y()) / m_viewport_height;
+  float width = m_current_viewport.width();
+  float height = m_current_viewport.height();
+
+  // Right mouse button just kicks up the gain of all mouse actions
+  if (event->buttons() & Qt::LeftButton || event->buttons() & Qt::RightButton) {
+
+    if ( event->buttons() & Qt::RightButton ) {
+      x_diff *= 2;
+      y_diff *= 2;
+    }
 
     std::ostringstream s;
     switch (m_adjust_mode) {
 
     case TransformAdjustment:
-      m_current_viewport.min().x() -= x_diff * width;
-      m_current_viewport.min().y() -= y_diff * height;
-      m_current_viewport.max().x() -= x_diff * width;
-      m_current_viewport.max().y() -= y_diff * height;
+      m_current_viewport.min().x() =
+        m_last_viewport_min.x() - x_diff * width;
+      m_current_viewport.min().y() =
+        m_last_viewport_min.y() - y_diff * height;
+      m_current_viewport.max().x() =
+        m_last_viewport_min.x() - x_diff * width + width;
+      m_current_viewport.max().y() =
+        m_last_viewport_min.y() - y_diff * height + height;
       break;
 
     case GainAdjustment:
-      // The number '5' below adjusts the sensitivity.
-      ticks = pow(2, 5 * x_diff);
-      if (m_gain * ticks > 1e-8 && m_gain * ticks < 1e8)
-        m_gain *= ticks;
+      m_gain = m_last_gain * pow(2.0,x_diff);
       s << "Gain: " << (log(m_gain)/log(2)) << " f-stops\n";
       m_legend_status = s.str();
       break;
 
     case OffsetAdjustment:
-      m_offset += x_diff * (m_image_max - m_image_min);
+      m_offset = m_last_offset +
+        (pow(100,fabs(x_diff))-1.0)*(x_diff > 0 ? 0.1 : -0.1);
       s << "Offset: " << m_offset << "\n";
       m_legend_status = s.str();
       break;
 
     case GammaAdjustment:
-      // The number '5.0' below adjust the sensitivity.
-      ticks = pow(2, x_diff * 5.0);
-      if (m_gamma * ticks > 0.01 && m_gamma * ticks < 10.0)
-        m_gamma *= ticks;
+      m_gamma = m_last_gamma * pow(2.0,x_diff);
       s << "Gamma: " << m_gamma << "\n";
       m_legend_status = s.str();
       break;
     }
-
-  } else if (event->buttons() & Qt::RightButton) {
-    m_gain += GLfloat(event->x() - lastPos.x()) / m_viewport_width *10;
   }
 
   // Regardless, we store the current position for the text legend.
-  lastPos = event->pos();
   updateCurrentMousePosition();
 }
 

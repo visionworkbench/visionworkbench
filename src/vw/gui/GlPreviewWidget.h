@@ -159,8 +159,7 @@ namespace gui {
     AdjustmentMode m_adjust_mode;
 
     // Mouse positions and legend information
-    QPoint lastPos;
-    QPoint currentImagePos;
+    QPoint lastPos, currentImagePos, m_last_viewport_min;
     std::string m_legend_status;
 
     // Dimensions & stats
@@ -173,9 +172,9 @@ namespace gui {
 
     // Image Parameters
     vw::BBox2 m_current_viewport;
-    float m_gain;
-    float m_offset;
-    float m_gamma;
+    float m_gain, m_last_gain;
+    float m_offset, m_last_offset;
+    float m_gamma, m_last_gamma;
     int m_current_transaction_id;
     bool m_exact_transaction_id_match;
     int m_current_level;
