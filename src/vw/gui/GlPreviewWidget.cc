@@ -59,7 +59,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "    alpha_selected = true; \n"
 "    vec4 right = texture2D(tex,gl_TexCoord[0].st+vec2(0.01,0.0));\n"
 "    vec4 bot   = texture2D(tex,gl_TexCoord[0].st+vec2(0.0,0.01));\n"
-"    vec3 normal = vec3(right.y - src_tex.y, bot.y - src_tex.y, 10000.0 / float(current_level*current_level) );\n"
+"    vec3 normal = vec3(right.y - src_tex.y, bot.y - src_tex.y, (float(hillshade_display) * float(hillshade_display)) / float(current_level*current_level) );\n"
 "    vec3 light = vec3(0.5774,0.5774,0.5774);\n"
 "    float intense = dot(light,normalize(normal));\n"
 "    selected_tex = vec4(intense,intense,intense,src_tex[3]);\n"
@@ -75,7 +75,7 @@ const std::string g_FRAGMENT_PROGRAM =
 "  } \n"
 "  \n"
 "  if (!alpha_selected) {\n"
-"    vec4 final_tex = pow(g*(selected_tex + o), v);\n"
+"    vec4 final_tex = pow((g*selected_tex)+o, v);\n"
 "    if (use_nodata == 1) { \n"
 "      if (src_tex[0] == nodata) { \n"
 "        final_tex = vec4(0.0,0,0,0.0);\n"
@@ -687,8 +687,8 @@ void GlPreviewWidget::drawLegend(QPainter* painter) {
                 << m_tile_generator->rows() << " @ " << m_current_level << " ] (t_id = "
                 << m_current_transaction_id << ")<br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
-                << "Current Pixel Range: [ " << -m_offset << " "
-                << ( -m_offset+(1/m_gain) ) << " ]<br>"
+                << "Current Pixel Range: [ " << -m_offset/m_gain << " "
+                << ( pow(1,1/m_gamma) - m_offset )/m_gain << " ]<br>"
                 << pix_value_ostr.str() << "<br>"
                 << "</p>";
     textDocument.setHtml(legend_text.str().c_str());
@@ -857,7 +857,13 @@ void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
     m_use_colormap = !m_use_colormap;
     break;
   case Qt::Key_H:  // Activate hillshade
-    m_hillshade_display = !m_hillshade_display;
+    if ( m_hillshade_display == 0 ) {
+      m_hillshade_display = 1;
+    } else {
+      m_hillshade_display *= 3;
+    }
+    if ( m_hillshade_display > 100 || m_hillshade_display < 0 )
+      m_hillshade_display = 0;
     break;
   case Qt::Key_T:  // Activate tile boundaries
     m_show_tile_boundaries = !m_show_tile_boundaries;
