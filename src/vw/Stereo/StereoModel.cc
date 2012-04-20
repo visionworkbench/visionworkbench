@@ -166,7 +166,7 @@ void StereoModel::refine_point(Vector2 const& pix1,
   Vector4 objective( pix1[0], pix1[1], pix2[0], pix2[1] );
   int status = 0;
   Vector3 npoint = levenberg_marquardt( model, point,
-                                        objective, status );
+                                        objective, status, 1e-3, 1e-6, 10 );
   if ( status > 0 )
     point = npoint;
 }
