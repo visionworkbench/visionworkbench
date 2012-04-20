@@ -25,7 +25,8 @@ boost::shared_ptr<SrcImageResource> do_image_tilegen(boost::shared_ptr<SrcImageR
                                                       int level, int num_levels) {
   ImageView<PixelT> tile(tile_bbox.width(), tile_bbox.height());
   rsrc->read(tile.buffer(), tile_bbox);
-  ImageView<PixelT> reduced_tile = subsample(tile, (1 << ((num_levels-1) - level)));
+  ImageView<typename CompoundChannelCast<PixelT,float>::type> reduced_tile =
+    channel_cast<float>(subsample(tile, (1 << ((num_levels-1) - level))));
   return boost::shared_ptr<SrcImageResource>( new ViewImageResource(reduced_tile) );
 }
 
@@ -98,6 +99,9 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
       return do_image_tilegen<PixelRGB<uint16> >(m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
+    } else if (this->channel_type() == VW_CHANNEL_INT32) {
+      return do_image_tilegen<PixelRGB<int32> >(m_rsrc, tile_bbox,
+                                                 tile_info.level, this->num_levels());
     } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
       return do_image_tilegen<PixelRGB<float> >( m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
@@ -116,7 +120,8 @@ boost::shared_ptr<SrcImageResource> ImageTileGenerator::generate_tile(TileLocato
     } else if (this->channel_type() == VW_CHANNEL_UINT16) {
       return do_image_tilegen<PixelRGBA<uint16> >(m_rsrc, tile_bbox,
                                                   tile_info.level, this->num_levels());
-    } else if (this->channel_type() == VW_CHANNEL_FLOAT32) {
+    } else if (this->channel_type() == VW_CHANNEL_FLOAT32 ||
+               this->channel_type() == VW_CHANNEL_FLOAT64 ) {
       return do_image_tilegen<PixelRGBA<float> >(m_rsrc, tile_bbox,
                                                  tile_info.level, this->num_levels());
     } else {
@@ -140,10 +145,11 @@ Vector2 ImageTileGenerator::minmax() {
   vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << " not implemented.");
 }
 
-PixelRGBA<float32> ImageTileGenerator::sample(int /*x*/, int /*y*/, int /*level*/, int /*transaction_id*/) {
-  vw_throw(NoImplErr() << VW_CURRENT_FUNCTION << " not implemented.");
+PixelRGBA<float32> ImageTileGenerator::sample(int x, int y, int level, int /*transaction_id*/) {
+  ImageView<PixelRGBA<float32> > point(1,1);
+  m_rsrc->read(point.buffer(), BBox2i(x,y,1,1));
+  return point(0,0);
 }
-
 
 int ImageTileGenerator::cols() const {
   return m_rsrc->cols();
