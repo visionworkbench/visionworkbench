@@ -40,6 +40,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/PerPixelViews.h>
+#include <vw/Image/AlgorithmFunctions.h>
 
 namespace vw {
 
@@ -732,8 +733,16 @@ namespace vw {
     typedef typename ImageT::result_type result_type;
     typedef SubsamplePixelAccessor<typename ImageT::pixel_accessor> pixel_accessor;
 
-    SubsampleView( ImageT const& image, int32 subsampling_factor ) : m_child(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {}
-    SubsampleView( ImageT const& image, int32 xfactor, int32 yfactor ) : m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {}
+    SubsampleView( ImageT const& image, int32 subsampling_factor ) :
+      m_child(image), m_xdelta(subsampling_factor), m_ydelta(subsampling_factor) {
+      VW_ASSERT( m_xdelta > 0 && m_ydelta > 0,
+                 ArgumentErr() << "SubsampleView: Arguments must be greater than zero." );
+    }
+    SubsampleView( ImageT const& image, int32 xfactor, int32 yfactor ) :
+      m_child(image), m_xdelta(xfactor), m_ydelta(yfactor) {
+      VW_ASSERT( m_xdelta > 0 && m_ydelta > 0,
+                 ArgumentErr() << "SubsampleView: Arguments must be greater than zero." );
+    }
 
     inline int32 cols() const { return 1 + (m_child.cols()-1)/m_xdelta; }
     inline int32 rows() const { return 1 + (m_child.rows()-1)/m_ydelta; }
@@ -749,7 +758,27 @@ namespace vw {
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       return prerasterize_type( m_child.prerasterize(BBox2i(m_xdelta*bbox.min().x(),m_ydelta*bbox.min().y(),m_xdelta*bbox.width(),m_ydelta*bbox.height())), m_xdelta, m_ydelta );
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      // This complicated rasterize call is to reduce the overall
+      // memory requirement in the event the user is greatly reducing
+      // the input.
+      Vector2i sub_region_size( bbox.width() / m_xdelta,
+                                bbox.height() / m_ydelta );
+      if ( sub_region_size.x() < 2 )
+        sub_region_size.x() = 2;
+      if ( sub_region_size.y() < 2 )
+        sub_region_size.y() = 2;
+
+      typedef std::vector<BBox2i> ContainerT;
+      ContainerT bboxes =
+        image_blocks( bbox, sub_region_size.x(),
+                      sub_region_size.y() );
+
+      for ( ContainerT::const_iterator b = bboxes.begin();
+            b != bboxes.end(); ++b )
+        vw::rasterize(this->prerasterize(*b),
+                      crop(dest, *b - bbox.min()), *b );
+    }
     /// \endcond
   };
 
