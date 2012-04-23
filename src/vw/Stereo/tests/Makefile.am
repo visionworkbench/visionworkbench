@@ -22,9 +22,17 @@ TestPyramidCorrelationView_SOURCES = TestPyramidCorrelationView.cxx
 TestStereoModel_SOURCES   = TestStereoModel.cxx
 TestSubPixel_SOURCES      = TestSubPixel.cxx
 
-TESTS = TestAlgorithms TestCorrelate TestCorrelationView	\
-	TestCostFunctions TestDisparity TestPreFilter		\
-	TestPyramidCorrelationView TestStereoModel TestSubPixel
+TESTS = \
+	TestAlgorithms \
+	TestCorrelate \
+	TestCorrelationView \
+	TestCorrelation \
+	TestCostFunctions \
+	TestDisparity \
+	TestPreFilter \
+	TestPyramidCorrelationView \
+	TestStereoModel \
+	TestSubPixel
 
 #include $(top_srcdir)/config/instantiate.am
 
