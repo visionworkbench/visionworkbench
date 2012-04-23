@@ -12,6 +12,7 @@
 if MAKE_MODULE_IMAGE
 
 include_HEADERS = \
+  AlgorithmFunctions.h \
   Algorithms.h \
   BlockProcessor.h \
   BlockRasterize.h \
