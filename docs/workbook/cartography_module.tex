@@ -6,7 +6,7 @@ $$
 The earliest robots in space were not planetary rovers -- they were
 unmanned probes that studied the planetary bodies in our solar system
 from afar.  Today there are roughly twenty extraterrestrial spacecraft
-in active communication with earth (and only two planetary rovers), so
+in active communication with earth (and only three planetary rovers), so
 the bulk of the extraterrestrial data that we receive consists of
 imagery that originated on round(ish) surfaces.  The natural thing to
 do with this data is to merge it together into a map, but when doing
@@ -22,12 +22,13 @@ to store an entire mapping data set in memory all at once, so
 intelligent paging, caching, and storage strategies must be used in
 order to make working with this data tractable.  For this reason, the
 Cartography module is particularly powerful when used in conjunction
-with Mosaic module (see Chapter \ref{ch:mosaic-module}), which is
-designed to efficiently process and combine extremely large data sets.
+with Mosaic module (see Chapter \ref{ch:mosaic-module}) or the
+upcoming Plate File module, which is designed to efficiently process
+and combine extremely large data sets.
 
 We will begin this chapter with a quick summary of the third party
 libraries that are needed to compile the Vision Workbench.  We will
-then describe the \verb#GeoRefence# class, which creates a
+then describe the \verb#GeoReference# class, which creates a
 relationship between pixel coordinates in an image and coordinates on
 a globe.  Next, we will discuss the \verb#GeoTransform# class, which
 provides a simple means of re-projecting map data.  We finish this
@@ -63,7 +64,7 @@ However, this relationship is also affected by a subtle, but extremely
 important dependence on how the map is {\em projected}.  That is, the
 image depicts a scene that sits on the surface of a spheroid.
 However, the image is flat, so at best it represents a very slightly
-distorted view of the surface.  
+distorted view of the surface.
 
 One can imagine all sorts of different ways that the surface can be
 warped or projected onto a flat plane (or, at the very least,
@@ -85,49 +86,163 @@ map projections supported by the Vision Workbench.
 
 Now would be a good time to take a break from reading this section of
 the documentation to look over these references.  When you return, we
-will dive into some code examples.  
+will dive into some code examples.
 
 \subsection{The Datum}
 
 A Vision Workbench \verb#GeoReference# object is composed of three items:
 
 \begin{itemize}
+\item {\bf The Datum}: Describes the approximate shape of the
+  planetary body, as either a sphere or an ellipsoid.
 \item {\bf The Projection}: As discussed above, this is the technique
-  used to represent the round globe in a flat image.
+  used to represent spherical coordinates in a flat projection.
 \item {\bf The Affine Transform}: This is the geometric transformation
   between pixel coordinates in the image to coordinates in the map
   projection space.
-\item {\bf The Datum}: Describes the approximate shape of the
-  planetary body, as either a sphere or an ellipsoid.
 \end{itemize}
 
-\subsection{The Affine Transform}
+\subsection{The Transformations}
 
 Let's start by being explicit about the coordinate systems we will be
 working with.  For images, we adopt the usual Vision Workbench
 coordinate system wherein the upper left corner of the image is the
 origin, the $u$ coordinate increases as you move right along the
 columns of the image, and the $v$ coordinate increases as you move
-down the rows.  
+down the rows.
 
 For a planetary body, the coordinate of a point on the surface is
-typically measured in latitude, longitude, and radius ($\phi, \theta,
-r$).  Lines of latitude are perpendicular to the axis of rotation and
-are measured from the center line, the {\em equator} (+/-90 degrees).
-Lines of Longitude are vertical, passing through both the North and
-South poles of the planet.  It is measured from a vertical arc on the
-surface called the {\em meridian}.  We will generally adopt an East
-positive frame of reference (latitude increases to the east of the
-meridian 0-360 degrees).  Finally, the radius is measured from the
-point to the planet's center of mass.  Note that this coordinate
-system is similar but not identical to spherical coordinates in a
-mathematical sense, where ``latitude'' would be measured from the
-North pole rather than the equator.
+typically measured in longitude, latitude, and radius ($\theta, \phi,
+r$) or in a geodetic format of longitude, latitude, and height
+($\theta, \phi, h$). Lines of latitude are perpendicular to the axis
+of rotation and are measured from the center line, the {\em equator}
+(+/-90 degrees).  Lines of Longitude are vertical, passing through
+both the North and South poles of the planet.  It is measured from a
+vertical arc on the surface called the {\em meridian}.  We will
+generally adopt an East positive frame of reference (latitude
+increases to the east of the meridian 0-360 degrees).  The radius is
+measured from the point to the planet's center of mass except in the
+case of a flatten sphere. Thus the need for the alternative of height
+measurements, which is the measured distance between a point and the
+surface of a datum along the normal of the longitude, latitude
+location.  Note that this coordinate system is similar but not
+identical to spherical coordinates in a mathematical sense, where
+``latitude'' would be measured from the North pole rather than the
+equator.
 
-Under this set of assumptions, if we have a point $P_{img} = (u,v)$ in
-the image, and we want to relate it to some planetary coordinates
+Under this set of assumptions, if we have a pixel ($u,v$) in the image,
+and we want to relate it to some planetary coordinates, we must do two
+things. First we most convert the pixel measurement to units in the
+projective domain. We call this domain the point measurement and its
+units are defined by the projection. It can be in degrees in the case
+of equirectangular projection or in terms of meters for UTM or
+stereographic projection. We choose to not acknowledge this, hence the
+rather non-descriptive name, point. Converting to point however is
+simple and is just the forward transform through the affine
+matrix. From here we must convert this point measurement to longitude
+and latitude. This is achieved through the Proj4 library.
+
+What you need to gather from the above information is that the
+\verb#GeoReference# class converts measurements between 3 domains; pixel,
+point, and longitude and latitude. The projection defines how a
+spherical measurement is described on a plane \emph{(point
+  space)}. The affine describes the translation and resolution of the
+map by figuring how to convert pixels to the point measurement.
 
 \subsection{Putting Things Together}
+
+Creating GeoReferences is harder than reading them. Here’s how to read
+and write a georeference from an image.
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|p{5 in}|} \hline
+Function & Description \\ \hline \hline
+\verb#read_georeference(geo,filename)# & Given a path \verb#filename#, this function will create and provide a reference to \verb#geo# a \verb#GeoReference#. \\ \hline
+\verb#read_georeference(geo,rsrc)# & Given a disk image resource, \verb#rsrc#, this function will create and provide a reference to \verb#geo#. \\ \hline
+\verb#read_georeferenced_image(im,geo,filename)# & Reads simultaneously both view \verb#im# and \verb#geo# from path \verb#filename#.\\ \hline
+\verb#write_georeference(rsrc,geo)# & Writes \verb#geo# to a disk image resource, \verb#rsrc#. \\ \hline
+\verb#write_georeferenced_image(filename,im,geo)# & Writes view \verb#im# and \verb#geo# to output file, \verb#filename#. \\ \hline
+\end{tabular}
+\caption{Reading and writing of {\tt GeoReference} Objects}
+\end{centering}
+\end{table}
+
+We only support reading and writing of georeferenced images that the
+GDAL library supports. We do however support read only of
+georeferenced information from PDS images.
+
+Once you have a GeoReference, you now have a powerful class that
+allows conversion of measurements between pixel, point, and longitude
+latitude measurements. Here’s a list of methods provided by
+GeoReference that allow conversion:
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|p{5 in}|} \hline
+Method & Description \\ \hline \hline
+ & Single Vector Transforms \\ \hline
+\verb#pixel_to_point(pix)# & Converts Vector2 \verb#pix# to Vector2 point. \\ \hline
+\verb#point_to_pixel(pnt)# & Converts Vector2 \verb#pnt# to Vector2 pixel.\\ \hline
+\verb#point_to_lonlat(pnt)# & Converts Vector2 \verb#pnt# to Vector2 longitude latitude.\\ \hline
+\verb#lonlat_to_point(ll)# & Converts Vector2 \verb#ll# to Vector2 point.\\ \hline
+\verb#pixel_to_lonlat(pix)# & Converts Vector2 \verb#pix# to Vector2 longitude latitude.\\ \hline
+\verb#lonlat_to_pixel(ll)# & Converts Vector2 \verb#ll# to Vector2 pixel.\\ \hline
+ & Bounding Box Transforms \\ \hline
+\verb#pixel_to_point_bbox(pix)# & Converts BBox2i \verb#pix# to BBox2 point.\\ \hline
+\verb#point_to_pixel_bbox(pnt)# & Converts BBox2 \verb#pnt# to BBox2i pixel.\\ \hline
+\verb#point_to_lonlat_bbox(pnt)# & Converts BBox2 \verb#pnt# to BBox2 longitude latitude.\\ \hline
+\verb#lonlat_to_point_bbox(ll)# & Converts BBox2 \verb#ll# to BBox2 point.\\ \hline
+\verb#pixel_to_lonlat_bbox(pix)# & Converts BBox2i \verb#pix# to BBox2 longitude latitude.\\ \hline
+\verb#lonlat_to_pixel_bbox(ll)# & Converts BBox2 \verb#pll# to BBox2i pixel.\\ \hline
+\end{tabular}
+\caption{Methods for transforming measurements in {\tt GeoReference}.}
+\end{centering}
+\end{table}
+
+Say however you want to convert a geocentric measurement
+\emph{(longitude, latitude, radius)} or geodetic measurement
+\emph{(longitude, latitude, height)} to cartesian space? This is
+provided for you in the Datum class, which is used by the
+\verb#GeoReference# class. Getting access to it is as simple as
+calling the \verb#datum()# method of \verb#GeoReference#. From there
+you are given access to the following transforms of \verb#Datum#:
+
+\begin{table}[htb]\begin{centering}
+\begin{tabular}{|c|p{5 in}|} \hline
+Method & Description \\ \hline \hline
+\verb#radius(lon,lat)# & Returns double, in units of datum, the geodetic radius.\\ \hline
+\verb#radius_of_curvature(lon,lat)# & Returns double, the radius of curvature in the prime vertical.\\ \hline
+\verb#geocentric_latitude(lat)# & Returns double, geocentric latitude corresponding to geodetic latitude, \verb#lat#.\\ \hline
+\verb#geocentric_radius(lon,lat,alt)# & Returns double, return distance from the center of the planet.\\ \hline
+\verb#geodetic_to_cartesian(llh)# & Returns Vector3 in cartesian, given geodetic Vector3 \verb#llh#.\\ \hline
+\verb#cartesian_to_geodetic(xyz)# & Returns Vector3 in geodetic, given cartesian Vector3 \verb#xyz#.\\ \hline
+\end{tabular}
+\caption{Methods for transforming measurements in {\tt Datum}.}
+\end{centering}
+\end{table}
+
+Notice that we only provide cartesian transforms for geodetic
+measurements. Geodetic measurements are safe for both flattened and
+spherical datums alike. Geocentric to Cartesian is much simpler and
+from its name you can tell that it only supports spherical datums. If
+you wish to convert between geocentric measurements and cartesian, you
+have two options which are listed below. Remember, these are for
+geocentric measurements only!
+
+From {\it SimplePointImageManipulation.h}:
+\begin{verbatim}
+  Vector3 llr(30,49,173700);
+  Vector3 xyz = cartography::lon_lat_radius_to_xyz( llr );
+  llr = cartography::xyz_to_lon_lat_radius( xyz );
+\end{verbatim}
+
+From {\it Datum.h}:
+\begin{verbatim}
+  Vector3 xyz =ç∂
+    datum.geodetic_to_cartesian( geocentric -
+                                 Vector3(0,0,datum.radius(geocentric[0],
+                                                          geocentric[1]) ) );
+\end{verbatim}
+
 %% - The GeoReference Object
 %%   - Creating 
 %%     - proj4str
@@ -138,16 +253,19 @@ the image, and we want to relate it to some planetary coordinates
 \begin{table}[t]\begin{centering}
 \begin{tabular}{|l|l|l|} \hline
 Method & Description \\ \hline \hline
+\verb#set_equirectangular()# & Equirectangular Projection \\ \hline
 \verb#set_sinusoidal()# & Sinusoidal Projection \\ \hline
 \verb#set_mercator()# & Mercator Projection \\ \hline
 \verb#set_orthographic()# & Orthographic Projection \\ \hline
 \verb#set_stereographic()# & Stereographic Projection \\ \hline
+\verb#set_oblique_stereographic()# & Oblique Stereographic Projection \\ \hline
+\verb#set_lambert_azimuthal()# & Lambert Azimuthal Projection \\ \hline
+\verb#set_lambert_conformal()# Lambert \emph{(Conic)} Conformal Projetion \\ \hline
 \verb#set_UTM()# & Universal Transverse Mercator (UTM) Projection (Earth only) \\ \hline
 \end{tabular}
 \caption{Currently supported {\tt GeoReference} map projections.}
 \label{tbl:georeference-map-projections}
 \end{centering}\end{table}
-
 
 \section{Geospatial Image Processing}
 \subsection{The {\tt GeoTransform} Functor}
