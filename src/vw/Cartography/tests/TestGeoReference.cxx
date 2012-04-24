@@ -321,10 +321,19 @@ TEST(GeoReference, BoundingBoxNoProj) {
 
   BBox2i pixel_bbox(400, 300, 200, 100);
   BBox2 lonlat_bbox(georef.pixel_to_lonlat_bbox(pixel_bbox));
+  BBox2 lonlat_bbox2(georef.point_to_lonlat_bbox(georef.pixel_to_point_bbox(pixel_bbox)));
   BBox2i pixel_bbox2(georef.lonlat_to_pixel_bbox(lonlat_bbox));
+  BBox2i pixel_bbox3(georef.point_to_pixel_bbox(georef.lonlat_to_point_bbox(lonlat_bbox)));
 
+  // Verify the operation of lonlat_to_pixel transforms
   EXPECT_VECTOR_NEAR(pixel_bbox.min(), pixel_bbox2.min(), 1);
   EXPECT_VECTOR_NEAR(pixel_bbox.max(), pixel_bbox2.max(), 1);
+  // Verify the operation of lonlat_to_point, point_to_pixel
+  EXPECT_VECTOR_NEAR(pixel_bbox.min(), pixel_bbox3.min(), 1);
+  EXPECT_VECTOR_NEAR(pixel_bbox.max(), pixel_bbox3.max(), 1);
+  // Verify the operation of pixel_to_point, point_to_lonlat
+  EXPECT_VECTOR_NEAR(lonlat_bbox.min(), lonlat_bbox2.min(), .01);
+  EXPECT_VECTOR_NEAR(lonlat_bbox.max(), lonlat_bbox2.max(), .01);
 }
 
 TEST(GeoReference, BoundingBox) {
@@ -342,10 +351,19 @@ TEST(GeoReference, BoundingBox) {
 
   BBox2i pixel_bbox(400, 300, 200, 100);
   BBox2 lonlat_bbox(georef.pixel_to_lonlat_bbox(pixel_bbox));
+  BBox2 lonlat_bbox2(georef.point_to_lonlat_bbox(georef.pixel_to_point_bbox(pixel_bbox)));
   BBox2i pixel_bbox2(georef.lonlat_to_pixel_bbox(lonlat_bbox));
+  BBox2i pixel_bbox3(georef.point_to_pixel_bbox(georef.lonlat_to_point_bbox(lonlat_bbox)));
 
+  // Verify the operation of lonlat_to_pixel transforms
   EXPECT_VECTOR_NEAR(pixel_bbox.min(), pixel_bbox2.min(), 1);
   EXPECT_VECTOR_NEAR(pixel_bbox.max(), pixel_bbox2.max(), 1);
+  // Verify the operation of lonlat_to_point, point_to_pixel
+  EXPECT_VECTOR_NEAR(pixel_bbox.min(), pixel_bbox3.min(), 1);
+  EXPECT_VECTOR_NEAR(pixel_bbox.max(), pixel_bbox3.max(), 1);
+  // Verify the operation of pixel_to_point, point_to_lonlat
+  EXPECT_VECTOR_NEAR(lonlat_bbox.min(), lonlat_bbox2.min(), .01);
+  EXPECT_VECTOR_NEAR(lonlat_bbox.max(), lonlat_bbox2.max(), .01);
 }
 
 TEST(GeoReference, CropAndResample) {

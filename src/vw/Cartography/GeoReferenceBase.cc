@@ -14,12 +14,25 @@ namespace cartography {
   /// For a bbox in projected space, return the corresponding bbox in
   /// pixels on the image
   BBox2i GeoReferenceBase::point_to_pixel_bbox(BBox2 const& point_bbox) const {
+    // Technically we should only have to project 2 points as the
+    // georeference transform should only have a scale an translation
+    // transform. Rotations are possible but outside libraries rarely
+    // support it.
     BBox2 pixel_bbox;
     pixel_bbox.grow(point_to_pixel(point_bbox.min()));
     pixel_bbox.grow(point_to_pixel(point_bbox.max()));
     pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.min().x(), point_bbox.max().y())));
     pixel_bbox.grow(point_to_pixel(Vector2(point_bbox.max().x(), point_bbox.min().y())));
     return grow_bbox_to_int(pixel_bbox);
+  }
+
+  BBox2 GeoReferenceBase::pixel_to_point_bbox(BBox2i const& pixel_bbox) const {
+    BBox2 point_bbox;
+    point_bbox.grow(pixel_to_point(pixel_bbox.min()));
+    point_bbox.grow(pixel_to_point(pixel_bbox.max()));
+    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y())));
+    point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x(), pixel_bbox.min().y())));
+    return point_bbox;
   }
 
   BBox2 GeoReferenceBase::pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
@@ -63,11 +76,17 @@ namespace cartography {
   }
 
   BBox2i GeoReferenceBase::lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples) const {
+    BBox2 point_bbox = lonlat_to_point_bbox( lonlat_bbox, nsamples );
+
+    return point_to_pixel_bbox( point_bbox );
+  }
+
+  BBox2 GeoReferenceBase::lonlat_to_point_bbox( BBox2 const& lonlat_bbox, size_t nsamples ) const {
     // Alternatively this function could avoid the nsamples
     // option. The sample discrete step could just be this average
     // size of pixel in degrees.
 
-    BBox2 pixel_bbox;
+    BBox2 point_bbox;
 
     Vector2 lower_fraction(lonlat_bbox.width()/double(nsamples),
                            lonlat_bbox.height()/double(nsamples));
@@ -75,14 +94,14 @@ namespace cartography {
       try {
         // Walk the top & bottom (technically past the edge of pixel space) rows
         double x = lonlat_bbox.min().x() + double(i) * lower_fraction.x();
-        pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.min().y())));
-        pixel_bbox.grow(lonlat_to_pixel(Vector2(x,lonlat_bbox.max().y())));
+        point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.min().y())));
+        point_bbox.grow(lonlat_to_point(Vector2(x,lonlat_bbox.max().y())));
 
 
         // Walk the left & right (technically past the edge of pixel space) columns
         double y = lonlat_bbox.min().y() + double(i) * lower_fraction.y();
-        pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.min().x(),y)));
-        pixel_bbox.grow(lonlat_to_pixel(Vector2(lonlat_bbox.max().x(),y)));
+        point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.min().x(),y)));
+        point_bbox.grow(lonlat_to_point(Vector2(lonlat_bbox.max().x(),y)));
       } catch ( const cartography::ProjectionErr& e ) {}
     }
 
@@ -91,19 +110,58 @@ namespace cartography {
     BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
     while ( l1.is_good() ) {
       try {
-        pixel_bbox.grow( lonlat_to_pixel( elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min() ) );
+        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l1),lower_fraction) + lonlat_bbox.min() ) );
       } catch ( const cartography::ProjectionErr& e ) {}
       ++l1;
     }
     BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
     while ( l2.is_good() ) {
       try {
-        pixel_bbox.grow( lonlat_to_pixel( elem_prod(Vector2(*l2),lower_fraction) + lonlat_bbox.min() ) );
+        point_bbox.grow( lonlat_to_point( elem_prod(Vector2(*l2),lower_fraction) + lonlat_bbox.min() ) );
       } catch ( const cartography::ProjectionErr& e ) {}
       ++l2;
     }
 
-    return grow_bbox_to_int(pixel_bbox);
+    return point_bbox;
+  }
+
+  BBox2 GeoReferenceBase::point_to_lonlat_bbox(BBox2 const& point_bbox,
+                                               size_t nsamples) const {
+    BBox2 lonlat_bbox;
+
+    Vector2 lower_fraction( point_bbox.width()/double(nsamples),
+                            point_bbox.height()/double(nsamples) );
+
+    for (size_t i = 0; i < nsamples; i++ ) {
+      try {
+        double x = point_bbox.min().x() + double(i) * lower_fraction.x();
+        lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.min().y())));
+        lonlat_bbox.grow( point_to_lonlat(Vector2(x,point_bbox.max().y())));
+
+        double y = point_bbox.min().y() + double(i) * lower_fraction.y();
+        lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.min().x(),y)));
+        lonlat_bbox.grow( point_to_lonlat(Vector2(point_bbox.max().x(),y)));
+      } catch ( const cartography::ProjectionErr& e ) {}
+    }
+
+    // This X pattern is to capture in crossing of the poles.
+    BresenhamLine l1( Vector2i(), Vector2i(nsamples,nsamples) );
+    while ( l1.is_good() ) {
+      try {
+        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l1),lower_fraction) + point_bbox.min() ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l1;
+    }
+
+    BresenhamLine l2( Vector2i(nsamples,0), Vector2i(0,nsamples) );
+    while ( l2.is_good() ) {
+      try {
+        lonlat_bbox.grow( point_to_lonlat( elem_prod(Vector2(*l2),lower_fraction) + point_bbox.min() ) );
+      } catch ( const cartography::ProjectionErr& e ) {}
+      ++l2;
+    }
+
+    return lonlat_bbox;
   }
 
 }} // namespace vw, cartography

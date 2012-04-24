@@ -115,14 +115,7 @@ namespace cartography {
 
     /// For a given pixel bbox, return the corresponding bbox in projected
     /// space
-    virtual BBox2 pixel_to_point_bbox(BBox2i pixel_bbox) const {
-      BBox2 point_bbox;
-      point_bbox.grow(pixel_to_point(pixel_bbox.min()));
-      point_bbox.grow(pixel_to_point(pixel_bbox.max()));
-      point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.min().x(), pixel_bbox.max().y())));
-      point_bbox.grow(pixel_to_point(Vector2(pixel_bbox.max().x(), pixel_bbox.min().y())));
-      return point_bbox;
-    }
+    virtual BBox2 pixel_to_point_bbox(BBox2i const& pixel_bbox) const;
 
     /// For a bbox in projected space, return the corresponding bbox in
     /// pixels on the image
@@ -135,6 +128,12 @@ namespace cartography {
     /// For a given bbox in Geographic coordinates, return the corresponding
     /// bbox in image pixel coordinates
     virtual BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
+
+    /// For a given lonlat, provide it's point bbox
+    virtual BBox2 lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
+
+    /// For a given bbox in point, provide the lonlat bounding box.
+    virtual BBox2 point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsamples = 100) const;
 
     // TODO: Probably should implement point_to_lonlat_bbox and
     // lonlat_to_point_bbox for completeness sake, but right now they're
