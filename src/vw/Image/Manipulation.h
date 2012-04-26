@@ -754,14 +754,14 @@ namespace vw {
     ImageT const& child() const { return m_child; }
 
     /// \cond INTERNAL
-    typedef SubsampleView<typename ImageT::prerasterize_type> prerasterize_type;
+    // This complicated prerasterize call is to reduce the overall
+    // memory requirement in the event the user is greatly reducing
+    // the input.
+    typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
-      return prerasterize_type( m_child.prerasterize(BBox2i(m_xdelta*bbox.min().x(),m_ydelta*bbox.min().y(),m_xdelta*bbox.width(),m_ydelta*bbox.height())), m_xdelta, m_ydelta );
-    }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
-      // This complicated rasterize call is to reduce the overall
-      // memory requirement in the event the user is greatly reducing
-      // the input.
+      ImageView<pixel_type> buffer( bbox.width(), bbox.height() );
+
+      // The size of the chunks that we will be rastering one at a time.
       Vector2i sub_region_size( bbox.width() / m_xdelta,
                                 bbox.height() / m_ydelta );
       if ( sub_region_size.x() < 2 )
@@ -774,10 +774,25 @@ namespace vw {
         image_blocks( bbox, sub_region_size.x(),
                       sub_region_size.y() );
 
+      typedef SubsampleView<typename ImageT::prerasterize_type> input_pre_type;
+
       for ( ContainerT::const_iterator b = bboxes.begin();
             b != bboxes.end(); ++b )
-        vw::rasterize(this->prerasterize(*b),
-                      crop(dest, *b - bbox.min()), *b );
+        vw::rasterize(
+          input_pre_type(
+            m_child.prerasterize( BBox2i(m_xdelta*(*b).min().x(),
+                                         m_ydelta*(*b).min().y(),
+                                         m_xdelta*(*b).width(),
+                                         m_ydelta*(*b).height() ) ),
+            m_xdelta, m_ydelta ),
+          crop(buffer, *b - bbox.min()), *b );
+
+      return crop( buffer, -bbox.min().x(), -bbox.min().y(),
+                   cols(), rows() );
+    }
+    template <class DestT>
+    inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+      vw::rasterize( prerasterize(bbox), dest, bbox );
     }
     /// \endcond
   };
