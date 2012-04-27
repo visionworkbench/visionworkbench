@@ -138,8 +138,10 @@ namespace vw {
         retval.push_back("DOQ2");
       } else if (ext == ".dt0" || ext == ".dt1" || ext == ".dt2") { // Military Elevation Data
         retval.push_back("DTED");
-      } else if (ext == ".fits") {                // FITS (needs GDAL w/ libcfitsio)
+      } else if (ext == ".fits") {               // FITS (needs GDAL w/ libcfitsio)
         retval.push_back("FITS");
+      } else if (ext == ".ntf") {                // NITF (needs GDAL w/ Jpeg2000 reader)
+        retval.push_back("NITF");
       }
       else
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
