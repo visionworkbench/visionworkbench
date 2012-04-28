@@ -485,7 +485,7 @@ namespace cartography {
   // Simple GeoReference modification tools
   GeoReference crop( GeoReference const& input,
                      double upper_left_x, double upper_left_y,
-                     double width, double height ) {
+                     double /*width*/, double /*height*/ ) {
     Vector2 top_left_ll;
     if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
       top_left_ll = input.pixel_to_lonlat( Vector2(upper_left_x, upper_left_y ) - Vector2(0.5,0.5) );
