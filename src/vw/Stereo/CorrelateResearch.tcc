@@ -4,12 +4,8 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
-#include <vw/Stereo/CorrelateResearch.h>
-#include <vw/Stereo/LaplacianOfGaussian.h>
-#include <vw/Math/Matrix.h>
-
 #include <vw/Core/Stopwatch.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
@@ -17,7 +13,9 @@
 #include <vw/Image/Filter.h>
 #include <cmath>
 #include <ctime>
-#include <vw/FileIO.h>
+
+#include <vw/Stereo/CorrelateResearch.h>
+#include <vw/Stereo/PreFilter.h>
 
 namespace vw {
 namespace stereo {
@@ -83,7 +81,6 @@ namespace stereo {
     VW_ASSERT( disparity_map.cols() == left_input_image.cols() &&
                disparity_map.rows() == left_input_image.rows(),
                ArgumentErr() << "subpixel_correlation: left image and disparity map do not have the same dimensions.");
-
 
     for (float blur_sigma = 3; blur_sigma >= 1.0; blur_sigma /= 2.0) {
       ImageView<ChannelT> left_image =
