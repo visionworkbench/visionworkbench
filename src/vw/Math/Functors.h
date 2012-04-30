@@ -258,8 +258,8 @@ namespace math {
 
     template <class FuncT> struct result<FuncT(float)> { typedef float type; };
     template <class FuncT> struct result<FuncT(long double)> { typedef long double type; };
-    template <class FuncT> struct result<FuncT(long)> { typedef long type; };
-    template <class FuncT> struct result<FuncT(long long)> { typedef long long type; };
+    template <class FuncT> struct result<FuncT(int32)> { typedef int32 type; };
+    template <class FuncT> struct result<FuncT(int64)> { typedef int64 type; };
     template <class FuncT, class ValT> struct result<FuncT(std::complex<ValT>)> { typedef ValT type; };
 
     template <class ValT>
@@ -274,7 +274,7 @@ namespace math {
     inline long double operator()( long double val ) const { return ::fabsl(val); }
 #endif
 #ifdef VW_HAVE_LLABS
-    inline long long operator()( long long val ) const { return ::llabs(val); }
+    inline int64 operator()( int64 val ) const { return ::llabs(val); }
 #endif
 
     template <class ValT>

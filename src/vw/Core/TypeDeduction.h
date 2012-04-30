@@ -45,13 +45,13 @@ namespace vw {
     template <>                                              \
     struct TypeDeductionIndex<Type> {                        \
       typedef boost::mpl::int_<Number> type;                 \
-      BOOST_STATIC_CONSTANT(unsigned, value = type::value);  \
-    };                                                       \
+      BOOST_STATIC_CONSTANT(uint32, value = type::value);  \
+    }                                                        \
 
     template <class T>
     struct TypeDeductionIndex {
       typedef unknown_type_tag type;
-      BOOST_STATIC_CONSTANT(unsigned, value = type::value);
+      BOOST_STATIC_CONSTANT(uint32, value = type::value);
     };
 
     _VW_INTERNAL_TYPE_DEDUCTION(              char,  100);

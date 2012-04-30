@@ -44,7 +44,7 @@ namespace vw {
       bool m_ ## Name ## _override; \
     public: \
       Type Name(); \
-      void set_ ## Name(const Type& x);
+      void set_ ## Name(const Type& x)
 
     // The default number of threads used in block processing operations.
     VW_DECLARE_SETTING(default_num_threads, uint32);

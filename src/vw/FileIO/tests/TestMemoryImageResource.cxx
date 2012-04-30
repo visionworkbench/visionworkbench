@@ -4,8 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
-#include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 #include <vw/FileIO/MemoryImageResource.h>
 #include <vw/FileIO/DiskImageResource.h>
@@ -88,7 +86,7 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
       }
     }
     // jpeg is lossy, and has trouble with noise-free images. Add some noise and blur to help it out.
-    boost::rand48 gen(uint64(test::get_random_seed()));
+    boost::rand48 gen((uint64(t::get_random_seed())));
     src_ += gaussian_noise_view(gen, 0.008, 0.004, src_);
     src = gaussian_filter(pixel_cast<Px>(normalize(src_, 0, 255)), 2, 2, 4, 4);
     vw::fill(vw::select_channel(src, 3), 255);
@@ -163,7 +161,7 @@ protected:
         }
       }
 
-      boost::rand48 gen(uint64(test::get_random_seed()));
+      boost::rand48 gen((uint64(t::get_random_seed())));
       src_ += gaussian_noise_view(gen, 0.008, 0.004, src_);
       src = gaussian_filter(src_, 2, 2, 4, 4);
       vw::fill(vw::select_channel(src,CompoundNumChannels<PixelT>::value - 1), 0.788);

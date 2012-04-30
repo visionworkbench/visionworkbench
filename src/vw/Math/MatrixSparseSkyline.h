@@ -142,7 +142,7 @@ namespace math {
     size_t cols() const { return m_matrix.size2(); }
 
     /// Change the size of the matrix
-    void set_size( size_t new_rows, size_t new_cols, bool preserve = false ) {
+    void set_size( size_t /*new_rows*/, size_t /*new_cols*/, bool /*preserve*/ = false ) {
       vw_throw( NoImplErr() << "MatrixSparseSkyline::set_size, code has not been written yet." );
     }
 
@@ -473,7 +473,7 @@ namespace math {
 
     // Standard Properties
     size_t size() const { return m_vector.size(); }
-    void set_size( size_t new_size, bool preserve=false ) {
+    void set_size( size_t new_size, bool /*preserve*/=false ) {
       VW_ASSERT( new_size==size(),
                  ArgumentErr() << "Cannot resize vector reorganize." );
     }
@@ -554,7 +554,7 @@ namespace math {
     // Standard properties
     size_t rows() const { return m_matrix.rows(); }
     size_t cols() const { return m_matrix.cols(); }
-    void set_size( size_t new_rows, size_t new_cols, bool preserve=false ) {
+    void set_size( size_t new_rows, size_t new_cols, bool /*preserve*/=false ) {
       VW_ASSERT( new_rows==rows() && new_cols==cols(),
                  ArgumentErr() << "Cannot resize matrix reorganize." );
     }

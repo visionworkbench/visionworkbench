@@ -41,7 +41,7 @@ namespace vw { namespace test { }}
 namespace t  = vw::test;
 
 namespace vw {
-  namespace test {
+namespace test {
 
 using namespace ::testing;
 

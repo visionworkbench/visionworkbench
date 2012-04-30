@@ -289,6 +289,6 @@ namespace vw {
     /// \endcond
   };
 
-};
+}
 
 #endif // __VW_IMAGE_PERPIXELVIEWS_H__
