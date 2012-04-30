@@ -6,7 +6,7 @@
 
 
 // TestManipulation.h
-#include <gtest/gtest_VW.h>
+#include <test/Helpers.h>
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
@@ -740,7 +740,11 @@ TEST( Manipulation, SubsampleView ) {
   PrerasterizationTestView ptv(4,4);
   SubsampleView<PrerasterizationTestView> rtv(ptv,2,2);
   ASSERT_NO_THROW( rtv.prerasterize(BBox2i(1,0,1,2)) );
-  EXPECT_EQ( ptv.bbox(), BBox2i(2,0,2,4) );
+  EXPECT_VECTOR_EQ( Vector2(2,0), ptv.bbox().min() );
+  EXPECT_GE( 2, ptv.bbox().width() );
+  EXPECT_GE( 3, ptv.bbox().height() ); // (4th pixel isn't used in
+                                       // calculation thus it isn't
+                                       // accessed.)
 
   // Test the accessor / generic rasterization
   ImageView<double> im4(ssv.cols(),ssv.rows());
