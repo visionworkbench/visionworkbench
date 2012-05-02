@@ -37,6 +37,18 @@ namespace vw {
 namespace photometry {
 
   typedef struct GlobalParams{
+
+    char drgDir[1000];
+    char demDir[1000];
+    char sunPosFile[1000];
+    char spacecraftPosFile[1000];
+
+    int initialSetup;
+    float tileSize;        // in degrees
+    int useTiles;          // 1 or 0 
+    int pixelPadding;      // in pixels
+    Vector4 simulationBox; // lonMin, lonMax, latMin, latMax (If not present the entire albedo will be simulated)
+    
     int reflectanceType;
     int saveReflectance;
     int slopeType;
@@ -47,14 +59,13 @@ namespace photometry {
 
     float shadowThresh;
 
-    std::string exposureInfoFilename,
-      spacecraftPosFilename, sunPosFilename;
+    std::string exposureInfoFilename;
 
     //float exposureInitRefValue;//this will be removed
     //int exposureInitRefIndex;//this will be removed
     float TRConst;
     int extractDrgFromCubes;
-    int updateAlbedo, updateExposure, updateHeight, initAlbedoTiles;
+    int updateAlbedo, updateExposure, updateHeight;
     int useWeights;
     int saveWeights;
     int maxNumIter;

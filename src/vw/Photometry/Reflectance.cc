@@ -105,7 +105,6 @@ vw::photometry::ReadSunOrSpacecraftPosition(std::string const& filename,        
     exit(1);
   }
 
-
   while ( infile.good() ){
     std::string line, key;
     Vector3 val;
@@ -117,7 +116,6 @@ vw::photometry::ReadSunOrSpacecraftPosition(std::string const& filename,        
       exit(1);
     }
 
-    key = getFirstElevenCharsFromFileName(key);
     if (records.find(key) != records.end()){
       std::cerr << "ERROR: Duplicate key: " << key << " in file: " << filename << std::endl;
       exit(1);
@@ -273,18 +271,6 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
   //Bob Gaskell's model
   //L = exp(-deg_alpha/60.0);
 
-#if 0 // trey
-  // perfectly valid for alpha to be greater than 90?
-  if (deg_alpha > 90){
-    //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
-    return(0.0);
-  }
-  if (deg_alpha < -90){
-    //printf("Error!!: rad_alpha = %f, deg_alpha = %f\n", rad_alpha, deg_alpha);
-    return(0.0);
-  }
-#endif
-
   //Alfred McEwen's model
   float A = -0.019;
   float B =  0.000242;//0.242*1e-3;
@@ -292,19 +278,14 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
 
   L = 1.0 + A*deg_alpha + B*deg_alpha*deg_alpha + C*deg_alpha*deg_alpha*deg_alpha;
 
-  //        std::cout << " sun direction " << sunDirection << " view direction " << viewDirection << " normal " << normal;
-  //        std::cout << " cos_alpha " << cos_alpha << " incident " << mu_0 << " emission " << mu;
   //printf(" deg_alpha = %f, L = %f\n", deg_alpha, L);
 
-  //if (mu_0 < 0.15){ //incidence angle is close to 90 deg
   if (mu_0 < 0.0){
-    //mu_0 = 0.15;
     return (0.0);
   }
 
   if (mu < 0.0){ //emission angle is > 90
     mu = 0.0;
-    //return (0.0);
   }
 
   if (mu_0 + mu == 0){
@@ -318,8 +299,11 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
     //printf("negative reflectance\n");
     reflectance = 0;
   }
-  
 
+  // Attempt to compensate for points on the terrain being too bright
+  // if the sun is behind the spacecraft as seen from those points.
+  reflectance *= std::max(0.4, exp(-rad_alpha*rad_alpha));
+  
   return reflectance;
 }
 
@@ -354,20 +338,19 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
 
 void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > const& DEMTile,
                                                 cartography::GeoReference const& DEMGeo,
-                                                GlobalParams globalParams,
+                                                float noDEMDataValue,
                                                 ImageView<Vector3> & dem_xyz,
                                                 ImageView<Vector3> & surface_normal){
 
-  int nodata = globalParams.noDEMDataValue;
- 
+
   // convert dem altitude to xyz cartesian pixels
   dem_xyz = geodetic_to_cartesian( dem_to_geodetic( DEMTile, DEMGeo ),
                                    DEMGeo.datum() );
 
-  // transfer nodata values
+  // transfer noDEMDataValue values
   for (int y=0; y < (int)dem_xyz.rows(); y++) {
     for (int x=0; x < (int)dem_xyz.cols(); x++) {
-      if (DEMTile(x, y) == nodata) {
+      if (DEMTile(x, y) == noDEMDataValue) {
         dem_xyz(x, y) = Vector3();
       }
     }
@@ -495,8 +478,8 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
 
   ImageView<Vector3> dem_xyz;
   ImageView<Vector3> surface_normal;
-  computeXYZandSurfaceNormal(dem_in_drg_georef, input_img_geo, globalParams, // Inputs 
-                             dem_xyz, surface_normal        // Outputs
+  computeXYZandSurfaceNormal(dem_in_drg_georef, input_img_geo, globalParams.noDEMDataValue, // Inputs 
+                             dem_xyz, surface_normal                                        // Outputs
                              );
   computeReflectanceAux(dem_xyz, surface_normal,  
                         input_img_params,
@@ -575,6 +558,12 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
     GeoReference DEMGeo;
     read_georeference(DEMGeo, DEMTileFile);
+    float noDEMDataValue;
+    if ( !readNoDEMDataVal(DEMTileFile, noDEMDataValue)){
+      std::cerr << "ERROR: Could not read the NoData Value from " << DEMTileFile << std::endl;
+      exit(1);
+    }
+
     ImageView<PixelMask<PixelGray<float> > > Reflectance;
     if (useReflectance){
       // Declare dem_xyz and surface_normal in a block to de-allocate
@@ -582,7 +571,7 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
       // needed only temporarily. They take a lot of memory being
       // images of vectors.
       ImageView<Vector3> dem_xyz, surface_normal;
-      vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, globalParams,
+      vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, noDEMDataValue,
                                                  dem_xyz, surface_normal
                                                  );
       computeReflectanceAux(dem_xyz, surface_normal,

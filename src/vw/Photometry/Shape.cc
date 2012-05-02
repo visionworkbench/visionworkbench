@@ -202,10 +202,15 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
 
   // To make things a bit more efficient, when creating the combined
   // DEM, we take only pixels not too far from the desired tile.
-  
-  int i;
-  unsigned l, k;
 
+  // Try to read the noDEMDataValue from the DEM images. If that fails, use
+  // the value provided in the parameter file.
+  float noDEMDataValue;
+  if ( overlap.size() == 0 || !readNoDEMDataVal(DEMImages[overlap[0]].path, noDEMDataValue)){
+    noDEMDataValue = globalParams.noDEMDataValue;
+  }
+  std::cout << "using noDEMDataValue: " << noDEMDataValue << std::endl;
+  
   DiskImageView< PixelGray<float> >  blankTile(blankTileFile);
   GeoReference DEMTileGeo;
   read_georeference(DEMTileGeo, blankTileFile);
@@ -213,9 +218,9 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
 
   // The final result after interpolation will go here.
   ImageView<PixelGray<float> > meanDEMTile(blankTile.cols(), blankTile.rows());
-  for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
-    for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
-      meanDEMTile(l, k) = globalParams.noDEMDataValue;
+  for (int k = 0 ; k < (int)meanDEMTile.rows(); ++k) {
+    for (int l = 0; l < (int)meanDEMTile.cols(); ++l) {
+      meanDEMTile(l, k) = noDEMDataValue;
     }
   }
 
@@ -228,7 +233,7 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   for (int i = 0; i < (int)overlap.size(); i++){
     overlapDEMVec.push_back(DEMImages[overlap[i]].path);
   }
-  readDEMTilesIntersectingBox(globalParams.noDEMDataValue, begTileLonLat, endTileLonLat, overlapDEMVec, // Inputs
+  readDEMTilesIntersectingBox(noDEMDataValue, begTileLonLat, endTileLonLat, overlapDEMVec, // Inputs
                               combined_DEM, combined_DEM_geo                                            // Outputs
                               );
   
@@ -240,8 +245,8 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   //BilinearInterpolation());
 
   // Interpolate
-  for (k = 0 ; k < (unsigned)meanDEMTile.rows(); ++k) {
-    for (l = 0; l < (unsigned)meanDEMTile.cols(); ++l) {
+  for (int k = 0 ; k < (int)meanDEMTile.rows(); ++k) {
+    for (int l = 0; l < (int)meanDEMTile.cols(); ++l) {
       
       Vector2 input_DEM_pix(l,k);
       
@@ -254,10 +259,10 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
       if ((x>=0) && (x <= combined_DEM.cols()-1) && (y>=0) && (y<= combined_DEM.rows()-1)){
 
         // Check that all four grid points used for interpolation are valid
-        if ( combined_DEM( floor(x), floor(y) ) != globalParams.noDEMDataValue &&
-             combined_DEM( floor(x), ceil(y)  ) != globalParams.noDEMDataValue &&
-             combined_DEM( ceil(x),  floor(y) ) != globalParams.noDEMDataValue &&
-             combined_DEM( ceil(x),  ceil(y)  ) != globalParams.noDEMDataValue
+        if ( combined_DEM( floor(x), floor(y) ) != noDEMDataValue &&
+             combined_DEM( floor(x), ceil(y)  ) != noDEMDataValue &&
+             combined_DEM( ceil(x),  floor(y) ) != noDEMDataValue &&
+             combined_DEM( ceil(x),  ceil(y)  ) != noDEMDataValue
              ){
           meanDEMTile(l, k) = (float)interp_combined_DEM(x, y);
         }
@@ -266,13 +271,16 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
   }
 
   //system("echo dem top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
-  
+
+  // Write the DEM together with the noDEMDataValue
   std::cout << "Writing: " << meanDEMTileFile << std::endl;
-  write_georeferenced_image(meanDEMTileFile,
-                            meanDEMTile,
-                            DEMTileGeo, TerminalProgressCallback("{Core}","Processing:"));
-
-
+  DiskImageResourceGDAL::Options gdal_options;
+  gdal_options["COMPRESS"] = "LZW";
+  DiskImageResourceGDAL rsrc(meanDEMTileFile, meanDEMTile.format(), Vector2i(256, 256), gdal_options);
+  rsrc.set_nodata_write(noDEMDataValue);
+  write_georeference(rsrc, DEMTileGeo);
+  write_image(rsrc, meanDEMTile, TerminalProgressCallback("{Core}", "Processing:"));
+  
   return;
 }
 

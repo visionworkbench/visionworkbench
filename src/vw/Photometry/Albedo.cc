@@ -565,285 +565,337 @@ namespace {
 
 //initializes the current albedo tile
 double
-vw::photometry::InitOrUpdateAlbedoTile(bool isLastIter, bool initTile, bool useReflectance,
-                                       int pixelPadding, double tileSize,
-                                       std::string blankTileFile,
-                                       std::string DEMTileFile,
-                                       std::string albedoTileFile,
-                                       std::vector<ModelParams> & overlap_img_params,
-                                       GlobalParams globalParams){
-
-    // For the given tile, read all the images which overlap with it,
-    // and do a weighted average involving the images, weights,
-    // reflectance, and exposure. This will be the albedo.
-
-    // We use double precision for the numerical computations, even
-    // though some inputs are float. This is more important when the
-    // albedo is updated, and less so when it is initialized.
-
-    // The cost function is the sum of squares of errors over all the pixels
-    // in the given tile (excluding the padded region at the boundary).
-    double costFunVal = 0.0;
-    
-    DiskImageView<PixelMask<PixelGray<uint8> > >  blankTile(blankTileFile);
-    std::cout << "Reading " << blankTileFile << std::endl;
-    ImageView<PixelMask<PixelGray<float> > > albedoTile(blankTile.cols(), blankTile.rows());
-    GeoReference albedoTile_geo;
-    read_georeference(albedoTile_geo, blankTileFile);
-
-    ImageView<Vector3> dem_xyz, surface_normal;
-    if (useReflectance){
-      // Use a block to de-allocate DEMTile as soon as it is no longer needed.
-      DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
-      std::cout << "Reading file: "<< DEMTileFile << std::endl;
-      GeoReference DEMGeo;
-      read_georeference(DEMGeo, DEMTileFile);
-      vw::photometry::computeXYZandSurfaceNormal(DEMTile.impl(), DEMGeo, globalParams,
-                                                 dem_xyz, surface_normal
-                                                 );
-    }
-    
-    ImageView<PixelGray<int> > pixelState(albedoTile.cols(), albedoTile.rows());
-    ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
-
-    enum {pixelIsInvalid, pixelIsBlack, pixelIsValidAndNonBlack};
-
-    //initialize  albedoTile
-    for (int k = 0 ; k < albedoTile.rows(); ++k) {
-        for (int l = 0; l < albedoTile.cols(); ++l) {
-          albedoTile(l, k) = 0;
-          albedoTile(l, k).validate();
-          // Set pixelState to pixelIsInvalid. It will become
-          // pixelIsValidAndNonBlack if it is ever valid and non-black,
-          // and pixelIsBlack if it is always black whenever it is
-          // valid.
-          pixelState(l, k) = pixelIsInvalid;
-          norm      (l, k) = 0;
-        }
-    }
-
-    // If we update the albedo, we need to read in the albedo before the update.
-    ImageView<PixelMask<PixelGray<float> > > inputAlbedoTile;
-    if (!initTile){
-      std::cout << "Reading " << albedoTileFile << std::endl;
-      inputAlbedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
-    }
-
-    // The lon-lat coordinates of tile corners without padding.
-    double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
-    getTileCornersWithoutPadding(// Inputs
-                                 albedoTile.cols(), albedoTile.rows(), albedoTile_geo,  
-                                 tileSize, pixelPadding,  
-                                 // Outputs
-                                 min_tile_x, max_tile_x,  
-                                 min_tile_y, max_tile_y
-                                 );
-    
-    for (int i = 0; i < (int)overlap_img_params.size(); i++){
-      
-      // Read the weights only if really needed
-      bool useWeights = (globalParams.useWeights != 0);
-      if (useWeights){
-        bool useTiles = true;
-        ReadWeightsParamsFromFile(useTiles, &overlap_img_params[i]);
-      }
-                      
-      printf("overlap_img = %s with %s\n", albedoTileFile.c_str(), overlap_img_params[i].inputFilename.c_str());
-
-      // The georeference for  the entire overlap image
-      GeoReference overlap_geo_orig;
-      read_georeference(overlap_geo_orig, overlap_img_params[i].inputFilename);
-
-      // Read only the portion of the overlap image which intersects
-      // the current tile to save on memory.  Create the appropriate
-      // georeference for it.
-      ImageView<PixelMask<PixelGray<float> > > overlap_img;
-      GeoReference overlap_geo;
-      Vector2 begTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(0, 0));
-      Vector2 endTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(albedoTile.cols()-1, albedoTile.rows()-1));
-       bool success = getSubImageWithMargin< PixelMask<PixelGray<uint8> >, PixelMask<PixelGray<float> > >
-        (// Inputs
-         begTileLonLat, endTileLonLat, overlap_img_params[i].inputFilename,  
-         // Outputs
-         overlap_img, overlap_geo
-         );
-      if (!success) continue;
-      
-      InterpolationView<EdgeExtensionView<ImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
-        interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
+vw::photometry::InitOrUpdateAlbedoOrComputeErrors(bool initTile, bool isLastIter, bool computeErrors,
+                                                  bool useReflectance,
+                                                  int pixelPadding, double tileSize,
+                                                  std::string blankTileFile,
+                                                  std::string DEMTileFile,
+                                                  std::string albedoTileFile,
+                                                  std::string errorTileFile,
+                                                  std::vector<ModelParams> & overlap_img_params,
+                                                  GlobalParams globalParams){
   
-      ImageView<PixelMask<PixelGray<float> > > overlapReflectance;
-      if (useReflectance){
-        computeReflectanceAux(dem_xyz, surface_normal,  
-                              overlap_img_params[i],
-                              globalParams,  
-                              overlapReflectance // output
-                              );
-      }else{
-        // The reflectance is set to 1.
-        overlapReflectance.set_size(albedoTile.cols(), albedoTile.rows());
-        for (int row = 0; row < (int)albedoTile.rows(); row++){
-          for (int col = 0; col < (int)albedoTile.cols(); col++){
-            overlapReflectance(col, row) = 1.0;
-            overlapReflectance(col, row).validate();
+  // For the given tile, read all the images which overlap with it,
+  // and do a weighted average involving the images, weights,
+  // reflectance, and exposure. This will be the initial albedo.
+
+  // We use double precision for the numerical computations, even
+  // though some inputs are float. This is more important when the
+  // albedo is updated, and less so when it is initialized.
+
+  // If initTile is false, instead of initializing the albedo tile, we
+  // will read the existing albedo tile and update it using the
+  // updated exposure.
+
+  // If computeErrors is true, instead of initializing/updating the albedo tile
+  // we compute the error for this tile.
+  
+  // The cost function is the weighted sum of squares of errors over
+  // all the pixels in the given tile (excluding the padded region at
+  // the boundary).
+  double costFunVal = 0.0;
+
+  DiskImageView<PixelMask<PixelGray<uint8> > >  blankTile(blankTileFile);
+  std::cout << "Reading " << blankTileFile << std::endl;
+  ImageView<PixelMask<PixelGray<float> > > albedoTile(blankTile.cols(), blankTile.rows());
+  GeoReference albedoTile_geo;
+  read_georeference(albedoTile_geo, blankTileFile);
+
+  ImageView<Vector3> dem_xyz, surface_normal;
+  if (useReflectance){
+    // Use a block to de-allocate DEMTile as soon as it is no longer needed.
+    DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
+    std::cout << "Reading file: "<< DEMTileFile << std::endl;
+    GeoReference DEMGeo;
+    read_georeference(DEMGeo, DEMTileFile);
+    float noDEMDataValue;
+    if ( !readNoDEMDataVal(DEMTileFile, noDEMDataValue)){
+      std::cerr << "ERROR: Could not read the NoData Value from " << DEMTileFile << std::endl;
+      exit(1);
+    }
+      
+    vw::photometry::computeXYZandSurfaceNormal(DEMTile.impl(), DEMGeo, noDEMDataValue,
+                                               dem_xyz, surface_normal
+                                               );
+  }
+    
+  ImageView<PixelGray<float> > norm(albedoTile.cols(), albedoTile.rows());
+
+  //initialize  albedoTile
+  for (int k = 0 ; k < albedoTile.rows(); ++k) {
+    for (int l = 0; l < albedoTile.cols(); ++l) {
+      albedoTile(l, k) = 0;
+      albedoTile(l, k).invalidate(); // a pixel is invalid unless proven otherwise
+      norm(l, k) = 0;
+    }
+  }
+
+  // If we update the albedo or compute the errors, we need to read in the albedo before the update.
+  ImageView<PixelMask<PixelGray<float> > > inputAlbedoTile;
+  if (!initTile){
+    std::cout << "Reading " << albedoTileFile << std::endl;
+    // Copy to a float, to be able to do accurate calculations
+    inputAlbedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
+
+    // Sanity check: if the user is not careful, the padding may have been stripped
+    // from the albedo tile by now, which of course would cause a size mis-match.
+    DiskImageView<PixelGray<float> > DEMTile(DEMTileFile);
+    if (DEMTile.rows() != inputAlbedoTile.rows() || DEMTile.cols() != inputAlbedoTile.cols()){
+      std::cout << "ERROR: We expect the DEM and albedo tiles to have the same number "
+                << "of rows/columns." << std::endl;
+      exit(1);
+    }
+  }
+
+  ImageView<PixelMask<PixelGray<float> > > errorTile;
+  GeoReference errorTile_geo;
+  if (computeErrors){
+    read_georeference(errorTile_geo, blankTileFile);
+    errorTile.set_size(blankTile.cols(), blankTile.rows());
+    for (int k = 0 ; k < errorTile.rows(); ++k) {
+      for (int l = 0; l < errorTile.cols(); ++l) {
+        errorTile(l, k) = 0;
+        errorTile(l, k).invalidate(); // a pixel is invalid unless proven otherwise
+      }
+    }
+  }
+  
+  // The lon-lat coordinates of tile corners without padding.
+  double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
+  getTileCornersWithoutPadding(// Inputs
+                               albedoTile.cols(), albedoTile.rows(), albedoTile_geo,  
+                               tileSize, pixelPadding,  
+                               // Outputs
+                               min_tile_x, max_tile_x,  
+                               min_tile_y, max_tile_y
+                               );
+    
+  for (int i = 0; i < (int)overlap_img_params.size(); i++){
+      
+    // Read the weights only if really needed
+    bool useWeights = (globalParams.useWeights != 0);
+    if (useWeights){
+      bool useTiles = true;
+      ReadWeightsParamsFromFile(useTiles, &overlap_img_params[i]);
+    }
+                      
+    printf("overlap_img = %s with %s\n", albedoTileFile.c_str(), overlap_img_params[i].inputFilename.c_str());
+
+    // The input DRG must be uint8
+    enforceUint8Img(overlap_img_params[i].inputFilename);
+      
+    // The georeference for  the entire overlap image
+    GeoReference overlap_geo_orig;
+    read_georeference(overlap_geo_orig, overlap_img_params[i].inputFilename);
+
+    // Read only the portion of the overlap image which intersects
+    // the current tile to save on memory.  Create the appropriate
+    // georeference for it.
+    ImageView<PixelMask<PixelGray<float> > > overlap_img;
+    GeoReference overlap_geo;
+    Vector2 begTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(0, 0));
+    Vector2 endTileLonLat = albedoTile_geo.pixel_to_lonlat(Vector2(albedoTile.cols()-1, albedoTile.rows()-1));
+    bool success = getSubImageWithMargin< PixelMask<PixelGray<uint8> >, PixelMask<PixelGray<float> > >
+      (// Inputs
+       begTileLonLat, endTileLonLat, overlap_img_params[i].inputFilename,  
+       // Outputs
+       overlap_img, overlap_geo
+       );
+    if (!success) continue;
+      
+    InterpolationView<EdgeExtensionView<ImageView<PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_overlap_img = interpolate(overlap_img, BilinearInterpolation(), ConstantEdgeExtension());
+  
+    ImageView<PixelMask<PixelGray<float> > > overlapReflectance;
+    if (useReflectance){
+      computeReflectanceAux(dem_xyz, surface_normal,  
+                            overlap_img_params[i],
+                            globalParams,  
+                            overlapReflectance // output
+                            );
+    }else{
+      // The reflectance is set to 1.
+      overlapReflectance.set_size(albedoTile.cols(), albedoTile.rows());
+      for (int row = 0; row < (int)albedoTile.rows(); row++){
+        for (int col = 0; col < (int)albedoTile.cols(); col++){
+          overlapReflectance(col, row) = 1.0;
+          overlapReflectance(col, row).validate();
+        }
+      }
+    }
+      
+    for (int k = 0; k < albedoTile.rows(); ++k) {
+      for (int l = 0; l < albedoTile.cols(); ++l) {
+
+        Vector2 albedoTile_pix(l,k);
+
+        Vector2 lon_lat = albedoTile_geo.pixel_to_lonlat(albedoTile_pix);
+              
+        //check for overlap between the output image and the input DEM image
+        Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(lon_lat);
+        double overlap_x    = overlap_pix[0];
+        double overlap_y    = overlap_pix[1];
+
+        //image dependent part of the code  - START
+              
+        // Check for valid overlap_img pixels
+        double t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
+        int j0 = (int)floor(overlap_x), j1 = (int)ceil(overlap_x);
+        int i0 = (int)floor(overlap_y), i1 = (int)ceil(overlap_y);
+        // Note: Below must do overlap_x <= overlap_img.cols()-1
+        // rather than overlap_x < overlap_img.cols().
+        bool isValidOverlap = ( (overlap_x >= 0) && (overlap_x <= overlap_img.cols()-1 )        &&
+                                (overlap_y >= 0) && (overlap_y <= overlap_img.rows()-1 )        &&
+                                is_valid(overlap_img(j0, i0))  && is_valid(overlap_img(j0, i1)) &&
+                                is_valid(overlap_img(j1, i0))  && is_valid(overlap_img(j1, i1)) 
+                                );
+        if (!isValidOverlap) continue;
+              
+        // We have a valid pixel.
+        albedoTile(l,k).validate();
+        if (computeErrors) errorTile(l,k).validate();
+        
+        bool isBlack = !((double)overlap_img(j0, i0) >= t &&
+                         (double)overlap_img(j0, i1) >= t &&
+                         (double)overlap_img(j1, i0) >= t &&
+                         (double)overlap_img(j1, i1) >= t
+                         );
+        if (isBlack) continue; // No image data
+                
+        double overlap_img_reflectance = (double)overlapReflectance(l, k);
+        if (overlap_img_reflectance == 0.0) continue; // no reflectance data
+                
+        PixelMask<PixelGray<float> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
+                
+        double weight = 1.0;
+        if (useWeights){
+          // We need the pixel coordinates in the ENTIRE image, as opposed to its coordinates
+          // in the subimage, for the purpose of computing the weight.
+          Vector2 overlap_pix_orig = overlap_geo_orig.lonlat_to_pixel(lon_lat);
+          weight = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i]);
+        }
+                    
+        double expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
+                    
+        if (initTile){
+                      
+          //New averaging
+          albedoTile(l, k) = (double)albedoTile(l, k) + ((double)overlap_img_pixel)*expRefl*weight;
+          norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+                      
+          // Old averaging
+          //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/expRefl;
+          //norm(l,k) = norm(l,k) + weight;
+                      
+        }else if (is_valid(inputAlbedoTile(l, k))){
+
+          // Update albedo or compute errors
+          
+          double diff = (double)overlap_img_pixel - ((double)inputAlbedoTile(l, k))*expRefl;
+          if (!computeErrors){
+            // Update the albedo
+            albedoTile(l, k) = (double)albedoTile(l, k) + diff*expRefl*weight;
+            norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
+          }else{
+            // Compute the errors
+            errorTile(l, k) = (double)errorTile(l, k) + (diff/expRefl)*(diff/expRefl)*weight;
+            norm(l,k)       = norm(l,k) + weight;
+          }
+                      
+          double lx = lon_lat(0), ly = lon_lat(1);
+          bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
+          if (isInTile){
+            // Accumulate the cost function only for pixels in the tile proper rather than
+            // in the padded region
+            costFunVal += diff*diff*weight; // Weighted sum of squares
           }
         }
+                    
+      }
+                  
+      //image dependent part of the code  - END
+    }
+
+    //std::cout << "sun and spacecraft: " << overlap_img_params[i].inputFilename  << ' '
+    //          << overlap_img_params[i].sunPosition  << ' ' << overlap_img_params[i].spacecraftPosition
+    //          << std::endl;
+    //system("echo albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
+  }
+    
+  //compute the mean albedo value
+  int numValid = 0;
+  for (int k = 0 ; k < albedoTile.rows(); ++k) {
+    for (int l = 0; l < albedoTile.cols(); ++l) {
+
+      // When updating the albedo, if the input albedo is invalid, then the updated
+      // albedo is also invalid.
+      if (!initTile && !is_valid(inputAlbedoTile(l, k))){
+        albedoTile(l,k).invalidate();
+        if (computeErrors) errorTile(l,k).invalidate();
       }
       
-      for (int k = 0; k < albedoTile.rows(); ++k) {
-        for (int l = 0; l < albedoTile.cols(); ++l) {
-
-          Vector2 albedoTile_pix(l,k);
-
-          if ( is_valid(albedoTile(l,k)) ) {
-
-              Vector2 lon_lat = albedoTile_geo.pixel_to_lonlat(albedoTile_pix);
-              
-              //check for overlap between the output image and the input DEM image
-              Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(lon_lat);
-              double overlap_x    = overlap_pix[0];
-              double overlap_y    = overlap_pix[1];
-
-              //image dependent part of the code  - START
-              
-              //check for valid overlap_img coordinates
-              //TO DO: remove shadow pixels in the overlap_img.
-              // Check that all four grid points used for interpolation are valid
-              
-              double t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
-              int j0 = (int)floor(overlap_x), j1 = (int)ceil(overlap_x);
-              int i0 = (int)floor(overlap_y), i1 = (int)ceil(overlap_y);
-              
-              if ( (overlap_x >= 0) && (overlap_x <= overlap_img.cols()-1 )        &&
-                   (overlap_y >= 0) && (overlap_y <= overlap_img.rows()-1 )        &&
-                   is_valid(overlap_img(j0, i0))  && is_valid(overlap_img(j0, i1)) &&
-                   is_valid(overlap_img(j1, i0))  && is_valid(overlap_img(j1, i1)) 
-                   ){
-
-                // We have a valid pixel. It is then black unless proven otherwise.
-                if (pixelState(l, k) == pixelIsInvalid) pixelState(l, k) = pixelIsBlack;
-                
-                bool isBlack = !((double)overlap_img(j0, i0) >= t &&
-                                 (double)overlap_img(j0, i1) >= t &&
-                                 (double)overlap_img(j1, i0) >= t &&
-                                 (double)overlap_img(j1, i1) >= t
-                                 );
-                if (isBlack) continue; // Nothing to do
-                
-                pixelState(l, k) = pixelIsValidAndNonBlack;
-                
-                //if ((overlap_x>=0) && (overlap_x < overlap_img.cols()) && (overlap_y >= 0) && (overlap_y< overlap_img.rows()) && (interp_overlap_shadow_image(overlap_x, overlap_y) == 0)){
-                
-                double overlap_img_reflectance = (double)overlapReflectance(l, k);
-                
-                PixelMask<PixelGray<float> > overlap_img_pixel = interp_overlap_img(overlap_x, overlap_y);
-                
-                if ( is_valid(overlap_img_pixel) ) { //common area between albedoTile and overlap_img
-                  
-                  if (overlap_img_reflectance != 0.0){
-                    
-                    double weight = 1.0;
-                    if (useWeights){
-                      // We need the pixel coordinates in the ENTIRE image, as opposed to its coordinates
-                      // in the subimage, for the purpose of computing the weight.
-                      Vector2 overlap_pix_orig = overlap_geo_orig.lonlat_to_pixel(lon_lat);
-                      weight = ComputeLineWeightsHV(overlap_pix_orig, overlap_img_params[i]);
-                    }
-                    
-                    double expRefl = overlap_img_params[i].exposureTime*overlap_img_reflectance;
-                    
-                    if (initTile){
-                      
-                      //New averaging
-                      albedoTile(l, k) = (double)albedoTile(l, k) + ((double)overlap_img_pixel)*expRefl*weight;
-                      norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
-                      
-                      // Old averaging
-                      //albedoTile(l, k) = (float)albedoTile(l, k) + ((float)overlap_img_pixel*weight)/expRefl;
-                      //norm(l,k) = norm(l,k) + weight;
-                      
-                    }else if (is_valid(inputAlbedoTile(l, k))){
-                      
-                      // Update the albedo
-                      double error = (double)overlap_img_pixel - ((double)inputAlbedoTile(l, k))*expRefl;
-                      albedoTile(l, k) = (double)albedoTile(l, k) + error*expRefl*weight;
-                      norm(l,k)        = norm(l,k) + expRefl*expRefl*weight;
-                      
-                      double lx = lon_lat(0), ly = lon_lat(1);
-                      bool isInTile = (min_tile_x <= lx && lx < max_tile_x && min_tile_y <= ly && ly < max_tile_y);
-                      if (isInTile){
-                        // Accumulate the cost function only for pixels in the tile proper rather than
-                        // in the padded region
-                        costFunVal += error*error*weight; // Weighted sum of squares
-                      }
-                    }
-                    
-                  }
-                  
-                  //image dependent part of the code  - END
-                }
-              }
-          }
-        }
-      }
-
-      //std::cout << "sun and spacecraft: " << overlap_img_params[i].inputFilename  << ' '
-      //          << overlap_img_params[i].sunPosition  << ' ' << overlap_img_params[i].spacecraftPosition
-      //          << std::endl;
-      //system("echo albedo top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
-    }
-    
-    //compute the mean albedo value
-    int numValid = 0;
-    for (int k = 0 ; k < albedoTile.rows(); ++k) {
-      for (int l = 0; l < albedoTile.cols(); ++l) {
+      if ( (float)albedoTile(l,k) == 0 ) albedoTile(l,k).invalidate(); // temporary!!!
         
-        // Take into account the no-data pixels
+      if ( (is_valid(albedoTile(l,k))) && (norm(l, k) != 0) ) {
+          
         if (initTile){
-          if ( pixelState(l, k) == pixelIsInvalid ) albedoTile(l,k).invalidate(); // no data
+          // Init tile
+          albedoTile(l, k) = albedoTile(l, k)/norm(l,k);
+        }else if (!computeErrors){
+          // Update the tile
+          albedoTile(l, k) = inputAlbedoTile(l, k) + albedoTile(l, k)/norm(l,k);
         }else{
-          // Update tile
-          if ( (!is_valid(inputAlbedoTile(l, k))) ||
-               (pixelState(l, k) == pixelIsInvalid) ) albedoTile(l,k).invalidate();
+          // Compute the errors
+          errorTile(l, k) = errorTile(l, k)/norm(l,k);
         }
-        
-        if ( (is_valid(albedoTile(l,k))) && (norm(l, k) != 0) ) {
-          
-          albedoTile(l,k).validate();
-          
-          if (initTile){
-            // Init tile
-            albedoTile(l, k) = albedoTile(l, k)/norm(l,k);
-          }else{
-            // Update tile
-            albedoTile(l, k) = inputAlbedoTile(l, k) + albedoTile(l, k)/norm(l,k);
-          }
-          numValid++;
-        }
-        
+        numValid++;
       }
+        
     }
+  }
 
-    printf("numValid = %d, total = %d\n", numValid, albedoTile.rows()*albedoTile.cols());
+  printf("numValid = %d, total = %d\n", numValid, albedoTile.rows()*albedoTile.cols());
+
+  if (computeErrors){
+    // If we computed the errors, we did not update the albedo, as such, the albedo
+    // must be set to the input albedo.
+    albedoTile = copy(inputAlbedoTile);
+  }
     
-    //TODO: compute the albedo variance (standard deviation)
+  if (isLastIter){
+    // Remove the temporary work padding if this is the last albedo update iteration.
 
-    if (isLastIter){
-      // Remove the temporary work padding if this is the last iteration.
-      cropImageAndGeoRefInPlace(Vector2(min_tile_x, max_tile_y),
-                                Vector2(max_tile_x, min_tile_y),
-                                albedoTile, albedoTile_geo // inputs-outputs
-                                );
-    }
+    cropImageAndGeoRefInPlace(Vector2(min_tile_x, max_tile_y),
+                              Vector2(max_tile_x, min_tile_y),
+                              albedoTile, albedoTile_geo // inputs-outputs
+                              );
     
-    //write in the albedo image
-    std::cout << "Writing: " << albedoTileFile << std::endl;
-    write_georeferenced_image(albedoTileFile,
-                              channel_cast<uint8>(clamp(albedoTile,0.0,255.0)),
-                              albedoTile_geo, TerminalProgressCallback("{Core}","Processing:"));
+  }
+    
+  // Write the albedo tile. Note that we write the albedo tile even if we are in the mode in which
+  // we compute the error. That because, if the error computation is the last iteration, this is the time
+  // at which to crop the albedo tile itself (we could not have cropped it at a previous step,
+  // because we cannot compute the error with a cropped albedo tile).
+  write_georeferenced_image(albedoTileFile,
+                            channel_cast<uint8>(clamp(albedoTile, 0.0, 255.0)),
+                            albedoTile_geo, TerminalProgressCallback("{Core}","Processing:"));
 
-    // Return the cost function value
-    return costFunVal;
+
+  if (computeErrors){
+    // Strip the padding before saving the error to disk
+    cropImageAndGeoRefInPlace(Vector2(min_tile_x, max_tile_y),
+                              Vector2(max_tile_x, min_tile_y),
+                              errorTile, errorTile_geo // inputs-outputs
+                              );
+    std::cout << "Writing: " << errorTileFile << std::endl;
+    // The scaling below is pretty arbitrary
+    write_georeferenced_image(errorTileFile,
+                              channel_cast<uint8>(clamp(errorTile/10.0, 0.0, 255.0)),
+                              errorTile_geo, TerminalProgressCallback("{Core}","Processing:"));
+  }
+
+  // Return the cost function value
+  return costFunVal;
 }
 
 void vw::photometry::AppendCostFunToFile(double costFunVal, std::string fileName)
@@ -1382,563 +1434,4 @@ vw::photometry::UpdateAlbedoMosaic(ModelParams input_img_params,
                               input_img_geo, TerminalProgressCallback("photometry","Processing:"));
 
 
-}
-//input_files[i], input_files[i-1], output_files[i], output_files[i-1]
-//writes the current albedo of the current image in the area of overlap with the previous mage
-//writes the previous albedo in the area of overlap with the current image
-
-
-//josh - moved to ReconstructError.cc where all error related functions will be defined
-//void
-//vw::photometry::ComputeReconstructionErrorMap(ModelParams input_img_params,
-//                                              std::vector<ModelParams> overlap_img_params,
-//                                              GlobalParams globalParams,
-//                                              float *avgError, int *totalNumSamples) {
-//
-//    int i, l, k;
-//
-//    std::string input_img_file = input_img_params.inputFilename;
-//    std::string DEM_file = input_img_params.meanDEMFilename;
-//    std::string shadow_file = input_img_params.shadowFilename;
-//    std::string albedo_file = input_img_params.outputFilename;
-//    std::string error_img_file = input_img_params.errorFilename;
-//
-//    DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
-//    GeoReference input_img_geo;
-//    read_georeference(input_img_geo, input_img_file);
-//
-//    DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
-//    GeoReference input_dem_geo;
-//    read_georeference(input_dem_geo, DEM_file);
-//
-//    DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
-//
-//    DiskImageView<PixelMask<PixelGray<uint8> > > albedo (albedo_file);
-//
-//    ImageView<PixelMask<PixelGray<float> > > error_img (input_img.cols(), input_img.rows());
-//
-//    ImageView<PixelGray<int> > numSamples(input_img.cols(), input_img.rows());
-//
-//    Vector3 xyz;
-//    Vector3 xyz_prior;
-//    int x, y;
-//
-//    ImageViewRef<PixelGray<float> >  interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-//                                                                                ConstantEdgeExtension()),
-//                                                                                BilinearInterpolation());
-//
-//    //initialize the nominator and denomitor images
-//    for (k = 0 ; k < input_img.rows(); ++k) {
-//        for (l = 0; l < input_img.cols(); ++l) {
-//
-//           Vector2 input_image_pix(l,k);
-//           numSamples(l,k) = 0;
-//
-//           //reject invalid pixels and pixels that are in shadow.
-//           if ( is_valid(input_img(l,k)) && ( shadowImage(l, k) == 0)) {
-//
-//              //get the corresponding DEM value
-//
-//              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_image_pix);
-//              Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_image_pix));
-//
-//              x = (int)input_dem_pix[0];
-//              y = (int)input_dem_pix[1];
-//
-//
-//              //check for valid DEM coordinates
-//              if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-//
-//                //Vector3 longlat3(lon_lat(0),lon_lat(1),(input_dem_image)(x, y));
-//                Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-//                Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
-//
-//
-//                Vector2 input_img_left_pix;
-//                input_img_left_pix(0) = l-1;
-//                input_img_left_pix(1) = k;
-//
-//                Vector2 input_img_top_pix;
-//                input_img_top_pix(0) = l;
-//                input_img_top_pix(1) = k-1;
-//
-//                //check for valid DEM pixel value and valid left and top coordinates
-//                //if ((input_dem_left_pix(0) >= 0) && (input_dem_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
-//                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
-//
-//                  //determine the 3D coordinates of the pixel left of the current pixel
-//                  Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
-//                  Vector2 lon_lat_left = input_img_geo.pixel_to_lonlat(input_img_left_pix);
-//                  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-//
-//                  //Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);
-//                  Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-//
-//                  //determine the 3D coordinates of the pixel top of the current pixel
-//                  Vector2 input_dem_top_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_top_pix));
-//                  Vector2 lon_lat_top = input_img_geo.pixel_to_lonlat(input_img_top_pix);
-//                  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-//                  Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-//
-//                  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-//                  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-//
-//                  //This part is the only image depedent part - START
-//                  float input_img_reflectance;
-//                  input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams);
-//
-//                  if (input_img_reflectance > 0){
-//                     float input_img_error = ComputeError_Albedo((float)input_img(l,k), input_img_params.exposureTime,
-//                                                                 (float)albedo(l, k),  input_img_reflectance, xyz, xyz_prior);
-//
-//                     error_img(l, k) = input_img_error*input_img_error;
-//                     numSamples(l,k) = numSamples(l,k)+1;
-//                  }
-//
-//                  //This part is the only image depedent part - END
-//                }
-//              }
-//           }
-//        }
-//    }
-//
-//
-//    //update from the overlapping images
-//    for (i = 0; i < (int)overlap_img_params.size(); i++){
-//
-//      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
-//      GeoReference overlap_geo;
-//      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
-//
-//      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(/*overlapShadowFileArray[i]*/overlap_img_params[i].shadowFilename);
-//
-//
-//      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
-//                                                                                    ConstantEdgeExtension()),
-//                                                                                    BilinearInterpolation());
-//
-//      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
-//                                                                                           ConstantEdgeExtension()),
-//                                                                                           BilinearInterpolation());
-//
-//      for (k = 0 ; k < input_img.rows(); ++k) {
-//        for (l = 0; l < input_img.cols(); ++l) {
-//
-//         Vector2 input_img_pix(l,k);
-//
-//         if ( is_valid(input_img(l,k)) ) {
-//
-//              //get the corresponding DEM value
-//              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
-//              Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
-//
-//              x = (int)input_dem_pix[0];
-//              y = (int)input_dem_pix[1];
-//
-//              //check for valid DEM coordinates
-//              if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-//
-//                //get the top and left DEM value
-//                Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-//                Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);
-//
-//                Vector2 input_img_left_pix;
-//                input_img_left_pix(0) = l-1;
-//                input_img_left_pix(1) = k;
-//
-//                Vector2 input_img_top_pix;
-//                input_img_top_pix(0) = l;
-//                input_img_top_pix(1) = k-1;
-//
-//                //check for valid DEM pixel value and valid left and top coordinates
-//                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != -10000)){
-//
-//
-//                  //determine the 3D coordinates of the pixel left of the current pixel
-//                  Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
-//                  Vector2 lon_lat_left = input_img_geo.pixel_to_lonlat(input_img_left_pix);
-//                  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-//                  Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-//
-//
-//                  Vector2 input_dem_top_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_top_pix));
-//                  Vector2 lon_lat_top = input_img_geo.pixel_to_lonlat(input_img_top_pix);
-//                  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-//                  Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-//
-//                  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-//                  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-//
-//                  //check for overlap between the output image and the input DEM image
-//                  Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
-//                  x = (int)overlap_pix[0];
-//                  y = (int)overlap_pix[1];
-//
-//                  //image dependent part of the code  - START
-//                  PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(x, y);
-//
-//                  //check for valid overlap_img coordinates
-//                  //remove shadow pixels in the overlap_img.
-//                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows()) && interp_overlap_shadow_image(x, y) == 0){
-//
-//                    if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
-//
-//                      float overlap_img_reflectance;
-//                      overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params[i], globalParams);
-//                      if (overlap_img_reflectance > 0){
-//                         float overlap_img_error = ComputeError_Albedo((float)overlap_img_pixel, overlap_img_params[i].exposureTime,
-//                                                                       (float)albedo(l, k), overlap_img_reflectance, xyz, xyz_prior);
-//                         error_img(l, k) = error_img(l,k) + overlap_img_error*overlap_img_error;
-//                         numSamples(l, k) = numSamples(l,k) + 1;
-//                      }
-//                    }//if
-//                  }//if
-//                 //image dependent part of the code  - START
-//               }
-//            }
-//          }
-//        }// for l
-//      } // for k
-//    } //for i
-//
-//    float l_avgError = 0;
-//    int l_totalNumSamples = 0;
-//    //finalize the output image; computes the standard deviation
-//    for (k = 0 ; k < error_img.rows(); ++k) {
-//       for (l = 0; l < error_img.cols(); ++l) {
-//         if ( numSamples(l,k) ) {
-//             error_img(l, k) = (float)sqrt(error_img(l, k)/numSamples(l, k));
-//             l_totalNumSamples++;
-//             l_avgError = l_avgError + error_img(l,k);
-//          }
-//       }
-//    }
-//
-//    l_avgError = l_avgError/l_totalNumSamples;
-//
-//    *avgError = l_avgError;
-//    *totalNumSamples = l_totalNumSamples;
-//    //write the output (standard deviation of the reconstructed albedo) image
-//    write_georeferenced_image(error_img_file,
-//                              channel_cast<uint8>(clamp(error_img,0.0,255.0)),
-//                              input_img_geo, TerminalProgressCallback("photometry}","Processing:"));
-//
-//
-//}
-
-//initializes the albedo mosaic
-void
-vw::photometry::InitAlbedoMosaicFeb13(ModelParams input_img_params,
-                                      std::vector<ModelParams> overlap_img_params,
-                                      GlobalParams globalParams) {
-  // code turned off!
-#if 0
-    fprintf(stderr, "\n");
-    fprintf(stderr, "**********************************************************************\n");
-    fprintf(stderr, "**********************************************************************\n");
-    fprintf(stderr, "**********************************************************************\n");
-    fprintf(stderr, "**** InitAlbedoMosaicFeb13                                        ****\n");
-    fprintf(stderr, "**********************************************************************\n");
-    fprintf(stderr, "**********************************************************************\n");
-    fprintf(stderr, "**********************************************************************\n");
-
-    int i, l, k;
-    std::string input_img_file = input_img_params.inputFilename;
-    std::string DEM_file = input_img_params.DEMFilename;
-    std::string shadow_file = input_img_params.shadowFilename;
-    std::string output_img_file = input_img_params.outputFilename;
-
-    //DiskImageView<PixelMask<PixelRGB<uint8> > >  input_img(input_img_file);
-    DiskImageView<PixelMask<PixelGray<uint8> > >  input_img(input_img_file);
-    GeoReference input_img_geo;
-    read_georeference(input_img_geo, input_img_file);
-
-    DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
-
-    ImageView<PixelMask<PixelGray<float> > > output_img (input_img.cols(), input_img.rows());
-    ImageView<PixelGray<int> > numSamples(input_img.cols(), input_img.rows());
-    ImageView<PixelGray<float> > norm(input_img.cols(), input_img.rows());
-
-    DiskImageView<PixelGray<float> >  input_dem_image(DEM_file);
-    GeoReference input_dem_geo;
-    read_georeference(input_dem_geo, DEM_file);
-
-    // This is the wrong way of doing interpolation
-  InterpolationView<EdgeExtensionView<EdgeExtensionView<DiskImageView<PixelGray<float> >, ConstantEdgeExtension>, ConstantEdgeExtension>, BilinearInterpolation>
-    interp_dem_image = interpolate(edge_extend(input_dem_image.impl(),
-                                               ConstantEdgeExtension()),
-                                   BilinearInterpolation());
-
-#if 1
-  ImageView<PixelMask<PixelGray<float> > > refl;
-  float avg_reflectance =
-    computeImageReflectanceNoWrite(input_img_params,
-                                   globalParams,
-                                   refl);
-  
-  for (int y=0; y < (int)output_img.rows(); y++) {
-    for (int x=0; x < (int)output_img.cols(); x++) {
-      float input_img_reflectance = refl(x, y);
-      if (input_img_reflectance != 0.0){
-        if (globalParams.useWeights == 0){
-          output_img(x, y) = (float)input_img(x,y)/(input_img_params.exposureTime*input_img_reflectance);
-          numSamples(x, y) = 1;
-        } else {
-          Vector2 pix = Vector2(x, y);
-          float weight = ComputeLineWeightsHV(pix, input_img_params);
-          output_img(x, y) = ((float)input_img(x,y)*weight)/(input_img_params.exposureTime*input_img_reflectance);
-          norm(x, y) = weight;
-          numSamples(x, y) = 1;
-        }
-      }
-    }
-  }
-#else
-    int x,y;
-    //initialize  output_img, and numSamples
-    for (k = 0 ; k < input_img.rows(); ++k) {
-        for (l = 0; l < input_img.cols(); ++l) {
-
-           numSamples(l, k) = 0;
-           Vector2 input_image_pix(l,k);
-
-           if ( is_valid(input_img(l,k)) ) {
-
-              //compute the local reflectance
-              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_image_pix);
-              Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_image_pix));
-
-              int x = (int)input_dem_pix[0];
-              int y = (int)input_dem_pix[1];
-
-
-              //check for valid DEM coordinates
-              if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-
-                Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-                Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);//3D coordinates in the img coordinates
-
-
-                Vector2 input_img_left_pix;
-                input_img_left_pix(0) = l-1;
-                input_img_left_pix(1) = k;
-
-                Vector2 input_img_top_pix;
-                input_img_top_pix(0) = l;
-                input_img_top_pix(1) = k-1;
-
-                //check for valid DEM pixel value and valid left and top coordinates
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
-
-                  //determine the 3D coordinates of the pixel left of the current pixel
-                  Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
-                  Vector2 lon_lat_left = input_img_geo.pixel_to_lonlat(input_img_left_pix);
-                  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-
-                  //Vector3 xyz_left = input_dem_geo.datum().geodetic_to_cartesian(longlat3_left);
-                  Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-
-                  //determine the 3D coordinates of the pixel top of the current pixel
-                  Vector2 input_dem_top_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_top_pix));
-                  Vector2 lon_lat_top = input_img_geo.pixel_to_lonlat(input_img_top_pix);
-                  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-                  Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-
-                  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-                  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-
-                  //This part is the only image depedent part - START
-                  float input_img_reflectance;
-                  input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams);
-                  if (input_img_reflectance != 0.0){
-                      if (globalParams.useWeights == 0){
-                          output_img(l, k) = (float)input_img(l,k)/(input_img_params.exposureTime*input_img_reflectance);
-                          numSamples(l, k) = 1;
-                      }
-                      else{
-                         float weight = ComputeLineWeightsHV(input_image_pix, input_img_params);
-                         output_img(l, k) = ((float)input_img(l,k)*weight)/(input_img_params.exposureTime*input_img_reflectance);
-                         norm(l, k) = weight;
-                         numSamples(l, k) = 1;
-                      }
-                  }
-                }
-             }
-          }
-       }
-    }
-#endif
-
-    for (i = 0; i < (int)overlap_img_params.size(); i++){
-      /*
-      printf("overlap_img = %s\n", overlap_img_files[i].c_str());
-
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_files[i]);
-      GeoReference overlap_geo;
-      read_georeference(overlap_geo, overlap_img_files[i]);
-      */
-      printf("overlap_img = %s\n", overlap_img_params[i].inputFilename.c_str());
-
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_img(overlap_img_params[i].inputFilename);
-      GeoReference overlap_geo;
-      read_georeference(overlap_geo, overlap_img_params[i].inputFilename);
-
-      // This is the wrong way of doing interpolation
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_img = interpolate(edge_extend(overlap_img.impl(),
-                                                                                    ConstantEdgeExtension()),
-                                                                                    BilinearInterpolation());
-
-
-      /*
-      DiskImageView<PixelMask<PixelGray<uint8> > >  overlap_shadow_image(overlapShadowFileArray[i]);
-
-      ImageViewRef<PixelMask<PixelGray<uint8> > >  interp_overlap_shadow_image = interpolate(edge_extend(overlap_shadow_image.impl(),
-                                                                                           ConstantEdgeExtension()),
-                                                                                            BilinearInterpolation());
-      */
-      for (k = 0 ; k < input_img.rows(); ++k) {
-        for (l = 0; l < input_img.cols(); ++l) {
-          int x, y;
-
-          Vector2 input_img_pix(l,k);
-
-          if ( is_valid(input_img(l,k)) ) {
-
-              //get the corresponding DEM value
-              Vector2 lon_lat = input_img_geo.pixel_to_lonlat(input_img_pix);
-              Vector2 input_dem_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
-
-              x = (int)input_dem_pix[0];
-              y = (int)input_dem_pix[1];
-
-              //check for valid DEM coordinates
-              if ((x>=0) && (x < input_dem_image.cols()) && (y>=0) && (y< input_dem_image.rows())){
-
-                //get the top and left DEM value
-                Vector3 longlat3(lon_lat(0),lon_lat(1),(interp_dem_image)(x, y));
-                Vector3 xyz = input_img_geo.datum().geodetic_to_cartesian(longlat3);
-
-                Vector2 input_img_left_pix;
-                input_img_left_pix(0) = l-1;
-                input_img_left_pix(1) = k;
-
-                Vector2 input_img_top_pix;
-                input_img_top_pix(0) = l;
-                input_img_top_pix(1) = k-1;
-
-                //check for valid DEM pixel value and valid left and top coordinates
-                if ((input_img_left_pix(0) >= 0) && (input_img_top_pix(1) >= 0) && (input_dem_image(x,y) != globalParams.noDEMDataValue)){
-
-                  //determine the 3D coordinates of the pixel left of the current pixel
-                  Vector2 input_dem_left_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_left_pix));
-                  Vector2 lon_lat_left = input_img_geo.pixel_to_lonlat(input_img_left_pix);
-                  Vector3 longlat3_left(lon_lat_left(0),lon_lat_left(1),(interp_dem_image)(input_dem_left_pix(0), input_dem_left_pix(1)));
-                  Vector3 xyz_left = input_img_geo.datum().geodetic_to_cartesian(longlat3_left);
-
-                  Vector2 input_dem_top_pix = input_dem_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_top_pix));
-                  Vector2 lon_lat_top = input_img_geo.pixel_to_lonlat(input_img_top_pix);
-                  Vector3 longlat3_top(lon_lat_top(0),lon_lat_top(1),(interp_dem_image)(input_dem_top_pix(0), input_dem_top_pix(1)));
-                  Vector3 xyz_top = input_img_geo.datum().geodetic_to_cartesian(longlat3_top);
-
-                  //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
-                  Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-
-                  //check for overlap between the output image and the input DEM image
-                  Vector2 overlap_pix = overlap_geo.lonlat_to_pixel(input_img_geo.pixel_to_lonlat(input_img_pix));
-                  x = (int)overlap_pix[0];
-                  y = (int)overlap_pix[1];
-
-                  //image dependent part of the code  - START
-                  PixelMask<PixelGray<uint8> > overlap_img_pixel = interp_overlap_img(x, y);
-
-                  //check for valid overlap_img coordinates
-                  //TO DO: remove shadow pixels in the overlap_img.
-                  if ((x>=0) && (x < overlap_img.cols()) && (y>=0) && (y< overlap_img.rows())/* && (interp_overlap_shadow_image(x, y) == 0)*/){
-
-                    if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
-
-                      float overlap_img_reflectance;
-                      overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params[i], globalParams);
-                      if (overlap_img_reflectance != 0.0){
-                          if (globalParams.useWeights == 0){
-                              output_img(l, k) = (float)output_img(l, k) + (float)overlap_img_pixel/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
-                              numSamples(l, k) = numSamples(l,k) + 1;
-                          }
-                          else{
-                             float weight = ComputeLineWeightsHV(overlap_pix, overlap_img_params[i]);
-                             output_img(l, k) = (float)output_img(l, k) + ((float)overlap_img_pixel*weight)/(overlap_img_params[i].exposureTime*overlap_img_reflectance);
-                             numSamples(l, k) = numSamples(l,k) + 1;
-                             norm(l,k) = norm(l,k) + weight;
-                          }
-                      }
-
-                    }//if
-                  }//if
-
-                  //image dependent part of the code  - END
-               }
-             }
-          }
-        }
-      }
-    }
-
-
-
-
-    //compute the mean albedo value
-    int numValid = 0;
-    for (k = 0 ; k < input_img.rows(); ++k) {
-       for (l = 0; l < input_img.cols(); ++l) {
-
-         //output_img(l,k).invalidate();
-
-         if ( (is_valid(input_img(l,k))) && (numSamples(l, k)!=0) ) {
-
-              output_img(l,k).validate();
-
-              if (globalParams.useWeights == 0){
-                  output_img(l, k) = output_img(l, k)/numSamples(l,k);
-              }
-              else{
-		output_img(l, k) = output_img(l, k)/norm(l,k);
-              }
-	      numValid++;
-         }
-
-      }
-    }
-
-    printf("numValid = %d, total = %d\n", numValid, input_img.rows()*input_img.cols());
-    
-    //TODO: compute the albedo variance (standard deviation)
-   
-   
-    //write in the albedo image
-    write_georeferenced_image(output_img_file,
-                              channel_cast<uint8>(clamp(output_img,0.0,255.0)),
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
-    
-    
-    /*
-    ImageView<PixelMask<PixelRGB<uint8> > > albedo_img (input_img.cols(), input_img.rows());
-    for (k = 0 ; k < input_img.rows(); ++k) {
-       for (l = 0; l < input_img.cols(); ++l) {
-          albedo_img(l,k)[0] = (int)floor(output_img(l,k));
-	  albedo_img(l,k)[1] = (int)floor(output_img(l,k));
-	  albedo_img(l,k)[2] = (int)floor(output_img(l,k));
-	 if (is_valid(output_img(l,k)) ){
-             albedo_img(l,k).validate();
-	  }
-	  else{
-            albedo_img(l,k).invalidate();
-          }
-       }
-    }
-  
-    //write in the albedo image
-    write_georeferenced_image(output_img_file, albedo_img,
-                              input_img_geo, TerminalProgressCallback("{Core}","Processing:"));
-    */
-#endif
 }

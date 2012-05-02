@@ -30,13 +30,16 @@ namespace photometry {
                          std::vector<ModelParams> overlap_img_params,
                          GlobalParams globalParams);
 
-  double InitOrUpdateAlbedoTile(bool isLastIter, bool initTile, bool useReflectance,
-                                int pixelPadding, double tileSize,
-                                std::string blankTileFile,
-                                std::string DEMTileFile,
-                                std::string albedoTileFile,
-                                std::vector<ModelParams> & overlap_img_params,
-                                GlobalParams globalParams);
+  double InitOrUpdateAlbedoOrComputeErrors(bool initTile, bool isLastIter, bool computeErrors,
+                                           bool useReflectance,
+                                           int pixelPadding, double tileSize,
+                                           std::string blankTileFile,
+                                           std::string DEMTileFile,
+                                           std::string albedoTileFile,
+                                           std::string errorTileFile,
+                                           std::vector<ModelParams> & overlap_img_params,
+                                           GlobalParams globalParams);
+  
   void AppendCostFunToFile(double costFunVal, std::string fileName);
   
   //albedo mosaic functions
@@ -45,20 +48,9 @@ namespace photometry {
                         GlobalParams globalParams);
 
   //albedo mosaic functions
-  void InitAlbedoMosaicFeb13(ModelParams input_img_params,
-                             std::vector<ModelParams> overlap_img_params,
-                             GlobalParams globalParams);
-
   void UpdateAlbedoMosaic(ModelParams input_img_params,
                           std::vector<ModelParams> overlap_img_params,
                           GlobalParams globalParams);
-
-  //josh - moved to ReconstructError.h
-  //reconstruction error functions
-//  void ComputeReconstructionErrorMap(ModelParams input_img_params,
-//                                     std::vector<ModelParams> overlap_img_params,
-//                                     GlobalParams globalParams,
-//                                     float *avgError, int *totalNumSamples);
 
 }} // end vw::photometry
 

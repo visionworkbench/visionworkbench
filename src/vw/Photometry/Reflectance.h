@@ -55,7 +55,7 @@ namespace photometry {
 
   void computeXYZandSurfaceNormal(ImageView<PixelGray<float> > const& DEMTile,
                                   cartography::GeoReference const& DEMGeo,
-                                  GlobalParams globalParams,
+                                  float noDEMDataValue,
                                   ImageView<Vector3> & dem_xyz,
                                   ImageView<Vector3> & surface_normal
                                   );

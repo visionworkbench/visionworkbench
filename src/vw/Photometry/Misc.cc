@@ -299,34 +299,6 @@ std::vector<Vector4> sample_images(ImageViewBase<ViewT> const& image1,
   }
   return result;
 }
-/*
-/// Erases a file suffix if one exists and returns the base string
-static std::string prefix_from_filename(std::string const& filename) {
-        std::string result = filename;
-        int index = result.rfind(".");
-        if (index != -1)
-                result.erase(index, result.size());
-        return result;
-}
-
-/// Erases a file suffix if one exists and returns the base string less3 characters
-static std::string prefix_less3_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind(".");
-  if (index != -1)
-    result.erase(index-3, result.size()+3);
-  return result;
-}
-
-/// Erases a file suffix if one exists and returns the base string less3 characters
-static std::string sufix_from_filename(std::string const& filename) {
-  std::string result = filename;
-  int index = result.rfind("/");
-  if (index != -1)
-    result.erase(0, index);
-  return result;
-}
-*/
 
 //reads the tiff DEM into a 3D coordinate
 //pos is a Vector2 of pixel coordinates, GR is georeference
@@ -460,19 +432,37 @@ void vw::photometry::readDEMTilesIntersectingBox(// Inputs
   combinedDEM.set_size(0, 0);
   combinedDEM_geo = GeoReference();
 
+  ImageView<int> count;
+  
   bool isFirstImage = true;
   for (int i = 0; i < (int)DEMTiles.size(); i++){
     
     std::string DEMTileFile = DEMTiles[i];
     GeoReference DEMTile_geo;
 
+    ImageFormat img_fmt;
+    {
+      boost::scoped_ptr<SrcImageResource> img_rsrc( DiskImageResource::open(DEMTileFile) );
+      img_fmt = img_rsrc->format();
+    }
+    
     // Get just the portion of the tile which overlaps with the current box
+    // Note that we accept float or int16 input DEM tfiles.
     ImageView<PixelGray<float> > DEMTile;
     //std::cout << "Will read: " << DEMTileFile  << std::endl;
-    bool success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
-      (boxNW, boxSE, DEMTileFile, // Inputs
-       DEMTile, DEMTile_geo       // Outputs
-       );
+    bool success;
+    
+    if (img_fmt.channel_type == VW_CHANNEL_INT16){
+      success = getSubImageWithMargin< PixelGray<int16>, PixelGray<float> > 
+        (boxNW, boxSE, DEMTileFile, // Inputs
+         DEMTile, DEMTile_geo       // Outputs
+         );
+    }else{
+      success = getSubImageWithMargin< PixelGray<float>, PixelGray<float> > 
+        (boxNW, boxSE, DEMTileFile, // Inputs
+         DEMTile, DEMTile_geo       // Outputs
+         );
+    }
     if (!success) continue;
     
     if (isFirstImage){
@@ -490,9 +480,11 @@ void vw::photometry::readDEMTilesIntersectingBox(// Inputs
       int numCols = (int)round(endPixel(0) - begPixel(0));
       int numRows = (int)round(endPixel(1) - begPixel(1));
       combinedDEM.set_size(numCols, numRows);
+      count.set_size(numCols, numRows);
       for (int row = 0; row < combinedDEM.rows(); row++){
         for (int col = 0; col < combinedDEM.cols(); col++){
           combinedDEM(col, row) = noDEMDataValue;
+          count(col, row) = 0;
         }
       }
       
@@ -510,12 +502,21 @@ void vw::photometry::readDEMTilesIntersectingBox(// Inputs
             0 <= lRow && lRow < combinedDEM.rows() &&
             DEMTile(col, row) != noDEMDataValue
             ){
-          combinedDEM(lCol, lRow) = DEMTile(col, row);
+          if (count(lCol, lRow) == 0) combinedDEM(lCol, lRow)  = DEMTile(col, row);
+          else                        combinedDEM(lCol, lRow) += DEMTile(col, row);
+          count(lCol, lRow)++;
         }
       }
     }
   } // Done visiting the overlapping tiles
 
+  // Average the obtained pixels
+  for (int row = 0; row < combinedDEM.rows(); row++){
+    for (int col = 0; col < combinedDEM.cols(); col++){
+      if (count(col, row) > 1) combinedDEM(col, row) /= count(col, row);
+    }
+  }
+  
   return;
 }
 
@@ -604,6 +605,61 @@ void vw::photometry::indexFilesByKey(std::string dirName, std::map<std::string, 
     index[ getFirstElevenCharsFromFileName(fileName) ] = fileName;
   }
 
+  return;
+}
+
+void vw::photometry::enforceUint8Img(std::string imgName){
+
+  ImageFormat img_fmt;
+  {
+    boost::scoped_ptr<SrcImageResource> img_rsrc( DiskImageResource::open(imgName) );
+    img_fmt = img_rsrc->format();
+  }
+  if (img_fmt.channel_type != VW_CHANNEL_UINT8){
+    std::cout << "ERROR: The input DRG images must be uint8." << std::endl;
+    exit(1); // We check this exit status later
+  }
+
+  return;
+}
+
+bool vw::photometry::readNoDEMDataVal(std::string DEMFile, float & noDEMDataValue){
+
+  boost::scoped_ptr<SrcImageResource> rsrc( DiskImageResource::open(DEMFile) );
+  if ( rsrc->has_nodata_read() ){
+    noDEMDataValue = rsrc->nodata_read();
+    return true;
+  }
+  
+  return false;
+}
+
+
+void vw::photometry::maskPixels(std::string imgFile, std::string maskFile, double shadowThresh, std::string outDir){
+  
+  // Any pixels in imgFile, which are below shadowThresh in maskFile, will be set to black.
+  
+  fs::create_directories(outDir);
+
+  std::cout << "Reading " << imgFile << std::endl;
+  DiskImageView<PixelMask<PixelGray<uint8> > > inputImg(imgFile);
+  ImageViewRef<PixelMask<PixelGray<uint8> > > inputImgRef = inputImg;
+  GeoReference imgGeo;
+  read_georeference(imgGeo, imgFile);
+
+  std::cout << "Reading " << maskFile << std::endl;
+  DiskImageView<PixelMask<PixelGray<uint8> > >  maskImg(maskFile);
+  ImageViewRef<PixelMask<PixelGray<uint8> > > maskImgRef = maskImg;
+  GeoReference maskGeo;
+  read_georeference(maskGeo, maskFile);
+
+  std::string outFile = outDir + sufix_from_filename(imgFile);
+
+  std::cout << "Writing: " << outFile << std::endl;
+  write_georeferenced_image(outFile,
+                            mask_image(inputImgRef, maskImgRef, shadowThresh, imgGeo, maskGeo),
+                            imgGeo, TerminalProgressCallback("asp",""));
+  
   return;
 }
 

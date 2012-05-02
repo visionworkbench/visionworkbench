@@ -117,7 +117,13 @@ namespace vw {
     std::string getFirstElevenCharsFromFileName(std::string fileName);
     
     void indexFilesByKey(std::string dirName, std::map<std::string, std::string> & index);
+
+    void enforceUint8Img(std::string imgName);
+
+    bool readNoDEMDataVal(std::string DEMFile, float & noDEMDataValue);
     
+    void maskPixels(std::string imgFile, std::string maskFile, double shadowThresh, std::string outDir);
+
   template <class pixelInType, class pixelOutType>
   bool getSubImageWithMargin(// Inputs
                              Vector2 begLonLat, Vector2 endLonLat,
@@ -187,5 +193,117 @@ namespace vw {
   }
 
 }} // end vw::photometry
+
+namespace vw {
+namespace photometry {
+
+  template <class ImageT>
+  bool isGoodPixel(ImageT const& maskImg, cartography::GeoReference maskGeo, 
+                   Vector2 lonlat, double t){
+  
+    Vector2 maskPix = maskGeo.lonlat_to_pixel(lonlat);
+    float x = maskPix(0), y = maskPix(1);
+  
+    int x0 = (int)floor(x), x1 = (int)ceil(x);
+    int y0 = (int)floor(y), y1 = (int)ceil(y);
+    bool isGood = ((x >= 0) && (x <= maskImg.cols()-1) &&
+                   (y >= 0) && (y <= maskImg.rows()-1) && 
+                   is_valid(maskImg(x0, y0)) && (float)maskImg(x0, y0) >= t &&
+                   is_valid(maskImg(x0, y1)) && (float)maskImg(x0, y1) >= t &&
+                   is_valid(maskImg(x1, y0)) && (float)maskImg(x1, y0) >= t &&
+                   is_valid(maskImg(x1, y1)) && (float)maskImg(x1, y1) >= t
+                   );
+  
+    return isGood;
+  }
+
+  // Mask the pixels in a given image using pixels from a mask image.
+  // All the process is lazy, the full images are never stored in memory.
+
+  template <class ImageT>
+  class MaskImage : public ImageViewBase<MaskImage<ImageT> > {
+
+    typedef typename boost::mpl::if_<IsFloatingPointIndexable<ImageT>, double, int32>::type offset_type;
+
+    ImageT m_inputImg;
+    const ImageViewRef<PixelMask<PixelGray<uint8> > > & m_maskImg;
+    double m_shadowThresh;
+    cartography::GeoReference m_imgGeo;
+    cartography::GeoReference m_maskGeo;
+    
+  public:
+    typedef typename ImageT::pixel_type pixel_type;
+    typedef const pixel_type result_type;
+    typedef ProceduralPixelAccessor<MaskImage> pixel_accessor;
+
+    MaskImage(ImageViewRef<PixelMask<PixelGray<uint8> > > const& inputImg,
+              ImageT const& inputImg_prerasterized,
+              ImageViewRef<PixelMask<PixelGray<uint8> > > const& maskImg,
+              double shadowThresh, 
+              cartography::GeoReference const& imgGeo,
+              cartography::GeoReference const& maskGeo):
+      m_inputImg(inputImg_prerasterized),
+      m_maskImg(maskImg),
+      m_shadowThresh(shadowThresh),
+      m_imgGeo(imgGeo),
+      m_maskGeo(maskGeo){}
+    
+    inline int32 cols() const { return m_inputImg.cols(); }
+    inline int32 rows() const { return m_inputImg.rows(); }
+    inline int32 planes() const { return m_inputImg.planes(); }
+
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+
+    inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const {
+
+      if  ((float)m_inputImg(i, j) == 0) result_type(0.0);
+      
+      // Note: Below we take into account that the lonlat of the image
+      // may be shifted by 360 degrees from the lonlat of the mask.
+      // This is a bug fix.
+      Vector2 lonlat = m_imgGeo.pixel_to_lonlat(Vector2(i, j));
+      double t = m_shadowThresh;
+      if (!isGoodPixel(m_maskImg, m_maskGeo, lonlat, t)                   &&
+          !isGoodPixel(m_maskImg, m_maskGeo, lonlat + Vector2(360, 0), t) && 
+          !isGoodPixel(m_maskImg, m_maskGeo, lonlat - Vector2(360, 0), t)
+          ){
+        return result_type(0.0);
+      }else{
+        return m_inputImg(i, j);
+      }
+      
+    }
+    
+    /// \cond INTERNAL
+    typedef MaskImage<typename ImageT::prerasterize_type> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      return prerasterize_type(m_inputImg, m_inputImg.prerasterize(bbox), m_maskImg, m_shadowThresh, 
+                               m_imgGeo, m_maskGeo);
+    }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  // --------------------------------------------------------------------------
+  // Functional API. See the description of the MaskImage for more info.
+  // --------------------------------------------------------------------------
+  template <class ImageT>
+  MaskImage<ImageT>
+  mask_image(ImageViewBase<ImageT> const& inputImg,
+             ImageViewBase<ImageT> const& maskImg,
+             double shadowThresh,
+             cartography::GeoReference const& imgGeo,
+             cartography::GeoReference const& maskGeo) {
+    return MaskImage<ImageT>(inputImg.impl(), inputImg.impl(), maskImg.impl(), shadowThresh, imgGeo, maskGeo);
+  }
+
+} // namespace photometry
+
+  /// \cond INTERNAL
+  // Type traits
+  template <class ImageT>
+  struct IsFloatingPointIndexable< photometry::MaskImage<ImageT> > : public IsFloatingPointIndexable<ImageT> {};
+  /// \endcond
+}
 
 #endif//__VW_PHOTOMETRY_MISC_H__

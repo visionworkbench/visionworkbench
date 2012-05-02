@@ -414,6 +414,12 @@ vw::photometry::ComputeLineWeightsH(Vector2 pix,
   // We round below, to avoid issues when we are within numerical value
   // to an integer value for pix[1].
   // To do: Need to do interpolation here.
+
+  if (hCenterLine == NULL || hMaxDistArray == NULL){
+    std::cerr << "ERROR: No weights are present." << std::endl;
+    exit(1);
+  }
+
   float maxDist = hMaxDistArray[(int)round(pix[1])]/2.0;
   float center  = hCenterLine[(int)round(pix[1])];
   float dist    = fabs(pix[0]-center);
@@ -431,6 +437,12 @@ vw::photometry::ComputeLineWeightsH(Vector2 pix,
 float
 vw::photometry::ComputeLineWeightsV(Vector2 pix,
                                     int *vCenterLine, int *vMaxDistArray){
+
+  if (vCenterLine == NULL || vMaxDistArray == NULL){
+    std::cerr << "ERROR: No weights are present." << std::endl;
+    exit(1);
+  }
+  
   // See the notes at ComputeLineWeightsH().
   float maxDist = vMaxDistArray[(int)round(pix[0])]/2.0;
   float center  = vCenterLine[(int)round(pix[0])];

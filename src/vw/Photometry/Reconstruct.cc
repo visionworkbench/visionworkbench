@@ -20,8 +20,8 @@ std::ostream& vw::photometry::operator<<( std::ostream& os,
   os << " Shadow threshold: " << global.shadowThresh << "\n";
 
   os << " ExposureInfoFilename : " << global.exposureInfoFilename << "\n";
-  os << " SpacecraftPosFilename : " << global.spacecraftPosFilename << "\n";
-  os << " SunPosFilename : " << global.sunPosFilename << "\n";
+  os << " SpacecraftPosFile : "    << global.spacecraftPosFile << "\n";
+  os << " SunPosFile : "           << global.sunPosFile << "\n";
 
   return os;
 }
