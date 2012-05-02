@@ -113,14 +113,31 @@ namespace {
   }
 }
 
+boost::tuple<std::string, TileHeader, TileData>
+ReadOnlyPlateFile::img_file_name(std::string const& base_name, int col, int row, int level,
+                                 TransactionOrNeg transaction_id,
+                                 bool exact_transaction_match) const
+{
+  // Get the image file name and other attributes. 
+
+  std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
+  std::string filename = base_name + "." + ret.first.filetype();
+  return boost::tuple<std::string, TileHeader, TileData>(filename, ret.first, ret.second);
+}
+
 std::pair<std::string, TileHeader>
 ReadOnlyPlateFile::read_to_file(std::string const& base_name, int col, int row, int level,
                         TransactionOrNeg transaction_id, bool exact_transaction_match) const
 {
-  std::pair<TileHeader, TileData> ret = this->read(col, row, level, transaction_id, exact_transaction_match);
-  std::string filename = base_name + "." + ret.first.filetype();
-  dump_to_file(filename, &(ret.second->operator[](0)), ret.second->size());
-  return std::make_pair(filename, ret.first);
+  // Dump the current image to a file. Return the image file name and extension.
+  
+  boost::tuple<std::string, TileHeader, TileData> ret = this->img_file_name(base_name, col, row, level,
+                                                                            transaction_id, exact_transaction_match);
+  std::string filename = ret.get<0>();
+  TileHeader  th       = ret.get<1>(); 
+  TileData    td       = ret.get<2>(); 
+  dump_to_file(filename, &(td->operator[](0)), td->size());
+  return std::make_pair(filename, th);
 }
 
 /// Writing, pt. 1: Locks a blob and returns the blob id that can

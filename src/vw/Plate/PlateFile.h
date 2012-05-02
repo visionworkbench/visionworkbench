@@ -106,6 +106,7 @@
 #include <vw/Image/Algorithms.h>
 
 #include <sstream>
+#include <boost/tuple/tuple.hpp>
 
 namespace vw {
 namespace platefile {
@@ -127,6 +128,10 @@ namespace platefile {
       PixelFormatEnum pixel_format() const;
       ChannelTypeEnum channel_type() const;
       uint32 num_levels() const;
+
+      boost::tuple<std::string, TileHeader, TileData>
+      img_file_name(std::string const& base_name, int col, int row, int level,
+                    TransactionOrNeg transaction_id, bool exact_transaction_match = false) const;
 
       /// Read data directly to a file on disk. You supply a base name
       /// (without the file's image extension).  The image extension
