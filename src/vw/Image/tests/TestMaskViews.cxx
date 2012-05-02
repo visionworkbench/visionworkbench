@@ -95,6 +95,34 @@ TYPED_TEST( MaskedViewTest, copy_mask ) {
   EXPECT_EQ( typename TestFixture::Px(8), c(1,0).child() );
   EXPECT_EQ( typename TestFixture::Px(1), c(0,1).child() );
   EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
+
+  // Test a copy mask where the input is a different channel type
+  ImageView< PixelRGB<uint8> > in_rgbu8(2,2);
+  in(0,0) = PixelRGB<uint8>(9); in(1,0) = PixelRGB<uint8>(8);
+  in(0,1) = PixelRGB<uint8>(1); in(1,1) = PixelRGB<uint8>(4);
+  ImageView<PixelMask<PixelRGB<uint8> > > out_rgbu8 =
+    copy_mask( in_rgbu8, this->a );
+  EXPECT_EQ( 2, out_rgbu8.cols() ); EXPECT_EQ( 2, out_rgbu8.rows() );
+  EXPECT_TRUE( is_valid(out_rgbu8(0,0)) );
+  EXPECT_TRUE( is_valid(out_rgbu8(1,0)) );
+  EXPECT_FALSE(is_valid(out_rgbu8(0,1)) );
+  EXPECT_FALSE(is_valid(out_rgbu8(1,1)) );
+
+  // Test a copy_mask where the mask is a different type than the
+  // input.
+  ImageView< PixelMask<uint8> > mask(2,2);
+  mask(0,0) = PixelMask<uint8>(); mask(1,0) = PixelMask<uint8>(2);
+  mask(0,1) = PixelMask<uint8>(255); mask(1,1) = PixelMask<uint8>();
+  c = copy_mask(in, mask);
+  EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
+  EXPECT_FALSE is_valid(c(0,0)) );
+  EXPECT_TRUE( is_valid(c(1,0)) );
+  EXPECT_TRUE( is_valid(c(0,1)) );
+  EXPECT_FALSE(is_valid(c(1,1)) );
+  EXPECT_EQ( typename TestFixture::Px(9), c(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(8), c(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(1), c(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), c(1,1).child() );
 }
 
 TEST_F( MaskedViewGrayTest, mask_to_alpha ) {
@@ -200,10 +228,30 @@ TYPED_TEST( MaskedViewTest, create_apply_mask ) {
   this->a(0,1).validate();
   this->a(1,1).validate();
 
+  EXPECT_EQ( typename TestFixture::Px(1), this->a(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(2), this->a(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(3), this->a(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), this->a(1,1).child() );
+
   ImageView<typename TestFixture::Px> c =
     apply_mask(create_mask(apply_mask(this->a),3));
   EXPECT_EQ( typename TestFixture::Px(1), c(0,0) );
   EXPECT_EQ( typename TestFixture::Px(2), c(1,0) );
   EXPECT_EQ( typename TestFixture::Px(0), c(0,1) );
   EXPECT_EQ( typename TestFixture::Px(4), c(1,1) );
+
+  ImageView<typename TestFixture::MPx> d =
+    create_mask(apply_mask(this->a),3);
+  EXPECT_EQ( typename TestFixture::Px(1), d(0,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(2), d(1,0).child() );
+  EXPECT_EQ( typename TestFixture::Px(), d(0,1).child() );
+  EXPECT_EQ( typename TestFixture::Px(4), d(1,1).child() );
+
+  ImageView<typename TestFixture::Px> e =
+    apply_mask(this->a);
+  EXPECT_EQ( typename TestFixture::Px(1), e(0,0) );
+  EXPECT_EQ( typename TestFixture::Px(2), e(1,0) );
+  EXPECT_EQ( typename TestFixture::Px(3), e(0,1) );
+  EXPECT_EQ( typename TestFixture::Px(4), e(1,1) );
+
 }
