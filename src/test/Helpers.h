@@ -88,6 +88,52 @@ void mismatch_queue(InputIterator1 first1, InputIterator1 last1, InputIterator2 
   }
 }
 
+// Difference calculators
+template <typename ElemT, typename Elem2T>
+double value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Elem2T>& b) {
+  BOOST_STATIC_ASSERT((boost::is_same<ElemT, Elem2T>::value));
+  typedef typename CompoundChannelType<ElemT>::type channel_type;
+  double acc = 0.0;
+  for( size_t c=0; c < PixelNumChannels<ElemT>::value; ++c ) {
+    channel_type const& a_x = compound_select_channel<channel_type const&>(a.impl(),c);
+    channel_type const& b_x = compound_select_channel<channel_type const&>(b.impl(),c);
+    double diff = double(a_x) - double(b_x);
+    acc += diff*diff;
+  }
+  return ::sqrt(acc);
+}
+
+template <typename Vec1T, typename Vec2T>
+double value_diff(const vw::VectorBase<Vec1T>& a, const vw::VectorBase<Vec2T>& b) {
+  BOOST_STATIC_ASSERT((boost::is_same<typename Vec1T::value_type,typename Vec2T::value_type>::value));
+  double acc = 0.0;
+  typename Vec2T::const_iterator it2 = b.impl().begin();
+  for (typename Vec1T::const_iterator it1 = a.impl().begin();
+       it1 != a.impl().end(); it1++ ) {
+    double diff = double(*it1) - double(*it2);
+    acc += diff*diff;
+    it2++;
+  }
+  return ::sqrt(acc);
+}
+
+template <typename T1, typename T2>
+double value_diff(const std::complex<T1>& a, const std::complex<T2>& b) {
+  return std::abs(std::complex<double>(a) - std::complex<double>(b));
+}
+
+template <typename T1, typename T2>
+struct both_are_arithmetic : boost::mpl::and_<boost::is_arithmetic<T1>, boost::is_arithmetic<T2> > {};
+
+template <typename T1, typename T2>
+typename boost::enable_if<both_are_arithmetic<T1,T2>, double>::type
+value_diff(const T1& a, const T2& b) {
+  BOOST_STATIC_ASSERT(boost::is_arithmetic<T1>::value);
+  BOOST_STATIC_ASSERT(boost::is_arithmetic<T2>::value);
+  return ::fabs(double(a) - double(b));
+}
+
+// Comparison classes
 template <typename ImplT>
 class CmpWorker {
   public:
@@ -415,50 +461,6 @@ _CheckNDRange<CmpT> check_nd_range(const CmpT& cmp) {
 #define ASSERT_MATRIX_EQ(e, a)                ASSERT_SEQ_EQ(e,a)
 #define EXPECT_MATRIX_NEAR(e, a, delta)       EXPECT_SEQ_NEAR(e,a,delta)
 #define ASSERT_MATRIX_NEAR(e, a, delta)       ASSERT_SEQ_NEAR(e,a,delta)
-
-template <typename ElemT, typename Elem2T>
-double value_diff(const vw::PixelMathBase<ElemT>& a, const vw::PixelMathBase<Elem2T>& b) {
-  BOOST_STATIC_ASSERT((boost::is_same<ElemT, Elem2T>::value));
-  typedef typename CompoundChannelType<ElemT>::type channel_type;
-  double acc = 0.0;
-  for( size_t c=0; c < PixelNumChannels<ElemT>::value; ++c ) {
-    channel_type const& a_x = compound_select_channel<channel_type const&>(a.impl(),c);
-    channel_type const& b_x = compound_select_channel<channel_type const&>(b.impl(),c);
-    double diff = double(a_x) - double(b_x);
-    acc += diff*diff;
-  }
-  return ::sqrt(acc);
-}
-
-template <typename Vec1T, typename Vec2T>
-double value_diff(const vw::VectorBase<Vec1T>& a, const vw::VectorBase<Vec2T>& b) {
-  BOOST_STATIC_ASSERT((boost::is_same<typename Vec1T::value_type,typename Vec2T::value_type>::value));
-  double acc = 0.0;
-  typename Vec2T::const_iterator it2 = b.impl().begin();
-  for (typename Vec1T::const_iterator it1 = a.impl().begin();
-       it1 != a.impl().end(); it1++ ) {
-    double diff = double(*it1) - double(*it2);
-    acc += diff*diff;
-    it2++;
-  }
-  return ::sqrt(acc);
-}
-
-template <typename T1, typename T2>
-double value_diff(const std::complex<T1>& a, const std::complex<T2>& b) {
-  return std::abs(std::complex<double>(a) - std::complex<double>(b));
-}
-
-template <typename T1, typename T2>
-struct both_are_arithmetic : boost::mpl::and_<boost::is_arithmetic<T1>, boost::is_arithmetic<T2> > {};
-
-template <typename T1, typename T2>
-typename boost::enable_if<both_are_arithmetic<T1,T2>, double>::type
-value_diff(const T1& a, const T2& b) {
-  BOOST_STATIC_ASSERT(boost::is_arithmetic<T1>::value);
-  BOOST_STATIC_ASSERT(boost::is_arithmetic<T2>::value);
-  return ::fabs(double(a) - double(b));
-}
 
 }} // namespace t
 

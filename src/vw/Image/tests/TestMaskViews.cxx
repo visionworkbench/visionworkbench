@@ -98,10 +98,9 @@ TYPED_TEST( MaskedViewTest, copy_mask ) {
 
   // Test a copy mask where the input is a different channel type
   ImageView< PixelRGB<uint8> > in_rgbu8(2,2);
-  in(0,0) = PixelRGB<uint8>(9); in(1,0) = PixelRGB<uint8>(8);
-  in(0,1) = PixelRGB<uint8>(1); in(1,1) = PixelRGB<uint8>(4);
-  ImageView<PixelMask<PixelRGB<uint8> > > out_rgbu8 =
-    copy_mask( in_rgbu8, this->a );
+  in_rgbu8(0,0) = PixelRGB<uint8>(9); in_rgbu8(1,0) = PixelRGB<uint8>(8);
+  in_rgbu8(0,1) = PixelRGB<uint8>(1); in_rgbu8(1,1) = PixelRGB<uint8>(4);
+  ImageView<PixelMask<PixelRGB<uint8> > > out_rgbu8 = copy_mask( in_rgbu8, this->a );
   EXPECT_EQ( 2, out_rgbu8.cols() ); EXPECT_EQ( 2, out_rgbu8.rows() );
   EXPECT_TRUE( is_valid(out_rgbu8(0,0)) );
   EXPECT_TRUE( is_valid(out_rgbu8(1,0)) );
@@ -115,7 +114,7 @@ TYPED_TEST( MaskedViewTest, copy_mask ) {
   mask(0,1) = PixelMask<uint8>(255); mask(1,1) = PixelMask<uint8>();
   c = copy_mask(in, mask);
   EXPECT_EQ( 2, c.cols() ); EXPECT_EQ( 2, c.rows() );
-  EXPECT_FALSE is_valid(c(0,0)) );
+  EXPECT_FALSE( is_valid(c(0,0)) );
   EXPECT_TRUE( is_valid(c(1,0)) );
   EXPECT_TRUE( is_valid(c(0,1)) );
   EXPECT_FALSE(is_valid(c(1,1)) );
@@ -253,5 +252,4 @@ TYPED_TEST( MaskedViewTest, create_apply_mask ) {
   EXPECT_EQ( typename TestFixture::Px(2), e(1,0) );
   EXPECT_EQ( typename TestFixture::Px(3), e(0,1) );
   EXPECT_EQ( typename TestFixture::Px(4), e(1,1) );
-
 }

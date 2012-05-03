@@ -4,8 +4,6 @@
 // All Rights Reserved.
 // __END_LICENSE__
 
-
-#include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 #include <vw/Image/ImageView.h>
 

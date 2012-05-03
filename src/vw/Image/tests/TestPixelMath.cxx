@@ -125,29 +125,29 @@ TEST( PixelMath, SelfAssignment ) {
   typedef PixelRGB<uint8> Px;
   Px a(1,2,3), b(2,3,4);
   a += 2;
-  ASSERT_PIXEL_EQ( a, Px(3,4,5) );
+  EXPECT_VW_EQ( a, Px(3,4,5) );
   a -= 2;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
   a *= 2;
-  ASSERT_PIXEL_EQ( a, Px(2,4,6) );
+  EXPECT_VW_EQ( a, Px(2,4,6) );
   a /= 2;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
   a += b;
-  ASSERT_PIXEL_EQ( a, Px(3,5,7) );
+  EXPECT_VW_EQ( a, Px(3,5,7) );
   a -= b;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
   a *= b;
-  ASSERT_PIXEL_EQ( a, Px(2,6,12) );
+  EXPECT_VW_EQ( a, Px(2,6,12) );
   a /= b;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
   (a += 2) += 2;
-  ASSERT_PIXEL_EQ( a, Px(5,6,7) );
+  EXPECT_VW_EQ( a, Px(5,6,7) );
   (a -= 2) -= 2;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
   (a *= 2) *= 2;
-  ASSERT_PIXEL_EQ( a, Px(4,8,12) );
+  EXPECT_VW_EQ( a, Px(4,8,12) );
   (a /= 2) /= 2;
-  ASSERT_PIXEL_EQ( a, Px(1,2,3) );
+  EXPECT_VW_EQ( a, Px(1,2,3) );
 }
 
 TEST( PixelMath, ACOS ) { TEST_UNARY_MATH_FUNCTION(acos,0.5,1.0472); }
