@@ -14,7 +14,7 @@
 namespace vw {
 
   class SrcMemoryImageResourceGDAL : public SrcMemoryImageResource, private boost::noncopyable {
-      struct Data;
+      class Data;
       mutable boost::shared_ptr<Data> m_data;
 
     public:
@@ -30,7 +30,7 @@ namespace vw {
   };
 
   class DstMemoryImageResourceGDAL : public DstMemoryImageResource {
-      struct Data;
+      class Data;
       boost::shared_ptr<Data> m_data;
 
     public:

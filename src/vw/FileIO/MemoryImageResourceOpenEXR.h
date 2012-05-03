@@ -14,7 +14,7 @@
 namespace vw {
 
   class SrcMemoryImageResourceOpenEXR : public SrcMemoryImageResource, private boost::noncopyable {
-    struct Data;
+    class Data;
     mutable boost::shared_ptr<Data> m_data;
 
   public:
@@ -29,7 +29,7 @@ namespace vw {
   };
 
   class DstMemoryImageResourceOpenEXR : public DstMemoryImageResource {
-    struct Data;
+    class Data;
     boost::shared_ptr<Data> m_data;
 
   public:
