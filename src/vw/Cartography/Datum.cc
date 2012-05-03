@@ -94,7 +94,6 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_meridian_name = "Reference Meridian";
     m_semi_major_axis = m_semi_minor_axis = 1737400;
     m_meridian_offset = 0.0;
-    m_geocentric = false;
     m_proj_str = "+a=1737400 +b=1737400";
     return;
   }
@@ -105,7 +104,6 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_meridian_name = "Reference Meridian";
     m_semi_major_axis = m_semi_minor_axis = 3396190;
     m_meridian_offset = 0.0;
-    m_geocentric = false;
     m_proj_str = "+a=3396190 +b=3396190";
     return;
   }

@@ -5,8 +5,6 @@
 // __END_LICENSE__
 
 
-#include <gtest/gtest_VW.h>
-
 #include <vw/Core/Exception.h>
 #include <test/Helpers.h>
 

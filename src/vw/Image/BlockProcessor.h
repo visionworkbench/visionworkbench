@@ -33,9 +33,9 @@ namespace vw {
   class BlockProcessor {
     FuncT m_func;
     Vector2i m_block_size;
-    int m_num_threads;
+    uint32 m_num_threads;
   public:
-    BlockProcessor( FuncT const& func, Vector2i const& block_size, int threads = 0 )
+    BlockProcessor( FuncT const& func, Vector2i const& block_size, uint32 threads = 0 )
       : m_func(func), m_block_size(block_size),
         m_num_threads(threads?threads:(vw_settings().default_num_threads())) {}
 
@@ -133,14 +133,14 @@ namespace vw {
       std::vector<boost::shared_ptr<BlockThread> > generators;
       std::vector<boost::shared_ptr<Thread> > threads;
 
-      for( int i=0; i<m_num_threads; ++i ) {
+      for( uint32 i=0; i<m_num_threads; ++i ) {
         boost::shared_ptr<BlockThread> generator( new BlockThread( info ) );
         generators.push_back( generator );
         boost::shared_ptr<Thread> thread( new Thread( generator ) );
         threads.push_back( thread );
       }
 
-      for( int i=0; i<m_num_threads; ++i ) {
+      for( uint32 i=0; i<m_num_threads; ++i ) {
         threads[i]->join();
       }
     }

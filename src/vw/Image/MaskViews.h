@@ -33,13 +33,24 @@ namespace vw {
   template <class PixelT>
   class CreatePixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_nodata_value;
-    bool m_is_threshold;
+  public:
+    CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      if ( value == m_nodata_value ) {
+        return MPixelT();
+      }
+      return MPixelT(value);
+    }
+  };
+
+  template <class PixelT>
+  class CreatePixelRangeMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_valid_min;
     PixelT m_valid_max;
   public:
-    CreatePixelMask( PixelT const& nodata_value ) : m_nodata_value(nodata_value), m_is_threshold(false) {}
-
-    CreatePixelMask( PixelT const& valid_min, PixelT const& valid_max ) : m_nodata_value(PixelT()), m_is_threshold(true), m_valid_min(valid_min), m_valid_max(valid_max) {}
+    CreatePixelRangeMask( PixelT const& valid_min, PixelT const& valid_max ) : m_valid_min(valid_min), m_valid_max(valid_max) {}
 
     // Helper to access only specific types of pixels
     template <bool CompoundB, class Arg1T, class Arg2T>
@@ -75,21 +86,17 @@ namespace vw {
     };
 
     inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
-      if ( m_is_threshold ) {
-        if ( CompoundNumChannels<PixelT>::value > 1)
-          vw_throw(NoImplErr() << "CreatePixelMask() doesn't support threshold of pixels with multiple channels.");
+      // Create Pixel Mask doesn't support theshold of pixels with multiple channels
+      BOOST_STATIC_ASSERT( CompoundNumChannels<PixelT>::value == 1 );
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
 
-        typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
-        if (help_func::greater_than(value,m_valid_max))
-          return typename MaskedPixelType<PixelT>::type();
-        if (help_func::less_than(value,m_valid_min))
-          return typename MaskedPixelType<PixelT>::type();
+      typedef Helper<IsCompound<PixelT>::value,PixelT,PixelT> help_func;
+      if (help_func::greater_than(value,m_valid_max) ||
+          help_func::less_than(value,m_valid_min) ) {
+        return MPixelT();
+      }
 
-        return typename MaskedPixelType<PixelT>::type(value);
-      } else
-        return (value==m_nodata_value) ?
-          typename MaskedPixelType<PixelT>::type() :
-          typename MaskedPixelType<PixelT>::type(value);
+      return MPixelT(value);
     }
   };
 
@@ -104,16 +111,15 @@ namespace vw {
 
   // Thresholded valid
   template <class ViewT>
-  UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
+  UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view,
                typename ViewT::pixel_type const& valid_min,
                typename ViewT::pixel_type const& valid_max ) {
-    typedef UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > view_type;
-    return view_type( view.impl(), CreatePixelMask<typename ViewT::pixel_type>( valid_min, valid_max ));
+    typedef UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), CreatePixelRangeMask<typename ViewT::pixel_type>( valid_min, valid_max ));
   }
 
-  // We overload the function rather than defaulting the value
-  // argument to work around a compiler issue in MSVC 2005.
+  // Default mask zero
   template <class ViewT>
   UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> >
   create_mask( ImageViewBase<ViewT> const& view ) {
@@ -123,7 +129,10 @@ namespace vw {
   // Indicate that create_mask is "reasonably fast" and should never
   // induce an extra rasterization step during prerasterization.
   template <class ViewT>
-  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelMask<typename UnmaskedPixelType<typename ViewT::pixel_type>::type> > >
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> > >
     : public IsMultiplyAccessible<ViewT> {};
 
   // *******************************************************************
@@ -175,9 +184,12 @@ namespace vw {
   class CopyPixelMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type> {
   public:
     template <class MaskPixelT>
-    typename MaskedPixelType<PixelT>::type operator()( PixelT const& value, MaskPixelT const& mask ) const {
+    inline typename MaskedPixelType<PixelT>::type
+    operator()( PixelT const& value, MaskPixelT const& mask ) const {
       typename MaskedPixelType<PixelT>::type result = value;
-      if (is_transparent(mask)) result.invalidate();
+      if (is_transparent(mask)) {
+        result.invalidate();
+      }
       return result;
     }
   };
@@ -206,8 +218,10 @@ namespace vw {
   class MaskToAlpha : public ReturnFixedType<typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type> {
   public:
     typedef typename PixelWithAlpha<typename UnmaskedPixelType<PixelT>::type>::type result_type;
-    result_type operator()( PixelT const& pixel ) const {
-      if (is_transparent(pixel)) return result_type();
+    inline result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) {
+        return result_type();
+      }
       else return result_type(pixel.child());
     }
   };
@@ -236,9 +250,11 @@ namespace vw {
   class AlphaToMask : public ReturnFixedType<typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type> {
   public:
     typedef typename MaskedPixelType<typename PixelWithoutAlpha<PixelT>::type>::type result_type;
-    result_type operator()( PixelT const& pixel ) const {
-      if (is_transparent(pixel)) return result_type();
-      else return result_type(non_alpha_channels(pixel));
+    inline result_type operator()( PixelT const& pixel ) const {
+      if (is_transparent(pixel)) {
+        return result_type();
+      }
+      return result_type(non_alpha_channels(pixel));
     }
   };
 
@@ -413,7 +429,7 @@ namespace vw {
   template <class PixelT>
   class InvertPixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT operator()( PixelT value ) const {
+    inline PixelT operator()( PixelT value ) const {
       toggle(value);
       return value;
     }
@@ -438,7 +454,7 @@ namespace vw {
   template <class PixelT>
   class ValidatePixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT operator()( PixelT value ) const {
+    inline PixelT operator()( PixelT value ) const {
       validate(value);
       return value;
     }
@@ -463,7 +479,7 @@ namespace vw {
   template <class PixelT>
   class InvalidatePixelMask : public ReturnFixedType<PixelT> {
   public:
-    PixelT operator()( PixelT value ) const {
+    inline PixelT operator()( PixelT value ) const {
       invalidate(value);
       return value;
     }
@@ -491,7 +507,7 @@ namespace vw {
     typedef typename MaskedPixelType<PixelT>::type return_type;
   public:
     template <class MaskedPixelT>
-    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+    inline return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
       return_type result = value;
       if ( is_valid(value) || is_valid(mask) )
         validate(result);
@@ -524,7 +540,7 @@ namespace vw {
     typedef typename MaskedPixelType<PixelT>::type return_type;
   public:
     template <class MaskedPixelT>
-    return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
+    inline return_type operator()( PixelT const& value, MaskedPixelT const& mask ) const {
       return_type result = value;
       if ( is_valid(value) && is_valid(mask) )
         validate(result);
