@@ -17,12 +17,12 @@
 namespace vw {
 namespace photometry {
 
-  void UpdateHeightMap(std::string DEMTileFile,
-                       std::string albedoTileFile,
-                       std::string sfsTileFile,
-                       std::vector<ModelParams> & overlapImgParams,
-                       GlobalParams globalParams
-                       );
+  void UpdateHeightMapTiles(std::string DEMTileFile,
+                            std::string albedoTileFile,
+                            std::string sfsTileFile,
+                            std::vector<ModelParams> & overlapImgParams,
+                            GlobalParams globalParams
+                            );
 
   // Does conjugate gradient descent on the DEM, keeping all else fixed.
   void optimize_conjugate_gradient(ImageView<PixelGray<double> > *image_predicted,
@@ -32,6 +32,9 @@ namespace photometry {
                                    ImageView<PixelGray<double> > *albedo,
                                    Vector3 *light_direction);
 
+  // Old code, using images, not tiles
+  void UpdateHeightMap(ModelParams input_img_params, std::vector<ModelParams> overlap_img_params, GlobalParams globalParams);
+  
 }} //end vw::photometry
 
 #endif//__VW_PHOTOMETRY_SHAPE_FROM_SHADING_H__
