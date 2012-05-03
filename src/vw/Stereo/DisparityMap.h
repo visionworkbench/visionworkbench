@@ -107,6 +107,14 @@ namespace stereo {
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
     inline result_type operator()( int32 i, int32 j, int32 p = 0 ) const {
+#if defined(VW_ENABLE_BOUNDS_CHECK) && (VW_ENABLE_BOUNDS_CHECK==1)
+      if ( i < 0 || j < 0 || p < 0 ||
+           i > m_mask1_view.cols() || j > m_mask1_view.rows() ||
+           p > m_mask1_view.planes() ) {
+        vw_throw( ArgumentErr() << "DisparityMaskView::operator() - invalid index [" << i << " "
+                  << j << " " << p << "]" );
+      }
+#endif
       if ( m_mask1_view(i,j,p) == 0 ||
            !is_valid(m_input_view(i,j,p)) ||
            i+m_input_view(i,j,p)[0] < 0 || i+m_input_view(i,j,p)[0] >= m_mask2_view.cols() ||
