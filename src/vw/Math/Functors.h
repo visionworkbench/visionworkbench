@@ -274,7 +274,7 @@ namespace math {
     inline long double operator()( long double val ) const { return ::fabsl(val); }
 #endif
 #ifdef VW_HAVE_LLABS
-    inline int64 operator()( int64 val ) const { return ::llabs(val); }
+    inline long long operator()( long long val ) const { return ::llabs(val); }
 #endif
 
     template <class ValT>
