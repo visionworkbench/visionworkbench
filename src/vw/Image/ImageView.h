@@ -180,29 +180,6 @@ namespace vw {
 
       size_t size = size64;
 
-#ifdef __llvm__
-      // Early version of LLVM (2.1 & 3.0) all seem to not work with
-      // odd sized pixel elements without accessing outsize of the
-      // image array. Here's an example of something that would cause
-      // an error with an LLVM compiler.
-      //
-      // ImageView<PixelRGB<uint8> > image(256,256);
-      // image = constant_view( PixelRGB<uint8>(128,128,128), 256, 256 );
-      //
-      // The valgrind report from a llvm-g++ 4.2.1 build says:
-      //
-      // ==4616== Invalid write of size 4
-      //      ==4616==    at 0x100007BCE: void vw::rasterize<vw::PerPixelIndexView<vw::ConstantIndexFunctor<vw::PixelRGB<unsigned char> > >, vw::ImageView<vw::PixelRGB<unsigned char> > >(vw::PerPixelIndexView<vw::ConstantIndexFunctor<vw::PixelRGB<unsigned char> > > const&, vw::ImageView<vw::PixelRGB<unsigned char> > const&, vw::math::BBox<int, 2ul>) (ImageViewBase.h:268)
-      //    ==4616==    by 0x100007D0E: void vw::PerPixelIndexView<vw::ConstantIndexFunctor<vw::PixelRGB<unsigned char> > >::rasterize<vw::ImageView<vw::PixelRGB<unsigned char> > >(vw::ImageView<vw::PixelRGB<unsigned char> > const&, vw::math::BBox<int, 2ul> const&) const (PerPixelViews.h:54)
-      //    ==4616==    by 0x100007E12: vw::ImageView<vw::PixelRGB<unsigned char> >& vw::ImageView<vw::PixelRGB<unsigned char> >::operator=<vw::PerPixelIndexView<vw::ConstantIndexFunctor<vw::PixelRGB<unsigned char> > > >(vw::ImageViewBase<vw::PerPixelIndexView<vw::ConstantIndexFunctor<vw::PixelRGB<unsigned char> > > > const&) (ImageView.h:116)
-      //
-      // I'm at my wits' end here. I'm sorry to put this hack in, but
-      // it seems like the only safe way to support OSX 10.7 broken
-      // build tools.
-      if ( sizeof(PixelT) % 2 && size != std::numeric_limits<size_t>::max() )
-        size++;
-#endif
-
       if( size==0 )
         m_data.reset();
       else {
