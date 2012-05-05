@@ -265,7 +265,15 @@ namespace vw {
         SrcAccT scol = srow;
         DestAccT dcol = drow;
         for( int32 col=bbox.width(); col; --col ) {
+#ifdef __llvm__
+          // LLVM doesn't like ProceduralPixelAccessor's operator*
+          // that returns a non reference. We can work around if we
+          // split the command in two lines.
+          DestPixelT buffer(*scol);
+          *dcol = buffer;
+#else
           *dcol = DestPixelT(*scol);
+#endif
           scol.next_col();
           dcol.next_col();
         }
