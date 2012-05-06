@@ -173,7 +173,7 @@ namespace vw {
     tpc.set_progress_text( "Status (assembling): " );
     SubProgressCallback assembling_pc( tpc, 0.05, 0.1 );
     // Second pass: add files to the image composite.
-    for(unsigned i = 0; i < image_files.size(); ++i) {
+    for(size_t i = 0; i < image_files.size(); ++i) {
       assembling_pc.report_fractional_progress(i, image_files.size() );
       cartography::GeoReference input_georef;
       read_georeference(input_georef, image_files[i]);
@@ -215,9 +215,12 @@ namespace vw {
       for(int i=0; i < composite.rows(); i += dim) {
         for(int j=0; j < composite.cols(); j += dim) {
           BBox2i tile_bbox(j, i, dim, dim);
-          if(tile_bbox.max().x() >= composite.cols()) tile_bbox.max().x() = composite.cols();
-          if(tile_bbox.max().y() >= composite.rows()) tile_bbox.max().y() = composite.cols();
-          ImageView<PixelT> tile_view = crop(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), tile_bbox);
+          if(tile_bbox.max().x() >= composite.cols())
+            tile_bbox.max().x() = composite.cols();
+          if(tile_bbox.max().y() >= composite.rows())
+            tile_bbox.max().y() = composite.cols();
+          ImageView<PixelT> tile_view =
+            pixel_cast<PixelT>(crop(channel_cast_rescale<typename PixelChannelType<PixelT>::type>(composite), tile_bbox));
           cartography::GeoReference tile_georef = output_georef;
 
           // Adjust the affine transformation's offset to point to the upper

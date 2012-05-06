@@ -83,7 +83,7 @@ public:
 };
 
 ImageView<PixelRGB<double> > vw::hdr::ashikhmin_tone_map(ImageView<PixelRGB<double> > hdr_image, double threshold) {
-  ImageView<PixelGray<double> > gray = hdr_image;
+  ImageView<PixelGray<double> > gray = pixel_cast<PixelGray<double> >(hdr_image);
   ImageView<double> L_w = channels_to_planes(gray);
   //  write_image("lw.jpg", L_w);
   ImageView<PixelRGB<double> > out_image = copy(hdr_image) / L_w;
