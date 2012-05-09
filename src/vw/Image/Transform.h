@@ -19,6 +19,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Interpolation.h>
@@ -42,21 +43,62 @@ namespace vw {
   /// via TransformRef.
   class Transform {
     double m_tolerance;
+
+    class ForwardLMA : public math::LeastSquaresModelBase<ForwardLMA> {
+      const Transform* m_tx;
+    public:
+      ForwardLMA( const Transform* tx ) : m_tx(tx) {}
+      typedef Vector2 result_type;
+      typedef Vector2 domain_type;
+      typedef Matrix2x2 jacobian_type;
+
+      inline result_type operator()( domain_type const& x ) const {
+        return m_tx->reverse( x );
+      }
+    };
+
+    class ReverseLMA : public math::LeastSquaresModelBase<ReverseLMA> {
+      const Transform* m_tx;
+    public:
+      ReverseLMA( const Transform* tx ) : m_tx(tx) {}
+      typedef Vector2 result_type;
+      typedef Vector2 domain_type;
+      typedef Matrix2x2 jacobian_type;
+
+      inline result_type operator()( domain_type const& x ) const {
+        return m_tx->forward( x );
+      }
+    };
+
   public:
     Transform() : m_tolerance(0.0) {}
 
     virtual ~Transform() {}
 
-    /// This defines the transformation from coordinates in the source
-    /// image to coordinates in the destination image.  This routine is
+    /// 'Forward' defines the transformation from coordinates in the source
+    /// image to coordinates in the destination image.  That routine is
     /// not actually needed to perform  the transformation itself, but
     /// it can be used to determine the appropriate dimensions for the
     /// output.
-    virtual Vector2 forward( Vector2 const& /*point*/ ) const { vw_throw( NoImplErr() << "forward() is not implemented for this transform." ); return Vector2(); }
-
-    /// This defines the transformation from coordinates in our target
-    /// image back to coordinates in the original image.
-    virtual Vector2 reverse( Vector2 const& /*point*/ ) const { vw_throw( NoImplErr() << "reverse() is not implemented for this transform." ); return Vector2(); }
+    ///
+    /// 'Reverse' defines the transformation from coordinates in our
+    /// target image back to coordinates in the original image. This
+    /// is actually used in practice to transform an image.
+    ///
+    /// The default implementations here actually performs a least
+    /// squares search using the reverse method. This means we get
+    /// access to both methods even when a function only implements
+    /// one. It may not be accurate however.
+    virtual Vector2 forward( Vector2 const& point ) const {
+      int status;
+      return levenberg_marquardt( ForwardLMA( this ), point,
+                                  point, status );
+    }
+    virtual Vector2 reverse( Vector2 const& point ) const {
+      int status;
+      return levenberg_marquardt( ReverseLMA( this ), point,
+                                  point, status );
+    }
 
     /// Specifies the properties of the forward mapping function.
     virtual FunctionType forward_type() const { return DiscontinuousFunction; }

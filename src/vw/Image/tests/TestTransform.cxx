@@ -146,3 +146,33 @@ TEST( Transform, Compose ) {
   }
 
 }
+
+class ForwardOnlyTransform : public TransformBase<ForwardOnlyTransform> {
+public:
+  inline Vector2 forward( const Vector2& p ) const {
+    return elem_prod(p,Vector2(2,2));
+  }
+};
+
+TEST( Transform, FreeReverse ) {
+  ForwardOnlyTransform tx;
+  for ( size_t i = 0; i < 10; i++ ) {
+    EXPECT_VECTOR_NEAR( Vector2(i*i,i),
+                        tx.reverse(tx.forward(Vector2(i*i,i))), 1e-3 );
+  }
+}
+
+class ReverseOnlyTransform : public TransformBase<ReverseOnlyTransform> {
+public:
+  inline Vector2 reverse( const Vector2& p ) const {
+    return elem_prod(p,Vector2(2,2));
+  }
+};
+
+TEST( Transform, FreeForward ) {
+  ReverseOnlyTransform tx;
+  for ( size_t i = 0; i < 10; i++ ) {
+    EXPECT_VECTOR_NEAR( Vector2(i*i,i),
+                        tx.forward(tx.reverse(Vector2(i*i,i))), 1e-3 );
+  }
+}
