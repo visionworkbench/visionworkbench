@@ -153,8 +153,8 @@ plate2tiles_LDADD    = $(PLATE_LOCAL_LIBS)
 plate2dem_SOURCES = plate2dem.cc
 plate2dem_LDADD   = @PKG_CARTOGRAPHY_LIBS@ $(PLATE_LOCAL_LIBS)
 
-plate2kml_SOURCES = plate2kml.cc
-plate2kml_LDADD   = $(PLATE_LOCAL_LIBS) 
+plate2cloud_SOURCES = plate2cloud.cc
+plate2cloud_LDADD   = $(PLATE_LOCAL_LIBS) 
 
 tiles4region_SOURCES = tiles4region.cc
 tiles4region_LDADD   = $(PLATE_LOCAL_LIBS) 
@@ -214,7 +214,7 @@ bin_PROGRAMS =   \
   tiles4region
 
 if HAVE_PKG_LIBKML
-  bin_PROGRAMS += plate2kml
+  bin_PROGRAMS += plate2cloud
 endif
 
 endif
