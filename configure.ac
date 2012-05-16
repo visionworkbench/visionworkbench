@@ -447,7 +447,7 @@ AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
         [AC_MSG_WARN([You have neither rabbitmq_c nor zeromq. Plate network support will be disabled.])])])])
 
 AX_MODULE(TOOLS,            [src/vw/tools],            [],                         yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI,              [src/vw/gui],              [],                          no, [PLATE VW], [QT BOOST_PROGRAM_OPTIONS GL])
+AX_MODULE(GUI,              [src/vw/gui],              [],                          no, [VW], [QT BOOST_PROGRAM_OPTIONS GL], [PLATE])
 AX_MODULE_PYTHON(           [src/vw/Python], [no])
 
 if test $host_vendor = apple; then

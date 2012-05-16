@@ -7,16 +7,19 @@
 
 #include <vw/gui/TileGenerator.h>
 #include <vw/gui/ImageTileGenerator.h>
-#include <vw/gui/PlatefileTileGenerator.h>
 #include <vw/gui/TestPatternTileGenerator.h>
-#include <vw/gui/WebTileGenerator.h>
 
-#include <vw/Plate/HTTPUtils.h>
 #include <vw/Core/Debugging.h>
 #include <boost/filesystem/convenience.hpp>
 
-namespace fs = boost::filesystem;
+#if HAVE_PKG_VW_PLATE
+#include <vw/Plate/HTTPUtils.h>
+#include <vw/gui/WebTileGenerator.h>
+#include <vw/gui/PlatefileTileGenerator.h>
 using namespace vw::platefile;
+#endif
+
+namespace fs = boost::filesystem;
 
 namespace vw { namespace gui {
 
@@ -92,28 +95,40 @@ std::list<TileLocator> bbox_to_tiles(Vector2i tile_size, BBox2i bbox, int level,
 
 boost::shared_ptr<TileGenerator> TileGenerator::create(std::string filename_) {
 
+  typedef boost::shared_ptr<TileGenerator> TileGenPtr;
+
+#if HAVE_PKG_PLATE
   // Remove trailing /
   boost::trim_right_if(filename_, boost::is_any_of("/"));
   Url u(filename_);
 
   try {
     if (u.scheme() == "http") {
-      return boost::shared_ptr<TileGenerator>( new WebTileGenerator(u.string(),17));
+      return TileGenPtr( new WebTileGenerator(u.string(),17));
     } else if (u.scheme() == "file") {
-      if (fs::extension(u.path()) == ".plate")
-        return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(u.path()) );
-      else if (u.path() == "testpattern")
-        return boost::shared_ptr<TileGenerator>( new TestPatternTileGenerator(256) );
+      if (u.path() == "testpattern")
+        return TileGenPtr( new TestPatternTileGenerator(256) );
+      else if (fs::extension(u.path()) == ".plate")
+        return TileGenPtr( new PlatefileTileGenerator(u.path()) );
       else
-        return boost::shared_ptr<TileGenerator>( new ImageTileGenerator(u.path()) );
+        return TileGenPtr( new ImageTileGenerator(u.path()) );
     } else if (fs::extension(u.path()) == ".plate") {
-        return boost::shared_ptr<TileGenerator>( new PlatefileTileGenerator(u.string()) );
+        return TileGenPtr( new PlatefileTileGenerator(u.string()) );
     } else {
-      std::cerr << "Could not open " << u << ":\n\t" << "No handler for url scheme " << u.scheme() << std::endl;
+      std::cerr << "Could not open " << u << ":\n\t"
+                << "No handler for url scheme " << u.scheme() << std::endl;
     }
   } catch (const vw::Exception& e) {
     std::cerr << "Could not open " << u << ":\n\t" << e.what() << std::endl;
   }
+#else
+  try {
+    return TileGenPtr( new ImageTileGenerator(filename_) );
+  } catch (const vw::Exception& e) {
+    std::cerr << "Could not open " << filename_ << ":\n\t" << e.what() << std::endl;
+  }
+#endif
+
   exit(EXIT_FAILURE);
 }
 

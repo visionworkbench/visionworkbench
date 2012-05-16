@@ -30,19 +30,23 @@ vwv_SOURCES =                   \
   GlPreviewWidget.cc            \
   ImageTileGenerator.cc         \
   MainWindow.cc                 \
-  PlatefileTileGenerator.cc     \
   TestPatternTileGenerator.cc   \
   TextureCache.cc               \
   TileGenerator.cc              \
-  vwv.cc                        \
-  WebTileGenerator.cc
+  vwv.cc
 
 BUILT_SOURCES =                 \
   GlPreviewWidget.moc.cc        \
-  MainWindow.moc.cc             \
-  WebTileGenerator.moc.cc
+  MainWindow.moc.cc
 
-vwv_LDADD    = @PKG_GUI_LIBS@ @PKG_PLATE_LIBS@
+vwv_LDADD    = @PKG_GUI_LIBS@
+
+if MAKE_MODULE_PLATE
+  vwv_LDADD += @PKG_PLATE_LIBS@
+  vwv_SOURCES += PlatefileTileGenerator.cc \
+                 WebTileGenerator.cc
+  BUILT_SOURCES += WebTileGenerator.moc.cc
+endif
 
 bin_PROGRAMS = vwv
 
@@ -52,7 +56,10 @@ endif
 # general
 ########################################################################
 
-AM_CPPFLAGS = @VW_CPPFLAGS@ @PKG_GUI_CPPFLAGS@ @PKG_PLATE_CPPFLAGS@
+AM_CPPFLAGS = @VW_CPPFLAGS@ @PKG_GUI_CPPFLAGS@
+if MAKE_MODULE_PLATE
+  AM_CPPFLAGS += @PKG_PLATE_CPPFLAGS@
+endif
 AM_LDFLAGS = @VW_LDFLAGS@
 
 includedir = $(prefix)/include/vw
