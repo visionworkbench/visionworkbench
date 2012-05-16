@@ -85,6 +85,23 @@ namespace stereo {
     MaskView2T m_mask2_view;
     BBox2i m_search_range;
 
+    template <class MaskPT>
+    bool has_valid_mask( ImageView<MaskPT> const& mask ) const {
+      typedef typename ImageView<MaskPT>::pixel_accessor Pacc;
+      Pacc row_acc =
+        mask.origin();
+      for ( int32 r = mask.rows(); r; --r ) {
+        Pacc col_acc = row_acc;
+        for ( int32 c = mask.cols(); c; --c ) {
+          if ( *col_acc )
+            return true;
+          col_acc.next_col();
+        }
+        row_acc.next_row();
+      }
+      return false;
+    }
+
   public:
     typedef typename ViewT::pixel_type pixel_type;
     typedef typename ViewT::pixel_type result_type;
@@ -115,22 +132,27 @@ namespace stereo {
                   << j << " " << p << "]" );
       }
 #endif
-      if ( m_mask1_view(i,j,p) == 0 ||
-           !is_valid(m_input_view(i,j,p)) ||
-           i+m_input_view(i,j,p)[0] < 0 || i+m_input_view(i,j,p)[0] >= m_mask2_view.cols() ||
-           j+m_input_view(i,j,p)[1] < 0 || j+m_input_view(i,j,p)[1] >= m_mask2_view.rows() ||
-           m_mask2_view(i+m_input_view(i,j,p)[0],j+m_input_view(i,j,p)[1],p) == 0 )
+      if ( !m_mask1_view(i,j,p) )
         return result_type();
-      return m_input_view(i,j,p);
+      result_type disparity =
+        m_input_view(i,j,p);
+      if ( !is_valid(disparity) )
+        return result_type();
+      if ( i+disparity[0] < 0 || i+disparity[0] >= m_mask2_view.cols() ||
+           j+disparity[1] < 0 || j+disparity[1] >= m_mask2_view.rows() ||
+           m_mask2_view(i+disparity[0],j+disparity[1],p) == 0 )
+        return result_type();
+      return disparity;
     }
 
     // Block rasterization section that does actual work
-    typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type> >, CropView<ImageView<typename MaskView1T::pixel_type> >, typename MaskView2T::prerasterize_type> prerasterize_type;
+    typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type> >, CropView<ImageView<typename MaskView1T::pixel_type> >, CropView<ImageView<typename MaskView2T::pixel_type> > > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       typedef typename MaskView1T::pixel_type Mask1PT;
-      typedef typename ViewT::pixel_type ViewPT;
+        typedef typename MaskView2T::pixel_type Mask2PT;
+        typedef typename ViewT::pixel_type ViewPT;
 
-      // Prerasterize Mask1 as we'll always be using i. I'm not using
+      // Prerasterize Mask1 as we'll always be using it. I'm not using
       // the prerasterize type as I want to make sure I can write to
       // this memory space.
       CropView<ImageView<Mask1PT> > mask1_preraster =
@@ -139,11 +161,11 @@ namespace stereo {
       // Check to see if mask1 is even occupied, if not let's not
       // prerasterize anything and let this view just return a blank
       // disparity map.
-      //
-      // This call should have an early exit version.
-      if ( sum_of_pixel_values(mask1_preraster.child()) == 0 )
-        return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
-                                  mask1_preraster, m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+      if ( !has_valid_mask(mask1_preraster.child()) )
+        return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,
+                                       cols(),rows()),
+                                  mask1_preraster,
+                                  crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
 
       // We have bbox so now we know what sections of the
       // right mask to prerasterize.
@@ -153,15 +175,18 @@ namespace stereo {
         right_bbox.max() += m_search_range.max();
         right_bbox.crop( bounding_box(m_mask2_view) );
 
-        typename MaskView2T::prerasterize_type mask2_preraster =
-          m_mask2_view.prerasterize(right_bbox);
-        if ( sum_of_pixel_values(crop(mask2_preraster,right_bbox)) == 0 ) {
+        CropView<ImageView<Mask2PT> > mask2_preraster =
+          crop( ImageView<Mask2PT>( crop(m_mask2_view,right_bbox) ),
+                -right_bbox.min().x(), -right_bbox.min().y(),
+                m_mask2_view.cols(), m_mask2_view.rows() );
+        if ( !has_valid_mask(mask2_preraster.child()) ) {
           // It appears the right mask is completely empty. In order
           // to make this view early exit, we'll set the left mask to
           // entire zero.
           fill( mask1_preraster.child(), Mask1PT() );
           return prerasterize_type( crop(ImageView<ViewPT>(0,0),0,0,cols(),rows()),
-                                    mask1_preraster, m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+                                    mask1_preraster,
+                                    crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
         }
 
         // Actually rasterize the disparity
@@ -181,18 +206,21 @@ namespace stereo {
       if ( !accumulator.is_valid() )
         return prerasterize_type( disp_preraster,
                                   mask1_preraster,
-                                  m_mask2_view.prerasterize(BBox2i(0,0,0,0)) );
+                                  crop(ImageView<Mask2PT>(0,0),0,0,0,0) );
       accum_t input_min = accumulator.minimum();
       accum_t input_max = accumulator.maximum();
       BBox2i preraster(bbox.min() + floor(Vector2f(input_min[0],input_min[1])),
-                       bbox.max() + ceil(Vector2(input_max[0],input_max[1])) );
-      preraster.crop( bounding_box( m_input_view ) );
+                       bbox.max() + ceil(Vector2f(input_max[0],input_max[1])) );
+      preraster.crop( bounding_box( m_mask2_view ) );
       // The bottom might be a little confusing. We're rasterizing the
       // part of mask2 that we know the input disparity will actually
       // touch.
       return prerasterize_type( disp_preraster,
                                 mask1_preraster,
-                                m_mask2_view.prerasterize(preraster) );
+                                crop( ImageView<Mask2PT>( crop(m_mask2_view,preraster) ),
+                                      -preraster.min().x(), -preraster.min().y(),
+                                      m_mask2_view.cols(),
+                                      m_mask2_view.rows() ) );
     }
 
     template <class DestT> inline void rasterize(DestT const& dest, BBox2i const& bbox) const {
