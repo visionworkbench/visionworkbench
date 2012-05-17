@@ -135,7 +135,7 @@ namespace vw {
     inline ImplT& impl() { return static_cast<ImplT&>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
 
-    BBox2i forward_bbox( BBox2i const& bbox ) const {
+    virtual BBox2i forward_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
       switch( txform.forward_type() ) {
@@ -164,7 +164,7 @@ namespace vw {
       return grow_bbox_to_int( transformed_bbox );
     }
 
-    BBox2i reverse_bbox( BBox2i const& bbox ) const {
+    virtual BBox2i reverse_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
       switch( txform.reverse_type() ) {
