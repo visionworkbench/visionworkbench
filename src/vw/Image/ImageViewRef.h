@@ -116,8 +116,8 @@ namespace vw {
     virtual int32 cols() const = 0;
     virtual int32 rows() const = 0;
     virtual int32 planes() const = 0;
-    virtual pixel_type operator()( int32 i, int32 j ) const = 0;
     virtual pixel_type operator()( int32 i, int32 j, int32 p ) const = 0;
+    virtual pixel_type operator()( double i, double j, int32 p ) const = 0;
     virtual pixel_accessor origin() const = 0;
 
     virtual bool sparse_check( BBox2i const& bbox ) const = 0;
@@ -139,8 +139,8 @@ namespace vw {
     virtual int32 cols() const { return m_view.cols(); }
     virtual int32 rows() const { return m_view.rows(); }
     virtual int32 planes() const { return m_view.planes(); }
-    virtual pixel_type operator()( int32 i, int32 j ) const { return m_view(i,j); }
     virtual pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view(i,j,p); }
+    virtual pixel_type operator()( double i, double j, int32 p ) const { return m_view(i,j,p); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
 
     virtual bool sparse_check( BBox2i const& bbox ) const { return vw::sparse_check( m_view, bbox ); }
@@ -193,8 +193,24 @@ namespace vw {
     inline int32 cols() const { return m_view->cols(); }
     inline int32 rows() const { return m_view->rows(); }
     inline int32 planes() const { return m_view->planes(); }
-    inline pixel_type operator()( int32 i, int32 j ) const { return m_view->operator()(i,j); }
-    inline pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view->operator()(i,j,p); }
+
+    // These difficult enable-ifs are to avoid ambigious operator
+    // overload. The rule below is, if the user passes anything float
+    // like, we'll cast all of the input to double. This is done with
+    // out consideration if the underlining type really is floating
+    // point accessible.
+    template <class T1, class T2>
+    inline typename boost::enable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2> >,pixel_type>::type
+    operator()( T1 i, T2 j, int32 p=0 ) const {
+      return m_view->operator()(int32(i),int32(j),p);
+    }
+
+    template <class T1, class T2>
+    inline typename boost::disable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2> >,pixel_type>::type
+    operator()( T1 i, T2 j, int32 p=0 ) const {
+      return m_view->operator()(double(i),double(j),p);
+    }
+
     inline pixel_accessor origin() const { return m_view->origin(); }
 
     inline bool sparse_check( BBox2i const& bbox ) const { return m_view->sparse_check(bbox); }

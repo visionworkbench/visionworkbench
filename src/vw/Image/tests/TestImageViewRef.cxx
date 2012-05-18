@@ -10,6 +10,7 @@
 
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Interpolation.h>
 
 using namespace vw;
 
@@ -63,3 +64,21 @@ TEST( ImageViewRef, Construct ) {
     EXPECT_EQ( *i, (float)(val) );
 }
 
+TEST( ImageViewRef, FloatAccess ) {
+  ImageView<float> source(2,1); source(0,0) = 0; source(1,0) = 1;
+  ImageViewRef<float> ref = interpolate( source );
+
+  EXPECT_EQ( ref(double(0.5),double(0.0)), 0.5 );
+  EXPECT_EQ( ref(double(0.5),double(0.0),0), 0.5 );
+  EXPECT_EQ( ref(double(0.5),int32(0)), 0.5 );
+  EXPECT_EQ( ref(double(0.5),int32(0),0), 0.5 );
+  EXPECT_EQ( ref(double(0.5),uint32(0)), 0.5 );
+  EXPECT_EQ( ref(double(0.5),uint16(0)), 0.5 );
+  EXPECT_EQ( ref(double(0.5),uint64(0)), 0.5 );
+  EXPECT_EQ( ref(int32(0),int32(0)), 0 );
+  EXPECT_EQ( ref(int32(0),int32(0),0), 0 );
+  EXPECT_EQ( ref(uint32(0),int32(0)), 0 );
+  EXPECT_EQ( ref(uint32(0),int32(0),0), 0 );
+  EXPECT_EQ( ref(char(0),int32(0)), 0 );
+  EXPECT_EQ( ref(char(0),int32(0),0), 0 );
+}
