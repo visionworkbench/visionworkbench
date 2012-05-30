@@ -243,7 +243,10 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
     if ( !is_valid(albedoTile.impl()(jj,ii)) ) return false;
                
     float albedoVal = (float)albedoTile.impl()(jj,ii);
-    float expRefl   = overlapImgParams.exposureTime;
+    float exposure   = overlapImgParams.exposureTime;
+    float phaseAngle;
+    float Reflectance = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], overlapImgParams, globalParams,
+                                      phaseAngle);
 
     // We will interpolate into the overlap image. Go from the albedo
     // (DEM) pixel to the image pixel. If the interpolation uses
@@ -253,7 +256,9 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
     float x = overlapImgPix(0), y = overlapImgPix(1);
     int x0 = (int)floor(x), x1 = (int)ceil(x);
     int y0 = (int)floor(y), y1 = (int)ceil(y);
-    float t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
+    
+    // Check if the image is above the shadow threshold
+    float t = getShadowThresh(globalParams, exposure*Reflectance);
     bool isGood = ((x >= 0) && (x <= overlapImage.impl().cols()-1) &&
                    (y >= 0) && (y <= overlapImage.impl().rows()-1) && 
                    is_valid(overlapImage.impl()(x0, y0)) && (float)overlapImage.impl()(x0, y0) >= t &&
@@ -271,7 +276,7 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
 
       float recDer = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
                                              xyzTOPArray[r], normalArray[r],
-                                             overlapImgParams, 0)*albedoVal*expRefl;
+                                             overlapImgParams, 0)*albedoVal*exposure;
       jacobianArray(r, c) = recDer;
     }
 
@@ -280,7 +285,7 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
     if ((c >= 0) && (l > 0) && ( k < verBlockSize)){
       float recDerLEFT = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
                                                  xyzTOPArray[r], normalArray[r],
-                                                 overlapImgParams, 1)*albedoVal*expRefl;
+                                                 overlapImgParams, 1)*albedoVal*exposure;
       jacobianArray(r, c) = recDerLEFT;
     }
         
@@ -288,7 +293,7 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
     //not computed for the first row and last column of the extended block
     if ((c >= 0) && (k > 0) && (l < horBlockSize)){
       float recDerTOP = ComputeReliefDerivative(xyzArray[r], xyzLEFTArray[r],
-                                                xyzTOPArray[r], normalArray[r], overlapImgParams, 2)*albedoVal*expRefl;
+                                                xyzTOPArray[r], normalArray[r], overlapImgParams, 2)*albedoVal*exposure;
       jacobianArray(r, c) = recDerTOP;
     }
 
@@ -304,8 +309,7 @@ ComputeBlockJacobianTiles(ImageViewBase<ViewT1> const& overlapImage, GeoReferenc
     if ((k == verBlockSize) && (l == horBlockSize)){
       errorVectorArray(r) = 0;
     }else{
-      float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], overlapImgParams, globalParams);
-      float recErr = ComputeError(imgVal, expRefl, albedoVal, relief);
+      float recErr = ComputeError(imgVal, exposure, albedoVal, Reflectance);
       errorVectorArray(r) = recErr;
     }
     //printf("%d %f\n", r, errorVectorArray(r));
@@ -344,6 +348,9 @@ void vw::photometry::UpdateHeightMapTiles(std::string DEMTileFile,
   //copy DEMTile 2 sfsDEM
   ImageView<PixelGray<float> > sfsDEM = copy(DEMTile);
 
+  // Read the albedo tile. Bail out if cannot find it.
+  std::ifstream aFile(albedoTileFile.c_str());
+  if (!aFile) return;
   DiskImageView<PixelMask<PixelGray<uint8> > >  albedoTile(albedoTileFile);
   GeoReference albedo_geo;
   read_georeference(albedo_geo, albedoTileFile);
@@ -693,7 +700,9 @@ ComputeBlockJacobian(ImageViewBase<ViewT1> const& inputImage, GeoReference const
         }
         else{
 
-          float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], inputImgParams, globalParams);
+          float phaseAngle;
+          float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], inputImgParams, globalParams,
+                                            phaseAngle);
           float recErr = ComputeError((float)inputImage.impl()(jj, ii), inputImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
           //float recErr = ComputeReconstructError((float)inputImage.impl()(jj, ii), inputImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
           errorVectorArray(r) = recErr;
@@ -797,7 +806,9 @@ ComputeBlockJacobianOverlap(ImageViewBase<ViewT1> const& inputImage, GeoReferenc
           errorVectorArray(r) = 0;
         }
         else{
-          float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], overlapImgParams, globalParams);
+          float phaseAngle;
+          float relief = ComputeReflectance(normalize(normalArray[r]), xyzArray[r], overlapImgParams, globalParams,
+                                            phaseAngle);
           float recErr = ComputeError((float)interpOverlapImage.impl()(x, y), overlapImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
           //float recErr = ComputeReconstructError((float)interpOverlapImage.impl()(x, y), overlapImgParams.exposureTime, (float)albedoImage.impl()(jj, ii), relief);
           errorVectorArray(r) = recErr;

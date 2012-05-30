@@ -234,11 +234,11 @@ void vw::photometry::InitMeanDEMTile(std::string blankTileFile,
     overlapDEMVec.push_back(DEMImages[overlap[i]].path);
   }
   readDEMTilesIntersectingBox(noDEMDataValue, begTileLonLat, endTileLonLat, overlapDEMVec, // Inputs
-                              combined_DEM, combined_DEM_geo                                            // Outputs
+                              combined_DEM, combined_DEM_geo                               // Outputs
                               );
   
-  InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BilinearInterpolation>
-    interp_combined_DEM = interpolate(combined_DEM, BilinearInterpolation(), ConstantEdgeExtension());
+  InterpolationView<EdgeExtensionView<ImageView<PixelGray<float> >, ConstantEdgeExtension>, BicubicInterpolation>
+    interp_combined_DEM = interpolate(combined_DEM, BicubicInterpolation(), ConstantEdgeExtension());
   // Wrong below
   //ImageViewRef<PixelGray<float> >  interp_combined_DEM
   // = interpolate(edge_extend(combined_DEM.impl(),  ConstantEdgeExtension()),

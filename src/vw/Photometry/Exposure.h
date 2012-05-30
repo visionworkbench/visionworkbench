@@ -30,7 +30,7 @@ namespace photometry {
   std::vector<float> ReadExposureInfoFile(std::string exposureFilename,
                                           int numEntries);
   */
-  void SaveExposureInfoToFile(ModelParams modelParams);
+  void AppendExposureInfoToFile(ModelParams modelParams);
   void ReadExposureInfoFromFile(ModelParams *modelParams);
 
 }} // end vw::photometry

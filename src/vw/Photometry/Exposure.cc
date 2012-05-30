@@ -99,7 +99,7 @@ vw::photometry::ReadExposureInfoFile(std::string exposureFilename,
 }
 */
 
-void vw::photometry::SaveExposureInfoToFile(ModelParams modelParams)
+void vw::photometry::AppendExposureInfoToFile(ModelParams modelParams)
 {
   // Append the current exposure to the file.
   // This way when we do multiple albedo iterations we keep all the
@@ -244,8 +244,8 @@ void vw::photometry::ComputeExposureAlbedo(ModelParams *currModelParams,
 
             //Vector3 normal = computeNormalFrom3DPoints(xyz, xyz_left, xyz_top);
             Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
-
-            currReflectance = ComputeReflectance(normal, xyz, *currModelParams, globalParams);
+            float phaseAngle;
+            currReflectance = ComputeReflectance(normal, xyz, *currModelParams, globalParams, phaseAngle);
             float error = ComputeError((float)curr_image(l,k), currModelParams->exposureTime,
                                                 (float)curr_albedo(l,k), currReflectance);
 //            float error = ComputeError_Exposure((float)curr_image(l,k), currModelParams->exposureTime,

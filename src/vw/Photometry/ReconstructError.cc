@@ -131,8 +131,8 @@ vw::photometry::ComputeReconstructionErrorMap(ModelParams input_img_params,
             Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
 
             //This part is the only image depedent part - START
-            float input_img_reflectance;
-            input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams);
+            float input_img_reflectance, phaseAngle;
+            input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams, phaseAngle);
 
             if (input_img_reflectance > 0){
               float input_img_error = ComputeError((float)input_img(l,k),
@@ -230,8 +230,9 @@ vw::photometry::ComputeReconstructionErrorMap(ModelParams input_img_params,
 
                 if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 
-                  float overlap_img_reflectance;
-                  overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params[i], globalParams);
+                  float overlap_img_reflectance, phaseAngle;
+                  overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params[i],
+                                                               globalParams, phaseAngle);
                   if (overlap_img_reflectance > 0){
                     float overlap_img_error = ComputeError((float)overlap_img_pixel, overlap_img_params[i].exposureTime, (float)albedo(l,k), overlap_img_reflectance);//, xyz, xyz_prior);
 

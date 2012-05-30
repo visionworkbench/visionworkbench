@@ -30,15 +30,40 @@ namespace photometry {
                          std::vector<ModelParams> overlap_img_params,
                          GlobalParams globalParams);
 
-  double InitOrUpdateAlbedoOrComputeErrors(bool initTile, bool isLastIter, bool computeErrors,
-                                           bool useReflectance,
-                                           int pixelPadding, double tileSize,
-                                           std::string blankTileFile,
-                                           std::string DEMTileFile,
-                                           std::string albedoTileFile,
-                                           std::string errorTileFile,
-                                           std::vector<ModelParams> & overlap_img_params,
-                                           GlobalParams globalParams);
+  struct phaseCoeffsData{
+    double phaseCoeffA1_num, phaseCoeffA1_den;
+    double phaseCoeffA2_num, phaseCoeffA2_den;
+    phaseCoeffsData(){
+      phaseCoeffA1_num = phaseCoeffA1_den = phaseCoeffA2_num = phaseCoeffA2_den = 0.0;
+    }
+    void writeToFile(std::string fileName){
+      std::cout << "Writing to: " << fileName << std::endl;
+      std::ofstream fh(fileName.c_str());
+      fh.precision(16);
+      fh << phaseCoeffA1_num << ' ' << phaseCoeffA1_den << ' '
+         << phaseCoeffA2_num << ' ' << phaseCoeffA2_den << std::endl;
+      fh.close();
+    }
+    void readFromFile(std::string fileName){
+      std::ifstream fh(fileName.c_str());
+      if (!fh || !( fh >> phaseCoeffA1_num >> phaseCoeffA1_den >>
+                    phaseCoeffA2_num >> phaseCoeffA2_den) ){
+        std::cerr << "Could not read phase data from file: " << fileName << std::endl;
+        exit(1);
+      }
+      fh.close();
+    }
+  };
+  
+  double actOnTile(bool isLastIter, bool computeErrors,
+                   std::string blankTileFile,
+                   std::string DEMTileFile,
+                   std::string albedoTileFile,
+                   std::string errorTileFile, std::string weightsSumFile, 
+                   std::vector<ModelParams> & overlap_img_params,
+                   GlobalParams globalParams,
+                   phaseCoeffsData & PCD
+                   );
   
   void AppendCostFunToFile(double costFunVal, std::string fileName);
   

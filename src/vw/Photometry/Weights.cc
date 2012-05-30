@@ -140,16 +140,16 @@ void vw::photometry::ComputeImageCenterLines(struct ModelParams & modelParams){
   int numCols = input_img.cols();
 
   // Arrays to be returned out of this function
-  int *hCenterLine   = new int [numRows];
-  int *hMaxDistArray = new int [numRows];
-  int *vCenterLine   = new int [numCols];
-  int *vMaxDistArray = new int [numCols];
+  std::vector<int> hCenterLine  (numRows, 0);
+  std::vector<int> hMaxDistArray(numRows, 0);
+  std::vector<int> vCenterLine  (numCols, 0);
+  std::vector<int> vMaxDistArray(numCols, 0);
 
   // Temporary arrays
-  int *minValInRow = new int[numRows];
-  int *maxValInRow = new int[numRows];
-  int *minValInCol = new int[numCols];
-  int *maxValInCol = new int[numCols];
+  std::vector<int> minValInRow(numRows, 0);
+  std::vector<int> maxValInRow(numRows, 0);
+  std::vector<int> minValInCol(numCols, 0);
+  std::vector<int> maxValInCol(numCols, 0);
 
   for (int k = 0; k < numRows; k++){
     minValInRow[k] = numCols;
@@ -198,11 +198,6 @@ void vw::photometry::ComputeImageCenterLines(struct ModelParams & modelParams){
   modelParams.vMaxDistArray = vMaxDistArray;
   modelParams.vCenterLine   = vCenterLine;
 
-  delete [] minValInRow;
-  delete [] maxValInRow;
-  delete [] minValInCol;
-  delete [] maxValInCol;
-    
   //system("echo Weight top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   
 #if 0 // Debugging code
@@ -408,20 +403,18 @@ vw::photometry::ComputeDEMVCenterLine(std::string input_DEM_file,int noDataDEMVa
 }
 
 float
-vw::photometry::ComputeLineWeightsH(Vector2 pix,
-                                    int *hCenterLine, int *hMaxDistArray){
+vw::photometry::ComputeLineWeightsH(Vector2 const& pix,
+                                    std::vector<int> const& hCenterLine, std::vector<int> const& hMaxDistArray){
 
   // We round below, to avoid issues when we are within numerical value
   // to an integer value for pix[1].
   // To do: Need to do interpolation here.
 
-  if (hCenterLine == NULL || hMaxDistArray == NULL){
-    std::cerr << "ERROR: No weights are present." << std::endl;
-    exit(1);
-  }
-
-  float maxDist = hMaxDistArray[(int)round(pix[1])]/2.0;
-  float center  = hCenterLine[(int)round(pix[1])];
+  int pos = (int)round(pix[1]);
+  if (pos < 0 || pos >= hMaxDistArray.size() || pos >= hCenterLine.size() ) return 0;
+  
+  float maxDist = hMaxDistArray[pos]/2.0;
+  float center  = hCenterLine[pos];
   float dist    = fabs(pix[0]-center);
 
   if (maxDist == 0) return 0;
@@ -435,17 +428,16 @@ vw::photometry::ComputeLineWeightsH(Vector2 pix,
 }
 
 float
-vw::photometry::ComputeLineWeightsV(Vector2 pix,
-                                    int *vCenterLine, int *vMaxDistArray){
+vw::photometry::ComputeLineWeightsV(Vector2 const& pix,
+                                    std::vector<int> const& vCenterLine, std::vector<int> const& vMaxDistArray){
 
-  if (vCenterLine == NULL || vMaxDistArray == NULL){
-    std::cerr << "ERROR: No weights are present." << std::endl;
-    exit(1);
-  }
-  
   // See the notes at ComputeLineWeightsH().
-  float maxDist = vMaxDistArray[(int)round(pix[0])]/2.0;
-  float center  = vCenterLine[(int)round(pix[0])];
+
+  int pos = (int)round(pix[0]);
+  if (pos < 0 || pos >= vMaxDistArray.size() || pos >= vCenterLine.size() ) return 0;
+
+  float maxDist = vMaxDistArray[pos]/2.0;
+  float center  = vCenterLine[pos];
   float dist    = fabs(pix[1]-center);
 
   if (maxDist == 0) return 0;
@@ -459,7 +451,7 @@ vw::photometry::ComputeLineWeightsV(Vector2 pix,
 }
 
 float
-vw::photometry::ComputeLineWeightsHV(Vector2 pix, struct ModelParams modelParams)
+vw::photometry::ComputeLineWeightsHV(Vector2 const& pix, struct ModelParams const& modelParams)
 {
   float weightH = ComputeLineWeightsH(pix, modelParams.hCenterLine, modelParams.hMaxDistArray);
   float weightV = ComputeLineWeightsV(pix, modelParams.vCenterLine, modelParams.vMaxDistArray);
@@ -470,7 +462,7 @@ vw::photometry::ComputeLineWeightsHV(Vector2 pix, struct ModelParams modelParams
 
 // Saves weights to file.
 void 
-vw::photometry::SaveWeightsParamsToFile(bool useTiles, struct ModelParams modelParams)
+vw::photometry::SaveWeightsParamsToFile(bool useTiles, struct ModelParams const& modelParams)
 {
 
   FILE *fp;
@@ -541,8 +533,8 @@ vw::photometry::ReadWeightsParamsFromFile(bool useTiles, struct ModelParams *mod
 
   // Horizontal DRG
   DiskImageView<PixelMask<PixelGray<uint8> > > drg(modelParams->inputFilename);
-  modelParams->hCenterLine   = new int[drg.rows()];
-  modelParams->hMaxDistArray = new int[drg.rows()];
+  modelParams->hCenterLine.resize(drg.rows());
+  modelParams->hMaxDistArray.resize(drg.rows());
   for (int i = 0; i < (int)drg.rows(); i++){
     fscanf(fp, "%d ", &(modelParams->hCenterLine[i]));
   }
@@ -553,8 +545,8 @@ vw::photometry::ReadWeightsParamsFromFile(bool useTiles, struct ModelParams *mod
   fscanf(fp,"\n");
 
   // Vertical DRG
-  modelParams->vCenterLine   = new int[drg.cols()];
-  modelParams->vMaxDistArray = new int[drg.cols()];
+  modelParams->vCenterLine.resize(drg.cols());
+  modelParams->vMaxDistArray.resize(drg.cols());
   for (int i = 0; i < (int)drg.cols(); i++){
     fscanf(fp, "%d ", &(modelParams->vCenterLine[i]));
   }

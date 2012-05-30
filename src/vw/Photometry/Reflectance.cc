@@ -208,7 +208,7 @@ vw::photometry::computeReflectanceFromNormal(Vector3 /*sunPos*/,
 //Vector2 lon_lat is a 2D vector. First element is the longitude and the second the latitude
 //author Ara Nefian
 float
-vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz,  Vector3 normal, float B_0, float L) {
+vw::photometry::computeLunarLambertianReflectanceFromNormalOld(Vector3 sunPos, Vector3 viewPos, Vector3 xyz,  Vector3 normal, float B_0, float L) {
   float reflectance;
 
   //compute /mu_0 = cosine of the angle between the light direction and the surface normal.
@@ -226,7 +226,11 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
 }
 
 float
-vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz, Vector3 normal) {
+vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vector3 viewPos, Vector3 xyz,
+                                                            Vector3 normal, float phaseCoeffA1, float phaseCoeffA2,
+                                                            float & alpha // output
+                                                            ) {
+  
   float reflectance;
   float L;
 
@@ -254,8 +258,8 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
   Vector3 viewDirection = normalize(viewPos-xyz);
   float mu = dot_prod(viewDirection,normal);
 
-  //compute the phase angle /alpha between the viewing direction and the light source direction
-  float rad_alpha, deg_alpha;
+  //compute the phase angle (alpha) between the viewing direction and the light source direction
+  float deg_alpha;
   float cos_alpha;
 
   cos_alpha = dot_prod(sunDirection,viewDirection);
@@ -263,8 +267,8 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
     printf("cos_alpha error\n");
   }
 
-  rad_alpha = acos(cos_alpha);
-  deg_alpha = rad_alpha*180.0/M_PI;
+  alpha     = acos(cos_alpha);  // phase angle in radians
+  deg_alpha = alpha*180.0/M_PI; // phase angle in degrees
 
   //printf("deg_alpha = %f\n", deg_alpha);
 
@@ -302,15 +306,19 @@ vw::photometry::computeLunarLambertianReflectanceFromNormal(Vector3 sunPos, Vect
 
   // Attempt to compensate for points on the terrain being too bright
   // if the sun is behind the spacecraft as seen from those points.
-  reflectance *= std::max(0.4, exp(-rad_alpha*rad_alpha));
+
+  //reflectance *= std::max(0.4, exp(-alpha*alpha));
+  reflectance *= ( exp(-phaseCoeffA1*alpha) + phaseCoeffA2 );
   
   return reflectance;
 }
 
 float
 vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
-                                   ModelParams input_img_params,
-                                   GlobalParams globalParams) {
+                                   ModelParams const& input_img_params,
+                                   GlobalParams const& globalParams,
+                                   float & phaseAngle // output
+                                   ) {
   float input_img_reflectance;
 
   switch ( globalParams.reflectanceType )
@@ -319,7 +327,11 @@ vw::photometry::ComputeReflectance(Vector3 normal, Vector3 xyz,
       //printf("Lunar Lambert\n");
       input_img_reflectance = computeLunarLambertianReflectanceFromNormal(input_img_params.sunPosition,
                                                                           input_img_params.spacecraftPosition,
-                                                                          xyz,  normal);
+                                                                          xyz,  normal,
+                                                                          globalParams.phaseCoeffA1,
+                                                                          globalParams.phaseCoeffA2,
+                                                                          phaseAngle // output
+                                                                          );
       break;
     case LAMBERT:
       //printf("Lambert\n");
@@ -363,8 +375,7 @@ void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > con
       surface_normal(x, y) = Vector3();
     }
   }
-  
-  // convert xyz pixels to surface normals
+
   for (int y=1; y < (int)surface_normal.rows(); y++) {
     for (int x=1; x < (int)surface_normal.cols(); x++) {
       
@@ -392,22 +403,29 @@ void vw::photometry::computeXYZandSurfaceNormal(ImageView<PixelGray<float> > con
 
 void vw::photometry::computeReflectanceAux(ImageView<Vector3> const& dem_xyz,
                                            ImageView<Vector3> const& surface_normal,
-                                           ModelParams input_img_params,
-                                           GlobalParams globalParams,
-                                           ImageView<PixelMask<PixelGray<float> > >& outputReflectance) {
+                                           ModelParams const& input_img_params,
+                                           GlobalParams const& globalParams,
+                                           ImageView<PixelMask<PixelGray<float> > >& outputReflectance,
+                                           bool savePhaseAngle,
+                                           ImageView<PixelMask<PixelGray<float> > >& phaseAngle) {
 
   //std::cout << "---sun        " << input_img_params.sunPosition << std::endl;
   //std::cout << "---spacecraft " << input_img_params.spacecraftPosition << std::endl;
   outputReflectance.set_size(surface_normal.cols(), surface_normal.rows());
+  if (savePhaseAngle) phaseAngle.set_size(surface_normal.cols(), surface_normal.rows());
   for (int y=0; y < (int)outputReflectance.rows(); y++) {
     for (int x=0; x < (int)outputReflectance.cols(); x++) {
       Vector3 normal = surface_normal(x, y);
       if (normal == Vector3()) {
         outputReflectance(x, y) = 0;
         outputReflectance(x, y).invalidate();
+        if (savePhaseAngle) phaseAngle(x, y) = std::numeric_limits<double>::quiet_NaN();
       }else{
         Vector3 xyz = dem_xyz(x, y);
-        outputReflectance(x, y) = ComputeReflectance(normal, xyz, input_img_params, globalParams);
+        float phaseAngleVal;
+        //outputReflectance(x, y) = (ComputeReflectance(normal, xyz, input_img_params, globalParams, phaseAngleVal) != 0); // temporary!!!
+        outputReflectance(x, y) = ComputeReflectance(normal, xyz, input_img_params, globalParams, phaseAngleVal);
+        if (savePhaseAngle) phaseAngle(x, y) = phaseAngleVal;
       }
     }
   }
@@ -415,8 +433,8 @@ void vw::photometry::computeReflectanceAux(ImageView<Vector3> const& dem_xyz,
   return;
 }
 
-float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_params,
-                                                     GlobalParams globalParams,
+float vw::photometry::computeImageReflectanceNoWrite(ModelParams const& input_img_params,
+                                                     GlobalParams const& globalParams,
                                                      ImageView<PixelMask<PixelGray<float> > >& output_img) {
   
   std::string input_img_file = input_img_params.inputFilename;
@@ -445,7 +463,7 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
   
 #if 0
   std::cout << std::endl;
-  std::string tmp  = "./" + prefix_from_filename(sufix_from_filename(input_img_file)) + "_dem.tif";
+  std::string tmp  = "./" + prefix_from_filename(suffix_from_filename(input_img_file)) + "_dem.tif";
   std::cout << "Writing " << tmp << std::endl;
   write_georeferenced_image(tmp,
                             dem_in_drg_georef_0,
@@ -478,13 +496,17 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
 
   ImageView<Vector3> dem_xyz;
   ImageView<Vector3> surface_normal;
+  
+  bool savePhaseAngle = false;
+  ImageView<PixelMask<PixelGray<float> > > phaseAngle;
   computeXYZandSurfaceNormal(dem_in_drg_georef, input_img_geo, globalParams.noDEMDataValue, // Inputs 
                              dem_xyz, surface_normal                                        // Outputs
                              );
   computeReflectanceAux(dem_xyz, surface_normal,  
                         input_img_params,
                         globalParams,  
-                        output_img
+                        output_img,
+                        savePhaseAngle, phaseAngle
                         );
   
   // compute average reflectance
@@ -506,23 +528,28 @@ float vw::photometry::computeImageReflectanceNoWrite(ModelParams input_img_param
   return avg_reflectance;
 }
 
-float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
-                                                                     bool useReflectance,
-                                                                     int pixelPadding, double tileSize,
-                                                                     std::vector<ImageRecord> & DEMTiles,
-                                                                     std::vector<ImageRecord> & albedoTiles,
-                                                                     std::vector<int> & overlap,
-                                                                     ModelParams input_img_params,
-                                                                     GlobalParams globalParams){
+float vw::photometry::actOnImage(std::vector<ImageRecord> & DEMTiles,
+                                 std::vector<ImageRecord> & albedoTiles,
+                                 std::vector<ImageRecord> & weightsSumTiles,
+                                 std::vector<int> & overlap,
+                                 ModelParams & input_img_params,
+                                 std::string maskedImgFile, GlobalParams const& globalParams){
 
-  // Compute the average reflectance of the current image, or update
-  // the exposure of that image. Both of these operations use very similar
-  // logic. Namely, we will iterate over all tiles overlapping with
-  // the image, and accumulate the results.
+  // Perform one of the following operations for the given image:
+
+  // 1. Compute the average reflectance of the current image (if
+  // globalParams.initExposure is true).
+  
+  // 2. Update the exposure of that image (if
+  // globalParams.updateExposure is true).
+
+  // These operations use very similar logic. Namely, we will iterate
+  // over all tiles overlapping with the image, and accumulate the
+  // results.
   
   // We will keep in mind that the tiles partially overlap, so when we
   // accumulate the results we will ignore the padded region of the
-  // tile (of size pixelPadding).
+  // tile (of size globalParams.pixelPadding).
 
   // Use double precision for the intermediate computations, even though
   // the input and output are float, as the float type is not precise
@@ -533,16 +560,12 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
   GeoReference input_img_geo;
   read_georeference(input_img_geo, input_img_file);
 
-  //std::string shadow_file = input_img_params.shadowFilename;
-  //DiskImageView<PixelMask<PixelGray<uint8> > >  shadowImage(shadow_file);
-
   bool useWeights = (globalParams.useWeights != 0);
-  if (useWeights && (!compAvgRefl)){
-    // Read the weights only if we update the exposure
+  if (useWeights){
     bool useTiles = true;
     ReadWeightsParamsFromFile(useTiles, &input_img_params);
   }
-  
+
   // Quantities needed for computing reflectance
   int count = 0;
   double reflectance_sum = 0.0;
@@ -564,8 +587,56 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
       exit(1);
     }
 
+    // We need to keep in mind that the tile is padded with globalParams.pixelPadding pixels on each side.
+    // To avoid double-counting pixels, skip them if they are part of the padding and not
+    // of the tile proper.
+    double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
+    getTileCornersWithoutPadding(// Inputs
+                                 DEMTile.cols(),  DEMTile.rows(), DEMGeo,  
+                                 globalParams.tileSize, globalParams.pixelPadding,  
+                                 // Outputs
+                                 min_tile_x, max_tile_x,  
+                                 min_tile_y, max_tile_y
+                                 );
+
+    // Skip the current tile if there are no valid image pixels inside
+    // of it. This optimization is necessary, but is a big of a hack
+    // since it won't apply if we don't use weights (which is rare).
+    if (useWeights){
+      bool hasGoodPixels = false;
+      Vector2 beg_pixel = input_img_geo.lonlat_to_pixel(Vector2(min_tile_x, max_tile_y));
+      Vector2 end_pixel = input_img_geo.lonlat_to_pixel(Vector2(max_tile_x, min_tile_y));
+      int beg_row = std::max(0,                (int)floor(beg_pixel(1)));
+      int end_row = std::min(input_img.rows(), (int)ceil(end_pixel(1)));
+      int beg_col = std::max(0,                (int)floor(beg_pixel(0)));
+      int end_col = std::min(input_img.cols(), (int)ceil(end_pixel(0)));
+      for (int k = beg_row; k < end_row; ++k) {
+        if (hasGoodPixels) break;          
+        for (int l = beg_col; l < end_col; ++l) {
+          Vector2 input_img_pix(l,k);
+          double weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
+          if (weight != 0) {
+            hasGoodPixels = true;
+            break;
+          }
+        }
+      }
+      if (!hasGoodPixels) continue;
+    }
+      
+    std::string weightsSumFile = weightsSumTiles[overlap[i]].path;
+    ImageView<float> weightsSum;
+    if (globalParams.useNormalizedWeights && globalParams.updateExposure){
+      std::cout << "Reading " << weightsSumFile << std::endl;
+      weightsSum = copy(DiskImageView<float>(weightsSumFile));
+    }
+    InterpolationView<EdgeExtensionView<ImageView<float>, ConstantEdgeExtension>, BilinearInterpolation>
+      interp_weightsSum = interpolate(weightsSum,
+                                       BilinearInterpolation(), ConstantEdgeExtension());
+    
     ImageView<PixelMask<PixelGray<float> > > Reflectance;
-    if (useReflectance){
+    if (globalParams.reflectanceType != NO_REFL){
+      // The reflectance type is non-zero. Compute the reflectance.
       // Declare dem_xyz and surface_normal in a block to de-allocate
       // fast the quantities dem_xyz and surface_normal which are
       // needed only temporarily. They take a lot of memory being
@@ -574,9 +645,13 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
       vw::photometry::computeXYZandSurfaceNormal(DEMTile, DEMGeo, noDEMDataValue,
                                                  dem_xyz, surface_normal
                                                  );
+      bool savePhaseAngle = false;
+      ImageView<PixelMask<PixelGray<float> > > phaseAngle;
       computeReflectanceAux(dem_xyz, surface_normal,
                             input_img_params, globalParams,  
-                            Reflectance // output
+                            Reflectance, // output
+                            savePhaseAngle,
+                            phaseAngle  // output  
                             );
       //system("echo reflectance_xyz top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
     }else{
@@ -597,29 +672,27 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
     
     
     ImageView<PixelMask<PixelGray<float> > > albedoTile;
-    if (!compAvgRefl){
+    if (globalParams.updateExposure){
       // Update the exposure. Need the current albedo.
       std::string albedoTileFile = albedoTiles[overlap[i]].path;
+      std::ifstream aFile(albedoTileFile.c_str());
+      if (!aFile) continue;
       std::cout << "Reading " << albedoTileFile << std::endl;
       albedoTile = copy(DiskImageView<PixelMask<PixelGray<uint8> > >(albedoTileFile));
+
+      // Sanity check: if the user is not careful, the padding may have been stripped
+      // from the albedo tile by now, which of course would cause a size mis-match.
+      if (DEMTile.rows() != albedoTile.rows() || DEMTile.cols() != albedoTile.cols()){
+        std::cout << "ERROR: We expect the DEM and albedo tiles to have the same number "
+                  << "of rows/columns." << std::endl;
+        exit(1);
+      }
     }
+    
     InterpolationView<EdgeExtensionView<ImageView< PixelMask<PixelGray<float> > >, ConstantEdgeExtension>, BilinearInterpolation>
       interp_albedo = interpolate(albedoTile,
                                   BilinearInterpolation(), ConstantEdgeExtension());
 
-
-    // We need to keep in mind that the tile is padded with pixelPadding pixels on each side.
-    // To avoid double-counting pixels, skip them if they are part of the padding and not
-    // of the tile proper.
-    double min_tile_x, max_tile_x, min_tile_y, max_tile_y;
-    getTileCornersWithoutPadding(// Inputs
-                                 DEMTile.cols(),  DEMTile.rows(), DEMGeo,  
-                                 tileSize, pixelPadding,  
-                                 // Outputs
-                                 min_tile_x, max_tile_x,  
-                                 min_tile_y, max_tile_y
-                                 );
-    
     // Iterate only over the portion of the image intersecting the DEM tile
     Vector2 beg_pixel = input_img_geo.lonlat_to_pixel(Vector2(min_tile_x, max_tile_y));
     Vector2 end_pixel = input_img_geo.lonlat_to_pixel(Vector2(max_tile_x, min_tile_y));
@@ -639,50 +712,62 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
 
         //if (k%2 != 0 && l%2 != 0) continue; // Skip some points when computing the exposure to save time
           
-        //check for valid DEM coordinates
+        // Check that all four grid points used for interpolation are valid
         Vector2 reflectance_pix = DEMGeo.lonlat_to_pixel(lonlat);
         double x = reflectance_pix[0];
         double y = reflectance_pix[1];
-        double t = globalParams.shadowThresh; // Check if the image is above the shadow threshold
-        if ( is_valid(input_img(l, k)) && ( (double)input_img(l, k) >= t) ) {
-          if ( (x>=0) && (x <= Reflectance.cols()-1) && (y>=0) && (y<= Reflectance.rows()-1)){
-            // Check that all four grid points used for interpolation are valid
-            if ( is_valid(Reflectance( floor(x), floor(y))) && (double)Reflectance( floor(x), floor(y) ) != 0 &&
-                 is_valid(Reflectance( floor(x), ceil (y))) && (double)Reflectance( floor(x), ceil(y)  ) != 0 &&
-                 is_valid(Reflectance( ceil (x), floor(y))) && (double)Reflectance( ceil (x), floor(y) ) != 0 &&
-                 is_valid(Reflectance( ceil (x), ceil (y))) && (double)Reflectance( ceil (x), ceil(y)  ) != 0
-                 ){
-              double R = interp_reflectance(x, y);
+        bool isValidReflectance = (x>=0) && (x <= Reflectance.cols()-1) && (y>=0) && (y<= Reflectance.rows()-1) &&
+          is_valid(Reflectance( floor(x), floor(y))) && ((double)Reflectance( floor(x), floor(y) ) != 0) &&
+          is_valid(Reflectance( floor(x), ceil (y))) && ((double)Reflectance( floor(x), ceil(y)  ) != 0) &&
+          is_valid(Reflectance( ceil (x), floor(y))) && ((double)Reflectance( ceil (x), floor(y) ) != 0) &&
+          is_valid(Reflectance( ceil (x), ceil (y))) && ((double)Reflectance( ceil (x), ceil(y)  ) != 0);
+        if (!isValidReflectance) continue;
+        
+        double R = interp_reflectance(x, y);
+        double exposureRefl = R*input_img_params.exposureTime;
+        
+        // Check if the image is above the shadow threshold
+        double t = getShadowThresh(globalParams, exposureRefl);
+        bool isBlack = !( is_valid(input_img(l, k)) && (double)input_img(l, k) >= t );
+        if (isBlack) continue;
 
-              if (compAvgRefl){
-                reflectance_sum += R;
-                count++;
-              }else{
-                // Update the exposure
-                // We assume that the DEM, reflectance, and albedo are on the same grid
-                double weight = 1.0;
-                if (useWeights) weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
-                double A  = interp_albedo(x, y); // we assume albedo, reflectance, and DEM are on the same grid
-                double RA = R*A;
-                numerator   += ((double)input_img(l, k) - input_img_params.exposureTime*RA)*RA*weight;
-                denominator += RA*RA*weight;
-              }
-            }
+        if (globalParams.initExposure){
+          reflectance_sum += R;
+          count++;
+        }else if (globalParams.updateExposure){
+          // Update the exposure
+          // We assume that the DEM, reflectance, and albedo are on the same grid
+
+          // Find the weight, and normalize it so that all weights at the current pixel sum up to 1.
+          double weight = 1.0;
+          if (useWeights) weight = ComputeLineWeightsHV(input_img_pix, input_img_params);
+          if (globalParams.useNormalizedWeights){
+            double weights_sum = interp_weightsSum(x, y);
+            if (weights_sum == 0) continue;
+            weight /= weights_sum;
           }
+                
+          double A  = interp_albedo(x, y); // we assume albedo, reflectance, and DEM are on the same grid
+          double RA = R*A;
+          numerator   += ((double)input_img(l, k) - input_img_params.exposureTime*RA)*RA*weight;
+          denominator += RA*RA*weight;
         }
       }
+          
     }
     //system("echo reflectance top is $(top -u $(whoami) -b -n 1|grep lt-reconstruct)");
   }
 
-  if (compAvgRefl){
+  if (globalParams.initExposure){
     // Compute the average reflectance
     double avg_reflectance = reflectance_sum/count;
     printf("avg_reflectance = %f\n", avg_reflectance);
     return avg_reflectance;
-  }else{
+  }else if (globalParams.updateExposure){
     // Update the exposure
-    double exposure = input_img_params.exposureTime + numerator/denominator;
+    double ratio = 0.0;
+    if (denominator != 0) ratio = numerator/denominator;
+    double exposure = input_img_params.exposureTime + ratio;
     printf("updated exposure is = %f\n", exposure);
     return exposure;
   }
@@ -692,8 +777,8 @@ float vw::photometry::computeAvgReflectanceOverTilesOrUpdateExposure(bool compAv
 
 //computes a reflectance image
 //author: Ara Nefian
-float vw::photometry::computeImageReflectance(ModelParams input_img_params,
-                                              GlobalParams globalParams) {
+float vw::photometry::computeImageReflectance(ModelParams const& input_img_params,
+                                              GlobalParams const& globalParams) {
   std::string input_img_file = input_img_params.inputFilename;
   std::string output_img_file = input_img_params.reliefFilename;;
 
@@ -721,9 +806,9 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
 //computes a reflectance image
 //author: Ara Nefian
-float vw::photometry::computeImageReflectance(ModelParams input_img_params,
-                                              ModelParams overlap_img_params,
-                                              GlobalParams globalParams) {
+float vw::photometry::computeImageReflectance(ModelParams const& input_img_params,
+                                              ModelParams const& overlap_img_params,
+                                              GlobalParams const& globalParams) {
   int l, k;
   int count = 0;
   float avg_reflectance = 0.0;
@@ -823,8 +908,8 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
             Vector3 normal = computeNormalFrom3DPointsGeneral(xyz, xyz_left, xyz_top);
             //This part is the only image depedent part - START
 
-            float input_img_reflectance;
-            input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams);
+            float input_img_reflectance, phaseAngle;
+            input_img_reflectance = ComputeReflectance(normal, xyz, input_img_params, globalParams, phaseAngle);
 
             output_img(l, k) = input_img_reflectance;
 
@@ -844,8 +929,8 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
               if ( is_valid(overlap_img_pixel) ) { //common area between input_img and overlap_img
 
-                float overlap_img_reflectance;
-                overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params, globalParams);
+                float overlap_img_reflectance, phaseAngle;
+                overlap_img_reflectance = ComputeReflectance(normal, xyz, overlap_img_params, globalParams, phaseAngle);
                 if ((overlap_img_reflectance > 0) && (input_img_reflectance > 0)){
                   avg_reflectance = avg_reflectance + output_img(l,k);
                   overlap_avg_reflectance = overlap_avg_reflectance + overlap_img_reflectance;
@@ -870,3 +955,4 @@ float vw::photometry::computeImageReflectance(ModelParams input_img_params,
 
   return reflectance_ratio;
 }
+

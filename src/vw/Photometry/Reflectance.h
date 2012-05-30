@@ -35,7 +35,7 @@ namespace photometry {
   float computeReflectanceFromNormal(Vector3 sunPos, Vector3 xyz,  Vector3 normal);
   float computeLambertianReflectanceFromNormal(Vector3 sunPos,
                                                Vector3 xyz, Vector3 normal);
-  float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos,
+  float computeLunarLambertianReflectanceFromNormalOld(Vector3 sunPos,
                                                     Vector3 viewerPos,
                                                     Vector3 xyz,
                                                     Vector3 normal,
@@ -43,15 +43,20 @@ namespace photometry {
   float computeLunarLambertianReflectanceFromNormal(Vector3 sunPos,
                                                     Vector3 viewPos,
                                                     Vector3 xyz,
-                                                    Vector3 normal);
-  float computeImageReflectance(ModelParams input_img_params,
-                                GlobalParams globalParams);
+                                                    Vector3 normal,
+                                                    float phaseCoeffA1, float phaseCoeffA2,
+                                                    float & alpha // output, phase angle
+                                                    );
+  float computeImageReflectance(ModelParams const& input_img_params,
+                                GlobalParams const&  globalParams);
   float ComputeReflectance(Vector3 normal, Vector3 xyz,
-                           ModelParams input_img_params,
-                           GlobalParams globalParams);
-  float computeImageReflectance(ModelParams input_img_params,
-                                ModelParams overlap_img_params,
-                                GlobalParams globalParams);
+                           ModelParams const& input_img_params,
+                           GlobalParams const& globalParams,
+                           float & phaseAngle // output
+                           );
+  float computeImageReflectance(ModelParams const& input_img_params,
+                                ModelParams const& overlap_img_params,
+                                GlobalParams const& globalParams);
 
   void computeXYZandSurfaceNormal(ImageView<PixelGray<float> > const& DEMTile,
                                   cartography::GeoReference const& DEMGeo,
@@ -62,24 +67,25 @@ namespace photometry {
 
   void computeReflectanceAux(ImageView<Vector3> const& dem_xyz,
                              ImageView<Vector3> const& surface_normal,
-                             ModelParams input_img_params,
-                             GlobalParams globalParams,
-                             ImageView<PixelMask<PixelGray<float> > >& outputReflectance);
+                             ModelParams const& input_img_params,
+                             GlobalParams const& globalParams,
+                             ImageView<PixelMask<PixelGray<float> > >& outputReflectance,
+                             bool savePhaseAngle,
+                             ImageView<PixelMask<PixelGray<float> > > & phaseAngle
+                             );
 
+
+  float actOnImage(std::vector<ImageRecord> & DEMTiles,
+                   std::vector<ImageRecord> & albedoTiles,
+                   std::vector<ImageRecord> & weightsSumTiles,
+                   std::vector<int> & overlap,
+                   ModelParams & input_img_params,
+                   std::string maskedImgFile, GlobalParams const& globalParams);
   
-  float computeAvgReflectanceOverTilesOrUpdateExposure(bool compAvgRefl,
-                                                       bool useReflectance,
-                                                       int pixelPadding, double tileSize,
-                                                       std::vector<ImageRecord> & DEMTiles,
-                                                       std::vector<ImageRecord> & albedoTiles,
-                                                       std::vector<int> & overlap,
-                                                       ModelParams input_img_params,
-                                                       GlobalParams globalParams);
-  
-  float computeImageReflectanceNoWrite(ModelParams input_img_params,
-                                       GlobalParams globalParams,
+  float computeImageReflectanceNoWrite(ModelParams const& input_img_params,
+                                       GlobalParams const& globalParams,
                                        ImageView<PixelMask<PixelGray<float> > >& output_img);
-  
+
 }}
 
 #endif//__VW_PHOTOMETRY_REFLECTANCE_H__

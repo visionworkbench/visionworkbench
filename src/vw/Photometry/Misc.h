@@ -64,7 +64,7 @@ namespace vw {
   }
 
   /// Erases a file suffix if one exists and returns the base string less3 characters
-  static std::string sufix_from_filename(std::string const& filename) {
+  static std::string suffix_from_filename(std::string const& filename) {
     std::string result = filename;
     int index = result.rfind("/");
     if (index != -1)
@@ -124,6 +124,62 @@ namespace vw {
     
     void maskPixels(std::string imgFile, std::string maskFile, double shadowThresh, std::string outDir);
 
+    void ReadPhaseCoeffsFromFile(std::string phaseDir, GlobalParams& settings);
+    void AppendPhaseCoeffsToFile(const GlobalParams& settings);
+
+    float getShadowThresh(const GlobalParams& settings, float exposureRefl);
+
+    void resampleImage(std::string initFilename, std::string outputFilename, int factor);
+
+    bool boxesOverlap(const Vector4 & box1Corners, const Vector4 & box2Corners);
+
+    Vector4 ComputeGeoBoundary(cartography::GeoReference Geo, int width, int height);
+
+    Vector4 getImageCorners(std::string imageFile);
+
+    void listTifsInDirOverlappingWithBox(const std::string & dirName,
+                                         Vector4 & boxCorners,
+                                         const std::string & outputListName);
+      
+    void createAlbedoTilesOverlappingWithDRG(double tileSize, int pixelPadding,
+                                             std::string imageFile, Vector4 const& simulationBox,
+                                             std::vector<ImageRecord> const& drgRecords,
+                                             std::string blankTilesList,  std::string blankTilesDir,
+                                             std::string DEMTilesList,    std::string meanDEMDir,
+                                             std::string albedoTilesList, std::string albedoDir
+                                             );
+
+    std::vector<int> GetInputIndices( std::vector<std::string> inputFiles, std::vector<std::string> DRGFiles);
+    std::vector<int> makeOverlapList(const std::vector<ModelParams>& drgFiles,
+                                     const std::string& currFile);
+
+    std::vector<int> makeOverlapList(const std::vector<ImageRecord>& drgRecords,
+                                     const std::string& currFile);
+      
+    std::vector<std::vector<int> > makeOverlapList(const std::vector<std::string>& inputFiles,
+                                                   const std::vector<ModelParams>& DRGFiles);
+    
+    void printOverlapList(std::vector<std::vector<int> > overlapIndices);
+
+    Vector4 parseSimBox(std::string simulationBoxStr);
+
+    void extractSimBox(char * line, Vector4 & simulationBox);
+
+    int ReadConfigFile(char *config_filename, struct GlobalParams & settings);
+
+    void PrintGlobalParams(GlobalParams& settings);
+
+    bool readImagesFile(std::vector<ImageRecord>& images,
+                        const std::string& imagesListName);
+
+    void list_DRG_in_box_and_all_DEM(bool useTiles, bool useReflectance,
+                                     std::string allDRGIndex, std::string allDEMIndex,
+                                     Vector4 simulationBox, 
+                                     std::string DRGDir,  std::string DEMDir, 
+                                     std::string DRGInBoxList
+                                     );
+
+    
   template <class pixelInType, class pixelOutType>
   bool getSubImageWithMargin(// Inputs
                              Vector2 begLonLat, Vector2 endLonLat,
@@ -192,6 +248,7 @@ namespace vw {
     fs.close();
   }
 
+    
 }} // end vw::photometry
 
 namespace vw {
