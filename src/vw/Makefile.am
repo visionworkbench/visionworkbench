@@ -69,11 +69,6 @@ geometry_subdirs = Geometry
 geometry_headers = Geometry.h
 endif
 
-if MAKE_MODULE_PHOTOMETRY
-photometry_subdirs = Photometry
-photometry_headers = Photometry.h
-endif
-
 if MAKE_MODULE_PLATE
 plate_subdirs = Plate
 endif

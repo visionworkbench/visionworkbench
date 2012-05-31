@@ -181,7 +181,7 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 # distribution options
 ##################################################
 
-AX_ARG_WITH(dist-remove-modules, [Python Geometry GPU gui Photometry Plate], [mk am-set], [remove certain modules from the distribution])
+AX_ARG_WITH(dist-remove-modules, [Python Geometry GPU gui Plate], [mk am-set], [remove certain modules from the distribution])
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.
@@ -438,7 +438,6 @@ AX_MODULE(MOSAIC,           [src/vw/Mosaic],           [libvwMosaic.la],        
 AX_MODULE(HDR,              [src/vw/HDR],              [libvwHDR.la],              yes, [CAMERA VW], [LAPACK])
 AX_MODULE(STEREO,           [src/vw/Stereo],           [libvwStereo.la],           yes, [CAMERA VW])
 AX_MODULE(GEOMETRY,         [src/vw/Geometry],         [libvwGeometry.la],         yes, [VW])
-AX_MODULE(PHOTOMETRY,       [src/vw/Photometry],       [libvwPhotometry.la],        no, [CARTOGRAPHY VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS])
 AX_MODULE(BUNDLEADJUSTMENT, [src/vw/BundleAdjustment], [libvwBundleAdjustment.la], yes, [CAMERA CARTOGRAPHY INTERESTPOINT STEREO VW])
 AX_MODULE(PLATE,            [src/vw/Plate],            [libvwPlate.la],             no, [CARTOGRAPHY VW], [PROTOBUF GDAL BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [RABBITMQ_C ZEROMQ LIBKML])
 AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
@@ -470,7 +469,6 @@ AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY,      [test "$MAKE_MODULE_CARTOGRAPHY" = 
 AM_CONDITIONAL(MAKE_MODULE_HDR,              [test "$MAKE_MODULE_HDR" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_STEREO,           [test "$MAKE_MODULE_STEREO" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_PHOTOMETRY,       [test "$MAKE_MODULE_PHOTOMETRY" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS" = "yes"])
@@ -544,8 +542,6 @@ AC_CONFIG_FILES([                       \
   src/vw/Geometry/tests/Makefile        \
   src/vw/InterestPoint/Makefile         \
   src/vw/InterestPoint/tests/Makefile   \
-  src/vw/Photometry/Makefile            \
-  src/vw/Photometry/tests/Makefile      \
   src/vw/Python/vw/Makefile             \
   src/vw/Python/Makefile                \
   src/vw/BundleAdjustment/Makefile      \
