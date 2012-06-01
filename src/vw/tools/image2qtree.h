@@ -212,6 +212,9 @@ vw::cartography::GeoReference
 make_input_georef(boost::shared_ptr<vw::DiskImageResource> file,
                   const Options& opt);
 
+std::vector<vw::cartography::GeoReference>
+load_image_georeferences( const Options& opt, int& total_resolution );
+
 template <class PixelT>
 void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   using namespace vw;
@@ -229,45 +232,8 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   // Read in georeference info and compute total resolution.
   int total_resolution = 1024;
-  std::vector<GeoReference> georeferences;
-
-  BOOST_FOREACH(const std::string filename, opt.input_files) {
-    boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
-    std::cout << "Adding file " << file->filename() << std::endl;
-
-    if( opt.normalize ) get_normalize_vals(file, opt);
-
-    GeoReference input_georef = make_input_georef(file, opt);
-    georeferences.push_back( input_georef );
-
-    GeoReference output_georef(input_georef.datum());
-
-    // Right now, we only need a WGS84 output geoereference to compute
-    // the resolution. The rest of the output info will get set later.
-    GeoTransform geotx( input_georef, output_georef );
-
-    // Calculate the best resolution at 5 different points in the image,
-    // as occasionally there's a singularity at the center pixel that
-    // makes it extremely tiny (such as in pole-centered images).
-    const int cols = file->cols();
-    const int rows = file->rows();
-    Vector2 res_pixel[5];
-    res_pixel[0] = Vector2( cols/2, rows/2 );
-    res_pixel[1] = Vector2( cols/2 + cols/4, rows/2 );
-    res_pixel[2] = Vector2( cols/2 - cols/4, rows/2 );
-    res_pixel[3] = Vector2( cols/2, rows/2 + rows/4 );
-    res_pixel[4] = Vector2 (cols/2, rows/2 - rows/4 );
-    int resolution;
-    for(int i=0; i < 5; i++) {
-      resolution = compute_resolution(opt.mode, geotx, res_pixel[i]);
-      if( resolution > total_resolution ) total_resolution = resolution;
-    }
-  }
-
-  if(opt.global_resolution.set()) {
-    vw_out(VerboseDebugMessage) << "Overriding calculated resolution " << total_resolution << " with " << opt.global_resolution.value() << std::endl;
-    total_resolution = opt.global_resolution;
-  }
+  std::vector<GeoReference> georeferences =
+    load_image_georeferences( opt, total_resolution );
 
   boost::shared_ptr<mosaic::QuadTreeConfig> config =
     mosaic::QuadTreeConfig::make(opt.mode.string());
