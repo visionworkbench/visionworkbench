@@ -104,7 +104,6 @@ include_HEADERS = \
   $(interestpoint_headers) \
   $(hdr_headers) \
   $(geometry_headers) \
-  $(photometry_headers) \
   $(bundleadjustment_headers) \
   $(tools_headers) \
   vw.h \
@@ -125,7 +124,6 @@ SUBDIRS = \
   $(interestpoint_subdirs) \
   $(hdr_subdirs) \
   $(geometry_subdirs) \
-  $(photometry_subdirs) \
   $(plate_subdirs) \
   $(bundleadjustment_subdirs) \
   $(gui_subdirs) \
