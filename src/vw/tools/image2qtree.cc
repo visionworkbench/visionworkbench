@@ -237,7 +237,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
   return true;
 }
 
-int run(const Options& opt) {
+void run(const Options& opt) {
   TerminalProgressCallback tpc( "tools.image2qtree", "");
   const ProgressCallback *progress = &tpc;
 
@@ -258,13 +258,28 @@ int run(const Options& opt) {
   default:
     SWITCH_ON_CHANNEL_TYPE(PixelRGBA); break;
   }
-
-  return 0;
 }
 
 int main(int argc, char **argv) {
   Options opt;
   if (!handle_options(argc, argv, opt))
     return 1;
-  return run(opt);
+
+  try {
+    run(opt);
+  } catch ( const ArgumentErr& e ) {
+    vw_out() << e.what() << std::endl;
+    return 1;
+  } catch ( const Exception& e ) {
+    std::cerr << "\n\nVW Error: " << e.what() << std::endl;
+    return 1;
+  } catch ( const std::bad_alloc& e ) {
+    std::cerr << "\n\nError: Ran out of Memory!" << std::endl;
+    return 1;
+  } catch ( const std::exception& e ) {
+    std::cerr << "\n\nError: " << e.what() << std::endl;
+    return 1;
+  }
+
+  return 0;
 }
