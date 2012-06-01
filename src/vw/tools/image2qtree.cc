@@ -29,9 +29,10 @@ using std::endl;
 namespace po = boost::program_options;
 
 VW_DEFINE_ENUM_DEF(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
-VW_DEFINE_ENUM_DEF(Mode, 8, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN, GIGAPAN_NOPROJ));
+VW_DEFINE_ENUM_DEF(Mode, 7, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN));
 VW_DEFINE_ENUM_DEF(DatumOverride, 5, (NONE, WGS84, LUNAR, MARS, SPHERE))
-VW_DEFINE_ENUM_DEF(Projection, 10, (
+VW_DEFINE_ENUM_DEF(Projection, 11, (
+                                    DEFAULT,
                                     NONE,
                                     SINUSOIDAL,
                                     MERCATOR,

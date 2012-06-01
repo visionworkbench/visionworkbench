@@ -35,9 +35,10 @@ namespace fs = boost::filesystem;
 #include <vw/Mosaic.h>
 
 VW_DEFINE_ENUM_PROTO(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
-VW_DEFINE_ENUM_PROTO(Mode, 8, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN, GIGAPAN_NOPROJ));
+VW_DEFINE_ENUM_PROTO(Mode, 7, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN));
 VW_DEFINE_ENUM_PROTO(DatumOverride, 5, (NONE, WGS84, LUNAR, MARS, SPHERE))
-VW_DEFINE_ENUM_PROTO(Projection, 10, (
+VW_DEFINE_ENUM_PROTO(Projection, 11, (
+                                      DEFAULT,
                                       NONE,
                                       SINUSOIDAL,
                                       MERCATOR,
@@ -116,7 +117,7 @@ struct Options {
     vw::tools::Tristate<double> p1, p2;
     vw::tools::Tristate<vw::int32> utm_zone;
     proj_() :
-      type(Projection::NONE),
+      type(Projection::DEFAULT),
       scale(1),
       utm_zone(0, true) {}
   } proj;
@@ -152,7 +153,6 @@ struct Options {
 
     switch (mode) {
     case Mode::NONE:
-    case Mode::GIGAPAN_NOPROJ:
       VW_ASSERT(input_files.size() == 1,
                 vw::tools::Usage() << "Non-georeferenced images cannot be composed");
       break;
@@ -165,6 +165,10 @@ struct Options {
       /* nothing */
       break;
     }
+
+    if (proj.type == Projection::NONE)
+      VW_ASSERT(input_files.size() == 1,
+                vw::tools::Usage() << "Non-georeferenced images cannot be composed");
 
     if (jpeg_quality.set())
       vw::DiskImageResourceJPEG::set_default_quality( jpeg_quality );
@@ -194,11 +198,13 @@ void do_normal_mosaic(const Options& opt, const vw::ProgressCallback *progress) 
   quadtree.set_tile_size( opt.tile_size );
   quadtree.set_file_type( opt.output_file_type );
 
-  if (opt.mode == Mode::GIGAPAN_NOPROJ) {
-    mosaic::GigapanQuadTreeConfig config;
-    config.configure( quadtree );
+  if ( opt.mode != Mode::NONE ) {
+    boost::shared_ptr<mosaic::QuadTreeConfig> config =
+      mosaic::QuadTreeConfig::make(opt.mode.string());
+    config->configure( quadtree );
   }
 
+  vw_out() << "Generating " << opt.mode.string() << " overlay..." << std::endl;
   quadtree.generate( *progress );
 }
 
@@ -216,7 +222,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   // If we're not outputting any special sort of mosaic (just a regular old
   // quadtree, no georeferencing, no metadata), we use a different
   // function.
-  if(opt.mode == Mode::NONE || opt.mode == Mode::GIGAPAN_NOPROJ) {
+  if(opt.mode == Mode::NONE || opt.proj.type == Projection::NONE) {
     do_normal_mosaic<PixelT>(opt, progress);
     return;
   }
