@@ -67,7 +67,11 @@ void Settings::reload_config() {
   // call reload_config and deadlock!
 
   boost::xtime xt;
+#if BOOST_VERSION >= 105000
+  boost::xtime_get(&xt, boost::TIME_UTC_);
+#else
   boost::xtime_get(&xt, boost::TIME_UTC);
+#endif
   bool needs_reloading = false;
 
   // Every five seconds, we attempt to open the log config file to see
