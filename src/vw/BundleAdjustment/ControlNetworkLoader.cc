@@ -65,8 +65,8 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
         if ( sm.convergence_angle( cp[j].position(),
                                    cp[k].position() ) >
              minimum_angle ) {
-	  count++;
-	  position_sum += sm( cp[j].position(), cp[k].position(), error );
+          count++;
+          position_sum += sm( cp[j].position(), cp[k].position(), error );
           error_sum += error;
         }
       } catch ( const camera::PixelToRayErr& ) { /* Just let it go */ }
@@ -110,7 +110,7 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
     fs::path file_path(file);
     image_prefix_map[file_path.replace_extension().string()] = count;
     crn.add_node( ba::CameraNode<ba::IPFeature>( count,
-                                                 file_path.stem() ) );
+                                                 file_path.stem().string() ) );
     count++;
   }
 
@@ -128,7 +128,7 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
       if ( obj->path().extension() != ".match" ) continue;
 
       // Pull out the prefixes that made up that match file
-      std::string match_base = obj->path().stem();
+      std::string match_base = obj->path().stem().string();
       size_t split_pt = match_base.find("__");
       if ( split_pt == std::string::npos ) continue;
       std::string prefix1 = match_base.substr(0,split_pt);
@@ -143,14 +143,14 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
 
       // Actually read in the file as it seems we've found something correct
       std::vector<ip::InterestPoint> ip1, ip2;
-      ip::read_binary_match_file( obj->string(), ip1, ip2 );
+      ip::read_binary_match_file( obj->path().string(), ip1, ip2 );
       if ( ip1.size() < min_matches ) {
-        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->string() << "    "
+        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->path().string() << "    "
                                          << it1->second << " <-> " << it2->second << " : "
                                          << ip1.size() << " matches. [rejected]\n";
         num_load_rejected += ip1.size();
       } else {
-        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->string() << "    "
+        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->path().string() << "    "
                                          << it1->second << " <-> " << it2->second << " : "
                                          << ip1.size() << " matches.\n";
         num_loaded += ip1.size();

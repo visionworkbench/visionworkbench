@@ -200,13 +200,13 @@ namespace mosaic {
       }
 
       // Read it in from disk
-      fs::path path( qtree->get_name(), fs::native );
+      fs::path path( qtree->get_name() );
       std::ostringstream filename;
       filename << level << "/" << x << "/" << y << "." << qtree->get_file_type();
       path /= filename.str();
       ImageView<PixelT> tile;
       if( exists(path) ) {
-        read_image( tile, path.native_file_string() );
+        read_image( tile, path.string() );
       }
 
       // Save it in the cache.  The cache size of 1024 tiles was chosen
@@ -251,7 +251,7 @@ namespace mosaic {
         generate_branch( branch_level, level+1, 2*x+1, 2*y+1, SubProgressCallback(progress_callback, 0.75, 1.00) );
       }
       else {
-        fs::path path( qtree->get_name(), fs::native );
+        fs::path path( qtree->get_name() );
         std::ostringstream filename;
         filename << level << "/" << x << "/" << y << "." << qtree->get_file_type();
         path /= filename.str();
@@ -288,8 +288,8 @@ namespace mosaic {
         }
 
         if( ! is_transparent(tile) ) {
-          create_directories( path.branch_path() );
-          write_image( path.native_file_string(), tile );
+          create_directories( path.parent_path() );
+          write_image( path.string(), tile );
         }
 
         progress_callback.report_progress(1);

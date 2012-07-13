@@ -59,7 +59,7 @@ namespace ba {
     LookupType image_lookup;
     for (size_t i = 0; i < image_files.size(); i++ ) {
       image_lookup[image_files[i]] = i;
-      image_lookup[fs::path(image_files[i]).filename()] = i;
+      image_lookup[fs::path(image_files[i]).filename().string()] = i;
     }
 
     while ( gcp_start != gcp_end ) {
@@ -139,7 +139,7 @@ namespace ba {
     LookupType image_lookup;
     for (size_t i = 0; i < image_files.size(); i++ ) {
       image_lookup[image_files[i]] = i;
-      image_lookup[fs::path(image_files[i]).filename()] = i;
+      image_lookup[fs::path(image_files[i]).filename().string()] = i;
     }
 
     while ( gcpcnet_start != gcpcnet_end ) {

@@ -235,8 +235,8 @@ namespace mosaic {
 
   void KMLQuadTreeConfigData::metadata_func( QuadTreeGenerator const& qtree, QuadTreeGenerator::TileInfo const& info ) const {
     std::ostringstream kml;
-    fs::path file_path( info.filepath, fs::native );
-    size_t base_len = file_path.branch_path().native_file_string().size() + 1;
+    fs::path file_path( info.filepath );
+    size_t base_len = file_path.parent_path().string().size() + 1;
     fs::path kml_path = change_extension( file_path, ".kml" );
     kml << std::setprecision(10);
 
@@ -264,10 +264,11 @@ namespace mosaic {
       m_root_node_tags << "  <Style><ListStyle><listItemType>checkHideChildren</listItemType></ListStyle></Style>\n";
     }
 
-    std::vector<std::pair<std::string,BBox2i> > children = qtree.branches( info.name, info.region_bbox );
+    std::vector<std::pair<std::string,BBox2i> > children =
+      qtree.branches( info.name, info.region_bbox );
     for( unsigned i=0; i<children.size(); ++i ) {
       std::string kmlfile = qtree.image_path(children[i].first) + ".kml";
-      if( exists( fs::path( kmlfile, fs::native ) ) ) {
+      if( exists( fs::path( kmlfile ) ) ) {
         num_children++;
         kml << kml_network_link( children[i].first.substr(children[i].first.size()-1),
                                  kmlfile.substr(base_len),
@@ -281,7 +282,7 @@ namespace mosaic {
     int draw_order = m_draw_order_offset + int(info.name.size());
     BBox2i go_bbox = (qtree.get_crop_images() ? info.image_bbox : info.region_bbox);
     if( exists( fs::path( info.filepath + info.filetype ) ) ) {
-      kml << kml_ground_overlay( file_path.leaf() + info.filetype,
+      kml << kml_ground_overlay( file_path.filename().string() + info.filetype,
                                  pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
                                  pixels_to_longlat( go_bbox, qtree.get_dimensions() ),
                                  draw_order, qtree.get_tile_size()/2, max_lod );
@@ -333,7 +334,7 @@ namespace mosaic {
   }
 
   boost::shared_ptr<DstImageResource> KMLQuadTreeConfigData::tile_resource_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) const {
-    create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+    create_directories( fs::path( info.filepath ).parent_path() );
     if( info.filetype == ".png" && (format.pixel_format==VW_PIXEL_RGBA || format.pixel_format==VW_PIXEL_GRAYA) ) {
       return boost::shared_ptr<DstImageResource>( new DiskImageResourcePNGAlphaHack( info.filepath+info.filetype, format ) );
     }

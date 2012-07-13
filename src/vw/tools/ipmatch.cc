@@ -64,19 +64,19 @@ static void write_match_image(std::string const& out_file_name,
   mosaic::ImageComposite<PixelRGB<uint8> > composite;
   if ( irsrc1->has_nodata_read() ) {
     composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc1),
-												     irsrc1->nodata_read()))), sub_scale)),
-		      0, 0 );
+                                                                                                     irsrc1->nodata_read()))), sub_scale)),
+                      0, 0 );
   } else {
     composite.insert( pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc1)), sub_scale)),
-		      0, 0 );
+                      0, 0 );
   }
   if ( irsrc2->has_nodata_read() ) {
     composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(apply_mask(normalize(create_mask(DiskImageView<PixelGray<float> >(*irsrc2),
-												    irsrc2->nodata_read()))), sub_scale)),
-		     int32(irsrc1->format().cols * sub_scale), 0 );
+                                                                                                    irsrc2->nodata_read()))), sub_scale)),
+                     int32(irsrc1->format().cols * sub_scale), 0 );
   } else {
     composite.insert(pixel_cast_rescale<PixelRGB<uint8> >(resample(normalize(DiskImageView<PixelGray<float> >(*irsrc2)), sub_scale)),
-		     int32(irsrc1->format().cols * sub_scale), 0 );
+                     int32(irsrc1->format().cols * sub_scale), 0 );
   }
   composite.set_draft_mode( true );
   composite.prepare();
@@ -101,7 +101,7 @@ static void write_match_image(std::string const& out_file_name,
 
   boost::scoped_ptr<vw::DiskImageResource> rsrc( DiskImageResource::create(out_file_name, comp.format()) );
   block_write_image( *rsrc, comp,
-		     TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
+                     TerminalProgressCallback( "tools.ipmatch", "Writing Debug:" ) );
 }
 
 int main(int argc, char** argv) {
@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
       vw_out() << "Found " << matched_ip1.size() << " putative matches.\n";
 
       std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1),
-	ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+        ransac_ip2 = iplist_to_vectorlist(matched_ip2);
       std::vector<size_t> indices;
       try {
         // RANSAC is used to fit a transform between the matched sets
@@ -214,8 +214,8 @@ int main(int argc, char** argv) {
             indices.push_back(i);
         } else {
           vw_out() << "Unknown RANSAC constraint type: " << ransac_constraint
-		   << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
-	  return 1;
+                   << ".  Choose one of: [similarity, homography, fundamental, or none]\n";
+          return 1;
         }
       } catch (const vw::math::RANSACErr& e ) {
         vw_out() << "RANSAC Failed: " << e.what() << "\n";
@@ -230,8 +230,8 @@ int main(int argc, char** argv) {
       }
 
       std::string output_prefix =
-	fs::path(input_file_names[i]).replace_extension().string() + "__" +
-        fs::path(input_file_names[j]).stem();
+        fs::path(input_file_names[i]).replace_extension().string() + "__" +
+        fs::path(input_file_names[j]).stem().string();
       write_binary_match_file(output_prefix+".match", final_ip1, final_ip2);
 
       if (vm.count("debug-image")) {
@@ -244,4 +244,3 @@ int main(int argc, char** argv) {
 
   return 0;
 }
-

@@ -259,7 +259,7 @@ namespace vw {
     std::ostringstream path;
     if ( m_directory != "" )
       path << m_directory << "/";
-    fs::path kml_path( path.str(), fs::native );
+    fs::path kml_path( path.str() );
     fs::create_directories( kml_path );
     path << m_filename;
     kml_path = path.str();

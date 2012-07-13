@@ -28,13 +28,13 @@ namespace vw {
 namespace mosaic {
 
   std::string QuadTreeGenerator::simple_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
     path /= "r" + name;
-    return path.native_file_string();
+    return path.string();
   }
 
   std::string QuadTreeGenerator::tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     std::string rname = "r" + name;
 
@@ -43,14 +43,14 @@ namespace mosaic {
     }
     path /= rname;
 
-    return path.native_file_string();
+    return path.string();
   }
 
   std::string QuadTreeGenerator::named_tiered_image_path::operator()( QuadTreeGenerator const& qtree, std::string const& name, int32 levels_per_directory ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     if( name.length() == 0 ) {
-      path /= change_extension( path, "" ).leaf();
+      path /= change_extension( path, "" ).filename();
     }
     else {
       for ( int32 i=0; i<(int32)name.length() - levels_per_directory; i+=levels_per_directory ) {
@@ -59,7 +59,7 @@ namespace mosaic {
       path /= name;
     }
 
-    return path.native_file_string();
+    return path.string();
   }
 
   std::vector<std::pair<std::string,vw::BBox2i> > QuadTreeGenerator::default_branch_func::operator()( QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region ) {
@@ -74,7 +74,7 @@ namespace mosaic {
   }
 
   boost::shared_ptr<DstImageResource> QuadTreeGenerator::default_tile_resource_func::operator()( QuadTreeGenerator const&, TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+    create_directories( fs::path( info.filepath ).parent_path() );
     return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath+info.filetype, format ) );
   }
 

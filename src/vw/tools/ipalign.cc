@@ -220,7 +220,7 @@ void align_images( Options & opt ) {
       }
       std::string output_filename =
         fs::path(ref_name).replace_extension().string() + "__" +
-        fs::path(input_name).stem() + ".match";
+        fs::path(input_name).stem().string() + ".match";
       write_binary_match_file(output_filename, final_ip1, final_ip2);
     }
 

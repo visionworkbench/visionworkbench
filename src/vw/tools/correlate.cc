@@ -95,7 +95,9 @@ int main( int argc, char *argv[] ) {
       return 1;
     }
 
-    std::string match_filename = fs::path( left_file_name ).replace_extension().string() + "__" + fs::path( right_file_name ).stem() + ".match";
+    std::string match_filename =
+      fs::path( left_file_name ).replace_extension().string() + "__" +
+      fs::path( right_file_name ).stem().string() + ".match";
     if ( fs::exists( match_filename ) ) {
       vw_out() << "Found a match file. Using it to pre-align images.\n";
       std::vector<ip::InterestPoint> matched_ip1, matched_ip2;

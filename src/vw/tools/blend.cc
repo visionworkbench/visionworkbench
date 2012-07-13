@@ -58,7 +58,7 @@ void do_blend() {
 
   std::map<std::string,fs::path> image_files;
   std::map<std::string,fs::path> offset_files;
-  fs::path source_dir_path( mosaic_name, fs::native );
+  fs::path source_dir_path( mosaic_name );
   fs::directory_iterator pi( source_dir_path ), pend;
   for( ; pi != pend; ++pi ) {
     if( extension(*pi) == ".offset" )

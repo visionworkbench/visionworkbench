@@ -67,7 +67,7 @@ namespace mosaic {
   }
 
   std::string UniviewQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     Vector2i pos(0,0);
     for ( int i=0; i<(int)name.length(); ++i ) {
@@ -86,12 +86,12 @@ namespace mosaic {
       oss << name.length()-1 << "/" << pos.y() << "/" << pos.x();
     path /= oss.str();
 
-    return path.native_file_string();
+    return path.string();
   }
 
 
   boost::shared_ptr<DstImageResource> UniviewQuadTreeConfig::terrain_tile_resource( QuadTreeGenerator const& /*qtree*/,QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+    create_directories( fs::path( info.filepath ).parent_path() );
     return boost::shared_ptr<DstImageResource>( new UniviewTerrainResource( info.filepath+info.filetype, format ) );
   }
 

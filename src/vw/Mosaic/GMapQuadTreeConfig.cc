@@ -30,7 +30,7 @@ namespace mosaic {
 
   // for gmaps, origin is upper left, advancing right and down.
   std::string GMapQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     Vector<size_t, 2> pos(0,0);
     BOOST_FOREACH(char n, name) {
@@ -50,11 +50,11 @@ namespace mosaic {
     oss << name.length() << "/" << pos.x() << "/" << pos.y();
     path /= oss.str();
 
-    return path.native_file_string();
+    return path.string();
   }
 
   boost::shared_ptr<DstImageResource> GMapQuadTreeConfig::tile_resource( QuadTreeGenerator const& /*qtree*/, QuadTreeGenerator::TileInfo const& info, ImageFormat const& format ) {
-    create_directories( fs::path( info.filepath, fs::native ).branch_path() );
+    create_directories( fs::path( info.filepath ).parent_path() );
     return boost::shared_ptr<DstImageResource>( DiskImageResource::create( info.filepath + info.filetype, format, info.filetype ) );
   }
 

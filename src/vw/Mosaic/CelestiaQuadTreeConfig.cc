@@ -31,7 +31,7 @@ namespace mosaic {
   }
 
   std::string CelestiaQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     Vector<size_t,2> pos(0,0);
     for ( size_t i=0; i < name.length(); ++i ) {
@@ -55,7 +55,7 @@ namespace mosaic {
 
     path /= oss.str();
 
-    return path.native_file_string();
+    return path.string();
   }
 
   void CelestiaQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {

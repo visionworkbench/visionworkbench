@@ -25,7 +25,7 @@ namespace vw {
 namespace mosaic {
 
   std::string TMSQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
-    fs::path path( qtree.get_name(), fs::native );
+    fs::path path( qtree.get_name() );
 
     Vector2i pos(0,0);
     for ( int i=0; i<(int)name.length(); ++i ) {
@@ -41,7 +41,7 @@ namespace mosaic {
     oss << name.length() << "/" << pos.x() << "/" << pos.y();
     path /= oss.str();
 
-    return path.native_file_string();
+    return path.string();
   }
 
   void TMSQuadTreeConfig::configure( QuadTreeGenerator& qtree ) const {
