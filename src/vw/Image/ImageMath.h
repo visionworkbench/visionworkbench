@@ -77,6 +77,40 @@ namespace vw {
     return UnaryPerPixelView<ImageT,ftor>( image.impl() );    \
   }
 
+  // Used to get the pixel math operation result .. not necessarily
+  // the math functor solution. This is useful for examples like
+  // taking the abs() of a PixelGray and still getting back a
+  // PixelGray .. instead of having PixelGray cast to a float and then
+  // absoluted by the math functor.
+#define VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(func, ftor)           \
+  namespace detail {                                                 \
+    struct Functorized##func {                                       \
+      template <class Args> struct result;                           \
+      template <class FuncT, class ValT>                             \
+      struct result<FuncT(ValT)> {                                   \
+        typedef typename CompoundResult<FuncT, ValT>::type type;     \
+      };                                                             \
+      template <class ValT>                                          \
+      struct result<Functorized##func(ValT)> {                       \
+        typedef typename boost::mpl::if_c<IsCompound<ValT>::value, typename CompoundResult<ftor,ValT>::type, typename boost::result_of<ftor(ValT)>::type >::type type; \
+      };                                                             \
+      template <class ValT>                                          \
+      typename boost::enable_if< IsCompound< ValT >, typename result<Functorized##func(ValT)>::type>::type \
+      inline operator()( ValT val ) const {                          \
+        return vw::func( val );                                      \
+      }                                                              \
+      template <class ValT>                                          \
+      typename boost::disable_if< IsCompound< ValT >, typename result<Functorized##func(ValT)>::type>::type \
+      inline operator()( ValT val ) const {                          \
+        return ftor()( val );                                        \
+      }                                                              \
+    };                                                               \
+  }                                                                  \
+  template <class ImageT>                                            \
+  inline UnaryPerPixelView<ImageT, detail::Functorized##func> func( ImageViewBase<ImageT> const& image ) { \
+    return UnaryPerPixelView<ImageT, detail::Functorized##func>( image.impl() ); \
+  }
+
 #define VW_IMAGE_MATH_BINARY_II_FUNCTION(func,ftor)                     \
   template <class Image1T, class Image2T>                               \
   BinaryPerPixelView<Image1T,Image2T,ftor>                              \
@@ -397,18 +431,18 @@ namespace vw {
   /// image is complex then the resulting image has the corresponding
   /// real pixel type.  If the source image is real then this function
   /// effectively performs no operation.
-  VW_IMAGE_MATH_UNARY_FUNCTION(real, vw::math::ArgRealFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(real, vw::math::ArgRealFunctor)
 
   /// Takes the complex part of each pixel in an image.  If the source
   /// image is complex then the resulting image has the corresponding
   /// real pixel type.  If the source image is real then this function
   /// effectively returns an image of zeros.
-  VW_IMAGE_MATH_UNARY_FUNCTION(imag, vw::math::ArgImagFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(imag, vw::math::ArgImagFunctor)
 
   /// Computes the absolute value of each pixel in an image.
   /// If the source image is complex then the resulting image has the
   /// corresponding real pixel type.
-  VW_IMAGE_MATH_UNARY_FUNCTION(abs, vw::math::ArgAbsFunctor)
+  VW_IMAGE_MATH_UNARY_PIXELMATH_FUNCTION(abs, vw::math::ArgAbsFunctor)
 
   /// Computes the complex conjugate of each pixel in an image.
   /// If the source image is real then this function effectively performs

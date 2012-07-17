@@ -316,6 +316,47 @@ TYPED_TEST( MaskedPixelMath, Quotient ) {
   EXPECT_VW_EQ( construct<Px>(50), F.child() );
 }
 
+TYPED_TEST( MaskedPixelMath, Abs ) {
+  assignment( this->Ai, 2 );
+  assignment( this->Av, 2 );
+  assignment( this->Bi, 100 );
+  assignment( this->Bv, 100 );
+  this->Av.validate();
+  this->Bv.validate();
+
+  EXPECT_TRUE( is_valid( this->Av ) );
+  EXPECT_FALSE( is_valid( this->Ai ) );
+  EXPECT_TRUE( is_valid( this->Bv ) );
+  EXPECT_FALSE( is_valid( this->Bi ) );
+
+  // Test traits
+  typedef typename TestFixture::MPx MPx;
+  typedef typename TestFixture::Px Px;
+  typedef typename TestFixture::ChT ChT;
+  ASSERT_TRUE(  bool_trait<IsMasked>( this->Av ) );
+  ASSERT_TRUE(  bool_trait<IsMasked>( this->Ai ) );
+  ASSERT_FALSE( bool_trait<IsMasked>( Px() ) );
+  ASSERT_FALSE( bool_trait<IsMasked>( ChT() ) );
+  ASSERT_TRUE(  bool_trait<IsMasked>( MPx() ) );
+
+  MPx F = abs(this->Av);
+  EXPECT_TRUE( bool_trait<IsMasked>( abs(this->Av) ) );
+  EXPECT_TRUE( is_valid(F) );
+  EXPECT_VW_EQ( construct<Px>(2), F.child() );
+  F = abs(this->Ai);
+  EXPECT_TRUE( bool_trait<IsMasked>( abs(this->Ai) ) );
+  EXPECT_FALSE( is_valid(F) );
+  EXPECT_VW_EQ( construct<Px>(2), F.child() );
+  F = abs(this->Bv);
+  EXPECT_TRUE( bool_trait<IsMasked>( abs(this->Bv) ) );
+  EXPECT_TRUE( is_valid(F) );
+  EXPECT_VW_EQ( construct<Px>(100), F.child() );
+  F = abs(this->Bi);
+  EXPECT_TRUE( bool_trait<IsMasked>( abs(this->Bi) ) );
+  EXPECT_FALSE( is_valid(F) );
+  EXPECT_VW_EQ( construct<Px>(100), F.child() );
+}
+
 TEST( MaskedPixelMath, PixelMaskInterpolation ) {
   typedef PixelMask<PixelGray<float> > px_type;
   ImageView<px_type > test(2,2);

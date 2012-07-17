@@ -197,7 +197,13 @@ TEST_F( BinaryMaskedDoubleMath, Quotient ) {
   ASSERT_TRUE( has_pixel_type<float>( op(ImageView<std::complex<float> >()) ) ); \
   ASSERT_TRUE( has_pixel_type<double>( op(ImageView<std::complex<double> >()) ) ); \
   ASSERT_TRUE( has_pixel_type<long double>( op(ImageView<std::complex<long double> >()) ) ); \
-  ASSERT_TRUE( has_pixel_type<int>( op(ImageView<std::complex<int> >()) ) );
+  ASSERT_TRUE( has_pixel_type<int>( op(ImageView<std::complex<int> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelGray<float> >( op(ImageView<PixelGray<float> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelGray<int> >( op(ImageView<PixelGray<int> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelGray<float> >( op(ImageView<PixelGray<std::complex<float> > >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelRGB<float> >( op(ImageView<PixelRGB<float> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelRGB<int> >( op(ImageView<PixelRGB<int> >()) ) ); \
+  ASSERT_TRUE( has_pixel_type<PixelRGB<float> >( op(ImageView<PixelRGB<std::complex<float> > >()) ) ); \
 
 TEST( ImageMath, Real ) {
   ImageView<std::complex<double> > im(1,1); im(0,0)=std::complex<double>(1.0,2.0);
@@ -234,6 +240,8 @@ TEST( ImageMath, Conj ) {
   EXPECT_EQ( conj(im).planes(), im.planes()  );
   EXPECT_EQ( conj(im)(0,0).real(), 1.0 );
   EXPECT_EQ( conj(im)(0,0).imag(), -2.0 );
+
+
   ASSERT_TRUE( has_pixel_type<float>( conj(ImageView<float>()) ) );
   ASSERT_TRUE( has_pixel_type<double>( conj(ImageView<double>()) ) );
   ASSERT_TRUE( has_pixel_type<long double>( conj(ImageView<long double>()) ) );
@@ -255,6 +263,10 @@ TEST( ImageMath, Square ) {
   ASSERT_TRUE( has_pixel_type<float>( square(ImageView<float>()) ) );
   ASSERT_TRUE( has_pixel_type<double>( square(ImageView<double>()) ) );
   ASSERT_TRUE( has_pixel_type<int32>( square(ImageView<int32>()) ) );
+  ASSERT_TRUE( has_pixel_type<PixelGray<float> >( square(ImageView<PixelGray<float> >()) ) );
+  ASSERT_TRUE( has_pixel_type<PixelRGB<float> >( square(ImageView<PixelRGB<float> >()) ) );
+  ASSERT_TRUE( has_pixel_type<PixelGray<int32> >( square(ImageView<PixelGray<int32> >()) ) );
+  ASSERT_TRUE( has_pixel_type<PixelRGB<int32> >( square(ImageView<PixelRGB<int32> >()) ) );
 }
 
 TEST( ImageMath, MaskMath ) {
