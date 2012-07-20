@@ -35,6 +35,19 @@
 // Proj.4
 #include <proj_api.h>
 
+// Macro for checking Proj.4 output, something we do a lot of.
+#if PJ_VERSION < 480
+
+#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
+#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
+
+#else
+
+#define CHECK_PROJ_ERROR if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
+#define CHECK_PROJ_INIT_ERROR(str) if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
+
+#endif
+
 namespace vw {
 namespace cartography {
 
@@ -438,7 +451,7 @@ namespace cartography {
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
     // This value is proj's internal limit
-    static const double BOUND = M_PI/2.0-(1e-10)-std::numeric_limits<double>::epsilon();
+    static const double BOUND = 1.5707963267948966 - (1e-10) - std::numeric_limits<double>::epsilon();
 
     projXY projected;
     projLP unprojected;
@@ -539,3 +552,6 @@ namespace cartography {
   }
 
 }} // vw::cartography
+
+#undef CHECK_PROJ_ERROR
+#undef CHECK_PROJ_INIT_ERROR

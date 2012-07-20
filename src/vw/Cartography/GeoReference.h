@@ -46,10 +46,6 @@ typedef PJ* projPJ;
 namespace vw {
 namespace cartography {
 
-  // Macro for checking Proj.4 output, something we do a lot of.
-#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
-
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.  Using a smart pointer
   // here simplies the rest of the GeoReference class considerably, and
