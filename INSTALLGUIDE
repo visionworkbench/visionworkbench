@@ -49,7 +49,7 @@ later if you discover that you need them.
 
  Name    | Used By               | Source
 ---------+-----------------------+------------------------------------
- Boost   | All                   | ttp://www.boost.org/
+ Boost   | All                   | http://www.boost.org/
  LAPACK  | Portions of Math, HDR | See notes below
  PNG     | FileIO (opt.)         | http://www.libpng.org/
  JPEG    | FileIO (opt.)         | http://www.ijg.org/
