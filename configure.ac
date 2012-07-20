@@ -303,7 +303,7 @@ fi
 AC_DEFINE_UNQUOTED(HAS_BIGTIFF, [$has_bigtiff], [Define to 1 if VW has BigTIFF support])
 AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
-AX_PKG(PROJ4, [M], [-lproj], [projects.h])
+AX_PKG(PROJ4, [M], [-lproj], [proj_api.h])
 
 if test "$HAVE_PKG_QT" = no; then
     ENABLE_QT_QMAKE=no

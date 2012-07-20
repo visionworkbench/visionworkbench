@@ -23,7 +23,7 @@
 #include <vw/Image/ImageView.h>
 
 // Proj.4
-#include <projects.h>
+#include <proj_api.h>
 
 namespace vw {
 namespace cartography {

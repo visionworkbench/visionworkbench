@@ -33,7 +33,7 @@
 #include <boost/foreach.hpp>
 
 // Proj.4
-#include <projects.h>
+#include <proj_api.h>
 
 namespace vw {
 namespace cartography {
@@ -420,8 +420,8 @@ namespace cartography {
   Vector2 GeoReference::point_to_lonlat(Vector2 loc) const {
     if ( ! m_is_projected ) return loc;
 
-    XY projected;
-    LP unprojected;
+    projXY projected;
+    projLP unprojected;
 
     projected.u = loc[0];
     projected.v = loc[1];
@@ -438,10 +438,10 @@ namespace cartography {
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
     // This value is proj's internal limit
-    static const double BOUND = HALFPI-(1e-10)-std::numeric_limits<double>::epsilon();
+    static const double BOUND = M_PI/2.0-(1e-10)-std::numeric_limits<double>::epsilon();
 
-    XY projected;
-    LP unprojected;
+    projXY projected;
+    projLP unprojected;
 
     // Proj.4 expects the (lon,lat) pair to be in radians
     unprojected.u = lon_lat[0] * DEG_TO_RAD;

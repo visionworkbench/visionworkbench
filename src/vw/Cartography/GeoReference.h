@@ -33,11 +33,15 @@
 #endif
 
 // Forward declaration of Proj.4 things. C++ needs forward declaration of
-// typedefs so we can call it PJ instead of PJconsts. Bad if Proj ever
+// typedefs so we can call it PJ instead of projPJ. Bad if Proj ever
 // changes their struct names; we suddenly have a difficult to find bug.
 // If the Proj API ever changes and this breaks, see if there's a new name
 // for this structure.
-struct PJconsts;
+#if !defined(PROJECTS_H)
+typedef void* projPJ;
+#else
+typedef PJ* projPJ;
+#endif
 
 namespace vw {
 namespace cartography {
@@ -52,12 +56,12 @@ namespace cartography {
   // reduces the possibility of a memory related bug. Implementation
   // code for most of it is in GeoReference.cc.
   class ProjContext : private boost::noncopyable {
-    // Declare PJconsts as PJ like done in projects.h; sadly, C++ has no
+    // Declare projPJ as PJ like done in projects.h; sadly, C++ has no
     // forward declaration of typedefs. So if Proj ever changes their
     // names, we get screwed over here and have to change this as well.
-    typedef PJconsts PJ;
+    typedef projPJ PJ;
 
-    PJ* m_proj_ptr;
+    PJ m_proj_ptr;
 
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
@@ -65,7 +69,7 @@ namespace cartography {
     ProjContext(std::string const& proj4_str);
 
     ~ProjContext();
-    inline PJ* proj_ptr() { return m_proj_ptr; }
+    inline PJ proj_ptr() { return m_proj_ptr; }
   };
 
 
