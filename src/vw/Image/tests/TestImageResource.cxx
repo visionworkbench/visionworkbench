@@ -249,7 +249,7 @@ TEST_F(TestStream, WriteResize) {
   //ASSERT_NO_THROW(r.write(src, box));
   r.write(src, box);
   ASSERT_NO_THROW(r.flush());
-  ASSERT_EQ(size(), fs::file_size(name));
+  ASSERT_EQ(size(), fs::file_size(static_cast<std::string>(name)));
 
   // reset the pointer for the rewrite
   ASSERT_NO_THROW(r.reset());
@@ -257,12 +257,12 @@ TEST_F(TestStream, WriteResize) {
   // repeat write to make sure it doesn't resize even bigger (it should overwrite old)
   ASSERT_NO_THROW(r.write(src, box));
   ASSERT_NO_THROW(r.flush());
-  ASSERT_EQ(size(), fs::file_size(name));
+  ASSERT_EQ(size(), fs::file_size(static_cast<std::string>(name)));
 
   // this should now append to the file
   ASSERT_NO_THROW(r.write(src, box));
   ASSERT_NO_THROW(r.flush());
-  ASSERT_EQ(2*size(), fs::file_size(name));
+  ASSERT_EQ(2*size(), fs::file_size(static_cast<std::string>(name)));
 }
 
 #if 0
