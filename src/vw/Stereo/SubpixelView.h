@@ -335,13 +335,13 @@ namespace stereo {
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_kernel_size(kernel_size),
       m_preproc_filter(preproc_filter.impl()) {
-      // Basic assertions
-      VW_ASSERT((m_left_image.cols() == m_right_image.cols()) &&
-                (m_left_image.rows() == m_right_image.rows()) &&
-                (m_disparity_map.cols() == m_right_image.cols()) &&
-                (m_disparity_map.cols() == m_right_image.cols()),
-                ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView(): input image dimensions and/or disparity_map dimensions do not agree.\n");
 
+      // Basic assertions
+      VW_ASSERT( m_disparity.cols() == m_left_image.cols() &&
+                 m_disparity.rows() == m_left_image.rows(),
+                 ArgumentErr() << "SubpixelView: Disparity image must match left image." );
+      ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView():  Disparity image must match left image.\n");
+      
       VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
                 (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
                 ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView(): multi-channel, multi-plane images not supported.\n");
