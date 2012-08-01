@@ -335,12 +335,10 @@ namespace stereo {
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_kernel_size(kernel_size),
       m_preproc_filter(preproc_filter.impl()) {
-
       // Basic assertions
-      VW_ASSERT( m_disparity.cols() == m_left_image.cols() &&
-                 m_disparity.rows() == m_left_image.rows(),
-                 ArgumentErr() << "SubpixelView: Disparity image must match left image." );
-      ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView():  Disparity image must match left image.\n");
+      VW_ASSERT( m_disparity_map.cols() == m_left_image.cols() &&
+                 m_disparity_map.rows() == m_left_image.rows(),
+                 ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView():  Disparity image must match left image.\n");
       
       VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
                 (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
