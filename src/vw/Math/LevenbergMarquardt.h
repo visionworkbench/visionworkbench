@@ -64,7 +64,7 @@ namespace math {
   /// * Defines a jacobian_type corresponding to the space of
   ///   jacobian matrices.  Typically Matrix<foo>.
   /// * Defines a method: result_type operator()( domain_type const& x ) const;
-  ///   that evaluates the cost function at the given point.
+  ///   that evaluates the model function at the given point.
   /// * The domain_type must implement a method: domain_type domain_type::operator+( gradient_type const& g ) const;
   ///   that adds a tangent vector to a position.  You get this for
   ///   free if both domain_type and gradient_type are Vector<foo>.
@@ -80,7 +80,7 @@ namespace math {
   /// In addition, depending on the application, you may want to also define:
   ///
   /// * Defines a method: jacobian_type jacobian( domain_type const& x ) const;
-  ///   that evaluates the jacobian of the cost function at the
+  ///   that evaluates the jacobian of the model function at the
   ///   given point.  This will override the default implementation in this base
   ///   class which computes the derivatives numerically.
   ///
@@ -153,7 +153,7 @@ namespace math {
   /// That is, a least squares problem where the objective is to find a
   /// parameter vector x such that the model function h(x), evaluates
   /// as closely as possible to the observations z in a least squares
-  /// sense.
+  /// sense, that is, the cost function J(p) is minimized.
   ///
   /// Requires:
   /// - a seed parameter vector x
