@@ -173,7 +173,7 @@ void do_colorized_dem(Options& opt) {
     ImageViewRef<PixelMask<PixelRGB<uint8> > > shaded_image =
       copy_mask(channel_cast<uint8>(colorized_image*apply_mask(shaded_relief_image)),
                 shaded_relief_image);
-    vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
+    vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
     if ( r->has_block_write() )
       r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
@@ -182,7 +182,7 @@ void do_colorized_dem(Options& opt) {
     block_write_image( *r, shaded_image,
                        TerminalProgressCallback( "tools.colormap", "Writing:") );
   } else {
-    vw_out() << "Writing image color-mapped image: " << opt.output_file_name << "\n";
+    vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
 
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
     if ( r->has_block_write() )
