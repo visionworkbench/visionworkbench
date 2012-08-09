@@ -22,7 +22,7 @@
 #include <vw/Stereo/DisparityMap.h>
 
 namespace vw {
-
+  
 // forward declaration
 namespace camera {
   class CameraModel;
@@ -31,8 +31,6 @@ namespace camera {
 namespace stereo {
 
   class StereoModel {
-    const camera::CameraModel *m_camera1, *m_camera2;
-    bool m_least_squares;
 
   public:
 
@@ -63,7 +61,7 @@ namespace stereo {
     /// parallel or divergent, otherwise it returns the 2-norm of the
     /// distance between the rays at their nearest point of
     /// intersection.
-    Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
+    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
 
     /// Returns the dot product of the two rays emanating from camera
     /// 1 and camera 2 through pix1 and pix2 respectively.  This can
@@ -73,6 +71,10 @@ namespace stereo {
     double convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const;
 
   protected:
+
+    const camera::CameraModel *m_camera1, *m_camera2;
+    bool m_least_squares;
+
     //------------------------------------------------------------------
     // Protected Methods
     //------------------------------------------------------------------
