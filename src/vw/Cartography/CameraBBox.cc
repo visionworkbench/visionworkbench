@@ -49,9 +49,10 @@ cartography::geospatial_intersect( Vector2 pix,
   Vector3 intersection = ccenter + alpha * cpoint;
   intersection.z() /= z_scale;
 
-  Vector3 llr = georef.datum().cartesian_to_geodetic( intersection );
-  Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llr.x(),
-                                                              llr.y() ) );
+  Vector3 llh = georef.datum().cartesian_to_geodetic( intersection );
+  Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llh.x(),
+                                                              llh.y() ) );
+
   return geospatial_point;
 }
 
@@ -93,4 +94,28 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
 
   scale = functor.scale/double(step_amount);
   return functor.box;
+}
+
+void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixel ) {
+  bool test_intersect;
+  Vector2 geospatial_point =
+    geospatial_intersect( pixel, m_georef, m_camera,
+                          m_z_scale, test_intersect );
+  if ( !test_intersect ) {
+    last_valid = false;
+    return;
+  }
+
+  if ( center_on_zero && geospatial_point[0] > 180 )
+    geospatial_point[0] -= 360.0;
+
+  if ( last_valid ) {
+    double current_scale =
+      norm_2( geospatial_point - m_last_intersect );
+    if ( current_scale < scale )
+      scale = current_scale;
+  }
+  m_last_intersect = geospatial_point;
+  box.grow( geospatial_point );
+  last_valid = true;
 }

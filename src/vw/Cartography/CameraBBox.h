@@ -122,29 +122,7 @@ namespace cartography {
         m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
       }
 
-      void operator() ( Vector2 pixel ) {
-        bool test_intersect;
-        Vector2 geospatial_point =
-          geospatial_intersect( pixel, m_georef, m_camera,
-                                m_z_scale, test_intersect );
-        if ( !test_intersect ) {
-          last_valid = false;
-          return;
-        }
-
-        if ( center_on_zero && geospatial_point[0] > 180 )
-          geospatial_point[0] -= 360.0;
-
-        if ( last_valid ) {
-          double current_scale =
-            norm_2( geospatial_point - m_last_intersect );
-          if ( current_scale < scale )
-            scale = current_scale;
-        }
-        m_last_intersect = geospatial_point;
-        box.grow( geospatial_point );
-        last_valid = true;
-      }
+      void operator() ( Vector2 const& pixel );
     };
 
     template <class DEMImageT>
@@ -167,7 +145,7 @@ namespace cartography {
         m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
       }
 
-      void operator() ( Vector2 pixel ) {
+      void operator() ( Vector2 const& pixel ) {
         bool test_intersect;
         Vector2 geospatial_point =
           geospatial_intersect( pixel, m_georef, m_camera,
