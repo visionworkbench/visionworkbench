@@ -98,46 +98,49 @@ ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const
     return xyz;
 }
 
+bool StereoModel::are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) const{
+  // If vec1 and vec2 are nearly parallel, there will be
+  // very large numerical uncertainty about where to place the
+  // point.  We set a threshold here to reject points that are
+  // on nearly parallel rays.  The threshold of 1e-4 corresponds
+  // to a convergence of less than theta = 0.81 degrees, so if
+  // the two rays are within 0.81 degrees of being parallel, we
+  // reject this point.
+  //
+  // This threshold was chosen empirically for now, but should
+  // probably be revisited once a more rigorous analysis has
+  // been completed. -mbroxton (11-MAR-07)
+  return ( (1-dot_prod(vec1, vec2) < 1e-4 && !m_least_squares) ||
+           (1-dot_prod(vec1, vec2) < 1e-5 && m_least_squares) );
+}
 
 Vector3 StereoModel::operator()(Vector2 const& pix1,
                                 Vector2 const& pix2, double& error ) const {
 
   try {
     // determine range by triangulation
-    Vector3 vecFromA = m_camera1->pixel_to_vector(pix1);
-    Vector3 vecFromB = m_camera2->pixel_to_vector(pix2);
+    Vector3 vec1 = m_camera1->pixel_to_vector(pix1);
+    Vector3 vec2 = m_camera2->pixel_to_vector(pix2);
 
-    // If vecFromA and vecFromB are nearly parallel, there will be
-    // very large numerical uncertainty about where to place the
-    // point.  We set a threshold here to reject points that are
-    // on nearly parallel rays.  The threshold of 1e-4 corresponds
-    // to a convergence of less than theta = 0.81 degrees, so if
-    // the two rays are within 0.81 degrees of being parallel, we
-    // reject this point.
-    //
-    // This threshold was chosen empirically for now, but should
-    // probably be revisited once a more rigorous analysis has
-    // been completed. -mbroxton (11-MAR-07)
-    if ( (1-dot_prod(vecFromA, vecFromB) < 1e-4 && !m_least_squares) ||
-         (1-dot_prod(vecFromA, vecFromB) < 1e-5 && m_least_squares) ) {
-      error = 0;
+    if (are_nearly_parallel(vec1, vec2)){
+      error = 0.0;
       return Vector3();
     }
-
-    Vector3 originA = m_camera1->camera_center(pix1);
-    Vector3 originB = m_camera2->camera_center(pix2);
+    
+    Vector3 origin1 = m_camera1->camera_center(pix1);
+    Vector3 origin2 = m_camera2->camera_center(pix2);
     Vector3 result =
-      triangulate_point(originA, vecFromA,
-                        originB, vecFromB,
+      triangulate_point(origin1, vec1,
+                        origin2, vec2,
                         error);
 
     if ( m_least_squares )
       refine_point(pix1, pix2, result);
 
     // Reflect points that fall behind one of the two cameras
-    if ( dot_prod(result - originA, vecFromA) < 0 ||
-         dot_prod(result - originB, vecFromB) < 0 ) {
-      result = -result + 2*originA;
+    if ( dot_prod(result - origin1, vec1) < 0 ||
+         dot_prod(result - origin2, vec2) < 0 ) {
+      result = -result + 2*origin1;
     }
 
     return result;
@@ -153,21 +156,22 @@ double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) 
                        m_camera2->pixel_to_vector(pix2)));
 }
 
-Vector3 StereoModel::triangulate_point(Vector3 const& pointA,
-                                       Vector3 const& vecFromA,
-                                       Vector3 const& pointB,
-                                       Vector3 const& vecFromB,
+Vector3 StereoModel::triangulate_point(Vector3 const& point1,
+                                       Vector3 const& vec1,
+                                       Vector3 const& point2,
+                                       Vector3 const& vec2,
                                        double& error) const {
 
-  Vector3 v12 = cross_prod(vecFromA, vecFromB);
-  Vector3 v1 = cross_prod(v12, vecFromA);
-  Vector3 v2 = cross_prod(v12, vecFromB);
+  Vector3 v12 = cross_prod(vec1, vec2);
+  Vector3 v1 = cross_prod(v12, vec1);
+  Vector3 v2 = cross_prod(v12, vec2);
 
-  Vector3 closestPointA = pointA + dot_prod(v2, pointB-pointA)/dot_prod(v2, vecFromA)*vecFromA;
-  Vector3 closestPointB = pointB + dot_prod(v1, pointA-pointB)/dot_prod(v1, vecFromB)*vecFromB;
+  Vector3 closestPoint1 = point1 + dot_prod(v2, point2-point1)/dot_prod(v2, vec1)*vec1;
+  Vector3 closestPoint2 = point2 + dot_prod(v1, point1-point2)/dot_prod(v1, vec2)*vec2;
 
-  error = norm_2(closestPointA - closestPointB);
-  return 0.5 * (closestPointA + closestPointB);
+  error = norm_2(closestPoint1 - closestPoint2);
+
+  return 0.5 * (closestPoint1 + closestPoint2);
 }
 
 void StereoModel::refine_point(Vector2 const& pix1,

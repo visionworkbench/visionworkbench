@@ -83,12 +83,14 @@ namespace stereo {
     /// closest point of intersectio of A to the closest point of
     /// intersection of B ), or -1 if the rays are parallel or
     /// divergent.
-    Vector3 triangulate_point(Vector3 const& pointA,
-                              Vector3 const& vecFromA,
-                              Vector3 const& pointB,
-                              Vector3 const& vecFromB,
+    Vector3 triangulate_point(Vector3 const& point1,
+                              Vector3 const& vec1,
+                              Vector3 const& point2,
+                              Vector3 const& vec2,
                               double& error) const;
 
+    bool are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) const;
+                        
     void refine_point( Vector2 const& pix1,
                        Vector2 const& pix2,
                        Vector3& point ) const;
