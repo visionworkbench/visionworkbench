@@ -419,12 +419,12 @@ void camera::PinholeModel::rebuild_camera_matrix() {
   select_row(uvwRotation,1) = m_v_direction;
   select_row(uvwRotation,2) = m_w_direction;
 
-  Matrix<double,3,3> m_rotation_inverse = transpose(m_rotation);
-  submatrix(m_extrinsics,0,0,3,3) = uvwRotation * m_rotation_inverse;
-  select_col(m_extrinsics,3) = uvwRotation * -m_rotation_inverse * m_camera_center;
+  Matrix<double,3,3> rotation_inverse = transpose(m_rotation);
+  submatrix(m_extrinsics,0,0,3,3) = uvwRotation * rotation_inverse;
+  select_col(m_extrinsics,3) = uvwRotation * -rotation_inverse * m_camera_center;
 
   m_camera_matrix = m_intrinsics * m_extrinsics;
-  m_inv_camera_transform = inverse(uvwRotation*m_rotation_inverse) * inverse(m_intrinsics);
+  m_inv_camera_transform = inverse(uvwRotation*rotation_inverse) * inverse(m_intrinsics);
 }
 
 // scale_camera
