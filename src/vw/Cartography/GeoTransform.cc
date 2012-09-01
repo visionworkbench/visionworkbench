@@ -26,17 +26,7 @@
 #include <proj_api.h>
 
 // Macro for checking Proj.4 output, something we do a lot of.
-#if PJ_VERSION < 480
-
-#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
-
-#else
-
-#define CHECK_PROJ_ERROR if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
-
-#endif
+#define CHECK_PROJ_ERROR(ctx_input) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(ctx_input.error_no()))
 
 namespace vw {
 namespace cartography {
@@ -72,13 +62,11 @@ namespace cartography {
       // source or destination georef uses.
       ss_src << "+proj=latlong " << src_datum;
       m_src_proj = ProjContext( ss_src.str() );
-      CHECK_PROJ_INIT_ERROR( ss_src.str() );
 
       // The destination proj4 context.
       std::stringstream ss_dst;
       ss_dst << "+proj=latlong " << dst_datum;
       m_dst_proj = ProjContext( ss_dst.str() );
-      CHECK_PROJ_INIT_ERROR( ss_dst.str() );
     }
     // Because GeoTransform is typically very slow, we default to a tolerance
     // of 0.1 pixels to allow ourselves to be approximated.
@@ -95,7 +83,8 @@ namespace cartography {
       pj_transform(m_src_proj.proj_ptr(), m_dst_proj.proj_ptr(), 1, 0, &x, &y, &z);
     else
       pj_transform(m_dst_proj.proj_ptr(), m_src_proj.proj_ptr(), 1, 0, &x, &y, &z);
-    CHECK_PROJ_ERROR;
+    CHECK_PROJ_ERROR( m_src_proj );
+    CHECK_PROJ_ERROR( m_dst_proj );
 
     return Vector2(x, y);
   }
@@ -165,4 +154,3 @@ namespace cartography {
 }} // namespace vw::cartography
 
 #undef CHECK_PROJ_ERROR
-#undef CHECK_PROJ_INIT_ERROR

@@ -36,17 +36,7 @@
 #include <proj_api.h>
 
 // Macro for checking Proj.4 output, something we do a lot of.
-#if PJ_VERSION < 480
-
-#define CHECK_PROJ_ERROR if(pj_errno) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_errno))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_errno) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_errno))
-
-#else
-
-#define CHECK_PROJ_ERROR if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
-#define CHECK_PROJ_INIT_ERROR(str) if(pj_ctx_get_errno(pj_get_default_ctx())) vw_throw(InputErr() << "Proj.4 failed to initialize on string: " << str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(pj_get_default_ctx())))
-
-#endif
+#define CHECK_PROJ_ERROR(ctx_input) if(ctx_input.error_no()) vw_throw(ProjectionErr() << "Proj.4 error: " << pj_strerrno(ctx_input.error_no()))
 
 namespace vw {
 namespace cartography {
@@ -440,7 +430,7 @@ namespace cartography {
     projected.v = loc[1];
 
     unprojected = pj_inv(projected, m_proj_context.proj_ptr());
-    CHECK_PROJ_ERROR;
+    CHECK_PROJ_ERROR( m_proj_context );
 
     // Convert from radians to degrees.
     return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
@@ -468,7 +458,7 @@ namespace cartography {
     else if(unprojected.v < -BOUND) unprojected.v = -BOUND;
 
     projected = pj_fwd(unprojected, m_proj_context.proj_ptr());
-    CHECK_PROJ_ERROR;
+    CHECK_PROJ_ERROR( m_proj_context );
 
     return Vector2(projected.u, projected.v);
   }
@@ -488,20 +478,58 @@ namespace cartography {
     return strings;
   }
 
-  ProjContext::ProjContext(std::string const& proj4_str) {
+#if PJ_VERSION < 480
+  ProjContext::ProjContext(std::string const& proj4_str) : m_proj4_str(proj4_str) {
 
     // proj.4 is expecting the parameters to be split up into seperate
     // c-style strings.
     int num;
-    char** proj_strings = split_proj4_string(proj4_str, num);
+    char** proj_strings = split_proj4_string(m_proj4_str, num);
     m_proj_ptr.reset( pj_init(num, proj_strings),
                       pj_free );
-    CHECK_PROJ_INIT_ERROR(proj4_str);
 
-    for (int i = 0; i < num; i++)
-      delete [] proj_strings[i];
+    VW_ASSERT( !pj_errno, InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_errno) );
+
+    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
     delete [] proj_strings;
   }
+  ProjContext::ProjContext( ProjContext const& other ) : m_proj_ptr(other.m_proj_ptr), m_proj4_str(other.m_proj4_str) {}
+  ProjContext::error_no() const {
+    return pj_errno;
+  }
+#else
+  ProjContext::ProjContext(std::string const& proj4_str ) : m_proj4_str(proj4_str) {
+    m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
+    int num;
+    char** proj_strings = split_proj4_string(m_proj4_str, num);
+    m_proj_ptr.reset(pj_init_ctx( m_proj_ctx_ptr.get(),
+                                  num, proj_strings ),
+                     pj_free);
+
+    VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
+               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
+
+    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
+    delete [] proj_strings;
+  }
+  ProjContext::ProjContext( ProjContext const& other ) : m_proj4_str(other.m_proj4_str) {
+    m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
+    int num;
+    char** proj_strings = split_proj4_string(m_proj4_str, num);
+    m_proj_ptr.reset(pj_init_ctx( m_proj_ctx_ptr.get(),
+                                  num, proj_strings ),
+                     pj_free);
+
+    VW_ASSERT( !pj_ctx_get_errno(m_proj_ctx_ptr.get()),
+               InputErr() << "Proj.4 failed to initialize on string: " << m_proj4_str << "\n\tError was: " << pj_strerrno(pj_ctx_get_errno(m_proj_ctx_ptr.get())) );
+
+    for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
+    delete [] proj_strings;
+  }
+  int ProjContext::error_no() const {
+    return pj_ctx_get_errno(m_proj_ctx_ptr.get());
+  }
+#endif
 
   // Simple GeoReference modification tools
   GeoReference crop( GeoReference const& input,
@@ -551,4 +579,3 @@ namespace cartography {
 }} // vw::cartography
 
 #undef CHECK_PROJ_ERROR
-#undef CHECK_PROJ_INIT_ERROR

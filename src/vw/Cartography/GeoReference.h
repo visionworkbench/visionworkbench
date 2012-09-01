@@ -39,28 +39,39 @@
 // for this structure.
 #if !defined(PROJECTS_H)
 typedef void* projPJ;
+typedef void* projCtx;
 #else
 typedef PJ* projPJ;
+typedef projCtx_t *projCtx;
 #endif
 
 namespace vw {
 namespace cartography {
 
   // Here is some machinery to keep track of an initialized proj.4
-  // projection context using a smart pointer.  Using a smart pointer
-  // here simplies the rest of the GeoReference class considerably, and
-  // reduces the possibility of a memory related bug. Implementation
-  // code for most of it is in GeoReference.cc.
+  // projection context using a smart pointer.
+  //
+  // Implementation of the methods to this class change based on what
+  // Proj4 version is available. So unfortunately, the methods and
+  // private variables are a mash up of what is needed for the 4.7 and
+  // 4.8 versions.
   class ProjContext {
+    boost::shared_ptr<void> m_proj_ctx_ptr; //  Only used for Proj4.8
     boost::shared_ptr<void> m_proj_ptr;
+    std::string m_proj4_str;
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
-    ProjContext() {};
+    ProjContext() : m_proj4_str("") {};
     ProjContext(std::string const& proj4_str);
-    inline projPJ proj_ptr() const { return m_proj_ptr.get(); }
+    ProjContext(ProjContext const& other ); // Only used for Proj4.8
+    inline projPJ proj_ptr() const {
+      VW_ASSERT( !m_proj4_str.empty(),
+                 ArgumentErr() << "ProjContext: Projection not initialized." );
+      return m_proj_ptr.get();
+    }
+    int error_no() const;
   };
-
 
   /// The georeference class contains the mapping from image coordinates
   /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
