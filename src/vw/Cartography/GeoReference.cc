@@ -90,7 +90,7 @@ namespace cartography {
 
   void GeoReference::init_proj() {
     m_proj_context =
-      boost::shared_ptr<ProjContext>(new ProjContext(overall_proj4_str()));
+      ProjContext( overall_proj4_str() );
   }
 
   /// Construct a default georeference.  This georeference will use
@@ -439,7 +439,7 @@ namespace cartography {
     projected.u = loc[0];
     projected.v = loc[1];
 
-    unprojected = pj_inv(projected, m_proj_context->proj_ptr());
+    unprojected = pj_inv(projected, m_proj_context.proj_ptr());
     CHECK_PROJ_ERROR;
 
     // Convert from radians to degrees.
@@ -467,7 +467,7 @@ namespace cartography {
     if(unprojected.v > BOUND)        unprojected.v = BOUND;
     else if(unprojected.v < -BOUND) unprojected.v = -BOUND;
 
-    projected = pj_fwd(unprojected, m_proj_context->proj_ptr());
+    projected = pj_fwd(unprojected, m_proj_context.proj_ptr());
     CHECK_PROJ_ERROR;
 
     return Vector2(projected.u, projected.v);
@@ -494,16 +494,13 @@ namespace cartography {
     // c-style strings.
     int num;
     char** proj_strings = split_proj4_string(proj4_str, num);
-    m_proj_ptr = pj_init(num, proj_strings);
+    m_proj_ptr.reset( pj_init(num, proj_strings),
+                      pj_free );
     CHECK_PROJ_INIT_ERROR(proj4_str);
 
     for (int i = 0; i < num; i++)
       delete [] proj_strings[i];
     delete [] proj_strings;
-  }
-
-  ProjContext::~ProjContext() {
-    pj_free(m_proj_ptr);
   }
 
   // Simple GeoReference modification tools

@@ -51,21 +51,14 @@ namespace cartography {
   // here simplies the rest of the GeoReference class considerably, and
   // reduces the possibility of a memory related bug. Implementation
   // code for most of it is in GeoReference.cc.
-  class ProjContext : private boost::noncopyable {
-    // Declare projPJ as PJ like done in projects.h; sadly, C++ has no
-    // forward declaration of typedefs. So if Proj ever changes their
-    // names, we get screwed over here and have to change this as well.
-    typedef projPJ PJ;
-
-    PJ m_proj_ptr;
-
+  class ProjContext {
+    boost::shared_ptr<void> m_proj_ptr;
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
+    ProjContext() {};
     ProjContext(std::string const& proj4_str);
-
-    ~ProjContext();
-    inline PJ proj_ptr() { return m_proj_ptr; }
+    inline projPJ proj_ptr() const { return m_proj_ptr.get(); }
   };
 
 
@@ -75,7 +68,7 @@ namespace cartography {
   class GeoReference : public GeoReferenceBase {
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str, m_gml_str;
-    boost::shared_ptr<ProjContext> m_proj_context;
+    ProjContext m_proj_context;
     bool m_is_projected;
 
     void init_proj();

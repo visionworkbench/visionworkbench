@@ -71,13 +71,13 @@ namespace cartography {
       // We convert lat/long to lat/long regardless of what the
       // source or destination georef uses.
       ss_src << "+proj=latlong " << src_datum;
-      m_src_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_src.str()));
+      m_src_proj = ProjContext( ss_src.str() );
       CHECK_PROJ_INIT_ERROR( ss_src.str() );
 
       // The destination proj4 context.
       std::stringstream ss_dst;
       ss_dst << "+proj=latlong " << dst_datum;
-      m_dst_datum = boost::shared_ptr<ProjContext>(new ProjContext(ss_dst.str()));
+      m_dst_proj = ProjContext( ss_dst.str() );
       CHECK_PROJ_INIT_ERROR( ss_dst.str() );
     }
     // Because GeoTransform is typically very slow, we default to a tolerance
@@ -92,9 +92,9 @@ namespace cartography {
     double z = 0;
 
     if(forward)
-      pj_transform(m_src_datum->proj_ptr(), m_dst_datum->proj_ptr(), 1, 0, &x, &y, &z);
+      pj_transform(m_src_proj.proj_ptr(), m_dst_proj.proj_ptr(), 1, 0, &x, &y, &z);
     else
-      pj_transform(m_dst_datum->proj_ptr(), m_src_datum->proj_ptr(), 1, 0, &x, &y, &z);
+      pj_transform(m_dst_proj.proj_ptr(), m_src_proj.proj_ptr(), 1, 0, &x, &y, &z);
     CHECK_PROJ_ERROR;
 
     return Vector2(x, y);

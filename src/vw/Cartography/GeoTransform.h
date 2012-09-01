@@ -33,8 +33,7 @@ namespace cartography {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
-    boost::shared_ptr<ProjContext> m_src_datum;
-    boost::shared_ptr<ProjContext> m_dst_datum;
+    ProjContext m_src_proj, m_dst_proj;
     bool m_skip_map_projection;
     bool m_skip_datum_conversion;
 
