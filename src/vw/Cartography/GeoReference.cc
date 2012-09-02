@@ -494,7 +494,7 @@ namespace cartography {
     delete [] proj_strings;
   }
   ProjContext::ProjContext( ProjContext const& other ) : m_proj_ptr(other.m_proj_ptr), m_proj4_str(other.m_proj4_str) {}
-  ProjContext::error_no() const {
+  int ProjContext::error_no() const {
     return pj_errno;
   }
 #else
