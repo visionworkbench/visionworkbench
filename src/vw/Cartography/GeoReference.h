@@ -32,19 +32,6 @@
 #include <vw/Cartography/GeoReferenceDesc.pb.h>
 #endif
 
-// Forward declaration of Proj.4 things. C++ needs forward declaration of
-// typedefs so we can call it PJ instead of projPJ. Bad if Proj ever
-// changes their struct names; we suddenly have a difficult to find bug.
-// If the Proj API ever changes and this breaks, see if there's a new name
-// for this structure.
-#if !defined(PROJECTS_H)
-typedef void* projPJ;
-typedef void* projCtx;
-#else
-typedef PJ* projPJ;
-typedef projCtx_t *projCtx;
-#endif
-
 namespace vw {
 namespace cartography {
 
@@ -65,7 +52,7 @@ namespace cartography {
     ProjContext() : m_proj4_str("") {};
     ProjContext(std::string const& proj4_str);
     ProjContext(ProjContext const& other ); // Only used for Proj4.8
-    inline projPJ proj_ptr() const {
+    inline void* proj_ptr() const {
       VW_ASSERT( !m_proj4_str.empty(),
                  ArgumentErr() << "ProjContext: Projection not initialized." );
       return m_proj_ptr.get();
@@ -93,19 +80,20 @@ namespace cartography {
     Matrix3x3 const& vw_native_inverse_transform() const;
 
   public:
-
     /// Construct a default georeference.  This georeference will use
     /// the identity matrix as the initial transformation matrix, and
     /// select the default datum (WGS84) and projection (geographic).
     GeoReference();
 
-    /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
+    /// Takes a geodetic datum.  The affine transform defaults to the
+    /// identity matrix.
     GeoReference(Datum const& datum);
 
     /// Takes a geodetic datum and an affine transformation matrix
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform);
 
-    /// Takes a geodetic datum and an affine transformation matrix and pixel interpretation
+    /// Takes a geodetic datum and an affine transformation matrix and
+    /// pixel interpretation
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation);
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
