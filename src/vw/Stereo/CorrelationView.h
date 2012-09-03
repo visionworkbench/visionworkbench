@@ -252,7 +252,8 @@ namespace stereo {
                             PreFilterBase<PreFilterT> const& prefilter,
                             BBox2i const& search_region, Vector2i const& kernel_size,
                             CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                            float consistency_threshold = -1 ) :
+                            float consistency_threshold = -1,
+                            int32 max_pyramid_levels = 5 ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
       m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
@@ -261,6 +262,8 @@ namespace stereo {
       // search region.
       int32 largest_search = max( search_region.size() );
       m_max_level_by_search = std::floor(std::log(float(largest_search))/std::log(2.0f)) - 1;
+      if ( m_max_level_by_search > max_pyramid_levels )
+        m_max_level_by_search = max_pyramid_levels;
       if ( m_max_level_by_search < 0 )
         m_max_level_by_search = 0;
     }
@@ -571,11 +574,13 @@ namespace stereo {
                      PreFilterBase<PreFilterT> const& filter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                     float consistency_threshold = -1 ) {
+                     float consistency_threshold = -1,
+                     int32 max_pyramid_levels = 5 ) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T,PreFilterT> result_type;
     return result_type( left.impl(), right.impl(), left_mask.impl(),
                         right_mask.impl(), filter.impl(), search_region,
-                        kernel_size, cost_type, consistency_threshold );
+                        kernel_size, cost_type, consistency_threshold,
+                        max_pyramid_levels );
   }
 
 }} // namespace vw::stereo

@@ -320,6 +320,7 @@ namespace stereo {
     // General Settings
     Vector2i m_kernel_size;
     PreprocFilterT m_preproc_filter;
+    int32 m_max_pyramid_levels;
 
   public:
     typedef PixelMask<Vector2f> pixel_type;
@@ -330,19 +331,23 @@ namespace stereo {
                         ImageViewBase<ImageT1> const& left_image,
                         ImageViewBase<ImageT2> const& right_image,
                         PreFilterBase<PreprocFilterT> const& preproc_filter,
-                        Vector2i const& kernel_size ) :
+                        Vector2i const& kernel_size,
+                        int32 max_pyramid_levels = 2 ) :
       m_disparity_map(disparity_map.impl()),
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
-      m_kernel_size(kernel_size),
-      m_preproc_filter(preproc_filter.impl()) {
+      m_kernel_size(kernel_size), m_preproc_filter(preproc_filter.impl()),
+      m_max_pyramid_levels(max_pyramid_levels) {
       // Basic assertions
       VW_ASSERT( m_disparity_map.cols() == m_left_image.cols() &&
                  m_disparity_map.rows() == m_left_image.rows(),
                  ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView():  Disparity image must match left image.\n");
-      
+
       VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
                 (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
                 ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView(): multi-channel, multi-plane images not supported.\n");
+
+      // Max pyramid can't go below 0 ... or bayes em won't process anything
+      if ( m_max_pyramid_levels < 0 ) m_max_pyramid_levels = 0;
     }
 
     // Standard ImageView interface methods
@@ -404,7 +409,6 @@ namespace stereo {
       PixelMask<Vector2f> disparity_patch_translation( search_range.min() );
       disparity_map_patch -= disparity_patch_translation;
 
-      const int32 pyramid_levels = 2;
       std::vector< ImageView<float> > l_patches, r_patches;
       std::vector<BBox2i> rois;
       ImageView<pixel_type > d_subpatch;
@@ -412,7 +416,7 @@ namespace stereo {
       // I'd like for image subsampling to use a gaussian when
       // downsampling however it was introducing some edge effects
       // that I couldn't figure out within a reasonable time frame.
-      for ( int32 i = 0; i < pyramid_levels; i++ ) {
+      for ( int32 i = 0; i < m_max_pyramid_levels; i++ ) {
         if ( i > 0 ) {
           // Building all other levels
           l_patches.push_back( subsample( l_patches.back(), 2 ) );
@@ -431,7 +435,7 @@ namespace stereo {
         }
       }
 
-      for ( int32 i = pyramid_levels-1; i >= 0; i-- ) {
+      for ( int32 i = m_max_pyramid_levels-1; i >= 0; i-- ) {
         subpixel_optimized_affine_2d_EM(d_subpatch,
                                         l_patches[i], r_patches[i],
                                         m_kernel_size[0], m_kernel_size[1],
@@ -485,10 +489,12 @@ namespace stereo {
                      ImageViewBase<ImageT1> const& left_image,
                      ImageViewBase<ImageT2> const& right_image,
                      PreFilterBase<PreprocFilterT> const& filter,
-                     Vector2i const& kernel_size ) {
+                     Vector2i const& kernel_size,
+                     int max_pyramid_levels = 2 ) {
     typedef BayesEMSubpixelView<PreprocFilterT,ImageT1,ImageT2,DisparityT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),
-                        right_image.impl(), filter.impl(), kernel_size );
+                        right_image.impl(), filter.impl(), kernel_size,
+                        max_pyramid_levels );
   }
 
 }} // namespace vw::stereo
