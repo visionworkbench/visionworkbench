@@ -514,6 +514,11 @@ namespace cartography {
   }
   ProjContext::ProjContext( ProjContext const& other ) : m_proj4_str(other.m_proj4_str) {
     m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
+    if ( m_proj4_str.empty() )
+      return; // They've made a copy of an uninitialized
+              // projcontext. Not an error .. since they can
+              // initialize later.
+
     int num;
     char** proj_strings = split_proj4_string(m_proj4_str, num);
     m_proj_ptr.reset(pj_init_ctx( m_proj_ctx_ptr.get(),
