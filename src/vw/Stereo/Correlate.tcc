@@ -581,7 +581,6 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
         //set init params - END
 
         float in_curr_sum_I_e_val = 0.0;
-        float in_prev_sum_I_e_val = 1000000.0;
         Vector6f d_em;
         d_em = d;
 
@@ -759,8 +758,6 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
           // Termination condition
           if ((conv_error < 1E-3) && (em_iter > 0))
             break;
-          else
-            in_prev_sum_I_e_val = in_curr_sum_I_e_val;
 
         } // for em_iter end
 
