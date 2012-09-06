@@ -54,57 +54,57 @@ void camera::PinholeModel::read_old_file(std::string const& filename) {
   if (cam_file == 0) vw_throw( IOErr() << "PinholeModel::read_file: Could not open file\n" );
 
   // Read intrinsic parameters
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"fu = %lf", &fu) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"fu = %lf", &fu) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x focal length\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"fv = %lf", &fv) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"fv = %lf", &fv) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y focal length\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"cu = %lf", &cu) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"cu = %lf", &cu) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read x principal point\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"cv = %lf", &cv) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"cv = %lf", &cv) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read y principal point\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"u_direction = %lf %lf %lf", &u_direction(0), &u_direction(1), &u_direction(2)) != 3) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"u_direction = %lf %lf %lf", &u_direction(0), &u_direction(1), &u_direction(2)) != 3) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read u direction vector\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"v_direction = %lf %lf %lf", &v_direction(0), &v_direction(1), &v_direction(2)) != 3) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"v_direction = %lf %lf %lf", &v_direction(0), &v_direction(1), &v_direction(2)) != 3) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read v direction vector\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"w_direction = %lf %lf %lf", &w_direction(0), &w_direction(1), &w_direction(2)) != 3) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"w_direction = %lf %lf %lf", &w_direction(0), &w_direction(1), &w_direction(2)) != 3) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read w direction vector\n" );
   }
 
   // Read extrinsic parameters
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file: Could not read C (camera center) vector\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if ( sscanf(line, "R = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+  if ( !fgets(line, sizeof(line), cam_file) ||
+       sscanf(line, "R = %lf %lf %lf %lf %lf %lf %lf %lf %lf",
               &R(0,0), &R(0,1), &R(0,2),
               &R(1,0), &R(1,1), &R(1,2),
               &R(2,0), &R(2,1), &R(2,2)) != 9 ) {
@@ -113,26 +113,26 @@ void camera::PinholeModel::read_old_file(std::string const& filename) {
   }
 
   // Read distortion parameters.
-   fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"k1 = %lf", &distortion_params[0] ) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"k1 = %lf", &distortion_params[0] ) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k1\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"k2 = %lf", &distortion_params[1] ) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"k2 = %lf", &distortion_params[1] ) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter k2\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"p1 = %lf", &distortion_params[2] ) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"p1 = %lf", &distortion_params[2] ) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p1\n" );
   }
 
-  fgets(line, sizeof(line), cam_file);
-  if (sscanf(line,"p2 = %lf", &distortion_params[3] ) != 1) {
+  if (!fgets(line, sizeof(line), cam_file) ||
+      sscanf(line,"p2 = %lf", &distortion_params[3] ) != 1) {
     fclose(cam_file);
     vw_throw( IOErr() << "PinholeModel::read_file(): Could not read tsai distortion parameter p2\n" );
   }

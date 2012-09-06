@@ -143,45 +143,45 @@ namespace camera {
     Vector3 Hvec, Vvec;
 
     // Read intrinsic parameters
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"f = %lf", &f) != 1) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"f = %lf", &f) != 1) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read focal length\n" );
       fclose(camFP);
     }
 
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"SP = %lf %lf", &pixelSize.x(), &pixelSize.y()) != 2) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"SP = %lf %lf", &pixelSize.x(), &pixelSize.y()) != 2) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read pixel size\n" );
       fclose(camFP);
     }
 
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"IC = %lf %lf", &Hc, &Vc) != 2) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"IC = %lf %lf", &Hc, &Vc) != 2) {
       vw_throw( IOErr() << "CAHVModel::ReadPinhole: Could not read image center pos\n" );
       fclose(camFP);
     }
 
     // Read extrinsic parameters
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"C = %lf %lf %lf", &C(0), &C(1), &C(2)) != 3) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read C vector\n" );
       fclose(camFP);
     }
 
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"A = %lf %lf %lf", &A(0), &A(1), &A(2)) != 3) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"A = %lf %lf %lf", &A(0), &A(1), &A(2)) != 3) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read A vector\n" );
       fclose(camFP);
     }
 
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"Hv = %lf %lf %lf", &Hvec(0), &Hvec(1), &Hvec(2)) != 3) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"Hv = %lf %lf %lf", &Hvec(0), &Hvec(1), &Hvec(2)) != 3) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read Hvec\n" );
       fclose(camFP);
     }
 
-    fgets(line, sizeof(line), camFP);
-    if (sscanf(line,"Vv = %lf %lf %lf", &Vvec(0), &Vvec(1), &Vvec(2)) != 3) {
+    if (!fgets(line, sizeof(line), camFP) ||
+        sscanf(line,"Vv = %lf %lf %lf", &Vvec(0), &Vvec(1), &Vvec(2)) != 3) {
       vw_throw( IOErr() << "CAHVModel::read_pinhole: Could not read Vvec\n" );
       fclose(camFP);
     }
