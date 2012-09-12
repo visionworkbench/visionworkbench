@@ -151,7 +151,7 @@ struct TestStream : public ::testing::Test {
 
     void CHECK(const char* e, const char* a, size_t size = 0) const {
       if (size == 0) size = SIZE;
-      EXPECT_RANGE_EQ(e, e+SIZE, a, a+SIZE);
+      EXPECT_RANGE_EQ(e, e+size, a, a+size);
     }
     void CANARY(char* loc, size_t size = 0) const {
       assert(size <= SIZE);
