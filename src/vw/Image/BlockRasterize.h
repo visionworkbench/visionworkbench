@@ -65,8 +65,8 @@ namespace vw {
 #endif
       if ( m_cache_ptr ) {
         // Early-out optimization for single-block resources
-        if( m_block_table->size() == 1 ) {
-          return ((*m_block_table)[0])->operator()( x, y, p );
+        if( m_block_table.size() == 1 ) {
+          return m_block_table[0]->operator()( x, y, p );
         }
         int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
         return block(ix,iy)->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y(), p );
@@ -160,7 +160,7 @@ namespace vw {
       if( m_cache_ptr ) {
         m_table_width = (cols()-1) / m_block_size.x() + 1;
         m_table_height = (rows()-1) / m_block_size.y() + 1;
-        m_block_table.reset( new std::vector<Cache::Handle<BlockGenerator> >( m_table_width * m_table_height ) );
+        m_block_table.resize( m_table_width * m_table_height );
         BBox2i view_bbox(0,0,cols(),rows());
         for( int32 iy=0; iy<m_table_height; ++iy ) {
           for( int32 ix=0; ix<m_table_width; ++ix ) {
@@ -172,11 +172,18 @@ namespace vw {
       }
     }
 
-    Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
+    const Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
       if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
         vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix
                   << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")" );
-      return (*m_block_table)[ix+iy*m_table_width];
+      return m_block_table[ix+iy*m_table_width];
+    }
+
+    Cache::Handle<BlockGenerator>& block( int ix, int iy )  {
+      if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
+        vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix
+                  << "," << iy << ") of (" << m_table_width << "," << m_table_height << ")" );
+      return m_block_table[ix+iy*m_table_width];
     }
 
     // We store this by shared pointer so it doesn't move when we copy
@@ -186,9 +193,8 @@ namespace vw {
     int32 m_num_threads;
     Cache *m_cache_ptr;
     int m_table_width, m_table_height;
-    // We store this by shared pointer so copying a BlockRasterizeView
-    // (i.e. to promote its scope) is not as expensive an operation.
-    boost::shared_ptr<std::vector<Cache::Handle<BlockGenerator> > > m_block_table;
+    // Handles are lightweight and are just pointers underneath
+    std::vector<Cache::Handle<BlockGenerator> > m_block_table;
   };
 
   template <class ImageT>
