@@ -112,109 +112,135 @@ namespace vw {
       friend class Cache;
     protected:
       Cache& cache() const { return m_cache; }
-      inline void allocate() { m_cache.allocate(m_size); }
-      inline void deallocate() { m_cache.deallocate(m_size); }
+      inline void allocate() { m_cache.allocate(m_size, this); }
+      inline void deallocate() { m_cache.deallocate(m_size, this); }
       inline void validate() { m_cache.validate(this); }
-      inline void remove() { m_cache.remove( this ); }
+      inline void remove() { m_cache.remove(this); }
       inline void deprioritize() { m_cache.deprioritize(this); }
     public:
       CacheLineBase( Cache& cache, size_t size ) : m_cache(cache), m_prev(0), m_next(0), m_size(size) {}
       virtual ~CacheLineBase() {}
       virtual inline void invalidate() { m_cache.invalidate(this); }
+      virtual inline bool try_invalidate() { m_cache.invalidate(this); return true; }
       virtual size_t size() const { return m_size; }
     };
     friend class CacheLineBase;
 
     // CacheLine<>
+    //
+    // Always follow the order of mutexs is:
+    // ACQUIRE LINE FIRST
+    // ACQUIRE CACHE's LINE MGMT SECOND
     template <class GeneratorT>
     class CacheLine : public CacheLineBase {
       GeneratorT m_generator;
       typedef typename boost::shared_ptr<typename core::detail::GenValue<GeneratorT>::type> value_type;
       value_type m_value;
       Mutex m_mutex; // Mutex for m_value and generation of this cache line
-      unsigned m_generation_count;
+      uint64 m_generation_count;
 
     public:
       CacheLine( Cache& cache, GeneratorT const& generator )
         : CacheLineBase(cache,core::detail::pointerish(generator)->size()), m_generator(generator), m_generation_count(0)
       {
         VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache creating CacheLine " << info() << "\n"; )
-        Mutex::Lock cache_lock(cache.m_mutex);
         CacheLineBase::invalidate();
       }
 
       virtual ~CacheLine() {
-        Mutex::Lock cache_lock(cache().m_mutex);
         invalidate();
         VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
         remove();
       }
 
       virtual void invalidate() {
-        Mutex::Lock line_lock(m_mutex);
-        if( ! m_value ) return;
+        Mutex::WriteLock line_lock(m_mutex);
+        if( !m_value ) return;
+
         VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
-        CacheLineBase::invalidate();
-        CacheLineBase::deallocate();
+        CacheLineBase::deallocate(); // Calls invalidate internally
         m_value.reset();
       }
 
+      virtual bool try_invalidate() {
+        bool have_lock = m_mutex.try_lock();
+        if ( !have_lock ) return false;
+        if ( !m_value ) {
+          m_mutex.unlock();
+          return true;
+        }
+
+        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
+        CacheLineBase::deallocate(); // Calls invalidate internally
+        m_value.reset();
+
+        m_mutex.unlock();
+        return true;
+      }
+
       std::string info() {
+        Mutex::WriteLock line_lock(m_mutex);
         std::ostringstream oss;
         oss << typeid(this).name() << " " << this
             << " (size " << (int)size() << ", gen count " << m_generation_count << ")";
         return oss.str();
       }
 
+      // This grabs a lock and never releases it! User must unlock
+      // themselves because we are passing them a pointer to an object
+      // that another thread could delete.
       value_type const& value() {
-        bool hit = true;
-        Mutex::Lock line_lock(m_mutex);
-        if( !m_value ) {
-          m_generation_count++;
-          hit = false;
-          VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; )
-          {
-            Mutex::Lock cache_lock(cache().m_mutex);
-            CacheLineBase::allocate();
+        m_mutex.lock();
+        bool hit = (bool)m_value;
+        {
+          { // This should be abstracted into a call
+            Mutex::WriteLock cache_lock( cache().m_stats_mutex );
+            if (hit)
+              cache().m_hits++;
+            else
+              cache().m_misses++;
           }
+        }
+        if( !hit ) {
+          VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; );
+          CacheLineBase::allocate(); // Call validate internally
+
+          // Watch is just used for debugging / info
           ScopedWatch sw((std::string("Cache ")
                           + (m_generation_count == 1 ? "generating " : "regenerating ")
                           + typeid(this).name()).c_str());
+          m_generation_count++;
           m_value = core::detail::pointerish(m_generator)->generate();
-        }
-        {
-          Mutex::Lock cache_lock(cache().m_mutex);
-          CacheLineBase::validate();
-          if (hit)
-            cache().m_hits++;
-          else
-            cache().m_misses++;
         }
         return m_value;
       }
 
+      void release() {
+        m_mutex.unlock();
+      }
+
       bool valid() {
-        Mutex::Lock line_lock(m_mutex);
-        return (bool)m_value;
+        Mutex::WriteLock line_lock(m_mutex);
+        return m_value;
       }
 
       void deprioritize() {
-        Mutex::Lock line_lock(m_mutex);
-        if( m_value ) {
-          Mutex::Lock cache_lock(cache().m_mutex);
+        bool exists = valid();
+        if ( exists ) {
+          Mutex::WriteLock line_lock(m_mutex);
           CacheLineBase::deprioritize();
         }
       }
     };
 
-
     CacheLineBase *m_first_valid, *m_last_valid, *m_first_invalid;
     size_t m_size, m_max_size;
-    Mutex m_mutex;
-    vw::uint64 m_hits, m_misses, m_evictions;
+    RecursiveMutex m_line_mgmt_mutex;
+    Mutex m_stats_mutex;
+    volatile vw::uint64 m_hits, m_misses, m_evictions;
 
-    void allocate( size_t size );
-    void deallocate( size_t size );
+    void allocate( size_t size, CacheLineBase *line );
+    void deallocate( size_t size, CacheLineBase *line );
     void validate( CacheLineBase *line );
     void invalidate( CacheLineBase *line );
     void remove( CacheLineBase *line );
@@ -226,22 +252,34 @@ namespace vw {
     template <class GeneratorT>
     class Handle {
       boost::shared_ptr<CacheLine<GeneratorT> > m_line_ptr;
+      mutable bool m_is_locked;
     public:
       typedef typename core::detail::GenValue<GeneratorT>::type value_type;
 
-      Handle() {}
-      Handle( boost::shared_ptr<CacheLine<GeneratorT> > line_ptr ) : m_line_ptr(line_ptr) {}
+      Handle() : m_is_locked(false) {}
+      Handle( boost::shared_ptr<CacheLine<GeneratorT> > line_ptr ) : m_line_ptr(line_ptr), m_is_locked(false) {}
+      ~Handle() {
+        if (m_is_locked)
+          m_line_ptr->release();
+      }
       boost::shared_ptr<value_type> operator->() const {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
+        m_is_locked = true;
         return m_line_ptr->value();
       }
       value_type const& operator*() const {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
+        m_is_locked = true;
         return *(m_line_ptr->value());
       }
       operator boost::shared_ptr<value_type>() const {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
+        m_is_locked = true;
         return m_line_ptr->value();
+      }
+      void release() const {
+        m_is_locked = false;
+        m_line_ptr->release();
       }
       bool valid() const {
         VW_ASSERT( m_line_ptr, NullPtrErr() << "Invalid cache handle!" );
@@ -274,15 +312,13 @@ namespace vw {
     }
 
     void resize( size_t size );
-    size_t max_size() { return m_max_size; }
+    size_t max_size();
 
-    uint64 hits() const { return m_hits; }
-    uint64 misses() const { return m_misses; }
-    uint64 evictions() const {return m_evictions; }
-    void clear_stats() {
-      Mutex::Lock cache_lock(m_mutex);
-      m_hits = m_misses = m_evictions = 0;
-    }
+    // Statistics functions
+    uint64 hits();
+    uint64 misses();
+    uint64 evictions();
+    void clear_stats();
   };
 } // namespace vw
 

@@ -82,10 +82,12 @@ TEST_F(CacheTest, CacheLineLRU) {
 
     ASSERT_FALSE(h.valid());
     EXPECT_EQ(i, *h);
+    EXPECT_NO_THROW( h.release() );
     EXPECT_TRUE(h.valid());
 
     boost::shared_ptr<BlockGenerator::value_type> ptr = h;
     EXPECT_EQ(i, *ptr);
+    h.release();
 
     // LRU cache, so the last num_cache_blocks should still be valid
     for (int j = 0; i-j >= 0; ++j)
@@ -107,6 +109,7 @@ TEST_F(CacheTest, Priority) {
   // prime the cache
   for (int i = 0; i < num_actual_blocks; ++i) {
     EXPECT_EQ(i, *cache_handles[i]);
+    EXPECT_NO_THROW( cache_handles[i].release() );
   }
 
   //make sure last element is valid
@@ -119,6 +122,7 @@ TEST_F(CacheTest, Priority) {
   // bring the first element back into cache
   ASSERT_FALSE(cache_handles[0].valid());
   EXPECT_EQ( 0, *cache_handles[0] );
+  EXPECT_NO_THROW( cache_handles[0].release() );
   EXPECT_TRUE(cache_handles[0].valid());
 
   // make sure that the deprioritized element dropped out of cache
@@ -154,8 +158,10 @@ TEST(Cache, Types) {
 
   // value should have copied once
   EXPECT_EQ(1, *h1);
+  EXPECT_NO_THROW( h1.release() );
   // shared_ptr should not have copied
   EXPECT_EQ(0, *h2);
+  EXPECT_NO_THROW( h2.release() );
 }
 
 TEST(Cache, Stats) {
@@ -175,6 +181,7 @@ TEST(Cache, Stats) {
 
   // miss
   EXPECT_EQ(0, *h[0]);
+  EXPECT_NO_THROW( h[0].release() );
 
   EXPECT_EQ(0u, cache.hits());
   EXPECT_EQ(1u, cache.misses());
@@ -182,6 +189,7 @@ TEST(Cache, Stats) {
 
   // hit
   EXPECT_EQ(0, *h[0]);
+  EXPECT_NO_THROW( h[0].release() );
 
   EXPECT_EQ(1u, cache.hits());
   EXPECT_EQ(1u, cache.misses());
@@ -189,6 +197,7 @@ TEST(Cache, Stats) {
 
   // miss
   EXPECT_EQ(1, *h[1]);
+  EXPECT_NO_THROW( h[1].release() );
 
   EXPECT_EQ(1u, cache.hits());
   EXPECT_EQ(2u, cache.misses());
@@ -196,6 +205,7 @@ TEST(Cache, Stats) {
 
   // hit
   EXPECT_EQ(1, *h[1]);
+  EXPECT_NO_THROW( h[1].release() );
 
   EXPECT_EQ(2u, cache.hits());
   EXPECT_EQ(2u, cache.misses());
@@ -203,6 +213,7 @@ TEST(Cache, Stats) {
 
   // miss, eviction
   EXPECT_EQ(2, *h[2]);
+  EXPECT_NO_THROW( h[2].release() );
 
   EXPECT_EQ(2u, cache.hits());
   EXPECT_EQ(3u, cache.misses());
@@ -210,6 +221,7 @@ TEST(Cache, Stats) {
 
   // hit
   EXPECT_EQ(2, *h[2]);
+  EXPECT_NO_THROW( h[2].release() );
 
   EXPECT_EQ(3u, cache.hits());
   EXPECT_EQ(3u, cache.misses());
@@ -217,6 +229,7 @@ TEST(Cache, Stats) {
 
   // hit
   EXPECT_EQ(1, *h[1]);
+  EXPECT_NO_THROW( h[1].release() );
 
   EXPECT_EQ(4u, cache.hits());
   EXPECT_EQ(3u, cache.misses());
@@ -224,6 +237,7 @@ TEST(Cache, Stats) {
 
   // miss, eviction
   EXPECT_EQ(0, *h[0]);
+  EXPECT_NO_THROW( h[0].release() );
 
   EXPECT_EQ(4u, cache.hits());
   EXPECT_EQ(4u, cache.misses());

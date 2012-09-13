@@ -98,24 +98,27 @@ namespace vw {
   public:
     inline Mutex() {}
 
-    void lock()          { boost::shared_mutex::lock(); }
-    void lock_shared()   { boost::shared_mutex::lock_shared(); }
-    void unlock()        { boost::shared_mutex::unlock(); }
-    void unlock_shared() { boost::shared_mutex::unlock_shared(); }
+    void lock()            { boost::shared_mutex::lock(); }
+    void lock_shared()     { boost::shared_mutex::lock_shared(); }
+    bool try_lock()        { return boost::shared_mutex::try_lock(); }
+    bool try_lock_shared() { return boost::shared_mutex::try_lock_shared(); }
+    void unlock()          { boost::shared_mutex::unlock(); }
+    void unlock_shared()   { boost::shared_mutex::unlock_shared(); }
 
     // A scoped lock class, used to lock and unlock a Mutex.
     class WriteLock : private boost::unique_lock<Mutex>, private boost::noncopyable {
-      public:
-        inline WriteLock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
-        void lock()       { boost::unique_lock<Mutex>::lock(); }
-        void unlock()     { boost::unique_lock<Mutex>::unlock(); }
+    public:
+      inline WriteLock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
+      void lock()          { boost::unique_lock<Mutex>::lock(); }
+      void unlock()        { boost::unique_lock<Mutex>::unlock(); }
     };
     class ReadLock : private boost::shared_lock<Mutex>, private boost::noncopyable {
-      public:
-        inline ReadLock( Mutex &mutex ) : boost::shared_lock<Mutex>( mutex ) {}
-        void lock()       { boost::shared_lock<Mutex>::lock(); }
-        void unlock()     { boost::shared_lock<Mutex>::unlock(); }
+    public:
+      inline ReadLock( Mutex &mutex ) : boost::shared_lock<Mutex>( mutex ) {}
+      void lock()          { boost::shared_lock<Mutex>::lock(); }
+      void unlock()        { boost::shared_lock<Mutex>::unlock(); }
     };
+
     typedef class WriteLock Lock;
   };
 

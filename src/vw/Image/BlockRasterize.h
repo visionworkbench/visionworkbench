@@ -138,8 +138,8 @@ namespace vw {
         return m_bbox.width() * m_bbox.height() * m_child->planes() * sizeof(pixel_type);
       }
 
-      boost::shared_ptr<ImageView<pixel_type> > generate() const {
-        boost::shared_ptr<ImageView<pixel_type> > ptr( new ImageView<pixel_type>( m_bbox.width(), m_bbox.height(), m_child->planes() ) );
+      boost::shared_ptr<value_type > generate() const {
+        boost::shared_ptr<value_type > ptr( new value_type( m_bbox.width(), m_bbox.height(), m_child->planes() ) );
         m_child->rasterize( *ptr, m_bbox );
         return ptr;
       }
