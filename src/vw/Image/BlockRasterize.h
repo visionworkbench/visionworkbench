@@ -66,10 +66,16 @@ namespace vw {
       if ( m_cache_ptr ) {
         // Early-out optimization for single-block resources
         if( m_block_table.size() == 1 ) {
-          return m_block_table[0]->operator()( x, y, p );
+          const Cache::Handle<BlockGenerator>& handle = m_block_table[0];
+          result_type result = handle->operator()( x, y, p );
+          handle.release();
+          return result;
         }
         int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
-        return block(ix,iy)->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y(), p );
+        const Cache::Handle<BlockGenerator>& handle = block(ix,iy);
+        result_type result = handle->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y(), p );
+        handle.release();
+        return result;
       }
       else return (*m_child)(x,y,p);
     }
@@ -114,7 +120,9 @@ namespace vw {
             vw_throw(LogicErr() << "BlockRasterizeView::RasterizeFunctor: bbox spans more than one cache block!");
           }
 #endif
-          m_view.block(ix,iy)->rasterize( crop( m_dest, bbox-m_offset ), bbox-Vector2i(ix*m_view.m_block_size.x(),iy*m_view.m_block_size.y()) );
+          const Cache::Handle<BlockGenerator>& handle = m_view.block(ix,iy);
+          handle->rasterize( crop( m_dest, bbox-m_offset ), bbox-Vector2i(ix*m_view.m_block_size.x(),iy*m_view.m_block_size.y()) );
+          handle.release();
         }
         else m_view.child().rasterize( crop( m_dest, bbox-m_offset ), bbox );
       }

@@ -186,6 +186,7 @@ namespace mosaic {
       }
       boost::shared_ptr<value_type> generate() const {
         ImageView<pixel_type> source = *m_composite.sources[m_index];
+        m_composite.sources[m_index].release();
         m_composite.sources[m_index].deprioritize();
         return boost::shared_ptr<value_type>( new value_type( select_alpha_channel( source ) ) );
       }
@@ -367,6 +368,7 @@ boost::shared_ptr<typename vw::mosaic::ImageComposite<PixelT>::Pyramid> vw::mosa
   vw_out(DebugMessage, "mosaic") << "ImageComposite generating pyramid " << m_index << std::endl;
   boost::shared_ptr<Pyramid> ptr( new Pyramid );
   ImageView<pixel_type> source = copy(*m_composite.sources[m_index]);
+  m_composite.sources[m_index].release();
   m_composite.sources[m_index].deprioritize();
 
   // This is sort of a kluge: the hole-filling algorithm currently
@@ -509,6 +511,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
       pyr->images[l].addto( sum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
       pyr->masks[l].addto( msum_pyr[l], bbox_pyr[l].min().x(), bbox_pyr[l].min().y() );
     }
+    pyramids[p].release();
   }
 
   // Collapse the pyramid
@@ -536,6 +539,7 @@ vw::ImageView<PixelT> vw::mosaic::ImageComposite<PixelT>::blend_patch( BBox2i co
       if( ! patch_bbox.intersects( bboxes[p] ) ) continue;
 
       ImageView<channel_type> source_alpha = *alphas[p];
+      alphas[p].release();
 
       BBox2i overlap = patch_bbox;
       overlap.crop( bboxes[p] );

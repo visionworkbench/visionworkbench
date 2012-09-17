@@ -89,7 +89,11 @@ boost::shared_ptr<IndexPage> IndexLevel::load_page(uint32 col, uint32 row) const
       m_page_gen_factory->create(m_level, floorto(col, m_page_width), floorto(row, m_page_height), m_page_width, m_page_height);
       m_cache_handles[idx] = m_cache.insert( generator );
   }
-  return m_cache_handles[idx];
+
+  // WARNING! CACHE MIGHT DELETE YOUR POINTER HERE!
+  boost::shared_ptr<IndexPage> result = m_cache_handles[idx];
+  m_cache_handles[idx].release();
+  return result;
 }
 
 

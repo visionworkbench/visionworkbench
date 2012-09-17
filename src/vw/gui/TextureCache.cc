@@ -127,6 +127,7 @@ public:
         // deallocation requests to be produced as well if cache tile
         // need to be deallocated to make room for the new tile.
         (*(r->handle)).texture_id();
+        r->handle.release();
 
       } else {
 
@@ -241,6 +242,7 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
     new_record->handle = m_gl_texture_cache_ptr->insert( GlTextureGenerator(m_tile_generator,
                                                                             tile_info,
                                                                             new_record_ptr) );
+    new_record->handle.release();
 
     // Place this cache handle into the tree for later access.
     m_texture_records->insert( new_record_ptr, tile_info.col, tile_info.row,
