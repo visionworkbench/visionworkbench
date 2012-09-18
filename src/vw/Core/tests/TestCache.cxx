@@ -17,10 +17,12 @@
 
 
 #include <memory>
+#include <numeric>
 #include <gtest/gtest_VW.h>
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/ThreadPool.h>
 #include <boost/shared_array.hpp>
 
 using namespace vw;
@@ -248,4 +250,67 @@ TEST(Cache, Stats) {
   EXPECT_EQ(0u, cache.hits());
   EXPECT_EQ(0u, cache.misses());
   EXPECT_EQ(0u, cache.evictions());
+}
+
+// Here's a more aggressive test that uses many threads plus a good
+// chunk of memory (24k).
+class ArrayDataGenerator {
+public:
+  typedef std::vector<char> value_type;
+  ArrayDataGenerator() {}
+  size_t size() const { return 1024; }
+  boost::shared_ptr<value_type> generate() const {
+    char number = rand() % 255;
+    boost::shared_ptr<value_type> ptr( new value_type(1024,number) );
+    return ptr;
+  }
+};
+
+class TestTask : public vw::Task {
+  std::vector<Cache::Handle<ArrayDataGenerator> > m_handles;
+
+public:
+  TestTask( std::vector<Cache::Handle<ArrayDataGenerator> > const& handles ) : m_handles( handles ) {}
+
+  virtual ~TestTask() {}
+  virtual void operator()() {
+    size_t index_a = rand() % m_handles.size(),
+      index_b = rand() % m_handles.size();
+    std::vector<uint8> a( (const std::vector<uint8>&)(*m_handles[index_a]) );
+    m_handles[index_a].release();
+    std::vector<uint8> b( (const std::vector<uint8>&)(*m_handles[index_b]) );
+    m_handles[index_b].release();
+    VW_ASSERT( a.size() != 0, IOErr() << "Size is wrong!" );
+    VW_ASSERT( b.size() != 0, IOErr() << "Size is wrong!" );
+    std::vector<uint8> c( a.size() );
+    for ( size_t i = 0; i < a.size(); i++ ) {
+      c[i] = a[i] + b[i];
+    }
+    // Don't let the compiler optimize this away.
+    volatile int result = std::accumulate(c.begin(), c.end(), 0 );
+  }
+};
+
+TEST(Cache, StressTest) {
+  typedef Cache::Handle<ArrayDataGenerator> handle_t;
+  vw::Cache cache( 6*1024 );
+
+  // Creating handles for our data
+  std::vector<handle_t> handles;
+  for ( size_t i = 0; i < 24; i++ ) {
+    handles.push_back( cache.insert( ArrayDataGenerator() ) );
+  }
+
+  // Create a FIFO buffer with a 1000 threads ... 12 running at
+  // anytime that try to access the cache randomly.
+  FifoWorkQueue queue(12);
+  for ( size_t i = 0; i < 1000; i++ ) {
+    boost::shared_ptr<Task> task( new TestTask(handles) );
+    queue.add_task( task );
+  }
+
+  // If this test fails ... it will deadlock. Maybe we should have
+  // this entire test case in a different thread where I can measure
+  // its time?
+  EXPECT_NO_THROW( queue.join_all(); );
 }
