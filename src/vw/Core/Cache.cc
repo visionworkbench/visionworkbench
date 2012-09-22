@@ -77,7 +77,6 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
           // pretty close to our allocations amount.
           break;
         } {
-          RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
           local_last_valid = m_last_valid;
         }
       }

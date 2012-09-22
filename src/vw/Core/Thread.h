@@ -100,10 +100,14 @@ namespace vw {
 
     void lock()            { boost::shared_mutex::lock(); }
     void lock_shared()     { boost::shared_mutex::lock_shared(); }
+    void lock_upgrade()    { boost::shared_mutex::lock_upgrade(); }
     bool try_lock()        { return boost::shared_mutex::try_lock(); }
     bool try_lock_shared() { return boost::shared_mutex::try_lock_shared(); }
     void unlock()          { boost::shared_mutex::unlock(); }
     void unlock_shared()   { boost::shared_mutex::unlock_shared(); }
+    void unlock_upgrade_and_lock() { boost::shared_mutex::unlock_upgrade_and_lock(); }
+    void unlock_and_lock_upgrade() { boost::shared_mutex::unlock_and_lock_upgrade(); }
+    void unlock_upgrade_and_lock_shared() { boost::shared_mutex::unlock_upgrade_and_lock_shared(); }
 
     // A scoped lock class, used to lock and unlock a Mutex.
     class WriteLock : private boost::unique_lock<Mutex>, private boost::noncopyable {

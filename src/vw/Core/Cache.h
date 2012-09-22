@@ -179,7 +179,7 @@ namespace vw {
       }
 
       std::string info() {
-        Mutex::WriteLock line_lock(m_mutex);
+        Mutex::ReadLock line_lock(m_mutex);
         std::ostringstream oss;
         oss << typeid(this).name() << " " << this
             << " (size " << (int)size() << ", gen count " << m_generation_count << ")";
@@ -190,7 +190,7 @@ namespace vw {
       // themselves because we are passing them a pointer to an object
       // that another thread could delete.
       value_type const& value() {
-        m_mutex.lock();
+        m_mutex.lock_shared();
         bool hit = (bool)m_value;
         {
           { // This should be abstracted into a call
@@ -202,6 +202,9 @@ namespace vw {
           }
         }
         if( !hit ) {
+          m_mutex.unlock_shared(); // Loose shared
+          m_mutex.lock_upgrade();  // Get upgrade status
+          m_mutex.unlock_upgrade_and_lock(); // Get exclusive access
           VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; );
           CacheLineBase::allocate(); // Call validate internally
 
@@ -211,12 +214,14 @@ namespace vw {
                           + typeid(this).name()).c_str());
           m_generation_count++;
           m_value = core::detail::pointerish(m_generator)->generate();
+          m_mutex.unlock_and_lock_upgrade();
+          m_mutex.unlock_upgrade_and_lock_shared();
         }
         return m_value;
       }
 
       void release() {
-        m_mutex.unlock();
+        m_mutex.unlock_shared();
       }
 
       bool valid() {
