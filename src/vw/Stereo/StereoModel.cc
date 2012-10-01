@@ -117,6 +117,10 @@ bool StereoModel::are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) 
 Vector3 StereoModel::operator()(Vector2 const& pix1,
                                 Vector2 const& pix2, double& error ) const {
 
+
+  // Check for NaN values
+  if (pix1 != pix1 || pix2 != pix2) return Vector3();
+
   try {
     // determine range by triangulation
     Vector3 vec1 = m_camera1->pixel_to_vector(pix1);
