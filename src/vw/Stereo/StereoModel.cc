@@ -122,7 +122,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
   if (pix1 != pix1 || pix2 != pix2) return Vector3();
 
   try {
-    // determine range by triangulation
+    // Determine range by triangulation
     Vector3 vec1 = m_camera1->pixel_to_vector(pix1);
     Vector3 vec2 = m_camera2->pixel_to_vector(pix2);
 
@@ -166,6 +166,10 @@ Vector3 StereoModel::triangulate_point(Vector3 const& point1,
                                        Vector3 const& vec2,
                                        double& error) const {
 
+  // Triangulate the point by finding the midpoint of the segment
+  // joining the closest points on the two rays emanating
+  // from the camera.
+
   Vector3 v12 = cross_prod(vec1, vec2);
   Vector3 v1 = cross_prod(v12, vec1);
   Vector3 v2 = cross_prod(v12, vec2);
@@ -181,6 +185,9 @@ Vector3 StereoModel::triangulate_point(Vector3 const& point1,
 void StereoModel::refine_point(Vector2 const& pix1,
                                Vector2 const& pix2,
                                Vector3& point) const {
+
+  // Refine the point by minimizing the least squares error in pixel domain.
+
   detail::PointLMA model( m_camera1, m_camera2 );
   Vector4 objective( pix1[0], pix1[1], pix2[0], pix2[1] );
   int status = 0;
