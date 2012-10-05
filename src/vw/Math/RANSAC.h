@@ -128,7 +128,7 @@ namespace math {
 
     /// \cond INTERNAL
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size]
-    inline void _vw_get_n_unique_integers(size_t size, size_t n, int* samples) const {
+    inline void get_n_unique_integers(size_t size, size_t n, int* samples) const {
       VW_ASSERT(size >= n, ArgumentErr() << "Not enough samples (" << n << " / " << size << ")\n");
 
       for (size_t i=0; i<n; ++i) {
@@ -214,9 +214,9 @@ namespace math {
       boost::scoped_array<int32> random_indices(new int32[n]);
 
       for (int32 iteration=0; iteration < ransac_iterations; ++iteration) {
-        // Get four points at random, taking care not
+        // Get n points at random, taking care not
         // to select the same point twice.
-        _vw_get_n_unique_integers(p1.size(), n, random_indices.get());
+        get_n_unique_integers(p1.size(), n, random_indices.get());
 
         for (size_t i=0; i < n; ++i) {
           try1[i] = p1[random_indices[i]];
