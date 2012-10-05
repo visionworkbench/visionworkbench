@@ -499,17 +499,17 @@ struct DiskImageResourcePNG::vw_png_write_context:
     // Convert vector of comments into the PNG format
     png_textp text = new png_text[comments.size()];
     for ( size_t i = 0; i < comments.size(); i++ ) {
-      text[i].key =  strcpy( new char[comments[i].key.size()],
+      text[i].key =  strcpy( new char[comments[i].key.size() + 1],
                              comments[i].key.c_str() );
-      text[i].text = strcpy( new char[comments[i].text.size()],
+      text[i].text = strcpy( new char[comments[i].text.size() + 1],
                              comments[i].text.c_str() );
       text[i].text_length = comments[i].text.size();
       text[i].compression = comments[i].compressed;
 #ifdef PNG_iTXt_SUPPORTED
       text[i].itxt_length = 0;
-      text[i].lang = strcpy( new char[comments[i].lang.size()],
+      text[i].lang = strcpy( new char[comments[i].lang.size() + 1],
                              comments[i].lang.c_str() );
-      text[i].lang_key = strcpy( new char[comments[i].lang_key.size()],
+      text[i].lang_key = strcpy( new char[comments[i].lang_key.size() + 1],
                                  comments[i].lang_key.c_str() );
 #endif
     }
