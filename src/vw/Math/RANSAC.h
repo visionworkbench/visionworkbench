@@ -201,9 +201,13 @@ namespace math {
       //   4. keep fit with best consensus so far
       /////////////////////////////////////////
 
-      // Seed random number generator
-      srandom((uint32) clock());
-
+      // Note: We do not modify the initial random seed. As such, if
+      // a program uses RANSAC, repeatedly running this program will
+      // always return the same results. However, if that program
+      // calls RANSAC twice while within the same instance of the
+      // program, the second time the result of RANSAC will be
+      // different, since we keep on pulling new random numbers.
+        
       // This is a rough value, but it seems to produce reasonably good results.
       if (ransac_iterations == 0)
         ransac_iterations = p1.size() * 2;
