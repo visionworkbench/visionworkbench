@@ -316,14 +316,15 @@ namespace vw {
         ImageView<PixelT> r_window_dx(window.width(), window.height());
         ImageView<PixelT> r_window_dy(window.width(), window.height());
 
-        Vector<PrecisionT, 6> gradient;
-        Vector<PrecisionT, 6> soln;
-        Matrix<PrecisionT, 6, 6> hessian_temp;
+        typedef Vector<PrecisionT, 6> Vector6;
+        typedef Matrix<PrecisionT, 6, 6> Matrix66;
 
+        Vector6 gradient, soln;
+        Matrix66 hessian_temp;
 
-        Vector<PrecisionT, 6> gradient_hist[inner_loop_iter_max];
-        Vector<PrecisionT, 6> state_hist[inner_loop_iter_max];
-        Matrix<PrecisionT, 6, 6> hessian_hist[inner_loop_iter_max];
+        Vector6* gradient_hist = new Vector6[inner_loop_iter_max];
+        Vector6* state_hist = new Vector6[inner_loop_iter_max];
+        Matrix66* hessian_hist = new Matrix66[inner_loop_iter_max];
 
         PrecisionT initial_norm_grad = 0;
         if(debug) {
@@ -562,6 +563,11 @@ namespace vw {
         }
 
         hess = hess/(sum_weights*s*s);
+
+        // Clean up our dynamic arrays
+        delete[] gradient_hist;
+        delete[] state_hist;
+        delete[] hessian_hist;
       }
 
     private:
