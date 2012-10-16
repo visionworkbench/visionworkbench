@@ -100,9 +100,14 @@ namespace ip {
   };
 
   inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
-    if (P1.x < P2.x) return true; if (P1.x > P2.x) return false;
-    if (P1.y < P2.y) return true; if (P1.y > P2.y) return false;
-    if (P1.interest < P2.interest) return true; if (P1.interest > P2.interest) return false;
+    if (P1.x           < P2.x           ) return true; if (P1.x           > P2.x           ) return false;
+    if (P1.y           < P2.y           ) return true; if (P1.y           > P2.y           ) return false;
+    if (P1.scale       < P2.scale       ) return true; if (P1.scale       > P2.scale       ) return false;
+    if (P1.orientation < P2.orientation ) return true; if (P1.orientation > P2.orientation ) return false;
+    if (P1.interest    < P2.interest    ) return true; if (P1.interest    > P2.interest    ) return false;
+    if (P1.polarity    < P2.polarity    ) return true; if (P1.polarity    > P2.polarity    ) return false;
+    if (P1.octave      < P2.octave      ) return true; if (P1.octave      > P2.octave      ) return false;
+    if (P1.scale_lvl   < P2.scale_lvl   ) return true; if (P1.scale_lvl   > P2.scale_lvl   ) return false;
     return false;
   }
   
