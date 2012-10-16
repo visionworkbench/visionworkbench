@@ -99,6 +99,13 @@ namespace ip {
 
   };
 
+  inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
+    if (P1.x < P2.x) return true; if (P1.x > P2.x) return false;
+    if (P1.y < P2.y) return true; if (P1.y > P2.y) return false;
+    if (P1.interest < P2.interest) return true; if (P1.interest > P2.interest) return false;
+    return false;
+  }
+  
   // Need to use list instead of vector for efficient thresholding.
   typedef std::list<InterestPoint> InterestPointList;
 
