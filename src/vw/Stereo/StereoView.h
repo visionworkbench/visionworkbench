@@ -213,7 +213,7 @@ namespace stereo {
   };
 
   // Useful routine for printing how many points have been rejected
-  // using a particular UniverseRadius funtor.
+  // using a particular UniverseRadius functor.
   inline std::ostream& operator<<(std::ostream& os, UniverseRadiusFunc const& u) {
     os << "Universe Radius Limits: [ " << u.near_radius() << ", ";
     if (u.far_radius() == 0)

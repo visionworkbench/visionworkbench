@@ -187,7 +187,7 @@ namespace math {
       VW_ASSERT( !p1.empty(),
                  RANSACErr() << "RANSAC Error.  Insufficient data.\n");
       VW_ASSERT( p1.size() >= m_fitting_func.min_elements_needed_for_fit(p1[0]),
-                 RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting funtor. ("<<p1.size() << "/" << m_fitting_func.min_elements_needed_for_fit(p1[0]) << ")\n");
+                 RANSACErr() << "RANSAC Error.  Not enough potential matches for this fitting functor. ("<<p1.size() << "/" << m_fitting_func.min_elements_needed_for_fit(p1[0]) << ")\n");
 
       uint32 inliers_max = 0;
       typename FittingFuncT::result_type H;
