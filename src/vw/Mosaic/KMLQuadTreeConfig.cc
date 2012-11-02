@@ -264,6 +264,10 @@ namespace mosaic {
       m_root_node_tags << "  <Style><ListStyle><listItemType>checkHideChildren</listItemType></ListStyle></Style>\n";
     }
 
+    // At the root node, make min_lod small, so that the kml does not disappear as we zoom out.
+    int min_lod = qtree.get_tile_size()/2;
+    if ( root_node ) min_lod = 1;
+
     std::vector<std::pair<std::string,BBox2i> > children =
       qtree.branches( info.name, info.region_bbox );
     for( unsigned i=0; i<children.size(); ++i ) {
@@ -285,7 +289,7 @@ namespace mosaic {
       kml << kml_ground_overlay( file_path.filename().string() + info.filetype,
                                  pixels_to_longlat( info.region_bbox, qtree.get_dimensions() ),
                                  pixels_to_longlat( go_bbox, qtree.get_dimensions() ),
-                                 draw_order, qtree.get_tile_size()/2, max_lod );
+                                 draw_order, min_lod, max_lod );
       num_children++;
     }
 
