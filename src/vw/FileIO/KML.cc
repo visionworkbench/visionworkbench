@@ -259,10 +259,15 @@ namespace vw {
     std::ostringstream path;
     if ( m_directory != "" )
       path << m_directory << "/";
-    fs::path kml_path( path.str() );
-    fs::create_directories( kml_path );
     path << m_filename;
-    kml_path = path.str();
+    fs::path kml_path( path.str() );
+
+    // We need this logic because m_filename may iself
+    // be like dir/file.kml rather than simply file.kml
+    fs::path dir_name = kml_path.parent_path();
+    if (! dir_name.empty())
+      fs::create_directories( dir_name );
+
     m_output_file.open( kml_path, std::ios::out);
 
     if (!m_output_file.good())
