@@ -109,6 +109,7 @@ int main(int argc, char** argv) {
   double matcher_threshold;
   std::string ransac_constraint;
   float inlier_threshold;
+  int ransac_iterations;
 
   po::options_description general_options("Options");
   general_options.add_options()
@@ -117,6 +118,7 @@ int main(int argc, char** argv) {
     ("non-kdtree", "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("ransac-constraint,r", po::value(&ransac_constraint)->default_value("similarity"), "RANSAC constraint type.  Choose one of: [similarity, homography, fundamental, or none].")
     ("inlier-threshold,i", po::value(&inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
+    ("ransac-iterations", po::value(&ransac_iterations)->default_value(100), "Number of RANSAC iterations.")
     ("debug-image,d", "Write out debug images.");
 
   po::options_description hidden_options("");
@@ -192,19 +194,26 @@ int main(int argc, char** argv) {
         if (ransac_constraint == "similarity") {
           math::RandomSampleConsensus<math::SimilarityFittingFunctor, math::InterestPointErrorMetric> ransac( math::SimilarityFittingFunctor(),
                                                                                                               math::InterestPointErrorMetric(),
-                                                                                                              inlier_threshold ); // inlier_threshold
+                                                                                                              ransac_iterations,
+                                                                                                              inlier_threshold,
+                                                                                                              ransac_ip1.size()/2,
+                                                                                                              true);
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Similarity: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "homography") {
           math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac( math::HomographyFittingFunctor(),
                                                                                                               math::InterestPointErrorMetric(),
-                                                                                                              inlier_threshold ); // inlier_threshold
+                                                                                                              ransac_iterations,
+                                                                                                              inlier_threshold,
+                                                                                                              ransac_ip1.size()/2,
+                                                                                                              true
+                                                                                                              );
           Matrix<double> H(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Homography: " << H << "\n";
           indices = ransac.inlier_indices(H,ransac_ip1,ransac_ip2);
         } else if (ransac_constraint == "fundamental") {
-          math::RandomSampleConsensus<camera::FundamentalMatrix8PFittingFunctor, camera::FundamentalMatrixDistanceErrorMetric> ransac( camera::FundamentalMatrix8PFittingFunctor(), camera::FundamentalMatrixDistanceErrorMetric(), inlier_threshold );
+          math::RandomSampleConsensus<camera::FundamentalMatrix8PFittingFunctor, camera::FundamentalMatrixDistanceErrorMetric> ransac( camera::FundamentalMatrix8PFittingFunctor(), camera::FundamentalMatrixDistanceErrorMetric(), ransac_iterations, inlier_threshold, ransac_ip1.size()/2, true );
           Matrix<double> F(ransac(ransac_ip1,ransac_ip2));
           std::cout << "\t--> Fundamental: " << F << "\n";
           indices = ransac.inlier_indices(F,ransac_ip1,ransac_ip2);

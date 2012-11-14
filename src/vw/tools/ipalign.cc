@@ -47,6 +47,7 @@ struct Options {
   std::string output_prefix, interest_operator, descriptor_generator;
   float matcher_threshold, detect_gain, tile_size;
   float inlier_threshold;
+  int ransac_iterations;
   bool single_scale, homography, debug_images;
   bool save_intermediate;
 };
@@ -203,11 +204,11 @@ void align_images( Options & opt ) {
 
     std::vector<size_t> indices;
     if ( opt.homography ) {
-      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), opt.inlier_threshold);
+      math::RandomSampleConsensus<math::HomographyFittingFunctor, math::InterestPointErrorMetric> ransac(math::HomographyFittingFunctor(), math::InterestPointErrorMetric(), opt.ransac_iterations, opt.inlier_threshold, ransac_ip1.size()/2, true);
       align_matrix = ransac(ransac_ip2,ransac_ip1);
       indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
     } else {
-      math::RandomSampleConsensus<math::AffineFittingFunctor, math::InterestPointErrorMetric> ransac(math::AffineFittingFunctor(), math::InterestPointErrorMetric(), opt.inlier_threshold);
+      math::RandomSampleConsensus<math::AffineFittingFunctor, math::InterestPointErrorMetric> ransac(math::AffineFittingFunctor(), math::InterestPointErrorMetric(), opt.ransac_iterations, opt.inlier_threshold, ransac_ip1.size()/2, true);
       align_matrix = ransac(ransac_ip2,ransac_ip1);
       indices = ransac.inlier_indices(align_matrix,ransac_ip2,ransac_ip1);
     }
@@ -263,6 +264,7 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
     ("matcher-threshold,t", po::value(&opt.matcher_threshold)->default_value(0.5),
      "Rejects points during matching if best > matcher_threshold * second_best")
     ("inlier-threshold,i", po::value(&opt.inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
+    ("ransac-iterations", po::value(&opt.ransac_iterations)->default_value(100), "Number of RANSAC iterations.")
     ("homography", "Align images using a full projective transform (homography).  By default, aligment uses a more restricted Similarity transform.");
 
   po::options_description positional("");

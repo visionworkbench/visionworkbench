@@ -422,8 +422,8 @@ std::vector<size_t> pinholemodel_calibrate_ransac(PinholeModel& m, const std::ve
   PinholeModelRansacFitting<Ex1T, Ex2T, Ex3T, Ex4T> fitting(m, lm_iter);
   PinholeModelRansacError error;
 
-  math::RandomSampleConsensus<PinholeModelRansacFitting<Ex1T, Ex2T, Ex3T, Ex4T>, PinholeModelRansacError> ransac(fitting, error, inlier_threshold);
-  m = ransac(pixels, points, ransac_iter);
+  math::RandomSampleConsensus<PinholeModelRansacFitting<Ex1T, Ex2T, Ex3T, Ex4T>, PinholeModelRansacError> ransac(fitting, error, ransac_iter, inlier_threshold, pixels.size()/2, true);
+  m = ransac(pixels, points);
 
   std::vector<size_t> inlier_indices(ransac.inlier_indices(m, pixels, points));
   vw_out(DebugMessage, "Camera") << "RANSAC classified as inliers: " << inlier_indices.size() << '/' << pixels.size() << std::endl;

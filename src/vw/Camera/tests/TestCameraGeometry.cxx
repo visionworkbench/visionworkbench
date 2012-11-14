@@ -115,7 +115,7 @@ TEST_F( CameraGeometryTest, DISABLED_RansacSolve ) {
     world_m[j][2] = rand()%200;
   }
 
-  math::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac( CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 2 );
+  math::RandomSampleConsensus<CameraMatrixFittingFunctor,CameraMatrixErrorMetric> ransac( CameraMatrixFittingFunctor(), CameraMatrixErrorMetric(), 100, 2, world_m.size()/2, true);
   Matrix<double> P(ransac(world_m,image_m));
   ASSERT_EQ( P.rows(), 3u );
   ASSERT_EQ( P.cols(), 4u );
