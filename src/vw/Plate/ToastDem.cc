@@ -297,7 +297,7 @@ namespace {
         << "/" << dem_row;
 
       fs::path output_file(ostr.str());
-      fs::create_directories(output_file.branch_path());
+      fs::create_directories(output_file.parent_path());
 
       // Open the file for writing
       std::ofstream of(output_file.string().c_str(), std::ios::binary);

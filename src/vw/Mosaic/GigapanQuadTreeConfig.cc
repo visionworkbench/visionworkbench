@@ -99,7 +99,7 @@ namespace mosaic {
     if ( root_node) {
       std::ostringstream json;
       fs::path file_path( info.filepath );
-      fs::path json_path = change_extension( file_path, ".json" );
+      fs::path json_path = fs::path(file_path).replace_extension(".json");
 
       json << "{" << std::endl
            << "  \"width\": " << qtree.get_dimensions()[0] << "," << std::endl

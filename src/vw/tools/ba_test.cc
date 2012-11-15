@@ -847,12 +847,10 @@ void write_world_points(fs::path file)
 /* {{{ write_adjusted_camera_models */
 void write_adjusted_camera_models(ProgramOptions config) {
   for (unsigned int i=0; i < this->num_cameras(); ++i) {
-    fs::path file = config.camera_files[i];
-    fs::change_extension(file, ".adjust");
     fs::path results_dir = config.results_dir;
     if (config.use_ba_type_dirs)
       results_dir /= ba_type_to_string(config.bundle_adjustment_type);
-    file = results_dir / fs::change_extension(config.camera_files[i], ".adjust");
+    fs::path file = results_dir / fs::path(config.camera_files[i]).replace_extension(".adjust");
     this->write_adjustment(i, file.string());
   }
 }
