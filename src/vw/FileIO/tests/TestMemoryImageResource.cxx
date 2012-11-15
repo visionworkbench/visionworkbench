@@ -57,16 +57,16 @@ struct MemoryImageResourceTest : public ::testing::TestWithParam<std::string> {
 
 TEST_P(MemoryImageResourceTest, Zero) {
   // wrong data, zero len
-  EXPECT_THROW(SrcMemoryImageResource::open(fs::extension(GetParam()), (uint8*)42,   0),  ArgumentErr);
+  EXPECT_THROW(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), (uint8*)42,   0),  ArgumentErr);
   // zero data, wrong len
-  EXPECT_THROW(SrcMemoryImageResource::open(fs::extension(GetParam()), NULL, 42),         ArgumentErr);
+  EXPECT_THROW(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), NULL, 42),         ArgumentErr);
 }
 
 TEST_P(MemoryImageResourceTest, BasicRead) {
   vector<uint8> raw;
   slurp(GetParam(), raw);
 
-  boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(fs::extension(GetParam()), &*raw.begin(), raw.size()));
+  boost::scoped_ptr<SrcMemoryImageResource> r(SrcMemoryImageResource::open(fs::path(GetParam()).extension().string(), &*raw.begin(), raw.size()));
 
   ImageView<PixelRGBA<uint8> > disk, mem;
   ImageView<PixelRGBA<float> > diskf, memf;
@@ -104,7 +104,7 @@ TEST_P(MemoryImageResourceTest, BasicWriteRead) {
     vw::fill(vw::select_channel(src, 3), 255);
   }
 
-  std::string type(fs::extension(GetParam()));
+  std::string type(fs::path(GetParam()).extension().string());
 
   boost::scoped_ptr<SrcImageResource> src2;
   boost::scoped_ptr<DstMemoryImageResource> dst;

@@ -50,7 +50,7 @@ namespace mosaic {
     fs::path path( qtree.get_name() );
 
     if( name.length() == 0 ) {
-      path /= change_extension( path, "" ).filename();
+      path /= fs::path(path).replace_extension("").filename();
     }
     else {
       for ( int32 i=0; i<(int32)name.length() - levels_per_directory; i+=levels_per_directory ) {
