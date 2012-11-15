@@ -82,7 +82,7 @@ void LocalIndexPage::serialize() {
 
   std::string tmpname;
   {
-    TemporaryFile tmp(parent.file_string(), false);
+    TemporaryFile tmp(parent.string(), false);
     IndexPage::serialize(tmp);
     tmpname = tmp.filename();
   }
@@ -146,7 +146,7 @@ LocalPageGeneratorFactory::create(uint32 level, uint32 base_col, uint32 base_row
 }
 
 std::string LocalPageGeneratorFactory::who() const {
-  return fs::basename(m_plate_filename);
+  return fs::path(m_plate_filename).stem().string();
 }
 
 // -------------------------------------------------------------------

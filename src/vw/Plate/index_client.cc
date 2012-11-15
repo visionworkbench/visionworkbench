@@ -69,7 +69,7 @@ void PlateInfo(const Url& url) {
 
   VW_OUT() << "Platefile:\n"
            << "\tID["          << hdr.platefile_id()      << "]\n"
-           << "\tName["        << fs::path(url.path()).leaf()   << "]\n"
+           << "\tName["        << fs::path(url.path()).filename()   << "]\n"
            << "\tFilename["    << index->platefile_name() << "]\n"
            << "\tDescription[" << (hdr.has_description() ? hdr.description() : "No Description") << "]\n"
            << "\tMaxLevel["    << index->num_levels()-1   << "]\n"
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  if (fs::extension(url.path()) == ".plate") {
+  if (fs::path(url.path()).extension().string() == ".plate") {
     // Run IndexInfoRequest
     PlateInfo(url);
   } else {

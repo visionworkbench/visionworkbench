@@ -433,7 +433,7 @@ public:
 
     // The image has exactly the same name as the kml file, but with a .jpg or .png extension
     // instead of .kml.
-    string imgName  = kml_location.replace_extension(imgType).filename();
+    string imgName  = kml_location.replace_extension(imgType).filename().string();
 
     kmldom::GroundOverlayPtr goverlay = this->create_linkless_overlay( tile, factory, lowest_overlay );
     kmldom::IconPtr icon = factory->CreateIcon();
