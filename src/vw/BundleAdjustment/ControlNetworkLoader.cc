@@ -108,7 +108,7 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
   ba::CameraRelationNetwork<ba::IPFeature> crn;
   BOOST_FOREACH( std::string const& file, image_files ) {
     fs::path file_path(file);
-    image_prefix_map[file_path.replace_extension().string()] = count;
+    image_prefix_map[fs::path(file_path).replace_extension().string()] = count;
     crn.add_node( ba::CameraNode<ba::IPFeature>( count,
                                                  file_path.stem().string() ) );
     count++;
