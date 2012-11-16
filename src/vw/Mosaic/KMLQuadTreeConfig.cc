@@ -237,7 +237,7 @@ namespace mosaic {
     std::ostringstream kml;
     fs::path file_path( info.filepath );
     size_t base_len = file_path.parent_path().string().size() + 1;
-    fs::path kml_path = change_extension( file_path, ".kml" );
+    fs::path kml_path = fs::path(file_path).replace_extension( ".kml" );
     kml << std::setprecision(10);
 
     kml << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";

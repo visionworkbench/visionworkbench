@@ -124,7 +124,7 @@ namespace vw {
                  ImageFormat const& format,
                  Vector2i block_size = Vector2i(-1,-1) )
     {
-      std::string extension = boost::to_lower_copy(boost::filesystem::extension(filename));
+      std::string extension = boost::to_lower_copy(boost::filesystem::path(filename).extension().string());
       if ( extension == ".tif" || extension == ".tiff" ) {
         // TIFF should use LZW by default
         Options tiff_options;

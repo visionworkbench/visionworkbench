@@ -92,8 +92,8 @@ namespace mosaic {
     // root node
     if (info.name.empty()) {
       fs::path out_path(qtree.get_name());
-      fs::path ctx_path = fs::change_extension( out_path, ".ctx" );
-      fs::path ssc_path = fs::change_extension( out_path, ".ssc" );
+      fs::path ctx_path = fs::path(out_path).replace_extension(".ctx");
+      fs::path ssc_path = fs::path(out_path).replace_extension(".ssc");
 
       // TileSize is a heuristic hint to celestia... we make it one step larger
       // at the suggestion of other people who make VTs (it makes it load

@@ -113,7 +113,7 @@ namespace vw {
   struct gdal_file_format_from_filename {
     static std::list<std::string> format(std::string const& filename) {
       std::list<std::string> retval;
-      std::string ext = boost::to_lower_copy(fs::extension(filename));
+      std::string ext = boost::to_lower_copy(fs::path(filename).extension().string());
 
       if (ext == ".tif" || ext == ".tiff")        // GeoTiff
         retval.push_back("GTiff");

@@ -130,7 +130,7 @@ namespace mosaic {
     // root node
     if (info.name.empty()) {
       fs::path out_path(qtree.get_name());
-      fs::path conf_path = fs::change_extension(out_path, ".conf");
+      fs::path conf_path = fs::path(out_path).replace_extension(".conf");
 
       fs::ofstream conf( conf_path );
       if(m_terrain) {

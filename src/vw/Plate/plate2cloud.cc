@@ -255,7 +255,7 @@ void create_network_links(std::string const& base_folder,
       std::string link_string = path.filename()+"/"+link_path.filename()+".kml";
       linkptr->set_href( link_string );
     } else {
-      linkptr->set_href( link_path.replace_extension(".kml").filename() );
+      linkptr->set_href( fs::path(link_path).replace_extension(".kml").filename() );
     }
     netlink->set_link(linkptr);
     folder->add_feature( netlink );
@@ -413,7 +413,7 @@ public:
                                               m_platefile(platefile) {}
 
   kmldom::GroundOverlayPtr
-  operator()( fs::path kml_location, TileHeader const& tile,
+  operator()( fs::path const& kml_location, TileHeader const& tile,
               kmldom::KmlFactory* factory, bool lowest_overlay, bool do_write ) const {
 
     string imgType;
@@ -433,7 +433,7 @@ public:
 
     // The image has exactly the same name as the kml file, but with a .jpg or .png extension
     // instead of .kml.
-    string imgName  = kml_location.replace_extension(imgType).filename();
+    string imgName  = fs::path(kml_location).replace_extension(imgType).filename().string();
 
     kmldom::GroundOverlayPtr goverlay = this->create_linkless_overlay( tile, factory, lowest_overlay );
     kmldom::IconPtr icon = factory->CreateIcon();
@@ -587,7 +587,7 @@ void draw_kml_level ( std::string const& base_folder,
       kmlengine::KmlFilePtr kml_ptr = kmlengine::KmlFile::CreateFromImport(kml);
       std::string xml_data;
       kml_ptr->SerializeToString(&xml_data);
-      std::string kml_file = path.replace_extension(".kml").string();
+      std::string kml_file = fs::path(path).replace_extension(".kml").string();
       if  (kml_count == start){
         // Rename 0.kml to be the opening kml
         kml_file = (fs::path(base_folder) / (path2basename(base_folder) + ".kml")).string();
