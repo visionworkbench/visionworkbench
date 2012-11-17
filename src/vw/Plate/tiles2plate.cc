@@ -70,7 +70,7 @@ public:
     for( fs::path::iterator itr = partial_path.begin();
          itr != partial_path.end();
          ++itr ) {
-      std::istringstream in(*itr);
+      std::istringstream in(itr->string());
       t.m_level = t.m_col;
       t.m_col = t.m_row;
       if ( !(in >> t.m_row) )
@@ -91,7 +91,7 @@ public:
     if( full_path.extension() == ".info" )
       return t;
 
-    std::string tile_name = fs::path(full_path).replace_extension().leaf();
+    std::string tile_name = fs::path(full_path).replace_extension().filename().string();
 
     if( tile_name[0] != 'r' )
       return t;
@@ -170,7 +170,7 @@ public:
     ViewT image(tile.m_path.string());
     std::cout << "\t--> Writing tile [ "
               << tile.m_col << " " << tile.m_row << " " << tile.m_level << " ] "
-              << " (" << tile.m_path.leaf() << ")"
+              << " (" << tile.m_path.filename() << ")"
               << std::endl;
     m_platefile->write_request();
     m_platefile->write_update(image, tile.m_col, tile.m_row, tile.m_level);

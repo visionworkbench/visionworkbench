@@ -82,7 +82,7 @@ void LocalIndexPage::serialize() {
 
   std::string tmpname;
   {
-    TemporaryFile tmp(parent.file_string(), false);
+    TemporaryFile tmp(parent.string(), false);
     IndexPage::serialize(tmp);
     tmpname = tmp.filename();
   }

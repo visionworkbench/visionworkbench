@@ -300,7 +300,7 @@ namespace {
       fs::create_directories(output_file.branch_path());
 
       // Open the file for writing
-      std::ofstream of(output_file.file_string().c_str(), std::ios::binary);
+      std::ofstream of(output_file.string().c_str(), std::ios::binary);
       if (!of.is_open())
         vw_throw(IOErr() << "Failed to open toast dem tile for writing");
 
