@@ -52,8 +52,9 @@ std::vector<std::string> IndexServiceImpl::glob_plate_filenames(std::string cons
   // Iterate through the files in the platefile directory and return
   // any that match the regex above.
   for ( fs::directory_iterator itr( root_directory ); itr != end_itr; ++itr ) {
-    if (boost::regex_match(itr->leaf(), re))
-      result.push_back(itr->leaf());
+    const std::string fn = itr->path().filename().string();
+    if (boost::regex_match(fn, re))
+      result.push_back(fn);
   }
 
   return result;

@@ -355,7 +355,7 @@ std::string Dirstore::get_filetype(uint32 level, uint32 row, uint32 col, const T
 
   std::string filetype;
   BOOST_FOREACH(const fs::path& p, std::make_pair(iter_t(dir_name), iter_t())) {
-    const std::string& fn = p.filename();
+    const std::string fn = p.filename().string();
     // if we've set filetype already, we already saw a file in this dir
     VW_ASSERT(filetype.empty(), LogicErr() << "Directory " << dir_name << " has multiple files (at least " << filetype << " and " << fn << ")");
     filetype = fn;
@@ -407,7 +407,7 @@ void Dirstore::add_ids_in_range(Datastore::TileSearch& tiles, uint32 level, uint
 
   Datastore::TileSearch new_tiles;
   BOOST_FOREACH(const fs::path& p, std::make_pair(iter_t(dir_name), iter_t())) {
-    const std::string& tid_s = p.filename();
+    const std::string tid_s = p.filename().string();
     if (tid_s < low || tid_s > high)
       continue;
     uint32 tid = boost::lexical_cast<uint32>(tid_s);
@@ -463,13 +463,13 @@ void Dirstore::bucket_iterate(uint32 level, const BBox2u& region, add_func_t add
     if (!check_dir(bucket_path))
       continue;
     BOOST_FOREACH(const fs::path& p, std::make_pair(iter_t(bucket_path), iter_t())) {
-      const std::string& row_s = p.filename();
+      const std::string row_s = p.filename().string();
       if (row_s < row_min || row_s >= row_max)
         continue;
       if (!check_dir(p))
         continue;
       BOOST_FOREACH(const fs::path& p, std::make_pair(iter_t(p), iter_t())) {
-        const std::string& col_s = p.filename();
+        const std::string col_s = p.filename().string();
         if (col_s < col_min || col_s >= col_max)
           continue;
         uint32 row = boost::lexical_cast<uint32>(row_s);

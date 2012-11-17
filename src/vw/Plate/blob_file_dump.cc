@@ -79,7 +79,7 @@ int main( int argc, char *argv[] ) {
 
   ReadBlob blob(blob_name);
 
-  std::string blob_prefix = fs::path(blob_name).stem();
+  std::string blob_prefix = fs::path(blob_name).stem().string();
 
   VW_OUT() << "Searching for Transaction: " << transaction_id << "\n";
   TerminalProgressCallback tpc("plate.tools.blob_file_dump","Dumping:");

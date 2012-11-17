@@ -262,7 +262,7 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   opt.pds_imagery_mode = vm.count("export-pds-imagery");
 
   if( opt.output_prefix == "" ) {
-    opt.output_prefix = fs::path(opt.plate_file_name).stem();
+    opt.output_prefix = fs::path(opt.plate_file_name).stem().string();
     size_t indx = opt.output_prefix.rfind("/");
     if ( indx != std::string::npos )
       opt.output_prefix = opt.output_prefix.substr(indx+1);
