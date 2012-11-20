@@ -210,6 +210,24 @@ namespace stereo {
       }
       return Vector<ElemT,4>();
     }
+
+    // A version that is carrying 3D error
+    template <class ElemT>
+    Vector<ElemT,6> operator() (Vector<ElemT,6> const& pix) const {
+      m_state->total_points++;
+      if (subvector(pix,0,3) != Vector<ElemT,3>() ) {
+        double dist = norm_2(subvector(pix,0,3) - m_origin);
+        if ((m_near_radius != 0 && dist < m_near_radius) ||
+            (m_far_radius != 0 && dist > m_far_radius)) {
+          m_state->rejected_points++;
+          return Vector<ElemT,6>();
+        } else {
+          return pix;
+        }
+      }
+      return Vector<ElemT,6>();
+    }
+    
   };
 
   // Useful routine for printing how many points have been rejected
