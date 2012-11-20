@@ -61,6 +61,7 @@ namespace stereo {
     /// parallel or divergent, otherwise it returns the 2-norm of the
     /// distance between the rays at their nearest point of
     /// intersection.
+    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, Vector3& errorVec ) const;
     virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
 
     /// Returns the dot product of the two rays emanating from camera
@@ -87,7 +88,7 @@ namespace stereo {
                               Vector3 const& vec1,
                               Vector3 const& point2,
                               Vector3 const& vec2,
-                              double& error) const;
+                              Vector3& errorVec) const;
 
     bool are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) const;
                         

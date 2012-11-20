@@ -115,9 +115,13 @@ bool StereoModel::are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) 
 }
 
 Vector3 StereoModel::operator()(Vector2 const& pix1,
-                                Vector2 const& pix2, double& error ) const {
+                                Vector2 const& pix2, Vector3& errorVec) const {
 
 
+  // Note: Class RPCStereoModel inherits from this class and re-implements this function.
+
+  errorVec = Vector3();
+  
   // Check for NaN values
   if (pix1 != pix1 || pix2 != pix2) return Vector3();
 
@@ -127,17 +131,15 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
     Vector3 vec2 = m_camera2->pixel_to_vector(pix2);
 
     if (are_nearly_parallel(vec1, vec2)){
-      error = 0.0;
       return Vector3();
     }
     
     Vector3 origin1 = m_camera1->camera_center(pix1);
     Vector3 origin2 = m_camera2->camera_center(pix2);
-    Vector3 result =
-      triangulate_point(origin1, vec1,
-                        origin2, vec2,
-                        error);
-
+    Vector3 result  = triangulate_point(origin1, vec1,
+                                        origin2, vec2,
+                                        errorVec);
+    
     if ( m_least_squares )
       refine_point(pix1, pix2, result);
 
@@ -150,11 +152,18 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
     return result;
 
   } catch (const camera::PixelToRayErr& /*e*/) {
-    error = 0;
     return Vector3();
   }
 }
 
+  Vector3 StereoModel::operator()(Vector2 const& pix1, Vector2 const& pix2,
+                                  double& error ) const {
+  Vector3 errorVec;
+  Vector3 result = operator()(pix1, pix2, errorVec);
+  error = norm_2(errorVec);
+  return result;
+}
+  
 double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const {
   return acos(dot_prod(m_camera1->pixel_to_vector(pix1),
                        m_camera2->pixel_to_vector(pix2)));
@@ -164,8 +173,8 @@ Vector3 StereoModel::triangulate_point(Vector3 const& point1,
                                        Vector3 const& vec1,
                                        Vector3 const& point2,
                                        Vector3 const& vec2,
-                                       double& error) const {
-
+                                       Vector3& errorVec) const {
+  
   // Triangulate the point by finding the midpoint of the segment
   // joining the closest points on the two rays emanating
   // from the camera.
@@ -177,7 +186,7 @@ Vector3 StereoModel::triangulate_point(Vector3 const& point1,
   Vector3 closestPoint1 = point1 + dot_prod(v2, point2-point1)/dot_prod(v2, vec1)*vec1;
   Vector3 closestPoint2 = point2 + dot_prod(v1, point1-point2)/dot_prod(v1, vec2)*vec2;
 
-  error = norm_2(closestPoint1 - closestPoint2);
+  errorVec = closestPoint1 - closestPoint2;
 
   return 0.5 * (closestPoint1 + closestPoint2);
 }
