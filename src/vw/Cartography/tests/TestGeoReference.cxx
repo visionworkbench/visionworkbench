@@ -407,4 +407,17 @@ TEST(GeoReference, CropAndResample) {
                       resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
   EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
                       resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
+
+  // Test with a projection that doesn't use degrees.
+  input_pp.set_equirectangular( 40, 40, 50, 0, 0 );
+  crop_pp =  crop( input_pp, 200, 400 );
+  resample_pp = resample( input_pp, 0.5, 2 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(200, 400)),
+                      crop_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      crop_pp.pixel_to_lonlat(Vector2(-200,-400)), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2()),
+                      resample_pp.pixel_to_lonlat(Vector2()), 1e-7 );
+  EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
+                      resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
 }

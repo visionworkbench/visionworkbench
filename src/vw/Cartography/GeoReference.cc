@@ -542,9 +542,9 @@ namespace cartography {
                      double /*width*/, double /*height*/ ) {
     Vector2 top_left_ll;
     if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
-      top_left_ll = input.pixel_to_lonlat( Vector2(upper_left_x, upper_left_y ) - Vector2(0.5,0.5) );
+      top_left_ll = input.pixel_to_point( Vector2(upper_left_x, upper_left_y ) - Vector2(0.5,0.5) );
     } else {
-      top_left_ll = input.pixel_to_lonlat( Vector2(upper_left_x, upper_left_y ) );
+      top_left_ll = input.pixel_to_point( Vector2(upper_left_x, upper_left_y ) );
     }
     GeoReference output = input;
     Matrix3x3 T = output.transform();
@@ -568,7 +568,7 @@ namespace cartography {
     T(1,1) /= scale_y;
     if ( input.pixel_interpretation() == GeoReference::PixelAsArea ) {
       Vector2 top_left_ll =
-        input.pixel_to_lonlat( -Vector2(0.5 / scale_x, 0.5 / scale_y) );
+        input.pixel_to_point( -Vector2(0.5 / scale_x, 0.5 / scale_y) );
       T(0,2) = top_left_ll[0];
       T(1,2) = top_left_ll[1];
     }
