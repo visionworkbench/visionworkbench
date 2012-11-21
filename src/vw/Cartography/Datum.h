@@ -133,14 +133,14 @@ namespace cartography {
 
     double inverse_flattening() const;
 
-    /// Return cartesian (ECEF) coordinates of geodetic coordinates p [Lon, Lat, Altitude]
-    Vector3 geodetic_to_cartesian( Vector3 const& p ) const;
+    /// Return cartesian (ECEF) coordinates of geodetic coordinates p [Lon, Lat, Height]
+    Vector3 geodetic_to_cartesian( Vector3 const& llh ) const;
 
     /// Return rotation matrix for converting NED vectors
     /// to ECEF vectors.
-    Matrix3x3 ecef_to_ned_matrix( Vector3 const& p) const;
+    Matrix3x3 lonlat_to_ned_matrix(Vector2 const& lonlat) const;
 
-    Vector3 cartesian_to_geodetic( Vector3 const& p ) const;
+    Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
   };
 
   std::ostream& operator<<(std::ostream& os, const Datum& datum);

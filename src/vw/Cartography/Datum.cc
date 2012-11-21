@@ -210,12 +210,13 @@ double vw::cartography::Datum::inverse_flattening() const {
   return 1.0 / (1.0 - m_semi_minor_axis / m_semi_major_axis);
 }
 
-vw::Matrix3x3 vw::cartography::Datum::ecef_to_ned_matrix( vw::Vector3 const& p) const {
-  double lat = p.y();
+vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& lonlat) const {
+  double lon = lonlat.x();
+  double lat = lonlat.y();
   if ( lat < -90 ) lat = -90;
   if ( lat > 90 ) lat = 90;
 
-  double rlon = (p.x() + m_meridian_offset) * (M_PI/180);
+  double rlon = (lon + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
   double slat = sin( rlat );
   double clat = cos( rlat );
@@ -237,19 +238,18 @@ vw::Matrix3x3 vw::cartography::Datum::ecef_to_ned_matrix( vw::Vector3 const& p) 
   return R;
 }
 
-
-vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p ) const {
+vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& llh ) const {
   double a = m_semi_major_axis;
   double b = m_semi_minor_axis;
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
 
-  double lat = p.y();
+  double lat = llh.y();
   if ( lat < -90 ) lat = -90;
   if ( lat > 90 ) lat = 90;
 
-  double rlon = (p.x() + m_meridian_offset) * (M_PI/180);
+  double rlon = (llh.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
   double slat = sin( rlat );
   double clat = cos( rlat );
@@ -257,9 +257,9 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
   double clon = cos( rlon );
   double radius = a / sqrt(1.0-e2*slat*slat);
 
-  return Vector3( (radius+p.z()) * clat * clon,
-                  (radius+p.z()) * clat * slon,
-                  (radius*(1-e2)+p.z()) * slat );
+  return Vector3( (radius+llh.z()) * clat * clon,
+                  (radius+llh.z()) * clat * slon,
+                  (radius*(1-e2)+llh.z()) * slat );
 }
 
 // This algorithm is a non-iterative algorithm from "An analytical
@@ -268,15 +268,15 @@ vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& p 
 //
 // This is an improvement over the 1988/Proj4's implementation as it's
 // a smidgen faster and it still works near the center of the datum.
-vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& cart ) const {
+vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xyz ) const {
   const double a2 = m_semi_major_axis * m_semi_major_axis;
   const double b2 = m_semi_minor_axis * m_semi_minor_axis;
   const double e2 = 1 - b2 / a2;
   const double e4 = e2 * e2;
 
-  double xy_dist = sqrt( cart[0] * cart[0] + cart[1] * cart[1] );
-  double p = ( cart[0] * cart[0] + cart[1] * cart[1] ) / a2;
-  double q = ( 1 - e2 ) * cart[2] * cart[2] / a2;
+  double xy_dist = sqrt( xyz[0] * xyz[0] + xyz[1] * xyz[1] );
+  double p = ( xyz[0] * xyz[0] + xyz[1] * xyz[1] ) / a2;
+  double q = ( 1 - e2 ) * xyz[2] * xyz[2] / a2;
   double r = ( p + q - e4 ) / 6.0;
   double r3 = r * r * r;
 
@@ -290,10 +290,10 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& ca
     double sqrt_evolute = sqrt( evolute );
     u = r + 0.5 * pow(sqrt_evolute + right_inside_pow,2.0/3.0) +
       0.5 * pow(sqrt_evolute - right_inside_pow,2.0/3.0);
-  } else if ( fabs(cart[2]) < std::numeric_limits<double>::epsilon() ) {
+  } else if ( fabs(xyz[2]) < std::numeric_limits<double>::epsilon() ) {
     // On the equator plane
     llh[1] = 0;
-    llh[2] = norm_2( cart ) - m_semi_major_axis;
+    llh[2] = norm_2( xyz ) - m_semi_major_axis;
   } else if ( evolute < 0 and fabs(q) > std::numeric_limits<double>::epsilon() ) {
     // On or inside the evolute
     double atan_result = atan2( sqrt( e4 * p * q ), sqrt( -evolute ) + sqrt(-8 * r3) );
@@ -316,20 +316,20 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& ca
     double w = e2 * ( u_v - q ) / ( 2 * v );
     double k = u_v / ( w + sqrt( w * w + u_v ) );
     double D = k * xy_dist / ( k + e2 );
-    double dist_2 = D * D + cart[2] * cart[2];
+    double dist_2 = D * D + xyz[2] * xyz[2];
     llh[2] = ( k + e2 - 1 ) * sqrt( dist_2 ) / k;
-    llh[1] = 2 * atan2( cart[2], sqrt( dist_2 ) + D );
+    llh[1] = 2 * atan2( xyz[2], sqrt( dist_2 ) + D );
   }
 
-  if ( xy_dist + cart[0] > ( sqrt(2) - 1 ) * cart[1] ) {
+  if ( xy_dist + xyz[0] > ( sqrt(2) - 1 ) * xyz[1] ) {
     // Longitude is between -135 and 135
-    llh[0] = 360.0 * atan2( cart[1], xy_dist + cart[0] ) / M_PI;
-  } else if ( xy_dist + cart[1] < ( sqrt(2) + 1 ) * cart[0] ) {
+    llh[0] = 360.0 * atan2( xyz[1], xy_dist + xyz[0] ) / M_PI;
+  } else if ( xy_dist + xyz[1] < ( sqrt(2) + 1 ) * xyz[0] ) {
     // Longitude is between -225 and 45
-    llh[0] = - 90.0 + 360.0 * atan2( cart[0], xy_dist - cart[1] ) / M_PI;
+    llh[0] = - 90.0 + 360.0 * atan2( xyz[0], xy_dist - xyz[1] ) / M_PI;
   } else {
     // Longitude is between -45 and 225
-    llh[0] = 90.0 - 360.0 * atan2( cart[0], xy_dist + cart[1] ) / M_PI;
+    llh[0] = 90.0 - 360.0 * atan2( xyz[0], xy_dist + xyz[1] ) / M_PI;
   }
   llh[0] -= m_meridian_offset;
   llh[1] *= 180.0 / M_PI;
