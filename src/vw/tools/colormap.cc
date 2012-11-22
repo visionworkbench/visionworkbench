@@ -169,10 +169,16 @@ void do_colorized_dem(Options& opt) {
   if (!opt.shaded_relief_file_name.empty()) {
     vw_out() << "\t--> Incorporating hillshading from: "
              << opt.shaded_relief_file_name << ".\n";
-    DiskImageView<PixelMask<float> > shaded_relief_image(opt.shaded_relief_file_name);
+    DiskImageView<PixelGray<float> >
+      shaded_relief_image(opt.shaded_relief_file_name); // It's okay
+                                                        // to throw
+                                                        // away the
+                                                        // second
+                                                        // channel if
+                                                        // it exists.
     ImageViewRef<PixelMask<PixelRGB<uint8> > > shaded_image =
-      copy_mask(channel_cast<uint8>(colorized_image*apply_mask(shaded_relief_image)),
-                shaded_relief_image);
+      copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
+                colorized_image);
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,shaded_image.format()));
     if ( r->has_block_write() )
