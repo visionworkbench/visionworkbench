@@ -488,18 +488,18 @@ boost::shared_ptr<ControlNetwork> load_control_network(fs::path const &file) {
   vw_out(DebugMessage) << "Loading control network from file: " << file << endl;
 
   // Deciding which Control Network we have
-  if ( fs::extension(file) == ".net" ) {
+  if ( file.extension() == ".net" ) {
     // An ISIS style control network
     vw_out(VerboseDebugMessage) << "\tReading ISIS control network file" << endl;
     cnet->read_isis( file.string() );
-  } else if ( fs::extension(file) == ".cnet" ) {
+  } else if ( file.extension() == ".cnet" ) {
     // A VW binary style
     vw_out(VerboseDebugMessage) << "\tReading VisionWorkbench binary control network file"
       << endl;
     cnet->read_binary( file.string() );
   } else {
     vw_throw( IOErr() << "Unknown control network file extension, \""
-      << fs::extension(file) << "\"." );
+              << file.extension() << "\"." );
   }
   return cnet;
 }
