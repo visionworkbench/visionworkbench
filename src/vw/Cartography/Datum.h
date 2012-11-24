@@ -136,8 +136,10 @@ namespace cartography {
     /// Return cartesian (ECEF) coordinates of geodetic coordinates p [Lon, Lat, Height]
     Vector3 geodetic_to_cartesian( Vector3 const& llh ) const;
 
-    /// Return rotation matrix for converting NED vectors
-    /// to ECEF vectors.
+    // Return rotation matrix for converting between ECEF and NED
+    // vectors. If v is a Cartesian (ECEF) vector, this matrix times v
+    // will find v's components in the North, East, and Down
+    // directions at given lon and lat.
     Matrix3x3 lonlat_to_ned_matrix(Vector2 const& lonlat) const;
 
     Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;
