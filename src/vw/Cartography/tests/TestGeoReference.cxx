@@ -421,3 +421,44 @@ TEST(GeoReference, CropAndResample) {
   EXPECT_VECTOR_NEAR( input_pp.pixel_to_lonlat(Vector2(100,100)),
                       resample_pp.pixel_to_lonlat(Vector2(50,200)), 1e-7 );
 }
+
+TEST(GeoReference, NED_MATRIX) {
+
+  // Test the lonlat_to_ned_matrix() function. Create a Cartesian
+  // vector which is a combination of vectors pointing North, East,
+  // and down. See if this matrix can find correctly the combination.
+  
+  Matrix3x3 test_transform;
+  test_transform(0,0) = 1.2; test_transform(0,1) = 3.2;
+  test_transform(1,1) = 4.5; test_transform(1,2) = 6.3;
+  test_transform(2,2) = 1; test_transform(2,1) = 0;
+  
+  Datum test_datum("D_MOON");
+  GeoReference georef(test_datum, test_transform);
+
+  Vector3 xyz(100, 232, -47);
+  Vector3 G = georef.datum().cartesian_to_geodetic(xyz);
+
+  Vector3 xyz_eps_p, xyz_eps_m, xyz_lat, xyz_lon, xyz_rad;
+  double eps = 1e-6;
+
+  // Vector pointing North
+  xyz_eps_p = georef.datum().geodetic_to_cartesian(G + Vector3(0, eps, 0));
+  xyz_eps_m = georef.datum().geodetic_to_cartesian(G - Vector3(0, eps, 0));
+  xyz_lat = (xyz_eps_p - xyz_eps_m)/eps; xyz_lat = xyz_lat/norm_2(xyz_lat);
+
+  // Vector pointing East
+  xyz_eps_p = georef.datum().geodetic_to_cartesian(G + Vector3(eps, 0, 0));
+  xyz_eps_m = georef.datum().geodetic_to_cartesian(G - Vector3(eps, 0, 0));
+  xyz_lon   = (xyz_eps_p - xyz_eps_m)/eps; xyz_lon = xyz_lon/norm_2(xyz_lon);
+
+  // Vector pointing down
+  xyz_rad = -xyz/norm_2(xyz); 
+
+  Vector3   q  = 1*xyz_lat + 2*xyz_lon + 3*xyz_rad;
+  Matrix3x3 M  = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
+  Vector3   Mq = M*q;
+  
+  EXPECT_LT(norm_2( M*q - Vector3(1, 2, 3)), 1.0e-8 );
+  
+}  
