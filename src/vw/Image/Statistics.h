@@ -392,6 +392,99 @@ namespace vw {
     return mean_channel_value( weighted_mean_pixel_value( view ) );
   }
 
+  // Find the histogram of an image. 
+  template <class ViewT>
+  void histogram( const ImageViewBase<ViewT> &view, int num_bins, std::vector<double> &hist){
+    
+    VW_ASSERT(num_bins > 0, ArgumentErr() << "histogram: number of input bins must be positive");
+    
+    // Find the maximum and minimum
+    double max_val = -std::numeric_limits<double>::max(), min_val = -max_val;
+    for (int row = 0; row < view.impl().rows(); row++){
+      for (int col = 0; col < view.impl().cols(); col++){
+        if ( !is_valid(view.impl()(col, row)) ) continue;
+        double val = view.impl()(col, row);
+        if (val < min_val) min_val = val;
+        if (val > max_val) max_val = val;
+      }
+    }
+    if (max_val == min_val) max_val = min_val + 1.0;
+      
+    hist.assign(num_bins, 0.0);
+    for (int row = 0; row < view.impl().rows(); row++){
+      for (int col = 0; col < view.impl().cols(); col++){
+        if ( !is_valid(view.impl()(col, row)) ) continue;
+        double val = view.impl()(col, row);
+        int bin = (int)round( (num_bins - 1) * ( (val - min_val)/(max_val - min_val) ) );
+        hist[bin]++;
+      }
+    }
+
+    return;
+  }
+  
+  // Find the optimal Otsu threshold for splitting a gray scale image
+  // into black and white pixels.
+  // Reference: http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html
+  // It agrees with Matlab for uint8 images.
+  // Note: The optimal threshold is normalized, so it is between 0 and 1.
+  // To find its value in pixel space, you may want to compute:
+  // minImageVal + threshold*(maxImageVal - minImageVal).
+  template <class ViewT>
+  double optimal_threshold( const ImageViewBase<ViewT> &view){
+
+    std::vector<double> hist;
+    int num_bins = 256;
+    histogram(view, num_bins, hist);
+
+    double sum = 0.0;
+    for (size_t i = 0; i < hist.size(); i++) sum += hist[i];
+    if (sum == 0.0) return 0.0;
+
+    // Normalize the histogram
+    for (size_t i = 0; i < hist.size(); i++) hist[i] /= sum;
+    sum = 1.0;
+    
+    double totalAccum = 0.0;
+    for (size_t i = 0; i < hist.size(); i++) totalAccum += i*hist[i];
+
+    // Find the variance between classes
+    std::vector<double> V;
+    V.assign(num_bins, 0.0);
+
+    double leftProb = 0.0, leftAccum = 0.0, rightProb = 0.0, rightAccum = 0.0;
+    for (size_t i = 0; i < hist.size(); i++){
+
+      leftProb  += hist[i];
+      leftAccum += i*hist[i];
+
+      rightProb  = sum - leftProb;
+      rightAccum = totalAccum - leftAccum;
+
+      if (leftProb == 0 || rightProb == 0.0) continue;
+      
+      double leftMean = leftAccum/leftProb;
+      double rightMean = rightAccum/rightProb;
+      V[i] = leftProb*rightProb*(leftMean-rightMean)*(leftMean-rightMean);
+      
+    }
+
+    double maxV = *std::max_element(V.begin(), V.end());
+
+    // If the maximum is reached at more than one index, find the average index
+    double indexSum = 0, numIndices = 0;
+    for (size_t i = 0; i < V.size(); i++){
+      if (V[i] == maxV){
+        indexSum += i;
+        numIndices++;
+      }
+    }
+    double meanIndex = indexSum/numIndices;
+
+    // Normalize the value
+    return meanIndex/(num_bins - 1.0);
+  }
+  
 }  // namespace vw
 
 #endif // __VW_IMAGE_STATISTICS_H__

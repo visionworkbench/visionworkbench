@@ -29,7 +29,7 @@
 
 using namespace vw;
 
-ImageView<vw::uint8> im8(2,1);
+ImageView<vw::uint8> im8(2,1), im8b(3,2);
 ImageView<double> imf(2,1);
 ImageView<PixelMask<vw::uint8> > im8ma(2,1);
 ImageView<PixelMask<double> > imfma(2,1);
@@ -47,6 +47,13 @@ ImageView<PixelRGBA<double> > imrgbafc(2,1);
 void generate_data( void ) {
   im8(0,0) = 24;
   im8(1,0) = 119;
+
+  im8b(0,0) = 24;
+  im8b(0,1) = 255;
+  im8b(1,0) = 119;
+  im8b(1,1) = 119;
+  im8b(2,0) = 0;
+  im8b(2,1) = 0;
 
   imf(0,0) = 1.0;
   imf(1,0) = -1.0;
@@ -501,4 +508,22 @@ TEST( Statistics, MedianChannel ) {
   image2(3,0).invalidate();
   EXPECT_EQ( median_channel_value(image2), 6 );
   ASSERT_TRUE( is_of_type<vw::uint8>( median_channel_value(image2) ) );
+}
+
+TEST( Statistics, Histogram ) {
+  
+  std::vector<double> hist;
+  int num_bins = 256;
+  histogram(im8b, num_bins, hist);
+
+  EXPECT_EQ(hist[0],   2);
+  EXPECT_EQ(hist[24],  1);
+  EXPECT_EQ(hist[119], 2);
+  EXPECT_EQ(hist[255], 1);
+}
+
+TEST( Statistics, OptimalThreshold ) {
+  double t  = optimal_threshold(im8b);
+  double t0 = 0.27843137254902; // Computed in Matlab, t0 = graythresh(uint8_im)
+  EXPECT_NEAR(t, t0, 1e-15);
 }
