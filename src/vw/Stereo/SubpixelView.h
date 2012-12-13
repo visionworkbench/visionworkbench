@@ -321,7 +321,8 @@ namespace stereo {
     Vector2i m_kernel_size;
     PreprocFilterT m_preproc_filter;
     int32 m_max_pyramid_levels;
-
+    BBox2i m_left_image_crop_win;
+    
   public:
     typedef PixelMask<Vector2f> pixel_type;
     typedef pixel_type result_type;
@@ -332,11 +333,13 @@ namespace stereo {
                         ImageViewBase<ImageT2> const& right_image,
                         PreFilterBase<PreprocFilterT> const& preproc_filter,
                         Vector2i const& kernel_size,
-                        int32 max_pyramid_levels = 2 ) :
+                        int32 max_pyramid_levels,
+                        BBox2i left_image_crop_win) :
       m_disparity_map(disparity_map.impl()),
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_kernel_size(kernel_size), m_preproc_filter(preproc_filter.impl()),
-      m_max_pyramid_levels(max_pyramid_levels) {
+      m_max_pyramid_levels(max_pyramid_levels),
+      m_left_image_crop_win(left_image_crop_win){
       // Basic assertions
       VW_ASSERT( m_disparity_map.cols() == m_left_image.cols() &&
                  m_disparity_map.rows() == m_left_image.rows(),
@@ -367,6 +370,20 @@ namespace stereo {
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
+      // We refine the disparity only in m_left_image_crop_win. Skip
+      // the current tile if it does not intersect this region.
+      BBox2i intersection = bbox; intersection.crop(m_left_image_crop_win);
+      if (m_left_image_crop_win != BBox2i(0,0,0,0) && intersection.empty()){
+        return prerasterize_type(ImageView<pixel_type>(bbox.width(),
+                                                       bbox.height()),
+                                 -bbox.min().x(), -bbox.min().y(),
+                                 cols(), rows() );
+      }
+
+#if VW_DEBUG_LEVEL > 0
+      Stopwatch watch;
+      watch.start();
+#endif
       // Find the range of disparity values for this patch.
       ImageView<pixel_type > disparity_map_patch =
         crop(m_disparity_map, bbox);
@@ -466,6 +483,11 @@ namespace stereo {
       // Undo the above adjustment
       disparity_map_patch += disparity_patch_translation;
 
+#if VW_DEBUG_LEVEL > 0
+      watch.stop();
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << " s\n";
+#endif
+
       // This may seem confusing, but we must crop here so that the
       // good pixel data is placed into the coordinates specified by
       // the bbox.  This allows rasterize to touch those pixels
@@ -490,11 +512,12 @@ namespace stereo {
                      ImageViewBase<ImageT2> const& right_image,
                      PreFilterBase<PreprocFilterT> const& filter,
                      Vector2i const& kernel_size,
-                     int max_pyramid_levels = 2 ) {
+                     int max_pyramid_levels = 2,
+                     BBox2i left_image_crop_win = BBox2i(0,0,0,0)) {
     typedef BayesEMSubpixelView<PreprocFilterT,ImageT1,ImageT2,DisparityT> result_type;
     return result_type( disparity_map.impl(), left_image.impl(),
                         right_image.impl(), filter.impl(), kernel_size,
-                        max_pyramid_levels );
+                        max_pyramid_levels, left_image_crop_win );
   }
 
 }} // namespace vw::stereo

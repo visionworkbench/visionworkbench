@@ -170,7 +170,7 @@ namespace stereo {
 
 #if VW_DEBUG_LEVEL > 0
       watch.stop();
-      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << "\n";
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << " s\n";
 #endif
 
       return prerasterize_type( result, -bbox.min().x(), -bbox.min().y(), cols(), rows() );
@@ -548,7 +548,7 @@ namespace stereo {
 
 #if VW_DEBUG_LEVEL > 0
       watch.stop();
-      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << "\n";
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << " s\n";
 #endif
 
       // 4.0) Reposition our result back into the global
