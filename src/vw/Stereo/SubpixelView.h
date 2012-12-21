@@ -430,6 +430,10 @@ namespace stereo {
       std::vector<BBox2i> rois;
       ImageView<pixel_type > d_subpatch;
 
+      // This initialization makes a difference only if the number of
+      // levels is 0, which is a valid situation.
+      d_subpatch = disparity_map_patch;
+
       // I'd like for image subsampling to use a gaussian when
       // downsampling however it was introducing some edge effects
       // that I couldn't figure out within a reasonable time frame.
