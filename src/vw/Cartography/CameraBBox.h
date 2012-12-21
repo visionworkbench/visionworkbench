@@ -165,15 +165,19 @@ namespace cartography {
           return;
         }
 
-        if ( center_on_zero && geospatial_point[0] > 180 )
-          geospatial_point[0] -= 360.0;
-        else if ( center_on_zero && geospatial_point[0] < -180 )
-          geospatial_point[0] += 360.0;
-        else if ( !center_on_zero && geospatial_point[0] < 0 )
-          geospatial_point[0] += 360.0;
-        else if ( !center_on_zero && geospatial_point[0] > 360 )
-          geospatial_point[0] -= 360.0;
-
+        if (!m_georef.is_projected()){
+          // If we don't use a projected coordinate system, then the
+          // coordinates of this point are simply lon and lat.
+          if ( center_on_zero && geospatial_point[0] > 180 )
+            geospatial_point[0] -= 360.0;
+          else if ( center_on_zero && geospatial_point[0] < -180 )
+            geospatial_point[0] += 360.0;
+          else if ( !center_on_zero && geospatial_point[0] < 0 )
+            geospatial_point[0] += 360.0;
+          else if ( !center_on_zero && geospatial_point[0] > 360 )
+            geospatial_point[0] -= 360.0;
+        }
+        
         if ( last_valid ) {
           double current_scale =
             norm_2( geospatial_point - m_last_intersect );
@@ -218,14 +222,18 @@ namespace cartography {
       center_on_zero = false;
 
     int32 step_amount = (2*cols+2*rows)/100;
+    step_amount = std::min(step_amount, cols/4); // must have at least several points per column
+    step_amount = std::min(step_amount, rows/4); // must have at least several points per row
+    step_amount = std::max(step_amount, 1);      // step amount must be > 0
+    
     detail::CameraDEMBBoxHelper<DEMImageT> functor( dem_image, georef, camera_model,
                                                     center_on_zero );
 
     // Running the edges
-    bresenham_apply( BresenhamLine(0,0,cols,0),
+    bresenham_apply( BresenhamLine(0,0,cols-1,0),
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
+    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows-1),
                      step_amount, functor );
     functor.last_valid = false;
     bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),

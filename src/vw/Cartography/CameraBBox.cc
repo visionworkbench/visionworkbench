@@ -106,9 +106,13 @@ void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixe
     return;
   }
 
-  if ( center_on_zero && geospatial_point[0] > 180 )
-    geospatial_point[0] -= 360.0;
-
+  if (!m_georef.is_projected()){
+    // If we don't use a projected coordinate system, then the
+    // coordinates of this point are simply lon and lat.
+    if ( center_on_zero && geospatial_point[0] > 180 )
+      geospatial_point[0] -= 360.0;
+  }
+  
   if ( last_valid ) {
     double current_scale =
       norm_2( geospatial_point - m_last_intersect );
