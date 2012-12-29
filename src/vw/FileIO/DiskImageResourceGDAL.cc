@@ -153,6 +153,8 @@ namespace vw {
         retval.push_back("FITS");
       } else if (ext == ".ntf") {                // NITF (needs GDAL w/ Jpeg2000 reader)
         retval.push_back("NITF");
+      } else if (ext == ".hgt") {
+        retval.push_back("SRTMHGT");             // NASA SRTM data.
       }
       else
         vw_throw( IOErr() << "DiskImageResourceGDAL: \"" << ext << "\" is an unsupported file extension." );
