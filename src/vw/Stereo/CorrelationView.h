@@ -309,9 +309,6 @@ namespace stereo {
       int32 max_upscaling = 1 << max_pyramid_levels;
       BBox2i left_global_region, right_global_region;
       {
-        // Here we apply the prefilter first. However it might be that
-        // we should build the gaussian pyramid first and then apply
-        // the filter to each region separately.
         left_global_region = bbox;
         left_global_region.min() -= half_kernel * max_upscaling;
         left_global_region.max() += half_kernel * max_upscaling;
@@ -374,6 +371,8 @@ namespace stereo {
         std::vector<uint8> mask_kern(max(m_kernel_size));
         std::fill(mask_kern.begin(), mask_kern.end(), 1 );
 
+        // Build the pyramid first and then apply the filter to each
+        // level.
         for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
           left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
           righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
