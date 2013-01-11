@@ -30,30 +30,39 @@ namespace vw {
 namespace math {
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
-  inline Vector3 rotation_matrix_to_euler_xyz(const Matrix<double,3,3>& rotation_matrix) {
-    double omega = asin(-rotation_matrix(2,0));
-    double kappa = atan2(rotation_matrix(1,0),rotation_matrix(0,0));
-    double phi = atan2(rotation_matrix(2,1),rotation_matrix(2,2));
+  template <class MatrixT>
+  inline Vector3 rotation_matrix_to_euler_xyz( MatrixBase<MatrixT> const& m ) {
+    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
+               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    double omega = asin(-m.impl()(2,0));
+    double kappa = atan2(m.impl()(1,0),m.impl()(0,0));
+    double phi = atan2(m.impl()(2,1),m.impl()(2,2));
 
     return Vector3(phi, omega, kappa);
   }
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
-  inline Vector3 rotation_matrix_to_euler_yxz(const Matrix<double,3,3>& rotation_matrix) {
-    double cos_phi = sqrt (1 - rotation_matrix(2,1) * rotation_matrix(2,1));
-    double phi = atan2(rotation_matrix(2,1), cos_phi);
-    double omega = atan2(-rotation_matrix(2,0), rotation_matrix(2,2));
-    double kappa = atan2(-rotation_matrix(0,1), rotation_matrix(1,1));
+  template <class MatrixT>
+  inline Vector3 rotation_matrix_to_euler_yxz(MatrixBase<MatrixT> const& m) {
+    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
+               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    double cos_phi = sqrt (1 - m.impl()(2,1) * m.impl()(2,1));
+    double phi = atan2(m.impl()(2,1), cos_phi);
+    double omega = atan2(-m.impl()(2,0), m.impl()(2,2));
+    double kappa = atan2(-m.impl()(0,1), m.impl()(1,1));
     return Vector3(omega, phi, kappa);
   }
 
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
-  inline Vector3 rotation_matrix_to_euler_zxy(const Matrix<double,3,3>& rotation_matrix) {
-    double sin_phi = -rotation_matrix(1,2);
+  template <class MatrixT>
+  inline Vector3 rotation_matrix_to_euler_zxy(MatrixBase<MatrixT> const& m) {
+    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
+               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    double sin_phi = -m.impl()(1,2);
     double cos_phi = sqrt (1 - sin_phi*sin_phi);
     double phi = atan2(sin_phi, cos_phi);
-    double omega = atan2(rotation_matrix(0,2), rotation_matrix(2,2));
-    double kappa = atan2(rotation_matrix(1,0), rotation_matrix(1,1));
+    double omega = atan2(m.impl()(0,2), m.impl()(2,2));
+    double kappa = atan2(m.impl()(1,0), m.impl()(1,1));
     return Vector3(kappa, phi, omega);
   }
 
