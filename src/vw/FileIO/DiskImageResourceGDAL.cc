@@ -129,6 +129,7 @@ namespace vw {
         retval.push_back("JP2KAK");               // kakadu
         retval.push_back("JPEG2000");             // jasper
         retval.push_back("JP2ECW");               // ecwj2k
+        retval.push_back("JP2OpenJPEG");          // openjpeg
       }
       else if (ext == ".png")                     // PNG
         retval.push_back("PNG");
