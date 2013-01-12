@@ -98,3 +98,34 @@ TEST(Accumulators, Median) {
 
   EXPECT_NEAR( median.value(), 35.0, 1.5 );
 }
+
+TEST(Accumulators, CDF_Merge ) {
+  boost::mt19937 random_gen(42);
+  boost::normal_distribution<double> norm1(0, 3);
+  boost::normal_distribution<double> norm2(5, 3);
+  boost::variate_generator<boost::mt19937&, boost::normal_distribution<double> > generator1( random_gen, norm1 );
+  boost::variate_generator<boost::mt19937&, boost::normal_distribution<double> > generator2( random_gen, norm2 );
+
+  CDFAccumulator<double> cdf1, cdf2, cdf3;
+  // 1 will only see gen1 .. but will later be merged with 2.
+  // 2 will only see gen2
+  // 3 is our control and sees both gen1 and gen2;
+  for ( size_t i = 0; i < 50000; i++ ) {
+    double sample1 = generator1(), sample2 = generator2();
+    cdf1( sample1 );
+    cdf2( sample2 );
+    cdf3( sample1 );
+    cdf3( sample2 );
+  }
+
+  cdf1.update();
+  cdf2.update();
+  cdf3.update();
+  cdf1(cdf2);
+
+  EXPECT_NEAR( cdf1.median(), cdf3.median(), 0.01 );
+  EXPECT_NEAR( cdf1.first_quartile(), cdf3.first_quartile(), 0.01 );
+  EXPECT_NEAR( cdf1.third_quartile(), cdf3.third_quartile(), 0.01 );
+  EXPECT_NEAR( cdf1.approximate_mean(),
+               cdf3.approximate_mean(), 0.01 );
+}
