@@ -419,7 +419,11 @@ namespace ip {
   // pairwise points.
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
-
+  
+  std::string match_filename(std::string const& out_prefix,
+                             std::string const& input_file1,
+                             std::string const& input_file2);
+  
 }} // namespace vw::ip
 
 #endif // _INTEREST_POINT_MATCHER_H_

@@ -21,6 +21,8 @@
 /// Classes and functions for matching image interest points.
 ///
 #include <vw/InterestPoint/Matcher.h>
+#include <boost/filesystem/operations.hpp>
+namespace fs = boost::filesystem;
 
 namespace vw {
 namespace ip {
@@ -103,4 +105,12 @@ namespace ip {
     ip2 = ip2_fltr;
   }
 
+  std::string match_filename(std::string const& out_prefix,
+                             std::string const& input_file1,
+                             std::string const& input_file2){
+    return out_prefix + "-" +
+      fs::path(input_file1).stem().string() + "__" + 
+      fs::path(input_file2).stem().string() + ".match";
+  }
+  
 }} // namespace vw::ip
