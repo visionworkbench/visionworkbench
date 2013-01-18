@@ -301,6 +301,15 @@ int main( int argc, char *argv[] ) {
       std::string line;
       std::getline( lut_file, line );
       while ( lut_file.good() ) {
+
+        // Skip lines containing spaces only
+        bool only_spaces = true;
+        for (unsigned s = 0; s < line.size(); s++) if (!isspace(line[s])) only_spaces = false;
+        if (only_spaces){
+          std::getline( lut_file, line );
+          continue;
+        }
+                                                  
         tokenizer tokens(line,sep);
         tokenizer::iterator iter = tokens.begin();
 
