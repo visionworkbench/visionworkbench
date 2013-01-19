@@ -177,7 +177,7 @@ namespace vw {
   /// It uses an axis-aligned Guassian kernel with standard deviations
   /// of x_sigma and y_sigma, kernel dimensions of x_dim and y_dim,
   /// and the given edge extension mode to extend the source image as
-  /// needed.  Specifying a zero falue of x_dim or y_dim causes the
+  /// needed.  Specifying a zero value of x_dim or y_dim causes the
   /// corresponding dimension to be chose automatically as appropriate
   /// for the requested standard deviation.
   template <class SrcT, class EdgeT>
@@ -314,7 +314,23 @@ namespace vw {
     return laplacian_filter( src, ConstantEdgeExtension() );
   }
 
-
+  /// Applies a Sobel filter to an image which computes the Sobel x or y derivative.
+  template <class SrcT>
+  ConvolutionView<SrcT, ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type>, ConstantEdgeExtension>
+  inline sobel_filter( ImageViewBase<SrcT> const& src, bool do_x_deriv ) {
+    ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type> kernel(3,3);
+    if (do_x_deriv){
+      kernel(0,0)=-1; kernel(1,0)=0;  kernel(2,0)=1;
+      kernel(0,1)=-2; kernel(1,1)=0;  kernel(2,1)=2;
+      kernel(0,2)=-1; kernel(1,2)=0;  kernel(2,2)=1;
+    }else{
+      kernel(0,0)=-1; kernel(1,0)=-2; kernel(2,0)=-1;
+      kernel(0,1)=0;  kernel(1,1)=0;  kernel(2,1)=0;
+      kernel(0,2)=1;  kernel(1,2)=2;  kernel(2,2)=1;
+    }
+    return ConvolutionView<SrcT, ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type>, ConstantEdgeExtension>( src.impl(), kernel, 1, 1, ConstantEdgeExtension() );
+  }
+  
   // Per-pixel filter functions
 
   /// Filters an image by applying a user-supplied function to each

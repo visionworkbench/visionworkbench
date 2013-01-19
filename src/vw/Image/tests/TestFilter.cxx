@@ -141,6 +141,30 @@ TEST( Filter, Laplacian ) {
   ImageView<PixelGrayA<double> > dst2b = laplacian_filter( src2, ZeroEdgeExtension() );
 }
 
+TEST( Filter, Sobel ) {
+
+  int n = 5;
+  ImageView<double> fun(n, n), dx(n, n), dy(n, n);
+  for (int x = 0; x < n; x++){
+    for (int y = 0; y < n; y++){
+      fun(x, y) = x*x;
+    }
+  }
+
+  bool do_x_deriv = true;
+  ImageView<double> sobel_x = sobel_filter( fun, do_x_deriv );
+
+  do_x_deriv = false;
+  ImageView<double> sobel_y = sobel_filter( fun, do_x_deriv );
+
+  // The Sobel derivative in x is negative (we'd expect d(x^2) = 2*x > 0) due to
+  // how the Sobel coefficients are chosen in the literature.
+  EXPECT_EQ(sobel_x(n/2, n/2), -32);
+
+  // The Sobel derivative in y is 0, since the input function is constant in y.
+  EXPECT_EQ(sobel_y(n/2, n/2), 0);
+}
+
 TEST( Filter, PerPixel ) {
   ImageView<double> src(2,2); src(0,0)=1; src(1,0)=2; src(0,1)=3; src(1,1)=4;
   ImageView<double> dst = per_pixel_filter( src, ArgValProductFunctor<double>(0.5) );
