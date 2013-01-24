@@ -30,6 +30,23 @@
 namespace vw {
 namespace stereo {
 
+  template <class ImageT>
+  void do_dump(std::string tag, BBox2i bbox, int level, ImageT const& left, ImageT const& right){
+  
+    std::ostringstream os;
+    os << "_" << bbox.min().x() << "_" << bbox.min().y() << "_" << bbox.width() << "_" << bbox.height();
+  
+    std::ostringstream left_is; left_is << "left_" << tag << os.str() << "_" << level << ".tif";
+    std::string left_file = left_is.str();
+    std::cout << "Writing: " << left_file << std::endl;
+    write_image(left_file, left);
+  
+    std::ostringstream right_is; right_is << "right_" << tag << os.str() << "_" << level << ".tif";
+    std::string right_file = right_is.str();
+    std::cout << "Writing: " << right_file << std::endl;
+    write_image(right_file, right);
+  }
+
   /// An image view for performing image correlation
   template <class Image1T, class Image2T, class PreFilterT>
   class CorrelationView : public ImageViewBase<CorrelationView<Image1T, Image2T, PreFilterT> > {
@@ -301,6 +318,8 @@ namespace stereo {
         max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
+      double sobel_val[max_pyramid_levels + 1];
+      
       // 2.0) Build the pyramid
       std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid(max_pyramid_levels + 1 );
       std::vector<ImageView<typename Image2T::pixel_type> > righ_pyramid(max_pyramid_levels + 1 );
@@ -350,6 +369,7 @@ namespace stereo {
         }
         left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
         righ_pyramid[0] = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
+        sobel_val[0]    = sobel_mean( left_pyramid[0] );
 
         // Don't actually need the whole over cropped disparity
         // mask. We only need the active region. I over cropped before
@@ -371,20 +391,41 @@ namespace stereo {
         std::vector<uint8> mask_kern(max(m_kernel_size));
         std::fill(mask_kern.begin(), mask_kern.end(), 1 );
 
+        char * ptr = getenv("DO_DUMP");
+        
         // Build the pyramid first and then apply the filter to each
         // level.
         for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
           left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
           righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
+          sobel_val[i+1]    = sobel_mean( left_pyramid[i+1] );
+
+          if (ptr && atoi(ptr)) do_dump("img", bbox, i, left_pyramid[i], righ_pyramid[i]);
+          
           left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
           righ_pyramid[i] = m_prefilter.filter(righ_pyramid[i]);
+
+          if (ptr && atoi(ptr)) do_dump("flt", bbox, i, left_pyramid[i], righ_pyramid[i]);
+
           left_mask_pyramid[i+1] = subsample_mask_by_two(left_mask_pyramid[i]);
           righ_mask_pyramid[i+1] = subsample_mask_by_two(righ_mask_pyramid[i]);
         }
+        
+        if (ptr && atoi(ptr)) do_dump("img", bbox, max_pyramid_levels,
+                                      left_pyramid[max_pyramid_levels], righ_pyramid[max_pyramid_levels]);
+        
         left_pyramid[max_pyramid_levels] = m_prefilter.filter(left_pyramid[max_pyramid_levels]);
         righ_pyramid[max_pyramid_levels] = m_prefilter.filter(righ_pyramid[max_pyramid_levels]);
+
+        if (ptr && atoi(ptr)) do_dump("flt", bbox, max_pyramid_levels,
+                                      left_pyramid[max_pyramid_levels], righ_pyramid[max_pyramid_levels]);
+        
       }
 
+      std::cout << "mean: ";
+      for (int i = 0; i <= max_pyramid_levels; i++) std::cout << sobel_val[i] << " ";
+      std::cout << std::endl;
+      
       // 3.0) Actually perform correlation now
       ImageView<pixel_type > disparity;
       std::list<SearchParam> zones;
