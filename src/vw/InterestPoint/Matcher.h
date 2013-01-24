@@ -76,7 +76,7 @@ namespace ip {
     std::sort(ip1_sorted.begin(), ip1_sorted.end(), InterestPointLessThan);
     std::sort(ip2_sorted.begin(), ip2_sorted.end(), InterestPointLessThan);
   }
-  
+
   /// Interest Point Match contraints functors to return a list of
   /// allowed match candidates to an interest point.
   ///
@@ -168,25 +168,22 @@ namespace ip {
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
-      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
-
-      std::vector<ip::InterestPoint> ip1_sorted, ip2_sorted;
-      sort_interest_points(ip1, ip2, ip1_sorted, ip2_sorted);
+      Timer total_time("Total elapsed time", DebugMessage, "interest_point");
+      size_t ip1_size = ip1.size(), ip2_size = ip2.size();
 
       matched_ip1.clear(); matched_ip2.clear();
-      if (!ip1_sorted.size() || !ip2_sorted.size()) {
+      if (!ip1_size || !ip2_size) {
         vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
         progress_callback.report_finished();
         return;
       }
 
-      size_t size = ip1_sorted.size();
-      float inc_amt = 1.0f/float(size);
+      float inc_amt = 1.0f/float(ip1_size);
 
 #if VW_HAVE_PKG_FLANN
-      Matrix<float> ip2_matrix( ip2_sorted.size(), ip2_sorted.begin()->size() );
+      Matrix<float> ip2_matrix( ip2_size, ip2.begin()->size() );
       Matrix<float>::iterator ip2_matrix_it = ip2_matrix.begin();
-      BOOST_FOREACH( InterestPoint const& ip, ip2_sorted )
+      BOOST_FOREACH( InterestPoint const& ip, ip2 )
         ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
 
       math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
@@ -195,12 +192,12 @@ namespace ip {
       Vector<int> indices(2);
       Vector<float> distances(2);
 #else
-      math::KDTree<ListT> kd(ip2_sorted.begin()->size(), ip2_sorted);
+      math::KDTree<ListT> kd(ip2.begin()->size(), ip2);
       vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
 #endif
       progress_callback.report_progress(0);
 
-      BOOST_FOREACH( InterestPoint ip, ip1_sorted ) {
+      BOOST_FOREACH( InterestPoint ip, ip1 ) {
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
         progress_callback.report_incremental_progress(inc_amt);
@@ -208,8 +205,8 @@ namespace ip {
         std::vector<InterestPoint> nearest_records(2);
 #if VW_HAVE_PKG_FLANN
         kd.knn_search( ip.descriptor, indices, distances, 2 );
-        nearest_records[0] = ip2_sorted[indices[0]];
-        nearest_records[1] = ip2_sorted[indices[1]];
+        nearest_records[0] = ip2[indices[0]];
+        nearest_records[1] = ip2[indices[1]];
 #else
         int num_records = kd.m_nearest_neighbors(ip, nearest_records, 2);
         if (num_records != 2)
@@ -237,7 +234,6 @@ namespace ip {
       }
 
       progress_callback.report_finished();
-      delete total;
     }
   };
 
@@ -262,25 +258,22 @@ namespace ip {
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
-      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
+      Timer total_time("Total elapsed time", DebugMessage, "interest_point");
+      size_t ip1_size = ip1.size(), ip2_size = ip2.size();
 
-      std::vector<ip::InterestPoint> ip1_sorted, ip2_sorted;
-      sort_interest_points(ip1, ip2, ip1_sorted, ip2_sorted);
-      
       matched_ip1.clear(); matched_ip2.clear();
-      if (!ip1_sorted.size() || !ip2_sorted.size()) {
+      if (!ip1_size || !ip2_size) {
         vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
         progress_callback.report_finished();
         return;
       }
 
-      size_t size = ip1_sorted.size();
-      float inc_amt = 1.0f/float(size);
+      float inc_amt = 1.0f/float(ip1_size);
 
 #if VW_HAVE_PKG_FLANN
-      Matrix<float> ip2_matrix( ip2_sorted.size(), ip2_sorted.begin()->size() );
+      Matrix<float> ip2_matrix( ip2_size, ip2.begin()->size() );
       Matrix<float>::iterator ip2_matrix_it = ip2_matrix.begin();
-      BOOST_FOREACH( InterestPoint const& ip, ip2_sorted )
+      BOOST_FOREACH( InterestPoint const& ip, ip2 )
         ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
 
       math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
@@ -289,12 +282,12 @@ namespace ip {
       Vector<int> indices(2);
       Vector<float> distances(2);
 #else
-      math::KDTree<ListT> kd(ip2_sorted.begin()->size(), ip2_sorted);
+      math::KDTree<ListT> kd(ip2.begin()->size(), ip2);
       vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
 #endif
       progress_callback.report_progress(0);
 
-      BOOST_FOREACH( InterestPoint ip, ip1_sorted ) {
+      BOOST_FOREACH( InterestPoint ip, ip1 ) {
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
         progress_callback.report_incremental_progress(inc_amt);
@@ -304,7 +297,7 @@ namespace ip {
         kd.knn_search( ip.descriptor, indices, distances, 2 );
         if ( distances[0] < m_threshold * distances[1] ) {
           matched_ip1.push_back(ip);
-          matched_ip2.push_back(ip2_sorted[indices[0]]);
+          matched_ip2.push_back(ip2[indices[0]]);
         }
 #else
         std::vector<InterestPoint> nearest_records(2);
@@ -322,7 +315,6 @@ namespace ip {
       }
 
       progress_callback.report_finished();
-      delete total;
     }
   };
 
@@ -349,22 +341,19 @@ namespace ip {
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
-      Timer *total = new Timer("Total elapsed time", DebugMessage, "interest_point");
-
-      std::vector<ip::InterestPoint> ip1_sorted, ip2_sorted;
-      sort_interest_points(ip1, ip2, ip1_sorted, ip2_sorted);
+      Timer total_time("Total elapsed time", DebugMessage, "interest_point");
 
       matched_ip1.clear(); matched_ip2.clear();
-      if (!ip1_sorted.size() || !ip2_sorted.size()) {
+      if (!ip1.size() || !ip2.size()) {
         vw_out(InfoMessage,"interest_point") << "No points to match, exiting\n";
         progress_callback.report_finished();
         return;
       }
 
-      float inc_amt = 1.0f / float(ip1_sorted.size());
+      float inc_amt = 1.0f / float(ip1.size());
       progress_callback.report_progress(0);
-      std::vector<int> match_index( ip1_sorted.size() );
-      for (unsigned i = 0; i < ip1_sorted.size(); i++ ) {
+      std::vector<int> match_index( ip1.size() );
+      for (size_t i = 0; i < ip1.size(); i++ ) {
         if (progress_callback.abort_requested())
           vw_throw( Aborted() << "Aborted by ProgressCallback" );
         progress_callback.report_incremental_progress(inc_amt);
@@ -372,12 +361,12 @@ namespace ip {
         double first_pick = 1e100, second_pick = 1e100;
         match_index[i] = -1;
         // Comparing ip1_sorted's feature against all of ip2_sorted's
-        for (unsigned j = 0; j < ip2_sorted.size(); j++ ) {
+        for (size_t j = 0; j < ip2.size(); j++ ) {
 
-          if ( ip1_sorted[i].polarity != ip2_sorted[j].polarity )
+          if ( ip1[i].polarity != ip2[j].polarity )
             continue;
 
-          double distance = m_distance_metric( ip1_sorted[i], ip2_sorted[j] );
+          double distance = m_distance_metric( ip1[i], ip2[j] );
 
           if ( distance < first_pick ) {
             match_index[i] = j;
@@ -397,14 +386,12 @@ namespace ip {
       progress_callback.report_finished();
 
       // Building matched_ip1 & matched_ip2
-      for (unsigned i = 0; i < ip1_sorted.size(); i++ ) {
+      for (size_t i = 0; i < ip1.size(); i++ ) {
         if ( match_index[i] != -1 ) {
-          matched_ip1.push_back( ip1_sorted[i] );
-          matched_ip2.push_back( ip2_sorted[match_index[i]] );
+          matched_ip1.push_back( ip1[i] );
+          matched_ip2.push_back( ip2[match_index[i]] );
         }
       }
-
-      delete total;
     }
   };
 
