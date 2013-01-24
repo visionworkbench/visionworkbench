@@ -328,7 +328,26 @@ namespace vw {
       kernel(0,1)=0;  kernel(1,1)=0;  kernel(2,1)=0;
       kernel(0,2)=1;  kernel(1,2)=2;  kernel(2,2)=1;
     }
+    // Matlab: img = imfilter(src,kernel,'replicate');
     return ConvolutionView<SrcT, ImageView<typename DefaultKernelT<typename SrcT::pixel_type>::type>, ConstantEdgeExtension>( src.impl(), kernel, 1, 1, ConstantEdgeExtension() );
+  }
+
+  // Compute the average of the sum of squares of Sobel derivatives in x in y.
+  template <class SrcT>
+  double inline sobel_mean(ImageViewBase<SrcT> const& src){
+
+    ImageView<typename SrcT::pixel_type> sobel_x = sobel_filter( src, true );
+    ImageView<typename SrcT::pixel_type> sobel_y = sobel_filter( src, false );
+    double mean = 0.0;
+    for (int col = 0; col < src.impl().cols(); col++){
+      for (int row = 0; row < src.impl().rows(); row++){
+        mean += (double)sobel_x(col, row)*(double)sobel_x(col, row)
+          + (double)sobel_y(col, row)*(double)sobel_y(col, row);
+      }
+    }
+    mean /= sobel_x.cols()*sobel_x.rows();
+
+    return mean;
   }
   
   // Per-pixel filter functions
