@@ -181,6 +181,79 @@ namespace ip {
     InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), bool bidirectional = false)
       : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold), m_bidirectional(bidirectional) { }
 
+    /// Given two lists of interest points, this write to index_list
+    /// the corresponding matching index in ip2. index_list is the
+    /// same length as ip1. index_list will be filled with max value
+    /// of size_t in the event that a match was not found.
+    template <class ListT, class IndexListT >
+    void operator()( ListT const& ip1, ListT const& ip2,
+                     IndexListT& index_list,
+                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
+      typedef typename ListT::const_iterator IterT;
+
+      Timer total_time("Total elapsed time", DebugMessage, "interest_point");
+      size_t ip1_size = ip1.size(), ip2_size = ip2.size();
+
+      index_list.clear();
+      if (!ip1_size || !ip2_size) {
+        vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
+        progress_callback.report_finished();
+        return;
+      }
+
+      float inc_amt = 1.0f/float(ip1_size);
+
+#if VW_HAVE_PKG_FLANN
+      Matrix<float> ip2_matrix( ip2_size, ip2.begin()->size() );
+      Matrix<float>::iterator ip2_matrix_it = ip2_matrix.begin();
+      BOOST_FOREACH( InterestPoint const& ip, ip2 )
+        ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
+
+      math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
+      vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
+
+      Vector<int> indices(2);
+      Vector<float> distances(2);
+#else
+      math::KDTree<ListT> kd(ip2.begin()->size(), ip2);
+      vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
+#endif
+      progress_callback.report_progress(0);
+
+      BOOST_FOREACH( InterestPoint ip, ip1 ) {
+        if (progress_callback.abort_requested())
+          vw_throw( Aborted() << "Aborted by ProgressCallback" );
+        progress_callback.report_incremental_progress(inc_amt);
+
+        std::vector<InterestPoint> nearest_records(2);
+#if VW_HAVE_PKG_FLANN
+        kd.knn_search( ip.descriptor, indices, distances, 2 );
+        nearest_records[0] = ip2[indices[0]];
+        nearest_records[1] = ip2[indices[1]];
+#else
+        int num_records = kd.m_nearest_neighbors(ip, nearest_records, 2);
+        if (num_records != 2)
+          continue; // Ignore if there are no matches
+#endif
+
+        if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
+          double dist0 = m_distance_metric(nearest_records[0], ip);
+          double dist1 = m_distance_metric(nearest_records[1], ip);
+
+          if (dist0 < m_threshold * dist1) {
+#if VW_HAVE_PKG_FLANN
+            index_list.push_back( indices[0] );
+#else
+            index_list.push_back( (size_t)(std::find(ip2.begin(),ip2.end(),
+                                                     nearest_records[0]) - ip2.begin()) );
+#endif
+          } else {
+            index_list.push_back( (size_t)(-1) ); // Last value of size_t
+          }
+        }
+      }
+    }
+
     /// Given two lists of interest points, this routine returns the two lists
     /// of matching interest points based on the Metric and Constraints
     /// provided by the user.
