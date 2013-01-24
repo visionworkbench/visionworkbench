@@ -228,8 +228,12 @@ namespace ip {
         std::vector<InterestPoint> nearest_records(2);
 #if VW_HAVE_PKG_FLANN
         kd.knn_search( ip.descriptor, indices, distances, 2 );
-        nearest_records[0] = ip2[indices[0]];
-        nearest_records[1] = ip2[indices[1]];
+        typename ListT::const_iterator iterator = ip2.begin();
+        std::advance( iterator, indices[0] );
+        nearest_records[0] = *iterator;
+        iterator = ip2.begin();
+        std::advance( iterator, indices[1] );
+        nearest_records[1] = *iterator;
 #else
         int num_records = kd.m_nearest_neighbors(ip, nearest_records, 2);
         if (num_records != 2)
@@ -300,8 +304,12 @@ namespace ip {
         std::vector<InterestPoint> nearest_records(2);
 #if VW_HAVE_PKG_FLANN
         kd.knn_search( ip.descriptor, indices, distances, 2 );
-        nearest_records[0] = ip2[indices[0]];
-        nearest_records[1] = ip2[indices[1]];
+        typename ListT::const_iterator iterator = ip2.begin();
+        std::advance( iterator, indices[0] );
+        nearest_records[0] = *iterator;
+        iterator = ip2.begin();
+        std::advance( iterator, indices[1] );
+        nearest_records[1] = *iterator;
 #else
         int num_records = kd.m_nearest_neighbors(ip, nearest_records, 2);
         if (num_records != 2)
