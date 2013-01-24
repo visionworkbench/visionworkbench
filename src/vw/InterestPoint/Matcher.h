@@ -152,11 +152,34 @@ namespace ip {
     ConstraintT m_constraint;
     MetricT m_distance_metric;
     double m_threshold;
+    bool m_bidirectional;
+
+    // Helper function to help reduce conditionals in the event of
+    // NullConstraint. (Which is common).
+    template <class InConstraintT>
+    typename boost::disable_if<boost::is_same<InConstraintT,NullConstraint>, bool>::type
+    check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
+      if (m_bidirectional) {
+        if (m_constraint(ip2, ip1) &&
+            m_constraint(ip1, ip2))
+          return true;
+      } else {
+        if (m_constraint(ip1, ip2))
+          return true;
+      }
+      return false;
+    }
+
+    template <class InConstraintT>
+    typename boost::enable_if<boost::is_same<InConstraintT,NullConstraint>, bool>::type
+    check_constraint( InterestPoint const& ip1, InterestPoint const& ip2 ) const {
+      return true;
+    }
 
   public:
 
-    InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT())
-      : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold) { }
+    InterestPointMatcher(double threshold = 0.5, MetricT metric = MetricT(), ConstraintT constraint = ConstraintT(), bool bidirectional = false)
+      : m_constraint(constraint), m_distance_metric(metric), m_threshold(threshold), m_bidirectional(bidirectional) { }
 
     /// Given two lists of interest points, this routine returns the two lists
     /// of matching interest points based on the Metric and Constraints
@@ -164,7 +187,6 @@ namespace ip {
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
                      MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     bool bidirectional = false,
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
@@ -213,16 +235,7 @@ namespace ip {
           continue; // Ignore if there are no matches
 #endif
 
-        bool constraint_satisfied = false;
-        if (bidirectional) {
-          if (m_constraint(nearest_records[0], ip) &&
-              m_constraint(ip, nearest_records[0]))
-            constraint_satisfied = true;
-        } else {
-          if (m_constraint(nearest_records[0], ip))
-            constraint_satisfied = true;
-        }
-        if (constraint_satisfied) {
+        if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
           double dist0 = m_distance_metric(nearest_records[0], ip);
           double dist1 = m_distance_metric(nearest_records[1], ip);
 
@@ -231,87 +244,6 @@ namespace ip {
             matched_ip2.push_back(nearest_records[0]);
           }
         }
-      }
-
-      progress_callback.report_finished();
-    }
-  };
-
-  // Specialization to capture more speed.
-  template <>
-  class InterestPointMatcher<L2NormMetric, NullConstraint> {
-    double m_threshold;
-    L2NormMetric m_metric;
-
-  public:
-
-    InterestPointMatcher(double threshold = 0.5, L2NormMetric metric = L2NormMetric(), NullConstraint /*constraint*/ = NullConstraint())
-      : m_threshold(threshold), m_metric(metric) { }
-
-    /// Given two lists of interest points, this routine returns the two lists
-    /// of matching interest points based on the Metric and Constraints
-    /// provided by the user.
-    template <class ListT, class MatchListT>
-    void operator()( ListT const& ip1, ListT const& ip2,
-                     MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     bool /*bidirectional*/ = false,
-                     const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
-      typedef typename ListT::const_iterator IterT;
-
-      Timer total_time("Total elapsed time", DebugMessage, "interest_point");
-      size_t ip1_size = ip1.size(), ip2_size = ip2.size();
-
-      matched_ip1.clear(); matched_ip2.clear();
-      if (!ip1_size || !ip2_size) {
-        vw_out(InfoMessage,"interest_point") << "KD-Tree: no points to match, exiting\n";
-        progress_callback.report_finished();
-        return;
-      }
-
-      float inc_amt = 1.0f/float(ip1_size);
-
-#if VW_HAVE_PKG_FLANN
-      Matrix<float> ip2_matrix( ip2_size, ip2.begin()->size() );
-      Matrix<float>::iterator ip2_matrix_it = ip2_matrix.begin();
-      BOOST_FOREACH( InterestPoint const& ip, ip2 )
-        ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
-
-      math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
-      vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
-
-      Vector<int> indices(2);
-      Vector<float> distances(2);
-#else
-      math::KDTree<ListT> kd(ip2.begin()->size(), ip2);
-      vw_out(InfoMessage,"interest_point") << "KD-Tree created with " << kd.size() << " nodes and depth ranging from " << kd.min_depth() << " to " << kd.max_depth() << ".  Searching...\n";
-#endif
-      progress_callback.report_progress(0);
-
-      BOOST_FOREACH( InterestPoint ip, ip1 ) {
-        if (progress_callback.abort_requested())
-          vw_throw( Aborted() << "Aborted by ProgressCallback" );
-        progress_callback.report_incremental_progress(inc_amt);
-
-
-#if VW_HAVE_PKG_FLANN
-        kd.knn_search( ip.descriptor, indices, distances, 2 );
-        if ( distances[0] < m_threshold * distances[1] ) {
-          matched_ip1.push_back(ip);
-          matched_ip2.push_back(ip2[indices[0]]);
-        }
-#else
-        std::vector<InterestPoint> nearest_records(2);
-        int num_records = kd.m_nearest_neighbors(ip, nearest_records, 2);
-        if (num_records != 2)
-          continue; // Ignore if there are no matches
-        double dist0 = m_metric(nearest_records[0], ip);
-        double dist1 = m_metric(nearest_records[1], ip);
-
-        if (dist0 < m_threshold * dist1) {
-          matched_ip1.push_back(ip);
-          matched_ip2.push_back(nearest_records[0]);
-        }
-#endif
       }
 
       progress_callback.report_finished();
@@ -337,7 +269,6 @@ namespace ip {
     template <class ListT, class MatchListT>
     void operator()( ListT const& ip1, ListT const& ip2,
                      MatchListT& matched_ip1, MatchListT& matched_ip2,
-                     bool /*bidirectional*/ = false,
                      const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) const {
       typedef typename ListT::const_iterator IterT;
 
@@ -406,11 +337,12 @@ namespace ip {
   // pairwise points.
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
-  
+
+  // Function to help with consistent way of naming output match files
   std::string match_filename(std::string const& out_prefix,
                              std::string const& input_file1,
                              std::string const& input_file2);
-  
+
 }} // namespace vw::ip
 
 #endif // _INTEREST_POINT_MATCHER_H_

@@ -171,13 +171,13 @@ int main(int argc, char** argv) {
 
       if ( !vm.count("non-kdtree") ) {
         // Run interest point matcher that uses KDTree algorithm.
-        InterestPointMatcher<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-        matcher(ip1, ip2, matched_ip1, matched_ip2, false,
+        DefaultMatcher matcher(matcher_threshold);
+        matcher(ip1, ip2, matched_ip1, matched_ip2,
                 TerminalProgressCallback( "tools.ipmatch","Matching:"));
       } else {
         // Run interest point matcher that does not use KDTree algorithm.
         InterestPointMatcherSimple<L2NormMetric,NullConstraint> matcher(matcher_threshold);
-        matcher(ip1, ip2, matched_ip1, matched_ip2, false,
+        matcher(ip1, ip2, matched_ip1, matched_ip2,
                 TerminalProgressCallback( "tools.ipmatch","Matching:"));
       }
 

@@ -192,7 +192,7 @@ void align_images( Options & opt ) {
 
     DefaultMatcher matcher(opt.matcher_threshold);
     std::vector<InterestPoint> matched_ip1, matched_ip2;
-    matcher(ref_ip_v, input_ip_v, matched_ip1, matched_ip2, false,
+    matcher(ref_ip_v, input_ip_v, matched_ip1, matched_ip2,
             TerminalProgressCallback( "tools.ipalign", "Matching:"));
     vw_out(InfoMessage) << "\tFound " << matched_ip1.size() << " putative matches.\n";
 
