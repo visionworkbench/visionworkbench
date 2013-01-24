@@ -227,7 +227,8 @@ namespace stereo {
     CostFunctionType m_cost_type;
     float m_consistency_threshold; // < 0 = means don't do a consistency check
     int32 m_max_level_by_search;
-
+    double m_edge_density_threshold;
+    
     struct SubsampleMaskByTwoFunc : public ReturnFixedType<uint8> {
       BBox2i work_area() const { return BBox2i(0,0,2,2); }
 
@@ -270,11 +271,14 @@ namespace stereo {
                             BBox2i const& search_region, Vector2i const& kernel_size,
                             CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
                             float consistency_threshold = -1,
-                            int32 max_pyramid_levels = 5 ) :
+                            int32 max_pyramid_levels = 5,
+                            double edge_density_threshold = 0.0
+                            ) :
       m_left_image(left.impl()), m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
       m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
-      m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {
+      m_cost_type(cost_type), m_consistency_threshold(consistency_threshold),
+      m_edge_density_threshold(edge_density_threshold) {
       // Calculating max pyramid levels according to the supplied
       // search region.
       int32 largest_search = max( search_region.size() );
@@ -318,7 +322,7 @@ namespace stereo {
         max_pyramid_levels = 0;
       Vector2i half_kernel = m_kernel_size/2;
 
-      double sobel_val[max_pyramid_levels + 1];
+      double sobel_density[max_pyramid_levels + 1];
       
       // 2.0) Build the pyramid
       std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid(max_pyramid_levels + 1 );
@@ -367,9 +371,9 @@ namespace stereo {
                                    -bbox.min().x(), -bbox.min().y(),
                                    cols(), rows() );
         }
-        left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
-        righ_pyramid[0] = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
-        sobel_val[0]    = sobel_mean( left_pyramid[0] );
+        left_pyramid[0]  = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
+        righ_pyramid[0]  = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
+        sobel_density[0] = sobel_edge_density( left_pyramid[0] );
 
         // Don't actually need the whole over cropped disparity
         // mask. We only need the active region. I over cropped before
@@ -396,9 +400,9 @@ namespace stereo {
         // Build the pyramid first and then apply the filter to each
         // level.
         for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
-          left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
-          righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
-          sobel_val[i+1]    = sobel_mean( left_pyramid[i+1] );
+          left_pyramid[i+1]  = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
+          righ_pyramid[i+1]  = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
+          sobel_density[i+1] = sobel_edge_density( left_pyramid[i+1] );
 
           if (ptr && atoi(ptr)) do_dump("img", bbox, i, left_pyramid[i], righ_pyramid[i]);
           
@@ -422,9 +426,19 @@ namespace stereo {
         
       }
 
-      std::cout << "mean: ";
-      for (int i = 0; i <= max_pyramid_levels; i++) std::cout << sobel_val[i] << " ";
+      std::cout << "edge_density_threshold is " << m_edge_density_threshold << std::endl;
+      std::cout << "sobel edge density: ";
+      for (int i = 0; i <= max_pyramid_levels; i++) std::cout << sobel_density[i] << " ";
       std::cout << std::endl;
+
+      // Decide how many levels to use
+      for (int i = 0; i <= max_pyramid_levels; i++){
+        if (sobel_density[i] < m_edge_density_threshold){
+          max_pyramid_levels = i;
+          max_upscaling = 1 << max_pyramid_levels;
+        }
+      }
+      std::cout << "Max pyramid level using density threshold is " << max_pyramid_levels << std::endl;
       
       // 3.0) Actually perform correlation now
       ImageView<pixel_type > disparity;
@@ -615,12 +629,14 @@ namespace stereo {
                      BBox2i const& search_region, Vector2i const& kernel_size,
                      CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
                      float consistency_threshold = -1,
-                     int32 max_pyramid_levels = 5 ) {
+                     int32 max_pyramid_levels = 5,
+                     double edge_density_threshold = 0.0
+                     ) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T,PreFilterT> result_type;
     return result_type( left.impl(), right.impl(), left_mask.impl(),
                         right_mask.impl(), filter.impl(), search_region,
                         kernel_size, cost_type, consistency_threshold,
-                        max_pyramid_levels );
+                        max_pyramid_levels, edge_density_threshold );
   }
 
 }} // namespace vw::stereo

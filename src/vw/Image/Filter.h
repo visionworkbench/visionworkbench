@@ -350,6 +350,24 @@ namespace vw {
     return mean;
   }
   
+  template <class SrcT>
+  double inline sobel_edge_density(ImageViewBase<SrcT> const& src){
+
+    ImageView<typename SrcT::pixel_type> sobel_x = sobel_filter( src, true );
+    ImageView<typename SrcT::pixel_type> sobel_y = sobel_filter( src, false );
+    double density = 0.0;
+    for (int col = 0; col < src.impl().cols(); col++){
+      for (int row = 0; row < src.impl().rows(); row++){
+        double v = (double)sobel_x(col, row)*(double)sobel_x(col, row)
+          + (double)sobel_y(col, row)*(double)sobel_y(col, row);
+        if (v > 0.01) density++;
+      }
+    }
+    density /= sobel_x.cols()*sobel_x.rows();
+
+    return density;
+  }
+
   // Per-pixel filter functions
 
   /// Filters an image by applying a user-supplied function to each
