@@ -158,16 +158,16 @@ namespace math {
   class DiscriminatorCompare {
 
     ContainerT m_pivot;
-    unsigned m_discriminator;
+    size_t m_discriminator;
     typename ContainerT::const_iterator pivot_iter;
 
   public:
-    DiscriminatorCompare(ContainerT pivot, unsigned discriminator)
+    DiscriminatorCompare(ContainerT pivot, size_t discriminator)
       : m_discriminator(discriminator){
       set_pivot(pivot);
     }
 
-    DiscriminatorCompare(unsigned discriminator)
+    DiscriminatorCompare(size_t discriminator)
       : m_discriminator(discriminator){
       set_invalid_pivot();
     }
@@ -199,7 +199,7 @@ namespace math {
       pivot_iter = m_pivot.end();
     }
 
-    void set_discriminator(unsigned new_disc){m_discriminator = new_disc;}
+    void set_discriminator(size_t new_disc){m_discriminator = new_disc;}
   };
 
 
@@ -220,7 +220,7 @@ namespace math {
   {
   public:
     template<typename RandomAccessIterT>
-    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned discriminator) const
+    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, size_t discriminator) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
 
@@ -228,8 +228,8 @@ namespace math {
       std::sort(beg, end, comparator); //Could use partial_sort() to save time?
 
       //Select the middle point as a pivot
-      unsigned num_records = distance(beg, end);
-      unsigned offset = (num_records / 2);
+      size_t num_records = distance(beg, end);
+      size_t offset = (num_records / 2);
       RandomAccessIterT pivot_position = RandomAccessIterT(beg);
       std::advance(pivot_position, offset);
 
@@ -255,12 +255,12 @@ namespace math {
   class RandPartitioner {
   public:
     template <typename RandomAccessIterT>
-    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, unsigned disc) const
+    RandomAccessIterT operator() (RandomAccessIterT beg, RandomAccessIterT end, size_t disc) const
     {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_type;
 
-      unsigned num_records = std::distance(beg, end);
-      unsigned offset = rand() % num_records;
+      size_t num_records = std::distance(beg, end);
+      size_t offset = rand() % num_records;
       RandomAccessIterT patition_position = beg;
       std::advance(patition_position, offset);
       DiscriminatorCompare<record_type> comparator( *patition_position, disc);
@@ -275,12 +275,12 @@ namespace math {
   class VarianceDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned /*disc*/) const {
+    size_t operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, size_t /*disc*/) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
 
       //the number of keys in a record
-      unsigned k = std::distance( (*file_beg).begin(), (*file_beg).end() );
+      size_t k = std::distance( (*file_beg).begin(), (*file_beg).end() );
 
       std::vector<double> mean;
       std::vector<double> variance;
@@ -295,7 +295,7 @@ namespace math {
         std::transform( (*temp).begin(), (*temp).end(), mean.begin(), mean.begin(), std::plus<double>() );
       }
       if(num_points != 0){
-        for(unsigned j = 0; j<k; ++j){
+        for(size_t j = 0; j<k; ++j){
           mean[j] /= num_points;
         }
       }
@@ -315,8 +315,8 @@ namespace math {
 
       //identify dimension of max variance
       double max_variance = -ScalarTypeLimits<double>::highest();
-      unsigned index_of_max_variance = 0;
-      for(unsigned j = 0; j<k; ++j){
+      size_t index_of_max_variance = 0;
+      for(size_t j = 0; j<k; ++j){
         if(variance[j] > max_variance){
           max_variance = variance[j];
           index_of_max_variance = j;
@@ -331,11 +331,11 @@ namespace math {
   class MaxDiffDiscSelector {
   public:
     template<typename RandomAccessIterT>
-    unsigned operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, unsigned /*unused_argument*/) const {
+    size_t operator() (RandomAccessIterT file_beg, RandomAccessIterT file_end, size_t /*unused_argument*/) const {
       typedef typename std::iterator_traits<RandomAccessIterT>::value_type record_t;
       typedef typename record_t::iterator record_iter_t;
 
-      unsigned k = std::distance( (*file_beg).begin(), (*file_beg).end() );
+      size_t k = std::distance( (*file_beg).begin(), (*file_beg).end() );
 
       //TODO: mins, maxes could be templated on the key type, and use
       //vw::ScalarTypeLimits<T>::highest()
@@ -347,7 +347,7 @@ namespace math {
       std::vector<double> diffs;
       diffs.resize(k);
 
-      unsigned i;
+      size_t i;
       for( ; file_beg != file_end; ++file_beg){
         i = 0;
         for(record_iter_t r_iter = (*file_beg).begin(); r_iter != (*file_beg).end(); ++r_iter){
@@ -364,7 +364,7 @@ namespace math {
 
       //Identify index of max element
       double max_diff = -ScalarTypeLimits<double>::highest();
-      unsigned dimension = 0;
+      size_t dimension = 0;
       for(i=0; i<k; ++i){
         if(diffs[i] > max_diff){
           max_diff = diffs[i];
@@ -378,13 +378,13 @@ namespace math {
 
   //NEXTDISC(d) = d+1 mod k (Bently's Discriminator selector)
   class ModuloDiscSelector {
-    unsigned m_k;
+    size_t m_k;
   public:
     //Constructor
-    ModuloDiscSelector(unsigned k)
+    ModuloDiscSelector(size_t k)
       : m_k(k) {}
     template <typename ForwardIterT>
-    unsigned operator() (ForwardIterT /*beg*/, ForwardIterT /*end*/, int disc) const {
+    size_t operator() (ForwardIterT /*beg*/, ForwardIterT /*end*/, int disc) const {
       return (disc + 1) % m_k;
     }
   };
@@ -498,7 +498,7 @@ namespace math {
 
     //The underlying graph structure:
     typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
-                                  boost::property<boost::vertex_discriminator_t, unsigned,
+                                  boost::property<boost::vertex_discriminator_t, size_t,
                                     boost::property<boost::vertex_record_t, record_t,
                                              boost::property<boost::vertex_LOSON_t, Vertex,
                                                       boost::property<boost::vertex_HISON_t, Vertex,
@@ -512,9 +512,9 @@ namespace math {
     BGL_KDTree m_kdTree;
     Vertex m_NIL;
     Vertex m_root;
-    unsigned m_k; //dimensionality of kd tree
-    unsigned m_max_depth;
-    unsigned m_min_depth;
+    size_t m_k; //dimensionality of kd tree
+    size_t m_max_depth;
+    size_t m_min_depth;
 
     class VertexDistanceComparator;
 
@@ -524,7 +524,7 @@ namespace math {
 
     // Property maps:
     // given a vertex descriptor V, its properties can be accessed like:
-    // unsigned disc = m_discriminator_map[V];
+    // size_t disc = m_discriminator_map[V];
     typename boost::property_map<BGL_KDTree, boost::vertex_record_t>::type m_record_map;
     typename boost::property_map<BGL_KDTree, boost::vertex_discriminator_t>::type m_discriminator_map;
     typename boost::property_map<BGL_KDTree, boost::vertex_LOSON_t>::type m_LOSON_map;
@@ -536,7 +536,7 @@ namespace math {
 
     ///////////////  --- KD Constructors ---  //////////////////////
 
-    KDTree(unsigned k) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX){
+    KDTree(size_t k) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX){
       //initialize
       initialize_property_maps();
       initialize_infinity();
@@ -546,7 +546,7 @@ namespace math {
       m_root = m_NIL;
     }
 
-    KDTree(unsigned k, FileT const& file) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
+    KDTree(size_t k, FileT const& file) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
     {
       //initialize
       initialize_property_maps();
@@ -558,7 +558,7 @@ namespace math {
 
     //Specify functors to select discriminator and partition
     template<typename DiscSelector, typename Partitioner>
-    KDTree(unsigned k, FileT const& file,
+    KDTree(size_t k, FileT const& file,
            DiscSelector discSelector, Partitioner partitioner) : m_k(k), m_max_depth(0), m_min_depth(INT_MAX)
     {
       //initialize
@@ -644,13 +644,13 @@ namespace math {
     // Query must be a container with k keys.
     //TODO: the return type of nearest_records should not depend on ContainerT
     template <typename ContainerT, class RecordConstraintT = NullRecordConstraintKD, class DistanceMetricT = SafeEuclideanDistanceMetric >
-    unsigned m_nearest_neighbors(ContainerT const& query,
+    size_t m_nearest_neighbors(ContainerT const& query,
                                  std::vector<record_t>& nearest_records,
-                                 unsigned m = 1,
+                                 size_t m = 1,
                                  RecordConstraintT recordConstraint = RecordConstraintT(),
                                  DistanceMetricT distanceMetric = DistanceMetricT())
     {
-      assert( m_k == (unsigned) std::distance(query.begin(), query.end()) );
+      assert( m_k == (size_t) std::distance(query.begin(), query.end()) );
       nearest_records.clear();
 
       //Initialize the priority queue with m sentinel NIL pairs
@@ -658,7 +658,7 @@ namespace math {
       while (!m_priority_queue.empty()){
         m_priority_queue.pop();
       }
-      for(unsigned i = 0; i < m; ++i){
+      for(size_t i = 0; i < m; ++i){
         m_priority_queue.push(nil_pair);
       }
 
@@ -670,7 +670,7 @@ namespace math {
       nearest_neighbors(m_root, _query, m, recordConstraint, distanceMetric);
 
       //Now parse m_priority_queue into nearest_records
-      unsigned num_records_found = 0;
+      size_t num_records_found = 0;
       std::pair<Vertex, key_t> temp_pair;
 
       while (!m_priority_queue.empty()){
@@ -693,11 +693,11 @@ namespace math {
     }
 
     //The number of vertices in the graph, less one for the NIL vertex
-    unsigned size(){return num_vertices(m_kdTree)-1;}
+    size_t size(){return num_vertices(m_kdTree)-1;}
     //The root vertex is at depth 0.
     //TODO: ...but an empty tree also has depth 0... hmmm...
-    unsigned max_depth(){return m_max_depth;}
-    unsigned min_depth(){return m_min_depth;}
+    size_t max_depth(){return m_max_depth;}
+    size_t min_depth(){return m_min_depth;}
 
   private:
 
@@ -710,18 +710,18 @@ namespace math {
     // the input file. Returns the root of the k-d tree.
     //
     // DiscSelector:a functor which must support
-    //  unsigned operator() (IterT beg, IterT end, unsigned disc)
+    //  size_t operator() (IterT beg, IterT end, size_t disc)
     //  and return a discriminator between 0 and k-1, inclusive.
     //
     // Partitioner: a functor which must support
-    //  IterT operator() (IterT beg, IterT end, unsigned disc)
+    //  IterT operator() (IterT beg, IterT end, size_t disc)
     //  and return the position of an element to be used for partitioning
     //
     template <typename IterT, typename DiscSelector, typename Partitioner>
     Vertex build_tree(IterT file_beg, IterT file_end,
                       range_t lo_range, range_t hi_range,
                       DiscSelector discSelector, Partitioner partitioner,
-                      int previous_disc, unsigned depth)
+                      int previous_disc, size_t depth)
     {
       // End recursion?
       if (file_beg == file_end){
@@ -736,7 +736,7 @@ namespace math {
       }
 
       //Choose discriminator and partition
-      unsigned disc = discSelector(file_beg, file_end, previous_disc);
+      size_t disc = discSelector(file_beg, file_end, previous_disc);
       IterT partition = partitioner(file_beg, file_end, disc);
 
       Vertex P = add_vertex(m_kdTree);
@@ -786,7 +786,7 @@ namespace math {
     // The new vertex's discriminator is determined using via modulo
     //
     // TODO: test updates for m_min_depth and m_max_depth
-    void kd_insert(record_t r, Vertex P, unsigned depth){
+    void kd_insert(record_t r, Vertex P, size_t depth){
       if(P == m_NIL){
         //this must be an empty tree
         Vertex new_vertex = add_vertex(m_kdTree);
@@ -818,7 +818,7 @@ namespace math {
         return;
       }
 
-      unsigned disc_P = m_discriminator_map[P];
+      size_t disc_P = m_discriminator_map[P];
 
       if( on_low_side(r, P) ){
         if( m_LOSON_map[P] == m_NIL ){
@@ -916,7 +916,7 @@ namespace math {
     // This could be done by only searching a child if the child's lorange or
     // the child's hirange satisfies the constraint.
     template<typename RecordConstraint, typename DistanceMetric>
-    int nearest_neighbors(Vertex const& N, range_t const& query, unsigned m,
+    int nearest_neighbors(Vertex const& N, range_t const& query, size_t m,
                           RecordConstraint const& recordConstraint,
                           DistanceMetric const& distanceMetric ) {
       if (N == m_NIL)
@@ -930,7 +930,7 @@ namespace math {
         return 0;
       }
       record_t& N_record = get(m_record_map, N);
-      unsigned disc = get(m_discriminator_map, N);
+      size_t disc = get(m_discriminator_map, N);
       Vertex& loson = get(m_LOSON_map, N);
       Vertex& hison = get(m_HISON_map, N);
 
@@ -1092,7 +1092,7 @@ namespace math {
     template<typename QueryT>
     bool on_low_side(QueryT r, Vertex V)
     {
-      unsigned disc = m_discriminator_map[V];
+      size_t disc = m_discriminator_map[V];
       record_t partition = m_record_map[V];
       record_iter_t partition_iter = partition.begin();
       typename QueryT::iterator r_iter = r.begin();
@@ -1103,7 +1103,7 @@ namespace math {
 
     //Performs A[k] = B[k]
     template<typename IterA, typename IterB>
-    void set_range_value(IterA iterA, IterB iterB, unsigned k){
+    void set_range_value(IterA iterA, IterB iterB, size_t k){
       std::advance(iterA, k);
       std::advance(iterB, k);
       *iterA = *iterB;
