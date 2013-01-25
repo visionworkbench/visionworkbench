@@ -92,6 +92,7 @@ TEST( Matcher, Matcher ) {
 
   std::vector<InterestPoint> ip1_list, ip2_list;
   std::vector<InterestPoint> matched_ip1, matched_ip2;
+  std::vector<size_t> matched_indexes;
 
   ip1_list.push_back(ip1a);
   ip2_list.push_back(ip2a);
@@ -102,16 +103,18 @@ TEST( Matcher, Matcher ) {
 
   InterestPointMatcher<L2NormMetric,NullConstraint> matcher;
   matcher(ip1_list, ip2_list, matched_ip1, matched_ip2);
+  matcher(ip1_list, ip2_list, matched_indexes );
 
   EXPECT_EQ( int(matched_ip1.size()), 1);
   EXPECT_EQ( int(matched_ip2.size()), 1);
+  EXPECT_EQ( matched_indexes.size(), 1);
 
-  EXPECT_EQ(   matched_ip1.begin()->descriptor[0], 0 );
-  EXPECT_NEAR( matched_ip1.begin()->descriptor[1], 7.7, 1e-2 );
-  EXPECT_EQ(   matched_ip1.begin()->descriptor[2], 0 );
+  EXPECT_VECTOR_NEAR( matched_ip1.begin()->descriptor,
+                      Vector3( 0, 7.7, 0 ), 1e-6 );
+  EXPECT_VECTOR_EQ( matched_ip2.begin()->descriptor,
+                    Vector3(0,8,0) );
 
-  EXPECT_VECTOR_FLOAT_EQ( matched_ip2.begin()->descriptor,
-                          Vector3(0,8,0) );
+  EXPECT_EQ( matched_indexes[0], 3 );
 }
 
 
