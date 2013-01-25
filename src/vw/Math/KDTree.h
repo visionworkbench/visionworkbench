@@ -643,12 +643,22 @@ namespace math {
     //
     // Query must be a container with k keys.
     //TODO: the return type of nearest_records should not depend on ContainerT
-    template <typename ContainerT, class RecordConstraintT = NullRecordConstraintKD, class DistanceMetricT = SafeEuclideanDistanceMetric >
+    template <typename ContainerT>
+    size_t m_nearest_neighbors(ContainerT const& query,
+                               std::vector<record_t>& nearest_records,
+                               size_t m = 1)
+    {
+      return m_nearest_neighbors(query, nearest_records, m,
+                                 NullRecordConstraintKD(),
+                                 SafeEuclideanDistanceMetric());
+    }
+
+    template <typename ContainerT, typename RecordConstraintT, typename DistanceMetricT>
     size_t m_nearest_neighbors(ContainerT const& query,
                                  std::vector<record_t>& nearest_records,
                                  size_t m = 1,
-                                 RecordConstraintT recordConstraint = RecordConstraintT(),
-                                 DistanceMetricT distanceMetric = DistanceMetricT())
+                                 RecordConstraintT recordConstraint = NullRecordConstraintKD(),
+                                 DistanceMetricT distanceMetric = SafeEuclideanDistanceMetric())
     {
       assert( m_k == (size_t) std::distance(query.begin(), query.end()) );
       nearest_records.clear();
