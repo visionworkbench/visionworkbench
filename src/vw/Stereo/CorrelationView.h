@@ -30,6 +30,44 @@
 namespace vw {
 namespace stereo {
 
+  template <class ImageT>
+  void dump_left_right(std::string tag, BBox2i bbox, int level, ImageT const& left, ImageT const& right){
+  
+    std::ostringstream os;
+    os << "_" << bbox.min().x() << "_" << bbox.min().y() << "_" << bbox.width() << "_" << bbox.height();
+  
+    std::ostringstream left_is; left_is << "left_" << tag << os.str() << "_" << level << ".tif";
+    std::string left_file = left_is.str();
+    std::cout << "Writing: " << left_file << std::endl;
+    write_image(left_file, left);
+  
+    std::ostringstream right_is; right_is << "right_" << tag << os.str() << "_" << level << ".tif";
+    std::string right_file = right_is.str();
+    std::cout << "Writing: " << right_file << std::endl;
+    write_image(right_file, right);
+  }
+
+  template<class mask_pixel_type, class pixel_type>
+  double valid_disparity_ratio(ImageViewBase<mask_pixel_type> const& mask,
+                               ImageViewBase<pixel_type> const& disparity){
+
+    VW_ASSERT( bounding_box(mask.impl()) == bounding_box(disparity.impl()),
+               ArgumentErr() << "The mask and disparity must have the same size." );
+    
+    int num_valid_disp = 0, num_valid_mask = 0;
+    for (int col = 0; col < disparity.impl().cols(); col++){
+      for (int row = 0; row < disparity.impl().rows(); row++){
+        if (is_valid(mask.impl()(col, row))){
+          num_valid_disp += is_valid(disparity.impl()(col, row));
+          num_valid_mask++;
+        }
+      }
+    }
+
+    if (num_valid_mask == 0) return 0.0;
+    return double(num_valid_disp)/double(num_valid_mask);
+  }
+                                  
   /// An image view for performing image correlation
   template <class Image1T, class Image2T, class PreFilterT>
   class CorrelationView : public ImageViewBase<CorrelationView<Image1T, Image2T, PreFilterT> > {
@@ -299,6 +337,24 @@ namespace stereo {
         max_pyramid_levels = m_max_level_by_search;
       if ( max_pyramid_levels < 1 )
         max_pyramid_levels = 0;
+      
+      int min_pyramid_levels = 2;
+      char * lptr = getenv("MIN_LEVEL");
+      if (lptr && atoi(lptr) >= 0){
+        // Note: for min_pyramid_levels must be max_pyramid_levels in the settings.
+        min_pyramid_levels = atoi(lptr);
+      }
+      if (min_pyramid_levels > max_pyramid_levels) min_pyramid_levels = max_pyramid_levels;
+
+      double ratio_thresh = 0.95;
+      char * rptr = getenv("RATIO_THRESH");
+      if (rptr && atof(rptr) > 0){
+        ratio_thresh = atof(rptr);
+      }
+      if (ratio_thresh >= 1.0){
+        ratio_thresh = 0.9999; // must be < 1.
+      }
+
       Vector2i half_kernel = m_kernel_size/2;
 
       // 2.0) Build the pyramid
@@ -386,15 +442,15 @@ namespace stereo {
       }
 
       // 3.0) Actually perform correlation now
-      ImageView<pixel_type > disparity;
+      ImageView<pixel_type > disparity, max_level_disparity;
       std::list<SearchParam> zones;
       zones.push_back( SearchParam( bounding_box(left_mask_pyramid[max_pyramid_levels]),
                                     BBox2i(0,0,m_search_region.width()/max_upscaling+1,
                                            m_search_region.height()/max_upscaling+1)) );
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
-        int32 scaling = 1 << level;
+        int32 curr_upscaling = 1 << level;
         disparity.set_size( left_mask_pyramid[level] );
-        Vector2i region_offset = max_upscaling*half_kernel/scaling;
+        Vector2i region_offset = max_upscaling*half_kernel/curr_upscaling;
 
         // 3.1) Process each zone with their refined search estimates
         BOOST_FOREACH( SearchParam const& zone, zones ) {
@@ -494,6 +550,163 @@ namespace stereo {
                            righ_mask_pyramid[level]);
         }
 
+
+        // Find the range of disparities in the entire tile
+        BBox2i disp_range_big(0,0,m_search_region.width()/curr_upscaling+1,m_search_region.height()/curr_upscaling+1);
+        BBox2i disp_range = disp_range_big;
+        PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
+        for_each_pixel( disparity, accumulator );
+        if ( accumulator.is_valid() ){
+          disp_range = BBox2i(accumulator.minimum(), accumulator.maximum() + Vector2i(1,1) );
+        }
+        disp_range.crop(disp_range_big);
+        
+        // Find the range of disparities in each subregion of the tile
+        std::list<SearchParam> disp_range_list;
+        BOOST_FOREACH( SearchParam & zone, zones ) {  
+          BBox2i curr_box = zone.first;
+          BBox2i expanded = curr_box;
+          expanded.expand(1);
+          expanded.crop( bounding_box( disparity ) );
+          PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
+          for_each_pixel( crop(disparity, expanded), accumulator );
+          if ( accumulator.is_valid() )
+            disp_range_list.push_back( SearchParam( curr_box, BBox2i(accumulator.minimum(), accumulator.maximum() + Vector2i(1,1) )));
+        }
+
+        // Visit each subregion. If the region has too little valid
+        // disparity, then set the disparity to the user preference if
+        // the level is >= min_pyramid_levels, and borrow from the
+        // neighbors if level == min_pyramid_levels - 1.
+        BOOST_FOREACH( SearchParam & zone, zones ) {
+          
+          if (level >= min_pyramid_levels-1 && min_pyramid_levels < max_pyramid_levels){
+            
+            int scale_ratio = 1 << (max_pyramid_levels - level);
+            BBox2i min_level_box = zone.first;
+            BBox2i max_level_box = grow_bbox_to_int(BBox2(min_level_box)/double(scale_ratio));
+            max_level_box.crop( bounding_box(max_level_disparity) );
+            
+            double min_disp_ratio = valid_disparity_ratio(crop(left_mask_pyramid[level], min_level_box),
+                                                          crop(disparity, min_level_box)
+                                                          );
+            double max_disp_ratio = valid_disparity_ratio(crop(left_mask_pyramid[max_pyramid_levels], max_level_box),
+                                                          crop(max_level_disparity, max_level_box)
+                                                          );
+            
+            double fraction = min_disp_ratio/max_disp_ratio;
+            if (max_disp_ratio > 0.1 && // ignore regions with little disparity
+                fraction < ratio_thresh ){
+              if (level >= min_pyramid_levels){
+                // Fallback to user's preference
+                zone.second = disp_range_big;
+              }else{
+                // Find the disparity in all the boxes intersecting the current box
+                zone.second = BBox2i();
+                BBox2i curr_box = zone.first;
+                curr_box.expand(5);
+                BOOST_FOREACH( SearchParam & region, disp_range_list ) {
+                  BBox2i iter_box = region.first;
+                  iter_box.crop(curr_box);
+                  if (iter_box.empty()) continue;
+                  (zone.second).grow(region.second);
+                }
+                if ((zone.second).empty()) zone.second = disp_range;
+              }
+            }else{
+              continue;
+            }
+          }else{
+            continue;
+          }
+
+          // To do: Here we massively duplicate code from above. This
+          // needs to be dealt with!
+          BBox2i left_region = zone.first + region_offset;
+          left_region.min() -= half_kernel;
+          left_region.max() += half_kernel;
+          BBox2i righ_region = left_region + zone.second.min();
+          righ_region.max() += zone.second.size();
+
+          switch ( m_cost_type ) {
+          case CROSS_CORRELATION:
+            crop(disparity,zone.first) =
+              best_of_search_convolution<NCCCost>(
+                crop(left_pyramid[level],left_region),
+                crop(righ_pyramid[level],righ_region),
+                left_region - left_region.min(),
+                zone.second.size(), m_kernel_size );
+            break;
+          case SQUARED_DIFFERENCE:
+            crop(disparity,zone.first) =
+              best_of_search_convolution<SquaredCost>(
+                crop(left_pyramid[level],left_region),
+                crop(righ_pyramid[level],righ_region),
+                left_region - left_region.min(),
+                zone.second.size(), m_kernel_size );
+            break;
+          case ABSOLUTE_DIFFERENCE:
+          default:
+            crop(disparity,zone.first) =
+              best_of_search_convolution<AbsoluteCost>(
+                crop(left_pyramid[level],left_region),
+                crop(righ_pyramid[level],righ_region),
+                left_region - left_region.min(),
+                zone.second.size(), m_kernel_size );
+          }
+
+          if ( m_consistency_threshold >= 0 && level == 0 ) {
+            ImageView<pixel_type> rl_result;
+
+            switch ( m_cost_type ) {
+            case CROSS_CORRELATION:
+              rl_result =
+                best_of_search_convolution<NCCCost>(
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+              break;
+            case SQUARED_DIFFERENCE:
+              rl_result =
+                best_of_search_convolution<SquaredCost>(
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+              break;
+            case ABSOLUTE_DIFFERENCE:
+            default:
+              rl_result =
+               best_of_search_convolution<AbsoluteCost>(
+                  crop(edge_extend(righ_pyramid[level]),righ_region),
+                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
+                  righ_region - righ_region.min(),
+                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+            }
+
+            stereo::cross_corr_consistency_check( crop(disparity,zone.first),
+                                                  rl_result, m_consistency_threshold, false );
+          }
+
+          // Fix the offset
+          crop(disparity,zone.first) += pixel_type(zone.second.min());
+
+        } // end of zone loop
+
+
+        // One more cleanup pass
+        if ( level != 2 ) {
+          disparity =
+            disparity_mask(disparity_clean_up(disparity,
+                                              rm_half_kernel, rm_half_kernel,
+                                              rm_threshold,
+                                              rm_min_matches_percent),
+                           left_mask_pyramid[level],
+                           righ_mask_pyramid[level]);
+        }
+
+        
         // 3.2c) Refine search estimates but never let them go beyond
         // the search region defined by the user
         if ( level != 0 ) {
@@ -502,29 +715,12 @@ namespace stereo {
           subdivide_regions( disparity, bounding_box(disparity),
                              zones, m_kernel_size );
 
-          if (0) {
-            BBox2i scaled = bbox/2;
-            std::ostringstream ostr;
-            ostr << "disparity_" << scaled.min()[0] << "_"
-                 << scaled.min()[1] << "_" << scaled.max()[0] << "_"
-                 << scaled.max()[1] << "_" << level;
-            write_image( ostr.str() + ".tif", pixel_cast<PixelMask<Vector2f> >(disparity) );
-            std::ofstream f( (ostr.str() + "_zone.txt").c_str() );
-            BOOST_FOREACH( SearchParam& zone, zones ) {
-              f << zone.first << " " << zone.second << "\n";
-            }
-            write_image( ostr.str() + "left.tif", normalize(left_pyramid[level]) );
-            write_image( ostr.str() + "right.tif", normalize(righ_pyramid[level]) );
-            write_image( ostr.str() + "lmask.tif", left_mask_pyramid[level] );
-            write_image( ostr.str() + "rmask.tif", righ_mask_pyramid[level] );
-            f.close();
-          }
-          scaling >>= 1;
+          curr_upscaling >>= 1;
           // Scale search range defines the maximum search range that
           // is possible in the next step. This (at lower levels) will
           // actually be larger than the search range that the user
           // specified. We are able to due this because we are taking
-          // advantage of the half kernel padding needed at the hight
+          // advantage of the half kernel padding needed at the height
           // level of the pyramid.
           BBox2i scale_search_region(0,0,
                                      righ_pyramid[level-1].cols() - left_pyramid[level-1].cols(),
@@ -540,6 +736,27 @@ namespace stereo {
             zone.second.crop( scale_search_region );
           }
         }
+
+        if (0){
+          BBox2i scaled = bbox/2;
+          std::ostringstream ostr;
+          ostr << "disparity_" << scaled.min()[0] << "_"
+               << scaled.min()[1] << "_" << scaled.max()[0] << "_"
+               << scaled.max()[1] << "_" << level;
+          write_image( ostr.str() + ".tif", pixel_cast<PixelMask<Vector2f> >(disparity) );
+          std::ofstream f( (ostr.str() + "_zone.txt").c_str() );
+          BOOST_FOREACH( SearchParam& zone, zones ) {
+            f << zone.first << " " << zone.second << "\n";
+          }
+          f.close();
+          write_image( ostr.str() + "left.tif", normalize(left_pyramid[level]) );
+          write_image( ostr.str() + "right.tif", normalize(righ_pyramid[level]) );
+          write_image( ostr.str() + "lmask.tif", left_mask_pyramid[level] );
+          write_image( ostr.str() + "rmask.tif", righ_mask_pyramid[level] );
+        }
+
+        // Save the disparity at the top-most level
+        if (level == max_pyramid_levels) max_level_disparity = disparity;
       }
 
       VW_DEBUG_ASSERT( bbox.size() == bounding_box(disparity).size(),
