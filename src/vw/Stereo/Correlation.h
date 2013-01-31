@@ -58,7 +58,7 @@ namespace stereo {
                      kernel_size[1] <= left_region.height(),
                      ArgumentErr() << "best_of_search_convolution: Kernel size too large of active region." );
     VW_DEBUG_ASSERT( search_volume[0] > 0 && search_volume[1] > 0,
-                     ArgumentErr() << "best_of_search_convolution: Search volume must be greater than 0" );
+                     ArgumentErr() << "best_of_search_convolution: Search volume must be greater than 0." );
     VW_DEBUG_ASSERT( left_region.min().x() >= 0 &&  left_region.min().y() >= 0 &&
                      left_region.max().x() <= left.impl().cols() &&
                      left_region.max().y() <= left.impl().rows(),
@@ -99,7 +99,7 @@ namespace stereo {
         // once so there's no reason to copy/rasterize the cost result
         // before hand.
         //
-        // The cost function should also no be applying an edge
+        // The cost function should also not be applying an edge
         // extension as we've already over cropped the input.
         cost_metric =
           fast_box_sum<AccumChannelT>(cost_function( left_raster,
