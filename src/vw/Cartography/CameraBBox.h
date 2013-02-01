@@ -48,7 +48,7 @@ namespace cartography {
   Vector2 geospatial_intersect( Vector2 pix,
                                 GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
-                                bool& did_intersect );
+                                bool& has_intersection );
 
   // Define an LMA model to solve for an intersection ...
   template <class DEMImageT>
@@ -100,6 +100,38 @@ namespace cartography {
     }
   };
 
+  // Intersect the ray going from the given camera pixel with the DEM
+  // The return value is a geospatial point.
+  template <class DEMImageT>
+  Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
+                                    ImageViewBase<DEMImageT> const& dem_image,
+                                    GeoReference const& georef,
+                                    boost::shared_ptr<camera::CameraModel> camera_model,
+                                    bool & has_intersection
+                                    ){
+
+    // First intersect the ray with the datum, this is a good initial guess
+    Vector2 geospatial_point = geospatial_intersect( camera_pixel, georef, camera_model,
+                                                     has_intersection );
+    if ( !has_intersection ) {
+      has_intersection = false;
+      return Vector2();
+    }
+    
+    // Refining the intersection using Levenberg-Marquardt
+    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_model);
+    int status = 0;
+    geospatial_point = math::levenberg_marquardt( model, geospatial_point,
+                                                  camera_pixel, status );
+    if ( status < 0 ) {
+      has_intersection = false;
+      return Vector2();
+    }
+    
+    has_intersection = true;
+    return geospatial_point;
+  }
+    
   namespace detail {
 
     template <class FunctionT>
@@ -147,21 +179,14 @@ namespace cartography {
                            bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
 
       void operator() ( Vector2 const& pixel ) {
-        bool test_intersect;
-        Vector2 geospatial_point =
-          geospatial_intersect( pixel, m_georef, m_camera,
-                                test_intersect );
-        if ( !test_intersect ) {
-          last_valid = false;
-          return;
-        }
 
-        // Refining with more accurate intersection
-        DEMIntersectionLMA<DEMImageT> model( m_dem, m_georef, m_camera );
-        int status = 0;
-        geospatial_point = math::levenberg_marquardt( model, geospatial_point,
-                                                      pixel, status );
-        if ( status < 0 ) {
+        bool has_intersection;
+        Vector2 geospatial_point
+          = camera_pixel_to_dem_point(pixel, m_dem, m_georef,
+                                      m_camera, has_intersection
+                                      );
+        
+        if ( !has_intersection ) {
           last_valid = false;
           return;
         }

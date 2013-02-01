@@ -62,14 +62,14 @@ Vector2
 cartography::geospatial_intersect( Vector2 pix,
                                    cartography::GeoReference const& georef,
                                    boost::shared_ptr<camera::CameraModel> camera_model,
-                                   bool& did_intersect ) {
+                                   bool& has_intersection ) {
 
   Vector3 intersection = cartography::datum_intersection(georef.datum(), camera_model.get(), pix);
   if (intersection == Vector3()){
-    did_intersect = false;
+    has_intersection = false;
     return Vector2();
   } else {
-    did_intersect = true;
+    has_intersection = true;
   }
   
   Vector3 llh = georef.datum().cartesian_to_geodetic( intersection );
@@ -120,11 +120,11 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
 }
 
 void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixel ) {
-  bool test_intersect;
+  bool has_intersection;
   Vector2 geospatial_point =
     geospatial_intersect( pixel, m_georef, m_camera,
-                          test_intersect );
-  if ( !test_intersect ) {
+                          has_intersection );
+  if ( !has_intersection ) {
     last_valid = false;
     return;
   }
