@@ -21,71 +21,63 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
-#include <flann/flann.hpp>
+#include <boost/utility.hpp>
 
 namespace vw {
 namespace math {
 
-  template <typename DistanceT>
-  class FLANNTree {
-    flann::Index<DistanceT> m_index;
+  // This provides only access to L2 distance metric in the FLANN
+  // tree. We would need to make new objects for each distance metric
+  // if we want to avoid having the FLANN header show up
+  // everywhere. (Their header has lots of warnings).
+  template <class FloatT>
+  class FLANNTree : boost::noncopyable {
+    void* m_index_ptr;
+    Matrix<FloatT> m_features_cast; // The index makes pointers to this object. So we copy it.
+
+    void knn_search_help( void* data_ptr, size_t rows, size_t cols,
+                          Vector<int>& indices,
+                          Vector<FloatT>& dists,
+                          size_t knn );
+
+    void construct_index( void* data_ptr, size_t rows, size_t cols );
 
   public:
-    typedef typename DistanceT::ElementType element_type;
-    typedef typename DistanceT::ResultType distance_type;
-
     template <class MatrixT>
-    FLANNTree( MatrixBase<MatrixT> const& features,
-               flann::IndexParams const& params = flann::KDTreeIndexParams(4),
-               DistanceT d = DistanceT() ) :
-      m_index( flann::Matrix<typename MatrixT::value_type>( const_cast<typename MatrixT::value_type*>(features.impl().data()), features.impl().rows(), features.impl().cols() ), params, d ) {
-      m_index.buildIndex();
+    FLANNTree( MatrixBase<MatrixT> const& features ) : m_index_ptr(NULL), m_features_cast( features ) {
+      construct_index( (void*)&m_features_cast(0,0), m_features_cast.rows(), m_features_cast.cols() );
     }
 
-    // Multiple query access
+    ~FLANNTree();
+
+    // Multiple query access via VW's Matrix
     template <class MatrixT>
     void knn_search( MatrixBase<MatrixT> const& query,
                      Vector<int>& indices,
-                     Vector<distance_type>& dists,
-                     size_t knn,
-                     flann::SearchParams const& params = flann::SearchParams(128) ) {
-      typedef typename MatrixT::value_type element_type;
+                     Vector<FloatT>& dists,
+                     size_t knn ) {
 
-      if ( indices.size() != knn )
-        indices.set_size( knn );
-      if ( dists.size() != knn )
-        dists.set_size( knn );
-
-      flann::Matrix<element_type> query_mat( const_cast<element_type*>(query.impl().data()),
-                                             query.impl().rows(), query.impl().cols() );
-      flann::Matrix<int> indice_mat( &indices[0], 1, indices.size() );
-      flann::Matrix<distance_type> dists_mat( &dists[0], 1, dists.size() );
-      m_index.knnSearch( query_mat, indice_mat, dists_mat, knn, params );
+      // Convert query to our type
+      Matrix<FloatT> query_cast = query.impl();
+      knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
+                  indices, dists, knn );
     }
 
-    // Single query access
+    // Single query access via ASP's Matrix
     template <class VectorT>
     void knn_search( VectorBase<VectorT> const& query,
                      Vector<int>& indices,
-                     Vector<distance_type>& dists,
-                     size_t knn,
-                     flann::SearchParams const& params = flann::SearchParams(128) ) {
-      typedef typename VectorT::value_type element_type;
+                     Vector<FloatT>& dists,
+                     size_t knn ) {
 
-      if ( indices.size() != knn )
-        indices.set_size( knn );
-      if ( dists.size() != knn )
-        dists.set_size( knn );
-
-      flann::Matrix<element_type> query_mat( const_cast<element_type*>(&query.impl()[0]),
-                                             1, query.impl().size() );
-      flann::Matrix<int> indice_mat( &indices[0], 1, indices.size() );
-      flann::Matrix<distance_type> dists_mat( &dists[0], 1, dists.size() );
-      m_index.knnSearch( query_mat, indice_mat, dists_mat, knn, params );
+      // Convert query to our type
+      Vector<FloatT> query_cast = query.impl();
+      knn_search_help( (void*)&query_cast[0], 1, query_cast.size(),
+                  indices, dists, knn );
     }
 
-    size_t size1() const { return m_index.size(); }
-    size_t size2() const { return m_index.veclen(); }
+    size_t size1() const;
+    size_t size2() const;
   };
 
 }} // end namespace vw::math

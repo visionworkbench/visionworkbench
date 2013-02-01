@@ -29,6 +29,7 @@ endif
 
 if HAVE_PKG_FLANN
 flann_headers = FLANNTree.h
+flann_sources = FLANNTree.cc
 endif
 
 include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
@@ -37,7 +38,7 @@ include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
                   RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
 
-libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources)
+libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)
 libvwMath_la_LIBADD = @MODULE_MATH_LIBS@
 
 lib_LTLIBRARIES = libvwMath.la

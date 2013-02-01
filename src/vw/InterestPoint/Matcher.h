@@ -209,7 +209,7 @@ namespace ip {
       BOOST_FOREACH( InterestPoint const& ip, ip2 )
         ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
 
-      math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
+      math::FLANNTree<float> kd( ip2_matrix );
       vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
 
       Vector<int> indices(2);
@@ -285,7 +285,7 @@ namespace ip {
       BOOST_FOREACH( InterestPoint const& ip, ip2 )
         ip2_matrix_it = std::copy( ip.begin(), ip.end(), ip2_matrix_it );
 
-      math::FLANNTree<flann::L2<float> > kd( ip2_matrix );
+      math::FLANNTree<float> kd( ip2_matrix );
       vw_out(InfoMessage,"interest_point") << "FLANN-Tree created. Searching...\n";
 
       Vector<int> indices(2);
