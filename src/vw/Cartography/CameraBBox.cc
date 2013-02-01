@@ -20,35 +20,58 @@
 
 using namespace vw;
 
-// Return map projected point location (the intermediate between LLA
-// and Pixel)
+
+// Intersect the ray back-projected from the camera with the datum.
+Vector3
+cartography::datum_intersection( Datum const& datum,
+                                 camera::CameraModel const* model,
+                                 Vector2 const& pix ) {
+  
+  // The datum is a spheroid. To simplify the calculations, scale
+  // everything in such a way that the spheroid becomes a
+  // sphere. Scale back at the end of computation.
+  
+  double z_scale = datum.semi_major_axis() / datum.semi_minor_axis();
+  
+  Vector3 ccenter = model->camera_center( pix );
+  Vector3 cvec  = model->pixel_to_vector( pix );
+  ccenter.z() *= z_scale;
+  cvec.z() *= z_scale;
+  cvec = normalize(cvec);
+  double radius_2 = datum.semi_major_axis() *
+    datum.semi_major_axis();
+  double alpha = -dot_prod(ccenter, cvec );
+  Vector3 projection = ccenter + alpha*cvec;
+  if ( norm_2_sqr(projection) > radius_2 ) {
+    // did not intersect
+    return Vector3();
+  }
+  
+  alpha -= sqrt( radius_2 -
+                 norm_2_sqr(projection) );
+  Vector3 intersection = ccenter + alpha * cvec;
+  intersection.z() /= z_scale;
+  return intersection;
+}
+
+// Return the intersection between the ray emanating from the
+// current camera pixel with the datum ellipsoid. The return value
+// is a map projected point location (the intermediate between
+// lon-lat-altitude and pixel).
 Vector2
 cartography::geospatial_intersect( Vector2 pix,
                                    cartography::GeoReference const& georef,
                                    boost::shared_ptr<camera::CameraModel> camera_model,
-                                   double z_scale, bool& did_intersect ) {
-  Vector3 ccenter = camera_model->camera_center( pix );
-  Vector3 cpoint = camera_model->pixel_to_vector( pix );
-  ccenter.z() *= z_scale;
-  cpoint.z() *= z_scale;
-  cpoint = normalize( cpoint );
+                                   bool& did_intersect ) {
 
-  double radius_2 = georef.datum().semi_major_axis()*
-    georef.datum().semi_major_axis();
-  double alpha = - dot_prod(ccenter,cpoint);
-  Vector3 projection = ccenter + alpha * cpoint;
-  if( norm_2_sqr(projection) > radius_2 ) {  // the ray does not intersect the sphere
+  Vector3 intersection = cartography::datum_intersection(georef.datum(), camera_model.get(), pix);
+  if (intersection == Vector3()){
     did_intersect = false;
     return Vector2();
   } else {
     did_intersect = true;
   }
-
-  alpha -= sqrt( radius_2 -
-                 norm_2_sqr(projection) );
-  Vector3 intersection = ccenter + alpha * cpoint;
-  intersection.z() /= z_scale;
-
+  
   Vector3 llh = georef.datum().cartesian_to_geodetic( intersection );
   Vector2 geospatial_point = georef.lonlat_to_point( Vector2( llh.x(),
                                                               llh.y() ) );
@@ -100,7 +123,7 @@ void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixe
   bool test_intersect;
   Vector2 geospatial_point =
     geospatial_intersect( pixel, m_georef, m_camera,
-                          m_z_scale, test_intersect );
+                          test_intersect );
   if ( !test_intersect ) {
     last_valid = false;
     return;

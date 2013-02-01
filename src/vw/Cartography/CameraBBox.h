@@ -36,12 +36,19 @@
 namespace vw {
 namespace cartography {
 
-  // Return map projected point location (the intermediate between LLA
-  // and Pixel)
+  // Intersect the ray back-projected from the camera with the datum.
+  Vector3 datum_intersection( Datum const& datum,
+                              camera::CameraModel const* model,
+                              Vector2 const& pix );
+  
+  // Return the intersection between the ray emanating from the
+  // current camera pixel with the datum ellipsoid. The return value
+  // is a map projected point location (the intermediate between
+  // lon-lat-altitude and pixel).
   Vector2 geospatial_intersect( Vector2 pix,
                                 GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
-                                double z_scale, bool& did_intersect );
+                                bool& did_intersect );
 
   // Define an LMA model to solve for an intersection ...
   template <class DEMImageT>
@@ -108,7 +115,6 @@ namespace cartography {
     class CameraDatumBBoxHelper {
       GeoReference m_georef;
       boost::shared_ptr<camera::CameraModel> m_camera;
-      double m_z_scale;
       Vector2 m_last_intersect;
 
     public:
@@ -118,9 +124,7 @@ namespace cartography {
 
       CameraDatumBBoxHelper( GeoReference const& georef,
                              boost::shared_ptr<camera::CameraModel> camera,
-                             bool center=false) : m_georef(georef), m_camera(camera), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
-        m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
-      }
+                             bool center=false) : m_georef(georef), m_camera(camera), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
 
       void operator() ( Vector2 const& pixel );
     };
@@ -130,7 +134,6 @@ namespace cartography {
       GeoReference m_georef;
       boost::shared_ptr<camera::CameraModel> m_camera;
       DEMImageT m_dem;
-      double m_z_scale;
       Vector2 m_last_intersect;
 
     public:
@@ -141,15 +144,13 @@ namespace cartography {
       CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem_image,
                            GeoReference const& georef,
                            boost::shared_ptr<camera::CameraModel> camera,
-                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {
-        m_z_scale = m_georef.datum().semi_major_axis() / m_georef.datum().semi_minor_axis();
-      }
+                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
 
       void operator() ( Vector2 const& pixel ) {
         bool test_intersect;
         Vector2 geospatial_point =
           geospatial_intersect( pixel, m_georef, m_camera,
-                                m_z_scale, test_intersect );
+                                test_intersect );
         if ( !test_intersect ) {
           last_valid = false;
           return;
