@@ -43,13 +43,13 @@ namespace cartography {
   
   // Return the intersection between the ray emanating from the
   // current camera pixel with the datum ellipsoid. The return value
-  // is a map projected point location (the intermediate between
+  // is a map-projected point location (the intermediate between
   // lon-lat-altitude and pixel).
   Vector2 geospatial_intersect( Vector2 pix,
                                 GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
                                 bool& has_intersection );
-
+  
   // Define an LMA model to solve for an intersection ...
   template <class DEMImageT>
   class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
@@ -89,19 +89,27 @@ namespace cartography {
       m_dem_bbox = bounding_box( m_dem );
     }
 
+    inline Vector3 point_to_xyz_helper( domain_type const& projected_point ) const {
+      // Convert a point in the projected space to a Cartesian point
+      // by interpolating into the DEM.
+      Vector2 dem_pixel = m_georef.point_to_pixel( projected_point );
+      if ( !m_dem_bbox.contains( dem_pixel ) )
+        return Vector3();
+      Vector2 dem_lonlat = m_georef.point_to_lonlat( projected_point );
+      Vector3 dem_xyz = m_georef.datum().geodetic_to_cartesian( Vector3( dem_lonlat.x(), dem_lonlat.y(), Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y())) );
+      return dem_xyz;
+    }
+    
     // Evaluator
-    inline result_type operator()( domain_type const& x ) const {
-      Vector2 dem_pixel_loc = m_georef.point_to_pixel( x );
-      if ( !m_dem_bbox.contains( dem_pixel_loc ) )
-        return Vector2(-100,-100);
-      Vector2 dem_ll_loc = m_georef.point_to_lonlat( x );
-      Vector3 dem_cart_loc = m_georef.datum().geodetic_to_cartesian( Vector3( dem_ll_loc.x(), dem_ll_loc.y(), Helper<typename DEMImageT::pixel_type >(dem_pixel_loc.x(),dem_pixel_loc.y())) );
-      return m_camera_model->point_to_pixel(dem_cart_loc);
+    inline result_type operator()( domain_type const& projected_point ) const {
+      Vector3 xyz = point_to_xyz_helper(projected_point);
+      if (xyz == Vector3()) return Vector2(-100,-100);
+      return m_camera_model->point_to_pixel(xyz);
     }
   };
 
   // Intersect the ray going from the given camera pixel with the DEM
-  // The return value is a geospatial point.
+  // The return value is a point in the projected space.
   template <class DEMImageT>
   Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
                                     ImageViewBase<DEMImageT> const& dem_image,
@@ -111,8 +119,8 @@ namespace cartography {
                                     ){
 
     // First intersect the ray with the datum, this is a good initial guess
-    Vector2 geospatial_point = geospatial_intersect( camera_pixel, georef, camera_model,
-                                                     has_intersection );
+    Vector2 projected_point = geospatial_intersect( camera_pixel, georef, camera_model,
+                                                    has_intersection );
     if ( !has_intersection ) {
       has_intersection = false;
       return Vector2();
@@ -121,7 +129,7 @@ namespace cartography {
     // Refining the intersection using Levenberg-Marquardt
     DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_model);
     int status = 0;
-    geospatial_point = math::levenberg_marquardt( model, geospatial_point,
+    projected_point = math::levenberg_marquardt( model, projected_point,
                                                   camera_pixel, status );
     if ( status < 0 ) {
       has_intersection = false;
@@ -129,9 +137,47 @@ namespace cartography {
     }
     
     has_intersection = true;
-    return geospatial_point;
+    return projected_point;
   }
     
+  // Intersect the ray going from the given camera pixel with the DEM
+  // The return value is a Cartesian point.
+  template <class DEMImageT>
+  Vector3 camera_pixel_to_dem_xyz(Vector2 const& camera_pixel,
+                                  ImageViewBase<DEMImageT> const& dem_image,
+                                  GeoReference const& georef,
+                                  boost::shared_ptr<camera::CameraModel> camera_model,
+                                  bool & has_intersection
+                                  ){
+    
+    // First intersect the ray with the datum, this is a good initial guess
+    Vector2 projected_point = geospatial_intersect( camera_pixel, georef, camera_model,
+                                                    has_intersection );
+    if ( !has_intersection ) {
+      has_intersection = false;
+      return Vector3();
+    }
+    
+    // Refining the intersection using Levenberg-Marquardt
+    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_model);
+    int status = 0;
+    projected_point = math::levenberg_marquardt( model, projected_point,
+                                                 camera_pixel, status );
+    if ( status < 0 ) {
+      has_intersection = false;
+      return Vector3();
+    }
+
+    Vector3 xyz = model.point_to_xyz_helper(projected_point);
+    if (xyz == Vector3()){
+      has_intersection = false;
+      return Vector3();
+    }
+      
+    has_intersection = true;
+    return xyz;
+  }
+
   namespace detail {
 
     template <class FunctionT>
@@ -181,7 +227,7 @@ namespace cartography {
       void operator() ( Vector2 const& pixel ) {
 
         bool has_intersection;
-        Vector2 geospatial_point
+        Vector2 point
           = camera_pixel_to_dem_point(pixel, m_dem, m_georef,
                                       m_camera, has_intersection
                                       );
@@ -194,24 +240,24 @@ namespace cartography {
         if (!m_georef.is_projected()){
           // If we don't use a projected coordinate system, then the
           // coordinates of this point are simply lon and lat.
-          if ( center_on_zero && geospatial_point[0] > 180 )
-            geospatial_point[0] -= 360.0;
-          else if ( center_on_zero && geospatial_point[0] < -180 )
-            geospatial_point[0] += 360.0;
-          else if ( !center_on_zero && geospatial_point[0] < 0 )
-            geospatial_point[0] += 360.0;
-          else if ( !center_on_zero && geospatial_point[0] > 360 )
-            geospatial_point[0] -= 360.0;
+          if ( center_on_zero && point[0] > 180 )
+            point[0] -= 360.0;
+          else if ( center_on_zero && point[0] < -180 )
+            point[0] += 360.0;
+          else if ( !center_on_zero && point[0] < 0 )
+            point[0] += 360.0;
+          else if ( !center_on_zero && point[0] > 360 )
+            point[0] -= 360.0;
         }
         
         if ( last_valid ) {
           double current_scale =
-            norm_2( geospatial_point - m_last_intersect );
+            norm_2( point - m_last_intersect );
           if ( current_scale < scale )
             scale = current_scale;
         }
-        m_last_intersect = geospatial_point;
-        box.grow( geospatial_point );
+        m_last_intersect = point;
+        box.grow( point );
         last_valid = true;
       }
     };
