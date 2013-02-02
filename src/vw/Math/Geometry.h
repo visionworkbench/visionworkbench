@@ -47,34 +47,30 @@ namespace math {
     size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 4; }
 
     // Applies a transform matrix to a list of points;
-    std::vector<Vector<double> > apply_matrix( Matrix<double> const& m,
-                                               std::vector<Vector<double> > const& pts ) const {
-      std::vector<Vector<double> > out;
-      for ( size_t i = 0; i < pts.size(); i++ ) {
-        out.push_back( m*pts[i] );
+    template <int D>
+    struct ApplyMatrixFunctor {
+      Matrix<double,D,D> m;
+      template <class MatrixT>
+      ApplyMatrixFunctor( MatrixBase<MatrixT> const& mat ) : m( mat.impl() ) {}
+
+      Vector<double,D> operator()( Vector<double,D> const& v ) {
+        return m * v;
       }
-      return out;
-    }
+    };
 
     /// Solve for Normalization Similarity Matrix used for noise rej.
-    template <class ContainerT>
-    vw::Matrix<double> NormSimilarity( std::vector<ContainerT> const& pts ) const {
+    vw::Matrix3x3 NormSimilarity( std::vector<Vector3> const& pts ) const {
       size_t num_points = pts.size();
-      size_t dimension = pts[0].size();
+      size_t dimension = 3;
 
-      Vector<double> translation;
-      translation.set_size(dimension-1);
+      Vector2 translation;
       for ( size_t i = 0; i < num_points; i++ )
         translation+=subvector(pts[i],0,dimension-1);
       translation /= num_points;
 
-      std::vector<Vector<double> > pts_int;
-      for ( size_t i = 0; i < pts.size(); i++ )
-        pts_int.push_back( subvector(pts[i],0,dimension-1)-translation );
-
       double scale = 0;
       for ( size_t i = 0; i < num_points; i++ )
-        scale += norm_2( subvector(pts_int[i],0,dimension-1) );
+        scale += norm_2( subvector(pts[i],0,dimension-1) - translation );
       scale = num_points*sqrt(2.)/scale;
 
       Matrix3x3 t;
@@ -86,8 +82,8 @@ namespace math {
       return t;
     }
 
-    vw::Matrix<double> BasicDLT( std::vector<Vector<double> > const& input,
-                                 std::vector<Vector<double> > const& output )  const {
+    vw::Matrix3x3 BasicDLT( std::vector<Vector3 > const& input,
+                            std::vector<Vector3 > const& output )  const {
       VW_ASSERT( input.size() == 4 && output.size() == 4,
                  vw::ArgumentErr() << "DLT in this implementation expects to have only 4 inputs." );
       VW_ASSERT( input[0][input[0].size()-1] == 1,
@@ -112,7 +108,7 @@ namespace math {
 
       Matrix<double> nullsp = nullspace(A);
       nullsp /= nullsp(8,0);
-      Matrix<double,3,3> H;
+      Matrix3x3 H;
       for ( uint8 i = 0; i < 3; i++ )
         for ( uint8 j = 0; j < 3; j++ )
           H(i,j) = nullsp(i*3+j,0);
@@ -146,19 +142,13 @@ namespace math {
         result_type output;
         output.set_size(m_measure.size());
         Matrix3x3 H;
-        for ( uint8 i = 0; i < 3; i++ )
-          for ( uint8 j = 0; j < 3; j++ )
-            if ( i != 2 || j != 2 )
-              H(i,j) = x( 3*i+j );
-            else
-              H(2,2) = 1;
+        H(2,2) = 1;
+        VectorProxy<double,8>( H.data() ) = x;
 
         for ( size_t i = 0; i < m_measure.size(); i+=2 ) {
-          Vector3 input( m_measure[i], m_measure[i+1], 1 );
-          Vector3 output_i = H*input;
+          Vector3 output_i = H*Vector3( m_measure[i], m_measure[i+1], 1 );
           output_i /= output_i(2);
-          output(i) = output_i(0);
-          output(i+1) = output_i(1);
+          subvector(output,i,2) = subvector(output_i,0,2);
         }
         return output;
       }
@@ -169,8 +159,8 @@ namespace math {
     /// a minimization algorithm.
     template <class ContainerT>
     vw::Matrix<double> operator()( std::vector<ContainerT> const& p1,
-           std::vector<ContainerT> const& p2,
-           vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
+                                   std::vector<ContainerT> const& p2,
+                                   vw::Matrix<double> const& seed_input = vw::Matrix<double>() ) const {
       VW_ASSERT( p1.size() == p2.size(),
                  vw::ArgumentErr() << "Cannot compute homography. p1 and p2 are not the same size." );
       VW_ASSERT( p1.size() >= min_elements_needed_for_fit(p1[0]),
@@ -179,23 +169,24 @@ namespace math {
                  vw::ArgumentErr() << "Cannot compute homography. Currently only support homogeneous 2D vectors." );
 
       // Converting to a container that is used internally.
-      std::vector<Vector<double> > input, output;
-      BOOST_FOREACH( const ContainerT& p, p1 ) {
-        input.push_back( Vector3( p[0], p[1], p[2] ) );
+      std::vector<Vector3 > input(p1.size()), output(p2.size());
+      for ( size_t i = 0; i < p1.size(); i++ ) {
+        input[i] = Vector3( p1[i][0], p1[i][1], p1[i][2] );
       }
-      BOOST_FOREACH( const ContainerT& p, p2 ) {
-        output.push_back( Vector3( p[0], p[1], p[2] ) );
+      for ( size_t i = 0; i < p2.size(); i++ ) {
+        output[i] = Vector3( p2[i][0], p2[i][1], p2[i][2] );
       }
 
-      size_t num_points = p1.size();
-      if ( num_points == min_elements_needed_for_fit(p1[0] ) ) {
+      if ( p1.size() == min_elements_needed_for_fit(p1[0] ) ) {
         // Use DLT
-        Matrix<double> S_in = NormSimilarity(input);
-        Matrix<double> S_out = NormSimilarity(output);
-        std::vector<Vector<double> > input_prime = apply_matrix( S_in, input );
-        std::vector<Vector<double> > output_prime = apply_matrix( S_out, output );
-        Matrix<double> H_prime = BasicDLT( input_prime, output_prime );
-        Matrix<double> H = inverse(S_out)*H_prime*S_in;
+        Matrix3x3 S_in = NormSimilarity(input);
+        Matrix3x3 S_out = NormSimilarity(output);
+        std::transform( input.begin(), input.end(), input.begin(),
+                        ApplyMatrixFunctor<3>( S_in ) );
+        std::transform( output.begin(), output.end(), output.begin(),
+                        ApplyMatrixFunctor<3>( S_out ) );
+        Matrix3x3 H_prime = BasicDLT( input, output );
+        Matrix3x3 H = inverse(S_out)*H_prime*S_in;
         H /= H(2,2);
         return H;
       } else {
@@ -206,15 +197,17 @@ namespace math {
         // with and I need more time to read up on other error
         // metrics.
 
-        // Copying seed
-        Matrix<double> seed_copy = seed_input;
-        if ( seed_copy.cols() != 3 || seed_copy.rows() != 3 ) {
-          std::vector<ContainerT> p1_small, p2_small;
-          for ( uint8 i = 0; i < 4; i++ ) {
-            p1_small.push_back( p1[i] );
-            p2_small.push_back( p2[i] );
+        // Determine if we have a seed .. if not make one.
+        Matrix3x3 seed_copy;
+        if ( seed_input == Matrix<double>() ) {
+          std::vector<ContainerT> p1_small(4), p2_small(4);
+          for ( size_t i = 0; i < 4; i++ ) {
+            p1_small[i] = p1[i];
+            p2_small[i] = p2[i];
           }
           seed_copy = HomographyFittingFunctor()(p1_small, p2_small);
+        } else {
+          seed_copy = seed_input;
         }
 
         // Flatting input & output;
@@ -229,25 +222,15 @@ namespace math {
 
         // Flatting Homography matrix into 8-vector
         Vector<double> seed(8);
-        for ( uint8 i = 0; i < 3; i++ )
-          for ( uint8 j = 0; j < 3; j++ )
-            if ( i != 2 || j != 2 )
-              seed( i*3+j ) = seed_copy(i,j);
+        std::copy( seed_copy.data(), seed_copy.data()+8,
+                   &seed(0) );
 
         int status = 0;
-        Vector<double> result_flat = levenberg_marquardt( model, seed,
-                                                          output_flat, status );
+        VectorProxy<double,8>( seed_copy.data() ) =
+          levenberg_marquardt( model, seed,
+                               output_flat, status );
 
-        // Unflatting result
-        Matrix3x3 result;
-        for ( uint8 i = 0; i < 3; i++ )
-          for ( uint8 j = 0; j < 3; j++ )
-            if ( i != 2 || j != 2 )
-              result(i,j) = result_flat( 3*i+j );
-            else
-              result(2,2) = 1;
-
-        return result;
+        return seed_copy;
       }
     }
   };
