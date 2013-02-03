@@ -31,26 +31,6 @@
 namespace vw {
 namespace stereo {
 
-  // is_equal_elements, tells if all the elements are equal to each other
-  template <class T>
-  struct IsEqualElements {
-    bool result;
-
-    IsEqualElements() : result(true), m_comparing(false) {}
-
-    void operator()( T const& i ) {
-      if ( m_comparing ) {
-        result = result && (*m_first_element == i);
-      } else {
-        m_comparing = true;
-        m_first_element = &i;
-      }
-    }
-  protected:
-    bool m_comparing;
-    T const* m_first_element;
-  };
-
   template <class DImageT, class Image1T, class Image2T, class PreFilterT>
   class ParabolaSubpixelView : public ImageViewBase<ParabolaSubpixelView<DImageT,Image1T,Image2T,PreFilterT> > {
     DImageT m_disparity;
@@ -174,10 +154,8 @@ namespace stereo {
           // (patch_col), find the 2D minimum and that will be our
           // floating point update.
           if ( is_valid( *idisp_col ) ) {
-            IsEqualElements<float> is_same =
-              std::for_each( (*patch_col).begin(), (*patch_col).end(),
-                             IsEqualElements<float>() );
-            if ( !is_same.result ) {
+            if ( !std::equal( (*patch_col).begin()+1, (*patch_col).end(),
+                              (*patch_col).begin() ) ) {
               // First, compute the parameters of the hyperbolic surface by
               // fitting the nine points in 'points' using a linear least
               // squares fit.  This process is fairly fast, since we have

@@ -17,27 +17,6 @@
 
 
 namespace detail {
-  // is_equal_elements, tells if all the elements are equal to each other
-  template <class T>
-  struct IsEqualElements {
-    bool result;
-
-    IsEqualElements() : result(true), m_comparing(false) {}
-
-    void operator()( T const& i ) {
-      if ( m_comparing ) {
-        result = result && (*m_first_element == i);
-      } else {
-        m_comparing = true;
-        m_first_element = &i;
-      }
-    }
-  protected:
-    bool m_comparing;
-    T const* m_first_element;
-  };
-
-  ///-------------------------------------------------------------------------
 
   inline ImageView<float>
   compute_spatial_weight_image(int32 kern_width, int32 kern_height,
