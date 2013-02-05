@@ -52,8 +52,10 @@ TEST_F( CameraBBoxTest, GeospatialIntersectDatum ) {
     Vector2 input_image( rand()%4096, rand()%4096 );
     bool did_intersect;
     Vector2 lonlat =
-      geospatial_intersect( input_image, moon_georef,
-                            apollo_camera, did_intersect );
+      geospatial_intersect( moon_georef,
+                            apollo_camera->camera_center(input_image),
+                            apollo_camera->pixel_to_vector(input_image),
+                            did_intersect );
     ASSERT_TRUE( did_intersect );
     double radius = moon_georef.datum().radius( lonlat[0], lonlat[1] );
     EXPECT_NEAR( radius, 1737400, 1e-3 );

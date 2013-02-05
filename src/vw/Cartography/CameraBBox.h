@@ -41,21 +41,23 @@ namespace cartography {
                               camera::CameraModel const* model,
                               Vector2 const& pix );
   
+  Vector3 datum_intersection( Datum const& datum,
+                              Vector3 camera_ctr, Vector3 camera_vec );
+
   // Return the intersection between the ray emanating from the
   // current camera pixel with the datum ellipsoid. The return value
   // is a map-projected point location (the intermediate between
   // lon-lat-altitude and pixel).
-  Vector2 geospatial_intersect( Vector2 pix,
-                                GeoReference const& georef,
-                                boost::shared_ptr<camera::CameraModel> camera_model,
+  Vector2 geospatial_intersect( GeoReference const& georef,
+                                Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 bool& has_intersection );
   
-  // Define an LMA model to solve for an intersection ...
+  // Define an LMA model to solve for a DEM intersecting a ray.
   template <class DEMImageT>
   class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
     GeoReference m_georef;
-    boost::shared_ptr<camera::CameraModel> m_camera_model;
+    Vector3 m_camera_ctr;
     BBox2i m_dem_bbox;
 
     // Provide safe interaction with DEMs that are scalar or compound
@@ -73,19 +75,19 @@ namespace cartography {
 
   public:
     // What is returned by evaluating the functor. In this case it is
-    // the projection into the camera.
-    typedef Vector<double> result_type;
+    // the unit vector from the camera to the current xyz.
+    typedef Vector3 result_type;
     // Defines the search space. In this case it is the point location
     // on the DEM.
-    typedef Vector<double> domain_type;
+    typedef Vector2 domain_type;
     // Jacobian form. Auto.
     typedef Matrix<double> jacobian_type;
 
     // Constructor
     DEMIntersectionLMA( ImageViewBase<DEMImageT> const& dem_image,
-                        GeoReference const& georef,
-                        boost::shared_ptr<camera::CameraModel> camera_model ) :
-    m_dem(interpolate(dem_image)), m_georef(georef), m_camera_model(camera_model) {
+                         GeoReference const& georef,
+                         Vector3 const& camera_ctr):
+      m_dem(interpolate(dem_image)), m_georef(georef), m_camera_ctr(camera_ctr) {
       m_dem_bbox = bounding_box( m_dem );
     }
 
@@ -96,18 +98,84 @@ namespace cartography {
       if ( !m_dem_bbox.contains( dem_pixel ) )
         return Vector3();
       Vector2 dem_lonlat = m_georef.point_to_lonlat( projected_point );
-      Vector3 dem_xyz = m_georef.datum().geodetic_to_cartesian( Vector3( dem_lonlat.x(), dem_lonlat.y(), Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y())) );
+      Vector3 dem_xyz
+        = m_georef.datum().geodetic_to_cartesian( Vector3( dem_lonlat.x(),
+                                                           dem_lonlat.y(),
+                                                           Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y()))
+                                                  );
       return dem_xyz;
     }
     
     // Evaluator
     inline result_type operator()( domain_type const& projected_point ) const {
       Vector3 xyz = point_to_xyz_helper(projected_point);
-      if (xyz == Vector3()) return Vector2(-100,-100);
-      return m_camera_model->point_to_pixel(xyz);
+      if (xyz == Vector3()) return Vector3(-100,-100,-100);
+      return normalize( xyz - m_camera_ctr );
     }
   };
 
+  // Auxiliary function for intersecting a ray with a DEM. This
+  // function is not to be used directly.
+  template <class DEMImageT>
+  void camera_pixel_to_dem_aux(// Inputs
+                               Vector2 const& camera_pixel,
+                               ImageViewBase<DEMImageT> const& dem_image,
+                               GeoReference const& georef,
+                               boost::shared_ptr<camera::CameraModel> camera_model,
+                               double max_abs_tol,
+                               double max_rel_tol,
+                               int num_max_iter,
+                               bool calc_xyz,
+                               // Outputs
+                               Vector2 & projected_point,
+                               Vector3 & xyz,
+                               bool & has_intersection
+                               ){
+    
+    // First intersect the ray with the datum, this is a good initial guess
+    Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
+    Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
+    projected_point = geospatial_intersect(georef,
+                                           camera_ctr, camera_vec,
+                                           has_intersection
+                                           );
+    if ( !has_intersection ) {
+      has_intersection = false;
+      projected_point = Vector2();
+      xyz = Vector3();
+      return;
+    }
+
+    // Refining the intersection using Levenberg-Marquardt
+    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr);
+    int status = 0;
+    projected_point = math::levenberg_marquardt(model, projected_point,
+                                                camera_vec, status,
+                                                max_abs_tol, max_rel_tol,
+                                                num_max_iter
+                                                );
+    
+    if ( status < 0 ) {
+      has_intersection = false;
+      projected_point = Vector2();
+      xyz = Vector3();
+      return;
+    }
+
+    if (!calc_xyz){
+      has_intersection = true;
+      xyz = Vector3();
+      return;
+    }
+    
+    xyz = model.point_to_xyz_helper(projected_point);
+    if (xyz == Vector3()){
+      has_intersection = false;
+    }
+      
+    has_intersection = true;
+  }
+  
   // Intersect the ray going from the given camera pixel with the DEM
   // The return value is a point in the projected space.
   template <class DEMImageT>
@@ -117,26 +185,20 @@ namespace cartography {
                                     boost::shared_ptr<camera::CameraModel> camera_model,
                                     bool & has_intersection
                                     ){
+    
+    double max_abs_tol = 1e-16, max_rel_tol = 1e-16;
+    int num_max_iter = 100;
+    
+    Vector2 projected_point;
+    Vector3 xyz;
+    bool calc_xyz = false; // compute only the projected point
+    camera_pixel_to_dem_aux(// Inputs
+                            camera_pixel, dem_image, georef, camera_model,
+                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz,
+                            // Outputs
+                            projected_point, xyz, has_intersection
+                            );
 
-    // First intersect the ray with the datum, this is a good initial guess
-    Vector2 projected_point = geospatial_intersect( camera_pixel, georef, camera_model,
-                                                    has_intersection );
-    if ( !has_intersection ) {
-      has_intersection = false;
-      return Vector2();
-    }
-    
-    // Refining the intersection using Levenberg-Marquardt
-    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_model);
-    int status = 0;
-    projected_point = math::levenberg_marquardt( model, projected_point,
-                                                  camera_pixel, status );
-    if ( status < 0 ) {
-      has_intersection = false;
-      return Vector2();
-    }
-    
-    has_intersection = true;
     return projected_point;
   }
     
@@ -147,34 +209,22 @@ namespace cartography {
                                   ImageViewBase<DEMImageT> const& dem_image,
                                   GeoReference const& georef,
                                   boost::shared_ptr<camera::CameraModel> camera_model,
-                                  bool & has_intersection
+                                  bool & has_intersection,
+                                  double max_abs_tol = 1e-16,
+                                  double max_rel_tol = 1e-16,
+                                  int num_max_iter   = 100
                                   ){
     
-    // First intersect the ray with the datum, this is a good initial guess
-    Vector2 projected_point = geospatial_intersect( camera_pixel, georef, camera_model,
-                                                    has_intersection );
-    if ( !has_intersection ) {
-      has_intersection = false;
-      return Vector3();
-    }
-    
-    // Refining the intersection using Levenberg-Marquardt
-    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_model);
-    int status = 0;
-    projected_point = math::levenberg_marquardt( model, projected_point,
-                                                 camera_pixel, status );
-    if ( status < 0 ) {
-      has_intersection = false;
-      return Vector3();
-    }
+    Vector2 projected_point;
+    Vector3 xyz;
+    bool calc_xyz = true; 
+    camera_pixel_to_dem_aux(// Inputs
+                            camera_pixel, dem_image, georef, camera_model,
+                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz,
+                            // Outputs
+                            projected_point, xyz, has_intersection
+                            );
 
-    Vector3 xyz = model.point_to_xyz_helper(projected_point);
-    if (xyz == Vector3()){
-      has_intersection = false;
-      return Vector3();
-    }
-      
-    has_intersection = true;
     return xyz;
   }
 
