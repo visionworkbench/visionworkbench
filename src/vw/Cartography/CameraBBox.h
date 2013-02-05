@@ -126,26 +126,38 @@ namespace cartography {
                                double max_rel_tol,
                                int num_max_iter,
                                bool calc_xyz,
+                               Vector3 const& xyz_guess,
                                // Outputs
                                Vector2 & projected_point,
                                Vector3 & xyz,
                                bool & has_intersection
                                ){
 
+    has_intersection = true;
+    
     // First intersect the ray with the datum, this is a good initial guess
     Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
     Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
-    projected_point = geospatial_intersect(georef,
-                                           camera_ctr, camera_vec,
-                                           has_intersection
-                                           );
-    if ( !has_intersection ) {
-      has_intersection = false;
-      projected_point = Vector2();
-      xyz = Vector3();
-      return;
-    }
 
+    if (xyz_guess == Vector3()){
+      // If we don't have a good initial guess, get it by
+      // intersecting the ray with the datum.
+      projected_point = geospatial_intersect(georef,
+                                             camera_ctr, camera_vec,
+                                             has_intersection
+                                             );
+      if ( !has_intersection ) {
+        projected_point = Vector2();
+        xyz = Vector3();
+        return;
+      }
+    }else{
+      Vector3 llh = georef.datum().cartesian_to_geodetic( xyz_guess );
+      projected_point = georef.lonlat_to_point( Vector2( llh.x(),
+                                                         llh.y() ) );
+      has_intersection = true;
+    }
+      
     // Refining the intersection using Levenberg-Marquardt
     DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr);
     int status = 0;
@@ -186,16 +198,16 @@ namespace cartography {
                                     boost::shared_ptr<camera::CameraModel> camera_model,
                                     bool & has_intersection
                                     ){
-
+    has_intersection = true;
     double max_abs_tol = 1e-16, max_rel_tol = 1e-16;
     int num_max_iter = 100;
 
     Vector2 projected_point;
-    Vector3 xyz;
+    Vector3 xyz_guess, xyz;
     bool calc_xyz = false; // compute only the projected point
     camera_pixel_to_dem_aux(// Inputs
                             camera_pixel, dem_image, georef, camera_model,
-                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz,
+                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz, xyz_guess,
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
@@ -213,15 +225,18 @@ namespace cartography {
                                   bool & has_intersection,
                                   double max_abs_tol = 1e-16,
                                   double max_rel_tol = 1e-16,
-                                  int num_max_iter   = 100
+                                  int num_max_iter   = 100,
+                                  Vector3 xyz_guess = Vector3()
                                   ){
 
+    has_intersection = true;
     Vector2 projected_point;
     Vector3 xyz;
     bool calc_xyz = true;
     camera_pixel_to_dem_aux(// Inputs
                             camera_pixel, dem_image, georef, camera_model,
-                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz,
+                            max_abs_tol, max_rel_tol, num_max_iter,
+                            calc_xyz, xyz_guess,
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
