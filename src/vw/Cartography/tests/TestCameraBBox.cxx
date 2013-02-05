@@ -41,7 +41,7 @@ protected:
       for ( int32 j = 0; j <DEM.rows(); j++ )
         DEM(i,j) = 1000 - 10*(pow(DEM.cols()/2.0-i,2.0)+pow(DEM.rows()/2.0-j,2.0));
   }
-  
+
   boost::shared_ptr<CameraModel> apollo_camera;
   GeoReference moon_georef;
   ImageView<float> DEM;
@@ -96,14 +96,12 @@ TEST_F( CameraBBoxTest, CameraPixelToXYZ) {
   geotrans(1,2) = 10;
   moon_georef.set_transform(geotrans);
 
-  
   Vector2 input_pixel(50,10);
-
   bool has_intersection;
-  Vector3 xyz = camera_pixel_to_dem_xyz(input_pixel,  
-                                        DEM,  
-                                        moon_georef,  
-                                        apollo_camera,  
+  Vector3 xyz = camera_pixel_to_dem_xyz(input_pixel,
+                                        DEM,
+                                        moon_georef,
+                                        apollo_camera,
                                         has_intersection
                                         );
 

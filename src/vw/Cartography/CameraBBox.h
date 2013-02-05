@@ -40,7 +40,7 @@ namespace cartography {
   Vector3 datum_intersection( Datum const& datum,
                               camera::CameraModel const* model,
                               Vector2 const& pix );
-  
+
   Vector3 datum_intersection( Datum const& datum,
                               Vector3 camera_ctr, Vector3 camera_vec );
 
@@ -51,7 +51,7 @@ namespace cartography {
   Vector2 geospatial_intersect( GeoReference const& georef,
                                 Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 bool& has_intersection );
-  
+
   // Define an LMA model to solve for a DEM intersecting a ray.
   template <class DEMImageT>
   class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
@@ -105,7 +105,7 @@ namespace cartography {
                                                   );
       return dem_xyz;
     }
-    
+
     // Evaluator
     inline result_type operator()( domain_type const& projected_point ) const {
       Vector3 xyz = point_to_xyz_helper(projected_point);
@@ -131,7 +131,7 @@ namespace cartography {
                                Vector3 & xyz,
                                bool & has_intersection
                                ){
-    
+
     // First intersect the ray with the datum, this is a good initial guess
     Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
     Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
@@ -154,7 +154,7 @@ namespace cartography {
                                                 max_abs_tol, max_rel_tol,
                                                 num_max_iter
                                                 );
-    
+
     if ( status < 0 ) {
       has_intersection = false;
       projected_point = Vector2();
@@ -167,15 +167,15 @@ namespace cartography {
       xyz = Vector3();
       return;
     }
-    
+
     xyz = model.point_to_xyz_helper(projected_point);
     if (xyz == Vector3()){
       has_intersection = false;
     }
-      
+
     has_intersection = true;
   }
-  
+
   // Intersect the ray going from the given camera pixel with the DEM
   // The return value is a point in the projected space.
   template <class DEMImageT>
@@ -185,10 +185,10 @@ namespace cartography {
                                     boost::shared_ptr<camera::CameraModel> camera_model,
                                     bool & has_intersection
                                     ){
-    
+
     double max_abs_tol = 1e-16, max_rel_tol = 1e-16;
     int num_max_iter = 100;
-    
+
     Vector2 projected_point;
     Vector3 xyz;
     bool calc_xyz = false; // compute only the projected point
@@ -201,7 +201,7 @@ namespace cartography {
 
     return projected_point;
   }
-    
+
   // Intersect the ray going from the given camera pixel with the DEM
   // The return value is a Cartesian point.
   template <class DEMImageT>
@@ -214,10 +214,10 @@ namespace cartography {
                                   double max_rel_tol = 1e-16,
                                   int num_max_iter   = 100
                                   ){
-    
+
     Vector2 projected_point;
     Vector3 xyz;
-    bool calc_xyz = true; 
+    bool calc_xyz = true;
     camera_pixel_to_dem_aux(// Inputs
                             camera_pixel, dem_image, georef, camera_model,
                             max_abs_tol, max_rel_tol, num_max_iter, calc_xyz,
@@ -281,7 +281,7 @@ namespace cartography {
           = camera_pixel_to_dem_point(pixel, m_dem, m_georef,
                                       m_camera, has_intersection
                                       );
-        
+
         if ( !has_intersection ) {
           last_valid = false;
           return;
@@ -299,7 +299,7 @@ namespace cartography {
           else if ( !center_on_zero && point[0] > 360 )
             point[0] -= 360.0;
         }
-        
+
         if ( last_valid ) {
           double current_scale =
             norm_2( point - m_last_intersect );
@@ -347,7 +347,7 @@ namespace cartography {
     step_amount = std::min(step_amount, cols/4); // must have at least several points per column
     step_amount = std::min(step_amount, rows/4); // must have at least several points per row
     step_amount = std::max(step_amount, 1);      // step amount must be > 0
-    
+
     detail::CameraDEMBBoxHelper<DEMImageT> functor( dem_image, georef, camera_model,
                                                     center_on_zero );
 

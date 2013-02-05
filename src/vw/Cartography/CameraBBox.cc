@@ -25,7 +25,7 @@ using namespace vw;
 Vector3
 cartography::datum_intersection( Datum const& datum,
                                  Vector3 camera_ctr, Vector3 camera_vec) {
-  
+
   // The datum is a spheroid. To simplify the calculations, scale
   // everything in such a way that the spheroid becomes a
   // sphere. Scale back at the end of computation.
@@ -42,7 +42,7 @@ cartography::datum_intersection( Datum const& datum,
     // did not intersect
     return Vector3();
   }
-  
+
   alpha -= sqrt( radius_2 -
                  norm_2_sqr(projection) );
   Vector3 intersection = camera_ctr + alpha * camera_vec;
@@ -65,7 +65,7 @@ Vector2
 cartography::geospatial_intersect(cartography::GeoReference const& georef,
                                   Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                   bool& has_intersection) {
-  
+
   Vector3 intersection = datum_intersection(georef.datum(), camera_ctr, camera_vec);
   if (intersection == Vector3()){
     has_intersection = false;
@@ -73,11 +73,11 @@ cartography::geospatial_intersect(cartography::GeoReference const& georef,
   } else {
     has_intersection = true;
   }
-  
+
   Vector3 llh = georef.datum().cartesian_to_geodetic( intersection );
   Vector2 projected_point = georef.lonlat_to_point( Vector2( llh.x(),
                                                              llh.y() ) );
-  
+
   return projected_point;
 }
 
@@ -139,7 +139,7 @@ void cartography::detail::CameraDatumBBoxHelper::operator()( Vector2 const& pixe
     if ( center_on_zero && point[0] > 180 )
       point[0] -= 360.0;
   }
-  
+
   if ( last_valid ) {
     double current_scale =
       norm_2( point - m_last_intersect );
