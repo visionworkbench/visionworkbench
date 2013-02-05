@@ -171,6 +171,7 @@ namespace cartography {
     xyz = model.point_to_xyz_helper(projected_point);
     if (xyz == Vector3()){
       has_intersection = false;
+      return;
     }
 
     has_intersection = true;
@@ -224,7 +225,6 @@ namespace cartography {
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
-
     return xyz;
   }
 
