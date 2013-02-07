@@ -58,6 +58,7 @@ namespace cartography {
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
     GeoReference m_georef;
     Vector3 m_camera_ctr;
+    bool m_cambbox_mode;
     BBox2i m_dem_bbox;
 
     // Provide safe interaction with DEMs that are scalar or compound
@@ -70,7 +71,12 @@ namespace cartography {
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
     inline Helper( double const& x, double const& y ) const {
-      return m_dem(x,y)[0];
+      // If we are using this function for computing camera bbox, it
+      // is convinient that we return 0 where the DEM is not valid.
+      if ( m_cambbox_mode || is_valid(m_dem(x, y)) ){
+        return m_dem(x,y)[0];
+      }
+      return std::numeric_limits<double>::quiet_NaN();
     }
 
   public:
@@ -85,9 +91,10 @@ namespace cartography {
 
     // Constructor
     DEMIntersectionLMA( ImageViewBase<DEMImageT> const& dem_image,
-                         GeoReference const& georef,
-                         Vector3 const& camera_ctr):
-      m_dem(interpolate(dem_image)), m_georef(georef), m_camera_ctr(camera_ctr) {
+                        GeoReference const& georef,
+                        Vector3 const& camera_ctr,
+                        bool cambbox_mode): m_dem(interpolate(dem_image)), m_georef(georef),
+                                            m_camera_ctr(camera_ctr), m_cambbox_mode(cambbox_mode){
       m_dem_bbox = bounding_box( m_dem );
     }
 
@@ -103,6 +110,11 @@ namespace cartography {
                                                            dem_lonlat.y(),
                                                            Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y()))
                                                   );
+      if (dem_xyz != dem_xyz){
+        // If dem_xyz is NaN
+        return Vector3();
+      }
+
       return dem_xyz;
     }
 
@@ -127,6 +139,7 @@ namespace cartography {
                                int num_max_iter,
                                bool calc_xyz,
                                Vector3 const& xyz_guess,
+                               bool cambbox_mode,
                                // Outputs
                                Vector2 & projected_point,
                                Vector3 & xyz,
@@ -134,32 +147,70 @@ namespace cartography {
                                ){
 
     has_intersection = true;
-    
+
     // First intersect the ray with the datum, this is a good initial guess
     Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
     Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
 
     if (xyz_guess == Vector3()){
-      // If we don't have a good initial guess, get it by
-      // intersecting the ray with the datum.
-      projected_point = geospatial_intersect(georef,
-                                             camera_ctr, camera_vec,
-                                             has_intersection
-                                             );
+
+      // Get an initial guess from intersecting the ray
+      projected_point = geospatial_intersect(georef, camera_ctr, camera_vec, has_intersection);
       if ( !has_intersection ) {
         projected_point = Vector2();
         xyz = Vector3();
         return;
       }
+
+      if (!cambbox_mode){
+        // If the ray intersects the datum at a point
+        // which does not correspond to a valid location in the DEM,
+        // wiggle that point along the ray until hopefully it does.
+        has_intersection = false;
+        Vector3 P0 = datum_intersection(georef.datum(), camera_ctr, camera_vec);
+        if ( P0 == Vector3() ) {
+          projected_point = Vector2();
+          xyz = Vector3();
+          return;
+        }
+        double radius = norm_2(P0);
+        int n = 10;
+        double small = radius*0.02/( 1 << (n-1) ); // wiggle up to 0.02*radius
+        for (int i = 0; i <= n; i++){
+          Vector3 delta = Vector3();
+          if (i > 0) delta = camera_vec*small*( 1 << (i-1) );
+          for (int k = -1; k <= 1; k += 2){
+            Vector3 P = P0 + k*delta; // close to P0, along the ray to camera_ctr
+            Vector3 llh = georef.datum().cartesian_to_geodetic( P );
+            Vector2 pix = georef.lonlat_to_pixel( Vector2( llh.x(), llh.y() ) );
+            int x = (int)round(pix[0]);
+            int y = (int)round(pix[1]);
+            if (0 <= x && x < dem_image.impl().cols() &&
+                0 <= y && y < dem_image.impl().rows() &&
+                is_valid(dem_image.impl()(x, y))){
+              has_intersection = true;
+              projected_point = georef.pixel_to_point(Vector2(x, y));
+              break;
+            }
+          }
+          if (has_intersection) break;
+        }
+
+        if ( !has_intersection ) {
+          projected_point = Vector2();
+          xyz = Vector3();
+          return;
+        }
+      }
+
     }else{
       Vector3 llh = georef.datum().cartesian_to_geodetic( xyz_guess );
-      projected_point = georef.lonlat_to_point( Vector2( llh.x(),
-                                                         llh.y() ) );
+      projected_point = georef.lonlat_to_point( Vector2( llh.x(), llh.y() ) );
       has_intersection = true;
     }
-      
+
     // Refining the intersection using Levenberg-Marquardt
-    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr);
+    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr, cambbox_mode);
     int status = 0;
     projected_point = math::levenberg_marquardt(model, projected_point,
                                                 camera_vec, status,
@@ -191,12 +242,17 @@ namespace cartography {
 
   // Intersect the ray going from the given camera pixel with the DEM
   // The return value is a point in the projected space.
+
+  // The value cambbox_mode must be false unless this function is used
+  // for computing the camera bbox, in which case we want to preserve
+  // established behavior.
   template <class DEMImageT>
   Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
                                     ImageViewBase<DEMImageT> const& dem_image,
                                     GeoReference const& georef,
                                     boost::shared_ptr<camera::CameraModel> camera_model,
-                                    bool & has_intersection
+                                    bool & has_intersection,
+                                    bool cambbox_mode = false
                                     ){
     has_intersection = true;
     double max_abs_tol = 1e-16, max_rel_tol = 1e-16;
@@ -208,6 +264,7 @@ namespace cartography {
     camera_pixel_to_dem_aux(// Inputs
                             camera_pixel, dem_image, georef, camera_model,
                             max_abs_tol, max_rel_tol, num_max_iter, calc_xyz, xyz_guess,
+                            cambbox_mode,
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
@@ -233,10 +290,11 @@ namespace cartography {
     Vector2 projected_point;
     Vector3 xyz;
     bool calc_xyz = true;
+    bool cambbox_mode = false;
     camera_pixel_to_dem_aux(// Inputs
                             camera_pixel, dem_image, georef, camera_model,
                             max_abs_tol, max_rel_tol, num_max_iter,
-                            calc_xyz, xyz_guess,
+                            calc_xyz, xyz_guess, cambbox_mode,
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
@@ -291,10 +349,11 @@ namespace cartography {
 
       void operator() ( Vector2 const& pixel ) {
 
+        bool cambbox_mode = true;
         bool has_intersection;
         Vector2 point
           = camera_pixel_to_dem_point(pixel, m_dem, m_georef,
-                                      m_camera, has_intersection
+                                      m_camera, has_intersection, cambbox_mode
                                       );
 
         if ( !has_intersection ) {
