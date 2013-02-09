@@ -280,7 +280,8 @@ namespace cartography {
                                   GeoReference const& georef,
                                   boost::shared_ptr<camera::CameraModel> camera_model,
                                   bool & has_intersection,
-                                  double max_abs_tol = 1e-16,
+                                  double pixel_error_tol = 1e-1, // error in pixel units
+                                  double max_abs_tol = 1e-16,    // abs cost function change b/w iters
                                   double max_rel_tol = 1e-16,
                                   int num_max_iter   = 100,
                                   Vector3 xyz_guess = Vector3()
@@ -298,6 +299,15 @@ namespace cartography {
                             // Outputs
                             projected_point, xyz, has_intersection
                             );
+
+    if (!has_intersection) return Vector3();
+
+    double pixel_error = norm_2( camera_model->point_to_pixel(xyz) - camera_pixel );
+    if (pixel_error > pixel_error_tol){
+      has_intersection = false;
+      return Vector3();
+    }
+
     return xyz;
   }
 
