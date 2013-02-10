@@ -331,16 +331,16 @@ int main(int argc, char** argv) {
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
       PatchDescriptorGenerator descriptor;
-      descriptor(image, ip);
+      describe_interest_points( image, descriptor, ip );
     } else if (descriptor_generator == "pca") {
       PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
-      descriptor(image, ip);
+      describe_interest_points( image, descriptor, ip );
     } else if (descriptor_generator == "sgrad") {
       SGradDescriptorGenerator descriptor;
-      descriptor(image, ip);
+      describe_interest_points( image, descriptor, ip );
     } else if (descriptor_generator == "sgrad2") {
       SGrad2DescriptorGenerator descriptor;
-      descriptor(image, ip);
+      describe_interest_points( image, descriptor, ip );
     }
 
     // If ASCII output was requested, write it out.  Otherwise stick

@@ -52,14 +52,20 @@ namespace ip {
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image,
                       InterestPointList& points ) {
+      (*this)( image, points.begin(), points.end() );
+    }
 
+    template <class ViewT, class IterT>
+    void operator() ( ImageViewBase<ViewT> const& image,
+                      IterT start, IterT end ) {
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
-      for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i) {
+      for (InterestPointList::iterator i = start; i != end; ++i) {
 
         // First we compute the support region based on the interest point
-        ImageView<PixelGray<float> > support = get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
+        ImageView<PixelGray<float> > support =
+          get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
 
         // Next, we pass the support region and the interest point to
         // the descriptor generator ( compute_descriptor() ) supplied
@@ -95,6 +101,109 @@ namespace ip {
     }
 
   };
+
+  template <class ViewT, class DescriptorT>
+  class InterestPointDescriptionTask : public Task, private boost::noncopyable {
+    ViewT m_view;
+    DescriptorT& m_descriptor;
+    int m_id, m_max_id;
+    typename InterestPointList::iterator m_start, m_stop;
+
+  public:
+    InterestPointDescriptionTask( ViewT const& view, DescriptorT& descriptor,
+                                  int id, int max_id,
+                                  typename InterestPointList::iterator start,
+                                  typename InterestPointList::iterator stop ) :
+      m_view( view ), m_descriptor( descriptor ), m_id( id ),
+      m_max_id( max_id ), m_start(start), m_stop( stop ) {}
+
+    virtual ~InterestPointDescriptionTask(){}
+
+    void operator()() {
+      BBox2i image_crop_bounds;
+      const float half_size = ((float)( m_descriptor.support_size() - 1)) / 2.0f;
+      BBox2i support_size( 0, 0, m_descriptor.support_size(),
+                           m_descriptor.support_size() );
+      for ( typename InterestPointList::iterator it = m_start;
+            it != m_stop; it++ ) {
+        float scaling = 1.0f / it->scale;
+        double c=cos(-it->orientation), s=sin(-it->orientation);
+
+        AffineTransform tx( Matrix2x2(scaling*c, -scaling*s,
+                                      scaling*s, scaling*c),
+                            Vector2(scaling*(s * it->y - c * it->x) + half_size,
+                                    -scaling*(s * it->x + c * it->y) + half_size) );
+        image_crop_bounds.grow( tx.reverse_bbox( support_size ) );
+      }
+      image_crop_bounds.expand( 1 );
+      vw_out(InfoMessage, "interest_point") << "Describing interest points in block "
+                                            << m_id + 1 << "/" << m_max_id << "   [ "
+                                            << image_crop_bounds << " ]\n";
+
+      // Reindex all the points to use image_crop_bounds
+      for ( typename InterestPointList::iterator it = m_start;
+            it != m_stop; it++ ) {
+        it->x -= image_crop_bounds.min().x();
+        it->y -= image_crop_bounds.min().y();
+      }
+
+      // Generate descriptors base on this little crop
+      ImageView<PixelGray<float> > image =
+        crop( edge_extend(m_view, ZeroEdgeExtension()), image_crop_bounds );
+      m_descriptor( image, m_start, m_stop );
+
+      // Reindex all the points back to the global origin
+      for ( typename InterestPointList::iterator it = m_start;
+            it != m_stop; it++ ) {
+        it->x += image_crop_bounds.min().x();
+        it->y += image_crop_bounds.min().y();
+      }
+    }
+  };
+
+  struct IsInBBox {
+    BBox2i m_bbox;
+
+    IsInBBox( BBox2i const& bbox ) : m_bbox( bbox ) {}
+    bool operator()( InterestPoint const& ip ) {
+      return m_bbox.contains( Vector2i( ip.x, ip.y ) );
+    }
+  };
+
+  /// This function implements multithreaded interest point
+  /// description. Threads are spun off to process the image in 1024 x
+  /// 1024 pixel block plus some padding.
+  template <class ViewT, class DescriptorT>
+  void describe_interest_points( ViewT const& view, DescriptorT& descriptor,
+                                 InterestPointList& list ) {
+    typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+
+    FifoWorkQueue describe_queue(vw_settings().default_num_threads());
+
+    VW_OUT(DebugMessage, "interest_point")
+      << "Running MT interest point descriptor.  Input image: [ "
+      << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
+
+    // Process the image in 1024x1024 pixel blocks.
+    int tile_size = vw_settings().default_tile_size();
+    if (tile_size < 1024) tile_size = 1024;
+    std::vector<BBox2i> bboxes = image_blocks(view.impl(), tile_size, tile_size);
+    typename InterestPointList::iterator section_stop = list.begin();
+    for ( size_t i = 0; i < bboxes.size(); ++i ) {
+      typename InterestPointList::iterator section_start = section_stop;
+      section_stop = std::partition( section_start, list.end(), IsInBBox( bboxes[i] ) );
+
+      // Generate a task to build descriptors for these interest points that exist only in this bbox
+      boost::shared_ptr<Task> describe_task( new task_type( view, descriptor, i, bboxes.size(),
+                                                            section_start, section_stop ) );
+      describe_queue.add_task( describe_task );
+    }
+    VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
+    describe_queue.join_all();
+
+    VW_OUT(DebugMessage, "interest_point") << "MT interest point description complete.\n";
+    return;
+  }
 
   /// A basic example descriptor class. The descriptor for an interest
   /// point is simply the pixel values in the support region around

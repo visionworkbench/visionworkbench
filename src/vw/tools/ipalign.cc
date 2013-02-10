@@ -146,13 +146,13 @@ void find_interest_points( std::string const& image_name,
   vw_out(InfoMessage) << "Generating descriptors using " << opt.descriptor_generator << " generator... ";
   if (opt.descriptor_generator == "patch") {
     PatchDescriptorGenerator descriptor;
-    descriptor(input_image, ip);
+    describe_interest_points( input_image, descriptor, ip );
   } else if ( opt.descriptor_generator == "pca" ) {
     PCASIFTDescriptorGenerator descriptor("pca_basis.exr", "pca_avg.exr");
-    descriptor(input_image, ip);
+    describe_interest_points( input_image, descriptor, ip );
   } else if ( opt.descriptor_generator == "sgrad" ) {
     SGradDescriptorGenerator descriptor;
-    descriptor(input_image, ip);
+    describe_interest_points( input_image, descriptor, ip );
   } else {
     std::cout << "Unknown interest descriptor: " << opt.descriptor_generator << ".  Options are : [ patch, pca, sgrad ]\n";
     exit(0);

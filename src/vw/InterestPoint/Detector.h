@@ -81,7 +81,7 @@ namespace ip {
       // Note: We explicitly convert the image to PixelGray<float>
       // (rescaling as necessary) here before passing it off to the
       // rest of the interest detector code.
-      interest_points = impl().process_image(pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
+      interest_points = impl().process_image(pixel_cast_rescale<PixelGray<float> >(image.impl()));
 
       vw_out(DebugMessage, "interest_point") << "Finished processing block. Found " << interest_points.size() << " interest points.\n";
       return interest_points;
@@ -148,7 +148,7 @@ namespace ip {
 
   /// This free function implements a multithreaded interest point
   /// detector.  Threads are spun off to process the image in
-  /// 2048x2048 pixel blocks.
+  /// 1024x1024 pixel blocks.
   template <class ViewT, class DetectorT>
   InterestPointList detect_interest_points (ViewT const& view, DetectorT& detector) {
     typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
@@ -157,7 +157,6 @@ namespace ip {
     OrderedWorkQueue write_queue(1);
 
     InterestPointList ip_list;
-    Mutex mutex;     // Used to lock access to ip_list by the child threads.
 
     VW_OUT(DebugMessage, "interest_point") << "Running MT interest point detector.  Input image: [ " << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
 
@@ -166,7 +165,7 @@ namespace ip {
     if (tile_size < 1024) tile_size = 1024;
     std::vector<BBox2i> bboxes = image_blocks(view.impl(),
                                               tile_size, tile_size);
-    for (unsigned i = 0; i < bboxes.size(); ++i) {
+    for (size_t i = 0; i < bboxes.size(); ++i) {
       boost::shared_ptr<Task> detect_task( new task_type( view, detector, bboxes[i], i, bboxes.size(),
                                                           ip_list, write_queue ) );
       detect_queue.add_task( detect_task );

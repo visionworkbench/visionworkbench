@@ -48,19 +48,28 @@ namespace ip {
     // method.
     template <class ViewT>
     void operator() ( ImageViewBase<ViewT> const& image, InterestPointList& points ) {
+      (*this)( image, points.begin(), points.end() );
+    }
+    template <class ViewT, class IterT>
+    void operator() ( ImageViewBase<ViewT> const& image,
+                      IterT start, IterT end ) {
 
       // Timing
       Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
 
       m_integral = IntegralImage(pixel_cast<double>(channel_cast<double>(image.impl())));
 
-      for (InterestPointList::iterator i = points.begin(); i != points.end(); ++i ) {
-
+      for (IterT i = start; i != end; i++ ) {
         // Wrapping integral image for interpolation
-        i->descriptor = impl().compute_descriptor( interpolate(m_integral), *i );
+        i->descriptor.set_size( impl().descriptor_size() );
+        impl().compute_descriptor( interpolate(m_integral), *i );
       }
     }
 
+    // Default suport size ( i.e. descriptor window)
+    int support_size() { return 41; }
+    // Default descriptor(vector) length
+    int descriptor_size() { return 128; }
   };
 
   // Simple Scaled Gradient Descriptor (v2)
@@ -110,17 +119,13 @@ namespace ip {
     }
 
     template <class ViewT>
-    Vector<float> compute_descriptor ( ImageViewBase<ViewT> const& integral,
-                                       InterestPoint const& ip ) {
-
-      Vector<float> result(128);
-
+    void compute_descriptor ( ImageViewBase<ViewT> const& integral,
+                              InterestPoint& ip ) {
       uint32 write_idx = 0;
       float scale = ip.scale;
       float co = cos(ip.orientation);
       float si = sin(ip.orientation);
       Matrix2x2 rotate( co, -si, si, co );
-      //Matrix2x2 inv_rotate( co, si, -si, co );
 
       // Iterating through all sample locations for histograms
       for ( std::list<Vector3>::const_iterator center = m_box_properties.begin();
@@ -152,24 +157,25 @@ namespace ip {
           for ( size_t i = 0; i < responses.size(); i++ ) {
             double dot = dot_prod( *hist_bin, responses[i] );
             if ( dot > 0 )
-              result[write_idx] += dot;
+              ip.descriptor[write_idx] += dot;
           }
           write_idx++;
         }
       }
 
       // Normalizing for lighting invariance
-      result = normalize(result);
+      float distance = norm_2( ip.descriptor );
+      for ( size_t i = 0; i < 128; i++ )
+        ip.descriptor[i] /= distance;
 
       // Threshold + Normalizing for non-linear lighting
-      for ( uint8 i = 0; i < 128; i++ )
-        if ( result[i] > 0.2 )
-          result[i] = 0.2;
-      result = normalize(result);
-
-      return result;
+      for ( size_t i = 0; i < 128; i++ )
+        if ( ip.descriptor[i] > 0.2 )
+          ip.descriptor[i] = 0.2;
+      distance = norm_2( ip.descriptor );
+      for ( size_t i = 0; i < 128; i++ )
+        ip.descriptor[i] /= distance;
     }
-
   };
 
   // M-SURF Descriptor. This is an implementation of MU-SURF from
