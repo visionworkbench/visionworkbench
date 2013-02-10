@@ -143,7 +143,7 @@ void find_interest_points( std::string const& image_name,
     write_point_image(opt.output_prefix + "-debug.tif", input_image, ip);
 
   // Generate descriptors for interest points.
-  vw_out(InfoMessage) << "Generating descriptors using " << opt.descriptor_generator << " generator... ";
+  vw_out(InfoMessage) << "Generating descriptors using " << opt.descriptor_generator << " generator... " << std::flush;
   if (opt.descriptor_generator == "patch") {
     PatchDescriptorGenerator descriptor;
     describe_interest_points( input_image, descriptor, ip );
@@ -157,7 +157,7 @@ void find_interest_points( std::string const& image_name,
     std::cout << "Unknown interest descriptor: " << opt.descriptor_generator << ".  Options are : [ patch, pca, sgrad ]\n";
     exit(0);
   }
-  vw_out(InfoMessage) << "done.\n";
+  vw_out(InfoMessage) << "done." << std::endl;
   if ( opt.save_intermediate )
     write_binary_ip_file(fs::path(image_name).replace_extension("vwip").string(),ip);
 }
@@ -198,8 +198,9 @@ void align_images( Options & opt ) {
 
     // RANSAC is used to fit a similarity transform between the
     // matched sets of points
-    std::vector<Vector3> ransac_ip1 = iplist_to_vectorlist(matched_ip1);
-    std::vector<Vector3> ransac_ip2 = iplist_to_vectorlist(matched_ip2);
+    std::vector<Vector3>
+      ransac_ip1 = iplist_to_vectorlist(matched_ip1),
+      ransac_ip2 = iplist_to_vectorlist(matched_ip2);
     Matrix<double> align_matrix;
 
     std::vector<size_t> indices;
@@ -242,19 +243,22 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("debug-images,d", "Produce additional debugging images as well as the aligned image.")
+    ("debug-images,d", po::bool_switch(&opt.debug_images),
+     "Produce additional debugging images as well as the aligned image.")
     ("tile-size", po::value(&opt.tile_size)->default_value(1024),
      "Specify the tile size for detecting interest points.")
     ("output-prefix,o", po::value(&opt.output_prefix)->default_value("aligned"),
      "Specify the output prefix")
-    ("save-intermediate,s", "Save working VWIP and Match files")
+    ("save-intermediate,s", po::bool_switch(&opt.save_intermediate),
+     "Save working VWIP and Match files")
 
     // Interest point detector options
     ("detector-gain,g", po::value(&opt.detect_gain)->default_value(1.0),
      "Increasing this number will increase the  gain at which interest points are detected.")
     ("interest-operator", po::value(&opt.interest_operator)->default_value("OBALoG"),
      "Choose an interest metric from [LoG, Harris, OBALoG]")
-    ("single-scale", "Do not use the scale-space interest point detector.")
+    ("single-scale", po::bool_switch(&opt.single_scale),
+     "Do not use the scale-space interest point detector.")
 
     // Descriptor generator options
     ("descriptor-generator", po::value(&opt.descriptor_generator)->default_value("sgrad"),
@@ -265,7 +269,8 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
      "Rejects points during matching if best > matcher_threshold * second_best")
     ("inlier-threshold,i", po::value(&opt.inlier_threshold)->default_value(10), "RANSAC inlier threshold.")
     ("ransac-iterations", po::value(&opt.ransac_iterations)->default_value(100), "Number of RANSAC iterations.")
-    ("homography", "Align images using a full projective transform (homography).  By default, aligment uses a more restricted Similarity transform.");
+    ("homography", po::bool_switch(&opt.homography),
+     "Align images using a full projective transform (homography).  By default, aligment uses a more restricted Similarity transform.");
 
   po::options_description positional("");
   positional.add_options()
@@ -287,7 +292,7 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
   }
 
   std::ostringstream usage;
-  usage << "Usage: " << argv[0] << " <ptk-url> <drg-file> <cam-file>\n";
+  usage << "Usage: " << argv[0] << " <ref image> <images to be aligned ...>\n";
 
   if ( vm.count("help") )
     vw_throw( ArgumentErr() << usage.str() << general_options );
@@ -297,10 +302,6 @@ void handle_arguments( int argc, char* argv[], Options& opt ) {
 
   boost::to_lower( opt.interest_operator );
   boost::to_lower( opt.descriptor_generator );
-  opt.single_scale = vm.count("single-scale");
-  opt.homography = vm.count("homography");
-  opt.debug_images = vm.count("debug-images");
-  opt.save_intermediate = vm.count("save-intermediate");
 }
 
 int main(int argc, char* argv[]) {
