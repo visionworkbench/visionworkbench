@@ -1005,7 +1005,7 @@ void write_control_network(boost::shared_ptr<ControlNetwork> cnet, int num_camer
       bool match = false;
       for (size_t j = 0; j < cp.size(); j++) {
         ControlMeasure cm = cp[j];
-        if (cm.image_id() == i) {
+        if ((int)cm.image_id() == i) {
           Vector2 cmpos = cm.position();
           cnetos << cmpos[0] << "\t" << cmpos[1];
           match = true;
@@ -1111,6 +1111,3 @@ int main(int argc, char* argv[]) {
 
   return 0;
 }
-
-
-
