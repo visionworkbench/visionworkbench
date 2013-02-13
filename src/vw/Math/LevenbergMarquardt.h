@@ -241,7 +241,15 @@ namespace math {
         }
 
         // Solve for update
-        typename ImplT::domain_type delta_x = least_squares(hessian_lm, del_J);
+        typename ImplT::domain_type delta_x;
+        if (hessian_lm.rows() <= 2){
+          // Direct method is more efficient for small matrices, also
+          // here we avoid calling LAPACK which we've seen misbehave
+          // in this situation in a multi-threaded environment.
+          delta_x = inverse(hessian_lm)*del_J;
+        }else{
+          delta_x = least_squares(hessian_lm, del_J);
+        }
 
         // update parameter vector
         x_try = x - delta_x;
