@@ -288,6 +288,7 @@ public:
     }
     // Don't let the compiler optimize this away.
     volatile int result = std::accumulate(c.begin(), c.end(), 0 );
+    EXPECT_EQ(result, result); // Rm compiler warning due to unused variable
   }
 };
 
