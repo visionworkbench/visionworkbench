@@ -1309,6 +1309,9 @@ namespace math {
   __VW_UNARY_VECTOR_FUNCTOR(floor,ArgFloorFunctor)
   __VW_UNARY_VECTOR_FUNCTOR(ceil,ArgCeilFunctor)
   __VW_UNARY_VECTOR_FUNCTOR(abs,ArgAbsFunctor)
+#ifndef WIN32
+  __VW_UNARY_VECTOR_FUNCTOR(round,ArgRoundFunctor)
+#endif
 
 #undef __VW_UNARY_VECTOR_FUNCTOR
 
