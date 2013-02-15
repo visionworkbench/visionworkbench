@@ -58,7 +58,6 @@ namespace cartography {
     InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
     GeoReference m_georef;
     Vector3 m_camera_ctr;
-    bool m_cambbox_mode;
     BBox2i m_dem_bbox;
 
     // Provide safe interaction with DEMs that are scalar or compound
@@ -71,12 +70,9 @@ namespace cartography {
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
     inline Helper( double const& x, double const& y ) const {
-      // If we are using this function for computing camera bbox, it
-      // is convinient that we return 0 where the DEM is not valid.
-      if ( m_cambbox_mode || is_valid(m_dem(x, y)) ){
-        return m_dem(x,y)[0];
-      }
-      return std::numeric_limits<double>::quiet_NaN();
+      // Note: We ignore the pixel mask, in effect treating invalid
+      // pixels as having 0 value.
+      return m_dem(x,y)[0];
     }
 
   public:
@@ -92,9 +88,8 @@ namespace cartography {
     // Constructor
     DEMIntersectionLMA( ImageViewBase<DEMImageT> const& dem_image,
                         GeoReference const& georef,
-                        Vector3 const& camera_ctr,
-                        bool cambbox_mode): m_dem(interpolate(dem_image)), m_georef(georef),
-                                            m_camera_ctr(camera_ctr), m_cambbox_mode(cambbox_mode){
+                        Vector3 const& camera_ctr): m_dem(interpolate(dem_image)), m_georef(georef),
+                                                    m_camera_ctr(camera_ctr){
       m_dem_bbox = bounding_box( m_dem );
     }
 
@@ -110,11 +105,6 @@ namespace cartography {
                                                            dem_lonlat.y(),
                                                            Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y()))
                                                   );
-      if (dem_xyz != dem_xyz){
-        // If dem_xyz is NaN
-        return Vector3();
-      }
-
       return dem_xyz;
     }
 
@@ -126,91 +116,32 @@ namespace cartography {
     }
   };
 
-  // Auxiliary function for intersecting a ray with a DEM. This
-  // function is not to be used directly.
+  // Intersect the ray going from the given camera pixel with the DEM.
+  // The return value is a point in the projected space.  In this
+  // function we treat no-data DEM values as 0.
   template <class DEMImageT>
-  void camera_pixel_to_dem_aux(// Inputs
-                               Vector2 const& camera_pixel,
-                               ImageViewBase<DEMImageT> const& dem_image,
-                               GeoReference const& georef,
-                               boost::shared_ptr<camera::CameraModel> camera_model,
-                               double max_abs_tol,
-                               double max_rel_tol,
-                               int num_max_iter,
-                               bool calc_xyz,
-                               Vector3 const& xyz_guess,
-                               bool cambbox_mode,
-                               // Outputs
-                               Vector2 & projected_point,
-                               Vector3 & xyz,
-                               bool & has_intersection
-                               ){
-
+  Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
+                                    ImageViewBase<DEMImageT> const& dem_image,
+                                    GeoReference const& georef,
+                                    boost::shared_ptr<camera::CameraModel> camera_model,
+                                    bool & has_intersection
+                                    ){
     has_intersection = true;
 
-    // First intersect the ray with the datum, this is a good initial guess
+    double max_abs_tol = 1e-14, max_rel_tol = 1e-14;
+    int num_max_iter = 100;
+
     Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
     Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
 
-    if (xyz_guess == Vector3()){
-
-      // Get an initial guess from intersecting the ray
-      projected_point = geospatial_intersect(georef, camera_ctr, camera_vec, has_intersection);
-      if ( !has_intersection ) {
-        projected_point = Vector2();
-        xyz = Vector3();
-        return;
-      }
-
-      if (!cambbox_mode){
-        // If the ray intersects the datum at a point
-        // which does not correspond to a valid location in the DEM,
-        // wiggle that point along the ray until hopefully it does.
-        has_intersection = false;
-        Vector3 P0 = datum_intersection(georef.datum(), camera_ctr, camera_vec);
-        if ( P0 == Vector3() ) {
-          projected_point = Vector2();
-          xyz = Vector3();
-          return;
-        }
-        double radius = norm_2(P0);
-        int n = 10;
-        double small = radius*0.02/( 1 << (n-1) ); // wiggle up to 0.02*radius
-        for (int i = 0; i <= n; i++){
-          Vector3 delta = Vector3();
-          if (i > 0) delta = camera_vec*small*( 1 << (i-1) );
-          for (int k = -1; k <= 1; k += 2){
-            Vector3 P = P0 + k*delta; // close to P0, along the ray to camera_ctr
-            Vector3 llh = georef.datum().cartesian_to_geodetic( P );
-            Vector2 pix = georef.lonlat_to_pixel( Vector2( llh.x(), llh.y() ) );
-            int x = (int)round(pix[0]);
-            int y = (int)round(pix[1]);
-            if (0 <= x && x < dem_image.impl().cols() &&
-                0 <= y && y < dem_image.impl().rows() &&
-                is_valid(dem_image.impl()(x, y))){
-              has_intersection = true;
-              projected_point = georef.pixel_to_point(Vector2(x, y));
-              break;
-            }
-          }
-          if (has_intersection) break;
-        }
-
-        if ( !has_intersection ) {
-          projected_point = Vector2();
-          xyz = Vector3();
-          return;
-        }
-      }
-
-    }else{
-      Vector3 llh = georef.datum().cartesian_to_geodetic( xyz_guess );
-      projected_point = georef.lonlat_to_point( Vector2( llh.x(), llh.y() ) );
-      has_intersection = true;
+    // Get an initial guess from intersecting the ray with the datum.
+    Vector2 projected_point = geospatial_intersect(georef, camera_ctr, camera_vec, has_intersection);
+    if ( !has_intersection ) {
+      return Vector2();
     }
 
     // Refining the intersection using Levenberg-Marquardt
-    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr, cambbox_mode);
+    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr);
     int status = 0;
     projected_point = math::levenberg_marquardt(model, projected_point,
                                                 camera_vec, status,
@@ -220,94 +151,155 @@ namespace cartography {
 
     if ( status < 0 ) {
       has_intersection = false;
-      projected_point = Vector2();
-      xyz = Vector3();
-      return;
-    }
-
-    if (!calc_xyz){
-      has_intersection = true;
-      xyz = Vector3();
-      return;
-    }
-
-    xyz = model.point_to_xyz_helper(projected_point);
-    if (xyz == Vector3()){
-      has_intersection = false;
-      return;
+      return Vector2();
     }
 
     has_intersection = true;
-  }
-
-  // Intersect the ray going from the given camera pixel with the DEM
-  // The return value is a point in the projected space.
-
-  // The value cambbox_mode must be false unless this function is used
-  // for computing the camera bbox, in which case we want to preserve
-  // established behavior.
-  template <class DEMImageT>
-  Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
-                                    ImageViewBase<DEMImageT> const& dem_image,
-                                    GeoReference const& georef,
-                                    boost::shared_ptr<camera::CameraModel> camera_model,
-                                    bool & has_intersection,
-                                    bool cambbox_mode = false
-                                    ){
-    has_intersection = true;
-    double max_abs_tol = 1e-16, max_rel_tol = 1e-16;
-    int num_max_iter = 100;
-
-    Vector2 projected_point;
-    Vector3 xyz_guess, xyz;
-    bool calc_xyz = false; // compute only the projected point
-    camera_pixel_to_dem_aux(// Inputs
-                            camera_pixel, dem_image, georef, camera_model,
-                            max_abs_tol, max_rel_tol, num_max_iter, calc_xyz, xyz_guess,
-                            cambbox_mode,
-                            // Outputs
-                            projected_point, xyz, has_intersection
-                            );
-
     return projected_point;
   }
 
-  // Intersect the ray going from the given camera pixel with the DEM
-  // The return value is a Cartesian point.
+  // Define an LMA model to solve for a DEM intersecting a ray. The
+  // variable of optimization is position on the ray. The cost
+  // function is difference between datum height and DEM height at
+  // current point on the ray.
   template <class DEMImageT>
-  Vector3 camera_pixel_to_dem_xyz(Vector2 const& camera_pixel,
+  class RayDEMIntersectionLMA : public math::LeastSquaresModelBase< RayDEMIntersectionLMA< DEMImageT > > {
+    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
+    GeoReference m_georef;
+    Vector3 m_camera_ctr;
+    Vector3 m_camera_vec;
+
+    // Provide safe interaction with DEMs that are scalar or compound
+    template <class PixelT>
+    typename boost::enable_if< IsScalar<PixelT>, double >::type
+    inline Helper( double x, double y ) const {
+      if ( 0 <= x && x <= m_dem.cols() - 1 && // for interpolation
+           0 <= y && y <= m_dem.rows() - 1 ){
+        PixelT val = m_dem(x, y);
+        if (is_valid(val)) return val;
+      }
+      return big_val();
+    }
+
+    template <class PixelT>
+    typename boost::enable_if< IsCompound<PixelT>, double>::type
+    inline Helper( double x, double y ) const {
+      if ( 0 <= x && x <= m_dem.cols() - 1 && // for interpolation
+           0 <= y && y <= m_dem.rows() - 1 ){
+        PixelT val = m_dem(x, y);
+        if (is_valid(val)) return val[0];
+      }
+      return big_val();
+    }
+
+  public:
+    typedef Vector<double, 1> result_type;
+    typedef Vector<double, 1> domain_type;
+    // Jacobian form. Auto.
+    typedef Matrix<double> jacobian_type;
+
+    inline double big_val() const {
+      // Don't make this too big as in the LMA algorithm it may get
+      // squared and may cause overflow.
+      return 1.0e+50;
+    }
+
+    // Constructor
+    RayDEMIntersectionLMA(ImageViewBase<DEMImageT> const& dem_image,
+                          GeoReference const& georef,
+                          Vector3 const& camera_ctr,
+                          Vector3 const& camera_vec)
+      : m_dem(interpolate(dem_image)), m_georef(georef),
+        m_camera_ctr(camera_ctr), m_camera_vec(camera_vec){}
+
+
+    // Evaluator. See description above.
+    inline result_type operator()( domain_type const& len ) const {
+      Vector3 xyz = m_camera_ctr + len[0]*m_camera_vec;
+      Vector3 llh = m_georef.datum().cartesian_to_geodetic( xyz );
+      Vector2 pix = m_georef.lonlat_to_pixel( Vector2( llh.x(), llh.y() ) );
+      result_type result;
+      result[0] = Helper<typename DEMImageT::pixel_type >(pix.x(),pix.y()) - llh[2];
+      return result;
+    }
+  };
+
+  // Intersect the ray going from the given camera pixel with the DEM
+  // The return value is a Cartesian point. We return no intersection
+  // if the ray goes through a hole in the DEM where there is no data.
+  template <class DEMImageT>
+  Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                   ImageViewBase<DEMImageT> const& dem_image,
                                   GeoReference const& georef,
-                                  boost::shared_ptr<camera::CameraModel> camera_model,
                                   bool & has_intersection,
-                                  double pixel_error_tol = 1e-1, // error in pixel units
-                                  double max_abs_tol = 1e-16,    // abs cost function change b/w iters
-                                  double max_rel_tol = 1e-16,
-                                  int num_max_iter   = 100,
-                                  Vector3 xyz_guess = Vector3()
+                                  double height_error_tol = 1e-1,  // error in DEM height
+                                  double max_abs_tol      = 1e-14, // abs cost function change b/w iters
+                                  double max_rel_tol      = 1e-14,
+                                  int num_max_iter        = 100,
+                                  Vector3 xyz_guess       = Vector3()
                                   ){
 
-    has_intersection = true;
-    Vector2 projected_point;
+    has_intersection = false;
+    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr, camera_vec);
+
     Vector3 xyz;
-    bool calc_xyz = true;
-    bool cambbox_mode = false;
-    camera_pixel_to_dem_aux(// Inputs
-                            camera_pixel, dem_image, georef, camera_model,
-                            max_abs_tol, max_rel_tol, num_max_iter,
-                            calc_xyz, xyz_guess, cambbox_mode,
-                            // Outputs
-                            projected_point, xyz, has_intersection
-                            );
+    if ( xyz_guess == Vector3() ){
+      // Intersect the ray with the datum, this is a good initial
+      // guess.
+      xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
+      if ( xyz == Vector3() ) {
+        has_intersection = false;
+        return Vector3();
+      }
+    }else{
+      xyz = xyz_guess;
+    }
 
-    if (!has_intersection) return Vector3();
+    // Length along the ray from camera center to intersection point
+    Vector<double, 1> len0, len;
+    len0[0] = norm_2(xyz - camera_ctr);
 
-    double pixel_error = norm_2( camera_model->point_to_pixel(xyz) - camera_pixel );
-    if (pixel_error > pixel_error_tol){
+    // If the ray intersects the datum at a point which does not
+    // correspond to a valid location in the DEM, wiggle that point
+    // along the ray until hopefully it does.
+    double radius = norm_2(xyz);
+    int n = 10;
+    double small = radius*0.02/( 1 << (n-1) ); // wiggle up to 0.02*radius
+    for (int i = 0; i <= n; i++){
+      double delta = 0;
+      if (i > 0) delta = small*( 1 << (i-1) );
+      for (int k = -1; k <= 1; k += 2){
+        len[0] = len0[0] + k*delta;
+        Vector<double, 1> height_diff = model(len);
+        if ( std::abs(height_diff[0]) < model.big_val()/10.0 ){
+          has_intersection = true;
+          break;
+        }
+      }
+      if (has_intersection) break;
+    }
+
+    if ( !has_intersection ) {
+      return Vector3();
+    }
+
+    // Refining the intersection using Levenberg-Marquardt
+    int status = 0;
+    Vector<double, 1> observation; observation[0] = 0;
+    len = math::levenberg_marquardt(model, len, observation, status,
+                                    max_abs_tol, max_rel_tol,
+                                    num_max_iter
+                                    );
+
+    Vector<double, 1> dem_height = model(len);
+
+    if ( status < 0 || std::abs(dem_height[0]) > height_error_tol ){
       has_intersection = false;
       return Vector3();
     }
 
+    has_intersection = true;
+    xyz = camera_ctr + len[0]*camera_vec;
     return xyz;
   }
 
@@ -359,12 +351,9 @@ namespace cartography {
 
       void operator() ( Vector2 const& pixel ) {
 
-        bool cambbox_mode = true;
         bool has_intersection;
         Vector2 point
-          = camera_pixel_to_dem_point(pixel, m_dem, m_georef,
-                                      m_camera, has_intersection, cambbox_mode
-                                      );
+          = camera_pixel_to_dem_point(pixel, m_dem, m_georef, m_camera, has_intersection);
 
         if ( !has_intersection ) {
           last_valid = false;

@@ -98,10 +98,9 @@ TEST_F( CameraBBoxTest, CameraPixelToXYZ) {
 
   Vector2 input_pixel(50,10);
   bool has_intersection;
-  Vector3 xyz = camera_pixel_to_dem_xyz(input_pixel,
-                                        DEM,
-                                        moon_georef,
-                                        apollo_camera,
+  Vector3 xyz = camera_pixel_to_dem_xyz(apollo_camera->camera_center(input_pixel),
+                                        apollo_camera->pixel_to_vector(input_pixel),
+                                        DEM, moon_georef,
                                         has_intersection
                                         );
 
