@@ -121,7 +121,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
   // Note: Class RPCStereoModel inherits from this class and re-implements this function.
 
   errorVec = Vector3();
-  
+
   // Check for NaN values
   if (pix1 != pix1 || pix2 != pix2) return Vector3();
 
@@ -133,13 +133,13 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
     if (are_nearly_parallel(vec1, vec2)){
       return Vector3();
     }
-    
+
     Vector3 origin1 = m_camera1->camera_center(pix1);
     Vector3 origin2 = m_camera2->camera_center(pix2);
     Vector3 result  = triangulate_point(origin1, vec1,
                                         origin2, vec2,
                                         errorVec);
-    
+
     if ( m_least_squares )
       refine_point(pix1, pix2, result);
 
@@ -163,7 +163,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
   error = norm_2(errorVec);
   return result;
 }
-  
+
 double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const {
   return acos(dot_prod(m_camera1->pixel_to_vector(pix1),
                        m_camera2->pixel_to_vector(pix2)));
@@ -174,7 +174,7 @@ Vector3 StereoModel::triangulate_point(Vector3 const& point1,
                                        Vector3 const& point2,
                                        Vector3 const& vec2,
                                        Vector3& errorVec) const {
-  
+
   // Triangulate the point by finding the midpoint of the segment
   // joining the closest points on the two rays emanating
   // from the camera.
