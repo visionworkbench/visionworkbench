@@ -117,7 +117,7 @@ namespace cartography {
   };
 
   // Intersect the ray going from the given camera pixel with the DEM.
-  // The return value is a point in the projected space.  In this
+  // The return value is a point in the projected space. In this
   // function we treat no-data DEM values as 0.
   template <class DEMImageT>
   Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
@@ -168,7 +168,7 @@ namespace cartography {
     GeoReference m_georef;
     Vector3 m_camera_ctr;
     Vector3 m_camera_vec;
-
+    bool m_treat_nodata_as_zero;
     // Provide safe interaction with DEMs that are scalar or compound
     template <class PixelT>
     typename boost::enable_if< IsScalar<PixelT>, double >::type
@@ -178,6 +178,7 @@ namespace cartography {
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val;
       }
+      if (m_treat_nodata_as_zero) return 0;
       return big_val();
     }
 
@@ -189,6 +190,7 @@ namespace cartography {
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val[0];
       }
+      if (m_treat_nodata_as_zero) return 0;
       return big_val();
     }
 
@@ -208,10 +210,12 @@ namespace cartography {
     RayDEMIntersectionLMA(ImageViewBase<DEMImageT> const& dem_image,
                           GeoReference const& georef,
                           Vector3 const& camera_ctr,
-                          Vector3 const& camera_vec)
+                          Vector3 const& camera_vec,
+                          bool treat_nodata_as_zero
+                          )
       : m_dem(interpolate(dem_image)), m_georef(georef),
-        m_camera_ctr(camera_ctr), m_camera_vec(camera_vec){}
-
+        m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
+        m_treat_nodata_as_zero(treat_nodata_as_zero){}
 
     // Evaluator. See description above.
     inline result_type operator()( domain_type const& len ) const {
@@ -224,13 +228,16 @@ namespace cartography {
     }
   };
 
-  // Intersect the ray going from the given camera pixel with the DEM
-  // The return value is a Cartesian point. We return no intersection
-  // if the ray goes through a hole in the DEM where there is no data.
+  // Intersect the ray going from the given camera pixel with a DEM.
+  // The return value is a Cartesian point. If the ray goes through a
+  // hole in the DEM where there is no data, we return no-intersection
+  // or intersection with the datum, depending on whether the variable
+  // treat_nodata_as_zero is false or true.
   template <class DEMImageT>
   Vector3 camera_pixel_to_dem_xyz(Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                   ImageViewBase<DEMImageT> const& dem_image,
                                   GeoReference const& georef,
+                                  bool treat_nodata_as_zero,
                                   bool & has_intersection,
                                   double height_error_tol = 1e-1,  // error in DEM height
                                   double max_abs_tol      = 1e-14, // abs cost function change b/w iters
@@ -240,13 +247,15 @@ namespace cartography {
                                   ){
 
     has_intersection = false;
-    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr, camera_vec);
+    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef,
+                                           camera_ctr, camera_vec, treat_nodata_as_zero);
 
     Vector3 xyz;
     if ( xyz_guess == Vector3() ){
       // Intersect the ray with the datum, this is a good initial
       // guess.
       xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
+
       if ( xyz == Vector3() ) {
         has_intersection = false;
         return Vector3();

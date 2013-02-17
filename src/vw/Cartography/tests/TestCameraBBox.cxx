@@ -97,10 +97,12 @@ TEST_F( CameraBBoxTest, CameraPixelToXYZ) {
   moon_georef.set_transform(geotrans);
 
   Vector2 input_pixel(50,10);
+  bool treat_nodata_as_zero = false;
   bool has_intersection;
   Vector3 xyz = camera_pixel_to_dem_xyz(apollo_camera->camera_center(input_pixel),
                                         apollo_camera->pixel_to_vector(input_pixel),
                                         DEM, moon_georef,
+                                        treat_nodata_as_zero,
                                         has_intersection
                                         );
 
