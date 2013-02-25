@@ -56,6 +56,22 @@ namespace vw {
     }
   };
 
+  // Mask values less than or equal to the nodata value.
+  template <class PixelT>
+  class CreatePixelMaskLE : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
+    PixelT m_nodata_value;
+  public:
+    CreatePixelMaskLE( PixelT const& nodata_value ) : m_nodata_value(nodata_value) {}
+
+    inline typename MaskedPixelType<PixelT>::type operator()( PixelT const& value ) const {
+      typedef typename MaskedPixelType<PixelT>::type MPixelT;
+      if ( value <= m_nodata_value ) {
+        return MPixelT();
+      }
+      return MPixelT(value);
+    }
+  };
+
   template <class PixelT>
   class CreatePixelRangeMask : public ReturnFixedType<typename MaskedPixelType<PixelT>::type > {
     PixelT m_valid_min;
@@ -137,10 +153,22 @@ namespace vw {
     return create_mask( view.impl(), typename ViewT::pixel_type() );
   }
 
+  // Mask values less than or equal to the nodata value.
+  template <class ViewT>
+  UnaryPerPixelView<ViewT,CreatePixelMaskLE<typename ViewT::pixel_type> >
+  create_mask_less_or_equal( ImageViewBase<ViewT> const& view,
+                             typename ViewT::pixel_type const& value ) {
+    typedef UnaryPerPixelView<ViewT,CreatePixelMaskLE<typename ViewT::pixel_type> > view_type;
+    return view_type( view.impl(), CreatePixelMaskLE<typename ViewT::pixel_type>(value) );
+  }
+
   // Indicate that create_mask is "reasonably fast" and should never
   // induce an extra rasterization step during prerasterization.
   template <class ViewT>
   struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelMask<typename ViewT::pixel_type> > >
+    : public IsMultiplyAccessible<ViewT> {};
+  template <class ViewT>
+  struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelMaskLE<typename ViewT::pixel_type> > >
     : public IsMultiplyAccessible<ViewT> {};
   template <class ViewT>
   struct IsMultiplyAccessible<UnaryPerPixelView<ViewT,CreatePixelRangeMask<typename ViewT::pixel_type> > >
