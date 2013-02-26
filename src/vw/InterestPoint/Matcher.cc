@@ -109,8 +109,18 @@ namespace ip {
                              std::string const& input_file1,
                              std::string const& input_file2){
     return out_prefix + "-" +
-      fs::path(input_file1).stem().string() + "__" + 
+      fs::path(input_file1).stem().string() + "__" +
       fs::path(input_file2).stem().string() + ".match";
   }
-  
+
+  void ip_filenames(std::string const& out_prefix,
+                    std::string const& input_file1,
+                    std::string const& input_file2,
+                    std::string & output_ip1,
+                    std::string & output_ip2
+                    ){
+    output_ip1 = out_prefix + "-" + fs::path(input_file1).stem().string() + ".vwip";
+    output_ip2 = out_prefix + "-" + fs::path(input_file2).stem().string() + ".vwip";
+  }
+
 }} // namespace vw::ip

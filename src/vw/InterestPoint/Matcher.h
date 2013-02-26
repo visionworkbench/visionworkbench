@@ -419,10 +419,18 @@ namespace ip {
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
 
-  // Function to help with consistent way of naming output match files
+  // The name of the match file.
   std::string match_filename(std::string const& out_prefix,
                              std::string const& input_file1,
                              std::string const& input_file2);
+
+  // The names of IP files.
+  void ip_filenames(std::string const& out_prefix,
+                    std::string const& input_file1,
+                    std::string const& input_file2,
+                    std::string & output_ip1,
+                    std::string & output_ip2
+                    );
 
 }} // namespace vw::ip
 
