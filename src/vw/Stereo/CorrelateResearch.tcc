@@ -309,7 +309,7 @@ namespace stereo {
             //           Matrix<double,6,6> pre_rhs = rhs;
             //           Vector<double,6> pre_lhs = lhs;
             try {
-              solve_symmetric_nocopy(rhs,lhs);
+              solve_symmetric_modify(rhs,lhs);
             } catch (const ArgumentErr& /*e*/) {} // Do nothing
             d += lhs;
 
@@ -602,7 +602,7 @@ namespace stereo {
 
             // Solves lhs = rhs * x, and stores the result in-place in lhs.
             try {
-              solve_symmetric_nocopy(rhs,lhs);
+              solve_symmetric_modify(rhs,lhs);
             } catch (const ArgumentErr& /*e*/) {} // Do nothing
             d += lhs;
 

@@ -650,7 +650,7 @@ TEST(LinearAlgebra, SymmetricStatic) {
   Matrix<float,3,3> Lt = A;
   Vector<float,3>   x = b;
 
-  solve_symmetric_nocopy(Lt,x);
+  solve_symmetric_modify(Lt,x);
 
   // it comes back transposed due to fortran
   Matrix<float,3,3> L = transpose(Lt);

@@ -409,7 +409,7 @@ namespace vw {
           soln = gradient;
           hessian_temp = hess;
           try {
-            solve_symmetric_nocopy(hessian_temp, soln);
+            solve_symmetric_modify(hessian_temp, soln);
 
             for(int i = 0; i < 6; i++) {
               if(soln[i] != soln[i]) { // test for NaNs
