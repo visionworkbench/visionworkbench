@@ -235,6 +235,6 @@ TEST_F( FundamentalMatrixStaticTest, MLAlgorithm ) {
 
   for ( unsigned i = 0; i < measure1.size(); i++ )  {
     EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(seed, Vector3( measure1[i][0], measure1[i][1], 1), Vector3( measure2[i][0], measure2[i][1], 1) ), 0.2 );
-    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 0.15 );
+    EXPECT_LT( FundamentalMatrixSampsonErrorMetric()(F, Vector3( measure1[i][0], measure1[i][1], 1),  Vector3( measure2[i][0], measure2[i][1], 1) ), 0.16 );
   }
 }
