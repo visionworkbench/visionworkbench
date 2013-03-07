@@ -199,8 +199,11 @@ namespace math {
     VW_OUT(DebugMessage, "math") << "LM: starting norm is: " << norm_start << std::endl;
 
     // Solution may already be good enough
-    if (norm_start < abs_tolerance)
+    if (norm_start < abs_tolerance) {
+      status = optimization::eConvergedAbsTolerance;
+      VW_OUT(DebugMessage, "math") << "CONVERGED TO ABSOLUTE TOLERANCE\n";
       done = true;
+    }
 
     int outer_iter = 0;
     while (!done){
