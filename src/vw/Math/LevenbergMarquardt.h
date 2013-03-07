@@ -251,7 +251,9 @@ namespace math {
           // in this situation in a multi-threaded environment.
           delta_x = inverse(hessian_lm)*del_J;
         }else{
-          delta_x = least_squares(hessian_lm, del_J);
+          // By construction, hessian_lm is symmetric and
+          // positive-definite.
+          delta_x = solve_symmetric(hessian_lm, del_J);
         }
 
         // update parameter vector
