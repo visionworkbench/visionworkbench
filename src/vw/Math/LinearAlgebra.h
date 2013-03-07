@@ -53,7 +53,7 @@ namespace math {
   /// E must be a complex vector and will be resized if necessary to
   /// the appropriate output dimensions based on the dimensions of A.
   template <class MatrixT, class EigenvaluesT>
-  inline void eigen( MatrixT const& A, EigenvaluesT &e ) {
+  inline void eigen( MatrixT const& A, EigenvaluesT &E ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename MatrixT::value_type real_type;
     const f77_int lda = detail::FINT(A.rows());
@@ -74,9 +74,9 @@ namespace math {
     if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
 
-    e.set_size( A.cols() );
+    E.set_size( A.cols() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i )
-      e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
+      E(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
   }
 
   /// Compute the entire eigendecomposition of the matrix A.
@@ -86,7 +86,7 @@ namespace math {
   /// will contain eigenvectors and must be a complex matrix. E and V
   /// will be resized based on the dimensions of A.
   template <class AMatrixT, class EigenvaluesT, class VMatrixT>
-  inline void eigen( AMatrixT &A, EigenvaluesT &e, VMatrixT &V ) {
+  inline void eigen( AMatrixT const& A, EigenvaluesT &E, VMatrixT &V ) {
     VW_ASSERT( A.cols()==A.rows(), ArgumentErr() << "Eigendecomposition can only be performed on square matrices." );
     typedef typename AMatrixT::value_type real_type;
     const f77_int lda = detail::FINT(A.rows());
@@ -108,10 +108,10 @@ namespace math {
     if (info > 0)
       vw_throw( ArgumentErr() << "eigen(): LAPACK driver geev only converged for the first " << info << " eigenvectors." );
 
-    e.set_size( A.cols() );
+    E.set_size( A.cols() );
     V.set_size( Vbuf.cols(), Vbuf.rows() );
     for ( unsigned i = 0; i < wr_buf.size(); ++i ) {
-      e(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
+      E(i) = std::complex<real_type>(wr_buf(i), wi_buf(i));
       // If the eigenvalue is complex, we must tease the real and
       // complex parts out of the Vbuf matrix.
       for ( unsigned r = 0; r < V.rows(); ++r )
@@ -129,7 +129,7 @@ namespace math {
   /// S will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
   template <class AMatrixT, class SingularValuesT>
-  inline void svd( AMatrixT const& A, SingularValuesT &s ) {
+  inline void svd( AMatrixT const& A, SingularValuesT &S ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
     const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
@@ -147,7 +147,7 @@ namespace math {
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
     if (info > 0)
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
-    s = sbuf;
+    S = sbuf;
   }
 
   /// Compute the singular value decomposition of the matrix A.
@@ -155,7 +155,7 @@ namespace math {
   /// U, S, and VT will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
   template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT>
-  inline void svd( AMatrixT const& A, UMatrixT &U, SingularValuesT &s, VTMatrixT &VT ) {
+  inline void svd( AMatrixT const& A, UMatrixT &U, SingularValuesT &S, VTMatrixT &VT ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
@@ -178,7 +178,7 @@ namespace math {
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
-    s = sbuf;
+    S = sbuf;
   }
 
   /// Compute the singular value decomposition of the matrix A,
@@ -188,7 +188,7 @@ namespace math {
   /// U, S, and VT will be resized if necessary to the appropriate output
   /// dimensions based on the dimensions of A.
   template <class AMatrixT, class UMatrixT, class SingularValuesT, class VTMatrixT>
-  inline void complete_svd( AMatrixT & A, UMatrixT &U, SingularValuesT &s, VTMatrixT &VT ) {
+  inline void complete_svd( AMatrixT const& A, UMatrixT &U, SingularValuesT &S, VTMatrixT &VT ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
@@ -211,7 +211,7 @@ namespace math {
       vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
-    s = sbuf;
+    S = sbuf;
   }
 
   /// Compute the QR decomposition of the matrix A,
@@ -297,7 +297,7 @@ namespace math {
 
   /// Computes the pseudoinverse A* of a real matrix A.
   template <class AMatrixT>
-  Matrix<typename AMatrixT::value_type> pseudoinverse( AMatrixT & A, double cond = 0 ) {
+  Matrix<typename AMatrixT::value_type> pseudoinverse( AMatrixT const& A, double cond = 0 ) {
     Matrix<typename AMatrixT::value_type> u, vt;
     Vector<typename AMatrixT::value_type> s;
     svd( A, u, s, vt );
@@ -318,7 +318,7 @@ namespace math {
   /// Computes the minimum-norm solution to a real linear least squares problem.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
-  least_squares( AMatrixT & A, BVectorT & B, double cond = -1 ) {
+  least_squares( AMatrixT const& A, BVectorT const& B, double cond = -1 ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = transpose(A);
     const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
@@ -362,7 +362,7 @@ namespace math {
   /// Computes the minimum-norm solution to a real linear least squares problem.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
-  solve( AMatrixT & A, BVectorT & B ) {
+  solve( AMatrixT const& A, BVectorT const& B ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
 
     const f77_int n = detail::FINT(A.cols());
@@ -402,7 +402,7 @@ namespace math {
   /// does not copy A or b, it can perform considerably faster than
   /// the non-nocopy method below.
   template <class AMatrixT, class BVectorT>
-  void solve_symmetric_nocopy( AMatrixT & A, BVectorT & B ) {
+  void solve_symmetric_modify( AMatrixT & A, BVectorT & B ) {
     const f77_int n = detail::FINT(A.cols());
     const f77_int nrhs = 1;
     const f77_int lda = detail::FINT(A.rows());
@@ -425,7 +425,7 @@ namespace math {
   /// are assumed to be stacked by columns (not rows as in Vision Workbench).
 
   template <class AMatrixT, class BMatrixT>
-  void multi_solve_symmetric_nocopy( AMatrixT & A, BMatrixT & B ) {
+  void multi_solve_symmetric_modify( AMatrixT & A, BMatrixT & B ) {
     const f77_int n = detail::FINT(A.cols());
     const f77_int nrhs = detail::FINT(B.rows());
     const f77_int lda = detail::FINT(A.cols());
@@ -441,11 +441,11 @@ namespace math {
   /// The result (x) is returned as the return value.
   template <class AMatrixT, class BVectorT>
   Vector<typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type>
-  solve_symmetric( AMatrixT & A, BVectorT & B ) {
+  solve_symmetric( AMatrixT const& A, BVectorT const& B ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BVectorT::value_type>::type real_type;
     Matrix<real_type> Abuf = A;
     Vector<real_type> result = B;
-    solve_symmetric_nocopy(Abuf,result);
+    solve_symmetric_modify(Abuf,result);
     return result;
   }
 
@@ -454,18 +454,18 @@ namespace math {
   /// The result (X is returned as the return value.
   template <class AMatrixT, class BMatrixT>
   Matrix<typename PromoteType<typename AMatrixT::value_type, typename BMatrixT::value_type>::type>
-  multi_solve_symmetric( AMatrixT & A, BMatrixT & B ) {
+  multi_solve_symmetric( AMatrixT const& A, BMatrixT const& B ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename BMatrixT::value_type>::type real_type;
     Matrix<real_type> Abuf = A; // A symmetric ==> transpose unnecessary
     Matrix<real_type> result = transpose(B);
-    multi_solve_symmetric_nocopy(Abuf,result);
+    multi_solve_symmetric_modify(Abuf,result);
     return transpose(result);
   }
 
   namespace detail {
     template <typename MatrixT, typename VectorT>
     typename VectorT::value_type
-    calc_threshold(const MatrixBase<MatrixT>& A, const VectorBase<VectorT>& S) {
+    calc_threshold(MatrixBase<MatrixT> const& A, VectorBase<VectorT> const& S) {
       return typename VectorT::value_type( 0.5
                 * sqrt(double(A.impl().cols()) + double(A.impl().rows()) + 1.)
                 * S.impl()[0]
