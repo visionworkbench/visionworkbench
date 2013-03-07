@@ -49,18 +49,19 @@ namespace math {
       ContainerT result = points[0]; // to resize container if necessary
       size_t num_points = points.size();
       size_t dimensions = points[0].size();
+      size_t last       = points[0].size() - 1;
       if (m_homogeneous)
         dimensions--;
 
       for (size_t i = 0; i < dimensions; ++i)
         result[i] = 0;
       if (m_homogeneous)
-        result[dimensions] = 1;
+        result[last] = 1;
 
       if (m_homogeneous) {
         for (size_t i = 0; i < num_points; ++i)
           for (size_t j = 0; j < dimensions; ++j)
-            result[j] += points[i][j] / points[i][dimensions];
+            result[j] += points[i][j] / points[i][last];
       }
       else {
         for (size_t i = 0; i < num_points; ++i)
@@ -98,18 +99,19 @@ namespace math {
       ContainerT mean = mean_func(points);
       unsigned num_points = points.size();
       unsigned dimensions = points[0].size();
+      unsigned last = points[0].size() - 1;
       if (m_homogeneous)
         dimensions--;
 
       for (unsigned int i = 0; i < dimensions; ++i)
         result[i] = 0;
       if (m_homogeneous)
-        result[dimensions] = 1;
+        result[last] = 1;
 
       if (m_homogeneous) {
         for (unsigned i = 0; i < num_points; ++i)
           for (unsigned int j = 0; j < dimensions; ++j) {
-            temp[j] = points[i][j] / points[i][dimensions] - mean[j];
+            temp[j] = points[i][j] / points[i][last] - mean[j];
             result[j] += temp[j] * temp[j];
           }
       }
