@@ -300,7 +300,7 @@ void run(const Options& opt) {
   const ProgressCallback *progress = &tpc;
 
   // Get the right pixel/channel type, and call the mosaic.
-  ImageFormat fmt = tools::taste_image(opt.input_files[0]);
+  ImageFormat fmt = tools::image_format(opt.input_files[0]);
 
   if(opt.channel_type != Channel::NONE)
     fmt.channel_type = channel_name_to_enum(opt.channel_type.string());

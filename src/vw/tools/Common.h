@@ -35,7 +35,7 @@ namespace tools {
 
   VW_DEFINE_EXCEPTION(Usage, Exception);
 
-  ImageFormat taste_image(const std::string& filename);
+  ImageFormat image_format(const std::string& filename);
 
 namespace detail {
 
