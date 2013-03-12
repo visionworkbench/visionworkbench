@@ -251,9 +251,18 @@ namespace math {
           // in this situation in a multi-threaded environment.
           delta_x = inverse(hessian_lm)*del_J;
         }else{
-          // By construction, hessian_lm is symmetric and
-          // positive-definite.
-          delta_x = solve_symmetric(hessian_lm, del_J);
+          try{
+            // By construction, hessian_lm is symmetric and
+            // positive-definite.
+            delta_x = solve_symmetric(hessian_lm, del_J);
+          }catch ( const ArgumentErr& e ) {
+            // This may happen in rare cases, needs a more through investigation.
+            // Fallback to the general solver.
+            std::cout.precision(16);
+            std::cout << "Matrix is not symmetric and positive definite, falling back to the general solver. Matrix: " << hessian_lm << std::endl;
+            delta_x = least_squares(hessian_lm, del_J);
+          }
+
         }
 
         // update parameter vector
