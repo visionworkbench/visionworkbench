@@ -91,7 +91,7 @@ namespace math {
       VW_ASSERT( output[0][output[0].size()-1] == 1,
                  vw::ArgumentErr() << "Secondary input data doesn't seem to be normalized.");
       VW_ASSERT( input[0].size() == 3,
-                 vw::ArgumentErr() << "Unfortunately at this time, BasicDLT only support homogeneous 2D vectors.");
+                 vw::ArgumentErr() << "BasicDLT only supports homogeneous 2D vectors.");
 
       vw::Matrix<double,8,9> A;
       for ( uint8 i = 0; i < 4; i++ )
