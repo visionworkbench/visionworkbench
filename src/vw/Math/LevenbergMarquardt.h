@@ -245,7 +245,7 @@ namespace math {
 
         // Solve for update
         typename ImplT::domain_type delta_x;
-        if (hessian_lm.rows() <= 2){
+        if (hessian_lm.rows() <= 2 && det(hessian_lm) > 0.0){
           // Direct method is more efficient for small matrices, also
           // here we avoid calling LAPACK which we've seen misbehave
           // in this situation in a multi-threaded environment.
@@ -256,10 +256,9 @@ namespace math {
             // positive-definite.
             delta_x = solve_symmetric(hessian_lm, del_J);
           }catch ( const ArgumentErr& e ) {
-            // This may happen in rare cases, needs a more through investigation.
-            // Fallback to the general solver.
-            std::cout.precision(16);
-            std::cout << "Matrix is not symmetric and positive definite, falling back to the general solver. Matrix: " << hessian_lm << std::endl;
+            // If lambda is very small, the matrix becomes numerically
+            // singular. In that case use the more general
+            // least_squares solver.
             delta_x = least_squares(hessian_lm, del_J);
           }
 
