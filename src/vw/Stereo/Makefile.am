@@ -32,7 +32,7 @@ include_HEADERS = AffineMixtureComponent.h Algorithms.h Correlate.h	\
         UniformMixtureComponent.h
 
 libvwStereo_la_SOURCES = StereoModel.cc Correlate.cc Correlation.cc	\
-        EMSubpixelCorrelatorView.cc CorrelateResearch.cc
+        DisparityMap.cc EMSubpixelCorrelatorView.cc CorrelateResearch.cc
 
 libvwStereo_la_LIBADD = @MODULE_STEREO_LIBS@
 

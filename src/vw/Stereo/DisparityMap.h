@@ -565,6 +565,17 @@ namespace stereo {
     }
   };
 
+
+  // Given a homography transform restricted to a subregion, adjust
+  // accordingly the disparity between left and right images. This
+  // function is on purpose only integer disparities, as we round the
+  // output.
+  ImageView< PixelMask<Vector2i> >
+  transform_disparities(BBox2i subregion,
+                        Matrix<double> const& T,
+                        ImageView< PixelMask<Vector2i> > const& disparity
+                        );
+
   /// intersect_mask_and_data(view, mask)
   ///
   /// Intersects 'mask' w/ view. View's data is returned first or mask
@@ -701,4 +712,3 @@ namespace stereo {
 
 
 #endif //  _VWDISPARITYMAP_H_
-
