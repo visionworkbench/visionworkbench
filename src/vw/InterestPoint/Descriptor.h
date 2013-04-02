@@ -191,8 +191,8 @@ namespace ip {
                               std::vector<BBox2i> const& bboxes,
                               std::vector<typename InterestPointList::iterator> const& section_start,
                               std::vector<typename InterestPointList::iterator> const& section_stop ) :
-      m_view(view.impl()), m_descriptor(descriptor),
-      m_index(0), m_bboxes(bboxes), m_section_start(section_start), m_section_stop(section_stop) {
+      m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
+      m_section_start(section_start), m_section_stop(section_stop), m_index(0)  {
       this->notify();
     }
 
