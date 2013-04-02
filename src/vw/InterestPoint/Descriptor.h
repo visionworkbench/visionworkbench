@@ -110,11 +110,11 @@ namespace ip {
     typename InterestPointList::iterator m_start, m_stop;
 
   public:
-    InterestPointDescriptionTask( ViewT const& view, DescriptorT& descriptor,
+    InterestPointDescriptionTask( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
                                   int id, int max_id,
                                   typename InterestPointList::iterator start,
                                   typename InterestPointList::iterator stop ) :
-      m_view( view ), m_descriptor( descriptor ), m_id( id ),
+      m_view( view.impl() ), m_descriptor( descriptor ), m_id( id ),
       m_max_id( max_id ), m_start(start), m_stop( stop ) {}
 
     virtual ~InterestPointDescriptionTask(){}
@@ -149,7 +149,7 @@ namespace ip {
 
       // Generate descriptors base on this little crop
       ImageView<PixelGray<float> > image =
-        crop( edge_extend(m_view, ZeroEdgeExtension()), image_crop_bounds );
+        crop( edge_extend(m_view.impl(), ZeroEdgeExtension()), image_crop_bounds );
       m_descriptor( image, m_start, m_stop );
 
       // Reindex all the points back to the global origin
@@ -170,15 +170,58 @@ namespace ip {
     }
   };
 
+  // There is a lot of memory allocation created on task generation. I
+  // couldn't figure it out in a reasonable time frame. Thus now we
+  // generate tasks on demand which should lower the instantaneous
+  // memory requirement.
+  template <class ViewT, class DescriptorT>
+  class InterestDescriptionQueue : public WorkQueue {
+    ViewT m_view;
+    DescriptorT& m_descriptor;
+    std::vector<BBox2i> m_bboxes;
+    std::vector<typename InterestPointList::iterator> m_section_start, m_section_stop;
+    Mutex m_mutex;
+    size_t m_index;
+
+    typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+
+  public:
+
+    InterestDescriptionQueue( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                              std::vector<BBox2i> const& bboxes,
+                              std::vector<typename InterestPointList::iterator> const& section_start,
+                              std::vector<typename InterestPointList::iterator> const& section_stop ) :
+      m_view(view.impl()), m_descriptor(descriptor),
+      m_index(0), m_bboxes(bboxes), m_section_start(section_start), m_section_stop(section_stop) {
+      this->notify();
+    }
+
+    size_t size() {
+      return m_bboxes.size();
+    }
+
+    virtual boost::shared_ptr<Task> get_next_task() {
+      Mutex::Lock lock(m_mutex);
+      if ( m_index == m_bboxes.size() )
+        return boost::shared_ptr<Task>();
+
+      m_index++;
+      typename InterestPointList::iterator sstart = m_section_start[m_index-1];
+      typename InterestPointList::iterator sstop  = m_section_stop[m_index-1];
+
+      // Generate a task to build descriptors for these interest points that exist only in this bbox
+      return boost::shared_ptr<Task> ( new task_type( m_view, m_descriptor, m_index-1, m_bboxes.size(),
+                                                      sstart, sstop ) );
+    }
+  };
+
   /// This function implements multithreaded interest point
   /// description. Threads are spun off to process the image in 1024 x
   /// 1024 pixel block plus some padding.
   template <class ViewT, class DescriptorT>
-  void describe_interest_points( ViewT const& view, DescriptorT& descriptor,
+  void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
                                  InterestPointList& list ) {
     typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
-
-    FifoWorkQueue describe_queue(vw_settings().default_num_threads());
 
     VW_OUT(DebugMessage, "interest_point")
       << "Running MT interest point descriptor.  Input image: [ "
@@ -188,18 +231,21 @@ namespace ip {
     int tile_size = vw_settings().default_tile_size();
     if (tile_size < 1024) tile_size = 1024;
     std::vector<BBox2i> bboxes = image_blocks(view.impl(), tile_size, tile_size);
-    typename InterestPointList::iterator section_stop = list.begin();
+    std::vector<typename InterestPointList::iterator> section_start, section_stop;
+    typename InterestPointList::iterator sstop = list.begin();
     for ( size_t i = 0; i < bboxes.size(); ++i ) {
-      typename InterestPointList::iterator section_start = section_stop;
-      section_stop = std::partition( section_start, list.end(), IsInBBox( bboxes[i] ) );
-
-      // Generate a task to build descriptors for these interest points that exist only in this bbox
-      boost::shared_ptr<Task> describe_task( new task_type( view, descriptor, i, bboxes.size(),
-                                                            section_start, section_stop ) );
-      describe_queue.add_task( describe_task );
+      typename InterestPointList::iterator sstart = sstop;
+      sstop = std::partition( sstart, list.end(), IsInBBox( bboxes[i] ) );
+      section_start.push_back(sstart);
+      section_stop.push_back(sstop);
     }
+
+    InterestDescriptionQueue<ViewT, DescriptorT>descriptor_que(view, descriptor,
+                                                               bboxes,
+                                                               section_start, section_stop);
+
     VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
-    describe_queue.join_all();
+    descriptor_que.join_all();
 
     VW_OUT(DebugMessage, "interest_point") << "MT interest point description complete.\n";
     return;
