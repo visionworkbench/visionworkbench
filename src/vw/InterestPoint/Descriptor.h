@@ -240,8 +240,7 @@ namespace ip {
       section_stop.push_back(sstop);
     }
 
-    InterestDescriptionQueue<ViewT, DescriptorT>descriptor_que(view, descriptor,
-                                                               bboxes,
+    InterestDescriptionQueue<ViewT, DescriptorT>descriptor_que(view, descriptor, bboxes,
                                                                section_start, section_stop);
 
     VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
