@@ -58,6 +58,13 @@ namespace vw {
     ~Timer();
   };
 
+  inline void call_top(std::string prog_name, std::string tag){
+    // Call the top command to find the memory usage at the
+    // given time.
+    std::string cmd = "echo " + tag + " $(top -u $(whoami) -b -n 1 | grep "
+      + prog_name + ")";
+    std::system(cmd.c_str());
+  }
 
 } // namespace vw
 
