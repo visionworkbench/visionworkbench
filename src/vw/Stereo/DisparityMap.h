@@ -567,14 +567,40 @@ namespace stereo {
 
 
   // Given a homography transform restricted to a subregion, adjust
-  // accordingly the disparity between left and right images. This
-  // function is on purpose only integer disparities, as we round the
-  // output.
-  ImageView< PixelMask<Vector2i> >
-  transform_disparities(BBox2i subregion,
-                        Matrix<double> const& T,
-                        ImageView< PixelMask<Vector2i> > const& disparity
-                        );
+  // accordingly the disparity between left and right images.
+  template <class DispT>
+  ImageView<typename DispT::pixel_type>
+  transform_disparities(bool do_round, BBox2i subregion,
+                        Matrix<double> const& T, DispT const& disparity){
+
+    VW_ASSERT(subregion.width() == disparity.cols() &&
+              subregion.height() == disparity.rows(),
+              ArgumentErr() << "transform_disparities: "
+              << "The sizes of subregion and disparity don't match.\n");
+
+    ImageView<typename DispT::pixel_type>
+      out_disp(disparity.cols(), disparity.rows());
+    HomographyTransform H(T);
+
+    for (int x = 0; x < disparity.cols(); x++){
+      for (int y = 0; y < disparity.rows(); y++){
+
+        typename DispT::pixel_type disp = disparity(x, y);
+        if (!is_valid(disp)) continue; // output stays invalid
+
+        Vector2 beg  = subregion.min() + Vector2(x, y);
+        Vector2 end  = beg + disp.child();
+        Vector2 tend = H.forward(end);
+        Vector2 diff = tend - beg;
+        if (do_round) diff = round(diff);
+        out_disp(x, y).child() = diff;
+        out_disp(x, y).validate();
+
+      }
+    }
+
+    return out_disp;
+  }
 
   /// intersect_mask_and_data(view, mask)
   ///
