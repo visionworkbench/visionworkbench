@@ -2101,6 +2101,37 @@ namespace math {
     return M;
   }
 
+  /// Put the elements of a matrix into a vector.
+  template <class MatrixT>
+  inline Vector<typename MatrixT::value_type> matrix_to_vector( MatrixT const& M ) {
+    Vector<typename MatrixT::value_type> V(M.cols()*M.rows());
+    size_t count = 0;
+    for (size_t c = 0; c < M.cols(); c++){
+      for (size_t r = 0; r < M.rows(); r++){
+        V[count] = M(c, r);
+        count++;
+      }
+    }
+    return V;
+  }
+
+  /// Put the elements of a vector of size n*n into a square matrix.
+  template <class VectorT>
+  inline Matrix<typename VectorT::value_type> vector_to_matrix( VectorT const& V ) {
+    size_t lv = V.size();
+    size_t lm = (size_t)round(std::sqrt(double(lv)));
+    VW_ASSERT( lm*lm == lv, LogicErr() << "Only vectors of size n*n can be made into a square matrix." );
+
+    Matrix<typename VectorT::value_type> M(lm, lm);
+    size_t count = 0;
+    for (size_t c = 0; c < M.cols(); c++){
+      for (size_t r = 0; r < M.rows(); r++){
+        M(c, r) = V[count];
+        count++;
+      }
+    }
+    return M;
+  }
 
   // *******************************************************************
   // Assorted mathematical matrix functions.
@@ -2120,7 +2151,6 @@ namespace math {
         result(i,j) = v1.impl()(i) * v2(j);
     return result;
   }
-
 
 
   /// Outer product of two vectors.
