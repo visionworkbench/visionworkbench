@@ -56,6 +56,9 @@ ImageFormat ImageResourceOpenCV::identify() const {
     case 4:  fmt.pixel_format = VW_PIXEL_RGBA;              break;
     case 5:  fmt.pixel_format = VW_PIXEL_GENERIC_5_CHANNEL; break;
     case 6:  fmt.pixel_format = VW_PIXEL_GENERIC_6_CHANNEL; break;
+    case 7:  fmt.pixel_format = VW_PIXEL_GENERIC_7_CHANNEL; break;
+    case 8:  fmt.pixel_format = VW_PIXEL_GENERIC_8_CHANNEL; break;
+    case 9:  fmt.pixel_format = VW_PIXEL_GENERIC_9_CHANNEL; break;
     default:
       vw_throw(ArgumentErr() << "ImageResourceOpenCV: Too many channels ("
                              << m_matrix->channels() << ") in input matrix");

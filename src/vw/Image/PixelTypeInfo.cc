@@ -67,7 +67,10 @@ bool vw::simple_conversion(vw::PixelFormatEnum a, vw::PixelFormatEnum b) {
     case VW_PIXEL_GENERIC_3_CHANNEL:
     case VW_PIXEL_GENERIC_4_CHANNEL:
     case VW_PIXEL_GENERIC_5_CHANNEL:
-    case VW_PIXEL_GENERIC_6_CHANNEL: return true;
+    case VW_PIXEL_GENERIC_6_CHANNEL:
+    case VW_PIXEL_GENERIC_7_CHANNEL:
+    case VW_PIXEL_GENERIC_8_CHANNEL:
+    case VW_PIXEL_GENERIC_9_CHANNEL: return true;
     default: /* noop */ break;
   }
 
@@ -79,7 +82,10 @@ bool vw::simple_conversion(vw::PixelFormatEnum a, vw::PixelFormatEnum b) {
     case VW_PIXEL_GENERIC_3_CHANNEL:
     case VW_PIXEL_GENERIC_4_CHANNEL:
     case VW_PIXEL_GENERIC_5_CHANNEL:
-    case VW_PIXEL_GENERIC_6_CHANNEL: return true;
+    case VW_PIXEL_GENERIC_6_CHANNEL:
+    case VW_PIXEL_GENERIC_7_CHANNEL:
+    case VW_PIXEL_GENERIC_8_CHANNEL:
+    case VW_PIXEL_GENERIC_9_CHANNEL: return true;
     default: /* noop */ break;
   }
 
@@ -172,10 +178,11 @@ vw::uint32 vw::num_channels_nothrow( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_4_CHANNEL:
     return 4;
   case VW_PIXEL_RGBA_MASKED:
-  case VW_PIXEL_GENERIC_5_CHANNEL:
-    return 5;
-  case VW_PIXEL_GENERIC_6_CHANNEL:
-    return 6;
+  case VW_PIXEL_GENERIC_5_CHANNEL: return 5;
+  case VW_PIXEL_GENERIC_6_CHANNEL: return 6;
+  case VW_PIXEL_GENERIC_7_CHANNEL: return 7;
+  case VW_PIXEL_GENERIC_8_CHANNEL: return 8;
+  case VW_PIXEL_GENERIC_9_CHANNEL: return 9;
   default:
     return 0;
   }
@@ -214,6 +221,9 @@ const char *vw::pixel_format_name( vw::PixelFormatEnum format ) {
   case VW_PIXEL_GENERIC_4_CHANNEL: return "VW_PIXEL_GENERIC_4_CHANNEL";
   case VW_PIXEL_GENERIC_5_CHANNEL: return "VW_PIXEL_GENERIC_5_CHANNEL";
   case VW_PIXEL_GENERIC_6_CHANNEL: return "VW_PIXEL_GENERIC_6_CHANNEL";
+  case VW_PIXEL_GENERIC_7_CHANNEL: return "VW_PIXEL_GENERIC_7_CHANNEL";
+  case VW_PIXEL_GENERIC_8_CHANNEL: return "VW_PIXEL_GENERIC_8_CHANNEL";
+  case VW_PIXEL_GENERIC_9_CHANNEL: return "VW_PIXEL_GENERIC_9_CHANNEL";
   default: return "UNKNOWN";
   }
 }
