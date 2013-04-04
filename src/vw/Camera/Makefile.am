@@ -37,7 +37,9 @@ lapack_headers = \
 	OrbitingPushbroomModel.h \
 	PinholeModelCalibrate.h
 
-lapack_sources = Extrinsics.cc
+lapack_sources = \
+	CameraGeometry.cc \
+	Extrinsics.cc
 endif
 
 include_HEADERS =   \
