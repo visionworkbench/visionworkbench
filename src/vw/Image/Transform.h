@@ -225,6 +225,16 @@ namespace vw {
     virtual FunctionType reverse_type() const { return (FunctionType)ReverseType; }
   };
 
+  /// Identity image transform functor
+  ///
+  /// Does nothing!
+  class IdentityTransform : public TransformHelper<IdentityTransform,ConvexFunction,ConvexFunction> {
+  public:
+    IdentityTransform(){}
+
+    inline Vector2 reverse( Vector2 const& p ) const { return p; }
+    inline Vector2 forward( Vector2 const& p ) const { return p; }
+  };
 
   /// Resample image transform functor
   ///

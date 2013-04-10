@@ -55,6 +55,20 @@ TEST( Transform, Translate ) {
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>( transform(im, TranslateTransform(1,1)) ) );
 }
 
+TEST( Transform, IdentityFunc ) {
+  ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
+  ImageView<double> im2;
+  im2 = transform( im, IdentityTransform() );
+  ASSERT_EQ( im2.cols(), 2 );
+  ASSERT_EQ( im2.rows(), 3 );
+  EXPECT_EQ( im2(0,0), 1 );
+  EXPECT_EQ( im2(1,0), 2 );
+  EXPECT_EQ( im2(0,1), 3 );
+  EXPECT_EQ( im2(1,1), 4 );
+  EXPECT_EQ( im2(0,2), 5 );
+  EXPECT_EQ( im2(1,2), 6 );
+}
+
 TEST( Transform, TranslateFunc ) {
   ImageView<double> im(2,3); im(0,0)=1; im(1,0)=2; im(0,1)=3; im(1,1)=4; im(0,2)=5; im(1,2)=6;
   ImageView<double> im2;
