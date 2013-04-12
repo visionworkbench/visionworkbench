@@ -52,8 +52,8 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
       local_last_valid = m_last_valid;
     }
     if ( local_last_valid == line || !local_last_valid ) {
-      VW_OUT(WarningMessage, "console") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
-      VW_OUT(WarningMessage, "cache") << "Warning: Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
+      VW_OUT(WarningMessage, "console") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
+      VW_OUT(WarningMessage, "cache") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
       break;
     }
     bool invalidated = local_last_valid->try_invalidate();
