@@ -308,14 +308,15 @@ namespace ba {
 
       // .. and the position of the 3D points to epsilon ...
       if (m_use_gcp_constraint) {
-        idx = 0;
+        idx = 2*m_model.num_pixel_observations();
+        if ( m_use_camera_constraint )
+          idx += num_cam_params*num_cam_params;
+
         for (unsigned i = 0; i < m_model.num_points(); ++i )
           if ( (*m_control_net)[i].type() == ControlPoint::GroundControlPoint ) {
-            subvector( epsilon,
-                       2*m_model.num_pixel_observations() + num_cameras*num_cam_params +
-                       idx*num_pt_params,
-                       num_pt_params) = m_model.B_target(i)-m_model.B_parameters(i);
-            ++idx;
+            subvector( epsilon, idx, num_pt_params) =
+              m_model.B_target(i)-m_model.B_parameters(i);
+            idx += num_pt_params;
           }
       }
     }
