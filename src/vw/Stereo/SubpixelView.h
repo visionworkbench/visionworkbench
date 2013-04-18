@@ -323,7 +323,7 @@ namespace stereo {
 
       VW_ASSERT((m_left_image.channels() == 1) && (m_left_image.planes() == 1) &&
                 (m_right_image.channels() == 1) && (m_right_image.planes() == 1),
-                ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView(): multi-channel, multi-plane images not supported.\n");
+                ArgumentErr() << "BayesEMSubpixelView::BayesEMSubpixelView(): multi-channel, multi-plane images are not supported.\n");
 
       // Max pyramid can't go below 0 ... or bayes em won't process anything
       if ( m_max_pyramid_levels < 0 ) m_max_pyramid_levels = 0;

@@ -135,7 +135,7 @@ namespace vw {
 
       VW_ASSERT((left_image.impl().channels() == 1) && (left_image.impl().planes() == 1) &&
                 (right_image.impl().channels() == 1) && (right_image.impl().planes() == 1),
-                ArgumentErr() << "EMSubpixelCorrelatorView::EMSubpixelCorrelatorView(): multi-channel, multi-plane images not supported.\n");
+                ArgumentErr() << "EMSubpixelCorrelatorView::EMSubpixelCorrelatorView(): multi-channel, multi-plane images are not supported.\n");
 
       // Set some sensible default values
       m_kernel_size = Vector2i(25, 25);
