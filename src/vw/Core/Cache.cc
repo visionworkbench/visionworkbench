@@ -24,68 +24,60 @@
 #include <vw/Core/Debugging.h>
 
 void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
+
+  // Put the current cache line at the top of the list (so the most
+  // recently used). If the cache size is beyond the storage limit,
+  // de-allocate the least recently used elements.
+
+  // Note: Doing allocation implies the need to call validate.
+
   // WARNING! YOU CAN NOT HOLD THE CACHE MUTEX AND THEN CALL
   // INVALIDATE. That's a line -> cache -> line mutex hold. A
   // deadlock!
 
-  // This step also implies the need to call validate.
+  // The lock below is recursive, so if a resource is locked by a
+  // thread, it can still be accessed by this thread, but not by
+  // others.
+  RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
 
   uint64 local_evictions = 0;
-  size_t local_size, local_max_size;
-  CacheLineBase* local_last_valid;
-  size_t invalidate_loop_count = 0;
-  { // Locally buffer variables that should be accessed behind mutex
-    RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
-    validate( line ); // Call here to insure that last_valid is not us!
-    m_size += size;
-    local_size = m_size;
-    local_max_size = m_max_size;
-    local_last_valid = m_last_valid;
-    VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache allocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; );
-  }
-  while ( local_size > local_max_size ) {
-    if ( local_last_valid == line ) {
-      // We're trying to deallocate self! Call validate again to get
-      // our line back on top since some other threads have moved us.
-      RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
-      validate( line );
-      local_last_valid = m_last_valid;
-    }
+
+  validate( line ); // Call here to insure that last_valid is not us!
+  m_size += size;   // Update the size after adding the new line
+  VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache allocated " << size
+                  << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; );
+
+  CacheLineBase* local_last_valid = m_last_valid;
+
+  while ( m_size > m_max_size ) {
+
     if ( local_last_valid == line || !local_last_valid ) {
-      VW_OUT(WarningMessage, "console") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
-      VW_OUT(WarningMessage, "cache") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current Size = " << m_size << "\n";
+      // De-allocated all lines except the current one which are not
+      // held up currently by other threads.
       break;
     }
+
     bool invalidated = local_last_valid->try_invalidate();
     if (invalidated) {
       local_evictions++;
-      { // Update local buffer by grabbing cache buffer
-        RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
-        local_size = m_size;
-        local_last_valid = m_last_valid;
-      }
+      local_last_valid = m_last_valid;
     } else {
-      RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
+      // If we can't deallocate current line,
+      // switch to the one used a bit more recently.
       local_last_valid = local_last_valid->m_prev;
-      local_size = m_size;
-      if (!local_last_valid) {
-        invalidate_loop_count++;
-        if ( invalidate_loop_count == 3 ) {
-          // We tried hard to deallocate enough to do our
-          // allocation. However there is a time to give up and just
-          // move on. In practice, even with this cop out, we do stay
-          // pretty close to our allocations amount.
-          break;
-        } {
-          local_last_valid = m_last_valid;
-        }
-      }
     }
   }
+
   {
     Mutex::WriteLock cache_lock( m_stats_mutex );
     m_evictions += local_evictions;
   }
+
+  if ( m_size > m_max_size ) {
+    VW_OUT(WarningMessage, "console") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current size = " << m_size << "\n";
+    VW_OUT(WarningMessage, "cache")   << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current size = " << m_size << "\n";
+  }
+
 }
 
 void vw::Cache::resize( size_t size ) {
