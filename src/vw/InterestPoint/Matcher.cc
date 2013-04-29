@@ -105,12 +105,28 @@ namespace ip {
     ip2 = ip2_fltr;
   }
 
+  std::string strip_path(std::string out_prefix, std::string filename){
+
+    // If filename starts with out_prefix followed by dash, strip both.
+    // Also strip filename extension.
+
+    std::string ss = out_prefix + "-";
+    size_t found = filename.find(ss);
+
+    if (found != std::string::npos)
+      filename.erase(found, ss.length());
+
+    filename = fs::path(filename).stem().string();
+
+    return filename;
+  }
+
   std::string match_filename(std::string const& out_prefix,
                              std::string const& input_file1,
                              std::string const& input_file2){
     return out_prefix + "-" +
-      fs::path(input_file1).stem().string() + "__" +
-      fs::path(input_file2).stem().string() + ".match";
+      strip_path(out_prefix, input_file1) + "__" +
+      strip_path(out_prefix, input_file2) + ".match";
   }
 
   void ip_filenames(std::string const& out_prefix,
@@ -119,8 +135,8 @@ namespace ip {
                     std::string & output_ip1,
                     std::string & output_ip2
                     ){
-    output_ip1 = out_prefix + "-" + fs::path(input_file1).stem().string() + ".vwip";
-    output_ip2 = out_prefix + "-" + fs::path(input_file2).stem().string() + ".vwip";
+    output_ip1 = out_prefix + "-" + strip_path(out_prefix, input_file1) + ".vwip";
+    output_ip2 = out_prefix + "-" + strip_path(out_prefix, input_file2) + ".vwip";
   }
 
 }} // namespace vw::ip
