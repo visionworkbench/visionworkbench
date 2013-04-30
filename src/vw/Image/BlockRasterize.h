@@ -49,7 +49,8 @@ namespace vw {
       : m_child( new ImageT(image) ),
         m_block_size( block_size ),
         m_num_threads( num_threads ),
-        m_cache_ptr( cache )
+        m_cache_ptr( cache ),
+        m_block_table_size( 0 )
     {
       initialize();
     }
@@ -65,7 +66,7 @@ namespace vw {
 #endif
       if ( m_cache_ptr ) {
         // Early-out optimization for single-block resources
-        if( m_block_table.size() == 1 ) {
+        if( m_block_table_size == 1 ) {
           const Cache::Handle<BlockGenerator>& handle = m_block_table[0];
           result_type result = handle->operator()( x, y, p );
           handle.release();
@@ -168,7 +169,8 @@ namespace vw {
       if( m_cache_ptr ) {
         m_table_width = (cols()-1) / m_block_size.x() + 1;
         m_table_height = (rows()-1) / m_block_size.y() + 1;
-        m_block_table.resize( m_table_width * m_table_height );
+        m_block_table_size = m_table_height * m_table_width;
+        m_block_table.reset( new Cache::Handle<BlockGenerator>[ m_block_table_size ] );
         BBox2i view_bbox(0,0,cols(),rows());
         for( int32 iy=0; iy<m_table_height; ++iy ) {
           for( int32 ix=0; ix<m_table_width; ++ix ) {
@@ -201,8 +203,8 @@ namespace vw {
     int32 m_num_threads;
     Cache *m_cache_ptr;
     int m_table_width, m_table_height;
-    // Handles are lightweight and are just pointers underneath
-    std::vector<Cache::Handle<BlockGenerator> > m_block_table;
+    size_t m_block_table_size;
+    boost::shared_array<Cache::Handle<BlockGenerator> > m_block_table;
   };
 
   template <class ImageT>
