@@ -148,16 +148,17 @@ namespace vw {
       }
 
       virtual ~CacheLine() {
-        invalidate();
         VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache destroying CacheLine " << info() << "\n"; )
+        invalidate();
         remove();
       }
 
       virtual void invalidate() {
+        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
+
         Mutex::WriteLock line_lock(m_mutex);
         if( !m_value ) return;
 
-        VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache invalidating CacheLine " << info() << "\n"; );
         CacheLineBase::deallocate(); // Calls invalidate internally
         m_value.reset();
       }
@@ -202,10 +203,10 @@ namespace vw {
           }
         }
         if( !hit ) {
+          VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; );
           m_mutex.unlock_shared(); // Loose shared
           m_mutex.lock_upgrade();  // Get upgrade status
           m_mutex.unlock_upgrade_and_lock(); // Get exclusive access
-          VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache generating CacheLine " << info() << "\n"; );
           CacheLineBase::allocate(); // Call validate internally
 
           // Watch is just used for debugging / info
