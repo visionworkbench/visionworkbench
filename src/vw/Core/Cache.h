@@ -209,10 +209,6 @@ namespace vw {
           m_mutex.unlock_upgrade_and_lock(); // Get exclusive access
           CacheLineBase::allocate(); // Call validate internally
 
-          // Watch is just used for debugging / info
-          ScopedWatch sw((std::string("Cache ")
-                          + (m_generation_count == 1 ? "generating " : "regenerating ")
-                          + typeid(this).name()).c_str());
           m_generation_count++;
           m_value = core::detail::pointerish(m_generator)->generate();
           m_mutex.unlock_and_lock_upgrade();
