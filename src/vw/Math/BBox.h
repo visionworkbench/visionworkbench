@@ -38,7 +38,7 @@ namespace math {
   namespace vector_containment_comparison {
     template <class VectorT1, class VectorT2>
     inline bool operator<( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
       for( size_t i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] < v2.impl()[i] ) ) return false;
       return true;
@@ -46,7 +46,7 @@ namespace math {
 
     template <class VectorT1, class VectorT2>
     inline bool operator<=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
       for( size_t i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] <= v2.impl()[i] ) ) return false;
       return true;
@@ -54,7 +54,7 @@ namespace math {
 
     template <class VectorT1, class VectorT2>
     inline bool operator>( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
       for( size_t i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] > v2.impl()[i] ) ) return false;
       return true;
@@ -62,7 +62,7 @@ namespace math {
 
     template <class VectorT1, class VectorT2>
     inline bool operator>=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
       for( size_t i=0; i<v1.impl().size(); ++i)
         if( ! ( v1.impl()[i] >= v2.impl()[i] ) ) return false;
       return true;
@@ -70,7 +70,7 @@ namespace math {
 
     template <class VectorT1, class VectorT2>
     inline VectorT1 max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different lengths." );
       VectorT1 v3;
       v3.set_size(v1.impl().size());
       for( size_t i=0; i<v1.impl().size(); ++i)
@@ -80,7 +80,7 @@ namespace math {
 
     template <class VectorT1, class VectorT2>
     inline VectorT1 min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
-      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different length." );
+      VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different lengths." );
       VectorT1 v3;
       v3.set_size(v1.impl().size());
       for( size_t i=0; i<v1.impl().size(); ++i)
@@ -182,22 +182,6 @@ namespace math {
       }
     }
 
-    /// Expands this bounding box by the given offset in every direction.
-    void expand( RealT offset ) {
-      for( size_t i=0; i<m_min.size(); ++i ) {
-        m_min[i] -= offset;
-        m_max[i] += offset;
-      }
-    }
-
-    /// Contracts this bounding box by the given offset in every direction.
-    void contract( RealT offset ) {
-      for( size_t i=0; i<m_min.size(); ++i ) {
-        m_min[i] += offset;
-        m_max[i] -= offset;
-      }
-    }
-
     /// Returns true if the given point is contained in the bounding box.
     template <class VectorT>
     bool contains( const VectorBase<VectorT> &point ) const {
@@ -273,9 +257,30 @@ namespace math {
       return (m_min.size() <= 0);
     }
 
+    /// Expands this bounding box by the given offset in every direction.
+    void expand( RealT offset ) {
+      if (empty()) return; // Bug fix for underflow/overflow
+      for( size_t i=0; i<m_min.size(); ++i ) {
+        m_min[i] -= offset;
+        m_max[i] += offset;
+      }
+    }
+
+    /// Contracts this bounding box by the given offset in every direction.
+    void contract( RealT offset ) {
+      if (empty()) return; // Bug fix for overflow/underflow
+      for( size_t i=0; i<m_min.size(); ++i ) {
+        m_min[i] += offset;
+        m_max[i] -= offset;
+      }
+    }
+
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
     BBoxBase& operator*=( ScalarT s ) {
+      VW_ASSERT( s > 0, ArgumentErr()
+                 << "Cannot scale a box by a non-positive number." );
+      if (empty()) return *this; // Bug fix for underflow/overflow
       m_min *= s;
       m_max *= s;
       return *this;
@@ -284,6 +289,9 @@ namespace math {
     /// Scales the bounding box relative to the origin.
     template <class ScalarT>
     BBoxBase& operator/=( ScalarT s ) {
+      VW_ASSERT( s > 0, ArgumentErr()
+                 << "Cannot scale a box by a non-positive number." );
+      if (empty()) return *this; // Bug fix for underflow/overflow
       m_min /= s;
       m_max /= s;
       return *this;
@@ -292,6 +300,7 @@ namespace math {
     /// Offsets the bounding box by the given vector.
     template <class VectorT>
     BBoxBase& operator+=( VectorBase<VectorT> const& v ) {
+      if (empty()) return *this; // Bug fix for underflow/overflow
       m_min += v;
       m_max += v;
       return *this;
@@ -300,6 +309,7 @@ namespace math {
     /// Offsets the bounding box by the negation of the given vector.
     template <class VectorT>
     BBoxBase& operator-=( VectorBase<VectorT> const& v ) {
+      if (empty()) return *this; // Bug fix for underflow/overflow
       m_min -= v;
       m_max -= v;
       return *this;
