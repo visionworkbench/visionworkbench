@@ -82,6 +82,16 @@ namespace vw {
       typedef typename CompoundChannelCast<pixel_type,real_type>::type result_type;
 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+
+      // Stop evaluation here if we are at an integer pixel.
+      // Otherwise, if the current pixel is valid, but one of the
+      // neighbors is invalid, we'll get an invalid output.
+      if (x == i && y == j){
+        // Linear interpolation is, well, linear, so there's no need to clamp.
+        return channel_cast_round_if_int<channel_type>
+        ( *view.origin().advance(x,y,p) );
+      }
+
       real_type normx = real_type(i)-real_type(x), normy = real_type(j)-real_type(y), norm1mx = 1-normx, norm1my = 1-normy;
 
       typename ViewT::pixel_accessor acc = view.origin().advance(x,y,p);
@@ -132,6 +142,15 @@ namespace vw {
       typedef typename CompoundChannelCast<PixelT,double>::type result_type;
 
       int32 x = math::impl::_floor(i), y = math::impl::_floor(j);
+
+      // Stop evaluation here if we are at an integer pixel.
+      // Otherwise, if the current pixel is valid, but one of the
+      // neighbors is invalid, we'll get an invalid output.
+      if (x == i && y == j){
+        return channel_cast_round_and_clamp_if_int<channel_type>
+          ( *view.origin().advance(x,y,p) );
+      }
+
       double normx = i-x, normy = j-y;
 
       double s0 = ((2-normx)*normx-1)*normx;      double t0 = ((2-normy)*normy-1)*normy;
