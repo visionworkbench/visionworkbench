@@ -41,9 +41,9 @@ namespace vw {
       typedef pixel_type result_type;
       typedef ProceduralPixelAccessor<EMSubpixelCorrelatorView> pixel_accessor;
 
-      template <class ImageT, class DisparityT>
-        EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
-                                 ImageViewBase<DisparityT> const& course_disparity, int debug = -1);
+      template <class Image1T, class Image2T, class DisparityT>
+      EMSubpixelCorrelatorView(ImageViewBase<Image1T> const& left_image, ImageViewBase<Image2T> const& right_image,
+                               ImageViewBase<DisparityT> const& course_disparity, int debug = -1);
 
 
       struct TfmCovarianceDisparityTo3DFunctor : public vw::ReturnFixedType<float>  {

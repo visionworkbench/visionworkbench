@@ -118,8 +118,8 @@ namespace vw {
 
 
     // EMSubpixelCorrelator::EMSubpixelCorrelator( ... )
-    template<class ImagePixelT>    template <class ImageT, class DisparityT>
-    EMSubpixelCorrelatorView<ImagePixelT>::EMSubpixelCorrelatorView(ImageViewBase<ImageT> const& left_image, ImageViewBase<ImageT> const& right_image,
+    template<class ImagePixelT>    template <class Image1T, class Image2T, class DisparityT>
+    EMSubpixelCorrelatorView<ImagePixelT>::EMSubpixelCorrelatorView(ImageViewBase<Image1T> const& left_image, ImageViewBase<Image2T> const& right_image,
                                                                     ImageViewBase<DisparityT> const& course_disparity, int debug) :
       m_left_image(left_image.impl()), m_right_image(right_image.impl()),
       m_course_disparity(course_disparity.impl()), debug_level(debug)
