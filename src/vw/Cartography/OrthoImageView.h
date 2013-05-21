@@ -23,6 +23,7 @@
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Cartography/GeoReference.h>
+#include <vw/Cartography/detail/BresenhamLine.h>
 #include <vw/Camera/CameraModel.h>
 
 #include <boost/shared_ptr.hpp>
@@ -43,7 +44,10 @@ namespace cartography {
 
     TerrainImageT m_terrain;
     GeoReference m_georef;
-    boost::shared_ptr<vw::camera::CameraModel> m_camera_model;
+    camera::CameraModel* m_camera_model; // There is a big assumption
+                                         // here that the user's
+                                         // camera model is thread
+                                         // safe.
     InterpolationView<EdgeExtensionView<CameraImageT, EdgeT>, InterpT> m_camera_image;
     CameraImageT m_camera_image_ref;
     InterpT m_interp_func;
@@ -62,20 +66,31 @@ namespace cartography {
       return m_terrain(x,y)[0];
     }
 
+    inline Vector2 find_camera_coordinates( offset_type i, offset_type j, double height ) const {
+      Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
+      return m_camera_model->point_to_pixel( m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), height ) ) );
+    }
+
+    inline void apply_bresen( BresenhamLine line, double min, double max, BBox2i& camera_bbox ) const {
+      while ( line.is_good() ) {
+        Vector2i pt( *line );
+        camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), min ) );
+        camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), max ) );
+        ++line;
+      }
+    }
+
   public:
     typedef typename CameraImageT::pixel_type pixel_type;
     typedef const pixel_type result_type;
     typedef ProceduralPixelAccessor<OrthoImageView> pixel_accessor;
 
     OrthoImageView(TerrainImageT const& terrain, GeoReference const& georef,
-                   CameraImageT const& camera_image, boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                   CameraImageT const& camera_image, camera::CameraModel* camera_model,
                    InterpT const& interp_func, EdgeT const& edge_func) :
-      m_terrain(terrain),
-      m_georef(georef),
-      m_camera_model(camera_model),
+      m_terrain(terrain), m_georef(georef), m_camera_model(camera_model),
       m_camera_image(interpolate(camera_image, m_interp_func, m_edge_func)),
-      m_camera_image_ref(camera_image),
-      m_interp_func(interp_func),
+      m_camera_image_ref(camera_image), m_interp_func(interp_func),
       m_edge_func(edge_func) {}
 
     inline int32 cols() const { return m_terrain.cols(); }
@@ -110,38 +125,28 @@ namespace cartography {
         if ( is_transparent(m_terrain(i,j)) ) {
           return result_type();
         }
-        
-        Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-        Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), Helper<typename TerrainImageT::pixel_type>(i,j) ) );
-        
-        // Now we can image the point using the camera model and return
-        // the resulting pixel from the camera image.
-        Vector2 pix = m_camera_model->point_to_pixel(xyz);
+
+        Vector2 pix = find_camera_coordinates( i, j, Helper<typename TerrainImageT::pixel_type>(i,j) );
         return m_camera_image(pix[0], pix[1], p);
-        
+
       }else{
 
         // Do mark no-processed-data separately from no-data
-        
+
         // Check for missing DEM pixels.
-        double terrainHeight;
+        double height;
         if (is_transparent(m_terrain(i,j)) ){
-          terrainHeight = 0.0;
+          height = 0.0;
         }else{
-          terrainHeight = Helper<typename TerrainImageT::pixel_type>(i,j);            
+          height = Helper<typename TerrainImageT::pixel_type>(i,j);
         }
-      
-        Vector2 lon_lat( m_georef.pixel_to_lonlat(Vector2(i,j)) );
-        Vector3 xyz = m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), terrainHeight ) );
-        
-        // Now we can image the point using the camera model and return
-        // the resulting pixel from the camera image.
-        Vector2 pix = m_camera_model->point_to_pixel(xyz);
+
+        Vector2 pix = find_camera_coordinates( i, j, height );
         result_type ans = m_camera_image(pix[0], pix[1], p);
 
         if ( is_transparent(m_terrain(i,j)) ){
           if (0 <= pix[0] && pix[0] < m_camera_image.cols() &&
-              0 <= pix[1] && pix[1] < m_camera_image.rows() 
+              0 <= pix[1] && pix[1] < m_camera_image.rows()
               ){
             // No processed data, return a black pixel
             return result_type(0.0);
@@ -153,12 +158,57 @@ namespace cartography {
         return ans;
       }
     }
-    
+
     /// \cond INTERNAL
-    typedef OrthoImageView<typename TerrainImageT::prerasterize_type, CameraImageT, InterpT, EdgeT, markNoProcessedData> prerasterize_type;
+    typedef OrthoImageView<typename TerrainImageT::prerasterize_type,
+                           typename CameraImageT::prerasterize_type, InterpT, EdgeT, markNoProcessedData> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
+      // Prerasterize the terrain that we'll be using
+      typename TerrainImageT::prerasterize_type terrain_preraster = m_terrain.prerasterize(bbox);
+
+      double terrain_min = std::numeric_limits<double>::max(),
+        terrain_max = std::numeric_limits<double>::min();
+
+      // Determine min max
+      for ( int32 j = bbox.min().y(); j < bbox.max().y(); j++ ) {
+        for ( int32 i = bbox.min().x(); i < bbox.max().x(); i++ ) {
+          if ( !is_transparent( terrain_preraster( i,j ) ) ) {
+            double val = terrain_preraster(i,j);
+            terrain_min = std::min( val, terrain_min );
+            terrain_max = std::max( val, terrain_max );
+          }
+        }
+      }
+
+      // Work out what the active area of the camera image that we'll
+      // be using. Unfortunately this is no linear. We need to project
+      // all the pixels really. For speed I'm only processing an X
+      BBox2i camera_bbox;
+      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.min().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen( BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.max().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.min().x(), bbox.max().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen( BresenhamLine( bbox.max().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      apply_bresen( BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.min().y() ),
+                    terrain_min, terrain_max, camera_bbox );
+      camera_bbox.max() += Vector2i(1,1);        // Because grow is
+                                                 // inclusive and we
+                                                 // need exclusive
+      camera_bbox.expand(InterpT::pixel_buffer); // Fudge factor
+      camera_bbox.crop( bounding_box( m_camera_image_ref ) );
+      if ( camera_bbox.width() * camera_bbox.height() == 0 )
+        camera_bbox = BBox2i(0,0,0,0);
+
+      // Prerasterize the parts of the camera image we'll be
+      // using. This is important as otherwise we'll just be waiting
+      // on cache repeatedly.
       return prerasterize_type( m_terrain.prerasterize(bbox),
-                                m_georef, m_camera_image_ref,
+                                m_georef, m_camera_image_ref.prerasterize(camera_bbox),
                                 m_camera_model, m_interp_func, m_edge_func);
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
@@ -173,7 +223,7 @@ namespace cartography {
   orthoproject(ImageViewBase<TerrainImageT> const& terrain_image,
                GeoReference const& georef,
                ImageViewBase<CameraImageT> const& camera_image,
-               boost::shared_ptr<vw::camera::CameraModel> camera_model,
+               camera::CameraModel* camera_model,
                InterpT const& interp_func,
                EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, false>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
@@ -186,7 +236,7 @@ namespace cartography {
   orthoproject_markNoProcessedData(ImageViewBase<TerrainImageT> const& terrain_image,
                                    GeoReference const& georef,
                                    ImageViewBase<CameraImageT> const& camera_image,
-                                   boost::shared_ptr<vw::camera::CameraModel> camera_model,
+                                   camera::CameraModel* camera_model,
                                    InterpT const& interp_func,
                                    EdgeT const& edge_extend_func) {
     return OrthoImageView<TerrainImageT, CameraImageT, InterpT, EdgeT, true>( terrain_image.impl(), georef, camera_image.impl(), camera_model, interp_func, edge_extend_func);
