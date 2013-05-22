@@ -265,6 +265,7 @@ namespace ba {
       unsigned num_cameras = m_model.num_cameras();
       unsigned num_ground_control_points = m_control_net->num_ground_control_points();
       unsigned num_observations = 2*m_model.num_pixel_observations();
+
       if (m_use_camera_constraint)
         num_observations += num_cameras*num_cam_params;
       if (m_use_gcp_constraint)
@@ -310,7 +311,7 @@ namespace ba {
       if (m_use_gcp_constraint) {
         idx = 2*m_model.num_pixel_observations();
         if ( m_use_camera_constraint )
-          idx += num_cam_params*num_cam_params;
+          idx += num_cameras*num_cam_params;
 
         for (unsigned i = 0; i < m_model.num_points(); ++i )
           if ( (*m_control_net)[i].type() == ControlPoint::GroundControlPoint ) {
