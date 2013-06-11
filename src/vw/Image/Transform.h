@@ -149,6 +149,7 @@ namespace vw {
     virtual BBox2i forward_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
+      if (bbox.empty()) return transformed_bbox; // bugfix
       switch( txform.forward_type() ) {
       case ConvexFunction:
         transformed_bbox.grow( txform.forward( Vector2(bbox.min().x(),bbox.min().y()) ) ); // Top left
@@ -178,6 +179,7 @@ namespace vw {
     virtual BBox2i reverse_bbox( BBox2i const& bbox ) const {
       ImplT const& txform = impl();
       BBox2 transformed_bbox;
+      if (bbox.empty()) return transformed_bbox; // bugfix
       switch( txform.reverse_type() ) {
       case ConvexFunction:
         transformed_bbox.grow( txform.reverse( Vector2(bbox.min().x(),bbox.min().y()) ) ); // Top left
