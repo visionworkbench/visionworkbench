@@ -570,6 +570,7 @@ namespace math {
   inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
   grow_bbox_to_int( math::BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
     BBox<int32,DimN1> result;
+    if (bbox.empty()) return result; // bugfix
     for ( size_t i = 0; i < DimN1; i++ ) {
       result.min()[i] = (int32)floor(bbox.min()[i]);
       result.max()[i] = (int32)floor(bbox.max()[i])+1;
