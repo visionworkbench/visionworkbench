@@ -30,6 +30,12 @@ namespace stereo {
   }
 
   inline void expand_bbox( BBox2i& a, BBox2i const& b ) {
+
+    // Treat the cases of empty boxes. Those come in many
+    // shapes, some rather pathological.
+    if (b.empty()) return;
+    if (a.empty()) { a = b; return; }
+
     a.min().x() = std::min(a.min().x(),b.min().x());
     a.min().y() = std::min(a.min().y(),b.min().y());
     a.max().x() = std::max(a.max().x(),b.max().x());
@@ -38,7 +44,7 @@ namespace stereo {
 
   bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                           BBox2i const& current_bbox,
-                          std::list<SearchParam>& list,
+                          std::vector<SearchParam>& list,
                           Vector2i const& kernel_size,
                           int32 fail_count ) {
 
@@ -126,7 +132,7 @@ namespace stereo {
 
     if ( split_search > current_search*0.9 && fail_count == 0 ) {
       // Did bad .. maybe next level will have better luck?
-      std::list<SearchParam> failed;
+      std::vector<SearchParam> failed;
       if (!subdivide_regions( disparity, q1, list, kernel_size, fail_count + 1 ) )
         failed.push_back(SearchParam(q1,q1_search));
       if (!subdivide_regions( disparity, q2, list, kernel_size, fail_count + 1 ) )
@@ -142,7 +148,7 @@ namespace stereo {
         return true;
       } else if ( failed.size() == 3 ) {
         // 3 failed to split can I merge ?
-        std::list<SearchParam>::const_iterator it1 = failed.begin(), it2 = failed.begin();
+        std::vector<SearchParam>::const_iterator it1 = failed.begin(), it2 = failed.begin();
         ++it2;
         if ( ( it1->first.min().x() == it2->first.min().x() ||
                it1->first.min().y() == it2->first.min().y() ) &&

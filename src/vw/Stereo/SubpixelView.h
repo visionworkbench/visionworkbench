@@ -66,7 +66,7 @@ namespace stereo {
 
       // Subdivide the input disparity into smaller sections that have
       // the same disparity.
-      std::list<SearchParam> zones;
+      std::vector<SearchParam> zones;
       subdivide_regions( integer_disparity,
                          bounding_box(integer_disparity),
                          zones, m_kernel_size );

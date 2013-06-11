@@ -24,6 +24,7 @@
 #include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/Algorithms.h>
 #include <vw/Stereo/CostFunctions.h>
+#include <vw/Core/Stopwatch.h>
 
 namespace vw {
 namespace stereo {
@@ -155,18 +156,125 @@ namespace stereo {
     return disparity_map;
   }
 
-  // The following are tools for subdividing a disparity map into
-  // regions that contain near equal disparity.
-  //
+  template <class ImageT1, class ImageT2>
+  ImageView<PixelMask<Vector2i> >
+  calc_disparity(CostFunctionType cost_type,
+                 ImageViewBase<ImageT1> const& left,
+                 ImageViewBase<ImageT2> const& right,
+                 BBox2i const& left_region,
+                 Vector2i const& search_volume,
+                 Vector2i const& kernel_size){
+
+    // A wrapper around the best_of_search_convolution function.
+
+    ImageView<PixelMask<Vector2i> > disparity;
+
+    switch ( cost_type ) {
+    case CROSS_CORRELATION:
+      disparity =
+        best_of_search_convolution<NCCCost>(left, right, left_region,
+                                            search_volume, kernel_size);
+      break;
+    case SQUARED_DIFFERENCE:
+      disparity =
+        best_of_search_convolution<SquaredCost>(left, right, left_region,
+                                                search_volume, kernel_size);
+      break;
+    case ABSOLUTE_DIFFERENCE:
+    default:
+      disparity =
+        best_of_search_convolution<AbsoluteCost>(left, right, left_region,
+                                                 search_volume, kernel_size);
+    }
+
+    return disparity;
+  }
+
   // These are useful for pyramid stereo correlation and several other
   // algorithms. The prime result is "SearchParam" where the first
   // bbox in the area of the result. The second bbox is the disparity
   // in the region defined by the first bbox.
   typedef std::pair<BBox2i,BBox2i> SearchParam;
 
+  inline double search_volume(SearchParam const& S){
+    return  double(S.first.width())*double(S.first.height())*
+      double(S.second.width())*double(S.second.height());
+  }
+
+  template <class ImageT1, class ImageT2>
+  double calc_seconds_per_op(CostFunctionType cost_type,
+                             ImageViewBase<ImageT1> const& left,
+                             ImageViewBase<ImageT2> const& right,
+                             Vector2i const& kernel_size
+                             ){
+
+    // Create fake left and right images and search volume.  Do a fake
+    // disparity calculation. Divide the run-time of this calculation
+    // by left region size times search box size. This will enable us
+    // to estimate how long disparity calculation takes for given cost
+    // function and kernel size.
+
+    double elapsed = -1.0;
+    double seconds_per_op = -1.0;
+
+    // We don't know what sizes to use to get a reliable time estimate.
+    // So increase the size until the time estimate is a second.
+    int lsize = 100;
+    while (elapsed < 1.0){
+
+      lsize = (int)ceil(lsize*1.2);
+
+      ImageView<typename ImageT1::pixel_type> fake_left(lsize, lsize);
+      for (int col = 0; col < fake_left.cols(); col++){
+        for (int row = 0; row < fake_left.rows(); row++){
+          fake_left(col, row) = col%2 + 2*(row%5); // some values
+        }
+      }
+
+      ImageView<typename ImageT2::pixel_type> fake_right(4*lsize, 4*lsize);
+      for (int col = 0; col < fake_right.cols(); col++){
+        for (int row = 0; row < fake_right.rows(); row++){
+          fake_right(col, row) = 3*(col%7) + row%3; // some values
+        }
+      }
+
+      BBox2i search_region(0, 0, lsize/5, lsize/5);
+      BBox2i left_region = bounding_box(fake_left);
+
+      Stopwatch watch;
+      watch.start();
+      ImageView<PixelMask<Vector2i> > disparity =
+        calc_disparity(cost_type, fake_left, fake_right,
+                       left_region, search_region.size(), kernel_size);
+      watch.stop();
+
+      // Note: We add an infinitesimal contribution of disparity, lest
+      // the compiler tries to optimize away the above calculation due
+      // to its result being unused.
+      elapsed = watch.elapsed_seconds()
+        + 1e-40*disparity(0, 0).child().x();
+      seconds_per_op
+        = elapsed/search_volume(SearchParam(left_region, search_region));
+    }
+
+    return seconds_per_op;
+  }
+
+  struct SearchParamLessThan {
+    bool operator()(SearchParam A, SearchParam B){
+      // The amount of computation for correlation for a given
+      // SearchParam instance is proportional to the product of the
+      // dimensions of its search boxes.
+      return search_volume(A) < search_volume(B);
+    }
+  };
+
   // Developer tools for modifying bboxes.
   inline int32 area( BBox2i const& a );
   inline void expand_bbox( BBox2i& a, BBox2i const& b );
+
+  // This function subdivides a disparity map into regions that
+  // contain near equal disparity.
 
   // This is a recursive function. It might be ideal to make this a
   // template. However in all cases so far, I've only applied to
@@ -174,7 +282,7 @@ namespace stereo {
   // accessing the image alot and randomly.
   bool subdivide_regions( ImageView<PixelMask<Vector2i> > const& disparity,
                           BBox2i const& current_bbox,
-                          std::list<SearchParam>& list,
+                          std::vector<SearchParam>& list,
                           Vector2i const& kernel_size,
                           int32 fail_count = 0 );
 

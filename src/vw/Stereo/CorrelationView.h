@@ -21,6 +21,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Stopwatch.h>
+#include <vw/Core/Thread.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/FileIO.h>
 #include <vw/Stereo/PreFilter.h>
@@ -87,78 +88,31 @@ namespace stereo {
       BBox2i right_region = left_region + m_search_region.min();
       right_region.max() += m_search_region.size();
 
-      // 3.) Correlate with options that they requested
-      ImageView<pixel_type> result;
-      // Shutting off the consistency check
-      switch ( m_cost_type ) {
-      case CROSS_CORRELATION:
-        result =
-          best_of_search_convolution<NCCCost>( crop(m_prefilter.filter(m_left_image),left_region),
-                                               crop(m_prefilter.filter(m_right_image),right_region),
-                                               left_region - left_region.min(),
-                                               m_search_region.size() + Vector2i(1,1),
-                                               m_kernel_size );
-        break;
-      case SQUARED_DIFFERENCE:
-        result =
-          best_of_search_convolution<SquaredCost>( crop(m_prefilter.filter(m_left_image),left_region),
-                                                   crop(m_prefilter.filter(m_right_image),right_region),
-                                                   left_region - left_region.min(),
-                                                   m_search_region.size() + Vector2i(1,1),
-                                                   m_kernel_size );
-        break;
-      case ABSOLUTE_DIFFERENCE:
-      default:
-        result =
-          best_of_search_convolution<AbsoluteCost>( crop(m_prefilter.filter(m_left_image),left_region),
-                                                    crop(m_prefilter.filter(m_right_image),right_region),
-                                                    left_region - left_region.min(),
-                                                    m_search_region.size() + Vector2i(1,1),
-                                                    m_kernel_size );
-      }
+      // 3.) Calculate the disparity
+      ImageView<pixel_type> result
+        = calc_disparity(m_cost_type,
+                         crop(m_prefilter.filter(m_left_image),left_region),
+                         crop(m_prefilter.filter(m_right_image),right_region),
+                         left_region - left_region.min(),
+                         m_search_region.size() + Vector2i(1,1),
+                         m_kernel_size);
 
-      // 4.0 ) Do a consistency check if they asked for it
+      // 4.0 ) Consistency check
       if ( m_consistency_threshold >= 0 ) {
-        ImageView<pixel_type> rl_result;
+        // Getting the crops correctly here is not important as we
+        // will re-crop later. The important bit is aligning up the
+        // origins.
+        ImageView<pixel_type> rl_result
+          = calc_disparity(m_cost_type,
+                           crop(m_prefilter.filter(m_right_image),right_region),
+                           crop(m_prefilter.filter(m_left_image),
+                                left_region
+                                -(m_search_region.size()+Vector2i(1,1))),
+                           right_region - right_region.min(),
+                           m_search_region.size() + Vector2i(1,1),
+                           m_kernel_size) -
+          pixel_type(m_search_region.size()+Vector2i(1,1));
 
-        switch ( m_cost_type ) {
-        case CROSS_CORRELATION:
-          // Getting the crops correctly here is not important as best
-          // of search convolution will recrop. The important bit is
-          // just aligning up the origins.
-          rl_result =
-            best_of_search_convolution<NCCCost>( crop(m_prefilter.filter(m_right_image),right_region),
-                                                 crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
-                                                 right_region - right_region.min(),
-                                                 m_search_region.size() + Vector2i(1,1),
-                                                 m_kernel_size ) -
-            pixel_type(m_search_region.size()+Vector2i(1,1));
-          break;
-        case SQUARED_DIFFERENCE:
-          // Getting the crops correctly here is not important as best
-          // of search convolution will recrop. The important bit is
-          // just aligning up the origins.
-          rl_result =
-            best_of_search_convolution<SquaredCost>( crop(m_prefilter.filter(m_right_image),right_region),
-                                                     crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
-                                                     right_region - right_region.min(),
-                                                     m_search_region.size() + Vector2i(1,1),
-                                                     m_kernel_size ) -
-            pixel_type(m_search_region.size()+Vector2i(1,1));
-          break;
-        case ABSOLUTE_DIFFERENCE:
-        default:
-          // Getting the crops correctly here is not important as best
-          // of search convolution will recrop. The important bit is
-          // just aligning up the origins.
-          rl_result =
-            best_of_search_convolution<AbsoluteCost>( crop(m_prefilter.filter(m_right_image),right_region),
-                                                      crop(m_prefilter.filter(m_left_image),left_region-(m_search_region.size()+Vector2i(1,1))),
-                                                      right_region - right_region.min(),
-                                                      m_search_region.size() + Vector2i(1,1),
-                                                      m_kernel_size ) -
-            pixel_type(m_search_region.size()+Vector2i(1,1));
-        }
         stereo::cross_corr_consistency_check( result, rl_result,
                                               m_consistency_threshold, false );
       }
@@ -208,6 +162,9 @@ namespace stereo {
     BBox2i m_search_region;
     Vector2i m_kernel_size;
     CostFunctionType m_cost_type;
+    int m_corr_timeout;
+    // How long it takes to do one corr op with given kernel and cost function
+    double m_seconds_per_op;
     float m_consistency_threshold; // < 0 = means don't do a consistency check
     int32 m_max_level_by_search;
 
@@ -251,13 +208,16 @@ namespace stereo {
                             ImageViewBase<Mask2T> const& right_mask,
                             PreFilterBase<PreFilterT> const& prefilter,
                             BBox2i const& search_region, Vector2i const& kernel_size,
-                            CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                            float consistency_threshold = -1,
-                            int32 max_pyramid_levels = 5 ) :
+                            CostFunctionType cost_type,
+                            int corr_timeout, double seconds_per_op,
+                            float consistency_threshold,
+                            int32 max_pyramid_levels) :
       m_left_image(left.impl()), m_right_image(right.impl()),
       m_left_mask(left_mask.impl()), m_right_mask(right_mask.impl()),
       m_prefilter(prefilter.impl()), m_search_region(search_region), m_kernel_size(kernel_size),
-      m_cost_type(cost_type), m_consistency_threshold(consistency_threshold) {
+      m_cost_type(cost_type),
+      m_corr_timeout(corr_timeout), m_seconds_per_op(seconds_per_op),
+      m_consistency_threshold(consistency_threshold){
       // Calculating max pyramid levels according to the supplied
       // search region.
       int32 largest_search = max( search_region.size() );
@@ -303,9 +263,9 @@ namespace stereo {
 
       // 2.0) Build the pyramid
       std::vector<ImageView<typename Image1T::pixel_type> > left_pyramid(max_pyramid_levels + 1 );
-      std::vector<ImageView<typename Image2T::pixel_type> > righ_pyramid(max_pyramid_levels + 1 );
+      std::vector<ImageView<typename Image2T::pixel_type> > right_pyramid(max_pyramid_levels + 1 );
       std::vector<ImageView<typename Mask1T::pixel_type> > left_mask_pyramid(max_pyramid_levels + 1 );
-      std::vector<ImageView<typename Mask2T::pixel_type> > righ_mask_pyramid(max_pyramid_levels + 1 );
+      std::vector<ImageView<typename Mask2T::pixel_type> > right_mask_pyramid(max_pyramid_levels + 1 );
       int32 max_upscaling = 1 << max_pyramid_levels;
       BBox2i left_global_region, right_global_region;
       {
@@ -315,11 +275,11 @@ namespace stereo {
         right_global_region = left_global_region + m_search_region.min();
         right_global_region.max() += m_search_region.size() + Vector2i(max_upscaling,max_upscaling);
         left_pyramid[0] = crop(edge_extend(m_left_image),left_global_region);
-        righ_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
+        right_pyramid[0] = crop(edge_extend(m_right_image),right_global_region);
         left_mask_pyramid[0] =
           crop(edge_extend(m_left_mask,ConstantEdgeExtension()),
                left_global_region);
-        righ_mask_pyramid[0] =
+        right_mask_pyramid[0] =
           crop(edge_extend(m_right_mask,ConstantEdgeExtension()),
                right_global_region);
 
@@ -331,14 +291,14 @@ namespace stereo {
         // Fill in the nodata of the left and right images with a mean
         // pixel value. This helps with the edge quality of a DEM.
         typename Image1T::pixel_type left_mean;
-        typename Image2T::pixel_type righ_mean;
+        typename Image2T::pixel_type right_mean;
         try {
           left_mean =
             mean_pixel_value(subsample(copy_mask(left_pyramid[0],
                                                  create_mask(left_mask_pyramid[0],0)),2));
-          righ_mean =
-            mean_pixel_value(subsample(copy_mask(righ_pyramid[0],
-                                                 create_mask(righ_mask_pyramid[0],0)),2));
+          right_mean =
+            mean_pixel_value(subsample(copy_mask(right_pyramid[0],
+                                                 create_mask(right_mask_pyramid[0],0)),2));
         } catch ( const ArgumentErr& err ) {
           // Mean pixel value will throw an argument error if there
           // are no valid pixels. If that happens, it means either the
@@ -349,7 +309,7 @@ namespace stereo {
                                    cols(), rows() );
         }
         left_pyramid[0] = apply_mask(copy_mask(left_pyramid[0],create_mask(left_mask_pyramid[0],0)), left_mean );
-        righ_pyramid[0] = apply_mask(copy_mask(righ_pyramid[0],create_mask(righ_mask_pyramid[0],0)), righ_mean );
+        right_pyramid[0] = apply_mask(copy_mask(right_pyramid[0],create_mask(right_mask_pyramid[0],0)), right_mean );
 
         // Don't actually need the whole over cropped disparity
         // mask. We only need the active region. I over cropped before
@@ -358,8 +318,8 @@ namespace stereo {
         right_mask.max() += m_search_region.size();
         left_mask_pyramid[0] =
           crop(left_mask_pyramid[0],bbox - left_global_region.min());
-        righ_mask_pyramid[0] =
-          crop(righ_mask_pyramid[0],right_mask - right_global_region.min());
+        right_mask_pyramid[0] =
+          crop(right_mask_pyramid[0],right_mask - right_global_region.min());
 
         // Szeliski's book recommended this simple kernel. This
         // operation is quickly becoming a time sink, we might
@@ -375,94 +335,89 @@ namespace stereo {
         // level.
         for ( int32 i = 0; i < max_pyramid_levels; ++i ) {
           left_pyramid[i+1] = subsample(separable_convolution_filter(left_pyramid[i],kernel,kernel),2);
-          righ_pyramid[i+1] = subsample(separable_convolution_filter(righ_pyramid[i],kernel,kernel),2);
+          right_pyramid[i+1] = subsample(separable_convolution_filter(right_pyramid[i],kernel,kernel),2);
           left_pyramid[i] = m_prefilter.filter(left_pyramid[i]);
-          righ_pyramid[i] = m_prefilter.filter(righ_pyramid[i]);
+          right_pyramid[i] = m_prefilter.filter(right_pyramid[i]);
           left_mask_pyramid[i+1] = subsample_mask_by_two(left_mask_pyramid[i]);
-          righ_mask_pyramid[i+1] = subsample_mask_by_two(righ_mask_pyramid[i]);
+          right_mask_pyramid[i+1] = subsample_mask_by_two(right_mask_pyramid[i]);
         }
         left_pyramid[max_pyramid_levels] = m_prefilter.filter(left_pyramid[max_pyramid_levels]);
-        righ_pyramid[max_pyramid_levels] = m_prefilter.filter(righ_pyramid[max_pyramid_levels]);
+        right_pyramid[max_pyramid_levels] = m_prefilter.filter(right_pyramid[max_pyramid_levels]);
       }
 
       // 3.0) Actually perform correlation now
       ImageView<pixel_type > disparity;
-      std::list<SearchParam> zones;
-      zones.push_back( SearchParam( bounding_box(left_mask_pyramid[max_pyramid_levels]),
-                                    BBox2i(0,0,m_search_region.width()/max_upscaling+1,
-                                           m_search_region.height()/max_upscaling+1)) );
+      std::vector<SearchParam> zones;
+      zones.push_back( SearchParam(bounding_box(left_mask_pyramid[max_pyramid_levels]),
+                                   BBox2i(0,0,m_search_region.width()/max_upscaling+1,
+                                          m_search_region.height()/max_upscaling+1)) );
+
+      double estim_elapsed = 0.0;
+      bool must_stop_now = false;
+      //Stopwatch watch;
+      //watch.start();
+
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
+        if (must_stop_now) break;
+
         int32 scaling = 1 << level;
         disparity.set_size( left_mask_pyramid[level] );
         Vector2i region_offset = max_upscaling*half_kernel/scaling;
 
         // 3.1) Process each zone with their refined search estimates
+        // Do first the zones which take less time, as at some point
+        // we may have to enforce the timeout.
+        std::sort(zones.begin(), zones.end(), SearchParamLessThan());
         BOOST_FOREACH( SearchParam const& zone, zones ) {
+
           BBox2i left_region = zone.first + region_offset;
           left_region.min() -= half_kernel;
           left_region.max() += half_kernel;
-          BBox2i righ_region = left_region + zone.second.min();
-          righ_region.max() += zone.second.size();
+          BBox2i right_region = left_region + zone.second.min();
+          right_region.max() += zone.second.size();
 
-          switch ( m_cost_type ) {
-          case CROSS_CORRELATION:
-            crop(disparity,zone.first) =
-              best_of_search_convolution<NCCCost>(
-                crop(left_pyramid[level],left_region),
-                crop(righ_pyramid[level],righ_region),
-                left_region - left_region.min(),
-                zone.second.size(), m_kernel_size );
+          double next_elapsed = m_seconds_per_op
+            * search_volume(SearchParam(left_region, zone.second));
+          if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
+            vw_out() << "Tile: " << bbox << " reached timeout: " << m_corr_timeout
+                     << std::endl;
+            must_stop_now = true;
             break;
-          case SQUARED_DIFFERENCE:
-            crop(disparity,zone.first) =
-              best_of_search_convolution<SquaredCost>(
-                crop(left_pyramid[level],left_region),
-                crop(righ_pyramid[level],righ_region),
-                left_region - left_region.min(),
-                zone.second.size(), m_kernel_size );
-            break;
-          case ABSOLUTE_DIFFERENCE:
-          default:
-            crop(disparity,zone.first) =
-              best_of_search_convolution<AbsoluteCost>(
-                crop(left_pyramid[level],left_region),
-                crop(righ_pyramid[level],righ_region),
-                left_region - left_region.min(),
-                zone.second.size(), m_kernel_size );
-          }
+          }else
+            estim_elapsed += next_elapsed;
+
+          crop(disparity,zone.first)
+            = calc_disparity(m_cost_type,
+                             crop(left_pyramid[level], left_region),
+                             crop(right_pyramid[level], right_region),
+                             left_region - left_region.min(),
+                             zone.second.size(), m_kernel_size);
 
           if ( m_consistency_threshold >= 0 && level == 0 ) {
-            ImageView<pixel_type> rl_result;
 
-            switch ( m_cost_type ) {
-            case CROSS_CORRELATION:
-              rl_result =
-                best_of_search_convolution<NCCCost>(
-                  crop(edge_extend(righ_pyramid[level]),righ_region),
-                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
-                  righ_region - righ_region.min(),
-                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+            double next_elapsed = m_seconds_per_op
+              * search_volume(SearchParam(right_region, zone.second));
+            if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
+              vw_out() << "Tile: " << bbox << " reached timeout: " << m_corr_timeout
+                       << std::endl;
+              must_stop_now = true;
               break;
-            case SQUARED_DIFFERENCE:
-              rl_result =
-                best_of_search_convolution<SquaredCost>(
-                  crop(edge_extend(righ_pyramid[level]),righ_region),
-                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
-                  righ_region - righ_region.min(),
-                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
-              break;
-            case ABSOLUTE_DIFFERENCE:
-            default:
-              rl_result =
-               best_of_search_convolution<AbsoluteCost>(
-                  crop(edge_extend(righ_pyramid[level]),righ_region),
-                  crop(edge_extend(left_pyramid[level]),left_region - zone.second.size()),
-                  righ_region - righ_region.min(),
-                  zone.second.size(), m_kernel_size ) - pixel_type(zone.second.size());
+            }else{
+              estim_elapsed += next_elapsed;
             }
 
-            stereo::cross_corr_consistency_check( crop(disparity,zone.first),
-                                                  rl_result, m_consistency_threshold, false );
+            ImageView<pixel_type> rl_result
+              = calc_disparity(m_cost_type,
+                               crop(edge_extend(right_pyramid[level]), right_region),
+                               crop(edge_extend(left_pyramid[level]),
+                                    left_region - zone.second.size()),
+                               right_region - right_region.min(),
+                               zone.second.size(), m_kernel_size)
+              - pixel_type(zone.second.size());
+
+            stereo::cross_corr_consistency_check(crop(disparity,zone.first),
+                                                  rl_result,
+                                                 m_consistency_threshold, false);
           }
 
           // Fix the offset
@@ -481,7 +436,7 @@ namespace stereo {
                                               rm_threshold,
                                               rm_min_matches_percent),
                            left_mask_pyramid[level],
-                           righ_mask_pyramid[level]);
+                           right_mask_pyramid[level]);
         } else {
           // We don't do a single hot pixel check on the final level
           // as it leaves a border.
@@ -491,10 +446,10 @@ namespace stereo {
                                            rm_threshold,
                                            rm_min_matches_percent),
                            left_mask_pyramid[level],
-                           righ_mask_pyramid[level]);
+                           right_mask_pyramid[level]);
         }
 
-        // 3.2c) Refine search estimates but never let them go beyond
+        // 3.2b) Refine search estimates but never let them go beyond
         // the search region defined by the user
         if ( level != 0 ) {
           zones.clear();
@@ -514,9 +469,9 @@ namespace stereo {
               f << zone.first << " " << zone.second << "\n";
             }
             write_image( ostr.str() + "left.tif", normalize(left_pyramid[level]) );
-            write_image( ostr.str() + "right.tif", normalize(righ_pyramid[level]) );
+            write_image( ostr.str() + "right.tif", normalize(right_pyramid[level]) );
             write_image( ostr.str() + "lmask.tif", left_mask_pyramid[level] );
-            write_image( ostr.str() + "rmask.tif", righ_mask_pyramid[level] );
+            write_image( ostr.str() + "rmask.tif", right_mask_pyramid[level] );
             f.close();
           }
           scaling >>= 1;
@@ -527,8 +482,8 @@ namespace stereo {
           // advantage of the half kernel padding needed at the hight
           // level of the pyramid.
           BBox2i scale_search_region(0,0,
-                                     righ_pyramid[level-1].cols() - left_pyramid[level-1].cols(),
-                                     righ_pyramid[level-1].rows() - left_pyramid[level-1].rows() );
+                                     right_pyramid[level-1].cols() - left_pyramid[level-1].cols(),
+                                     right_pyramid[level-1].rows() - left_pyramid[level-1].rows() );
           BBox2i next_zone_size = bounding_box( left_mask_pyramid[level-1] );
           BOOST_FOREACH( SearchParam& zone, zones ) {
             zone.first *= 2;
@@ -547,10 +502,17 @@ namespace stereo {
 
 #if VW_DEBUG_LEVEL > 0
       watch.stop();
-      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in " << watch.elapsed_seconds() << " s\n";
+      double elapsed = watch.elapsed_seconds();
+      vw_out(DebugMessage,"stereo") << "Tile " << bbox << " processed in "
+                                    << elapsed << " s\n";
+      if (m_corr_timeout > 0.0){
+        vw_out(DebugMessage,"stereo")
+          << "Elapsed (actual/estimated/ratio): " << elapsed << ' '
+          << estim_elapsed << ' ' << elapsed/estim_elapsed << std::endl;
+      }
 #endif
 
-      // 4.0) Reposition our result back into the global
+      // 5.0) Reposition our result back into the global
       // solution. Also we need to correct for the offset we applied
       // to the search region.
       return prerasterize_type(disparity + pixel_type(m_search_region.min()),
@@ -572,14 +534,16 @@ namespace stereo {
                      ImageViewBase<Mask2T> const& right_mask,
                      PreFilterBase<PreFilterT> const& filter,
                      BBox2i const& search_region, Vector2i const& kernel_size,
-                     CostFunctionType cost_type = ABSOLUTE_DIFFERENCE,
-                     float consistency_threshold = -1,
-                     int32 max_pyramid_levels = 5 ) {
+                     CostFunctionType cost_type,
+                     int corr_timeout, double seconds_per_op,
+                     float consistency_threshold,
+                     int32 max_pyramid_levels) {
     typedef PyramidCorrelationView<Image1T,Image2T,Mask1T,Mask2T,PreFilterT> result_type;
     return result_type( left.impl(), right.impl(), left_mask.impl(),
                         right_mask.impl(), filter.impl(), search_region,
-                        kernel_size, cost_type, consistency_threshold,
-                        max_pyramid_levels );
+                        kernel_size, cost_type,
+                        corr_timeout, seconds_per_op,
+                        consistency_threshold, max_pyramid_levels );
   }
 
 }} // namespace vw::stereo

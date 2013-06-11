@@ -130,6 +130,8 @@ int main( int argc, char *argv[] ) {
       corr_type = CROSS_CORRELATION;
 
     ImageViewRef<PixelMask<Vector2i> > disparity_map;
+    int corr_timeout = 0;
+    double seconds_per_op = 0.0;
     if (vm.count("pyramid")) {
       disparity_map =
         stereo::pyramid_correlate( left, right,
@@ -139,7 +141,8 @@ int main( int argc, char *argv[] ) {
                                    BBox2i(Vector2i(h_corr_min, v_corr_min),
                                           Vector2i(h_corr_max, v_corr_max)),
                                    Vector2i(xkernel, ykernel),
-                                   corr_type, lrthresh );
+                                   corr_type, corr_timeout, seconds_per_op,
+                                   lrthresh, 5 );
     } else {
       disparity_map =
         stereo::correlate( left, right,
@@ -147,7 +150,7 @@ int main( int argc, char *argv[] ) {
                            BBox2i(Vector2i(h_corr_min, v_corr_min),
                                   Vector2i(h_corr_max, v_corr_max)),
                            Vector2i(xkernel, ykernel),
-                           corr_type, lrthresh );
+                           corr_type, lrthresh);
     }
 
     ImageViewRef<PixelMask<Vector2f> > result = pixel_cast<PixelMask<Vector2f> >(disparity_map);
@@ -178,4 +181,3 @@ int main( int argc, char *argv[] ) {
   }
   return 0;
 }
-
