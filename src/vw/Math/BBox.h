@@ -570,8 +570,18 @@ namespace math {
   inline typename boost::enable_if<boost::is_float<RealT1>,BBox<int32,DimN1> >::type
   grow_bbox_to_int( math::BBoxBase<BBoxT1, RealT1, DimN1> const& bbox ) {
     BBox<int32,DimN1> result;
-    if (bbox.empty()) return result; // bugfix
     for ( size_t i = 0; i < DimN1; i++ ) {
+
+      // Bug fix: Cannot grow a completely empty box.
+      // Note: A box with bbox.min()[i] == bbox.max()[i]
+      // is in principle empty, however such boxes are created
+      // by VW when growing an empty box with a point.
+      // VW is messed up here, but we must use below ">"
+      // rather than ">=" to not break existing behavior.
+      if (bbox.min()[i] > bbox.max()[i]){
+        return  BBox<int32,DimN1>();
+      }
+
       result.min()[i] = (int32)floor(bbox.min()[i]);
       result.max()[i] = (int32)floor(bbox.max()[i])+1;
     }
