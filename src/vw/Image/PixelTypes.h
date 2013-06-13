@@ -198,7 +198,7 @@ namespace vw {
     PixelGrayA() { m_ch[0]=m_ch[1]=0; }
 
     /// Constructs an opaque pixel from the raw luminance value.  This
-    /// is marked as explicit to prevent you from accidentially
+    /// is marked as explicit to prevent you from accidentally
     /// initializing a pixel to zero when what you really want is the
     /// default-constructed value.
     explicit PixelGrayA( ChannelT v ) {
