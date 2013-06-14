@@ -74,8 +74,10 @@ namespace cartography {
     inline void apply_bresen( BresenhamLine line, double min, double max, BBox2i& camera_bbox ) const {
       while ( line.is_good() ) {
         Vector2i pt( *line );
-        camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), min ) );
-        camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), max ) );
+        try { camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), min ) ); }
+        catch (...) {} // PointToPixelErr, MathErr, etc.
+        try { camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), max ) ); }
+        catch (...) {} // PointToPixelErr, MathErr, etc.
         ++line;
       }
     }
@@ -115,7 +117,7 @@ namespace cartography {
     //    converts from altitude to planetary radius.
     // 3. Convert to cartesian (xyz) coordinates.
 
-    inline result_type operator()( offset_type i, offset_type j, int32 p=0 ) const {
+    inline result_type operator()(offset_type i, offset_type j, int32 p=0) const {
 
       if (!markNoProcessedData){ // This 'if' will be evaluated at compile time
 
@@ -126,7 +128,13 @@ namespace cartography {
           return result_type();
         }
 
-        Vector2 pix = find_camera_coordinates( i, j, Helper<typename TerrainImageT::pixel_type>(i,j) );
+        Vector2 pix;
+        try{
+          pix = find_camera_coordinates( i, j, Helper<typename TerrainImageT::pixel_type>(i,j) );
+        }catch (...) { // PointToPixelErr, MathErr, etc.
+          return result_type();
+        }
+
         return m_camera_image(pix[0], pix[1], p);
 
       }else{
@@ -141,7 +149,14 @@ namespace cartography {
           height = Helper<typename TerrainImageT::pixel_type>(i,j);
         }
 
-        Vector2 pix = find_camera_coordinates( i, j, height );
+        Vector2 pix;
+        try{
+          pix = find_camera_coordinates( i, j, height );
+        }catch (...) { // PointToPixelErr, MathErr, etc.
+          // No data, return a transparent pixel
+          return result_type();
+        }
+
         result_type ans = m_camera_image(pix[0], pix[1], p);
 
         if ( is_transparent(m_terrain(i,j)) ){
@@ -157,6 +172,8 @@ namespace cartography {
         }
         return ans;
       }
+
+      return result_type();
     }
 
     /// \cond INTERNAL
