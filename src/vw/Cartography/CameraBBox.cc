@@ -87,6 +87,10 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
                                 boost::shared_ptr<camera::CameraModel> camera_model,
                                 int32 cols, int32 rows, float &scale ) {
 
+  // To do: Integrate the almost identical functions camera_bbox in
+  // CameraBBox.h and CameraBBox.cc. One of them uses a DEM and the
+  // second one does not.
+
   // Testing to see if we should be centering on zero
   bool center_on_zero = true;
   Vector3 camera_llr =
@@ -96,10 +100,14 @@ BBox2 cartography::camera_bbox( cartography::GeoReference const& georef,
     center_on_zero = false;
 
   int32 step_amount = (2*cols+2*rows)/100;
-  detail::CameraDatumBBoxHelper functor( georef, camera_model,
-                                         center_on_zero );
+  step_amount = std::min(step_amount, cols/4); // ensure at least 4 pts/col
+  step_amount = std::min(step_amount, rows/4); // ensure at least 4 pts/row
+  step_amount = std::max(step_amount, 1);      // step amount must be > 0
+  detail::CameraDatumBBoxHelper functor(georef, camera_model,
+                                        center_on_zero);
 
-  // Running the edges
+  // Running the edges. Note: The last valid point on a
+  // BresenhamLine is the last point before the endpoint.
   bresenham_apply( BresenhamLine(0,0,cols,0),
                    step_amount, functor );
   functor.last_valid = false;

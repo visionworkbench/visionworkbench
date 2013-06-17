@@ -417,6 +417,10 @@ namespace cartography {
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &scale ) {
 
+    // To do: Integrate the almost identical functions camera_bbox in
+    // CameraBBox.h and CameraBBox.cc. One of them uses a DEM and the
+    // second one does not.
+
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
     Vector3 camera_llr =
@@ -433,11 +437,12 @@ namespace cartography {
     detail::CameraDEMBBoxHelper<DEMImageT> functor( dem_image, georef, camera_model,
                                                     center_on_zero );
 
-    // Running the edges
-    bresenham_apply( BresenhamLine(0,0,cols-1,0),
+    // Running the edges. Note: The last valid point on a
+    // BresenhamLine is the last point before the endpoint.
+    bresenham_apply( BresenhamLine(0,0,cols,0),
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows-1),
+    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
                      step_amount, functor );
     functor.last_valid = false;
     bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),
