@@ -39,7 +39,7 @@ endif
 
 include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
                   GeoTransform.h Datum.h SimplePointImageManipulation.h \
-                  PointImageManipulation.h                              \
+                  PointImageManipulation.h MapTransform.h               \
                   OrthoImageView.h GeoReferenceResourcePDS.h            \
                   Projection.h ToastTransform.h $(gdal_headers)         \
                   $(camerabbox_headers)
@@ -53,7 +53,7 @@ detail_HEADERS =  detail/BresenhamLine.h
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
                   GeoReferenceBase.cc PointImageManipulation.cc         \
-                  $(gdal_sources) $(camerabbox_sources)
+                  MapTransform.cc $(gdal_sources) $(camerabbox_sources)
 
 nodist_libvwCartography_la_SOURCES = $(protocol_sources)
 
@@ -83,4 +83,3 @@ include $(top_srcdir)/config/rules.mak
 if HAVE_PKG_PROTOBUF
 include $(top_srcdir)/thirdparty/protobuf.mak
 endif
-

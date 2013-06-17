@@ -31,6 +31,7 @@
 #include <vw/Cartography/Projection.h>
 #include <vw/Cartography/GeoReferenceResourcePDS.h>
 #include <vw/Cartography/ToastTransform.h>
+#include <vw/Cartography/MapTransform.h>
 
 #if defined(VW_HAVE_PKG_CARTOGRAPHY) && (VW_HAVE_PKG_CARTOGRAPHY==1)
 #include <vw/Cartography/CameraBBox.h>
@@ -41,4 +42,3 @@
 #endif
 
 #endif // __VW_CARTOGRAPHY_H__
-
