@@ -55,9 +55,12 @@ namespace cartography {
   vw::Vector2
   MapTransform::reverse(const vw::Vector2 &p) const {
 
+    double NaN = std::numeric_limits<double>::quiet_NaN();
+
     // If possible, we will interpolate into the cached point cloud
     ImageViewRef<Vector3> interp_point_cloud =
-      interpolate(m_point_cloud_cache, BicubicInterpolation(), ZeroEdgeExtension());
+      interpolate(m_point_cloud_cache, BicubicInterpolation(),
+                  ZeroEdgeExtension());
 
     // Avoid interpolating close to edges
     BBox2i shrank_bbox = m_cache_size;
@@ -69,7 +72,15 @@ namespace cartography {
                          p.y() - m_cache_size.min().y()):
       m_point_cloud(p.x(),p.y());
 
-    return m_cam->point_to_pixel(xyz);
+    // The case when xyz does not have data
+    if (xyz == Vector3())
+      return vw::Vector2(NaN, NaN);
+
+    try{
+      return m_cam->point_to_pixel(xyz);
+    }catch(...){}
+    return vw::Vector2(NaN, NaN);
+
   }
 
   // This function will be called whenever we start to apply the
@@ -79,7 +90,9 @@ namespace cartography {
   vw::BBox2i
   MapTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
     cache_dem( bbox );
-    return vw::TransformBase<MapTransform>::reverse_bbox( bbox );
+    vw::BBox2i out_box = vw::TransformBase<MapTransform>::reverse_bbox( bbox );
+    if (out_box.empty()) return vw::BBox2i(0, 0, 1, 1);
+    return out_box;
   }
 
   void
@@ -90,6 +103,122 @@ namespace cartography {
     m_cache_size.expand(BicubicInterpolation::pixel_buffer);
 
     m_point_cloud_cache = crop( m_point_cloud, m_cache_size );
+  }
+
+  MapTransform2::MapTransform2( vw::camera::CameraModel const* cam,
+                                GeoReference const& image_georef,
+                                GeoReference const& dem_georef,
+                                boost::shared_ptr<DiskImageResource> dem_rsrc,
+                                vw::Vector2i image_size) :
+    m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
+    m_dem(dem_rsrc), m_image_size(image_size), m_has_nodata(false),
+    m_nodata(std::numeric_limits<double>::quiet_NaN()
+             ){
+    m_has_nodata = dem_rsrc->has_nodata_read();
+    m_invalid_pix = Vector2(-1e6, -1e6); // must be large and negative
+
+  }
+
+  vw::Vector2
+  MapTransform2::reverse(const vw::Vector2 &p) const {
+
+    //To do: Use interpolation for tri!!!
+    if (p == round(p) && m_cache_box.contains(p)){
+      return m_cache(p.x() - m_cache_box.min().x(),
+                     p.y() - m_cache_box.min().y());
+    }
+
+    double NaN = std::numeric_limits<double>::quiet_NaN();
+    int b = BicubicInterpolation::pixel_buffer;
+
+    Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
+    Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
+    dem_pix -= m_dem_box.min();
+    if (dem_pix[0] < b - 1 || dem_pix[0] >= m_cropped_dem.cols() - b ||
+        dem_pix[1] < b - 1 || dem_pix[1] >= m_cropped_dem.rows() - b
+        ){
+      return m_invalid_pix;
+    }
+
+    PixelMask<float> h = m_interp_dem(dem_pix[0], dem_pix[1]);
+    if (!is_valid(h))
+      return m_invalid_pix;
+    Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian
+      (Vector3(lonlat[0], lonlat[1], h.child()));
+    Vector2 pt;
+    try{
+      pt = m_cam->point_to_pixel(xyz);
+      if (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
+          pt[1] < b - 1 || pt[1] >= m_image_size[1] - b
+          ){
+        return m_invalid_pix;
+      }
+    }catch(...){ // If a point failed to project
+      return m_invalid_pix;
+    }
+
+    return pt;
+  }
+
+  // This function will be called whenever we start to apply the
+  // transform in a tile. It computes and caches the point cloud at
+  // each pixel in the tile, to be used later when we iterate over
+  // pixels.
+  vw::BBox2i
+  MapTransform2::reverse_bbox( vw::BBox2i const& bbox ) const {
+
+    // Custom reverse_bbox() function which can handle NaN values.
+
+    BBox2i cache_box = bbox;
+    cache_box.expand(BicubicInterpolation::pixel_buffer);
+
+    m_cache.set_size(cache_box.width(), cache_box.height());
+
+    cache_dem( bbox );
+
+    vw::BBox2 out_box;
+    for( int32 y=cache_box.min().y(); y<cache_box.max().y(); ++y ){
+      for( int32 x=cache_box.min().x(); x<cache_box.max().x(); ++x ){
+        Vector2 p = reverse( Vector2(x,y) );
+        m_cache(x - cache_box.min().x(), y - cache_box.min().y()) = p;
+        if (p == m_invalid_pix) continue;
+        if (bbox.contains(Vector2i(x, y))) out_box.grow( p );
+      }
+    }
+    out_box = grow_bbox_to_int( out_box );
+
+    // Must happen after all calls to reverse finished.
+    m_cache_box = cache_box;
+
+    // Need the check below as to not try to create images with
+    // negative dimensions.
+    if (out_box.empty()) return vw::BBox2i(0, 0, 0, 0);
+
+    return out_box;
+  }
+
+  void
+  MapTransform2::cache_dem( vw::BBox2i const& bbox ) const {
+
+    BBox2 dbox;
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.min().y()) ) )); // Top right
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.max().y()-1) ) )); // Bottom left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) )); // Bottom right
+
+    m_dem_box = dbox; // cast from BBox2 to BBox2i
+    m_dem_box.expand(BicubicInterpolation::pixel_buffer + 1);
+    m_dem_box.crop(bounding_box(m_dem));
+
+    m_cropped_dem = crop(m_dem, m_dem_box);
+
+    if (m_has_nodata){
+      m_masked_dem = create_mask(m_cropped_dem, m_nodata);
+    }else{
+      m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
+    }
+    m_interp_dem =
+      interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
   }
 
 }} // namespace vw::cartography
