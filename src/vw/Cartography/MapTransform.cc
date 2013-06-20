@@ -112,9 +112,10 @@ namespace cartography {
                                 vw::Vector2i image_size) :
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem(dem_rsrc), m_image_size(image_size), m_has_nodata(false),
-    m_nodata(std::numeric_limits<double>::quiet_NaN()
-             ){
+    m_nodata(std::numeric_limits<double>::quiet_NaN() ){
+
     m_has_nodata = dem_rsrc->has_nodata_read();
+    if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
     m_invalid_pix = Vector2(-1e6, -1e6); // must be large and negative
 
   }
@@ -128,21 +129,22 @@ namespace cartography {
                      p.y() - m_cache_box.min().y());
     }
 
-    double NaN = std::numeric_limits<double>::quiet_NaN();
     int b = BicubicInterpolation::pixel_buffer;
 
     Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
-    dem_pix -= m_dem_box.min();
+    dem_pix -= m_dem_box.min(); // since we cropped the DEM
     if (dem_pix[0] < b - 1 || dem_pix[0] >= m_cropped_dem.cols() - b ||
         dem_pix[1] < b - 1 || dem_pix[1] >= m_cropped_dem.rows() - b
         ){
+      // No DEM data
       return m_invalid_pix;
     }
 
     PixelMask<float> h = m_interp_dem(dem_pix[0], dem_pix[1]);
     if (!is_valid(h))
       return m_invalid_pix;
+
     Vector3 xyz = m_dem_georef.datum().geodetic_to_cartesian
       (Vector3(lonlat[0], lonlat[1], h.child()));
     Vector2 pt;
@@ -151,6 +153,7 @@ namespace cartography {
       if (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
           pt[1] < b - 1 || pt[1] >= m_image_size[1] - b
           ){
+        // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
     }catch(...){ // If a point failed to project
@@ -167,20 +170,19 @@ namespace cartography {
   vw::BBox2i
   MapTransform2::reverse_bbox( vw::BBox2i const& bbox ) const {
 
-    // Custom reverse_bbox() function which can handle NaN values.
-
-    BBox2i cache_box = bbox;
-    cache_box.expand(BicubicInterpolation::pixel_buffer);
-
-    m_cache.set_size(cache_box.width(), cache_box.height());
+    // Custom reverse_bbox() function which can handle invalid pixels.
 
     cache_dem( bbox );
 
+    m_cache_box = BBox2i();
+    BBox2i local_cache_box = bbox;
+    local_cache_box.expand(BicubicInterpolation::pixel_buffer);
+    m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
-    for( int32 y=cache_box.min().y(); y<cache_box.max().y(); ++y ){
-      for( int32 x=cache_box.min().x(); x<cache_box.max().x(); ++x ){
+    for( int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
+      for( int32 x=local_cache_box.min().x(); x<local_cache_box.max().x(); ++x ){
         Vector2 p = reverse( Vector2(x,y) );
-        m_cache(x - cache_box.min().x(), y - cache_box.min().y()) = p;
+        m_cache(x - local_cache_box.min().x(), y - local_cache_box.min().y()) = p;
         if (p == m_invalid_pix) continue;
         if (bbox.contains(Vector2i(x, y))) out_box.grow( p );
       }
@@ -188,7 +190,7 @@ namespace cartography {
     out_box = grow_bbox_to_int( out_box );
 
     // Must happen after all calls to reverse finished.
-    m_cache_box = cache_box;
+    m_cache_box = local_cache_box;
 
     // Need the check below as to not try to create images with
     // negative dimensions.
@@ -207,9 +209,11 @@ namespace cartography {
     dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) )); // Bottom right
 
     m_dem_box = dbox; // cast from BBox2 to BBox2i
-    m_dem_box.expand(BicubicInterpolation::pixel_buffer + 1);
+    m_dem_box.expand(1); // to counter casting to integer
+    m_dem_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
     m_dem_box.crop(bounding_box(m_dem));
 
+    // Read the dem in memory for speed.
     m_cropped_dem = crop(m_dem, m_dem_box);
 
     if (m_has_nodata){
