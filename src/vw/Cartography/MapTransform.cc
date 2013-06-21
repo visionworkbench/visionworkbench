@@ -116,21 +116,24 @@ namespace cartography {
 
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
-    m_invalid_pix = Vector2(-1e6, -1e6); // must be large and negative
 
+    if (m_image_size != Vector2(-1, -1))
+      m_invalid_pix = Vector2(-1e6, -1e6); // for rpc_mapproject, must be large and negative
+    else
+      m_invalid_pix = Vector2(-1, -1);     // for stereo
   }
 
   vw::Vector2
   MapTransform2::reverse(const vw::Vector2 &p) const {
 
-    //To do: Use interpolation for tri!!!
-    if (p == round(p) && m_cache_box.contains(p)){
-      return m_cache(p.x() - m_cache_box.min().x(),
-                     p.y() - m_cache_box.min().y());
+    if (m_cache_box.contains(p)){
+      PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_cache_box.min().x(),
+                                                 p.y() - m_cache_box.min().y());
+      if (is_valid(v)) return v.child();
+      else             return m_invalid_pix;
     }
 
     int b = BicubicInterpolation::pixel_buffer;
-
     Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     dem_pix -= m_dem_box.min(); // since we cropped the DEM
@@ -150,9 +153,10 @@ namespace cartography {
     Vector2 pt;
     try{
       pt = m_cam->point_to_pixel(xyz);
-      if (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
-          pt[1] < b - 1 || pt[1] >= m_image_size[1] - b
-          ){
+      if ( (m_image_size != Vector2i(-1, -1)) &&
+           (pt[0] < b - 1 || pt[0] >= m_image_size[0] - b ||
+            pt[1] < b - 1 || pt[1] >= m_image_size[1] - b)
+           ){
         // Won't be able to interpolate into image in transform(...)
         return m_invalid_pix;
       }
@@ -172,11 +176,39 @@ namespace cartography {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
 
-    cache_dem( bbox );
+    if (!m_cached_rv_box.empty()) return m_cached_rv_box;
+
+    // Cache the DEM
+
+    BBox2 dbox;
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.min().y()) ) )); // Top right
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.max().y()-1) ) )); // Bottom left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) )); // Bottom right
+
+    // A lot of care is needed here when going from real box to int
+    // box, and if in doubt, better expand more rather than less.
+    dbox.expand(1);
+    m_dem_box = grow_bbox_to_int(dbox);
+    m_dem_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
+    m_dem_box.crop(bounding_box(m_dem));
+
+    // Read the dem in memory for speed.
+    m_cropped_dem = crop(m_dem, m_dem_box);
+
+    if (m_has_nodata){
+      m_masked_dem = create_mask(m_cropped_dem, m_nodata);
+    }else{
+      m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
+    }
+    m_interp_dem =
+      interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
+
+    // Cache the reverse transform
 
     m_cache_box = BBox2i();
     BBox2i local_cache_box = bbox;
-    local_cache_box.expand(BicubicInterpolation::pixel_buffer);
+    local_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
     m_cache.set_size(local_cache_box.width(), local_cache_box.height());
     vw::BBox2 out_box;
     for( int32 y=local_cache_box.min().y(); y<local_cache_box.max().y(); ++y ){
@@ -192,37 +224,16 @@ namespace cartography {
     // Must happen after all calls to reverse finished.
     m_cache_box = local_cache_box;
 
+    m_cache_interp_mask = interpolate(create_mask(m_cache, m_invalid_pix),
+                                      BicubicInterpolation(), ZeroEdgeExtension());
+
     // Need the check below as to not try to create images with
     // negative dimensions.
-    if (out_box.empty()) return vw::BBox2i(0, 0, 0, 0);
+    if (out_box.empty())
+      out_box = vw::BBox2i(0, 0, 0, 0);
 
-    return out_box;
-  }
-
-  void
-  MapTransform2::cache_dem( vw::BBox2i const& bbox ) const {
-
-    BBox2 dbox;
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.min().y()) ) )); // Top right
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.max().y()-1) ) )); // Bottom left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) )); // Bottom right
-
-    m_dem_box = dbox; // cast from BBox2 to BBox2i
-    m_dem_box.expand(1); // to counter casting to integer
-    m_dem_box.expand(BicubicInterpolation::pixel_buffer); // for interpolation
-    m_dem_box.crop(bounding_box(m_dem));
-
-    // Read the dem in memory for speed.
-    m_cropped_dem = crop(m_dem, m_dem_box);
-
-    if (m_has_nodata){
-      m_masked_dem = create_mask(m_cropped_dem, m_nodata);
-    }else{
-      m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
-    }
-    m_interp_dem =
-      interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
+    m_cached_rv_box = out_box;
+    return m_cached_rv_box;
   }
 
 }} // namespace vw::cartography
