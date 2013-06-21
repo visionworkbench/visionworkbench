@@ -773,9 +773,10 @@ namespace vw {
 
     // This constructor allows you to specify the size of the
     // transformed image.
-    TransformViewNoData( ImageT const& view, TransformT const& mapper, int32 width, int32 height,
-                         double nodata_val) :
-      m_image(view), m_mapper(mapper), m_width(width), m_height(height), m_nodata_val(nodata_val) {}
+    TransformViewNoData( ImageT const& view, TransformT const& mapper,
+                         int32 width, int32 height, double nodata_val) :
+      m_image(view), m_mapper(mapper), m_width(width), m_height(height),
+      m_nodata_val(nodata_val) {}
 
     inline int32 cols() const { return m_width; }
     inline int32 rows() const { return m_height; }
@@ -786,8 +787,7 @@ namespace vw {
     inline result_type operator()( double i, double j, int32 p=0 ) const {
       Vector2 rv = m_mapper.reverse(Vector2(i,j));
       int b = 2; // To do: This must be 1 for bilinear and 2 for bicubic
-      if (rv != rv || // NaN
-          rv[0] < b - 1 || rv[0] >= m_image.cols() - b || // out of bounds
+      if (rv[0] < b - 1 || rv[0] >= m_image.cols() - b || // out of bounds
           rv[1] < b - 1 || rv[1] >= m_image.rows() - b    // out of bounds
           ) return m_nodata_val;
       return m_image(rv[0], rv[1], p);
@@ -797,13 +797,15 @@ namespace vw {
     TransformT const& transform() const { return m_mapper; }
 
     // \cond INTERNAL
-    typedef TransformViewNoData<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
+    typedef TransformViewNoData<typename ImageT::prerasterize_type,
+                                TransformT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
-      return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height,
-                                m_nodata_val);
+      return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper,
+                                m_width, m_height, m_nodata_val);
     }
-    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {
+    template <class DestT> inline void rasterize( DestT const& dest,
+                                                  BBox2i const& bbox ) const {
       if( m_mapper.tolerance() > 0.0 ) {
         ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
         TransformViewNoData<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height, m_nodata_val );
