@@ -52,6 +52,10 @@ namespace cartography {
                                 Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 bool& has_intersection );
 
+#if 0
+  // Old buggy code to be removed at some point. Use
+  // camera_pixel_to_dem_xyz instead.
+
   // Define an LMA model to solve for a DEM intersecting a ray.
   template <class DEMImageT>
   class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
@@ -123,7 +127,7 @@ namespace cartography {
   Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
                                     ImageViewBase<DEMImageT> const& dem_image,
                                     GeoReference const& georef,
-                                    boost::shared_ptr<camera::CameraModel> camera_model,
+                                    boost::shared_ptr<camera::CameraModel> camera,
                                     bool & has_intersection
                                     ){
     has_intersection = true;
@@ -131,8 +135,8 @@ namespace cartography {
     double max_abs_tol = 1e-14, max_rel_tol = 1e-14;
     int num_max_iter = 100;
 
-    Vector3 camera_ctr = camera_model->camera_center(camera_pixel);
-    Vector3 camera_vec = camera_model->pixel_to_vector(camera_pixel);
+    Vector3 camera_ctr = camera->camera_center(camera_pixel);
+    Vector3 camera_vec = camera->pixel_to_vector(camera_pixel);
 
     // Get an initial guess from intersecting the ray with the datum.
     Vector2 projected_point = geospatial_intersect(georef, camera_ctr, camera_vec, has_intersection);
@@ -157,6 +161,8 @@ namespace cartography {
     has_intersection = true;
     return projected_point;
   }
+
+#endif
 
   // Define an LMA model to solve for a DEM intersecting a ray. The
   // variable of optimization is position on the ray. The cost
@@ -247,8 +253,8 @@ namespace cartography {
                                   ){
 
     has_intersection = false;
-    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef,
-                                           camera_ctr, camera_vec, treat_nodata_as_zero);
+    RayDEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr,
+                                           camera_vec, treat_nodata_as_zero);
 
     Vector3 xyz;
     if ( xyz_guess == Vector3() ){
@@ -356,18 +362,37 @@ namespace cartography {
       CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem_image,
                            GeoReference const& georef,
                            boost::shared_ptr<camera::CameraModel> camera,
-                           bool center=false ) : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
+                            bool center=false )
+        : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()),
+          last_valid(false), center_on_zero(center),
+          scale( std::numeric_limits<double>::max() ) {}
 
       void operator() ( Vector2 const& pixel ) {
 
         bool has_intersection;
-        Vector2 point
-          = camera_pixel_to_dem_point(pixel, m_dem, m_georef, m_camera, has_intersection);
-
+        bool treat_nodata_as_zero = true; // Intersect with datum if no dem
+        double height_error_tol = 1e-3;   // error in DEM height
+        double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
+        double max_rel_tol      = 1e-14;
+        int num_max_iter        = 100;
+        Vector3 xyz_guess       = Vector3();
+        Vector3 camera_ctr = m_camera->camera_center(pixel);
+        Vector3 camera_vec = m_camera->pixel_to_vector(pixel);
+        Vector3 xyz
+          = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
+                                     m_dem, m_georef,
+                                     treat_nodata_as_zero,
+                                     has_intersection,
+                                     height_error_tol, max_abs_tol, max_rel_tol,
+                                     num_max_iter, xyz_guess
+                                     );
         if ( !has_intersection ) {
           last_valid = false;
           return;
         }
+
+        Vector3 llh = m_georef.datum().cartesian_to_geodetic(xyz);
+        Vector2 point = m_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
 
         if (!m_georef.is_projected()){
           // If we don't use a projected coordinate system, then the
@@ -417,7 +442,7 @@ namespace cartography {
                      boost::shared_ptr<vw::camera::CameraModel> camera_model,
                      int32 cols, int32 rows, float &scale ) {
 
-    // To do: Integrate the almost identical functions camera_bbox in
+    // To do: Integrate the almost identical functions camera_bbox() in
     // CameraBBox.h and CameraBBox.cc. One of them uses a DEM and the
     // second one does not.
 
