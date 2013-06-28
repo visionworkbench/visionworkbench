@@ -765,7 +765,7 @@ namespace vw {
     TransformT m_mapper;
     int32 m_width, m_height;
     typename ImageT::pixel_type m_nodata_val;
-
+    int m_pixel_buffer;
   public:
     typedef typename ImageT::pixel_type pixel_type;
     typedef pixel_type result_type;
@@ -775,9 +775,10 @@ namespace vw {
     // transformed image.
     TransformViewNoData( ImageT const& view, TransformT const& mapper,
                          int32 width, int32 height,
-                         typename ImageT::pixel_type nodata_val) :
+                         typename ImageT::pixel_type nodata_val,
+                         int pixel_buffer) :
       m_image(view), m_mapper(mapper), m_width(width), m_height(height),
-      m_nodata_val(nodata_val) {}
+      m_nodata_val(nodata_val), m_pixel_buffer(pixel_buffer) {}
 
     inline int32 cols() const { return m_width; }
     inline int32 rows() const { return m_height; }
@@ -787,7 +788,7 @@ namespace vw {
 
     inline result_type operator()( double i, double j, int32 p=0 ) const {
       Vector2 rv = m_mapper.reverse(Vector2(i,j));
-      int b = m_image.func().pixel_buffer; // = 2 for bicubic interpolation
+      int b = m_pixel_buffer; // == 2 for bicubic interpolation
       if (rv[0] < b - 1 || rv[0] >= m_image.cols() - b || // out of bounds
           rv[1] < b - 1 || rv[1] >= m_image.rows() - b    // out of bounds
           ) return m_nodata_val;
@@ -803,13 +804,13 @@ namespace vw {
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper,
-                                m_width, m_height, m_nodata_val);
+                                m_width, m_height, m_nodata_val, m_pixel_buffer);
     }
     template <class DestT> inline void rasterize( DestT const& dest,
                                                   BBox2i const& bbox ) const {
       if( m_mapper.tolerance() > 0.0 ) {
         ApproximateTransform<TransformT> approx_transform( m_mapper, bbox );
-        TransformViewNoData<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height, m_nodata_val );
+        TransformViewNoData<ImageT, ApproximateTransform<TransformT> > approx_view( m_image, approx_transform, m_width, m_height, m_nodata_val, m_pixel_buffer );
         vw::rasterize( approx_view.prerasterize(bbox), dest, bbox );
       }
       else {
@@ -1059,7 +1060,7 @@ namespace vw {
                            typename ImageT::pixel_type nodata_val
                            ) {
     return TransformViewNoData<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
-      (interpolate(v, interp_func, edge_func), transform_func, width, height, nodata_val);
+      (interpolate(v, interp_func, edge_func), transform_func, width, height, nodata_val, interp_func.pixel_buffer);
   }
 
   // -------------------------------------------------------------------------------
