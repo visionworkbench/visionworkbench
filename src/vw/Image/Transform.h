@@ -764,7 +764,7 @@ namespace vw {
     ImageT m_image;
     TransformT m_mapper;
     int32 m_width, m_height;
-    double m_nodata_val;
+    typename ImageT::pixel_type m_nodata_val;
 
   public:
     typedef typename ImageT::pixel_type pixel_type;
@@ -774,7 +774,8 @@ namespace vw {
     // This constructor allows you to specify the size of the
     // transformed image.
     TransformViewNoData( ImageT const& view, TransformT const& mapper,
-                         int32 width, int32 height, double nodata_val) :
+                         int32 width, int32 height,
+                         typename ImageT::pixel_type nodata_val) :
       m_image(view), m_mapper(mapper), m_width(width), m_height(height),
       m_nodata_val(nodata_val) {}
 
@@ -786,7 +787,7 @@ namespace vw {
 
     inline result_type operator()( double i, double j, int32 p=0 ) const {
       Vector2 rv = m_mapper.reverse(Vector2(i,j));
-      int b = 2; // To do: This must be 1 for bilinear and 2 for bicubic
+      int b = m_image.func().pixel_buffer; // = 2 for bicubic interpolation
       if (rv[0] < b - 1 || rv[0] >= m_image.cols() - b || // out of bounds
           rv[1] < b - 1 || rv[1] >= m_image.rows() - b    // out of bounds
           ) return m_nodata_val;
@@ -1046,17 +1047,17 @@ namespace vw {
 
   // This variant of transform allows the user to specify the
   // dimensions of the transformed image and a no-data value to be
-  // used when the reverse transform returns NaN values.
+  // used when the reverse transform returns out-of range pixels.
   template <class ImageT, class TransformT, class EdgeT, class InterpT>
   TransformViewNoData<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
-  inline transform( ImageViewBase<ImageT> const& v,
-                    TransformT const& transform_func,
-                    int32 width,
-                    int32 height,
-                    EdgeT const& edge_func,
-                    InterpT const& interp_func,
-                    double nodata_val
-                    ) {
+  inline transform_nodata( ImageViewBase<ImageT> const& v,
+                           TransformT const& transform_func,
+                           int32 width,
+                           int32 height,
+                           EdgeT const& edge_func,
+                           InterpT const& interp_func,
+                           typename ImageT::pixel_type nodata_val
+                           ) {
     return TransformViewNoData<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, TransformT>
       (interpolate(v, interp_func, edge_func), transform_func, width, height, nodata_val);
   }
