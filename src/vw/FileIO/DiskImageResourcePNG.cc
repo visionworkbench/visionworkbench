@@ -287,8 +287,6 @@ struct DiskImageResourcePNG::vw_png_read_context:
     // Allocate the scanline.
     cstride = bytes_per_channel * channels;
     scanline = boost::shared_array<uint8>(new uint8[cstride * cols]);
-
-    png_start_read_image(ctx.ptr);
   }
 
   void readline()
