@@ -164,7 +164,7 @@ namespace mosaic {
           return load_tile(level, num_tiles-1, 0);
         }
         ImageView<PixelT> tile = load_tile(level, 0, num_tiles-1-y);
-        if( tile ) return rotate_180(tile);
+        if( tile.is_valid_image() ) return rotate_180(tile);
         else return tile;
       }
       if( x==num_tiles ) {
@@ -175,17 +175,17 @@ namespace mosaic {
           return load_tile(level, 0, 0);
         }
         ImageView<PixelT> tile = load_tile(level, num_tiles-1, num_tiles-1-y);
-        if( tile ) return rotate_180(tile);
+        if( tile.is_valid_image() ) return rotate_180(tile);
         else return tile;
       }
       if( y==-1 ) {
         ImageView<PixelT> tile = load_tile(level, num_tiles-1-x, 0);
-        if( tile ) return rotate_180(tile);
+        if( tile.is_valid_image() ) return rotate_180(tile);
         else return tile;
       }
       if( y==num_tiles ) {
         ImageView<PixelT> tile = load_tile(level, num_tiles-1-x, num_tiles-1);
-        if( tile ) return rotate_180(tile);
+        if( tile.is_valid_image() ) return rotate_180(tile);
         else return tile;
       }
 
@@ -278,7 +278,7 @@ namespace mosaic {
           for( int j=-1; j<3; ++j ) {
             for( int i=-1; i<3; ++i ) {
               ImageView<PixelT> child = load_tile(level+1,2*x+i,2*y+j);
-              if( child ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;
+              if( child.is_valid_image() ) crop(super,(tile_size-1)*(i+1),(tile_size-1)*(j+1),tile_size,tile_size) = child;
             }
           }
 

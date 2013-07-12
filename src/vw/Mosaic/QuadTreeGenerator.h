@@ -290,7 +290,7 @@ namespace mosaic {
             double progress = progress_callback.progress();
             SubProgressCallback spc( progress_callback, progress, progress + child_area/total_area );
             ImageView<PixelT> child = generate_branch(children[i].first, children[i].second, spc);
-            if( ! child ) continue;
+            if( ! child.is_valid_image() ) continue;
             BBox2i dst_bbox = elem_quot( children[i].second - info.region_bbox.min(), scale );
             crop(image,dst_bbox) = box_subsample( child, elem_quot(qtree->m_tile_size,dst_bbox.size()) );
           }
@@ -319,7 +319,7 @@ namespace mosaic {
         }
 
         info.filepath = qtree->m_image_path_func( *qtree, info.name );
-        if( cropped_image ) {
+        if( cropped_image.is_valid_image() ) {
           ScopedWatch sw("QuadTreeGenerator::write_tile");
           boost::shared_ptr<DstImageResource> r = qtree->m_tile_resource_func( *qtree, info, cropped_image.format() );
           write_image( *r, cropped_image );

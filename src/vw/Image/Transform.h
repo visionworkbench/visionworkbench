@@ -635,7 +635,7 @@ namespace vw {
 
     inline Vector2 reverse( Vector2 const& p ) const {
       // Fall back if the function was not approximatable.
-      if( ! m_table ) return TransformT::reverse( p );
+      if( ! m_table.is_valid_image() ) return TransformT::reverse( p );
 
       // We re-implement bilinear interpolation by hand here because for
       // some reason the BilinearInterpolation object is exceptionally

@@ -242,13 +242,7 @@ namespace vw {
       return m_origin;
     }
 
-    /// A safe bool conversion intermediate type.
-    typedef typename boost::shared_array<PixelT>::unspecified_bool_type unspecified_bool_type;
-    /// Evaluates to true in a bool context if this ImageView points
-    /// to a valid block of memory.  (It is false if e.g. the object is
-    /// default-constructed, or if reset() is called, or if set_size()
-    /// is called with zero dimensions.)
-    operator unspecified_bool_type() const {
+    bool is_valid_image() const {
       return m_data;
     }
 
