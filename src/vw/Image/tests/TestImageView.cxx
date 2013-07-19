@@ -41,14 +41,14 @@ TEST( ImageView, DefaultConstructor ) {
 
 TEST( ImageView, ColsRowsConstructor ) {
   ImageView<double> test_double(3,4);
-  ASSERT_TRUE( test_double );
+  ASSERT_TRUE( test_double.is_valid_image() );
   EXPECT_EQ(test_double.cols(), 3);
   EXPECT_EQ(test_double.rows(), 4);
   EXPECT_EQ(test_double.planes(), 1);
   ASSERT_NE(test_double.data(), (double*)0);
 
   ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
-  ASSERT_TRUE( test_rgba );
+  ASSERT_TRUE( test_rgba.is_valid_image() );
   EXPECT_EQ(test_rgba.cols(), 3);
   EXPECT_EQ(test_rgba.rows(), 4);
   EXPECT_EQ(test_rgba.planes(), 1);
@@ -57,14 +57,14 @@ TEST( ImageView, ColsRowsConstructor ) {
 
 TEST( ImageView, ColsRowsPlanesConstructor ) {
   ImageView<double> test_double(4,3,2);
-  ASSERT_TRUE( test_double );
+  ASSERT_TRUE( test_double.is_valid_image() );
   EXPECT_EQ(test_double.cols(), 4);
   EXPECT_EQ(test_double.rows(), 3);
   EXPECT_EQ(test_double.planes(), 2);
   ASSERT_NE(test_double.data(), (double*)0);
 
   ImageView<PixelRGBA<vw::uint8> > test_rgba(4,3,2);
-  ASSERT_TRUE( test_rgba );
+  ASSERT_TRUE( test_rgba.is_valid_image() );
   EXPECT_EQ(test_rgba.cols(), 4);
   EXPECT_EQ(test_rgba.rows(), 3);
   EXPECT_EQ(test_rgba.planes(), 2);
@@ -74,7 +74,7 @@ TEST( ImageView, ColsRowsPlanesConstructor ) {
 TEST( ImageView, CopyConstructor ) {
   ImageView<double> test_double(3,4);
   ImageView<double> test2_double( test_double );
-  ASSERT_TRUE( test2_double );
+  ASSERT_TRUE( test2_double.is_valid_image() );
   EXPECT_EQ(test2_double.cols(), 3);
   EXPECT_EQ(test2_double.rows(), 4);
   EXPECT_EQ(test2_double.planes(), 1);
@@ -82,7 +82,7 @@ TEST( ImageView, CopyConstructor ) {
 
   ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
   ImageView<PixelRGBA<vw::uint8> > test2_rgba( test_rgba );
-  ASSERT_TRUE( test2_rgba );
+  ASSERT_TRUE( test2_rgba.is_valid_image() );
   EXPECT_EQ(test2_rgba.cols(), 3);
   EXPECT_EQ(test2_rgba.rows(), 4);
   EXPECT_EQ(test2_rgba.planes(), 1);
@@ -91,27 +91,27 @@ TEST( ImageView, CopyConstructor ) {
 
 TEST( ImageView, SetSize ) {
   ImageView<double> test_double(3,4);
-  ASSERT_TRUE( test_double );
+  ASSERT_TRUE( test_double.is_valid_image() );
   test_double.set_size(2,3);
-  ASSERT_TRUE( test_double );
+  ASSERT_TRUE( test_double.is_valid_image() );
   EXPECT_EQ(test_double.cols(), 2);
   EXPECT_EQ(test_double.rows(), 3);
   EXPECT_EQ(test_double.planes(), 1);
   test_double.set_size(0,0);
-  ASSERT_FALSE( test_double );
+  ASSERT_FALSE( test_double.is_valid_image() );
   EXPECT_EQ(test_double.cols(), 0);
   EXPECT_EQ(test_double.rows(), 0);
   ASSERT_EQ(test_double.data(), (double*)0);
 
   ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
-  ASSERT_TRUE( test_rgba );
+  ASSERT_TRUE( test_rgba.is_valid_image() );
   test_rgba.set_size(2,3);
-  ASSERT_TRUE( test_rgba );
+  ASSERT_TRUE( test_rgba.is_valid_image() );
   EXPECT_EQ(test_rgba.cols(), 2);
   EXPECT_EQ(test_rgba.rows(), 3);
   EXPECT_EQ(test_rgba.planes(), 1);
   test_rgba.set_size(0,0);
-  ASSERT_FALSE( test_rgba );
+  ASSERT_FALSE( test_rgba.is_valid_image() );
   EXPECT_EQ(test_rgba.cols(), 0);
   EXPECT_EQ(test_rgba.rows(), 0);
   ASSERT_EQ(test_rgba.data(), (PixelRGBA<vw::uint8>*)0);
@@ -122,18 +122,18 @@ TEST( ImageView, SetSize ) {
 
 TEST( ImageView, Reset ) {
   ImageView<double> test_double(3,4);
-  ASSERT_TRUE( test_double );
+  ASSERT_TRUE( test_double.is_valid_image() );
   test_double.reset();
-  ASSERT_FALSE( test_double );
+  ASSERT_FALSE( test_double.is_valid_image() );
   EXPECT_EQ(test_double.cols(), 0);
   EXPECT_EQ(test_double.rows(), 0);
   EXPECT_EQ(test_double.planes(), 0);
   ASSERT_EQ(test_double.data(), (double*)0);
 
   ImageView<PixelRGBA<vw::uint8> > test_rgba(3,4);
-  ASSERT_TRUE( test_rgba );
+  ASSERT_TRUE( test_rgba.is_valid_image() );
   test_rgba.reset();
-  ASSERT_FALSE( test_rgba );
+  ASSERT_FALSE( test_rgba.is_valid_image() );
   EXPECT_EQ(test_rgba.cols(), 0);
   EXPECT_EQ(test_rgba.rows(), 0);
   EXPECT_EQ(test_rgba.planes(), 0);

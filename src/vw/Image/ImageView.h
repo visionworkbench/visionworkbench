@@ -243,7 +243,7 @@ namespace vw {
     }
 
     bool is_valid_image() const {
-      return m_data;
+      return !(!m_data);
     }
 
     /// Returns true if no other ImageView object is sharing
