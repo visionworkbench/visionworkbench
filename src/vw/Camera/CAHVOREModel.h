@@ -19,7 +19,7 @@
 /// \file CAHVOREModel.h
 ///
 /// This file contains the CAHVORE camera model.  This camera
-/// model is a refinement of the \ref CAHVORModel: it adds extra terms
+/// model is a refinement of the \ref vw::camera::CAHVORModel: it adds extra terms
 /// to model fisheye lenses
 ///
 #ifndef __VW_CAMERAMODEL_CAHVORE_H__

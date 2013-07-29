@@ -39,7 +39,7 @@ namespace vw
      * parent pointer is NULL.
      *
      * Note that this class is not thread-safe. As an example of how to
-     * use TreeNode<> in a multi-threaded setup, see the @FrameStore
+     * use TreeNode<> in a multi-threaded setup, see the FrameStore
      * class.
      *
      * TreeNodes can be heap, stack or statically allocated. In
@@ -61,7 +61,7 @@ namespace vw
       TreeNode * m_first_child; /**< Head of the sibling list. NULL for leave nodes. */
       /**
        * @brief Single-linked list of siblings.
-       * The list is NULL terminated. List-head is @m_first_child of the
+       * The list is NULL terminated. List-head is m_first_child of the
        * parent node.
        */
       TreeNode * m_next_sibling;
@@ -117,7 +117,7 @@ namespace vw
        * Destructor.
        * The destructor only deletes the node itself. All children are
        * marked as root nodes. For recursive deletion of the tree, see
-       * @recursive_delete().
+       * recursive_delete().
        */
       ~TreeNode() throw() {
         if (m_parent != NULL) {
@@ -142,7 +142,7 @@ namespace vw
 
       /**
        * Recursive destructor of tree.
-       * @NOTE requires heap-allocated tree!
+       * NOTE requires heap-allocated tree!
        */
       void recursive_delete() throw() {
         while (m_first_child) {
@@ -153,7 +153,7 @@ namespace vw
 
       /**
        * @brief Clone node and its offsprings.
-       * The new node is becoming a child of @param parent.
+       * The new node is becoming a child of param parent.
        * Default is NULL, which creates a new root node.
        */
       TreeNode * clone(TreeNode * parent = NULL) const {
@@ -168,17 +168,17 @@ namespace vw
 
       /**
        * @brief Clone node and its offsprings.
-       * The new node is becoming a child of @param parent.
+       * The new node is becoming a child of param parent.
        * Default is NULL, which creates a new root node.
        * The front() element of the vector is the root node of the tree.
        *
        * In this version, all nodes are appende to the provided provided
-       * @param nodes argument. You can not call delete or
+       * param nodes argument. You can not call delete or
        * recursive_delete() on any node of this vector.  Copying and
        * appending to the vector is allowed, as long as the tree stays
        * in weak order.
        *
-       * @NOTE This only works, if:
+       * \note This only works, if:
        * assert(nodes.capacity() - nodes.size() > num_offsprings())
        * also, you can not assign/copy-construct the returned vector
        * or increase it's size beyond it's capacity.
@@ -282,7 +282,7 @@ namespace vw
       }
 
       /**
-       * Predicate: returns true if this node is ancestor of the @param node.
+       * Predicate: returns true if this node is ancestor of the param node.
        */
       bool is_ancestor_of(TreeNode * node) const throw() {
         while (node) {
@@ -300,7 +300,7 @@ namespace vw
        * from the root node down to and including this node.
        *
        * This method is linear in run-time with the depth of the tree.
-       * If @param dontUpdate is given, the ancestry is not re-calculated,
+       * If param dontUpdate is given, the ancestry is not re-calculated,
        * but a reference to the previously calculated ancestry is returned.
        */
       NodeVector const& ancestry(bool dontUpdate = false) const {
@@ -404,9 +404,9 @@ namespace vw
        * @brief Tree travesal template.
        * Visits all nodes in pre-order.
        * The method accepts 3 functors as arguments.
-       * For each node @func(node) is called.
-       * Before each descend @down(node) is called.
-       * After each ascend @up(node) is called.
+       * For each node func(node) is called.
+       * Before each descend down(node) is called.
+       * After each ascend up(node) is called.
        */
       template<typename F, typename D, typename U>
       void
@@ -427,9 +427,9 @@ namespace vw
        * @brief Tree travresal template
        * Visits all nodes in post-order.
        * The method accepts 3 functors as arguments.
-       * Before each descend @down(node) is called.
-       * After each ascend @up(node) is called.
-       * For each node @func(node) is called.
+       * Before each descend down(node) is called.
+       * After each ascend up(node) is called.
+       * For each node func(node) is called.
        */
       template<typename F, typename D, typename U>
       void
@@ -450,7 +450,7 @@ namespace vw
        * Visits all nodes in breadth-first-order.
        * The method accepts 1 functors as arguments.
        * For each node of the sub-tree, including the called object,
-       * @func(node) is called.
+       * func(node) is called.
        */
       template<typename F>
       void

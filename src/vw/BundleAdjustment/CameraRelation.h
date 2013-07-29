@@ -16,20 +16,20 @@
 // __END_LICENSE__
 
 
-// Camera Relations Network
-//
-// This is not a replacement for the Control Network, but instead a
-// different approach of viewing the same data. It's optimized in a way
-// to allow for fast insertions of match data, it's great for organizing
-// jacobians right before insertion into hessians, and it also provides a
-// constant structure for handling internal variables inside of bundle
-// adjustment.
-//
-// Control Networks are still useful for providing an organized
-// manner for saving data and for interfacing with ISIS. Control Networks
-// are also easier to understand at first glance. A control network can
-// be created from a camera relations network and the opposite is also
-// true.
+/// \file CameraRelation.h Camera Relations Network
+///
+/// This is not a replacement for the Control Network, but instead a
+/// different approach of viewing the same data. It's optimized in a way
+/// to allow for fast insertions of match data, it's great for organizing
+/// jacobians right before insertion into hessians, and it also provides a
+/// constant structure for handling internal variables inside of bundle
+/// adjustment.
+///
+/// Control Networks are still useful for providing an organized
+/// manner for saving data and for interfacing with ISIS. Control Networks
+/// are also easier to understand at first glance. A control network can
+/// be created from a camera relations network and the opposite is also
+/// true.
 
 #ifndef __VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__
 #define __VW_BUNDLEADJUSTMENT_CAMERA_RELATIONS_H__
@@ -42,6 +42,10 @@
 
 namespace vw {
 namespace ba {
+
+/** \addtogroup BundleAdjustment 
+ *  @{
+ */
 
   // Feature Base
   template <class ImplT>
@@ -211,6 +215,9 @@ namespace ba {
     void read_controlnetwork( ControlNetwork const& cnet );
     void write_controlnetwork( ControlNetwork & cnet ) const;
   };
+
+
+/** @}  End group BundleAdjustment*/
 
 }}
 

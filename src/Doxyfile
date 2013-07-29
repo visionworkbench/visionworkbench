@@ -82,7 +82,7 @@ WARN_LOGFILE           =
 #---------------------------------------------------------------------------
 # configuration options related to the input files
 #---------------------------------------------------------------------------
-INPUT                  = vw vw/Core vw/Image vw/Math vw/FileIO vw/Camera vw/HDR vw/Mosaic vw/Cartography vw/GPU vw/Geometry
+INPUT                  = vw vw/BundleAdjustment vw/Camera vw/Cartography vw/Core vw/FileIO vw/Geometry vw/GPU vw/gui vw/HDR vw/Image vw/InterestPoint vw/Math vw/Mosaic vw/Plate vw/Python vw/Stereo vw/tools   
 FILE_PATTERNS          = *.h
 RECURSIVE              = NO
 EXCLUDE                =

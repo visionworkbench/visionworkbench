@@ -20,6 +20,9 @@
 ///
 /// Optimization classes for carrying out bundle adjustment of cameras.
 
+/// \defgroup BundleAdjustment
+
+
 #ifndef __VW_BUNDLE_ADJUSTMENT_H__
 #define __VW_BUNDLE_ADJUSTMENT_H__
 

@@ -40,7 +40,7 @@ namespace camera {
   /// points can be projected onto the image plane.  The CAHV model is
   /// computationally efficient, however it does not model lens
   /// distortion.  For this, its close relative the CAHVOR model
-  /// should be used.  Refer to \ref vw::camera::CAHVORModel for more
+  /// should be used.  Refer to vw::camera::CAHVORModel for more
   /// information.
   ///
   /// References:

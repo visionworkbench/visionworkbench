@@ -87,7 +87,7 @@ namespace geometry
       //! New axis value.
 //      double value;
 //    };
-    //! A vector of frame updates used in @update_frames().
+    //! A vector of frame updates used in update_frames().
 //    typedef std::vector<FrameUpdate> UpdateVector;
 
     //! @}
@@ -114,7 +114,7 @@ namespace geometry
     //! Get a copy of the frame tree.
     /**
      * The rootFrame is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      *
      * Note that the FrameTreeNodes have a completely different
      * interface than the FrameStore. FrameTreeNodes don't have
@@ -127,7 +127,7 @@ namespace geometry
     /**
      * @param frame
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      */
     std::string const& name(FrameHandle frame) const;
 
@@ -135,7 +135,7 @@ namespace geometry
     /**
      * @param frame
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      */
     std::string full_name(FrameHandle frame) const;
 
@@ -145,14 +145,14 @@ namespace geometry
      * If no extras are associated with the Frame, a NULL-pointer
      * is returned.
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      */
     Frame::Extras * get_extras(FrameHandle frame) const;
 
     /**
      * Set  extras object for Frame.
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      * The FrameStore takes ownership of the passed Extras object,
      * a NULL-pointer will delete the stored extras object.
      */
@@ -169,7 +169,7 @@ namespace geometry
      *
      * @param frame
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      */
     FrameHandle parent(FrameHandle frame) const;
 
@@ -177,7 +177,7 @@ namespace geometry
     /**
      * @param frame
      * The frame argument is required to be non-NULL, otherwise
-     * @vw::LogicErr is thrown.
+     * vw::LogicErr is thrown.
      */
     FrameHandleVector children(FrameHandle frame = NULL_HANDLE) const;
 
@@ -198,7 +198,7 @@ namespace geometry
      * not guaranteed which node is returned if multiple nodes with
      * the same name are specified at the same depth level.
      *
-     * @param sope
+     * @param scope
      * If a non-NULL scope frame is passed as second parameter, the
      * search is restricted to the sub-tree spawned by this frame.
      */
@@ -206,9 +206,9 @@ namespace geometry
 
     //! Adding a frame to the frame store.
     /**
-     * @param frame
+     * @param name
      * @param parent
-     * @param l
+     * @param p
      */
     FrameHandle add(std::string const& name, FrameHandle parent, Transform const& p);
 
@@ -225,7 +225,7 @@ namespace geometry
 
       /**
        * Merging a tree with the the frame store
-       * @param node
+       * @param tree
        * On successful merging the FrameStore takes ownership of the passed sub-tree.
        * If vw::LogicErr is thrown, the passed tree is still owned by the caller, to
        * allow forensics.
@@ -245,7 +245,7 @@ namespace geometry
 
        /**
        * Delete frame from tree.
-       * @param tree
+       * @param frame
        *
        * @param recursive If recursive is set to false, all children of
        * the frame will be added as root-frames to the FrameStore.
@@ -282,7 +282,7 @@ namespace geometry
        */
       bool is_leaf(FrameHandle frame) const;
 
-    //! Test if @frame is somewhere up in the chain of parents of @pop.
+    //! Test if frame is somewhere up in the chain of parents of pop.
     /**
      * @param frame
      * @param pop
@@ -295,32 +295,32 @@ namespace geometry
     //! @}
 
       /**
-       * Return the transform of @source expressed relative to @frame.
+       * Return the transform of source expressed relative to frame.
        * @param frame
        * @param source
        */
       Transform get_transform(FrameHandle frame, FrameHandle source);
 
       /**
-       * Return the transform @loc, which is expressed relative to @source
-       * with respect to @frame.
+       * Return the transform loc, which is expressed relative to source
+       * with respect to frame.
        * @param frame
-       * @param wrt_frame
+       * @param source
        * @param loc
        */
       Transform get_transform_of(FrameHandle frame, FrameHandle source, Transform const& loc);
 
       /**
-       * Return the position @loc, which is expressed relative to @source
-       * with respect to @frame.
+       * Return the position loc, which is expressed relative to source
+       * with respect to frame.
        * @param frame
-       * @param wrt_frame
+       * @param source
        * @param loc
        */
       Vector3 get_position_of(FrameHandle frame, FrameHandle source, Vector3 const& loc);
 
       /**
-       * Set the transform of @frame to @update, which is expressed relative to @wrt_frame.
+       * Set the transform of frame to update, which is expressed relative to wrt_frame.
        * @param frame
        * @param wrt_frame
        * @param update
@@ -328,7 +328,7 @@ namespace geometry
       void set_transform(FrameHandle frame, FrameHandle wrt_frame, Transform const& update);
 
       /**
-       * Update the transform of @frame to @loc, expressed relative to current transform.
+       * Update the transform of frame to loc, expressed relative to current transform.
        * @param frame
        * @param loc
        */

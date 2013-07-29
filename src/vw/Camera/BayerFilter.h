@@ -18,7 +18,7 @@
 
 /// \file BayerFilter.h
 ///
-/// This function performs a bayer pattern decoding of a grayscale image..
+/// This function performs a bayer pattern decoding of a grayscale image.
 ///
 #ifndef __VW_CAMERA_BAYER__
 #define __VW_CAMERA_BAYER__

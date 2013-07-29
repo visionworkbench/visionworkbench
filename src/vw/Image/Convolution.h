@@ -20,7 +20,7 @@
 ///
 /// One- and two-dimensional convolution numerical functions, and
 /// standard and separable two-dimensional image convolution view
-/// classes used by the filtering functions in \ref Filter.h.
+/// classes used by the filtering functions in \ref vw/Image/Filter.h.
 ///
 #ifndef __VW_IMAGE_CONVOLUTION_H__
 #define __VW_IMAGE_CONVOLUTION_H__

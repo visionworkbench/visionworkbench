@@ -143,7 +143,7 @@ namespace hdr {
 //       }
     }
 
-    /// \COND INTERNAL
+    /// \cond INTERNAL
     typedef HighDynamicRangeView<SrcPixelT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
 
