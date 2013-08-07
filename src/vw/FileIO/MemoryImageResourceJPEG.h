@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+/// \file MemoryImageResourceJPEG.h Manages a JPEG image in memory.
 
 #ifndef __VW_FILEIO_MEMORYIMAGERESOURCEJPEG_H__
 #define __VW_FILEIO_MEMORYIMAGERESOURCEJPEG_H__

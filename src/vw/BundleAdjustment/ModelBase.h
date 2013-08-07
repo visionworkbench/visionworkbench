@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file BundleAdjustModelBase.h
+/// \file ModelBase.h
 ///
 /// Classes used to define the bundle adjustment problem. Every
 /// program implementing BA, must implement one of these.

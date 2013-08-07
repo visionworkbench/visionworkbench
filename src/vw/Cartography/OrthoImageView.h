@@ -28,6 +28,9 @@
 
 #include <boost/shared_ptr.hpp>
 
+
+/// \file OrthoImageView.h Image view that projects a camera image onto a given digital elevation model.
+
 namespace vw {
 namespace cartography {
 

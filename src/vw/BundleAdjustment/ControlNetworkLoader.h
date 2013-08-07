@@ -27,6 +27,8 @@
 #include <boost/filesystem/operations.hpp>
 #include <boost/foreach.hpp>
 
+/// \file ControlNetworkLoader.h Functions for generating control networks
+
 namespace vw {
 namespace ba {
 

@@ -24,6 +24,9 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 
+
+/// \file MapTransform.h Used to test the validity of IP matching on map projected images.
+
 namespace vw { namespace camera{
   class CameraModel; // forward declaration
 }}

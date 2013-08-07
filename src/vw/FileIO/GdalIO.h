@@ -24,6 +24,8 @@
 #include <gdal_priv.h>
 #include <cpl_multiproc.h>
 
+/// \file GdalIO.h Shares code between the on-disk and in-memory GDAL code.
+
 namespace vw {
   class Mutex;
 

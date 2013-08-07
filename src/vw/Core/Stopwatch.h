@@ -30,9 +30,11 @@
 #include <vw/Core/Thread.h>
 #include <vw/Core/FundamentalTypes.h>
 
+/// \file Stopwatch.h Contains some simple stopwatch classes.
+
 namespace vw {
 
-  // Stopwatch measures time elapsed between calls to start() and stop()
+  /// Stopwatch measures time elapsed between calls to start() and stop()
 
   class Stopwatch {
     struct data {

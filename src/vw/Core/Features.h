@@ -16,8 +16,9 @@
 // __END_LICENSE__
 
 
-// This file contains some useful macros and definitions so they don't get
-// scattered everywhere.
+/// \file Features.h 
+///       This file contains some useful macros and definitions so they don't get
+///       scattered everywhere.
 
 #ifndef __VW_CORE_FEATURES_H__
 #define __VW_CORE_FEATURES_H__

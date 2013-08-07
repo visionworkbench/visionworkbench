@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file Exception.h
+/// \file vw/Core/Exception.h
 ///
 /// Exception classes and related functions and macros.
 ///

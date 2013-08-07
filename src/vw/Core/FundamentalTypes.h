@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file FundamentalTypes.h
+/// \file vw/Core/FundamentalTypes.h
 ///
 /// Types and traits for fundamental floating point and integral types.
 ///

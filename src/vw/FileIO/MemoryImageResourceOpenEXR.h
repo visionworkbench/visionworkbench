@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+/// \file MemoryImageResourceOpenEXR.h Manages an OpenEXR image in memory.
 
 #ifndef __VW_FILEIO_MEMORYIMAGERESOURCEOPENEXR_H__
 #define __VW_FILEIO_MEMORYIMAGERESOURCEOPENEXR_H__

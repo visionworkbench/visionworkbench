@@ -16,6 +16,8 @@
 // __END_LICENSE__
 
 
+/// \file MemoryImageResourcePNG.h Manages a PNG image in memory.
+
 #ifndef __VW_FILEIO_MEMORYIMAGERESOURCEPNG_H__
 #define __VW_FILEIO_MEMORYIMAGERESOURCEPNG_H__
 

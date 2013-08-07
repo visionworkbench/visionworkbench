@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file PinholeModel.h
+/// \file LensDistortion.h
 ///
 /// This file contains the pinhole camera model.
 ///

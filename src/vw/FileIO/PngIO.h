@@ -25,6 +25,8 @@ extern "C" {
 #include <png.h>
 }
 
+/// \file PngIO.h Shares code between the on-disk and in-memory PNG code.
+
 
 namespace vw {
 namespace fileio {

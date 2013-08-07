@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+/// \file MemoryImageResourceGDAL.h Manages a GDAL image in memory.
 
 #ifndef __VW_FILEIO_MEMORYIMAGERESOURCEGDAL_H__
 #define __VW_FILEIO_MEMORYIMAGERESOURCEGDAL_H__

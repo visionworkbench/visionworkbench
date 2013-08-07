@@ -21,6 +21,8 @@
 
 #include <vw/Image/ImageResource.h>
 
+/// \file ScanlineIO.h Abstract scanline reading interface.
+
 namespace vw {
 namespace fileio {
 namespace detail {

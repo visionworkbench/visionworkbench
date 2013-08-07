@@ -25,6 +25,8 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 
+/// \file GeoReferenceResourcePDS.h Functions to read/write a \ref vw::cartography::GeoReference from PDS.
+
 namespace vw {
 namespace cartography {
 

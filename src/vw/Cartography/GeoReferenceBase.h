@@ -23,6 +23,8 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Cartography/Datum.h>
 
+/// \file GeoReferenceBase.h Abstract base class for converting between pixel and geo coordinates.
+
 namespace vw {
 namespace cartography {
 

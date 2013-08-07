@@ -25,6 +25,8 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 
+/// \file GeoReferenceResourceGDAL.h Functions to read/write a \ref vw::cartography::GeoReference from GDAL.
+
 namespace vw {
 namespace cartography {
 

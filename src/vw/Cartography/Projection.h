@@ -19,6 +19,8 @@
 #ifndef __VW_CARTOGRAPHY_PROJECTION_H__
 #define __VW_CARTOGRAPHY_PROJECTION_H__
 
+/// \file Projection.h Multiple classes for geographic projections.
+
 namespace vw {
 namespace cartography {
 

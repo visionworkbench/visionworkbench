@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file Filter.h
+/// \file /vw/Image/Filter.h
 ///
 /// Image filtering functions and classes.
 ///

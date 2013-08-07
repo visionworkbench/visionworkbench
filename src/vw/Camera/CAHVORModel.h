@@ -19,7 +19,7 @@
 /// \file CAHVORModel.h
 ///
 /// This file contains the CAHVOR pinhole camera model.  This camera
-/// model is a refinement of the \ref CAHVModel: it adds extra terms
+/// model is a refinement of the \ref vw::camera::CAHVModel: it adds extra terms
 /// to model basic radial camera distortion.
 ///
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__

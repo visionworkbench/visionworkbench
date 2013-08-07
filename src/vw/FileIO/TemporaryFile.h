@@ -22,6 +22,8 @@
 #include <iostream>
 #include <boost/shared_ptr.hpp>
 
+/// \file TemporaryFile.h Temporary file and directory classes.
+
 namespace vw {
 
 class TemporaryFile : public std::iostream {

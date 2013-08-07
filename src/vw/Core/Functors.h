@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file Functors.h
+/// \file vw/Core/Functors.h
 ///
 /// General-purpose functors and functor support code.
 ///

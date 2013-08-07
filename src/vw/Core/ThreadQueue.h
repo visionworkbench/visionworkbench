@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file Core/Queue.h
+/// \file vw/Core/ThreadQueue.h
 ///
 /// A thread-safe queue. Uses a condition variable to avoid busy-waiting.
 ///

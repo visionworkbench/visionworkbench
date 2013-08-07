@@ -32,6 +32,8 @@
 #include <vw/Cartography/GeoReferenceDesc.pb.h>
 #endif
 
+/// \file GeoReference.h Class for converting between pixel and geo coordinates.
+
 namespace vw {
 namespace cartography {
 

@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+/// \file Exif.h Contains class for reading EXIF jpeg data
 
 // Note: The following code for parsing EXIF information in the Vision
 // Workbench camera module was adapted from JHead : the EXIF Jpeg

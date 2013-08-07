@@ -19,6 +19,8 @@
 #ifndef __VW_CARTOGRAPHY_CAMERABBOX_H__
 #define __VW_CARTOGRAPHY_CAMERABBOX_H__
 
+/// \file CameraBBox.h Contains bounding box, pixel interesection, and misc utilities.
+
 #include <vw/config.h>
 #if defined(VW_HAVE_PKG_CAMERA) && (VW_HAVE_PKG_CAMERA==1)
 
@@ -32,6 +34,7 @@
 #include <vw/Cartography/detail/BresenhamLine.h>
 
 #include <boost/shared_ptr.hpp>
+
 
 namespace vw {
 namespace cartography {

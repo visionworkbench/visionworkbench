@@ -26,6 +26,8 @@ extern "C" {
 #include <jerror.h>
 }
 
+/// \file JpegIO.h Shares code between the on-disk and in-memory JPEG code.
+
 
 namespace vw {
 namespace fileio {

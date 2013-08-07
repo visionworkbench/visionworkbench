@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \KML
+/// \file KML.h
 ///
 /// Provides support for writing Google Earth KMLs. At the moment the
 /// focus is support for placemarks.

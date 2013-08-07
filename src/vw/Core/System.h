@@ -15,9 +15,9 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-// All the Core singletons are consolidated here, to make their initialization
-// more deterministic (since some of them depend on each other)
+/// \file System.h
+/// All the Core singletons are consolidated here, to make their initialization
+/// more deterministic (since some of them depend on each other)
 
 #ifndef __VW_CORE_SYSTEM_H__
 #define __VW_CORE_SYSTEM_H__

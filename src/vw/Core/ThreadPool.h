@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file Core/ThreadsPool.h
+/// \file vw/Core/ThreadPool.h
 ///
 /// Note: All tasks need to be of the same type, but you can have a
 /// common abstract base class if you want.

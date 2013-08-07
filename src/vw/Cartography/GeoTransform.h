@@ -26,6 +26,8 @@
 #include <vw/Image/Transform.h>
 #include <vw/Cartography/GeoReference.h>
 
+/// \file GeoTransform.h Tools for converting point and images between geographic datums.
+
 namespace vw {
 namespace cartography {
 

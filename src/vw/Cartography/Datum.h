@@ -30,6 +30,9 @@
 #include <vw/Cartography/DatumDesc.pb.h>
 #endif
 
+
+/// \file Datum.h Planetary ellipsoidal coordinate system.
+
 // For an excellent discussion of the various concepts, terms, and
 // issues involved in global coordinate systems, see:
 // http://www.posc.org/Epicentre.2_2/DataModel/ExamplesofUsage/eu_cs.html

@@ -15,6 +15,8 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+/// \file ConfigParser.h Contains config parsing functions.
+
 
 #ifndef __VW_CORE_CONFIGPARSER_H__
 #define __VW_CORE_CONFIGPARSER_H__
