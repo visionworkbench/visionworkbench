@@ -27,6 +27,7 @@
 #include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/Correlation.h>
 #include <boost/foreach.hpp>
+#include <ctime>
 
 namespace vw {
 namespace stereo {
@@ -243,6 +244,11 @@ namespace stereo {
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
 
+      time_t start, end;
+      if (m_corr_timeout){
+        std::time (&start);
+      }
+
 #if VW_DEBUG_LEVEL > 0
       Stopwatch watch;
       watch.start();
@@ -352,10 +358,19 @@ namespace stereo {
                                    BBox2i(0,0,m_search_region.width()/max_upscaling+1,
                                           m_search_region.height()/max_upscaling+1)) );
 
+      // Perform correlation. Keep track of how much time elapsed
+      // since we started and stop if we estimate that doing one more
+      // image chunk will bring us over time.
+
+      // To not slow us down with timing, we use some heuristics to
+      // estimate how much time elapsed, as time to do an image chunk
+      // is proportional with image area times search range area. This
+      // is not completely accurate, so every now and then do actual
+      // timing, no more often than once in measure_spacing seconds.
       double estim_elapsed = 0.0;
       bool must_stop_now = false;
-      //Stopwatch watch;
-      //watch.start();
+      int measure_spacing = 2; // seconds
+      double prev_estim = estim_elapsed;
 
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
         if (must_stop_now) break;
@@ -385,6 +400,14 @@ namespace stereo {
             break;
           }else
             estim_elapsed += next_elapsed;
+
+          // See if it is time to actually accurately compute the time
+          if (m_corr_timeout > 0.0 && estim_elapsed - prev_estim > measure_spacing){
+            std::time (&end);
+            double diff = std::difftime(end, start);
+            estim_elapsed = diff;
+            prev_estim = estim_elapsed;
+          }
 
           crop(disparity,zone.first)
             = calc_disparity(m_cost_type,
