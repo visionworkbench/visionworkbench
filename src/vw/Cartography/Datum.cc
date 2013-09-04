@@ -16,6 +16,7 @@
 // __END_LICENSE__
 
 
+#include <boost/algorithm/string.hpp>
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
 
@@ -62,8 +63,10 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_meridian_name = "Greenwich";
   m_geocentric = false;
 
+  std::string up_name = boost::to_upper_copy(name);
+
   m_meridian_offset = 0;
-  if (name == "WGS84" || name == "WGS_1984") {
+  if (up_name == "WGS84" || up_name == "WGS_1984") {
     m_name = "WGS_1984";
     m_spheroid_name="WGS 84";
     m_semi_major_axis = 6378137.0;
@@ -72,7 +75,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "WGS72" || name == "WGS_1972") {
+  if (up_name == "WGS72" || up_name == "WGS_1972") {
     m_name="WGS_1972";
     m_spheroid_name="WGS 72";
     m_semi_major_axis = 6378135.0;
@@ -81,7 +84,8 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "NAD83" || name == "North_American_Datum_1983") {
+  if (up_name == "NAD83" ||
+      up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
     m_name="North_American_Datum_1983";
     m_spheroid_name="GRS 1980";
     m_semi_major_axis = 6378137;
@@ -90,7 +94,8 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "NAD27" || name == "North_American_Datum_1927") {
+  if (up_name == "NAD27" ||
+      up_name == boost::to_upper_copy(std::string("North_American_Datum_1927"))) {
     m_name="North_American_Datum_1927";
     m_spheroid_name="Clarke 1866";
     m_semi_major_axis = 6378206.4;
@@ -99,7 +104,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "D_MOON") {
+  if (up_name == "D_MOON") {
     m_name = "D_MOON";
     m_spheroid_name = "MOON";
     m_meridian_name = "Reference Meridian";
@@ -109,7 +114,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (name == "D_MARS") {
+  if (up_name == "D_MARS") {
     m_name = "D_MARS";
     m_spheroid_name = "MARS";
     m_meridian_name = "Reference Meridian";
@@ -345,4 +350,3 @@ std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Da
      << "  at " << datum.meridian_offset();
   return os;
 }
-
