@@ -68,6 +68,33 @@ namespace cartography {
     vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
   }
 
+  bool read_header_string( ImageResource const& resource, std::string const& str_name,
+                           std::string & str_val ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+    DiskImageResourceGDAL const* gdal =
+      dynamic_cast<DiskImageResourceGDAL const*>( &resource );
+    if ( gdal ) return read_gdal_string( *gdal, str_name, str_val );
+#endif
+    // DiskImageResourcePDS is currently read-only, so we don't bother
+    // checking for it.
+    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+  }
+
+  void write_header_string( ImageResource& resource, std::string const& str_name,
+                            std::string const& str_val ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+    DiskImageResourceGDAL* gdal =
+      dynamic_cast<DiskImageResourceGDAL*>( &resource );
+    if ( gdal ) write_gdal_string( *gdal, str_name, str_val );
+    return;
+#endif
+    // DiskImageResourcePDS is currently read-only, so we don't bother
+    // checking for it.
+    vw_throw(NoImplErr() << "This image resource does not support writing georeferencing information.");
+  }
+
   std::string GeoReference::proj4_str() const {
     return m_proj_projection_str;
   }

@@ -254,6 +254,14 @@ namespace cartography {
     write_image( *r, image, progress_callback );
   }
 
+  /// A function to read a string with given name from geotiff header
+  bool read_header_string( ImageResource const& resource, std::string const& str_name,
+                           std::string & str_val );
+
+  /// A function to write a a string with given name and value to geotiff header
+  void write_header_string( ImageResource& resource, std::string const& str_name,
+                            std::string const& str_val );
+
   /// The following namespace contains functions that return GeoReferences
   /// for certain well-known output styles, such as KML (and related
   /// functions involved in doing so).

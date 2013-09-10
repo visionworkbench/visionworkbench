@@ -149,4 +149,39 @@ namespace cartography {
       dataset->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_POINT);
   }
 
+  bool read_gdal_string( DiskImageResourceGDAL const& resource,
+                         std::string const& str_name,
+                         std::string & str_val ) {
+
+    boost::shared_ptr<GDALDataset>dataset = resource.get_dataset_ptr();
+    if (!dataset)
+      vw_throw( LogicErr() << "read_gdal_string: Could not read string. "
+                << "No file has been opened." );
+
+    char **metadata = dataset->GetMetadata();
+    if( CSLCount(metadata) > 0 ) {
+      for( int i = 0; metadata[i] != NULL; i++ ) {
+        std::vector<std::string> split_vec;
+        boost::split(split_vec, metadata[i], boost::is_any_of("=") );
+        if (split_vec[0] == str_name && split_vec.size() >= 2){
+          str_val = split_vec[1];
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  void write_gdal_string( DiskImageResourceGDAL& resource,
+                          std::string const& str_name,
+                          std::string const& str_val ) {
+
+    boost::shared_ptr<GDALDataset> dataset = resource.get_dataset_ptr();
+    if (!dataset)
+      vw_throw( LogicErr() << "write_gdal_string: Could not write string. "
+                << "No file has been opened." );
+
+    dataset->SetMetadataItem(str_name.c_str(), str_val.c_str());
+  }
+
 }} // namespace vw::cartography
