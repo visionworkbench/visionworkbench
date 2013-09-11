@@ -344,7 +344,23 @@ namespace vw {
     m_filename = filename;
     m_format = format;
     m_blocksize = block_size;
+
     m_options = user_options;
+
+    // Use predictor 3 for compression of float/double, and predictor
+    // 2 for integers, except whose size is one byte, as for those
+    // compression makes things worse.
+    if (format.channel_type == VW_CHANNEL_FLOAT32 ||
+        format.channel_type == VW_CHANNEL_FLOAT64){
+      m_options["PREDICTOR"] = "3";
+    }else if (format.channel_type == VW_CHANNEL_INT16  ||
+              format.channel_type == VW_CHANNEL_UINT16 ||
+              format.channel_type == VW_CHANNEL_INT32  ||
+              format.channel_type == VW_CHANNEL_UINT32 ||
+              format.channel_type == VW_CHANNEL_INT64  ||
+              format.channel_type == VW_CHANNEL_UINT64){
+      m_options["PREDICTOR"] = "2";
+    }
 
     Mutex::Lock lock(d::gdal());
     initialize_write_resource_locked();
