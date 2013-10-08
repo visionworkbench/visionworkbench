@@ -74,10 +74,8 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
   }
 
   if ( m_size > m_max_size ) {
-    VW_OUT(WarningMessage, "console") << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current size = " << m_size << "\n";
     VW_OUT(WarningMessage, "cache")   << "Cached object (" << size << ") larger than requested maximum cache size (" << m_max_size << "). Current size = " << m_size << "\n";
   }
-
 }
 
 void vw::Cache::resize( size_t size ) {
