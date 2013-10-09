@@ -41,6 +41,18 @@ namespace math {
     return Vector3(phi, omega, kappa);
   }
 
+  // Returns: A Vector3 containing the euler angles [phi, omega, kappa] inline
+  template <class MatrixT>
+  inline Vector3 rotation_matrix_to_euler_zyx( MatrixBase<MatrixT> const& m ) {
+    VW_ASSERT( m.impl().cols() == 3 && m.impl().rows() == 3,
+               ArgumentErr() << "Matrix must have dimensions 3x3." );
+    double omega = asin ( m.impl()(0,2)); // y
+    double kappa = atan2(-m.impl()(0,1),m.impl()(0,0)); // z
+    double phi   = atan2(-m.impl()(1,2),m.impl()(2,2)); // x
+
+    return Vector3(kappa, omega, phi);
+  }
+
   // Returns: A Vector3 containing the euler angles [phi, omega, kappa]
   template <class MatrixT>
   inline Vector3 rotation_matrix_to_euler_yxz(MatrixBase<MatrixT> const& m) {
