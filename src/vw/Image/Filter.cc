@@ -25,3 +25,14 @@
 #pragma warning(disable:4267)
 #pragma warning(disable:4996)
 #endif
+
+#include <vw/Image/Filter.h>
+
+/// Compute the kernel size for given sigma 
+int vw::compute_kernel_size(double sigma){
+  // This function is used outside of vw::generate_gaussian_kernel as well.
+  int size = (int32)(7*sigma);
+  if( size<3 ) size = 3;
+  else if( size%2==0 ) size -= 1;
+  return size;
+}

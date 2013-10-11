@@ -41,11 +41,8 @@ void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, i
     kernel.clear();
     return;
   }
-  if( size == 0 ) {
-    size = (int32)(7*sigma);
-    if( size<3 ) size = 3;
-    else if( size%2==0 ) size -= 1;
-  }
+  if( size == 0 ) 
+    size = vw::compute_kernel_size(sigma);
   kernel.resize( size );
 
   int32 center = size / 2;

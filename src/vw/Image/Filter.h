@@ -49,6 +49,9 @@ namespace vw {
     typedef typename boost::mpl::if_< boost::is_same<typename PixelChannelType<PixelT>::type, double>, double, float >::type type;
   };
 
+  /// Compute the kernel size for given sigma 
+  int compute_kernel_size(double sigma);
+  
   /// Computes a Gaussian kernel.
   template <class KernelT>
   void generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int32 size=0 );
