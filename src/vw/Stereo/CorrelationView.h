@@ -421,8 +421,7 @@ namespace stereo {
             double next_elapsed = m_seconds_per_op
               * search_volume(SearchParam(right_region, zone.second));
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-              vw_out() << "Tile: " << bbox << " reached timeout: " << m_corr_timeout
-                       << std::endl;
+              vw_out() << "Tile: " << bbox << " approximately reached timeout: " << m_corr_timeout << ". Will stop processing it further." << std::endl;
               must_stop_now = true;
               break;
             }else{
