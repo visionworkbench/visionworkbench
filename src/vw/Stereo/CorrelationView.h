@@ -309,6 +309,13 @@ namespace stereo {
           // Mean pixel value will throw an argument error if there
           // are no valid pixels. If that happens, it means either the
           // left or the right image is full masked.
+#if VW_DEBUG_LEVEL > 0
+          watch.stop();
+          double elapsed = watch.elapsed_seconds();
+          vw_out(DebugMessage,"stereo")
+            << "Tile " << bbox << " has no data. Processed in "
+            << elapsed << " s\n";
+#endif
           return prerasterize_type(ImageView<pixel_type>(bbox.width(),
                                                          bbox.height()),
                                    -bbox.min().x(), -bbox.min().y(),
