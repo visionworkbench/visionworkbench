@@ -117,8 +117,8 @@ namespace stereo {
         stereo::cross_corr_consistency_check( result, rl_result,
                                               m_consistency_threshold, false );
       }
-      VW_DEBUG_ASSERT( bbox.size() == bounding_box(result).size(),
-                       MathErr() << "CorrelationView::prerasterize got a bad return from best_of_search_convolution." );
+      VW_ASSERT( bbox.size() == bounding_box(result).size(),
+                 MathErr() << "CorrelationView::prerasterize got a bad return from best_of_search_convolution." );
 
       // 5.) Convert back to original coordinates
       result += pixel_type(m_search_region.min());
@@ -380,7 +380,6 @@ namespace stereo {
       double prev_estim = estim_elapsed;
 
       for ( int32 level = max_pyramid_levels; level >= 0; --level) {
-        if (must_stop_now) break;
 
         int32 scaling = 1 << level;
         disparity.set_size( left_mask_pyramid[level] );
@@ -526,8 +525,8 @@ namespace stereo {
         }
       }
 
-      VW_DEBUG_ASSERT( bbox.size() == bounding_box(disparity).size(),
-                       MathErr() << "PyramidCorrelation: Solved disparity doesn't match requested bbox size." );
+      VW_ASSERT( bbox.size() == bounding_box(disparity).size(),
+                 MathErr() << "PyramidCorrelation: Solved disparity doesn't match requested bbox size." );
 
 #if VW_DEBUG_LEVEL > 0
       watch.stop();
