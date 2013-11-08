@@ -33,24 +33,24 @@ namespace vw { namespace cartography {
 
     if ( dem_rsrc->has_nodata_read() )
       m_point_cloud =
-        geo_transform(
-                      geodetic_to_cartesian(
-                                            dem_to_geodetic( create_mask( m_dem, dem_rsrc->nodata_read()),
-                                                             m_dem_georef ), m_dem_georef.datum() ),
-                      m_dem_georef, m_image_georef,
-                      ValueEdgeExtension<Vector3>( Vector3() ),
-                      BicubicInterpolation());
+        geo_transform
+        (geodetic_to_cartesian
+         (dem_to_geodetic( create_mask( m_dem, dem_rsrc->nodata_read()),
+                           m_dem_georef ), m_dem_georef.datum() ),
+         m_dem_georef, m_image_georef,
+         ValueEdgeExtension<Vector3>( Vector3() ),
+         BicubicInterpolation());
     else
       m_point_cloud =
-        geo_transform(
-                      geodetic_to_cartesian(
-                                            dem_to_geodetic( m_dem, m_dem_georef ),
-                                            m_dem_georef.datum() ),
-                      m_dem_georef, m_image_georef,
-                      ValueEdgeExtension<Vector3>( Vector3() ),
-                      BicubicInterpolation());
+        geo_transform
+        (geodetic_to_cartesian
+         (dem_to_geodetic( m_dem, m_dem_georef ),
+          m_dem_georef.datum() ),
+         m_dem_georef, m_image_georef,
+         ValueEdgeExtension<Vector3>( Vector3() ),
+         BicubicInterpolation());
   }
-
+  
   vw::Vector2
   MapTransform::reverse(const vw::Vector2 &p) const {
 
