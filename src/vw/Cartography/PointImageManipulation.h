@@ -45,7 +45,7 @@ namespace cartography {
 
     Vector3 operator()(Vector2 const& loc, PixelT alt) const {
       if (is_transparent(alt))
-        return Vector3();
+        return Vector3(0,0,std::numeric_limits<double>::quiet_NaN());
 
       Vector3 result;
       subvector(result, 0, 2) = m_georef.pixel_to_lonlat(loc);
