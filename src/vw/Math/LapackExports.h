@@ -20,6 +20,7 @@
 #define __VW_MATH_LAPACK_EXPORTS_H__
 
 #include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 /// Numerical linear algebra and computational geometry.

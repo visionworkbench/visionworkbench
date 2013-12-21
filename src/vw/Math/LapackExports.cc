@@ -17,8 +17,8 @@
 
 
 #include <vw/Math/LapackExports.h>
-#include <vw/Core/Exception.h>
 #include <vw/Core/Debugging.h>
+#include <vw/Core/Exception.h>
 
 #define CHECK() vw::math::detail::_check_info(info, VW_CURRENT_FUNCTION, __FILE__, __LINE__)
 

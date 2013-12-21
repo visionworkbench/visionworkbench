@@ -25,6 +25,7 @@ using namespace vw;
 #include <boost/program_options.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
+#include <boost/foreach.hpp>
 namespace po = boost::program_options;
 
 // Function for highlighting spots of data

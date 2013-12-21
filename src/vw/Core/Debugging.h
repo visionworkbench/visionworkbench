@@ -25,7 +25,6 @@
 
 #include <vw/Core/Log.h>
 
-#include <sys/_structs.h>
 #include <string>
 
 #include <boost/current_function.hpp>
