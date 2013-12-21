@@ -16,23 +16,31 @@
 // __END_LICENSE__
 
 
-#include <vw/FileIO/TemporaryFile.h>
+#include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Settings.h>
+#include <vw/Core/System.h>
+#include <vw/FileIO/TemporaryFile.h>
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <cerrno>
-
-namespace fs = boost::filesystem;
 
 #ifdef VW_HAVE_UNISTD_H
 #  include <unistd.h>
 #endif
+#include <istream>
+#include <stddef.h>
+#include <stdio.h>
+#include <string>
 
 #ifdef WIN32
 #  define access _access
 #endif
+
+#include <boost/filesystem/operations.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path_traits.hpp>
+
+namespace fs = boost::filesystem;
 
 using namespace std;
 using namespace vw;

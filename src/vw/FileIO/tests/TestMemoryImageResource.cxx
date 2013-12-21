@@ -17,19 +17,23 @@
 
 
 #include <test/Helpers.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/Filter.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/ImageResource.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Image/UtilityViews.h>
 #include <vw/FileIO/MemoryImageResource.h>
 #include <vw/FileIO/DiskImageResource.h>
-#include <vw/Image/ImageView.h>
-#include <vw/Image/ViewImageResource.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/ImageIO.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/UtilityViews.h>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/random/linear_congruential.hpp>
+
 #include <fstream>
+
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/path_traits.hpp>
+#include <boost/random/linear_congruential.hpp>
+
 
 namespace fs = boost::filesystem;
 using namespace vw;

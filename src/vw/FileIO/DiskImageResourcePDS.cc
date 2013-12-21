@@ -24,18 +24,18 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vector>
-#include <string>
-
-#include <cstring> // For memset()
-
-#include <boost/algorithm/string.hpp>
-using namespace boost;
-
 #include <vw/Core/Exception.h>
-#include <vw/Core/Debugging.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
 
+#include <vector>
+#include <string>
+#include <cstring> // For memset()
+
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
+using namespace boost;
 
 static bool cpu_is_big_endian() {
 #if VW_BYTE_ORDER == VW_BIG_ENDIAN

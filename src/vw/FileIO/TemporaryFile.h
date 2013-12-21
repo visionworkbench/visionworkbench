@@ -20,7 +20,7 @@
 #define __VW_CORE_TEMPORARYFILE_H__
 
 #include <iostream>
-#include <boost/shared_ptr.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 /// \file TemporaryFile.h Temporary file and directory classes.
 

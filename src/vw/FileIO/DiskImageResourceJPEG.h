@@ -23,12 +23,12 @@
 #ifndef __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 #define __VW_FILEIO_DISK_IMAGE_RESOUCE_JPEG_H__
 
-#include <cstdio>
-#include <string>
-#include <boost/shared_ptr.hpp>
-
 #include <vw/FileIO/DiskImageResource.h>
 
+#include <cstdio>
+#include <string>
+
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
 

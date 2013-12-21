@@ -18,6 +18,7 @@
 
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/FileIO/DiskImageResource.h>

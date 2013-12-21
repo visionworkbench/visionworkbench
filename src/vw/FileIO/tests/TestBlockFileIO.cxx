@@ -18,18 +18,25 @@
 
 // TestBlockFileIO.h
 #include <gtest/gtest_VW.h>
+#include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Math/BBox.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <test/Helpers.h>
 
-#include <boost/scoped_ptr.hpp>
 #include <string>
+
+#include <boost/scoped_ptr.hpp>
+#include <boost/filesystem/path_traits.hpp>
+namespace fs = boost::filesystem;
 
 using namespace vw;
 using namespace vw::test;
-
-#include <boost/filesystem/path.hpp>
-namespace fs = boost::filesystem;
 
 static void test_read_crop(const std::string& input, const UnlinkName& output) {
   boost::scoped_ptr<DiskImageResource> dir;

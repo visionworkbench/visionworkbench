@@ -27,17 +27,17 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <vector>
-#include <fstream>
-#include <cstdio>
+#include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/BBox.h>
+#include <vw/FileIO/DiskImageResourcePBM.h>
 
-#include <boost/scoped_array.hpp>
-#include <boost/algorithm/string.hpp>
+#include <fstream>
+
+#include <boost/smart_ptr/scoped_array.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 using namespace boost;
 
-#include <vw/Core/Exception.h>
-#include <vw/Core/Debugging.h>
-#include <vw/FileIO/DiskImageResourcePBM.h>
 
 using namespace vw;
 using std::fstream;

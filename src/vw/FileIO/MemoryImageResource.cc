@@ -35,12 +35,14 @@
 #  include <vw/FileIO/MemoryImageResourceOpenEXR.h>
 #endif
 
+#include <map>
+
 #include <boost/assign/list_of.hpp>
 #include <boost/lambda/construct.hpp>
 #include <boost/function.hpp>
-#include <boost/algorithm/string.hpp>
-#include <map>
-
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 namespace {
   typedef boost::function<vw::SrcMemoryImageResource*(const boost::shared_array<const vw::uint8>, size_t)> open_func;

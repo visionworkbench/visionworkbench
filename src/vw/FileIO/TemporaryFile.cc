@@ -17,14 +17,17 @@
 
 
 #include <vw/FileIO/TemporaryFile.h>
+#include <vw/config.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>
-#include <boost/scoped_array.hpp>
-#include <boost/filesystem/convenience.hpp>
+#include <vw/Core/System.h>
+
 #include <cerrno>
 #include <cstring>
-#include <vw/config.h>
+
+#include <boost/smart_ptr/scoped_array.hpp>
+#include <boost/filesystem/convenience.hpp>
 
 namespace fs = boost::filesystem;
 

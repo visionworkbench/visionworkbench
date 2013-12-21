@@ -24,12 +24,10 @@
 #define __VW_FILEIO_DISKIMAGERESOURCEPNG_H__
 
 #include <vw/config.h>
-
-#include <string>
-#include <fstream>
-#include <boost/shared_ptr.hpp>
-
 #include <vw/FileIO/DiskImageResource.h>
+#include <string>
+#include <vector>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
 

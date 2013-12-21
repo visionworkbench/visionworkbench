@@ -19,7 +19,6 @@
 #include <vw/FileIO/PngIO.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
-#include <vw/Core/Settings.h>
 
 static void png_error_handler(png_structp /*png_ptr*/, png_const_charp error_msg)
 {

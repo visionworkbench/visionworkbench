@@ -19,12 +19,13 @@
 #ifndef __VW_FILEIO_GDALIO_H__
 #define __VW_FILEIO_GDALIO_H__
 
+#include <vw/Core/Features.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/FileIO/ScanlineIO.h>
 
-#include <gdal_priv.h>
-#include <cpl_multiproc.h>
-
 /// \file GdalIO.h Shares code between the on-disk and in-memory GDAL code.
+class GDALDataset;
+class GDALDriver;
 
 namespace vw {
   class Mutex;

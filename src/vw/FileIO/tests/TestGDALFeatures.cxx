@@ -17,10 +17,11 @@
 
 
 #include <gtest/gtest_VW.h>
-#include <vw/FileIO.h>
-#include <vw/Image/ImageView.h>
 #include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageView.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <test/Helpers.h>
+#include <vw/config.h>
 
 using namespace vw;
 using namespace vw::test;

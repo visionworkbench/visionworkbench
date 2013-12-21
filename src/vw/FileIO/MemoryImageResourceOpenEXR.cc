@@ -19,14 +19,23 @@
 #include <vw/FileIO/MemoryImageResourceOpenEXR.h>
 #include <vw/Core/Debugging.h>
 
-#include <ImfInt64.h>
+#include <iostream>
+#include <string.h>
+#include <algorithm>
+#include <string>
+#include <vector>
+
+#include <ImathBox.h>
+#include <ImathInt64.h>
+#include <ImathVec.h>
+#include <ImfFrameBuffer.h>
+#include <ImfHeader.h>
+#include <ImfPixelType.h>
 #include <ImfInputFile.h>
 #include <ImfOutputFile.h>
 #include <ImfIO.h>
-#include <ImfArray.h>
 #include <ImfChannelList.h>
-#include <sstream>
-#include <iostream>
+
 
 using namespace vw;
 

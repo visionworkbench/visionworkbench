@@ -29,21 +29,24 @@
 #endif
 
 #include <vw/config.h>
-#include <iostream>
+
 #ifdef VW_HAVE_PKG_GDAL
 
+#include <vw/Core/Exception.h>
+#include <vw/Core/Thread.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/GdalIO.h>
 
 #include <list>
-#include <vw/Core/Exception.h>
-#include <vw/Core/Thread.h>
-#include <vw/Image/PixelTypes.h>
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem/convenience.hpp>
 #include <boost/foreach.hpp>
-namespace fs = boost::filesystem;
 
+#include <gdal.h>
+#include <gdal_priv.h>
+
+namespace fs = boost::filesystem;
 namespace d = vw::fileio::detail;
 
 namespace {

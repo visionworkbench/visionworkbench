@@ -15,10 +15,15 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <vw/FileIO/GdalIO.h>
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
+#include <vw/FileIO/GdalIO.h>
+
+#include <cpl_multiproc.h>
+#include <gdal.h>
+#include <gdal_priv.h>
+
+#include <boost/algorithm/string/replace.hpp>
 
 static void CPL_STDCALL gdal_error_handler(CPLErr eErrClass, int nError, const char *pszErrorMsg) {
   vw::MessageLevel lvl;

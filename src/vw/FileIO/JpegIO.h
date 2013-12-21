@@ -23,7 +23,6 @@
 
 extern "C" {
 #include <jpeglib.h>
-#include <jerror.h>
 }
 
 /// \file JpegIO.h Shares code between the on-disk and in-memory JPEG code.

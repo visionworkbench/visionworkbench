@@ -18,11 +18,25 @@
 
 // TestDiskImageResource.h
 #include <gtest/gtest_VW.h>
-#include <vw/FileIO.h>
-#include <vw/FileIO/DiskImageResource_internal.h>
+#include <vw/config.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
-#include <vw/config.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/PixelMath.h>
+#include <vw/Image/PixelTypeInfo.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+#include <vw/FileIO/DiskImageResourceJPEG.h>
+#include <vw/FileIO/DiskImageResourceOpenEXR.h>
+#include <vw/FileIO/DiskImageResourcePBM.h>
+#include <vw/FileIO/DiskImageResourcePDS.h>
+#include <vw/FileIO/DiskImageResourcePNG.h>
+#include <vw/FileIO/DiskImageResource_internal.h>
+
+#include <ostream>
+#include <string>
+#include <vector>
+
 #include <test/Helpers.h>
 
 using namespace vw;

@@ -20,6 +20,11 @@
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
 
+extern "C" {
+#include <jpeglib.h>
+#include <jerror.h>
+}
+
 static void vw_jpeg_error_exit(j_common_ptr cinfo) {
   char buffer[JMSG_LENGTH_MAX];
   (*cinfo->err->format_message)(cinfo, buffer);

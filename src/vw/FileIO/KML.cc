@@ -25,7 +25,6 @@
 #include <iomanip>
 #include <vw/FileIO/KML.h>
 #include <vw/Math/EulerAngles.h>
-#include <vw/Cartography/SimplePointImageManipulation.h>
 
 namespace fs = boost::filesystem;
 

@@ -31,8 +31,7 @@
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/Core/Exception.h>
 
-#include <vector>
-#include <boost/scoped_array.hpp>
+#include <boost/smart_ptr/scoped_array.hpp>
 
 using namespace vw;
 

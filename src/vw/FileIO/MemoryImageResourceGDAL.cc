@@ -19,7 +19,10 @@
 #include <vw/FileIO/MemoryImageResourceGDAL.h>
 #include <vw/FileIO/GdalIO.h>
 #include <vw/Core/Debugging.h>
+
 #include <boost/format.hpp>
+#include <gdal.h>
+#include <gdal_priv.h>
 
 namespace {
   std::string make_fn(const char* name, const void* key) {

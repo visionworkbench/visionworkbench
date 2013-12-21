@@ -32,7 +32,6 @@
 #include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
-#include <vw/Image/Manipulation.h>
 
 #include <png.h>
 #include <vector>
