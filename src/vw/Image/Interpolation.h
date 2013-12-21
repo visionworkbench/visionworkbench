@@ -29,14 +29,13 @@
 #ifndef __VW_IMAGE_INTERPOLATION_H__
 #define __VW_IMAGE_INTERPOLATION_H__
 
-#include <boost/type_traits.hpp>
-#include <boost/mpl/logical.hpp>
-#include <boost/utility/enable_if.hpp>
-
 #include <vw/Image/ImageView.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/SparseImageCheck.h>
+
+#include <boost/mpl/if.hpp>
+#include <boost/type_traits/remove_reference.hpp>
 
 namespace vw {
 

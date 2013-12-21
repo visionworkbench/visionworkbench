@@ -18,8 +18,11 @@
 
 #include <gtest/gtest_VW.h>
 
+#include <vw/Core/Functors.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/BBox.h>
 #include <vw/Image/ImageResource.h>
-#include <vw/Image/ImageResourceImpl.h>
+#include <vw/Image/ImageResourceStream.h>
 #include <vw/Image/PixelTypeInfo.h>
 #include <vw/Image/PixelTypes.h>
 
@@ -30,7 +33,6 @@
 #endif
 
 #include <boost/iostreams/device/array.hpp>
-#include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/stream.hpp>
 namespace io = boost::iostreams;
 

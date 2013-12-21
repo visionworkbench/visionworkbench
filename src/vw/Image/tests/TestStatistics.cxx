@@ -19,7 +19,6 @@
 // Image/tests/TestStatistics.h
 #include <gtest/gtest_VW.h>
 
-#include <vw/Core/Stopwatch.h>
 #include <vw/Image/Statistics.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>

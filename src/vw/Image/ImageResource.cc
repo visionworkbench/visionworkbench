@@ -20,22 +20,23 @@
 ///
 /// Defines a run-type-typed image buffer.
 ///
+#include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/BBox.h>
+#include <vw/Image/ImageResource.h>
+
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
 #pragma warning(disable:4996)
 #include <vector>
 #endif
-
 #include <map>
+#include <cmath>
 
 #include <boost/integer_traits.hpp>
-
-#include <vw/Core/Debugging.h>
-#include <vw/Image/PixelTypes.h>
-#include <vw/Image/ImageResource.h>
-
-#include <cmath>
+#include <boost/smart_ptr/scoped_array.hpp>
+#include <boost/smart_ptr/shared_array.hpp>
 
 using namespace vw;
 

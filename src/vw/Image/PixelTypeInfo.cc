@@ -20,10 +20,11 @@
 ///
 /// Functions that return information about types by ID.
 ///
-#include <vw/Image/PixelTypeInfo.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Image/PixelTypeInfo.h>
 
-#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/case_conv.hpp>
 
 bool vw::simple_conversion(vw::ChannelTypeEnum a, vw::ChannelTypeEnum b) {
   if (a == b)

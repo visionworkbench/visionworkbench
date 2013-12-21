@@ -27,13 +27,13 @@
 #ifndef __VW_IMAGE_FILTER_H__
 #define __VW_IMAGE_FILTER_H__
 
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Convolution.h>
+
 #include <vector>
 
 #include <boost/type_traits.hpp>
-#include <boost/mpl/logical.hpp>
-
-#include <vw/Image/ImageView.h>
-#include <vw/Image/Convolution.h>
+#include <boost/mpl/if.hpp>
 
 namespace vw {
 

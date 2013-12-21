@@ -23,7 +23,7 @@
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PixelTypes.h>
-#include <vw/Image/Algorithms.h>
+#include <vw/Image/AlgorithmFunctions.h>
 #include <test/Helpers.h>
 
 using namespace vw;

@@ -24,15 +24,18 @@
 #ifndef __VW_IMAGE_PIXELTYPEINFO_H__
 #define __VW_IMAGE_PIXELTYPEINFO_H__
 
-#include <complex>
-#include <boost/integer_traits.hpp>
-#include <boost/utility/enable_if.hpp>
-#include <boost/mpl/if.hpp>
-
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/CompoundTypes.h>
 #include <vw/Core/Functors.h>
 #include <vw/Math/Functions.h>
+
+#include <complex>
+
+#include <boost/integer_traits.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/type_traits/is_floating_point.hpp>
+#include <boost/type_traits/is_same.hpp>
+#include <boost/utility/enable_if.hpp>
 
 namespace vw {
 

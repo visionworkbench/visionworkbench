@@ -17,13 +17,20 @@
 
 
 // TestEdgeExtension.h
-#include <gtest/gtest_VW.h>
+#include <gtest/gtest_VW.h>             // for EXPECT_EQ, ASSERT_TRUE, etc
+#include <vw/Core/FundamentalTypes.h>   // for int32, true_type
+#include <vw/Math/BBox.h>               // for BBox2i
+#include <vw/Math/Vector.h>             // for Vector
+#include <vw/Image/ImageViewBase.h>     // for IsMultiplyAccessible, etc
+#include <vw/Image/PixelAccessors.h>    // for ProceduralPixelAccessor
+#include <vw/Image/EdgeExtension.h>     // for EdgeExtensionView, etc
+#include <vw/Image/ImageView.h>         // for ImageView
 
-#include <vw/Image/ImageView.h>
-#include <vw/Image/EdgeExtension.h>
+#include <algorithm>                    // for min, max
+#include <new>                          // for operator new[]
 
-#include <boost/utility/result_of.hpp>
-#include <boost/type_traits.hpp>
+#include "boost/mpl/bool.hpp"           // for bool_<>::value
+#include "boost/type_traits/is_same.hpp"  // for is_same
 
 using namespace vw;
 

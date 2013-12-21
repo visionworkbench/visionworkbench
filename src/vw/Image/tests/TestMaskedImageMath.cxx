@@ -15,9 +15,19 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <vw/Image.h>
 #include <test/Helpers.h>
+#include <vw/Core/CompoundTypes.h>      // for CompoundNumChannels, etc
+#include <vw/Core/FundamentalTypes.h>   // for uint8
+#include <vw/Math/Vector.h>             // for operator==, Vector2f, etc
+#include <vw/Image/ImageMath.h>         // for operator*, operator+, etc
+#include <vw/Image/ImageView.h>         // for ImageView
+#include <vw/Image/Manipulation.h>      // for copy
+#include <vw/Image/PixelMask.h>         // for is_valid, IsMasked, etc
+#include <vw/Image/PixelMath.h>         // for operator*, operator+, etc
+#include <vw/Image/PixelTypeInfo.h>     // for PixelChannelType
+#include <vw/Image/PixelTypes.h>        // for operator<<, etc
+
+#include <boost/utility/enable_if.hpp>  // for disable_if, enable_if
 
 using namespace vw;
 using boost::enable_if;

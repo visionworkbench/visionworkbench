@@ -20,12 +20,13 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Manipulation.h>
-
 #include <vw/Image/PixelMask.h>
-#include <vw/Image/MaskViews.h>
+
+#include <boost/type_traits/is_same.hpp>
 
 using namespace vw;
 
