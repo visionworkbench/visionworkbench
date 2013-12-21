@@ -24,7 +24,7 @@ if MAKE_MODULE_MATH
 
 if HAVE_PKG_LAPACK
 lapack_headers = LinearAlgebra.h LevenbergMarquardt.h Geometry.h PoseEstimation.h LapackExports.h
-lapack_sources = LapackExports.cc
+lapack_sources = LapackExports.cc Geometry.cc
 endif
 
 if HAVE_PKG_FLANN

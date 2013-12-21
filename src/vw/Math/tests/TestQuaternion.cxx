@@ -15,12 +15,11 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <cmath>
-#include <ctime>
-#include <cstdlib>
 #include <vw/Math/Quaternion.h>
 #include <gtest/gtest_VW.h>
+
+#include <cmath>
+#include <cstdlib>
 
 using namespace vw;
 

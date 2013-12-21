@@ -34,9 +34,9 @@
 // to store multiple elements with the same value in a DisjointSet, but
 // if you do so then find(ElemT) becomes ambiguous.
 
-#include <list>
-
 #include <vw/Core/Exception.h>
+
+#include <list>
 
 namespace vw {
 namespace math {

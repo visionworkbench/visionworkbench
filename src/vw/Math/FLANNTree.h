@@ -21,7 +21,10 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
-#include <boost/utility.hpp>
+
+#include <stddef.h>
+
+#include <boost/noncopyable.hpp>
 
 namespace vw {
 namespace math {

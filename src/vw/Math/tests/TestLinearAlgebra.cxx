@@ -17,7 +17,6 @@
 
 
 #include <test/Helpers.h>
-#include <vw/Core/Log.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>

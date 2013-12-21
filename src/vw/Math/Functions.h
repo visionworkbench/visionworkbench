@@ -28,13 +28,13 @@
 #ifndef __VW_MATH_FUNCTIONS_H__
 #define __VW_MATH_FUNCTIONS_H__
 
+#include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
+
 #include <cmath>
 #include <cstdlib>
 #include <limits>
 #include <complex>
-
-#include <vw/config.h>
-#include <vw/Core/FundamentalTypes.h>
 
 namespace vw {
 namespace math {

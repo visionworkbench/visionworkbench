@@ -49,6 +49,12 @@
 #ifndef __VW_MATH_VECTOR_H__
 #define __VW_MATH_VECTOR_H__
 
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/VarArray.h>
+#include <vw/Core/Exception.h>
+#include <vw/Core/Functors.h>
+#include <vw/Math/Functors.h>
+
 #include <cstring> // for memset
 #include <vector>
 
@@ -59,12 +65,6 @@
 #include <boost/array.hpp>
 #include <boost/iterator/iterator_facade.hpp>
 #include <boost/utility/result_of.hpp>
-
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/VarArray.h>
-#include <vw/Core/Exception.h>
-#include <vw/Core/Functors.h>
-#include <vw/Math/Functors.h>
 
 namespace vw {
 namespace math {

@@ -22,14 +22,14 @@
 #ifndef __VW_MATH_BBOX_H__
 #define __VW_MATH_BBOX_H__
 
+#include <vw/Math/Vector.h>
+
 #include <iostream>
 #include <limits>
 #include <vector>
 #include <cmath>
 
 #include <boost/static_assert.hpp>
-
-#include <vw/Math/Vector.h>
 
 namespace vw {
 namespace math {

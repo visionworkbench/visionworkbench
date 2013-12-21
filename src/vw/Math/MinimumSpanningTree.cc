@@ -15,14 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <cmath>
-#include <cstdlib>
-
 #include <vw/Core/Exception.h>
 #include <vw/Math/DisjointSet.h>
 #include <vw/Math/MinimumSpanningTree.h>
 
+#include <cstdlib>
+#include <algorithm>
 
 namespace {
 

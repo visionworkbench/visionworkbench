@@ -23,15 +23,16 @@
 #ifndef __MATH_GEOMETRY_H__
 #define __MATH_GEOMETRY_H__
 
-#include <vector>
-#include <boost/shared_ptr.hpp>
-#include <boost/foreach.hpp>
-
+#include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/Math/Statistics.h>
 #include <vw/Math/LevenbergMarquardt.h>
+
+#include <stddef.h>
+#include <vector>
+#include <algorithm>
 
 namespace vw {
 namespace math {
@@ -59,61 +60,9 @@ namespace math {
     };
 
     /// Solve for Normalization Similarity Matrix used for noise rej.
-    vw::Matrix3x3 NormSimilarity( std::vector<Vector3> const& pts ) const {
-      size_t num_points = pts.size();
-      size_t dimension = 3;
-
-      Vector2 translation;
-      for ( size_t i = 0; i < num_points; i++ )
-        translation+=subvector(pts[i],0,dimension-1);
-      translation /= num_points;
-
-      double scale = 0;
-      for ( size_t i = 0; i < num_points; i++ )
-        scale += norm_2( subvector(pts[i],0,dimension-1) - translation );
-      scale = num_points*sqrt(2.)/scale;
-
-      Matrix3x3 t;
-      t(2,2) = 1;
-      t(0,0) = scale;
-      t(1,1) = scale;
-      t(0,2) = -scale*translation[0];
-      t(1,2) = -scale*translation[1];
-      return t;
-    }
-
+    vw::Matrix3x3 NormSimilarity( std::vector<Vector3> const& pts ) const;
     vw::Matrix3x3 BasicDLT( std::vector<Vector3 > const& input,
-                            std::vector<Vector3 > const& output )  const {
-      VW_ASSERT( input.size() == 4 && output.size() == 4,
-                 vw::ArgumentErr() << "DLT in this implementation expects to have only 4 inputs." );
-      VW_ASSERT( input[0][input[0].size()-1] == 1,
-                 vw::ArgumentErr() << "Input data doesn't seem to be normalized.");
-      VW_ASSERT( output[0][output[0].size()-1] == 1,
-                 vw::ArgumentErr() << "Secondary input data doesn't seem to be normalized.");
-      VW_ASSERT( input[0].size() == 3,
-                 vw::ArgumentErr() << "BasicDLT only supports homogeneous 2D vectors.");
-
-      vw::Matrix<double,8,9> A;
-      for ( uint8 i = 0; i < 4; i++ )
-        for ( uint8 j = 0; j < 3; j++ ) {
-          // Filling in -wi'*xi^T
-          A(i,j+3) = -output[i][2]*input[i][j];
-          // Filling in yi'*xi^T
-          A(i,j+6) = output[i][1]*input[i][j];
-          // Filling in wi'*xi^T
-          A(i+4,j) = output[i][2]*input[i][j];
-          // Filling in -xi'*xi^T
-          A(i+4,j+6) = -output[i][0]*input[i][j];
-        }
-
-      Matrix<double> nullsp = nullspace(A);
-      nullsp /= nullsp(8,0);
-      Matrix3x3 H;
-      for ( uint8 i = 0; i < 3; i++ )
-        for ( uint8 j = 0; j < 3; j++ )
-          H(i,j) = nullsp(i*3+j,0);
-      return H;
-    }
+                            std::vector<Vector3 > const& output )  const;
 
     /// Defining a Levenberg Marquard model that will be used to solve
     /// for a homography matrix.
@@ -135,7 +84,7 @@ namespace math {
       typedef Matrix<double> jacobian_type;
 
       // Constructor
-      inline HomographyModelLMA( Vector<double> const& measure ) : m_measure(measure) {}
+      HomographyModelLMA( Vector<double> const& measure ) : m_measure(measure) {}
 
       // Evaluator
       inline result_type operator()( domain_type const& x ) const {

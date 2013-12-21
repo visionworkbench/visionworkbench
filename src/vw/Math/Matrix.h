@@ -45,15 +45,15 @@
 #ifndef __VW_MATH_MATRIX_H__
 #define __VW_MATH_MATRIX_H__
 
-#include <boost/type_traits.hpp>
-#include <boost/mpl/if.hpp>
-#include <boost/utility/result_of.hpp>
-
-#include <stack>
-
 #include <vw/Core/Exception.h>
 #include <vw/Math/Vector.h>
 #include <vw/config.h>
+
+#include <stack>
+
+#include <boost/type_traits.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/utility/result_of.hpp>
 
 namespace vw {
 namespace math {
