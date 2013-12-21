@@ -17,11 +17,7 @@
 
 
 #include <vw/Core/Stopwatch.h>
-
-#include <vw/Core/Debugging.h>
-#include <vw/Core/Exception.h>
-
-#include <boost/thread/once.hpp>
+#include <vw/Core/System.h>
 
 // Time
 #ifdef WIN32
@@ -33,7 +29,6 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
-#include <sstream>
 
 using std::endl;
 using std::map;

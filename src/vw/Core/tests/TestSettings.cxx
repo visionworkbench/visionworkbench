@@ -15,14 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <iostream>
-#include <fstream>
-#include <sstream>
-
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
+#include <vw/Core/System.h>
 #include <test/Helpers.h>
+
+#include <fstream>
 
 using namespace vw;
 using namespace vw::test;

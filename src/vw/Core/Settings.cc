@@ -15,25 +15,16 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <fstream>
-
 #include <vw/config.h>
 #include <vw/Core/Thread.h>
 #include <vw/Core/Cache.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/ConfigParser.h>
 
-// Boost headers
-#include <boost/bind.hpp>
-#include <boost/thread/xtime.hpp>
-
-// C Standard Library headers ( for stat(2) and getpwuid() )
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <ctime>
 
-#include <vw/config.h>
+#include <boost/version.hpp>
+#include <boost/thread/xtime.hpp>
 
 #ifdef VW_HAVE_UNISTD_H
 #include <unistd.h>

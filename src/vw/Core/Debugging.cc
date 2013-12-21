@@ -21,13 +21,17 @@
 /// Types and functions to assist in debugging code.
 ///
 #include <vw/Core/Debugging.h>
-#include <boost/numeric/conversion/cast.hpp>
-
-#include <iostream>
+#include <vw/Core/Log.h>
 
 #ifdef WIN32
 #include <Windows.h>
+#else
+#include <sys/time.h>
 #endif
+
+#include <ostream>
+
+#include <boost/numeric/conversion/cast.hpp>
 
 vw::Timer::Timer( std::string const& desc, MessageLevel level, std::string const& log_namespace )
   : m_desc(desc), m_level(level), m_log_namespace(log_namespace) {

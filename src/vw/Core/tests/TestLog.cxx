@@ -15,23 +15,33 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <gtest/gtest_VW.h>             // for EXPECT_EQ, TEST, etc
+#include <vw/Core/FundamentalTypes.h>   // for uint64
+#include <vw/Core/Log.h>                // for LogRuleSet, LogInstance, etc
+#include <vw/Core/ProgressCallback.h>   // for TerminalProgressCallback
+#include <vw/Core/Stopwatch.h>          // for Stopwatch
+#include <vw/Core/Thread.h>             // for Thread
+#include <vw/Core/System.h>             // for vw_log
 
-#include <iostream>
+#include <stddef.h>                     // for size_t
+#include <stdlib.h>                     // for exit
+#include <unistd.h>                     // for sleep
+#include <iostream>                     // for ostringstream, operator<<, etc
+#include <map>                          // for _Rb_tree_const_iterator, etc
 #include <sstream>
-#include <string>
-#include <map>
+#include <string>                       // for string, operator+, etc
+#include <utility>                      // for pair, make_pair
+#include <vector>                       // for vector
 
-#include <vw/Core/Log.h>
-#include <vw/Core/Thread.h>
-#include <vw/Core/ProgressCallback.h>
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/Stopwatch.h>
-
-#include <boost/function.hpp>
+#include <boost/algorithm/string/classification.hpp>  // for is_any_of
+#include <boost/algorithm/string/detail/classification.hpp>
+#include <boost/algorithm/string/predicate.hpp>  // for iends_with
+#include <boost/algorithm/string/split.hpp>  // for split
 #include <boost/bind.hpp>
-#include <boost/algorithm/string.hpp>
-
-#include <gtest/gtest_VW.h>
+#include <boost/function.hpp>
+#include <boost/iterator/iterator_facade.hpp>  // for operator!=
+#include <boost/ref.hpp>               // for reference_wrapper, ref
+#include <boost/shared_ptr.hpp>  // for shared_ptr
 
 using namespace vw;
 

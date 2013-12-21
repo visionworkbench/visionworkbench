@@ -24,17 +24,13 @@
 #define __VW_CORE_DEBUGGING_H__
 
 #include <vw/Core/Log.h>
-#include <vw/Core/Features.h>
+
+#include <sys/_structs.h>
+#include <string>
+
 #include <boost/current_function.hpp>
 
-#ifndef WIN32
-#include <sys/time.h>
-#endif
-
 #define VW_CURRENT_FUNCTION BOOST_CURRENT_FUNCTION
-
-#include <ostream>
-#include <string>
 
 namespace vw {
 

@@ -23,10 +23,6 @@
 #include <boost/filesystem/operations.hpp>
 namespace fs = boost::filesystem;
 
-#if VW_HAVE_FENV_H
-#include <fenv.h>
-#endif
-
 namespace {
   vw::uint32 SEED;
 }

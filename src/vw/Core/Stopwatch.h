@@ -19,16 +19,13 @@
 #ifndef __VW_CORE_STOPWATCH_H__
 #define __VW_CORE_STOPWATCH_H__
 
-// System includes
+#include <vw/Core/Thread.h>
+#include <vw/Core/FundamentalTypes.h>
+
 #include <map>
 #include <string>
 
-// BOOST includes
-#include <boost/shared_ptr.hpp>
-
-#include <vw/Core/System.h>
-#include <vw/Core/Thread.h>
-#include <vw/Core/FundamentalTypes.h>
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 /// \file Stopwatch.h Contains some simple stopwatch classes.
 

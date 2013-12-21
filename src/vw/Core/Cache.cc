@@ -21,7 +21,6 @@
 /// Types and functions to assist cacheing regeneratable data.
 ///
 #include <vw/Core/Cache.h>
-#include <vw/Core/Debugging.h>
 
 void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
 

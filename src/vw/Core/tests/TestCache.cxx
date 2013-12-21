@@ -15,15 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <memory>
 #include <numeric>
 #include <gtest/gtest_VW.h>
 
 #include <vw/Core/Cache.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/ThreadPool.h>
-#include <boost/shared_array.hpp>
 
 using namespace vw;
 

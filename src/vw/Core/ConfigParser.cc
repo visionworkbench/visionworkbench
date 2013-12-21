@@ -15,23 +15,29 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <iostream>
-#include <fstream>
-#include <istream>
-
-#include <boost/shared_ptr.hpp>
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-
+#include <vw/Core/ConfigParser.h>
+#include <vw/Core/Exception.h>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Log.h>
-#include <vw/Core/Exception.h>
 #include <vw/Core/Settings.h>
-#include <vw/Core/ConfigParser.h>
 
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <boost/lexical_cast.hpp>
+#include <boost/program_options/errors.hpp>
+#include <boost/program_options/option.hpp>
+#include <boost/program_options/options_description.hpp>
+#include <boost/program_options/parsers.hpp>
+namespace po = boost::program_options;
+
+#include <boost/shared_ptr.hpp>
 using boost::shared_ptr;
+
 using namespace vw;
 
 namespace {

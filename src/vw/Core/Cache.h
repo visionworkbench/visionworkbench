@@ -65,14 +65,15 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Thread.h>
-#include <vw/Core/Stopwatch.h>
 #include <vw/Core/Log.h>
 #include <vw/Core/FundamentalTypes.h>
-#include <vw/Core/System.h>
 
-#include <boost/shared_ptr.hpp>
 #include <typeinfo>
 #include <sstream>
+#include <stddef.h>
+#include <string>
+
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
 namespace core {

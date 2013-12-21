@@ -15,28 +15,19 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <vector>
-
-#include <vw/Core/Log.h>
+#include <vw/config.h>
 #include <vw/Core/Exception.h>
+#include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>
-#include <boost/foreach.hpp>
+#include <vw/Core/System.h>
+#include <vw/Core/Thread.h>
 
-// C Standard Library headers ( for stat(2) and getpwuid() )
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ctime>
+#include <vector>
 
-#include <vw/config.h>
-
-#ifdef VW_HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef VW_HAVE_PWD_H
-#include <pwd.h>
-#endif
+#include <boost/foreach.hpp>
 
 #ifdef WIN32
 #define stat _stat
