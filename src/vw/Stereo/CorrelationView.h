@@ -23,9 +23,12 @@
 #include <vw/Core/Stopwatch.h>
 #include <vw/Core/Thread.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/FileIO.h>
-#include <vw/Stereo/PreFilter.h>
 #include <vw/Stereo/Correlation.h>
+#include <vw/Stereo/Correlate.h>
+#include <vw/Stereo/DisparityMap.h>
+#include <vw/Stereo/PreFilter.h>
 #include <boost/foreach.hpp>
 #include <ctime>
 

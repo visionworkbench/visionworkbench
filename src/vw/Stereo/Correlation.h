@@ -19,12 +19,19 @@
 #ifndef __VW_STEREO_CORRELATION_H__
 #define __VW_STEREO_CORRELATION_H__
 
+#include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Stopwatch.h>
+#include <vw/Image/AlgorithmFunctions.h>
 #include <vw/Image/PixelMask.h>
-#include <vw/Image/ImageMath.h>
-#include <vw/Stereo/Correlate.h>
 #include <vw/Stereo/Algorithms.h>
 #include <vw/Stereo/CostFunctions.h>
-#include <vw/Core/Stopwatch.h>
+
+#include <vector>
+#include <algorithm>
+#include <utility>
+
+#include <boost/type_traits/is_integral.hpp>
 
 namespace vw {
 namespace stereo {
@@ -261,12 +268,7 @@ namespace stereo {
   }
 
   struct SearchParamLessThan {
-    bool operator()(SearchParam A, SearchParam B){
-      // The amount of computation for correlation for a given
-      // SearchParam instance is proportional to the product of the
-      // dimensions of its search boxes.
-      return search_volume(A) < search_volume(B);
-    }
+    bool operator()(SearchParam const& A, SearchParam const& B) const;
   };
 
   // Developer tools for modifying bboxes.

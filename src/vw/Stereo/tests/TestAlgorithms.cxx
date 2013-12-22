@@ -15,11 +15,12 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <vw/Stereo/Algorithms.h>
+#include <vw/Stereo/CostFunctions.h>
 
 #include <test/Helpers.h>
 
-#include <vw/Stereo/Algorithms.h>
-#include <vw/Stereo/CostFunctions.h>
+#include <algorithm>
 
 using namespace vw;
 using namespace vw::stereo;

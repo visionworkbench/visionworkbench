@@ -15,33 +15,6 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-namespace detail {
-
-  inline ImageView<float>
-  compute_spatial_weight_image(int32 kern_width, int32 kern_height,
-                               float two_sigma_sqr) {
-    int32 center_pix_x = kern_width/2;
-    int32 center_pix_y = kern_height/2;
-    float sum;
-
-    sum = 0.0;
-    ImageView<float> weight(kern_width, kern_height);
-    for (int32 j = 0; j < kern_height; ++j) {
-      for (int32 i = 0; i < kern_width; ++i ) {
-        weight(i,j) = exp(-1*((i-center_pix_x)*(i-center_pix_x) +
-                              (j-center_pix_y)*(j-center_pix_y)) / two_sigma_sqr);
-        sum += weight(i,j);
-      }
-    }
-
-    weight /= sum;
-
-    return weight;
-  }
-
-}
-
 template<class ChannelT> void
 subpixel_correlation_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                                   ImageView<ChannelT> const& left_image,

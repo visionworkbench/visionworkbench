@@ -19,19 +19,25 @@
 #ifndef __VW_STEREO_DISPARITY_MAP_H__
 #define __VW_STEREO_DISPARITY_MAP_H__
 
-#include <vw/Core/ProgressCallback.h>
+#include <vw/config.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/PerPixelViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/Image/UtilityViews.h>
-#include <vw/Image/Algorithms.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/PixelMask.h>
 #include <vw/Image/Statistics.h>
 
+#include <ostream>
+
 // For the PixelDisparity math.
-#include <boost/operators.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/type_traits/remove_reference.hpp>
 
 namespace vw {
 
@@ -434,14 +440,9 @@ namespace stereo {
     int32 m_kernel_width, m_kernel_height;
 
   public:
-    StdDevImageFunc(int32 kernel_width, int32 kernel_height) :
-      m_kernel_width(kernel_width), m_kernel_height(kernel_height) {
-      VW_ASSERT(m_kernel_width > 0 && m_kernel_height > 0,
-                ArgumentErr() << "StdDevImageFunc: kernel sizes must be non-zero.");
-    }
+    StdDevImageFunc(int32 kernel_width, int32 kernel_height);
 
-    BBox2i work_area() const { return BBox2i(Vector2i(-m_kernel_width/2, -m_kernel_height/2),
-                                             Vector2i(m_kernel_width, m_kernel_height)); }
+    BBox2i work_area() const;
 
     template <class PixelAccessorT>
     typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const {

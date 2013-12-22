@@ -15,11 +15,21 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
+#include <vw/Math/BBox.h>
+#include <vw/Image/Statistics.h>
 #include <vw/Stereo/Correlation.h>
 
 namespace vw {
 namespace stereo {
+
+  bool
+  SearchParamLessThan::operator()(SearchParam const& A,
+                                  SearchParam const& B) const {
+    // The amount of computation for correlation for a given
+    // SearchParam instance is proportional to the product of the
+    // dimensions of its search boxes.
+    return search_volume(A) < search_volume(B);
+  }
 
   inline int32 area( BBox2i const& a ) {
     int32 width = a.width();

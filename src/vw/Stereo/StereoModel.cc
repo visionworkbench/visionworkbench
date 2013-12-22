@@ -16,9 +16,15 @@
 // __END_LICENSE__
 
 
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/PixelMath.h>
+#include <vw/Image/PixelTypeInfo.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw {
 namespace stereo {
@@ -44,8 +50,15 @@ namespace stereo {
     };
   }
 
-ImageView<Vector3> StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
-                                           ImageView<double> &error) const {
+StereoModel::StereoModel(camera::CameraModel const* camera_model1,
+                         camera::CameraModel const* camera_model2,
+                         bool least_squares_refine ) :
+  m_camera1(camera_model1), m_camera2(camera_model2),
+  m_least_squares(least_squares_refine) {}
+
+ImageView<Vector3>
+StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
+                        ImageView<double> &error) const {
 
   // Error analysis
   double mean_error = 0.0;

@@ -20,11 +20,12 @@
 #include <gtest/gtest_VW.h>
 #include <test/Helpers.h>
 
-#include <vw/Stereo/StereoModel.h>
-#include <vw/Stereo/StereoView.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Math/EulerAngles.h>
 #include <vw/Camera/PinholeModel.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Math/EulerAngles.h>
+#include <vw/Stereo/StereoModel.h>
+#include <vw/Stereo/StereoView.h>
 
 using namespace vw;
 using namespace vw::stereo;

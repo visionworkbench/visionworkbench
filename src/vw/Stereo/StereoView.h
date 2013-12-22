@@ -20,11 +20,16 @@
 #define __VW_STEREO_STEREOVIEW_H__
 
 #include <vw/Image/ImageViewBase.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Camera/CameraModel.h>
 #include <limits>
 
 namespace vw {
+
+  namespace camera {
+    class CameraModel;
+  }
 
   // Registering point cloud for FileIO
   template<> struct PixelFormatID<Vector3> { static const PixelFormatEnum value = VW_PIXEL_GENERIC_3_CHANNEL; };

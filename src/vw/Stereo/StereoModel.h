@@ -19,14 +19,17 @@
 #ifndef __VW_STEREO_STEREOMODEL_H__
 #define __VW_STEREO_STEREOMODEL_H__
 
-#include <vw/Stereo/DisparityMap.h>
+#include <vw/Math/Vector.h>
 
 namespace vw {
-  
-// forward declaration
-namespace camera {
-  class CameraModel;
-}
+
+  template <class PixelT> class ImageView;
+  template <class PixelT> struct PixelMask;
+
+  // forward declaration
+  namespace camera {
+    class CameraModel;
+  }
 
 namespace stereo {
 
@@ -39,9 +42,7 @@ namespace stereo {
     //------------------------------------------------------------------
     StereoModel(camera::CameraModel const* camera_model1,
                 camera::CameraModel const* camera_model2,
-                bool least_squares_refine = false) :
-      m_camera1(camera_model1), m_camera2(camera_model2),
-      m_least_squares(least_squares_refine) {}
+                bool least_squares_refine = false);
 
     //------------------------------------------------------------------
     // Public Methods
@@ -91,7 +92,7 @@ namespace stereo {
                               Vector3& errorVec) const;
 
     bool are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) const;
-                        
+
     void refine_point( Vector2 const& pix1,
                        Vector2 const& pix2,
                        Vector3& point ) const;

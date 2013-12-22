@@ -18,6 +18,19 @@
 
 #include <vw/Stereo/DisparityMap.h>
 
-namespace vw { namespace stereo {
+namespace vw {
+namespace stereo {
+
+  StdDevImageFunc::StdDevImageFunc(int32 kernel_width, int32 kernel_height) :
+    m_kernel_width(kernel_width), m_kernel_height(kernel_height) {
+    VW_ASSERT(m_kernel_width > 0 && m_kernel_height > 0,
+              ArgumentErr() << "StdDevImageFunc: kernel sizes must be non-zero.");
+  }
+
+
+  BBox2i StdDevImageFunc::work_area() const {
+    return BBox2i(Vector2i(-m_kernel_width/2, -m_kernel_height/2),
+                  Vector2i(m_kernel_width, m_kernel_height));
+  }
 
 }}    // namespace vw::stereo

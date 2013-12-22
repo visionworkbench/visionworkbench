@@ -19,59 +19,30 @@
 #ifndef __VW_STEREO_CORRELATE_H__
 #define __VW_STEREO_CORRELATE_H__
 
-#include <vw/Stereo/DisparityMap.h>
+#include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/ImageViewBase.h>
-#include <vw/Image/ImageMath.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/PixelMask.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Math/LinearAlgebra.h>
-#include <limits.h>
 
 namespace vw {
 namespace stereo {
 
-  inline int
+  int
   adjust_weight_image(ImageView<float> &weight,
                       ImageView<PixelMask<Vector2f> > const& disparity_map_patch,
-                      ImageView<float> const& weight_template) {
-    float sum = 0;
-    int32 num_good_pix = 0;
-    typedef ImageView<float>::pixel_accessor IViewFAcc;
-    typedef ImageView<PixelMask<Vector2f> >::pixel_accessor IViewDAcc;
-    IViewFAcc weight_row_acc = weight.origin();
-    IViewFAcc template_row_acc = weight_template.origin();
-    IViewDAcc disp_row_acc = disparity_map_patch.origin();
-    for (int32 j = 0; j < weight_template.rows(); ++j) {
-      IViewFAcc weight_col_acc = weight_row_acc;
-      IViewFAcc template_col_acc = template_row_acc;
-      IViewDAcc disp_col_acc = disp_row_acc;
-      for (int32 i = 0; i < weight_template.cols(); ++i ) {
+                      ImageView<float> const& weight_template);
 
-        // Mask is zero if the disparity map's pixel is missing...
-        if ( !is_valid(*disp_col_acc) )
-          *weight_col_acc = 0;
-
-        // ... otherwise we use the weight from the weight template
-        else {
-          *weight_col_acc = *template_col_acc;
-          sum += *weight_col_acc;
-          ++num_good_pix;
-        }
-
-        disp_col_acc.next_col();
-        weight_col_acc.next_col();
-        template_col_acc.next_col();
-      }
-      disp_row_acc.next_row();
-      weight_row_acc.next_row();
-      template_row_acc.next_row();
-    }
-
-    // Normalize the weight image
-    if (sum == 0)
-      vw_throw(LogicErr() << "subpixel_weight: Sum of weight image was zero.  This isn't supposed to happen!");
-    else
-      weight /= sum;
-    return num_good_pix;
+  namespace detail {
+    ImageView<float>
+    compute_spatial_weight_image(int32 kern_width, int32 kern_height,
+                                 float two_sigma_sqr);
   }
 
   template <class ImageT1, class ImageT2>
