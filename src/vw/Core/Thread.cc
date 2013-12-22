@@ -15,9 +15,11 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <vw/Core/Thread.h>
 #include <vw/config.h>
+#include <vw/Core/Thread.h>
+#include <vw/Core/FundamentalTypes.h>
+
+#include <boost/thread.hpp>
 
 namespace vw {
 namespace thread {

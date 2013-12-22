@@ -21,6 +21,7 @@
 #include <vw/Core/Log.h>
 #include <vw/Core/Settings.h>
 #include <vw/Core/Stopwatch.h>
+#include <vw/Core/RunOnce.h>
 
 namespace {
   vw::RunOnce settings_once      = VW_RUNONCE_INIT;

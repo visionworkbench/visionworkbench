@@ -29,6 +29,7 @@
 #include <queue>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Thread.h>
+#include <vw/Core/Condition.h>
 
 namespace vw {
 

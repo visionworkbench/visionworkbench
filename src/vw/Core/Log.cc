@@ -27,6 +27,8 @@
 #include <ctime>
 #include <vector>
 
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/foreach.hpp>
 
 #ifdef WIN32
@@ -89,9 +91,9 @@ std::ostream& vw::LogInstance::operator() (int log_level, std::string const& log
     if (m_prepend_infostamp)
       m_log_stream << current_posix_time_string() << " {" << Thread::id() << "} [ " << log_namespace << " ] : ";
     switch (log_level) {
-      case ErrorMessage:   m_log_stream << "Error: ";   break;
-      case WarningMessage: m_log_stream << "Warning: "; break;
-      default: break;
+    case ErrorMessage:   m_log_stream << "Error: ";   break;
+    case WarningMessage: m_log_stream << "Warning: "; break;
+    default: break;
     }
     return m_log_stream;
   } else {
@@ -127,6 +129,39 @@ std::ostream& vw::Log::operator() (int log_level, std::string const& log_namespa
   }
 }
 
+void
+vw::Log::add(std::ostream &stream, LogRuleSet rule_set, bool prepend_infostamp) {
+  Mutex::Lock lock(m_system_log_mutex);
+  boost::shared_ptr<LogInstance> li(new LogInstance(stream, prepend_infostamp));
+  li->rule_set() = rule_set;
+  m_logs.push_back(li);
+}
+
+void
+vw::Log::add(boost::shared_ptr<LogInstance> log) {
+  Mutex::Lock lock(m_system_log_mutex);
+  m_logs.push_back( log );
+}
+
+void
+vw::Log::clear() {
+  Mutex::Lock lock(m_system_log_mutex);
+  m_logs.clear();
+}
+
+vw::LogInstance&
+vw::Log::console_log() {
+  Mutex::Lock lock(m_system_log_mutex);
+  return *m_console_log;
+}
+
+void
+vw::Log::set_console_stream(std::ostream& stream, LogRuleSet rule_set, bool prepend_infostamp ) {
+  Mutex::Lock lock(m_system_log_mutex);
+  m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp) );
+  m_console_log->rule_set() = rule_set;
+}
+
 bool vw::Log::is_enabled( int log_level,
                           std::string const& log_namespace ) {
   // Early exit option before iterating through m_logs
@@ -158,7 +193,7 @@ void vw::LogRuleSet::add_rule(int log_level, std::string const& log_namespace) {
     vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: only one wildcard is supported.");
 
   if (count == 1 && *(log_namespace.begin()) != '*'
-                 && *(log_namespace.end()-1) != '*')
+      && *(log_namespace.end()-1) != '*')
     vw::vw_throw(vw::ArgumentErr() << "Illegal log rule: wildcards must be at the beginning or end of a rule");
 
   Mutex::Lock lock(m_mutex);

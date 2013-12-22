@@ -47,44 +47,22 @@
 ///   to lock and whose destructor unlocks it.  Both the Mutex and
 ///   Lock classes may be non-copyable.
 ///
-/// * A RunOnce class, implementing run-once semantics.  This must be
-///   a POD class with an initializer macro VW_RUNONCE_INIT.  It must
-///   implement a single method, run( void (*func)() ), which runs the
-///   given function exactly once no matter how many times it is
-///   called.  (This behavior is only defined for RunOnce objects
-///   that are statically allocated at global or namespace scope and
-///   statically initialized to VW_RUNONCE_INIT.)
 
 #ifndef __VW_CORE_THREAD_H__
 #define __VW_CORE_THREAD_H__
 
 #include <vw/Core/FundamentalTypes.h>
 
-#include <boost/thread.hpp>
-#include <boost/thread/condition.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/recursive_mutex.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/version.hpp>
 
 namespace vw {
-
-  // --------------------------------------------------------------
-  //                            RUNONCE
-  // --------------------------------------------------------------
-
-#define VW_RUNONCE_INIT { BOOST_ONCE_INIT }
-
-  // A special POD class to enable safe library initialization.  You
-  // should only define these objects at global or namespace scope,
-  // and statically initialize them to VW_RUNONCE_INIT.
-  struct RunOnce {
-    boost::once_flag m_flag;
-
-    inline void run( void (*func)() ) {
-      boost::call_once( func, m_flag );
-    }
-  };
 
   // --------------------------------------------------------------
   //                            MUTEX
@@ -147,70 +125,6 @@ namespace vw {
       void lock()   { boost::unique_lock<RecursiveMutex>::lock(); }
       void unlock() { boost::unique_lock<RecursiveMutex>::unlock(); }
     };
-  };
-
-  // --------------------------------------------------------------
-  //                            CONDITION
-  // --------------------------------------------------------------
-
-  class Condition : private boost::condition,
-                    private boost::noncopyable
-  {
-
-  public:
-    // construct/copy/destruct
-    inline Condition() : boost::condition() {}
-
-    // notification
-    void notify_one() {
-      boost::condition::notify_one();
-    }
-
-    void notify_all() {
-      boost::condition::notify_all();
-    }
-
-    // waiting
-    template<typename LockT> void wait(LockT &lock) {
-      boost::condition::wait(lock);
-    }
-
-    template<typename LockT, typename Pred>
-    void wait(LockT &lock, Pred pred) {
-      boost::condition::wait(lock,pred);
-    }
-
-    template<typename LockT>
-    bool timed_wait(LockT &lock, unsigned long milliseconds) {
-      boost::xtime xt;
-#if BOOST_VERSION >= 105000
-      boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-      boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
-      while (milliseconds >= 1000) {
-        xt.sec++;
-        milliseconds -= 1000;
-      }
-      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
-      return boost::condition::timed_wait(lock, xt);
-    }
-
-    template<typename LockT, typename Pred>
-    bool timed_wait(LockT &lock, unsigned long milliseconds, Pred pred) {
-      boost::xtime xt;
-#if BOOST_VERSION >= 105000
-      boost::xtime_get(&xt, boost::TIME_UTC_);
-#else
-      boost::xtime_get(&xt, boost::TIME_UTC);
-#endif
-      while (milliseconds >= 1000) {
-        xt.sec++;
-        milliseconds -= 1000;
-      }
-      xt.nsec += static_cast<uint32>(1e6) * milliseconds;
-      return boost::condition::timed_wait(lock, xt, pred);
-    }
   };
 
   // --------------------------------------------------------------

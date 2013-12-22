@@ -29,15 +29,8 @@
 
 #include <vw/config.h>
 
-#include <iostream>
-#include <set>
-#include <map>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem/convenience.hpp>
-namespace fs = boost::filesystem;
-
 // For RunOnce
-#include <vw/Core/Thread.h>
+#include <vw/Core/RunOnce.h>
 
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourcePDS.h>
@@ -66,6 +59,13 @@ namespace fs = boost::filesystem;
 #endif
 
 #include <vw/FileIO/DiskImageResource_internal.h>
+
+#include <iostream>
+#include <set>
+#include <map>
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/convenience.hpp>
+namespace fs = boost::filesystem;
 
 static void register_default_file_types_impl();
 namespace {

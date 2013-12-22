@@ -17,6 +17,7 @@
 
 #include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/RunOnce.h>
 #include <vw/FileIO/GdalIO.h>
 
 #include <cpl_multiproc.h>

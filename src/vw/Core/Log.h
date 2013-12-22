@@ -39,7 +39,6 @@
 #include <vw/Core/System.h>
 
 // Boost Headers
-#include <boost/algorithm/string.hpp>
 #include <boost/numeric/conversion/cast.hpp>
 
 // STD Headers
@@ -453,40 +452,22 @@ namespace vw {
 
     /// Add a stream to the Log manager.  You may optionally specify a
     /// LogRuleSet.
-    void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet(), bool prepend_infostamp = true) {
-      Mutex::Lock lock(m_system_log_mutex);
-      boost::shared_ptr<LogInstance> li(new LogInstance(stream, prepend_infostamp));
-      li->rule_set() = rule_set;
-      m_logs.push_back(li);
-    }
+    void add(std::ostream &stream, LogRuleSet rule_set = LogRuleSet(), bool prepend_infostamp = true);
 
     // Add an already existing LogInstance to the system log manager.
-    void add(boost::shared_ptr<LogInstance> log) {
-      Mutex::Lock lock(m_system_log_mutex);
-      m_logs.push_back( log );
-    }
+    void add(boost::shared_ptr<LogInstance> log);
 
     /// Reset the System Log; closing all of the currently open Log
     /// streams.
-    void clear() {
-      Mutex::Lock lock(m_system_log_mutex);
-      m_logs.clear();
-    }
+    void clear();
 
     /// Return a reference to the console LogInstance.
-    LogInstance& console_log() {
-      Mutex::Lock lock(m_system_log_mutex);
-      return *m_console_log;
-    }
+    LogInstance& console_log();
 
     /// Set the output stream and LogRuleSet for the console log
     /// instance.  This can be used to redirect the console output to
     /// a file, for example.
-    void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet(), bool prepend_infostamp = true) {
-      Mutex::Lock lock(m_system_log_mutex);
-      m_console_log = boost::shared_ptr<LogInstance>(new LogInstance(stream, prepend_infostamp) );
-      m_console_log->rule_set() = rule_set;
-    }
+    void set_console_stream(std::ostream& stream, LogRuleSet rule_set = LogRuleSet(), bool prepend_infostamp = true);
 
     /// A mostly non-locking check to determine if this Log object has any
     /// stream that is open for a requested log level and namespace.

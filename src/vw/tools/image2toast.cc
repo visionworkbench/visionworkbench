@@ -38,7 +38,7 @@
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
-#include <vw/Cartography/Georeference.h>
+#include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/ToastTransform.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Mosaic/QuadTreeGenerator.h>

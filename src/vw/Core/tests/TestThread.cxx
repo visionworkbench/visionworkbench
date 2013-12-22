@@ -19,6 +19,8 @@
 #include <gtest/gtest_VW.h>
 
 #include <vw/Core/Thread.h>
+#include <vw/Core/RunOnce.h>
+#include <vw/Core/Condition.h>
 
 using namespace vw;
 

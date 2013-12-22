@@ -104,12 +104,12 @@
 #ifndef __VW_CORE_EXCEPTION_H__
 #define __VW_CORE_EXCEPTION_H__
 
+#include <vw/Core/Features.h>
+#include <vw/config.h>
+
 #include <string>
 #include <sstream>
 #include <ostream>
-
-#include <vw/Core/Features.h>
-#include <vw/config.h>
 
 #if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
 #include <exception>
