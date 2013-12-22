@@ -22,23 +22,19 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
+#include <vw/Core/ProgressCallback.h>
+#include <vw/Core/Log.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Cartography/GeoReference.h>
+
 #include <iostream>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <vw/Core/Cache.h>
-#include <vw/Core/ProgressCallback.h>
-#include <vw/Math/Matrix.h>
-#include <vw/Image/Palette.h>
-#include <vw/Image/Transform.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/FileIO/DiskImageResourceGDAL.h>
-#include <vw/FileIO/DiskImageView.h>
-#include <vw/Cartography/GeoReference.h>
 
 using namespace vw;
 using namespace vw::math;

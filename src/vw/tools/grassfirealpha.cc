@@ -15,18 +15,28 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/PixelMath.h>
+#include <vw/Image/Statistics.h>
+#include <vw/Image/Filter.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Cartography/GeoReference.h>
 
-#include <vw/FileIO.h>
-#include <vw/Image.h>
-#include <vw/Math.h>
-#include <vw/Cartography.h>
-using namespace vw;
+#include <vector>
 
 #include <boost/program_options.hpp>
-#include <boost/type_traits.hpp>
 #include <boost/utility/enable_if.hpp>
 #include <boost/foreach.hpp>
 namespace po = boost::program_options;
+
+using namespace vw;
 
 // Function for highlighting spots of data
 template<class PixelT>

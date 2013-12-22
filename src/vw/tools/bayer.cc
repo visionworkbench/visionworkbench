@@ -22,14 +22,16 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/Core/Exception.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/FileIO/DiskImageResource.h>
+#include <vw/Camera/BayerFilter.h>
+
 #include <iostream>
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-
-#include <vw/Image/ImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/Camera/BayerFilter.h>
 
 using namespace vw;
 

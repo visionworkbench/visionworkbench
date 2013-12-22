@@ -22,19 +22,32 @@
 /// (default) or ASCII format.  The ASCII format is compatible with
 /// the popular Lowe-SIFT toolchain.
 ///
-#include <vw/Core.h>
-#include <vw/InterestPoint.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
+
+#include <vw/Core/System.h>
 #include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
+#include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/InterestPoint/Descriptor.h>
+#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/IntegralDescriptor.h>
+#include <vw/InterestPoint/IntegralDetector.h>
+#include <vw/InterestPoint/IntegralInterestOperator.h>
+#include <vw/InterestPoint/InterestData.h>
 
 using namespace vw;
 using namespace vw::ip;
 
 #include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
 #include <boost/filesystem/path.hpp>
+#include <boost/foreach.hpp>
+namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 
 template <class ImageT, class ValueT>

@@ -22,19 +22,26 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/Core/Debugging.h>
+#include <vw/Math/Geometry.h>
+#include <vw/Math/RANSAC.h>
+#include <vw/Math/Vector.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/EdgeExtension.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/Transform.h>
+#include <vw/InterestPoint/InterestData.h>
+#include <vw/Stereo/CorrelationView.h>
+#include <vw/Stereo/CostFunctions.h>
+#include <vw/Stereo/PreFilter.h>
+#include <vw/Stereo/DisparityMap.h>
+
 #include <boost/program_options.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 namespace po = boost::program_options;
 namespace fs = boost::filesystem;
-
-#include <vw/Core/Debugging.h>
-#include <vw/Math.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/InterestPoint/InterestData.h>
-#include <vw/Stereo/CorrelationView.h>
-#include <vw/Stereo/CostFunctions.h>
 
 using namespace vw;
 using namespace vw::stereo;

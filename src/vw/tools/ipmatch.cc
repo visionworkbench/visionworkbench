@@ -22,16 +22,32 @@
 /// (default) or ASCII format.  The ASCII format is compatible with
 /// the popular Lowe-SIFT toolchain.
 ///
-#include <vw/InterestPoint.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Math.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Geometry.h>
+#include <vw/Math/RANSAC.h>
+#include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageView.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/FileIO/DiskImageView.h>
 #include <vw/Mosaic/ImageComposite.h>
 #include <vw/Camera/CameraGeometry.h>
+#include <vw/InterestPoint/InterestData.h>
+#include <vw/InterestPoint/Matcher.h>
+
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iostream>
 
 using namespace vw;
 using namespace vw::ip;
 
+#include <boost/foreach.hpp>
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 

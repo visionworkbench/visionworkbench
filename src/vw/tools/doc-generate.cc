@@ -16,9 +16,20 @@
 // __END_LICENSE__
 
 
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Mosaic.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/MaskViews.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/Image/PixelTypes.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Mosaic/ImageComposite.h>
+#include <vw/Mosaic/QuadTreeGenerator.h>
 
 int main() {
 

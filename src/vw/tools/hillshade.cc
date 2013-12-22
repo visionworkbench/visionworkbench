@@ -26,16 +26,10 @@
 #undef NDEBUG
 #endif
 
-#include <cstdlib>
-
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-#include <boost/filesystem/path.hpp>
-namespace fs = boost::filesystem;
-
+#include <vw/Core/System.h>
+#include <vw/Core/Log.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/EulerAngles.h>
-#include <vw/Image/ImageView.h>
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/ImageViewRef.h>
 #include <vw/Image/Filter.h>
@@ -43,9 +37,15 @@ namespace fs = boost::filesystem;
 #include <vw/Image/MaskViews.h>
 #include <vw/Image/PerPixelAccessorViews.h>
 #include <vw/FileIO/DiskImageView.h>
-#include <vw/FileIO/DiskImageResourceGDAL.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
+
+#include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
+
+namespace po = boost::program_options;
+namespace fs = boost::filesystem;
 
 using namespace vw;
 

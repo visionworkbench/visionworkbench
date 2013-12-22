@@ -15,20 +15,19 @@
 //  limitations under the License.
 // __END_LICENSE__
 
-
-#include <iostream>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-
-#include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/GeoTransform.h>
+#include <vw/Core/Log.h>
+#include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Manipulation.h>
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
 #include <vw/Math/LinearAlgebra.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
+
+#include <iostream>
 
 /*
 Implements modified versions of finite difference opt.algorithms + fitting a plane to 9 points of a 3x3 window

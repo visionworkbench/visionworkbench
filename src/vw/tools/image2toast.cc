@@ -22,14 +22,30 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/Core/Log.h>
+#include <vw/Core/ProgressCallback.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/Vector.h>
+#include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/EdgeExtension.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/Image/Interpolation.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/Transform.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageResourceJPEG.h>
+#include <vw/FileIO/DiskImageResourcePNG.h>
+#include <vw/FileIO/DiskImageResourceGDAL.h>
+#include <vw/Cartography/Georeference.h>
+#include <vw/Cartography/ToastTransform.h>
+#include <vw/Mosaic/ImageComposite.h>
+#include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/ToastQuadTreeConfig.h>
+
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-
-#include <vw/Core.h>
-#include <vw/Image.h>
-#include <vw/FileIO.h>
-#include <vw/Cartography.h>
-#include <vw/Mosaic.h>
 
 using namespace vw;
 using namespace vw::cartography;

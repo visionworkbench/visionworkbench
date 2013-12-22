@@ -130,6 +130,16 @@
 // NB: the triple-bracket comments you'll see are Vim fold markers.
 // Type ':set foldmethod=marker' in command mode to use them
 
+#include <vw/Core/Log.h>
+#include <vw/Core/ProgressCallback.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Camera/CAHVORModel.h>
+#include <vw/Camera/PinholeModel.h>
+#include <vw/Stereo/StereoModel.h>
+#include <vw/BundleAdjustment/AdjustSparse.h>
+#include <vw/BundleAdjustment/BundleAdjustReport.h>
+
 #include <cstdlib>
 #include <string>
 #include <sstream>
@@ -144,14 +154,6 @@ namespace po = boost::program_options;
 namespace fs = boost::filesystem;
 #include <boost/random.hpp>
 
-#include <vw/Camera/CAHVORModel.h>
-#include <vw/BundleAdjustment/AdjustSparse.h>
-#include <vw/BundleAdjustment/BundleAdjustReport.h>
-#include <vw/Stereo/StereoModel.h>
-#include <vw/Math.h>
-#include <vw/Math/EulerAngles.h>
-#include <vw/Core/Log.h>
-#include <vw/Core/ProgressCallback.h>
 
 using namespace vw;
 using namespace vw::camera;

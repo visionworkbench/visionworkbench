@@ -21,12 +21,24 @@
 /// Example program demonstrating how to align two images using the
 /// Interest Point module.
 
-#include <vw/InterestPoint.h>
-#include <vw/Math.h>
+#include <vw/Core/Log.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/Geometry.h>
+#include <vw/Math/RANSAC.h>
+#include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Image/ImageMath.h>
+#include <vw/Image/Transform.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/PixelTypes.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Mosaic/ImageComposite.h>
-#include <vw/FileIO.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/InterestPoint/Descriptor.h>
+#include <vw/InterestPoint/Detector.h>
+#include <vw/InterestPoint/Matcher.h>
+#include <vw/InterestPoint/IntegralDetector.h>
+#include <vw/InterestPoint/IntegralInterestOperator.h>
 
 using namespace vw;
 using namespace vw::ip;

@@ -19,32 +19,35 @@
 #ifndef __VW_TOOLS_IMAGE2QTREE_H__
 #define __VW_TOOLS_IMAGE2QTREE_H__
 
-#include <vw/tools/Common.h>
-
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <map>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/assign/list_of.hpp>
-#include <boost/foreach.hpp>
-namespace fs = boost::filesystem;
-
-#include <vw/Core/Cache.h>
 #include <vw/Core/ProgressCallback.h>
-#include <vw/Math/Matrix.h>
+#include <vw/Core/Log.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
 #include <vw/Image/Transform.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/FileIO/DiskImageResourceJPEG.h>
 #include <vw/FileIO/DiskImageResourcePNG.h>
-#include <vw/FileIO/DiskImageResourceGDAL.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Mosaic.h>
+#include <vw/Mosaic/CelestiaQuadTreeConfig.h>
+#include <vw/Mosaic/GigapanQuadTreeConfig.h>  // for GigapanQuadTreeConfig
+#include <vw/Mosaic/ImageComposite.h>   // for ImageComposite
+#include <vw/Mosaic/KMLQuadTreeConfig.h>  // for KMLQuadTreeConfig
+#include <vw/Mosaic/QuadTreeConfig.h>   // for QuadTreeConfig
+#include <vw/Mosaic/QuadTreeGenerator.h>  // for QuadTreeGenerator
+#include <vw/Mosaic/UniviewQuadTreeConfig.h>  // for UniviewQuadTreeConfig
+#include <vw/tools/Common.h>
+
+#include <fstream>
+
+#include <boost/algorithm/string/trim.hpp>
+#include <boost/smart_ptr/shared_ptr.hpp>
+#include <boost/filesystem/path_traits.hpp>
+#include <boost/foreach.hpp>
+namespace fs = boost::filesystem;
+
 
 VW_DEFINE_ENUM_PROTO(Channel, 5, (NONE, UINT8, UINT16, INT16, FLOAT));
 VW_DEFINE_ENUM_PROTO(Mode, 7, (NONE, KML, TMS, UNIVIEW, GMAP, CELESTIA, GIGAPAN));

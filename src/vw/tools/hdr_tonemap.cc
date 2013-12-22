@@ -28,21 +28,23 @@
 #pragma warning(disable:4996)
 #endif
 
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-#include <vw/Image/ImageView.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Core/Log.h>
 #include <vw/Image/Algorithms.h>
+#include <vw/Image/Filter.h>
 #include <vw/Image/ImageMath.h>
 #include <vw/Image/ImageViewRef.h>
-#include <vw/Image/Filter.h>
-#include <vw/FileIO.h>
-
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/PerPixelViews.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageResource.h>
 #include <vw/HDR/CameraCurve.h>
 #include <vw/HDR/GlobalToneMap.h>
-#include <vw/HDR/LocalToneMap.h>
 
 #include <iostream>
+
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
 
 using std::cout;
 using std::endl;

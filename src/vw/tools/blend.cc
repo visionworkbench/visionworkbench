@@ -22,9 +22,18 @@
 #pragma warning(disable:4996)
 #endif
 
+#include <vw/Core/Log.h>
+#include <vw/Math/BBox.h>
+#include <vw/Math/Vector.h>
+#include <vw/Image/AlgorithmFunctions.h>
+#include <vw/Image/Manipulation.h>
+#include <vw/Image/ImageIO.h>
+#include <vw/Image/ImageViewRef.h>
+#include <vw/FileIO/DiskImageView.h>
+#include <vw/Mosaic/QuadTreeGenerator.h>
+#include <vw/Mosaic/ImageComposite.h>
+
 #include <string>
-#include <fstream>
-#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -33,15 +42,10 @@
 namespace po = boost::program_options;
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/convenience.hpp>
+#include <boost/filesystem/path_traits.hpp>
 #include <boost/filesystem/fstream.hpp>
 namespace fs = boost::filesystem;
 
-#include <vw/Core/Debugging.h>
-#include <vw/Image/BlockRasterize.h>
-#include <vw/FileIO/DiskImageView.h>
-#include <vw/Mosaic/QuadTreeGenerator.h>
-#include <vw/Mosaic/ImageComposite.h>
 
 using namespace vw;
 
