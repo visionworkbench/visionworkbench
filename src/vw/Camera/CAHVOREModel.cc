@@ -17,6 +17,7 @@
 
 
 #include <vw/Core/Log.h>
+#include <vw/Camera/CAHVModel.h>
 #include <vw/Camera/CAHVOREModel.h>
 #include <fstream>
 #include <boost/foreach.hpp>
@@ -101,8 +102,41 @@ CAHVOREModel::CAHVOREModel(std::string const& filename) {
   }
 }
 
+CAHVOREModel::CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                           Vector3 const& H_vec, Vector3 const& V_vec,
+                           Vector3 const& O_vec, Vector3 const& R_vec,
+                           Vector3 const& E_Vec) :
+  C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(1.0) {}
+
+CAHVOREModel::CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                           Vector3 const& H_vec, Vector3 const& V_vec,
+                           Vector3 const& O_vec, Vector3 const& R_vec,
+                           Vector3 const& E_Vec, int T, double P_v) :
+  C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
+  switch( T ) {
+  case 1: P = 1.0; break;
+  case 2: P = 0.0; break;
+  case 3:
+    if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
+    break;
+  default: vw_throw( ArgumentErr() << "Unknown CAHVORE type: " << T << "\n" );
+  }
+}
+
+CAHVOREModel::CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                           Vector3 const& H_vec, Vector3 const& V_vec,
+                           Vector3 const& O_vec, Vector3 const& R_vec,
+                           Vector3 const& E_Vec, double P_v) :
+  C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
+  if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
+}
+
+CAHVOREModel::~CAHVOREModel() {}
+
+std::string CAHVOREModel::type() const { return "CAHVORE"; }
+
 // Write CAHVOR model to file.
-void vw::camera::CAHVOREModel::write(std::string const& filename) {
+void CAHVOREModel::write(std::string const& filename) {
   try {
     std::ofstream output(filename.c_str(), std::ofstream::out);
     output.exceptions(std::ofstream::failbit | std::ofstream::badbit);
@@ -192,6 +226,8 @@ vw::Vector3 CAHVOREModel::pixel_to_vector(vw::Vector2 const& pix) const {
 
   return result;
 }
+
+Vector3 CAHVOREModel::camera_center(Vector2 const& pix ) const { return C; }
 
 Vector2 CAHVOREModel::point_to_pixel(vw::Vector3 const& point) const {
   // Base on JPL's cmod_cahvore_3d_to_2d_general

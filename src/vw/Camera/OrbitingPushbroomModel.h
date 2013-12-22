@@ -70,18 +70,7 @@ namespace camera {
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
-                            std::vector<Vector3> const& positions) :
-      LinescanModel<Curve3DPositionInterpolation,
-                    SLERPPoseInterpolation>::LinescanModel(number_of_lines,
-                                                           samples_per_line,
-                                                           sample_offset,
-                                                           focal_length,
-                                                           along_scan_pixel_size,
-                                                           across_scan_pixel_size,
-                                                           line_integration_time,
-                                                           pointing_vec, u_vec,
-                                                           Curve3DPositionInterpolation(positions, t0_position, dt_position),
-                                                           SLERPPoseInterpolation(camera_poses, t0_camera_pose, dt_camera_pose)) {}
+                            std::vector<Vector3> const& positions);
 
     // This constructor is used when the exposure time varies from
     // scanline to scanline, e.g. in the case of HRSC.
@@ -99,21 +88,10 @@ namespace camera {
                             Vector3 pointing_vec,
                             Vector3 u_vec,
                             std::vector<Quaternion<double> > const& camera_poses,
-                            std::vector<Vector3> const& positions) :
-      LinescanModel<Curve3DPositionInterpolation,
-                    SLERPPoseInterpolation>::LinescanModel(number_of_lines,
-                                                           samples_per_line,
-                                                           sample_offset,
-                                                           focal_length,
-                                                           along_scan_pixel_size,
-                                                           across_scan_pixel_size,
-                                                           line_times,
-                                                           pointing_vec, u_vec,
-                                                           Curve3DPositionInterpolation(positions, t0_position, dt_position),
-                                                           SLERPPoseInterpolation(camera_poses, t0_camera_pose, dt_camera_pose)) {}
+                            std::vector<Vector3> const& positions);
 
-    virtual ~OrbitingPushbroomModel() {}
-    virtual std::string type() const { return "OrbitingPushbroom"; }
+    virtual ~OrbitingPushbroomModel();
+    virtual std::string type() const;
 
   };
 }}      // namespace vw::camera

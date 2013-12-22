@@ -29,6 +29,7 @@
 #include <vw/Math/RANSAC.h>
 #include <vw/Math/Vector.h>
 #include <vw/Camera/PinholeModel.h>
+#include <vw/Camera/LensDistortion.h>
 #include <vw/Math/LevenbergMarquardt.h>
 
 namespace vw {

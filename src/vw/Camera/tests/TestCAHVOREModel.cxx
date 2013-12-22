@@ -18,8 +18,9 @@
 
 #include <gtest/gtest_VW.h>
 
-#include <vw/Camera/CAHVOREModel.h>
 #include <vw/Math/Vector.h>
+#include <vw/Camera/CAHVOREModel.h>
+#include <vw/Camera/CAHVModel.h>
 #include <test/Helpers.h>
 
 using namespace vw;

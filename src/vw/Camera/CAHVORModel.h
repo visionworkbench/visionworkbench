@@ -25,15 +25,16 @@
 #ifndef __VW_CAMERAMODEL_CAHVOR_H__
 #define __VW_CAMERAMODEL_CAHVOR_H__
 
-#include <vw/Camera/CAHVModel.h>
-
 #include <vw/Math/Matrix.h>
 #include <vw/Math/Vector.h>
+#include <vw/Camera/CameraModel.h>
 
 #include <string>
 
 namespace vw {
 namespace camera {
+
+  class CAHVModel;
 
   class CAHVORModel : public CameraModel {
   public:
@@ -50,19 +51,19 @@ namespace camera {
     CAHVORModel(std::string const& filename);
 
     /// Initialize the CAHVOR vectors directly in the native CAHVOR format.
-    CAHVORModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec,
-                Vector3 O_vec, Vector3 R_vec) :
-      C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec) {}
+    CAHVORModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                Vector3 const& H_vec, Vector3 const& V_vec,
+                Vector3 const& O_vec, Vector3 const& R_vec);
 
-    virtual ~CAHVORModel() {}
-    virtual std::string type() const { return "CAHVOR"; }
+    virtual ~CAHVORModel();
+    virtual std::string type() const;
 
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return C; };
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
 
     // Overloaded versions also return partial derviatives in a Matrix.
     Vector2 point_to_pixel(Vector3 const& point, Matrix<double> &partial_derivatives) const;

@@ -25,13 +25,14 @@
 
 #include <vw/Math/Quaternion.h>
 #include <vw/Camera/CameraModel.h>
-#include <vw/Camera/LensDistortion.h>
 
 #include <iostream>
 #include <fstream>
 
 namespace vw {
 namespace camera {
+
+  class LensDistortion;
 
   /// This is a simple "generic" pinhole camera model.
   ///
@@ -120,21 +121,10 @@ namespace camera {
     //------------------------------------------------------------------
 
     /// Initialize an empty camera model.
-    PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
-                     m_camera_center(Vector3(0,0,0)),
-                     m_fu(1), m_fv(1), m_cu(0), m_cv(0),
-                     m_u_direction(Vector3(1,0,0)),
-                     m_v_direction(Vector3(0,-1,0)),
-                     m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1) {
-
-      m_rotation.set_identity();
-      this->rebuild_camera_matrix();
-    }
+    PinholeModel();
 
     /// Initialize from a file on disk.
-    PinholeModel(std::string const& filename) : m_distortion(DistortPtr(new NullLensDistortion)) {
-      read(filename);
-    }
+    PinholeModel(std::string const& filename);
 
     /// Initialize the pinhole model with explicit parameters.
     ///
@@ -159,21 +149,11 @@ namespace camera {
     /// coordinates increase as you move down the image. There is an
     /// illustration in the VisionWorkbook.
     ///
-
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v, double c_u, double c_v,
                  Vector3 u_direction, Vector3 v_direction,
                  Vector3 w_direction,
-                 LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                           m_camera_center(camera_center),
-                                                           m_rotation(rotation),
-                                                           m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                                           m_u_direction(u_direction),
-                                                           m_v_direction(v_direction),
-                                                           m_w_direction(w_direction),
-                                                           m_pixel_pitch(1) {
-      this->rebuild_camera_matrix();
-    }
+                 LensDistortion const& distortion_model);
 
     /// Initialize the pinhole model with explicit parameters.
     ///
@@ -203,34 +183,15 @@ namespace camera {
     ///
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v, double c_u, double c_v,
-                 LensDistortion const& distortion_model) : m_distortion(DistortPtr(distortion_model.copy())),
-                                                           m_camera_center(camera_center),
-                                                           m_rotation(rotation),
-                                                           m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                                           m_u_direction(Vector3(1,0,0)),
-                                                           m_v_direction(Vector3(0,-1,0)),
-                                                           m_w_direction(Vector3(0,0,1)),
-                                                           m_pixel_pitch(1) {
-      rebuild_camera_matrix();
-    }
-
+                 LensDistortion const& distortion_model);
 
     /// Construct a basic pinhole model with no lens distortion
     PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                  double f_u, double f_v,
-                 double c_u, double c_v) : m_distortion(DistortPtr(new NullLensDistortion)),
-                                           m_camera_center(camera_center),
-                                           m_rotation(rotation),
-                                           m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
-                                           m_u_direction(Vector3(1,0,0)),
-                                           m_v_direction(Vector3(0,-1,0)),
-                                           m_w_direction(Vector3(0,0,1)),
-                                           m_pixel_pitch(1) {
-      rebuild_camera_matrix();
-    }
+                 double c_u, double c_v);
 
-    virtual std::string type() const { return "Pinhole"; }
-    virtual ~PinholeModel() {}
+    virtual std::string type() const;
+    virtual ~PinholeModel();
 
     /// Read / Write a pinhole model from a file on disk.
     /// Files will end in format .pinhole
@@ -260,24 +221,14 @@ namespace camera {
     //  through the position of the pixel 'pix' on the image plane.
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
 
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const {
-      return m_camera_center;
-    };
-    void set_camera_center(Vector3 const& position) {
-      m_camera_center = position; rebuild_camera_matrix();
-    }
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
+    void set_camera_center(Vector3 const& position);
 
     // Pose is a rotation which moves a vector in camera coordinates
     // into world coordinates.
-    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const {
-      return Quaternion<double>(m_rotation);
-    }
-    void set_camera_pose(Quaternion<double> const& pose) {
-      m_rotation = pose.rotation_matrix(); rebuild_camera_matrix();
-    }
-    void set_camera_pose(Matrix<double,3,3> const& pose) {
-      m_rotation = pose; rebuild_camera_matrix();
-    }
+    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/ = Vector2() ) const;
+    void set_camera_pose(Quaternion<double> const& pose);
+    void set_camera_pose(Matrix<double,3,3> const& pose);
 
     //  u_direction, v_direction, and w_direction define how the coordinate
     //  system of the camera relate to the directions in the image:
@@ -286,30 +237,16 @@ namespace camera {
     //  +w (pointing away from the focal point in the direction of the imaged object).
     //
     //  All three vectors must be of unit length.
-
-    void coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const {
-      u_vec = m_u_direction;
-      v_vec = m_v_direction;
-      w_vec = m_w_direction;
-    }
-
-    void set_coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec) {
-      m_u_direction = u_vec;
-      m_v_direction = v_vec;
-      m_w_direction = w_vec;
-
-      rebuild_camera_matrix();
-    }
+    void coordinate_frame(Vector3 &u_vec, Vector3 &v_vec, Vector3 &w_vec) const;
+    void set_coordinate_frame(Vector3 u_vec, Vector3 v_vec, Vector3 w_vec);
 
     // Redundant...
-    Vector3 coordinate_frame_u_direction() const { return m_u_direction; }
-    Vector3 coordinate_frame_v_direction() const { return m_v_direction; }
-    Vector3 coordinate_frame_w_direction() const { return m_w_direction; }
+    Vector3 coordinate_frame_u_direction() const;
+    Vector3 coordinate_frame_v_direction() const;
+    Vector3 coordinate_frame_w_direction() const;
 
-    const LensDistortion* lens_distortion() const { return m_distortion.get(); };
-    void set_lens_distortion(LensDistortion const& distortion) {
-      m_distortion = distortion.copy();
-    }
+    const LensDistortion* lens_distortion() const;
+    void set_lens_distortion(LensDistortion const& distortion);
 
     //  f_u and f_v :  focal length in horiz and vert. pixel units
     //  c_u and c_v :  principal point in pixel units
@@ -318,26 +255,20 @@ namespace camera {
     void set_intrinsic_parameters(double f_u, double f_v,
                                   double c_u, double c_v) VW_DEPRECATED;
 
-    Vector2 focal_length() const { return Vector2(m_fu,m_fv); }
-    void set_focal_length(Vector2 const& f, bool rebuild=true ) {
-      m_fu = f[0]; m_fv = f[1];
-      if (rebuild) rebuild_camera_matrix();
-    }
-    Vector2 point_offset() const { return Vector2(m_cu,m_cv); }
-    void set_point_offset(Vector2 const& c, bool rebuild=true ) {
-      m_cu = c[0]; m_cv = c[1];
-      if (rebuild) rebuild_camera_matrix();
-    }
-    double pixel_pitch() const { return m_pixel_pitch; }
-    void set_pixel_pitch( double pitch ) { m_pixel_pitch = pitch; }
+    Vector2 focal_length() const;
+    void set_focal_length(Vector2 const& f, bool rebuild=true );
+
+    Vector2 point_offset() const;
+    void set_point_offset(Vector2 const& c, bool rebuild=true );
+
+    double pixel_pitch() const;
+    void set_pixel_pitch( double pitch );
 
     // Ingest camera matrix
     // This performs a camera matrix decomposition and rewrites most variables
     void set_camera_matrix( Matrix<double,3,4> const& p );
 
-    Matrix<double,3,4> camera_matrix() const {
-      return m_camera_matrix;
-    }
+    Matrix<double,3,4> camera_matrix() const;
 
   private:
     /// This must be called whenever camera parameters are modified.
@@ -353,7 +284,7 @@ namespace camera {
   //                 PinholeModel<NoLensDistortion> &dst_camera1);
 
   PinholeModel scale_camera(PinholeModel const& camera_model,
-                            float const& scale);
+                            float scale);
   PinholeModel linearize_camera(PinholeModel const& camera_model);
 
   std::ostream& operator<<(std::ostream& str, PinholeModel const& model);

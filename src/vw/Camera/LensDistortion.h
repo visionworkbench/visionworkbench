@@ -24,8 +24,11 @@
 #define __VW_CAMERA_LENSDISTORTION_H__
 
 #include <vw/Math/Vector.h>
-#include <boost/shared_ptr.hpp>
+
+#include <iosfwd>
 #include <string>
+
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
 namespace camera {
@@ -34,37 +37,31 @@ namespace camera {
   class PinholeModel;
 
   class LensDistortion {
-    public:
-      LensDistortion() {};
+  public:
+    LensDistortion();
 
-      virtual ~LensDistortion() {}
-      virtual Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const;
-      virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
-      virtual void write(std::ostream & os) const = 0;
-      virtual boost::shared_ptr<LensDistortion> copy() const = 0;
-      virtual Vector<double> distortion_parameters() const { return Vector<double>(); }
+    virtual ~LensDistortion();
+    virtual Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const;
+    virtual Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
+    virtual void write(std::ostream & os) const = 0;
+    virtual boost::shared_ptr<LensDistortion> copy() const = 0;
+    virtual Vector<double> distortion_parameters() const;
 
-      virtual std::string name() const = 0;
-      virtual void scale(float const& scale) = 0; // Used to scale distortion w/ image size
+    virtual std::string name() const = 0;
+    virtual void scale(float scale) = 0; // Used to scale distortion w/ image size
   };
 
-  std::ostream & operator<<(std::ostream & os, const vw::camera::LensDistortion& ld);
+  std::ostream& operator<<(std::ostream& os, const LensDistortion& ld);
 
   /// A NULL lens distortion model.
   struct NullLensDistortion : public LensDistortion {
-    Vector2 distorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
-    Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
-    boost::shared_ptr<LensDistortion> copy() const {
-      return boost::shared_ptr<NullLensDistortion>(new NullLensDistortion(*this));
-    }
+    inline Vector2 distorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
+    inline Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const& v) const { return v; }
 
-    void write(std::ostream & os) const {
-      os << "No distortion applied.\n";
-    }
-
-    std::string name() const { return "NULL"; }
-
-    void scale(float const& /*scale*/) { }
+    boost::shared_ptr<LensDistortion> copy() const;
+    void write(std::ostream & os) const;
+    std::string name() const;
+    void scale(float /*scale*/);
   };
 
   /// TSAI Lens Distortion Model
@@ -91,26 +88,17 @@ namespace camera {
   class TsaiLensDistortion : public LensDistortion {
     Vector4 m_distortion;
   public:
-    TsaiLensDistortion(Vector4 params) : m_distortion(params) {}
-    Vector<double> distortion_parameters() const { return m_distortion; }
-    boost::shared_ptr<LensDistortion> copy() const {
-      return boost::shared_ptr<TsaiLensDistortion>(new TsaiLensDistortion(*this));
-    }
+    TsaiLensDistortion(Vector4 const& params);
+    Vector<double> distortion_parameters() const;
+    boost::shared_ptr<LensDistortion> copy() const;
 
     //  Location where the given pixel would have appeared if there were no lens distortion.
     Vector2 distorted_coordinates(const PinholeModel&, Vector2 const&) const;
-    void write(std::ostream & os) const {
-      os << "k1 = " << m_distortion[0] << "\n";
-      os << "k2 = " << m_distortion[1] << "\n";
-      os << "p1 = " << m_distortion[2] << "\n";
-      os << "p2 = " << m_distortion[3] << "\n";
-    }
+    void write(std::ostream & os) const;
 
-    std::string name() const { return "TSAI"; }
+    std::string name() const;
 
-    void scale( float const& scale ) {
-      m_distortion *= scale;
-    }
+    void scale( float scale );
   };
 
   /// Brown Conrady Distortion
@@ -129,44 +117,20 @@ namespace camera {
     Vector2 m_centering_distortion;
     double m_centering_angle;
   public:
-    BrownConradyDistortion( Vector<double> const& params ) {
-      VW_ASSERT( params.size() == 8,
-                 ArgumentErr() << "BrownConradyDistortion: requires constructor input of size 8.");
-      m_principal_point = subvector(params,0,2);
-      m_radial_distortion = subvector(params,2,3);
-      m_centering_distortion = subvector(params,5,2);
-      m_centering_angle = params[7];
-    }
+    BrownConradyDistortion( Vector<double> const& params );
     BrownConradyDistortion( Vector<double> const& principal,
                             Vector<double> const& radial,
                             Vector<double> const& centering,
-                            double const& angle ) :
-    m_principal_point(principal), m_radial_distortion(radial),
-      m_centering_distortion(centering), m_centering_angle( angle ) {}
-    boost::shared_ptr<LensDistortion> copy() const {
-      return boost::shared_ptr<BrownConradyDistortion>(new BrownConradyDistortion(*this));
-    }
+                            double const& angle );
 
-    Vector<double> distortion_parameters() const {
-      Vector<double,8> output;
-      subvector(output,0,2) = m_principal_point;
-      subvector(output,2,3) = m_radial_distortion;
-      subvector(output,5,2) = m_centering_distortion;
-      output[7] = m_centering_angle;
-      return output;
-    }
+    Vector<double> distortion_parameters() const;
+    boost::shared_ptr<LensDistortion> copy() const;
 
     Vector2 undistorted_coordinates(const PinholeModel&, Vector2 const&) const;
 
-    void write(std::ostream& os) const {
-      os << distortion_parameters() << "\n";
-    }
-
-    std::string name() const { return "BROWNCONRADY"; }
-
-    void scale( float const& /*scale*/ ) {
-      vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
-    }
+    void write(std::ostream& os) const;
+    std::string name() const;
+    void scale( float /*scale*/ );
   };
 
   /// Adjustable Tsai Distortion
@@ -184,28 +148,16 @@ namespace camera {
   class AdjustableTsaiLensDistortion : public LensDistortion {
     Vector<double> m_distortion;
   public:
-  AdjustableTsaiLensDistortion(Vector<double> params) : m_distortion(params) {
-      VW_ASSERT( params.size() > 3, ArgumentErr() << "Requires at least 4 coefficients for distortion. Last 3 are always the distortion coefficients and alpha. All leading elements are even radial distortion coefficients." );
-    }
-    Vector<double> distortion_parameters() const { return m_distortion; }
-    boost::shared_ptr<LensDistortion> copy() const {
-      return boost::shared_ptr<AdjustableTsaiLensDistortion>(new AdjustableTsaiLensDistortion(*this));
-    }
+    AdjustableTsaiLensDistortion(Vector<double> params);
+    Vector<double> distortion_parameters() const;
+    boost::shared_ptr<LensDistortion> copy() const;
 
     //  Location where the given pixel would have appeared if there were no lens distortion.
     Vector2 distorted_coordinates(PinholeModel const&, Vector2 const&) const;
 
-    void write(std::ostream & os) const {
-      os << "Radial Coeff: " << subvector(m_distortion,0,m_distortion.size()-3) << "\n";
-      os << "Tangental Coeff: " << subvector(m_distortion,m_distortion.size()-3,2) << "\n";
-      os << "Alpha: " << m_distortion[m_distortion.size()-1] << "\n";
-    }
-
-    std::string name() const { return "AdjustableTSAI"; }
-
-    void scale( float const& /*scale*/ ) {
-      vw_throw( NoImplErr() << "AdjustableTsai doesn't support scaling." );
-    }
+    void write(std::ostream & os) const;
+    std::string name() const;
+    void scale( float /*scale*/ );
   };
 
 }} // namespace vw::camera

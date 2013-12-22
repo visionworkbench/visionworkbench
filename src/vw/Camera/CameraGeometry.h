@@ -37,7 +37,7 @@
 namespace vw {
 
 // Forward Declare
-namespace ip { class InterestPoint; }
+namespace ip { struct InterestPoint; }
 
 namespace camera {
 
@@ -140,23 +140,11 @@ namespace camera {
       typedef Matrix<double> jacobian_type;
 
       // Constructor
-      inline CameraMatrixModelLMA( std::vector<Vector<double> > const& input,
-                                   std::vector<Vector<double> > const& output ) :
-        m_world_input(input), m_image_output(output) {}
+      CameraMatrixModelLMA( std::vector<Vector<double> > const& input,
+                            std::vector<Vector<double> > const& output );
 
       // Evaluator
-      inline result_type operator()( domain_type const& x ) const {
-        result_type output;
-        output.set_size( m_world_input.size() );
-        Matrix<double,3,4> P = unflatten(x);
-
-        for ( uint32 i = 0; i < m_world_input.size(); i++ ) {
-          Vector3 reproj = P*m_world_input[i];
-          reproj /= reproj[2];
-          output[i] = norm_2( subvector(m_image_output[i],0,2) - subvector(reproj,0,2) );
-        }
-        return output;
-      }
+      result_type operator()( domain_type const& x ) const;
 
       // Helper functions
       Vector<double> flatten( Matrix<double> const& input ) const;
@@ -378,27 +366,7 @@ namespace camera {
       typedef Matrix<double> jacobian_type;
 
       // Evaluator
-      inline result_type operator()( domain_type const& x )  const {
-        unsigned number_of_measures = (x.size()-12)/3;
-        Vector<double> output( number_of_measures*4 );
-
-        // Create second camera
-        Matrix<double> P2(3,4);
-        select_row(P2,0) = subvector(x,0,4);
-        select_row(P2,1) = subvector(x,4,4);
-        select_row(P2,2) = subvector(x,8,4);
-
-        // Calculate reprojection error
-        for ( unsigned i = 0, j = 12; i < number_of_measures; i++, j+= 3 ) {
-          Vector2 reprojection1(x[j]/x[j+2],x[j+1]/x[j+2]);
-          subvector(output,4*i,2) = reprojection1;
-          Vector3 reprojection2 = P2*Vector4(x[j],x[j+1],x[j+2],1);
-          reprojection2 /= reprojection2[2];
-          subvector(output,4*i+2,2) = subvector(reprojection2,0,2);
-        }
-
-        return output;
-      }
+      result_type operator()( domain_type const& x )  const;
     };
 
     template <class ContainerT>

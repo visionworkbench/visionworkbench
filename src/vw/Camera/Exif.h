@@ -40,6 +40,9 @@
 #include <vw/Camera/ExifData.h>
 #include <vw/Math/Vector.h>
 
+#include <stddef.h>
+#include <string>
+
 namespace vw {
 namespace camera {
 

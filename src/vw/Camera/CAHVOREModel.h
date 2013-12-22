@@ -26,10 +26,12 @@
 #define __VW_CAMERAMODEL_CAHVORE_H__
 
 #include <vw/Core/Log.h>
-#include <vw/Camera/CAHVModel.h>
+#include <vw/Camera/CameraModel.h>
 
 namespace vw {
 namespace camera {
+
+  class CAHVModel;
 
   class CAHVOREModel : public CameraModel {
   public:
@@ -46,36 +48,28 @@ namespace camera {
     CAHVOREModel(std::string const& filename);
 
     /// Initialize the CAHVORE vectors directly in the native CAHVORE format.
-    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec, Vector3 const& H_vec, Vector3 const& V_vec,
-                 Vector3 const& O_vec, Vector3 const& R_vec, Vector3 const& E_Vec) :
-      C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(1.0) {}
-    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec, Vector3 const& H_vec, Vector3 const& V_vec,
-                 Vector3 const& O_vec, Vector3 const& R_vec, Vector3 const& E_Vec, int T, double P_v) :
-      C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
-      switch( T ) {
-      case 1: P = 1.0; break;
-      case 2: P = 0.0; break;
-      case 3:
-        if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
-        break;
-      default: vw_throw( ArgumentErr() << "Unknown CAHVORE type: " << T << "\n" );
-      }
-    }
-    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec, Vector3 const& H_vec, Vector3 const& V_vec,
-                 Vector3 const& O_vec, Vector3 const& R_vec, Vector3 const& E_Vec, double P_v) :
-      C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec), E(E_Vec), P(P_v) {
-      if ( P < 0 || P > 1 ) vw_throw( ArgumentErr() << "Invalid P value: " << P_v << "\n" );
-    }
+    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                 Vector3 const& H_vec, Vector3 const& V_vec,
+                 Vector3 const& O_vec, Vector3 const& R_vec,
+                 Vector3 const& E_Vec);
+    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                 Vector3 const& H_vec, Vector3 const& V_vec,
+                 Vector3 const& O_vec, Vector3 const& R_vec,
+                 Vector3 const& E_Vec, int T, double P_v);
+    CAHVOREModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                 Vector3 const& H_vec, Vector3 const& V_vec,
+                 Vector3 const& O_vec, Vector3 const& R_vec,
+                 Vector3 const& E_Vec, double P_v);
 
-    virtual ~CAHVOREModel() {}
-    virtual std::string type() const { return "CAHVORE"; }
+    virtual ~CAHVOREModel();
+    virtual std::string type() const;
 
     //------------------------------------------------------------------
     // Methods
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector(Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return C; };
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
 
     /// Write CAHVORE model to file.
     void write(std::string const& filename);

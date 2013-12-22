@@ -16,10 +16,36 @@
 // __END_LICENSE__
 
 
+#include <vw/Math/Functors.h>
+#include <vw/Math/Quaternion.h>
 #include <vw/Camera/CameraModel.h>
+
+#include <sstream>
 
 using namespace vw;
 using namespace vw::camera;
+
+Quaternion<double>
+CameraModel::camera_pose(Vector2 const& pix) const {
+  vw_throw( NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()" );
+  return Quaternion<double>();
+}
+
+AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model) : m_camera(camera_model) {
+  m_rotation = Quat(math::identity_matrix<3>());
+  m_rotation_inverse = Quat(math::identity_matrix<3>());
+}
+
+AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
+                                         Vector3 const& translation, Quat const& rotation) :
+  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
+
+AdjustedCameraModel::~AdjustedCameraModel() {}
+std::string AdjustedCameraModel::type() const { return "Adjusted"; }
+
+Vector3 AdjustedCameraModel::translation() const { return m_translation; }
+Quat AdjustedCameraModel::rotation() const { return m_rotation; }
+Matrix<double,3,3> AdjustedCameraModel::rotation_matrix() const { return m_rotation.rotation_matrix(); }
 
 Vector3 AdjustedCameraModel::axis_angle_rotation() const {
   Quat quat = this->rotation();
@@ -68,7 +94,7 @@ void AdjustedCameraModel::read(std::string const& filename) {
 }
 
 std::ostream& camera::operator<<(std::ostream& ostr,
-           AdjustedCameraModel const& cam ) {
+                                 AdjustedCameraModel const& cam ) {
   ostr << "AdjustedCameraModel(Trans: " << cam.m_translation << " Rot: "
        << cam.m_rotation << " Cam: " << cam.m_camera->type() << ")\n";
   return ostr;

@@ -20,11 +20,12 @@
 
 #include <boost/random.hpp>
 
-#include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/CameraGeometry.h>
-#include <vw/Math/EulerAngles.h>
-#include <test/Helpers.h>
 #include <vw/Math/RANSAC.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Camera/CameraGeometry.h>
+#include <vw/Camera/LensDistortion.h>
+#include <vw/Camera/PinholeModel.h>
+#include <test/Helpers.h>
 
 using namespace vw;
 using namespace vw::camera;

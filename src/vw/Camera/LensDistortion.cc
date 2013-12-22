@@ -21,6 +21,7 @@
 #include <vw/Math/LevenbergMarquardt.h>
 
 using namespace vw;
+using namespace camera;
 
 // Special LMA Models to figure out foward and backward ---------
 
@@ -55,8 +56,15 @@ struct DistortOptimizeFunctor :  public math::LeastSquaresModelBase<DistortOptim
 
 // Backup implemenations for Lens Distortion -------------------
 
+LensDistortion::LensDistortion() {}
+
+LensDistortion::~LensDistortion() {}
+
+Vector<double>
+LensDistortion::distortion_parameters() const { return Vector<double>(); }
+
 Vector2
-vw::camera::LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+LensDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   UndistortOptimizeFunctor model(cam, *this);
   int status;
   Vector2 solution =
@@ -66,7 +74,7 @@ vw::camera::LensDistortion::undistorted_coordinates(const camera::PinholeModel& 
 }
 
 vw::Vector2
-vw::camera::LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
+LensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& v) const {
   DistortOptimizeFunctor model(cam, *this);
   int status;
   Vector2 solution =
@@ -77,8 +85,31 @@ vw::camera::LensDistortion::distorted_coordinates(const camera::PinholeModel& ca
 
 // Specific Implementations -------------------------------------
 
+boost::shared_ptr<LensDistortion> NullLensDistortion::copy() const {
+  return boost::shared_ptr<NullLensDistortion>(new NullLensDistortion(*this));
+}
+
+void NullLensDistortion::write(std::ostream & os) const {
+  os << "No distortion applied.\n";
+}
+
+std::string NullLensDistortion::name() const { return "NULL"; }
+
+void NullLensDistortion::scale(float scale) { }
+
+
+TsaiLensDistortion::TsaiLensDistortion(Vector4 const& params) : m_distortion(params) {}
+
+Vector<double>
+TsaiLensDistortion::distortion_parameters() const { return m_distortion; }
+
+boost::shared_ptr<LensDistortion>
+TsaiLensDistortion::copy() const {
+  return boost::shared_ptr<TsaiLensDistortion>(new TsaiLensDistortion(*this));
+}
+
 Vector2
-vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
 
   Vector2 focal = cam.focal_length();
   Vector2 offset = cam.point_offset();
@@ -105,8 +136,51 @@ vw::camera::TsaiLensDistortion::distorted_coordinates(const camera::PinholeModel
   return result;
 }
 
+void TsaiLensDistortion::write(std::ostream & os) const {
+  os << "k1 = " << m_distortion[0] << "\n";
+  os << "k2 = " << m_distortion[1] << "\n";
+  os << "p1 = " << m_distortion[2] << "\n";
+  os << "p2 = " << m_distortion[3] << "\n";
+}
+
+std::string TsaiLensDistortion::name() const { return "TSAI"; }
+
+void TsaiLensDistortion::scale( float scale ) {
+  m_distortion *= scale;
+}
+
+BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& params ) {
+  VW_ASSERT( params.size() == 8,
+             ArgumentErr() << "BrownConradyDistortion: requires constructor input of size 8.");
+  m_principal_point = subvector(params,0,2);
+  m_radial_distortion = subvector(params,2,3);
+  m_centering_distortion = subvector(params,5,2);
+  m_centering_angle = params[7];
+}
+
+BrownConradyDistortion::BrownConradyDistortion( Vector<double> const& principal,
+                                                Vector<double> const& radial,
+                                                Vector<double> const& centering,
+                                                double const& angle ) :
+  m_principal_point(principal), m_radial_distortion(radial),
+  m_centering_distortion(centering), m_centering_angle( angle ) {}
+
+boost::shared_ptr<LensDistortion>
+BrownConradyDistortion::copy() const {
+  return boost::shared_ptr<BrownConradyDistortion>(new BrownConradyDistortion(*this));
+}
+
+Vector<double> BrownConradyDistortion::distortion_parameters() const {
+  Vector<double,8> output;
+  subvector(output,0,2) = m_principal_point;
+  subvector(output,2,3) = m_radial_distortion;
+  subvector(output,5,2) = m_centering_distortion;
+  output[7] = m_centering_angle;
+  return output;
+}
+
 Vector2
-vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
+BrownConradyDistortion::undistorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p) const {
   Vector2 offset = cam.point_offset();
   Vector2 intermediate = p - m_principal_point - offset;
   double r2 = norm_2_sqr(intermediate);
@@ -119,8 +193,34 @@ vw::camera::BrownConradyDistortion::undistorted_coordinates(const camera::Pinhol
   return intermediate+offset;
 }
 
+void BrownConradyDistortion::write(std::ostream& os) const {
+  os << distortion_parameters() << "\n";
+}
+
+std::string BrownConradyDistortion::name() const { return "BROWNCONRADY"; }
+
+void BrownConradyDistortion::scale( float scale ) {
+  vw_throw( NoImplErr() << "BrownConradyDistortion doesn't support scaling" );
+}
+
+
+AdjustableTsaiLensDistortion::AdjustableTsaiLensDistortion(Vector<double> params) : m_distortion(params) {
+  VW_ASSERT( params.size() > 3, ArgumentErr() << "Requires at least 4 coefficients for distortion. Last 3 are always the distortion coefficients and alpha. All leading elements are even radial distortion coefficients." );
+}
+
+Vector<double>
+AdjustableTsaiLensDistortion::distortion_parameters() const {
+  return m_distortion;
+}
+
+boost::shared_ptr<LensDistortion>
+AdjustableTsaiLensDistortion::copy() const {
+  return boost::shared_ptr<AdjustableTsaiLensDistortion>(new AdjustableTsaiLensDistortion(*this));
+}
+
+
 Vector2
-vw::camera::AdjustableTsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p )  const {
+AdjustableTsaiLensDistortion::distorted_coordinates(const camera::PinholeModel& cam, Vector2 const& p )  const {
   Vector2 focal = cam.focal_length();
   Vector2 offset = cam.point_offset();
 
@@ -152,9 +252,21 @@ vw::camera::AdjustableTsaiLensDistortion::distorted_coordinates(const camera::Pi
   return elem_prod(result+Vector2(m_distortion[m_distortion.size()-1]*result.y(),0),focal)+offset;
 }
 
-std::ostream& vw::camera::operator<<(std::ostream & os,
-                                     const camera::LensDistortion& ld) {
+void AdjustableTsaiLensDistortion::write(std::ostream & os) const {
+  os << "Radial Coeff: " << subvector(m_distortion,0,m_distortion.size()-3) << "\n";
+  os << "Tangental Coeff: " << subvector(m_distortion,m_distortion.size()-3,2) << "\n";
+  os << "Alpha: " << m_distortion[m_distortion.size()-1] << "\n";
+}
+
+std::string AdjustableTsaiLensDistortion::name() const { return "AdjustableTSAI"; }
+
+void AdjustableTsaiLensDistortion::scale( float /*scale*/ ) {
+  vw_throw( NoImplErr() << "AdjustableTsai doesn't support scaling." );
+}
+
+
+std::ostream& camera::operator<<(std::ostream & os,
+                                 const camera::LensDistortion& ld) {
   ld.write(os);
   return os;
 }
-

@@ -24,13 +24,11 @@
 #define __VW_CAMERAMODEL_CAHV_H__
 
 #include <vw/Camera/CameraModel.h>
-#include <vw/Camera/PinholeModel.h>
-#include <vw/Math/Vector.h>
-#include <vw/Math/Matrix.h>
 
 namespace vw {
 namespace camera {
 
+  class PinholeModel;
 
   /// The CAHV pinhole camera model has been widely used in NASA
   /// planetary mission for rover navigation and scientific camera
@@ -66,33 +64,17 @@ namespace camera {
     CAHVModel(std::string const& filename);
 
     /// Initialize the CAHV vectors directly in the native CAHV format.
-    CAHVModel(Vector3 C_vec, Vector3 A_vec, Vector3 H_vec, Vector3 V_vec) :
-      C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
+    CAHVModel(Vector3 const& C_vec,
+              Vector3 const& A_vec,
+              Vector3 const& H_vec,
+              Vector3 const& V_vec);
 
     /// Initialize a CAHV model from a pinhole model
-    CAHVModel(PinholeModel const& pin_model) {
-      //  Intrinsic parametes (in pixel units)
-      Vector2 focal = pin_model.focal_length();
-      Vector2 offset = pin_model.point_offset();
-
-      Vector3 u,v,w;
-      pin_model.coordinate_frame(u,v,w);
-
-      Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
-
-      Vector3 Hvec = R*u;
-      Vector3 Vvec = R*v;
-
-      C = pin_model.camera_center();
-      A = R*w;
-      H = focal[0]*Hvec + offset[0]*A;
-      V = focal[1]*Vvec + offset[1]*A;
-    }
-
+    CAHVModel(PinholeModel const& pin_model);
 
     CAHVModel operator= (PinholeModel const& pin_model);
 
-    virtual std::string type() const { return "CAHV"; }
+    virtual std::string type() const;
 
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters.  In this variant, the view matrix is supplied
@@ -109,24 +91,9 @@ namespace camera {
     /// |R20 R21 R22 Tz|
     /// | 0   0   0   1|
     ///
-    CAHVModel(double f, Vector2 pixel_size,
+    CAHVModel(double f, Vector2 const& pixel_size,
               double xmin, double /*xmax*/, double ymin, double /*ymax*/,
-              Matrix<double, 4, 4> view_matrix) {
-
-      double fH = f/pixel_size.x();
-      double fV = f/pixel_size.y();
-      double Hc = -xmin;
-      double Vc = -ymin;
-
-      Vector3 Hvec(view_matrix[0][0], view_matrix[0][1], view_matrix[0][2]);
-      Vector3 Vvec(view_matrix[1][0], view_matrix[1][1], view_matrix[1][2]);
-
-      C = Vector3(view_matrix[3][0], view_matrix[3][1], view_matrix[3][2]);
-      A = Vector3(view_matrix[2][0], view_matrix[2][1], view_matrix[2][2]);
-      H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Vc*A;
-
-    }
+              math::Matrix<double, 4, 4> const& view_matrix);
 
     /// Initialize the CAHV vectors indirectly using pinhole camera
     /// parameters:
@@ -142,15 +109,9 @@ namespace camera {
     /// Hvec      - unit horizontal image plane vector in world coords
     /// Vvec      - unit vertical image plane vector in world coords
     ///
-    CAHVModel(double f, Vector2 pixel_size, double Hc, double Vc,
-              Vector3 Cinit, Vector3 Ainit, Vector3 Hvec, Vector3 Vvec) {
-      double fH = f/pixel_size.x();
-      double fV = f/pixel_size.y();
-      C = Cinit;
-      A = Ainit;
-      H = fH*Hvec + Hc*A;
-      V = fV*Vvec + Vc*A;
-    }
+    CAHVModel(double f, Vector2 const& pixel_size, double Hc, double Vc,
+              Vector3 const& Cinit, Vector3 const& Ainit,
+              Vector3 const& Hvec, Vector3 const& Vvec);
 
     virtual ~CAHVModel() {}
 
@@ -159,7 +120,7 @@ namespace camera {
     //------------------------------------------------------------------
     virtual Vector2 point_to_pixel(Vector3 const& point) const;
     virtual Vector3 pixel_to_vector (Vector2 const& pix) const;
-    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const { return C; };
+    virtual Vector3 camera_center(Vector2 const& /*pix*/ = Vector2() ) const;
 
     /// Write CAHV model to file
     void write(std::string const& filename);
@@ -182,15 +143,7 @@ namespace camera {
   void epipolar(CAHVModel const src_camera0, CAHVModel const src_camera1,
                 CAHVModel &dst_camera0, CAHVModel &dst_camera1);
 
-  inline std::ostream& operator<<(std::ostream& str, CAHVModel const& model) {
-    str << "CAHV camera: \n";
-    str << "\tC: " << model.C << "\n";
-    str << "\tA: " << model.A << "\n";
-    str << "\tH: " << model.H << "\n";
-    str << "\tV: " << model.V << "\n";
-    return str;
-  }
-
+  std::ostream& operator<<(std::ostream& str, CAHVModel const& model);
 
 }} // namespace vw::camera
 

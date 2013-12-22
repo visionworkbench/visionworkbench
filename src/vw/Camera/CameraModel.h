@@ -25,7 +25,12 @@
 #define __VW_CAMERA_CAMERAMODEL_H__
 
 #include <fstream>
+#include <vw/Core/Exception.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/Vector.h>
 #include <vw/Math/Quaternion.h>
+
+#include <boost/smart_ptr/shared_ptr.hpp>
 
 namespace vw {
 namespace camera {
@@ -88,11 +93,7 @@ namespace camera {
 
     /// Returns the pose (as a quaternion) of the camera for a given
     /// pixel. It represents the rotation from the camera frame to world frame.
-    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const {
-      vw_throw( NoImplErr() << "CameraModel: this camera model has not implemented camera_pose()" );
-      return Quaternion<double>();
-    }
-
+    virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const;
   };
 
 
@@ -108,21 +109,17 @@ namespace camera {
     Quat m_rotation_inverse;
 
   public:
-    AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model) : m_camera(camera_model) {
-      m_rotation = Quat(math::identity_matrix<3>());
-      m_rotation_inverse = Quat(math::identity_matrix<3>());
-    }
-
+    AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model);
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                        Vector3 const& translation, Quat const& rotation) :
-      m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
+                        Vector3 const& translation, Quat const& rotation);
 
-    virtual ~AdjustedCameraModel() {}
-    virtual std::string type() const { return "Adjusted"; }
+    virtual ~AdjustedCameraModel();
+    virtual std::string type() const;
 
-    Vector3 translation() const { return m_translation; }
-    Quat rotation() const { return m_rotation; }
-    Matrix<double,3,3> rotation_matrix() const { return m_rotation.rotation_matrix(); }
+    Vector3 translation() const;
+    Quat rotation() const;
+    Matrix<double,3,3> rotation_matrix() const;
+
     Vector3 axis_angle_rotation() const;
     void set_rotation(Quat const&);
 

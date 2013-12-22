@@ -17,12 +17,64 @@
 
 
 //
+#include <vw/Core/Exception.h>
 #include <vw/Core/Log.h>
+#include <vw/Core/TypeDeduction.h>
+#include <vw/Math/Matrix.h>
+#include <vw/Math/Quaternion.h>
+#include <vw/Math/Vector.h>
 #include <vw/Camera/CAHVModel.h>
-#include <boost/algorithm/string.hpp>
+#include <vw/Camera/PinholeModel.h>
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
 namespace camera {
+
+  /// This constructor takes a filename and reads in a camera model
+  /// from the file.  The file may contain either CAHV parameters or
+  /// pinhole camera parameters.
+  CAHVModel::CAHVModel(std::string const& filename) {
+    if (filename.empty())
+      vw_throw( IOErr() << "CAHVModel: null file name passed to constructor." );
+
+    if (boost::ends_with(filename, ".cahv"))
+      read_cahv(filename);
+    else if (boost::ends_with(filename, ".pin"))
+      read_pinhole(filename);
+    else
+      vw_throw( IOErr() << "CAHVModel: Unknown camera file suffix." );
+  }
+
+  /// Initialize the CAHV vectors directly in the native CAHV format.
+  CAHVModel::CAHVModel(Vector3 const& C_vec,
+                       Vector3 const& A_vec,
+                       Vector3 const& H_vec,
+                       Vector3 const& V_vec) :
+    C(C_vec), A(A_vec), H(H_vec), V(V_vec) {}
+
+  /// Initialize a CAHV model from a pinhole model
+  CAHVModel::CAHVModel(PinholeModel const& pin_model) {
+    //  Intrinsic parametes (in pixel units)
+    Vector2 focal = pin_model.focal_length();
+    Vector2 offset = pin_model.point_offset();
+
+    Vector3 u,v,w;
+    pin_model.coordinate_frame(u,v,w);
+
+    Matrix<double,3,3> R = pin_model.camera_pose().rotation_matrix();
+
+    Vector3 Hvec = R*u;
+    Vector3 Vvec = R*v;
+
+    C = pin_model.camera_center();
+    A = R*w;
+    H = focal[0]*Hvec + offset[0]*A;
+    V = focal[1]*Vvec + offset[1]*A;
+  }
+
+  std::string
+  CAHVModel::type() const { return "CAHV"; }
 
   // FIXME -- Double check anything related to PinholeModel
   CAHVModel CAHVModel::operator= (PinholeModel const& pin_model) {
@@ -52,20 +104,33 @@ namespace camera {
     return *this;
   }
 
+  CAHVModel::CAHVModel(double f, Vector2 const& pixel_size,
+                       double xmin, double /*xmax*/, double ymin, double /*ymax*/,
+                       Matrix<double, 4, 4> const& view_matrix) {
 
-  /// This constructor takes a filename and reads in a camera model
-  /// from the file.  The file may contain either CAHV parameters or
-  /// pinhole camera parameters.
-  CAHVModel::CAHVModel(std::string const& filename) {
-    if (filename.empty())
-      vw_throw( IOErr() << "CAHVModel: null file name passed to constructor." );
+    double fH = f/pixel_size.x();
+    double fV = f/pixel_size.y();
+    double Hc = -xmin;
+    double Vc = -ymin;
 
-    if (boost::ends_with(filename, ".cahv"))
-      read_cahv(filename);
-    else if (boost::ends_with(filename, ".pin"))
-      read_pinhole(filename);
-    else
-      vw_throw( IOErr() << "CAHVModel: Unknown camera file suffix." );
+    Vector3 Hvec(view_matrix[0][0], view_matrix[0][1], view_matrix[0][2]);
+    Vector3 Vvec(view_matrix[1][0], view_matrix[1][1], view_matrix[1][2]);
+
+    C = Vector3(view_matrix[3][0], view_matrix[3][1], view_matrix[3][2]);
+    A = Vector3(view_matrix[2][0], view_matrix[2][1], view_matrix[2][2]);
+    H = fH*Hvec + Hc*A;
+    V = fV*Vvec + Vc*A;
+  }
+
+  CAHVModel::CAHVModel(double f, Vector2 const& pixel_size, double Hc, double Vc,
+                       Vector3 const& Cinit, Vector3 const& Ainit,
+                       Vector3 const& Hvec, Vector3 const& Vvec) {
+    double fH = f/pixel_size.x();
+    double fV = f/pixel_size.y();
+    C = Cinit;
+    A = Ainit;
+    H = fH*Hvec + Hc*A;
+    V = fV*Vvec + Vc*A;
   }
 
   Vector2 CAHVModel::point_to_pixel(Vector3 const& point) const {
@@ -88,6 +153,10 @@ namespace camera {
       vec *= -1.0;
     return vec;
   }
+
+  Vector3 CAHVModel::camera_center(Vector2 const& pix) const {
+    return C;
+  };
 
   // --------------------------------------------------
   //                 Private Methods
@@ -264,6 +333,15 @@ namespace camera {
     } catch ( const std::ofstream::failure& e ) {
       vw_throw( IOErr() << "CAHVModel: Could not write file: " << filename << "(" << e.what() << ")" );
     }
+  }
+
+  std::ostream& operator<<(std::ostream& str, CAHVModel const& model) {
+    str << "CAHV camera: \n";
+    str << "\tC: " << model.C << "\n";
+    str << "\tA: " << model.A << "\n";
+    str << "\tH: " << model.H << "\n";
+    str << "\tV: " << model.V << "\n";
+    return str;
   }
 
 }} // namespace vw::camera

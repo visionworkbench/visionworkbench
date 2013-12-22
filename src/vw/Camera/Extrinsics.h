@@ -43,13 +43,10 @@ namespace camera {
     Vector3 m_initial_position, m_velocity_vector;
 
   public:
-    LinearPositionInterpolation(Vector3 initial_position, Vector3 velocity_vector) :
-      m_initial_position(initial_position), m_velocity_vector(velocity_vector) {}
+    LinearPositionInterpolation(Vector3 const& initial_position,
+                                Vector3 const& velocity_vector);
 
-    Vector3 operator()(double t) const {
-      return m_initial_position + t * m_velocity_vector;
-    }
-
+    Vector3 operator()(double t) const;
   };
 
   class Curve3DPositionInterpolation {
@@ -93,9 +90,7 @@ namespace camera {
   public:
     HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
                                   std::vector<Vector3> const& velocity_samples,
-                                  double t0, double dt ) :
-      m_position( position_samples ), m_velocity( velocity_samples ),
-      m_t0(t0), m_dt(dt) {}
+                                  double t0, double dt );
 
     Vector3 operator()( double t ) const;
   };
@@ -106,9 +101,7 @@ namespace camera {
   public:
     PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
                                      std::vector<Vector3> const& velocity_samples,
-                                     double t0, double dt ) :
-      m_position( position_samples ), m_velocity( velocity_samples ),
-      m_t0(t0), m_dt(dt) {}
+                                     double t0, double dt );
 
     Vector3 operator()( double t ) const;
   };
@@ -118,8 +111,7 @@ namespace camera {
     double m_t0, m_dt;
   public:
     LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                  double t0, double dt ) :
-      m_position( position_samples ), m_t0(t0), m_dt(dt) {}
+                                          double t0, double dt );
 
     Vector3 operator()( double t ) const;
   };
@@ -132,7 +124,7 @@ namespace camera {
   class ConstantPoseInterpolation {
     Quat m_pose;
   public:
-    ConstantPoseInterpolation(Quat const& pose) : m_pose(pose) {}
+    ConstantPoseInterpolation(Quat const& pose);
 
     inline Quat operator()(double /*t*/) const {
       return m_pose;
@@ -149,8 +141,7 @@ namespace camera {
     Quat slerp(double alpha, Quat const& a, Quat const& b, int spin) const;
 
   public:
-    SLERPPoseInterpolation(std::vector<Quat > const& pose_samples, double t0, double dt) :
-      m_pose_samples(pose_samples), m_t0(t0), m_dt(dt) {}
+    SLERPPoseInterpolation(std::vector<Quat > const& pose_samples, double t0, double dt);
 
     /// Compute the pose at a given time t.  The pose will be an interpolated value
     Quat operator()(double t) const;
@@ -165,8 +156,7 @@ namespace camera {
     double m_t0, m_dt;
 
   public:
-    LinearTimeInterpolation( double initial_time, double time_per_line ) :
-      m_t0( initial_time ), m_dt( time_per_line ) {}
+    LinearTimeInterpolation( double initial_time, double time_per_line );
 
     double operator()( double line ) const;
   };

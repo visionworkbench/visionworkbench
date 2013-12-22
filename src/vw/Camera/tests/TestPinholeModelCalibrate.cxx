@@ -17,8 +17,8 @@
 
 
 #include <gtest/gtest_VW.h>
-
 #include <vw/Camera/PinholeModelCalibrate.h>
+#include <vw/Camera/LensDistortion.h>
 #include <test/Helpers.h>
 
 #include <cstdlib>

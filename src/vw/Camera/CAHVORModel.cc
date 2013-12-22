@@ -18,14 +18,16 @@
 
 #include <vw/Core/Log.h>
 #include <vw/Camera/CAHVORModel.h>
+#include <vw/Camera/CAHVModel.h>
 #include <fstream>
 #include <boost/foreach.hpp>
 
 using namespace vw;
+using namespace camera;
 
 // Overloaded constructor - this one reads in the file name
 // where the CAVHOR camera model is saved.
-camera::CAHVORModel::CAHVORModel(std::string const& filename) {
+CAHVORModel::CAHVORModel(std::string const& filename) {
 
   try {
     std::ifstream input(filename.c_str(), std::ifstream::in);
@@ -75,8 +77,20 @@ camera::CAHVORModel::CAHVORModel(std::string const& filename) {
   }
 }
 
+/// Initialize the CAHVOR vectors directly in the native CAHVOR format.
+CAHVORModel::CAHVORModel(Vector3 const& C_vec, Vector3 const& A_vec,
+                         Vector3 const& H_vec, Vector3 const& V_vec,
+                         Vector3 const& O_vec, Vector3 const& R_vec) :
+  C(C_vec), A(A_vec), H(H_vec), V(V_vec), O(O_vec), R(R_vec) {}
+
+
+CAHVORModel::~CAHVORModel() {}
+
+std::string
+CAHVORModel::type() const { return "CAHVOR"; }
+
 // Write CAHVOR model to file.
-void camera::CAHVORModel::write(std::string const& filename) {
+void CAHVORModel::write(std::string const& filename) {
 
   try {
     std::ofstream output(filename.c_str(), std::ofstream::out);
@@ -102,8 +116,8 @@ void camera::CAHVORModel::write(std::string const& filename) {
 #define VW_CAHVOR_CONV   1.0e-6   // covergence tolerance - check adequacy for application
 
 // CAHVOR pixel_to_vector with partial_derivative output
-Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix,
-                                             Matrix<double> &partial_derivatives) const {
+Vector3 CAHVORModel::pixel_to_vector(Vector2 const& pix,
+                                     Matrix<double> &partial_derivatives) const {
 
   // Note, vec is actually the output vector
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
@@ -280,7 +294,7 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix,
 
 
 // pixel_to_vector (no returned partial matrix)
-Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
+Vector3 CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
   // Based on JPL_CMOD_CAHVOR_2D_TO_3D
 
   // Calculate the projection ray assuming normal vector directions,
@@ -333,10 +347,11 @@ Vector3 camera::CAHVORModel::pixel_to_vector(Vector2 const& pix) const {
   return normalize(rr - (1 - u)*lambda);
 }
 
+Vector3 CAHVORModel::camera_center( Vector2 const& pix ) const { return C; }
 
 // vector_to_pixel with partial_derivatives
-Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point,
-                                            Matrix<double> &partial_derivatives) const {
+Vector2 CAHVORModel::point_to_pixel(Vector3 const& point,
+                                    Matrix<double> &partial_derivatives) const {
 
   Vector3 vec = point - C;
   // Based on JPL 3D to 2D POINT (not the 3D to 2D function alone).
@@ -413,7 +428,7 @@ Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point,
 }
 
 // vector_to_pixel without partial_derivatives
-Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point) const {
+Vector2 CAHVORModel::point_to_pixel(Vector3 const& point) const {
 
   // Convert to directional
   Vector3 vec = point - C;
@@ -442,9 +457,9 @@ Vector2 camera::CAHVORModel::point_to_pixel(Vector3 const& point) const {
 // (identical to A) and R (all terms zero) will not be output. Note
 // that image warping will be necessary in order to use the new
 // models.
-camera::CAHVModel camera::linearize_camera( camera::CAHVORModel const& camera_model,
-                                            Vector2i const& cahvor_image_size,
-                                            Vector2i const& cahv_image_size ) {
+CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
+                                    Vector2i const& cahvor_image_size,
+                                    Vector2i const& cahv_image_size ) {
 
   CAHVModel output_camera;
   output_camera.C = camera_model.C;
@@ -493,7 +508,7 @@ camera::CAHVModel camera::linearize_camera( camera::CAHVORModel const& camera_mo
   BOOST_FOREACH( Vector2 const& loop, hpts ) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
-                           normalize(u3 - dot_prod(dn, u3) * dn)));
+                                  normalize(u3 - dot_prod(dn, u3) * dn)));
     if (hmin > sn) hmin = sn;
     if (hmax < sn) hmax = sn;
   }
@@ -503,7 +518,7 @@ camera::CAHVModel camera::linearize_camera( camera::CAHVORModel const& camera_mo
   BOOST_FOREACH( Vector2 const& loop, vpts ) {
     Vector3 u3 = camera_model.pixel_to_vector(loop);
     double sn = norm_2(cross_prod(output_camera.A,
-                           normalize(u3 - dot_prod(rt, u3) * rt) ) );
+                                  normalize(u3 - dot_prod(rt, u3) * rt) ) );
     if (vmin > sn) vmin = sn;
     if (vmax < sn) vmax = sn;
   }
@@ -531,18 +546,18 @@ camera::CAHVModel camera::linearize_camera( camera::CAHVORModel const& camera_mo
   return output_camera;
 }
 
-camera::CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
-                                            int32 ix, int32 iy, int32 ox, int32 oy ) {
-  return camera::linearize_camera( camera_model,
-                                   Vector2i( ix, iy), Vector2i(ox, oy) );
+CAHVModel camera::linearize_camera( CAHVORModel const& camera_model,
+                                    int32 ix, int32 iy, int32 ox, int32 oy ) {
+  return vw::camera::linearize_camera( camera_model,
+                                       Vector2i( ix, iy), Vector2i(ox, oy) );
 }
 
 // Note: the second derivatives with respect to motion of the point are the
 // same as the second derivatives with respect to motion of the camera, and
 // the first derivatives are opposite.
-void camera::CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
-                                                 Vector3& grad_u, Vector3& grad_v,
-                                                 Matrix3x3& hess_u, Matrix3x3& hess_v ) const {
+void CAHVORModel::get_point_derivatives( Vector3 const& P, double& u, double& v,
+                                         Vector3& grad_u, Vector3& grad_v,
+                                         Matrix3x3& hess_u, Matrix3x3& hess_v ) const {
   // Compute the image plane position
   double xi = dot_prod(P-C,O);
   Vector3 lambda = P-C-xi*O;

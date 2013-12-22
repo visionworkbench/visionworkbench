@@ -31,11 +31,14 @@
 //    -Matthias Wandel
 //
 
+#include <vw/Core/Exception.h>
+#include <vw/Core/FundamentalTypes.h>
+#include <vw/Math/Vector.h>
 #include <vw/Camera/Exif.h>
+#include <vw/Camera/ExifData.h>
 
 #include <cmath>
 #include <iostream>
-#include <sstream>
 
 // --------------------------------------------------------------
 //                   ExifView

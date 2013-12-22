@@ -31,13 +31,17 @@
 //    -Matthias Wandel
 //
 
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Core/Exception.h>
 #include <vw/Camera/ExifData.h>
-#include <boost/algorithm/string/predicate.hpp>
+#include <vw/config.h>
+
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <map>
+#include <string>
+#include <utility>
 
 #if VW_HAVE_PKG_BOOST_IOSTREAMS
 #include <boost/iostreams/device/mapped_file.hpp>
@@ -48,6 +52,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #endif
+
+#include <boost/algorithm/string/predicate.hpp>
 
 namespace vw {
 namespace camera {

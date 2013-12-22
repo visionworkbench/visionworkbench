@@ -18,18 +18,16 @@
 
 // TestPinholeModel.h
 #include <gtest/gtest_VW.h>
-
-#include <boost/random.hpp>
-
 #include <vw/Math/Vector.h>
 #include <vw/Math/EulerAngles.h>
 #include <vw/Math/LinearAlgebra.h>
-
-#include <vw/Camera/PinholeModel.h>
-#include <vw/Camera/CameraTransform.h>
 #include <vw/Camera/CameraGeometry.h>
-
+#include <vw/Camera/CameraTransform.h>
+#include <vw/Camera/LensDistortion.h>
+#include <vw/Camera/PinholeModel.h>
 #include <test/Helpers.h>
+
+#include <boost/random.hpp>
 
 using namespace vw;
 using namespace vw::camera;

@@ -52,21 +52,10 @@ namespace camera {
                           Vector3 u_vec,
                           Quaternion<double> const& camera_pose,
                           Vector3 const& initial_position,
-                          Vector3 const& velocity_vector) :
-      LinescanModel<LinearPositionInterpolation,
-                    ConstantPoseInterpolation>::LinescanModel(number_of_lines,
-                                                              samples_per_line,
-                                                              sample_offset,
-                                                              focal_length,
-                                                              along_scan_pixel_size,
-                                                              across_scan_pixel_size,
-                                                              scan_duration / number_of_lines,
-                                                              pointing_vec, u_vec,
-                                                              LinearPositionInterpolation(initial_position, velocity_vector),
-                                                              ConstantPoseInterpolation(camera_pose)) {}
+                          Vector3 const& velocity_vector);
 
-    virtual ~LinearPushbroomModel() {}
-    virtual std::string type() const { return "LinearPushbroom"; }
+    virtual ~LinearPushbroomModel();
+    virtual std::string type() const;
   };
 
 }}      // namespace vw::camera
