@@ -98,6 +98,7 @@ void vw::parse_config(std::basic_istream<char>& stream,
 
   typedef std::vector<po::option> OptionVec;
 
+  int warning_counter = 0;
   for (OptionVec::const_iterator i=opts.options.begin(), end=opts.options.end(); i < end; ++i) {
     const po::option& o = *i;
 
@@ -139,9 +140,11 @@ void vw::parse_config(std::basic_istream<char>& stream,
 
         int32 level = name2level(level_s);
 
-        if (level >= DebugMessage)
+        if (level >= DebugMessage && warning_counter == 0){
           std::cerr << "Warning! Your current config file enables debug logging. This will be slow." << std::endl;
-
+          warning_counter++; // print warnings just once
+        }
+        
         //cerr << "Adding rule: " << level << " " << domain << "\n";
         if (current_log)
           current_log->rule_set().add_rule(level, domain);
