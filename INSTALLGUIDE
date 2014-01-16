@@ -140,10 +140,10 @@ the base directory of the Vision Workbench repository.  A file called
 your liking.  Note that none of this has any impact on Visual Studio
 users, who must instead configure their projects by hand.
 
-The single most important option is the "--with-paths=PATHS" flag,
+The single most important option is the "--with-pkg-paths=PATHS" flag,
 where you replace "PATHS" with a whitespace-separated list of paths
 that the build system should search when looking for installed
-libraries.  For example if you specify "--with-paths=/foo/bar" then it
+libraries.  For example if you specify "--with-pkg-paths=/foo/bar" then it
 will search for header files in "/foo/bar/include", library files in
 "/foo/bar/lib", and so on.  The default search path includes a number
 of common locations for user-installed libraries, such as
