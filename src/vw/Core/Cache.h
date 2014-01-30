@@ -237,10 +237,10 @@ namespace vw {
     };
 
     CacheLineBase *m_first_valid, *m_last_valid, *m_first_invalid;
-    size_t m_size, m_max_size, m_num_warnings;
+    size_t m_size, m_max_size;
     RecursiveMutex m_line_mgmt_mutex;
     Mutex m_stats_mutex;
-    volatile vw::uint64 m_hits, m_misses, m_evictions;
+    volatile vw::uint64 m_hits, m_misses, m_evictions, m_warnings;
 
     void allocate( size_t size, CacheLineBase *line );
     void deallocate( size_t size, CacheLineBase *line );
@@ -304,8 +304,8 @@ namespace vw {
 
     Cache( size_t max_size ) :
       m_first_valid(0), m_last_valid(0), m_first_invalid(0),
-      m_size(0), m_max_size(max_size), m_num_warnings(0),
-      m_hits(0), m_misses(0), m_evictions(0) {}
+      m_size(0), m_max_size(max_size),
+      m_hits(0), m_misses(0), m_evictions(0), m_warnings(0) {}
 
     template <class GeneratorT>
     Handle<GeneratorT> insert( GeneratorT const& generator ) {
