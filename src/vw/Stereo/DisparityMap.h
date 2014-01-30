@@ -166,8 +166,8 @@ namespace stereo {
     typedef DisparityMaskView<CropView<ImageView<typename ViewT::pixel_type> >, CropView<ImageView<typename MaskView1T::pixel_type> >, CropView<ImageView<typename MaskView2T::pixel_type> > > prerasterize_type;
     inline prerasterize_type prerasterize(BBox2i const& bbox) const {
       typedef typename MaskView1T::pixel_type Mask1PT;
-        typedef typename MaskView2T::pixel_type Mask2PT;
-        typedef typename ViewT::pixel_type ViewPT;
+      typedef typename MaskView2T::pixel_type Mask2PT;
+      typedef typename ViewT::pixel_type ViewPT;
 
       // Prerasterize Mask1 as we'll always be using it. I'm not using
       // the prerasterize type as I want to make sure I can write to
@@ -272,7 +272,7 @@ namespace stereo {
   public:
 
     DisparityRangeMaskFunc(PixelT const& min, PixelT const& max ) :
-    m_min(remove_mask(min)), m_max(remove_mask(max)) {}
+      m_min(remove_mask(min)), m_max(remove_mask(max)) {}
 
     PixelT operator() (PixelT const& pix, Vector2 const& loc) const {
       if ( is_valid(pix) ) {
@@ -301,43 +301,52 @@ namespace stereo {
   }
 
 
-  ///  remove_outliers()
+  /// Remove outliers from a disparity map image.
+
+  // Method 1: Use some thresholds and counting.
+  /// You supply the half dimensions of the kernel window.
   ///
-  /// Remove outliers from a disparity map image using a morphological
-  /// erode-like operation.
+  /// Next, you supply the threshold that determines whether a
+  /// pixel is considered "close" to its neightbors (in units of
+  /// pixels).
+  ///
+  /// Finally, you supply the percentage of the pixels within the kernel
+  /// that must "match" the center pixel if that pixel is to be
+  /// considered an inlier. ([0..1.0]).
+
   template <class PixelT>
-  class RemoveOutliersFunc : public ReturnFixedType<PixelT>
+  class RmOutliersUsingThreshFunc : public ReturnFixedType<PixelT>
   {
 
     // This small subclass gives us the wiggle room we need to update
     // the state of this object from within the PerPixelAccessorView.
     // By maintaining a smart pointer to this small status class, we
     // can change state that is shared between any copies of the
-    // RemoveOutliersFunc object and the original.
-    struct RemoveOutliersState {
+    // RmOutliersUsingThreshFunc object and the original.
+    struct RmOutliersState {
       int32 rejected_points, total_points;
     };
 
     int32 m_half_h_kernel, m_half_v_kernel;
-    float m_pixel_threshold;
-    float m_rejection_threshold;
-    boost::shared_ptr<RemoveOutliersState> m_state;
+    double m_pixel_threshold;
+    double m_rejection_threshold;
+    boost::shared_ptr<RmOutliersState> m_state;
 
   public:
-    RemoveOutliersFunc(int32 half_h_kernel, int32 half_v_kernel, float pixel_threshold, float rejection_threshold) :
+    RmOutliersUsingThreshFunc(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
       m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
       m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
-      m_state( new RemoveOutliersState() ) {
+      m_state( new RmOutliersState() ) {
       m_state->rejected_points = m_state->total_points = 0;
 
       VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
-                ArgumentErr() << "RemoveOutliersFunc: half kernel sizes must be non-zero.");
+                ArgumentErr() << "RmOutliersFunc: half kernel sizes must be non-zero.");
     }
 
     int32 half_h_kernel() const { return m_half_h_kernel; }
     int32 half_v_kernel() const { return m_half_v_kernel; }
-    float rejection_threshold() const { return m_rejection_threshold; }
-    float pixel_threshold() const { return m_pixel_threshold; }
+    double rejection_threshold() const { return m_rejection_threshold; }
+    double pixel_threshold() const { return m_pixel_threshold; }
     int32 rejected_points() const { return m_state->rejected_points; }
     int32 total_points() const { return m_state->total_points; }
 
@@ -366,7 +375,7 @@ namespace stereo {
           }
           row_acc.next_row();
         }
-        if( ((float)matched/(float)total) < m_rejection_threshold){
+        if( ((double)matched/(double)total) < m_rejection_threshold){
           m_state->rejected_points++;
           return typename PixelAccessorT::pixel_type();  //Return invalid pixel
         }
@@ -376,10 +385,10 @@ namespace stereo {
   };
 
   // Useful routine for printing how many points have been rejected
-  // using a particular RemoveOutliersFunc.
+  // using a particular RmOutliersFunc.
   template <class PixelT>
   inline std::ostream&
-  operator<<(std::ostream& os, RemoveOutliersFunc<PixelT> const& u) {
+  operator<<(std::ostream& os, RmOutliersUsingThreshFunc<PixelT> const& u) {
     os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
     os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices ("
        << double(u.rejected_points())/u.total_points()*100 << "%).\n";
@@ -387,49 +396,547 @@ namespace stereo {
   }
 
   template <class ViewT>
-  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RemoveOutliersFunc<typename ViewT::pixel_type> >
-  remove_outliers(ImageViewBase<ViewT> const& disparity_map,
-                  int32 half_h_kernel, int32 half_v_kernel,
-                  double pixel_threshold,
-                  double rejection_threshold) {
-    typedef RemoveOutliersFunc<typename ViewT::pixel_type> func_type;
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  rm_outliers_using_thresh(ImageViewBase<ViewT> const& disparity_map,
+                           int32 half_h_kernel, int32 half_v_kernel,
+                           double pixel_threshold,
+                           double rejection_threshold) {
+    typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type;
     typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, func_type > view_type;
     return view_type(edge_extend(disparity_map.impl(), ConstantEdgeExtension()),
                      func_type(half_h_kernel, half_v_kernel,
                                pixel_threshold, rejection_threshold));
   }
 
-
-  /// Clean up a disparity map.
-  ///
-  /// You supply the half dimensions of the kernel window.
-  ///
-  /// Next, you supply the threshold that determines whether a
-  /// pixel is considered "close" to its neightbors (in units of
-  /// pixels).
-  ///
-  /// Finally, you supply the percentage of the pixels within the kernel
-  /// that must "match" the center pixel if that pixel is to be
-  /// considered an inlier. ([0..1.0]).
   template <class ViewT>
   inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
-                                                              RemoveOutliersFunc<typename ViewT::pixel_type> >, RemoveOutliersFunc<typename ViewT::pixel_type> >
-  disparity_clean_up(ImageViewBase<ViewT> const& disparity_map,
-                     int32 h_half_kernel, int32 v_half_kernel,
-                     double pixel_threshold, double rejection_threshold) {
+                                                              RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  disparity_cleanup_using_thresh(ImageViewBase<ViewT> const& disparity_map,
+                                 int32 h_half_kernel, int32 v_half_kernel,
+                                 double pixel_threshold,
+                                 double rejection_threshold) {
     // Remove outliers first using user specified parameters, and then
     // using a heuristic that isolates single pixel outliers.
-    typedef RemoveOutliersFunc<typename ViewT::pixel_type> func_type;
+    typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type_thresh;
     typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
-                                      func_type > inner_type;
+      func_type_thresh > inner_type;
     typedef UnaryPerPixelAccessorView<inner_type,
-                                      func_type > outer_type;
-    return outer_type(remove_outliers(disparity_map.impl(),
-                                      h_half_kernel, v_half_kernel,
-                                      pixel_threshold, rejection_threshold),
-                      func_type( 1, 1, 1.0, 0.75 ) );
+      func_type_thresh > outer_type;
+    return outer_type(rm_outliers_using_thresh
+                      (disparity_map.impl(),
+                       h_half_kernel, v_half_kernel,
+                       pixel_threshold, rejection_threshold),
+                      //func_type_thresh( 1, 1, 1.0, 0.75 ) // overly restrictive
+                      // at least 1 neighbor must be within 3 pixels
+                      func_type_thresh( 1, 1, 3.0, 0.20 )
+                      );
   }
 
+  // Method 2: Compare the central point to the mean of the
+  // neighbors (Ara's method).
+  template <class PixelT>
+  class RmOutliersUsingMeanFunc : public ReturnFixedType<PixelT>{
+
+    // This small subclass gives us the wiggle room we need to update
+    // the state of this object from within the PerPixelAccessorView.
+    // By maintaining a smart pointer to this small status class, we can
+    // change state that is shared between any copies of the
+    // RmOutliersFunc object and the original.
+    struct RmOutliersState {
+      int32 rejected_points, total_points;
+    };
+
+    int32 m_half_h_kernel, m_half_v_kernel;
+    double m_max_mean_diffSq;
+    boost::shared_ptr<RmOutliersState> m_state;
+
+  public:
+  
+    RmOutliersUsingMeanFunc(int32 half_h_kernel, int32 half_v_kernel,
+                            double max_mean_diff) :
+      m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
+      m_max_mean_diffSq(max_mean_diff*max_mean_diff),
+      m_state( new RmOutliersState() ) {
+      m_state->rejected_points = m_state->total_points = 0;
+    
+      VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
+                ArgumentErr() << "RmOutliersUsingMeanFunc: half kernel sizes must be non-zero.");
+    }
+
+    int32 half_h_kernel() const { return m_half_h_kernel; }
+    int32 half_v_kernel() const { return m_half_v_kernel; }
+    double max_mean_diff() const { return sqrt(m_max_mean_diffSq); }
+    int32 rejected_points() const { return m_state->rejected_points; }
+    int32 total_points() const { return m_state->total_points; }
+
+    BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
+                                             Vector2i(m_half_h_kernel, m_half_v_kernel)); }
+
+    // This function will be called for each pixel in the image to be filtered
+    template <class PixelAccessorT>
+    typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const{
+      m_state->total_points++; // Accumulate number of points operated on
+    
+      // Quit immediately if the current point is already invalid
+      if (!is_valid(*acc))
+        return *acc;
+
+      // Remove gross outliers: Find the 75th percentile largest disparity
+      // magnitude, and multiply it by 2. Any disparity with magnitude
+      // larger than this will be thrown out. 
+      // E.g., if magnitudes are 1, 2, 3, 4, 5, 6, 7, 8, 1e10,
+      // 2 * 75%th magnitude is 2*7, so 1e10 is thrown out.
+      PixelAccessorT row_acc0 = acc;
+      std::vector<double> len;
+      row_acc0.advance(-m_half_h_kernel,-m_half_v_kernel); // Move to top left kernel
+      for(int32 yk = -m_half_v_kernel; yk <= m_half_v_kernel; ++yk){
+        PixelAccessorT col_acc = row_acc0; // Start column iterator at left of current row
+        for(int32 xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk){
+          if(is_valid(*col_acc)){
+            double val = std::abs((*col_acc)[0]) + std::abs((*col_acc)[1]);
+            len.push_back(val);
+          }
+          col_acc.next_col(); // Advance to next column
+        }
+        row_acc0.next_row(); // Advance to next row
+      }
+      std::sort(len.begin(), len.end());
+      double cutoff = 0.0;
+      if (!len.empty()) cutoff = 2.0*len[(int)(0.75*len.size())];
+
+      // Compute the mean
+      size_t matched = 0, total = 0;
+      double meanX=0, meanY=0;
+      PixelAccessorT row_acc = acc; // position at the center
+      row_acc.advance(-m_half_h_kernel,-m_half_v_kernel); // Move to top left kernel
+      for(int32 yk = -m_half_v_kernel; yk <= m_half_v_kernel; ++yk){
+        PixelAccessorT col_acc = row_acc; // Start column iterator at left of current row
+        for(int32 xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk){
+          if(is_valid(*col_acc)){
+            double val = std::abs((*col_acc)[0]) + std::abs((*col_acc)[1]);
+            if (val > cutoff) continue; // unreasonably large disparity
+            meanX += (*col_acc)[0];
+            meanY += (*col_acc)[1];
+            matched++; // Total number of valid pixels
+          }
+          col_acc.next_col(); // Advance to next column
+          total++; // Total number of pixels evaluated
+        }
+        row_acc.next_row(); // Advance to next row
+      }
+      // Done accumulating valid pixels, now compute the means
+      double errorSq = m_max_mean_diffSq + 1.0; // Default value ensures error if there are no valid pixels
+      if (matched > 0){
+        meanX = meanX / static_cast<double>(matched);
+        meanY = meanY / static_cast<double>(matched);
+        
+        // Compute squared difference of this pixel from the mean disparity
+        double thisX   = (*acc)[0];
+        double thisY   = (*acc)[1];
+        errorSq = (thisX - meanX)*(thisX - meanX) + (thisY - meanY)*(thisY - meanY);
+      }
+      
+      if (errorSq > m_max_mean_diffSq){ // Reject pixels too far from the mean
+        m_state->rejected_points++;
+        return typename PixelAccessorT::pixel_type();  // Return invalid pixel
+      }
+    
+      return *acc; // Return valid pixel
+    }
+  }; // End class RmOutliersUsingMeanFunc
+
+  // Useful routine for printing how many points have been rejected
+  // using a particular RmOutliersFunc.
+  template <class PixelT>
+  inline std::ostream&
+  operator<<(std::ostream& os, RmOutliersUsingMeanFunc<PixelT> const& u) {
+    os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
+    os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices ("
+       << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+    return os;
+  }
+
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingMeanFunc<typename ViewT::pixel_type> >
+  rm_outliers_using_mean(ImageViewBase<ViewT> const& disparity_map,
+                         int32 half_h_kernel, int32 half_v_kernel,
+                         double max_mean_diff) {
+    typedef RmOutliersUsingMeanFunc<typename ViewT::pixel_type> func_type;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, func_type>
+      view_type;
+    return view_type(edge_extend(disparity_map.impl(), ConstantEdgeExtension()),
+                     func_type(half_h_kernel, half_v_kernel,
+                               max_mean_diff));
+  }
+
+  template <class ViewT>
+  inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingMeanFunc<typename ViewT::pixel_type> >, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  disparity_cleanup_using_mean(ImageViewBase<ViewT> const& disparity_map,
+                               int32 h_half_kernel, int32 v_half_kernel,
+                               double max_mean_diff){
+    // Rm outliers first using user specified parameters, and then
+    // using a heuristic that isolates single pixel outliers.
+    typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type_thresh;
+    typedef RmOutliersUsingMeanFunc<typename ViewT::pixel_type> func_type_mean;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
+      func_type_mean > inner_type;
+    typedef UnaryPerPixelAccessorView<inner_type, func_type_thresh> outer_type;
+  
+    return outer_type(rm_outliers_using_mean(disparity_map.impl(),
+                                             h_half_kernel, v_half_kernel,
+                                             max_mean_diff),
+                      // Constants set to find only very isolated pixels
+                      func_type_thresh( 1, 1, 3.0, 0.2 ) );
+  }
+
+  // Method 3: Use the standard deviation of the kernel pixels to
+  // determine valid range
+
+  //  rm_outliers_using_stddev()
+  //
+  // Replacement for old erosion based filter.
+  template <class PixelT>
+  class RmOutliersUsingStdDev : public ReturnFixedType<PixelT>{
+
+    // This small subclass gives us the wiggle room we need to update
+    // the state of this object from within the PerPixelAccessorView.
+    // By maintaining a smart pointer to this small status class, we
+    // can change state that is shared between any copies of the
+    // RmOutliersFunc object and the original.
+    struct RmOutliersState {
+      int32 rejected_points, total_points;
+    };
+
+    int32 m_half_h_kernel, m_half_v_kernel;
+    double m_pixel_threshold;
+    double m_rejection_threshold;
+    boost::shared_ptr<RmOutliersState> m_state;
+
+  public:
+  
+    RmOutliersUsingStdDev(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
+      m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
+      m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
+      m_state( new RmOutliersState() ) {
+      m_state->rejected_points = m_state->total_points = 0;
+
+      VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
+                ArgumentErr() << "RmOutliersFunc: half kernel sizes must be non-zero.");
+    }
+
+    int32 half_h_kernel() const { return m_half_h_kernel; }
+    int32 half_v_kernel() const { return m_half_v_kernel; }
+    double rejection_threshold() const { return m_rejection_threshold; }
+    double pixel_threshold() const { return m_pixel_threshold; }
+    int32 rejected_points() const { return m_state->rejected_points; }
+    int32 total_points() const { return m_state->total_points; }
+
+    BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
+                                             Vector2i(m_half_h_kernel, m_half_v_kernel)); }
+
+    // This function will be called for each pixel in the image to be filtered
+    template <class PixelAccessorT>
+    typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const 
+    {
+      m_state->total_points++; // Accumulate number of points operated on
+
+      // Quit immediately if the current point is already invalid
+      if (!is_valid(*acc))
+        return *acc;
+
+      // Allocate storage for recording pixel values
+      const size_t numPixels = (2*m_half_v_kernel + 1) * (2*m_half_v_kernel + 1);
+      std::vector<double> xVals(numPixels), yVals(numPixels);
+
+      size_t matched = 0, total = 0;
+      double meanX=0, meanY=0;
+      PixelAccessorT row_acc = acc;
+      row_acc.advance(-m_half_h_kernel,-m_half_v_kernel); // Move to top left kernel
+      for(int32 yk = -m_half_v_kernel; yk <= m_half_v_kernel; ++yk) 
+        {
+          PixelAccessorT col_acc = row_acc; // Start column iterator at left of current row
+          for(int32 xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk) 
+            {
+              if(is_valid(*col_acc))
+                {
+                  // Record the X and Y values
+                  xVals[matched] = (*col_acc)[0];
+                  yVals[matched] = (*col_acc)[1];           
+                  meanX += (*col_acc)[0];
+                  meanY += (*col_acc)[1];
+                  matched++; // Total number of valid pixels
+                }
+              col_acc.next_col(); // Advance to next column
+              total++; // Total number of pixels evaluated
+            }
+          row_acc.next_row(); // Advance to next row
+        }
+      if (matched == 0) // Reject pixel if there are no valid neighbors
+        {
+          m_state->rejected_points++;
+          return typename PixelAccessorT::pixel_type();  // Return invalid pixel
+        }
+      // Done accumulating valid pixels, compute means
+      meanX = meanX / static_cast<double>(matched);
+      meanY = meanY / static_cast<double>(matched);
+      
+      // Now go through the pixels again to compute the standard deviation
+      // - Since we recorded the pixel values in vectors this is easier
+      double sumDiffX=0, sumDiffY=0;
+      for (size_t i=0; i<matched; ++i)
+        {
+          double diffX  = xVals[i] - meanX;
+          double diffY  = yVals[i] - meanY;
+          //double diffSq = diffX*diffX + diffY*diffY;
+          sumDiffX += diffX*diffX;
+          sumDiffY += diffY*diffY;
+        }
+      // Compute standard deviation but enforce minimum value
+      double stdDevX = sqrt(sumDiffX / static_cast<double>(matched));
+      double stdDevY = sqrt(sumDiffY / static_cast<double>(matched));
+      if (stdDevX < m_rejection_threshold)
+        stdDevX = m_rejection_threshold;
+      if (stdDevY < m_rejection_threshold)
+        stdDevY = m_rejection_threshold;
+      
+      // Compute difference of this pixel from the mean disparity
+      double thisX = (*acc)[0];
+      double thisY = (*acc)[1];
+      double errorX = abs(thisX - meanX);
+      double errorY = abs(thisY - meanY);
+            
+      if ((errorX > m_pixel_threshold*stdDevX) || 
+          (errorY > m_pixel_threshold*stdDevY)   ){
+        m_state->rejected_points++;
+        return typename PixelAccessorT::pixel_type();  // Return invalid pixel
+      }
+    
+      return *acc; // Return valid pixel
+    }
+  }; // End class RmOutliersUsingStdDev
+
+  // Useful routine for printing how many points have been rejected
+  // using a particular RmOutliersFunc.
+  template <class PixelT>
+  inline std::ostream&
+  operator<<(std::ostream& os, RmOutliersUsingStdDev<PixelT> const& u) {
+    os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
+    os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices ("
+       << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+    return os;
+  }
+
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingStdDev<typename ViewT::pixel_type> >
+  rm_outliers_using_stddev(ImageViewBase<ViewT> const& disparity_map,
+                           int32 half_h_kernel, int32 half_v_kernel,
+                           double pixel_threshold,
+                           double rejection_threshold) {
+    typedef RmOutliersUsingStdDev<typename ViewT::pixel_type> func_type;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, func_type > view_type;
+    return view_type(edge_extend(disparity_map.impl(), ConstantEdgeExtension()),
+                     func_type(half_h_kernel, half_v_kernel,
+                               pixel_threshold, rejection_threshold));
+  }
+
+  template <class ViewT>
+  inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingStdDev<typename ViewT::pixel_type> >, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  disparity_cleanup_using_stddev(ImageViewBase<ViewT> const& disparity_map,
+                                 int32 h_half_kernel, int32 v_half_kernel,
+                                 double pixel_threshold, double rejection_threshold){
+    // Rm outliers first using user specified parameters, and then
+    // using a heuristic that isolates single pixel outliers.
+    typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type_thresh;
+    typedef RmOutliersUsingStdDev<typename ViewT::pixel_type> func_type_stddev;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
+      func_type_stddev > inner_type;
+    typedef UnaryPerPixelAccessorView<inner_type,
+      func_type_thresh > outer_type;
+    return outer_type(rm_outliers_using_stddev(disparity_map.impl(),
+                                               h_half_kernel, v_half_kernel,
+                                               pixel_threshold, rejection_threshold),
+                      func_type_thresh( 1, 1, 3.0, 0.2 ) ); // Constants set to find only very isolated pixels
+  }
+
+  // Method 4: Fit a plane to the other pixels and see how well the
+  // test pixel fits the plane.
+    
+  bool fitPlaneToPoints(const std::vector<Vector3> &points, Vector3 &planeDesc);
+  double pointToPlaneDist(const Vector3 &point, const Vector3 &planeDesc);
+  bool checkPointToPlaneFit(const std::vector<Vector3> &points,
+                            const Vector3 &planeDesc,
+                            double &meanError, double &stdDevError);
+    
+  //  rm_outliers_using_plane()
+  template <class PixelT>
+  class RmOutliersUsingPlane : public ReturnFixedType<PixelT>{
+
+    // This small subclass gives us the wiggle room we need to update
+    // the state of this object from within the PerPixelAccessorView.
+    // By maintaining a smart pointer to this small status class, we
+    // can change state that is shared between any copies of the
+    // RmOutliersFunc object and the original.
+    struct RmOutliersState {
+      int32 rejected_points, total_points;
+    };
+
+    int32 m_half_h_kernel, m_half_v_kernel;
+    double m_pixel_threshold;
+    double m_rejection_threshold;
+    boost::shared_ptr<RmOutliersState> m_state;
+
+  public:
+  
+    RmOutliersUsingPlane(int32 half_h_kernel, int32 half_v_kernel, double pixel_threshold, double rejection_threshold) :
+      m_half_h_kernel(half_h_kernel), m_half_v_kernel(half_v_kernel),
+      m_pixel_threshold(pixel_threshold), m_rejection_threshold(rejection_threshold),
+      m_state( new RmOutliersState() ) {
+      m_state->rejected_points = m_state->total_points = 0;
+
+      VW_ASSERT(half_h_kernel > 0 && half_v_kernel > 0,
+                ArgumentErr() << "RmOutliersFunc: half kernel sizes must be non-zero.");
+    }
+
+    int32 half_h_kernel() const { return m_half_h_kernel; }
+    int32 half_v_kernel() const { return m_half_v_kernel; }
+    double rejection_threshold() const { return m_rejection_threshold; }
+    double pixel_threshold() const { return m_pixel_threshold; }
+    int32 rejected_points() const { return m_state->rejected_points; }
+    int32 total_points() const { return m_state->total_points; }
+
+    BBox2i work_area() const { return BBox2i(Vector2i(-m_half_h_kernel, -m_half_v_kernel),
+                                             Vector2i(m_half_h_kernel, m_half_v_kernel)); }
+
+    // This function will be called for each pixel in the image to be filtered
+    template <class PixelAccessorT>
+    typename PixelAccessorT::pixel_type operator() (PixelAccessorT const& acc) const 
+    {
+      m_state->total_points++; // Accumulate number of points operated on
+
+      // Quit immediately if the current point is already invalid
+      if (!is_valid(*acc))
+        return *acc;
+
+      // Allocate storage for recording pixel values
+      const size_t numPixels = (2*m_half_v_kernel + 1) * (2*m_half_v_kernel + 1);
+      std::vector<double> xVals(numPixels), yVals(numPixels);
+
+      // Record all valid points as x/y/z pairs (one set for dX, one set for dY)
+      size_t matched = 0, total = 0;
+      std::vector<Vector3> xVec, yVec;
+      xVec.reserve(numPixels);
+      yVec.reserve(numPixels);
+      PixelAccessorT row_acc = acc;
+      row_acc.advance(-m_half_h_kernel,-m_half_v_kernel); // Move to top left kernel
+      for(int32 yk = -m_half_v_kernel; yk <= m_half_v_kernel; ++yk) 
+        {
+          PixelAccessorT col_acc = row_acc; // Start column iterator at left of current row
+          for(int32 xk = -m_half_h_kernel; xk <= m_half_h_kernel; ++xk) 
+            {
+              if(is_valid(*col_acc))
+                {
+                  // Record the X and Y values
+                  xVec.push_back(Vector3(xk, yk, (*col_acc)[0]));
+                  yVec.push_back(Vector3(xk, yk, (*col_acc)[1]));
+                  matched++; // Total number of valid pixels
+                }
+              col_acc.next_col(); // Advance to next column
+              total++; // Total number of pixels evaluated
+            }
+          row_acc.next_row(); // Advance to next row
+        }
+      if (matched == 0) // Reject pixel if there are no valid neighbors
+        {
+          m_state->rejected_points++;
+          return typename PixelAccessorT::pixel_type();  // Return invalid pixel
+        }
+
+      //TODO: eliminate outliers here?
+
+      // Compute a best fit plane for the dX and dY values
+      Vector3 xPlane, yPlane;
+      try
+        {
+          fitPlaneToPoints(xVec, xPlane);
+          fitPlaneToPoints(yVec, yPlane);
+        }
+      catch(...) // Failed to solve, probably because points were in a line
+        {
+          //TODO: Have a fallback check (maybe a line fit) in this case!
+          return *acc; // Return valid pixel        
+        }
+
+      // Now determine the quality of the plane fits
+      double xMean, yMean, xStdDev, yStdDev;
+      checkPointToPlaneFit(xVec, xPlane, xMean, xStdDev);
+      checkPointToPlaneFit(yVec, yPlane, yMean, yStdDev);
+      
+      // Enforce minimum standard deviation value
+      if (xStdDev < m_rejection_threshold)
+        xStdDev = m_rejection_threshold;
+      if (yStdDev < m_rejection_threshold)
+        yStdDev = m_rejection_threshold;
+      
+      // Determine if the test pixel is too far from either plane
+      Vector3 thisLocX(0,0,(*acc)[0]);
+      Vector3 thisLocY(0,0,(*acc)[1]);
+      double errorX = pointToPlaneDist(thisLocX, xPlane);
+      double errorY = pointToPlaneDist(thisLocY, yPlane);
+            
+      // Reject pixels greater than N deviations from the mean
+      if ( (errorX > m_pixel_threshold*xStdDev) ||
+           (errorY > m_pixel_threshold*yStdDev) ){
+        m_state->rejected_points++;
+        return typename PixelAccessorT::pixel_type();  // Return invalid pixel
+      }
+    
+      return *acc; // Return valid pixel
+    }
+  }; // End class RmOutliersUsingStdDev
+
+  // Useful routine for printing how many points have been rejected
+  // using a particular RmOutliersFunc.
+  template <class PixelT>
+  inline std::ostream&
+  operator<<(std::ostream& os, RmOutliersUsingPlane<PixelT> const& u) {
+    os << "\tKernel: [ " << u.half_h_kernel()*2 << ", " << u.half_v_kernel()*2 << "]\n";
+    os << "   Rejected " << u.rejected_points() << "/" << u.total_points() << " vertices ("
+       << double(u.rejected_points())/u.total_points()*100 << "%).\n";
+    return os;
+  }
+
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingPlane<typename ViewT::pixel_type> >
+  rm_outliers_using_plane(ImageViewBase<ViewT> const& disparity_map,
+                          int32 half_h_kernel, int32 half_v_kernel,
+                          double pixel_threshold,
+                          double rejection_threshold) {
+    typedef RmOutliersUsingPlane<typename ViewT::pixel_type> func_type;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, func_type > view_type;
+    return view_type(edge_extend(disparity_map.impl(), ConstantEdgeExtension()),
+                     func_type(half_h_kernel, half_v_kernel,
+                               pixel_threshold, rejection_threshold));
+  }
+
+  template <class ViewT>
+  inline UnaryPerPixelAccessorView< UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, RmOutliersUsingPlane<typename ViewT::pixel_type> >, RmOutliersUsingThreshFunc<typename ViewT::pixel_type> >
+  disparity_clean_using_plane(ImageViewBase<ViewT> const& disparity_map,
+                              int32 h_half_kernel, int32 v_half_kernel,
+                              double pixel_threshold, double rejection_threshold) {
+    // Rm outliers first using user specified parameters, and then
+    // using a heuristic that isolates single pixel outliers.
+    typedef RmOutliersUsingThreshFunc<typename ViewT::pixel_type> func_type_thresh;
+    typedef RmOutliersUsingPlane<typename ViewT::pixel_type> func_type_plane;
+    typedef UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>,
+      func_type_plane > inner_type;
+    typedef UnaryPerPixelAccessorView<inner_type,
+      func_type_thresh > outer_type;
+    return outer_type(rm_outliers_using_plane(disparity_map.impl(),
+                                              h_half_kernel, v_half_kernel,
+                                              pixel_threshold, rejection_threshold),
+                      // Constants set to find only very isolated pixels
+                      func_type_thresh( 1, 1, 3.0, 0.2 ) );
+  }
 
   //  std_dev_image()
   //
@@ -510,7 +1017,7 @@ namespace stereo {
     TransformT m_trans;
 
   public:
-  TransformDisparitiesFunc(TransformT const& trans) : m_trans(trans) {}
+    TransformDisparitiesFunc(TransformT const& trans) : m_trans(trans) {}
 
     PixelT operator() (PixelT const& pix, Vector2 const& loc) const {
       Vector2 old_point(loc[0] + pix[0],

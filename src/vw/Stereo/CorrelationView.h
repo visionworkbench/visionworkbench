@@ -462,20 +462,22 @@ namespace stereo {
         const float rm_threshold = 3.0;
         if ( level != 0 ) {
           disparity =
-            disparity_mask(disparity_clean_up(disparity,
-                                              rm_half_kernel, rm_half_kernel,
-                                              rm_threshold,
-                                              rm_min_matches_percent),
+            disparity_mask(disparity_cleanup_using_thresh
+                           (disparity,
+                            rm_half_kernel, rm_half_kernel,
+                            rm_threshold,
+                            rm_min_matches_percent),
                            left_mask_pyramid[level],
                            right_mask_pyramid[level]);
         } else {
           // We don't do a single hot pixel check on the final level
           // as it leaves a border.
           disparity =
-            disparity_mask(remove_outliers(disparity,
-                                           rm_half_kernel, rm_half_kernel,
-                                           rm_threshold,
-                                           rm_min_matches_percent),
+            disparity_mask(rm_outliers_using_thresh
+                           (disparity,
+                            rm_half_kernel, rm_half_kernel,
+                            rm_threshold,
+                            rm_min_matches_percent),
                            left_mask_pyramid[level],
                            right_mask_pyramid[level]);
         }
