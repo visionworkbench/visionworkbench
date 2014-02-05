@@ -378,7 +378,6 @@ namespace stereo {
       // is not completely accurate, so every now and then do actual
       // timing, no more often than once in measure_spacing seconds.
       double estim_elapsed = 0.0;
-      bool must_stop_now = false;
       int measure_spacing = 2; // seconds
       double prev_estim = estim_elapsed;
 
@@ -403,9 +402,8 @@ namespace stereo {
           double next_elapsed = m_seconds_per_op
             * search_volume(SearchParam(left_region, zone.second));
           if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-            vw_out() << "Tile: " << bbox << " reached timeout: " << m_corr_timeout
-                     << std::endl;
-            must_stop_now = true;
+            vw_out() << "Tile: " << bbox << " reached timeout: "
+                     << m_corr_timeout << std::endl;
             break;
           }else
             estim_elapsed += next_elapsed;
@@ -430,8 +428,8 @@ namespace stereo {
             double next_elapsed = m_seconds_per_op
               * search_volume(SearchParam(right_region, zone.second));
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
-              vw_out() << "Tile: " << bbox << " approximately reached timeout: " << m_corr_timeout << ". Will stop processing it further." << std::endl;
-              must_stop_now = true;
+              vw_out() << "Tile: " << bbox << " reached timeout: "
+                       << m_corr_timeout << std::endl;
               break;
             }else{
               estim_elapsed += next_elapsed;
