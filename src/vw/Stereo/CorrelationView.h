@@ -403,7 +403,7 @@ namespace stereo {
             * search_volume(SearchParam(left_region, zone.second));
           if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
             vw_out() << "Tile: " << bbox << " reached timeout: "
-                     << m_corr_timeout << std::endl;
+                     << m_corr_timeout << " s" << std::endl;
             break;
           }else
             estim_elapsed += next_elapsed;
@@ -429,7 +429,7 @@ namespace stereo {
               * search_volume(SearchParam(right_region, zone.second));
             if (m_corr_timeout > 0.0 && estim_elapsed + next_elapsed > m_corr_timeout){
               vw_out() << "Tile: " << bbox << " reached timeout: "
-                       << m_corr_timeout << std::endl;
+                       << m_corr_timeout << " s" << std::endl;
               break;
             }else{
               estim_elapsed += next_elapsed;
