@@ -201,6 +201,7 @@ void grassfire_nodata( Options& opt,
     vw_throw( ArgumentErr() << "Unknown transfer function " << opt.filter );
   }
 
+  vw_out() << "Writing: " << output << std::endl;
   cartography::write_georeferenced_image(output, result, georef,
                                          TerminalProgressCallback("tools.grassfirealpha","Writing:"));
 }
