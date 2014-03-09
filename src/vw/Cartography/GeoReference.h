@@ -47,18 +47,22 @@ namespace cartography {
   class ProjContext {
     boost::shared_ptr<void> m_proj_ctx_ptr; //  Only used for Proj4.8
     boost::shared_ptr<void> m_proj_ptr;
-    std::string m_proj4_str;
+    std::string             m_proj4_str;
+
     char** split_proj4_string(std::string const& proj4_str, int &num_strings);
 
   public:
+
     ProjContext() : m_proj4_str("") {};
     ProjContext(std::string const& proj4_str);
     ProjContext(ProjContext const& other ); // Only used for Proj4.8
+
     inline void* proj_ptr() const {
       VW_ASSERT( !m_proj4_str.empty(),
                  ArgumentErr() << "ProjContext: Projection not initialized." );
       return m_proj_ptr.get();
     }
+
     int error_no() const;
   };
 
@@ -69,7 +73,7 @@ namespace cartography {
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str, m_gml_str;
     ProjContext m_proj_context;
-    bool m_is_projected;
+    bool        m_is_projected;
 
     void init_proj();
 
@@ -112,17 +116,16 @@ namespace cartography {
     void set_transform(Matrix<double,3,3> transform);
     virtual void set_datum(Datum const& datum);
 
-    std::string proj4_str() const;
-    const std::string gml_str()    const { return m_gml_str; }
+          std::string  proj4_str() const;
+    const std::string  gml_str  () const { return m_gml_str; }
     Matrix<double,3,3> transform() const { return m_transform; }
 
-    // Returns the proj.4 string of both the GeoReference and the datum,
-    // concatenated. This is what proj4_str() used to do.
+    /// Returns the proj.4 string of both the GeoReference and the datum,
+    /// concatenated. This is what proj4_str() used to do.
     std::string overall_proj4_str() const;
 
     /// True if the georeference is using a projected coordinate
-    /// system.  False if no projection is used (ie. we are only using
-    /// lon, lat).
+    /// system.  False if no projection is used (ie. we are only using lon, lat).
     bool is_projected() const { return m_is_projected; }
 
     /// Options include: WGS84, WGS72, NAD27, NAD83.  Note: you must
@@ -134,23 +137,23 @@ namespace cartography {
     void set_geographic();
 
     /// Use an equirectangular projection
-    void set_equirectangular(double center_latitude = 0, double center_longitude = 0, double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);
+    void set_equirectangular      (double center_latitude = 0, double center_longitude = 0, double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);
     /// Use a sinusoidal projection
-    void set_sinusoidal(double center_longitude, double false_easting = 0, double false_northing = 0);
+    void set_sinusoidal           (double center_longitude,    double false_easting = 0,    double false_northing = 0);
     /// Use mercator projection
-    void set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);
+    void set_mercator             (double center_latitude,     double center_longitude,     double latitude_of_true_scale = 0, double false_easting = 0, double false_northing = 0);
     /// Use transverse mercator projection
-    void set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    void set_transverse_mercator  (double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
     /// Use orthographic projection
-    void set_orthographic(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
+    void set_orthographic         (double center_latitude,     double center_longitude,     double false_easting = 0, double false_northing = 0);
     /// Use steregraphic projection
-    void set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    void set_stereographic        (double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
     /// Use oblique steregraphic projection
-    void set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting = 0, double false_northing = 0);
+    void set_oblique_stereographic(double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
     /// Use Lambert Azimuthal projection
-    void set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
+    void set_lambert_azimuthal    (double center_latitude,     double center_longitude,     double false_easting = 0, double false_northing = 0);
     /// Use Lambert (Conic) Conformal projection with two standard parallels
-    void set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting = 0, double false_northing = 0);
+    void set_lambert_conformal    (double std_parallel_1,      double std_parallel_2,       double center_latitude,   double center_longitude,  double false_easting = 0, double false_northing = 0);
     /// Use Universal Transverse Mercator (UTM) projection
     void set_UTM(int zone, int north=true);
 

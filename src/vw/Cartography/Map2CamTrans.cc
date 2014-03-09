@@ -25,6 +25,7 @@
 namespace vw { namespace cartography {
 
   Map2CamTrans::Map2CamTrans( vw::camera::CameraModel const* cam,
+
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
                               boost::shared_ptr<DiskImageResource> dem_rsrc,
@@ -45,15 +46,18 @@ namespace vw { namespace cartography {
   vw::Vector2
   Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
+    // If we have data for the location already cached
     if (m_img_cache_box.contains(p)){
+      // Interpolate the output value using the cached data
       PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_img_cache_box.min().x(),
                                                  p.y() - m_img_cache_box.min().y());
+      // We can just return the value if it is valid!
       if (is_valid(v)) return v.child();
       else             return m_invalid_pix;
     }
 
     int b = BicubicInterpolation::pixel_buffer;
-    Vector2 lonlat = m_image_georef.pixel_to_lonlat(p);
+    Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
     if (dem_pix[0] < b - 1 || dem_pix[0] >= m_dem.cols() - b ||
         dem_pix[1] < b - 1 || dem_pix[1] >= m_dem.rows() - b
@@ -101,10 +105,10 @@ namespace vw { namespace cartography {
   void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
 
     BBox2 dbox;
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.min().y()) ) )); // Top right
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.max().y()-1) ) )); // Bottom left
-    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1,bbox.max().y()-1) ) )); // Bottom right
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),   bbox.min().y()  ) ) )); // Top left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1, bbox.min().y()  ) ) )); // Top right
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),   bbox.max().y()-1) ) )); // Bottom left
+    dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.max().x()-1, bbox.max().y()-1) ) )); // Bottom right
 
     // A lot of care is needed here when going from real box to int
     // box, and if in doubt, better expand more rather than less.
@@ -112,18 +116,19 @@ namespace vw { namespace cartography {
     m_dem_cache_box = grow_bbox_to_int(dbox);
     m_dem_cache_box.expand(BicubicInterpolation::pixel_buffer); // for interp
     m_dem_cache_box.crop(bounding_box(m_dem));
-    // Read the dem in memory for speed.
+
+    // Read the dem in memory for speed in the region of the expanded bounding box.
     m_cropped_dem = crop(m_dem, m_dem_cache_box);
 
     if (m_has_nodata){
       m_masked_dem = create_mask(m_cropped_dem, m_nodata);
-    }else{
+    }else{ // Don't need to handle nodata
       m_masked_dem = pixel_cast< PixelMask<float> >(m_cropped_dem);
     }
-    m_interp_dem =
-      interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
+    // Set up interpolation interface to the data we loaded into memory
+    m_interp_dem = interpolate(m_masked_dem, BicubicInterpolation(), ZeroEdgeExtension());
 
-  }
+  } // End function cache_dem
 
   // This function will be called whenever we start to apply the
   // transform in a tile. It computes and caches the point cloud at

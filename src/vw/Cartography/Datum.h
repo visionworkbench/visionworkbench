@@ -54,10 +54,10 @@ namespace cartography {
     std::string m_name;
     std::string m_spheroid_name;
     std::string m_meridian_name;
-    double m_semi_major_axis;
-    double m_semi_minor_axis;
-    double m_meridian_offset;
-    bool m_geocentric;
+    double      m_semi_major_axis;
+    double      m_semi_minor_axis;
+    double      m_meridian_offset;
+    bool        m_geocentric;
     std::string m_proj_str;
 
   public:
@@ -67,6 +67,7 @@ namespace cartography {
     }
 
     /// Constructs a well-known datum by name.
+    /// - Supported names: WGS84, WGS72, NAD83, NAD27, D_MOON, D_MARS
     Datum( std::string const& name ) {
       set_well_known_datum( name );
     }
@@ -75,21 +76,21 @@ namespace cartography {
     Datum(std::string const& name,
           std::string const& spheroid_name,
           std::string const& meridian_name,
-          double semi_major_axis,
-          double semi_minor_axis,
-          double meridian_offset);
+          double             semi_major_axis,
+          double             semi_minor_axis,
+          double             meridian_offset);
 
 #if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
     /// Build a constructor from a DatumDesc
     Datum(DatumDesc const& desc) :
-        m_name(desc.name()),
-        m_spheroid_name(desc.spheroid_name()),
-        m_meridian_name(desc.meridian_name()),
+        m_name           (desc.name()),
+        m_spheroid_name  (desc.spheroid_name()),
+        m_meridian_name  (desc.meridian_name()),
         m_semi_major_axis(desc.semi_major_axis()),
         m_semi_minor_axis(desc.semi_minor_axis()),
         m_meridian_offset(desc.meridian_offset()),
-        m_geocentric(desc.geocentric()),
-        m_proj_str(desc.proj_str()) {}
+        m_geocentric     (desc.geocentric()),
+        m_proj_str       (desc.proj_str()) {}
 
     /// Create a DatumDesc from the datum
     DatumDesc build_desc() const;
@@ -98,39 +99,43 @@ namespace cartography {
     /// Options include: WGS84, WGS72, NAD27, or NAD83.
     void set_well_known_datum(std::string const& name);
 
-    std::string &name() { return m_name; }
+    // Basic accessors
+    std::string      & name()       { return m_name; }
     std::string const& name() const { return m_name; }
 
-    std::string &spheroid_name() { return m_spheroid_name; }
+    std::string      & spheroid_name()       { return m_spheroid_name; }
     std::string const& spheroid_name() const { return m_spheroid_name; }
 
-    std::string &meridian_name() { return m_meridian_name; }
+    std::string      & meridian_name()       { return m_meridian_name; }
     std::string const& meridian_name() const { return m_meridian_name; }
 
-    void set_semi_major_axis(double val);
+    void   set_semi_major_axis(double val);
     double semi_major_axis() const { return m_semi_major_axis; }
 
-    void set_semi_minor_axis(double val);
+    void   set_semi_minor_axis(double val);
     double semi_minor_axis() const { return m_semi_minor_axis; }
 
-    double &meridian_offset() { return m_meridian_offset; }
-    double meridian_offset() const { return m_meridian_offset; }
+    double &meridian_offset()       { return m_meridian_offset; }
+    double  meridian_offset() const { return m_meridian_offset; }
 
     void set_geocentric(bool val);
     bool geocentric() const { return m_geocentric; }
 
-    std::string &proj4_str() { return m_proj_str; }
+    std::string      & proj4_str()       { return m_proj_str; }
     std::string const& proj4_str() const { return m_proj_str; }
 
+    /// Returns the radius (distance from center of the body) at the given lat/lon
     double radius(double lon, double lat) const;
 
-    /// return geocentric latitude corresponding to geodetic lat:
+    /// Return geocentric latitude corresponding to geodetic lat:
+    /// - Geocentric latitude is measured with body's center rather than tangent to surface.
+    /// - For spherical datums these values are identical.
     double geocentric_latitude(double lat) const;
 
-    /// return radius of curvature in the prime vertical.
+    /// Return radius of curvature in the prime vertical.
     double radius_of_curvature(double lon, double lat) const;
 
-    /// return distance from the center of the Earth (lat,lon are geodetic,
+    /// Return distance from the center of the Earth (lat,lon are geodetic,
     //// alt is ellipsoidal or geodetic height).
     double geocentric_radius(double lon, double lat, double alt = 0.0) const;
 
@@ -139,10 +144,10 @@ namespace cartography {
     /// Return cartesian (ECEF) coordinates of geodetic coordinates p [Lon, Lat, Height]
     Vector3 geodetic_to_cartesian( Vector3 const& llh ) const;
 
-    // Return rotation matrix for converting between ECEF and NED
-    // vectors. If v is a Cartesian (ECEF) vector, this matrix times v
-    // will find v's components in the North, East, and Down
-    // directions at given lon and lat.
+    /// Return rotation matrix for converting between ECEF and NED
+    /// vectors. If v is a Cartesian (ECEF) vector, this matrix times v
+    /// will find v's components in the North, East, and Down
+    /// directions at given lon and lat.
     Matrix3x3 lonlat_to_ned_matrix(Vector2 const& lonlat) const;
 
     Vector3 cartesian_to_geodetic( Vector3 const& xyz ) const;

@@ -106,8 +106,7 @@ namespace cartography {
   }
 
   void GeoReference::init_proj() {
-    m_proj_context =
-      ProjContext( overall_proj4_str() );
+    m_proj_context = ProjContext( overall_proj4_str() );
   }
 
   /// Construct a default georeference.  This georeference will use
@@ -119,8 +118,7 @@ namespace cartography {
     init_proj();
   }
 
-  /// Takes a geodetic datum.  The affine transform defaults to the
-  /// identity matrix.
+  /// Takes a geodetic datum.  The affine transform defaults to the identity matrix.
   GeoReference::GeoReference(Datum const& datum) : GeoReferenceBase(datum){
     set_transform(vw::math::identity_matrix<3>());
     set_geographic();
@@ -490,7 +488,10 @@ namespace cartography {
     return Vector2(projected.u, projected.v);
   }
 
-  /************** Functions for class ProjContext *******************/
+
+  //*****************************************************************
+  //************** Functions for class ProjContext ******************
+
   char** ProjContext::split_proj4_string(std::string const& proj4_str, int &num_strings) {
     std::vector<std::string> arg_strings;
     std::string trimmed_proj4_str = boost::trim_copy(proj4_str);
@@ -524,7 +525,8 @@ namespace cartography {
   int ProjContext::error_no() const {
     return pj_errno;
   }
-#else
+#else // PJ_VERSION >= 480
+
   ProjContext::ProjContext(std::string const& proj4_str ) : m_proj4_str(proj4_str) {
     m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
     int num;
@@ -539,6 +541,7 @@ namespace cartography {
     for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
     delete [] proj_strings;
   }
+
   ProjContext::ProjContext( ProjContext const& other ) : m_proj4_str(other.m_proj4_str) {
     m_proj_ctx_ptr.reset(pj_ctx_alloc(),pj_ctx_free);
     if ( m_proj4_str.empty() )
@@ -558,10 +561,14 @@ namespace cartography {
     for ( int i = 0; i < num; i++ ) delete [] proj_strings[i];
     delete [] proj_strings;
   }
+
   int ProjContext::error_no() const {
     return pj_ctx_get_errno(m_proj_ctx_ptr.get());
   }
 #endif
+//************** End functions for class ProjContext ******************
+//*********************************************************************
+
 
   // Simple GeoReference modification tools
   GeoReference crop( GeoReference const& input,

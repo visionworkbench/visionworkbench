@@ -167,8 +167,8 @@ double vw::cartography::Datum::geocentric_latitude(double lat) const {
 
   // Bi-axial Ellpisoid datum
   // http://mathworld.wolfram.com/GeocentricLatitude.html
-  double a = m_semi_major_axis;
-  double b = m_semi_minor_axis;
+  double a  = m_semi_major_axis;
+  double b  = m_semi_minor_axis;
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
@@ -183,11 +183,11 @@ double vw::cartography::Datum::radius_of_curvature(double /*lon*/, double lat) c
   }
 
   // Bi-axial Ellpisoid datum
-  double a = m_semi_major_axis;
-  double b = m_semi_minor_axis;
-  double a2 = a * a;
-  double b2 = b * b;
-  double e2 = (a2 - b2) / a2;
+  double a    = m_semi_major_axis;
+  double b    = m_semi_minor_axis;
+  double a2   = a * a;
+  double b2   = b * b;
+  double e2   = (a2 - b2) / a2;
   double slat = sin(M_PI/180*lat);
   return a / sqrt(1.0 - e2*slat*slat);
 }
@@ -316,11 +316,11 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
   }
 
   if (!std::isnan(u) ) {
-    double v = sqrt( u * u + e4 * q );
+    double v   = sqrt( u * u + e4 * q );
     double u_v = u + v;
-    double w = e2 * ( u_v - q ) / ( 2 * v );
-    double k = u_v / ( w + sqrt( w * w + u_v ) );
-    double D = k * xy_dist / ( k + e2 );
+    double w   = e2 * ( u_v - q ) / ( 2 * v );
+    double k   = u_v / ( w + sqrt( w * w + u_v ) );
+    double D   = k * xy_dist / ( k + e2 );
     double dist_2 = D * D + xyz[2] * xyz[2];
     llh[2] = ( k + e2 - 1 ) * sqrt( dist_2 ) / k;
     llh[1] = 2 * atan2( xyz[2], sqrt( dist_2 ) + D );

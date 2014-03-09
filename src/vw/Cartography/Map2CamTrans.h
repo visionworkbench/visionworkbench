@@ -48,17 +48,18 @@ namespace vw { namespace cartography {
     boost::shared_ptr<DiskImageResource> const& m_dem_rsrc;
     vw::DiskImageView<float> m_dem;
     vw::Vector2i m_image_size;
-    bool m_call_from_mapproject;
-    bool m_has_nodata;
-    double m_nodata;
-    Vector2 m_invalid_pix;
+    bool         m_call_from_mapproject;
+    bool         m_has_nodata;
+    double       m_nodata;
+    Vector2      m_invalid_pix;
+
 
     // We will always be modifying these
-    mutable vw::BBox2i m_dem_cache_box;
-    mutable vw::ImageView<float> m_cropped_dem;
-    mutable ImageViewRef< PixelMask<float> > m_masked_dem;
-    mutable ImageViewRef< PixelMask <float> > m_interp_dem;
-    mutable ImageView<Vector2> m_cache;
+    mutable vw::BBox2i                         m_dem_cache_box;
+    mutable vw::ImageView<float>               m_cropped_dem;
+    mutable ImageViewRef< PixelMask<float> >   m_masked_dem;
+    mutable ImageViewRef< PixelMask<float> >   m_interp_dem;
+    mutable ImageView<Vector2>                 m_cache;
     mutable ImageViewRef< PixelMask<Vector2> > m_cache_interp_mask;
     mutable vw::BBox2i m_img_cache_box;
     mutable vw::BBox2i m_cached_rv_box;
@@ -76,7 +77,7 @@ namespace vw { namespace cartography {
     vw::Vector2 reverse(const vw::Vector2 &p) const;
     
     // Not thread safe ... you must copy this object
-    void cache_dem(vw::BBox2i const& bbox) const;
+    void       cache_dem   ( vw::BBox2i const& bbox ) const;
     vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
   };
 
