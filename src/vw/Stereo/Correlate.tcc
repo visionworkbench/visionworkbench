@@ -414,15 +414,15 @@ template<class ChannelT> void
 subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                                 ImageView<ChannelT> const& left_image,
                                 ImageView<ChannelT> const& right_image,
-                                int32 kern_width, int32 kern_height,
+                                int32  kern_width, int32 kern_height,
                                 BBox2i region_of_interest,
-                                bool do_horizontal_subpixel,
-                                bool do_vertical_subpixel,
+                                bool   do_horizontal_subpixel,
+                                bool   do_vertical_subpixel,
                                 bool /*verbose*/ ) {
-  typedef Vector<float,6> Vector6f;
+  typedef Vector<float,6  > Vector6f;
   typedef Matrix<float,6,6> Matrix6x6f;
   typedef typename ImageView<float>::pixel_accessor ImageViewFAcc;
-  typedef typename CropView<ImageView<float> >::pixel_accessor CropViewFAcc;
+  typedef typename CropView<ImageView<float   > >::pixel_accessor CropViewFAcc;
   typedef typename CropView<ImageView<ChannelT> >::pixel_accessor CropViewTAcc;
 
   // Bail out if no subpixel computation has been requested
@@ -446,8 +446,8 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
   float AFFINE_SUBPIXEL_MAX_TRANSLATION = kern_width/2;
 
   const int32 kern_half_height = kern_height/2;
-  const int32 kern_half_width = kern_width/2;
-  const int32 kern_pixels = kern_height * kern_width;
+  const int32 kern_half_width  = kern_width/2;
+  const int32 kern_pixels      = kern_height * kern_width;
   const int32 weight_threshold = kern_pixels/2;
 
   ImageView<float> x_deriv = derivative_filter(left_image, 1, 0);
@@ -494,9 +494,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
       CropView<ImageView<float> > I_y = crop(y_deriv, current_window);
 
       // Compute the base weight image
-      int32 good_pixels =
-        adjust_weight_image(w, crop(disparity_map, current_window),
-                            weight_template);
+      int32 good_pixels = adjust_weight_image(w, crop(disparity_map, current_window), weight_template);
 
       // Skip over pixels for which there are very few good matches
       // in the neighborhood.
@@ -528,8 +526,8 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
         float var2_plane = 1e-3;
         float mean_noise = 0.0;
         float var2_noise = 1e-2;
-        float w_plane = 0.8;
-        float w_noise = 0.2;
+        float w_plane    = 0.8;
+        float w_noise    = 0.2;
         //set init params - END
 
         float in_curr_sum_I_e_val = 0.0;
@@ -562,16 +560,16 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
             ImageViewFAcc w_ptr = w_row;
             CropViewFAcc I_x_ptr = I_x_row, I_y_ptr = I_y_row;
             CropViewTAcc left_image_patch_ptr = left_image_patch_row;
-            float xx_partial = x_base + d[1] * jj + d[2];
-            float yy_partial = y_base + d[4] * jj + d[5];
+            float xx_partial      = x_base + d[1] * jj + d[2];
+            float yy_partial      = y_base + d[4] * jj + d[5];
             float delta_x_partial = d_em[1] * jj + d_em[2];
             float delta_y_partial = d_em[4] * jj + d_em[5];
 
             for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
-              float xx = d[0] * ii + xx_partial;
-              float yy = d[3] * ii + yy_partial;
+              float xx      = d[0]    * ii + xx_partial;
+              float yy      = d[3]    * ii + yy_partial;
               float delta_x = d_em[0] * ii + delta_x_partial;
               float delta_y = d_em[3] * ii + delta_y_partial;
 
@@ -579,28 +577,20 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
               ChannelT interpreted_px = right_interp_image(xx,yy);
               float I_e_val = interpreted_px - (*left_image_patch_ptr);
               in_curr_sum_I_e_val += I_e_val;
-              float temp_plane = I_e_val - delta_x*(*I_x_ptr) -
-                delta_y*(*I_y_ptr);
-              float temp_noise = interpreted_px - mean_noise;
-              float plane_prob_exp = // precompute to avoid underflow
-                -1*(temp_plane*temp_plane)/(2*var2_plane);
-              float plane_prob =
-                (plane_prob_exp < -75) ? 0.0f : plane_norm_factor *
-                exp(plane_prob_exp);
-              float noise_prob_exp =
-                -1*(temp_noise*temp_noise)/(2*var2_noise);
-              float noise_prob =
-                (noise_prob_exp < -75) ? 0.0f : noise_norm_factor *
-                exp(noise_prob_exp);
+              float temp_plane     = I_e_val - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
+              float temp_noise     = interpreted_px - mean_noise;
+              float plane_prob_exp = -1*(temp_plane*temp_plane)/(2*var2_plane); // precompute to avoid underflow
+              float plane_prob     = (plane_prob_exp < -75) ? 0.0f : plane_norm_factor * exp(plane_prob_exp);
+              float noise_prob_exp = -1*(temp_noise*temp_noise)/(2*var2_noise);
+              float noise_prob     = (noise_prob_exp < -75) ? 0.0f : noise_norm_factor * exp(noise_prob_exp);
 
-              float sum = plane_prob*w_plane + noise_prob*w_noise;
+              float sum         = plane_prob*w_plane + noise_prob*w_noise;
               float gamma_plane = plane_prob*w_plane/sum;
               float gamma_noise = noise_prob*w_noise/sum;
               // End Expectation
 
               // Maximization (computing the d_em vector)
-              mean_noise_tmp +=
-                interpreted_px * gamma_noise;
+              mean_noise_tmp  += interpreted_px * gamma_noise;
               sum_gamma_plane += gamma_plane;
               sum_gamma_noise += gamma_noise;
 
@@ -615,8 +605,8 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
                 skip++;
                 continue;
               }
-              float I_x_val = weight * (*I_x_ptr);
-              float I_y_val = weight * (*I_y_ptr);
+              float I_x_val = weight  * (*I_x_ptr);
+              float I_y_val = weight  * (*I_y_ptr);
               float I_x_sqr = I_x_val * (*I_x_ptr);
               float I_y_sqr = I_y_val * (*I_y_ptr);
               float I_x_I_y = I_x_val * (*I_y_ptr);

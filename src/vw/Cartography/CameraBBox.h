@@ -323,24 +323,26 @@ namespace cartography {
 
   namespace detail {
 
+    /// Apply a function to evenly spaced locations along a line of pixels
     template <class FunctionT>
     void bresenham_apply( BresenhamLine line, size_t step,
                           FunctionT& f ) {
-      while ( line.is_good() ) {
-        f( *line );
+      while ( line.is_good() ) { // Run until the end of the line
+        f( *line ); // Execute the function on this pixel location
         for ( size_t i = 0; i < step; i++ )
-          ++line;
+          ++line; // Advance "step" pixels along the line
       }
     }
 
+    ///
     class CameraDatumBBoxHelper {
       GeoReference m_georef;
       boost::shared_ptr<camera::CameraModel> m_camera;
       Vector2 m_last_intersect;
 
     public:
-      bool last_valid, center_on_zero;
-      BBox2 box;
+      bool   last_valid, center_on_zero;
+      BBox2  box;
       double scale;
 
       CameraDatumBBoxHelper( GeoReference const& georef,
@@ -348,58 +350,65 @@ namespace cartography {
                              bool center=false) : m_georef(georef), m_camera(camera), last_valid(false), center_on_zero(center), scale( std::numeric_limits<double>::max() ) {}
 
       void operator() ( Vector2 const& pixel );
-    };
+    }; // End class CameraDatumBBoxHelper
 
+    /// Class to accumulate some information about a series of DEM intersections
     template <class DEMImageT>
     class CameraDEMBBoxHelper {
       GeoReference m_georef;
       boost::shared_ptr<camera::CameraModel> m_camera;
-      DEMImageT m_dem;
-      Vector2 m_last_intersect;
+      DEMImageT    m_dem;
+      Vector2      m_last_intersect;
 
     public:
-      bool last_valid, center_on_zero;
-      BBox2 box;
-      double scale;
+      bool   last_valid, center_on_zero;
+      BBox2  box;   ///< Bounding box containing all intersections so far.
+      double scale; ///< Closest distance between two sequential intersections.
+                    //   This value is in units of the georeference, either projected coords
+                    //   or screwy lat/lon degrees!
 
+      /// Constructor initializes class with DEM, camera model, etc.
       CameraDEMBBoxHelper( ImageViewBase<DEMImageT> const& dem_image,
                            GeoReference const& georef,
                            boost::shared_ptr<camera::CameraModel> camera,
-                            bool center=false )
-        : m_georef(georef), m_camera(camera), m_dem(dem_image.impl()),
+                           bool center=false )
+        : m_georef(georef),  m_camera(camera), m_dem(dem_image.impl()),
           last_valid(false), center_on_zero(center),
           scale( std::numeric_limits<double>::max() ) {}
 
+      /// Intersect this pixel with the DEM and record some information about the intersection
       void operator() ( Vector2 const& pixel ) {
 
-        bool has_intersection;
-        bool treat_nodata_as_zero = true; // Intersect with datum if no dem
+        bool   has_intersection;
+        bool   treat_nodata_as_zero = true; // Intersect with datum if no dem
         double height_error_tol = 1e-3;   // error in DEM height
         double max_abs_tol      = 1e-14;  // abs cost function change b/w iters
         double max_rel_tol      = 1e-14;
-        int num_max_iter        = 100;
+        int    num_max_iter     = 100;
         Vector3 xyz_guess       = Vector3();
-        Vector3 camera_ctr = m_camera->camera_center(pixel);
+        Vector3 camera_ctr = m_camera->camera_center(pixel);  // Get ray from this pixel
         Vector3 camera_vec = m_camera->pixel_to_vector(pixel);
-        Vector3 xyz
+        Vector3 xyz // Use iterative solver call to compute an intersection of the pixel with the DEM
           = camera_pixel_to_dem_xyz(camera_ctr, camera_vec,
-                                     m_dem, m_georef,
-                                     treat_nodata_as_zero,
-                                     has_intersection,
-                                     height_error_tol, max_abs_tol, max_rel_tol,
-                                     num_max_iter, xyz_guess
-                                     );
+                                    m_dem, m_georef,
+                                    treat_nodata_as_zero,
+                                    has_intersection,
+                                    height_error_tol, max_abs_tol, max_rel_tol,
+                                    num_max_iter, xyz_guess
+                                   );
+        // Quit if we did not find an intersection
         if ( !has_intersection ) {
           last_valid = false;
           return;
         }
-
-        Vector3 llh = m_georef.datum().cartesian_to_geodetic(xyz);
+        // Use the datum to convert GCC coordinate to lon/lat/height and to a projected coordinate system
+        Vector3 llh   = m_georef.datum().cartesian_to_geodetic(xyz);
         Vector2 point = m_georef.lonlat_to_point( Vector2(llh.x(), llh.y()) );
 
         if (!m_georef.is_projected()){
           // If we don't use a projected coordinate system, then the
           // coordinates of this point are simply lon and lat.
+          // - Normalize the longitude coordinate.
           if ( center_on_zero && point[0] > 180 )
             point[0] -= 360.0;
           else if ( center_on_zero && point[0] < -180 )
@@ -410,17 +419,18 @@ namespace cartography {
             point[0] -= 360.0;
         }
 
-        if ( last_valid ) {
-          double current_scale =
-            norm_2( point - m_last_intersect );
-          if ( current_scale < scale )
+        if ( last_valid ) { // If the last call successfully intersected
+          // Compute distance from last intersection
+          // - This is either in projected coordinate system units (probably meters) or screwy lat/lon degrees
+          double current_scale = norm_2( point - m_last_intersect );
+          if ( current_scale < scale ) // Record this distance if less than last distance
             scale = current_scale;
         }
-        m_last_intersect = point;
-        box.grow( point );
-        last_valid = true;
+        m_last_intersect = point; // Record this intersection
+        box.grow( point ); // Expand a bounding box of all points intersected so far
+        last_valid = true; // Record intersection success
       }
-    };
+    }; // End class CameraDEMBBoxHelper
   }
 
   // Functions for Users
@@ -438,7 +448,11 @@ namespace cartography {
     return camera_bbox( georef, camera_model, cols, rows, scale );
   }
 
-  // Intersections that take in account DEM topography
+  /// Intersections that take in account DEM topography
+  /// - Returns a bounding box in Georeference coordinate system (projected if available)
+  ///    containing everything visible in the camera image.
+  /// - Computes "scale" which is the estimated ground resolution of the camera.
+  ///    This is in GeoReference measurement units (not necessarily meters!)
   template< class DEMImageT >
   BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem_image,
                      GeoReference const& georef,
@@ -451,7 +465,7 @@ namespace cartography {
 
     // Testing to see if we should be centering on zero
     bool center_on_zero = true;
-    Vector3 camera_llr =
+    Vector3 camera_llr = // Compute lon/lat/radius of camera center
       XYZtoLonLatRadFunctor::apply(camera_model->camera_center(Vector2()));
     if ( camera_llr[0] < -90 ||
          camera_llr[0] > 90 )
@@ -462,32 +476,37 @@ namespace cartography {
     step_amount = std::min(step_amount, rows/4); // must have at least several points per row
     step_amount = std::max(step_amount, 1);      // step amount must be > 0
 
+    // Construct helper class with DEM and camera information.
     detail::CameraDEMBBoxHelper<DEMImageT> functor( dem_image, georef, camera_model,
                                                     center_on_zero );
 
     // Running the edges. Note: The last valid point on a
     // BresenhamLine is the last point before the endpoint.
-    bresenham_apply( BresenhamLine(0,0,cols,0),
+    bresenham_apply( BresenhamLine(0,0,cols,0), // Left to right across the top side
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows),
+    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows), // Top to bottom down the right side
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1),
+    bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1), // Right to left across the bottom side
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(0,rows-1,0,0),
+    bresenham_apply( BresenhamLine(0,rows-1,0,0), // Bottom to top up the left side
                      step_amount, functor );
     functor.last_valid = false;
 
     // Running once through the center
-    bresenham_apply( BresenhamLine(0,0,cols,rows),
+    bresenham_apply( BresenhamLine(0,0,cols,rows), // Top left corner diagonal down to bottom right corner
                      step_amount, functor );
 
+    // Estimate the smallest distance between adjacent points on the bounding box edges
+    // - This is perhaps the finest resolution of the image.
+    // - The units for this value are defined by the GeoReference and can be something weird!
     scale = functor.scale/double(step_amount);
     return functor.box;
   }
 
+  /// Overload of camera_bbox when we don't care about getting the scale back.
   template< class DEMImageT >
   inline BBox2 camera_bbox( ImageViewBase<DEMImageT> const& dem_image,
                             GeoReference const& georef,

@@ -22,15 +22,21 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Vector.h>
 
+// TODO: Move this class up in to the main cartography folder
+
 namespace vw {
 namespace cartography {
 
+  /// Class implementing Bresenham line tracing algorithm
+  /// - See http://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
+  /// - This class works somewhat like an iterator down the pixels of the line.
   class BresenhamLine {
-    vw::int32 x0, y0, x1, y1;
-    vw::int32 x, y;
+    vw::int32 x0, y0, x1, y1; ///< Starting and stopping points of the line
+    vw::int32 x, y; ///< Current location of the line
     bool steep;
     vw::int32 deltax, deltay, error, ystep;
 
+    /// Perform precomputations to let us draw the line quickly later
     void setup() {
       steep = abs(y1-y0) > abs(x1-x0);
       if (steep) {
@@ -49,16 +55,21 @@ namespace cartography {
     }
 
   public:
+    /// Construct with two points
+    /// - The stop point is the point AFTER the last pixel on the line
     BresenhamLine( vw::Vector2i const& start, vw::Vector2i const& stop ) :
       x0(start[0]), y0(start[1]), x1(stop[0]), y1(stop[1]) {
       setup();
     }
 
+    /// Construct with two x,y pairs
+    /// - The stop point (mx1,my1) is the point AFTER the last pixel on the line
     BresenhamLine( vw::int32 mx0, vw::int32 my0, vw::int32 mx1, vw::int32 my1 ) :
       x0(mx0), y0(my0), x1(mx1), y1(my1) {
       setup();
     }
 
+    /// Return the current location along the line
     vw::Vector2i operator*() const {
       if (steep)
         return vw::Vector2i(y,x);
@@ -66,15 +77,17 @@ namespace cartography {
         return vw::Vector2i(x,y);
     }
 
+    /// Advance to the next pixel along the line
     void operator++() {
       x++;
       error -= deltay;
       if ( error < 0 ) {
-        y += ystep;
+        y     += ystep;
         error += deltax;
       }
     }
 
+    /// Return true if we have not gone past the end of the line
     bool is_good() const { return x < x1; }
   };
 

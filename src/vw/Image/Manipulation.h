@@ -630,7 +630,7 @@ namespace vw {
 
     ImageT m_child;
     offset_type m_ci, m_cj;
-    int32 m_di, m_dj;
+    int32 m_di, m_dj; // Cropped width and height
 
   public:
     typedef typename ImageT::pixel_type pixel_type;

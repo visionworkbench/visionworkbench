@@ -36,7 +36,7 @@ namespace cartography {
 
   // ---------------- XYZ to LON LAT ALT CONVERSION ------------------
 
-
+  /// GCC to GDC conversion with elevation being distance from 0,0,0
   class XYZtoLonLatRadFunctor : public UnaryReturnSameType {
     bool m_east_positive;
     bool m_centered_on_zero; // Use the range [-180,180] otherwise [0,360]
