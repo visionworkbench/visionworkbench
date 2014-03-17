@@ -212,11 +212,26 @@ namespace math {
       return (m_min.size() != 0);
     }
 
+    /// Returns true if the bounding box is empty (i.e. degenerate).
+    bool empty() const {
+      for( size_t i=0; i<m_min.size(); ++i )
+        if( m_min[i] >= m_max[i] ) return true;
+      return (m_min.size() <= 0);
+    }
+
     /// Returns the size (i.e. the diagonal vector) of the bounding box.
-    Vector<RealT, DimN> size() const { return (m_max - m_min); }
+    Vector<RealT, DimN> size() const {
+      // To do: This bugfix makes some tests fail, need to investigate.
+      // Turning it off for now.
+      //if (empty()) return Vector<RealT, DimN>(); // Bug fix for underflow/overflow
+      return (m_max - m_min);
+    }
 
     /// Returns the center point of the bounding box.
-    Vector<RealT, DimN> center() const { return 0.5 * (m_min + m_max); }
+    Vector<RealT, DimN> center() const {
+      if (empty()) return Vector<RealT, DimN>(); // Bug fix for underflow/overflow
+      return 0.5 * (m_min + m_max);
+    }
 
     /// Returns the minimal point of the bounding box.
     Vector<RealT, DimN> const& min() const { return m_min; }
@@ -248,13 +263,6 @@ namespace math {
     /// or greater.
     RealT depth() const {
       return impl().depth();
-    }
-
-    /// Returns true if the bounding box is empty (i.e. degenerate).
-    bool empty() const {
-      for( size_t i=0; i<m_min.size(); ++i )
-        if( m_min[i] >= m_max[i] ) return true;
-      return (m_min.size() <= 0);
     }
 
     /// Expands this bounding box by the given offset in every direction.
@@ -384,12 +392,14 @@ namespace math {
   /// Asymmetricaly scale a bounding box, by elementwise vector product
   template <class BBoxT, class RealT, size_t DimN, class VectorT>
   inline BBoxT elem_prod( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+    if (bbox.empty()) return BBoxT(); // Bug fix for underflow/overflow
     return BBoxT( elem_prod(bbox.min(),v), elem_prod(bbox.max(),v) );
   }
 
   /// Asymmetricaly scale a bounding box, by elementwise vector quotient
   template <class BBoxT, class RealT, size_t DimN, class VectorT>
   inline BBoxT elem_quot( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
+    if (bbox.empty()) return BBoxT(); // Bug fix for underflow/overflow
     return BBoxT( elem_quot(bbox.min(),v), elem_quot(bbox.max(),v) );
   }
 
@@ -448,10 +458,18 @@ namespace math {
       return *this;
     }
 
+    /// Returns true if the bounding box is empty (i.e. degenerate).
+    bool empty() const {
+      for( size_t i=0; i<this->min().size(); ++i )
+        if( this->min()[i] >= this->max()[i] ) return true;
+      return (this->min().size() <= 0);
+    }
+
     /// Returns the width (i.e. size in the first dimension) of the
     /// bounding box.
     RealT width() const {
       BOOST_STATIC_ASSERT( DimN >= 1 );
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[0] - this->min()[0];
     }
 
@@ -460,6 +478,7 @@ namespace math {
     /// or greater.
     RealT height() const {
       BOOST_STATIC_ASSERT( DimN >= 2 );
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[1] - this->min()[1];
     }
 
@@ -468,6 +487,7 @@ namespace math {
     /// or greater.
     RealT depth() const {
       BOOST_STATIC_ASSERT( DimN >= 3 );
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[2] - this->min()[2];
     }
   };
@@ -519,10 +539,18 @@ namespace math {
       return *this;
     }
 
+    /// Returns true if the bounding box is empty (i.e. degenerate).
+    bool empty() const {
+      for( size_t i=0; i<this->min().size(); ++i )
+        if( this->min()[i] >= this->max()[i] ) return true;
+      return (this->min().size() <= 0);
+    }
+
     /// Returns the width (i.e. size in the first dimension) of the
     /// bounding box.
     RealT width() const {
       VW_ASSERT(this->min().size() >= 1, LogicErr() << "BBox must be of dimension >= 1 to get width.");
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[0] - this->min()[0];
     }
 
@@ -531,6 +559,7 @@ namespace math {
     /// or greater.
     RealT height() const {
       VW_ASSERT(this->min().size() >= 2, LogicErr() << "BBox must be of dimension >= 2 to get height.");
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[1] - this->min()[1];
     }
 
@@ -539,6 +568,7 @@ namespace math {
     /// or greater.
     RealT depth() const {
       VW_ASSERT(this->min().size() >= 3, LogicErr() << "BBox must be of dimension >= 3 to get depth.");
+      if (empty()) return 0.0; // Bug fix for underflow/overflow
       return this->max()[2] - this->min()[2];
     }
 
