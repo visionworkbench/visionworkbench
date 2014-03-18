@@ -134,19 +134,20 @@ namespace math {
 
 
   template<class T>
-  void find_outlier_brackets(std::vector<T> const& p, double outlier_factor,
+  void find_outlier_brackets(std::vector<T> const& p,
+                             double pct, double outlier_factor,
                              double & b, double & e){
   
     // Using the quartile range, determine the values b and e so that
     // all elements in p outsize of [b, e] are outliers.
 
-    // If Q1 and Q3 are the lower and upper quartiles, keep points
+    // If Q1 and Q3 are the percentiles for pct and 1-pct,
     // between Q1-outlier_factor*(Q3-Q1) and Q3 + outlier_factor*(Q3-Q1).
 
     // This algorithm works best if the data is distributed rather
     // uniformly.
   
-    // Suggested value of outlier_factor: 1.5.
+    // Suggested value of outlier_factor: 1.5. We expect 0 < pct < 0.5.
   
     b = 0.0; e = 0.0; // initialize
     std::vector<T> q = p;
@@ -156,8 +157,8 @@ namespace math {
     b = q[0]; e = q[len-1];
     if (len <= 3) return; // too few points for analysis
       
-    int bn = int(round(0.25*len));
-    int en = int(round(0.75*len))-1;
+    int bn = int(round(pct*len));
+    int en = int(round((1.0-pct)*len))-1;
       
     double Q1 = q[bn];
     double Q3 = q[en];
