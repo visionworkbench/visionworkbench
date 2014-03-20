@@ -56,15 +56,16 @@ namespace vw { namespace cartography {
 
     double NaN = std::numeric_limits<double>::quiet_NaN();
 
-    // If possible, we will interpolate into the cached point cloud
     ImageViewRef<Vector3> interp_point_cloud =
       interpolate(m_point_cloud_cache, BicubicInterpolation(),
                   ZeroEdgeExtension());
 
-    // Avoid interpolating close to edges
+    // TAG1: Avoid interpolating close to edges. See reverse
+    // code at TAG2.
     BBox2i shrank_bbox = m_cache_size;
     shrank_bbox.contract(BicubicInterpolation::pixel_buffer);
 
+    // Use the cached version of the value in the cloud, if available.
     Vector3 xyz =
       shrank_bbox.contains( p ) ?
       interp_point_cloud(p.x() - m_cache_size.min().x(),
@@ -98,7 +99,8 @@ namespace vw { namespace cartography {
   MapTransform::cache_dem( vw::BBox2i const& bbox ) const {
     m_cache_size = bbox;
 
-    // For bicubic interpolation later
+    // TAG2: Expand the box for bicubic interpolation later. See
+    // reverse code at TAG1.
     m_cache_size.expand(BicubicInterpolation::pixel_buffer);
 
     m_point_cloud_cache = crop( m_point_cloud, m_cache_size );

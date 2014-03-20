@@ -63,9 +63,12 @@ namespace cartography {
 
   // Copy for map_project.
 
-  // MapTransform2. Used to test the validity of IP matching on map
-  // projected images. However, this could be used for performing an
-  // RPC map projection.
+  // MapTransform2. Used in mapproject.cc. This is a re-implementation
+  // of MapTransform. It is not thread safe, unlike MapTransform. It
+  // however can handle properly DEMs with holes. It is not obvious
+  // how to unify the MapTransform and MapTransform2 implementations.
+  // If MapTransform2 is called at one point, it will
+  // compute the values the entire tile containing that point.
   class MapTransform2 : public vw::TransformBase<MapTransform2> {
     vw::camera::CameraModel const* m_cam;
     GeoReference m_image_georef, m_dem_georef;
