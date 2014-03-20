@@ -164,7 +164,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
 
     return result;
 
-  } catch (const camera::PixelToRayErr& /*e*/) {
+  } catch (...) {
     return Vector3();
   }
 }
