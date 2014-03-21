@@ -24,13 +24,12 @@
 
 namespace vw { namespace cartography {
 
-  Map2CamTrans::Map2CamTrans
-  ( vw::camera::CameraModel const* cam,
-    GeoReference const& image_georef,
-    GeoReference const& dem_georef,
-    boost::shared_ptr<DiskImageResource> dem_rsrc,
-    vw::Vector2i const& image_size,
-    bool call_from_mapproject):
+  Map2CamTrans::Map2CamTrans( vw::camera::CameraModel const* cam,
+                              GeoReference const& image_georef,
+                              GeoReference const& dem_georef,
+                              boost::shared_ptr<DiskImageResource> dem_rsrc,
+                              vw::Vector2i const& image_size,
+                              bool call_from_mapproject):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem_rsrc(dem_rsrc), m_dem(dem_rsrc), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject),

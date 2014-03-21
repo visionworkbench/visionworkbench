@@ -65,12 +65,12 @@ namespace vw { namespace cartography {
 
   public:
     Map2CamTrans( vw::camera::CameraModel const* cam,
-                              GeoReference const& image_georef,
-                              GeoReference const& dem_georef,
-                              boost::shared_ptr<vw::DiskImageResource> dem_rsrc,
-                              vw::Vector2i const& image_size,
-                              bool call_from_mapproject
-                              );
+                  GeoReference const& image_georef,
+                  GeoReference const& dem_georef,
+                  boost::shared_ptr<vw::DiskImageResource> dem_rsrc,
+                  vw::Vector2i const& image_size,
+                  bool call_from_mapproject
+                  );
     
     // Convert Map Projected Coordinate to camera coordinate
     vw::Vector2 reverse(const vw::Vector2 &p) const;
