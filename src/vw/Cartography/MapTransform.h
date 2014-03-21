@@ -25,8 +25,10 @@
 #include <vw/Cartography/GeoReference.h>
 
 
-/// \file MapTransform.h Used to test the validity of IP matching on map projected images.
-
+/// \file MapTransform.h
+// Given a pixel in a map-projected image, convert it to lonlat, then
+// convert to the DEM pixel, then to the DEM lonlat, then to the DEM
+// xyz, then project into the camera, and find the camera pixel.
 namespace vw { namespace camera{
   class CameraModel; // forward declaration
 }}
@@ -34,9 +36,6 @@ namespace vw { namespace camera{
 namespace vw {
 namespace cartography {
 
-  // MapTransform. Used to test the validity of IP matching on map
-  // projected images. However, this could be used for performing an RPC
-  // map projection.
   class MapTransform : public vw::TransformBase<MapTransform> {
     vw::camera::CameraModel const* m_cam;
     GeoReference m_image_georef, m_dem_georef;
