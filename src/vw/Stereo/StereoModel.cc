@@ -131,13 +131,15 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
                                 Vector2 const& pix2, Vector3& errorVec) const {
 
 
-  // Note: Class RPCStereoModel inherits from this class and re-implements this function.
+  // Note: Class RPCStereoModel inherits from this class and
+  // re-implements this function.
 
   errorVec = Vector3();
 
-  // Check for NaN values
+  // Check for NaN and out-of-bounds values
   if (pix1 != pix1 || pix2 != pix2) return Vector3();
-
+  if (pix1[0] < 0 || pix1[1] < 0 || pix2[0] < 0 || pix2[1] < 0) return Vector3();
+  
   try {
     // Determine range by triangulation
     Vector3 vec1 = m_camera1->pixel_to_vector(pix1);
@@ -164,7 +166,7 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
 
     return result;
 
-  } catch (...) {
+  } catch (const camera::PixelToRayErr& /*e*/) {
     return Vector3();
   }
 }

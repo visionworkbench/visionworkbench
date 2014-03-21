@@ -75,6 +75,7 @@ namespace cartography {
     boost::shared_ptr<DiskImageResource> const& m_dem_rsrc;
     vw::DiskImageView<float> m_dem;
     vw::Vector2i m_image_size;
+    bool m_call_from_mapproject;
     bool m_has_nodata;
     double m_nodata;
     Vector2 m_invalid_pix;
@@ -91,11 +92,12 @@ namespace cartography {
 
   public:
     MapTransform2( vw::camera::CameraModel const* cam,
-                  GeoReference const& image_georef,
-                  GeoReference const& dem_georef,
-                  boost::shared_ptr<vw::DiskImageResource> dem_rsrc,
-                  vw::Vector2i image_size = vw::Vector2i(-1, -1)
-                  );
+                   GeoReference const& image_georef,
+                   GeoReference const& dem_georef,
+                   boost::shared_ptr<vw::DiskImageResource> dem_rsrc,
+                   vw::Vector2i const& image_size,
+                   bool call_from_mapproject
+                   );
 
     // Convert Map Projected Coordinate to camera coordinate
     vw::Vector2 reverse(const vw::Vector2 &p) const;
