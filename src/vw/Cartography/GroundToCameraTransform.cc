@@ -18,16 +18,18 @@
 
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/MapTransform.h>
+#include <vw/Cartography/GroundToCameraTransform.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Camera/CameraModel.h>
 
 namespace vw { namespace cartography {
 
-  MapTransform::MapTransform( vw::camera::CameraModel const* cam,
-                              GeoReference const& image_georef,
-                              GeoReference const& dem_georef,
-                              boost::shared_ptr<DiskImageResource> dem_rsrc ) :
+  GroundToCameraTransform::GroundToCameraTransform
+  (vw::camera::CameraModel const* cam,
+   GeoReference const& image_georef,
+   GeoReference const& dem_georef,
+   boost::shared_ptr<DiskImageResource> dem_rsrc
+   ):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem(dem_rsrc) {
 
@@ -52,7 +54,7 @@ namespace vw { namespace cartography {
   }
   
   vw::Vector2
-  MapTransform::reverse(const vw::Vector2 &p) const {
+  GroundToCameraTransform::reverse(const vw::Vector2 &p) const {
 
     double NaN = std::numeric_limits<double>::quiet_NaN();
 
@@ -88,15 +90,15 @@ namespace vw { namespace cartography {
   // each pixel in the tile, to be used later when we iterate over
   // pixels.
   vw::BBox2i
-  MapTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
+  GroundToCameraTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
     cache_dem( bbox );
-    vw::BBox2i out_box = vw::TransformBase<MapTransform>::reverse_bbox( bbox );
+    vw::BBox2i out_box = vw::TransformBase<GroundToCameraTransform>::reverse_bbox( bbox );
     if (out_box.empty()) return vw::BBox2i(0, 0, 1, 1);
     return out_box;
   }
 
   void
-  MapTransform::cache_dem( vw::BBox2i const& bbox ) const {
+  GroundToCameraTransform::cache_dem( vw::BBox2i const& bbox ) const {
     m_cache_size = bbox;
 
     // TAG2: Expand the box for bicubic interpolation later. See
@@ -107,25 +109,27 @@ namespace vw { namespace cartography {
   }
 
   // Duplicate code we use for map_project.
-  MapTransform2::MapTransform2( vw::camera::CameraModel const* cam,
-                                GeoReference const& image_georef,
-                                GeoReference const& dem_georef,
-                                boost::shared_ptr<DiskImageResource> dem_rsrc,
-                                vw::Vector2i const& image_size,
-                                bool call_from_mapproject):
+  GroundToCameraTransform2::GroundToCameraTransform2
+  ( vw::camera::CameraModel const* cam,
+    GeoReference const& image_georef,
+    GeoReference const& dem_georef,
+    boost::shared_ptr<DiskImageResource> dem_rsrc,
+    vw::Vector2i const& image_size,
+    bool call_from_mapproject):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
     m_dem_rsrc(dem_rsrc), m_dem(dem_rsrc), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject),
     m_has_nodata(false),
-    m_nodata(std::numeric_limits<double>::quiet_NaN() ){
+    m_nodata(std::numeric_limits<double>::quiet_NaN()){
+    
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
-
+    
     m_invalid_pix = Vector2(-1e6, -1e6); // something negative
   }
 
   vw::Vector2
-  MapTransform2::reverse(const vw::Vector2 &p) const {
+  GroundToCameraTransform2::reverse(const vw::Vector2 &p) const {
 
     if (m_img_cache_box.contains(p)){
       PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_img_cache_box.min().x(),
@@ -180,7 +184,7 @@ namespace vw { namespace cartography {
     return pt;
   }
 
-  void MapTransform2::cache_dem(vw::BBox2i const& bbox) const{
+  void GroundToCameraTransform2::cache_dem(vw::BBox2i const& bbox) const{
 
     BBox2 dbox;
     dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
@@ -212,7 +216,7 @@ namespace vw { namespace cartography {
   // each pixel in the tile, to be used later when we iterate over
   // pixels.
   vw::BBox2i
-  MapTransform2::reverse_bbox( vw::BBox2i const& bbox ) const {
+  GroundToCameraTransform2::reverse_bbox( vw::BBox2i const& bbox ) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
     if (!m_cached_rv_box.empty()) return m_cached_rv_box;
