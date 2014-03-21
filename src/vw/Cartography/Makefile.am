@@ -39,7 +39,7 @@ endif
 
 include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
                   GeoTransform.h Datum.h SimplePointImageManipulation.h \
-                  PointImageManipulation.h GroundToCameraTransform.h               \
+                  PointImageManipulation.h Map2CamTrans.h               \
                   OrthoImageView.h GeoReferenceResourcePDS.h            \
                   Projection.h ToastTransform.h $(gdal_headers)         \
                   $(camerabbox_headers)
@@ -53,7 +53,7 @@ detail_HEADERS =  detail/BresenhamLine.h
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
                   GeoReferenceBase.cc PointImageManipulation.cc         \
-                  GroundToCameraTransform.cc $(gdal_sources) $(camerabbox_sources)
+                  Map2CamTrans.cc $(gdal_sources) $(camerabbox_sources)
 
 nodist_libvwCartography_la_SOURCES = $(protocol_sources)
 

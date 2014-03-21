@@ -25,49 +25,24 @@
 #include <vw/Cartography/GeoReference.h>
 
 
-/// \file GroundToCameraTransform.h
+/// \file Map2CamTrans.h
 // Given a pixel in a map-projected image, convert it to lonlat, then
 // convert to the DEM pixel, then to the DEM lonlat, then to the DEM
 // xyz, then project into the camera, and find the camera pixel.
+
+// This class is not thread-safe. It must not be invoked for individual
+// pixels, it does wholesale computation on entire tiles,
+// and each tile needs a new instance of this class.
+
+// The class can handle DEMs with holes.
+
 namespace vw { namespace camera{
   class CameraModel; // forward declaration
 }}
 
 namespace vw { namespace cartography {
 
-  class GroundToCameraTransform : public vw::TransformBase<GroundToCameraTransform> {
-    vw::camera::CameraModel const* m_cam;
-    GeoReference m_image_georef, m_dem_georef;
-    vw::DiskImageView<float> m_dem;
-    vw::ImageViewRef<vw::Vector3> m_point_cloud;
-
-    // We will always be modifying these
-    mutable vw::ImageView<vw::Vector3> m_point_cloud_cache;
-    mutable vw::BBox2i m_cache_size;
-  public:
-    GroundToCameraTransform( vw::camera::CameraModel const* cam,
-                             GeoReference const& image_georef,
-                             GeoReference const& dem_georef,
-                             boost::shared_ptr<vw::DiskImageResource> dem_rsrc );
-    
-    // Convert Map Projected Coordinate to camera coordinate
-    vw::Vector2 reverse(const vw::Vector2 &p) const;
-
-    vw::BBox2i reverse_bbox( vw::BBox2i const& bbox ) const;
-
-    // Not thread safe ... you must copy this object
-    void cache_dem( vw::BBox2i const& bbox ) const;
-  };
-
-  // Copy for map_project.
-
-  // GroundToCameraTransform2. Used in mapproject.cc. This is a re-implementation
-  // of GroundToCameraTransform. It is not thread safe, unlike GroundToCameraTransform. It
-  // however can handle properly DEMs with holes. It is not obvious
-  // how to unify the GroundToCameraTransform and GroundToCameraTransform2 implementations.
-  // If GroundToCameraTransform2 is called at one point, it will
-  // compute the values the entire tile containing that point.
-  class GroundToCameraTransform2 : public vw::TransformBase<GroundToCameraTransform2> {
+  class Map2CamTrans : public vw::TransformBase<Map2CamTrans> {
     vw::camera::CameraModel const* m_cam;
     GeoReference m_image_georef, m_dem_georef;
     boost::shared_ptr<DiskImageResource> const& m_dem_rsrc;
@@ -89,7 +64,7 @@ namespace vw { namespace cartography {
     mutable vw::BBox2i m_cached_rv_box;
 
   public:
-    GroundToCameraTransform2( vw::camera::CameraModel const* cam,
+    Map2CamTrans( vw::camera::CameraModel const* cam,
                               GeoReference const& image_georef,
                               GeoReference const& dem_georef,
                               boost::shared_ptr<vw::DiskImageResource> dem_rsrc,

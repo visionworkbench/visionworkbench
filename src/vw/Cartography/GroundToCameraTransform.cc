@@ -18,98 +18,13 @@
 
 #include <vw/Cartography/PointImageManipulation.h>
 #include <vw/Cartography/GeoTransform.h>
-#include <vw/Cartography/GroundToCameraTransform.h>
+#include <vw/Cartography/Map2CamTrans.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/Camera/CameraModel.h>
 
 namespace vw { namespace cartography {
 
-  GroundToCameraTransform::GroundToCameraTransform
-  (vw::camera::CameraModel const* cam,
-   GeoReference const& image_georef,
-   GeoReference const& dem_georef,
-   boost::shared_ptr<DiskImageResource> dem_rsrc
-   ):
-    m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
-    m_dem(dem_rsrc) {
-
-    if ( dem_rsrc->has_nodata_read() )
-      m_point_cloud =
-        geo_transform
-        (geodetic_to_cartesian
-         (dem_to_geodetic( create_mask( m_dem, dem_rsrc->nodata_read()),
-                           m_dem_georef ), m_dem_georef.datum() ),
-         m_dem_georef, m_image_georef,
-         ValueEdgeExtension<Vector3>( Vector3() ),
-         BicubicInterpolation());
-    else
-      m_point_cloud =
-        geo_transform
-        (geodetic_to_cartesian
-         (dem_to_geodetic( m_dem, m_dem_georef ),
-          m_dem_georef.datum() ),
-         m_dem_georef, m_image_georef,
-         ValueEdgeExtension<Vector3>( Vector3() ),
-         BicubicInterpolation());
-  }
-  
-  vw::Vector2
-  GroundToCameraTransform::reverse(const vw::Vector2 &p) const {
-
-    double NaN = std::numeric_limits<double>::quiet_NaN();
-
-    ImageViewRef<Vector3> interp_point_cloud =
-      interpolate(m_point_cloud_cache, BicubicInterpolation(),
-                  ZeroEdgeExtension());
-
-    // TAG1: Avoid interpolating close to edges. See reverse
-    // code at TAG2.
-    BBox2i shrank_bbox = m_cache_size;
-    shrank_bbox.contract(BicubicInterpolation::pixel_buffer);
-
-    // Use the cached version of the value in the cloud, if available.
-    Vector3 xyz =
-      shrank_bbox.contains( p ) ?
-      interp_point_cloud(p.x() - m_cache_size.min().x(),
-                         p.y() - m_cache_size.min().y()):
-      m_point_cloud(p.x(),p.y());
-
-    // The case when xyz does not have data
-    if (xyz == Vector3())
-      return vw::Vector2(NaN, NaN);
-
-    try{
-      return m_cam->point_to_pixel(xyz);
-    }catch(...){}
-    return vw::Vector2(NaN, NaN);
-
-  }
-
-  // This function will be called whenever we start to apply the
-  // transform in a tile. It computes and caches the point cloud at
-  // each pixel in the tile, to be used later when we iterate over
-  // pixels.
-  vw::BBox2i
-  GroundToCameraTransform::reverse_bbox( vw::BBox2i const& bbox ) const {
-    cache_dem( bbox );
-    vw::BBox2i out_box = vw::TransformBase<GroundToCameraTransform>::reverse_bbox( bbox );
-    if (out_box.empty()) return vw::BBox2i(0, 0, 1, 1);
-    return out_box;
-  }
-
-  void
-  GroundToCameraTransform::cache_dem( vw::BBox2i const& bbox ) const {
-    m_cache_size = bbox;
-
-    // TAG2: Expand the box for bicubic interpolation later. See
-    // reverse code at TAG1.
-    m_cache_size.expand(BicubicInterpolation::pixel_buffer);
-
-    m_point_cloud_cache = crop( m_point_cloud, m_cache_size );
-  }
-
-  // Duplicate code we use for map_project.
-  GroundToCameraTransform2::GroundToCameraTransform2
+  Map2CamTrans::Map2CamTrans
   ( vw::camera::CameraModel const* cam,
     GeoReference const& image_georef,
     GeoReference const& dem_georef,
@@ -129,7 +44,7 @@ namespace vw { namespace cartography {
   }
 
   vw::Vector2
-  GroundToCameraTransform2::reverse(const vw::Vector2 &p) const {
+  Map2CamTrans::reverse(const vw::Vector2 &p) const {
 
     if (m_img_cache_box.contains(p)){
       PixelMask<Vector2> v = m_cache_interp_mask(p.x() - m_img_cache_box.min().x(),
@@ -184,7 +99,7 @@ namespace vw { namespace cartography {
     return pt;
   }
 
-  void GroundToCameraTransform2::cache_dem(vw::BBox2i const& bbox) const{
+  void Map2CamTrans::cache_dem(vw::BBox2i const& bbox) const{
 
     BBox2 dbox;
     dbox.grow( m_dem_georef.lonlat_to_pixel(m_image_georef.pixel_to_lonlat( Vector2(bbox.min().x(),bbox.min().y()) ) )); // Top left
@@ -216,7 +131,7 @@ namespace vw { namespace cartography {
   // each pixel in the tile, to be used later when we iterate over
   // pixels.
   vw::BBox2i
-  GroundToCameraTransform2::reverse_bbox( vw::BBox2i const& bbox ) const {
+  Map2CamTrans::reverse_bbox( vw::BBox2i const& bbox ) const {
 
     // Custom reverse_bbox() function which can handle invalid pixels.
     if (!m_cached_rv_box.empty()) return m_cached_rv_box;
