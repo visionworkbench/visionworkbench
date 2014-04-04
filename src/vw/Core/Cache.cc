@@ -71,18 +71,18 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
     Mutex::WriteLock cache_lock( m_stats_mutex );
     m_evictions += local_evictions;
     
-    // Warn about exceeding the cache size max_num_warnings times.
-    vw::uint64 max_num_warnings = 1000;
-    if ( m_size > m_max_size && m_warnings < max_num_warnings){
+    // Warn about exceeding the cache size. Note that the warning is
+    // printed only if the size now is a multiple of the previous size
+    // at which the warning was printed, so it will warn say when the
+    // cache size is 1.5^n GB. This will limit the number of warnings
+    // to a representative subset.
+    double factor = 1.5;
+    if ( m_size > m_max_size && m_size > factor*m_last_size){
       VW_OUT(WarningMessage, "cache")
         << "Cached object (" << size
-        << ") larger than requested maximum cache size (" << m_max_size
-        << "). Current size = " << m_size << "\n";
-
-      m_warnings++;
-      if (m_warnings >= max_num_warnings){
-        VW_OUT(WarningMessage, "cache")   << "Reached " << max_num_warnings << " warnings. Will stop printing more.\n";
-      }
+        << ") larger than requested maximum cache size (" << round(m_max_size/1.0e6)
+        << " MB). Current size = " << round(m_size/1.0e6) << " MB.\n";
+      m_last_size = m_size;
     }
     
   }
