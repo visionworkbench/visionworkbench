@@ -55,12 +55,13 @@ struct Options {
 
   // Settings
   std::string output_file_name, lut_file_name;
-  float nodata_value, min_val, max_val;
-  bool draw_legend;
+  float       nodata_value, min_val, max_val;
+  bool        draw_legend;
 
-  typedef Vector<uint8,3> Vector3u;
+  typedef Vector<uint8,3>                 Vector3u;
   typedef std::pair<std::string,Vector3u> lut_element;
-  typedef std::vector<lut_element> lut_type;
+  typedef std::vector<lut_element>        lut_type;
+
   lut_type lut;
   std::map<float,Vector3u> lut_map;
 };
@@ -76,20 +77,24 @@ public:
   template <class PixelT>
   PixelMask<PixelRGB<uint8> > operator() (PixelT const& pix) const {
     if (is_transparent(pix))
-      return PixelMask<PixelRGB<uint8> >();
+      return PixelMask<PixelRGB<uint8> >(); // Skip transparent pixels
 
     float val = compound_select_channel<const float&>(pix,0);
     if (val > 1.0) val = 1.0;
     if (val < 0.0) val = 0.0;
 
+    // Get locations on sparse colormap that bound this pixel value
     map_type::const_iterator bot = m_colormap.upper_bound( val ); bot--;
     map_type::const_iterator top = m_colormap.upper_bound( val );
 
-    if ( top == m_colormap.end() )
-      return PixelRGB<uint8>(bot->second[0],bot->second[1],bot->second[2]);
-    Options::Vector3u output =
-      bot->second + ((val-bot->first)/(top->first-bot->first))*(Vector3i(top->second)-Vector3i(bot->second));
-    return PixelRGB<uint8>(output[0],output[1],output[2]);
+    if ( top == m_colormap.end() ) // If this is above the top colormap value
+      return PixelRGB<uint8>(bot->second[0], bot->second[1], bot->second[2]); // Use the max colormap value
+
+    // Otherwise determine a proportional color between the bounding colormap values
+    Options::Vector3u output = bot->second + // Lower colormap value
+                                ( ((val - bot->first)/(top->first - bot->first)) * // Fraction of distance to next colormap value
+                                  (Vector3i(top->second) - Vector3i(bot->second))  ); // Difference between successive colormap values
+    return PixelRGB<uint8>(output[0], output[1], output[2]);
   }
 };
 
@@ -118,7 +123,7 @@ void do_colorized_dem(Options& opt) {
     vw_out() << "\t--> Extracted nodata value from file: " << opt.nodata_value << ".\n";
   }
 
-  // Compute min/max
+  // Compute min/max of input image values
   DiskImageView<PixelT> disk_dem_file(opt.input_file_name);
   ImageViewRef<PixelGray<float> > input_image =
     pixel_cast<PixelGray<float> >(select_channel(disk_dem_file,0));
@@ -164,18 +169,14 @@ void do_colorized_dem(Options& opt) {
 
   // Apply colormap
   ImageViewRef<PixelMask<PixelRGB<uint8> > > colorized_image =
-    colormap(normalize(dem,opt.min_val,opt.max_val,0,1.0), opt.lut_map);
+    colormap(normalize(dem, opt.min_val, opt.max_val, 0, 1.0), opt.lut_map);
 
-  if (!opt.shaded_relief_file_name.empty()) {
+  if (!opt.shaded_relief_file_name.empty()) { // Using a hillshade file
     vw_out() << "\t--> Incorporating hillshading from: "
              << opt.shaded_relief_file_name << ".\n";
     DiskImageView<PixelGray<float> >
-      shaded_relief_image(opt.shaded_relief_file_name); // It's okay
-                                                        // to throw
-                                                        // away the
-                                                        // second
-                                                        // channel if
-                                                        // it exists.
+      shaded_relief_image(opt.shaded_relief_file_name); // It's okay to throw  away the
+                                                        // second channel if it exists.
     ImageViewRef<PixelMask<PixelRGB<uint8> > > shaded_image =
       copy_mask(channel_cast<uint8>(colorized_image*pixel_cast<float>(shaded_relief_image)),
                 colorized_image);
@@ -187,7 +188,7 @@ void do_colorized_dem(Options& opt) {
     write_georeference( *r, georef );
     block_write_image( *r, shaded_image,
                        TerminalProgressCallback( "tools.colormap", "Writing:") );
-  } else {
+  } else { // Not using a hillshade file
     vw_out() << "Writing color-mapped image: " << opt.output_file_name << "\n";
 
     boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,colorized_image.format()));
@@ -220,13 +221,13 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
      "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value(&opt.output_file_name), "Specify the output file")
-    ("lut-file", po::value(&opt.lut_file_name), "Specify look up file for color output. It is similar to the file used by gdaldem. Without we revert to our standard LUT")
-    ("nodata-value", po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
+    ("lut-file",      po::value(&opt.lut_file_name),    "Specify look up file for color output. It is similar to the file used by gdaldem. Without we revert to our standard LUT")
+    ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
      "Remap the DEM default value to the min altitude value.")
-    ("min", po::value(&opt.min_val)->default_value(0), "Minimum height of the color map.")
-    ("max", po::value(&opt.max_val)->default_value(0), "Maximum height of the color map.")
-    ("moon", "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
-    ("mars", "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
+    ("min",           po::value(&opt.min_val)->default_value(0), "Minimum height of the color map.")
+    ("max",           po::value(&opt.max_val)->default_value(0), "Maximum height of the color map.")
+    ("moon",   "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
+    ("mars",   "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
     ("legend", "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
     ("help,h", "Display this help message");
 
@@ -278,18 +279,18 @@ int main( int argc, char *argv[] ) {
     handle_arguments( argc, argv, opt );
 
     // Decide legend
-    if ( opt.lut_file_name.empty() ) {
+    if ( opt.lut_file_name.empty() ) { // Set up default colormap
       opt.lut.clear();
-      opt.lut.push_back( Options::lut_element("0%",   Options::Vector3u(0,0,0)) );
-      opt.lut.push_back( Options::lut_element("20.8%",Options::Vector3u(0,0,255)) );
-      opt.lut.push_back( Options::lut_element("25%",  Options::Vector3u(0,0,255)) );
-      opt.lut.push_back( Options::lut_element("37.5%",Options::Vector3u(0,191,255)) );
-      opt.lut.push_back( Options::lut_element("41.7%",Options::Vector3u(0,255,255)) );
-      opt.lut.push_back( Options::lut_element("58.3%",Options::Vector3u(255,255,51)) );
-      opt.lut.push_back( Options::lut_element("62.5%",Options::Vector3u(255,191,0)) );
-      opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,0,0)) );
-      opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,0,0)) );
-      opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(0,0,0)) );
+      opt.lut.push_back( Options::lut_element("0%",   Options::Vector3u(  0,   0,   0)) ); // Black
+      opt.lut.push_back( Options::lut_element("20.8%",Options::Vector3u(  0,   0, 255)) ); // Blue
+      opt.lut.push_back( Options::lut_element("25%",  Options::Vector3u(  0,   0, 255)) ); // Blue
+      opt.lut.push_back( Options::lut_element("37.5%",Options::Vector3u(  0, 191, 255)) ); // Light blue
+      opt.lut.push_back( Options::lut_element("41.7%",Options::Vector3u(  0, 255, 255)) ); // Teal
+      opt.lut.push_back( Options::lut_element("58.3%",Options::Vector3u(255, 255,  51)) ); // Yellow
+      opt.lut.push_back( Options::lut_element("62.5%",Options::Vector3u(255, 191,   0)) ); // Orange
+      opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,   0,   0)) ); // Red
+      opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,   0,   0)) ); // Red
+      opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(  0,   0,   0)) ); // Black
     } else {
       // Read input LUT
       typedef boost::tokenizer<> tokenizer;

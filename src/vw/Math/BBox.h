@@ -389,6 +389,12 @@ namespace math {
     return os << "(" << bbox.min() << "-" << bbox.max() << ")";
   }
 
+  /// Specialization for 2d boxes
+  template <class BBoxT, class RealT>
+  std::ostream& operator<<( std::ostream& os, BBoxBase<BBoxT,RealT,2> const& bbox ) {
+    return os << "(Origin: (" << bbox.min()[0] << ", " << bbox.min()[1] << ") width: " << bbox.width() << " height: " << bbox.height() << ")";
+  }
+
   /// Asymmetricaly scale a bounding box, by elementwise vector product
   template <class BBoxT, class RealT, size_t DimN, class VectorT>
   inline BBoxT elem_prod( BBoxBase<BBoxT, RealT, DimN> const& bbox, VectorBase<VectorT> const& v ) {
@@ -408,8 +414,7 @@ namespace math {
   // *******************************************************************
 
   /// A general fixed-dimensional axis-aligned bounding box class,
-  /// represented by vectors pointing to the minimal and maximal
-  /// corners.
+  /// represented by vectors pointing to the minimal and maximal corners.
   template <class RealT, size_t DimN = 0>
   class BBox : public BBoxBase<BBox<RealT, DimN>, RealT, DimN> {
   public:
@@ -420,14 +425,12 @@ namespace math {
     /// to grow your bounding box to fit a collection of items.
     BBox() : BBoxBase<BBox<RealT, DimN>, RealT, DimN>() {}
 
-    /// Constructs a bounding box with the given minimal and maximal
-    /// points.
+    /// Constructs a bounding box with the given minimal and maximal points.
     BBox( Vector<RealT, DimN> const& min, Vector<RealT, DimN> const& max ) :
       BBoxBase<BBox<RealT, DimN>, RealT, DimN>( min, max ) {}
 
     /// Constructs a 2D bounding box with the given minimal point
-    /// coordinates and dimensions.  (Only valid for 2D bouding
-    /// boxes.)
+    /// coordinates and dimensions.  (Only valid for 2D bounding boxes.)
     BBox( RealT minx, RealT miny, RealT width, RealT height )
       : BBoxBase<BBox<RealT, DimN>, RealT, DimN>(
           Vector<RealT,2>(minx,miny),
@@ -436,8 +439,7 @@ namespace math {
     }
 
     /// Constructs a 3D bounding box with the given minimal point
-    /// coordinates and dimensions.  (Only valid for 3D bouding
-    /// boxes.)
+    /// coordinates and dimensions.  (Only valid for 3D bouding boxes.)
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
       : BBoxBase<BBox<RealT, DimN>, RealT, DimN>(
           Vector<RealT,3>(minx,miny,minz),
@@ -493,8 +495,7 @@ namespace math {
   };
 
   /// A general arbitrary-dimensional axis-aligned bounding box class,
-  /// represented by vectors pointing to the minimal and maximal
-  /// corners.
+  /// represented by vectors pointing to the minimal and maximal corners.
   template <class RealT>
   class BBox<RealT, 0> : public BBoxBase<BBox<RealT, 0>, RealT, 0> {
   public:
@@ -511,16 +512,14 @@ namespace math {
       BBoxBase<BBox<RealT, 0>, RealT, 0>( min, max ) {}
 
     /// Constructs a 2D bounding box with the given minimal point
-    /// coordinates and dimensions.  (Only valid for 2D bouding
-    /// boxes.)
+    /// coordinates and dimensions.  (Only valid for 2D bounding boxes.)
     BBox( RealT minx, RealT miny, RealT width, RealT height )
       : BBoxBase<BBox<RealT, 0>, RealT, 0>(
           Vector<RealT,2>(minx,miny),
           Vector<RealT,2>(minx+width,miny+height) ) {}
 
     /// Constructs a 3D bounding box with the given minimal point
-    /// coordinates and dimensions.  (Only valid for 3D bouding
-    /// boxes.)
+    /// coordinates and dimensions.  (Only valid for 3D bounding boxes.)
     BBox( RealT minx, RealT miny, RealT minz, RealT width, RealT height, RealT depth )
       : BBoxBase<BBox<RealT, 0>, RealT, 0>(
           Vector<RealT,3>(minx,miny,minz),

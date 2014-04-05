@@ -299,9 +299,14 @@ namespace cartography {
   } // namespace vw::cartography::output
 
   // Simple GeoReference modification tools
+
+  /// Generates a new georeference which covers a sub-region of this georeference object.
+  /// - Input coordinates are pixels in the corresponding image
   GeoReference crop( GeoReference const& input,
                      double upper_left_x, double upper_left_y,
                      double width=0, double height=0 );
+
+  /// Overload of crop() that takes a bounding box object (still in pixels)
   GeoReference crop( GeoReference const& input,
                      BBox2 const& bbox );
 

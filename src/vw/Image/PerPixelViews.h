@@ -87,10 +87,10 @@ namespace vw {
     typedef typename ImageIterT::offset_type offset_type;
 
     UnaryPerPixelAccessor( ImageIterT const& iter, FuncT const& func ) : m_iter(iter), m_func(func) {}
-    inline UnaryPerPixelAccessor& next_col() { m_iter.next_col(); return *this; }
-    inline UnaryPerPixelAccessor& prev_col() { m_iter.prev_col(); return *this; }
-    inline UnaryPerPixelAccessor& next_row() { m_iter.next_row(); return *this; }
-    inline UnaryPerPixelAccessor& prev_row() { m_iter.prev_row(); return *this; }
+    inline UnaryPerPixelAccessor& next_col  () { m_iter.next_col();   return *this; }
+    inline UnaryPerPixelAccessor& prev_col  () { m_iter.prev_col();   return *this; }
+    inline UnaryPerPixelAccessor& next_row  () { m_iter.next_row();   return *this; }
+    inline UnaryPerPixelAccessor& prev_row  () { m_iter.prev_row();   return *this; }
     inline UnaryPerPixelAccessor& next_plane() { m_iter.next_plane(); return *this; }
     inline UnaryPerPixelAccessor& prev_plane() { m_iter.prev_plane(); return *this; }
     inline UnaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 ) { m_iter.advance(di,dj,dp); return *this; }
@@ -155,10 +155,10 @@ namespace vw {
                                      typename Image1IterT::offset_type, int32>::type offset_type;
 
     BinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_func(func) {}
-    inline BinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); return *this; }
-    inline BinaryPerPixelAccessor& prev_col() { m_iter1.prev_col(); m_iter2.prev_col(); return *this; }
-    inline BinaryPerPixelAccessor& next_row() { m_iter1.next_row(); m_iter2.next_row(); return *this; }
-    inline BinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); return *this; }
+    inline BinaryPerPixelAccessor& next_col  () { m_iter1.next_col();   m_iter2.next_col();   return *this; }
+    inline BinaryPerPixelAccessor& prev_col  () { m_iter1.prev_col();   m_iter2.prev_col();   return *this; }
+    inline BinaryPerPixelAccessor& next_row  () { m_iter1.next_row();   m_iter2.next_row();   return *this; }
+    inline BinaryPerPixelAccessor& prev_row  () { m_iter1.prev_row();   m_iter2.prev_row();   return *this; }
     inline BinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); return *this; }
     inline BinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); return *this; }
     inline BinaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 )
@@ -233,10 +233,10 @@ namespace vw {
                                      typename Image1IterT::offset_type, int32>::type offset_type;
 
     TrinaryPerPixelAccessor( Image1IterT const& iter1, Image2IterT const& iter2, Image2IterT const& iter3, FuncT const& func ) : m_iter1(iter1), m_iter2(iter2), m_iter3(iter3), m_func(func) {}
-    inline TrinaryPerPixelAccessor& next_col() { m_iter1.next_col(); m_iter2.next_col(); m_iter3.next_col(); return *this; }
-    inline TrinaryPerPixelAccessor& prev_col() { m_iter1.prev_col(); m_iter2.prev_col(); m_iter3.prev_col(); return *this; }
-    inline TrinaryPerPixelAccessor& next_row() { m_iter1.next_row(); m_iter2.next_row(); m_iter3.next_row(); return *this; }
-    inline TrinaryPerPixelAccessor& prev_row() { m_iter1.prev_row(); m_iter2.prev_row(); m_iter3.prev_row(); return *this; }
+    inline TrinaryPerPixelAccessor& next_col  () { m_iter1.next_col();   m_iter2.next_col();   m_iter3.next_col();   return *this; }
+    inline TrinaryPerPixelAccessor& prev_col  () { m_iter1.prev_col();   m_iter2.prev_col();   m_iter3.prev_col();   return *this; }
+    inline TrinaryPerPixelAccessor& next_row  () { m_iter1.next_row();   m_iter2.next_row();   m_iter3.next_row();   return *this; }
+    inline TrinaryPerPixelAccessor& prev_row  () { m_iter1.prev_row();   m_iter2.prev_row();   m_iter3.prev_row();   return *this; }
     inline TrinaryPerPixelAccessor& next_plane() { m_iter1.next_plane(); m_iter2.next_plane(); m_iter3.next_plane(); return *this; }
     inline TrinaryPerPixelAccessor& prev_plane() { m_iter1.prev_plane(); m_iter2.prev_plane(); m_iter3.prev_plane(); return *this; }
     inline TrinaryPerPixelAccessor& advance( offset_type di, offset_type dj, ssize_t dp=0 )

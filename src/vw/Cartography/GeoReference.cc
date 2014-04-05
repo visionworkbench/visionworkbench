@@ -571,6 +571,8 @@ namespace cartography {
 
 
   // Simple GeoReference modification tools
+
+
   GeoReference crop( GeoReference const& input,
                      double upper_left_x, double upper_left_y,
                      double /*width*/, double /*height*/ ) {
@@ -580,16 +582,17 @@ namespace cartography {
     } else {
       top_left_ll = input.pixel_to_point( Vector2(upper_left_x, upper_left_y ) );
     }
-    GeoReference output = input;
+    GeoReference output = input;      // Start with copy of current transform
     Matrix3x3 T = output.transform();
-    T(0,2) = top_left_ll[0];
-    T(1,2) = top_left_ll[1];
+    T(0,2) = top_left_ll[0];          // Shift the translation to the crop region
+    T(1,2) = top_left_ll[1];          //  (don't need to worry about width/height)
     output.set_transform(T);
     return output;
   }
 
   GeoReference crop( GeoReference const& input,
                      BBox2 const& bbox ) {
+    // Redirect to the other georeference crop call
     return crop(input, bbox.min().x(), bbox.min().y(),
                 bbox.width(), bbox.height());
   }
