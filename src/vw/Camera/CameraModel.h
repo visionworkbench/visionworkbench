@@ -94,6 +94,11 @@ namespace camera {
     /// Returns the pose (as a quaternion) of the camera for a given
     /// pixel. It represents the rotation from the camera frame to world frame.
     virtual Quaternion<double> camera_pose(Vector2 const& /*pix*/) const;
+
+    // This should be a value which can never occur in normal
+    // circumstances, but it most not be made up of NaN values, as those
+    // are hard to compare.
+    inline static Vector2 invalid_pixel(){ return Vector2(-1e8, -1e8); }
   };
 
 
@@ -141,7 +146,7 @@ namespace camera {
     virtual Vector3 pixel_to_vector (Vector2 const&) const;
     virtual Vector3 camera_center (Vector2 const&) const;
     virtual Quat camera_pose(Vector2 const&) const;
-
+    
     void write(std::string const&);
     void read(std::string const&);
 

@@ -38,8 +38,8 @@ namespace vw { namespace cartography {
     
     m_has_nodata = dem_rsrc->has_nodata_read();
     if (m_has_nodata) m_nodata = dem_rsrc->nodata_read();
-    
-    m_invalid_pix = Vector2(-1e6, -1e6); // something negative
+
+    m_invalid_pix = vw::camera::CameraModel::invalid_pixel();
   }
 
   vw::Vector2

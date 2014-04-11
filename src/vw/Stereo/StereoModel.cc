@@ -136,9 +136,11 @@ Vector3 StereoModel::operator()(Vector2 const& pix1,
 
   errorVec = Vector3();
 
-  // Check for NaN and out-of-bounds values
+  // Check for NaN and invalid pixels
   if (pix1 != pix1 || pix2 != pix2) return Vector3();
-  if (pix1[0] < 0 || pix1[1] < 0 || pix2[0] < 0 || pix2[1] < 0) return Vector3();
+  if (pix1 == camera::CameraModel::invalid_pixel() ||
+      pix2 == camera::CameraModel::invalid_pixel()
+      ) return Vector3();
   
   try {
     // Determine range by triangulation
