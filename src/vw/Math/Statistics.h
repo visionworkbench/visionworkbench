@@ -142,12 +142,16 @@ namespace math {
     // all elements in p outsize of [b, e] are outliers.
 
     // If Q1 and Q3 are the percentiles for pct and 1-pct,
-    // between Q1-outlier_factor*(Q3-Q1) and Q3 + outlier_factor*(Q3-Q1).
+    // the outlier brackets are
+    // b = Q1 - outlier_factor*(Q3-Q1)
+    // e = Q3 + outlier_factor*(Q3-Q1)
 
     // This algorithm works best if the data is distributed rather
     // uniformly.
   
-    // Suggested value of outlier_factor: 1.5. We expect 0 < pct < 0.5.
+    // Suggested values for the inputs:
+    // pct = 0.25, outlier_factor: 1.5.
+    // We expect 0 < pct < 0.5.
   
     b = 0.0; e = 0.0; // initialize
     std::vector<T> q = p;
