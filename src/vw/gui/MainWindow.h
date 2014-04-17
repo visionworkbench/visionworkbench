@@ -25,6 +25,7 @@
 
 #include <QMainWindow>
 #include <string>
+#include <vector>
 
 // Boost
 #include <boost/program_options.hpp>
@@ -42,12 +43,12 @@ namespace gui {
   class MainWindow : public QMainWindow {
     Q_OBJECT
 
-    std::string m_filename;
+    std::vector<std::string> m_images;
     float m_nodata_value;
     boost::program_options::variables_map const& m_vm;
 
   public:
-    MainWindow(std::string filename, float nodata_value, int transaction_id, bool do_normalize, boost::program_options::variables_map const& vm);
+    MainWindow(std::vector<std::string> const& images, float nodata_value, int transaction_id, bool do_normalize, boost::program_options::variables_map const& vm);
     virtual ~MainWindow() {}
 
   private slots:

@@ -24,8 +24,8 @@
 #define __VW_GUI_PREVIEW_GL_WIDGET_H__
 
 // Qt
-#include <QGLWidget>
-#include <QGLFormat>
+#include <QWidget>
+//#include <QGLFormat>
 #include <QPoint>
 
 // Vision Workbench
@@ -43,6 +43,7 @@
 
 // STL
 #include <string>
+#include <vector>
 #include <list>
 
 #include <vw/gui/TextureCache.h>
@@ -50,6 +51,7 @@
 class QMouseEvent;
 class QWheelEvent;
 class QPoint;
+class QResizeEvent;
 
 namespace vw {
 namespace gui {
@@ -81,13 +83,15 @@ namespace gui {
   };
 
 
-  class GlPreviewWidget : public QGLWidget, public CachedTextureRenderer {
+  class GlPreviewWidget : public QWidget, public CachedTextureRenderer {
     Q_OBJECT
 
     public:
 
     // Constructors/Destructor
-    GlPreviewWidget(QWidget *parent, std::string filename, QGLFormat const& frmt, int transaction_id);
+    GlPreviewWidget(QWidget *parent, std::vector<std::string> const& images,
+                    //QGLFormat const& frmt,
+                    int transaction_id);
     virtual ~GlPreviewWidget();
 
     virtual GLuint allocate_texture(boost::shared_ptr<SrcImageResource> tile);
@@ -98,7 +102,7 @@ namespace gui {
     virtual QSize sizeHint () const { return QSize(500,500); }
 
     // Image Manipulation Methods
-    void zoom(float scale);
+    void zoom(double scale);
     void size_to_fit();
 
   public slots:
@@ -111,7 +115,7 @@ namespace gui {
       check_gl_errors();
     }
 
-    void set_nodata_value(float nodata_value) {
+    void set_nodata_value(double nodata_value) {
       m_nodata_value = nodata_value;
       m_use_nodata = 1;
     }
@@ -130,7 +134,7 @@ namespace gui {
 
     // Setup
     void initializeGL();
-    void resizeGL(int width, int height);
+    void resizeEvent(QResizeEvent*);
 
     // Event handlers
     void paintEvent(QPaintEvent *event);
@@ -145,8 +149,10 @@ namespace gui {
   private:
     // Drawing is driven by QPaintEvents, which call out to drawImage()
     // and drawLegend()
-    void drawImage();
-    void drawLegend(QPainter *painter);
+    void drawImage(QPainter* paint);
+    void drawLegend(QPainter *paint);
+    QPoint world2pixel(QPoint const& p);
+    QPoint pixel2world(QPoint const& pix);
     void updateCurrentMousePosition();
 
     // Image & OpenGL
@@ -160,6 +166,7 @@ namespace gui {
     QTimer *m_timer;
 
     // Image tiles and the texture cache
+    ImageView<float> m_image;
     boost::shared_ptr<TileGenerator> m_tile_generator;
     boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
     PixelRGBA<float> m_last_pixel_sample;
@@ -170,12 +177,12 @@ namespace gui {
     AdjustmentMode m_adjust_mode;
 
     // Mouse positions and legend information
-    QPoint lastPos, currentImagePos, m_last_viewport_min;
+    QPoint m_curr_pixel_pos, m_curr_world_pos, m_last_viewport_min;
     std::string m_legend_status;
 
-    // Dimensions & stats
-    int m_viewport_width;
-    int m_viewport_height;
+    // Dimensions and stats
+    int m_window_width;  // the width  of the plotting window in screen pixels
+    int m_window_height; // the height of the plotting window in screen pixels
     vw::float32 m_image_min;
     vw::float32 m_image_max;
     vw::float32 m_nodata_value;
@@ -183,9 +190,9 @@ namespace gui {
 
     // Image Parameters
     vw::BBox2 m_current_viewport;
-    float m_gain, m_last_gain;
-    float m_offset, m_last_offset;
-    float m_gamma, m_last_gamma;
+    double m_gain, m_last_gain;
+    double m_offset, m_last_offset;
+    double m_gamma, m_last_gamma;
     int m_current_transaction_id;
     bool m_exact_transaction_id_match;
     int m_current_level;

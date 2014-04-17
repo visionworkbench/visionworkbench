@@ -35,12 +35,12 @@ using namespace vw::gui;
 #include <sstream>
 namespace po = boost::program_options;
 
-MainWindow::MainWindow(std::string input_filename,
+MainWindow::MainWindow(std::vector<std::string> const& images,
                        float nodata_value,
                        int transaction_id,
                        bool /*do_normalize*/,
                        po::variables_map const& vm) :
-  m_filename(input_filename), m_nodata_value(nodata_value), m_vm(vm) {
+  m_images(images), m_nodata_value(nodata_value), m_vm(vm) {
 
   // Set up the basic layout of the window and its menus
   create_actions();
@@ -48,17 +48,19 @@ MainWindow::MainWindow(std::string input_filename,
   create_status_bar();
 
   // Set the window title and add tabs
-  std::string window_title = "Vision Workbench Viewer : " + m_filename;
+  std::string window_title = "Vision Workbench Viewer";
   this->setWindowTitle(window_title.c_str());
 
   // Set up OpenGL context parameters
-  QGLFormat gl_frmt = QGLFormat::defaultFormat();
-  gl_frmt.setSampleBuffers(true);
-  gl_frmt.setDoubleBuffer(true);
-  gl_frmt.setSwapInterval(1);
+//   QGLFormat gl_frmt = QGLFormat::defaultFormat();
+//   gl_frmt.setSampleBuffers(true);
+//   gl_frmt.setDoubleBuffer(true);
+//   gl_frmt.setSwapInterval(1);
 
   // Set up GlPreviewWidget
-  m_preview_widget = new GlPreviewWidget(this, input_filename, gl_frmt, transaction_id);
+  m_preview_widget = new GlPreviewWidget(this, images,
+                                         //gl_frmt,
+                                         transaction_id);
   setCentralWidget(m_preview_widget);
 
   // // Set the nodata value
@@ -132,7 +134,7 @@ void MainWindow::about() {
   std::ostringstream about_text;
   about_text << "<h3>Vision Workbench Image Viewer (vwv)</h3>"
              << "<p>Version " << VW_PACKAGE_VERSION << "</p>"
-             << "<p>Copyright &copy; 2008 NASA Ames Research Center</p>";
+             << "<p>Copyright &copy; 2014 NASA Ames Research Center</p>";
   QMessageBox::about(this, tr("About Vision Workbench Viewer"),
                      tr(about_text.str().c_str()));
 

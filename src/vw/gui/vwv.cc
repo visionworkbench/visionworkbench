@@ -60,13 +60,12 @@ void print_usage(po::options_description const& visible_options) {
            << "  g - turn on 'gain' mode.  Drag mouse left and right to multiply pixel intensities by gain\n"
            << "  v - turn on 'gamma' mode. Drag mouse left and right to scale pixels by gamma value\n"
            << "  i - toggle nearest neighbor/bilinear interpolation\n\n";
-  vw_out() << visible_options << std::endl;
+  vw_out() << visible_options << "<image files>" << std::endl;
 }
 
 int main(int argc, char *argv[]) {
 
   unsigned cache_size;
-  std::string image_filename;
   float nodata_value;
   int transaction_id = -1;;
 
@@ -79,39 +78,37 @@ int main(int argc, char *argv[]) {
     ("transaction-id,t", po::value<int>(&transaction_id), "Choose an initial transaction_id.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
 
-  po::options_description positional_options("Positional Options");
-  positional_options.add_options()
-    ("image", po::value<std::string>(&image_filename), "Input Image Filename");
-  po::positional_options_description positional_options_desc;
-  positional_options_desc.add("image", 1);
-
   po::options_description all_options;
-  all_options.add(visible_options).add(positional_options);
-
+  all_options.add(visible_options);
+  
   // Parse and store options
   po::variables_map vm;
-  po::store( po::command_line_parser( argc, argv ).options(all_options).positional(positional_options_desc).run(), vm );
-  po::notify( vm );
+  po::parsed_options parsed = po::command_line_parser( argc, argv ).options(all_options).allow_unregistered().run();
+  po::store(parsed, vm );
 
+  std::vector<std::string> images
+    = po::collect_unrecognized(parsed.options, 
+                               po::include_positional);
+  po::notify( vm );
+ 
   // If the command line wasn't properly formed or the user requested
   // help, we print an usage message.
-  if( vm.count("help") ) {
+  if( vm.count("help") || images.empty() ) {
     print_usage(visible_options);
-    exit(0);
+    return 0;
   }
 
-  if( vm.count("image") != 1 ) {
-    vw_out() << "Error: Must specify exactly one input file!" << std::endl;
-    print_usage(visible_options);
-    return 1;
+  std::cout << "number of files is " << images.size() << std::endl;
+  for (int s = 0; s < (int)images.size(); s++){
+    std::cout << "img: " << images[s] << std::endl;
   }
-
+  
   // Set the Vision Workbench cache size
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
 
   // Start up the Qt GUI
   QApplication app(argc, argv);
-  vw::gui::MainWindow main_window(image_filename, nodata_value, transaction_id, vm.count("normalize"), vm);
+  vw::gui::MainWindow main_window(images, nodata_value, transaction_id, vm.count("normalize"), vm);
   main_window.show();
   try {
     app.exec();
