@@ -74,8 +74,11 @@ namespace cartography {
     std::string m_proj_projection_str, m_gml_str;
     ProjContext m_proj_context;
     bool        m_is_projected;
+    double m_center_lon_wrap;
 
     void init_proj();
+
+    void update_lon_wrap();
 
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the

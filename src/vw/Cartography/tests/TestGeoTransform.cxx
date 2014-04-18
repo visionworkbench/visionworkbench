@@ -108,3 +108,70 @@ TEST( GeoTransform, StereographicSingularity ) {
   EXPECT_NO_THROW( output = geotx.forward_bbox(input) );
   EXPECT_NEAR( 0, output.min()[1], 2 );
 }
+
+/*
+TEST( GeoTransform, LargeEqcTransform ) {
+
+  // Construct two GeoReference objects
+  // - They are identical except for their transform offsets.
+  GeoReference georef1, georef2;
+  Matrix3x3 affine1, affine2;
+  georef1.set_equirectangular(0, 0, 24.1, 0, 0);
+  georef1.set_well_known_geogcs("D_MOON");
+  georef2.set_equirectangular(0, 0, 24.1, 0, 0);
+  georef2.set_well_known_geogcs("D_MOON");
+
+  // Set up a transform so the projected coordinates
+  affine1(0,0) =  1.0;
+  affine1(1,1) = -1.0;
+  affine1(2,2) = 1;
+  affine1(0,2) = -1.35197e+06;
+  affine1(1,2) = 731470;
+  georef1.set_transform(affine1);
+
+  affine2(0,0) =  1.0;
+  affine2(1,1) = -1.0;
+  affine2(2,2) = 1;
+  affine2(0,2) = -1.35176e+06;
+  affine2(1,2) = 731352;
+  georef2.set_transform(affine2);
+
+  std::cout << georef1 << std::endl << std::endl;
+  std::cout << georef2 << std::endl;
+
+  GeoTransform geotx(georef1, georef2);
+  std::cout << geotx.reverse(Vector2(0,    0)) << std::endl;
+  std::cout << geotx.reverse(Vector2(0,  256)) << std::endl;
+  std::cout << geotx.reverse(Vector2(256,512)) << std::endl;
+  EXPECT_TRUE(false);
+
+
+  left georef   = -- Proj.4 Geospatial Reference Object --
+    Transform  : Matrix3x3((1,0,-1.35197e+06)(0,-1,731470)(0,0,1))
+    Geodeditic Datum --> Name: unknown  Spheroid: unnamed  Semi-major: 1.7374e+06  Semi-minor: 1.7374e+06  Meridian: Greenwich  at 0
+    Proj.4 String: +proj=eqc +lat_ts=24.1 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +units=m
+    Pixel Interpretation: pixel as area
+
+  right georef  = -- Proj.4 Geospatial Reference Object --
+    Transform  : Matrix3x3((1,0,-1.35176e+06)(0,-1,731352)(0,0,1))
+    Geodeditic Datum --> Name: unknown  Spheroid: unnamed  Semi-major: 1.7374e+06  Semi-minor: 1.7374e+06  Meridian: Greenwich  at 0
+    Proj.4 String: +proj=eqc +lat_ts=24.1 +lat_0=0 +lon_0=0 +x_0=0 +y_0=0 +units=m
+    Pixel Interpretation: pixel as area
+
+
+  $1 = (const vw::BBox2i &) @0x7fffe41cc860: {<vw::math::BBoxBase<vw::math::BBox<int, 2ul>, int, 2ul>> = {m_min =
+      {<vw::math::VectorBase<vw::math::Vector<int, 2ul> >> = {<No data fields>}, core_ = {elems = {0, 256}}}, m_max =
+      {<vw::math::VectorBase<vw::math::Vector<int, 2ul> >> = {<No data fields>}, core_ = {elems = {256, 512}}}}, <No data fields>}
+
+  (gdb) info locals
+  transformed_bbox = {<vw::math::BBoxBase<vw::math::BBox<int, 2ul>, int, 2ul>> = {m_min =
+      {<vw::math::VectorBase<vw::math::Vector<int, 2ul> >> = {<No data fields>}, core_ = {elems = {0, 138}}}, m_max =
+      {<vw::math::VectorBase<vw::math::Vector<int, 2ul> >> = {<No data fields>}, core_ = {elems = {9964869, 395}}}}, <No data fields>}
+
+
+}
+*/
+
+
+
+

@@ -151,10 +151,12 @@ namespace cartography {
     m_pixel_interpretation =
       static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
     set_transform(Matrix3x3(desc.transform().data()));
-    m_is_projected = desc.is_projected();
-    m_proj_projection_str = desc.proj_projection_str();
+    //m_is_projected = desc.is_projected();
+    //m_proj_projection_str = desc.proj_projection_str();
 
-    init_proj();
+    //init_proj();
+
+    set_proj4_projection_str(desc.proj_projection_str());
   }
 
   GeoReferenceDesc GeoReference::build_desc() {
@@ -177,6 +179,8 @@ namespace cartography {
     m_shifted_transform(1,2) += 0.5*m_transform(1,1);
     m_inv_transform = vw::math::inverse(m_transform);
     m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
+
+    update_lon_wrap();
   }
 
   // We override the base classes method here so that we have the
@@ -210,9 +214,7 @@ namespace cartography {
   }
 
   void GeoReference::set_geographic() {
-    m_is_projected = false;
-    m_proj_projection_str = "+proj=longlat";
-    init_proj();
+    set_proj4_projection_str("+proj=longlat");
   }
 
   void GeoReference::set_equirectangular(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
@@ -221,18 +223,14 @@ namespace cartography {
          << center_latitude << " +lat_ts=" << latitude_of_true_scale
          << " +x_0=" << false_easting << " +y_0=" << false_northing
          << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_sinusoidal(double center_longitude, double false_easting, double false_northing) {
     std::ostringstream strm;
     strm << "+proj=sinu +lon_0=" << center_longitude << " +x_0="
          << false_easting << " +y_0=" << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_mercator(double center_latitude, double center_longitude, double latitude_of_true_scale, double false_easting, double false_northing) {
@@ -241,9 +239,7 @@ namespace cartography {
          << center_latitude << " +lat_ts=" << latitude_of_true_scale
          << " +x_0=" << false_easting << " +y_0=" << false_northing
          << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_transverse_mercator(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
@@ -251,9 +247,7 @@ namespace cartography {
     strm << "+proj=tmerc +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
          << " +y_0=" << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_orthographic(double center_latitude, double center_longitude, double false_easting, double false_northing) {
@@ -261,9 +255,7 @@ namespace cartography {
     strm << "+proj=ortho +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +x_0=" << false_easting << " +y_0="
          << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_oblique_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
@@ -271,9 +263,7 @@ namespace cartography {
     strm << "+proj=sterea +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
          << " +y_0=" << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_stereographic(double center_latitude, double center_longitude, double scale, double false_easting, double false_northing) {
@@ -281,9 +271,7 @@ namespace cartography {
     strm << "+proj=stere +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +k=" << scale << " +x_0=" << false_easting
          << " +y_0=" << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_lambert_azimuthal(double center_latitude, double center_longitude, double false_easting, double false_northing) {
@@ -291,9 +279,7 @@ namespace cartography {
     strm << "+proj=laea +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +x_0=" << false_easting << " +y_0="
          << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_lambert_conformal(double std_parallel_1, double std_parallel_2, double center_latitude, double center_longitude, double false_easting, double false_northing) {
@@ -302,9 +288,7 @@ namespace cartography {
          << std_parallel_2 << " +lon_0=" << center_longitude << " +lat_0="
          << center_latitude << " +x_0=" << false_easting << " +y_0="
          << false_northing << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_UTM(int zone, int north) {
@@ -312,18 +296,124 @@ namespace cartography {
     strm << "+proj=utm +zone=" << zone;
     if (!north) strm << " +south";
     strm << " +units=m";
-    m_proj_projection_str = strm.str();
-    m_is_projected = true;
-    init_proj();
+    set_proj4_projection_str(strm.str());
   }
 
   void GeoReference::set_proj4_projection_str(std::string const& s) {
-    m_proj_projection_str = s;
+
+    // TODO: Remove the lon_wrap string if it is present!
+    //std::string inputString = s;
+
+    m_proj_projection_str = s; // Store the string in this class (it is also stored in m_proj_context)
+
+    // Extract some information from the string
     if (s.find("+proj=longlat") == 0)
       m_is_projected = false;
     else
       m_is_projected = true;
-    init_proj();
+
+    // Force all "eqc" projections to turn off -180 to 180 longitude wrapping in proj4.
+    //// - This is only temporary so we can make another modification below
+    if ( (s.find("+proj=eqc") == 0) && (s.find("+over") == std::string::npos) )
+      m_proj_projection_str.append(" +over");
+
+    init_proj(); // Initialize m_proj_context
+
+    update_lon_wrap();
+/*
+    // With proj4 initialized, determine the mininum projection
+    if (s.find("+proj=eqc") == 0) {
+
+      // Since we don't have any image information we have to assume this
+      //  georef needs to be valid for a full 360 degrees.
+      const double GEOREF_VALID_WIDTH = 360.0;
+
+      // Figure out where the 0,0 pixel transforms to in lon/lat.
+      // - Remember that we turned off wrapping before this call.
+      // - TODO: Check for rotation!
+      std::cout << inputString << std::endl;
+      std::cout << m_proj_projection_str << std::endl;
+      bool lonReverse = (m_transform(0,0) < 0); // inverse proj X direction
+      Vector2 lonlatBound = pixel_to_lonlat(Vector2(-0.5,0)); //TODO: What exactly should this be?
+      double minLon;
+
+      std::cout << lonlatBound << std::endl;
+      std::cout << m_transform << std::endl;
+
+      if (!lonReverse) // This is the minimum longitude
+        minLon = lonlatBound[0];
+      else // This is the maximum longitude, offset to get the minimum.
+        minLon = lonlatBound[0] - GEOREF_VALID_WIDTH;
+
+      // Now that we now the range that the the georef "naturally"
+      //  projects from, get the center point.
+      double halfWidth = GEOREF_VALID_WIDTH / 2.0;
+      m_center_lon_wrap = minLon + halfWidth;
+      std::cout << m_center_lon_wrap << std::endl;
+
+      // Rebuild the proj4 string with a lon_wrap value which will constrain
+      //  all longitude values to +/-180 degrees around the center point.
+      std::stringstream stream;
+      stream << inputString << " lon_wrap=" << centerLon;
+      std::cout << stream.str() << std::endl;
+
+      // Record the modified string and re-initialize m_proj_context.
+      m_proj_projection_str = stream.str();
+      init_proj();
+
+    } // End of special "eqc" handling case.
+*/
+
+  }
+
+  void GeoReference::update_lon_wrap() {
+
+  // With proj4 initialized, determine the mininum projection
+     if (m_proj_projection_str.find("+proj=eqc") == 0) {
+
+       // Since we don't have any image information we have to assume this
+       //  georef needs to be valid for a full 360 degrees.
+       const double GEOREF_VALID_WIDTH = 360.0;
+       double halfWidth = GEOREF_VALID_WIDTH / 2.0;
+
+       // Proj4 won't work with angles outside of these.
+       const double PROJ4_MAX_LON =  10 * RAD_TO_DEG;
+       const double PROJ4_MIN_LON = -10 * RAD_TO_DEG;
+
+       // Figure out where the 0,0 pixel transforms to in lon/lat.
+       // - Remember that we turned off wrapping before this call.
+       // - TODO: Check for rotation!
+       //std::cout << m_proj_projection_str << std::endl;
+       bool lonReverse = (m_transform(0,0) < 0); // inverse proj X direction
+       Vector2 lonlatBound = pixel_to_lonlat(Vector2(-0.5,0)); //TODO: What exactly should this be?
+       double minLon;
+
+       //std::cout << lonlatBound << std::endl;
+       //std::cout << m_transform << std::endl;
+
+       if (!lonReverse) // This is the minimum longitude
+         minLon = lonlatBound[0];
+       else // This is the maximum longitude, offset to get the minimum.
+         minLon = lonlatBound[0] - GEOREF_VALID_WIDTH;
+       double maxLon = minLon + GEOREF_VALID_WIDTH;
+
+       // Now that we now the range that the the georef "naturally"
+       //  projects from, get the center point.
+
+       // Need to adjust to make sure we stay inside proj4 bounds
+       // - A better solution is needed to function outside those bounds.
+       if (minLon < PROJ4_MIN_LON) { // Shift upwards
+         minLon = PROJ4_MIN_LON;
+       }
+       if (maxLon > PROJ4_MAX_LON) { // Shift downwards
+         minLon -= (maxLon - PROJ4_MAX_LON);
+       }
+
+       m_center_lon_wrap = minLon + halfWidth;
+       //std::cout << m_center_lon_wrap << std::endl;
+
+     } // End of special "eqc" handling case.
+
   }
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
@@ -451,9 +541,10 @@ namespace cartography {
     projXY projected;
     projLP unprojected;
 
-    projected.u = loc[0];
+    projected.u = loc[0]; // Store in proj4 object
     projected.v = loc[1];
 
+    // Call proj4 to do the conversion and check for errors.
     unprojected = pj_inv(projected, m_proj_context.proj_ptr());
     CHECK_PROJ_ERROR( m_proj_context );
 
@@ -461,10 +552,32 @@ namespace cartography {
     return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
   }
 
+  Vector2 conformToLonCenter(Vector2 lon_lat, double center) {
+    const double OFFSET = 360.0;
+    const double RANGE  = 180.0;
+    const double maxLon = center + RANGE;
+    const double minLon = center - RANGE;
+
+    double lon = lon_lat[0];
+    //printf("%lf -> ", lon);
+    while (lon > maxLon) // Too high
+      lon -= OFFSET;
+    while (lon < minLon) // Too low
+      lon += OFFSET;
+    //printf("%lf\n", lon);
+    return Vector2(lon, lon_lat[1]); // Just right!
+  }
+
   /// Given a position in geographic coordinates (lat,lon), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
+
+    // For eqc, transform intput lon into requested range.
+    if (m_proj_projection_str.find("+proj=eqc") == 0)
+      lon_lat = conformToLonCenter(lon_lat, m_center_lon_wrap);
+
+
     // This value is proj's internal limit
     static const double BOUND = 1.5707963267948966 - (1e-10) - std::numeric_limits<double>::epsilon();
 
@@ -482,6 +595,7 @@ namespace cartography {
     if(unprojected.v > BOUND)        unprojected.v = BOUND;
     else if(unprojected.v < -BOUND) unprojected.v = -BOUND;
 
+    // Call proj4 to do the conversion and check for errors.
     projected = pj_fwd(unprojected, m_proj_context.proj_ptr());
     CHECK_PROJ_ERROR( m_proj_context );
 

@@ -462,3 +462,128 @@ TEST(GeoReference, NED_MATRIX) {
   EXPECT_LT(norm_2( M*q - Vector3(1, 2, 3)), 1.0e-8 );
   
 }  
+
+// Loop through a bunch of pixels in an image and
+//  make sure we can go from and back to the same pixel.
+void georefMatchTest(const GeoReference &georef)
+{
+  for (int r=0; r<5; ++r) // Check a few rows
+  {
+    for (int c=0; c<40; ++c) // Check a bunch of columns
+    {
+      Vector2 pixel1(c*500,r*500);
+      std::cout << "pixel1  = " << pixel1  << std::endl;
+      Vector2 point1  = georef.pixel_to_point(pixel1);
+      std::cout << "point1  = " << point1  << std::endl;
+      Vector2 lonlat1 = georef.point_to_lonlat(point1);
+      std::cout << "lonlat1 = " << lonlat1 << std::endl;
+      Vector2 point2  = georef.lonlat_to_point(lonlat1);
+      std::cout << "point2  = " << point2  << std::endl;
+      Vector2 pixel2  = georef.point_to_pixel(point2);
+      std::cout << "pixel2  = " << pixel2  << std::endl;
+
+      // Need to be able to handle different lon values too!
+      Vector2 lonlat2 = lonlat1;
+      if (lonlat1[0] > 180)
+        lonlat2[0] -= 360;
+      else
+        lonlat2[0] += 360;
+
+      Vector2 point3  = georef.lonlat_to_point(lonlat2);
+      std::cout << "point3  = " << point3  << std::endl;
+      Vector2 pixel3  = georef.lonlat_to_pixel(lonlat2);
+      std::cout << "pixel3  = " << pixel3  << std::endl;
+
+      EXPECT_LT(fabs(pixel1[0] - pixel2[0]), 0.01); // Did we reproject back to the same pixel?
+      EXPECT_LT(fabs(pixel1[1] - pixel2[1]), 0.01);
+      EXPECT_LT(fabs(point1[0] - point2[0]), 0.01); // Did we go back and forth through the same point?
+      EXPECT_LT(fabs(point1[1] - point2[1]), 0.01);
+      EXPECT_LT(fabs(pixel1[0] - pixel3[0]), 0.01); // Can we handle longitudes offset by 360 degrees?
+      EXPECT_LT(fabs(pixel1[1] - pixel3[1]), 0.01);
+    }
+  }
+
+}
+
+/// Check back-and-forth conversions for several equirectangular test cases
+/// - Our code can't handle all test cases, but it should be able to handle
+///   anything that is likely to be seen.
+TEST( GeoReference, eqcReverseTest) {
+
+  GeoReference georef;
+  Matrix3x3 affine;
+
+  // Test #1
+
+  georef.set_well_known_geogcs("D_MOON");
+
+  // Offset these points near where proj4 can mess with the conversions
+  double radius = georef.datum().semi_major_axis();
+  double bound  = radius * 3.141592653589793238462643383279;
+
+  // Set up a transform so the projected coordinates
+  affine(0,0) =  100.0; // 100 meters per pixel
+  affine(1,1) = -100.0; // 100 meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = 2*bound - 1000; // This is around 180 degrees in proj4 space
+  affine(1,2) = 50000;  // Some value in the northern hemisphere
+  georef.set_transform(affine);
+
+  georef.set_well_known_geogcs("D_MOON");
+  georef.set_equirectangular(0, 0, 0, 0, 0);
+
+
+  georefMatchTest(georef); // Run a set of tests on the georef
+
+  // Test #2
+
+  // Set up a transform so the projected coordinates
+  affine(0,0) =  10.0; // 10 meters per pixel
+  affine(1,1) = -8.0; // 8 meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = 600; //
+  affine(1,2) = 50000;  // Some value in the northern hemisphere
+  georef.set_transform(affine);
+
+  georef.set_equirectangular(-18, 13, -45, -500, -4000);
+  georef.set_well_known_geogcs("D_MOON");
+
+  georefMatchTest(georef); // Run a set of tests on the georef
+
+  // Test #3
+
+  // Set up a transform so the projected coordinates
+  affine(0,0) =  -3.0; // 3 meters per pixel
+  affine(1,1) = 11.0; // 11 meters per pixel
+  affine(2,2) = 1;
+  affine(0,2) = -bound/2;
+  affine(1,2) = -50000;  // Some value in the southern hemisphere
+  georef.set_transform(affine);
+
+  georef.set_equirectangular(-45, -90, 13, 64, 8.5);
+  georef.set_well_known_geogcs("D_MOON");
+
+  georefMatchTest(georef); // Run a set of tests on the georef
+
+
+  // Load the input DEM georeference
+  boost::scoped_ptr<DiskImageResource> inputImage(DiskImageResource::open("/home/smcmich1/data/artifactTest/left_crop.map.tif"));
+  if (!read_georeference(georef, *inputImage)) {
+    //vw_out() << "Failed to read input image!\n";
+    std::cout << "Failed to read input image georeference!\n";
+  }
+
+  //std::cout << georef << std::endl;
+  //EXPECT_TRUE(false);
+
+  georefMatchTest(georef); // Run a set of tests on the georef
+
+
+
+
+}
+
+
+
+
+
