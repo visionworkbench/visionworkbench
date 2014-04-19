@@ -501,16 +501,7 @@ void georefMatchTest(const GeoReference &georef)
       
       // Also check that we can go from lon to lon (at least in a limited range)
       Vector2 lonlat3 = georef.point_to_lonlat(point2);
-      
-      //std::cout << "pixel1  = " << pixel1  << std::endl;
-      //std::cout << "point1  = " << point1  << std::endl;
-      //std::cout << "lonlat1 = " << lonlat1 << std::endl;
-      //std::cout << "point2  = " << point2  << std::endl;
-      //std::cout << "pixel2  = " << pixel2  << std::endl;
-      //std::cout << "point3  = " << point3  << std::endl;
-      //std::cout << "pixel3  = " << pixel3  << std::endl;
-      //std::cout << "lonlat3 = " << lonlat3 << std::endl;
-
+     
       EXPECT_LT(fabs(pixel1 [0] - pixel2 [0]), MAX_PIXEL_DIFF ); // Did we reproject back to the same pixel?
       EXPECT_LT(fabs(pixel1 [1] - pixel2 [1]), MAX_PIXEL_DIFF );
       EXPECT_LT(fabs(point1 [0] - point2 [0]), MAX_POINT_DIFF ); // Did we go back and forth through the same point?

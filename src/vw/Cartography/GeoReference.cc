@@ -301,9 +301,6 @@ namespace cartography {
 
   void GeoReference::set_proj4_projection_str(std::string const& s) {
 
-    // TODO: Remove the lon_wrap string if it is present!
-    //std::string inputString = s;
-
     m_proj_projection_str = s; // Store the string in this class (it is also stored in m_proj_context)
 
     // Extract some information from the string
@@ -347,12 +344,8 @@ namespace cartography {
 
      // Figure out where the 0,0 pixel transforms to in lon/lat.
      // - Remember that we turned off wrapping before this call.
-     //std::cout << m_proj_projection_str << std::endl;
      Vector2 lonlatBound = pixel_to_lonlat(Vector2(0,0)); // No wiggle room here since we are aligning to 90 degrees anyways
      double minLon, maxLon;                                          
-
-     //std::cout << lonlatBound << std::endl;
-     //std::cout << m_transform << std::endl;
 
      // In order to make the normalization range look better, shift it
      //  to start at the nearest multiple of 90 degrees.
@@ -370,9 +363,7 @@ namespace cartography {
          maxLon += ALIGN_MULTIPLE;
        minLon = maxLon - GEOREF_VALID_WIDTH;
      }  
-     //std::cout << "minLon " << minLon << std::endl;
-     //std::cout << "maxLon " << minLon << std::endl;
-
+     
      // Now that we now the range that the the georef "naturally"
      //  projects from, get the center point.
 
@@ -386,11 +377,7 @@ namespace cartography {
      }
 
      m_center_lon_wrap = minLon + halfWidth;
-     //std::cout << "center wrap " << m_center_lon_wrap << std::endl;
-
-     m_using_lon_wrap = true;
-     // End of special "eqc" handling case.
-    
+     m_using_lon_wrap  = true;
   }
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
@@ -542,12 +529,10 @@ namespace cartography {
       const double maxLon = m_center_lon_wrap + RANGE;
       const double minLon = m_center_lon_wrap - RANGE;
 
-      //printf("%lf -> ", lon_lat[0]);
       while (lon_lat[0] > maxLon) // Too high
         lon_lat[0] -= OFFSET;
       while (lon_lat[0] < minLon) // Too low
         lon_lat[0] += OFFSET;
-      //printf("%lf\n", lon_lat[0]);
     }
 
 
