@@ -320,100 +320,77 @@ namespace cartography {
     init_proj(); // Initialize m_proj_context
 
     update_lon_wrap();
-/*
-    // With proj4 initialized, determine the mininum projection
-    if (s.find("+proj=eqc") == 0) {
-
-      // Since we don't have any image information we have to assume this
-      //  georef needs to be valid for a full 360 degrees.
-      const double GEOREF_VALID_WIDTH = 360.0;
-
-      // Figure out where the 0,0 pixel transforms to in lon/lat.
-      // - Remember that we turned off wrapping before this call.
-      // - TODO: Check for rotation!
-      std::cout << inputString << std::endl;
-      std::cout << m_proj_projection_str << std::endl;
-      bool lonReverse = (m_transform(0,0) < 0); // inverse proj X direction
-      Vector2 lonlatBound = pixel_to_lonlat(Vector2(-0.5,0)); //TODO: What exactly should this be?
-      double minLon;
-
-      std::cout << lonlatBound << std::endl;
-      std::cout << m_transform << std::endl;
-
-      if (!lonReverse) // This is the minimum longitude
-        minLon = lonlatBound[0];
-      else // This is the maximum longitude, offset to get the minimum.
-        minLon = lonlatBound[0] - GEOREF_VALID_WIDTH;
-
-      // Now that we now the range that the the georef "naturally"
-      //  projects from, get the center point.
-      double halfWidth = GEOREF_VALID_WIDTH / 2.0;
-      m_center_lon_wrap = minLon + halfWidth;
-      std::cout << m_center_lon_wrap << std::endl;
-
-      // Rebuild the proj4 string with a lon_wrap value which will constrain
-      //  all longitude values to +/-180 degrees around the center point.
-      std::stringstream stream;
-      stream << inputString << " lon_wrap=" << centerLon;
-      std::cout << stream.str() << std::endl;
-
-      // Record the modified string and re-initialize m_proj_context.
-      m_proj_projection_str = stream.str();
-      init_proj();
-
-    } // End of special "eqc" handling case.
-*/
-
   }
 
+
   void GeoReference::update_lon_wrap() {
+  
+      if (m_proj_projection_str.find("+proj=eqc") != 0) {
+        m_using_lon_wrap = false; // Other projections currently not using this correction.
+        return; // Nothing else to do here!
+     }
+     
+     // Start of special handling code for eqc case.
+     
+     // Since we don't have any image information we have to assume this
+     //  georef needs to be valid for a full 360 degrees.
+     const double GEOREF_VALID_WIDTH = 360.0;
+     const double halfWidth = GEOREF_VALID_WIDTH / 2.0;
 
-  // With proj4 initialized, determine the mininum projection
-     if (m_proj_projection_str.find("+proj=eqc") == 0) {
+     // Proj4 won't work with angles outside of these.  Pulled from pj_fwd.cc
+     const double PROJ4_MAX_LON =  10 * RAD_TO_DEG;
+     const double PROJ4_MIN_LON = -10 * RAD_TO_DEG;
 
-       // Since we don't have any image information we have to assume this
-       //  georef needs to be valid for a full 360 degrees.
-       const double GEOREF_VALID_WIDTH = 360.0;
-       double halfWidth = GEOREF_VALID_WIDTH / 2.0;
+     // This method won't work if there is a rotation so check for that.
+     if (fabs(m_transform(0,1)) > 0.01)
+       vw_throw(NoImplErr() << "EQC projections with rotation are not supported.");
 
-       // Proj4 won't work with angles outside of these.
-       const double PROJ4_MAX_LON =  10 * RAD_TO_DEG;
-       const double PROJ4_MIN_LON = -10 * RAD_TO_DEG;
+     // Figure out where the 0,0 pixel transforms to in lon/lat.
+     // - Remember that we turned off wrapping before this call.
+     //std::cout << m_proj_projection_str << std::endl;
+     Vector2 lonlatBound = pixel_to_lonlat(Vector2(0,0)); // No wiggle room here since we are aligning to 90 degrees anyways
+     double minLon, maxLon;                                          
 
-       // Figure out where the 0,0 pixel transforms to in lon/lat.
-       // - Remember that we turned off wrapping before this call.
-       // - TODO: Check for rotation!
-       //std::cout << m_proj_projection_str << std::endl;
-       bool lonReverse = (m_transform(0,0) < 0); // inverse proj X direction
-       Vector2 lonlatBound = pixel_to_lonlat(Vector2(-0.5,0)); //TODO: What exactly should this be?
-       double minLon;
+     //std::cout << lonlatBound << std::endl;
+     //std::cout << m_transform << std::endl;
 
-       //std::cout << lonlatBound << std::endl;
-       //std::cout << m_transform << std::endl;
+     // In order to make the normalization range look better, shift it
+     //  to start at the nearest multiple of 90 degrees.
+     // - Doing this will cause us to fail on 360 degree images that do not start on a multiple of 90!
+     const double ALIGN_MULTIPLE = 90.0;
+     if (m_transform(0,0) > 0) { // This is the minimum longitude
+       minLon = GEOREF_VALID_WIDTH * 4; // Start outside of the valid Proj4 bounds
+       while (minLon > lonlatBound[0]) // Get the next multiple of 90 below the bound we found
+         minLon -= ALIGN_MULTIPLE;
+       maxLon = minLon + GEOREF_VALID_WIDTH;
+     }
+     else { // This is the maximum longitude, offset to get the minimum.
+       maxLon = -GEOREF_VALID_WIDTH * 4; // Start outside of the valid Proj4 bounds
+       while (maxLon < lonlatBound[0]) // Get the next multiple of 90 below the bound we found
+         maxLon += ALIGN_MULTIPLE;
+       minLon = maxLon - GEOREF_VALID_WIDTH;
+     }  
+     //std::cout << "minLon " << minLon << std::endl;
+     //std::cout << "maxLon " << minLon << std::endl;
 
-       if (!lonReverse) // This is the minimum longitude
-         minLon = lonlatBound[0];
-       else // This is the maximum longitude, offset to get the minimum.
-         minLon = lonlatBound[0] - GEOREF_VALID_WIDTH;
-       double maxLon = minLon + GEOREF_VALID_WIDTH;
+     // Now that we now the range that the the georef "naturally"
+     //  projects from, get the center point.
 
-       // Now that we now the range that the the georef "naturally"
-       //  projects from, get the center point.
+     // Need to adjust to make sure we stay inside proj4 bounds
+     // - A better solution is needed to function outside those bounds, but that would add a lot of complexity.
+     if (minLon < PROJ4_MIN_LON) { // Shift upwards to -10 radians
+       minLon = PROJ4_MIN_LON;
+     }
+     if (maxLon > PROJ4_MAX_LON) { // Shift downwards to 10 radians
+       minLon -= (maxLon - PROJ4_MAX_LON);
+     }
 
-       // Need to adjust to make sure we stay inside proj4 bounds
-       // - A better solution is needed to function outside those bounds.
-       if (minLon < PROJ4_MIN_LON) { // Shift upwards
-         minLon = PROJ4_MIN_LON;
-       }
-       if (maxLon > PROJ4_MAX_LON) { // Shift downwards
-         minLon -= (maxLon - PROJ4_MAX_LON);
-       }
+     m_center_lon_wrap = minLon + halfWidth;
+     //std::cout << "center wrap " << m_center_lon_wrap << std::endl;
 
-       m_center_lon_wrap = minLon + halfWidth;
-       //std::cout << m_center_lon_wrap << std::endl;
-
-     } // End of special "eqc" handling case.
-
+     m_using_lon_wrap = true;
+     // End of special "eqc" handling case.
+    
   }
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
@@ -552,30 +529,26 @@ namespace cartography {
     return Vector2(unprojected.u * RAD_TO_DEG, unprojected.v * RAD_TO_DEG);
   }
 
-  Vector2 conformToLonCenter(Vector2 lon_lat, double center) {
-    const double OFFSET = 360.0;
-    const double RANGE  = 180.0;
-    const double maxLon = center + RANGE;
-    const double minLon = center - RANGE;
-
-    double lon = lon_lat[0];
-    //printf("%lf -> ", lon);
-    while (lon > maxLon) // Too high
-      lon -= OFFSET;
-    while (lon < minLon) // Too low
-      lon += OFFSET;
-    //printf("%lf\n", lon);
-    return Vector2(lon, lon_lat[1]); // Just right!
-  }
 
   /// Given a position in geographic coordinates (lat,lon), compute
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
 
-    // For eqc, transform intput lon into requested range.
-    if (m_proj_projection_str.find("+proj=eqc") == 0)
-      lon_lat = conformToLonCenter(lon_lat, m_center_lon_wrap);
+    // For eqc projections, transform intput lon into requested range.
+    if (m_using_lon_wrap) {
+      const double OFFSET = 360.0;
+      const double RANGE  = 180.0;
+      const double maxLon = m_center_lon_wrap + RANGE;
+      const double minLon = m_center_lon_wrap - RANGE;
+
+      //printf("%lf -> ", lon_lat[0]);
+      while (lon_lat[0] > maxLon) // Too high
+        lon_lat[0] -= OFFSET;
+      while (lon_lat[0] < minLon) // Too low
+        lon_lat[0] += OFFSET;
+      //printf("%lf\n", lon_lat[0]);
+    }
 
 
     // This value is proj's internal limit

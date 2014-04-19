@@ -467,22 +467,29 @@ TEST(GeoReference, NED_MATRIX) {
 //  make sure we can go from and back to the same pixel.
 void georefMatchTest(const GeoReference &georef)
 {
+
+  const double MAX_PIXEL_DIFF  = 0.01;
+  const double MAX_POINT_DIFF  = 0.01;
+  const double MAX_DEGREE_DIFF = 0.00001;
+  const double MAX_POINT_CHANGE_DIFF   = 0.1;
+  const double MAX_DEGREE_CHANGE_DIFF  = 0.01;
+
   for (int r=0; r<5; ++r) // Check a few rows
   {
+    double lastX       = 0;
+    double lastLon     = 0;
+    double lastDiffX   = 0;
+    double lastDiffLon = 0;
     for (int c=0; c<40; ++c) // Check a bunch of columns
     {
+      // Check that we can go from a pixel back to the same pixel
       Vector2 pixel1(c*500,r*500);
-      std::cout << "pixel1  = " << pixel1  << std::endl;
       Vector2 point1  = georef.pixel_to_point(pixel1);
-      std::cout << "point1  = " << point1  << std::endl;
       Vector2 lonlat1 = georef.point_to_lonlat(point1);
-      std::cout << "lonlat1 = " << lonlat1 << std::endl;
       Vector2 point2  = georef.lonlat_to_point(lonlat1);
-      std::cout << "point2  = " << point2  << std::endl;
       Vector2 pixel2  = georef.point_to_pixel(point2);
-      std::cout << "pixel2  = " << pixel2  << std::endl;
 
-      // Need to be able to handle different lon values too!
+      // Need to be able to handle equivalent lon values too!
       Vector2 lonlat2 = lonlat1;
       if (lonlat1[0] > 180)
         lonlat2[0] -= 360;
@@ -490,16 +497,45 @@ void georefMatchTest(const GeoReference &georef)
         lonlat2[0] += 360;
 
       Vector2 point3  = georef.lonlat_to_point(lonlat2);
-      std::cout << "point3  = " << point3  << std::endl;
       Vector2 pixel3  = georef.lonlat_to_pixel(lonlat2);
-      std::cout << "pixel3  = " << pixel3  << std::endl;
+      
+      // Also check that we can go from lon to lon (at least in a limited range)
+      Vector2 lonlat3 = georef.point_to_lonlat(point2);
+      
+      //std::cout << "pixel1  = " << pixel1  << std::endl;
+      //std::cout << "point1  = " << point1  << std::endl;
+      //std::cout << "lonlat1 = " << lonlat1 << std::endl;
+      //std::cout << "point2  = " << point2  << std::endl;
+      //std::cout << "pixel2  = " << pixel2  << std::endl;
+      //std::cout << "point3  = " << point3  << std::endl;
+      //std::cout << "pixel3  = " << pixel3  << std::endl;
+      //std::cout << "lonlat3 = " << lonlat3 << std::endl;
 
-      EXPECT_LT(fabs(pixel1[0] - pixel2[0]), 0.01); // Did we reproject back to the same pixel?
-      EXPECT_LT(fabs(pixel1[1] - pixel2[1]), 0.01);
-      EXPECT_LT(fabs(point1[0] - point2[0]), 0.01); // Did we go back and forth through the same point?
-      EXPECT_LT(fabs(point1[1] - point2[1]), 0.01);
-      EXPECT_LT(fabs(pixel1[0] - pixel3[0]), 0.01); // Can we handle longitudes offset by 360 degrees?
-      EXPECT_LT(fabs(pixel1[1] - pixel3[1]), 0.01);
+      EXPECT_LT(fabs(pixel1 [0] - pixel2 [0]), MAX_PIXEL_DIFF ); // Did we reproject back to the same pixel?
+      EXPECT_LT(fabs(pixel1 [1] - pixel2 [1]), MAX_PIXEL_DIFF );
+      EXPECT_LT(fabs(point1 [0] - point2 [0]), MAX_POINT_DIFF ); // Did we go back and forth through the same point?
+      EXPECT_LT(fabs(point1 [1] - point2 [1]), MAX_POINT_DIFF );
+      EXPECT_LT(fabs(pixel1 [0] - pixel3 [0]), MAX_PIXEL_DIFF ); // Can we handle longitudes offset by 360 degrees?
+      EXPECT_LT(fabs(pixel1 [1] - pixel3 [1]), MAX_PIXEL_DIFF );
+      EXPECT_LT(fabs(lonlat1[0] - lonlat3[0]), MAX_DEGREE_DIFF); // Can we go back and forth to the same longitude?
+      EXPECT_LT(fabs(lonlat1[1] - lonlat3[1]), MAX_DEGREE_DIFF);
+
+      // How much did point and lon location change since last time?
+      double diffX   = point2[0] - lastX;
+      double diffLon = lonlat1[0] - lastLon;
+
+      // Make sure that the rate of change horizontally does not vary much as we move through pixels.
+      if (c > 1) {
+        EXPECT_LT(fabs(diffX   - lastDiffX  ), MAX_POINT_CHANGE_DIFF);
+        EXPECT_LT(fabs(diffLon - lastDiffLon), MAX_DEGREE_CHANGE_DIFF);
+      }
+
+      // Update records
+      lastDiffX   = diffX;
+      lastDiffLon = diffLon;
+      lastX       = point2[0];
+      lastLon     = lonlat1[0]; 
+
     }
   }
 
@@ -564,22 +600,6 @@ TEST( GeoReference, eqcReverseTest) {
   georef.set_well_known_geogcs("D_MOON");
 
   georefMatchTest(georef); // Run a set of tests on the georef
-
-
-  // Load the input DEM georeference
-  boost::scoped_ptr<DiskImageResource> inputImage(DiskImageResource::open("/home/smcmich1/data/artifactTest/left_crop.map.tif"));
-  if (!read_georeference(georef, *inputImage)) {
-    //vw_out() << "Failed to read input image!\n";
-    std::cout << "Failed to read input image georeference!\n";
-  }
-
-  //std::cout << georef << std::endl;
-  //EXPECT_TRUE(false);
-
-  georefMatchTest(georef); // Run a set of tests on the georef
-
-
-
 
 }
 
