@@ -29,19 +29,23 @@
 namespace vw {
 namespace math {
 
-  // This provides only access to L2 distance metric in the FLANN
-  // tree. We would need to make new objects for each distance metric
-  // if we want to avoid having the FLANN header show up
-  // everywhere. (Their header has lots of warnings).
+  /// FLANN = FLANN is a library for performing fast approximate nearest
+  ///         neighbor searches in high dimensional spaces.
+
+  /// This provides only access to L2 distance metric in the FLANN
+  /// tree. We would need to make new objects for each distance metric
+  /// if we want to avoid having the FLANN header show up
+  /// everywhere. (Their header has lots of warnings).
   template <class FloatT>
   class FLANNTree : boost::noncopyable {
     void* m_index_ptr;
     Matrix<FloatT> m_features_cast; // The index makes pointers to this object. So we copy it.
 
-    void knn_search_help( void* data_ptr, size_t rows, size_t cols,
-                          Vector<int>& indices,
-                          Vector<FloatT>& dists,
-                          size_t knn );
+    /// Returns the number of results found (usually knn)
+    size_t knn_search_help( void* data_ptr, size_t rows, size_t cols,
+                            Vector<int   >& indices,
+                            Vector<FloatT>& dists,
+                            size_t knn );
 
     void construct_index( void* data_ptr, size_t rows, size_t cols );
 
@@ -53,30 +57,29 @@ namespace math {
 
     ~FLANNTree();
 
-    // Multiple query access via VW's Matrix
+    /// Multiple query access via VW's Matrix
     template <class MatrixT>
-    void knn_search( MatrixBase<MatrixT> const& query,
-                     Vector<int>& indices,
-                     Vector<FloatT>& dists,
-                     size_t knn ) {
+    size_t knn_search( MatrixBase<MatrixT> const& query,  // Values we are looking for
+                       Vector<int   >& indices,           // Index of each result
+                       Vector<FloatT>& dists,             // Distance of each result
+                       size_t knn ) {                     // Number of results to return
 
       // Convert query to our type
       Matrix<FloatT> query_cast = query.impl();
-      knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
-                  indices, dists, knn );
+      return knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
+                              indices, dists, knn );
     }
 
-    // Single query access via ASP's Matrix
+    /// Single query access via ASP's Matrix
     template <class VectorT>
-    void knn_search( VectorBase<VectorT> const& query,
-                     Vector<int>& indices,
-                     Vector<FloatT>& dists,
-                     size_t knn ) {
+    size_t knn_search( VectorBase<VectorT> const& query, // Values we are looking for
+                       Vector<int   >& indices,          // Index of each result
+                       Vector<FloatT>& dists,            // Distance of each result
+                       size_t knn ) {                    // Number of results to return
 
       // Convert query to our type
       Vector<FloatT> query_cast = query.impl();
-      knn_search_help( (void*)&query_cast[0], 1, query_cast.size(),
-                  indices, dists, knn );
+      return knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
     }
 
     size_t size1() const;

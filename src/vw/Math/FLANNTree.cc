@@ -23,35 +23,47 @@ namespace vw {
 namespace math {
 
   template <>
-  void FLANNTree<float>::knn_search_help( void* data_ptr, size_t rows, size_t cols,
-                                          Vector<int>& indices,
-                                          Vector<float>& dists,
-                                          size_t knn ) {
+  size_t FLANNTree<float>::knn_search_help( void* data_ptr, size_t rows, size_t cols,
+                                            Vector<int  >& indices,
+                                            Vector<float>& dists,
+                                            size_t knn ) {
+    // Constrain the number of results that we can return to the number of loaded objects
+    size_t maxNumReturns = m_features_cast.rows();
+    if (knn > maxNumReturns)
+      knn = maxNumReturns;
+
     if ( indices.size() != knn )
       indices.set_size( knn );
     if ( dists.size() != knn )
       dists.set_size( knn );
 
-    flann::Matrix<float> query_mat( (float*)data_ptr, rows, cols );
-    flann::Matrix<int> indice_mat( &indices[0], 1, knn );
-    flann::Matrix<float> dists_mat( &dists[0], 1, dists.size() );
+    flann::Matrix<float> query_mat ( (float*)data_ptr, rows, cols );
+    flann::Matrix<int  > indice_mat( &indices[0], 1, knn );
+    flann::Matrix<float> dists_mat ( &dists[0], 1, dists.size() );
     ((flann::Index<flann::L2<float> >*)(m_index_ptr))->knnSearch( query_mat, indice_mat, dists_mat, knn, flann::SearchParams(128) );
+    return knn;
   }
 
   template <>
-  void FLANNTree<double>::knn_search_help( void* data_ptr, size_t rows, size_t cols,
-                                           Vector<int>& indices,
-                                           Vector<double>& dists,
-                                           size_t knn ) {
+  size_t FLANNTree<double>::knn_search_help( void* data_ptr, size_t rows, size_t cols,
+                                             Vector<int   >& indices,
+                                             Vector<double>& dists,
+                                             size_t knn ) {
+    // Constrain the number of results that we can return to the number of loaded objects
+    size_t maxNumReturns = m_features_cast.rows();
+    if (knn > maxNumReturns)
+      knn = maxNumReturns;
+
     if ( indices.size() != knn )
       indices.set_size( knn );
     if ( dists.size() != knn )
       dists.set_size( knn );
 
-    flann::Matrix<double> query_mat( (double*)data_ptr, rows, cols );
-    flann::Matrix<int> indice_mat( &indices[0], 1, knn );
-    flann::Matrix<double> dists_mat( &dists[0], 1, dists.size() );
+    flann::Matrix<double> query_mat ( (double*)data_ptr, rows, cols );
+    flann::Matrix<int   > indice_mat( &indices[0], 1, knn );
+    flann::Matrix<double> dists_mat ( &dists[0], 1, dists.size() );
     ((flann::Index<flann::L2<double> >*)(m_index_ptr))->knnSearch( query_mat, indice_mat, dists_mat, knn, flann::SearchParams(128) );
+    return knn;
   }
 
   template <>
@@ -84,11 +96,11 @@ namespace math {
   }
 
   template <>
-  size_t FLANNTree<float>::size1() const { return ((flann::Index<flann::L2<float> >*)m_index_ptr)->size(); }
+  size_t FLANNTree<float >::size1() const { return ((flann::Index<flann::L2<float > >*)m_index_ptr)->size(); }
   template <>
   size_t FLANNTree<double>::size1() const { return ((flann::Index<flann::L2<double> >*)m_index_ptr)->size(); }
   template <>
-  size_t FLANNTree<float>::size2() const { return ((flann::Index<flann::L2<float> >*)m_index_ptr)->veclen(); }
+  size_t FLANNTree<float >::size2() const { return ((flann::Index<flann::L2<float > >*)m_index_ptr)->veclen(); }
   template <>
   size_t FLANNTree<double>::size2() const { return ((flann::Index<flann::L2<double> >*)m_index_ptr)->veclen(); }
 
