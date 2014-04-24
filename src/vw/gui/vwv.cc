@@ -28,6 +28,7 @@
 // Boost
 #include <boost/program_options.hpp>
 using namespace boost;
+using namespace std;
 namespace po = boost::program_options;
 
 // VW
@@ -68,13 +69,15 @@ int main(int argc, char *argv[]) {
   unsigned cache_size;
   float nodata_value;
   int transaction_id = -1;;
-
+  string geom;
+  
   // Set up command line options
   po::options_description visible_options("Options");
   visible_options.add_options()
     ("help,h", "Display this help message")
     ("normalize,n", "Attempt to normalize the image before display.")
     ("nodata-value", po::value<float>(&nodata_value), "Choose a \"nodata\" value in the image to treat as transparent.")
+    ("geometry", po::value<string>(&geom)->default_value("1200x800"), "Choose the window geometry (width and height).")
     ("transaction-id,t", po::value<int>(&transaction_id), "Choose an initial transaction_id.")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
 
@@ -108,7 +111,7 @@ int main(int argc, char *argv[]) {
 
   // Start up the Qt GUI
   QApplication app(argc, argv);
-  vw::gui::MainWindow main_window(images, nodata_value, transaction_id, vm.count("normalize"), vm);
+  vw::gui::MainWindow main_window(images, geom, nodata_value, transaction_id, vm.count("normalize"), vm);
   main_window.show();
   try {
     app.exec();

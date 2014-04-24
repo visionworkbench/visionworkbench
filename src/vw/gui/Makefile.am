@@ -34,7 +34,8 @@ noinst_HEADERS =                \
   TextureCache.h                \
   TileGenerator.h               \
   Tree.h                        \
-  WebTileGenerator.h
+  WebTileGenerator.h            \
+  Utils.h
 
 vwv_SOURCES =                   \
   $(BUILT_SOURCES)              \
@@ -44,6 +45,7 @@ vwv_SOURCES =                   \
   TestPatternTileGenerator.cc   \
   TextureCache.cc               \
   TileGenerator.cc              \
+  Utils.cc                      \
   vwv.cc
 
 BUILT_SOURCES =                 \

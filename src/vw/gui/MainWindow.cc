@@ -21,11 +21,12 @@
 /// The Vision Workbench image viewer main window class.
 ///
 #include <QtGui>
-#include <vw/config.h>
 #include <vw/gui/MainWindow.h>
 #include <vw/gui/GlPreviewWidget.h>
+#include <vw/gui/Utils.h>
 using namespace vw::gui;
 
+#include <vw/config.h>
 #include <vw/Image/MaskViews.h>
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/FileIO/DiskImageResource.h>
@@ -36,6 +37,7 @@ using namespace vw::gui;
 namespace po = boost::program_options;
 
 MainWindow::MainWindow(std::vector<std::string> const& images,
+                       std::string const& geom,
                        float nodata_value,
                        int transaction_id,
                        bool /*do_normalize*/,
@@ -79,8 +81,12 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
   //   m_preview_widget->normalize();
   // }
 
+  int windowWidX, windowWidY;
+  extractWindowDims(geom, windowWidX, windowWidY);
+  resize(windowWidX, windowWidY);
+
   // Maximize the main window
-  this->showMaximized();
+  //this->showMaximized();
 }
 
 //********************************************************************

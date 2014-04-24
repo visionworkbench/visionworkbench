@@ -48,7 +48,9 @@ namespace gui {
     boost::program_options::variables_map const& m_vm;
 
   public:
-    MainWindow(std::vector<std::string> const& images, float nodata_value, int transaction_id, bool do_normalize, boost::program_options::variables_map const& vm);
+    MainWindow(std::vector<std::string> const& images, std::string const& geom,
+               float nodata_value, int transaction_id,
+               bool do_normalize, boost::program_options::variables_map const& vm);
     virtual ~MainWindow() {}
 
   private slots:
