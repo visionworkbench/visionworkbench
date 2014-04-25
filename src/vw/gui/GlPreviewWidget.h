@@ -56,6 +56,15 @@ class QResizeEvent;
 namespace vw {
 namespace gui {
 
+  struct imageData{
+    std::string name;
+    ImageView<float> img;
+    void read(std::string const& image){
+      name = image;
+      img = DiskImageView<float>(name);
+    }
+  };
+  
   void check_gl_errors();
 
   // A simple class for keeping track of crosshair locations and colors.
@@ -139,6 +148,7 @@ namespace gui {
     // Event handlers
     void paintEvent(QPaintEvent *event);
     void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
     void mouseDoubleClickEvent(QMouseEvent *event);
     void wheelEvent(QWheelEvent *event);
@@ -151,8 +161,8 @@ namespace gui {
     // and drawLegend()
     void drawImage(QPainter* paint);
     void drawLegend(QPainter *paint);
-    QPoint world2pixel(QPoint const& p);
-    QPoint pixel2world(QPoint const& pix);
+    vw::Vector2 world2pixel(vw::Vector2 const& p);
+    vw::Vector2 pixel2world(vw::Vector2 const& pix);
     void updateCurrentMousePosition();
 
     // Image & OpenGL
@@ -166,18 +176,22 @@ namespace gui {
     QTimer *m_timer;
 
     // Image tiles and the texture cache
-    ImageView<float> m_image;
+    std::vector<imageData> m_images;
+    BBox2i m_images_box;
+    
     boost::shared_ptr<TileGenerator> m_tile_generator;
     boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
     PixelRGBA<float> m_last_pixel_sample;
 
     // Adjustment mode
-    enum AdjustmentMode { TransformAdjustment, GainAdjustment,
+    enum AdjustmentMode { NoAdjustment,
+                          TransformAdjustment, GainAdjustment,
                           OffsetAdjustment, GammaAdjustment };
     AdjustmentMode m_adjust_mode;
 
     // Mouse positions and legend information
-    QPoint m_curr_pixel_pos, m_curr_world_pos, m_last_viewport_min;
+    vw::Vector2 m_curr_pixel_pos, m_curr_world_pos;
+    QPoint m_last_viewport_min, m_mouse_press_pos;
     std::string m_legend_status;
 
     // Dimensions and stats

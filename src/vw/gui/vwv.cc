@@ -50,7 +50,7 @@ void print_usage(po::options_description const& visible_options) {
   vw_out() << "\nHere is a quick list of vwv keybindings:\n\n"
            << "  drag mouse - moves the image around\n"
            << "  mousewheel - zooms in and out   <-- also works with two-finger-drag gestures on some laptops\n"
-	   << "     + shift - zoom in and out much faster\n"
+	   << "     + shift - zoom in and out much slower.\n"
 	   << "  double-click and drag (two-finger-click and drag) - adjust gain\n"
            << "  +/-   -   Change requested transaction_id.\n"
            << "  e - turn on \"exact\" transaction_id matching (otherwise vwv will show the tile with the largest t_id <= requested t_id)\n"

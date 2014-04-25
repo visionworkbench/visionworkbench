@@ -99,11 +99,11 @@ const std::string g_FRAGMENT_PROGRAM =
 "}\n";
 
 namespace {
-  vw::Vector2i QPoint2Vec(QPoint const& qpt) {
+  vw::Vector2 QPoint2Vec(QPoint const& qpt) {
     return vw::Vector2(qpt.x(), qpt.y());
   }
   QPoint Vec2QPoint(vw::Vector2 const& V) {
-    return QPoint(V.x(), V.y());
+    return QPoint(round(V.x()), round(V.y()));
   }
 }
 
@@ -193,7 +193,7 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent,
   m_show_legend = false;
   m_bilinear_filter = true;
   m_use_colormap = false;
-  m_adjust_mode = TransformAdjustment;
+  m_adjust_mode = NoAdjustment;
   m_display_channel = DisplayRGBA;
   m_colorize_display = false;
   m_hillshade_display = false;
@@ -214,10 +214,15 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent,
   this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   this->setFocusPolicy(Qt::ClickFocus);
 
+
+  int num_images = images.size();
+  m_images.resize(num_images);
+  for (int i = 0; i < num_images; i++){
+    m_images[i].read(images[i]);
+    m_images_box.grow(bounding_box(m_images[i].img));
+  }
+  
   m_tile_generator = TileGenerator::create(images[0]);
-  m_image = DiskImageView<float>(images[0]);
-  std::cout << "image is " << images[0] << std::endl;
-  std::cout << "cols and rows are " << m_tile_generator->cols() << ' ' << m_tile_generator->rows() << std::endl;
   m_gl_texture_cache.reset( new GlTextureCache(m_tile_generator) );
   size_to_fit();
 }
@@ -229,32 +234,32 @@ GlPreviewWidget::~GlPreviewWidget() {
 
 void GlPreviewWidget::size_to_fit() {
   double aspect = double(m_window_width) / m_window_height;
-  int maxdim = std::max(m_tile_generator->cols(),m_tile_generator->rows());
-  if (m_tile_generator->cols() > m_tile_generator->rows()) {
+  int maxdim = std::max(m_images_box.width(),m_images_box.height());
+  if (m_images_box.width() > m_images_box.height()) {
     double width = maxdim;
     double height = maxdim/aspect;
-    double extra = height - m_tile_generator->rows();
+    double extra = height - m_images_box.height();
     m_current_viewport = BBox2(Vector2(0.0, -extra/2),
                                 Vector2(width, height-extra/2));
   } else {
     double width = maxdim*aspect;
     double height = maxdim;
-    double extra = width - m_tile_generator->cols();
+    double extra = width - m_images_box.width();
     m_current_viewport = BBox2(Vector2(-extra/2, 0.0),
                                 Vector2(width-extra/2, height));
   }
+  update();
 }
 
 void GlPreviewWidget::zoom(double scale) {
   m_show_legend = false;
-  std::cout << "zoom: current viewport: " << m_current_viewport << std::endl;
 
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 &&
       m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 20*m_tile_generator->cols() &&
-      m_current_viewport.height()/scale < 20*m_tile_generator->rows()) {
-    m_current_viewport = (m_current_viewport - QPoint2Vec(m_curr_world_pos)) / scale + QPoint2Vec(m_curr_world_pos);
+      m_current_viewport.width()/scale < 20*m_images_box.width() &&
+      m_current_viewport.height()/scale < 20*m_images_box.height()) {
+    m_current_viewport = (m_current_viewport - m_curr_world_pos) / scale + m_curr_world_pos;
   }
   update(); // will call paintEvent()
 }
@@ -375,13 +380,10 @@ void GlPreviewWidget::initializeGL() {
 }
 
 void GlPreviewWidget::resizeEvent(QResizeEvent*){
-  std::cout << "now in resize event!" << std::endl;
   QRect v       = this->geometry();
   m_window_width = v.width();
   m_window_height = v.height();
   size_to_fit();
-  std::cout << "viewport is " << m_window_width << ' ' << m_window_height
-            << std::endl;
   return;
 }
 
@@ -393,29 +395,29 @@ void GlPreviewWidget::resizeEvent(QResizeEvent*){
 void GlPreviewWidget::drawImage(QPainter* paint) {
 
   // The portion of the image to draw
-  BBox2i image_box = m_current_viewport;
-  image_box.crop(bounding_box(m_image));
-
-  // See where it fits on the screen
-  BBox2i pixel_box;
-  pixel_box.grow(QPoint2Vec(world2pixel(Vec2QPoint(image_box.min()))));
-  pixel_box.grow(QPoint2Vec(world2pixel(Vec2QPoint(image_box.max()))));
-
-  ImageView<float> img = crop(m_image, image_box);
-  QImage qimg(img.cols(), img.rows(), QImage::Format_RGB888);
-  for (int x = 0; x < img.cols(); ++x) {
-    for (int y = 0; y < img.rows(); ++y) {
-      qimg.setPixel(x, y, qRgb(img(x, y), img(x, y), img(x, y)));
+  for (int i = 0; i < (int)m_images.size(); i++){
+    
+    BBox2i image_box = m_current_viewport;
+    image_box.crop(bounding_box(m_images[i].img));
+    
+    // See where it fits on the screen
+    BBox2i pixel_box;
+    pixel_box.grow(world2pixel(image_box.min()));
+    pixel_box.grow(world2pixel(image_box.max()));
+    
+    ImageView<float> img = crop(m_images[i].img, image_box);
+    QImage qimg(img.cols(), img.rows(), QImage::Format_RGB888);
+    for (int x = 0; x < img.cols(); ++x) {
+      for (int y = 0; y < img.rows(); ++y) {
+        qimg.setPixel(x, y, qRgb(img(x, y), img(x, y), img(x, y)));
+      }
     }
+    
+    QRect rect(pixel_box.min().x(), pixel_box.min().y(),
+               pixel_box.width(), pixel_box.height());
+    paint->drawImage (rect, qimg);
   }
-
-  std::cout << "image box is " << image_box << std::endl;
-  std::cout << "box is " << pixel_box << std::endl;
   
-  QRect rect(pixel_box.min().x(), pixel_box.min().y(),
-             pixel_box.width(), pixel_box.height());
-  paint->drawImage (rect, qimg);
-
   return;
     
   // Make this context current, and store the current OpenGL state
@@ -481,7 +483,7 @@ void GlPreviewWidget::drawImage(QPainter* paint) {
   // level of 0 and maximum size that depends on how many tiles the
   // file contains.)
 //   Vector2i tile_size = m_tile_generator->tile_size();
-  BBox2i image_bbox(0,0,m_tile_generator->cols(),m_tile_generator->rows());
+  BBox2i image_bbox(0,0,m_images_box.width(),m_images_box.height());
 
 //   int max_level = m_tile_generator->num_levels()-1;
 //   int level = max_level - log(double(m_current_viewport.width()) / m_window_width) / log(2.0)+1;
@@ -606,8 +608,8 @@ void GlPreviewWidget::drawImage(QPainter* paint) {
 void GlPreviewWidget::drawLegend(QPainter* paint) {
 
   // Extract the value for the pixel currently under the mouse
-  if (m_curr_world_pos.x() >= 0 && m_curr_world_pos.x() < m_tile_generator->cols() &&
-      m_curr_world_pos.y() >= 0 && m_curr_world_pos.y() < m_tile_generator->rows()) {
+  if (m_curr_world_pos.x() >= 0 && m_curr_world_pos.x() < m_images_box.width() &&
+      m_curr_world_pos.y() >= 0 && m_curr_world_pos.y() < m_images_box.height()) {
 
 
     // Note: we sample directly from the OpenGL texture buffer for
@@ -623,17 +625,17 @@ void GlPreviewWidget::drawLegend(QPainter* paint) {
     const char* channel_name = vw::channel_type_name(m_tile_generator->channel_type());
     int num_channels = vw::num_channels(m_tile_generator->pixel_format());
 
-    // Compute the tile location
-    int tile_x = m_curr_world_pos.x() /
-      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
-      m_tile_generator->tile_size()[0];
-    int tile_y = m_curr_world_pos.y() /
-      pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
-      m_tile_generator->tile_size()[1];
+//     // Compute the tile location
+//     int tile_x = m_curr_world_pos.x() /
+//       pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
+//       m_tile_generator->tile_size()[0];
+//     int tile_y = m_curr_world_pos.y() /
+//       pow(2,(m_tile_generator->num_levels()-1) - m_current_level) /
+//       m_tile_generator->tile_size()[1];
 
     std::ostringstream pix_value_ostr;
-    pix_value_ostr << "Pos: ( " << m_curr_world_pos.x() << " " << m_curr_world_pos.y() << " )"
-                   << "[ " << tile_x << " " << tile_y << " ] --> Val: [ ";
+//     pix_value_ostr << "Pos: ( " << m_curr_world_pos.x() << " " << m_curr_world_pos.y() << " )"
+//                    << "[ " << tile_x << " " << tile_y << " ] --> Val: [ ";
 
     // The following code is very messy and should be replaced and/or
     // simplified once we have better control over whether automatic
@@ -735,8 +737,8 @@ void GlPreviewWidget::drawLegend(QPainter* paint) {
     textDocument.setDefaultStyleSheet("* { color: #00FF00; font-family: courier, serif; font-size: 12 }");
     std::ostringstream legend_text;
     legend_text << "<p align=\"right\">" << m_legend_status << "<br>"
-                << "[ " << m_tile_generator->cols() << " x "
-                << m_tile_generator->rows() << " @ " << m_current_level << " ] (t_id = "
+                << "[ " << m_images_box.width() << " x "
+                << m_images_box.height() << " @ " << m_current_level << " ] (t_id = "
                 << m_current_transaction_id << ")<br>"
                 << "Pixel Format: " << pixel_name << "  Channel Type: " << channel_name << "<br>"
                 << "Current Pixel Range: [ " << -m_offset/m_gain << " "
@@ -755,24 +757,24 @@ void GlPreviewWidget::drawLegend(QPainter* paint) {
   }
 }
 
-QPoint GlPreviewWidget::world2pixel(QPoint const& p){
+vw::Vector2 GlPreviewWidget::world2pixel(vw::Vector2 const& p){
   // Convert a position in the world coordinate system to a pixel value,
   // relative to the image seen on screen (the origin is an image corner).
   double x = m_window_width*((p.x() - m_current_viewport.min().x())
                              /m_current_viewport.width());
   double y = m_window_height*((p.y() - m_current_viewport.min().y())
                               /m_current_viewport.height());
-  return QPoint(round(x), round(y));
+  return vw::Vector2(round(x), round(y));
 }
 
-QPoint GlPreviewWidget::pixel2world(QPoint const& pix){
+vw::Vector2 GlPreviewWidget::pixel2world(vw::Vector2 const& pix){
   // Convert a pixel on the screen (the origin is an image corner),
   // to global world coordinates.
   double x = m_current_viewport.min().x()
     + m_current_viewport.width() * double(pix.x()) / m_window_width;
   double y = m_current_viewport.min().y()
     + m_current_viewport.height() * double(pix.y()) / m_window_height;
-  return QPoint(x, y);
+  return vw::Vector2(x, y);
 }
 
 void GlPreviewWidget::updateCurrentMousePosition() {
@@ -793,14 +795,36 @@ void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
 
 void GlPreviewWidget::mousePressEvent(QMouseEvent *event) {
   m_show_legend = true;
-  m_curr_pixel_pos = event->pos();
+  m_mouse_press_pos = event->pos();
+
+  m_curr_pixel_pos = QPoint2Vec(m_mouse_press_pos);
   m_last_gain = m_gain;     // Store this so the user can do linear
   m_last_offset = m_offset; // and nonlinear steps.
   m_last_gamma = m_gamma;
   m_last_viewport_min = QPoint( m_current_viewport.min().x(),
                                 m_current_viewport.min().y() );
   updateCurrentMousePosition();
-  std::cout << "mouse pressed!" << std::endl;
+}
+
+void GlPreviewWidget::mouseReleaseEvent ( QMouseEvent *event ){
+
+  QPoint mouse_rel_pos = event->pos();
+
+  int tol = 5;
+  if (std::abs(mouse_rel_pos.x() - m_mouse_press_pos.x()) < tol &&
+      std::abs(mouse_rel_pos.y() - m_mouse_press_pos.y()) < tol
+      ){
+    // If the mouse was released too close to where it was clicked,
+    // do nothing.
+    return;
+  }
+
+  m_current_viewport -= (pixel2world(QPoint2Vec(event->pos())) -
+                         pixel2world(QPoint2Vec(m_mouse_press_pos)));
+
+  update(); // will call paintEvent()
+  
+  return;
 }
 
 void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
@@ -859,24 +883,23 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
 }
 
 void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
-  m_curr_pixel_pos = event->pos();
+  m_curr_pixel_pos = QPoint2Vec(event->pos());
   updateCurrentMousePosition();
-  m_last_pixel_sample = m_tile_generator->sample(m_curr_world_pos.x(),
-                                                 m_curr_world_pos.y(),
-                                                 m_current_level,
-                                                 m_current_transaction_id);
+//   m_last_pixel_sample = m_tile_generator->sample(m_curr_world_pos.x(),
+//                                                  m_curr_world_pos.y(),
+//                                                  m_current_level,
+//                                                  m_current_transaction_id);
 }
 
 void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   int num_degrees = event->delta();
   double num_ticks = double(num_degrees) / 360;
 
-  std::cout << "--wheel event!" << std::endl;
-  // 100.0 chosen arbitrarily here as a reasonable scale factor giving good
-  // sensitivy of the mousewheel. Shift zooms 10 times faster.
-  double scale_factor = 100;
+  // 2.0 chosen arbitrarily here as a reasonable scale factor giving good
+  // sensitivity of the mousewheel. Shift zooms 50 times slower.
+  double scale_factor = 2;
   if (event->modifiers() & Qt::ShiftModifier)
-    scale_factor /= 50;
+    scale_factor *= 50;
 
   double mag = fabs(num_ticks/scale_factor);
   double scale = 1;
@@ -885,12 +908,10 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
   else if (num_ticks < 0)
     scale = 1-mag;
 
-
-  std::cout << "--scale is " << scale << std::endl;
   zoom(scale);
 
   m_show_legend = true;
-  m_curr_pixel_pos = event->pos();
+  m_curr_pixel_pos = QPoint2Vec(event->pos());
   updateCurrentMousePosition();
 }
 
