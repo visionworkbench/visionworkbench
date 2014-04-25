@@ -101,11 +101,6 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  std::cout << "number of files is " << images.size() << std::endl;
-  for (int s = 0; s < (int)images.size(); s++){
-    std::cout << "img: " << images[s] << std::endl;
-  }
-  
   // Set the Vision Workbench cache size
   vw_settings().set_system_cache_size( cache_size*1024*1024 );
 

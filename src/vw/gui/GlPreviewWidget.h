@@ -56,16 +56,15 @@ class QResizeEvent;
 namespace vw {
 namespace gui {
 
+  // A class to keep all data associated with an image file
   struct imageData{
     std::string name;
     ImageView<float> img;
-    void read(std::string const& image){
-      name = image;
-      img = DiskImageView<float>(name);
-    }
+    void read(std::string const& image);
   };
   
-  void check_gl_errors();
+  vw::Vector2 QPoint2Vec(QPoint const& qpt);
+  QPoint Vec2QPoint(vw::Vector2 const& V);
 
   // A simple class for keeping track of crosshair locations and colors.
   class PointList {
@@ -121,7 +120,6 @@ namespace gui {
     // Timer callback is called 30 times per second.
     void timer_callback() {
       update();
-      check_gl_errors();
     }
 
     void set_nodata_value(double nodata_value) {
@@ -142,7 +140,6 @@ namespace gui {
   protected:
 
     // Setup
-    void initializeGL();
     void resizeEvent(QResizeEvent*);
 
     // Event handlers
@@ -171,9 +168,6 @@ namespace gui {
     bool m_bilinear_filter;
     bool m_use_colormap;
     bool m_show_tile_boundaries;
-
-    // Timers and updates
-    QTimer *m_timer;
 
     // Image tiles and the texture cache
     std::vector<imageData> m_images;

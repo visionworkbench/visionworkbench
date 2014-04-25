@@ -98,65 +98,61 @@ const std::string g_FRAGMENT_PROGRAM =
 "  }\n"
 "}\n";
 
-namespace {
-  vw::Vector2 QPoint2Vec(QPoint const& qpt) {
-    return vw::Vector2(qpt.x(), qpt.y());
+void imageData::read(std::string const& image){
+  name = image;
+  img = DiskImageView<float>(name);
+
+  boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(name));
+  ChannelTypeEnum channel_type = rsrc->channel_type();
+  double nodata_val = -32768;
+  if ( rsrc->has_nodata_read() ) {
+    nodata_val = rsrc->nodata_read();
   }
-  QPoint Vec2QPoint(vw::Vector2 const& V) {
-    return QPoint(round(V.x()), round(V.y()));
+  
+  // Must scale the image values to uint8
+  if(channel_type == VW_CHANNEL_UINT8){
+    
+    // Set no-data pixels to 0    
+    for (int col = 0; col < img.cols(); col++){
+      for (int row = 0; row < img.rows(); row++){
+        img(col, row) = std::max((int)img(col, row), 0);
+      }
+    }
+    
+  }else{
+
+    // Normalize to 0 - 255
+    double mn = DBL_MAX, mx = -DBL_MAX;
+    for (int col = 0; col < img.cols(); col++){
+      for (int row = 0; row < img.rows(); row++){
+        if (img(col, row) <= nodata_val) continue;
+        if (img(col, row) < mn) mn = img(col, row);
+        if (img(col, row) > mx) mx = img(col, row);
+      }
+    }
+    if (mn >= mx){
+      for (int col = 0; col < img.cols(); col++){
+        for (int row = 0; row < img.rows(); row++){
+          img(col, row) = 0.0;
+        }
+      }
+    }else{
+      for (int col = 0; col < img.cols(); col++){
+        for (int row = 0; row < img.rows(); row++){
+          img(col, row) = round(255*(std::max(double(img(col, row)), mn)
+                                       - mn)/(mx-mn));
+        }
+      }
+    }
   }
+  
 }
 
-// --------------------------------------------------------------
-//                       GLSL DEBUGGING
-// --------------------------------------------------------------
-void print_shader_info_log(GLuint obj)
-{
-  GLint infologLength = 0;
-  GLint charsWritten  = 0;
-  char *infoLog;
-
-  //glGetShaderiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
-
-  if (infologLength > 1) {
-    infoLog = (char *)malloc(infologLength);
-//     glGetShaderInfoLog(obj, infologLength, &charsWritten, infoLog);
-    std::ostringstream err;
-    err << "<h4>An error occured while compiling the GLSL shader:</h4><p><h5><tt>" << infoLog << "</tt></h5>";
-    QMessageBox::critical(0, "GLSL Shader Error",
-                            err.str().c_str());
-    free(infoLog);
-  }
+vw::Vector2 vw::gui::QPoint2Vec(QPoint const& qpt) {
+  return vw::Vector2(qpt.x(), qpt.y());
 }
-
-void print_program_info_log(GLuint obj)
-{
-  GLint infologLength = 0;
-  GLint charsWritten  = 0;
-  char *infoLog;
-
-//   glGetProgramiv(obj, GL_INFO_LOG_LENGTH,&infologLength);
-
-  if (infologLength > 1) {
-    infoLog = (char *)malloc(infologLength);
-//     glGetProgramInfoLog(obj, infologLength, &charsWritten, infoLog);
-    std::ostringstream err;
-    err << "<h4>An error occured while linking the GLSL program:</h4><p><h5><tt>" << infoLog << "</tt></h5>";
-    QMessageBox::critical(0, "GLSL Program Error",
-                          err.str().c_str());
-    printf("%s\n",infoLog);
-    free(infoLog);
-  }
-}
-
-void vw::gui::check_gl_errors()
-{
-  GLenum errCode;
-  const GLubyte *errStr;
-//   if ( ( errCode = glGetError( ) ) != GL_NO_ERROR ) {
-//     errStr = gluErrorString( errCode );
-//     vw_out(ErrorMessage) << "OpenGL ERROR (" << int(errCode) << "): " << errStr << "\n";
-//   }
+QPoint vw::gui::Vec2QPoint(vw::Vector2 const& V) {
+  return QPoint(round(V.x()), round(V.y()));
 }
 
 // --------------------------------------------------------------
@@ -354,30 +350,6 @@ void GlPreviewWidget::deallocate_texture(GLuint texture_id) {
 //   glDisable( GL_TEXTURE_2D );
 }
 
-// ---------------------------------------------------------
-
-void GlPreviewWidget::initializeGL() {
-
-  // Set up the texture mode to replace (rather than blend...)
-//   glShadeModel(GL_FLAT);
-
-  // Set up the fragment shader.
-  const char* fragment_prog_ptr = g_FRAGMENT_PROGRAM.c_str();
-  GLuint m_fragment_shader;// = glCreateShader(GL_FRAGMENT_SHADER);
-//   glShaderSource(m_fragment_shader, 1, &fragment_prog_ptr, NULL);
-//   glCompileShader(m_fragment_shader);
-//   print_shader_info_log(m_fragment_shader);
-
-//   m_glsl_program = glCreateProgram();
-//   glAttachShader(m_glsl_program, m_fragment_shader);
-//   glLinkProgram(m_glsl_program);
-//   print_program_info_log(m_glsl_program);
-
-  // Now that GL is setup, we can start the Qt Timer
-  m_timer = new QTimer(this);
-  connect(m_timer, SIGNAL(timeout()), this, SLOT(timer_callback()));
-  m_timer->start(33);
-}
 
 void GlPreviewWidget::resizeEvent(QResizeEvent*){
   QRect v       = this->geometry();
@@ -885,10 +857,6 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
 void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
   m_curr_pixel_pos = QPoint2Vec(event->pos());
   updateCurrentMousePosition();
-//   m_last_pixel_sample = m_tile_generator->sample(m_curr_world_pos.x(),
-//                                                  m_curr_world_pos.y(),
-//                                                  m_current_level,
-//                                                  m_current_transaction_id);
 }
 
 void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
