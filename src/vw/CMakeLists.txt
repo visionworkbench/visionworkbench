@@ -3,7 +3,7 @@
 
 # Add path for custom modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}" )
-
+message("Module path = ${CMAKE_MODULE_PATH}")
 
 
 #===============================================================================
@@ -138,17 +138,19 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 
 
 # Look for more required packages
-#find_package(LAPACK REQUIRED)  This should be in BaseSystem
 set(HAVE_PKG_LAPACK LAPACK_FOUND)
+set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/liblapack.so
+                       ${BASESYSTEM_INSTALL_DIR}/lib/libblas.so)
+set(LAPACK_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
 if(LAPACK_FOUND)
-  message("Found LAPACK")
+  message("Found LAPACK at " ${LAPACK_LIBRARIES})
 endif()
 
 #TODO: Find in correct place!  Do we want to use find or force to BaseSystem?
 #find_package(JPEG REQUIRED)
 set(JPEG_FOUND True)
 set(JPEG_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libjpeg.so)
-set(JPEG_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/)
+#set(JPEG_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/)
 set(JPEG_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
 
 set(HAVE_PKG_JPEG JPEG_FOUND)
@@ -201,13 +203,44 @@ set(OPENEXR_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/OpenEXR)
 include_directories("${OPENEXR_INCLUDE_DIR}")
 
 
+set(HAVE_PKG_OPENCV)
+find_package(OpenCV)
+if(OPENCV_FOUND)
+  message("Found OPENCV " ${OPENCV_LIBRARIES})
+  include_directories("${OPENCV_INCLUDE_DIR}")
+endif()
+
+find_package(SigC++)
+if(SigC++_FOUND)
+  message("Found SigC++ " ${SigC++_LIBRARIES})
+  message("Include dirs: " ${SigC++_INCLUDE_DIRS})
+  include_directories("${SigC++_INCLUDE_DIRS}")
+endif()
+
+find_package(FreeType)
+if(FREETYPE_FOUND)
+  message("Found FreeType " ${FREETYPE_LIBRARIES})
+  message("Include dirs: " ${FREETYPE_INCLUDE_DIRS})
+  include_directories("${FREETYPE_INCLUDE_DIRS}")
+endif()
+
+find_package(Cairo)
+if(CAIRO_FOUND)
+  message("Found Cairo " ${CAIRO_LIBRARIES})
+  include_directories("${CAIRO_INCLUDE_DIR}")
+endif()
+
+find_package(Cairomm)
+if(CAIROMM_FOUND)
+  message("Found CairoMM " ${CAIROMM_LIBRARIES})
+  include_directories("${CAIROMM_INCLUDE_DIR}")
+endif()
+
 #TODO: Look for each of these installations!
 set(HAVE_PKG_HDF)
-set(HAVE_PKG_CAIROMM)
 set(HAVE_PKG_RABBITMQ_C)
 set(HAVE_PKG_ZEROMQ)
 set(HAVE_PKG_LIBKML)
-set(HAVE_PKG_OPENCV)
 set(HAVE_PKG_FLANN)
 
 # TODO: What is this for?
@@ -231,15 +264,23 @@ message("--------------------------------------------------------------")
 #TODO: Handle .lo files!
 
 
-# --- VW_CAMERA ------------------------------------------------------------
-get_all_source_files( "Camera" VW_CAMERA_SRC_FILES)
-get_all_source_files( "Camera/tests" VW_CAMERA_TEST_FILES)
-set(VW_CAMERA_LIB_DEPENDENCIES VwCore)
+# --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
+get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
+get_all_source_files( "BundleAdjustment/tests" VW_BUNDLEADJUSTMENT_TEST_FILES)
+set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMath)
 
-#message("${VW_CAMERA_SRC_FILES}")
+# --- VW_CAMERA ------------------------------------------------------------
+get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
+get_all_source_files( "Camera/tests" VW_CAMERA_TEST_FILES)
+set(VW_CAMERA_LIB_DEPENDENCIES VwCore VwMath)
+
+# --- VW_CARTOGRAPHY ------------------------------------------------------------
+get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
+get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwCore VwMath)
 
 # --- VW_CORE ------------------------------------------------------------
-get_all_source_files( "Core" VW_CORE_SRC_FILES)
+get_all_source_files( "Core"       VW_CORE_SRC_FILES)
 get_all_source_files( "Core/tests" VW_CORE_TEST_FILES)
 set(VW_CORE_LIB_DEPENDENCIES )
 
@@ -249,20 +290,79 @@ set(VW_CORE_LIB_DEPENDENCIES )
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
 set(VW_FILEIO_LIB_DEPENDENCIES VwCore)
 
+# --- VW_GEOMETRY ------------------------------------------------------------
+get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
+get_all_source_files( "Geometry/tests" VW_GEOMETRY_TEST_FILES)
+set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
+
+## --- VW_GPU ------------------------------------------------------------
+#get_all_source_files( "GPU"       VW_GPU_SRC_FILES)
+#get_all_source_files( "GPU/tests" VW_GPU_TEST_FILES)
+#set(VW_GPU_LIB_DEPENDENCIES VwCore VwMath)
+
+## --- VW_GUI ------------------------------------------------------------
+#get_all_source_files( "gui"       VW_GUI_SRC_FILES)
+#get_all_source_files( "gui/tests" VW_GUI_TEST_FILES)
+#set(VW_GUI_LIB_DEPENDENCIES VwCore VwMath)
+
+# --- VW_HDR ------------------------------------------------------------
+get_all_source_files( "HDR"       VW_HDR_SRC_FILES)
+get_all_source_files( "HDR/tests" VW_HDR_TEST_FILES)
+set(VW_HDR_LIB_DEPENDENCIES VwCore VwMath)
+
 # --- VW_IMAGE ------------------------------------------------------------
-get_all_source_files( "Image" VW_IMAGE_SRC_FILES)
-get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
+# This is a complicated folder so we need to select files manually
+#get_all_source_files( "Image" VW_IMAGE_SRC_FILES)
+#get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
 set(VW_IMAGE_LIB_DEPENDENCIES VwCore)
+
+# --- VW_INTERESTPOINT ------------------------------------------------------------
+get_all_source_files( "InterestPoint"       VW_INTERESTPOINT_SRC_FILES)
+get_all_source_files( "InterestPoint/tests" VW_INTERESTPOINT_TEST_FILES)
+set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCore VwMath)
+
+# --- VW_MATH ------------------------------------------------------------
+get_all_source_files( "Math"       VW_MATH_SRC_FILES)
+get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
+set(VW_IMAGE_LIB_DEPENDENCIES VwMath)
+
+# --- VW_MOSAIC ------------------------------------------------------------
+get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
+get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
+set(VW_MOSAIC_LIB_DEPENDENCIES VwMath)
+
+## --- VW_PLATE ------------------------------------------------------------
+#get_all_source_files( "Plate"       VW_PLATE_SRC_FILES)
+#get_all_source_files( "Plate/tests" VW_PLATE_TEST_FILES)
+#set(VW_PLATE_LIB_DEPENDENCIES VwMath)
+
+# PYTHON directory????
+
+# --- VW_STEREO ------------------------------------------------------------
+get_all_source_files( "Stereo"       VW_STEREO_SRC_FILES)
+get_all_source_files( "Stereo/tests" VW_STEREO_TEST_FILES)
+set(VW_STEREO_LIB_DEPENDENCIES VwMath)
 
 
 
 #=========================================================================
 # Add all of the library subdirectories
 
+add_subdirectory(BundleAdjustment)
 add_subdirectory(Camera)
+add_subdirectory(Cartography)
 add_subdirectory(Core)
 add_subdirectory(FileIO)
+add_subdirectory(Geometry)
+#add_subdirectory(GPU)
+#add_subdirectory(gui)
+add_subdirectory(HDR)
 add_subdirectory(Image)
+add_subdirectory(InterestPoint)
+add_subdirectory(Math)
+add_subdirectory(Mosaic)
+#add_subdirectory(Plate)
+add_subdirectory(Stereo)
 add_subdirectory(tools)
 
 

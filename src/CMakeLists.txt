@@ -15,6 +15,7 @@ function( get_all_source_files relativePath outputFileList)
       "${CMAKE_CURRENT_SOURCE_DIR}/${relativePath}/*.h"
       "${CMAKE_CURRENT_SOURCE_DIR}/${relativePath}/*.cc"
       "${CMAKE_CURRENT_SOURCE_DIR}/${relativePath}/*.cxx"      
+      "${CMAKE_CURRENT_SOURCE_DIR}/${relativePath}/*.tcc"
   )
   set(fileList) # Empty list
   foreach(f ${TEMP}) # Iterate through TEMP
