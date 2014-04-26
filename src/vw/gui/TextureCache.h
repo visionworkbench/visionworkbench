@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#if 0
 
 #ifndef __VW_GUI_TEXTURE_CACHE_H__
 #define __VW_GUI_TEXTURE_CACHE_H__
@@ -226,3 +227,5 @@ namespace gui {
 }} // namespace vw::gui
 
 #endif // __VW_GUI_TEXTURE_CACHE_H__
+
+#endif

@@ -26,7 +26,7 @@ CLEANFILES = *.moc.cc
 if ENABLE_EXCEPTIONS
 
 noinst_HEADERS =                \
-  GlPreviewWidget.h             \
+  MainWidget.h             \
   ImageTileGenerator.h          \
   MainWindow.h                  \
   PlatefileTileGenerator.h      \
@@ -39,7 +39,7 @@ noinst_HEADERS =                \
 
 vwv_SOURCES =                   \
   $(BUILT_SOURCES)              \
-  GlPreviewWidget.cc            \
+  MainWidget.cc            \
   ImageTileGenerator.cc         \
   MainWindow.cc                 \
   TestPatternTileGenerator.cc   \
@@ -49,7 +49,7 @@ vwv_SOURCES =                   \
   vwv.cc
 
 BUILT_SOURCES =                 \
-  GlPreviewWidget.moc.cc        \
+  MainWidget.moc.cc        \
   MainWindow.moc.cc
 
 vwv_LDADD    = @PKG_GUI_LIBS@

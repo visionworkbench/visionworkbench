@@ -15,6 +15,7 @@
 //  limitations under the License.
 // __END_LICENSE__
 
+#if 0
 
 #include <vw/gui/TextureCache.h>
 using namespace vw;
@@ -256,3 +257,5 @@ GLuint vw::gui::GlTextureCache::get_texture_id(vw::gui::TileLocator const& tile_
 
   return 0; // never reached
 }
+
+#endif

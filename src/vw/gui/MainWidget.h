@@ -16,12 +16,12 @@
 // __END_LICENSE__
 
 
-/// \file vwv_GlPreviewWidget.h
+/// \file vwv_MainWidget.h
 ///
 /// The Vision Workbench image viewer.
 ///
-#ifndef __VW_GUI__PREVIEW_GL_WIDGET_H__
-#define __VW_GUI_PREVIEW_GL_WIDGET_H__
+#ifndef __VW_GUI__MAIN_WIDGET_H__
+#define __VW_GUI_MAIN_WIDGET_H__
 
 // Qt
 #include <QWidget>
@@ -88,15 +88,15 @@ namespace gui {
   };
 
 
-  class GlPreviewWidget : public QWidget {
+  class MainWidget : public QWidget {
     Q_OBJECT
 
     public:
 
     // Constructors/Destructor
-    GlPreviewWidget(QWidget *parent, std::vector<std::string> const& images,
+    MainWidget(QWidget *parent, std::vector<std::string> const& images,
                     int transaction_id);
-    virtual ~GlPreviewWidget();
+    virtual ~MainWidget();
 
     // Set a default size for this widget.  This is usually overridden
     // by parent views.
@@ -180,4 +180,4 @@ namespace gui {
 
 }} // namespace vw::gui
 
-#endif  // __VW_GUI_PREVIEW_GL_WIDGET_H__
+#endif  // __VW_GUI_MAIN_WIDGET_H__

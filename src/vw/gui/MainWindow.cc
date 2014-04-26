@@ -22,7 +22,7 @@
 ///
 #include <QtGui>
 #include <vw/gui/MainWindow.h>
-#include <vw/gui/GlPreviewWidget.h>
+#include <vw/gui/MainWidget.h>
 #include <vw/gui/Utils.h>
 using namespace vw::gui;
 
@@ -47,46 +47,19 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
   // Set up the basic layout of the window and its menus
   create_actions();
   create_menus();
-  create_status_bar();
 
   // Set the window title and add tabs
   std::string window_title = "Vision Workbench Viewer";
   this->setWindowTitle(window_title.c_str());
 
-  // Set up OpenGL context parameters
-//   QGLFormat gl_frmt = QGLFormat::defaultFormat();
-//   gl_frmt.setSampleBuffers(true);
-//   gl_frmt.setDoubleBuffer(true);
-//   gl_frmt.setSwapInterval(1);
-
-  // Set up GlPreviewWidget
-  m_preview_widget = new GlPreviewWidget(this, images,
-                                         //gl_frmt,
+  // Set up MainWidget
+  m_preview_widget = new MainWidget(this, images,
                                          transaction_id);
   setCentralWidget(m_preview_widget);
-
-  // // Set the nodata value
-  // vw::DiskImageResource *rsrc = vw::DiskImageResource::open(input_filename);
-  // if (m_vm.count("nodata-value")) {
-  //   std::cout << "\t--> User specified nodata value: " << m_nodata_value << ".\n";
-  //   m_preview_widget->set_nodata_value(m_nodata_value);
-  // } else if ( rsrc->has_nodata_value() ) {
-  //   m_nodata_value = rsrc->nodata_value();
-  //   std::cout << "\t--> Extracted nodata value from file: " << m_nodata_value << ".\n";
-  //   m_preview_widget->set_nodata_value(m_nodata_value);
-  // }
-  // delete rsrc;
-
-  // if (do_normalize) {
-  //   m_preview_widget->normalize();
-  // }
 
   int windowWidX, windowWidY;
   extractWindowDims(geom, windowWidX, windowWidY);
   resize(windowWidX, windowWidY);
-
-  // Maximize the main window
-  //this->showMaximized();
 }
 
 //********************************************************************
@@ -120,20 +93,6 @@ void MainWindow::create_menus() {
   menuBar()->addSeparator();
   help_menu = menuBar()->addMenu(tr("&Help"));
   help_menu->addAction(about_action);
-}
-
-void MainWindow::create_status_bar() {
-  status_label = new QLabel("");
-  status_label->setAlignment(Qt::AlignHCenter);
-  statusBar()->addWidget(status_label);
-
-  // WARNING: Memory leak as currently written.  Fix this somewhow...
-  //   GuiProgressCallback *clbk = new GuiProgressCallback(this, "Updating: ");
-  //   statusBar()->addWidget(clbk->widget());
-}
-
-void MainWindow::update_status_bar(std::string const& s) {
-  status_label->setText(QString(s.c_str()));
 }
 
 void MainWindow::about() {

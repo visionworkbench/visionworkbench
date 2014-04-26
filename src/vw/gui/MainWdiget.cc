@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file vwv_GlPreviewWidget.cc
+/// \file vwv_MainWidget.cc
 ///
 /// The Vision Workbench image viewer.
 ///
@@ -27,7 +27,7 @@
 // Vision Workbench
 #include <vw/Image.h>
 #include <vw/FileIO.h>
-#include <vw/gui/GlPreviewWidget.h>
+#include <vw/gui/MainWidget.h>
 using namespace vw;
 using namespace vw::gui;
 
@@ -89,10 +89,10 @@ QPoint vw::gui::Vec2QPoint(vw::Vector2 const& V) {
 }
 
 // --------------------------------------------------------------
-//               GlPreviewWidget Public Methods
+//               MainWidget Public Methods
 // --------------------------------------------------------------
 
-GlPreviewWidget::GlPreviewWidget(QWidget *parent,
+MainWidget::MainWidget(QWidget *parent,
                                  std::vector<std::string> const& images,
                                  int transaction_id)
   : QWidget(parent)
@@ -140,10 +140,10 @@ GlPreviewWidget::GlPreviewWidget(QWidget *parent,
 }
 
 
-GlPreviewWidget::~GlPreviewWidget() {
+MainWidget::~MainWidget() {
 }
 
-void GlPreviewWidget::size_to_fit() {
+void MainWidget::size_to_fit() {
   double aspect = double(m_window_width) / m_window_height;
   int maxdim = std::max(m_images_box.width(),m_images_box.height());
   if (m_images_box.width() > m_images_box.height()) {
@@ -162,7 +162,7 @@ void GlPreviewWidget::size_to_fit() {
   update();
 }
 
-void GlPreviewWidget::zoom(double scale) {
+void MainWidget::zoom(double scale) {
   // Check to make sure we haven't hit our zoom limits...
   if (m_current_viewport.width()/scale > 1.0 &&
       m_current_viewport.height()/scale > 1.0 &&
@@ -173,7 +173,7 @@ void GlPreviewWidget::zoom(double scale) {
   update(); // will call paintEvent()
 }
 
-void GlPreviewWidget::resizeEvent(QResizeEvent*){
+void MainWidget::resizeEvent(QResizeEvent*){
   QRect v       = this->geometry();
   m_window_width = v.width();
   m_window_height = v.height();
@@ -183,10 +183,10 @@ void GlPreviewWidget::resizeEvent(QResizeEvent*){
 
 
 // --------------------------------------------------------------
-//             GlPreviewWidget Private Methods
+//             MainWidget Private Methods
 // --------------------------------------------------------------
 
-void GlPreviewWidget::drawImage(QPainter* paint) {
+void MainWidget::drawImage(QPainter* paint) {
 
   // The portion of the image to draw
   for (int i = 0; i < (int)m_images.size(); i++){
@@ -216,7 +216,7 @@ void GlPreviewWidget::drawImage(QPainter* paint) {
     
 }
 
-vw::Vector2 GlPreviewWidget::world2pixel(vw::Vector2 const& p){
+vw::Vector2 MainWidget::world2pixel(vw::Vector2 const& p){
   // Convert a position in the world coordinate system to a pixel value,
   // relative to the image seen on screen (the origin is an image corner).
   double x = m_window_width*((p.x() - m_current_viewport.min().x())
@@ -226,7 +226,7 @@ vw::Vector2 GlPreviewWidget::world2pixel(vw::Vector2 const& p){
   return vw::Vector2(round(x), round(y));
 }
 
-vw::Vector2 GlPreviewWidget::pixel2world(vw::Vector2 const& pix){
+vw::Vector2 MainWidget::pixel2world(vw::Vector2 const& pix){
   // Convert a pixel on the screen (the origin is an image corner),
   // to global world coordinates.
   double x = m_current_viewport.min().x()
@@ -236,20 +236,20 @@ vw::Vector2 GlPreviewWidget::pixel2world(vw::Vector2 const& pix){
   return vw::Vector2(x, y);
 }
 
-void GlPreviewWidget::updateCurrentMousePosition() {
+void MainWidget::updateCurrentMousePosition() {
   m_curr_world_pos = pixel2world(m_curr_pixel_pos);
 }
 
 // --------------------------------------------------------------
-//             GlPreviewWidget Event Handlers
+//             MainWidget Event Handlers
 // --------------------------------------------------------------
 
-void GlPreviewWidget::paintEvent(QPaintEvent * /* event */) {
+void MainWidget::paintEvent(QPaintEvent * /* event */) {
   QPainter paint(this);
   drawImage(&paint);
 }
 
-void GlPreviewWidget::mousePressEvent(QMouseEvent *event) {
+void MainWidget::mousePressEvent(QMouseEvent *event) {
   m_mouse_press_pos = event->pos();
 
   m_curr_pixel_pos = QPoint2Vec(m_mouse_press_pos);
@@ -261,7 +261,7 @@ void GlPreviewWidget::mousePressEvent(QMouseEvent *event) {
   updateCurrentMousePosition();
 }
 
-void GlPreviewWidget::mouseReleaseEvent ( QMouseEvent *event ){
+void MainWidget::mouseReleaseEvent ( QMouseEvent *event ){
 
   QPoint mouse_rel_pos = event->pos();
 
@@ -282,7 +282,7 @@ void GlPreviewWidget::mouseReleaseEvent ( QMouseEvent *event ){
   return;
 }
 
-void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
+void MainWidget::mouseMoveEvent(QMouseEvent *event) {
   // Diff variables are just the movement of the mouse normalized to
   // 0.0-1.0;
   double x_diff = double(event->x() - m_curr_pixel_pos.x()) / m_window_width;
@@ -335,12 +335,12 @@ void GlPreviewWidget::mouseMoveEvent(QMouseEvent *event) {
   updateCurrentMousePosition();
 }
 
-void GlPreviewWidget::mouseDoubleClickEvent(QMouseEvent *event) {
+void MainWidget::mouseDoubleClickEvent(QMouseEvent *event) {
   m_curr_pixel_pos = QPoint2Vec(event->pos());
   updateCurrentMousePosition();
 }
 
-void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
+void MainWidget::wheelEvent(QWheelEvent *event) {
   int num_degrees = event->delta();
   double num_ticks = double(num_degrees) / 360;
 
@@ -364,13 +364,13 @@ void GlPreviewWidget::wheelEvent(QWheelEvent *event) {
 }
 
 
-void GlPreviewWidget::enterEvent(QEvent */*event*/) {
+void MainWidget::enterEvent(QEvent */*event*/) {
 }
 
-void GlPreviewWidget::leaveEvent(QEvent */*event*/) {
+void MainWidget::leaveEvent(QEvent */*event*/) {
 }
 
-void GlPreviewWidget::keyPressEvent(QKeyEvent *event) {
+void MainWidget::keyPressEvent(QKeyEvent *event) {
 
   std::ostringstream s;
 

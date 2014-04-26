@@ -38,7 +38,7 @@ class QTabWidget;
 namespace vw {
 namespace gui {
 
-  class GlPreviewWidget;
+  class MainWidget;
 
   class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -55,7 +55,6 @@ namespace gui {
 
   private slots:
     void about();
-    void update_status_bar(std::string const& s);
 
   protected:
     void keyPressEvent(QKeyEvent *event);
@@ -63,15 +62,13 @@ namespace gui {
   private:
     void create_actions();
     void create_menus();
-    void create_status_bar();
 
-    GlPreviewWidget *m_preview_widget;
+    MainWidget *m_preview_widget;
 
     QMenu *file_menu;
     QMenu *edit_menu;
     QMenu *help_menu;
 
-    QLabel *status_label;
     QAction *about_action;
     QAction *exit_action;
   };
