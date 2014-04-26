@@ -25,7 +25,6 @@
 
 // Qt
 #include <QWidget>
-//#include <QGLFormat>
 #include <QPoint>
 
 // Vision Workbench
@@ -45,8 +44,6 @@
 #include <string>
 #include <vector>
 #include <list>
-
-#include <vw/gui/TextureCache.h>
 
 class QMouseEvent;
 class QWheelEvent;
@@ -91,19 +88,15 @@ namespace gui {
   };
 
 
-  class GlPreviewWidget : public QWidget, public CachedTextureRenderer {
+  class GlPreviewWidget : public QWidget {
     Q_OBJECT
 
     public:
 
     // Constructors/Destructor
     GlPreviewWidget(QWidget *parent, std::vector<std::string> const& images,
-                    //QGLFormat const& frmt,
                     int transaction_id);
     virtual ~GlPreviewWidget();
-
-    virtual GLuint allocate_texture(boost::shared_ptr<SrcImageResource> tile);
-    virtual void deallocate_texture(GLuint texture_id);
 
     // Set a default size for this widget.  This is usually overridden
     // by parent views.
@@ -115,26 +108,9 @@ namespace gui {
 
   public slots:
 
-    // This timer is used by the Texture Fetch thread to inform the
-    // GlPreviewWidget when new textures are available for drawing.
-    // Timer callback is called 30 times per second.
-    void timer_callback() {
-      update();
-    }
-
     void set_nodata_value(double nodata_value) {
       m_nodata_value = nodata_value;
       m_use_nodata = 1;
-    }
-
-    void normalize() {
-      std::cout << "CALLING NORMALIZE!\n";
-      Vector2 result = m_tile_generator->minmax();
-      std::cout << "Got result = " << result << "\n";
-      m_image_min = result[0];
-      m_image_max = result[1];
-      m_offset = -m_image_min;
-      m_gain = 1/(m_image_max-m_image_min);
     }
 
   protected:
@@ -155,26 +131,18 @@ namespace gui {
 
   private:
     // Drawing is driven by QPaintEvents, which call out to drawImage()
-    // and drawLegend()
     void drawImage(QPainter* paint);
-    void drawLegend(QPainter *paint);
     vw::Vector2 world2pixel(vw::Vector2 const& p);
     vw::Vector2 pixel2world(vw::Vector2 const& pix);
     void updateCurrentMousePosition();
 
-    // Image & OpenGL
-    GLuint m_glsl_program;
-    bool m_show_legend;
     bool m_bilinear_filter;
     bool m_use_colormap;
     bool m_show_tile_boundaries;
 
-    // Image tiles and the texture cache
     std::vector<imageData> m_images;
     BBox2i m_images_box;
     
-    boost::shared_ptr<TileGenerator> m_tile_generator;
-    boost::shared_ptr<GlTextureCache> m_gl_texture_cache;
     PixelRGBA<float> m_last_pixel_sample;
 
     // Adjustment mode
@@ -183,10 +151,9 @@ namespace gui {
                           OffsetAdjustment, GammaAdjustment };
     AdjustmentMode m_adjust_mode;
 
-    // Mouse positions and legend information
+    // Mouse position
     vw::Vector2 m_curr_pixel_pos, m_curr_world_pos;
     QPoint m_last_viewport_min, m_mouse_press_pos;
-    std::string m_legend_status;
 
     // Dimensions and stats
     int m_window_width;  // the width  of the plotting window in screen pixels
