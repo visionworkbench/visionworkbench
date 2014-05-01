@@ -947,18 +947,23 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         // Compute the outer range of xx and yy values and determine if everything will
         // fall within the bounds of right_interp_image
         float xVals[4], yVals[4];
-        xVals[0] = dPtr[0]*-kern_half_width + dPtr[1]* kern_half_height + dPtr[2] + x_base;
-        yVals[0] = dPtr[3]*-kern_half_width + dPtr[4]* kern_half_height + dPtr[5] + y_base;
-        xVals[1] = dPtr[0]*-kern_half_width + dPtr[1]*-kern_half_height + dPtr[2] + x_base;
-        yVals[1] = dPtr[3]*-kern_half_width + dPtr[4]*-kern_half_height + dPtr[5] + y_base;
-        xVals[2] = dPtr[0]* kern_half_width + dPtr[1]*-kern_half_height + dPtr[2] + x_base;
-        yVals[2] = dPtr[3]* kern_half_width + dPtr[4]*-kern_half_height + dPtr[5] + y_base;
-        xVals[3] = dPtr[0]* kern_half_width + dPtr[1]* kern_half_height + dPtr[2] + x_base;
-        yVals[3] = dPtr[3]* kern_half_width + dPtr[4]* kern_half_height + dPtr[5] + y_base;        
+        xVals[0] = dPtr[0]*(-kern_half_width) + dPtr[1]*  kern_half_height  + dPtr[2];
+        yVals[0] = dPtr[3]*(-kern_half_width) + dPtr[4]*  kern_half_height  + dPtr[5];
+        xVals[1] = dPtr[0]*(-kern_half_width) + dPtr[1]*(-kern_half_height) + dPtr[2];
+        yVals[1] = dPtr[3]*(-kern_half_width) + dPtr[4]*(-kern_half_height) + dPtr[5];
+        xVals[2] = dPtr[0]*  kern_half_width  + dPtr[1]*(-kern_half_height) + dPtr[2];
+        yVals[2] = dPtr[3]*  kern_half_width  + dPtr[4]*(-kern_half_height) + dPtr[5];
+        xVals[3] = dPtr[0]*  kern_half_width  + dPtr[1]*  kern_half_height  + dPtr[2];
+        yVals[3] = dPtr[3]*  kern_half_width  + dPtr[4]*  kern_half_height  + dPtr[5];
         bool use_unsafe_interp = true;
+        const float SAFETY_BUFFER = (kern_half_width + kern_half_height)/2.0;
+        float minCol = -x_base + SAFETY_BUFFER;
+        float maxCol = right_image.cols() - x_base - SAFETY_BUFFER;
+        float minRow = -y_base + SAFETY_BUFFER;
+        float maxRow = right_image.rows() - y_base - SAFETY_BUFFER;
         for (int i=0; i<4; ++i) {
-          if ( (xVals[i] >= right_image.cols()) || (xVals[i] <= 0) ||
-               (yVals[i] >= right_image.rows()) || (yVals[i] <= 0)   ) {
+          if ( (xVals[i] >= maxCol) || (xVals[i] <= minCol) ||
+               (yVals[i] >= maxRow) || (yVals[i] <= minRow)   ) {
             use_unsafe_interp = false;
             break;
           }
