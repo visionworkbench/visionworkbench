@@ -26,10 +26,9 @@
 #include <vw/Core/Debugging.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Transform.h>
-#include <vw/FileIO/DiskImageResource.h>
+#include <vw/FileIO/DiskImageView.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/MatrixIO.h>
-#include <vw/InterestPoint/VectorIO.h>
 #include <vw/InterestPoint/IntegralImage.h>
 
 namespace vw {
