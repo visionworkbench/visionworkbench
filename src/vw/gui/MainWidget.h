@@ -44,11 +44,13 @@
 #include <string>
 #include <vector>
 #include <list>
+#include <set>
 
 class QMouseEvent;
 class QWheelEvent;
 class QPoint;
 class QResizeEvent;
+class QTableWidget;
 
 namespace vw {
 namespace gui {
@@ -87,7 +89,22 @@ namespace gui {
     }
   };
 
-
+  /// Class to create a file list on the left side of the window
+  class chooseFilesDlg: public QWidget{
+    Q_OBJECT
+    
+  public:
+    chooseFilesDlg(QWidget * parent);
+    ~chooseFilesDlg();
+    void chooseFiles(const std::vector<imageData> & images);
+    
+    QTableWidget * getFilesTable(){ return m_filesTable; }
+    static QString selectFilesTag(){ return ""; }
+  private:
+    QTableWidget * m_filesTable;
+  private slots:
+  };
+  
   class MainWidget : public QWidget {
     Q_OBJECT
 
@@ -95,7 +112,7 @@ namespace gui {
 
     // Constructors/Destructor
     MainWidget(QWidget *parent, std::vector<std::string> const& images,
-                    int transaction_id);
+                    chooseFilesDlg * chooseFiles);
     virtual ~MainWidget();
 
     // Set a default size for this widget.  This is usually overridden
@@ -104,9 +121,10 @@ namespace gui {
 
     // Image Manipulation Methods
     void zoom(double scale);
-    void size_to_fit();
 
   public slots:
+    void size_to_fit();
+    void showFilesChosenByUser();
 
     void set_nodata_value(double nodata_value) {
       m_nodata_value = nodata_value;
@@ -116,6 +134,7 @@ namespace gui {
   protected:
 
     // Setup
+    bool eventFilter (QObject *obj, QEvent *E);
     void resizeEvent(QResizeEvent*);
 
     // Event handlers
@@ -168,14 +187,16 @@ namespace gui {
     double m_gain, m_last_gain;
     double m_offset, m_last_offset;
     double m_gamma, m_last_gamma;
-    int m_current_transaction_id;
-    bool m_exact_transaction_id_match;
-    int m_current_level;
 
     enum DisplayChannel { DisplayRGBA = 0, DisplayR, DisplayG, DisplayB, DisplayA };
     int m_display_channel;
     int m_colorize_display;
     int m_hillshade_display;
+
+    // Choose which files to hide/show in the GUI
+    chooseFilesDlg  *     m_chooseFilesDlg;
+    std::set<std::string> m_filesToHide;
+    
   };
 
 }} // namespace vw::gui

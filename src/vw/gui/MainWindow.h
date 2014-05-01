@@ -39,13 +39,10 @@ namespace vw {
 namespace gui {
 
   class MainWidget;
+  class chooseFilesDlg;
 
   class MainWindow : public QMainWindow {
     Q_OBJECT
-
-    std::vector<std::string> m_images;
-    float m_nodata_value;
-    boost::program_options::variables_map const& m_vm;
 
   public:
     MainWindow(std::vector<std::string> const& images, std::string const& geom,
@@ -54,23 +51,34 @@ namespace gui {
     virtual ~MainWindow() {}
 
   private slots:
+    void forceQuit(); // Ensure the program shuts down.
+    void size_to_fit();
     void about();
-
+    
   protected:
     void keyPressEvent(QKeyEvent *event);
 
   private:
-    void create_actions();
     void create_menus();
+    
+    // Event handlers
+    void resizeEvent(QResizeEvent *);
+    void closeEvent (QCloseEvent *);
 
-    MainWidget *m_preview_widget;
+    std::vector<std::string> m_images;
+    float            m_nodata_value;
+    double           m_widRatio;    // ratio of sidebar to entire win wid
+    MainWidget     * m_main_widget; 
+    chooseFilesDlg * m_chooseFiles; // left sidebar for selecting files
+    boost::program_options::variables_map const& m_vm;
 
-    QMenu *file_menu;
-    QMenu *edit_menu;
-    QMenu *help_menu;
+    QMenu *m_file_menu;
+    QMenu *m_view_menu;
+    QMenu *m_help_menu;
 
-    QAction *about_action;
-    QAction *exit_action;
+    QAction *m_about_action;
+    QAction *m_size_to_fit_action;
+    QAction *m_exit_action;
   };
 
 }} // namespace vw::gui

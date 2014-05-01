@@ -42,57 +42,103 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
                        int transaction_id,
                        bool /*do_normalize*/,
                        po::variables_map const& vm) :
-  m_images(images), m_nodata_value(nodata_value), m_vm(vm) {
+  m_images(images), m_nodata_value(nodata_value),
+  m_widRatio(0.3), m_main_widget(NULL),
+  m_chooseFiles(NULL), m_vm(vm) {
 
-  // Set up the basic layout of the window and its menus
-  create_actions();
-  create_menus();
+  int windowWidX, windowWidY;
+  extractWindowDims(geom, windowWidX, windowWidY);
+  resize(windowWidX, windowWidY);
 
   // Set the window title and add tabs
   std::string window_title = "Vision Workbench Viewer";
   this->setWindowTitle(window_title.c_str());
 
-  // Set up MainWidget
-  m_preview_widget = new MainWidget(this, images,
-                                         transaction_id);
-  setCentralWidget(m_preview_widget);
+  // Set up the basic layout of the window and its menus.
+  create_menus();
 
-  int windowWidX, windowWidY;
-  extractWindowDims(geom, windowWidX, windowWidY);
-  resize(windowWidX, windowWidY);
+  if (images.size() > 1){
+
+    // Split the window into two, with the sidebar on the left
+    
+    QWidget * centralFrame;
+    centralFrame = new QWidget(this);
+    setCentralWidget(centralFrame);
+
+    QSplitter *splitter = new QSplitter(centralFrame);
+    m_chooseFiles = new chooseFilesDlg(this);
+    m_chooseFiles->setMaximumSize(int(m_widRatio*size().width()), size().height());
+    m_main_widget = new MainWidget(centralFrame, images, m_chooseFiles);
+    splitter->addWidget(m_chooseFiles);
+    splitter->addWidget(m_main_widget);
+
+    QGridLayout *layout = new QGridLayout(centralFrame);
+    layout->addWidget (splitter, 0, 0, 0);
+    centralFrame->setLayout (layout);
+  }else{
+    // Set up MainWidget
+    m_main_widget = new MainWidget(this, images, NULL);
+    setCentralWidget(m_main_widget);
+  }
+
 }
 
 //********************************************************************
 //                      MAIN WINDOW SETUP
 //********************************************************************
 
-void MainWindow::create_actions() {
-
-  // The About Box
-  about_action = new QAction(tr("About VWV"), this);
-  about_action->setStatusTip(tr("Show the Vision Workbench Viewere about box."));
-  connect(about_action, SIGNAL(triggered()), this, SLOT(about()));
+void MainWindow::create_menus() {
+  
+  QMenuBar* menu = menuBar();
 
   // Exit or Quit
-  exit_action = new QAction(tr("E&xit"), this);
-  exit_action->setShortcut(tr("Ctrl+Q"));
-  exit_action->setStatusTip(tr("Exit the application"));
-  connect(exit_action, SIGNAL(triggered()), this, SLOT(close()));
-}
+  m_exit_action = new QAction(tr("Exit"), this);
+  m_exit_action->setShortcut(tr("Q"));
+  m_exit_action->setStatusTip(tr("Exit the application"));
+  connect(m_exit_action, SIGNAL(triggered()), this, SLOT(forceQuit()));
 
-void MainWindow::create_menus() {
+  // Size to fit
+  m_size_to_fit_action = new QAction(tr("Size to fit"), this);
+  m_size_to_fit_action->setStatusTip(tr("Change the view to encompass the images."));
+  connect(m_size_to_fit_action, SIGNAL(triggered()), this, SLOT(size_to_fit()));
+  m_size_to_fit_action->setShortcut(tr("F"));
 
-  // File Menu
-  file_menu = menuBar()->addMenu(tr("&File"));
-  file_menu->addAction(exit_action);
+  // The About Box
+  m_about_action = new QAction(tr("About VWV"), this);
+  m_about_action->setStatusTip(tr("Show the Vision Workbench Viewer about box."));
+  connect(m_about_action, SIGNAL(triggered()), this, SLOT(about()));
 
-  // Edit Menu
-  edit_menu = menuBar()->addMenu(tr("&Edit"));
+  // File menu
+  m_file_menu = menu->addMenu(tr("&File"));
+  m_file_menu->addAction(m_exit_action);
+
+  // View menu
+  menu->addSeparator();
+  m_view_menu = menu->addMenu(tr("&View"));
+  m_view_menu->addAction(m_size_to_fit_action);
 
   // Help menu
-  menuBar()->addSeparator();
-  help_menu = menuBar()->addMenu(tr("&Help"));
-  help_menu->addAction(about_action);
+  menu->addSeparator();
+  m_help_menu = menu->addMenu(tr("&Help"));
+  m_help_menu->addAction(m_about_action);
+}
+
+void MainWindow::resizeEvent(QResizeEvent *){
+  if (m_chooseFiles)
+    m_chooseFiles->setMaximumSize(int(m_widRatio*size().width()), size().height());
+}
+
+void MainWindow::closeEvent(QCloseEvent *){
+  forceQuit();
+}
+
+void MainWindow::forceQuit(){
+  exit(0); // A fix for an older buggy version of Qt
+}
+
+void MainWindow::size_to_fit(){
+  if (m_main_widget)
+    m_main_widget->size_to_fit();
 }
 
 void MainWindow::about() {

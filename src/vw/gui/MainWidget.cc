@@ -21,6 +21,9 @@
 /// The Vision Workbench image viewer.
 ///
 
+#include <string>
+#include <vector>
+
 // Qt
 #include <QtGui>
 
@@ -30,6 +33,7 @@
 #include <vw/gui/MainWidget.h>
 using namespace vw;
 using namespace vw::gui;
+using namespace std;
 
 void imageData::read(std::string const& image){
   name = image;
@@ -88,15 +92,95 @@ QPoint vw::gui::Vec2QPoint(vw::Vector2 const& V) {
   return QPoint(round(V.x()), round(V.y()));
 }
 
+// Allow the user to choose which files to hide/show in the GUI.
+// User's choice will be processed by MainWidget::showFilesChosenByUser().
+chooseFilesDlg::chooseFilesDlg(QWidget * parent):
+  QWidget(parent){
+
+  setWindowModality(Qt::ApplicationModal); 
+
+  int spacing = 6;
+  
+  QVBoxLayout * vBoxLayout = new QVBoxLayout(this);
+  vBoxLayout->setSpacing(spacing);
+  vBoxLayout->setAlignment(Qt::AlignLeft);
+
+  // The layout having the file names. It will be filled in
+  // dynamically later.
+  m_filesTable = new QTableWidget();
+
+  m_filesTable->horizontalHeader()->hide();
+  m_filesTable->verticalHeader()->hide();
+    
+  vBoxLayout->addWidget(m_filesTable);
+
+  return;
+}
+
+chooseFilesDlg::~chooseFilesDlg(){}
+
+void chooseFilesDlg::chooseFiles(const std::vector<imageData> & images){
+
+  // See the top of this file for documentation.
+  
+  int numFiles = images.size();
+  int numCols = 2;
+  m_filesTable->setRowCount(numFiles);
+  m_filesTable->setColumnCount(numCols);
+
+  for (int fileIter = 0; fileIter < numFiles; fileIter++){
+
+    QTableWidgetItem *item;    
+    item = new QTableWidgetItem(1);
+    item->data(Qt::CheckStateRole);
+    item->setCheckState(Qt::Checked);
+    m_filesTable->setItem(fileIter, 0, item);
+    
+    string fileName = images[fileIter].name;
+    item = new QTableWidgetItem(fileName.c_str());
+    item->setFlags(Qt::NoItemFlags);
+    item->setForeground(QColor::fromRgb(0,0,0));
+    m_filesTable->setItem(fileIter, numCols - 1, item);
+    
+  }
+  
+  QStringList rowNamesList;
+  for (int fileIter = 0; fileIter < numFiles; fileIter++) rowNamesList << "";
+  m_filesTable->setVerticalHeaderLabels(rowNamesList);
+
+  QStringList colNamesList;
+  for (int colIter = 0; colIter < numCols; colIter++) colNamesList << "";
+  m_filesTable->setHorizontalHeaderLabels(colNamesList);
+  QTableWidgetItem * hs = m_filesTable->horizontalHeaderItem(0);
+  hs->setBackground(QBrush(QColor("lightgray")));
+  
+  m_filesTable->setSelectionMode(QTableWidget::ExtendedSelection);
+  string style = string("QTableWidget::indicator:unchecked ")
+    + "{background-color:white; border: 1px solid black;}; " +
+    "selection-background-color: rgba(128, 128, 128, 40);";
+
+  m_filesTable->setSelectionMode(QTableWidget::NoSelection);
+
+  m_filesTable->setStyleSheet(style.c_str());
+  m_filesTable->resizeColumnsToContents();
+  m_filesTable->resizeRowsToContents();
+  
+  // The processing of user's choice happens in MainWidget::showFilesChosenByUser()
+  
+  return;
+}
+
+
 // --------------------------------------------------------------
 //               MainWidget Public Methods
 // --------------------------------------------------------------
 
 MainWidget::MainWidget(QWidget *parent,
-                                 std::vector<std::string> const& images,
-                                 int transaction_id)
-  : QWidget(parent)
-{
+                       std::vector<std::string> const& images,
+                       chooseFilesDlg * chooseFiles)
+  : QWidget(parent), m_chooseFilesDlg(chooseFiles){
+
+  installEventFilter(this);
 
   // Set default values
   m_nodata_value = 0;
@@ -117,8 +201,6 @@ MainWidget::MainWidget(QWidget *parent,
   m_gain = 1.0;
   m_offset = 0.0;
   m_gamma = 1.0;
-  m_current_transaction_id = transaction_id;
-  m_exact_transaction_id_match = false;
 
   // Set mouse tracking
   this->setMouseTracking(true);
@@ -135,6 +217,16 @@ MainWidget::MainWidget(QWidget *parent,
     m_images[i].read(images[i]);
     m_images_box.grow(bounding_box(m_images[i].img));
   }
+
+  // Choose which files to hide/show in the GUI
+  if (m_chooseFilesDlg){
+    QObject::connect(m_chooseFilesDlg->getFilesTable(),
+                     SIGNAL(itemClicked(QTableWidgetItem *)),
+                     this,
+                     SLOT(showFilesChosenByUser())
+                     );
+    m_chooseFilesDlg->chooseFiles(m_images);
+  }
   
   size_to_fit();
 }
@@ -142,6 +234,36 @@ MainWidget::MainWidget(QWidget *parent,
 
 MainWidget::~MainWidget() {
 }
+
+bool MainWidget::eventFilter(QObject *obj, QEvent *E){
+  return QWidget::eventFilter(obj, E);
+}
+
+void MainWidget::showFilesChosenByUser(){
+  
+  // Process user's choice from m_chooseFilesDlg.
+
+  if (!m_chooseFilesDlg)
+    return;
+
+  m_filesToHide.clear();
+  QTableWidget * filesTable = m_chooseFilesDlg->getFilesTable();
+  int rows = filesTable->rowCount();
+
+  for (int rowIter = 0; rowIter < rows; rowIter++){
+    QTableWidgetItem *item = filesTable->item(rowIter, 0);
+    if (item->checkState() != Qt::Checked){
+      string fileName
+        = (filesTable->item(rowIter, 1)->data(0)).toString().toStdString();
+      m_filesToHide.insert(fileName);
+    }
+  }
+  
+  update();
+  
+  return;
+}
+
 
 void MainWidget::size_to_fit() {
   double aspect = double(m_window_width) / m_window_height;
@@ -190,6 +312,10 @@ void MainWidget::drawImage(QPainter* paint) {
 
   // The portion of the image to draw
   for (int i = 0; i < (int)m_images.size(); i++){
+
+    // Don't show files the user wants hidden
+    string fileName = m_images[i].name;
+    if (m_filesToHide.find(fileName) != m_filesToHide.end()) continue;
     
     BBox2i image_box = m_current_viewport;
     image_box.crop(bounding_box(m_images[i].img));
@@ -375,11 +501,6 @@ void MainWidget::keyPressEvent(QKeyEvent *event) {
   std::ostringstream s;
 
   switch (event->key()) {
-  case Qt::Key_Plus:   // Increase transaction id
-  case Qt::Key_Minus:  // Decrease transaction id
-  case Qt::Key_F:  // Size to fit
-    size_to_fit();
-    break;
   case Qt::Key_I:  // Toggle bilinear/nearest neighbor interp
     m_bilinear_filter = !m_bilinear_filter;
     break;
