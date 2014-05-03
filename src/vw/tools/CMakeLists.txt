@@ -1,35 +1,7 @@
 
 # --- Bayer application --------------------------------------------
 
-# TODO: Don't just use this for all tools
-set(FULL_LIBRARY_LIST
-	${LAPACK_LIBRARIES} 
-	${JPEG_LIBRARIES} 
-	${GDAL_LIBRARY}
-	${PROJ4_LIBRARY}
-	${OPENEXR_LIBRARIES}
-	${OPENCV_LIBRARIES}
-	${PROTOBUF_LIBRARY}
-    ${SigC++_LIBRARIES}
-	${CAIRO_LIBRARIES}
-	${CAIROMM_LIBRARIES}
-	VwBundleAdjustment
-    VwCamera
-    VwCartography
-    VwCore   
-    VwFileIO
-    VwGeometry
-    #VwGpu
-    #VwGui
-    VwHdr
-    VwImage
-    VwInterestPoint
-    VwMath
-    VwMosaic
-    #VwPlate
-    VwStereo
-	${Boost_LIBRARIES} 
-)
+
 
 #message(${FULL_LIBRARY_LIST})
 
@@ -58,10 +30,10 @@ target_link_libraries(contourgen ${FULL_LIBRARY_LIST})
 add_executable(correlate correlate.cc) 
 target_link_libraries(correlate ${FULL_LIBRARY_LIST}) 
 
-# TODO: This is build with multiple PIXEL_TYPE and CHANNEL_TYPE inputs!
+# TODO: This is built with multiple PIXEL_TYPE and CHANNEL_TYPE inputs!
 # Creates a blended composite from multiple georeferenced images
-add_executable(geoblend geoblend.cc geoblend.h geoblend_help.cc Common.h Common.cc) 
-target_link_libraries(geoblend ${FULL_LIBRARY_LIST}) 
+#add_executable(geoblend geoblend.cc geoblend.h geoblend_help.cc Common.h Common.cc) 
+#target_link_libraries(geoblend ${FULL_LIBRARY_LIST}) 
 
 # Adds or adjusts an image's georeferencing information
 add_executable(georef georef.cc) 
@@ -89,8 +61,8 @@ target_link_libraries(hillshade ${FULL_LIBRARY_LIST})
 
 #TODO: Replicate multi-library thing?
 # Generates a quadtree of some sort from a georeferenced image
-add_executable(image2qtree image2qtree.cc image2qtree_help.cc) 
-target_link_libraries(image2qtree ${FULL_LIBRARY_LIST}) 
+#add_executable(image2qtree image2qtree.cc image2qtree_help.cc) 
+#target_link_libraries(image2qtree ${FULL_LIBRARY_LIST}) 
 
 # Creates a TOAST quadtree from multiple georeferenced images
 add_executable(image2toast image2toast.cc) 
@@ -116,7 +88,7 @@ add_executable(print_exif print_exif.cc)
 target_link_libraries(print_exif ${FULL_LIBRARY_LIST}) 
 
 # Calculates aspect and gradient angle for DEM
-add_executable(slopemap slopemap.cc) 
+add_executable(slopemap slopemap.cc Common.h Common.cc) 
 target_link_libraries(slopemap ${FULL_LIBRARY_LIST}) 
 
 

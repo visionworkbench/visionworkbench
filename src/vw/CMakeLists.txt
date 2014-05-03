@@ -236,6 +236,15 @@ if(CAIROMM_FOUND)
   include_directories("${CAIROMM_INCLUDE_DIR}")
 endif()
 
+# TODO: GTEST is included with the source and needs to be built!
+#set(GTEST_ROOT ${BASESYSTEM_INSTALL_DIR})
+#find_package(GTest REQUIRED)
+#if(GTEST_FOUND)
+#  message("Found GTest")
+#  include_directories(${GTEST_INCLUDE_DIR})
+#endif()
+
+
 #TODO: Look for each of these installations!
 set(HAVE_PKG_HDF)
 set(HAVE_PKG_RABBITMQ_C)
@@ -342,6 +351,39 @@ set(VW_MOSAIC_LIB_DEPENDENCIES VwMath)
 get_all_source_files( "Stereo"       VW_STEREO_SRC_FILES)
 get_all_source_files( "Stereo/tests" VW_STEREO_TEST_FILES)
 set(VW_STEREO_LIB_DEPENDENCIES VwMath)
+
+#=========================================================================
+
+
+# TODO: Don't just use this for all tools
+set(FULL_LIBRARY_LIST
+	${LAPACK_LIBRARIES} 
+	${JPEG_LIBRARIES} 
+	${GDAL_LIBRARY}
+	${PROJ4_LIBRARY}
+	${OPENEXR_LIBRARIES}
+	${OPENCV_LIBRARIES}
+	${PROTOBUF_LIBRARY}
+    ${SigC++_LIBRARIES}
+	${CAIRO_LIBRARIES}
+	${CAIROMM_LIBRARIES}
+	VwBundleAdjustment
+    VwCamera
+    VwCartography
+    VwCore   
+    VwFileIO
+    VwGeometry
+    #VwGpu
+    #VwGui
+    VwHdr
+    VwImage
+    VwInterestPoint
+    VwMath
+    VwMosaic
+    #VwPlate
+    VwStereo
+	${Boost_LIBRARIES} 
+)
 
 
 
