@@ -46,8 +46,7 @@ namespace gui {
 
   public:
     MainWindow(std::vector<std::string> const& images, std::string const& geom,
-               float nodata_value, int transaction_id,
-               bool do_normalize, boost::program_options::variables_map const& vm);
+               bool ignore_georef);
     virtual ~MainWindow() {}
 
   private slots:
@@ -66,11 +65,9 @@ namespace gui {
     void closeEvent (QCloseEvent *);
 
     std::vector<std::string> m_images;
-    float            m_nodata_value;
     double           m_widRatio;    // ratio of sidebar to entire win wid
     MainWidget     * m_main_widget; 
     chooseFilesDlg * m_chooseFiles; // left sidebar for selecting files
-    boost::program_options::variables_map const& m_vm;
 
     QMenu *m_file_menu;
     QMenu *m_view_menu;

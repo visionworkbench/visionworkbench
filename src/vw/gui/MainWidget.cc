@@ -35,9 +35,19 @@ using namespace vw;
 using namespace vw::gui;
 using namespace std;
 
-void imageData::read(std::string const& image){
+void imageData::read(std::string const& image, bool ignore_georef){
   name = image;
   img = DiskImageView<float>(name);
+
+  if (ignore_georef)
+    has_georef = false;
+  else
+    has_georef = vw::cartography::read_georeference(georef, name);
+    
+  if (has_georef)
+    bbox = georef.lonlat_bounding_box(img); // lonlat box
+  else
+    bbox = bounding_box(img);               // pixel box
 
   boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(name));
   ChannelTypeEnum channel_type = rsrc->channel_type();
@@ -77,7 +87,7 @@ void imageData::read(std::string const& image){
       for (int col = 0; col < img.cols(); col++){
         for (int row = 0; row < img.rows(); row++){
           img(col, row) = round(255*(std::max(double(img(col, row)), mn)
-                                       - mn)/(mx-mn));
+                                     - mn)/(mx-mn));
         }
       }
     }
@@ -99,7 +109,7 @@ chooseFilesDlg::chooseFilesDlg(QWidget * parent):
 
   setWindowModality(Qt::ApplicationModal); 
 
-  int spacing = 6;
+  int spacing = 0;
   
   QVBoxLayout * vBoxLayout = new QVBoxLayout(this);
   vBoxLayout->setSpacing(spacing);
@@ -177,7 +187,9 @@ void chooseFilesDlg::chooseFiles(const std::vector<imageData> & images){
 
 MainWidget::MainWidget(QWidget *parent,
                        std::vector<std::string> const& images,
-                       chooseFilesDlg * chooseFiles)
+                       chooseFilesDlg * chooseFiles,
+                       bool ignore_georef
+                       )
   : QWidget(parent), m_chooseFilesDlg(chooseFiles){
 
   installEventFilter(this);
@@ -210,14 +222,13 @@ MainWidget::MainWidget(QWidget *parent,
   this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
   this->setFocusPolicy(Qt::ClickFocus);
 
-
   int num_images = images.size();
   m_images.resize(num_images);
   for (int i = 0; i < num_images; i++){
-    m_images[i].read(images[i]);
-    m_images_box.grow(bounding_box(m_images[i].img));
+    m_images[i].read(images[i], ignore_georef);
+    m_images_box.grow(m_images[i].bbox);
   }
-
+  
   // Choose which files to hide/show in the GUI
   if (m_chooseFilesDlg){
     QObject::connect(m_chooseFilesDlg->getFilesTable(),
@@ -228,7 +239,6 @@ MainWidget::MainWidget(QWidget *parent,
     m_chooseFilesDlg->chooseFiles(m_images);
   }
   
-  size_to_fit();
 }
 
 
@@ -267,30 +277,35 @@ void MainWidget::showFilesChosenByUser(){
 
 void MainWidget::size_to_fit() {
   double aspect = double(m_window_width) / m_window_height;
-  int maxdim = std::max(m_images_box.width(),m_images_box.height());
+  double maxdim = std::max(m_images_box.width(),m_images_box.height());
   if (m_images_box.width() > m_images_box.height()) {
     double width = maxdim;
     double height = maxdim/aspect;
     double extra = height - m_images_box.height();
-    m_current_viewport = BBox2(Vector2(0.0, -extra/2),
-                                Vector2(width, height-extra/2));
+    m_current_view = BBox2(Vector2(0.0, -extra/2),
+                           Vector2(width, height-extra/2));
   } else {
     double width = maxdim*aspect;
     double height = maxdim;
     double extra = width - m_images_box.width();
-    m_current_viewport = BBox2(Vector2(-extra/2, 0.0),
-                                Vector2(width-extra/2, height));
+    m_current_view = BBox2(Vector2(-extra/2, 0.0),
+                           Vector2(width-extra/2, height));
   }
+
+  // So far we just found the width and height of the current view.
+  // Now place it in the right location.
+  m_current_view += m_images_box.min();
+  
   update();
 }
 
 void MainWidget::zoom(double scale) {
   // Check to make sure we haven't hit our zoom limits...
-  if (m_current_viewport.width()/scale > 1.0 &&
-      m_current_viewport.height()/scale > 1.0 &&
-      m_current_viewport.width()/scale < 20*m_images_box.width() &&
-      m_current_viewport.height()/scale < 20*m_images_box.height()) {
-    m_current_viewport = (m_current_viewport - m_curr_world_pos) / scale + m_curr_world_pos;
+  if (m_current_view.width()/scale > 1.0 &&
+      m_current_view.height()/scale > 1.0 &&
+      m_current_view.width()/scale < 20*m_images_box.width() &&
+      m_current_view.height()/scale < 20*m_images_box.height()) {
+    m_current_view = (m_current_view - m_curr_world_pos) / scale + m_curr_world_pos;
   }
   update(); // will call paintEvent()
 }
@@ -317,48 +332,85 @@ void MainWidget::drawImage(QPainter* paint) {
     string fileName = m_images[i].name;
     if (m_filesToHide.find(fileName) != m_filesToHide.end()) continue;
     
-    BBox2i image_box = m_current_viewport;
-    image_box.crop(bounding_box(m_images[i].img));
+    BBox2 image_box = m_current_view;
+    image_box.crop(m_images[i].bbox);
     
     // See where it fits on the screen
     BBox2i pixel_box;
-    pixel_box.grow(world2pixel(image_box.min()));
-    pixel_box.grow(world2pixel(image_box.max()));
+    pixel_box.grow(round(world2pixel(image_box.min())));
+    pixel_box.grow(round(world2pixel(image_box.max())));
     
-    ImageView<float> img = crop(m_images[i].img, image_box);
-    QImage qimg(img.cols(), img.rows(), QImage::Format_RGB888);
-    for (int x = 0; x < img.cols(); ++x) {
-      for (int y = 0; y < img.rows(); ++y) {
-        qimg.setPixel(x, y, qRgb(img(x, y), img(x, y), img(x, y)));
+    QImage qimg;
+    if (m_images[i].has_georef){
+      // image_box is in lonlat domain. Go from screen pixels
+      // to lonlat, then to image pixels. We need to do a flip in
+      // y since in lonlat space the origin is in lower-left corner.
+      
+      ImageView<float> & img = m_images[i].img;
+      qimg = QImage(pixel_box.width(), pixel_box.height(), QImage::Format_RGB888);
+      int len = pixel_box.max().y() - pixel_box.min().y() - 1;
+      for (int x = pixel_box.min().x(); x < pixel_box.max().x(); x++){
+        for (int y = pixel_box.min().y(); y < pixel_box.max().y(); y++){
+          Vector2 lonlat = pixel2world(Vector2(x, y));
+          Vector2 p = round(m_images[i].georef.lonlat_to_pixel(lonlat));
+          if (p[0] >= 0 && p[0] < img.cols() &&
+              p[1] >= 0 && p[1] < img.rows() ){
+            float v = img(p[0], p[1]); // is it better to interp?
+            qimg.setPixel(x-pixel_box.min().x(),
+                          len - (y-pixel_box.min().y()), // flip pixels in y
+                          qRgb(v, v, v));
+          }
+        }
       }
-    }
+
+      // flip pixel box in y
+      QRect v = this->geometry();
+      int a = pixel_box.min().y() - v.y();
+      int b = v.y() + v.height() - pixel_box.max().y();
+      pixel_box.min().y() = pixel_box.min().y() + b - a;
+      pixel_box.max().y() = pixel_box.max().y() + b - a;
+
+      QRect rect(pixel_box.min().x(),
+                 pixel_box.min().y(),
+                 pixel_box.width(), pixel_box.height());
+      paint->drawImage (rect, qimg);
+      
+    }else{
+      // image_box is in image pixel domain.
+      ImageView<float> img = crop(m_images[i].img, image_box);
+      qimg = QImage(img.cols(), img.rows(), QImage::Format_RGB888);
+      for (int x = 0; x < img.cols(); x++) {
+        for (int y = 0; y < img.rows(); y++) {
+          qimg.setPixel(x, y, qRgb(img(x, y), img(x, y), img(x, y)));
+        }
+      }
     
-    QRect rect(pixel_box.min().x(), pixel_box.min().y(),
-               pixel_box.width(), pixel_box.height());
-    paint->drawImage (rect, qimg);
+      QRect rect(pixel_box.min().x(), pixel_box.min().y(),
+                 pixel_box.width(), pixel_box.height());
+      paint->drawImage (rect, qimg);
+    }
   }
   
   return;
-    
 }
 
 vw::Vector2 MainWidget::world2pixel(vw::Vector2 const& p){
   // Convert a position in the world coordinate system to a pixel value,
   // relative to the image seen on screen (the origin is an image corner).
-  double x = m_window_width*((p.x() - m_current_viewport.min().x())
-                             /m_current_viewport.width());
-  double y = m_window_height*((p.y() - m_current_viewport.min().y())
-                              /m_current_viewport.height());
-  return vw::Vector2(round(x), round(y));
+  double x = m_window_width*((p.x() - m_current_view.min().x())
+                             /m_current_view.width());
+  double y = m_window_height*((p.y() - m_current_view.min().y())
+                              /m_current_view.height());
+  return vw::Vector2(x, y);
 }
 
 vw::Vector2 MainWidget::pixel2world(vw::Vector2 const& pix){
   // Convert a pixel on the screen (the origin is an image corner),
   // to global world coordinates.
-  double x = m_current_viewport.min().x()
-    + m_current_viewport.width() * double(pix.x()) / m_window_width;
-  double y = m_current_viewport.min().y()
-    + m_current_viewport.height() * double(pix.y()) / m_window_height;
+  double x = m_current_view.min().x()
+    + m_current_view.width() * double(pix.x()) / m_window_width;
+  double y = m_current_view.min().y()
+    + m_current_view.height() * double(pix.y()) / m_window_height;
   return vw::Vector2(x, y);
 }
 
@@ -382,8 +434,8 @@ void MainWidget::mousePressEvent(QMouseEvent *event) {
   m_last_gain = m_gain;     // Store this so the user can do linear
   m_last_offset = m_offset; // and nonlinear steps.
   m_last_gamma = m_gamma;
-  m_last_viewport_min = QPoint( m_current_viewport.min().x(),
-                                m_current_viewport.min().y() );
+  m_last_viewport_min = QPoint( m_current_view.min().x(),
+                                m_current_view.min().y() );
   updateCurrentMousePosition();
 }
 
@@ -400,8 +452,8 @@ void MainWidget::mouseReleaseEvent ( QMouseEvent *event ){
     return;
   }
 
-  m_current_viewport -= (pixel2world(QPoint2Vec(event->pos())) -
-                         pixel2world(QPoint2Vec(m_mouse_press_pos)));
+  m_current_view -= (pixel2world(QPoint2Vec(event->pos())) -
+                     pixel2world(QPoint2Vec(m_mouse_press_pos)));
 
   update(); // will call paintEvent()
   
@@ -413,8 +465,8 @@ void MainWidget::mouseMoveEvent(QMouseEvent *event) {
   // 0.0-1.0;
   double x_diff = double(event->x() - m_curr_pixel_pos.x()) / m_window_width;
   double y_diff = double(event->y() - m_curr_pixel_pos.y()) / m_window_height;
-  double width = m_current_viewport.width();
-  double height = m_current_viewport.height();
+  double width = m_current_view.width();
+  double height = m_current_view.height();
 
   // Right mouse button just kicks up the gain of all mouse actions
   if (event->buttons() & Qt::LeftButton || event->buttons() & Qt::RightButton) {
@@ -430,13 +482,13 @@ void MainWidget::mouseMoveEvent(QMouseEvent *event) {
     case NoAdjustment:
       break;
     case TransformAdjustment:
-      m_current_viewport.min().x() =
+      m_current_view.min().x() =
         m_last_viewport_min.x() - x_diff * width;
-      m_current_viewport.min().y() =
+      m_current_view.min().y() =
         m_last_viewport_min.y() - y_diff * height;
-      m_current_viewport.max().x() =
+      m_current_view.max().x() =
         m_last_viewport_min.x() - x_diff * width + width;
-      m_current_viewport.max().y() =
+      m_current_view.max().y() =
         m_last_viewport_min.y() - y_diff * height + height;
       break;
 

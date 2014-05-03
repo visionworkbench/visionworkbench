@@ -26,7 +26,7 @@ CLEANFILES = *.moc.cc
 if ENABLE_EXCEPTIONS
 
 noinst_HEADERS =                \
-  MainWidget.h             \
+  MainWidget.h                  \
   ImageTileGenerator.h          \
   MainWindow.h                  \
   PlatefileTileGenerator.h      \
@@ -39,7 +39,7 @@ noinst_HEADERS =                \
 
 vwv_SOURCES =                   \
   $(BUILT_SOURCES)              \
-  MainWidget.cc            \
+  MainWidget.cc                 \
   ImageTileGenerator.cc         \
   MainWindow.cc                 \
   TestPatternTileGenerator.cc   \
@@ -49,10 +49,10 @@ vwv_SOURCES =                   \
   vwv.cc
 
 BUILT_SOURCES =                 \
-  MainWidget.moc.cc        \
+  MainWidget.moc.cc             \
   MainWindow.moc.cc
 
-vwv_LDADD    = @PKG_GUI_LIBS@
+vwv_LDADD    = @PKG_GUI_LIBS@ @PKG_CARTOGRAPHY_LIBS@
 
 if MAKE_MODULE_PLATE
   vwv_LDADD += @PKG_PLATE_LIBS@

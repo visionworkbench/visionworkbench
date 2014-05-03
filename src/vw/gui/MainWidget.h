@@ -39,6 +39,7 @@
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Math/BBox.h>
 #include <vw/Math/Vector.h>
+#include <vw/Cartography/GeoReference.h>
 
 // STL
 #include <string>
@@ -58,8 +59,11 @@ namespace gui {
   // A class to keep all data associated with an image file
   struct imageData{
     std::string name;
+    bool has_georef;
+    vw::cartography::GeoReference georef;
+    BBox2 bbox;
     ImageView<float> img;
-    void read(std::string const& image);
+    void read(std::string const& image, bool ignore_georef);
   };
   
   vw::Vector2 QPoint2Vec(QPoint const& qpt);
@@ -112,7 +116,7 @@ namespace gui {
 
     // Constructors/Destructor
     MainWidget(QWidget *parent, std::vector<std::string> const& images,
-                    chooseFilesDlg * chooseFiles);
+               chooseFilesDlg * chooseFiles, bool ignore_georef);
     virtual ~MainWidget();
 
     // Set a default size for this widget.  This is usually overridden
@@ -160,7 +164,7 @@ namespace gui {
     bool m_show_tile_boundaries;
 
     std::vector<imageData> m_images;
-    BBox2i m_images_box;
+    BBox2 m_images_box;
     
     PixelRGBA<float> m_last_pixel_sample;
 
@@ -183,7 +187,7 @@ namespace gui {
     int m_use_nodata;
 
     // Image Parameters
-    vw::BBox2 m_current_viewport;
+    vw::BBox2 m_current_view;
     double m_gain, m_last_gain;
     double m_offset, m_last_offset;
     double m_gamma, m_last_gamma;

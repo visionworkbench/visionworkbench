@@ -38,13 +38,9 @@ namespace po = boost::program_options;
 
 MainWindow::MainWindow(std::vector<std::string> const& images,
                        std::string const& geom,
-                       float nodata_value,
-                       int transaction_id,
-                       bool /*do_normalize*/,
-                       po::variables_map const& vm) :
-  m_images(images), m_nodata_value(nodata_value),
-  m_widRatio(0.3), m_main_widget(NULL),
-  m_chooseFiles(NULL), m_vm(vm) {
+                       bool ignore_georef) :
+  m_images(images), m_widRatio(0.3), m_main_widget(NULL),
+  m_chooseFiles(NULL) {
 
   int windowWidX, windowWidY;
   extractWindowDims(geom, windowWidX, windowWidY);
@@ -68,7 +64,8 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
     QSplitter *splitter = new QSplitter(centralFrame);
     m_chooseFiles = new chooseFilesDlg(this);
     m_chooseFiles->setMaximumSize(int(m_widRatio*size().width()), size().height());
-    m_main_widget = new MainWidget(centralFrame, images, m_chooseFiles);
+    m_main_widget = new MainWidget(centralFrame, images, m_chooseFiles,
+                                   ignore_georef);
     splitter->addWidget(m_chooseFiles);
     splitter->addWidget(m_main_widget);
 
@@ -77,7 +74,7 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
     centralFrame->setLayout (layout);
   }else{
     // Set up MainWidget
-    m_main_widget = new MainWidget(this, images, NULL);
+    m_main_widget = new MainWidget(this, images, NULL, ignore_georef);
     setCentralWidget(m_main_widget);
   }
 
