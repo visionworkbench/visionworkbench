@@ -487,6 +487,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
       Vector6f d;
       d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
       d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
+      float *dPtr = &(d[0]);
 
       // Compute the derivative image patches
       CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
@@ -533,6 +534,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
         float in_curr_sum_I_e_val = 0.0;
         Vector6f d_em;
         d_em = d;
+        float *d_emPtr = &(d_em[0]);
 
         for (unsigned em_iter=0; em_iter < M_MAX_EM_ITER; em_iter++){
           float noise_norm_factor = 1.0/sqrt(2*M_PI*var2_noise);
@@ -568,13 +570,13 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
             for (int32 ii = -kern_half_width; ii <= kern_half_width; ++ii) {
               // First we compute the pixel offset for the right image
               // and the error for the current pixel.
-              float xx      = d[0]    * ii + xx_partial;
-              float yy      = d[3]    * ii + yy_partial;
-              float delta_x = d_em[0] * ii + delta_x_partial;
-              float delta_y = d_em[3] * ii + delta_y_partial;
+              float xx      = dPtr   [0] * ii + xx_partial;
+              float yy      = dPtr   [3] * ii + yy_partial;
+              float delta_x = d_emPtr[0] * ii + delta_x_partial;
+              float delta_y = d_emPtr[3] * ii + delta_y_partial;
 
               /// Expectation
-              ChannelT interpreted_px = right_interp_image(xx,yy);
+              ChannelT interpreted_px = right_interp_image(xx,yy);  // 10% of function time is spent in this call, 6% performing bounds checking.
               float I_e_val = interpreted_px - (*left_image_patch_ptr);
               in_curr_sum_I_e_val += I_e_val;
               float temp_plane     = I_e_val - delta_x*(*I_x_ptr) - delta_y*(*I_y_ptr);
@@ -583,6 +585,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
               float plane_prob     = (plane_prob_exp < -75) ? 0.0f : plane_norm_factor * exp(plane_prob_exp);
               float noise_prob_exp = -1*(temp_noise*temp_noise)/(2*var2_noise);
               float noise_prob     = (noise_prob_exp < -75) ? 0.0f : noise_norm_factor * exp(noise_prob_exp);
+              // 40% of function time is spent on the two exp() calls
 
               float sum         = plane_prob*w_plane + noise_prob*w_noise;
               float gamma_plane = plane_prob*w_plane/sum;
@@ -821,7 +824,7 @@ subpixel_optimized_affine_2d_EM(ImageView<PixelMask<Vector2f> > &disparity_map,
 
 
 /// Affine subpixel correlation function
-/// - Similar to the _em function but faster and less accurate.
+/// - Similar to the _em function but about 5X faster and less accurate.
 template<class ChannelT> void
 subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                              ImageView<ChannelT> const& left_image,
@@ -905,7 +908,7 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
       Vector6f d;
       d(0) = 1.0; d(1) = 0.0; d(2) = 0.0;
       d(3) = 0.0; d(4) = 1.0; d(5) = 0.0;
-      float *dPtr = &(d[0]);
+      float *dPtr = &(d[0]); // Raw data pointer access to avoid inlining failure
 
       // Compute the derivative image patches
       CropView<ImageView<ChannelT> > left_image_patch = crop(left_image, current_window);
@@ -922,8 +925,8 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         continue;
       }
 
-      float curr_sum_I_e_val = 0.0;
-      float prev_sum_I_e_val = 0.0;
+      //float curr_sum_I_e_val = 0.0;
+      //float prev_sum_I_e_val = 0.0;
 
       // Iterate until a solution is found or the max number of
       // iterations is reached.
@@ -938,14 +941,15 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         float x_base = x + disparity_map(x,y)[0];
         float y_base = y + disparity_map(x,y)[1];
 
+        //curr_sum_I_e_val = 0.0;
+        
         Matrix6x6f rhs;
-        Vector6f lhs, prev_lhs;
-
-        curr_sum_I_e_val = 0.0;
+        Vector6f lhs;
 
 
         // Compute the outer range of xx and yy values and determine if everything will
         // fall within the bounds of right_interp_image
+        // - If everything is safely in bounds, we can skip bounds checking in the main pixel loop below.
         float xVals[4], yVals[4];
         xVals[0] = dPtr[0]*(-kern_half_width) + dPtr[1]*  kern_half_height  + dPtr[2];
         yVals[0] = dPtr[3]*(-kern_half_width) + dPtr[4]*  kern_half_height  + dPtr[5];
@@ -956,12 +960,12 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         xVals[3] = dPtr[0]*  kern_half_width  + dPtr[1]*  kern_half_height  + dPtr[2];
         yVals[3] = dPtr[3]*  kern_half_width  + dPtr[4]*  kern_half_height  + dPtr[5];
         bool use_unsafe_interp = true;
-        const float SAFETY_BUFFER = (kern_half_width + kern_half_height)/2.0;
+        const float SAFETY_BUFFER = kern_half_width + kern_half_height; // Extra buffer to make sure we stay in bounds
         float minCol = -x_base + SAFETY_BUFFER;
         float maxCol = right_image.cols() - x_base - SAFETY_BUFFER;
         float minRow = -y_base + SAFETY_BUFFER;
         float maxRow = right_image.rows() - y_base - SAFETY_BUFFER;
-        for (int i=0; i<4; ++i) {
+        for (int i=0; i<4; ++i) { // If each corner of the kernel is in the safe bounds we should be safe
           if ( (xVals[i] >= maxCol) || (xVals[i] <= minCol) ||
                (yVals[i] >= maxRow) || (yVals[i] <= minRow)   ) {
             use_unsafe_interp = false;
@@ -989,7 +993,7 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
             float xx = dPtr[0] * ii + xx_partial;
             float yy = dPtr[3] * ii + yy_partial;
 
-            //TODO: Can we avoid using an edge extension view here?
+            // Avoid using the edge-extension view when possible.
             ChannelT interpreted_px;
             if (use_unsafe_interp)
               interpreted_px = right_interp_image_unsafe(xx,yy);
@@ -997,11 +1001,10 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
               interpreted_px = right_interp_image(xx,yy);
             float I_e_val = interpreted_px - (*left_image_patch_ptr);
             
-            //TODO: Does this work? Copied from CorrelateResearch.tcc
-        
+            
             // Apply the robust cost function.  We use a cauchy
             // function to gently remove outliers for small errors.
-            float thresh = 1e-4;
+            //float thresh = 1e-4;
 
             // Cauchy seems to work well with thresh ~= 1e-4
             //float error_value   = fabsf(I_e_val);
@@ -1045,9 +1048,8 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
             multipliers[1] = ii*jj;
             multipliers[2] = jj*jj;
 
-            float* rhsData = rhs.data(); // TEST: Access RHS by raw data pointer
+            float* rhsData = rhs.data(); // Access RHS by raw data pointer to avoid inlining failure
             
-
             // Right Hand Side UL
             rhsData[ 0] += multipliers[0] * I_x_sqr;
             rhsData[ 1] += multipliers[1] * I_x_sqr;
@@ -1072,7 +1074,7 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
             rhsData[29] += jj    * I_y_sqr;
             rhsData[35] +=         I_y_sqr;
 
-/*            
+/*          For some reason these function calls are not being inlined!!!
             // Right Hand Side UL
             rhs(0,0) += multipliers[0] * I_x_sqr;
             rhs(0,1) += multipliers[1] * I_x_sqr;
@@ -1128,19 +1130,14 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
         //Termination
-        //float conv_error = norm_2(prev_lhs - lhs);
-        //d_em = d + lhs;
         //if (in_curr_sum_I_e_val < 0)
         //  in_curr_sum_I_e_val = - in_curr_sum_I_e_val;
 
         //curr_sum_I_e_val = in_curr_sum_I_e_val;
-        //prev_lhs = lhs;
 
         d += lhs; // Update the affine transform
         //if (curr_sum_I_e_val < 0)
         //  curr_sum_I_e_val = - curr_sum_I_e_val;
-
-        //TODO: Clean up termination conditions and pull out constants!
 
         // Termination condition
         // - Quit if the change in the affine transform is tiny
@@ -1182,19 +1179,8 @@ subpixel_optimized_affine_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /// Lucas-Kanade subpixel correlation function
+/// - So far this one does not work that well.
 template<class ChannelT> void
 subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
                          ImageView<ChannelT> const& left_image,
@@ -1301,9 +1287,6 @@ subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         CropViewTAcc left_image_patch_row = left_image_patch.origin();
         ImageViewFAcc w_row = w.origin();
 
-        // Counts pixels skipped on evaluation.
-        int32 skip = 0;
-
         // Perform loop that does Expectation and Maximization in one go
         for (int32 jj = -kern_half_height; jj <= kern_half_height; ++jj) {
         
@@ -1324,29 +1307,13 @@ subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
             ChannelT interpreted_px = right_interp_image(xx,yy);
             float I_e_val = interpreted_px - (*left_image_patch_ptr);
             
-            //TODO: Does this work? Copied from CorrelateResearch.tcc
-        
-            // Apply the robust cost function.  We use a cauchy
-            // function to gently remove outliers for small errors.
-            float thresh = 1e-4;
-
-            // Cauchy seems to work well with thresh ~= 1e-4
-            float error_value   = fabsf(I_e_val);
-            float robust_weight = sqrtf(detail::cauchy_robust_coefficient(error_value,thresh))/error_value;
-
-            // Huber seems to work well with thresh >= 1e-5
-            //        float robust_weight = sqrt(detail::huber_robust_coefficient(fabs(I_e_val),thresh))/fabs(I_e_val);
-
             // Disable robust cost function altogether
-            //        float robust_weight = 1;
+            float robust_weight = 1;
         
             // We combine the error value with the derivative and
             // add this to the update equation.
             float weight = robust_weight *(*w_ptr);
-            //float weight = robust_weight;// *(*w_ptr);
         
-            
-            //in_curr_sum_I_e_val += I_e_val;           
             
             float I_x_val = weight  * (*I_x_ptr);
             float I_y_val = weight  * (*I_y_ptr);
@@ -1358,14 +1325,16 @@ subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
             lhs(0) -= I_x_val * I_e_val;
             lhs(1) -= I_y_val * I_e_val;
 
+            float* rhsData = rhs.data(); // Access RHS by raw data pointer to avoid inlining failure
+
             // Right Hand Side UL
-            rhs(0,0) += I_x_sqr;
+            rhsData[0] += I_x_sqr;
 
             // Right Hand Side UR
-            rhs(0,1) += I_x_I_y;
+            rhsData[1] += I_x_I_y;
 
             // Right Hand Side LR
-            rhs(1,1) += I_y_sqr;
+            rhsData[3] += I_y_sqr;
 
             I_x_ptr.next_col();
             I_y_ptr.next_col();
@@ -1375,10 +1344,6 @@ subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
           I_y_row.next_row();
           left_image_patch_row.next_row();
         }
-
-        // Checking for early termination
-        if ( skip == kern_pixels )
-          break;
 
         // Fill in symmetric entries
         rhs(1,0) = rhs(0,1);
@@ -1390,8 +1355,6 @@ subpixel_optimized_LK_2d(ImageView<PixelMask<Vector2f> > &disparity_map,
         math::posv('L',n,nrhs,&(rhs(0,0)), n, &(lhs(0)), n, &info);
 
         d += lhs; // Update the affine transform
-
-        //TODO: Clean up termination conditions and pull out constants!
 
         // Termination condition
         // - Quit if the change in the affine transform is tiny
