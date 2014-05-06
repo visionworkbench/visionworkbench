@@ -29,6 +29,7 @@
 #include <vw/Image/Statistics.h>
 #include <vw/Image/Manipulation.h>
 #include <vw/Image/EdgeExtension.h>
+#include <vw/Image/PerPixelAccessorViews.h>
 
 namespace vw {
 
@@ -645,6 +646,78 @@ namespace vw {
               int hole_fill_len) {
     return FillHoles<ImageT>( img.impl(), hole_fill_mode, hole_fill_num_smooth_iter,
                               hole_fill_len );
+  }
+
+  // ----------------------------------------------------------------------------
+
+  //  compute_normals()
+  //
+  // Compute a vector normal to the surface of a DEM for each given
+  // pixel.  The normal is computed by forming a plane with three points
+  // in the vicinity of the requested pixel, and then finding the vector
+  // normal to that plane.  The user must specify the scale in the [u,v]
+  // directions so that the direction of the vector in physical space
+  // can be properly ascertained.  This is often contained in the (0,0)
+  // and (1,1) entry of the georeference transform.
+  class ComputeNormalsFunc : public ReturnFixedType<PixelMask<Vector3f> >
+  {
+    float m_u_scale, m_v_scale;
+
+  public:
+    ComputeNormalsFunc(float u_scale, float v_scale) :
+      m_u_scale(u_scale), m_v_scale(v_scale) {}
+
+    BBox2i work_area() const { return BBox2i(Vector2i(0, 0), Vector2i(1, 1)); }
+
+    template <class PixelAccessorT>
+    PixelMask<Vector3f> operator() (PixelAccessorT const& accessor_loc) const {
+      PixelAccessorT acc = accessor_loc;
+
+      // Pick out the three altitude values.
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt1 = *acc;
+
+      acc.advance(1,0);
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt2 = *acc;
+
+      acc.advance(-1,1);
+      if (is_transparent(*acc))
+        return PixelMask<Vector3f>();
+      float alt3 = *acc;
+
+      // Form two orthogonal vectors in the plane containing the three
+      // altitude points
+      Vector3f n1(m_u_scale, 0, alt2-alt1);
+      Vector3f n2(0, m_v_scale, alt3-alt1);
+
+      // Return the vector normal to the local plane.
+      return normalize(cross_prod(n1,n2));
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc> compute_normals(ImageViewBase<ViewT> const& image, float u_scale, float v_scale) {
+    return UnaryPerPixelAccessorView<EdgeExtensionView<ViewT,ConstantEdgeExtension>, ComputeNormalsFunc>(edge_extend(image.impl(), ConstantEdgeExtension()), ComputeNormalsFunc (u_scale, v_scale));
+  }
+  
+  class DotProdFunc : public ReturnFixedType<PixelMask<PixelGray<float> > > {
+    Vector3f m_vec;
+  public:
+    DotProdFunc(Vector3f const& vec) : m_vec(normalize(vec)) {}
+    PixelMask<PixelGray<float> > operator() (PixelMask<Vector3f> const& pix) const {
+      if (is_transparent(pix))
+        return PixelMask<PixelGray<float> >();
+      else
+        return dot_prod(pix.child(),m_vec);
+    }
+  };
+
+  template <class ViewT>
+  UnaryPerPixelView<ViewT, DotProdFunc> dot_prod(ImageViewBase<ViewT> const& view, Vector3f const& vec) {
+    return UnaryPerPixelView<ViewT, DotProdFunc>(view.impl(), DotProdFunc(vec));
   }
   
 } // namespace vw
