@@ -259,13 +259,20 @@ set(ENABLE_EXCEPTIONS True)
 
 
 message("--------------------------------------------------------------")
-message("Listing all include directories...")
-get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
-foreach(dir ${dirs})
-  message(STATUS "dir='${dir}'")
-endforeach()
-message("--------------------------------------------------------------")
+#message("Listing all include directories...")
+#get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+#foreach(dir ${dirs})
+#  message(STATUS "dir='${dir}'")
+#endforeach()
+#message("--------------------------------------------------------------")
 
+
+
+# Add all the header files at the top level to the install command
+get_all_source_files("." MAIN_HEADER_FILES)
+foreach(f ${MAIN_HEADER_FILES})
+  INSTALL(FILES ${f} DESTINATION include/vw)
+endforeach()
 
 
 #=========================================================================

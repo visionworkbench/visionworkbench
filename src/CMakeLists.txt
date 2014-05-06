@@ -7,6 +7,17 @@ cmake_minimum_required (VERSION 2.8)
 
 # Define functions --> Move these to another file
 
+## Function to install headers while retaining their directory structure
+#MACRO(INSTALL_HEADERS_WITH_DIRECTORY HEADER_LIST)
+#  FOREACH(HEADER ${${HEADER_LIST}})
+#  STRING(REGEX MATCH "(.*)[/\]" DIR ${HEADER})
+#  INSTALL(FILES ${HEADER} DESTINATION include/${DIR})
+#  ENDFOREACH(HEADER)
+#ENDMACRO(INSTALL_HEADERS_WITH_DIRECTORY)
+
+
+
+
 # Obtains a file list with all the files in a directory properly formatted
 function( get_all_source_files relativePath outputFileList)
 
@@ -47,21 +58,38 @@ endmacro()
 # - This is called in each library folder directory.
 function( add_library_wrapper libName fileList testFileList)
 
+  #message("${CMAKE_CURRENT_SOURCE_DIR}")
+
   # Set up the library
   add_library(${libName} ${fileList})
 
   set_target_properties("${libName}" PROPERTIES LINKER_LANGUAGE CXX)   
- 
-  message("${CMAKE_CURRENT_SOURCE_DIR}")
+  install(TARGETS "${libName}" DESTINATION lib)
+  
+  # Set all the header files to be installed to the include directory
+  foreach(f ${fileList})
+    get_filename_component(extension ${f} EXT) # Get file extension  
+    string( TOLOWER "${extension}" extensionLower )
+    if( extensionLower STREQUAL ".h" OR extensionLower STREQUAL ".hpp" OR extensionLower STREQUAL ".tcc")
+      #install(FILES "${f}" DESTINATION include)
+      #INSTALL_HEADERS_WITH_DIRECTORY("${f}")
+      
+      set(fullPath "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
+      STRING(REGEX MATCH "vw/.*/" dir ${fullPath})
+      #message("${dir}")
+      INSTALL(FILES ${f} DESTINATION include/${dir})
+      
+    endif()
+  endforeach(f)
   
 
-  set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/test/test_main.cc")
-  
+
   # Add unit test for each test file given
+  set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/test/test_main.cc")
   foreach(f ${testFileList})
   
-    get_filename_component(FILENAME ${f} NAME_WE) # Get file name without extension
-    set(executableName "${libName}_${FILENAME}")   # Generate a name for the executable   
+    get_filename_component(filename ${f} NAME_WE) # Get file name without extension
+    set(executableName "${libName}_${filename}")   # Generate a name for the executable   
     
     #message("Adding test target ${executableName}")
     
@@ -100,6 +128,11 @@ set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
 set(PACKAGE_BUGREPORT "scott.t.mcmichael@nasa.gov")
 
 #===============================================================================
+
+# Set the install path
+SET(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../cmakeBuild/install" CACHE INTERNAL "Prefix
+prepended to install directories")
+message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 
 enable_testing() # Needed for unit tests to work
 
