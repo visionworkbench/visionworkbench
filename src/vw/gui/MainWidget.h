@@ -63,7 +63,10 @@ namespace gui {
     vw::cartography::GeoReference georef;
     BBox2 bbox;
     ImageView<float> img;
-    void read(std::string const& image, bool ignore_georef);
+    double nodata_val;
+    double min_val, max_val;
+    void read(std::string const& image, bool ignore_georef,
+              bool hillshade);
   };
   
   vw::Vector2 QPoint2Vec(QPoint const& qpt);
@@ -116,7 +119,8 @@ namespace gui {
 
     // Constructors/Destructor
     MainWidget(QWidget *parent, std::vector<std::string> const& images,
-               chooseFilesDlg * chooseFiles, bool ignore_georef);
+               chooseFilesDlg * chooseFiles, bool ignore_georef,
+               bool hillshade);
     virtual ~MainWidget();
 
     // Set a default size for this widget.  This is usually overridden
@@ -161,7 +165,6 @@ namespace gui {
 
     bool m_bilinear_filter;
     bool m_use_colormap;
-    bool m_show_tile_boundaries;
 
     std::vector<imageData> m_images;
     BBox2 m_images_box;

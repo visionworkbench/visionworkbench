@@ -30,12 +30,56 @@
 // Vision Workbench
 #include <vw/Image.h>
 #include <vw/FileIO.h>
+#include <vw/Math/EulerAngles.h>
+#include <vw/Image/Algorithms.h>
 #include <vw/gui/MainWidget.h>
 using namespace vw;
 using namespace vw::gui;
 using namespace std;
 
-void imageData::read(std::string const& image, bool ignore_georef){
+void popUp(std::string msg){
+  QMessageBox msgBox;
+  msgBox.setText(msg.c_str());
+  msgBox.exec();
+  return;
+}
+
+void do_hillshade(cartography::GeoReference const& georef,
+                  ImageView<float> & img,
+                  float nodata_val){
+
+  // Copied from hillshade.cc.
+  
+  // Select the pixel scale
+  float u_scale, v_scale;
+  u_scale = georef.transform()(0,0);
+  v_scale = georef.transform()(1,1);
+
+  int elevation = 45;
+  int azimuth   = 0;
+  
+  // Set the direction of the light source.
+  Vector3f light_0(1,0,0);
+  Vector3f light
+    = vw::math::euler_to_rotation_matrix(elevation*M_PI/180,
+                                         azimuth*M_PI/180, 0, "yzx") * light_0;
+  
+
+  ImageViewRef<PixelMask<float> > masked_img = create_mask(img, nodata_val);
+
+  // The final result is the dot product of the light source with the normals
+  ImageView<PixelMask<uint8> > shaded_image =
+    channel_cast_rescale<uint8>
+    (clamp
+     (dot_prod
+      (compute_normals
+       (masked_img, u_scale, v_scale), light)));
+
+  img = apply_mask(shaded_image);
+}
+
+void imageData::read(std::string const& image, bool ignore_georef,
+                     bool hillshade){
   name = image;
   img = DiskImageView<float>(name);
 
@@ -50,49 +94,49 @@ void imageData::read(std::string const& image, bool ignore_georef){
     bbox = bounding_box(img);               // pixel box
 
   boost::shared_ptr<DiskImageResource> rsrc(DiskImageResource::open(name));
-  ChannelTypeEnum channel_type = rsrc->channel_type();
-  double nodata_val = -32768;
+  nodata_val = -FLT_MAX;
   if ( rsrc->has_nodata_read() ) {
     nodata_val = rsrc->nodata_read();
   }
   
-  // Must scale the image values to uint8
+  // Find the min and max values in an image
+  ChannelTypeEnum channel_type = rsrc->channel_type();
   if(channel_type == VW_CHANNEL_UINT8){
-    
-    // Set no-data pixels to 0    
-    for (int col = 0; col < img.cols(); col++){
-      for (int row = 0; row < img.rows(); row++){
-        img(col, row) = std::max((int)img(col, row), 0);
-      }
-    }
-    
+
+    min_val = 0;
+    max_val = 255;
   }else{
 
-    // Normalize to 0 - 255
-    double mn = DBL_MAX, mx = -DBL_MAX;
+    min_val = FLT_MAX;
+    max_val = -FLT_MAX;
     for (int col = 0; col < img.cols(); col++){
       for (int row = 0; row < img.rows(); row++){
         if (img(col, row) <= nodata_val) continue;
-        if (img(col, row) < mn) mn = img(col, row);
-        if (img(col, row) > mx) mx = img(col, row);
+        if (img(col, row) < min_val) min_val = img(col, row);
+        if (img(col, row) > max_val) max_val = img(col, row);
       }
     }
-    if (mn >= mx){
-      for (int col = 0; col < img.cols(); col++){
-        for (int row = 0; row < img.rows(); row++){
-          img(col, row) = 0.0;
-        }
-      }
-    }else{
-      for (int col = 0; col < img.cols(); col++){
-        for (int row = 0; row < img.rows(); row++){
-          img(col, row) = round(255*(std::max(double(img(col, row)), mn)
-                                     - mn)/(mx-mn));
-        }
+    if (min_val >= max_val)
+      max_val = min_val + 1.0;
+  }
+
+  if (hillshade){
+    if (!has_georef){
+      popUp("Cannot create hillshade if the image has no georeference.");
+      exit(1);
+    }
+    do_hillshade(georef, img, nodata_val);
+
+  }else{
+  
+    // Normalize to 0 - 255, taking into account the nodata_val
+    for (int col = 0; col < img.cols(); col++){
+      for (int row = 0; row < img.rows(); row++){
+        img(col, row) = round(255*(std::max(double(img(col, row)), min_val)
+                                   - min_val)/(max_val-min_val));
       }
     }
   }
-  
 }
 
 vw::Vector2 vw::gui::QPoint2Vec(QPoint const& qpt) {
@@ -188,8 +232,8 @@ void chooseFilesDlg::chooseFiles(const std::vector<imageData> & images){
 MainWidget::MainWidget(QWidget *parent,
                        std::vector<std::string> const& images,
                        chooseFilesDlg * chooseFiles,
-                       bool ignore_georef
-                       )
+                       bool ignore_georef,
+                       bool hillshade)
   : QWidget(parent), m_chooseFilesDlg(chooseFiles){
 
   installEventFilter(this);
@@ -207,7 +251,6 @@ MainWidget::MainWidget(QWidget *parent,
   m_display_channel = DisplayRGBA;
   m_colorize_display = false;
   m_hillshade_display = false;
-  m_show_tile_boundaries = false;
 
   // Set up shader parameters
   m_gain = 1.0;
@@ -225,9 +268,12 @@ MainWidget::MainWidget(QWidget *parent,
   int num_images = images.size();
   m_images.resize(num_images);
   for (int i = 0; i < num_images; i++){
-    m_images[i].read(images[i], ignore_georef);
+    m_images[i].read(images[i], ignore_georef, hillshade);
     m_images_box.grow(m_images[i].bbox);
   }
+
+  // To do: Warn the user if some images have georef
+  // while others don't.
   
   // Choose which files to hide/show in the GUI
   if (m_chooseFilesDlg){
@@ -300,14 +346,17 @@ void MainWidget::size_to_fit() {
 }
 
 void MainWidget::zoom(double scale) {
+
+  updateCurrentMousePosition();
+  scale = std::max(1e-8, scale);
+  BBox2 current_view = (m_current_view - m_curr_world_pos) / scale
+    + m_curr_world_pos;
+
+  if (!current_view.empty()){
   // Check to make sure we haven't hit our zoom limits...
-  if (m_current_view.width()/scale > 1.0 &&
-      m_current_view.height()/scale > 1.0 &&
-      m_current_view.width()/scale < 20*m_images_box.width() &&
-      m_current_view.height()/scale < 20*m_images_box.height()) {
-    m_current_view = (m_current_view - m_curr_world_pos) / scale + m_curr_world_pos;
+    m_current_view = current_view;
+    update(); // will call paintEvent()
   }
-  update(); // will call paintEvent()
 }
 
 void MainWidget::resizeEvent(QResizeEvent*){
@@ -452,6 +501,7 @@ void MainWidget::mouseReleaseEvent ( QMouseEvent *event ){
     return;
   }
 
+  // Drag the image along the mouse movement
   m_current_view -= (pixel2world(QPoint2Vec(event->pos())) -
                      pixel2world(QPoint2Vec(m_mouse_press_pos)));
 
@@ -567,9 +617,6 @@ void MainWidget::keyPressEvent(QKeyEvent *event) {
     }
     if ( m_hillshade_display > 100 || m_hillshade_display < 0 )
       m_hillshade_display = 0;
-    break;
-  case Qt::Key_T:  // Activate tile boundaries
-    m_show_tile_boundaries = !m_show_tile_boundaries;
     break;
   case Qt::Key_G:  // Gain adjustment mode
     if (m_adjust_mode == GainAdjustment) {

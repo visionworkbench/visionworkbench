@@ -46,7 +46,7 @@ namespace gui {
 
   public:
     MainWindow(std::vector<std::string> const& images, std::string const& geom,
-               bool ignore_georef);
+               bool ignore_georef, bool hillshade);
     virtual ~MainWindow() {}
 
   private slots:

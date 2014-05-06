@@ -69,12 +69,13 @@ int main(int argc, char *argv[]) {
   unsigned cache_size;
   float nodata_value;
   string geom;
-  bool ignore_georef;
+  bool ignore_georef, hillshade;
   // Set up command line options
   po::options_description visible_options("Options");
   visible_options.add_options()
     ("help,h", "Display this help message")
     ("ignore-georef,g", po::bool_switch(&ignore_georef)->default_value(false)->implicit_value(true), "Do not read the georeference even when available.")
+    ("hillshade,h", po::bool_switch(&hillshade)->default_value(false)->implicit_value(true), "Generate the hillshade of the current DEM.")
     ("nodata-value", po::value<float>(&nodata_value), "Choose a \"nodata\" value in the image to treat as transparent.")
     ("geometry", po::value<string>(&geom)->default_value("1200x800"), "Choose the window geometry (width and height).")
     ("cache", po::value<unsigned>(&cache_size)->default_value(1000), "Cache size, in megabytes");
@@ -104,7 +105,7 @@ int main(int argc, char *argv[]) {
 
   // Start up the Qt GUI
   QApplication app(argc, argv);
-  vw::gui::MainWindow main_window(images, geom, ignore_georef);
+  vw::gui::MainWindow main_window(images, geom, ignore_georef, hillshade);
   main_window.show();
   try {
     app.exec();

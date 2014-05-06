@@ -38,7 +38,7 @@ namespace po = boost::program_options;
 
 MainWindow::MainWindow(std::vector<std::string> const& images,
                        std::string const& geom,
-                       bool ignore_georef) :
+                       bool ignore_georef, bool hillshade) :
   m_images(images), m_widRatio(0.3), m_main_widget(NULL),
   m_chooseFiles(NULL) {
 
@@ -65,7 +65,7 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
     m_chooseFiles = new chooseFilesDlg(this);
     m_chooseFiles->setMaximumSize(int(m_widRatio*size().width()), size().height());
     m_main_widget = new MainWidget(centralFrame, images, m_chooseFiles,
-                                   ignore_georef);
+                                   ignore_georef, hillshade);
     splitter->addWidget(m_chooseFiles);
     splitter->addWidget(m_main_widget);
 
@@ -74,7 +74,7 @@ MainWindow::MainWindow(std::vector<std::string> const& images,
     centralFrame->setLayout (layout);
   }else{
     // Set up MainWidget
-    m_main_widget = new MainWidget(this, images, NULL, ignore_georef);
+    m_main_widget = new MainWidget(this, images, NULL, ignore_georef, hillshade);
     setCentralWidget(m_main_widget);
   }
 
