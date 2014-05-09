@@ -7,16 +7,6 @@ cmake_minimum_required (VERSION 2.8)
 
 # Define functions --> Move these to another file
 
-## Function to install headers while retaining their directory structure
-#MACRO(INSTALL_HEADERS_WITH_DIRECTORY HEADER_LIST)
-#  FOREACH(HEADER ${${HEADER_LIST}})
-#  STRING(REGEX MATCH "(.*)[/\]" DIR ${HEADER})
-#  INSTALL(FILES ${HEADER} DESTINATION include/${DIR})
-#  ENDFOREACH(HEADER)
-#ENDMACRO(INSTALL_HEADERS_WITH_DIRECTORY)
-
-
-
 
 # Obtains a file list with all the files in a directory properly formatted
 function( get_all_source_files relativePath outputFileList)
@@ -50,8 +40,6 @@ macro(add_to_custom_test_target test_target)
                     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}")
   add_dependencies(gtest_all ${test_target}_runtest)
 endmacro()
-
-
 
 
 # Function to add a library to the project.
@@ -130,13 +118,30 @@ set(PACKAGE_BUGREPORT "scott.t.mcmichael@nasa.gov")
 #===============================================================================
 
 # Set the install path
-SET(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../cmakeBuild/install" CACHE INTERNAL "Prefix
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../cmakeBuild/install" CACHE INTERNAL "Prefix
 prepended to install directories")
 message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 
 enable_testing() # Needed for unit tests to work
 
 set(SP_STATIC_LIBRARIES_LIST "")
+
+# Add command to build the instructions pdf file
+# - First delete temporary qtree file if it exists
+# - Next run the doc-generate tool (which must be built), generates files in /image directory.
+#   This step is really slow!
+# - Finally call pdflatex to generate the output file
+add_custom_target(workbook rm -rf images/Walker.qtree 
+                  COMMAND ${CMAKE_BINARY_DIR}/vw/tools/doc-generate
+                  COMMAND pdflatex workbook.tex
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/../docs/workbook")
+
+
+# Add command to build doxygen files
+add_custom_target(doxygen doxygen
+                  COMMAND ln -s ${CMAKE_SOURCE_DIR}/../docs/doxygen/index.html ${CMAKE_SOURCE_DIR}/../docs/doxygen-output.html
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
 
 
 # Add external dependencies which still need to be built

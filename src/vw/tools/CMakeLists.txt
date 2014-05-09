@@ -34,6 +34,11 @@ add_executable(correlate correlate.cc)
 target_link_libraries(correlate ${FULL_LIBRARY_LIST}) 
 install(TARGETS correlate DESTINATION bin)
 
+# Generates images for the documentation
+add_executable(doc-generate doc-generate.cc) 
+target_link_libraries(doc-generate ${FULL_LIBRARY_LIST}) 
+# This executable does not go in the installation directory!
+
 # TODO: This is built with multiple PIXEL_TYPE and CHANNEL_TYPE inputs!
 # Creates a blended composite from multiple georeferenced images
 #add_executable(geoblend geoblend.cc geoblend.h geoblend_help.cc Common.h Common.cc) 
