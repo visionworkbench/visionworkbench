@@ -53,6 +53,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
+# TODO: Set this to make sure the version matches Binary Builder
+# - Alternately, ONLY accept the boost version in Binary Builder
+# BINARY_BUILDER_BOOST_VERSION
+
 set(BOOST_ROOT "${BASESYSTEM_INSTALL_DIR}/include/boost-1_55")
 set(BOOST_LIBRARYDIR  "${BASESYSTEM_INSTALL_DIR}/lib")
 set(BOOST_INCLUDEDIR "${BASESYSTEM_INSTALL_DIR}/include/boost-1_55/boost")
@@ -107,11 +111,6 @@ if(Qt4_FOUND)
 endif(Qt4_FOUND)
 message("--------------------------------------------------------------")
 
-# Get NAIF includes (Needed for reading/writing SPICE data)
-set(NAIF_FOUND True)
-set(NAIF_INCLUDE_DIRS ${BASESYSTEM_INSTALL_DIR}/include/naif/)
-include_directories("${NAIF_INCLUDE_DIRS}")
-
 #message("--------------------------------------------------------------")
 #message("Searching for Google Protocol Buffers...")
 
@@ -128,45 +127,61 @@ include_directories("${NAIF_INCLUDE_DIRS}")
 #endif()
 #message("--------------------------------------------------------------")
 set(PROTOBUF_FOUND)
+set(HAVE_PKG_PROTOBUF true)
 set(PROTOBUF_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include   )
 set(PROTOBUF_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/libprotobuf.so)
 #include_directories("${PROTOBUF_INCLUDE_DIR}")
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
+# Many of these are currently found in BaseSystem.
+# - We should look for them elsewhere if BaseSystem does not exist.
 
 
+# Get NAIF includes (Needed for reading/writing SPICE data)
+set(NAIF_FOUND true)
+if (NAIF_FOUND)
+  set(NAIF_INCLUDE_DIRS ${BASESYSTEM_INSTALL_DIR}/include/naif/)
+  include_directories("${NAIF_INCLUDE_DIRS}")
+  message("Found NAIF at " ${NAIF_INCLUDE_DIRS})
+endif()
 
-
-# Look for more required packages
-set(HAVE_PKG_LAPACK LAPACK_FOUND)
-set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/liblapack.so
-                       ${BASESYSTEM_INSTALL_DIR}/lib/libblas.so)
-set(LAPACK_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
+set(LAPACK_FOUND true)
 if(LAPACK_FOUND)
+  set(HAVE_PKG_LAPACK true)
+  set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/liblapack.so
+                       ${BASESYSTEM_INSTALL_DIR}/lib/libblas.so)
+  set(LAPACK_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
   message("Found LAPACK at " ${LAPACK_LIBRARIES})
 endif()
 
-#TODO: Find in correct place!  Do we want to use find or force to BaseSystem?
-#find_package(JPEG REQUIRED)
-set(JPEG_FOUND True)
-set(JPEG_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libjpeg.so)
-#set(JPEG_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/)
-set(JPEG_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
+set(FLANN_FOUND)
+if(FLANN_FOUND)
+  set(HAVE_PKG_FLANN true)
+  set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libflann_cpp.so)
+  set(FLANN_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
+  message("Found FLANN at " ${FLANN_LIBRARIES})
+endif()
 
-set(HAVE_PKG_JPEG JPEG_FOUND)
+set(JPEG_FOUND)
 if(JPEG_FOUND)
+  set(HAVE_PKG_JPEG true)
+  set(JPEG_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libjpeg.so)
+  #set(JPEG_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/)
+  set(JPEG_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)  
   message("Found JPEG " ${JPEG_LIBRARY})
 endif()
 
+
+
 find_package(PNG REQUIRED)
-set(HAVE_PKG_PNG PNG_FOUND)
 if(PNGFOUND)
+  set(HAVE_PKG_PNG true)
   message("Found PNG " ${PNG_LIBRARY})
 endif()
 
 find_package(TIFF REQUIRED)
-set(HAVE_PKG_TIFF TIFF_FOUND)
 if(TIFF_FOUND)
+  set(HAVE_PKG_TIFF true)
   message("Found TIFF " ${TIFF_LIBRARY})
 endif()
 
@@ -202,10 +217,14 @@ set(OPENEXR_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libIlmImf.so
 set(OPENEXR_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/OpenEXR)
 include_directories("${OPENEXR_INCLUDE_DIR}")
 
+# TODO: Where is this in BinaryBuilder?
+set(HAVE_PKG_ILMBASE)
+set(HAVE_PKG_FLAPACK)
 
-set(HAVE_PKG_OPENCV)
+
 find_package(OpenCV)
 if(OPENCV_FOUND)
+  set(HAVE_PKG_OPENCV true)
   message("Found OPENCV " ${OPENCV_LIBRARIES})
   include_directories("${OPENCV_INCLUDE_DIR}")
 endif()
@@ -226,23 +245,19 @@ endif()
 
 find_package(Cairo)
 if(CAIRO_FOUND)
+  set(HAVE_PKG_CAIRO true)
   message("Found Cairo " ${CAIRO_LIBRARIES})
   include_directories("${CAIRO_INCLUDE_DIR}")
 endif()
 
 find_package(Cairomm)
 if(CAIROMM_FOUND)
+  set(HAVE_PKG_CAIROMM true)
   message("Found CairoMM " ${CAIROMM_LIBRARIES})
   include_directories("${CAIROMM_INCLUDE_DIR}")
 endif()
 
-# TODO: GTEST is included with the source and needs to be built!
-#set(GTEST_ROOT ${BASESYSTEM_INSTALL_DIR})
-#find_package(GTest REQUIRED)
-#if(GTEST_FOUND)
-#  message("Found GTest")
-#  include_directories(${GTEST_INCLUDE_DIR})
-#endif()
+
 
 
 #TODO: Look for each of these installations!
@@ -250,7 +265,7 @@ set(HAVE_PKG_HDF)
 set(HAVE_PKG_RABBITMQ_C)
 set(HAVE_PKG_ZEROMQ)
 set(HAVE_PKG_LIBKML)
-set(HAVE_PKG_FLANN)
+
 
 # TODO: What is this for?
 set(ENABLE_EXCEPTIONS True)
@@ -277,8 +292,6 @@ endforeach()
 
 #=========================================================================
 # Define each of the libaries
-#TODO: Handle .lo files!
-
 
 # --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
 get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
@@ -371,7 +384,7 @@ set(FULL_LIBRARY_LIST
 	${OPENEXR_LIBRARIES}
 	${OPENCV_LIBRARIES}
 	${PROTOBUF_LIBRARY}
-    ${SigC++_LIBRARIES}
+  ${SigC++_LIBRARIES}
 	${CAIRO_LIBRARIES}
 	${CAIROMM_LIBRARIES}
 	VwBundleAdjustment
@@ -417,8 +430,6 @@ add_subdirectory(tools)
 
 
 #=========================================================================
-# Define targets
-
 # Targets are defined in /tools/CMakeLists.txt
 
 

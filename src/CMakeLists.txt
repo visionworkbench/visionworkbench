@@ -1,7 +1,4 @@
 
-# TODO: Need to move this up a level to handle other release stuff like documentation
-
-
 cmake_minimum_required (VERSION 2.8)
 
 
@@ -59,18 +56,12 @@ function( add_library_wrapper libName fileList testFileList)
     get_filename_component(extension ${f} EXT) # Get file extension  
     string( TOLOWER "${extension}" extensionLower )
     if( extensionLower STREQUAL ".h" OR extensionLower STREQUAL ".hpp" OR extensionLower STREQUAL ".tcc")
-      #install(FILES "${f}" DESTINATION include)
-      #INSTALL_HEADERS_WITH_DIRECTORY("${f}")
-      
       set(fullPath "${CMAKE_CURRENT_SOURCE_DIR}/${f}")
       STRING(REGEX MATCH "vw/.*/" dir ${fullPath})
-      #message("${dir}")
-      INSTALL(FILES ${f} DESTINATION include/${dir})
-      
+      INSTALL(FILES ${f} DESTINATION include/${dir})      
     endif()
   endforeach(f)
   
-
 
   # Add unit test for each test file given
   set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/test/test_main.cc")
@@ -89,16 +80,13 @@ function( add_library_wrapper libName fileList testFileList)
     target_link_libraries(${executableName} gtest gtest_main ${FULL_LIBRARY_LIST})
 
     
-    # These variables need to be set for each test directory: TODO: What should they be?
-    #  TEST_OBJDIR = "\"$(abs_top_builddir)/$(subdir)\""
-    #  TEST_SRCDIR = "\"$(abs_top_srcdir)/$(subdir)\""
+    # These variables need to be set for each test directory
     set_property (TARGET ${executableName} APPEND PROPERTY COMPILE_DEFINITIONS "TEST_OBJDIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
     set_property (TARGET ${executableName} APPEND PROPERTY COMPILE_DEFINITIONS "TEST_SRCDIR=\"${CMAKE_CURRENT_SOURCE_DIR}\"")
     
     add_test(${executableName} ${executableName}) 
     add_to_custom_test_target(${executableName})  # Add to the verbose test make target.
   endforeach(f)
-  
   
 endfunction( add_library_wrapper )
 
@@ -110,10 +98,27 @@ endfunction( add_library_wrapper )
 
 project (VisionWorkbench)
 
-set(PACKAGE_VERSION "1.0") # TODO: Automatically set this!
-set(PACKAGE_NAME "Vision Workbench")
-set(PACKAGE_STRING "${PACKAGE_NAME} ${PACKAGE_VERSION}")
-set(PACKAGE_BUGREPORT "scott.t.mcmichael@nasa.gov")
+
+# Short and long name of this package
+set(PACKAGE            "VisionWorkbench")
+set(PACKAGE_NAME       "NASA Vision Workbench")
+
+# Version number of the package
+set(VERSION            "2.2.0_post")
+set(PACKAGE_VERSION    ${VERSION})
+
+# Full name and version number
+set(PACKAGE_STRING     "${PACKAGE_NAME} ${VERSION}")
+
+# Define to the address where bug reports for this package should be sent. 
+set(PACKAGE_BUGREPORT  "vision-workbench@lists.nasa.gov")
+
+# Define to the one symbol short name of this package.
+set(PACKAGE_TARNAME    "${PACKAGE_NAME})
+
+# Main website associated with the software package
+set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nasa-vision-workbench/")
+
 
 #===============================================================================
 
@@ -124,7 +129,7 @@ message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 
 enable_testing() # Needed for unit tests to work
 
-set(SP_STATIC_LIBRARIES_LIST "")
+set(VW_STATIC_LIBRARIES_LIST "")
 
 # Add command to build the instructions pdf file
 # - First delete temporary qtree file if it exists
