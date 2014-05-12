@@ -1,0 +1,435 @@
+/* src/vw/config.h.pre.in.  Generated from configure.ac by autoheader.  */
+
+/* The version of Boost with which the software built. */
+#define VW_BOOST_VERSION @BOOST_VERSION@
+
+/* set the default cache size (in MB) */
+#define VW_CACHE_SIZE @DEFAULT_CACHE_SIZE_MB@
+
+/* does the compiler support function __attribute__((deprecated))? */
+#define VW_COMPILER_HAS_ATTRIBUTE_DEPRECATED @HAS_DEPRECATED@
+
+/* does the compiler support function __attribute__((noreturn))? */
+#define VW_COMPILER_HAS_ATTRIBUTE_NORETURN @HAS_NORETURN@
+
+/* does the compiler support function __attribute__((warn_unused_result))? */
+#define VW_COMPILER_HAS_ATTRIBUTE_WARN_UNUSED_RESULT @HAS_WARN_UNUSED@
+
+/* enable image bounds checking (SLOW!) */
+#define VW_ENABLE_BOUNDS_CHECK @ENABLE_BOUNDS_CHECK@
+
+/* ~/.vwrc support */
+#define VW_ENABLE_CONFIG_FILE @ENABLE_CONFIG_FILE@
+
+/* enable the C++ exception mechanism */
+#define VW_ENABLE_EXCEPTIONS @ENABLE_EXCEPTIONS@
+
+/* enable SSE optimizations in some places (development) */
+#define VW_ENABLE_SSE @ENABLE_SSE@
+
+/* Define to 1 if VW has BigTIFF support */
+#define VW_HAS_BIGTIFF @HAS_BIGTIFF@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <dlfcn.h> header file. */
+//#define VW_HAVE_DLFCN_H
+
+/* Define to 1 if you have the `exp2' function. */
+#define VW_HAVE_EXP2 @HAVE_EXP2@
+
+/* Define to 1 if you have the <ext/stdio_filebuf.h> header file. */
+#define VW_HAVE_EXT_STDIO_FILEBUF_H @HAVE_EXT_STDIO_FILEBUF_H@
+
+/* Define to 1 if you have the `fabsl' function. */
+#define VW_HAVE_FABSL @HAVE_FABSL@
+
+/* Define to 1 if you have the `feenableexcept' function. */
+#define VW_HAVE_FEENABLEEXCEPT @HAVE_FEENABLEEXCEPT@
+
+/* Define to 1 if you have the <fenv.h> header file. */
+#define VW_HAVE_FENV_H @HAVE_FENV_H@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the `getpid' function. */
+//#define VW_HAVE_GETPID
+
+/* Define to 1 if you have the `getpwuid' function. */
+#define VW_HAVE_GETPWUID @HAVE_GETPWUID@
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#define VW_HAVE_INTTYPES_H @HAVE_INTTYPES_H@
+
+/* Define to 1 if you have the `llabs' function. */
+#define VW_HAVE_LLABS @HAVE_LLABS@
+
+/* Define to 1 if you have the `log2' function. */
+#define VW_HAVE_LOG2 @HAVE_LLABS@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <memory.h> header file. */
+//#define VW_HAVE_MEMORY_H
+
+/* Define to 1 if you have the `mkstemps' function. */
+#define VW_HAVE_MKSTEMPS @HAVE_MKSTEMPS@
+
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_APPLE_GL @HAVE_PKG_APPLE_GL@
+
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_APPLE_LAPACK @PKG_APPLE_LAPACK@
+
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_APPLE_QMAKE_QT
+
+///* Define to 1 if the ARBITRARY_QT package is available. */
+//#define VW_HAVE_PKG_ARBITRARY_QT
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the BOOST package is available. */
+//#define VW_HAVE_PKG_BOOST
+
+//* Define to 1 if the BOOST_DATETIME package is available. */
+//#define VW_HAVE_PKG_BOOST_DATETIME
+
+///* Define to 1 if the BOOST_FILESYSTEM package is available. */
+//#define VW_HAVE_PKG_BOOST_FILESYSTEM
+
+///* Define to 1 if the BOOST_GRAPH package is available. */
+//#define VW_HAVE_PKG_BOOST_GRAPH
+
+///* Define to 1 if the BOOST_IOSTREAMS package is available. */
+//#define VW_HAVE_PKG_BOOST_IOSTREAMS
+
+///* Define to 1 if the BOOST_PROGRAM_OPTIONS package is available. */
+//#define VW_HAVE_PKG_BOOST_PROGRAM_OPTIONS
+
+///* Define to 1 if the BOOST_REGEX package is available. */
+//#define VW_HAVE_PKG_BOOST_REGEX
+
+///* Define to 1 if the BOOST_SYSTEM package is available. */
+//#define VW_HAVE_PKG_BOOST_SYSTEM
+
+///* Define to 1 if the BOOST_THREAD package is available. */
+//#define VW_HAVE_PKG_BOOST_THREAD
+
+///* Define to 1 if the BUNDLEADJUSTMENT module is available. */
+//#define VW_HAVE_PKG_BUNDLEADJUSTMENT
+
+/* Define to 1 if the CAIROMM package is available. */
+#define VW_HAVE_PKG_CAIROMM @HAVE_PKG_CAIROMM@
+
+/* Define to 1 if the CAMERA module is available. */
+#define VW_HAVE_PKG_CAMERA @HAVE_PKG_CAMERA@
+
+/* Define to 1 if the CARTOGRAPHY module is available. */
+#define VW_HAVE_PKG_CARTOGRAPHY @HAVE_PKG_CARTOGRAPHY@
+
+/* Define to 1 if the CG package is available. */
+#define VW_HAVE_PKG_CG @HAVE_PKG_CG@
+
+/* Define to 1 if the CLAPACK package is available. */
+#define VW_HAVE_PKG_CLAPACK @VW_HAVE_PKG_CLAPACK@
+
+///* Define to 1 if the CORE module is available. */
+//#define VW_HAVE_PKG_CORE
+
+///* Define to 1 if the FILEIO module is available. */
+//#define VW_HAVE_PKG_FILEIO
+
+/* Define to 1 if the FLANN package is available. */
+#define VW_HAVE_PKG_FLANN @HAVE_PKG_FLANN@
+
+/* Define to 1 if the FLAPACK package is available. */
+#define VW_HAVE_PKG_FLAPACK @HAVE_PKG_FLAPACK@
+
+/* Define to 1 if the GDAL package is available. */
+#define VW_HAVE_PKG_GDAL @HAVE_PKG_GDAL@
+
+///* Define to 1 if the GEOMETRY module is available. */
+//#define VW_HAVE_PKG_GEOMETRY
+
+/* Define to 1 if the pkg package is available */
+#define VW_HAVE_PKG_GL @HAVE_PKG_GL@
+
+///* Define to 1 if the GLEW package is available. */
+//##define VW_HAVE_PKG_GLEW
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the GOOGLE_PROFILER package is available. */
+//#define VW_HAVE_PKG_GOOGLE_PROFILER
+
+/* Define to 1 if the GPU module is available. */
+#define VW_HAVE_PKG_GPU @HAVE_PKG_GPU@ 
+
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_GUESS_QT
+
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the GUI module is available. */
+//#define VW_HAVE_PKG_GUI
+
+/* Define to 1 if the pkg package is available */
+#define VW_HAVE_PKG_HDF @HAVE_PKG_HDF@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the HDF_PLAIN package is available. */
+//#define VW_HAVE_PKG_HDF_PLAIN
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the HDF_SUBDIR package is available. */
+//#define VW_HAVE_PKG_HDF_SUBDIR
+
+/* Define to 1 if the HDR module is available. */
+#define VW_HAVE_PKG_HDR @HAVE_PKG_HDR@
+
+/* Define to 1 if the ILMBASE package is available. */
+#define VW_HAVE_PKG_ILMBASE @HAVE_PKG_ILMBASE@
+
+/* Define to 1 if the IMAGE module is available. */
+#define VW_HAVE_PKG_IMAGE @HAVE_PKG_IMAGE@
+
+/* Define to 1 if the INTEL_LAPACK package is available. */
+#define VW_HAVE_PKG_INTEL_LAPACK @HAVE_PKG_INTEL_LAPACK@
+
+/* Define to 1 if the INTERESTPOINT module is available. */
+#define VW_HAVE_PKG_INTERESTPOINT @VW_HAVE_PKG_INTERESTPOINT@
+
+/* Define to 1 if the JPEG package is available. */
+#define VW_HAVE_PKG_JPEG @VW_HAVE_PKG_JPEG@
+
+/* Define to 1 if the pkg package is available */
+#define VW_HAVE_PKG_LAPACK @VW_HAVE_PKG_LAPACK@
+
+/* Define to 1 if the LIBKML package is available. */
+#define VW_HAVE_PKG_LIBKML @VW_HAVE_PKG_LIBKML@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the LINUX_GL package is available. */
+//#define VW_HAVE_PKG_LINUX_GL
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_LINUX_QMAKE_QT
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the M package is available. */
+//#define VW_HAVE_PKG_M
+
+///* Define to 1 if the MATH module is available. */
+//#define VW_HAVE_PKG_MATH
+
+/* Define to 1 if the MOSAIC module is available. */
+#define VW_HAVE_PKG_MOSAIC @VW_HAVE_PKG_MOSAIC@
+
+/* Define to 1 if the OPENCV package is available. */
+#define VW_HAVE_PKG_OPENCV @VW_HAVE_PKG_OPENCV@
+
+/* Define to 1 if the OPENEXR package is available. */
+#define VW_HAVE_PKG_OPENEXR @VW_HAVE_PKG_OPENEXR@
+
+/* Define to 1 if the PLATE module is available. */
+#define VW_HAVE_PKG_PLATE @VW_HAVE_PKG_PLATE@
+
+/* Define to 1 if the PNG package is available. */
+#define VW_HAVE_PKG_PNG @VW_HAVE_PKG_PNG@
+
+/* Define to 1 if the PROJ4 package is available. */
+#define VW_HAVE_PKG_PROJ4 @VW_HAVE_PKG_PROJ4@
+
+/* Define to 1 if the PROTOBUF package is available. */
+#define VW_HAVE_PKG_PROTOBUF @VW_HAVE_PKG_PROTOBUF@
+
+/* Define to 1 if the PTHREADS package is available. */
+#define VW_HAVE_PKG_PTHREADS @VW_HAVE_PKG_PROTOBUF@
+
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_QT
+
+///* Define to 1 if the QT_GUESS_BASE package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_BASE
+
+///* Define to 1 if the QT_GUESS_CORE package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_CORE
+
+///* Define to 1 if the QT_GUESS_GUI package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_GUI
+
+///* Define to 1 if the QT_GUESS_NETWORK package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_NETWORK
+
+///* Define to 1 if the QT_GUESS_OPENGL package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_OPENGL
+
+///* Define to 1 if the QT_GUESS_SQL package is available. */
+//#define VW_HAVE_PKG_QT_GUESS_SQL
+
+///* Define to 1 if the QT_QMAKE package is available. */
+//#define VW_HAVE_PKG_QT_QMAKE
+
+///* Define to 1 if the QT_QMAKE_GUI package is available. */
+//#define VW_HAVE_PKG_QT_QMAKE_GUI
+
+///* Define to 1 if the QT_QMAKE_NETWORK package is available. */
+//#define VW_HAVE_PKG_QT_QMAKE_NETWORK
+
+///* Define to 1 if the QT_QMAKE_OPENGL package is available. */
+//#define VW_HAVE_PKG_QT_QMAKE_OPENGL
+
+///* Define to 1 if the QT_QMAKE_SQL package is available. */
+//#define VW_HAVE_PKG_QT_QMAKE_SQL
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the RABBITMQ_C package is available. */
+//#define VW_HAVE_PKG_RABBITMQ_C
+
+/* Define to 1 if the SLAPACK package is available. */
+#define VW_HAVE_PKG_SLAPACK @VW_HAVE_PKG_SLAPACK@
+
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the STANDALONE_BLAS package is available. */
+//#define VW_HAVE_PKG_STANDALONE_BLAS
+
+///* Define to 1 if the STANDALONE_F2C package is available. */
+//#define VW_HAVE_PKG_STANDALONE_F2C
+
+///* Define to 1 if the STANDALONE_FBLAS package is available. */
+//#define VW_HAVE_PKG_STANDALONE_FBLAS
+
+///* Define to 1 if the STANDALONE_FLAPACK package is available. */
+//#define VW_HAVE_PKG_STANDALONE_FLAPACK
+
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_STANDALONE_FLAPACK_FBLAS
+
+///* Define to 1 if the STANDALONE_LAPACK package is available. */
+//#define VW_HAVE_PKG_STANDALONE_LAPACK
+
+///* Define to 1 if the pkg package is available */
+//#define VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+/* Define to 1 if the STEREO module is available. */
+#define VW_HAVE_PKG_STEREO @VW_HAVE_PKG_STEREO@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the TCMALLOC package is available. */
+//#define VW_HAVE_PKG_TCMALLOC
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the THREADS package is available. */
+//#define VW_HAVE_PKG_THREADS
+
+/* Define to 1 if the TIFF package is available. */
+#define VW_HAVE_PKG_TIFF @VW_HAVE_PKG_TIFF@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the TOOLS module is available. */
+//#define VW_HAVE_PKG_TOOLS
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the VW module is available. */
+//#define VW_HAVE_PKG_VW
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the X11 package is available. */
+//#define VW_HAVE_PKG_X11
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if the Z package is available. */
+//#define VW_HAVE_PKG_Z
+
+/* Define to 1 if the ZEROMQ package is available. */
+#define VW_HAVE_PKG_ZEROMQ @VW_HAVE_PKG_ZEROMQ@
+
+/* Define to 1 if you have the <pwd.h> header file. */
+#define VW_HAVE_PWD_H @VW_HAVE_PWD_H@
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#define VW_HAVE_STDINT_H @VW_HAVE_STDINT_H@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <stdlib.h> header file. */
+//#define VW_HAVE_STDLIB_H
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <strings.h> header file. */
+//#define VW_HAVE_STRINGS_H
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <string.h> header file. */
+//#define VW_HAVE_STRING_H
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to 1 if you have the <sys/stat.h> header file. */
+//#define VW_HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#define VW_HAVE_SYS_TYPES_H @VW_HAVE_SYS_TYPES_H@
+
+/* Define to 1 if you have the `tgamma' function. */
+#define VW_HAVE_TGAMMA @VW_HAVE_TGAMMA@
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#define VW_HAVE_UNISTD_H @VW_HAVE_UNISTD_H@
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to the sub-directory in which libtool stores uninstalled libraries.
+//   */
+//#define VW_LT_OBJDIR
+
+/* set the default number of processing threads for multi-threaded operations
+   */
+#define VW_NUM_THREADS @NUM_THREADS@
+
+/* Name of package */
+#define VW_PACKAGE @PACKAGE@
+
+/* Define to the address where bug reports for this package should be sent. */
+#define VW_PACKAGE_BUGREPORT @PACKAGE_BUGREPORT@
+
+//HARD CODE ME???
+///* Define to the full name of this package. */
+//#define VW_PACKAGE_NAME
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to the full name and version of this package. */
+//#define VW_PACKAGE_STRING
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to the one symbol short name of this package. */
+//#define VW_PACKAGE_TARNAME
+
+//DELETE ME!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+///* Define to the home page for this package. */
+//#define VW_PACKAGE_URL
+
+/* Define to the version of this package. */
+#define VW_PACKAGE_VERSION @PACKAGE_VERSION@
+
+/* Define to 1 if you have the ANSI C header files. */
+#define VW_STDC_HEADERS @STDC_HEADERS@
+
+/* Version number of package */
+#define VW_VERSION @VERSION@
+
+// Check to make sure the user is using the same version of Boost
+// headers that the software was built with.
+#include <boost/version.hpp>
+#if BINARY_BUILDER_BOOST_VERSION != VW_BOOST_VERSION
+#error You are using a different version of Boost than you used to build VW_!
+#endif
+
+
+/* Define to `int' if <sys/types.h> does not define. */
+#ifndef HAVE_SSIZET
+  #define VW_ssize_t
+#endif
