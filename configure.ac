@@ -284,22 +284,7 @@ AX_PKG_ONE_OF(GL,
 AX_PKG(GLEW, [GL M], [-lGLEW], [GL/glew.h])
 AX_PKG(CG, [GL], [-lCg -lCgGL], [Cg/cg.h])
 
-AX_PKG(GDAL, [], [-lgdal], [gdal.h])
-
-# GDAL requires tiff support, but it can be internal or external.
-PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
-
-if test x"$HAVE_PKG_GDAL" = "xyes"; then
-  HAVE_PKG_TIFF="no:gdal has tiff support"
-  if test x"$GDAL_HAS_EXTERNAL_LIBTIFF" = "xyes"; then
-    PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
-  else
-    GDAL_HAS_BIGTIFF=yes
-  fi
-  VW_HAS_BIGTIFF="$GDAL_HAS_BIGTIFF"
-fi
-
-AX_PKG(TIFF, [], [-ltiff], [tiff.h])
+AX_PKG(TIFF, [Z JPEG], [-ltiff], [tiff.h])
 if test x"$HAVE_PKG_TIFF" = "xyes"; then
   PKG_CHECK_FUNCTION(TIFF, [TIFFScanlineSize64], [BigTIFF])
   VW_HAS_BIGTIFF="$TIFF_HAS_BIGTIFF"
@@ -315,6 +300,21 @@ AC_DEFINE_UNQUOTED(HAS_BIGTIFF, [$has_bigtiff], [Define to 1 if VW has BigTIFF s
 AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
 AX_PKG(PROJ4, [M], [-lproj], [proj_api.h])
+AX_PKG(GEOTIFF, [PROJ4 JPEG], [-lgeotiff -ltiff])
+AX_PKG(GDAL, [GEOTIFF], [-lgdal], [gdal.h])
+
+# GDAL requires tiff support, but it can be internal or external.
+PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
+
+if test x"$HAVE_PKG_GDAL" = "xyes"; then
+  HAVE_PKG_TIFF="no:gdal has tiff support"
+  if test x"$GDAL_HAS_EXTERNAL_LIBTIFF" = "xyes"; then
+    PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize64], [BigTIFF])
+  else
+    GDAL_HAS_BIGTIFF=yes
+  fi
+  VW_HAS_BIGTIFF="$GDAL_HAS_BIGTIFF"
+fi
 
 if test "$HAVE_PKG_QT" = no; then
     ENABLE_QT_QMAKE=no
