@@ -31,7 +31,7 @@
 #include <vector>
 #include <boost/foreach.hpp>
 
-#if VW_HAVE_PKG_FLANN
+#ifdef VW_HAVE_PKG_FLANN
 #include <vw/Math/FLANNTree.h>
 #else
 //#include <vw/Math/KDTree.h>
@@ -308,7 +308,6 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
   }
 
   float inc_amt = 1.0f/float(ip1_size);
-
 
   // Set up FLANNTree objects of all the different types we may need.
   math::FLANNTree<float        > kd_float;

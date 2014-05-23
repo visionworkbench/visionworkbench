@@ -19,7 +19,7 @@
 #include <vw/Math/Geometry.h>
 #include <vw/Cartography/GeoReference.h>
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
+#if defined(VW_HAVE_PKG_GDAL)
 #include <vw/Cartography/GeoReferenceResourceGDAL.h>
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 #include "ogr_spatialref.h"
@@ -47,7 +47,7 @@ namespace cartography {
   bool read_georeference( GeoReference& georef,
                           ImageResource const& resource ) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL)
     DiskImageResourceGDAL const* gdal =
       dynamic_cast<DiskImageResourceGDAL const*>( &resource );
     if( gdal ) 
@@ -111,7 +111,7 @@ namespace cartography {
   void write_header_string( ImageResource& resource, std::string const& str_name,
                             std::string const& str_val ) {
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL)
     DiskImageResourceGDAL* gdal =
       dynamic_cast<DiskImageResourceGDAL*>( &resource );
     if ( gdal ) write_gdal_string( *gdal, str_name, str_val );
@@ -626,7 +626,8 @@ double GeoReference::test_pixel_reprojection_error(Vector2 const& pixel) {
 }
 
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
+#if defined(VW_HAVE_PKG_GDAL)
+
   void GeoReference::set_wkt(std::string const& wkt) {
     const char *wkt_str = wkt.c_str();
     char **wkt_ptr = (char**)(&wkt_str);

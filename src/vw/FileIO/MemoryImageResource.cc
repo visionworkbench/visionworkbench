@@ -19,19 +19,19 @@
 #include <vw/config.h>
 #include <vw/FileIO/MemoryImageResource.h>
 
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+#if defined(VW_HAVE_PKG_JPEG)
 #  include <vw/FileIO/MemoryImageResourceJPEG.h>
 #endif
 
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+#if defined(VW_HAVE_PKG_PNG)
 #  include <vw/FileIO/MemoryImageResourcePNG.h>
 #endif
 
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL)
 #  include <vw/FileIO/MemoryImageResourceGDAL.h>
 #endif
 
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#if defined(VW_HAVE_PKG_OPENEXR)
 #  include <vw/FileIO/MemoryImageResourceOpenEXR.h>
 #endif
 
@@ -55,42 +55,42 @@ namespace {
 #define CREAT(Name, Type) (Name, boost::lambda::new_ptr<vw::DstMemoryImageResource ## Type>())
 
   open_map_t open_map = boost::assign::list_of<std::pair<std::string, open_func> >
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+#if defined(VW_HAVE_PKG_JPEG)
     OPEN("jpg",        JPEG)
     OPEN("jpeg",       JPEG)
     OPEN("image/jpeg", JPEG)
 #endif
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+#if defined(VW_HAVE_PKG_PNG)
     OPEN("png",        PNG)
     OPEN("image/png",  PNG)
 #endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL)
     OPEN("tif",        GDAL)
     OPEN("tiff",       GDAL)
     OPEN("image/tiff", GDAL)
 #endif
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#if defined(VW_HAVE_PKG_OPENEXR)
     OPEN("exr",        OpenEXR)
     OPEN("image/exr",  OpenEXR)
 #endif
     ;
 
   create_map_t create_map = boost::assign::list_of<std::pair<std::string, create_func> >
-#if defined(VW_HAVE_PKG_JPEG) && VW_HAVE_PKG_JPEG==1
+#if defined(VW_HAVE_PKG_JPEG)
     CREAT("jpg",        JPEG)
     CREAT("jpeg",       JPEG)
     CREAT("image/jpeg", JPEG)
 #endif
-#if defined(VW_HAVE_PKG_PNG) && VW_HAVE_PKG_PNG==1
+#if defined(VW_HAVE_PKG_PNG)
     CREAT("png",        PNG)
     CREAT("image/png",  PNG)
 #endif
-#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#if defined(VW_HAVE_PKG_GDAL)
     CREAT("tif",        GDAL)
     CREAT("tiff",       GDAL)
     CREAT("image/tiff", GDAL)
 #endif
-#if defined(VW_HAVE_PKG_OPENEXR) && VW_HAVE_PKG_OPENEXR==1
+#if defined(VW_HAVE_PKG_OPENEXR)
     CREAT("exr",        OpenEXR)
     CREAT("image/exr",  OpenEXR)
 #endif

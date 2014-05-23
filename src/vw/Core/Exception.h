@@ -111,7 +111,7 @@
 #include <sstream>
 #include <ostream>
 
-#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
+#if defined(VW_ENABLE_EXCEPTIONS)
 #include <exception>
 #define VW_IF_EXCEPTIONS(x) x
 #else

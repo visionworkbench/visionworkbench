@@ -36,7 +36,7 @@ namespace {
   static class DefaultExceptionHandler : public vw::ExceptionHandler {
   public:
     virtual void handle( vw::Exception const& e ) const VW_NORETURN {
-#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
+#if defined(VW_ENABLE_EXCEPTIONS)
       e.default_throw();
 #else
       vw::VW_OUT(vw::ErrorMessage) << "Fatal error: " << e.what() << std::endl;

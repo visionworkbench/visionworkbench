@@ -31,11 +31,11 @@
 
 namespace fs = boost::filesystem;
 
-#if defined(VW_HAVE_EXT_STDIO_FILEBUF_H) && VW_HAVE_EXT_STDIO_FILEBUF_H == 1
+#if defined(VW_HAVE_EXT_STDIO_FILEBUF_H)
 # include <ext/stdio_filebuf.h>
 #endif
 
-#if defined(VW_HAVE_MKSTEMPS) && VW_HAVE_MKSTEMPS == 1
+#if defined(VW_HAVE_MKSTEMPS)
 #  define vw_mkstemps ::mkstemps
 #else
 
@@ -214,7 +214,7 @@ void TemporaryFile::init(std::string dir = "", bool delete_on_close = true, cons
     m_filename = std::string(templ.get());
   }
 
-#if defined(VW_HAVE_EXT_STDIO_FILEBUF_H) && VW_HAVE_EXT_STDIO_FILEBUF_H == 1
+#if defined(VW_HAVE_EXT_STDIO_FILEBUF_H)
     m_buf.reset(new __gnu_cxx::stdio_filebuf<char>(fd, mode));
 #else
     m_buf.reset(new std::filebuf());

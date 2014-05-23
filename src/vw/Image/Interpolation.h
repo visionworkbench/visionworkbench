@@ -365,7 +365,7 @@ namespace vw {
 // SSE Optimizations
 // -------------------------------------------------------------------------------
 
-#if defined(VW_ENABLE_SSE) && (VW_ENABLE_SSE==1)
+#if defined(VW_ENABLE_SSE)
 #include <xmmintrin.h>
 
 namespace vw {

@@ -101,7 +101,7 @@ TEST( PinholeModel, TsaiDistortion ) {
 					    0.00116333004552871)));
   const LensDistortion* distortion = pinhole.lens_distortion();
 
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#if defined(VW_HAVE_PKG_LAPACK)
   Vector2 distorted_pix = distortion->distorted_coordinates(pinhole, Vector2(200,200));
   Vector2 undistorted_pix = distortion->undistorted_coordinates(pinhole, distorted_pix);
 
@@ -275,11 +275,11 @@ TEST_F( PinholeTest, NullLensDistortion ) {
 
 TEST_F( PinholeTest, TsaiLensDistortion ) {
   pinhole.set_lens_distortion(TsaiLensDistortion
-			      (Vector<double, TsaiLensDistortion::num_distortion_params>
-			       (-0.2796604335308075,
-				0.1031486615538597,
-				-0.0007824968779459596,
-				0.0009675505571067333) ) );
+                                (Vector<double, TsaiLensDistortion::num_distortion_params>
+                                 (-0.2796604335308075,
+                                   0.1031486615538597,
+                                  -0.0007824968779459596,
+                                   0.0009675505571067333) ) );
 #if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
   projection_test(1e-4);
 #endif
@@ -296,7 +296,7 @@ TEST_F( PinholeTest, BrownConradyDistortion ) {
                            Vector2(.5495819e-9,
                                    0),
                            0.201) );
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#if defined(VW_HAVE_PKG_LAPACK)
   projection_test(1e-4);
 #endif
   UnlinkName file("BrownConrady.tsai");
@@ -313,7 +313,7 @@ TEST_F( PinholeTest, AdjustableTsaiDistortion ) {
   distort_coeff[5] = -1.221974557659228e-05; // alpha = skew
   pinhole.set_lens_distortion(
      AdjustableTsaiLensDistortion( distort_coeff ) );
-#if defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1
+#if defined(VW_HAVE_PKG_LAPACK)
   projection_test(1e-4);
 #endif
   UnlinkName file("AdjustedTsai.tsai");

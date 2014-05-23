@@ -52,7 +52,7 @@ namespace vw {
 // recently modified.  If so, we reload the log ruleset from the file.
 void Settings::reload_config() {
 
-#if VW_ENABLE_CONFIG_FILE
+#ifdef VW_ENABLE_CONFIG_FILE
 
   // We CANNOT use the vw log infrastructure here, because it will
   // call reload_config and deadlock!

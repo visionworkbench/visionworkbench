@@ -36,13 +36,13 @@
 #include <boost/function.hpp>
 #include <boost/range/iterator_range_core.hpp>
 
-#if defined(VW_ENABLE_EXCEPTIONS) && (VW_ENABLE_EXCEPTIONS==1)
+#if defined(VW_ENABLE_EXCEPTIONS)
 #define HAS_EXCEPTIONS(x) x
 #else
 #define HAS_EXCEPTIONS(x) DISABLED_ ## x
 #endif
 
-#if defined(VW_ENABLE_CONFIG_FILE) && (VW_ENABLE_CONFIG_FILE==1)
+#if defined(VW_ENABLE_CONFIG_FILE)
 #define HAS_CONFIG_FILE(x) x
 #else
 #define HAS_CONFIG_FILE(x) DISABLED_ ## x

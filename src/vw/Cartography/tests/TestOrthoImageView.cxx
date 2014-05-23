@@ -27,7 +27,7 @@
 #include <vw/Image/Transform.h>
 
 // Must have protobuf to be able to read camera
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1 && defined(VW_HAVE_PKG_CAMERA) && VW_HAVE_PKG_CAMERA==1
+#if defined(VW_HAVE_PKG_PROTOBUF) && defined(VW_HAVE_PKG_CAMERA) 
 
 using namespace vw;
 using namespace vw::cartography;

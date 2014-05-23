@@ -3,34 +3,34 @@
 # List files manually for this complicated folder
  
  
-if (HAVE_PKG_PNG)
+if (VW_HAVE_PKG_PNG)
   SET(png_headers DiskImageResourcePNG.h  MemoryImageResourcePNG.h  PngIO.h)
   SET(png_sources DiskImageResourcePNG.cc MemoryImageResourcePNG.cc PngIO.cc)
 endif()
 
-if (HAVE_PKG_JPEG)
+if (VW_HAVE_PKG_JPEG)
   SET(jpeg_headers DiskImageResourceJPEG.h  MemoryImageResourceJPEG.h  JpegIO.h)
   SET(jpeg_sources DiskImageResourceJPEG.cc MemoryImageResourceJPEG.cc JpegIO.cc)
 endif()
 
-if (HAVE_PKG_TIFF)
+if (VW_HAVE_PKG_TIFF)
   SET(tiff_headers DiskImageResourceTIFF.h)
   SET(tiff_sources DiskImageResourceTIFF.cc)
 endif()
 
-if (HAVE_PKG_OPENEXR)
+if (VW_HAVE_PKG_OPENEXR)
   if (ENABLE_EXCEPTIONS)
     SET(openexr_headers DiskImageResourceOpenEXR.h MemoryImageResourceOpenEXR.h)
     SET(openexr_sources DiskImageResourceOpenEXR.cc MemoryImageResourceOpenEXR.cc)
   endif()
 endif()
 
-if (HAVE_PKG_HDF)
+if (VW_HAVE_PKG_HDF)
   SET(hdf_headers DiskImageResourceHDF.h)
   SET(hdf_sources DiskImageResourceHDF.cc)
 endif()
 
-if (HAVE_PKG_GDAL)
+if (VW_HAVE_PKG_GDAL)
   SET(gdal_headers DiskImageResourceGDAL.h  MemoryImageResourceGDAL.h  GdalIO.h)
   SET(gdal_sources DiskImageResourceGDAL.cc MemoryImageResourceGDAL.cc GdalIO.cc)
 endif()

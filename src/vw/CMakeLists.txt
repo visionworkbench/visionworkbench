@@ -42,14 +42,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 #==================================================================================
 # Find dependencies
 
-#find_package(Boost 1.50.0
-#  COMPONENTS
-#  program_options
-#  system
-#  filesystem
-#  thread
-#  )
-
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
@@ -126,8 +118,8 @@ message("--------------------------------------------------------------")
 #    target_link_libraries(foo ${PROTOBUF_LIBRARIES})
 #endif()
 #message("--------------------------------------------------------------")
-set(PROTOBUF_FOUND)
-set(HAVE_PKG_PROTOBUF true)
+set(PROTOBUF_FOUND 1)
+set(VW_HAVE_PKG_PROTOBUF 1)
 set(PROTOBUF_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include   )
 set(PROTOBUF_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/libprotobuf.so)
 #include_directories("${PROTOBUF_INCLUDE_DIR}")
@@ -138,139 +130,168 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 
 
 # Get NAIF includes (Needed for reading/writing SPICE data)
-set(NAIF_FOUND true)
+set(NAIF_FOUND 1)
 if (NAIF_FOUND)
   set(NAIF_INCLUDE_DIRS ${BASESYSTEM_INSTALL_DIR}/include/naif/)
   include_directories("${NAIF_INCLUDE_DIRS}")
-  message("Found NAIF at " ${NAIF_INCLUDE_DIRS})
+  message("-- Found NAIF at " ${NAIF_INCLUDE_DIRS})
+else()
+  message("Failed to find NAIF")
 endif()
 
-set(LAPACK_FOUND true)
+set(LAPACK_FOUND 1)
 if(LAPACK_FOUND)
-  set(HAVE_PKG_LAPACK true)
+  set(VW_HAVE_PKG_LAPACK 1)
   set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/liblapack.so
                        ${BASESYSTEM_INSTALL_DIR}/lib/libblas.so)
   set(LAPACK_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
-  message("Found LAPACK at " ${LAPACK_LIBRARIES})
+  message("-- Found LAPACK at " ${LAPACK_LIBRARIES})
+else()
+  message("Failed to find LAPACK")
 endif()
 
-set(FLANN_FOUND)
+set(FLANN_FOUND 1)
 if(FLANN_FOUND)
-  set(HAVE_PKG_FLANN true)
-  set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libflann_cpp.so)
+  set(VW_HAVE_PKG_FLANN 1)
+  set(FLANN_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libflann_cpp.so)
   set(FLANN_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
-  message("Found FLANN at " ${FLANN_LIBRARIES})
+  message("-- Found FLANN at " ${FLANN_LIBRARIES})
+else()
+  message("Failed to find FLANN")
 endif()
 
-set(JPEG_FOUND)
+set(JPEG_FOUND 1)
 if(JPEG_FOUND)
-  set(HAVE_PKG_JPEG true)
+  set(VW_HAVE_PKG_JPEG 1)
   set(JPEG_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libjpeg.so)
-  #set(JPEG_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/)
   set(JPEG_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)  
-  message("Found JPEG " ${JPEG_LIBRARY})
+  message("-- Found JPEG " ${JPEG_LIBRARY})
+else()
+  message("Failed to find JPEG")
 endif()
-
-
 
 find_package(PNG REQUIRED)
-if(PNGFOUND)
-  set(HAVE_PKG_PNG true)
-  message("Found PNG " ${PNG_LIBRARY})
+if(PNG_FOUND)
+  set(VW_HAVE_PKG_PNG 1)
+  #message("Found PNG " ${PNG_LIBRARY})
+else()
+  message("Failed to find PNG")
 endif()
+#set(PNG_FOUND) # PNG may be available in BaseSystem too!
+
+
 
 find_package(TIFF REQUIRED)
 if(TIFF_FOUND)
-  set(HAVE_PKG_TIFF true)
-  message("Found TIFF " ${TIFF_LIBRARY})
+  set(VW_HAVE_PKG_TIFF 1)
+  #message("Found TIFF " ${TIFF_LIBRARY})
+else()
+  message("Failed to find TIFF")
 endif()
 
 find_package(GDAL REQUIRED)
-set(HAVE_PKG_GDAL GDAL_FOUND)
 if(GDAL_FOUND)
-  message("Found GDAL at " ${GDAL_LIBRARY})
+  set(VW_HAVE_PKG_GDAL 1)
+  #message("Found GDAL at " ${GDAL_LIBRARY})
   include_directories(${GDAL_INCLUDE_DIR})
+else()
+  message("Failed to find GDAL")
 endif()
 
 find_package(Protobuf REQUIRED)
-set(HAVE_PKG_PROTOBUF PROTOBUF_FOUND)
 if(PROTOBUF_FOUND)
-  message("Found PROTOBUF " ${PROTOBUF_LIBRARY})
+  set(VW_HAVE_PKG_PROTOBUF 1)
+  #message("Found PROTOBUF " ${PROTOBUF_LIBRARY})
+else()
+  message("Failed to find PROTOBUF")
 endif()
 
 find_package(PythonLibs REQUIRED)
-set(HAVE_PKG_PYTHONLIBS PYTHONLIBS_FOUND)
 if(PYTHONLIBS_FOUND)
-  message("Found PYTHONLIBS " ${PYTHON_LIBRARIES})
+  set(VW_HAVE_PKG_PYTHONLIBS 1)
+  #message("Found PYTHONLIBS " ${PYTHON_LIBRARIES})
+else()
+  message("Failed to find PYTHONLIBS")
 endif()
 
 
 #TODO: Use FindProj cmake file to do this!
-set(HAVE_PKG_PROJ4 true)
+set(VW_HAVE_PKG_PROJ4 1)
 set(PROJ4_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/libproj.so)
 set(PROJ4_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include)
 
 
-set(HAVE_PKG_OPENEXR true)
+set(VW_HAVE_PKG_OPENEXR 1)
 set(OPENEXR_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libIlmImf.so
                         ${BASESYSTEM_INSTALL_DIR}/lib/libIlmThread.so )
 set(OPENEXR_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/OpenEXR)
 include_directories("${OPENEXR_INCLUDE_DIR}")
 
 # TODO: Where is this in BinaryBuilder?
-set(HAVE_PKG_ILMBASE)
-set(HAVE_PKG_FLAPACK)
+set(VW_HAVE_PKG_ILMBASE 1)
+set(VW_HAVE_PKG_FLAPACK 1)
 
 
 find_package(OpenCV)
 if(OPENCV_FOUND)
-  set(HAVE_PKG_OPENCV true)
-  message("Found OPENCV " ${OPENCV_LIBRARIES})
+  set(VW_HAVE_PKG_OPENCV 1)
+  #message("Found OPENCV " ${OPENCV_LIBRARIES})
   include_directories("${OPENCV_INCLUDE_DIR}")
+else()
+  message("Failed to find OPENCV")
 endif()
 
 find_package(SigC++)
 if(SigC++_FOUND)
-  message("Found SigC++ " ${SigC++_LIBRARIES})
-  message("Include dirs: " ${SigC++_INCLUDE_DIRS})
+  #message("Found SigC++ " ${SigC++_LIBRARIES})
+  #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
   include_directories("${SigC++_INCLUDE_DIRS}")
+else()
+  message("Failed to find SIC++")
 endif()
 
 find_package(FreeType)
 if(FREETYPE_FOUND)
-  message("Found FreeType " ${FREETYPE_LIBRARIES})
-  message("Include dirs: " ${FREETYPE_INCLUDE_DIRS})
+  #message("Found FreeType " ${FREETYPE_LIBRARIES})
+  #message("Include dirs: " ${FREETYPE_INCLUDE_DIRS})
   include_directories("${FREETYPE_INCLUDE_DIRS}")
+else()
+  message("Failed to find FREETYPE")
 endif()
 
 find_package(Cairo)
 if(CAIRO_FOUND)
-  set(HAVE_PKG_CAIRO true)
-  message("Found Cairo " ${CAIRO_LIBRARIES})
+  set(VW_HAVE_PKG_CAIRO 1)
+  #message("Found Cairo " ${CAIRO_LIBRARIES})
   include_directories("${CAIRO_INCLUDE_DIR}")
+else()
+  message("Failed to find CAIRO")
 endif()
 
 find_package(Cairomm)
 if(CAIROMM_FOUND)
-  set(HAVE_PKG_CAIROMM true)
-  message("Found CairoMM " ${CAIROMM_LIBRARIES})
+  set(VW_HAVE_PKG_CAIROMM 1)
+  #message("Found CairoMM " ${CAIROMM_LIBRARIES})
   include_directories("${CAIROMM_INCLUDE_DIR}")
+else()
+  message("Failed to find CAIROMM")
 endif()
 
 
 
 
 #TODO: Look for each of these installations!
-set(HAVE_PKG_HDF)
-set(HAVE_PKG_RABBITMQ_C)
-set(HAVE_PKG_ZEROMQ)
-set(HAVE_PKG_LIBKML)
+#set(VW_HAVE_PKG_BIGTIFF 1) TODO: Do we need this one?
+set(VW_HAVE_PKG_HDF 0)
+#set(VW_HAVE_PKG_RABBITMQ_C 0) # Only used for plate!
+set(VW_HAVE_PKG_ZEROMQ 1)
+#set(VW_HAVE_PKG_LIBKML 0) # Only used for plate!
+set(VW_HAVE_PKG_ILMBASE 1)
+
 
 
 # TODO: What is this for?
 set(ENABLE_EXCEPTIONS True)
-
-
 
 
 message("--------------------------------------------------------------")
@@ -281,6 +302,10 @@ message("--------------------------------------------------------------")
 #endforeach()
 #message("--------------------------------------------------------------")
 
+
+# Now that we have found all our external dependencies, generate a config.h file
+include("GenerateConfig.cmake")
+#GenerateConfig()
 
 
 # Add all the header files at the top level to the install command
@@ -324,11 +349,13 @@ get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
 get_all_source_files( "Geometry/tests" VW_GEOMETRY_TEST_FILES)
 set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 
+# DEPRECATED
 ## --- VW_GPU ------------------------------------------------------------
 #get_all_source_files( "GPU"       VW_GPU_SRC_FILES)
 #get_all_source_files( "GPU/tests" VW_GPU_TEST_FILES)
 #set(VW_GPU_LIB_DEPENDENCIES VwCore VwMath)
 
+# DEPRECATED
 ## --- VW_GUI ------------------------------------------------------------
 #get_all_source_files( "gui"       VW_GUI_SRC_FILES)
 #get_all_source_files( "gui/tests" VW_GUI_TEST_FILES)
@@ -360,6 +387,7 @@ get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
 get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
 set(VW_MOSAIC_LIB_DEPENDENCIES VwMath)
 
+# DEPRECATED
 ## --- VW_PLATE ------------------------------------------------------------
 #get_all_source_files( "Plate"       VW_PLATE_SRC_FILES)
 #get_all_source_files( "Plate/tests" VW_PLATE_TEST_FILES)
@@ -416,14 +444,14 @@ add_subdirectory(Cartography)
 add_subdirectory(Core)
 add_subdirectory(FileIO)
 add_subdirectory(Geometry)
-#add_subdirectory(GPU)
-#add_subdirectory(gui)
+#add_subdirectory(GPU) # DEPRECATED
+#add_subdirectory(gui) # DEPRECATED
 add_subdirectory(HDR)
 add_subdirectory(Image)
 add_subdirectory(InterestPoint)
 add_subdirectory(Math)
 add_subdirectory(Mosaic)
-#add_subdirectory(Plate)
+#add_subdirectory(Plate) # DEPRECATED
 add_subdirectory(Stereo)
 add_subdirectory(tools)
 

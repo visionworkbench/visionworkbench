@@ -56,16 +56,16 @@ namespace math {
 //#  include <Accelerate/Accelerate.h>
    typedef __CLPK_integer f77_int;
 #else
-#  if (defined(VW_HAVE_PKG_FLAPACK)            && VW_HAVE_PKG_FLAPACK==1) || \
-      (defined(VW_HAVE_PKG_SLAPACK)            && VW_HAVE_PKG_SLAPACK==1) || \
-      (defined(VW_HAVE_PKG_STANDALONE_FLAPACK) && VW_HAVE_PKG_STANDALONE_FLAPACK==1)
+#  if (defined(VW_HAVE_PKG_FLAPACK)           ) || \
+      (defined(VW_HAVE_PKG_SLAPACK)           ) || \
+      (defined(VW_HAVE_PKG_STANDALONE_FLAPACK))
 
     // fortran-based
     typedef int32  f77_int;
 
-#  elif (defined(VW_HAVE_PKG_CLAPACK)                    && VW_HAVE_PKG_CLAPACK==1) || \
-        (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS) && VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS==1) || \
-        (defined(VW_HAVE_PKG_LAPACK) && VW_HAVE_PKG_LAPACK==1)
+#  elif (defined(VW_HAVE_PKG_CLAPACK)                   ) || \
+        (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS)) || \
+        (defined(VW_HAVE_PKG_LAPACK))
 
     // f2c-based
     typedef long f77_int;

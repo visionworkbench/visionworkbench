@@ -30,6 +30,7 @@ using namespace vw::test;
 
 #include <vw/FileIO/DiskImageResourceGDAL.h>
 
+
 TEST( GDALFeatures, NoDataValue ) {
   UnlinkName nodata("nodata.tif");
 
