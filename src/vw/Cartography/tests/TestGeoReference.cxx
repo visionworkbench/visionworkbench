@@ -463,6 +463,11 @@ TEST(GeoReference, NED_MATRIX) {
   
 }  
 
+#if 0
+
+// This test is off since the underlying functionality was
+// turned off as well as it was causing problems.
+
 // Loop through a bunch of pixels in an image and
 //  make sure we can go from and back to the same pixel.
 void georefMatchTest(const GeoReference &georef)
@@ -594,7 +599,4 @@ TEST( GeoReference, eqcReverseTest) {
 
 }
 
-
-
-
-
+#endif

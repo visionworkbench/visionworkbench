@@ -731,7 +731,6 @@ namespace vw {
     typedef TransformView<typename ImageT::prerasterize_type, TransformT> prerasterize_type;
     inline prerasterize_type prerasterize( BBox2i const& bbox ) const {
       BBox2i transformed_bbox = m_mapper.reverse_bbox(bbox);
-      //VW_OUT(VerboseDebugMessage, "image") << "BlockRasterizeView::RasterizeFunctor( " << bbox << " )" << std::endl;
       return prerasterize_type( m_image.prerasterize(transformed_bbox), m_mapper, m_width, m_height );
     }
     template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const {

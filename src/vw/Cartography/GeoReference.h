@@ -74,14 +74,9 @@ namespace cartography {
     std::string m_proj_projection_str, m_gml_str;
     ProjContext m_proj_context;
     bool        m_is_projected;
-    bool        m_using_lon_wrap; ///< True if longitude wrapping is being used.
-    double      m_center_lon_wrap; ///<  Input longitude values are normalized around this value.
 
     /// Initialize m_proj_context with current proj4 string.
     void init_proj();
-
-    // Updates a longitude wrap function needed for certain DEMs.
-    void update_lon_wrap();
 
     /// This method returns a version of the affine transform
     /// compatible with the VW standard notion that (0,0) is the

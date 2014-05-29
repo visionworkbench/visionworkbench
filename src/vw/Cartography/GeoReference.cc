@@ -151,11 +151,6 @@ namespace cartography {
     m_pixel_interpretation =
       static_cast<GeoReferenceBase::PixelInterpretation>(desc.pixel_interpretation());
     set_transform(Matrix3x3(desc.transform().data()));
-    //m_is_projected = desc.is_projected();
-    //m_proj_projection_str = desc.proj_projection_str();
-
-    //init_proj();
-
     set_proj4_projection_str(desc.proj_projection_str());
   }
 
@@ -180,7 +175,6 @@ namespace cartography {
     m_inv_transform = vw::math::inverse(m_transform);
     m_inv_shifted_transform = vw::math::inverse(m_shifted_transform);
 
-    update_lon_wrap();
   }
 
   // We override the base classes method here so that we have the
@@ -309,19 +303,14 @@ namespace cartography {
     else
       m_is_projected = true;
 
-    // Force all "eqc" projections to turn off -180 to 180 longitude wrapping in proj4.
-    //// - This is only temporary so we can make another modification below
-    if ( (s.find("+proj=eqc") == 0) && (s.find("+over") == std::string::npos) )
-      m_proj_projection_str.append(" +over");
-
     init_proj(); // Initialize m_proj_context
-
-    update_lon_wrap();
   }
 
 
+#if 0
+  // This function is turned off as it causes other trouble.
   void GeoReference::update_lon_wrap() {
-  
+
       if (m_proj_projection_str.find("+proj=eqc") != 0) {
         m_using_lon_wrap = false; // Other projections currently not using this correction.
         return; // Nothing else to do here!
@@ -379,7 +368,8 @@ namespace cartography {
      m_center_lon_wrap = minLon + halfWidth;
      m_using_lon_wrap  = true;
   }
-
+#endif
+  
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL
   void GeoReference::set_wkt(std::string const& wkt) {
     const char *wkt_str = wkt.c_str();
@@ -521,20 +511,6 @@ namespace cartography {
   /// the location in the projected coordinate system.
   Vector2 GeoReference::lonlat_to_point(Vector2 lon_lat) const {
     if ( ! m_is_projected ) return lon_lat;
-
-    // For eqc projections, transform intput lon into requested range.
-    if (m_using_lon_wrap) {
-      const double OFFSET = 360.0;
-      const double RANGE  = 180.0;
-      const double maxLon = m_center_lon_wrap + RANGE;
-      const double minLon = m_center_lon_wrap - RANGE;
-
-      while (lon_lat[0] > maxLon) // Too high
-        lon_lat[0] -= OFFSET;
-      while (lon_lat[0] < minLon) // Too low
-        lon_lat[0] += OFFSET;
-    }
-
 
     // This value is proj's internal limit
     static const double BOUND = 1.5707963267948966 - (1e-10) - std::numeric_limits<double>::epsilon();
