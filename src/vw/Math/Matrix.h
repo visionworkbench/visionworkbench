@@ -195,6 +195,20 @@ namespace math {
   /// elements of the matrix in the standard (row-major) order.  It
   /// keeps track of the element indices, dereferencing via the
   /// function call operator.
+
+  // Turn off an unhelpful and highly verbose boost warning
+#if defined(__GNUC__) || defined(__GNUG__)
+#define LOCAL_GCC_VERSION (__GNUC__ * 10000                    \
+                           + __GNUC_MINOR__ * 100              \
+                           + __GNUC_PATCHLEVEL__)
+#if LOCAL_GCC_VERSION >= 40600
+#pragma GCC diagnostic push
+#endif
+#if LOCAL_GCC_VERSION >= 40200  
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#endif
+#endif
+  
   template <class MatrixT>
   class IndexingMatrixIterator : public boost::iterator_facade<IndexingMatrixIterator<MatrixT>,
     typename boost::mpl::if_<boost::is_const<MatrixT>,
@@ -202,9 +216,17 @@ namespace math {
       typename MatrixT::value_type>::type,
     boost::random_access_traversal_tag,
     typename boost::mpl::if_<boost::is_const<MatrixT>,
-      typename MatrixT::const_reference_type,
-      typename MatrixT::reference_type>::type>
+    typename MatrixT::const_reference_type,
+    typename MatrixT::reference_type>::type>
   {
+
+#if defined(__GNUC__) || defined(__GNUG__)
+#if LOCAL_GCC_VERSION >= 40600  
+#pragma GCC diagnostic pop
+#endif
+#undef LOCAL_GCC_VERSION
+#endif
+    
   public:
     typedef typename IndexingMatrixIterator::difference_type difference_type;
 
