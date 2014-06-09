@@ -20,6 +20,7 @@
 ///
 
 #include <vw/BundleAdjustment/ControlNetwork.h>
+#include <vw/Core/Log.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 
@@ -569,6 +570,8 @@ namespace ba {
     filename = filename.substr(0,filename.rfind("."));
     filename += ".cnet";
 
+    vw_out() << "Writing: " << filename << std::endl;
+    
     // Opening file
     std::ofstream f( filename.c_str() );
 

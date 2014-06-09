@@ -18,6 +18,7 @@
 
 #include <vw/BundleAdjustment/ControlNetworkLoader.h>
 #include <vw/Stereo/StereoModel.h>
+#include <vw/InterestPoint/Matcher.h>
 
 using namespace vw;
 using namespace vw::ba;
@@ -94,10 +95,12 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
 }
 
 void vw::ba::build_control_network( ba::ControlNetwork& cnet,
-                                     std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
-                                     std::vector<std::string> const& image_files,
-                                     size_t min_matches,
-                                     std::vector<std::string> const& directories ) {
+                                    std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                                    std::vector<std::string> const& image_files,
+                                    size_t min_matches,
+                                    std::vector<std::string> const& directories,
+                                    std::string const& prefix
+                                    ) {
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
@@ -108,87 +111,130 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
   ba::CameraRelationNetwork<ba::IPFeature> crn;
   BOOST_FOREACH( std::string const& file, image_files ) {
     fs::path file_path(file);
-    image_prefix_map[fs::path(file_path).replace_extension().string()] = count;
+    image_prefix_map[file_path.replace_extension().string()] = count;
     crn.add_node( ba::CameraNode<ba::IPFeature>( count,
                                                  file_path.stem().string() ) );
     count++;
   }
 
+  // If the user passed in a search directory, look for match files in that dir.
+  // Otherwise, if the user passed in a prefix, look for match files starting with
+  // that prefix.
+  std::vector<std::string> match_files;
+  std::vector<size_t> index1_vec, index2_vec;
+  
   // Searching through the directories available to us.
-  size_t num_load_rejected = 0, num_loaded = 0;
-  BOOST_FOREACH( std::string const& directory, directories ) {
-    vw_out(VerboseDebugMessage,"ba") << "\tOpening directory \""
-                                     << directory << "\".\n";
-    fs::directory_iterator end_itr;
-    for ( fs::directory_iterator obj( directory ); obj != end_itr; ++obj ) {
+  typedef std::map<std::string,size_t>::iterator MapIterator;
+  if (!directories.empty()){
+    BOOST_FOREACH( std::string const& directory, directories ) {
+      vw_out(DebugMessage,"ba") << "\tOpening directory \""
+                                << directory << "\".\n";
+      fs::directory_iterator end_itr;
+      for ( fs::directory_iterator obj( directory ); obj != end_itr; ++obj ) {
+        
+        // Skip if not a file
+        if ( !fs::is_regular_file( obj->status() ) ) continue;
+        // Skip if not a match file
+        if ( obj->path().extension() != ".match" ) continue;
+        
+        // Pull out the prefixes that made up that match file
+        std::string match_base = obj->path().stem().string();
+        size_t split_pt = match_base.find("__");
+        if ( split_pt == std::string::npos ) continue;
+        std::string prefix1 = match_base.substr(0,split_pt);
+        std::string prefix2 = match_base.substr(split_pt+2,match_base.size()-split_pt-2);
+        
+        // Extract the image indices that correspond to image prefixes.
+        MapIterator it1 = image_prefix_map.find( prefix1 );
+        MapIterator it2 = image_prefix_map.find( prefix2 );
+        if ( it1 == image_prefix_map.end() ||
+             it2 == image_prefix_map.end() ) continue;
+        std::string match_file = obj->path().string();
+        match_files.push_back(match_file);
+        index1_vec.push_back(it1->second);
+        index2_vec.push_back(it2->second);
+        
+      }
+    } // end search through directories
+    
+  }else{
 
-      // Skip if not a file
-      if ( !fs::is_regular_file( obj->status() ) ) continue;
-      // Skip if not a match file
-      if ( obj->path().extension() != ".match" ) continue;
-
-      // Pull out the prefixes that made up that match file
-      std::string match_base = obj->path().stem().string();
-      size_t split_pt = match_base.find("__");
-      if ( split_pt == std::string::npos ) continue;
-      std::string prefix1 = match_base.substr(0,split_pt);
-      std::string prefix2 = match_base.substr(split_pt+2,match_base.size()-split_pt-2);
-
-      // Extract the image indices that correspond to image prefixes.
-      typedef std::map<std::string,size_t>::iterator MapIterator;
-      MapIterator it1 = image_prefix_map.find( prefix1 );
-      MapIterator it2 = image_prefix_map.find( prefix2 );
-      if ( it1 == image_prefix_map.end() ||
-           it2 == image_prefix_map.end() ) continue;
-
-      // Actually read in the file as it seems we've found something correct
-      std::vector<ip::InterestPoint> ip1, ip2;
-      ip::read_binary_match_file( obj->path().string(), ip1, ip2 );
-      if ( ip1.size() < min_matches ) {
-        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->path().string() << "    "
-                                         << it1->second << " <-> " << it2->second << " : "
-                                         << ip1.size() << " matches. [rejected]\n";
-        num_load_rejected += ip1.size();
-      } else {
-        vw_out(VerboseDebugMessage,"ba") << "\t" << obj->path().string() << "    "
-                                         << it1->second << " <-> " << it2->second << " : "
-                                         << ip1.size() << " matches.\n";
-        num_loaded += ip1.size();
-
-        // Remove descriptors from interest points and correct scale
-        std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
-        std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
-        std::for_each( ip1.begin(), ip1.end(), safe_measurement );
-        std::for_each( ip2.begin(), ip2.end(), safe_measurement );
-
-        typedef boost::shared_ptr< ba::IPFeature > f_ptr;
-        typedef std::list< f_ptr >::iterator f_itr;
-
-        // Checking to see if features already exist, adding if they
-        // don't, then linking them.
-        for ( size_t k = 0; k < ip1.size(); k++ ) {
-          f_itr ipfeature1 = std::find_if( crn[it1->second].begin(),
-                                           crn[it1->second].end(),
-                                           ContainsEqualIP( ip1[k] ) );
-          f_itr ipfeature2 = std::find_if( crn[it2->second].begin(),
-                                           crn[it2->second].end(),
-                                           ContainsEqualIP( ip2[k] ) );
-          if ( ipfeature1 == crn[it1->second].end() ) {
-            crn[it1->second].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], it1->second ) ) );
-            ipfeature1 = crn[it1->second].begin();
-          }
-          if ( ipfeature2 == crn[it2->second].end() ) {
-            crn[it2->second].relations.push_front( f_ptr( new ba::IPFeature( ip2[k], it2->second ) ) );
-            ipfeature2 = crn[it2->second].begin();
-          }
-
-          // Doubly linking
-          (*ipfeature1)->connection( *ipfeature2, false );
-          (*ipfeature2)->connection( *ipfeature1, false );
+    int num_images = image_files.size();
+    for (int i = 0; i < num_images; i++){
+      for (int j = i+1; j < num_images; j++){
+        std::string image1 = image_files[i];
+        std::string image2 = image_files[j];
+        std::string match_file = ip::match_filename(prefix, image1, image2);
+        std::string prefix1 = fs::path(image1).replace_extension().string();
+        std::string prefix2 = fs::path(image2).replace_extension().string();
+        MapIterator it1 = image_prefix_map.find( prefix1 );
+        MapIterator it2 = image_prefix_map.find( prefix2 );
+        if ( it1 == image_prefix_map.end() ||
+             it2 == image_prefix_map.end() ) continue;
+        if (!fs::exists(match_file)) {
+          vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
+          continue;
         }
+        match_files.push_back(match_file);
+        index1_vec.push_back(it1->second);
+        index2_vec.push_back(it2->second);
       }
     }
-  } // end search through directories
+  }
+  
+  size_t num_load_rejected = 0, num_loaded = 0;
+  for (size_t file_iter  =  0; file_iter < match_files.size(); file_iter++){
+    std::string match_file = match_files[file_iter];
+    size_t index1 = index1_vec[file_iter];
+    size_t index2 = index2_vec[file_iter];
+    
+    // Actually read in the file as it seems we've found something correct
+    std::vector<ip::InterestPoint> ip1, ip2;
+    vw_out(DebugMessage,"ba") << "Loading: " << match_file << std::endl;
+    ip::read_binary_match_file( match_file, ip1, ip2 );
+    if ( ip1.size() < min_matches ) {
+      vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
+                                << ip1.size() << " matches. [rejected]\n";
+      num_load_rejected += ip1.size();
+    } else {
+      vw_out(DebugMessage,"ba") << "\t" << match_file << "    "
+                                << ip1.size() << " matches.\n";
+      num_loaded += ip1.size();
+
+      // Remove descriptors from interest points and correct scale
+      std::for_each( ip1.begin(), ip1.end(), ip::remove_descriptor );
+      std::for_each( ip2.begin(), ip2.end(), ip::remove_descriptor );
+      std::for_each( ip1.begin(), ip1.end(), safe_measurement );
+      std::for_each( ip2.begin(), ip2.end(), safe_measurement );
+
+      typedef boost::shared_ptr< ba::IPFeature > f_ptr;
+      typedef std::list< f_ptr >::iterator f_itr;
+
+      // Checking to see if features already exist, adding if they
+      // don't, then linking them.
+      for ( size_t k = 0; k < ip1.size(); k++ ) {
+        f_itr ipfeature1 = std::find_if( crn[index1].begin(),
+                                         crn[index1].end(),
+                                         ContainsEqualIP( ip1[k] ) );
+        f_itr ipfeature2 = std::find_if( crn[index2].begin(),
+                                         crn[index2].end(),
+                                         ContainsEqualIP( ip2[k] ) );
+        if ( ipfeature1 == crn[index1].end() ) {
+          crn[index1].relations.push_front( f_ptr( new ba::IPFeature( ip1[k], index1 ) ) );
+          ipfeature1 = crn[index1].begin();
+        }
+        if ( ipfeature2 == crn[index2].end() ) {
+          crn[index2].relations.push_front( f_ptr( new ba::IPFeature( ip2[k], index2 ) ) );
+          ipfeature2 = crn[index2].begin();
+        }
+
+        // Doubly linking
+        (*ipfeature1)->connection( *ipfeature2, false );
+        (*ipfeature2)->connection( *ipfeature1, false );
+      }
+    }
+  }
+
   if ( num_load_rejected != 0 ) {
     vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
                                 << " matches due to inadequacy.\n";

@@ -37,10 +37,12 @@ namespace ba {
   // that would have been created by 'ipmatch' by searching the entire
   // permutation of the image_files vector.
   void build_control_network( ControlNetwork& cnet,
-                               std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
-                               std::vector<std::string> const& image_files,
-                               size_t min_matches = 30,
-                              std::vector<std::string> const& directories = std::vector<std::string>(1,".") );
+                              std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+                              std::vector<std::string> const& image_files,
+                              size_t min_matches = 30,
+                              std::vector<std::string> const& directories = std::vector<std::string>(1,"."),
+                              std::string const& prefix = ""
+                              );
 
   void triangulate_control_point( ControlPoint& cp,
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
