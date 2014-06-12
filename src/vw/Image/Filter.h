@@ -377,6 +377,13 @@ namespace vw {
     return BinaryPerPixelView<Src1T,Src2T,FuncT>( src1.impl(), src2.impl(), func );
   }
 
+  /// Function for the per-pixel-view that also provides the indices at each location.
+  template <class SrcT, class FuncT>
+  UnaryPerPixelIndexView<SrcT,FuncT>
+  inline per_pixel_index_filter( ImageViewBase<SrcT> const& src, FuncT const& func ) {
+    return UnaryPerPixelIndexView<SrcT,FuncT>( src.impl(), func );
+  }
+
   // Per-pixel-channel filter functions
 
   /// Filters an image by applying a user-supplied function to each

@@ -300,6 +300,58 @@ namespace vw {
     /// \endcond
   };
 
+
+
+
+  // *******************************************************************
+  // UnaryPerPixelIndexView
+  // *******************************************************************
+
+  /// Class for applying a functor to every pixel in an image.
+  /// - This is nearly identical to UnaryPerPixelView but it passes the
+  ///   pixel coordinates to the function in addition to the pixel value.
+  ///   Basically a combination of UnaryPerPixelView and PerPixelIndexView.
+  template <class ImageT, class FuncT>
+  class UnaryPerPixelIndexView : public ImageViewBase<UnaryPerPixelIndexView<ImageT,FuncT> > {
+    ImageT m_image;
+    FuncT  m_func;
+  public:
+    typedef typename boost::result_of<FuncT(typename ImageT::pixel_type, int32, int32, int32)>::type result_type;
+    typedef typename boost::remove_cv<typename boost::remove_reference<result_type>::type>::type     pixel_type;
+    typedef ProceduralPixelAccessor<UnaryPerPixelIndexView>                                          pixel_accessor;
+
+    UnaryPerPixelIndexView( ImageT const& image                    ) : m_image(image), m_func() {}
+    UnaryPerPixelIndexView( ImageT const& image, FuncT const& func ) : m_image(image), m_func(func) {}
+
+    inline int32 cols  () const { return m_image.cols  (); }
+    inline int32 rows  () const { return m_image.rows  (); }
+    inline int32 planes() const { return m_image.planes(); }
+
+    //inline pixel_accessor origin() const { return pixel_accessor(m_image.origin(), m_func); }
+    inline pixel_accessor origin() const { return pixel_accessor(*this); }
+    inline result_type operator()( int32 i, int32 j, int32 p=0 ) const { return m_func(m_image(i,j,p), i, j, p); }
+
+    template <class ViewT>
+    UnaryPerPixelIndexView& operator=( ImageViewBase<ViewT> const& view ) {
+      view.impl().rasterize( *this, BBox2i(0,0,view.impl().cols(),view.impl().rows()) );
+      return *this;
+    }
+
+    /// \cond INTERNAL
+    typedef UnaryPerPixelIndexView<typename ImageT::prerasterize_type, FuncT> prerasterize_type;
+    inline prerasterize_type prerasterize( BBox2i const& bbox ) const { return prerasterize_type( m_image.prerasterize(bbox), m_func ); }
+    template <class DestT> inline void rasterize( DestT const& dest, BBox2i const& bbox ) const { vw::rasterize( prerasterize(bbox), dest, bbox ); }
+    /// \endcond
+  };
+
+  /// \cond INTERNAL
+  // View type Traits.  This exists mainly for select_channel(), and may not
+  // be correct in all cases.  Perhaps it should be specialized there instead?
+  template <class ImageT, class FuncT>
+  struct IsMultiplyAccessible<UnaryPerPixelIndexView<ImageT,FuncT> > : boost::is_reference<typename UnaryPerPixelIndexView<ImageT,FuncT>::result_type>::type {};
+  /// \endcond
+
+
 }
 
 #endif // __VW_IMAGE_PERPIXELVIEWS_H__

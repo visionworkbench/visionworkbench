@@ -270,3 +270,56 @@ TEST( PerPixelView, Binary2 ) {
   ASSERT_FALSE( bool_trait<IsMultiplyAccessible>(ppv) );
   ASSERT_TRUE( bool_trait<IsImageView>(ppv) );
 }
+
+/// Simple test function that incorporates the pixel indices
+template <class T>
+static T addConstant(T arg, int32 i, int32 j, int32 p=0) {
+  return arg + (i + 2*j + 4*p);
+}
+
+
+TEST( PerPixelView, UnaryIndex ) {
+  ImageView<float> im(2,2); im(0,0)=1; im(0,1)=1; 
+                            im(1,0)=1; im(1,1)=1;
+  UnaryPerPixelIndexView<ImageView<float>, float(*)(float, int32, int32, int32)> ppv( im, addConstant );
+
+  // Test individual pixel access
+  EXPECT_EQ( ppv(0,0), 1 );
+  EXPECT_EQ( ppv(1,0), 2 );
+  EXPECT_EQ( ppv(0,1), 3 );
+  EXPECT_EQ( ppv(1,1), 4 );
+
+  // Test full rasterizaion
+  ImageView<float> im2 = ppv;
+  EXPECT_EQ( im2.cols(),   2 );
+  EXPECT_EQ( im2.rows(),   2 );
+  EXPECT_EQ( im2.planes(), 1 );
+  EXPECT_EQ( im2(0,0), ppv(0,0) );
+  EXPECT_EQ( im2(1,0), ppv(1,0) );
+  EXPECT_EQ( im2(0,1), ppv(0,1) );
+  EXPECT_EQ( im2(1,1), ppv(1,1) );
+
+  // Test partial rasterization
+  ImageView<float> im3(1,2);
+  ASSERT_NO_THROW( ppv.rasterize( im3, BBox2i(1,0,1,2) ) );
+  EXPECT_EQ( im3(0,0), ppv(1,0) );
+  EXPECT_EQ( im3(0,1), ppv(1,1) );
+  ImageView<float> im4(2,1);
+  ASSERT_NO_THROW( ppv.rasterize( im4, BBox2i(0,1,2,1) ) );
+  EXPECT_EQ( im4(0,0), ppv(0,1) );
+  EXPECT_EQ( im4(1,0), ppv(1,1) );
+
+  // Test the accessor / generic rasterization
+  ImageView<float> im5(2,2);
+  vw::rasterize( ppv, im5, BBox2i(0,0,2,2) );
+  EXPECT_EQ( im5(0,0), ppv(0,0) );
+  EXPECT_EQ( im5(1,0), ppv(1,0) );
+  EXPECT_EQ( im5(0,1), ppv(0,1) );
+  EXPECT_EQ( im5(1,1), ppv(1,1) );
+
+  // Test the types
+  ASSERT_TRUE( has_pixel_type<float>( ppv ) );
+  ASSERT_FALSE( bool_trait<IsMultiplyAccessible>(ppv) );
+  ASSERT_TRUE( bool_trait<IsImageView>(ppv) );
+}
+
