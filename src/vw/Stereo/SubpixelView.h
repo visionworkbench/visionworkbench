@@ -64,15 +64,52 @@ namespace stereo {
       typedef typename ImageView<AccumT>::pixel_accessor MetricAcc;
       typedef typename ImageView<PixelMask<Vector2i> >::pixel_accessor IDispAcc;
 
-      // Subdivide the input disparity into smaller sections that have
-      // the same disparity.
-      std::vector<SearchParam> zones;
+      // Subdivide the input disparity into smaller regions that have
+      // the same disparity. The goal here is that in each region the disparity
+      // varies only little, then the cost functions at a lot of points in the
+      // region will have identical values, so we will pre-compute each
+      // distinct cost function and replicate it across all points in the regions.
+      // If however in each region the disparity varies a lot, this approach
+      // will slow things down rather than speed things up, then we
+      // do the cost function computation for each individual pixel.
+
+      // If the ratio of range of disparities in each region to the area
+      // of the region is bigger than this ratio, handle each point
+      // in the region individually, per above.
+
+      double ratio = 1.0; // The exact value here does not affect things much
+      std::vector<SearchParam> big_zones, zones;
       subdivide_regions( integer_disparity,
                          bounding_box(integer_disparity),
-                         zones, m_kernel_size );
-      BOOST_FOREACH( SearchParam& zone, zones ) {
-        zone.second.expand(1);
+                         big_zones, m_kernel_size );
+      BOOST_FOREACH( SearchParam& zone, big_zones ) {
 
+        double len1 = zone.first.width()*zone.first.height();
+        double len2 = zone.second.width()*zone.second.height();
+        if (len2/len1 < ratio){
+          zones.push_back(zone); 
+        }else{
+
+          for (int32 dx = zone.first.min().x(); dx < zone.first.max().x(); ++dx){
+            for (int32 dy = zone.first.min().y(); dy < zone.first.max().y(); ++dy){
+              BBox2i box(dx, dy, 1, 1);
+              PixelAccumulator<EWMinMaxAccumulator<Vector2i> > accumulator;
+              for_each_pixel( crop(integer_disparity, box), accumulator );
+              if ( !accumulator.is_valid() ) continue;
+              zones.push_back
+                ( SearchParam( box,
+                               BBox2i(accumulator.minimum(),
+                                      accumulator.maximum() + Vector2i(1,1) ) ) );
+              
+            }
+          }
+        }
+      }
+      
+      BOOST_FOREACH( SearchParam& zone, zones ) {
+        
+        zone.second.expand(1);
+        
         ImageView<AccumT> cost_metric( zone.first.width(), zone.first.height() );
 
         BBox2i left_zone = zone.first;
