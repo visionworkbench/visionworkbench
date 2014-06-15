@@ -252,15 +252,15 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
 
   po::options_description general_options("");
   general_options.add_options()
-    ("nodata-value", po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
-    ("feather-min", po::value(&opt.feather_min)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
-    ("feather-max,f", po::value(&opt.feather_max)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
-    ("transfer-func,t", po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
+    ("nodata-value",      po::value(&opt.nodata), "Value that is nodata in the input image. Not used if input has alpha.")
+    ("feather-min",       po::value(&opt.feather_min)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
+    ("feather-max,f",     po::value(&opt.feather_max)->default_value(0), "Length in pixels to feather from an edge. Default size of zero is to feather to maximum distance in image.")
+    ("transfer-func,t",   po::value(&opt.filter)->default_value("cosine"), "Transfer function to used for alpha. [linear, cosine, cosine90]")
     ("output-filename,o", po::value(&opt.output_filename), "Output file name. The grassfire weights will be the second band in this file.")
-    ("cache", po::value(&cache_size)->default_value(1024), "Source data cache size, in megabytes.")
-    ("blur-sigma", po::value<float>(&opt.blur_sigma)->default_value(0), "Blur the grassfire result before appyling the tranfer function to create an even smoother blend.")
-    ("force-float", "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
-    ("help,h", "Display this help message");
+    ("cache",             po::value(&cache_size)->default_value(1024), "Source data cache size, in megabytes.")
+    ("blur-sigma",        po::value<float>(&opt.blur_sigma)->default_value(0), "Blur the grassfire result before appyling the tranfer function to create an even smoother blend.")
+    ("force-float",       "Force the data to be read in as a float.  This option also turns off auto-rescaling.  Useful for reading 16-bit integer DEMs as though they were full of floats.")
+    ("help,h",            "Display this help message");
 
   po::options_description positional("");
   positional.add_options()
