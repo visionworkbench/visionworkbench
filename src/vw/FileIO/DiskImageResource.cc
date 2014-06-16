@@ -188,6 +188,7 @@ static void register_default_file_types_impl() {
   if (vw::DiskImageResourceGDAL::gdal_has_support(".tif") && vw::DiskImageResourceGDAL::gdal_has_support(".tiff")) {
     REGISTER(".tif", GDAL)
     REGISTER(".tiff", GDAL)
+    REGISTER(".vrt", GDAL)
   } else {
 #endif
 #if defined(VW_HAVE_PKG_TIFF) && VW_HAVE_PKG_TIFF==1
