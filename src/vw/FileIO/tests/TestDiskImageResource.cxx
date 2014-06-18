@@ -49,7 +49,6 @@ using std::set;
 template <class PixelT>
 static void test_extension(string const& fn_base)
 {
-  std::cout << "--testing: " << fn_base << std::endl;
   ImageView<PixelT> img1(4,4), img2;
   UnlinkName fn(fn_base);
 
