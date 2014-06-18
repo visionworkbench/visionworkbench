@@ -49,6 +49,7 @@ using std::set;
 template <class PixelT>
 static void test_extension(string const& fn_base)
 {
+  std::cout << "--testing: " << fn_base << std::endl;
   ImageView<PixelT> img1(4,4), img2;
   UnlinkName fn(fn_base);
 
@@ -69,9 +70,9 @@ static void test_extension(string const& fn_base)
 
 TEST( DiskImageResource, WriteReadView ) {
   set<string> exclude;
-  const char *ex_list[] = {"img", "lbl", "pds", "cub"}; // skip the ro PDS formats
-  exclude.insert(ex_list, ex_list+4);
-
+  const char *ex_list[] = {"img", "lbl", "pds", "cub", "vrt"}; // skip the raw PDS formats and .vrt
+  exclude.insert(ex_list, ex_list+5);
+  
   foreach_ext("rwtest",
               test_extension<PixelRGB<float> >,   exclude);
   foreach_ext("rwtest",
