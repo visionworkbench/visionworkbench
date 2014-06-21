@@ -73,7 +73,7 @@ namespace ba {
       }
 
       // Data to be loaded
-      std::vector<Vector2> measure_locations;
+      std::vector<Vector4> measure_locations;
       std::vector<std::string> measure_cameras;
       Vector3 world_location, world_sigma;
 
@@ -90,10 +90,12 @@ namespace ba {
         } else {
           // Other lines define position in images
           std::string temp_name;
-          Vector2 temp_loc;
-          ifile >> temp_name >> temp_loc[0] >> temp_loc[1];
-          measure_locations.push_back( temp_loc );
-          measure_cameras.push_back( temp_name );
+          Vector4 temp_loc;
+          if (ifile >> temp_name >> temp_loc[0] >> temp_loc[1]
+              >> temp_loc[2] >> temp_loc[3]){
+            measure_locations.push_back( temp_loc );
+            measure_cameras.push_back( temp_name );
+          }
         }
         count++;
       }
@@ -108,15 +110,15 @@ namespace ba {
       cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
 
       // Adding measures
-      std::vector<Vector2>::iterator m_iter_loc = measure_locations.begin();
+      std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
       std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
       while ( m_iter_loc != measure_locations.end() ) {
         LookupType::iterator it = image_lookup.find(*m_iter_name);
         if ( it != image_lookup.end() ) {
           vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
                                     << " #" << it->second << std::endl;
-          ControlMeasure cm( (*m_iter_loc).x(), (*m_iter_loc).y(),
-                             1.0, 1.0, it->second );
+          ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
+                             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
           cpoint.add_measure( cm );
         } else {
           vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
