@@ -93,14 +93,24 @@ namespace ba {
           Vector4 temp_loc;
           if (ifile >> temp_name >> temp_loc[0] >> temp_loc[1]
               >> temp_loc[2] >> temp_loc[3]){
+            if (temp_loc[2] <= 0 || temp_loc[3] <= 0)
+              vw_throw( ArgumentErr()
+                        << "Standard deviations must be positive "
+                        << "when loading ground control points." );
             measure_locations.push_back( temp_loc );
             measure_cameras.push_back( temp_name );
-          }
+          }else
+            break;
         }
         count++;
       }
       ifile.close();
 
+      if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
+        vw_throw( ArgumentErr()
+                  << "Standard deviations must be positive "
+                  << "when loading ground control points." );
+      
       // Building Control Point
       Vector3 xyz = cartography::lon_lat_radius_to_xyz(world_location);
       vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
