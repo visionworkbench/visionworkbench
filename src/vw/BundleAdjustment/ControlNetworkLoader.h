@@ -23,7 +23,7 @@
 #include <vw/BundleAdjustment/CameraRelation.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
-
+#include <vw/Cartography/Datum.h>
 #include <boost/filesystem/operations.hpp>
 #include <boost/foreach.hpp>
 
@@ -48,14 +48,19 @@ namespace ba {
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                                   double const& minimum_angle );
 
-  // Adds ground control points from individual GCP files to an
-  // already built Control Network. The vector image_files serves as a look
-  // up chart for relating image names in GCP files to CNET's internal
-  // indexing.
+  // Adds ground control points from GCP files to an already built
+  // Control Network. The vector image_files serves as a look up chart
+  // for relating image names in GCP files to CNET's internal
+  // indexing.  Each GCP is a line in the file, containing the point
+  // id, 3D point (as lat,lon,height_above_datum), its sigmas, then,
+  // for each image, the image file name, pixel measurements, and
+  // their sigmas.
   template <class IterT>
   void add_ground_control_points( ControlNetwork& cnet,
                                   std::vector<std::string> const& image_files,
-                                  IterT gcp_start, IterT gcp_end ) {
+                                  IterT gcp_start, IterT gcp_end,
+                                  cartography::Datum const& datum
+                                  ){
     namespace fs = boost::filesystem;
 
     // Creating a version of image_files that doesn't contain the path
@@ -67,31 +72,48 @@ namespace ba {
     }
 
     while ( gcp_start != gcp_end ) {
+      
       if ( !fs::exists( *gcp_start ) ) {
         gcp_start++;
         continue;
       }
 
-      // Data to be loaded
-      std::vector<Vector4> measure_locations;
-      std::vector<std::string> measure_cameras;
-      Vector3 world_location, world_sigma;
-
       vw_out(VerboseDebugMessage,"ba") << "\tLoading \"" << *gcp_start
                                        << "\".\n";
-      int count = 0;
+
       std::ifstream ifile( (*gcp_start).c_str() );
-      while (!ifile.eof()) {
-        if ( count == 0 ) {
-          // First line defines position in the world
-          ifile >> world_location[0] >> world_location[1]
-                >> world_location[2] >> world_sigma[0]
-                >> world_sigma[1] >> world_sigma[2];
-        } else {
-          // Other lines define position in images
+      std::string line;
+      while ( getline(ifile, line, '\n') ){
+        
+        // Skip empty lines or lines starting with comments
+        if (line.size() == 0) continue;
+        if (line.size() > 0 && line[0] == '#') continue; 
+
+        boost::replace_all(line, ",", " ");
+
+        // Data to be loaded
+        std::vector<Vector4> measure_locations;
+        std::vector<std::string> measure_cameras;
+        int point_id;
+        Vector3 world_location, world_sigma;
+        
+        std::istringstream is(line);
+        
+        // First elements in the line are the point id, location in
+        // the world, and its sigmas
+        if (!(is >> point_id >> world_location[0] >> world_location[1]
+              >> world_location[2] >> world_sigma[0]
+              >> world_sigma[1] >> world_sigma[2])){
+          vw_out(WarningMessage) << "Could not parse a ground control point "
+                                 << "from line: " << line << std::endl;
+          continue;
+        }
+        
+        // Other elements in the line define the position in images
+        while(1){
           std::string temp_name;
           Vector4 temp_loc;
-          if (ifile >> temp_name >> temp_loc[0] >> temp_loc[1]
+          if (is >> temp_name >> temp_loc[0] >> temp_loc[1]
               >> temp_loc[2] >> temp_loc[3]){
             if (temp_loc[2] <= 0 || temp_loc[3] <= 0)
               vw_throw( ArgumentErr()
@@ -102,44 +124,48 @@ namespace ba {
           }else
             break;
         }
-        count++;
+
+        if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
+          vw_throw( ArgumentErr()
+                    << "Standard deviations must be positive "
+                    << "when loading ground control points." );
+
+        // Make lat,lon into lon,lat
+        std::swap(world_location[0], world_location[1]);
+        
+        // Building Control Point
+        Vector3 xyz = datum.geodetic_to_cartesian(world_location);
+        
+        vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
+                                         << xyz << std::endl;
+        ControlPoint cpoint(ControlPoint::GroundControlPoint);
+        cpoint.set_position(xyz[0],xyz[1],xyz[2]);
+        cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
+        
+        // Adding measures
+        std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
+        std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
+        while ( m_iter_loc != measure_locations.end() ) {
+          LookupType::iterator it = image_lookup.find(*m_iter_name);
+          if ( it != image_lookup.end() ) {
+            vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
+                                      << " #" << it->second << std::endl;
+            ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
+                               (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
+            cpoint.add_measure( cm );
+          } else {
+            vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
+                                        << *m_iter_name << std::endl;
+          }
+          m_iter_loc++;
+          m_iter_name++;
+        }
+        
+        // Appended GCP
+        cnet.add_control_point(cpoint);
       }
       ifile.close();
-
-      if (world_sigma[0] <= 0 || world_sigma[1] <= 0 || world_sigma[2] <= 0)
-        vw_throw( ArgumentErr()
-                  << "Standard deviations must be positive "
-                  << "when loading ground control points." );
       
-      // Building Control Point
-      Vector3 xyz = cartography::lon_lat_radius_to_xyz(world_location);
-      vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
-                                       << xyz << std::endl;
-      ControlPoint cpoint(ControlPoint::GroundControlPoint);
-      cpoint.set_position(xyz[0],xyz[1],xyz[2]);
-      cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
-
-      // Adding measures
-      std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
-      std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
-      while ( m_iter_loc != measure_locations.end() ) {
-        LookupType::iterator it = image_lookup.find(*m_iter_name);
-        if ( it != image_lookup.end() ) {
-          vw_out(DebugMessage,"ba") << "\t\tAdded Measure: " << *m_iter_name
-                                    << " #" << it->second << std::endl;
-          ControlMeasure cm( (*m_iter_loc)[0], (*m_iter_loc)[1],
-                             (*m_iter_loc)[2], (*m_iter_loc)[3], it->second );
-          cpoint.add_measure( cm );
-        } else {
-          vw_out(WarningMessage,"ba") << "\t\tWarning: no image found matching "
-                                      << *m_iter_name << std::endl;
-        }
-        m_iter_loc++;
-        m_iter_name++;
-      }
-
-      // Appended GCP
-      cnet.add_control_point(cpoint);
       gcp_start++;
     }
   }
