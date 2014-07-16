@@ -136,7 +136,8 @@ set(VW_HAVE_PKG_TOOLS 1)
 # Finished setting up variables, now call the function to paste them into a file
 
 # Each value like "@VAR@ is replaced by the CMake variable of the same name
-configure_file(${CMAKE_SOURCE_DIR}/vw/config.h.in ${CMAKE_SOURCE_DIR}/vw/config.h)
+message("Generating config file: ${CMAKE_SOURCE_DIR}/vw/config.h")
+configure_file(${CMAKE_SOURCE_DIR}/vw/config.in ${CMAKE_SOURCE_DIR}/vw/config.h)
 
 
 

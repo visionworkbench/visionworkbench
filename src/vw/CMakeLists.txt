@@ -10,22 +10,15 @@ message("Module path = ${CMAKE_MODULE_PATH}")
 # Configuration options
 
 # --- Directory paths ---
-#set(BASESYSTEM_INSTALL_DIR "" CACHE FILEPATH "Path to AutoTools installation directory")
-set(BASESYSTEM_INSTALL_DIR "/home/smcmich1/repo/BaseSystem")
-if(NOT BASESYSTEM_INSTALL_DIR)
-  message(SEND_ERROR "You need to set BASESYSTEM_INSTALL_DIR: ${BASESYSTEM_INSTALL_DIR}")
+set(BINARYBUILDER_INSTALL_DIR "" CACHE FILEPATH "Path to Binary Builder installation directory")
+if(BINARYBUILDER_INSTALL_DIR)
+  message("Looking for dependencies in BinaryBuilder directory: ${BINARYBUILDER_INSTALL_DIR}") 
+  # Add BINARYBUILDER folders to CMAKE paths
+  set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BINARYBUILDER_INSTALL_DIR}")
+  set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
 endif()
 
-message("Base System path = ${BASESYSTEM_INSTALL_DIR}")
-
-
-# Add BaseSystem folders to CMAKE paths
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "${BASESYSTEM_INSTALL_DIR}")
-set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BASESYSTEM_INSTALL_DIR}")
-
-
-
-# Libraries use paths like "asp/blah/blah.h" so we just need to add this one include path
+# Libraries use paths like "vw/blah/blah.h" so we just need to add this one include path
 include_directories( ../ )
 
 
@@ -45,27 +38,25 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 message("--------------------------------------------------------------")
 message("Searching for boost...")
 
-# TODO: Set this to make sure the version matches Binary Builder
-# - Alternately, ONLY accept the boost version in Binary Builder
-# BINARY_BUILDER_BOOST_VERSION
-
-set(BOOST_ROOT "${BASESYSTEM_INSTALL_DIR}/include/boost-1_55")
-set(BOOST_LIBRARYDIR  "${BASESYSTEM_INSTALL_DIR}/lib")
-set(BOOST_INCLUDEDIR "${BASESYSTEM_INSTALL_DIR}/include/boost-1_55/boost")
-set(Boost_NO_SYSTEM_PATHS ON) #This does not seem to work
-#set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
+# Define boost requirements
 set(BOOST_MIN_VERSION "1.55.0")
 set(REQUIRED_BOOST_LIBS program_options system filesystem regex date_time thread iostreams)
-#TODO Set additional boost libraries
-
+#set(Boost_DEBUG 1) # Uncomment for useful finding boost debug output
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(BOOST_ROOT       "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_55")
+  set(BOOST_LIBRARYDIR "${BINARYBUILDER_INSTALL_DIR}/lib")
+  set(BOOST_INCLUDEDIR "${BINARYBUILDER_INSTALL_DIR}/include/boost-1_55/boost")
+  set(Boost_NO_SYSTEM_PATHS ON) #This does not seem to work
+endif()  
+# Now search for Boost using the available information
 find_package(Boost ${BOOST_MIN_VERSION} REQUIRED COMPONENTS ${REQUIRED_BOOST_LIBS})
 
 if(Boost_FOUND)
     message("Successfully found Boost version ${Boost_VERSION}!")
     message("---Boost Include Dir = ${Boost_INCLUDE_DIR}")
-    #set(Boost_LIBRARY_DIR ${BASESYSTEM_INSTALL_DIR}/lib) # Override this value
+    #set(Boost_LIBRARY_DIR ${BINARYBUILDER_INSTALL_DIR}/lib) # Override this value
     message("---Boost Library Dir = ${Boost_LIBRARY_DIRS}")
-    message("---Boost libraries = ${Boost_LIBRARIES}")
+    message("---Boost libraries   = ${Boost_LIBRARIES}")
     include_directories(${Boost_INCLUDE_DIR})
     #include_directories(${Boost_INCLUDE_DIRS})
     link_directories(${Boost_LIBRARY_DIR})
@@ -76,15 +67,16 @@ message("--------------------------------------------------------------")
 
 message("--------------------------------------------------------------")
 message("Searching for QT...")
-# TODO: Make sure this finds the correct install!
-set (QT_QMAKE_EXECUTABLE  ${BASESYSTEM_INSTALL_DIR}/bin/qmake)
-set (QT_MOC_EXECUTABLE    ${BASESYSTEM_INSTALL_DIR}/bin/moc)
-set (QT_RCC_EXECUTABLE    ${BASESYSTEM_INSTALL_DIR}/bin/rcc)
-set (QT_UIC_EXECUTABLE    ${BASESYSTEM_INSTALL_DIR}/bin/uic)
-#SET(CMAKE_PREFIX_PATH ${BASESYSTEM_INSTALL_DIR} ${CMAKE_PREFIX_PATH}) 
-set(REQUIRED_QT_LIBS QtCore QtXml QtGui ) #TODO: Figure this out
-find_package(Qt4 4.8.5 REQUIRED ${REQUIRED_QT_LIBS})
+set(REQUIRED_QT_LIBS QtCore QtXml QtGui )
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set (QT_QMAKE_EXECUTABLE  ${BINARYBUILDER_INSTALL_DIR}/bin/qmake)
+  set (QT_MOC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/moc)
+  set (QT_RCC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/rcc)
+  set (QT_UIC_EXECUTABLE    ${BINARYBUILDER_INSTALL_DIR}/bin/uic)
+  SET(CMAKE_PREFIX_PATH ${BINARYBUILDER_INSTALL_DIR} ${CMAKE_PREFIX_PATH}) 
+endif()
 
+find_package(Qt4 4.8.5 REQUIRED ${REQUIRED_QT_LIBS})
 
 if(Qt4_FOUND)
     include(${QT_USE_FILE}) # Required after using QT find command
@@ -93,7 +85,7 @@ if(Qt4_FOUND)
     # By default only QtCore and QtGui modules are enabled
     # other modules must be enabled like this:
     SET( QT_USE_QT3SUPPORT TRUE )   
-    SET( QT_USE_QTXML TRUE )
+    SET( QT_USE_QTXML      TRUE )
 
     # We need this to be able to include headers produced by uic in our
     # code (CMAKE_BINARY_DIR holds a path to the build directory, while
@@ -103,133 +95,226 @@ if(Qt4_FOUND)
 endif(Qt4_FOUND)
 message("--------------------------------------------------------------")
 
-#message("--------------------------------------------------------------")
-#message("Searching for Google Protocol Buffers...")
+message("--------------------------------------------------------------")
+message("Searching for Google Protocol Buffers...")
 
-#set(BOOST_ROOT "${BASESYSTEM_INSTALL_DIR}/boost")
-#set(BOOST_MIN_VERSION "1.54.0")
-#FIND_PACKAGE(Protobuf ${BOOST_MIN_VERSION} REQUIRED)
+find_package(Protobuf REQUIRED)
+if(PROTOBUF_FOUND)
+    set(VW_HAVE_PKG_PROTOBUF 1)
+    message("Successfully found Google Protocol Buffers")
+    message("---Protobuf library file = ${PROTOBUF_LIBRARIES}")
+    message("---Protobuf Include Dir  = ${PROTOBUF_INCLUDE_DIR}")
+    include_directories(${PROTOBUF_INCLUDE_DIR})
+endif()
 
-#if(PROTOBUF_FOUND)
-#    message("Successfully found Google Protocol Buffers")
-#    message("---Protobuf library file = ${PROTOBUF_LIBRARY}")
-#    message("---Protobuf Include Dir = ${PROTOBUF_INCLUDE_DIR}")
-#    include_directories(${PROTOBUF_INCLUDE_DIRS})
-#    target_link_libraries(foo ${PROTOBUF_LIBRARIES})
-#endif()
-#message("--------------------------------------------------------------")
-set(PROTOBUF_FOUND 1)
-set(VW_HAVE_PKG_PROTOBUF 1)
-set(PROTOBUF_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include   )
-set(PROTOBUF_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/libprotobuf.so)
-#include_directories("${PROTOBUF_INCLUDE_DIR}")
-include_directories(${PROTOBUF_INCLUDE_DIR})
+#set(PROTOBUF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include   )
+#set(PROTOBUF_LIBRARY     ${BINARYBUILDER_INSTALL_DIR}/lib/libprotobuf.so)
+##include_directories("${PROTOBUF_INCLUDE_DIR}")
+#include_directories(${PROTOBUF_INCLUDE_DIR})
 
-# Many of these are currently found in BaseSystem.
-# - We should look for them elsewhere if BaseSystem does not exist.
+message("--------------------------------------------------------------")
 
+
+# These packages are included in BinaryBuilder so look for them there.
+# - If there is no BinaryBuilder directory the user may need to specify a path.
 
 # Get NAIF includes (Needed for reading/writing SPICE data)
-set(NAIF_FOUND 1)
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(NAIF_FOUND 1)
+  set(NAIF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/naif/)
+else() # The user needs to specify this!
+  set(NAIF_INCLUDE_DIR "" CACHE FILEPATH "Path to NAIF include files")
+endif()
 if (NAIF_FOUND)
-  set(NAIF_INCLUDE_DIRS ${BASESYSTEM_INSTALL_DIR}/include/naif/)
-  include_directories("${NAIF_INCLUDE_DIRS}")
-  message("-- Found NAIF at " ${NAIF_INCLUDE_DIRS})
+  message("-- Found NAIF at " ${NAIF_INCLUDE_DIR})
+  include_directories("${NAIF_INCLUDE_DIR}")
 else()
-  message("Failed to find NAIF")
+  message("Failed to find Naif")
 endif()
 
-set(LAPACK_FOUND 1)
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(LAPACK_FOUND 1)
+  set(LAPACK_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/liblapack.so
+                         ${BINARYBUILDER_INSTALL_DIR}/lib/libblas.so)
+#  set(LAPACK_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)
+else() # The user needs to specify this!
+  #set(LAPACK_INCLUDE_DIR "" CACHE FILEPATH "Path to LAPACK include files")
+    find_package(LAPACK REQUIRED)
+endif()
 if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
-  set(LAPACK_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/liblapack.so
-                       ${BASESYSTEM_INSTALL_DIR}/lib/libblas.so)
-  set(LAPACK_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
   message("-- Found LAPACK at " ${LAPACK_LIBRARIES})
+#  include_directories("${LAPACK_INCLUDE_DIR}")
 else()
-  message("Failed to find LAPACK")
+  message("Failed to find Lapack")
 endif()
 
-set(FLANN_FOUND 1)
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(FLANN_FOUND 1)
+  set(FLANN_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libflann_cpp.so)
+  set(FLANN_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)
+else() # The user needs to specify this!
+  set(FLANN_INCLUDE_DIR "" CACHE FILEPATH "Path to FLANN include files")
+  set(FLANN_LIBRARIES   "" CACHE FILEPATH "Path to FLANN library files")
+endif()
 if(FLANN_FOUND)
   set(VW_HAVE_PKG_FLANN 1)
-  set(FLANN_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libflann_cpp.so)
-  set(FLANN_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)
   message("-- Found FLANN at " ${FLANN_LIBRARIES})
+  include_directories("${FLANN_INCLUDE_DIR}")
 else()
   message("Failed to find FLANN")
 endif()
 
-set(JPEG_FOUND 1)
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(JPEG_FOUND 1)
+  set(JPEG_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libjpeg.so)
+  #set(JPEG_LIBRARY     ${BINARYBUILDER_INSTALL_DIR}/lib/)
+  set(JPEG_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else() # The user needs to specify this!
+  #set(JPEG_INCLUDE_DIR "" CACHE FILEPATH "Path to JPEG include files")
+  find_package(JPEG REQUIRED)
+endif()
 if(JPEG_FOUND)
   set(VW_HAVE_PKG_JPEG 1)
-  set(JPEG_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libjpeg.so)
-  set(JPEG_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/)  
-  message("-- Found JPEG " ${JPEG_LIBRARY})
+  message("-- Found JPEG " ${JPEG_LIBRARIES})
+  include_directories("${JPEG_INCLUDE_DIR}")
 else()
   message("Failed to find JPEG")
 endif()
 
-find_package(PNG REQUIRED)
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(PNG_FOUND 1)
+  set(PNG_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libpng16.so
+                      ${BINARYBUILDER_INSTALL_DIR}/lib/libpng.so)
+  set(PNG_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else()
+  find_package(PNG REQUIRED)
+endif()
 if(PNG_FOUND)
   set(VW_HAVE_PKG_PNG 1)
-  #message("Found PNG " ${PNG_LIBRARY})
+  message("-- Found PNG " ${PNG_LIBRARIES})
+  include_directories("${PNG_INCLUDE_DIR}")
 else()
   message("Failed to find PNG")
 endif()
-#set(PNG_FOUND) # PNG may be available in BaseSystem too!
 
 
-
-find_package(TIFF REQUIRED)
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(TIFF_FOUND true)
+  set(TIFF_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libtiff.so)
+  set(TIFF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else()
+  find_package(TIFF REQUIRED)
+endif()
 if(TIFF_FOUND)
   set(VW_HAVE_PKG_TIFF 1)
-  #message("Found TIFF " ${TIFF_LIBRARY})
+  message("-- Found TIFF " ${TIFF_LIBRARIES})
+  include_directories("${TIFF_INCLUDE_DIR}")
 else()
   message("Failed to find TIFF")
 endif()
 
-find_package(GDAL REQUIRED)
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(GDAL_FOUND 1)
+  set(GDAL_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libgdal.so)
+  set(GDAL_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
+else()
+  find_package(GDAL REQUIRED)
+endif()
 if(GDAL_FOUND)
   set(VW_HAVE_PKG_GDAL 1)
-  #message("Found GDAL at " ${GDAL_LIBRARY})
+  message("-- Found GDAL at " ${GDAL_LIBRARIES})
   include_directories(${GDAL_INCLUDE_DIR})
 else()
   message("Failed to find GDAL")
 endif()
 
-find_package(Protobuf REQUIRED)
-if(PROTOBUF_FOUND)
-  set(VW_HAVE_PKG_PROTOBUF 1)
-  #message("Found PROTOBUF " ${PROTOBUF_LIBRARY})
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(PROJ4_FOUND 1)  
+  set(PROJ4_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libproj.so)
+  set(PROJ4_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include)
 else()
-  message("Failed to find PROTOBUF")
+  set(PROJ4_INCLUDE_DIR "" CACHE FILEPATH "Path to OpenEXR include files")
+  set(PROJ4_LIBRARIES   "" CACHE FILEPATH "Path to OpenEXR libraries")  
 endif()
+if(PROJ4_FOUND)
+  set(VW_HAVE_PKG_PROJ4 1)
+  message("-- Found Proj4 at " ${PROJ4_LIBRARIES})
+  include_directories("${PROJ4_INCLUDE_DIR}")
+else()
+  message("Failed to find Proj4")
+endif()  
+
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(ILMBASE_FOUND 1)
+  set(ILMBASE_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libHalf.so
+                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIex.so
+                          ${BINARYBUILDER_INSTALL_DIR}/lib/libImath.so
+                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmThread.so 
+                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIexMath.so)
+  set(ILMBASE_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include) 
+else()
+  set(ILMBASE_INCLUDE_DIR "" CACHE FILEPATH "Path to ILMBase include files")
+  set(ILMBASE_LIB_DIR     "" CACHE FILEPATH "Path to ILMBase library files")
+  set(ILMBASE_LIBRARIES   ${ILMBASE_LIB_DIR}/lib/libHalf.so
+                          ${ILMBASE_LIB_DIR}/lib/libIex.so
+                          ${ILMBASE_LIB_DIR}/lib/libImath.so
+                          ${ILMBASE_LIB_DIR}/lib/libIlmThread.so 
+                          ${ILMBASE_LIB_DIR}/lib/libIexMath.so)                         
+endif()
+if(ILMBASE_FOUND)
+  set(VW_HAVE_PKG_ILMBASE 1)
+  message("-- Found ILMBase at " ${ILMBASE_LIBRARIES})
+  include_directories("${ILMBASE_INCLUDE_DIR}")
+else()
+  message("Failed to find ILMBase")
+endif()
+
+
+if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
+  set(OPENEXR_FOUND 1)
+  set(OPENEXR_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmImf.so
+                          ${BINARYBUILDER_INSTALL_DIR}/lib/libIlmThread.so )
+  set(OPENEXR_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/OpenEXR) 
+else()
+  set(OPENEXR_INCLUDE_DIR "" CACHE FILEPATH "Path to OpenEXR include files")
+  set(OPENEXR_LIB_DIR     "" CACHE FILEPATH "Path to OpenEXR library files")
+  set(OPENEXR_LIBRARIES   ${OPENEXR_LIB_DIR}/libIlmImf.so
+                          ${OPENEXR_LIB_DIR}/libIlmThread.so )
+endif()
+if(OPENEXR_FOUND)
+  set(VW_HAVE_PKG_OPENEXR 1)
+  message("Found OpenEXR at " ${OPENEXR_LIBRARIES})
+  include_directories("${OPENEXR_INCLUDE_DIR}")
+else()
+  message("Failed to find OpenEXR")
+endif()  
+  
+
+
+
+# CMake will try to find these packages,
+#  they are not included with BinaryBuilder.
+
 
 find_package(PythonLibs REQUIRED)
 if(PYTHONLIBS_FOUND)
   set(VW_HAVE_PKG_PYTHONLIBS 1)
-  #message("Found PYTHONLIBS " ${PYTHON_LIBRARIES})
+  message("-- Found PYTHONLIBS " ${PYTHON_LIBRARIES})
 else()
-  message("Failed to find PYTHONLIBS")
+  message("Failed to find PythonLibs")
 endif()
 
 
-#TODO: Use FindProj cmake file to do this!
-set(VW_HAVE_PKG_PROJ4 1)
-set(PROJ4_LIBRARY     ${BASESYSTEM_INSTALL_DIR}/lib/libproj.so)
-set(PROJ4_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include)
-
-
-set(VW_HAVE_PKG_OPENEXR 1)
-set(OPENEXR_LIBRARIES   ${BASESYSTEM_INSTALL_DIR}/lib/libIlmImf.so
-                        ${BASESYSTEM_INSTALL_DIR}/lib/libIlmThread.so )
-set(OPENEXR_INCLUDE_DIR ${BASESYSTEM_INSTALL_DIR}/include/OpenEXR)
-include_directories("${OPENEXR_INCLUDE_DIR}")
-
-# TODO: Where is this in BinaryBuilder?
-set(VW_HAVE_PKG_ILMBASE 1)
-set(VW_HAVE_PKG_FLAPACK 1)
+# TODO: What is with this?
+#set(HAVE_PKG_FLAPACK)
 
 
 find_package(OpenCV)
@@ -238,12 +323,11 @@ if(OPENCV_FOUND)
   #message("Found OPENCV " ${OPENCV_LIBRARIES})
   include_directories("${OPENCV_INCLUDE_DIR}")
 else()
-  message("Failed to find OPENCV")
 endif()
 
 find_package(SigC++)
 if(SigC++_FOUND)
-  #message("Found SigC++ " ${SigC++_LIBRARIES})
+  message("-- Found SigC++ "  ${SigC++_LIBRARIES})
   #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
   include_directories("${SigC++_INCLUDE_DIRS}")
 else()
@@ -252,47 +336,47 @@ endif()
 
 find_package(FreeType)
 if(FREETYPE_FOUND)
-  #message("Found FreeType " ${FREETYPE_LIBRARIES})
-  #message("Include dirs: " ${FREETYPE_INCLUDE_DIRS})
+  message("-- Found FreeType " ${FREETYPE_LIBRARIES})
+  #message("Include dirs: "  ${FREETYPE_INCLUDE_DIRS})
   include_directories("${FREETYPE_INCLUDE_DIRS}")
 else()
-  message("Failed to find FREETYPE")
+  message("Failed to find FreeType")
 endif()
 
 find_package(Cairo)
 if(CAIRO_FOUND)
   set(VW_HAVE_PKG_CAIRO 1)
-  #message("Found Cairo " ${CAIRO_LIBRARIES})
+  message("-- Found Cairo " ${CAIRO_LIBRARIES})
   include_directories("${CAIRO_INCLUDE_DIR}")
 else()
-  message("Failed to find CAIRO")
+  message("Failed to find Cairo")
 endif()
 
 find_package(Cairomm)
 if(CAIROMM_FOUND)
   set(VW_HAVE_PKG_CAIROMM 1)
-  #message("Found CairoMM " ${CAIROMM_LIBRARIES})
+  message("-- Found CairoMM " ${CAIROMM_LIBRARIES})
   include_directories("${CAIROMM_INCLUDE_DIR}")
 else()
-  message("Failed to find CAIROMM")
+  message("Failed to find CairoMM")
 endif()
-
-
 
 
 #TODO: Look for each of these installations!
 #set(VW_HAVE_PKG_BIGTIFF 1) TODO: Do we need this one?
-set(VW_HAVE_PKG_HDF 0)
+#set(VW_HAVE_PKG_HDF 0)
 #set(VW_HAVE_PKG_RABBITMQ_C 0) # Only used for plate!
-set(VW_HAVE_PKG_ZEROMQ 1)
+#set(VW_HAVE_PKG_ZEROMQ 1)
 #set(VW_HAVE_PKG_LIBKML 0) # Only used for plate!
-set(VW_HAVE_PKG_ILMBASE 1)
 
 
 
 # TODO: What is this for?
 set(ENABLE_EXCEPTIONS True)
 
+
+# Now that we have found all our external dependencies, generate a config.h file
+include("GenerateConfig.cmake")
 
 message("--------------------------------------------------------------")
 #message("Listing all include directories...")
@@ -405,32 +489,32 @@ set(VW_STEREO_LIB_DEPENDENCIES VwMath)
 
 # TODO: Don't just use this for all tools
 set(FULL_LIBRARY_LIST
-	${LAPACK_LIBRARIES} 
-	${JPEG_LIBRARIES} 
-	${GDAL_LIBRARY}
-	${PROJ4_LIBRARY}
-	${OPENEXR_LIBRARIES}
-	${OPENCV_LIBRARIES}
-	${PROTOBUF_LIBRARY}
-  ${SigC++_LIBRARIES}
-	${CAIRO_LIBRARIES}
-	${CAIROMM_LIBRARIES}
-	VwBundleAdjustment
-    VwCamera
-    VwCartography
-    VwCore   
-    VwFileIO
-    VwGeometry
-    #VwGpu
-    #VwGui
-    VwHdr
-    VwImage
-    VwInterestPoint
-    VwMath
-    VwMosaic
-    #VwPlate
-    VwStereo
-	${Boost_LIBRARIES} 
+      ${LAPACK_LIBRARIES} 
+      ${JPEG_LIBRARIES} 
+      ${GDAL_LIBRARY}
+      ${PROJ4_LIBRARY}
+      ${OPENEXR_LIBRARIES}
+      ${OPENCV_LIBRARIES}
+      ${PROTOBUF_LIBRARY}
+      ${SigC++_LIBRARIES}
+      ${CAIRO_LIBRARIES}
+      ${CAIROMM_LIBRARIES}
+      VwBundleAdjustment
+      VwCamera
+      VwCartography
+      VwCore   
+      VwFileIO
+      VwGeometry
+      #VwGpu
+      #VwGui
+      VwHdr
+      VwImage
+      VwInterestPoint
+      VwMath
+      VwMosaic
+      #VwPlate
+      VwStereo
+      ${Boost_LIBRARIES} 
 )
 
 
