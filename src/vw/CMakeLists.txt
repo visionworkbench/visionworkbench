@@ -146,8 +146,11 @@ if(LAPACK_FOUND)
   set(VW_HAVE_PKG_LAPACK 1)
   message("-- Found LAPACK at " ${LAPACK_LIBRARIES})
 #  include_directories("${LAPACK_INCLUDE_DIR}")
+  
+  set(VW_HAVE_PKG_FLAPACK 1) # --> This specifies that it is a Fortran derived version
+                             #      How to check this if the user provides Fortran?
 else()
-  message("Failed to find Lapack")
+  message( FATAL_ERROR "Failed to find REQUIRED library Lapack." )
 endif()
 
 
@@ -204,7 +207,7 @@ endif()
 
 
 if(BINARYBUILDER_INSTALL_DIR) # Look in BinaryBuilder directory
-  set(TIFF_FOUND true)
+  set(TIFF_FOUND 1)
   set(TIFF_LIBRARIES   ${BINARYBUILDER_INSTALL_DIR}/lib/libtiff.so)
   set(TIFF_INCLUDE_DIR ${BINARYBUILDER_INSTALL_DIR}/include/)  
 else()
@@ -313,10 +316,6 @@ else()
 endif()
 
 
-# TODO: What is with this?
-#set(HAVE_PKG_FLAPACK)
-
-
 find_package(OpenCV)
 if(OPENCV_FOUND)
   set(VW_HAVE_PKG_OPENCV 1)
@@ -327,7 +326,7 @@ endif()
 
 find_package(SigC++)
 if(SigC++_FOUND)
-  message("-- Found SigC++ "  ${SigC++_LIBRARIES})
+  #message("-- Found SigC++ "  ${SigC++_LIBRARIES})
   #message("Include dirs: " ${SigC++_INCLUDE_DIRS})
   include_directories("${SigC++_INCLUDE_DIRS}")
 else()
@@ -385,11 +384,6 @@ message("--------------------------------------------------------------")
 #  message(STATUS "dir='${dir}'")
 #endforeach()
 #message("--------------------------------------------------------------")
-
-
-# Now that we have found all our external dependencies, generate a config.h file
-include("GenerateConfig.cmake")
-#GenerateConfig()
 
 
 # Add all the header files at the top level to the install command
@@ -491,11 +485,13 @@ set(VW_STEREO_LIB_DEPENDENCIES VwMath)
 set(FULL_LIBRARY_LIST
       ${LAPACK_LIBRARIES} 
       ${JPEG_LIBRARIES} 
-      ${GDAL_LIBRARY}
-      ${PROJ4_LIBRARY}
+      ${GDAL_LIBRARIES}
+      ${TIFF_LIBRARIES}
+      ${PNG_LIBRARIES}
+      ${PROJ4_LIBRARIES}
       ${OPENEXR_LIBRARIES}
       ${OPENCV_LIBRARIES}
-      ${PROTOBUF_LIBRARY}
+      ${PROTOBUF_LIBRARIES}
       ${SigC++_LIBRARIES}
       ${CAIRO_LIBRARIES}
       ${CAIROMM_LIBRARIES}

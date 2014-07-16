@@ -131,9 +131,9 @@ namespace math {
   template <class AMatrixT, class SingularValuesT>
   inline void svd( AMatrixT const& A, SingularValuesT &S ) {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type real_type;
-    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
+    const f77_int m     = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = detail::FINT(A.rows());
+    const f77_int lda   = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
     real_type work_size = 0;
@@ -146,7 +146,7 @@ namespace math {
     std::vector<real_type> work( lwork );
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work[0], lwork, &iwork[0], &info);
     if (info > 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed. Info = " << info );
     S = sbuf;
   }
 
@@ -159,9 +159,9 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
+    const f77_int m     = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = detail::FINT(A.rows());
+    const f77_int lda   = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Matrix<real_type> Ubuf( minmn, A.rows() );
     Matrix<real_type> VTbuf( A.cols(), minmn );
@@ -175,7 +175,7 @@ namespace math {
     std::vector<real_type> work( lwork );
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info > 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed. Info = " << info );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
     S = sbuf;
@@ -192,11 +192,11 @@ namespace math {
     typedef typename PromoteType<typename AMatrixT::value_type, typename SingularValuesT::value_type>::type temp_type1;
     typedef typename PromoteType<temp_type1, typename UMatrixT::value_type>::type temp_type2;
     typedef typename PromoteType<temp_type2, typename VTMatrixT::value_type>::type real_type;
-    const f77_int m = detail::FINT(A.rows()), n = detail::FINT(A.cols());
+    const f77_int m     = detail::FINT(A.rows()), n = detail::FINT(A.cols());
     const f77_int minmn = std::min(m,n);
-    const f77_int lda = detail::FINT(A.rows());
+    const f77_int lda   = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
-    Matrix<real_type> Ubuf( A.rows(), A.rows() );
+    Matrix<real_type> Ubuf ( A.rows(), A.rows() );
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
     Vector<real_type> sbuf( minmn );
     real_type work_size = 0;
@@ -208,7 +208,7 @@ namespace math {
     std::vector<real_type> work( lwork );
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work[0], lwork, &iwork[0], &info);
     if (info > 0)
-      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed." );
+      vw_throw( ArgumentErr() << "svd(): LAPACK driver gesdd did not converge.  Update process failed. Info = " << info );
     U = transpose(Ubuf);
     VT = transpose(VTbuf);
     S = sbuf;

@@ -38,7 +38,7 @@ namespace math {
 // (lacking standard installation of lapack headers) is to use the type most
 // appropriate for the bloodline.
 
-#if (defined(VW_HAVE_PKG_INTEL_LAPACK) && VW_HAVE_PKG_INTEL_LAPACK==1)
+#if defined(VW_HAVE_PKG_INTEL_LAPACK)
 #  include <mkl_lapack.h>
 // MKL headers pollute the macro space. #define P4 breaks boost. Clean up after Intel.
 #  undef ITP
@@ -60,12 +60,16 @@ namespace math {
       (defined(VW_HAVE_PKG_SLAPACK)           ) || \
       (defined(VW_HAVE_PKG_STANDALONE_FLAPACK))
 
+    #pragma message ( "Using Fortran based LAPACK!" )
+
     // fortran-based
     typedef int32  f77_int;
 
 #  elif (defined(VW_HAVE_PKG_CLAPACK)                   ) || \
         (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS)) || \
         (defined(VW_HAVE_PKG_LAPACK))
+
+    #pragma message ( "Using C based LAPACK!" )
 
     // f2c-based
     typedef long f77_int;
