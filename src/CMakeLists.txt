@@ -102,7 +102,7 @@ function(add_library_wrapper libName fileList testFileList)
   
 
   # Add unit test for each test file given
-  set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/test/test_main.cc")
+  set(TEST_MAIN_PATH "${CMAKE_SOURCE_DIR}/src/test/test_main.cc")
   foreach(f ${testFileList})
   
     get_filename_component(filename ${f} NAME_WE) # Get file name without extension
@@ -161,7 +161,7 @@ set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nas
 #===============================================================================
 
 # Set the install path
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../cmakeBuild/install" CACHE INTERNAL "Prefix
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/cmakeBuild/install" CACHE INTERNAL "Prefix
 prepended to install directories")
 message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 
@@ -177,12 +177,12 @@ set(VW_STATIC_LIBRARIES_LIST "")
 add_custom_target(workbook rm -rf images/Walker.qtree 
                   COMMAND ${CMAKE_BINARY_DIR}/vw/tools/doc-generate
                   COMMAND pdflatex workbook.tex
-                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/../docs/workbook")
+                  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/docs/workbook")
 
 
 # Add command to build doxygen files
 add_custom_target(doxygen doxygen
-                  COMMAND ln -s ${CMAKE_SOURCE_DIR}/../docs/doxygen/index.html ${CMAKE_SOURCE_DIR}/../docs/doxygen-output.html
+                  COMMAND ln -s ${CMAKE_SOURCE_DIR}/docs/doxygen/index.html ${CMAKE_SOURCE_DIR}/docs/doxygen-output.html
                   WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
 
 
