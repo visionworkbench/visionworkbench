@@ -26,19 +26,19 @@
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
 #include <vw/Core/Exception.h>
+using namespace std;
 
-namespace vw {
-namespace stereo {
-namespace detail {
+namespace vw { namespace stereo { namespace detail {
+  
   class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
-    std::vector<const camera::CameraModel *> m_cameras;
+    vector<const camera::CameraModel *> m_cameras;
     
   public:
     typedef Vector<double,4> result_type;
     typedef Vector<double,3> domain_type;
     typedef Matrix<double> jacobian_type;
     
-    PointLMA(std::vector<const camera::CameraModel *>  const& cameras):
+    PointLMA(vector<const camera::CameraModel *>  const& cameras):
       m_cameras(cameras) {}
     
     inline result_type operator()( domain_type const& x ) const {
@@ -51,7 +51,7 @@ namespace detail {
 }
   
 // Constructor with n cameras
-StereoModel::StereoModel(std::vector<const camera::CameraModel *> const& cameras,
+StereoModel::StereoModel(vector<const camera::CameraModel *> const& cameras,
                          bool least_squares_refine ) :
   m_cameras(cameras),
   m_least_squares(least_squares_refine) {}
@@ -117,61 +117,67 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
 
   vw_out() << "\tStereoModel computing points: Done.                  \n";
   vw_out() << "\tMean error = " << mean_error/double(point_count)
-           << ",  Max error = " << max_error << std::endl;
+           << ",  Max error = " << max_error << endl;
     return xyz;
 }
 
-bool StereoModel::are_nearly_parallel(Vector3 const& vec1,
-                                      Vector3 const& vec2) const{
-  // If vec1 and vec2 are nearly parallel, there will be
-  // very large numerical uncertainty about where to place the
-  // point.  We set a threshold here to reject points that are
-  // on nearly parallel rays.  The threshold of 1e-4 corresponds
-  // to a convergence of less than theta = 0.81 degrees, so if
-  // the two rays are within 0.81 degrees of being parallel, we
-  // reject this point.
+bool StereoModel::are_nearly_parallel(std::vector<Vector3> const& camDirs) const{
+
+  // If the camera directions are nearly parallel, there will be very
+  // large numerical uncertainty about where to place the point.  We
+  // set a threshold here to reject points that are on nearly parallel
+  // rays.  The threshold of 1e-4 corresponds to a convergence of less
+  // than theta = 0.81 degrees, so if the two rays are within 0.81
+  // degrees of being parallel, we reject this point.
   //
   // This threshold was chosen empirically for now, but should
   // probably be revisited once a more rigorous analysis has
   // been completed. -mbroxton (11-MAR-07)
-  return ( (1-dot_prod(vec1, vec2) < 1e-4 && !m_least_squares) ||
-           (1-dot_prod(vec1, vec2) < 1e-5 && m_least_squares) );
+  double tol;
+  if (m_least_squares) tol = 1e-5;
+  else                 tol = 1e-4;
+
+  bool are_par = true;
+  for (int p = 0; p < int(camDirs.size()) - 1; p++){
+    if ( 1 - dot_prod(camDirs[p], camDirs[p+1]) >= tol )
+      are_par = false;
+  }
+  return are_par;
 }
 
-Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
+Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
                                 Vector3& errorVec) const {
   
   // Note: Class RPCStereoModel inherits from this class and
   // re-implements this function.
 
-  VW_ASSERT(pixVec.size() == m_cameras.size(),
+  int num_cams = m_cameras.size();
+  VW_ASSERT((int)pixVec.size() == num_cams,
             vw::ArgumentErr() << "the number of rays must match "
             << "the number of cameras.\n");
-            
+  
   errorVec = Vector3();
 
   // Check for NaN and invalid pixels
-  if (pixVec[0] != pixVec[0] || pixVec[1] != pixVec[1]) return Vector3();
-  if (pixVec[0] == camera::CameraModel::invalid_pixel() ||
-      pixVec[1] == camera::CameraModel::invalid_pixel()
-      ) return Vector3();
+  for (int p = 0; p < num_cams; p++){
+    if (pixVec[p] != pixVec[p] ||
+        pixVec[p] == camera::CameraModel::invalid_pixel() ) return Vector3();
+  }
   
   try {
     // Determine range by triangulation
-    Vector3 vec1 = m_cameras[0]->pixel_to_vector(pixVec[0]);
-    Vector3 vec2 = m_cameras[1]->pixel_to_vector(pixVec[1]);
-    Vector3 origin1 = m_cameras[0]->camera_center(pixVec[0]);
-    Vector3 origin2 = m_cameras[1]->camera_center(pixVec[1]);
-
-    if (are_nearly_parallel(vec1, vec2)){
-      return Vector3();
+    vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
+    for (int p = 0; p < num_cams; p++){
+      camDirs[p] = m_cameras[p]->pixel_to_vector(pixVec[p]);
+      camCtrs[p] = m_cameras[p]->camera_center(pixVec[p]);
     }
-    Vector3 result = triangulate_point(origin1, vec1,
-                                       origin2, vec2,
-                                       errorVec);
+    
+    if (are_nearly_parallel(camDirs)) return Vector3();
+
+    Vector3 result = triangulate_point(camDirs, camCtrs, errorVec);
     
     if ( m_least_squares ){
-      if (pixVec.size() == 2)
+      if (num_cams == 2)
         refine_point(pixVec[0], pixVec[1], result);
       else
         vw::vw_throw(vw::NoImplErr() << "Least squares refinement is not "
@@ -179,10 +185,11 @@ Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
     }
     
     // Reflect points that fall behind one of the two cameras
-    if ( dot_prod(result - origin1, vec1) < 0 ||
-         dot_prod(result - origin2, vec2) < 0 ) {
-      result = -result + 2*origin1;
-    }
+    bool reflect = false;
+    for (int p = 0; p < (int)pixVec.size(); p++)
+      if (dot_prod(result - camCtrs[p], camDirs[p]) < 0 ) reflect = true;
+    if (reflect)
+      result = -result + 2*camCtrs[0];
 
     return result;
 
@@ -191,7 +198,7 @@ Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
   }
 }
 
-Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
+Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
                                 double& error) const {
   Vector3 errorVec;
   Vector3 result = operator()(pixVec, errorVec);
@@ -201,7 +208,7 @@ Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
   
 Vector3 StereoModel::operator()(Vector2 const& pix1,
                                 Vector2 const& pix2, Vector3& errorVec) const {
-  std::vector<Vector2> pixVec;
+  vector<Vector2> pixVec;
   pixVec.push_back(pix1);
   pixVec.push_back(pix2);
   return operator()(pixVec, errorVec); 
@@ -221,22 +228,20 @@ double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) 
                        m_cameras[1]->pixel_to_vector(pix2)));
 }
 
-Vector3 StereoModel::triangulate_point(Vector3 const& point1,
-                                       Vector3 const& vec1,
-                                       Vector3 const& point2,
-                                       Vector3 const& vec2,
+Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
+                                       vector<Vector3> const& camCtrs,
                                        Vector3& errorVec) const {
-
+  
   // Triangulate the point by finding the midpoint of the segment
   // joining the closest points on the two rays emanating
   // from the camera.
 
-  Vector3 v12 = cross_prod(vec1, vec2);
-  Vector3 v1 = cross_prod(v12, vec1);
-  Vector3 v2 = cross_prod(v12, vec2);
+  Vector3 v12 = cross_prod(camDirs[0], camDirs[1]);
+  Vector3 v1 = cross_prod(v12, camDirs[0]);
+  Vector3 v2 = cross_prod(v12, camDirs[1]);
 
-  Vector3 closestPoint1 = point1 + dot_prod(v2, point2-point1)/dot_prod(v2, vec1)*vec1;
-  Vector3 closestPoint2 = point2 + dot_prod(v1, point1-point2)/dot_prod(v1, vec2)*vec2;
+  Vector3 closestPoint1 = camCtrs[0] + dot_prod(v2, camCtrs[1]-camCtrs[0])/dot_prod(v2, camDirs[0])*camDirs[0];
+  Vector3 closestPoint2 = camCtrs[1] + dot_prod(v1, camCtrs[0]-camCtrs[1])/dot_prod(v1, camDirs[1])*camDirs[1];
 
   errorVec = closestPoint1 - closestPoint2;
 
