@@ -32,7 +32,7 @@ namespace vw { namespace cartography {
                               vw::Vector2i const& image_size,
                               bool call_from_mapproject):
     m_cam(cam), m_image_georef(image_georef), m_dem_georef(dem_georef),
-    m_dem(dem_rsrc), m_image_size(image_size),
+    m_dem_rsrc(dem_rsrc), m_dem(dem_rsrc), m_image_size(image_size),
     m_call_from_mapproject(call_from_mapproject),
     m_has_nodata(false),
     m_nodata(std::numeric_limits<double>::quiet_NaN()){
