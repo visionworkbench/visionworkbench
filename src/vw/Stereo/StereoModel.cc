@@ -66,62 +66,8 @@ StereoModel::StereoModel(camera::CameraModel const* camera_model1,
   m_least_squares = least_squares_refine;
 }
   
-ImageView<Vector3>
-StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
-                        ImageView<double> &error) const {
-  
-  // Error analysis
-  double mean_error = 0.0;
-  double max_error = 0.0;
-  int32 point_count = 0;
-  int32 divergent = 0;
-
-  // Allocate xyz image and get pointer to buffer
-  ImageView<Vector3> xyz(disparity_map.cols(), disparity_map.rows());
-  error.set_size(disparity_map.cols(), disparity_map.rows());
-
-  // Compute 3D position for each pixel in the disparity map
-  vw_out() << "StereoModel: Applying camera models\n";
-  for (int32 y = 0; y < disparity_map.rows(); y++) {
-    if (y % 100 == 0) {
-      printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
-      fflush(stdout);
-    }
-    for (int32 x = 0; x < disparity_map.cols(); x++) {
-      if ( is_valid(disparity_map(x,y)) ) {
-        xyz(x,y) = (*this)(Vector2( x, y),
-                           Vector2( x+disparity_map(x,y)[0], y+disparity_map(x,y)[1]),
-                           error(x,y) );
-
-        if (error(x,y) >= 0) {
-          // Keep track of error statistics
-          if (error(x,y) > max_error)
-            max_error = error(x,y);
-          mean_error += error(x,y);
-            ++point_count;
-        } else {
-          // rays diverge or are parallel
-          xyz(x,y) = Vector3();
-          divergent++;
-        }
-      } else {
-        xyz(x,y) = Vector3();
-        error(x,y) = 0;
-      }
-      }
-  }
-
-  if (divergent != 0)
-    vw_out() << "WARNING in StereoModel: " << divergent
-             << " rays diverged or were parallel!\n";
-
-  vw_out() << "\tStereoModel computing points: Done.                  \n";
-  vw_out() << "\tMean error = " << mean_error/double(point_count)
-           << ",  Max error = " << max_error << endl;
-    return xyz;
-}
-
-bool StereoModel::are_nearly_parallel(std::vector<Vector3> const& camDirs) const{
+  bool StereoModel::are_nearly_parallel(bool least_squares,
+                                        std::vector<Vector3> const& camDirs){
 
   // If the camera directions are nearly parallel, there will be very
   // large numerical uncertainty about where to place the point.  We
@@ -134,8 +80,8 @@ bool StereoModel::are_nearly_parallel(std::vector<Vector3> const& camDirs) const
   // probably be revisited once a more rigorous analysis has
   // been completed. -mbroxton (11-MAR-07)
   double tol;
-  if (m_least_squares) tol = 1e-5;
-  else                 tol = 1e-4;
+  if (least_squares) tol = 1e-5;
+  else               tol = 1e-4;
 
   bool are_par = true;
   for (int p = 0; p < int(camDirs.size()) - 1; p++){
@@ -158,22 +104,28 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
   
   errorVec = Vector3();
 
-  // Check for NaN and invalid pixels
-  for (int p = 0; p < num_cams; p++){
-    if (pixVec[p] != pixVec[p] ||
-        pixVec[p] == camera::CameraModel::invalid_pixel() ) return Vector3();
-  }
-  
   try {
-    // Determine range by triangulation
-    vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
-    for (int p = 0; p < num_cams; p++){
-      camDirs[p] = m_cameras[p]->pixel_to_vector(pixVec[p]);
-      camCtrs[p] = m_cameras[p]->camera_center(pixVec[p]);
-    }
-    
-    if (are_nearly_parallel(camDirs)) return Vector3();
 
+    vector<Vector3> camDirs(num_cams), camCtrs(num_cams);
+    camDirs.clear(); camCtrs.clear();
+    
+    // Pick the valid rays
+    for (int p = 0; p < num_cams; p++){
+      
+      Vector2 pix = pixVec[p];
+      if (pix != pix || // i.e., NaN
+          pix == camera::CameraModel::invalid_pixel() ) continue;
+      
+      camDirs.push_back(m_cameras[p]->pixel_to_vector(pix));
+      camCtrs.push_back(m_cameras[p]->camera_center(pix));
+    }
+
+    // Not enough valid rays
+    if (camDirs.size() < 2) return Vector3();
+
+    if (are_nearly_parallel(m_least_squares, camDirs)) return Vector3();
+
+    // Determine range by triangulation
     Vector3 result = triangulate_point(camDirs, camCtrs, errorVec);
     
     if ( m_least_squares ){
@@ -186,7 +138,7 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
     
     // Reflect points that fall behind one of the two cameras
     bool reflect = false;
-    for (int p = 0; p < (int)pixVec.size(); p++)
+    for (int p = 0; p < (int)camCtrs.size(); p++)
       if (dot_prod(result - camCtrs[p], camDirs[p]) < 0 ) reflect = true;
     if (reflect)
       result = -result + 2*camCtrs[0];
@@ -230,22 +182,85 @@ double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) 
 
 Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
                                        vector<Vector3> const& camCtrs,
-                                       Vector3& errorVec) const {
+                                       Vector3& errorVec){
   
-  // Triangulate the point by finding the midpoint of the segment
-  // joining the closest points on the two rays emanating
-  // from the camera.
 
-  Vector3 v12 = cross_prod(camDirs[0], camDirs[1]);
-  Vector3 v1 = cross_prod(v12, camDirs[0]);
-  Vector3 v2 = cross_prod(v12, camDirs[1]);
+  int num_cams = camDirs.size();
+  if ( num_cams == 2 ){
 
-  Vector3 closestPoint1 = camCtrs[0] + dot_prod(v2, camCtrs[1]-camCtrs[0])/dot_prod(v2, camDirs[0])*camDirs[0];
-  Vector3 closestPoint2 = camCtrs[1] + dot_prod(v1, camCtrs[0]-camCtrs[1])/dot_prod(v1, camDirs[1])*camDirs[1];
+    // Two-ray triangulation. Triangulate the point by finding the
+    // midpoint of the segment joining the closest points on the two
+    // rays emanating from the camera.
+    
+    Vector3 v12 = cross_prod(camDirs[0], camDirs[1]);
+    Vector3 v1 = cross_prod(v12, camDirs[0]);
+    Vector3 v2 = cross_prod(v12, camDirs[1]);
+    
+    Vector3 closestPoint1 = camCtrs[0] + dot_prod(v2, camCtrs[1]-camCtrs[0])/dot_prod(v2, camDirs[0])*camDirs[0];
+    Vector3 closestPoint2 = camCtrs[1] + dot_prod(v1, camCtrs[0]-camCtrs[1])/dot_prod(v1, camDirs[1])*camDirs[1];
+    
+    errorVec = closestPoint1 - closestPoint2;
 
-  errorVec = closestPoint1 - closestPoint2;
+    return 0.5 * (closestPoint1 + closestPoint2);
+    
+  }
 
-  return 0.5 * (closestPoint1 + closestPoint2);
+  // Multi-ray triangulation. Find the intersection of the rays in
+  // least squares sense (the point from which the sum of square
+  // distances to the rays is smallest).
+
+  // For two rays, this will give the same result as the code above,
+  // but it is a bit slower.
+
+  // To do: Try to see if using Eigen speeds things up.
+    
+  // Based on:
+  // Optimal Ray Intersection For Computing 3D Points
+  // From N-View Correspondences
+  // Greg Slabaugh, Ron Schafer, Mark Livingston
+  // http://www.soi.city.ac.uk/~sbbh653/publications/opray.pdf
+
+  Matrix<double,3,3> M(0.0);
+  Vector3 R(0.0);
+  for (int t = 0; t < num_cams; t++){
+    Vector3 D = camDirs[t], C = camCtrs[t];
+    double a = D[0], b = D[1], c = D[2], x = C[0], y = C[1], z = C[2];
+    M(0, 0) = M(0, 0) + 1-a*a;
+    M(1, 1) = M(1, 1) + 1-b*b;
+    M(2, 2) = M(2, 2) + 1-c*c;
+    M(0, 1) = M(0, 1) - a*b;
+    M(0, 2) = M(0, 2) - a*c;
+    M(1, 2) = M(1, 2) - b*c;
+    R(0) = R(0) + (1-a*a)*x - a*b*y - a*c*z;
+    R(1) = R(1) + (1-b*b)*y - a*b*x - b*c*z;
+    R(2) = R(2) + (1-c*c)*z - a*c*x - b*c*y;
+  }
+  M(1, 0) = M(0, 1);
+  M(2, 0) = M(0, 2);
+  M(2, 1) = M(1, 2);
+  Vector3 P = inverse(M)*R;
+    
+  // Find 2 times average distance from the intersection point to the
+  // rays. For two rays, this will agree with the shortest distance
+  // between rays.
+  double err = 0.0;
+  double px = P[0], py = P[1], pz = P[2];
+  for (int t = 0; t < num_cams; t++){
+    Vector3 D = camDirs[t], C = camCtrs[t];
+    double a = D[0], b = D[1], c = D[2], x = C[0], y = C[1], z = C[2];
+    double v = a*(px-x) + b*(py-y) + c*(pz-z);
+    double dist = (px-x)*(px-x) + (py-y)*(py-y) + (pz-z)*(pz-z) - v*v;
+    if (dist < 0) dist = 0; // if by some numerical fluke dist is negative
+    dist = std::sqrt(dist);
+    err += dist;
+  }
+  err = 2.0*err/num_cams;
+    
+  // For more than two cameras, the error vector between rays is not
+  // meaningful.
+  errorVec = Vector3(err, 0, 0);
+    
+  return P;
 }
 
 void StereoModel::refine_point(Vector2 const& pix1,
@@ -263,4 +278,61 @@ void StereoModel::refine_point(Vector2 const& pix1,
     point = npoint;
 }
 
+ImageView<Vector3>
+StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
+                        ImageView<double> &error) const {
+  
+  // Error analysis
+  double mean_error = 0.0;
+  double max_error = 0.0;
+  int32 point_count = 0;
+  int32 divergent = 0;
+
+  // Allocate xyz image and get pointer to buffer
+  ImageView<Vector3> xyz(disparity_map.cols(), disparity_map.rows());
+  error.set_size(disparity_map.cols(), disparity_map.rows());
+
+  // Compute 3D position for each pixel in the disparity map
+  vw_out() << "StereoModel: Applying camera models\n";
+  for (int32 y = 0; y < disparity_map.rows(); y++) {
+    if (y % 100 == 0) {
+      printf("\tStereoModel computing points: %0.2f%% complete.\r", 100.0f*float(y)/disparity_map.rows());
+      fflush(stdout);
+    }
+    for (int32 x = 0; x < disparity_map.cols(); x++) {
+      if ( is_valid(disparity_map(x,y)) ) {
+        xyz(x,y) = (*this)(Vector2( x, y),
+                           Vector2( x+disparity_map(x,y)[0],
+                                    y+disparity_map(x,y)[1]),
+                           error(x,y) );
+
+        if (error(x,y) >= 0) {
+          // Keep track of error statistics
+          if (error(x,y) > max_error)
+            max_error = error(x,y);
+          mean_error += error(x,y);
+            ++point_count;
+        } else {
+          // rays diverge or are parallel
+          xyz(x,y) = Vector3();
+          divergent++;
+        }
+      } else {
+        xyz(x,y) = Vector3();
+        error(x,y) = 0;
+      }
+      }
+  }
+
+  if (divergent != 0)
+    vw_out() << "WARNING in StereoModel: " << divergent
+             << " rays diverged or were parallel!\n";
+
+  vw_out() << "\tStereoModel computing points: Done.                  \n";
+  vw_out() << "\tMean error = " << mean_error/double(point_count)
+           << ",  Max error = " << max_error << endl;
+    return xyz;
+}
+
+  
 }} // vw::stereo
