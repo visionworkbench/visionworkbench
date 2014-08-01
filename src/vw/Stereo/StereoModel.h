@@ -40,10 +40,6 @@ namespace stereo {
     //------------------------------------------------------------------
     // Constructors / Destructors
     //------------------------------------------------------------------
-    // Constructor with n cameras
-    StereoModel(std::vector<const camera::CameraModel *> const& cameras,
-                bool least_squares_refine = false);
-    // Constructor with two cameras
     StereoModel(camera::CameraModel const* camera_model1,
                 camera::CameraModel const* camera_model2,
                 bool least_squares_refine = false);
@@ -58,16 +54,14 @@ namespace stereo {
     ///
     /// Users really shouldn't use this method, the ideal method is
     /// the 'stereo_triangulate' in StereoView.h.
-    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const&
-                                  disparity_map,
+    ImageView<Vector3> operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
                                   ImageView<double> &error ) const;
 
-    /// Apply a stereo model to multiple or just two image coordinates.
-    /// Returns an xyz point. The error is set to 0 if triangulation
-    /// did not succeed, otherwise it is the vector between the
-    /// closest points on the rays.
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec, Vector3& errorVec ) const;
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec, double& error ) const;
+    /// Apply a stereo model to a single pair of image coordinates.
+    /// Returns an xyz point.  The error is set to -1 if the rays were
+    /// parallel or divergent, otherwise it returns the 2-norm of the
+    /// distance between the rays at their nearest point of
+    /// intersection.
     virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, Vector3& errorVec ) const;
     virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
 
@@ -80,7 +74,7 @@ namespace stereo {
 
   protected:
 
-    std::vector<const camera::CameraModel *> m_cameras;
+    const camera::CameraModel *m_camera1, *m_camera2;
     bool m_least_squares;
 
     //------------------------------------------------------------------

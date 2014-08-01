@@ -25,51 +25,41 @@
 #include <vw/Math/LevenbergMarquardt.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Stereo/StereoModel.h>
-#include <vw/Core/Exception.h>
 
 namespace vw {
 namespace stereo {
-namespace detail {
-  class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
-    std::vector<const camera::CameraModel *> m_cameras;
-    
-  public:
-    typedef Vector<double,4> result_type;
-    typedef Vector<double,3> domain_type;
-    typedef Matrix<double> jacobian_type;
-    
-    PointLMA(std::vector<const camera::CameraModel *>  const& cameras):
-      m_cameras(cameras) {}
-    
-    inline result_type operator()( domain_type const& x ) const {
-      Vector4 output;
-      subvector(output,0,2) = m_cameras[0]->point_to_pixel( x );
-      subvector(output,2,2) = m_cameras[1]->point_to_pixel( x );
-      return output;
-    }
-  };
-}
-  
-// Constructor with n cameras
-StereoModel::StereoModel(std::vector<const camera::CameraModel *> const& cameras,
-                         bool least_squares_refine ) :
-  m_cameras(cameras),
-  m_least_squares(least_squares_refine) {}
-  
-// Constructor with two cameras
+  namespace detail {
+    class PointLMA : public math::LeastSquaresModelBase<PointLMA> {
+      const camera::CameraModel *m_camera1, *m_camera2;
+
+    public:
+      typedef Vector<double,4> result_type;
+      typedef Vector<double,3> domain_type;
+      typedef Matrix<double> jacobian_type;
+
+      PointLMA( camera::CameraModel const* cam1,
+                camera::CameraModel const* cam2 ) :
+        m_camera1(cam1), m_camera2(cam2) {}
+
+      inline result_type operator()( domain_type const& x ) const {
+        Vector4 output;
+        subvector(output,0,2) = m_camera1->point_to_pixel( x );
+        subvector(output,2,2) = m_camera2->point_to_pixel( x );
+        return output;
+      }
+    };
+  }
+
 StereoModel::StereoModel(camera::CameraModel const* camera_model1,
                          camera::CameraModel const* camera_model2,
-                         bool least_squares_refine ){
-  m_cameras.clear();
-  m_cameras.push_back(camera_model1);
-  m_cameras.push_back(camera_model2);
-  m_least_squares = least_squares_refine;
-}
-  
+                         bool least_squares_refine ) :
+  m_camera1(camera_model1), m_camera2(camera_model2),
+  m_least_squares(least_squares_refine) {}
+
 ImageView<Vector3>
 StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
                         ImageView<double> &error) const {
-  
+
   // Error analysis
   double mean_error = 0.0;
   double max_error = 0.0;
@@ -121,8 +111,7 @@ StereoModel::operator()(ImageView<PixelMask<Vector2f> > const& disparity_map,
     return xyz;
 }
 
-bool StereoModel::are_nearly_parallel(Vector3 const& vec1,
-                                      Vector3 const& vec2) const{
+bool StereoModel::are_nearly_parallel(Vector3 const& vec1, Vector3 const& vec2) const{
   // If vec1 and vec2 are nearly parallel, there will be
   // very large numerical uncertainty about where to place the
   // point.  We set a threshold here to reject points that are
@@ -138,46 +127,39 @@ bool StereoModel::are_nearly_parallel(Vector3 const& vec1,
            (1-dot_prod(vec1, vec2) < 1e-5 && m_least_squares) );
 }
 
-Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
-                                Vector3& errorVec) const {
-  
+Vector3 StereoModel::operator()(Vector2 const& pix1,
+                                Vector2 const& pix2, Vector3& errorVec) const {
+
+
   // Note: Class RPCStereoModel inherits from this class and
   // re-implements this function.
 
-  VW_ASSERT(pixVec.size() == m_cameras.size(),
-            vw::ArgumentErr() << "the number of rays must match "
-            << "the number of cameras.\n");
-            
   errorVec = Vector3();
 
   // Check for NaN and invalid pixels
-  if (pixVec[0] != pixVec[0] || pixVec[1] != pixVec[1]) return Vector3();
-  if (pixVec[0] == camera::CameraModel::invalid_pixel() ||
-      pixVec[1] == camera::CameraModel::invalid_pixel()
+  if (pix1 != pix1 || pix2 != pix2) return Vector3();
+  if (pix1 == camera::CameraModel::invalid_pixel() ||
+      pix2 == camera::CameraModel::invalid_pixel()
       ) return Vector3();
   
   try {
     // Determine range by triangulation
-    Vector3 vec1 = m_cameras[0]->pixel_to_vector(pixVec[0]);
-    Vector3 vec2 = m_cameras[1]->pixel_to_vector(pixVec[1]);
-    Vector3 origin1 = m_cameras[0]->camera_center(pixVec[0]);
-    Vector3 origin2 = m_cameras[1]->camera_center(pixVec[1]);
+    Vector3 vec1 = m_camera1->pixel_to_vector(pix1);
+    Vector3 vec2 = m_camera2->pixel_to_vector(pix2);
 
     if (are_nearly_parallel(vec1, vec2)){
       return Vector3();
     }
-    Vector3 result = triangulate_point(origin1, vec1,
-                                       origin2, vec2,
-                                       errorVec);
-    
-    if ( m_least_squares ){
-      if (pixVec.size() == 2)
-        refine_point(pixVec[0], pixVec[1], result);
-      else
-        vw::vw_throw(vw::NoImplErr() << "Least squares refinement is not "
-                     << "implemented for multi-view stereo.");
-    }
-    
+
+    Vector3 origin1 = m_camera1->camera_center(pix1);
+    Vector3 origin2 = m_camera2->camera_center(pix2);
+    Vector3 result  = triangulate_point(origin1, vec1,
+                                        origin2, vec2,
+                                        errorVec);
+
+    if ( m_least_squares )
+      refine_point(pix1, pix2, result);
+
     // Reflect points that fall behind one of the two cameras
     if ( dot_prod(result - origin1, vec1) < 0 ||
          dot_prod(result - origin2, vec2) < 0 ) {
@@ -191,25 +173,8 @@ Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
   }
 }
 
-Vector3 StereoModel::operator()(std::vector<Vector2> const& pixVec,
-                                double& error) const {
-  Vector3 errorVec;
-  Vector3 result = operator()(pixVec, errorVec);
-  error = norm_2(errorVec);
-  return result;
-}
-  
-Vector3 StereoModel::operator()(Vector2 const& pix1,
-                                Vector2 const& pix2, Vector3& errorVec) const {
-  std::vector<Vector2> pixVec;
-  pixVec.push_back(pix1);
-  pixVec.push_back(pix2);
-  return operator()(pixVec, errorVec); 
-}
-
-
-Vector3 StereoModel::operator()(Vector2 const& pix1, Vector2 const& pix2,
-                                double& error ) const {
+  Vector3 StereoModel::operator()(Vector2 const& pix1, Vector2 const& pix2,
+                                  double& error ) const {
   Vector3 errorVec;
   Vector3 result = operator()(pix1, pix2, errorVec);
   error = norm_2(errorVec);
@@ -217,8 +182,8 @@ Vector3 StereoModel::operator()(Vector2 const& pix1, Vector2 const& pix2,
 }
 
 double StereoModel::convergence_angle(Vector2 const& pix1, Vector2 const& pix2) const {
-  return acos(dot_prod(m_cameras[0]->pixel_to_vector(pix1),
-                       m_cameras[1]->pixel_to_vector(pix2)));
+  return acos(dot_prod(m_camera1->pixel_to_vector(pix1),
+                       m_camera2->pixel_to_vector(pix2)));
 }
 
 Vector3 StereoModel::triangulate_point(Vector3 const& point1,
@@ -249,7 +214,7 @@ void StereoModel::refine_point(Vector2 const& pix1,
 
   // Refine the point by minimizing the least squares error in pixel domain.
 
-  detail::PointLMA model( m_cameras );
+  detail::PointLMA model( m_camera1, m_camera2 );
   Vector4 objective( pix1[0], pix1[1], pix2[0], pix2[1] );
   int status = 0;
   Vector3 npoint = levenberg_marquardt( model, point,
