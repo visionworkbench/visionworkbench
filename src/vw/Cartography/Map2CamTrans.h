@@ -45,7 +45,6 @@ namespace vw { namespace cartography {
   class Map2CamTrans : public vw::TransformBase<Map2CamTrans> {
     vw::camera::CameraModel const* m_cam;
     GeoReference m_image_georef, m_dem_georef;
-    boost::shared_ptr<DiskImageResource> const& m_dem_rsrc;
     vw::DiskImageView<float> m_dem;
     vw::Vector2i m_image_size;
     bool         m_call_from_mapproject;
@@ -68,7 +67,7 @@ namespace vw { namespace cartography {
     Map2CamTrans( vw::camera::CameraModel const* cam,
                   GeoReference const& image_georef,
                   GeoReference const& dem_georef,
-                  boost::shared_ptr<vw::DiskImageResource> dem_rsrc,
+                  std::string const& dem_file,
                   vw::Vector2i const& image_size,
                   bool call_from_mapproject
                   );
