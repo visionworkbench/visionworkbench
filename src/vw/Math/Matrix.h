@@ -204,7 +204,7 @@ namespace math {
 #if LOCAL_GCC_VERSION >= 40600
 #pragma GCC diagnostic push
 #endif
-#if LOCAL_GCC_VERSION >= 40200  
+#if LOCAL_GCC_VERSION >= 40202  
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #endif
 #endif
