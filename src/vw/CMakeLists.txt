@@ -399,17 +399,17 @@ endforeach()
 # --- VW_BUNDLEADJUSTMENT ------------------------------------------------------------
 get_all_source_files( "BundleAdjustment"       VW_BUNDLEADJUSTMENT_SRC_FILES)
 get_all_source_files( "BundleAdjustment/tests" VW_BUNDLEADJUSTMENT_TEST_FILES)
-set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMath)
+set(VW_BUNDLEADJUSTMENT_LIB_DEPENDENCIES VwCore VwMosaic VwCartography)
 
 # --- VW_CAMERA ------------------------------------------------------------
 get_all_source_files( "Camera"       VW_CAMERA_SRC_FILES)
 get_all_source_files( "Camera/tests" VW_CAMERA_TEST_FILES)
-set(VW_CAMERA_LIB_DEPENDENCIES VwCore VwMath)
+set(VW_CAMERA_LIB_DEPENDENCIES VwMath VwImage)
 
 # --- VW_CARTOGRAPHY ------------------------------------------------------------
 get_all_source_files( "Cartography"       VW_CARTOGRAPHY_SRC_FILES)
 get_all_source_files( "Cartography/tests" VW_CARTOGRAPHY_TEST_FILES)
-set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwCore VwMath)
+set(VW_CARTOGRAPHY_LIB_DEPENDENCIES VwFileIO VwCamera)
 
 # --- VW_CORE ------------------------------------------------------------
 get_all_source_files( "Core"       VW_CORE_SRC_FILES)
@@ -420,7 +420,7 @@ set(VW_CORE_LIB_DEPENDENCIES )
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "FileIO" VW_FILEIO_SRC_FILES)
 #get_all_source_files( "FileIO/tests" VW_FILEIO_TEST_FILES)
-set(VW_FILEIO_LIB_DEPENDENCIES VwCore)
+set(VW_FILEIO_LIB_DEPENDENCIES VwMath VwImage)
 
 # --- VW_GEOMETRY ------------------------------------------------------------
 get_all_source_files( "Geometry"       VW_GEOMETRY_SRC_FILES)
@@ -442,28 +442,28 @@ set(VW_GEOMETRY_LIB_DEPENDENCIES VwCore VwMath)
 # --- VW_HDR ------------------------------------------------------------
 get_all_source_files( "HDR"       VW_HDR_SRC_FILES)
 get_all_source_files( "HDR/tests" VW_HDR_TEST_FILES)
-set(VW_HDR_LIB_DEPENDENCIES VwCore VwMath)
+set(VW_HDR_LIB_DEPENDENCIES VwFileIO VwCamera)
 
 # --- VW_IMAGE ------------------------------------------------------------
 # This is a complicated folder so we need to select files manually
 #get_all_source_files( "Image" VW_IMAGE_SRC_FILES)
 #get_all_source_files( "Image/tests" VW_IMAGE_TEST_FILES)
-set(VW_IMAGE_LIB_DEPENDENCIES VwCore)
+set(VW_IMAGE_LIB_DEPENDENCIES VwMath)
 
 # --- VW_INTERESTPOINT ------------------------------------------------------------
 get_all_source_files( "InterestPoint"       VW_INTERESTPOINT_SRC_FILES)
 get_all_source_files( "InterestPoint/tests" VW_INTERESTPOINT_TEST_FILES)
-set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCore VwMath)
+set(VW_INTERESTPOINT_LIB_DEPENDENCIES VwCamera VwFileIO)
 
 # --- VW_MATH ------------------------------------------------------------
 get_all_source_files( "Math"       VW_MATH_SRC_FILES)
 get_all_source_files( "Math/tests" VW_MATH_TEST_FILES)
-set(VW_IMAGE_LIB_DEPENDENCIES VwMath)
+set(VW_IMAGE_LIB_DEPENDENCIES VwCore)
 
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
 get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
-set(VW_MOSAIC_LIB_DEPENDENCIES VwMath)
+set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera)
 
 # DEPRECATED
 ## --- VW_PLATE ------------------------------------------------------------
@@ -476,7 +476,7 @@ set(VW_MOSAIC_LIB_DEPENDENCIES VwMath)
 # --- VW_STEREO ------------------------------------------------------------
 get_all_source_files( "Stereo"       VW_STEREO_SRC_FILES)
 get_all_source_files( "Stereo/tests" VW_STEREO_TEST_FILES)
-set(VW_STEREO_LIB_DEPENDENCIES VwMath)
+set(VW_STEREO_LIB_DEPENDENCIES VwMath VwImage VwCamera VwGeometry)
 
 #=========================================================================
 

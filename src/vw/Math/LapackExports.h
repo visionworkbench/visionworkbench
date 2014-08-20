@@ -60,7 +60,7 @@ namespace math {
       (defined(VW_HAVE_PKG_SLAPACK)           ) || \
       (defined(VW_HAVE_PKG_STANDALONE_FLAPACK))
 
-    #pragma message ( "Using Fortran based LAPACK!" )
+    //#pragma message ( "Using Fortran based LAPACK!" )
 
     // fortran-based
     typedef int32  f77_int;
@@ -69,7 +69,7 @@ namespace math {
         (defined(VW_HAVE_PKG_STANDALONE_LAPACK_AND_BLAS)) || \
         (defined(VW_HAVE_PKG_LAPACK))
 
-    #pragma message ( "Using C based LAPACK!" )
+    //#pragma message ( "Using C based LAPACK!" )
 
     // f2c-based
     typedef long f77_int;

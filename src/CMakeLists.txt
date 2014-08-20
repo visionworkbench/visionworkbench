@@ -66,8 +66,8 @@ function(generate_protobuf_files PROTO_GEN_OUT)
 
 
   # Add the custom command that will generate all the files
+  message("${PROTO_GEN}")
   add_custom_command(OUTPUT   ${PROTO_GEN}
-                     PRE_BUILD
                      COMMAND  ${PROTOC} ${PROTO_INPUT} ${PROTOC_C_OUT_FLAG} ${CMAKE_CURRENT_BINARY_DIR}
                      DEPENDS  ${PROTOC} ${PROTO_INPUT}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
@@ -79,15 +79,17 @@ endfunction(generate_protobuf_files)
 
 # Function to add a library to the project.
 # - This is called in each library folder directory.
-function(add_library_wrapper libName fileList testFileList)
+function(add_library_wrapper libName fileList testFileList dependencyList)
 
   #message("${CMAKE_CURRENT_SOURCE_DIR}")
 
   # Set up the library
   add_library(${libName} ${fileList})
 
-  set_target_properties("${libName}" PROPERTIES LINKER_LANGUAGE CXX)   
-  install(TARGETS "${libName}" DESTINATION lib)
+  set_target_properties(${libName} PROPERTIES LINKER_LANGUAGE CXX)   
+  target_link_libraries(${libName} "${dependencyList}")
+
+  install(TARGETS ${libName} DESTINATION lib)
   
   # Set all the header files to be installed to the include directory
   foreach(f ${fileList})
