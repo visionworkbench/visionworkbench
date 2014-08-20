@@ -18,9 +18,15 @@ if(BINARYBUILDER_INSTALL_DIR)
   set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "${BINARYBUILDER_INSTALL_DIR}")
 endif()
 
-# Libraries use paths like "vw/blah/blah.h" so we just need to add this one include path
+# Libraries use paths like "vw/blah/blah.h" so we need to include the top of the tree
 include_directories( ../ )
+include_directories( ${CMAKE_BINARY_DIR}/src/ ) # Generated protocol buffers go here!
 
+
+get_property(dirs DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY INCLUDE_DIRECTORIES)
+foreach(dir ${dirs})
+  message(STATUS "dir='${dir}'")
+endforeach()
 
 # --- Custom options ---
 option(BUILD_SHARED_LIBS "Produce shared libraries." TRUE)

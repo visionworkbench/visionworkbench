@@ -64,13 +64,14 @@ function(generate_protobuf_files PROTO_GEN_OUT)
         ${PROTO_GEN_DIR}/${PROTO_NAME}.pb.cc)
   endforeach()
 
-
   # Add the custom command that will generate all the files
-  message("${PROTO_GEN}")
+  # - The generated files will be put in the CMake build directory, not the source tree.
+  #message("Output files: ${PROTO_GEN}")
   add_custom_command(OUTPUT   ${PROTO_GEN}
                      COMMAND  ${PROTOC} ${PROTO_INPUT} ${PROTOC_C_OUT_FLAG} ${CMAKE_CURRENT_BINARY_DIR}
-                     DEPENDS  ${PROTOC} ${PROTO_INPUT}
-                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+                     DEPENDS  ${PROTO_INPUT}
+                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                     COMMENT "Generating Protocol Buffers...")
 
   set(${PROTO_GEN_OUT} ${PROTO_GEN} PARENT_SCOPE) # Set up output variable
 endfunction(generate_protobuf_files)
