@@ -164,8 +164,10 @@ set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nas
 #===============================================================================
 
 # Set the install path
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/build/install" CACHE INTERNAL "Prefix
-prepended to install directories")
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set (CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/build/install" CACHE PATH "default install path" FORCE )
+endif()
+#set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/build/install" CACHE INTERNAL "Prefix prepended to install directories")
 message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 
 enable_testing() # Needed for unit tests to work
