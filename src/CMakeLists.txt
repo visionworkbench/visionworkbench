@@ -164,7 +164,7 @@ set(PACKAGE_URL        "http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/nas
 #===============================================================================
 
 # Set the install path
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/cmakeBuild/install" CACHE INTERNAL "Prefix
+set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/build/install" CACHE INTERNAL "Prefix
 prepended to install directories")
 message("Cmake install directory: ${CMAKE_INSTALL_PREFIX}")
 

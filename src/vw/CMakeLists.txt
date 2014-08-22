@@ -469,7 +469,7 @@ set(VW_IMAGE_LIB_DEPENDENCIES VwCore)
 # --- VW_MOSAIC ------------------------------------------------------------
 get_all_source_files( "Mosaic"       VW_MOSAIC_SRC_FILES)
 get_all_source_files( "Mosaic/tests" VW_MOSAIC_TEST_FILES)
-set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera)
+set(VW_MOSAIC_LIB_DEPENDENCIES VwFileIO VwCamera VwCartography)
 
 # DEPRECATED
 ## --- VW_PLATE ------------------------------------------------------------
