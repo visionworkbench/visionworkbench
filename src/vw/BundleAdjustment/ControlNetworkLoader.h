@@ -78,8 +78,7 @@ namespace ba {
         continue;
       }
 
-      vw_out(VerboseDebugMessage,"ba") << "\tLoading \"" << *gcp_start
-                                       << "\".\n";
+      vw_out() << "Loading: " << *gcp_start << std::endl;
 
       std::ifstream ifile( (*gcp_start).c_str() );
       std::string line;
