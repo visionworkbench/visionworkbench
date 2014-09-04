@@ -94,13 +94,13 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
   }
 }
 
-void vw::ba::build_control_network( ba::ControlNetwork& cnet,
-                                    std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
+void vw::ba::build_control_network( bool triangulate_control_points,
+                                    ba::ControlNetwork& cnet,
+                                    std::vector<boost::shared_ptr<camera::CameraModel> >
+                                    const& camera_models,
                                     std::vector<std::string> const& image_files,
                                     size_t min_matches,
-                                    std::vector<std::string> const& directories,
-                                    std::string const& prefix
-                                    ) {
+                                    std::string const& prefix) {
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
@@ -117,68 +117,31 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
     count++;
   }
 
-  // If the user passed in a search directory, look for match files in that dir.
-  // Otherwise, if the user passed in a prefix, look for match files starting with
-  // that prefix.
+  // Look for match files starting with given prefix.
   std::vector<std::string> match_files;
   std::vector<size_t> index1_vec, index2_vec;
   
   // Searching through the directories available to us.
   typedef std::map<std::string,size_t>::iterator MapIterator;
-  if (!directories.empty()){
-    BOOST_FOREACH( std::string const& directory, directories ) {
-      vw_out(DebugMessage,"ba") << "\tOpening directory \""
-                                << directory << "\".\n";
-      fs::directory_iterator end_itr;
-      for ( fs::directory_iterator obj( directory ); obj != end_itr; ++obj ) {
-        
-        // Skip if not a file
-        if ( !fs::is_regular_file( obj->status() ) ) continue;
-        // Skip if not a match file
-        if ( obj->path().extension() != ".match" ) continue;
-        
-        // Pull out the prefixes that made up that match file
-        std::string match_base = obj->path().stem().string();
-        size_t split_pt = match_base.find("__");
-        if ( split_pt == std::string::npos ) continue;
-        std::string prefix1 = match_base.substr(0,split_pt);
-        std::string prefix2 = match_base.substr(split_pt+2,match_base.size()-split_pt-2);
-        
-        // Extract the image indices that correspond to image prefixes.
-        MapIterator it1 = image_prefix_map.find( prefix1 );
-        MapIterator it2 = image_prefix_map.find( prefix2 );
-        if ( it1 == image_prefix_map.end() ||
-             it2 == image_prefix_map.end() ) continue;
-        std::string match_file = obj->path().string();
-        match_files.push_back(match_file);
-        index1_vec.push_back(it1->second);
-        index2_vec.push_back(it2->second);
-        
+  int num_images = image_files.size();
+  for (int i = 0; i < num_images; i++){
+    for (int j = i+1; j < num_images; j++){
+      std::string image1 = image_files[i];
+      std::string image2 = image_files[j];
+      std::string match_file = ip::match_filename(prefix, image1, image2);
+      std::string prefix1 = fs::path(image1).replace_extension().string();
+      std::string prefix2 = fs::path(image2).replace_extension().string();
+      MapIterator it1 = image_prefix_map.find( prefix1 );
+      MapIterator it2 = image_prefix_map.find( prefix2 );
+      if ( it1 == image_prefix_map.end() ||
+           it2 == image_prefix_map.end() ) continue;
+      if (!fs::exists(match_file)) {
+        vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
+        continue;
       }
-    } // end search through directories
-    
-  }else{
-
-    int num_images = image_files.size();
-    for (int i = 0; i < num_images; i++){
-      for (int j = i+1; j < num_images; j++){
-        std::string image1 = image_files[i];
-        std::string image2 = image_files[j];
-        std::string match_file = ip::match_filename(prefix, image1, image2);
-        std::string prefix1 = fs::path(image1).replace_extension().string();
-        std::string prefix2 = fs::path(image2).replace_extension().string();
-        MapIterator it1 = image_prefix_map.find( prefix1 );
-        MapIterator it2 = image_prefix_map.find( prefix2 );
-        if ( it1 == image_prefix_map.end() ||
-             it2 == image_prefix_map.end() ) continue;
-        if (!fs::exists(match_file)) {
-          vw_out(WarningMessage) << "Missing match file: " << match_file << std::endl;
-          continue;
-        }
-        match_files.push_back(match_file);
-        index1_vec.push_back(it1->second);
-        index2_vec.push_back(it2->second);
-      }
+      match_files.push_back(match_file);
+      index1_vec.push_back(it1->second);
+      index2_vec.push_back(it2->second);
     }
   }
   
@@ -245,7 +208,7 @@ void vw::ba::build_control_network( ba::ControlNetwork& cnet,
   crn.write_controlnetwork( cnet );
 
   // Triangulating Positions
-  {
+  if (triangulate_control_points){
     TerminalProgressCallback progress("ba", "Triangulating:");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());

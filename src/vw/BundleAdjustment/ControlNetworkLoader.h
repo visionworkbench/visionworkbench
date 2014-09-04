@@ -36,13 +36,12 @@ namespace ba {
   // image names. This function uses Boost::FS to then find match files
   // that would have been created by 'ipmatch' by searching the entire
   // permutation of the image_files vector.
-  void build_control_network( ControlNetwork& cnet,
+  void build_control_network(bool triangulate_points,
+                             ControlNetwork& cnet,
                               std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                               std::vector<std::string> const& image_files,
-                              size_t min_matches = 30,
-                              std::vector<std::string> const& directories = std::vector<std::string>(1,"."),
-                              std::string const& prefix = ""
-                              );
+                              size_t min_matches,
+                              std::string const& prefix = "");
 
   void triangulate_control_point( ControlPoint& cp,
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
