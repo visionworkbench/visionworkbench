@@ -27,6 +27,7 @@
 #include <vw/Image/ImageView.h>
 #include <vw/Image/Transform.h>
 #include <vw/FileIO/DiskImageView.h>
+#include <vw/FileIO/DiskImageUtils.h>
 #include <vw/InterestPoint/InterestData.h>
 #include <vw/InterestPoint/MatrixIO.h>
 #include <vw/InterestPoint/IntegralImage.h>

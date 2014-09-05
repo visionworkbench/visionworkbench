@@ -59,6 +59,7 @@ include_HEADERS = \
   DiskImageResourcePBM.h \
   DiskImageResourcePDS.h \
   DiskImageView.h \
+  DiskImageUtils.h \
   MemoryImageResource.h \
   KML.h \
   ScanlineIO.h \
