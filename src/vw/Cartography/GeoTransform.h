@@ -38,7 +38,8 @@ namespace cartography {
     ProjContext m_src_proj, m_dst_proj;
     bool m_skip_map_projection;
     bool m_skip_datum_conversion;
-
+    Vector2 m_offset;
+    
     /* Converts between datums. The parameter 'forward' specifies whether
      * we convert forward (true) or reverse (false).
     */
@@ -55,8 +56,8 @@ namespace cartography {
       if (m_skip_map_projection)
         return m_src_georef.point_to_pixel(m_dst_georef.pixel_to_point(v));
       if(m_skip_datum_conversion)
-        return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v));
-      Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v);
+        return m_src_georef.lonlat_to_pixel(m_dst_georef.pixel_to_lonlat(v) - m_offset);
+      Vector2 dst_lonlat = m_dst_georef.pixel_to_lonlat(v) - m_offset;
       dst_lonlat = datum_convert(dst_lonlat, false);
       return m_src_georef.lonlat_to_pixel(dst_lonlat);
     }
@@ -68,8 +69,8 @@ namespace cartography {
       if (m_skip_map_projection)
         return m_dst_georef.point_to_pixel(m_src_georef.pixel_to_point(v));
       if(m_skip_datum_conversion)
-        return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v));
-      Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v);
+        return m_dst_georef.lonlat_to_pixel(m_src_georef.pixel_to_lonlat(v) + m_offset);
+      Vector2 src_lonlat = m_src_georef.pixel_to_lonlat(v) + m_offset;
       src_lonlat = datum_convert(src_lonlat, true);
       return m_dst_georef.lonlat_to_pixel(src_lonlat);
     }
@@ -81,7 +82,6 @@ namespace cartography {
     // We do the same for reverse_bbox
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
   };
-
 
   // ---------------------------------------------------------------------------
   // Functional API

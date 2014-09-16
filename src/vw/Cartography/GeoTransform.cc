@@ -34,6 +34,13 @@ namespace cartography {
   // Constructor
   GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :
     m_src_georef(src_georef), m_dst_georef(dst_georef) {
+
+    // Deal with the fact that longitudes could differ by 360 degreees
+    // between src and dst.
+    Vector2 src_orgin = src_georef.pixel_to_lonlat(Vector2(0, 0));
+    Vector2 dst_orgin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
+    m_offset = Vector2( 360.0*round( (dst_orgin[0] - src_orgin[0])/360.0 ), 0.0 );
+    
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
