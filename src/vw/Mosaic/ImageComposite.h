@@ -49,7 +49,7 @@ namespace mosaic {
   template <class PixelT>
   class PositionedImage : public ImageViewBase<PositionedImage<PixelT> > {
   public:
-    int cols_, rows_;
+    int m_cols, m_rows;
     ImageView<PixelT> image;
     BBox2i bbox;
 
@@ -57,14 +57,14 @@ namespace mosaic {
     typedef PixelT result_type;
 
     template <class ImageT>
-    PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) : cols_(cols), rows_(rows), image(image), bbox(bbox) {}
+    PositionedImage( int cols, int rows, ImageT const& image, BBox2i const& bbox ) : m_cols(cols), m_rows(rows), image(image), bbox(bbox) {}
 
     PositionedImage reduce() const {
       const int border = 1;
       int left = std::min( border + (bbox.min().x()+border)%2, bbox.min().x() );
       int top = std::min( border + (bbox.min().y()+border)%2, bbox.min().y() );
-      int right = std::min( border + (bbox.width()+left+border)%2, cols_-bbox.min().x()-bbox.width() );
-      int bottom = std::min( border + (bbox.height()+top+border)%2, rows_-bbox.min().y()-bbox.height() );
+      int right = std::min( border + (bbox.width()+left+border)%2, m_cols-bbox.min().x()-bbox.width() );
+      int bottom = std::min( border + (bbox.height()+top+border)%2, m_rows-bbox.min().y()-bbox.height() );
       std::vector<float> kernel(3); kernel[0]=0.25; kernel[1]=0.5; kernel[2]=0.25;
       // I don't quite yet understand why (if?) this is the correct bounding box,
       // but bad things happen without the final "+1"s:
@@ -77,7 +77,7 @@ namespace mosaic {
       vw::rasterize( edge_extend( subsample( separable_convolution_filter( edge_extend( image, -left, -top, image.cols()+left+right, image.rows()+top+bottom, ZeroEdgeExtension() ),
                                                                            kernel, kernel, ZeroEdgeExtension() ), 2 ), 0, 0, new_bbox.width(), new_bbox.height(), vw::ConstantEdgeExtension() ),
                      new_image );
-      return PositionedImage( (cols_+1)/2, (rows_+1)/2, new_image, new_bbox );
+      return PositionedImage( (m_cols+1)/2, (m_rows+1)/2, new_image, new_bbox );
     }
 
     void unpremultiply() {
@@ -119,8 +119,8 @@ namespace mosaic {
       return *this;
     }
 
-    int32 cols() const { return cols_; }
-    int32 rows() const { return rows_; }
+    int32 cols() const { return m_cols; }
+    int32 rows() const { return m_rows; }
     int32 planes() const { return 1; }
 
     typedef PositionedImage prerasterize_type;
