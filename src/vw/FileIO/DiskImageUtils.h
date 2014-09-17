@@ -93,6 +93,17 @@ namespace vw {
       SelectChannels<m, n, T> >( image.impl(), SelectChannels<m, n, T>(k) );
   }
   
+  // Function that extracts the first m channels starting at channel k
+  // of an image with n channels. Must have m and n as templated arguments.
+  template <int m, int n, class T>
+  vw::UnaryPerPixelView<vw::ImageViewRef< vw::Vector<T, n> >,
+                        SelectChannels<m, n, T> >
+  inline select_channels( vw::ImageViewBase<vw::ImageViewRef< vw::Vector<T, n> > >
+                          const& image, int k ) {
+    return vw::UnaryPerPixelView<vw::ImageViewRef< vw::Vector<T, n> >,
+      SelectChannels<m, n, T> >( image.impl(), SelectChannels<m, n, T>(k) );
+  }
+
   // Read m channels from an image starting with channel k. Must
   // have m as a templated argument.
   template<int m, class T>
