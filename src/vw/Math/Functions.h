@@ -202,6 +202,13 @@ namespace impl {
   }
 #endif
 
+  // Next power of 2
+  inline int nextpow2(double x){
+    int k = 1;
+    while (k < x) k *= 2;
+    return k;    
+  }
+  
 } // namespace vw
 
 #endif  // __VW_MATH_FUNCTIONS_H__
