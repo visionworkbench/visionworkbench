@@ -27,6 +27,7 @@ include_HEADERS = \
   Algorithms.h \
   BlockProcessor.h \
   BlockRasterize.h \
+  Chipper.h \
   Convolution.h \
   EdgeExtend.h \
   EdgeExtension.h \
@@ -60,6 +61,7 @@ include_HEADERS = \
   ViewImageResource.h
 
 libvwImage_la_SOURCES = \
+  Chipper.cc \
   Filter.cc \
   ImageResource.cc \
   ImageResourceStream.cc \
