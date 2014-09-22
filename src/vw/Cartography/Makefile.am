@@ -37,11 +37,11 @@ protocol_headers = DatumDesc.pb.h GeoReferenceDesc.pb.h
 protocol_sources = DatumDesc.pb.cc GeoReferenceDesc.pb.cc
 endif
 
-include_HEADERS = GeoReferenceBase.h GeoReference.h                     \
-                  GeoTransform.h Datum.h SimplePointImageManipulation.h \
-                  PointImageManipulation.h Map2CamTrans.h               \
-                  OrthoImageView.h GeoReferenceResourcePDS.h            \
-                  Projection.h ToastTransform.h $(gdal_headers)         \
+include_HEADERS = GeoReferenceBase.h GeoReference.h                       \
+                  GeoTransform.h Datum.h SimplePointImageManipulation.h   \
+                  PointImageManipulation.h Map2CamTrans.h                 \
+                  OrthoImageView.h GeoReferenceResourcePDS.h              \
+                  Projection.h ToastTransform.h Chipper.h $(gdal_headers) \
                   $(camerabbox_headers)
 
 if HAVE_PKG_PROTOBUF
@@ -53,7 +53,8 @@ detail_HEADERS =  detail/BresenhamLine.h
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
                   GeoReferenceBase.cc PointImageManipulation.cc         \
-                  Map2CamTrans.cc $(gdal_sources) $(camerabbox_sources)
+                  Map2CamTrans.cc Chipper.cc $(gdal_sources)            \
+                  $(camerabbox_sources)
 
 nodist_libvwCartography_la_SOURCES = $(protocol_sources)
 

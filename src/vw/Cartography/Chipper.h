@@ -44,6 +44,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
+#include <vw/Cartography/GeoReference.h>
 
 namespace pdal
 {
@@ -139,7 +140,8 @@ class Chipper
 public:
 
   Chipper(PointBuffer& buffer, int blockSize, int numRows,
-          double nodata, vw::ImageView<vw::Vector3> & outImg);
+          bool have_georef, vw::cartography::GeoReference const& georef, 
+          vw::ImageView<vw::Vector3> & outImg);
   
 private:
     void load(PointBuffer const& buffer, ChipRefList& xvec,
@@ -156,7 +158,8 @@ private:
 
     PointBuffer const& m_inbuf;
     int m_blockSize;
-    double m_nodata;
+    bool m_have_georef;
+    vw::cartography::GeoReference m_georef;
     vw::ImageView<vw::Vector3> & m_outImg;
     int m_numMaxPtsInChip;
     int m_numApproxPtsInChip;

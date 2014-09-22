@@ -31,7 +31,7 @@
  * OF SUCH DAMAGE.
  ****************************************************************************/
 
-#include <vw/Image/Chipper.h>
+#include <vw/Cartography/Chipper.h>
 
 #include <boost/scoped_ptr.hpp>
 
@@ -75,16 +75,20 @@ namespace filters
 
 using namespace vw;
   
-Chipper::Chipper(PointBuffer& buffer, int blockSize, int numRows,
-                 double nodata, vw::ImageView<vw::Vector3> & outImg)
-  :m_inbuf(buffer), m_blockSize(blockSize), m_nodata(nodata), m_outImg(outImg),
-   m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE) {
+  Chipper::Chipper(PointBuffer& buffer, int blockSize, int numRows,
+                   bool have_georef, vw::cartography::GeoReference const& georef,
+                   vw::ImageView<vw::Vector3> & outImg)
+    :m_inbuf(buffer), m_blockSize(blockSize),
+     m_have_georef(have_georef), m_georef(georef),
+     m_outImg(outImg),
+     m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE) {
   
-  // This code was hacked a bit by Oleg to put the chips into a tif
-  // image. Each chip will be blockSize x blockSize. The approximate
-  // number of rows in the image is given by numRows. We will allocate
-  // room for the image below.  The output image should be big enough
-  // to fit all chips.
+  // This code was hacked a bit by Oleg to convert the chips to
+  // Cartesian xyz values and store then in a tif image. Each chip
+  // will be blockSize x blockSize. The approximate number of rows in
+  // the image is given by numRows. We will allocate room for the
+  // image below.  The output image should be big enough to fit all
+  // chips.
 
   // The delta below is due to the uncertainty as to how many points
   // end up in each chip. We expect their number to be
@@ -93,6 +97,9 @@ Chipper::Chipper(PointBuffer& buffer, int blockSize, int numRows,
   int delta = 5;
   m_numApproxPtsInChip = m_numMaxPtsInChip - delta;
   int numMinPtsInChip = m_numApproxPtsInChip - delta;
+  VW_ASSERT(numMinPtsInChip > 0,
+            ArgumentErr() << "Chipper: book-keeping failure!\n");
+
   int total = buffer.size();
   
   std::cout << "total is " << total << std::endl;
@@ -112,7 +119,7 @@ Chipper::Chipper(PointBuffer& buffer, int blockSize, int numRows,
   m_outImg = ImageView<Vector3>(numCols, numRows);
   for (int col = 0; col < m_outImg.cols(); col++){
     for (int row = 0; row < m_outImg.rows(); row++){
-      m_outImg(col, row) = Vector3(m_nodata, m_nodata, m_nodata);
+      m_outImg(col, row) = Vector3();
     }
   }
 
@@ -352,14 +359,8 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
   // Store the current chip in the appropriate place in
   // m_outImg.
   int numRowBlocks = m_outImg.rows()/m_blockSize;
-  int numColBlocks = m_outImg.cols()/m_blockSize;
-//   std::cout << "num row blocks " << numRowBlocks << std::endl;
-//   std::cout << "num col blocks " << numColBlocks << std::endl;
-  
   int posx = m_currChip/numRowBlocks;
   int posy = m_currChip - posx*numRowBlocks;
-//   std::cout << "-- putting at block: " << posx << ' ' << posy << std::endl;
-
   int startx = posx*m_blockSize;
   int starty = posy*m_blockSize;
 
@@ -368,12 +369,21 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
     count++;
     int x = count/m_blockSize;
     int y = count - x*m_blockSize;
-    m_outImg(startx + x, starty + y) = m_inbuf[wide[idx].m_ptindex];
+    Vector3 pt = m_inbuf[wide[idx].m_ptindex];
+    
+    // If the data is in respect to a georef, convert to raw xyz values
+    if (m_have_georef){
+      Vector2 ll = m_georef.point_to_lonlat(subvector(pt, 0, 2));
+      pt = m_georef.datum().geodetic_to_cartesian(Vector3(ll[0], ll[1], pt[2]));
+    }
+    
+    m_outImg(startx + x, starty + y) = pt;
+    
   }
   
   // Be ready for the next block
   m_currChip++;
-
+  
     /**
     // We currently don't write the bounds in the buffer.
     //
@@ -388,6 +398,6 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
   //m_out_buffers.push_back(buf);
 }
 
-
+  
 } // namespace filters
 } // namespace pdal
