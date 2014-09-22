@@ -68,6 +68,15 @@ namespace vw {
 
   // Find how many channels/bands are in a given image
   inline int get_num_channels(std::string filename){
+
+    if (boost::iends_with(boost::to_lower_copy(filename), ".las")  ||
+        boost::iends_with(boost::to_lower_copy(filename), ".laz")  ||
+        boost::iends_with(boost::to_lower_copy(filename), ".csv")  ||
+        boost::iends_with(boost::to_lower_copy(filename), ".txt")  ){
+      // A las or csv file is declared to have 3 channels only
+      return 3;
+    }
+    
     boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
     return src->channels()*src->planes();
   }
