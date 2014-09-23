@@ -68,6 +68,11 @@ from the narrow array so that the approriate extrema of the block can
 be stored.
 **/
 
+// This code was hacked a bit by Oleg to convert the chips to
+// Cartesian xyz values and store then in a tif image. Each chip will
+// be blockSize x blockSize. The image size is pre-allocated from
+// outside.
+  
 namespace pdal
 {
 namespace filters
@@ -75,54 +80,24 @@ namespace filters
 
 using namespace vw;
   
-  Chipper::Chipper(PointBuffer& buffer, int blockSize, int numRows,
-                   bool have_georef, vw::cartography::GeoReference const& georef,
-                   vw::ImageView<vw::Vector3> & outImg)
-    :m_inbuf(buffer), m_blockSize(blockSize),
-     m_have_georef(have_georef), m_georef(georef),
-     m_outImg(outImg),
-     m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE) {
+Chipper::Chipper(PointBuffer& buffer, int blockSize, 
+                 bool have_georef, vw::cartography::GeoReference const& georef,
+                 vw::ImageView<vw::Vector3> & outImg)
+  :m_inbuf(buffer), m_blockSize(blockSize),
+   m_have_georef(have_georef), m_georef(georef),
+   m_outImg(outImg),
+   m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE) {
   
-  // This code was hacked a bit by Oleg to convert the chips to
-  // Cartesian xyz values and store then in a tif image. Each chip
-  // will be blockSize x blockSize. The approximate number of rows in
-  // the image is given by numRows. We will allocate room for the
-  // image below.  The output image should be big enough to fit all
-  // chips.
-
-  // The delta below is due to the uncertainty as to how many points
-  // end up in each chip. We expect their number to be
-  // numApproxPtsInChip +/- delta.
   m_numMaxPtsInChip = blockSize*blockSize;
-  int delta = 5;
-  m_numApproxPtsInChip = m_numMaxPtsInChip - delta;
-  int numMinPtsInChip = m_numApproxPtsInChip - delta;
-  VW_ASSERT(numMinPtsInChip > 0,
-            ArgumentErr() << "Chipper: book-keeping failure!\n");
-
+  
   int total = buffer.size();
   
-  std::cout << "total is " << total << std::endl;
-  std::cout << "height is " << numRows << std::endl;
-  numRows = blockSize*std::max(1, (int)ceil(double(numRows)/blockSize));
-  std::cout << "height is " << numRows << std::endl;
+  VW_ASSERT(m_outImg.cols()% blockSize == 0 && m_outImg.rows()% blockSize == 0,
+            ArgumentErr() << "Chipper: The image size must be multiple of the block size.\n");
 
-  std::cout << "numMinPtsInChip is " << numMinPtsInChip << std::endl;
-  total = numMinPtsInChip*(int)ceil(double(total)/numMinPtsInChip);
-  std::cout << "total is " << total << std::endl;
-  int numCols = (int)ceil(double(total)/numRows);
-  numCols = blockSize*std::max(1, (int)ceil(double(numCols)/blockSize));
-
-  std::cout << "numCols is " << numCols << std::endl;
-
-  // Initiate the output image with nodata
-  m_outImg = ImageView<Vector3>(numCols, numRows);
-  for (int col = 0; col < m_outImg.cols(); col++){
-    for (int row = 0; row < m_outImg.rows(); row++){
-      m_outImg(col, row) = Vector3();
-    }
-  }
-
+  VW_ASSERT(total <= m_outImg.cols() * m_outImg.rows(),
+            ArgumentErr() << "Chipper: More points were passed in than output image size.\n");
+  
   // We will use this variable to populate the blocks
   m_currChip = 0;
   
@@ -180,8 +155,8 @@ void Chipper::partition(point_count_t size)
 {
     size_t num_partitions;
 
-    num_partitions = size / m_numApproxPtsInChip;
-    if (size % m_numApproxPtsInChip)
+    num_partitions = size / m_numMaxPtsInChip;
+    if (size % m_numMaxPtsInChip)
         num_partitions++;
 
     // This is a standard statistics cumulate and round.  It distributes
@@ -363,6 +338,10 @@ void Chipper::emit(ChipRefList& wide, PointId widemin, PointId widemax,
   int posy = m_currChip - posx*numRowBlocks;
   int startx = posx*m_blockSize;
   int starty = posy*m_blockSize;
+
+  VW_ASSERT(startx + m_blockSize <= m_outImg.cols() &&
+            starty + m_blockSize <= m_outImg.rows(),
+            ArgumentErr() << "Chipper: Out of bounds!\n" );
 
   int count = -1;
   for (size_t idx = widemin; idx <= widemax; ++idx){

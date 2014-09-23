@@ -139,7 +139,7 @@ class Chipper
 {
 public:
 
-  Chipper(PointBuffer& buffer, int blockSize, int numRows,
+  Chipper(PointBuffer& buffer, int blockSize,
           bool have_georef, vw::cartography::GeoReference const& georef, 
           vw::ImageView<vw::Vector3> & outImg);
   
@@ -162,7 +162,6 @@ private:
     vw::cartography::GeoReference m_georef;
     vw::ImageView<vw::Vector3> & m_outImg;
     int m_numMaxPtsInChip;
-    int m_numApproxPtsInChip;
     int m_currChip;
     std::vector<PointId> m_partitions;
     ChipRefList m_xvec;
