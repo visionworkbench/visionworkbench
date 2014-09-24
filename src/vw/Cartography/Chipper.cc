@@ -70,8 +70,8 @@ be stored.
 
 // This code was hacked a bit by Oleg to convert the chips to
 // Cartesian xyz values and store then in a tif image. Each chip will
-// be blockSize x blockSize. The image size is pre-allocated from
-// outside.
+// be stored in the tif image as a block of size blockSize x
+// blockSize.
   
 namespace pdal
 {
@@ -82,15 +82,24 @@ using namespace vw;
   
 Chipper::Chipper(PointBuffer& buffer, int blockSize, 
                  bool have_georef, vw::cartography::GeoReference const& georef,
+                 int num_out_cols, int num_out_rows,
                  vw::ImageView<vw::Vector3> & outImg)
   :m_inbuf(buffer), m_blockSize(blockSize),
    m_have_georef(have_georef), m_georef(georef),
-   m_outImg(outImg),
-   m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE) {
-  
-  m_numMaxPtsInChip = blockSize*blockSize;
+   m_numMaxPtsInChip(blockSize*blockSize),
+  m_xvec(DIR_X), m_yvec(DIR_Y), m_spare(DIR_NONE),
+   m_outImg(outImg){
+
+  // First initialize the output
+  m_outImg.set_size(num_out_cols, num_out_rows);
+  for (int col = 0; col < m_outImg.cols(); col++){
+    for (int row = 0; row < m_outImg.rows(); row++){
+      m_outImg(col, row) = Vector3();
+    }
+  }
   
   int total = buffer.size();
+  if (total == 0) return; // to avoid a crash later
   
   VW_ASSERT(m_outImg.cols()% blockSize == 0 && m_outImg.rows()% blockSize == 0,
             ArgumentErr() << "Chipper: The image size must be multiple of the block size.\n");
