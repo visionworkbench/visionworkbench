@@ -86,6 +86,15 @@ TEST(Functors, Conj) {
   EXPECT_TRUE( is_of_type<std::complex<int> >( f(std::complex<int>()) ) );
 }
 
+TEST(Functors, Median){
+  MedianAccumulator<double> M;
+  M(0);
+  M(1);
+
+  // The median of 0 and 1 is 0.5.
+  EXPECT_TRUE( M.value() == 0.5 );
+}
+
 #define TEST_UNARY_MATH_FUNCTOR(func,arg,result)                                                          \
   do {                                                                                                    \
     Arg##func##Functor f;                                                                                 \

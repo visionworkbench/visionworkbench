@@ -383,6 +383,14 @@ namespace vw {
       }
     };
 
+    // Note: This function modifies the input!
+    template <class T>
+    T destructive_median(std::vector<T> & vec){
+      int len = vec.size();
+      VW_ASSERT(len, ArgumentErr() << "median: no valid samples.");
+      std::sort(vec.begin(), vec.end());
+      return len%2 ? vec[len/2] : (vec[len/2 - 1] + vec[len/2]) / 2;
+    }
 
     // Computes the median of the values to which it is applied.
     template <class ValT>
@@ -395,13 +403,15 @@ namespace vw {
         m_values.push_back( value );
       }
 
-      ValT const& value() {
-        VW_ASSERT(m_values.size(), ArgumentErr() << "MedianAccumulator: no valid samples");
-        sort(m_values.begin(), m_values.end());
-        return m_values[m_values.size()/2];
+      // This is to check if there are any values
+      size_t size() {
+        return m_values.size();
+      }
+      
+      ValT value() {
+        return destructive_median(m_values);
       }
     };
-
 
     // Computes the mean of the values to which it is applied.
     template <class ValT>

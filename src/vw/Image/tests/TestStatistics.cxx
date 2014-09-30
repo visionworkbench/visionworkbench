@@ -496,7 +496,7 @@ TEST( Statistics, MedianChannel ) {
   image1(1,0) = PixelRGBA<vw::uint8>(4,3,2,1);
   image1(2,0) = PixelRGBA<vw::uint8>(9,8,7,0);
   image1(3,0) = PixelRGBA<vw::uint8>(12,11,10,0);
-  EXPECT_EQ( median_channel_value(image1), 7 );
+  EXPECT_EQ( median_channel_value(image1), 6 ); // 6.5 actually if float
   ASSERT_TRUE( is_of_type<vw::uint8>( median_channel_value(image1) ) );
   ImageView<PixelMask<PixelRGB<vw::uint8> > > image2(4,1);
   image2(0,0) = PixelMask<PixelRGB<vw::uint8> >(8,7,6);
@@ -505,7 +505,7 @@ TEST( Statistics, MedianChannel ) {
   image2(2,0).invalidate();
   image2(3,0) = PixelMask<PixelRGB<vw::uint8> >(12,11,10);
   image2(3,0).invalidate();
-  EXPECT_EQ( median_channel_value(image2), 6 );
+  EXPECT_EQ( median_channel_value(image2), 5 );
   ASSERT_TRUE( is_of_type<vw::uint8>( median_channel_value(image2) ) );
 }
 

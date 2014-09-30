@@ -245,8 +245,7 @@ namespace vw {
       VW_ASSERT(m_values[0].size(), ArgumentErr() << "MedianAccumulator: no valid samples");
       ValT result;
       for ( vw::int32 i = 0; i < CompoundNumChannels<ValT>::value; i++ ) {
-        sort( m_values[i].begin(), m_values[i].end() );
-        result[i] = m_values[i][m_values[i].size()/2];
+        result[i] = destructive_median(m_values[i]);
       }
       return result;
     }
@@ -422,7 +421,7 @@ namespace vw {
 
     return;
   }
-  
+
   // Find the optimal Otsu threshold for splitting a gray scale image
   // into black and white pixels.
   // Reference: http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html
