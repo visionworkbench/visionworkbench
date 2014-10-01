@@ -108,33 +108,33 @@ Option & Description \\ \hline \hline
 \end{longtable}
 
 
-\section{{\tt geoblend}}\label{sec:geoblend}
+% \section{{\tt geoblend}}\label{sec:geoblend}
 
-\verb#geoblend# merges multiple DEMs into one large DEM.  By default, it blends the DEMs so that the output is smooth at the boundaries.  Disable this feature using the \verb#--draft# flag.  Other options are listed in Table~\ref{tbl:geoblend}.
+% \verb#geoblend# merges multiple DEMs into one large DEM.  By default, it blends the DEMs so that the output is smooth at the boundaries.  Disable this feature using the \verb#--draft# flag.  Other options are listed in Table~\ref{tbl:geoblend}.
 
-\begin{longtable}{|l|p{9cm}|} 
-\caption{Command-line options for geoblend}
-\label{tbl:geoblend}
-\endfirsthead
-\endhead
-\endfoot
-\endlastfoot
-\hline
-Option & Description \\ \hline \hline
-\verb#--help# & Display a help message \\ \hline
-\verb#-o [ --mosaic-name ] arg (=mosaic)# & Specify base output directory\\ \hline
-\verb#-t [ --output-file-type ] arg (=tif)# & Output file type\\ \hline
-\verb#--tile-output# & Output the leaf tiles of a quadtree, instead of a single blended image.\\ \hline
-\verb#--tiled-tiff arg (=0)# & Output a tiled TIFF image, with given tile size (0 disables, TIFF only)\\ \hline
-\verb#--patch-size arg (=256)# & Patch size for tiled output, in pixels\\ \hline
-\verb#--patch-overlap arg (=0)# & Patch overlap for tiled output, in pixels\\ \hline
-\verb#--cache arg (=1024)# & Cache size, in megabytes\\ \hline
-\verb#--draft# & Draft mode (no blending)\\ \hline
-\verb#--ignore-alpha# & Ignore the alpha channel of the input images, and don't write an alpha channel in output.\\ \hline
-\verb#--nodata-value arg# & Pixel value to use for nodata in input and output (when there's no alpha channel)\\ \hline
-\verb#--channel-type arg# & Images' channel type. One of [uint8, uint16, int16, float].\\ \hline
-\verb#--verbose# & Verbose output\\ \hline
-\end{longtable}
+% \begin{longtable}{|l|p{9cm}|} 
+% \caption{Command-line options for geoblend}
+% \label{tbl:geoblend}
+% \endfirsthead
+% \endhead
+% \endfoot
+% \endlastfoot
+% \hline
+% Option & Description \\ \hline \hline
+% \verb#--help# & Display a help message \\ \hline
+% \verb#-o [ --mosaic-name ] arg (=mosaic)# & Specify base output directory\\ \hline
+% \verb#-t [ --output-file-type ] arg (=tif)# & Output file type\\ \hline
+% \verb#--tile-output# & Output the leaf tiles of a quadtree, instead of a single blended image.\\ \hline
+% \verb#--tiled-tiff arg (=0)# & Output a tiled TIFF image, with given tile size (0 disables, TIFF only)\\ \hline
+% \verb#--patch-size arg (=256)# & Patch size for tiled output, in pixels\\ \hline
+% \verb#--patch-overlap arg (=0)# & Patch overlap for tiled output, in pixels\\ \hline
+% \verb#--cache arg (=1024)# & Cache size, in megabytes\\ \hline
+% \verb#--draft# & Draft mode (no blending)\\ \hline
+% \verb#--ignore-alpha# & Ignore the alpha channel of the input images, and don't write an alpha channel in output.\\ \hline
+% \verb#--nodata-value arg# & Pixel value to use for nodata in input and output (when there's no alpha channel)\\ \hline
+% \verb#--channel-type arg# & Images' channel type. One of [uint8, uint16, int16, float].\\ \hline
+% \verb#--verbose# & Verbose output\\ \hline
+% \end{longtable}
 
 
 \section{{\tt georef}}\label{sec:georef}

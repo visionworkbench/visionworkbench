@@ -109,7 +109,7 @@ endif
 if MAKE_MODULE_CARTOGRAPHY
 if MAKE_MODULE_MOSAIC
 if HAVE_PKG_GDAL
-cart_mos_progs = image2qtree geoblend image2toast
+cart_mos_progs = image2qtree image2toast
 
 # Generates a quadtree of some sort from a georeferenced image
 image2qtree_SOURCES = image2qtree.cc
@@ -137,25 +137,6 @@ libimage2qtree_rgbai16_a_SOURCES = image2qtree_help.cc
 libimage2qtree_rgbai16_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGBA -DCHANNEL_TYPE=int16
 libimage2qtree_rgbaf32_a_SOURCES = image2qtree_help.cc
 libimage2qtree_rgbaf32_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGBA -DCHANNEL_TYPE=float32
-
-
-# Creates a blended composite from multiple georeferenced images
-geoblend_SOURCES = geoblend.cc
-geoblend_ARCHIVES = libgeoblend_gray.a libgeoblend_graya.a     \
-        libgeoblend_rgb.a  libgeoblend_rgba.a
-geoblend_LDADD = $(geoblend_ARCHIVES) @PKG_CARTOGRAPHY_LIBS@   \
-        @PKG_MOSAIC_LIBS@ $(COMMON_LIBS)
-# The many archive files are to help speed compile times and to lower
-# the overall memory requirement during compiling.
-noinst_LIBRARIES += $(geoblend_ARCHIVES)
-libgeoblend_gray_a_SOURCES = geoblend_help.cc
-libgeoblend_gray_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelGray
-libgeoblend_graya_a_SOURCES = geoblend_help.cc
-libgeoblend_graya_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelGrayA
-libgeoblend_rgb_a_SOURCES = geoblend_help.cc
-libgeoblend_rgb_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGB
-libgeoblend_rgba_a_SOURCES = geoblend_help.cc
-libgeoblend_rgba_a_CPPFLAGS = $(AM_CPPFLAGS) -DPIXEL_TYPE=PixelRGBA
 
 # Creates a TOAST quadtree from multiple georeferenced images
 image2toast_SOURCES = image2toast.cc
