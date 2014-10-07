@@ -181,6 +181,19 @@ namespace cartography {
   // opportunity to call init_proj()
   void GeoReference::set_datum(Datum const& datum) {
     m_datum = datum;
+
+    // This is a fix for when for some reason the proj4 string
+    // does not have the datum name. Example:
+    // '+proj=longlat +ellps=WGS84 +no_defs '.
+    if ((m_datum.spheroid_name() == "WGS_1984" ||
+         m_datum.spheroid_name() == "WGS84"    ||
+         m_datum.spheroid_name() == "WGS 84") &&
+        (m_datum.proj4_str().find("+datum=") == std::string::npos ||
+         m_datum.name() == "unknown") ){
+      m_datum.name() = "WGS_1984";
+      m_datum.proj4_str() += " +datum=WGS84";
+    }
+
     init_proj();
   }
 
