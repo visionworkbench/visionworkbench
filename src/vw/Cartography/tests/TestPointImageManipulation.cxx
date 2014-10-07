@@ -65,7 +65,7 @@ TEST( PointImageManipulation, GeodeticCartesian ) {
   ImageView<Vector3> result_earth = cartesian_to_geodetic(geodetic_to_cartesian(geodetic,earth),earth);
   EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_moon.begin(), result_moon.begin()+3, 1e-9 );
   EXPECT_TRUE( boost::math::isnan(result_moon(1,1).z()) );
-  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 1e-9 );
+  EXPECT_RANGE_NEAR( geodetic.begin(), geodetic.begin()+3, result_earth.begin(), result_earth.begin()+3, 3e-9 ); // earth is bigger, so bigger error too
   EXPECT_TRUE( boost::math::isnan(result_earth(1,1).z()) );
 }
 

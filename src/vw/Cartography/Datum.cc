@@ -70,7 +70,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_name = "WGS_1984";
     m_spheroid_name="WGS 84";
     m_semi_major_axis = 6378137.0;
-    m_semi_minor_axis = 6356752.3;
+    m_semi_minor_axis = 6356752.31424518;
     m_proj_str = "+ellps=WGS84 +datum=WGS84";
     return;
   }
@@ -89,7 +89,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     m_name="North_American_Datum_1983";
     m_spheroid_name="GRS 1980";
     m_semi_major_axis = 6378137;
-    m_semi_minor_axis = 6356752.3;
+    m_semi_minor_axis = 6356752.31414036;
     m_proj_str = "+ellps=GRS80 +datum=NAD83";
     return;
   }
