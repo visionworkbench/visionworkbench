@@ -128,7 +128,7 @@ TEST( GeoReference, BasicProjections ) {
   georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
 
   Datum d = georef.datum();
-  d.set_semi_minor_axis(d.semi_major_axis());
+  d.set_well_known_datum("D_MOON");
   georef.set_datum(d);
 
   // -------------------------------------
