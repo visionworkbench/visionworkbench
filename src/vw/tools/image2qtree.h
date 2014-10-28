@@ -265,10 +265,15 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   // Add the transformed image files to the composite.
   for(size_t i=0; i < opt.input_files.size(); i++) {
     const std::string& filename = opt.input_files[i];
-    const GeoReference& input_ref = georeferences[i];
+    const GeoReference& input_georef = georeferences[i];
 
     boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
-    GeoTransform geotx( input_ref, output_georef );
+    GeoTransform geotx( input_georef, output_georef );
+
+    // Even though the output georeference starts at -180, and input georef may start
+    // close to 180, here we don't want to correct for this discrepancy.
+    geotx.set_offset(Vector2(0, 0));
+    
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
     if ( opt.nodata.set() ) {
@@ -281,11 +286,11 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(file->nodata_read())));
     }
 
-    bool global = boost::trim_copy(input_ref.proj4_str())=="+proj=longlat" &&
-      fabs(input_ref.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-      fabs(input_ref.lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
-      fabs(input_ref.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-      fabs(input_ref.lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
+    bool global = boost::trim_copy(input_georef.proj4_str())=="+proj=longlat" &&
+      fabs(input_georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
+      fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
+      fabs(input_georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
+      fabs(input_georef.lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
 
     // Do various modifications to the input image here.
     if( opt.pixel_scale.set() || opt.pixel_offset.set() ) {

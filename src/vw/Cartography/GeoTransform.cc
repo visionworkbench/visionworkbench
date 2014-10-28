@@ -80,6 +80,10 @@ namespace cartography {
     set_tolerance( 0.1 );
   }
 
+  void GeoTransform::set_offset(Vector2 const& offset){
+    m_offset = offset;
+  }
+
   // Performs a forward or reverse datum conversion.
   Vector2 GeoTransform::datum_convert(Vector2 const& v, bool forward) const {
     double x = v[0];

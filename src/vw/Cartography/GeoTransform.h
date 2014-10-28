@@ -81,6 +81,8 @@ namespace cartography {
 
     // We do the same for reverse_bbox
     BBox2i reverse_bbox( BBox2i const& bbox ) const;
+
+    void set_offset(Vector2 const& offset);
   };
 
   // ---------------------------------------------------------------------------
