@@ -89,7 +89,7 @@ namespace vw {
 
   template <class PixelT, class InterpT>
   vw::ImageViewRef<PixelT> _rotate( vw::ImageViewRef<PixelT> const& image, double theta, InterpT const& interp ) {
-    vw::RotateTransform rot(theta);
+    vw::RotateTransform rot(theta, vw::Vector2(0,0));
     vw::Vector2 center( (image.cols()-1)/2.0, (image.rows()-1)/2.0 );
     vw::Vector2 offset = center - rot.forward(center);
     vw::TransformRef txform( compose(vw::TranslateTransform(offset.x(),offset.y()),rot) );
