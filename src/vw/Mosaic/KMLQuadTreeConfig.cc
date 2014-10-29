@@ -227,6 +227,8 @@ namespace mosaic {
     // Fractional bounding-box
     BBox2 fbb( image_bbox.min().x()/width, image_bbox.min().y()/height,
                image_bbox.width()/width, image_bbox.height()/height );
+    // Note: Below the box height is negative on purpose, as the lower-right
+    // image corner has a lower latitude than the upper-left image corner.
     BBox2 bb( m_longlat_bbox.min().x()+fbb.min().x()*m_longlat_bbox.width(),
               m_longlat_bbox.max().y()-fbb.min().y()*m_longlat_bbox.height(),
               fbb.width()*m_longlat_bbox.width(), -fbb.height()*m_longlat_bbox.height() );
@@ -257,8 +259,12 @@ namespace mosaic {
 
       double lon = (bbox.min().x()+bbox.max().x())/2;
       double lat = (bbox.min().y()+bbox.max().y())/2;
-      double range = 1e5 * (bbox.width()*cos(M_PI/180*lat)-bbox.height());
 
+      // Here we don't use the width() and height() functions, since
+      // this is a weird box, with negative width. For those, the
+      // width() function would return 0.
+      double range = 1e5 * ((bbox.max().x()-bbox.min().x())*cos(M_PI/180*lat)-(bbox.max().y()-bbox.min().y()));
+      
       if( range > 1.2e7 ) range = 1.2e7;
       m_root_node_tags << "  <LookAt><longitude>" << lon << "</longitude><latitude>" << lat << "</latitude><range>" << range << "</range></LookAt>\n";
       m_root_node_tags << "  <Style><ListStyle><listItemType>checkHideChildren</listItemType></ListStyle></Style>\n";
