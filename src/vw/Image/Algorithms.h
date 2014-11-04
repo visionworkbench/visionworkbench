@@ -639,6 +639,10 @@ namespace vw {
     }
   
   };
+
+
+  // Fill holes. This algorithm is very naive and works not so well.
+  // The grassfire-based in-painting algorithm from ASP works much better.
   template <class ImageT>
   FillHoles<ImageT>
   fill_holes( ImageViewBase<ImageT> const& img,
