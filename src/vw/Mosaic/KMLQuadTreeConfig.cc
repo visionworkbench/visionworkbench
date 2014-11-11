@@ -103,17 +103,17 @@ namespace vw {
 namespace mosaic {
 
   struct KMLQuadTreeConfigData {
-    BBox2 m_longlat_bbox;
+    BBox2       m_longlat_bbox;
     std::string m_title;
-    int m_max_lod_pixels;
-    int m_draw_order_offset;
+    int         m_max_lod_pixels;
+    int         m_draw_order_offset;
     std::string m_metadata;
     mutable std::ostringstream m_root_node_tags;
 
-    std::string kml_latlonbox( BBox2 const& longlat_bbox, bool alt ) const;
-    std::string kml_network_link( std::string const& name, std::string const& href, BBox2 const& longlat_bbox, int min_lod_pixels ) const;
+    std::string kml_latlonbox     ( BBox2 const& longlat_bbox, bool alt ) const;
+    std::string kml_network_link  ( std::string const& name, std::string const& href, BBox2 const& longlat_bbox, int min_lod_pixels ) const;
     std::string kml_ground_overlay( std::string const& href, BBox2 const& region_bbox, BBox2 const& image_bbox, int draw_order, int min_lod_pixels, int max_lod_pixels ) const;
-    BBox2 pixels_to_longlat( BBox2i const& image_bbox, Vector2i const& dimensions ) const;
+    BBox2       pixels_to_longlat ( BBox2i const& image_bbox, Vector2i const& dimensions ) const;
 
     std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, std::string const& name, BBox2i const& region ) const;
     void metadata_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info ) const;
@@ -156,9 +156,9 @@ namespace mosaic {
     qtree.set_cull_images( true );
     qtree.set_file_type( "auto" );
     qtree.set_image_path_func( QuadTreeGenerator::named_tiered_image_path() );
-    qtree.set_metadata_func( boost::bind(&KMLQuadTreeConfigData::metadata_func,m_data,_1,_2) );
-    qtree.set_branch_func( boost::bind(&KMLQuadTreeConfigData::branch_func,m_data,_1,_2,_3) );
-    qtree.set_tile_resource_func( boost::bind(&KMLQuadTreeConfigData::tile_resource_func,m_data,_1,_2,_3) );
+    qtree.set_metadata_func(      boost::bind(&KMLQuadTreeConfigData::metadata_func,      m_data, _1, _2    ) );
+    qtree.set_branch_func(        boost::bind(&KMLQuadTreeConfigData::branch_func,        m_data, _1, _2, _3) );
+    qtree.set_tile_resource_func( boost::bind(&KMLQuadTreeConfigData::tile_resource_func, m_data, _1, _2, _3) );
   }
 
   GeoReference KMLQuadTreeConfig::output_georef(uint32 xresolution, uint32 yresolution) {

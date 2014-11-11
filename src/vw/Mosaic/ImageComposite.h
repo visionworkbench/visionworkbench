@@ -61,16 +61,19 @@ namespace mosaic {
 
     PositionedImage reduce() const {
       const int border = 1;
-      int left = std::min( border + (bbox.min().x()+border)%2, bbox.min().x() );
-      int top = std::min( border + (bbox.min().y()+border)%2, bbox.min().y() );
-      int right = std::min( border + (bbox.width()+left+border)%2, m_cols-bbox.min().x()-bbox.width() );
+
+      int left   = std::min( border + (bbox.min().x()   +border)%2, bbox.min().x()                      );
+      int top    = std::min( border + (bbox.min().y()   +border)%2, bbox.min().y()                      );
+      int right  = std::min( border + (bbox.width()+left+border)%2, m_cols-bbox.min().x()-bbox.width()  );
       int bottom = std::min( border + (bbox.height()+top+border)%2, m_rows-bbox.min().y()-bbox.height() );
+
       std::vector<float> kernel(3); kernel[0]=0.25; kernel[1]=0.5; kernel[2]=0.25;
       // I don't quite yet understand why (if?) this is the correct bounding box,
       // but bad things happen without the final "+1"s:
-      BBox2i new_bbox( Vector2i( (bbox.min().x()-left)/2, (bbox.min().y()-top)/2 ),
-                       Vector2i( (bbox.min().x()-left)/2 + (bbox.width()+left+right+1)/2+1,
-                                 (bbox.min().y()-top)/2 + (bbox.height()+top+bottom+1)/2+1 ) );
+      BBox2i new_bbox( Vector2i( (bbox.min().x()-left)/2, 
+                                 (bbox.min().y()-top )/2 ),
+                       Vector2i( (bbox.min().x()-left)/2 + (bbox.width()+left+right +1)/2+1,
+                                 (bbox.min().y()-top )/2 + (bbox.height()+top+bottom+1)/2+1 ) );
       // We use vw::rasterize() here rather than ordinary assignment because it is
       // faster for this particular combination of filtering and subsampling.
       ImageView<PixelT> new_image( new_bbox.width(), new_bbox.height() );

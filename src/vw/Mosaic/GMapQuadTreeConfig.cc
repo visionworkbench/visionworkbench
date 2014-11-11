@@ -29,14 +29,17 @@ namespace vw {
 namespace mosaic {
 
   // for gmaps, origin is upper left, advancing right and down.
+  // - The output path is [qtree_name]/[level]/[x_index]/[y_index]
   std::string GMapQuadTreeConfig::image_path( QuadTreeGenerator const& qtree, std::string const& name ) {
     fs::path path( qtree.get_name() );
 
-    Vector<size_t, 2> pos(0,0);
-    BOOST_FOREACH(char n, name) {
+    // Accumulate the position in the highest resolution grid.
+    Vector<size_t, 2> pos(0,0); 
+    BOOST_FOREACH(char n, name) { // Loop through each character in the input name
       pos *= 2;
       // this is a pretty weird layout, but it's the one that matches the
       // current nasamaps.js. Don't blame me, I didn't vote for him.
+      // - Perhaps this comment refers to this link?  http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/planetary/maps/
       switch (n) {
         case '0': pos += Vector2i(0,1); break; // Upper Left
         case '1': pos += Vector2i(1,1); break; // Upper Right

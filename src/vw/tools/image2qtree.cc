@@ -176,6 +176,7 @@ GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
     exit(1);
   }
 
+  // If the user passed in georef parameters, process them here
   switch (opt.proj.type) {
     case Projection::LAMBERT_AZIMUTHAL:       input_georef.set_lambert_azimuthal(opt.proj.lat,opt.proj.lon); break;
     case Projection::LAMBERT_CONFORMAL_CONIC: input_georef.set_lambert_conformal(opt.proj.p1, opt.proj.p2, opt.proj.lat, opt.proj.lon); break;
@@ -190,6 +191,7 @@ GeoReference make_input_georef(boost::shared_ptr<DiskImageResource> file,
     case Projection::NONE: break;
   }
 
+  // Handle nudge arguments (x and y shifts in projected coordinates)
   if( opt.nudge_x || opt.nudge_y ) {
     Matrix3x3 m = input_georef.transform();
     m(0,2) += opt.nudge_x;

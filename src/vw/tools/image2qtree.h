@@ -101,15 +101,15 @@ struct Options {
   std::string output_file_name;
   vw::tools::Tristate<std::string> output_file_type;
   vw::tools::Tristate<std::string> module_name;
-  vw::tools::Tristate<double> nudge_x, nudge_y;
-  vw::tools::Tristate<vw::uint32> tile_size;
-  vw::tools::Tristate<float>  jpeg_quality;
-  vw::tools::Tristate<vw::uint32> png_compression;
-  vw::tools::Tristate<float>  pixel_scale, pixel_offset;
-  vw::tools::Tristate<vw::int32>  aspect_ratio;
-  vw::tools::Tristate<vw::uint32> global_resolution;
-  vw::tools::Tristate<float>  nodata;
-  vw::tools::Tristate<float>  north, south, east, west;
+  vw::tools::Tristate<double>      nudge_x, nudge_y;
+  vw::tools::Tristate<vw::uint32>  tile_size;
+  vw::tools::Tristate<float>       jpeg_quality;
+  vw::tools::Tristate<vw::uint32>  png_compression;
+  vw::tools::Tristate<float>       pixel_scale, pixel_offset;
+  vw::tools::Tristate<vw::int32>   aspect_ratio;
+  vw::tools::Tristate<vw::uint32>  global_resolution;
+  vw::tools::Tristate<float>       nodata;
+  vw::tools::Tristate<float>       north, south, east, west;
 
   Channel channel_type;
   Mode mode;
@@ -128,8 +128,8 @@ struct Options {
 
   struct proj_{
     Projection type;
-    vw::tools::Tristate<double> lat, lon, scale /*=1*/;
-    vw::tools::Tristate<double> p1, p2;
+    vw::tools::Tristate<double>    lat, lon, scale /*=1*/;
+    vw::tools::Tristate<double>    p1, p2;
     vw::tools::Tristate<vw::int32> utm_zone;
     proj_() :
       type(Projection::DEFAULT),
@@ -223,10 +223,12 @@ void do_normal_mosaic(const Options& opt, const vw::ProgressCallback *progress) 
   quadtree.generate( *progress );
 }
 
+/// Set up the input georeference object from the file or user inputs
 vw::cartography::GeoReference
 make_input_georef(boost::shared_ptr<vw::DiskImageResource> file,
                   const Options& opt);
 
+/// Load the georeference for each input image and compute the maximum resolution
 std::vector<vw::cartography::GeoReference>
 load_image_georeferences( const Options& opt, int& total_resolution );
 
@@ -264,9 +266,12 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   // Add the transformed image files to the composite.
   for(size_t i=0; i < opt.input_files.size(); i++) {
-    const std::string& filename = opt.input_files[i];
+    // Get info for this file
+    const std::string & filename     = opt.input_files[i];
     const GeoReference& input_georef = georeferences[i];
 
+
+    // Load the image and georef from the file
     boost::shared_ptr<DiskImageResource> file( DiskImageResource::open(filename) );
     GeoTransform geotx( input_georef, output_georef );
 
@@ -276,6 +281,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
+    // Handle nodata values/mask
     if ( opt.nodata.set() ) {
       vw_out(VerboseDebugMessage, "tool") << "Using nodata value: "
                                           << opt.nodata.value() << "\n";
@@ -286,11 +292,11 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       source = mask_to_alpha(create_mask(pixel_cast<typename PixelWithoutAlpha<PixelT>::type >(source),ChannelT(file->nodata_read())));
     }
 
-    bool global = boost::trim_copy(input_georef.proj4_str())=="+proj=longlat" &&
-      fabs(input_georef.lonlat_to_pixel(Vector2(-180,0)).x()) < 1 &&
-      fabs(input_georef.lonlat_to_pixel(Vector2(180,0)).x() - source.cols()) < 1 &&
-      fabs(input_georef.lonlat_to_pixel(Vector2(0,90)).y()) < 1 &&
-      fabs(input_georef.lonlat_to_pixel(Vector2(0,-90)).y() - source.rows()) < 1;
+    bool global = ((boost::trim_copy(input_georef.proj4_str())=="+proj=longlat") &&
+      (fabs(input_georef.lonlat_to_pixel(Vector2(-180,  0)).x()                ) < 1) &&
+      (fabs(input_georef.lonlat_to_pixel(Vector2( 180,  0)).x() - source.cols()) < 1) &&
+      (fabs(input_georef.lonlat_to_pixel(Vector2(   0, 90)).y()                ) < 1) &&
+      (fabs(input_georef.lonlat_to_pixel(Vector2(   0,-90)).y() - source.rows()) < 1));
 
     // Do various modifications to the input image here.
     if( opt.pixel_scale.set() || opt.pixel_offset.set() ) {
@@ -300,6 +306,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       source = channel_cast_rescale<ChannelT>( source * opt.pixel_scale.value() + opt.pixel_offset.value() );
     }
 
+    // Normalize pixel intensity if desired
     if( opt.normalize ) {
       vw_out(VerboseDebugMessage, "tool") << "Apply normalizing: ["
                                           << lo_value << ", "
@@ -338,8 +345,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
       }
     }
 
-    // Images that wrap the date line must be added to the composite
-    // on both sides.
+    // Images that wrap the date line must be added to the composite on both sides.
     if( bbox.max().x() > total_resolution ) {
       composite.insert( source, bbox.min().x()-total_resolution, bbox.min().y() );
     }
@@ -350,8 +356,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   }
 
   // This box represents the entire input data set, in pixels, in the output
-  // projection space. This should NOT include the extra data used to hide
-  // seams and such.
+  // projection space. This should NOT include the extra data used to hide seams and such.
   BBox2i total_bbox = composite.bbox();
   total_bbox.crop(BBox2i(0,0,xresolution,yresolution));
 
@@ -362,13 +367,18 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     BBox2i bbox = total_bbox;
     // Compute a tighter Google Earth coordinate system aligned bounding box.
     int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
-    if( dim > total_resolution ) dim = total_resolution;
+    if( dim > total_resolution ) 
+      dim = total_resolution;
     total_bbox = BBox2i( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
     if( ! total_bbox.contains( bbox ) ) {
-      if( total_bbox.max().x() == xresolution ) total_bbox.min().x() -= dim;
-      else total_bbox.max().x() += dim;
-      if( total_bbox.max().y() == yresolution ) total_bbox.min().y() -= dim;
-      else total_bbox.max().y() += dim;
+      if( total_bbox.max().x() == xresolution ) 
+        total_bbox.min().x() -= dim;
+      else 
+        total_bbox.max().x() += dim;
+      if( total_bbox.max().y() == yresolution ) 
+        total_bbox.min().y() -= dim;
+      else 
+        total_bbox.max().y() += dim;
     }
   }
 
@@ -386,9 +396,9 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   if( opt.mode == Mode::KML ) {
     mosaic::KMLQuadTreeConfig *c2 = dynamic_cast<mosaic::KMLQuadTreeConfig*>(config.get());
     BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
-                   180.0 - (360.0*total_bbox.max().y())/yresolution,
-                   (360.0*total_bbox.width())/xresolution,
-                   (360.0*total_bbox.height())/yresolution );
+                    180.0 - (360.0*total_bbox.max().y())/yresolution,
+                            (360.0*total_bbox.width())  /xresolution,
+                            (360.0*total_bbox.height()) /yresolution );
 
     c2->set_longlat_bbox( ll_bbox );
     c2->set_max_lod_pixels( opt.kml.max_lod_pixels );
@@ -403,9 +413,9 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
   } else if ( opt.mode == Mode::GIGAPAN ) {
     mosaic::GigapanQuadTreeConfig *c2 = dynamic_cast<mosaic::GigapanQuadTreeConfig*>(config.get());
     BBox2 ll_bbox( -180.0 + (360.0*total_bbox.min().x())/xresolution,
-                   180.0 - (360.0*total_bbox.max().y())/yresolution,
-                   (360.0*total_bbox.width())/xresolution,
-                   (360.0*total_bbox.height())/yresolution );
+                    180.0 - (360.0*total_bbox.max().y())/yresolution,
+                            (360.0*total_bbox.width())  /xresolution,
+                            (360.0*total_bbox.height()) /yresolution );
     c2->set_longlat_bbox( ll_bbox );
   }
 

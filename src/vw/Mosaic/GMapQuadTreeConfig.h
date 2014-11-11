@@ -39,6 +39,9 @@ namespace mosaic {
     cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0);
 
     // Makes paths of the form "path/name/4/6/3.jpg"
+    // - More specifically: [path]/[qtree_name]/[level]/[x_index]/[y_index]
+    // - For each level, the origin is upper left, advancing right and down (a very common indexing scheme).
+    // - OR IS IT?  It seems to advance up instead of down!!!!!!!
     static std::string image_path( QuadTreeGenerator const& qtree, std::string const& name );
 
     // Makes DiskImageResource objects with no file extension

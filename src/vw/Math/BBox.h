@@ -97,8 +97,7 @@ namespace math {
   // *******************************************************************
 
   /// A general n-dimensional axis-aligned bounding box class,
-  /// represented by vectors pointing to the minimal and maximal
-  /// corners.
+  /// represented by vectors pointing to the minimal and maximal corners.
   template <class BBoxT, class RealT, size_t DimN>
   class BBoxBase {
   public:
@@ -124,8 +123,7 @@ namespace math {
       }
     }
 
-    /// Constructs a bounding box with the given minimal and maximal
-    /// points.
+    /// Constructs a bounding box with the given minimal and maximal points.
     template <class VectorT1, class VectorT2>
     BBoxBase( VectorBase<VectorT1> const& min, VectorBase<VectorT2> const& max ) :
       m_min( min ), m_max( max ) {}

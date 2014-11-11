@@ -32,13 +32,14 @@ namespace mosaic {
   struct GigapanQuadTreeConfigData {
     BBox2 m_longlat_bbox;
 
-
-    std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, std::string const& name, BBox2i const& region ) const;
+    std::vector<std::pair<std::string,vw::BBox2i> > branch_func( QuadTreeGenerator const&, 
+                                                                 std::string       const& name, 
+                                                                 BBox2i            const& region ) const;
     void metadata_func( QuadTreeGenerator const&, QuadTreeGenerator::TileInfo const& info ) const;
 
     public:
       GigapanQuadTreeConfigData() : m_longlat_bbox(0, 0, 0, 0) {}
-  };
+  }; // End struct
 
   GigapanQuadTreeConfig::GigapanQuadTreeConfig()
     : m_data( new GigapanQuadTreeConfigData() )
@@ -64,31 +65,34 @@ namespace mosaic {
 
   std::vector<std::pair<std::string,vw::BBox2i> > GigapanQuadTreeConfigData::branch_func( QuadTreeGenerator const& qtree, std::string const& name, BBox2i const& region ) const {
     std::vector<std::pair<std::string,vw::BBox2i> > children;
-    if( region.height() > qtree.get_tile_size() ) {
+    
+    if( region.height() <= qtree.get_tile_size() )
+      return children;
+      
+    Vector2i dims = qtree.get_dimensions();
+    double aspect_ratio = 2 * (region.width()/region.height()) * ( (m_longlat_bbox.width()/dims.x()) / (m_longlat_bbox.height()/dims.y()) );
 
-      Vector2i dims = qtree.get_dimensions();
-      double aspect_ratio = 2 * (region.width()/region.height()) * ( (m_longlat_bbox.width()/dims.x()) / (m_longlat_bbox.height()/dims.y()) );
+    double bottom_lat = m_longlat_bbox.max().y() - region.max().y()*m_longlat_bbox.height() / dims.y();
+    double top_lat    = m_longlat_bbox.max().y() - region.min().y()*m_longlat_bbox.height() / dims.y();
+    
+    bool top_merge    = ( bottom_lat > 0 ) && ( ( 1.0 / cos(M_PI/180 * bottom_lat) ) > aspect_ratio );
+    bool bottom_merge = ( top_lat    < 0 ) && ( ( 1.0 / cos(M_PI/180 * top_lat   ) ) > aspect_ratio );
 
-      double bottom_lat = m_longlat_bbox.max().y() - region.max().y()*m_longlat_bbox.height() / dims.y();
-      double top_lat = m_longlat_bbox.max().y() - region.min().y()*m_longlat_bbox.height() / dims.y();
-      bool top_merge = ( bottom_lat > 0 ) && ( ( 1.0 / cos(M_PI/180 * bottom_lat) ) > aspect_ratio );
-      bool bottom_merge = ( top_lat < 0 ) && ( ( 1.0 / cos(M_PI/180 * top_lat) ) > aspect_ratio );
-
-      if( top_merge ) {
-        children.push_back( std::make_pair( name + "4", BBox2i( region.min(), region.max() - Vector2i(0,region.height()/2) ) ) );
-      }
-      else {
-        children.push_back( std::make_pair( name + "0", BBox2i( (region + region.min()) / 2 ) ) );
-        children.push_back( std::make_pair( name + "1", BBox2i( (region + Vector2i(region.max().x(),region.min().y())) / 2 ) ) );
-      }
-      if( bottom_merge ) {
-        children.push_back( std::make_pair( name + "5", BBox2i( region.min() + Vector2i(0,region.height()/2), region.max() ) ) );
-      }
-      else {
-        children.push_back( std::make_pair( name + "2", BBox2i( (region + Vector2i(region.min().x(),region.max().y())) / 2 ) ) );
-        children.push_back( std::make_pair( name + "3", BBox2i( (region + region.max()) / 2 ) ) );
-      }
+    if( top_merge ) {
+      children.push_back( std::make_pair( name + "4", BBox2i( region.min(), region.max() - Vector2i(0,region.height()/2) ) ) );
     }
+    else {
+      children.push_back( std::make_pair( name + "0", BBox2i( (region + region.min()) / 2 ) ) );
+      children.push_back( std::make_pair( name + "1", BBox2i( (region + Vector2i(region.max().x(),region.min().y())) / 2 ) ) );
+    }
+    if( bottom_merge ) {
+      children.push_back( std::make_pair( name + "5", BBox2i( region.min() + Vector2i(0,region.height()/2), region.max() ) ) );
+    }
+    else {
+      children.push_back( std::make_pair( name + "2", BBox2i( (region + Vector2i(region.min().x(),region.max().y())) / 2 ) ) );
+      children.push_back( std::make_pair( name + "3", BBox2i( (region + region.max()) / 2 ) ) );
+    }
+  
     return children;
   }
 
@@ -102,9 +106,9 @@ namespace mosaic {
       fs::path json_path = fs::path(file_path).replace_extension(".json");
 
       json << "{" << std::endl
-           << "  \"width\": " << qtree.get_dimensions()[0] << "," << std::endl
-           << "  \"height\": " << qtree.get_dimensions()[1] << "," << std::endl
-           << "  \"nlevels\": " << qtree.get_tree_levels() << std::endl
+           << "  \"width\": "   << qtree.get_dimensions()[0] << "," << std::endl
+           << "  \"height\": "  << qtree.get_dimensions()[1] << "," << std::endl
+           << "  \"nlevels\": " << qtree.get_tree_levels()   << std::endl
            << "}" << std::endl;
 
       fs::ofstream jsonfs(json_path);
