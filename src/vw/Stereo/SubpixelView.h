@@ -475,7 +475,7 @@ namespace stereo {
                                    rois[i], true, true, false );
           break;
         case SUBPIXEL_FAST_AFFINE:
-          subpixel_optimized_adaptive_affine_2d(d_subpatch,
+          subpixel_optimized_affine_2d(d_subpatch,
                                        l_patches[i], r_patches[i],
                                        m_kernel_size[0], m_kernel_size[1],
                                        rois[i], true, true, false );
@@ -523,7 +523,7 @@ namespace stereo {
                                      true, true, false );
         break;
       case SUBPIXEL_BAYES_EM:
-        subpixel_optimized_adaptive_affine_2d_EM(disparity_map_patch,
+        subpixel_optimized_affine_2d_EM(disparity_map_patch,
                                         left_image_patch, right_image_patch,
                                         m_kernel_size[0], m_kernel_size[1],
                                         BBox2i(m_kernel_size[0],m_kernel_size[1],
