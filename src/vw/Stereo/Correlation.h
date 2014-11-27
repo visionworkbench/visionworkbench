@@ -212,8 +212,7 @@ namespace stereo {
   double calc_seconds_per_op(CostFunctionType cost_type,
                              ImageViewBase<ImageT1> const& left,
                              ImageViewBase<ImageT2> const& right,
-                             Vector2i const& kernel_size
-                             ){
+                             Vector2i const& kernel_size){
 
     // Create fake left and right images and search volume.  Do a fake
     // disparity calculation. Divide the run-time of this calculation
@@ -229,7 +228,9 @@ namespace stereo {
     int lsize = 100;
     while (elapsed < 1.0){
 
-      lsize = (int)ceil(lsize*1.2);
+      // Below we add kernel_size to ensure the image exceeds the
+      // kernel size, for correlation to perform properly.
+      lsize = (int)ceil(lsize*1.2) + std::max(kernel_size[0], kernel_size[1]);
 
       ImageView<typename ImageT1::pixel_type> fake_left(lsize, lsize);
       for (int col = 0; col < fake_left.cols(); col++){
