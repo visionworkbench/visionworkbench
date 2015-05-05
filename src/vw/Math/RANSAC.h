@@ -63,11 +63,10 @@ namespace math {
   VW_DEFINE_EXCEPTION(RANSACErr, Exception);
 
   /// This is a basic error metric can be used when the mathematical
-  /// multiplication and subtraction operators are defined for p1, p2,
-  /// and H.
+  /// multiplication and subtraction operators are defined for p1, p2, and H.
   struct L2NormErrorMetric {
     template <class RelationT, class ContainerT>
-    double operator() (RelationT const& H,
+    double operator() (RelationT  const& H,
                        ContainerT const& p1,
                        ContainerT const& p2) const {
       return vw::math::norm_2( p2 - H * p1 );
@@ -77,16 +76,15 @@ namespace math {
   template <size_t dim>
   struct HomogeneousL2NormErrorMetric {
     template <class RelationT, class ContainerT>
-    double operator() (RelationT const& H,
+    double operator() (RelationT  const& H,
                        ContainerT const& p1,
                        ContainerT const& p2) const {
+      // Copy the input data into homogenous vector objects
       Vector<double, dim+1> p1_h, p2_h;
-
       for (unsigned i = 0; i < dim; i++) {
         p1_h[i] = p1[i];
         p2_h[i] = p2[i];
       }
-
       p1_h[dim] = 1;
       p2_h[dim] = 1;
 
@@ -100,7 +98,7 @@ namespace math {
     }
   };
 
-  /// This metric can be used to measure the error between a interest
+  /// This metric can be used to measure the error between an interest
   /// point p2 and a second interest point p1 that is transformed by a
   /// 3x3 matrix H.  This is predominately used when matching interest
   /// points using RANSAC.
@@ -110,11 +108,11 @@ namespace math {
   template <class FittingFuncT, class ErrorFuncT>
   class RandomSampleConsensus {
     const FittingFuncT& m_fitting_func;
-    const ErrorFuncT& m_error_func;
-    int m_num_iterations;
-    double m_inlier_threshold;
-    int m_min_num_output_inliers;
-    bool m_reduce_min_num_output_inliers_if_no_fit;
+    const ErrorFuncT  & m_error_func;
+          int           m_num_iterations;
+          double        m_inlier_threshold;
+          int           m_min_num_output_inliers;
+          bool          m_reduce_min_num_output_inliers_if_no_fit;
     
     /// \cond INTERNAL
     // Utility Function: Pick N UNIQUE, random integers in the range [0, size]
@@ -145,11 +143,13 @@ namespace math {
 
   public:
 
-    // Returns the list of inlier indices.
+    // Returns the list of inliers.
     template <class ContainerT1, class ContainerT2>
     void inliers(typename FittingFuncT::result_type const& H,
-                 std::vector<ContainerT1> const& p1, std::vector<ContainerT2> const& p2,
-                 std::vector<ContainerT1> &inliers1, std::vector<ContainerT2> &inliers2) const {
+                          std::vector<ContainerT1>  const& p1, 
+                          std::vector<ContainerT2>  const& p2,
+                          std::vector<ContainerT1>       & inliers1, 
+                          std::vector<ContainerT2>       & inliers2) const {
 
       inliers1.clear();
       inliers2.clear();
@@ -165,7 +165,8 @@ namespace math {
     // Returns the list of inlier indices.
     template <class ContainerT1, class ContainerT2>
     std::vector<size_t> inlier_indices(typename FittingFuncT::result_type const& H,
-                                    std::vector<ContainerT1> const& p1,std::vector<ContainerT2> const& p2) const {
+                                                std::vector<ContainerT1>  const& p1,
+                                                std::vector<ContainerT2>  const& p2) const {
       std::vector<size_t> result;
       for (size_t i=0; i<p1.size(); i++)
         if (m_error_func(H,p1[i],p2[i]) < m_inlier_threshold)
@@ -177,11 +178,13 @@ namespace math {
       m_min_num_output_inliers = int(m_min_num_output_inliers/1.5);
     }
       
-    RandomSampleConsensus(FittingFuncT const& fitting_func, ErrorFuncT const& error_func,
-                          int num_iterations,
+    /// Constructor - Stores all the inputs in member variables
+    RandomSampleConsensus(FittingFuncT const& fitting_func, 
+                          ErrorFuncT   const& error_func,
+                          int    num_iterations,
                           double inlier_threshold,
-                          int min_num_output_inliers,
-                          bool reduce_min_num_output_inliers_if_no_fit = false
+                          int    min_num_output_inliers,
+                          bool   reduce_min_num_output_inliers_if_no_fit = false
                           ):
       m_fitting_func(fitting_func), m_error_func(error_func),
       m_num_iterations(num_iterations), 
@@ -189,6 +192,7 @@ namespace math {
       m_min_num_output_inliers(min_num_output_inliers),
       m_reduce_min_num_output_inliers_if_no_fit(reduce_min_num_output_inliers_if_no_fit){}
 
+    /// As attempt_ransac but keep trying with smaller numbers of required inliers.
     template <class ContainerT1, class ContainerT2>
     typename FittingFuncT::result_type operator()(std::vector<ContainerT1> const& p1,
                                                   std::vector<ContainerT2> const& p2) {
@@ -207,17 +211,20 @@ namespace math {
           break; 
         } catch ( const std::exception& e ) { 
           vw_out() << e.what() << "\n";
-          if (!m_reduce_min_num_output_inliers_if_no_fit) break;
+          if (!m_reduce_min_num_output_inliers_if_no_fit) 
+            break;
           vw_out() << "Attempting RANSAC with " << m_min_num_output_inliers << " number of output inliers.\n";
           reduce_min_num_output_inliers();
         }
       }
 
-      if (!success) vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
+      if (!success) 
+        vw_throw( RANSACErr() << "RANSAC was unable to find a fit that matched the supplied data." );
 
       return H;
     }
 
+    /// Run RANSAC on two input data lists using the current parameters.
     template <class ContainerT1, class ContainerT2>
     typename FittingFuncT::result_type attempt_ransac(std::vector<ContainerT1> const& p1,
                                                       std::vector<ContainerT2> const& p2) const {
@@ -263,14 +270,16 @@ namespace math {
         inliers(H, p1, p2, try1, try2);
 
         // 3. Skip this model if too few inliers.
-        if ((int)try1.size() < m_min_num_output_inliers) continue;
+        if ((int)try1.size() < m_min_num_output_inliers) 
+          continue;
 
         // 4. Re-estimate the model using the inliers.
         H = m_fitting_func(try1, try2, H);
         
         // 5. Find the mean error for the inliers.
         double err_val = 0.0;
-        for (size_t i = 0; i < try1.size(); i++) err_val += m_error_func(H, try1[i], try2[i]);
+        for (size_t i = 0; i < try1.size(); i++) 
+          err_val += m_error_func(H, try1[i], try2[i]);
         err_val /= try1.size();
 
         // 6. Save this model if its error is lowest so far.
@@ -287,24 +296,25 @@ namespace math {
       }
 
       // For debugging
-      VW_OUT(InfoMessage, "interest_point") << "\nRANSAC Summary:" << std::endl;
-      VW_OUT(InfoMessage, "interest_point") << "\tFit = " << best_H << std::endl;
+      VW_OUT(InfoMessage, "interest_point") << "\nRANSAC Summary:"     << std::endl;
+      VW_OUT(InfoMessage, "interest_point") << "\tFit = "              << best_H      << std::endl;
       VW_OUT(InfoMessage, "interest_point") << "\tInliers / Total  = " << num_inliers << " / " << p1.size() << "\n\n";
       
       return best_H;
     }
 
-  };
+  }; // End of RandomSampleConsensus class definition
 
+  // Helper function to instantiate a RANSAC class object and immediately call it
   template <class ContainerT1, class ContainerT2, class FittingFuncT, class ErrorFuncT>
   typename FittingFuncT::result_type ransac(std::vector<ContainerT1> const& p1,
                                             std::vector<ContainerT2> const& p2,
-                                            FittingFuncT const& fitting_func,
-                                            ErrorFuncT const& error_func,
-                                            int num_iterations,
-                                            double inlier_threshold,
-                                            int min_num_output_inliers,
-                                            bool reduce_min_num_output_inliers_if_no_fit = false
+                                            FittingFuncT             const& fitting_func,
+                                            ErrorFuncT               const& error_func,
+                                            int     num_iterations,
+                                            double  inlier_threshold,
+                                            int     min_num_output_inliers,
+                                            bool    reduce_min_num_output_inliers_if_no_fit = false
                                             ) {
     RandomSampleConsensus<FittingFuncT, ErrorFuncT> ransac_instance(fitting_func,
                                                                     error_func,

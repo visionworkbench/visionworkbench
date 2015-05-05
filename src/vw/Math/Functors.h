@@ -49,9 +49,9 @@
 namespace vw {
   namespace math {
 
-    template <class T> struct StdMathType { typedef double type; };
-    template <> struct StdMathType<float> { typedef float type; };
-    template <> struct StdMathType<long double> { typedef long double type; };
+    template <class T> struct StdMathType              { typedef double type; };
+    template <>        struct StdMathType<float      > { typedef float type; };
+    template <>        struct StdMathType<long double> { typedef long double type; };
     template <class T1, class T2> struct StdMathType2 {
       typedef typename StdMathType<typename PromoteType<T1,T2>::type>::type type;
     };
@@ -118,6 +118,7 @@ namespace vw {
 #define __VW_MATH_BINARY_LONG_DOUBLE_IMPL(func)
 #endif
 
+// Macros to easily create functors with a certain interface
 #define __VW_UNARY_MATH_FUNCTOR(name,func)                              \
     struct Arg##name##Functor                                           \
       : UnaryReturnBinaryTemplateBind1st<ArgUnaryFunctorType,Arg##name##Functor> { \
@@ -132,7 +133,7 @@ namespace vw {
         __VW_MATH_UNARY_LONG_DOUBLE_IMPL(func)                          \
           };                                                            \
     using ::func;
-
+// END __VW_UNARY_MATH_FUNCTOR
 #define __VW_BINARY_MATH_FUNCTOR(name,func)                             \
     struct ArgArg##name##Functor                                        \
       : BinaryReturnTernaryTemplateBind1st<BinaryFunctorType,ArgArg##name##Functor> { \
@@ -169,6 +170,7 @@ namespace vw {
   }                                                                     \
   };                                                                    \
     using ::func;
+// END __VW_BINARY_MATH_FUNCTOR
 
     __VW_UNARY_MATH_FUNCTOR( Fabs, fabs )
     __VW_UNARY_MATH_FUNCTOR( Acos, acos )
@@ -218,6 +220,7 @@ namespace vw {
     __VW_BINARY_MATH_FUNCTOR( Fdim, fdim )
 #endif
 
+// Clean up the macros we are finished using
 #undef __VW_UNARY_MATH_FUNCTOR
 #undef __VW_BINARY_MATH_FUNCTOR
 

@@ -84,9 +84,9 @@ namespace ip {
     descriptor_type descriptor;
 
     const_iterator begin() const { return descriptor.begin(); }
-    iterator begin() { return descriptor.begin(); }
-    const_iterator end() const { return descriptor.end(); }
-    iterator end() { return descriptor.end(); }
+          iterator begin()       { return descriptor.begin(); }
+    const_iterator end()   const { return descriptor.end(); }
+          iterator end()         { return descriptor.end(); }
 
     size_t size() const { return descriptor.size(); }
     float operator[] (int index) { return descriptor[index]; }
@@ -117,12 +117,12 @@ namespace ip {
   // Utility function converts from a list of interest points to a
   // vector of interest point locations.  (Useful when preping data
   // far RANSAC...)
-  std::vector<Vector3> iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
-  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist);
+  std::vector<Vector3      > iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
+  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3      > const& veclist);
 
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
-  void write_binary_ip_file(std::string ip_file, InterestPointList ip);
+  void write_binary_ip_file    (std::string ip_file, InterestPointList ip);
   std::vector<InterestPoint> read_binary_ip_file(std::string ip_file);
 
   // Routines for reading & writing interest point match files
@@ -131,8 +131,7 @@ namespace ip {
   void read_binary_match_file(std::string match_file, std::vector<InterestPoint> &ip1,
                               std::vector<InterestPoint> &ip2);
 
-  /// Select only the interest points that fall within the specified
-  /// bounding box.
+  /// Select only the interest points that fall within the specified bounding box.
   template <class RealT>
   InterestPointList crop(InterestPointList const& interest_points, BBox<RealT,2> const& bbox) {
     InterestPointList return_val;
@@ -208,27 +207,30 @@ namespace ip {
     }
 
     /// Accessors to immutable processed views.
-    inline source_type const& source() const { return m_src; }
-    inline gradient_type const& gradient_x() const { return m_grad_x; }
-    inline gradient_type const& gradient_y() const { return m_grad_y; }
-    inline mag_type const& magnitude() const { return m_mag; }
-    inline ori_type const& orientation() const { return m_ori; }
+    inline source_type   const& source     () const { return m_src;    }
+    inline gradient_type const& gradient_x () const { return m_grad_x; }
+    inline gradient_type const& gradient_y () const { return m_grad_y; }
+    inline mag_type      const& magnitude  () const { return m_mag;    }
+    inline ori_type      const& orientation() const { return m_ori;    }
 
     /// Accessors to mutable interest image.
     inline interest_type& interest() const {
-      if (!m_interest) vw_throw(LogicErr() << "ImageInterestData::interest() Interest image has not yet been computed.");
+      if (!m_interest) 
+        vw_throw(LogicErr() << "ImageInterestData::interest() Interest image has not yet been computed.");
       return *m_interest;
     }
 
     template <class ViewT>
     inline void set_interest(ImageViewBase<ViewT> const& interest) {
-      if (m_interest) delete m_interest;
+      if (m_interest) 
+        delete m_interest;
       m_interest = new interest_type(interest.impl());
     }
 
     /// Accessors to mutable integral image.
     inline integral_type const& integral() const {
-      if (!m_integral) vw_throw(LogicErr() << "ImageInterestData::integral() Integral image  has not yet been computed.");
+      if (!m_integral) 
+        vw_throw(LogicErr() << "ImageInterestData::integral() Integral image  has not yet been computed.");
       return *m_integral;
     }
 
@@ -240,11 +242,11 @@ namespace ip {
 
   protected:
     /// Cached processed data
-    source_type m_src;
+    source_type   m_src;
     gradient_type m_grad_x, m_grad_y;
-    mag_type m_mag;
-    ori_type m_ori;
-    interest_type *m_interest;
+    mag_type      m_mag;
+    ori_type      m_ori;
+          interest_type *m_interest;
     const integral_type *m_integral;
   };
 

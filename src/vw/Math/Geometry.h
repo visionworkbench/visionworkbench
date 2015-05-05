@@ -354,8 +354,7 @@ namespace math {
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
+    /// vw::Vector<>, but you could substitute other classes here as well.
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
@@ -416,8 +415,7 @@ namespace math {
 
     /// This function can match points in any container that supports
     /// the size() and operator[] methods.  The container is usually a
-    /// vw::Vector<>, but you could substitute other classes here as
-    /// well.
+    /// vw::Vector<>, but you could substitute other classes here as well.
     template <class ContainerT>
     vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
                                    std::vector<ContainerT> const& p2,
