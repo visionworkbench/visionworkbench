@@ -1061,7 +1061,7 @@ void write_camera_models(CameraVector cameras, std::string fname, fs::path dir)
   for (int i = 0; i < num_cameras; i++) {
     std::stringstream out;
     out << dir / fname << i << ".tsai";
-    cameras[i].write_file(out.str());
+    cameras[i].write(out.str());
   }
 }
 /* }}} */
