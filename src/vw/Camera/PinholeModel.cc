@@ -46,7 +46,7 @@ PinholeModel::PinholeModel() : m_distortion(DistortPtr(new NullLensDistortion)),
                                m_camera_center(Vector3(0,0,0)),
                                m_fu(1), m_fv(1), m_cu(0), m_cv(0),
                                m_u_direction(Vector3(1,0,0)),
-                               m_v_direction(Vector3(0,-1,0)),
+                               m_v_direction(Vector3(0,1,0)),
                                m_w_direction(Vector3(0,0,1)), m_pixel_pitch(1) {
 
   m_rotation.set_identity();
@@ -80,7 +80,7 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                                                                      m_rotation(rotation),
   m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                                      m_u_direction(Vector3(1,0,0)),
-  m_v_direction(Vector3(0,-1,0)),
+  m_v_direction(Vector3(0,1,0)),
   m_w_direction(Vector3(0,0,1)),
   m_pixel_pitch(1) {
   rebuild_camera_matrix();
@@ -95,7 +95,7 @@ PinholeModel::PinholeModel(Vector3 camera_center, Matrix<double,3,3> rotation,
                                                      m_rotation(rotation),
                                                      m_fu(f_u), m_fv(f_v), m_cu(c_u), m_cv(c_v),
                                                      m_u_direction(Vector3(1,0,0)),
-  m_v_direction(Vector3(0,-1,0)),
+  m_v_direction(Vector3(0,1,0)),
   m_w_direction(Vector3(0,0,1)),
   m_pixel_pitch(1) {
   rebuild_camera_matrix();
@@ -604,6 +604,9 @@ std::ostream& camera::operator<<(std::ostream& str,
   str << "\tIntrinsics:\n";
   str << "\t  focal: " << model.focal_length() << "\n";
   str << "\t  offset: " << model.point_offset() << "\n";
+  str << "\tu direction: " << model.coordinate_frame_u_direction() << "\n";
+  str << "\tv direction: " << model.coordinate_frame_v_direction() << "\n";
+  str << "\tw direction: " << model.coordinate_frame_w_direction() << "\n";
   str << "\tDistortion Model: " << model.lens_distortion()->name() << "\n";
   str << "\t  " << *(model.lens_distortion()) << "\n";
 

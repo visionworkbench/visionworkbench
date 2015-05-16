@@ -51,9 +51,9 @@ TEST( PinholeModel, StandardConstruct ) {
   EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(10,0,10)),
                      Vector2(1000,500), 1e-6);
   EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,-10,10)),
-                     Vector2(500,1000), 1e-6);
-  EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,10,10)),
                      Vector2(500,0), 1e-6);
+  EXPECT_VECTOR_NEAR(pinhole.point_to_pixel(Vector3(0,10,10)),
+                     Vector2(500,1000), 1e-6);
   EXPECT_STREQ( "Pinhole", pinhole.type().c_str() );
 }
 
@@ -121,6 +121,9 @@ TEST( PinholeModel, ScalePinhole ) {
                         606.3638305664062,
                         518.89208984375,
                         387.5555114746094,
+                        Vector3(1, 0, 0),
+                        Vector3(0, -1, 0),
+                        Vector3(0, 0, 1),
                         TsaiLensDistortion(Vector4(-0.2796604335308075,
                                                    0.1031486615538597,
                                                    -0.0007824968779459596,
