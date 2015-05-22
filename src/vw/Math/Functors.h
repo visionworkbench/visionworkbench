@@ -517,12 +517,13 @@ namespace vw {
         double pdf_error =
           trapezoidal_rule( quantile.begin(), quantile.end(),
                             pdf.begin() );
-        if ( pdf_error > 1.0 ) {
+        const double MAX_PDF_ERROR = 0.01;
+        if ( pdf_error >= 1.0 - MAX_PDF_ERROR ) {
           double correction = (1.0 / pdf_error) * additional_scalar;
           for ( size_t i = 0; i < pdf.size(); i++ )
             pdf[i] *= correction;
         } else {
-          vw_throw( MathErr() << "CDFMathAccumuator: This odd error happens?!" );
+          vw_throw( MathErr() << "CDFMathAccumuator: pdf_error < 0.99!" );
         }
       }
 

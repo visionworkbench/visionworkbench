@@ -26,15 +26,15 @@
 
 
 /// \file Map2CamTrans.h
-// Given a pixel in a map-projected image, convert it to lonlat, then
-// convert to the DEM pixel, then to the DEM lonlat, then to the DEM
-// xyz, then project into the camera, and find the camera pixel.
+/// Given a pixel in a map-projected image, convert it to lonlat, then
+/// convert to the DEM pixel, then to the DEM lonlat, then to the DEM
+/// xyz, then project into the camera, and find the camera pixel.
 
-// This class is not thread-safe. It must not be invoked for individual
-// pixels, it does wholesale computation on entire tiles,
-// and each tile needs a new instance of this class.
+/// This class is not thread-safe. It must not be invoked for individual
+/// pixels, it does wholesale computation on entire tiles,
+/// and each tile needs a new instance of this class.
 
-// The class can handle DEMs with holes.
+/// The class can handle DEMs with holes.
 
 namespace vw { namespace camera{
   class CameraModel; // forward declaration
@@ -60,8 +60,8 @@ namespace vw { namespace cartography {
     mutable ImageViewRef< PixelMask<float> >   m_interp_dem;
     mutable ImageView<Vector2>                 m_cache;
     mutable ImageViewRef< PixelMask<Vector2> > m_cache_interp_mask;
-    mutable vw::BBox2i m_img_cache_box;
-    mutable vw::BBox2i m_cached_rv_box;
+    mutable vw::BBox2i                         m_img_cache_box;
+    mutable vw::BBox2i                         m_cached_rv_box;
 
   public:
     Map2CamTrans( vw::camera::CameraModel const* cam,
@@ -72,7 +72,7 @@ namespace vw { namespace cartography {
                   bool call_from_mapproject
                   );
     
-    // Convert Map Projected Coordinate to camera coordinate
+    /// Convert Map Projected Coordinate to camera coordinate
     vw::Vector2 reverse(const vw::Vector2 &p) const;
     
     // Not thread safe ... you must copy this object

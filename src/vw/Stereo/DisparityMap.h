@@ -52,7 +52,7 @@ namespace stereo {
 
   //  get_disparity_range()
   //
-  // Determine the range of disparity values present in the disparity map.
+  /// Determine the range of disparity values present in the disparity map.
   template <class ViewT>
   BBox2f get_disparity_range(ImageViewBase<ViewT> const& disparity_map ) {
     typedef typename UnmaskedPixelType<typename ViewT::pixel_type>::type accum_type;

@@ -33,6 +33,7 @@ namespace vw {
 
 namespace stereo {
 
+  /// 
   class StereoModel {
 
   public:
@@ -64,12 +65,11 @@ namespace stereo {
 
     /// Apply a stereo model to multiple or just two image coordinates.
     /// Returns an xyz point. The error is set to 0 if triangulation
-    /// did not succeed, otherwise it is the vector between the
-    /// closest points on the rays.
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec, Vector3& errorVec ) const;
-    virtual Vector3 operator()(std::vector<Vector2> const& pixVec, double& error ) const;
-    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, Vector3& errorVec ) const;
-    virtual Vector3 operator()(Vector2 const& pix1, Vector2 const& pix2, double& error ) const;
+    /// did not succeed, otherwise it is the vector between the closest points on the rays.
+    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      Vector3& errorVec ) const;
+    virtual Vector3 operator()(std::vector<Vector2> const& pixVec,                      double & error    ) const;
+    virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, Vector3& errorVec ) const;
+    virtual Vector3 operator()(Vector2              const& pix1,   Vector2 const& pix2, double & error    ) const;
 
     /// Returns the dot product of the two rays emanating from camera
     /// 1 and camera 2 through pix1 and pix2 respectively.  This can
@@ -89,8 +89,7 @@ namespace stereo {
 
     /// Return the 2-norm of the error vector ( the vector from the
     /// closest point of intersectio of A to the closest point of
-    /// intersection of B ), or -1 if the rays are parallel or
-    /// divergent.
+    /// intersection of B ), or -1 if the rays are parallel or divergent.
     static Vector3 triangulate_point(std::vector<Vector3> const& camDirs,
                                      std::vector<Vector3> const& camCtrs,
                                      Vector3& errorVec);
@@ -100,7 +99,7 @@ namespace stereo {
 
     void refine_point( Vector2 const& pix1,
                        Vector2 const& pix2,
-                       Vector3& point ) const;
+                       Vector3      & point ) const;
   };
 
 }}      // namespace vw::stereo
