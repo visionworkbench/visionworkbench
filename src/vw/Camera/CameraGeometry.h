@@ -240,14 +240,16 @@ namespace camera {
     }
   };
 
-  // Fundamental Matrix solver using normalized 8 point algorithm.
-  // Page 282 or Algorithm 11.1 in Multiple View Geometry
+  /// Fundamental Matrix solver using normalized 8 point algorithm.
+  /// - Page 282 or Algorithm 11.1 in Multiple View Geometry
   struct FundamentalMatrix8PFittingFunctor : public SimilarityNormalizingFunctor {
     typedef vw::Matrix<double> result_type;
 
     template <class ContainerT>
     unsigned min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 8; }
 
+    /// Solve for the fundamental matrix F using two sets of observation of a set
+    ///  of points from the same camera at different positions.
     template <class ContainerT>
     result_type
     operator()( std::vector<ContainerT> const& p1,
@@ -259,18 +261,14 @@ namespace camera {
 
       // Converting to internal format
       std::vector<Vector<double> > input(p1.size()), output(p2.size());
-      std::transform( p1.begin(), p1.end(), input.begin(),
-                      Convert2HomogenousVec2<ContainerT> );
-      std::transform( p2.begin(), p2.end(), output.begin(),
-                      Convert2HomogenousVec2<ContainerT> );
+      std::transform( p1.begin(), p1.end(), input.begin(),  Convert2HomogenousVec2<ContainerT> );
+      std::transform( p2.begin(), p2.end(), output.begin(), Convert2HomogenousVec2<ContainerT> );
 
       // Normalizing
-      Matrix<double> S_in = NormSimilarity( input );
+      Matrix<double> S_in  = NormSimilarity( input  );
       Matrix<double> S_out = NormSimilarity( output );
-      std::for_each( input.begin(), input.end(),
-                     MatrixApplyFunc<Vector<double> >( S_in ) );
-      std::for_each( output.begin(), output.end(),
-                     MatrixApplyFunc<Vector<double> >( S_out ) );
+      std::for_each( input.begin(),  input.end(),  MatrixApplyFunc<Vector<double> >( S_in  ) );
+      std::for_each( output.begin(), output.end(), MatrixApplyFunc<Vector<double> >( S_out ) );
 
       // Constructing A
       Matrix<double> A(p1.size(),9);
@@ -286,8 +284,7 @@ namespace camera {
         A(i,8) = 1;
       }
 
-      VW_ASSERT( math::rank(A) >= 8,
-                 MathErr() << "Measurements produce rank deficient A." );
+      VW_ASSERT( math::rank(A) >= 8, MathErr() << "Measurements produce rank deficient A." );
 
       // Pulling singular vector of smallest singular value of A
       Matrix<double> U,VT;
@@ -295,8 +292,7 @@ namespace camera {
       svd(A,U,S,VT);
       Matrix3x3 F;
       int i = 0;
-      for ( Matrix<double,3,3>::iterator it = F.begin();
-            it != F.end(); it++ ) {
+      for ( Matrix<double,3,3>::iterator it = F.begin(); it != F.end(); it++ ) {
         (*it) = VT(VT.rows()-1,i);
         i++;
       }
@@ -369,6 +365,8 @@ namespace camera {
       result_type operator()( domain_type const& x )  const;
     };
 
+    /// Solve for the fundamental matrix F using two sets of observation of a set
+    ///  of points from the same camera at different positions.
     template <class ContainerT>
     result_type
     operator()( std::vector<ContainerT> const& p1,

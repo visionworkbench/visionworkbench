@@ -214,7 +214,7 @@ TEST_F(TestStream, ReadWrite) {
 
   io::stream<io::array> ss(back_buf, back_buf+SIZE);
   ImageResourceStream r(&ss);
-  EXPECT_THROW(r.cols(), LogicErr);
+  ASSERT_DEATH(r.cols(), ".*");
 
   ImageBuffer src(fmt, src_buf);
   ImageBuffer dst(fmt, dst_buf);
