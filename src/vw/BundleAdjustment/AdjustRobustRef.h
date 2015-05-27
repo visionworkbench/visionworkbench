@@ -178,7 +178,7 @@ namespace ba {
               this->m_model(i, camera_idx,
                             this->m_model.A_parameters(camera_idx),
                             this->m_model.B_parameters(i));
-          } catch (const camera::PixelToRayErr& e) {}
+          } catch (const camera::PointToPixelErr& e) {}
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
           Vector2 pixel_sigma = (*(this->m_control_net))[i][m].sigma();
@@ -342,7 +342,7 @@ namespace ba {
               this->m_model(i, camera_idx,
                             this->m_model.A_parameters(camera_idx)-cam_delta,
                             this-> m_model.B_parameters(i)-pt_delta);
-          } catch (const camera::PixelToRayErr& e) {}
+          } catch (const camera::PointToPixelErr& e) {}
           Matrix2x2 inverse_cov = submatrix(sigma, 2*idx, 2*idx, 2, 2);
 
           // Populate the S_weights, mu_weights vectors

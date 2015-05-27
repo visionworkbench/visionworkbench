@@ -262,10 +262,14 @@ namespace ba {
         math::CDFAccumulator<double> image_cdf;
         BOOST_FOREACH( ControlPoint const& cp, *network ) {
           BOOST_FOREACH( ControlMeasure const& cm, cp ) {
-            image_cdf(m_model.image_compare(cm.position(),
-                                            m_model(cp_index,cm.image_id(),
-                                                    m_model.A_parameters(cm.image_id()),
-                                                    m_model.B_parameters(cp_index))));
+            try{
+              image_cdf(m_model.image_compare(cm.position(),
+                                              m_model(cp_index,cm.image_id(),
+                                                      m_model.A_parameters(cm.image_id()),
+                                                      m_model.B_parameters(cp_index))));
+            } catch(const camera::PointToPixelErr& e) {
+              // Missed pixels are not included in the reporting statistics!
+            }
           }
           cp_index++;
         }

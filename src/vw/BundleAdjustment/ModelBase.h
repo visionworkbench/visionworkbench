@@ -74,7 +74,7 @@ namespace ba {
       try {
         // Get nominal function value
         h0 = impl()(i,j,a_j,b_i);
-      } catch (const camera::PixelToRayErr& e) {
+      } catch (const camera::PointToPixelErr& e) {
         // Unable to project this point into the camera, so abort!
         return J;
       }
@@ -93,7 +93,7 @@ namespace ba {
         try {
           Vector2 hi = impl()(i,j,a_j_prime, b_i);
           select_col(J,n) = (hi-h0)/epsilon;
-        } catch (const camera::PixelToRayErr& e) {
+        } catch (const camera::PointToPixelErr& e) {
           select_col(J,n) = Vector2();
         }
       }
@@ -114,7 +114,7 @@ namespace ba {
       try {
         // Get nominal function value
         h0 = impl()(i,j,a_j, b_i);
-      } catch (const camera::PixelToRayErr& e) {
+      } catch (const camera::PointToPixelErr& e) {
         // Unable to project this point into the camera so abort!
         return J;
       }
@@ -133,7 +133,7 @@ namespace ba {
         try {
           Vector2 hi = impl()(i,j,a_j,b_i_prime);
           select_col(J,n) = (hi-h0)/epsilon;
-        } catch (const camera::PixelToRayErr& e) {
+        } catch (const camera::PointToPixelErr& e) {
           select_col(J,n) = Vector2();
         }
       }
