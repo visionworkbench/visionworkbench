@@ -219,17 +219,21 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description general_options("");
   general_options.add_options()
     ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
-     "Specify a shaded relief image (grayscale) to apply to the colorized image.")
-    ("output-file,o", po::value(&opt.output_file_name), "Specify the output file")
-    ("lut-file",      po::value(&opt.lut_file_name),    "Specify look up file for color output. It is similar to the file used by gdaldem. Without we revert to our standard LUT")
+                      "Specify a shaded relief image (grayscale) to apply to the colorized image.")
+    ("output-file,o", po::value(&opt.output_file_name), 
+                      "Specify the output file")
+    ("colormap-style",po::value(&opt.lut_file_name),    
+                      "Specify a file to describe the color output. It is similar to the file used by gdaldem. Alternately, use 'binary-red-blue' for a custom binary map. If not set the default jet colormap will be used.")
     ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
-     "Remap the DEM default value to the min altitude value.")
-    ("min",           po::value(&opt.min_val)->default_value(0), "Minimum height of the color map.")
-    ("max",           po::value(&opt.max_val)->default_value(0), "Maximum height of the color map.")
-    ("moon",   "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
-    ("mars",   "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
-    ("legend", "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
-    ("help,h", "Display this help message");
+                      "Remap the DEM default value to the min altitude value.")
+    ("min",           po::value(&opt.min_val)->default_value(0), 
+                      "Minimum height of the color map.")
+    ("max",           po::value(&opt.max_val)->default_value(0), 
+                      "Maximum height of the color map.")
+    ("moon",          "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
+    ("mars",          "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
+    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
+    ("help,h",        "Display this help message");
 
   po::options_description positional("");
   positional.add_options()
@@ -291,7 +295,43 @@ int main( int argc, char *argv[] ) {
       opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(  0,   0,   0)) ); // Black
-    } else {
+    } 
+    if ( opt.lut_file_name == "binary-red-blue" ) { // Special case
+      opt.lut.push_back( Options::lut_element( "0%",      Options::Vector3u( 59,  76, 192)) );
+      opt.lut.push_back( Options::lut_element( "3.13%",   Options::Vector3u( 68,  90, 204)) );
+      opt.lut.push_back( Options::lut_element( "6.25%",   Options::Vector3u( 78, 104, 215)) );
+      opt.lut.push_back( Options::lut_element( "9.38%",   Options::Vector3u( 88, 117, 225)) );
+      opt.lut.push_back( Options::lut_element("12.50%",   Options::Vector3u( 98, 130, 234)) );
+      opt.lut.push_back( Options::lut_element("15.63%",   Options::Vector3u(108, 142, 241)) );
+      opt.lut.push_back( Options::lut_element("18.75%",   Options::Vector3u(119, 154, 247)) );
+      opt.lut.push_back( Options::lut_element("21.88%",   Options::Vector3u(130, 165, 251)) );
+      opt.lut.push_back( Options::lut_element("25.00%",   Options::Vector3u(141, 176, 254)) );
+      opt.lut.push_back( Options::lut_element("28.13%",   Options::Vector3u(152, 185, 255)) );
+      opt.lut.push_back( Options::lut_element("31.25%",   Options::Vector3u(163, 194, 255)) );
+      opt.lut.push_back( Options::lut_element("34.38%",   Options::Vector3u(174, 201, 253)) );
+      opt.lut.push_back( Options::lut_element("37.50%",   Options::Vector3u(184, 208, 249)) );
+      opt.lut.push_back( Options::lut_element("40.63%",   Options::Vector3u(194, 213, 244)) );
+      opt.lut.push_back( Options::lut_element("43.75%",   Options::Vector3u(204, 217, 238)) );
+      opt.lut.push_back( Options::lut_element("46.88%",   Options::Vector3u(213, 219, 230)) );
+      opt.lut.push_back( Options::lut_element("50.00%",   Options::Vector3u(221, 221, 221)) );
+      opt.lut.push_back( Options::lut_element("53.13%",   Options::Vector3u(229, 216, 209)) );
+      opt.lut.push_back( Options::lut_element("56.25%",   Options::Vector3u(236, 211, 198)) );
+      opt.lut.push_back( Options::lut_element("59.38%",   Options::Vector3u(241, 204, 185)) );
+      opt.lut.push_back( Options::lut_element("62.50%",   Options::Vector3u(245, 196, 173)) );
+      opt.lut.push_back( Options::lut_element("65.63%",   Options::Vector3u(247, 187, 160)) );
+      opt.lut.push_back( Options::lut_element("68.75%",   Options::Vector3u(247, 177, 148)) );
+      opt.lut.push_back( Options::lut_element("71.88%",   Options::Vector3u(247, 166, 135)) );
+      opt.lut.push_back( Options::lut_element("75.00%",   Options::Vector3u(244, 154, 123)) );
+      opt.lut.push_back( Options::lut_element("78.13%",   Options::Vector3u(241, 141, 111)) );
+      opt.lut.push_back( Options::lut_element("81.25%",   Options::Vector3u(236, 127,  99)) );
+      opt.lut.push_back( Options::lut_element("84.38%",   Options::Vector3u(229, 112,  87)) );
+      opt.lut.push_back( Options::lut_element("87.50%",   Options::Vector3u(222,  97,  76)) );
+      opt.lut.push_back( Options::lut_element("90.63%",   Options::Vector3u(213,  80,  66)) );
+      opt.lut.push_back( Options::lut_element("93.75%",   Options::Vector3u(203,  62,  56)) );
+      opt.lut.push_back( Options::lut_element("96.88%",   Options::Vector3u(192,  40,  47)) );
+      opt.lut.push_back( Options::lut_element("100.00%",  Options::Vector3u(180,   4,  38)) );
+    }
+    else {
       // Read input LUT
       typedef boost::tokenizer<> tokenizer;
       boost::char_delimiters_separator<char> sep(false,",:");
