@@ -54,7 +54,7 @@ struct Options {
   std::string shaded_relief_file_name;
 
   // Settings
-  std::string output_file_name, lut_file_name;
+  std::string output_file_name, colormap_style;
   float       nodata_value, min_val, max_val;
   bool        draw_legend;
 
@@ -220,24 +220,24 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   general_options.add_options()
     ("shaded-relief-file,s", po::value(&opt.shaded_relief_file_name),
                       "Specify a shaded relief image (grayscale) to apply to the colorized image.")
-    ("output-file,o", po::value(&opt.output_file_name), 
-                      "Specify the output file")
-    ("colormap-style",po::value(&opt.lut_file_name),    
-                      "Specify a file to describe the color output. It is similar to the file used by gdaldem. Alternately, use 'binary-red-blue' for a custom binary map. If not set the default jet colormap will be used.")
+    ("output-file,o", po::value(&opt.output_file_name),
+                      "Specify the output file.")
+    ("colormap-style",po::value(&opt.colormap_style)->default_value("jet"),
+                      "Specify the colormap style. Options: jet (default), binary-red-blue, or the name of a file having the colormap, similar to the file used by gdaldem.")
     ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
                       "Remap the DEM default value to the min altitude value.")
-    ("min",           po::value(&opt.min_val)->default_value(0), 
+    ("min",           po::value(&opt.min_val)->default_value(0),
                       "Minimum height of the color map.")
-    ("max",           po::value(&opt.max_val)->default_value(0), 
+    ("max",           po::value(&opt.max_val)->default_value(0),
                       "Maximum height of the color map.")
     ("moon",          "Set the min and max values to [-8499 10208] meters, which is suitable for covering elevations on the Moon.")
     ("mars",          "Set the min and max values to [-8208 21249] meters, which is suitable for covering elevations on Mars.")
-    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'")
-    ("help,h",        "Display this help message");
+    ("legend",        "Generate the colormap legend.  This image is saved (without labels) as \'legend.png\'.")
+    ("help,h",        "Display this help message.");
 
   po::options_description positional("");
   positional.add_options()
-    ("input-file", po::value(&opt.input_file_name), "Input disparity map");
+    ("input-file", po::value(&opt.input_file_name), "Input disparity map.");
 
   po::positional_options_description positional_desc;
   positional_desc.add("input-file", 1);
@@ -283,7 +283,7 @@ int main( int argc, char *argv[] ) {
     handle_arguments( argc, argv, opt );
 
     // Decide legend
-    if ( opt.lut_file_name.empty() ) { // Set up default colormap
+    if ( opt.colormap_style.empty() || opt.colormap_style == "jet" ) { // default
       opt.lut.clear();
       opt.lut.push_back( Options::lut_element("0%",   Options::Vector3u(  0,   0,   0)) ); // Black
       opt.lut.push_back( Options::lut_element("20.8%",Options::Vector3u(  0,   0, 255)) ); // Blue
@@ -295,8 +295,8 @@ int main( int argc, char *argv[] ) {
       opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(  0,   0,   0)) ); // Black
-    } 
-    if ( opt.lut_file_name == "binary-red-blue" ) { // Special case
+    }
+    if ( opt.colormap_style == "binary-red-blue" ) {
       opt.lut.push_back( Options::lut_element( "0%",      Options::Vector3u( 59,  76, 192)) );
       opt.lut.push_back( Options::lut_element( "3.13%",   Options::Vector3u( 68,  90, 204)) );
       opt.lut.push_back( Options::lut_element( "6.25%",   Options::Vector3u( 78, 104, 215)) );
@@ -336,9 +336,10 @@ int main( int argc, char *argv[] ) {
       typedef boost::tokenizer<> tokenizer;
       boost::char_delimiters_separator<char> sep(false,",:");
 
-      std::ifstream lut_file( opt.lut_file_name.c_str() );
+      std::ifstream lut_file( opt.colormap_style.c_str() );
       if ( !lut_file.is_open() )
-        vw_throw( IOErr() << "Unable to open LUT: " << opt.lut_file_name );
+        vw_throw( IOErr() << "Unable to open colormap style file: "
+                  << opt.colormap_style );
       std::string line;
       std::getline( lut_file, line );
       while ( lut_file.good() ) {
@@ -350,7 +351,7 @@ int main( int argc, char *argv[] ) {
           std::getline( lut_file, line );
           continue;
         }
-                                                  
+
         tokenizer tokens(line,sep);
         tokenizer::iterator iter = tokens.begin();
 
