@@ -295,8 +295,7 @@ int main( int argc, char *argv[] ) {
       opt.lut.push_back( Options::lut_element("75%",  Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("79.1%",Options::Vector3u(255,   0,   0)) ); // Red
       opt.lut.push_back( Options::lut_element("100%", Options::Vector3u(  0,   0,   0)) ); // Black
-    }
-    if ( opt.colormap_style == "binary-red-blue" ) {
+    } else if ( opt.colormap_style == "binary-red-blue" ) {
       opt.lut.push_back( Options::lut_element( "0%",      Options::Vector3u( 59,  76, 192)) );
       opt.lut.push_back( Options::lut_element( "3.13%",   Options::Vector3u( 68,  90, 204)) );
       opt.lut.push_back( Options::lut_element( "6.25%",   Options::Vector3u( 78, 104, 215)) );
@@ -330,8 +329,7 @@ int main( int argc, char *argv[] ) {
       opt.lut.push_back( Options::lut_element("93.75%",   Options::Vector3u(203,  62,  56)) );
       opt.lut.push_back( Options::lut_element("96.88%",   Options::Vector3u(192,  40,  47)) );
       opt.lut.push_back( Options::lut_element("100.00%",  Options::Vector3u(180,   4,  38)) );
-    }
-    else {
+    } else {
       // Read input LUT
       typedef boost::tokenizer<> tokenizer;
       boost::char_delimiters_separator<char> sep(false,",:");
