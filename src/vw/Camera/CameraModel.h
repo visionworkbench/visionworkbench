@@ -112,17 +112,23 @@ namespace camera {
     Vector3 m_translation;
     Quat m_rotation;
     Quat m_rotation_inverse;
+    // This offset is used when the images are cropped.
+    // Adding the offset to a pixel converts from the cropped
+    // image pixels to full image pixels.
+    Vector2 m_pixel_offset;
 
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model);
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                        Vector3 const& translation, Quat const& rotation);
+                        Vector3 const& translation, Quat const& rotation,
+                        Vector2 pixel_offset = Vector2());
 
     virtual ~AdjustedCameraModel();
     virtual std::string type() const;
 
     Vector3 translation() const;
     Quat rotation() const;
+    Vector2 pixel_offset() const;
     Matrix<double,3,3> rotation_matrix() const;
 
     Vector3 axis_angle_rotation() const;

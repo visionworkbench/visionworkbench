@@ -37,8 +37,8 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
 }
 
 AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                                         Vector3 const& translation, Quat const& rotation) :
-  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)) {}
+                                         Vector3 const& translation, Quat const& rotation, Vector2 pixel_offset) :
+  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)), m_pixel_offset(pixel_offset) {}
 
 AdjustedCameraModel::~AdjustedCameraModel() {}
 std::string AdjustedCameraModel::type() const { return "Adjusted"; }
@@ -57,22 +57,24 @@ void AdjustedCameraModel::set_rotation(Quat const& rotation) {
   m_rotation_inverse = inverse(m_rotation);
 }
 
+Vector2 AdjustedCameraModel::pixel_offset() const { return m_pixel_offset; }
+
 Vector2 AdjustedCameraModel::point_to_pixel (Vector3 const& point) const {
   Vector3 offset_pt = point-m_camera->camera_center(Vector2(0,0))-m_translation;
   Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_camera->camera_center(Vector2(0,0));
-  return m_camera->point_to_pixel(new_pt);
+  return m_camera->point_to_pixel(new_pt) - m_pixel_offset;
 }
 
 Vector3 AdjustedCameraModel::pixel_to_vector (Vector2 const& pix) const {
-  return m_rotation.rotate(m_camera->pixel_to_vector(pix));
+  return m_rotation.rotate(m_camera->pixel_to_vector(pix + m_pixel_offset));
 }
 
 Vector3 AdjustedCameraModel::camera_center(Vector2 const& pix) const {
-  return m_camera->camera_center(pix) + m_translation;
+  return m_camera->camera_center(pix + m_pixel_offset) + m_translation;
 }
 
 Quat AdjustedCameraModel::camera_pose(Vector2 const& pix) const {
-  return m_rotation*m_camera->camera_pose(pix);
+  return m_rotation*m_camera->camera_pose(pix + m_pixel_offset);
 }
 
 void AdjustedCameraModel::write(std::string const& filename) {
@@ -81,22 +83,31 @@ void AdjustedCameraModel::write(std::string const& filename) {
        << " " << m_translation[2] << "\n";
   ostr << m_rotation.w() << " " << m_rotation.x() << " "
        << m_rotation.y() << " " << m_rotation.z() << "\n";
+  ostr << m_pixel_offset.x() << " " << m_pixel_offset.y() << "\n";
+
 }
 
 void AdjustedCameraModel::read(std::string const& filename) {
   Vector4 c;
   Vector3 pos;
+  Vector2 pixel_offset;
   std::ifstream istr(filename.c_str());
   istr >> pos[0] >> pos[1] >> pos[2];
   istr >> c[0] >> c[1] >> c[2] >> c[3];
+
+  if (istr >> pixel_offset[0] >> pixel_offset[1])
+    m_pixel_offset = pixel_offset;
+
   this->set_translation(pos);
   this->set_rotation(Quat(c));
 }
 
 std::ostream& camera::operator<<(std::ostream& ostr,
                                  AdjustedCameraModel const& cam ) {
-  ostr << "AdjustedCameraModel(Trans: " << cam.m_translation << " Rot: "
-       << cam.m_rotation << " Cam: " << cam.m_camera->type() << ")\n";
+  ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
+       << " Rot: "          << cam.m_rotation
+       << " Pixel offset: " << cam.m_pixel_offset
+       << " Cam: " << cam.m_camera->type() << ")\n";
   return ostr;
 }
 
