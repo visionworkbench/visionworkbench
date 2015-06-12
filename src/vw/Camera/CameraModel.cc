@@ -99,3 +99,25 @@ std::ostream& camera::operator<<(std::ostream& ostr,
        << cam.m_rotation << " Cam: " << cam.m_camera->type() << ")\n";
   return ostr;
 }
+
+vw::camera::CameraModel* vw::camera::unadjusted_model(vw::camera::CameraModel * cam){
+
+  vw::camera::AdjustedCameraModel *acam
+    = dynamic_cast<vw::camera::AdjustedCameraModel*>(cam);
+
+  if (acam != NULL)
+    return acam->unadjusted_model().get();
+
+  return cam;
+}
+
+const vw::camera::CameraModel* vw::camera::unadjusted_model(const vw::camera::CameraModel * cam){
+
+  const vw::camera::AdjustedCameraModel *acam
+    = dynamic_cast<const vw::camera::AdjustedCameraModel*>(cam);
+
+  if (acam != NULL)
+    return acam->unadjusted_model().get();
+
+  return cam;
+}

@@ -146,7 +146,15 @@ namespace camera {
     virtual Vector3 pixel_to_vector (Vector2 const&) const;
     virtual Vector3 camera_center (Vector2 const&) const;
     virtual Quat camera_pose(Vector2 const&) const;
-    
+
+    boost::shared_ptr<CameraModel> unadjusted_model(){
+      return m_camera;
+    }
+
+    boost::shared_ptr<CameraModel> unadjusted_model() const{
+      return m_camera;
+    }
+
     void write(std::string const&);
     void read(std::string const&);
 
@@ -154,6 +162,10 @@ namespace camera {
   };
 
   std::ostream& operator<<(std::ostream&, AdjustedCameraModel const&);
+
+  // If this is an adjusted model, get the unadjusted one.
+  CameraModel* unadjusted_model(CameraModel * cam);
+  const CameraModel* unadjusted_model(const CameraModel * cam);
 
   /// Error during projection of a 3D point onto the image plane.
   VW_DEFINE_EXCEPTION(PointToPixelErr, vw::Exception);
