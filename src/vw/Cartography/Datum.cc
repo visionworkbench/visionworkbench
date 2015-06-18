@@ -67,60 +67,60 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
 
   m_meridian_offset = 0;
   if (up_name == "WGS84" || up_name == "WGS_1984") {
-    m_name = "WGS_1984";
-    m_spheroid_name="WGS 84";
+    m_name            = "WGS_1984";
+    m_spheroid_name   = "WGS 84";
     m_semi_major_axis = 6378137.0;
     m_semi_minor_axis = 6356752.31424518;
-    m_proj_str = "+ellps=WGS84 +datum=WGS84";
+    m_proj_str        = "+ellps=WGS84 +datum=WGS84";
     return;
   }
 
   if (up_name == "WGS72" || up_name == "WGS_1972") {
-    m_name="WGS_1972";
-    m_spheroid_name="WGS 72";
+    m_name            = "WGS_1972";
+    m_spheroid_name   = "WGS 72";
     m_semi_major_axis = 6378135.0;
     m_semi_minor_axis = 6356750.5;
-    m_proj_str = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
+    m_proj_str        = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
     return;
   }
 
   if (up_name == "NAD83" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
-    m_name="North_American_Datum_1983";
-    m_spheroid_name="GRS 1980";
+    m_name            = "North_American_Datum_1983";
+    m_spheroid_name   = "GRS 1980";
     m_semi_major_axis = 6378137;
     m_semi_minor_axis = 6356752.31414036;
-    m_proj_str = "+ellps=GRS80 +datum=NAD83";
+    m_proj_str        = "+ellps=GRS80 +datum=NAD83";
     return;
   }
 
   if (up_name == "NAD27" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1927"))) {
-    m_name="North_American_Datum_1927";
-    m_spheroid_name="Clarke 1866";
+    m_name            = "North_American_Datum_1927";
+    m_spheroid_name   = "Clarke 1866";
     m_semi_major_axis = 6378206.4;
     m_semi_minor_axis = 6356583.8;
-    m_proj_str = "+ellps=clrk66 +datum=NAD27";
+    m_proj_str        = "+ellps=clrk66 +datum=NAD27";
     return;
   }
 
   if (up_name == "D_MOON") {
-    m_name = "D_MOON";
-    m_spheroid_name = "MOON";
-    m_meridian_name = "Reference Meridian";
+    m_name            = "D_MOON";
+    m_spheroid_name   = "MOON";
+    m_meridian_name   = "Reference Meridian";
     m_semi_major_axis = m_semi_minor_axis = 1737400;
     m_meridian_offset = 0.0;
-    m_proj_str = "+a=1737400 +b=1737400";
+    m_proj_str        = "+a=1737400 +b=1737400";
     return;
   }
 
   if (up_name == "D_MARS") {
-    m_name = "D_MARS";
-    m_spheroid_name = "MARS";
-    m_meridian_name = "Reference Meridian";
+    m_name            = "D_MARS";
+    m_spheroid_name   = "MARS";
+    m_meridian_name   = "Reference Meridian";
     m_semi_major_axis = m_semi_minor_axis = 3396190;
     m_meridian_offset = 0.0;
-    m_proj_str = "+a=3396190 +b=3396190";
+    m_proj_str        = "+a=3396190 +b=3396190";
     return;
   }
 
@@ -131,7 +131,8 @@ void vw::cartography::Datum::set_semi_major_axis(double val) {
   m_semi_major_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  if (m_geocentric) strm << " +geoc";
+  if (m_geocentric) 
+    strm << " +geoc";
   m_proj_str = strm.str();
 }
 
@@ -139,7 +140,8 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
   m_semi_minor_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  if (m_geocentric) strm << " +geoc";
+  if (m_geocentric) 
+    strm << " +geoc";
   m_proj_str = strm.str();
 }
 
@@ -198,15 +200,15 @@ double vw::cartography::Datum::geocentric_radius(double /*lon*/, double lat, dou
   if (m_semi_major_axis == m_semi_minor_axis) {
     return m_semi_major_axis + alt;
   }
-  double a = m_semi_major_axis;
-  double b = m_semi_minor_axis;
-  double a2 = a * a;
-  double b2 = b * b;
-  double e2 = (a2 - b2) / a2;
+  double a    = m_semi_major_axis;
+  double b    = m_semi_minor_axis;
+  double a2   = a * a;
+  double b2   = b * b;
+  double e2   = (a2 - b2) / a2;
   double rlat = lat * (M_PI/180);
   double slat = sin( rlat );
   double clat = cos( rlat );
-  double Rn = a / sqrt(1.0-e2*slat*slat) + alt;
+  double Rn   = a / sqrt(1.0-e2*slat*slat) + alt;
 
   return sqrt(Rn*Rn*(clat*clat + (1-e2)*(1-e2)*slat*slat));
 }
@@ -219,7 +221,7 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& l
   double lon = lonlat.x();
   double lat = lonlat.y();
   if ( lat < -90 ) lat = -90;
-  if ( lat > 90 ) lat = 90;
+  if ( lat >  90 ) lat =  90;
 
   double rlon = (lon + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
@@ -244,15 +246,15 @@ vw::Matrix3x3 vw::cartography::Datum::lonlat_to_ned_matrix( vw::Vector2 const& l
 }
 
 vw::Vector3 vw::cartography::Datum::geodetic_to_cartesian( vw::Vector3 const& llh ) const {
-  double a = m_semi_major_axis;
-  double b = m_semi_minor_axis;
+  double a  = m_semi_major_axis;
+  double b  = m_semi_minor_axis;
   double a2 = a * a;
   double b2 = b * b;
   double e2 = (a2 - b2) / a2;
 
   double lat = llh.y();
   if ( lat < -90 ) lat = -90;
-  if ( lat > 90 ) lat = 90;
+  if ( lat >  90 ) lat = 90;
 
   double rlon = (llh.x() + m_meridian_offset) * (M_PI/180);
   double rlat = lat * (M_PI/180);
@@ -343,10 +345,10 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
 }
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
-  os << "Geodeditic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
+  os << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
      << "  Semi-major: " << datum.semi_major_axis()
      << "  Semi-minor: " << datum.semi_minor_axis()
-     << "  Meridian: " << datum.meridian_name()
-     << "  at " << datum.meridian_offset();
+     << "  Meridian: "   << datum.meridian_name()
+     << "  at "          << datum.meridian_offset();
   return os;
 }
