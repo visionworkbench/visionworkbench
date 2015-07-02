@@ -32,10 +32,6 @@ camerabbox_headers = CameraBBox.h
 camerabbox_sources = CameraBBox.cc
 endif
 
-if HAVE_PKG_PROTOBUF
-protocol_headers = DatumDesc.pb.h GeoReferenceDesc.pb.h
-protocol_sources = DatumDesc.pb.cc GeoReferenceDesc.pb.cc
-endif
 
 include_HEADERS = GeoReferenceBase.h GeoReference.h                       \
                   GeoTransform.h Datum.h SimplePointImageManipulation.h   \
@@ -44,9 +40,6 @@ include_HEADERS = GeoReferenceBase.h GeoReference.h                       \
                   Projection.h ToastTransform.h Chipper.h $(gdal_headers) \
                   $(camerabbox_headers)
 
-if HAVE_PKG_PROTOBUF
-include_HEADERS += $(protocol_headers)
-endif
 
 detail_HEADERS =  detail/BresenhamLine.h
 
@@ -56,7 +49,7 @@ libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   Map2CamTrans.cc Chipper.cc $(gdal_sources)            \
                   $(camerabbox_sources)
 
-nodist_libvwCartography_la_SOURCES = $(protocol_sources)
+nodist_libvwCartography_la_SOURCES = 
 
 libvwCartography_la_LIBADD = @MODULE_CARTOGRAPHY_LIBS@
 
@@ -68,19 +61,16 @@ endif
 # general
 ########################################################################
 
-BUILT_SOURCES = $(protocol_sources)
+BUILT_SOURCES = 
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
 
 SUBDIRS = . tests
-CLEANFILES = $(protocol_headers) $(protocol_sources)
-EXTRA_DIST = DatumDesc.proto GeoReferenceDesc.proto $(protocol_headers) $(protocol_sources)
+CLEANFILES = 
+EXTRA_DIST = 
 
 includedir = $(prefix)/include/vw/Cartography
 detaildir = $(includedir)/detail
 
 include $(top_srcdir)/config/rules.mak
-if HAVE_PKG_PROTOBUF
-include $(top_srcdir)/thirdparty/protobuf.mak
-endif

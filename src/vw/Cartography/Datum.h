@@ -26,11 +26,6 @@
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
 
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-#include <vw/Cartography/DatumDesc.pb.h>
-#endif
-
-
 /// \file Datum.h Planetary ellipsoidal coordinate system.
 
 // For an excellent discussion of the various concepts, terms, and
@@ -79,22 +74,6 @@ namespace cartography {
           double             semi_major_axis,
           double             semi_minor_axis,
           double             meridian_offset);
-
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-    /// Build a constructor from a DatumDesc
-    Datum(DatumDesc const& desc) :
-        m_name           (desc.name()),
-        m_spheroid_name  (desc.spheroid_name()),
-        m_meridian_name  (desc.meridian_name()),
-        m_semi_major_axis(desc.semi_major_axis()),
-        m_semi_minor_axis(desc.semi_minor_axis()),
-        m_meridian_offset(desc.meridian_offset()),
-        m_geocentric     (desc.geocentric()),
-        m_proj_str       (desc.proj_str()) {}
-
-    /// Create a DatumDesc from the datum
-    DatumDesc build_desc() const;
-#endif
 
     /// Options include: WGS84, WGS72, NAD27, or NAD83.
     void set_well_known_datum(std::string const& name);

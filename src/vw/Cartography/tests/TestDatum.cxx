@@ -97,18 +97,6 @@ vw::Vector3 vermille_2011_cart_to_geodetic( Datum const& d, Vector3 const& cart 
   return llh;
 }
 
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-TEST( Datum, DatumDesc ) {
-  Datum datum("NAD27");
-
-  DatumDesc desc = datum.build_desc();
-
-  Datum datum2(desc);
-
-  EXPECT_EQ(datum.build_desc().DebugString(), datum2.build_desc().DebugString());
-}
-#endif
-
 TEST( Datum, GeodeticConversion ) {
   Datum datum("WGS84");
 

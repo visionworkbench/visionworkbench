@@ -20,9 +20,6 @@
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
 
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-#include <vw/Cartography/DatumDesc.pb.h>
-#endif
 
 vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& spheroid_name,
@@ -42,22 +39,6 @@ vw::cartography::Datum::Datum(std::string const& name,
   strm << "+a=" << semi_major_axis << " +b=" << semi_minor_axis;
   m_proj_str = strm.str();
 }
-
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-vw::cartography::DatumDesc vw::cartography::Datum::build_desc() const {
-  vw::cartography::DatumDesc desc;
-  desc.set_name(m_name);
-  desc.set_spheroid_name(m_spheroid_name);
-  desc.set_meridian_name(m_meridian_name);
-  desc.set_semi_major_axis(m_semi_major_axis);
-  desc.set_semi_minor_axis(m_semi_minor_axis);
-  desc.set_meridian_offset(m_meridian_offset);
-  desc.set_geocentric(m_geocentric);
-  desc.set_proj_str(m_proj_str);
-
-  return desc;
-}
-#endif
 
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_meridian_name = "Greenwich";

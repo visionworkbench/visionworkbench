@@ -28,10 +28,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-#include <vw/Cartography/GeoReferenceDesc.pb.h>
-#endif
-
 /// \file GeoReference.h Class for converting between pixel and geo coordinates.
 
 namespace vw {
@@ -102,14 +98,6 @@ namespace cartography {
     /// Takes a geodetic datum and an affine transformation matrix and
     /// pixel interpretation
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation);
-
-#if defined(VW_HAVE_PKG_PROTOBUF) && VW_HAVE_PKG_PROTOBUF==1
-    /// Construct a GeoReference from a GeoReferenceDesc
-    GeoReference(GeoReferenceDesc const& desc);
-
-    /// Create a GeoReferenceDesc for the georef
-    GeoReferenceDesc build_desc();
-#endif
 
     /// Destructor.
     virtual ~GeoReference() {}
