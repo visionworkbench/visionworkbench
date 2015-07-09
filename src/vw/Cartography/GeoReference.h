@@ -135,10 +135,12 @@ namespace cartography {
     void set_transverse_mercator  (double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
     /// Use orthographic projection
     void set_orthographic         (double center_latitude,     double center_longitude,     double false_easting = 0, double false_northing = 0);
-    /// Use steregraphic projection
+    /// Use stereographic projection
     void set_stereographic        (double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
-    /// Use oblique steregraphic projection
+    /// Use oblique stereographic projection
     void set_oblique_stereographic(double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
+    /// Use gnomonic projection
+    void set_gnomonic        (double center_latitude,     double center_longitude,     double scale,             double false_easting = 0, double false_northing = 0);
     /// Use Lambert Azimuthal projection
     void set_lambert_azimuthal    (double center_latitude,     double center_longitude,     double false_easting = 0, double false_northing = 0);
     /// Use Lambert (Conic) Conformal projection with two standard parallels
