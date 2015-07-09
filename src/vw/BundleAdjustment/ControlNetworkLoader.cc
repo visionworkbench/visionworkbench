@@ -76,7 +76,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
 
   // 4.2.) Summing, Averaging, and Storing
   if ( !count ) {
-    vw_out(WarningMessage,"ba") << "Unable to triangulation position for point!\n";
+    vw_out(WarningMessage,"ba") << "Unable to triangulate point!\n";
     // At the very least we can provide a point that is some
     // distance out from the camera center and is in the 'general'
     // area.
@@ -94,7 +94,7 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
   }
 }
 
-void vw::ba::build_control_network( bool triangulate_control_points,
+bool vw::ba::build_control_network( bool triangulate_control_points,
                                     ba::ControlNetwork& cnet,
                                     std::vector<boost::shared_ptr<camera::CameraModel> >
                                     const& camera_models,
@@ -120,7 +120,7 @@ void vw::ba::build_control_network( bool triangulate_control_points,
   // Look for match files starting with given prefix.
   std::vector<std::string> match_files;
   std::vector<size_t> index1_vec, index2_vec;
-  
+
   // Searching through the directories available to us.
   typedef std::map<std::string,size_t>::iterator MapIterator;
   int num_images = image_files.size();
@@ -144,13 +144,13 @@ void vw::ba::build_control_network( bool triangulate_control_points,
       index2_vec.push_back(it2->second);
     }
   }
-  
+
   size_t num_load_rejected = 0, num_loaded = 0;
   for (size_t file_iter  =  0; file_iter < match_files.size(); file_iter++){
     std::string match_file = match_files[file_iter];
     size_t index1 = index1_vec[file_iter];
     size_t index2 = index2_vec[file_iter];
-    
+
     // Actually read in the file as it seems we've found something correct
     std::vector<ip::InterestPoint> ip1, ip2;
     vw_out(DebugMessage,"ba") << "Loading: " << match_file << std::endl;
@@ -205,7 +205,7 @@ void vw::ba::build_control_network( bool triangulate_control_points,
   }
 
   // Building control network
-  crn.write_controlnetwork( cnet );
+  bool success = crn.write_controlnetwork( cnet );
 
   // Triangulating Positions
   if (triangulate_control_points){
@@ -219,4 +219,5 @@ void vw::ba::build_control_network( bool triangulate_control_points,
     }
     progress.report_finished();
   }
+  return success;
 }

@@ -43,7 +43,7 @@
 namespace vw {
 namespace ba {
 
-/** \addtogroup BundleAdjustment 
+/** \addtogroup BundleAdjustment
  *  @{
  */
 
@@ -213,7 +213,7 @@ namespace ba {
     void add_node( cnode const& node );
     void build_map();
     void read_controlnetwork( ControlNetwork const& cnet );
-    void write_controlnetwork( ControlNetwork & cnet ) const;
+    bool write_controlnetwork( ControlNetwork & cnet ) const;
   };
 
 

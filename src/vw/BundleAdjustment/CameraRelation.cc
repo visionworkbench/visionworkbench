@@ -132,7 +132,7 @@ namespace ba {
   }
 
   template <class FeatureT>
-  void CameraRelationNetwork<FeatureT>::write_controlnetwork( ControlNetwork & cnet ) const {
+  bool CameraRelationNetwork<FeatureT>::write_controlnetwork( ControlNetwork & cnet ) const {
 
     if ( this->size() == 0 )
       vw_throw( ArgumentErr() << "CameraRelation network is empty." );
@@ -216,8 +216,13 @@ namespace ba {
                                         << spiral_error_count
                                         << " control points removed due to spiral errors.\n";
     }
-    VW_ASSERT( cnet.size() != 0,
-               Aborted() << "Failed to load any points, Control Network empty\n" );
+    if ( cnet.size() == 0) {
+      vw_out(WarningMessage,"ba")
+        << "Failed to load any points, control network is empty.";
+      return false;
+    }
+
+    return true;
   }
 
   // Explicit template Instantiation

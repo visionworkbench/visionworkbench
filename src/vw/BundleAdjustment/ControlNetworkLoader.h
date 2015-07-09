@@ -36,7 +36,7 @@ namespace ba {
   // image names. This function uses Boost::FS to then find match files
   // that would have been created by 'ipmatch' by searching the entire
   // permutation of the image_files vector.
-  void build_control_network(bool triangulate_points,
+  bool build_control_network(bool triangulate_points,
                              ControlNetwork& cnet,
                               std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                               std::vector<std::string> const& image_files,
@@ -71,7 +71,7 @@ namespace ba {
     }
 
     while ( gcp_start != gcp_end ) {
-      
+
       if ( !fs::exists( *gcp_start ) ) {
         gcp_start++;
         continue;
@@ -82,10 +82,10 @@ namespace ba {
       std::ifstream ifile( (*gcp_start).c_str() );
       std::string line;
       while ( getline(ifile, line, '\n') ){
-        
+
         // Skip empty lines or lines starting with comments
         if (line.size() == 0) continue;
-        if (line.size() > 0 && line[0] == '#') continue; 
+        if (line.size() > 0 && line[0] == '#') continue;
 
         boost::replace_all(line, ",", " ");
 
@@ -94,9 +94,9 @@ namespace ba {
         std::vector<std::string> measure_cameras;
         int point_id;
         Vector3 world_location, world_sigma;
-        
+
         std::istringstream is(line);
-        
+
         // First elements in the line are the point id, location in
         // the world, and its sigmas
         if (!(is >> point_id >> world_location[0] >> world_location[1]
@@ -106,7 +106,7 @@ namespace ba {
                                  << "from line: " << line << std::endl;
           continue;
         }
-        
+
         // Other elements in the line define the position in images
         while(1){
           std::string temp_name;
@@ -130,16 +130,16 @@ namespace ba {
 
         // Make lat,lon into lon,lat
         std::swap(world_location[0], world_location[1]);
-        
+
         // Building Control Point
         Vector3 xyz = datum.geodetic_to_cartesian(world_location);
-        
+
         vw_out(VerboseDebugMessage,"ba") << "\t\tLocation: "
                                          << xyz << std::endl;
         ControlPoint cpoint(ControlPoint::GroundControlPoint);
         cpoint.set_position(xyz[0],xyz[1],xyz[2]);
         cpoint.set_sigma(world_sigma[0],world_sigma[1],world_sigma[2]);
-        
+
         // Adding measures
         std::vector<Vector4>::iterator m_iter_loc = measure_locations.begin();
         std::vector<std::string>::iterator m_iter_name = measure_cameras.begin();
@@ -158,12 +158,12 @@ namespace ba {
           m_iter_loc++;
           m_iter_name++;
         }
-        
+
         // Appended GCP
         cnet.add_control_point(cpoint);
       }
       ifile.close();
-      
+
       gcp_start++;
     }
   }
