@@ -38,6 +38,7 @@
 #include <iostream>
 #include <limits>
 
+
 /**
 The objective is to split the region into non-overlapping blocks, each
 containing approximately the same number of points, as specified by the
@@ -66,7 +67,7 @@ spare since the wide array already contains the desired points partitioned
 into two blocks.  We simply need to locate the maximum and minimum values
 from the narrow array so that the approriate extrema of the block can
 be stored.
-**/
+*/
 
 // This code was hacked a bit by Oleg to convert the chips to
 // Cartesian xyz values and store then in a tif image. Each chip will

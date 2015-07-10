@@ -344,8 +344,8 @@ namespace vw {
 
     // Store away relevent information into the internal data
     // structure for this DiskImageResource
-    m_filename = filename;
-    m_format = format;
+    m_filename  = filename;
+    m_format    = format;
     m_blocksize = block_size;
 
     m_options = user_options;

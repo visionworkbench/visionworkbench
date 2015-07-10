@@ -69,6 +69,7 @@ namespace vw {
     typedef typename PixelChannelCast<PixelT,typename MakeReal<typename PixelChannelType<PixelT>::type>::type>::type type;
   };
 
+  /// Use this to get the raw underlying type of an image type (ex: double, int, float)
   template <class T>
   struct ImageChannelType {
     typedef typename PixelChannelType<typename T::pixel_type>::type type;

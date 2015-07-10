@@ -4,7 +4,7 @@
 /******************************************************************************
  * $Id$
  *
- * Project:  PDAL - http://pdal.org - A BSD library for point cloud data.
+ * Project:  PDAL - http://www.pdal.io/index.html - A BSD library for point cloud data.
  * Purpose:  PDAL chipper class
  * Author:   Howard Butler, hobu.inc@gmail.com
  *
@@ -45,6 +45,14 @@
 #include <vw/Math/Vector.h>
 #include <vw/Image/ImageView.h>
 #include <vw/Cartography/GeoReference.h>
+
+
+/**
+The objective is to split the region into non-overlapping blocks, each
+containing approximately the same number of points, as specified by the
+user.  We'd also like the blocks closer to square than not.
+
+**/
 
 namespace pdal
 {

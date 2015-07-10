@@ -206,7 +206,7 @@ int handle_options(int argc, char *argv[], Options& opt) {
   po::options_description general_options("Description: Turns georeferenced image(s) into a quadtree with geographical metadata\n\nGeneral Options");
   general_options.add_options()
     ("output-name,o", po::value(&opt.output_file_name), "Specify the base output directory")
-    ("help,h", po::bool_switch(&opt.help), "Display this help message");
+    ("help,h",        po::bool_switch(&opt.help),       "Display this help message");
 
   po::options_description input_options("Input Options");
   string datum_desc = string("Override input datum [") + DatumOverride::list() + "]";
@@ -267,9 +267,9 @@ int handle_options(int argc, char *argv[], Options& opt) {
 
   std::ostringstream usage;
   usage << "Usage: image2qtree [options] <filename>..." <<endl << endl;
-  usage << general_options << endl;
-  usage << input_options << endl;
-  usage << output_options << endl;
+  usage << general_options    << endl;
+  usage << input_options      << endl;
+  usage << output_options     << endl;
   usage << projection_options << endl;
 
   try {
@@ -307,8 +307,7 @@ void run(const Options& opt) {
   if(opt.channel_type != Channel::NONE)
     fmt.channel_type = channel_name_to_enum(opt.channel_type.string());
 
-  // Convert non-alpha channel images into images with one for the
-  // composite.
+  // Convert non-alpha channel images into images with one for the composite.
   switch(fmt.pixel_format) {
   case VW_PIXEL_GRAY:
   case VW_PIXEL_GRAYA:

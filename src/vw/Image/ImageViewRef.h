@@ -194,8 +194,7 @@ namespace vw {
     // such as in STL containers.
     ImageViewRef() : m_view( new ImageViewRefImpl<ImageView<PixelT> >(ImageView<PixelT>()) ) {}
 
-    // Assignment constructor creates an ImageViewRef from another
-    // ImageView.
+    // Assignment constructor creates an ImageViewRef from another ImageView.
     template <class ViewT> ImageViewRef( ImageViewBase<ViewT> const& view ) : m_view( new ImageViewRefImpl<ViewT>(view) ) {}
     ~ImageViewRef() {}
 
@@ -208,8 +207,7 @@ namespace vw {
     // These difficult enable-ifs are to avoid ambigious operator
     // overload. The rule below is, if the user passes anything float
     // like, we'll cast all of the input to double. This is done with
-    // out consideration if the underlining type really is floating
-    // point accessible.
+    // out consideration if the underlining type really is floating point accessible.
     template <class T1, class T2>
     inline typename boost::enable_if<boost::mpl::and_<boost::is_integral<T1>,boost::is_integral<T2> >,pixel_type>::type
     operator()( T1 i, T2 j, int32 p=0 ) const {
@@ -245,8 +243,7 @@ namespace vw {
 
     // A special performance-enhancing overload for rasterizing directly into
     // an ImageView with the proper pixel type.  This cannot be templatized
-    // or otherwise generalized because it calls m_view's virtual rasterize
-    // method.
+    // or otherwise generalized because it calls m_view's virtual rasterize method.
     inline void rasterize( ImageView<PixelT> const& dest, BBox2i const& bbox ) const {
       m_view->rasterize( dest, bbox );
     }

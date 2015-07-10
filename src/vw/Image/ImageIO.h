@@ -245,6 +245,7 @@ namespace vw {
   };
 
 
+  /// Write an image to disk using multiple threads operating on tiles in parallel.
   template <class ImageT>
   void block_write_image( DstImageResource& resource, ImageViewBase<ImageT> const& image,
                           const ProgressCallback &progress_callback = ProgressCallback::dummy_instance() ) {
