@@ -147,6 +147,10 @@ namespace camera {
     void set_axis_angle_rotation(VectorBase<VectorT> const& v) {
       this->set_rotation( axis_angle_to_quaternion(v.impl()) );
     }
+    template <class VectorT>
+    void set_pixel_offset(VectorBase<VectorT> const& v) {
+      m_pixel_offset = v.impl();
+    }
 
     virtual Vector2 point_to_pixel (Vector3 const&) const;
     virtual Vector3 pixel_to_vector (Vector2 const&) const;
