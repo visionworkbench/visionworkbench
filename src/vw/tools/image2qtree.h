@@ -220,6 +220,8 @@ void do_normal_mosaic(const Options& opt, const vw::ProgressCallback *progress) 
   }
 
   vw_out() << "Generating " << opt.mode.string() << " overlay..." << std::endl;
+  vw_out() << "Writing: " << opt.output_file_name << std::endl;
+
   quadtree.generate( *progress );
 }
 
@@ -275,7 +277,7 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     // Even though the output georeference starts at -180, and input georef may start
     // close to 180, here we don't want to correct for this discrepancy.
     geotx.set_offset(Vector2(0, 0));
-    
+
     ImageViewRef<PixelT> source = DiskImageView<PixelT>( file );
 
     // Handle nodata values/mask
@@ -364,17 +366,17 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
     BBox2i bbox = total_bbox;
     // Compute a tighter Google Earth coordinate system aligned bounding box.
     int dim = 2 << (int)(log( (double)(std::max)(bbox.width(),bbox.height()) )/log(2.));
-    if( dim > total_resolution ) 
+    if( dim > total_resolution )
       dim = total_resolution;
     total_bbox = BBox2i( (bbox.min().x()/dim)*dim, (bbox.min().y()/dim)*dim, dim, dim );
     if( ! total_bbox.contains( bbox ) ) {
-      if( total_bbox.max().x() == xresolution ) 
+      if( total_bbox.max().x() == xresolution )
         total_bbox.min().x() -= dim;
-      else 
+      else
         total_bbox.max().x() += dim;
-      if( total_bbox.max().y() == yresolution ) 
+      if( total_bbox.max().y() == yresolution )
         total_bbox.min().y() -= dim;
-      else 
+      else
         total_bbox.max().y() += dim;
     }
   }
@@ -431,6 +433,8 @@ void do_mosaic(const Options& opt, const vw::ProgressCallback *progress) {
 
   // Generate the composite.
   vw_out() << "Generating " << opt.mode.string() << " overlay..." << std::endl;
+  vw_out() << "Writing: " << opt.output_file_name << std::endl;
+
   quadtree.generate(*progress);
 }
 

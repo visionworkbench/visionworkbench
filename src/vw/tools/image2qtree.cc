@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file image2geotree.cc
+/// \file image2qtree.cc
 ///
 /// This program takes a georeferenced image as its input, and outputs
 /// a quadtree for that image that is viewable in various terrain display
