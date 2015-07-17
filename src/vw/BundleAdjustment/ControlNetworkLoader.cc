@@ -200,7 +200,9 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
 
   if ( num_load_rejected != 0 ) {
     vw_out(WarningMessage,"ba") << "\tDidn't load " << num_load_rejected
-                                << " matches due to inadequacy.\n";
+                                << " matches due to inadequacy. Decrease the"
+                                << " --min-matches parameter to load smaller "
+                                << "sets of matches.\n";
     vw_out(WarningMessage,"ba") << "\tLoaded " << num_loaded << " matches.\n";
   }
 
