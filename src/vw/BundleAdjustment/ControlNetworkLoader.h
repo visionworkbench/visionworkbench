@@ -41,7 +41,7 @@ namespace ba {
                               std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,
                               std::vector<std::string> const& image_files,
                               size_t min_matches,
-                              std::string const& prefix = "");
+                             std::string const& prefix, double min_angle);
 
   void triangulate_control_point( ControlPoint& cp,
                                   std::vector<boost::shared_ptr<camera::CameraModel> > const& camera_models,

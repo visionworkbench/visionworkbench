@@ -58,7 +58,6 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
     size_t k_cam_id = cp[k].image_id();
     if ( norm_2( camera_models[j_cam_id]->camera_center( cp[j].position() ) -
                  camera_models[k_cam_id]->camera_center( cp[k].position() ) ) > 1e-6 ) {
-
       try {
         stereo::StereoModel sm( camera_models[ j_cam_id ].get(),
                                 camera_models[ k_cam_id ].get() );
@@ -70,7 +69,9 @@ void vw::ba::triangulate_control_point( ControlPoint& cp,
           position_sum += sm( cp[j].position(), cp[k].position(), error );
           error_sum += error;
         }
-      } catch ( const camera::PixelToRayErr& ) { /* Just let it go */ }
+      } catch ( const camera::PixelToRayErr& ) {
+        /* Just let it go */
+      }
     }
   }
 
@@ -100,7 +101,8 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
                                     const& camera_models,
                                     std::vector<std::string> const& image_files,
                                     size_t min_matches,
-                                    std::string const& prefix) {
+                                    std::string const& prefix,
+                                    double min_angle) {
   cnet.clear();
 
   // We can't guarantee that image_files is sorted, so we make a
@@ -214,7 +216,6 @@ bool vw::ba::build_control_network( bool triangulate_control_points,
     TerminalProgressCallback progress("ba", "Triangulating:");
     progress.report_progress(0);
     double inc_prog = 1.0/double(cnet.size());
-    double min_angle = 5.0*M_PI/180.0;
     BOOST_FOREACH( ba::ControlPoint& cpoint, cnet ) {
       progress.report_incremental_progress(inc_prog );
       ba::triangulate_control_point( cpoint, camera_models, min_angle );
