@@ -42,14 +42,9 @@ TEST( GeoReference, Core) {
 
   Vector2 pix = georef.point_to_pixel(Vector2(30,-35));
   EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
-  pix = georef2.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2() );
 
   georef.set_pixel_interpretation(GeoReference::PixelAsArea);
-  georef2.set_pixel_interpretation(GeoReference::PixelAsArea);
   pix = georef.point_to_pixel(Vector2(30,-35));
-  EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
-  pix = georef2.point_to_pixel(Vector2(30,-35));
   EXPECT_VECTOR_DOUBLE_EQ( pix, Vector2(-0.5,-0.5) );
 }
 
@@ -419,12 +414,12 @@ TEST(GeoReference, NED_MATRIX) {
   // Test the lonlat_to_ned_matrix() function. Create a Cartesian
   // vector which is a combination of vectors pointing North, East,
   // and down. See if this matrix can find correctly the combination.
-  
+
   Matrix3x3 test_transform;
   test_transform(0,0) = 1.2; test_transform(0,1) = 3.2;
   test_transform(1,1) = 4.5; test_transform(1,2) = 6.3;
   test_transform(2,2) = 1; test_transform(2,1) = 0;
-  
+
   Datum test_datum("D_MOON");
   GeoReference georef(test_datum, test_transform);
 
@@ -445,15 +440,15 @@ TEST(GeoReference, NED_MATRIX) {
   xyz_lon   = (xyz_eps_p - xyz_eps_m)/eps; xyz_lon = xyz_lon/norm_2(xyz_lon);
 
   // Vector pointing down
-  xyz_rad = -xyz/norm_2(xyz); 
+  xyz_rad = -xyz/norm_2(xyz);
 
   Vector3   q  = 1*xyz_lat + 2*xyz_lon + 3*xyz_rad;
   Matrix3x3 M  = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
   Vector3   Mq = M*q;
-  
+
   EXPECT_LT(norm_2( M*q - Vector3(1, 2, 3)), 1.0e-8 );
-  
-}  
+
+}
 
 #if 0
 
@@ -495,10 +490,10 @@ void georefMatchTest(const GeoReference &georef)
 
       Vector2 point3  = georef.lonlat_to_point(lonlat2);
       Vector2 pixel3  = georef.lonlat_to_pixel(lonlat2);
-      
+
       // Also check that we can go from lon to lon (at least in a limited range)
       Vector2 lonlat3 = georef.point_to_lonlat(point2);
-     
+
       EXPECT_LT(fabs(pixel1 [0] - pixel2 [0]), MAX_PIXEL_DIFF ); // Did we reproject back to the same pixel?
       EXPECT_LT(fabs(pixel1 [1] - pixel2 [1]), MAX_PIXEL_DIFF );
       EXPECT_LT(fabs(point1 [0] - point2 [0]), MAX_POINT_DIFF ); // Did we go back and forth through the same point?
@@ -522,7 +517,7 @@ void georefMatchTest(const GeoReference &georef)
       lastDiffX   = diffX;
       lastDiffLon = diffLon;
       lastX       = point2[0];
-      lastLon     = lonlat1[0]; 
+      lastLon     = lonlat1[0];
 
     }
   }
