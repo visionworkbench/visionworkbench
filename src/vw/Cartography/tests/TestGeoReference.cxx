@@ -444,8 +444,6 @@ TEST(GeoReference, NED_MATRIX) {
 
   Vector3   q  = 1*xyz_lat + 2*xyz_lon + 3*xyz_rad;
   Matrix3x3 M  = georef.datum().lonlat_to_ned_matrix(subvector(G, 0, 2));
-  Vector3   Mq = M*q;
-
   EXPECT_LT(norm_2( M*q - Vector3(1, 2, 3)), 1.0e-8 );
 
 }
