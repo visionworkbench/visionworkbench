@@ -690,17 +690,19 @@ namespace vw {
   // class TransformView
   // ------------------------
 
-  // An image view for transforming an image with an arbitrary mapping functor.
+  /// An image view for transforming an image with an arbitrary mapping functor.
+  /// - Basically what this view does is to apply a geometric transform to the
+  ///   input i,j coordinates when the accessor operator (i, j) is called.
   template <class ImageT, class TransformT>
   class TransformView : public ImageViewBase<TransformView<ImageT,TransformT> > {
 
-    ImageT m_image;
+    ImageT     m_image;
     TransformT m_mapper;
-    int32 m_width, m_height;
+    int32      m_width, m_height;
 
   public:
     typedef typename ImageT::pixel_type pixel_type;
-    typedef pixel_type result_type;
+    typedef                  pixel_type result_type;
     typedef ProceduralPixelAccessor<TransformView> pixel_accessor;
 
     // The default constructor creates a tranformed image with the
@@ -708,13 +710,12 @@ namespace vw {
     TransformView( ImageT const& view, TransformT const& mapper ) :
       m_image(view), m_mapper(mapper), m_width(view.cols()), m_height(view.rows()) {}
 
-    // This constructor allows you to specify the size of the
-    // transformed image.
+    // This constructor allows you to specify the size of the transformed image.
     TransformView( ImageT const& view, TransformT const& mapper, int32 width, int32 height ) :
       m_image(view), m_mapper(mapper), m_width(width), m_height(height) {}
 
-    inline int32 cols() const { return m_width; }
-    inline int32 rows() const { return m_height; }
+    inline int32 cols  () const { return m_width;          }
+    inline int32 rows  () const { return m_height;         }
     inline int32 planes() const { return m_image.planes(); }
 
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0 ); }
@@ -724,7 +725,7 @@ namespace vw {
       return m_image(pt_backprojected[0], pt_backprojected[1], p);
     }
 
-    ImageT const& child() const { return m_image; }
+    ImageT     const& child()     const { return m_image;  }
     TransformT const& transform() const { return m_mapper; }
 
     // \cond INTERNAL

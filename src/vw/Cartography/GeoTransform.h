@@ -31,18 +31,20 @@
 namespace vw {
 namespace cartography {
 
+  /// Transforms between pixel coordinates of two images, 
+  /// each with an associated georeference object.
   class GeoTransform : public TransformHelper<GeoTransform,ContinuousFunction,ContinuousFunction> {
 
     GeoReference m_src_georef;
     GeoReference m_dst_georef;
-    ProjContext m_src_proj, m_dst_proj;
-    bool m_skip_map_projection;
-    bool m_skip_datum_conversion;
-    Vector2 m_offset;
+    ProjContext  m_src_proj, 
+                 m_dst_proj;
+    bool         m_skip_map_projection;
+    bool         m_skip_datum_conversion;
+    Vector2      m_offset;
     
-    /* Converts between datums. The parameter 'forward' specifies whether
-     * we convert forward (true) or reverse (false).
-    */
+    // Converts between datums. The parameter 'forward' specifies whether
+    // we convert forward (true) or reverse (false).
     Vector2 datum_convert(Vector2 const& v, bool forward) const;
 
   public:
@@ -89,6 +91,8 @@ namespace cartography {
   // Functional API
   // ---------------------------------------------------------------------------
 
+  
+
   /// Returns a transformed image view.  The user can specify the type
   /// of interpolation and edge extension to be done by supplying the
   /// appropriate functors in the last two arguments.  For example:
@@ -131,8 +135,7 @@ namespace cartography {
   /// This variant of transform allows the user to specify the
   /// dimensions of the transformed image.  The upper left hand point
   /// (0,0) stays fixed.  For a more flexible method of cropping to an
-  /// arbitrary bounding box, use one of the transform methods defined
-  /// below.
+  /// arbitrary bounding box, use one of the transform methods defined below.
   template <class ImageT, class EdgeT, class InterpT>
   TransformView<InterpolationView<EdgeExtensionView<ImageT, EdgeT>, InterpT>, GeoTransform>
   inline geo_transform( ImageViewBase<ImageT> const& v,

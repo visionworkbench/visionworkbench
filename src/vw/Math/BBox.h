@@ -34,8 +34,11 @@
 namespace vw {
 namespace math {
 
+  // TODO: Move these to Vector.h and delete this namespace
   /// \cond INTERNAL
   namespace vector_containment_comparison {
+
+    /// Implement < operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline bool operator<( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
@@ -44,6 +47,7 @@ namespace math {
       return true;
     }
 
+    /// Implement <= operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline bool operator<=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
@@ -52,6 +56,7 @@ namespace math {
       return true;
     }
 
+    /// Implement > operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline bool operator>( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
@@ -60,6 +65,7 @@ namespace math {
       return true;
     }
 
+    /// Implement >= operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline bool operator>=( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compare vectors of different lengths." );
@@ -68,6 +74,7 @@ namespace math {
       return true;
     }
 
+    /// Implement max() operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline VectorT1 max( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute max of vectors of different lengths." );
@@ -78,6 +85,7 @@ namespace math {
       return v3;
     }
 
+    /// Implement min() operation for VectorBase
     template <class VectorT1, class VectorT2>
     inline VectorT1 min( VectorBase<VectorT1> const& v1, VectorBase<VectorT2> const& v2 ) {
       VW_ASSERT( v1.impl().size() == v2.impl().size(), ArgumentErr() << "Cannot compute min of vectors of different lengths." );
@@ -115,7 +123,7 @@ namespace math {
           m_max[i] = std::numeric_limits<RealT>::min();
         }
       }
-      else {
+      else { // Not an integer
         for (size_t i = 0; i < m_min.size(); ++i) {
           m_min[i] = std::numeric_limits<RealT>::max();
           m_max[i] = static_cast<RealT>(-std::numeric_limits<RealT>::max());
@@ -184,24 +192,25 @@ namespace math {
     template <class VectorT>
     bool contains( const VectorBase<VectorT> &point ) const {
       using namespace vector_containment_comparison;
-      VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
+      VW_ASSERT(m_min.size() == 0 || point.impl().size() == m_min.size(), 
+                ArgumentErr() << "Vector must have dimension " << m_min.size() << ".");
       return ((m_min.size() != 0) && (point >= m_min) && (point < m_max));
     }
 
-    /// Returns true if the given bounding box is entirely contained
-    /// in this bounding box.
+    /// Returns true if the given bounding box is entirely contained in this bounding box.
     template <class BBoxT1, class RealT1, size_t DimN1>
     bool contains( const BBoxBase<BBoxT1, RealT1, DimN1> &bbox ) const {
       using namespace vector_containment_comparison;
-      VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
+      VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
+                ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
       return ((m_min.size() != 0) && (bbox.min() >= m_min) && (bbox.max() <= m_max));
     }
 
-    /// Returns true if the given bounding box intersects this
-    /// bounding box.
+    /// Returns true if the given bounding box intersects this bounding box.
     template <class BBoxT1, class RealT1, size_t DimN1>
     bool intersects( const BBoxBase<BBoxT1, RealT1, DimN1>& bbox ) const {
-      VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
+      VW_ASSERT(m_min.size() == 0 || bbox.min().size() == m_min.size(), 
+                ArgumentErr() << "BBox must have dimension " << m_min.size() << ".");
       for( size_t i=0; i<m_min.size(); ++i ) {
         if( m_min[i] >= bbox.max()[i] ||
             m_max[i] <= bbox.min()[i] )
@@ -323,7 +332,10 @@ namespace math {
 
   protected:
     Vector<RealT, DimN> m_min, m_max;
-  };
+  }; // End class BBoxBase
+
+  // Overloaded functions for operating on BBoxBase
+  // - Some of these operations should probably have been named class functions.
 
   /// Scales a bounding box relative to the origin.
   template <class BBoxT, class RealT, size_t DimN, class ScalarT>
@@ -407,8 +419,11 @@ namespace math {
     return BBoxT( elem_quot(bbox.min(),v), elem_quot(bbox.max(),v) );
   }
 
+  // End functions for BBoxBase
+  //--------------------------------------------------------------------
+
   // *******************************************************************
-  // class BBox
+  // class BBox - Fixed dimensions
   // *******************************************************************
 
   /// A general fixed-dimensional axis-aligned bounding box class,
@@ -492,6 +507,10 @@ namespace math {
     }
   };
 
+  // *******************************************************************
+  // class BBox - Variable dimensions
+  // *******************************************************************
+
   /// A general arbitrary-dimensional axis-aligned bounding box class,
   /// represented by vectors pointing to the minimal and maximal corners.
   template <class RealT>
@@ -504,8 +523,7 @@ namespace math {
     /// to grow your bounding box to fit a collection of items.
     BBox() : BBoxBase<BBox<RealT, 0>, RealT, 0>() {}
 
-    /// Constructs a bounding box with the given minimal and maximal
-    /// points.
+    /// Constructs a bounding box with the given minimal and maximal points.
     BBox( Vector<RealT, 0> const& min, Vector<RealT, 0> const& max ) :
       BBoxBase<BBox<RealT, 0>, RealT, 0>( min, max ) {}
 
@@ -543,8 +561,7 @@ namespace math {
       return (this->min().size() <= 0);
     }
 
-    /// Returns the width (i.e. size in the first dimension) of the
-    /// bounding box.
+    /// Returns the width (i.e. size in the first dimension) of the bounding box.
     RealT width() const {
       VW_ASSERT(this->min().size() >= 1, LogicErr() << "BBox must be of dimension >= 1 to get width.");
       if (empty()) return 0.0; // Bug fix for underflow/overflow
@@ -552,8 +569,7 @@ namespace math {
     }
 
     /// Returns the height (i.e. size in the second dimension) of the
-    /// bounding box.  Only valid for bouding boxes of dimension two
-    /// or greater.
+    /// bounding box.  Only valid for bouding boxes of dimension two or greater.
     RealT height() const {
       VW_ASSERT(this->min().size() >= 2, LogicErr() << "BBox must be of dimension >= 2 to get height.");
       if (empty()) return 0.0; // Bug fix for underflow/overflow
@@ -561,8 +577,7 @@ namespace math {
     }
 
     /// Returns the depth (i.e. size in the third dimension) of the
-    /// bounding box.  Only valid for bouding boxes of dimension three
-    /// or greater.
+    /// bounding box.  Only valid for bouding boxes of dimension three or greater.
     RealT depth() const {
       VW_ASSERT(this->min().size() >= 3, LogicErr() << "BBox must be of dimension >= 3 to get depth.");
       if (empty()) return 0.0; // Bug fix for underflow/overflow
@@ -581,15 +596,15 @@ namespace math {
   typedef BBox<float32, 2> BBox2f;
   typedef BBox<float32, 3> BBox3f;
   typedef BBox<float32, 4> BBox4f;
-  typedef BBox<int32, 2> BBox2i;
-  typedef BBox<int32, 3> BBox3i;
-  typedef BBox<int32, 4> BBox4i;
-  typedef BBox<uint32, 2> BBox2u;
-  typedef BBox<uint32, 3> BBox3u;
-  typedef BBox<uint32, 4> BBox4u;
-  typedef BBox<float64> BBoxN;
-  typedef BBox<float32> BBoxNf;
-  typedef BBox<int32> BBoxNi;
+  typedef BBox<int32,   2> BBox2i;
+  typedef BBox<int32,   3> BBox3i;
+  typedef BBox<int32,   4> BBox4i;
+  typedef BBox<uint32,  2> BBox2u;
+  typedef BBox<uint32,  3> BBox3u;
+  typedef BBox<uint32,  4> BBox4u;
+  typedef BBox<float64   > BBoxN;
+  typedef BBox<float32   > BBoxNf;
+  typedef BBox<int32     > BBoxNi;
 
   /// A helper function to grow a floating-point bounding box
   /// to the smallest enclosing integer bounding box.

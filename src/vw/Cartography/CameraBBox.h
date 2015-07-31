@@ -39,6 +39,8 @@
 namespace vw {
 namespace cartography {
 
+  // TODO: Move all of these intersection functions to a more sensible location!
+
   // Intersect the ray back-projected from the camera with the datum.
   Vector3 datum_intersection( Datum const& datum,
                               camera::CameraModel const* model,
@@ -55,117 +57,6 @@ namespace cartography {
                                 Vector3 const& camera_ctr, Vector3 const& camera_vec,
                                 bool& has_intersection );
 
-#if 0
-  // Old buggy code to be removed at some point. Use
-  // camera_pixel_to_dem_xyz instead.
-
-  // Define an LMA model to solve for a DEM intersecting a ray.
-  template <class DEMImageT>
-  class DEMIntersectionLMA : public math::LeastSquaresModelBase< DEMIntersectionLMA< DEMImageT > > {
-    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
-    GeoReference m_georef;
-    Vector3 m_camera_ctr;
-    BBox2i m_dem_bbox;
-
-    // Provide safe interaction with DEMs that are scalar or compound
-    template <class PixelT>
-    typename boost::enable_if< IsScalar<PixelT>, double >::type
-    inline Helper( double const& x, double const& y ) const {
-      return m_dem(x,y);
-    }
-
-    template <class PixelT>
-    typename boost::enable_if< IsCompound<PixelT>, double>::type
-    inline Helper( double const& x, double const& y ) const {
-      // Note: We ignore the pixel mask, in effect treating invalid
-      // pixels as having 0 value.
-      return m_dem(x,y)[0];
-    }
-
-  public:
-    // What is returned by evaluating the functor. In this case it is
-    // the unit vector from the camera to the current xyz.
-    typedef Vector3 result_type;
-    // Defines the search space. In this case it is the point location
-    // on the DEM.
-    typedef Vector2 domain_type;
-    // Jacobian form. Auto.
-    typedef Matrix<double> jacobian_type;
-
-    // Constructor
-    DEMIntersectionLMA( ImageViewBase<DEMImageT> const& dem_image,
-                        GeoReference const& georef,
-                        Vector3 const& camera_ctr): m_dem(interpolate(dem_image)), m_georef(georef),
-                                                    m_camera_ctr(camera_ctr){
-      m_dem_bbox = bounding_box( m_dem );
-    }
-
-    inline Vector3 point_to_xyz_helper( domain_type const& projected_point ) const {
-      // Convert a point in the projected space to a Cartesian point
-      // by interpolating into the DEM.
-      Vector2 dem_pixel = m_georef.point_to_pixel( projected_point );
-      if ( !m_dem_bbox.contains( dem_pixel ) )
-        return Vector3();
-      Vector2 dem_lonlat = m_georef.point_to_lonlat( projected_point );
-      Vector3 dem_xyz
-        = m_georef.datum().geodetic_to_cartesian( Vector3( dem_lonlat.x(),
-                                                           dem_lonlat.y(),
-                                                           Helper<typename DEMImageT::pixel_type >(dem_pixel.x(),dem_pixel.y()))
-                                                  );
-      return dem_xyz;
-    }
-
-    // Evaluator
-    inline result_type operator()( domain_type const& projected_point ) const {
-      Vector3 xyz = point_to_xyz_helper(projected_point);
-      if (xyz == Vector3()) return Vector3(-100,-100,-100);
-      return normalize( xyz - m_camera_ctr );
-    }
-  };
-
-  // Intersect the ray going from the given camera pixel with the DEM.
-  // The return value is a point in the projected space. In this
-  // function we treat no-data DEM values as 0.
-  template <class DEMImageT>
-  Vector2 camera_pixel_to_dem_point(Vector2 const& camera_pixel,
-                                    ImageViewBase<DEMImageT> const& dem_image,
-                                    GeoReference const& georef,
-                                    boost::shared_ptr<camera::CameraModel> camera,
-                                    bool & has_intersection
-                                    ){
-    has_intersection = true;
-
-    double max_abs_tol = 1e-14, max_rel_tol = 1e-14;
-    int num_max_iter = 100;
-
-    Vector3 camera_ctr = camera->camera_center(camera_pixel);
-    Vector3 camera_vec = camera->pixel_to_vector(camera_pixel);
-
-    // Get an initial guess from intersecting the ray with the datum.
-    Vector2 projected_point = geospatial_intersect(georef, camera_ctr, camera_vec, has_intersection);
-    if ( !has_intersection ) {
-      return Vector2();
-    }
-
-    // Refining the intersection using Levenberg-Marquardt
-    DEMIntersectionLMA<DEMImageT> model(dem_image, georef, camera_ctr);
-    int status = 0;
-    projected_point = math::levenberg_marquardt(model, projected_point,
-                                                camera_vec, status,
-                                                max_abs_tol, max_rel_tol,
-                                                num_max_iter
-                                                );
-
-    if ( status < 0 ) {
-      has_intersection = false;
-      return Vector2();
-    }
-
-    has_intersection = true;
-    return projected_point;
-  }
-
-#endif
 
   // Define an LMA model to solve for a DEM intersecting a ray. The
   // variable of optimization is position on the ray. The cost
@@ -173,17 +64,23 @@ namespace cartography {
   // current point on the ray.
   template <class DEMImageT>
   class RayDEMIntersectionLMA : public math::LeastSquaresModelBase< RayDEMIntersectionLMA< DEMImageT > > {
-    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, BilinearInterpolation> m_dem;
+
+    // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
+    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, 
+                      BilinearInterpolation> m_dem;
     GeoReference m_georef;
-    Vector3 m_camera_ctr;
-    Vector3 m_camera_vec;
-    bool m_treat_nodata_as_zero;
-    // Provide safe interaction with DEMs that are scalar or compound
+    Vector3      m_camera_ctr;
+    Vector3      m_camera_vec;
+    bool         m_treat_nodata_as_zero;
+
+    /// Provide safe interaction with DEMs that are scalar
+    /// - If m_dem(x,y) is in bounds, return the interpolated value.
+    /// - Otherwise return 0 or big_val()
     template <class PixelT>
     typename boost::enable_if< IsScalar<PixelT>, double >::type
     inline Helper( double x, double y ) const {
-      if ( 0 <= x && x <= m_dem.cols() - 1 && // for interpolation
-           0 <= y && y <= m_dem.rows() - 1 ){
+      if ( (0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
+           (0 <= y) && (y <= m_dem.rows() - 1) ){
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val;
       }
@@ -191,11 +88,12 @@ namespace cartography {
       return big_val();
     }
 
+    /// Provide safe interaction with DEMs that are compound
     template <class PixelT>
     typename boost::enable_if< IsCompound<PixelT>, double>::type
     inline Helper( double x, double y ) const {
-      if ( 0 <= x && x <= m_dem.cols() - 1 && // for interpolation
-           0 <= y && y <= m_dem.rows() - 1 ){
+      if ( (0 <= x) && (x <= m_dem.cols() - 1) && // for interpolation
+           (0 <= y) && (y <= m_dem.rows() - 1) ){
         PixelT val = m_dem(x, y);
         if (is_valid(val)) return val[0];
       }
@@ -206,16 +104,15 @@ namespace cartography {
   public:
     typedef Vector<double, 1> result_type;
     typedef Vector<double, 1> domain_type;
-    // Jacobian form. Auto.
-    typedef Matrix<double> jacobian_type;
+    typedef Matrix<double>    jacobian_type; ///< Jacobian form. Auto.
 
+    /// Return a very large error to penalize locations that fall off the edge of the DEM.
     inline double big_val() const {
-      // Don't make this too big as in the LMA algorithm it may get
-      // squared and may cause overflow.
+      // Don't make this too big as in the LMA algorithm it may get squared and may cause overflow.
       return 1.0e+50;
     }
 
-    // Constructor
+    /// Constructor
     RayDEMIntersectionLMA(ImageViewBase<DEMImageT> const& dem_image,
                           GeoReference const& georef,
                           Vector3 const& camera_ctr,
@@ -226,16 +123,24 @@ namespace cartography {
         m_camera_ctr(camera_ctr), m_camera_vec(camera_vec),
         m_treat_nodata_as_zero(treat_nodata_as_zero){}
 
-    // Evaluator. See description above.
+    /// Evaluator. See description above.
     inline result_type operator()( domain_type const& len ) const {
+      // The proposed intersection point
       Vector3 xyz = m_camera_ctr + len[0]*m_camera_vec;
+
+      // Convert to geodetic coordinates, then to DEM pixel coordinates
       Vector3 llh = m_georef.datum().cartesian_to_geodetic( xyz );
       Vector2 pix = m_georef.lonlat_to_pixel( Vector2( llh.x(), llh.y() ) );
+
+      // Return a measure of the elevation difference between the DEM and the guess
+      // at its current location.
       result_type result;
       result[0] = Helper<typename DEMImageT::pixel_type >(pix.x(),pix.y()) - llh[2];
       return result;
     }
   };
+
+
 
   // Intersect the ray going from the given camera pixel with a DEM.
   // The return value is a Cartesian point. If the ray goes through a
@@ -260,16 +165,15 @@ namespace cartography {
                                            camera_vec, treat_nodata_as_zero);
 
     Vector3 xyz;
-    if ( xyz_guess == Vector3() ){
-      // Intersect the ray with the datum, this is a good initial
-      // guess.
+    if ( xyz_guess == Vector3() ){ // If no guess provided
+      // Intersect the ray with the datum, this is a good initial guess.
       xyz = datum_intersection(georef.datum(), camera_ctr, camera_vec);
 
-      if ( xyz == Vector3() ) {
+      if ( xyz == Vector3() ) { // If we failed to intersect the datum, give up!
         has_intersection = false;
         return Vector3();
       }
-    }else{
+    }else{ // User provided guess
       xyz = xyz_guess;
     }
 
@@ -280,28 +184,40 @@ namespace cartography {
     // If the ray intersects the datum at a point which does not
     // correspond to a valid location in the DEM, wiggle that point
     // along the ray until hopefully it does.
-    double radius = norm_2(xyz);
-    int n = 10;
-    double small = radius*0.02/( 1 << (n-1) ); // wiggle up to 0.02*radius
-    for (int i = 0; i <= n; i++){
+    const double radius     = norm_2(xyz); // Radius from XZY coordinate center
+    const int    ITER_LIMIT = 10; // There are two solver attempts per iteration
+    const double small      = radius*0.02/( 1 << (ITER_LIMIT-1) ); // Wiggle
+    for (int i = 0; i <= ITER_LIMIT; i++){
+      // Gradually expand delta until on final iteration it is == radius*0.02
       double delta = 0;
-      if (i > 0) delta = small*( 1 << (i-1) );
-      for (int k = -1; k <= 1; k += 2){
-        len[0] = len0[0] + k*delta;
+      if (i > 0) 
+        delta = small*( 1 << (i-1) );
+      
+      for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
+        len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
+        // Use our model to compute the height diff at this length
         Vector<double, 1> height_diff = model(len);
-        if ( std::abs(height_diff[0]) < model.big_val()/10.0 ){
+        // TODO: This is an EXTREMELY lenient threshold! big_val()/10.0 == 1.0e+49!!!
+        //       The effect of this may be to just stop this loop when we get over valid DEM terrain.
+        if ( std::abs(height_diff[0]) < (model.big_val()/10.0) ){
           has_intersection = true;
           break;
         }
-      }
-      if (has_intersection) break;
-    }
+        //if (i == 0) break; // When k*delta==0, no reason to do both + and -!
 
+      } // End k loop
+      if (has_intersection) 
+        break;
+    } // End i loop
+
+    // Failed to compute an intersection in the hard coded iteration limit!
     if ( !has_intersection ) {
       return Vector3();
     }
 
     // Refining the intersection using Levenberg-Marquardt
+    // - This will actually use the L-M solver to play around with the len
+    //   value to minimize the height difference from the DEM.
     int status = 0;
     Vector<double, 1> observation; observation[0] = 0;
     len = math::levenberg_marquardt(model, len, observation, status,
@@ -311,7 +227,7 @@ namespace cartography {
 
     Vector<double, 1> dem_height = model(len);
 
-    if ( status < 0 || std::abs(dem_height[0]) > height_error_tol ){
+    if ( (status < 0) || (std::abs(dem_height[0]) > height_error_tol) ){
       has_intersection = false;
       return Vector3();
     }
@@ -380,6 +296,7 @@ namespace cartography {
       void operator() ( Vector2 const& pixel ) {
 
         bool   has_intersection;
+        // TODO: Make this an input option!  Whether or not this goes outside the dem is IMPORTANT
         bool   treat_nodata_as_zero = true; // Intersect with datum if no dem
         double height_error_tol = 1e-3;   // error in DEM height
         double max_abs_tol      = 1e-14;  // abs cost function change b/w iters

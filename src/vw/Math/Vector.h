@@ -580,9 +580,9 @@ namespace math {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
     }
 
-    reference_type operator()( size_t i ) { return m_ptr[i]; }
+    reference_type       operator()( size_t i )       { return m_ptr[i]; }
     const_reference_type operator()( size_t i ) const { return m_ptr[i]; }
-    reference_type operator[]( size_t i ) { return m_ptr[i]; }
+    reference_type       operator[]( size_t i )       { return m_ptr[i]; }
     const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
 
     reference_type x() {

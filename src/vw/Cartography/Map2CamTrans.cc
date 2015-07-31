@@ -60,8 +60,8 @@ namespace vw { namespace cartography {
     int b = BicubicInterpolation::pixel_buffer;
     Vector2 lonlat  = m_image_georef.pixel_to_lonlat(p);
     Vector2 dem_pix = m_dem_georef.lonlat_to_pixel(lonlat);
-    if (dem_pix[0] < b - 1 || dem_pix[0] >= m_dem.cols() - b ||
-        dem_pix[1] < b - 1 || dem_pix[1] >= m_dem.rows() - b
+    if ((dem_pix[0] < b - 1) || (dem_pix[0] >= m_dem.cols() - b) ||
+        (dem_pix[1] < b - 1) || (dem_pix[1] >= m_dem.rows() - b)
         ){
       // No DEM data
       return m_invalid_pix;
@@ -69,8 +69,8 @@ namespace vw { namespace cartography {
 
     Vector2 sdem_pix = dem_pix - m_dem_cache_box.min(); // since we cropped the DEM
     if (m_dem_cache_box.empty() ||
-        sdem_pix[0] < b - 1 || sdem_pix[0] >= m_cropped_dem.cols() - b ||
-        sdem_pix[1] < b - 1 || sdem_pix[1] >= m_cropped_dem.rows() - b
+        (sdem_pix[0] < b - 1) || (sdem_pix[0] >= m_cropped_dem.cols() - b) ||
+        (sdem_pix[1] < b - 1) || (sdem_pix[1] >= m_cropped_dem.rows() - b)
         ){
       // Cache miss. Will not happen often.
       BBox2i box;
