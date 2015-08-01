@@ -19,7 +19,7 @@
 #include <vw/Cartography/CameraBBox.h>
 
 using namespace vw;
-
+using vw::math::BresenhamLine;
 
 // Intersect the ray back-projected from the camera with the datum.
 Vector3

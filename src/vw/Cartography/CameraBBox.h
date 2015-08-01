@@ -28,10 +28,11 @@
 #include <vw/Image/Algorithms.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Math/LevenbergMarquardt.h>
+#include <vw/Math/BresenhamLine.h>
 #include <vw/Camera/CameraModel.h>
 #include <vw/Cartography/SimplePointImageManipulation.h>
 #include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/detail/BresenhamLine.h>
+
 
 #include <boost/shared_ptr.hpp>
 
@@ -241,7 +242,7 @@ namespace cartography {
 
     /// Apply a function to evenly spaced locations along a line of pixels
     template <class FunctionT>
-    void bresenham_apply( BresenhamLine line, size_t step,
+    void bresenham_apply( math::BresenhamLine line, size_t step,
                           FunctionT& f ) {
       while ( line.is_good() ) { // Run until the end of the line
         f( *line ); // Execute the function on this pixel location
@@ -399,21 +400,26 @@ namespace cartography {
 
     // Running the edges. Note: The last valid point on a
     // BresenhamLine is the last point before the endpoint.
-    bresenham_apply( BresenhamLine(0,0,cols,0), // Left to right across the top side
+
+    // Left to right across the top side
+    bresenham_apply( math::BresenhamLine(0,0,cols,0), 
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,0,cols-1,rows), // Top to bottom down the right side
+    // Top to bottom down the right side
+    bresenham_apply( math::BresenhamLine(cols-1,0,cols-1,rows), 
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(cols-1,rows-1,0,rows-1), // Right to left across the bottom side
+    // Right to left across the bottom side
+    bresenham_apply( math::BresenhamLine(cols-1,rows-1,0,rows-1), 
                      step_amount, functor );
     functor.last_valid = false;
-    bresenham_apply( BresenhamLine(0,rows-1,0,0), // Bottom to top up the left side
+    // Bottom to top up the left side
+    bresenham_apply( math::BresenhamLine(0,rows-1,0,0), 
                      step_amount, functor );
     functor.last_valid = false;
 
-    // Running once through the center
-    bresenham_apply( BresenhamLine(0,0,cols,rows), // Top left corner diagonal down to bottom right corner
+    // Top left corner diagonal down to bottom right corner
+    bresenham_apply( math::BresenhamLine(0,0,cols,rows), 
                      step_amount, functor );
 
     // Estimate the smallest distance between adjacent points on the bounding box edges

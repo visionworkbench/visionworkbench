@@ -36,6 +36,7 @@ include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
                   Quaternion.h EulerAngles.h ConjugateGradient.h	\
                   NelderMead.h Statistics.h DisjointSet.h		\
                   MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \
+                  BresenhamLine.h \
                   RANSAC.h MatrixSparseSkyline.h $(lapack_headers) $(flann_headers)
 
 libvwMath_la_SOURCES = MinimumSpanningTree.cc $(lapack_sources) $(flann_sources)

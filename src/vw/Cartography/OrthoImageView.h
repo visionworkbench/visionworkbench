@@ -19,11 +19,11 @@
 #ifndef __VW_CARTOGRAPHY_ORTHOIMAGEVIEW_H__
 #define __VW_CARTOGRAPHY_ORTHOIMAGEVIEW_H__
 
+#include <vw/Math/BresenhamLine.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/EdgeExtension.h>
 #include <vw/Image/Interpolation.h>
 #include <vw/Cartography/GeoReference.h>
-#include <vw/Cartography/detail/BresenhamLine.h>
 #include <vw/Camera/CameraModel.h>
 
 #include <boost/shared_ptr.hpp>
@@ -74,7 +74,7 @@ namespace cartography {
       return m_camera_model->point_to_pixel( m_georef.datum().geodetic_to_cartesian( Vector3( lon_lat.x(), lon_lat.y(), height ) ) );
     }
 
-    inline void apply_bresen( BresenhamLine line, double min, double max, BBox2i& camera_bbox ) const {
+    inline void apply_bresen( math::BresenhamLine line, double min, double max, BBox2i& camera_bbox ) const {
       while ( line.is_good() ) {
         Vector2i pt( *line );
         try { camera_bbox.grow( find_camera_coordinates( pt.x(), pt.y(), min ) ); }
@@ -204,17 +204,17 @@ namespace cartography {
       // be using. Unfortunately this is no linear. We need to project
       // all the pixels really. For speed I'm only processing an X
       BBox2i camera_bbox;
-      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.min().y() ),
+      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.min().y() ),
                     terrain_min, terrain_max, camera_bbox );
-      apply_bresen( BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.max().y() ),
+      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.max().y() ),
                     terrain_min, terrain_max, camera_bbox );
-      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.min().x(), bbox.max().y() ),
+      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.min().x(), bbox.max().y() ),
                     terrain_min, terrain_max, camera_bbox );
-      apply_bresen( BresenhamLine( bbox.max().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
+      apply_bresen( math::BresenhamLine( bbox.max().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
                     terrain_min, terrain_max, camera_bbox );
-      apply_bresen( BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
+      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.min().y(), bbox.max().x(), bbox.max().y() ),
                     terrain_min, terrain_max, camera_bbox );
-      apply_bresen( BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.min().y() ),
+      apply_bresen( math::BresenhamLine( bbox.min().x(), bbox.max().y(), bbox.max().x(), bbox.min().y() ),
                     terrain_min, terrain_max, camera_bbox );
       camera_bbox.max() += Vector2i(1,1);        // Because grow is
                                                  // inclusive and we

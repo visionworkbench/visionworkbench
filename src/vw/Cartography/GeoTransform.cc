@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-#include <vw/Cartography/detail/BresenhamLine.h>
+#include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoTransform.h>
 
 // Vision Workbench
@@ -30,6 +30,8 @@
 
 namespace vw {
 namespace cartography {
+
+  using vw::math::BresenhamLine;
 
   // Constructor
   GeoTransform::GeoTransform(GeoReference const& src_georef, GeoReference const& dst_georef) :

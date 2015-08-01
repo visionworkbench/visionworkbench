@@ -41,7 +41,7 @@ include_HEADERS = GeoReferenceBase.h GeoReference.h                       \
                   $(camerabbox_headers)
 
 
-detail_HEADERS =  detail/BresenhamLine.h
+#detail_HEADERS =  detail/BresenhamLine.h
 
 libvwCartography_la_SOURCES = Datum.cc GeoReference.cc GeoTransform.cc  \
                   GeoReferenceResourcePDS.cc ToastTransform.cc          \
@@ -71,6 +71,6 @@ CLEANFILES =
 EXTRA_DIST = 
 
 includedir = $(prefix)/include/vw/Cartography
-detaildir = $(includedir)/detail
+#detaildir = $(includedir)/detail
 
 include $(top_srcdir)/config/rules.mak

@@ -16,16 +16,15 @@
 // __END_LICENSE__
 
 
-#ifndef __VW_CARTOGRAPHY_BRESENHAMLINE_H__
-#define __VW_CARTOGRAPHY_BRESENHAMLINE_H__
+#ifndef __VW_MATH_BRESENHAMLINE_H__
+#define __VW_MATH_BRESENHAMLINE_H__
 
+#include <cmath>
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Math/Vector.h>
 
-// TODO: Move this class up in to the main cartography folder
-
 namespace vw {
-namespace cartography {
+namespace math {
 
   /// Class implementing Bresenham line tracing algorithm
   /// - See http://www.cs.helsinki.fi/group/goa/mallinnus/lines/bresenh.html
@@ -38,7 +37,7 @@ namespace cartography {
 
     /// Perform precomputations to let us draw the line quickly later
     void setup() {
-      steep = abs(y1-y0) > abs(x1-x0);
+      steep = std::abs(y1-y0) > std::abs(x1-x0);
       if (steep) {
         std::swap(x0,y0);
         std::swap(x1,y1);
@@ -48,7 +47,7 @@ namespace cartography {
         std::swap(y0,y1);
       }
       deltax = x1 - x0;
-      deltay = abs(y1-y0);
+      deltay = std::abs(y1-y0);
       error = deltax / 2;
       ystep = y0 < y1 ? 1 : -1;
       x = x0; y = y0;
@@ -91,6 +90,7 @@ namespace cartography {
     bool is_good() const { return x < x1; }
   };
 
-}}
+} // end namespace math
+} // end namespace vw
 
-#endif//__VW_CARTOGRAPHY_BRESENHAMLINE_H__
+#endif//__VW_MATH_BRESENHAMLINE_H__

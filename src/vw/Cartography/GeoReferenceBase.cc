@@ -16,12 +16,14 @@
 // __END_LICENSE__
 
 
-#include <vw/Cartography/detail/BresenhamLine.h>
+#include <vw/Math/BresenhamLine.h>
 #include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/Image/Transform.h>
 
 namespace vw {
 namespace cartography {
+
+  using vw::math::BresenhamLine;
 
   /// For a bbox in projected space, return the corresponding bbox in
   /// pixels on the image
