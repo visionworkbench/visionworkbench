@@ -16,11 +16,10 @@
 // __END_LICENSE__
 
 
-#include <test/Helpers.h>
-#include <asp/Core/AntiAliasing.h>
+#include <gtest/gtest_VW.h>
+#include <vw/Image/AntiAliasing.h>
 
 using namespace vw;
-using namespace asp;
 
 TEST( AntiAliasing, VerifySameOperation ) {
 
