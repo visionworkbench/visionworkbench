@@ -23,6 +23,7 @@
 if MAKE_MODULE_IMAGE
 
 TestAlgorithms_SOURCES            = TestAlgorithms.cxx
+TestAntiAliasing_SOURCES          = TestAntiAliasing.cxx
 TestBlockRasterize_SOURCES        = TestBlockRasterize.cxx
 TestConvolution_SOURCES           = TestConvolution.cxx
 TestEdgeExtension_SOURCES         = TestEdgeExtension.cxx
@@ -48,6 +49,7 @@ TestUtilityViews_SOURCES          = TestUtilityViews.cxx
 
 TESTS = \
   TestAlgorithms \
+  TestAntiAliasing \
   TestBlockRasterize \
   TestConvolution \
   TestEdgeExtension \

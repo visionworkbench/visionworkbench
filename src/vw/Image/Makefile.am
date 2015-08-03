@@ -25,6 +25,7 @@ if MAKE_MODULE_IMAGE
 include_HEADERS = \
   AlgorithmFunctions.h \
   Algorithms.h \
+  AntiAliasing.h \
   BlockProcessor.h \
   BlockRasterize.h \
   Convolution.h \
