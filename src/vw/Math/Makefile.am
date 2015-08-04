@@ -32,7 +32,7 @@ flann_headers = FLANNTree.h
 flann_sources = FLANNTree.cc
 endif
 
-include_HEADERS = Vector.h Matrix.h BBox.h Functions.h Functors.h	\
+include_HEADERS = Vector.h Matrix.h BBox.h BBox.tcc Functions.h Functors.h	\
                   Quaternion.h EulerAngles.h ConjugateGradient.h	\
                   NelderMead.h Statistics.h DisjointSet.h		\
                   MinimumSpanningTree.h KDTree.h ParticleSwarmOptimization.h \

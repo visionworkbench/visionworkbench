@@ -320,6 +320,6 @@ struct Int2Type
 } // namespace vw
 
 
-#include "BBox.tcc"
+#include "vw/Math/BBox.tcc"
 
 #endif // __VW_MATH_BBOX_H__
