@@ -16,7 +16,7 @@
 // __END_LICENSE__
 
 
-/// \file BBox.h
+/// \file BBox.tcc
 ///
 /// Provides a generic bounding box.
 
