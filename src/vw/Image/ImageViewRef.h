@@ -147,12 +147,13 @@ namespace vw {
     ImageViewRefImpl( ImageViewBase<ViewT> const& view ) : m_view(view.impl()) {}
     virtual ~ImageViewRefImpl() {}
 
-    virtual int32 cols() const { return m_view.cols(); }
-    virtual int32 rows() const { return m_view.rows(); }
-    virtual int32 planes() const { return m_view.planes(); }
-    virtual pixel_type operator()( int32 i, int32 j, int32 p ) const { return m_view(i,j,p); }
-    virtual pixel_type operator()( double i, double j, int32 p ) const { return m_view(i,j,p); }
+    virtual int32          cols  () const { return m_view.cols();   }
+    virtual int32          rows  () const { return m_view.rows();   }
+    virtual int32          planes() const { return m_view.planes(); }
     virtual pixel_accessor origin() const { return m_view.origin(); }
+    
+    virtual pixel_type     operator()( int32  i, int32  j, int32 p ) const { return m_view(i,j,p); }
+    virtual pixel_type     operator()( double i, double j, int32 p ) const { return m_view(i,j,p); }
 
     virtual bool sparse_check( BBox2i const& bbox ) const { return vw::sparse_check( m_view, bbox ); }
     virtual void rasterize( ImageView<pixel_type> const& dest, BBox2i const& bbox ) const { m_view.rasterize( dest, bbox ); }
@@ -200,8 +201,8 @@ namespace vw {
 
     template <class ViewT> void reset( ImageViewBase<ViewT> const& view ) { m_view.reset( new ImageViewRefImpl<ViewT>(view) ); }
 
-    inline int32 cols() const { return m_view->cols(); }
-    inline int32 rows() const { return m_view->rows(); }
+    inline int32 cols  () const { return m_view->cols();   }
+    inline int32 rows  () const { return m_view->rows();   }
     inline int32 planes() const { return m_view->planes(); }
 
     // These difficult enable-ifs are to avoid ambigious operator
