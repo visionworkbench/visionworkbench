@@ -86,10 +86,10 @@ TEST(BBox, Static) {
 TEST(BBox, Dynamic) {
   // Default constructor (floating-point type)
   // Hard to know how to test this one....
-  BBox<float> b1;
+  BBoxNf b1;
 
   // Default constructor (integer type)
-  BBox<uint8> b2;
+  BBox<uint8, 0> b2;
   EXPECT_TRUE( b2.empty() );
 
   // Two-vector constructor

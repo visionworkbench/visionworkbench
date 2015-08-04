@@ -41,12 +41,12 @@ namespace geometry {
     virtual bool contains(const Vector<double> &point) const;
     // intersects() must be implemented to call SpatialTree::overlap_pairs()
     virtual bool intersects(const GeomPrimitive *prim) const;
-    virtual const BBox<double> &bounding_box() const = 0;
+    virtual const BBoxN &bounding_box() const = 0;
   };
 
   class SpatialTree {
   public:
-    typedef BBox<double> BBoxT;
+    typedef BBoxN BBoxT;
     typedef Vector<double> VectorT;
 
     struct PrimitiveListElem {
