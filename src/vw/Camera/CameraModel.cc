@@ -31,14 +31,10 @@ CameraModel::camera_pose(Vector2 const& pix) const {
   return Quaternion<double>();
 }
 
-AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model) : m_camera(camera_model) {
-  m_rotation = Quat(math::identity_matrix<3>());
-  m_rotation_inverse = Quat(math::identity_matrix<3>());
-}
-
 AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                                         Vector3 const& translation, Quat const& rotation, Vector2 pixel_offset) :
-  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)), m_pixel_offset(pixel_offset) {}
+                                         Vector3 const& translation, Quat const& rotation,
+                                         Vector2 const& pixel_offset, double scale) :
+  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)), m_pixel_offset(pixel_offset), m_scale(scale) {}
 
 AdjustedCameraModel::~AdjustedCameraModel() {}
 std::string AdjustedCameraModel::type() const { return "Adjusted"; }
@@ -59,31 +55,35 @@ void AdjustedCameraModel::set_rotation(Quat const& rotation) {
 
 Vector2 AdjustedCameraModel::pixel_offset() const { return m_pixel_offset; }
 
+double AdjustedCameraModel::scale() const { return m_scale; }
+
 Vector2 AdjustedCameraModel::point_to_pixel (Vector3 const& point) const {
   Vector3 offset_pt = point-m_camera->camera_center(Vector2(0,0))-m_translation;
   Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_camera->camera_center(Vector2(0,0));
-  return m_camera->point_to_pixel(new_pt) - m_pixel_offset;
+  return (m_camera->point_to_pixel(new_pt) - m_pixel_offset)/m_scale;
 }
 
 Vector3 AdjustedCameraModel::pixel_to_vector (Vector2 const& pix) const {
-  return m_rotation.rotate(m_camera->pixel_to_vector(pix + m_pixel_offset));
+  return m_rotation.rotate(m_camera->pixel_to_vector(m_scale*pix + m_pixel_offset));
 }
 
 Vector3 AdjustedCameraModel::camera_center(Vector2 const& pix) const {
-  return m_camera->camera_center(pix + m_pixel_offset) + m_translation;
+  return m_camera->camera_center(m_scale*pix + m_pixel_offset) + m_translation;
 }
 
 Quat AdjustedCameraModel::camera_pose(Vector2 const& pix) const {
-  return m_rotation*m_camera->camera_pose(pix + m_pixel_offset);
+  return m_rotation*m_camera->camera_pose(m_scale*pix + m_pixel_offset);
 }
 
 void AdjustedCameraModel::write(std::string const& filename) {
   std::ofstream ostr(filename.c_str());
+  ostr.precision(18);
   ostr << m_translation[0] << " " << m_translation[1]
        << " " << m_translation[2] << "\n";
   ostr << m_rotation.w() << " " << m_rotation.x() << " "
        << m_rotation.y() << " " << m_rotation.z() << "\n";
   ostr << m_pixel_offset.x() << " " << m_pixel_offset.y() << "\n";
+  ostr << m_scale << "\n";
 
 }
 
@@ -91,23 +91,30 @@ void AdjustedCameraModel::read(std::string const& filename) {
   Vector4 c;
   Vector3 pos;
   Vector2 pixel_offset;
+  double scale = 1.0;
+
   std::ifstream istr(filename.c_str());
-  istr >> pos[0] >> pos[1] >> pos[2];
-  istr >> c[0] >> c[1] >> c[2] >> c[3];
+  if (istr >> pos[0] >> pos[1] >> pos[2])
+    this->set_translation(pos);
+
+  if (istr >> c[0] >> c[1] >> c[2] >> c[3])
+    this->set_rotation(Quat(c));
 
   if (istr >> pixel_offset[0] >> pixel_offset[1])
-    m_pixel_offset = pixel_offset;
+    this->set_pixel_offset(pixel_offset);
 
-  this->set_translation(pos);
-  this->set_rotation(Quat(c));
+  if (istr >> scale)
+    this->set_scale(scale);
 }
 
 std::ostream& camera::operator<<(std::ostream& ostr,
                                  AdjustedCameraModel const& cam ) {
+  ostr.precision(18);
   ostr << "AdjustedCameraModel(Trans: " << cam.m_translation
-       << " Rot: "          << cam.m_rotation
+       << " Rot:          " << cam.m_rotation
        << " Pixel offset: " << cam.m_pixel_offset
-       << " Cam: " << cam.m_camera->type() << ")\n";
+       << " Scale:        " << cam.m_scale
+       << " Cam:          " << cam.m_camera->type() << ")\n";
   return ostr;
 }
 

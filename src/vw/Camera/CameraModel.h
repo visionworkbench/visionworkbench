@@ -114,14 +114,21 @@ namespace camera {
     Quat m_rotation_inverse;
     // This offset is used when the images are cropped.
     // Adding the offset to a pixel converts from the cropped
-    // image pixels to full image pixels.
+    // image pixels to original camera pixels.
     Vector2 m_pixel_offset;
 
+    // The scale is used when we want to use resampled images.
+    // Multiplying a pixel in the scaled image by the scale
+    // and then adding the pixel offset converts to the
+    // original camera pixels.
+    double m_scale;
+
   public:
-    AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model);
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
-                        Vector3 const& translation, Quat const& rotation,
-                        Vector2 pixel_offset = Vector2());
+                        Vector3 const& translation = Vector3(),
+                        Quat const& rotation = Quat(math::identity_matrix<3>()),
+                        Vector2 const& pixel_offset = Vector2(),
+                        double scale = 1.0);
 
     virtual ~AdjustedCameraModel();
     virtual std::string type() const;
@@ -129,6 +136,7 @@ namespace camera {
     Vector3 translation() const;
     Quat rotation() const;
     Vector2 pixel_offset() const;
+    double scale() const;
     Matrix<double,3,3> rotation_matrix() const;
 
     Vector3 axis_angle_rotation() const;
@@ -143,6 +151,7 @@ namespace camera {
     void set_translation(VectorBase<VectorT> const& v) {
       m_translation = v.impl();
     }
+
     template <class VectorT>
     void set_axis_angle_rotation(VectorBase<VectorT> const& v) {
       this->set_rotation( axis_angle_to_quaternion(v.impl()) );
@@ -150,6 +159,10 @@ namespace camera {
     template <class VectorT>
     void set_pixel_offset(VectorBase<VectorT> const& v) {
       m_pixel_offset = v.impl();
+    }
+
+    void set_scale(double scale){
+      m_scale = scale;
     }
 
     virtual Vector2 point_to_pixel (Vector3 const&) const;
