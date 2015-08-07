@@ -147,9 +147,8 @@ namespace vw {
           WPA wcol = wrow;
           CPA ccol = crow;
 
-          sum_type sum;
-          sum *= 0; // Needs this so it works for both scalar and Vector vals
-          validate( sum );
+          sum_type sum = 0.0;
+          validate( sum ); // redundant
 
           int32 count = 0;
           for ( int32 i = m_reduce_amt; i; i-- ) {
@@ -202,9 +201,8 @@ namespace vw {
           CPA crow_lookahead = ccol;
           IPA orow = ocol;
 
-          sum_type sum;
-          sum *= 0; // Needs this so it works for both scalar and Vector vals
-          validate( sum );
+          sum_type sum = 0.0;
+          validate( sum ); // redundant
 
           int32 count = 0;
           for ( int32 i = m_reduce_amt; i; i-- ) {
@@ -271,9 +269,9 @@ namespace vw {
 
       typedef typename SumType<typename PixelAccessorT::pixel_type,
                                typename PixelAccessorT::pixel_type >::type sum_type;
-      sum_type sum;
-      sum *= 0; // Needs this so it works for both scalar and Vector vals
-      validate( sum );
+
+      sum_type sum = 0.0;
+      validate( sum ); // redundant
 
       int32 count = 0;
       for ( int32 r=m_reduce_amt; r; --r ) {
