@@ -103,9 +103,12 @@ namespace camera {
 
 
   /// This class is useful if you have an existing camera model, and
-  /// you want to systematically "tweak" its extrinsic parameters
-  /// (position and pose).  This is particularly useful in Bundle
-  /// Adjustment.
+  /// you want to systematically "tweak" its extrinsic and intrinsic
+  /// parameters. This is particularly useful in Bundle
+  /// Adjustment. The tweaks will be camera rotation around a fixed
+  /// center, camera translation, and in pixel space, pixel offset
+  /// and pixel scale.
+
   class AdjustedCameraModel : public CameraModel {
 
     boost::shared_ptr<CameraModel> m_camera;
@@ -122,6 +125,9 @@ namespace camera {
     // and then adding the pixel offset converts to the
     // original camera pixels.
     double m_scale;
+
+    // apply the rotations in respect to this point.
+    Vector3 m_rotation_center;
 
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,

@@ -34,7 +34,19 @@ CameraModel::camera_pose(Vector2 const& pix) const {
 AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
                                          Vector3 const& translation, Quat const& rotation,
                                          Vector2 const& pixel_offset, double scale) :
-  m_camera(camera_model), m_translation(translation), m_rotation(rotation), m_rotation_inverse(inverse(rotation)), m_pixel_offset(pixel_offset), m_scale(scale) {}
+  m_camera(camera_model),
+  // Set as the rotation center the old camera center for pixel (0,0).
+  // It is important to note that for linescan cameras, each line has
+  // its own camera center. It is not a problem that we use a single
+  // fixed rotation center. We just need to pick some point to rotate
+  // about. Ideally it would be the camera center for the pixel in the
+  // middle of the image, if we know the image size. But the current
+  // choice should be just as good.
+  m_rotation_center(m_camera->camera_center(Vector2(0, 0))),
+  m_translation(translation),
+  m_rotation(rotation), m_rotation_inverse(inverse(rotation)),
+  m_pixel_offset(pixel_offset),
+  m_scale(scale) {}
 
 AdjustedCameraModel::~AdjustedCameraModel() {}
 std::string AdjustedCameraModel::type() const { return "Adjusted"; }
@@ -58,8 +70,8 @@ Vector2 AdjustedCameraModel::pixel_offset() const { return m_pixel_offset; }
 double AdjustedCameraModel::scale() const { return m_scale; }
 
 Vector2 AdjustedCameraModel::point_to_pixel (Vector3 const& point) const {
-  Vector3 offset_pt = point-m_camera->camera_center(Vector2(0,0))-m_translation;
-  Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_camera->camera_center(Vector2(0,0));
+  Vector3 offset_pt = point-m_rotation_center-m_translation;
+  Vector3 new_pt = m_rotation_inverse.rotate(offset_pt) + m_rotation_center;
   return (m_camera->point_to_pixel(new_pt) - m_pixel_offset)/m_scale;
 }
 
@@ -68,7 +80,10 @@ Vector3 AdjustedCameraModel::pixel_to_vector (Vector2 const& pix) const {
 }
 
 Vector3 AdjustedCameraModel::camera_center(Vector2 const& pix) const {
-  return m_camera->camera_center(m_scale*pix + m_pixel_offset) + m_translation;
+  Vector3 old_ct = m_camera->camera_center(m_scale*pix + m_pixel_offset);
+  return m_rotation.rotate(old_ct - m_rotation_center) + m_rotation_center + m_translation;
+  // Old and incorrect formula below
+  //return m_camera->camera_center(m_scale*pix + m_pixel_offset) + m_translation;
 }
 
 Quat AdjustedCameraModel::camera_pose(Vector2 const& pix) const {
