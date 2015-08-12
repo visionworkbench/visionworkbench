@@ -112,7 +112,7 @@ void vw::cartography::Datum::set_semi_major_axis(double val) {
   m_semi_major_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  if (m_geocentric) 
+  if (m_geocentric)
     strm << " +geoc";
   m_proj_str = strm.str();
 }
@@ -121,7 +121,7 @@ void vw::cartography::Datum::set_semi_minor_axis(double val) {
   m_semi_minor_axis = val;
   std::ostringstream strm;
   strm << "+a=" << m_semi_major_axis << " +b=" << m_semi_minor_axis;
-  if (m_geocentric) 
+  if (m_geocentric)
     strm << " +geoc";
   m_proj_str = strm.str();
 }
@@ -332,4 +332,41 @@ std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Da
      << "  Meridian: "   << datum.meridian_name()
      << "  at "          << datum.meridian_offset();
   return os;
+}
+
+// Free associated functions
+
+vw::Vector3
+vw::cartography::datum_intersection(double semi_major_axis, double semi_minor_axis,
+                                    vw::Vector3 camera_ctr, vw::Vector3 camera_vec) {
+
+  // The datum is a spheroid. To simplify the calculations, scale
+  // everything in such a way that the spheroid becomes a
+  // sphere. Scale back at the end of computation.
+
+  double z_scale = semi_major_axis / semi_minor_axis;
+  camera_ctr.z() *= z_scale;
+  camera_vec.z() *= z_scale;
+  camera_vec = normalize(camera_vec);
+  double radius_2 = semi_major_axis * semi_major_axis;
+  double alpha = -dot_prod(camera_ctr, camera_vec );
+  vw::Vector3 projection = camera_ctr + alpha*camera_vec;
+  if ( norm_2_sqr(projection) > radius_2 ) {
+    // did not intersect
+    return vw::Vector3();
+  }
+
+  alpha -= sqrt( radius_2 -
+                 norm_2_sqr(projection) );
+  vw::Vector3 intersection = camera_ctr + alpha * camera_vec;
+  intersection.z() /= z_scale;
+  return intersection;
+}
+
+// Intersect the ray back-projected from the camera with the datum.
+vw::Vector3
+vw::cartography::datum_intersection( vw::cartography::Datum const& datum,
+                                     vw::Vector3 camera_ctr, vw::Vector3 camera_vec) {
+  return vw::cartography::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
+                                             camera_ctr, camera_vec);
 }

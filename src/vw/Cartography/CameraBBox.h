@@ -40,15 +40,7 @@
 namespace vw {
 namespace cartography {
 
-  // TODO: Move all of these intersection functions to a more sensible location!
-
   // Intersect the ray back-projected from the camera with the datum.
-  Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
-                             Vector3 camera_ctr, Vector3 camera_vec);
-
-  Vector3 datum_intersection( Datum const& datum,
-                              Vector3 camera_ctr, Vector3 camera_vec );
-
   Vector3 datum_intersection( Datum const& datum,
                               camera::CameraModel const* model,
                               Vector2 const& pix );
