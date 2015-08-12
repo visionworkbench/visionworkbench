@@ -21,21 +21,19 @@
 using namespace vw;
 using vw::math::BresenhamLine;
 
-// Intersect the ray back-projected from the camera with the datum.
+// TODO: Move these functions to Datum.cc.
 Vector3
-cartography::datum_intersection( Datum const& datum,
+cartography::datum_intersection(double semi_major_axis, double semi_minor_axis,
                                  Vector3 camera_ctr, Vector3 camera_vec) {
-
   // The datum is a spheroid. To simplify the calculations, scale
   // everything in such a way that the spheroid becomes a
   // sphere. Scale back at the end of computation.
 
-  double z_scale = datum.semi_major_axis() / datum.semi_minor_axis();
+  double z_scale = semi_major_axis / semi_minor_axis;
   camera_ctr.z() *= z_scale;
   camera_vec.z() *= z_scale;
   camera_vec = normalize(camera_vec);
-  double radius_2 = datum.semi_major_axis() *
-    datum.semi_major_axis();
+  double radius_2 = semi_major_axis * semi_major_axis;
   double alpha = -dot_prod(camera_ctr, camera_vec );
   Vector3 projection = camera_ctr + alpha*camera_vec;
   if ( norm_2_sqr(projection) > radius_2 ) {
@@ -48,6 +46,14 @@ cartography::datum_intersection( Datum const& datum,
   Vector3 intersection = camera_ctr + alpha * camera_vec;
   intersection.z() /= z_scale;
   return intersection;
+}
+
+// Intersect the ray back-projected from the camera with the datum.
+Vector3
+cartography::datum_intersection( Datum const& datum,
+                                 Vector3 camera_ctr, Vector3 camera_vec) {
+  return cartography::datum_intersection(datum.semi_major_axis(), datum.semi_minor_axis(),
+                                         camera_ctr, camera_vec);
 }
 
 Vector3

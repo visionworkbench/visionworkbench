@@ -43,12 +43,15 @@ namespace cartography {
   // TODO: Move all of these intersection functions to a more sensible location!
 
   // Intersect the ray back-projected from the camera with the datum.
-  Vector3 datum_intersection( Datum const& datum,
-                              camera::CameraModel const* model,
-                              Vector2 const& pix );
+  Vector3 datum_intersection(double semi_major_axis, double semi_minor_axis,
+                             Vector3 camera_ctr, Vector3 camera_vec);
 
   Vector3 datum_intersection( Datum const& datum,
                               Vector3 camera_ctr, Vector3 camera_vec );
+
+  Vector3 datum_intersection( Datum const& datum,
+                              camera::CameraModel const* model,
+                              Vector2 const& pix );
 
   // Return the intersection between the ray emanating from the
   // current camera pixel with the datum ellipsoid. The return value
@@ -67,7 +70,7 @@ namespace cartography {
   class RayDEMIntersectionLMA : public math::LeastSquaresModelBase< RayDEMIntersectionLMA< DEMImageT > > {
 
     // TODO: Why does this use EdgeExtension if Helper() restricts access to the bounds?
-    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>, 
+    InterpolationView<EdgeExtensionView<DEMImageT, ConstantEdgeExtension>,
                       BilinearInterpolation> m_dem;
     GeoReference m_georef;
     Vector3      m_camera_ctr;
@@ -191,9 +194,9 @@ namespace cartography {
     for (int i = 0; i <= ITER_LIMIT; i++){
       // Gradually expand delta until on final iteration it is == radius*0.02
       double delta = 0;
-      if (i > 0) 
+      if (i > 0)
         delta = small*( 1 << (i-1) );
-      
+
       for (int k = -1; k <= 1; k += 2){ // For k==-1, k==1
         len[0] = len0[0] + k*delta; // Ray guess length +/- 2% planetary radius
         // Use our model to compute the height diff at this length
@@ -207,7 +210,7 @@ namespace cartography {
         //if (i == 0) break; // When k*delta==0, no reason to do both + and -!
 
       } // End k loop
-      if (has_intersection) 
+      if (has_intersection)
         break;
     } // End i loop
 
@@ -402,24 +405,24 @@ namespace cartography {
     // BresenhamLine is the last point before the endpoint.
 
     // Left to right across the top side
-    bresenham_apply( math::BresenhamLine(0,0,cols,0), 
+    bresenham_apply( math::BresenhamLine(0,0,cols,0),
                      step_amount, functor );
     functor.last_valid = false;
     // Top to bottom down the right side
-    bresenham_apply( math::BresenhamLine(cols-1,0,cols-1,rows), 
+    bresenham_apply( math::BresenhamLine(cols-1,0,cols-1,rows),
                      step_amount, functor );
     functor.last_valid = false;
     // Right to left across the bottom side
-    bresenham_apply( math::BresenhamLine(cols-1,rows-1,0,rows-1), 
+    bresenham_apply( math::BresenhamLine(cols-1,rows-1,0,rows-1),
                      step_amount, functor );
     functor.last_valid = false;
     // Bottom to top up the left side
-    bresenham_apply( math::BresenhamLine(0,rows-1,0,0), 
+    bresenham_apply( math::BresenhamLine(0,rows-1,0,0),
                      step_amount, functor );
     functor.last_valid = false;
 
     // Top left corner diagonal down to bottom right corner
-    bresenham_apply( math::BresenhamLine(0,0,cols,rows), 
+    bresenham_apply( math::BresenhamLine(0,0,cols,rows),
                      step_amount, functor );
 
     // Estimate the smallest distance between adjacent points on the bounding box edges
