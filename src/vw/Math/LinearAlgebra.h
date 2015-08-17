@@ -60,9 +60,9 @@ namespace math {
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
-    real_type work_size;
+    real_type work_size = 0;
     f77_int n = detail::FINT(A.cols());
-    f77_int lwork = -1, info;
+    f77_int lwork = -1, info = -1;
 
     geev('N','N',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, NULL, 1, &work_size, lwork, &info);
 
@@ -95,9 +95,9 @@ namespace math {
     Matrix<real_type> Vbuf( A.rows(), A.cols() );
     Vector<real_type> wr_buf( A.cols() );
     Vector<real_type> wi_buf( A.cols() );
-    real_type work_size;
+    real_type work_size = 0;
     f77_int n = detail::FINT(A.cols());
-    f77_int lwork = -1, info;
+    f77_int lwork = -1, info = -1;
 
     geev('N','V',n,&(Abuf(0,0)), lda, &(wr_buf(0)), &(wi_buf(0)), NULL, 1, &(Vbuf(0,0)), ldvr, &work_size, lwork, &info);
 
@@ -136,8 +136,8 @@ namespace math {
     const f77_int lda = detail::FINT(A.rows());
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> sbuf( minmn );
-    real_type work_size;
-    f77_int lwork = -1, info;
+    real_type work_size = 0;
+    f77_int lwork = -1, info = -1;
     std::vector<f77_int> iwork( 8*minmn );
 
     gesdd('N', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), NULL, 1, NULL, 1, &work_size, lwork, &iwork[0], &info);
@@ -166,8 +166,8 @@ namespace math {
     Matrix<real_type> Ubuf( minmn, A.rows() );
     Matrix<real_type> VTbuf( A.cols(), minmn );
     Vector<real_type> sbuf( minmn );
-    real_type work_size;
-    f77_int lwork = -1, info;
+    real_type work_size = 0;
+    f77_int lwork = -1, info = -1;
     std::vector<f77_int> iwork( 8*minmn );
     f77_int ldu = m, ldvt = minmn;
     gesdd('S', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
@@ -199,8 +199,8 @@ namespace math {
     Matrix<real_type> Ubuf( A.rows(), A.rows() );
     Matrix<real_type> VTbuf( A.cols(), A.cols() );
     Vector<real_type> sbuf( minmn );
-    real_type work_size;
-    f77_int lwork = -1, info;
+    real_type work_size = 0;
+    f77_int lwork = -1, info = -1;
     std::vector<f77_int> iwork( 8*minmn );
     f77_int ldu = m, ldvt = n;
     gesdd('A', m, n, &(Abuf(0,0)), lda, &(sbuf(0)), &(Ubuf(0,0)), ldu, &(VTbuf(0,0)), ldvt, &work_size, lwork, &iwork[0], &info);
@@ -233,8 +233,8 @@ namespace math {
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> Tau( minmn );
 
-    real_type work_size;
-    f77_int lwork = -1, info;
+    real_type work_size = 0;
+    f77_int lwork = -1, info = -1;
     geqrf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     std::vector<real_type> work(lwork);
@@ -273,8 +273,8 @@ namespace math {
     Matrix<real_type> Abuf(transpose(A));
     Vector<real_type> Tau( minmn );
 
-    real_type work_size;
-    f77_int lwork = -1, info;
+    real_type work_size = 0;
+    f77_int lwork = -1, info = -1;
     gerqf(m, n, &(Abuf(0, 0)), lda, &(Tau(0)), &work_size, lwork, &info);
     lwork = (f77_int)(work_size);
     std::vector<real_type> work(lwork);
@@ -328,9 +328,9 @@ namespace math {
     const f77_int nrhs = 1, lda = detail::FINT(A.rows()), ldb = maxmn;
     std::vector<real_type> s( minmn );
     real_type const rcond = boost::numeric_cast<real_type>(cond);
-    f77_int rank;
-    f77_int lwork = -1, info;
-    real_type work_size;
+    f77_int rank = -1;
+    f77_int lwork = -1, info = -1;
+    real_type work_size = 0;
 #if USE_GELSS
     gelss( m, n, nrhs, &(Abuf(0,0)), lda, &(Bbuf(0)), ldb, &s[0], rcond, &rank, &work_size, lwork, &info );
     lwork = f77_int(work_size);
@@ -370,7 +370,7 @@ namespace math {
     const f77_int nrhs = 1;
     Vector<f77_int> ipiv( A.rows() );
     const f77_int ldb = detail::FINT(B.size());
-    f77_int info;
+    f77_int info = -1;
 
     Matrix<real_type> Abuf = transpose(A);
     Vector<real_type> result = B;
@@ -407,7 +407,7 @@ namespace math {
     const f77_int nrhs = 1;
     const f77_int lda = detail::FINT(A.rows());
     const f77_int ldb = detail::FINT(B.size());
-    f77_int info;
+    f77_int info = -1;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0)), ldb, &info);
 
     if (info > 0)
@@ -430,7 +430,7 @@ namespace math {
     const f77_int nrhs = detail::FINT(B.rows());
     const f77_int lda = detail::FINT(A.cols());
     const f77_int ldb = detail::FINT(B.cols());
-    f77_int info;
+    f77_int info = -1;
     posv('L',n,nrhs,&(A(0,0)), lda, &(B(0,0)), ldb, &info);
     if (info > 0)
       vw_throw( ArgumentErr() << "solve_symmetric(): LAPACK driver posv could not solve equation because A is not symmetric positive definite." );
@@ -577,7 +577,7 @@ namespace math {
       VW_ASSERT(m_A.rows() == m_A.cols(),
                 ArgumentErr() << "LUD(): Only works with square input A.");
       m_ipiv.set_size( std::min(m_A.cols(),m_A.rows()) );
-      f77_int info;
+      f77_int info = -1;
       getrf( detail::FINT(m_A.cols()), detail::FINT(m_A.rows()),
              &m_A(0,0), detail::FINT(m_A.cols()), &m_ipiv(0), &info );
       if (info > 0)
@@ -592,7 +592,7 @@ namespace math {
                 ArgumentErr() << "Input vector size does not match columns of input matrix." );
       // Uses GETRS
       Vector<real_type> x = b.impl();
-      f77_int info;
+      f77_int info = -1;
       getrs( 'T', detail::FINT(m_A.rows()), detail::FINT(1),
              &m_A(0,0), detail::FINT(m_A.cols()), &m_ipiv(0),
              &x(0), detail::FINT(m_A.rows()), &info );
