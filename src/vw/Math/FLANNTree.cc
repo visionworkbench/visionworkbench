@@ -60,9 +60,9 @@ namespace math {
       dists.set_size( knn );
 
     flann::Matrix<double> query_mat ( (double*)data_ptr, rows, cols );
-    flann::Matrix<int   > indice_mat( &indices[0], 1, knn );
+    flann::Matrix<int   > indices_mat( &indices[0], 1, knn );
     flann::Matrix<double> dists_mat ( &dists[0], 1, dists.size() );
-    ((flann::Index<flann::L2<double> >*)(m_index_ptr))->knnSearch( query_mat, indice_mat, dists_mat, knn, flann::SearchParams(128) );
+    ((flann::Index<flann::L2<double> >*)(m_index_ptr))->knnSearch( query_mat, indices_mat, dists_mat, knn, flann::SearchParams(128) );
     return knn;
   }
 
