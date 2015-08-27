@@ -68,7 +68,14 @@ namespace vw {
   //                            MUTEX
   // --------------------------------------------------------------
 
-  // A simple mutual exclusion class.
+  /// A wrapper around some boost::mutex classes.
+  /// - See docs: http://www.boost.org/doc/libs/1_59_0/doc/html/thread/synchronization.html
+  /// - There are three locks being managed here:
+  ///   - lock         = Normal, exclusive access lock.
+  ///   - lock_shared  = Non-exclusive lock.
+  ///   - lock_upgrade = Similar to lock_shared, but with the ability to upgrade to lock.
+  ///                    Having this intermediate lock step is necessary to secure exclusive 
+  ///                    access (lock) in a timely manner.
   class Mutex : private boost::shared_mutex {
 
     friend class WriteLock;
@@ -77,24 +84,37 @@ namespace vw {
   public:
     inline Mutex() {}
 
-    void lock()            { boost::shared_mutex::lock(); }
-    void lock_shared()     { boost::shared_mutex::lock_shared(); }
-    void lock_upgrade()    { boost::shared_mutex::lock_upgrade(); }
-    bool try_lock()        { return boost::shared_mutex::try_lock(); }
-    bool try_lock_shared() { return boost::shared_mutex::try_lock_shared(); }
-    void unlock()          { boost::shared_mutex::unlock(); }
-    void unlock_shared()   { boost::shared_mutex::unlock_shared(); }
-    void unlock_upgrade_and_lock() { boost::shared_mutex::unlock_upgrade_and_lock(); }
-    void unlock_and_lock_upgrade() { boost::shared_mutex::unlock_and_lock_upgrade(); }
+    /// Block until you own the requested lock.
+    void lock        () { boost::shared_mutex::lock();         }
+    void lock_shared () { boost::shared_mutex::lock_shared();  }
+    void lock_upgrade() { boost::shared_mutex::lock_upgrade(); }
+    
+    /// Non-blocking attempt to obtain ownership of a lock.
+    bool try_lock        () { return boost::shared_mutex::try_lock();         }
+    bool try_lock_shared () { return boost::shared_mutex::try_lock_shared();  }
+    bool try_lock_upgrade() { return boost::shared_mutex::try_lock_upgrade(); }
+    
+    /// Release ownership of a lock.
+    void unlock        () { boost::shared_mutex::unlock();         }
+    void unlock_shared () { boost::shared_mutex::unlock_shared();  }
+    void unlock_upgrade() { boost::shared_mutex::unlock_upgrade(); }
+    
+    /// Atomic operations to switch ownership from one type of lock to another.
+    void unlock_upgrade_and_lock       () { boost::shared_mutex::unlock_upgrade_and_lock(); }
+    void unlock_and_lock_upgrade       () { boost::shared_mutex::unlock_and_lock_upgrade(); }
     void unlock_upgrade_and_lock_shared() { boost::shared_mutex::unlock_upgrade_and_lock_shared(); }
 
-    // A scoped lock class, used to lock and unlock a Mutex.
+    /// A unique scoped lock class, used to lock and unlock a Mutex (only one can own at a time).
+    /// - Automatically locks the mutex when constructed, unlocks on destruction.
     class WriteLock : private boost::unique_lock<Mutex>, private boost::noncopyable {
     public:
       inline WriteLock( Mutex &mutex ) : boost::unique_lock<Mutex>( mutex ) {}
       void lock()          { boost::unique_lock<Mutex>::lock(); }
       void unlock()        { boost::unique_lock<Mutex>::unlock(); }
     };
+    
+    /// A scoped lock class, used to lock and unlock a Mutex (allows shared ownership).
+    /// - Automatically locks the mutex when constructed, unlocks on destruction.
     class ReadLock : private boost::shared_lock<Mutex>, private boost::noncopyable {
     public:
       inline ReadLock( Mutex &mutex ) : boost::shared_lock<Mutex>( mutex ) {}
@@ -102,10 +122,10 @@ namespace vw {
       void unlock()        { boost::shared_lock<Mutex>::unlock(); }
     };
 
-    typedef class WriteLock Lock;
-  };
+    typedef class WriteLock Lock; /// By default, use the non-shared lock type.
+  };// End class Mutex
 
-  // A simple mutual exclusion class.
+  /// A wrapper around the boost::recursive_mutex class.
   class RecursiveMutex : private boost::recursive_mutex {
 
     friend class Lock;
@@ -116,25 +136,24 @@ namespace vw {
     void lock()   { boost::recursive_mutex::lock(); }
     void unlock() { boost::recursive_mutex::unlock(); }
 
-    // A scoped lock class, used to lock and unlock a Mutex.
-    class Lock : private boost::unique_lock<RecursiveMutex>,
-                 private boost::noncopyable {
-
+    // A unique scoped lock class, used to lock and unlock a Mutex (only one can own at a time).
+    class Lock : private boost::unique_lock<RecursiveMutex>, private boost::noncopyable {
     public:
       inline Lock( RecursiveMutex &mutex ) : boost::unique_lock<RecursiveMutex>( mutex ) {}
       void lock()   { boost::unique_lock<RecursiveMutex>::lock(); }
       void unlock() { boost::unique_lock<RecursiveMutex>::unlock(); }
-    };
-  };
+    }; // End class Lock
+    
+  }; // End class RecursiveLock
+
 
   // --------------------------------------------------------------
   //                            THREAD
   // --------------------------------------------------------------
 
-  // A thread class, that runs a "Task", which is an object or
-  // function that has the operator() defined.  When the Thread object
-  // is destroyed it will join the child thread if it has not already
-  // terminated.
+  /// A thread class, that runs a "Task", which is an object or
+  /// function that has the operator() defined.  When the Thread object
+  /// is destroyed it will join the child thread if it has not already terminated.
   class Thread : private boost::noncopyable {
 
     boost::thread m_thread;
@@ -157,15 +176,13 @@ namespace vw {
 
     /// This variant of the constructor takes a Task that is copy
     /// constructable.  The thread made a copy of the task, and this
-    /// instance is no longer directly accessibly from the parent
-    /// thread.
+    /// instance is no longer directly accessibly from the parent thread.
     template<class TaskT>
     inline Thread( TaskT task ) : m_thread( task ) {}
 
     /// This variant of the constructor takes a shared point to a task.
     /// The thread made a copy of the shared pointer task, allowing
-    /// the parent to still access the task instance that is running in
-    /// the thread.
+    /// the parent to still access the task instance that is running in the thread.
     template<class TaskT>
     inline Thread( boost::shared_ptr<TaskT> task ) : m_thread( TaskHelper<TaskT>(task) ) {}
 

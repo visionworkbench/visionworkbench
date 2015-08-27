@@ -18,8 +18,7 @@
 
 /// \file Extrinsics.h
 ///
-/// Utilities for describing extrinsic camera parameters (position and
-/// pose).
+/// Utilities for describing extrinsic camera parameters (position and pose).
 ///
 ///
 #ifndef __VW_CAMERA_EXTRINSICS_H__
@@ -39,6 +38,7 @@ namespace camera {
   // POSITION INTERPOLATION
   // --------------------------------------------------------------------------
 
+  /// Simple position interpolation when only an initial point and velocity are known.
   class LinearPositionInterpolation {
     Vector3 m_initial_position, m_velocity_vector;
 
@@ -48,6 +48,30 @@ namespace camera {
 
     Vector3 operator()(double t) const;
   };
+
+  /// Simple linear interpolation between a series of positions.
+  class LinearPiecewisePositionInterpolation {
+    std::vector<Vector3> m_position;
+    double m_t0, m_dt;
+  public:
+    LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
+                                          double t0, double dt );
+
+    Vector3 operator()( double t ) const;
+  };
+
+  /// Interpolation between a series of positions incorporating accelleration information.
+  class PiecewiseAPositionInterpolation {
+    std::vector<Vector3> m_position, m_velocity;
+    double m_t0, m_dt;
+  public:
+    PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
+                                     std::vector<Vector3> const& velocity_samples,
+                                     double t0, double dt );
+
+    Vector3 operator()( double t ) const;
+  };
+
 
   class Curve3DPositionInterpolation {
     Matrix<double,3,3> m_cached_fit;
@@ -95,32 +119,12 @@ namespace camera {
     Vector3 operator()( double t ) const;
   };
 
-  class PiecewiseAPositionInterpolation {
-    std::vector<Vector3> m_position, m_velocity;
-    double m_t0, m_dt;
-  public:
-    PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
-                                     std::vector<Vector3> const& velocity_samples,
-                                     double t0, double dt );
-
-    Vector3 operator()( double t ) const;
-  };
-
-  class LinearPiecewisePositionInterpolation {
-    std::vector<Vector3> m_position;
-    double m_t0, m_dt;
-  public:
-    LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
-                                          double t0, double dt );
-
-    Vector3 operator()( double t ) const;
-  };
-
 
   // --------------------------------------------------------------------------
   // POSE INTERPOLATION
   // --------------------------------------------------------------------------
 
+  /// Always returns the input pose.
   class ConstantPoseInterpolation {
     Quat m_pose;
   public:
@@ -149,9 +153,10 @@ namespace camera {
   };
 
   // --------------------------------------------------------------------------
-  // POSE INTERPOLATION
+  // TIME INTERPOLATION
   // --------------------------------------------------------------------------
 
+  /// Simple linear interpolation of the time at a given line.
   class LinearTimeInterpolation {
     double m_t0, m_dt;
 
@@ -161,6 +166,7 @@ namespace camera {
     double operator()( double line ) const;
   };
 
+  ///
   class TLCTimeInterpolation {
     typedef std::map<double, double> map_type;
     map_type m_m, m_b; // Tables keyed on line: time = m * line + b;

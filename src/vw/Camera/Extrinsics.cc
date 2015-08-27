@@ -29,6 +29,9 @@
 using namespace vw;
 using namespace vw::camera;
 
+//======================================================================
+// LinearPositionInterpolation class
+
 LinearPositionInterpolation::LinearPositionInterpolation(Vector3 const& initial_position, Vector3 const& velocity_vector) :
   m_initial_position(initial_position), m_velocity_vector(velocity_vector) {}
 
@@ -36,6 +39,9 @@ Vector3
 LinearPositionInterpolation::operator()(double t) const {
   return m_initial_position + t * m_velocity_vector;
 }
+
+//======================================================================
+// Curve3DPositionInterpolation class
 
 Curve3DPositionInterpolation::Curve3DPositionInterpolation(
                                                            std::vector<Vector3> const& position_samples,
@@ -82,6 +88,9 @@ Vector3 Curve3DPositionInterpolation::operator()( double t ) const {
   return m_cached_fit * T;
 }
 
+//======================================================================
+// HermitePositionInterpolation class
+
 HermitePositionInterpolation::HermitePositionInterpolation( std::vector<Vector3> const& position_samples,
                                                             std::vector<Vector3> const& velocity_samples,
                                                             double t0, double dt ) :
@@ -108,6 +117,9 @@ Vector3 HermitePositionInterpolation::operator()( double t ) const {
     dot_prod(Vector4(0,0,-1,1), poly) * ( m_velocity[high_i] * m_dt );
 }
 
+//======================================================================
+// PiecewiseAPositionInterpolation class
+
 PiecewiseAPositionInterpolation::PiecewiseAPositionInterpolation( std::vector<Vector3> const& position_samples,
                                                                   std::vector<Vector3> const& velocity_samples,
                                                                   double t0, double dt ) :
@@ -119,13 +131,17 @@ Vector3 PiecewiseAPositionInterpolation::operator()( double t ) const {
              ArgumentErr() << "Cannot extrapolate position for time "
              << t << ". Out of range." );
 
-  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
-  size_t high_i = low_i + 1;
+  // Get the bounding indices and the distance from the time at the lower index
+  size_t low_i    = (size_t) floor( ( t - m_t0 ) / m_dt );
+  size_t high_i   = low_i + 1;
   double offset_t = t - (m_t0 + m_dt * low_i);
 
-  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt;
+  Vector3 a = ( m_velocity[high_i] - m_velocity[low_i] ) / m_dt; // Mean acceleration across the range
   return m_position[low_i] + m_velocity[low_i] * offset_t + a * offset_t * offset_t / 2;
 }
+
+//======================================================================
+// LinearPiecewisePositionInterpolation class
 
 LinearPiecewisePositionInterpolation::LinearPiecewisePositionInterpolation( std::vector<Vector3> const& position_samples,
                                                                             double t0, double dt ) :
@@ -136,18 +152,25 @@ Vector3 LinearPiecewisePositionInterpolation::operator()( double t ) const {
              ArgumentErr() << "Cannot extrapolate position for time "
              << t << ". Out of range." );
 
-  size_t low_i = (size_t) floor( ( t - m_t0 ) / m_dt );
+  // Get bounding indices
+  size_t low_i  = (size_t) floor( ( t - m_t0 ) / m_dt );
   size_t high_i = low_i + 1;
 
-  double low_t = m_t0 + m_dt * low_i;
-  double norm_t = ( t - low_t) / m_dt;
+  double low_t  = m_t0 + m_dt * low_i;
+  double norm_t = ( t - low_t) / m_dt; // t as fraction of time between points
 
   Vector3 result = m_position[low_i] + norm_t * ( m_position[high_i] - m_position[low_i] );
 
   return result;
 }
 
+//======================================================================
+// ConstantPoseInterpolation class
+
 ConstantPoseInterpolation::ConstantPoseInterpolation(Quat const& pose) : m_pose(pose) {}
+
+//======================================================================
+// SLERPPoseInterpolation class
 
 Quat SLERPPoseInterpolation::slerp(double alpha, Quat const& a,
                                    Quat const& b, int spin) const {
@@ -217,12 +240,18 @@ Quat SLERPPoseInterpolation::operator()(double t) const {
                      m_pose_samples[high_ind], 0);
 }
 
+//======================================================================
+// LinearTimeInterpolation class
+
 LinearTimeInterpolation::LinearTimeInterpolation( double initial_time, double time_per_line ) :
   m_t0( initial_time ), m_dt( time_per_line ) {}
 
 double LinearTimeInterpolation::operator()( double line ) const {
   return m_dt * line + m_t0;
 }
+
+//======================================================================
+// TLCTimeInterpolation class
 
 TLCTimeInterpolation::TLCTimeInterpolation(std::vector<std::pair<double, double> > const& tlc,
                                            double time_offset ) {

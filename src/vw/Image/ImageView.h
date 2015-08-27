@@ -50,6 +50,8 @@ namespace vw {
   /// MemoryImageView, or StandardImageView, but it is so ubiquitous
   /// that we decided to keep the name short.
   ///
+  /// - WARNING: Never refer to these objects by reference!  The
+  //             behaviour is undefined.
   template <class PixelT>
   class ImageView : public ImageViewBase<ImageView<PixelT> >
   {

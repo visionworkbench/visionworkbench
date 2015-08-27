@@ -29,6 +29,8 @@
 /// a virtualized reference to an arbitrary image view with a given
 /// pixel type.
 ///
+/// - WARNING: Never refer to these objects by reference!  The
+//             behaviour is undefined.
 #ifndef __VW_IMAGE_IMAGEVIEWREF_H__
 #define __VW_IMAGE_IMAGEVIEWREF_H__
 

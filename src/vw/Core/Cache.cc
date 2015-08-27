@@ -22,6 +22,8 @@
 ///
 #include <vw/Core/Cache.h>
 
+// Note that this function does not actually load the data,
+// it is up to the calling function to do that.
 void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
 
   // Put the current cache line at the top of the list (so the most
@@ -31,21 +33,22 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
   // Note: Doing allocation implies the need to call validate.
 
   // WARNING! YOU CAN NOT HOLD THE CACHE MUTEX AND THEN CALL
-  // INVALIDATE. That's a line -> cache -> line mutex hold. A
-  // deadlock!
+  // INVALIDATE. That's a line -> cache -> line mutex hold. A deadlock!
 
   // The lock below is recursive, so if a resource is locked by a
-  // thread, it can still be accessed by this thread, but not by
-  // others.
+  // thread, it can still be accessed by this thread, but not by others.
   RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
 
   uint64 local_evictions = 0;
 
   validate( line ); // Call here to insure that last_valid is not us!
+                    // This places the line at the beginning of the valid list.
+                    
   m_size += size;   // Update the size after adding the new line
   VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache allocated " << size
                   << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; );
 
+  // Grab the oldest CacheLine object
   CacheLineBase* local_last_valid = m_last_valid;
 
   while ( m_size > m_max_size ) {
@@ -56,10 +59,11 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
       break;
     }
 
+    // Deallocate the oldest CacheLine object if nothing is using it.
     bool invalidated = local_last_valid->try_invalidate();
-    if (invalidated) {
+    if (invalidated) { // If we were able to clear it...
       local_evictions++;
-      local_last_valid = m_last_valid;
+      local_last_valid = m_last_valid;  // Update the local pointer to the new oldest CacheLine.
     } else {
       // If we can't deallocate current line,
       // switch to the one used a bit more recently.
@@ -69,7 +73,7 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
 
   {
     Mutex::WriteLock cache_lock( m_stats_mutex );
-    m_evictions += local_evictions;
+    m_evictions += local_evictions; // Update class evictions stat
     
     // Warn about exceeding the cache size. Note that the warning is
     // printed only if the size now is a multiple of the previous size
@@ -77,10 +81,10 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
     // cache size is 1.5^n GB. This will limit the number of warnings
     // to a representative subset.
     double factor = 1.5;
-    if ( m_size > m_max_size && m_size > factor*m_last_size){
+    if ( (m_size > m_max_size) && (m_size > factor*m_last_size)){
       VW_OUT(WarningMessage, "cache")
-        << "Cached object (" << size
-        << ") larger than requested maximum cache size (" << round(m_max_size/1.0e6)
+        << "Cached a new object (" << size
+        << " B) and now we are larger than the requested maximum cache size (" << round(m_max_size/1.0e6)
         << " MB). Current size = " << round(m_size/1.0e6) << " MB.\n";
       m_last_size = m_size;
     }
@@ -90,19 +94,20 @@ void vw::Cache::allocate( size_t size, CacheLineBase* line ) {
 
 void vw::Cache::resize( size_t size ) {
   // WARNING! YOU CAN NOT HOLD THE CACHE MUTEX AND THEN CALL
-  // INVALIDATE. That's a line -> cache -> line mutex hold. A
-  // deadlock!
+  // INVALIDATE. That's a line -> cache -> line mutex hold. A deadlock!
   size_t local_size, local_max_size;
   CacheLineBase* local_last_valid;
   { // Locally buffer variables that require Cache Mutex
     RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
-    m_max_size = size;
-    local_size = m_size;
-    local_max_size = m_max_size;
+    m_max_size       = size;
+    local_size       = m_size;
+    local_max_size   = m_max_size;
     local_last_valid = m_last_valid;
   }
+  // Keep deallocating objects until we shrink under the new size limit
   while ( local_size > local_max_size ) {
     VW_ASSERT( local_last_valid, LogicErr() << "Cache is empty but has nonzero size!" );
+    // Deallocate the last invalid CacheLine object
     m_last_valid->invalidate(); // Problem ( probably grabs a line's mutex too )
     { // Update local buffer by grabbing cache buffer
       RecursiveMutex::Lock cache_lock( m_line_mgmt_mutex );
@@ -117,85 +122,97 @@ size_t vw::Cache::max_size() {
   return m_max_size;
 }
 
+// Note that this call does not actually deallocate the data from the CacheLine object.
+// It is up to the originating call to do that.  This call only removes all reference in 
+// the Cache class to the CacheLine object.
 void vw::Cache::deallocate( size_t size, CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
 
-  // This call implies the need to call invalidate
+  // This call implies the need to call invalidate (move to top of invalid list)
   invalidate( line );
 
-  m_size -= size;
+  m_size -= size; // Remove the given size contribution.
   VW_CACHE_DEBUG( VW_OUT(DebugMessage, "cache") << "Cache deallocated " << size << " bytes (" << m_size << " / " << m_max_size << " used)" << "\n"; )
 }
 
-// Move the cache line to the top of the valid list.
+
+// TODO: Could we use some sort of linked list class to handle this stuff?
+
 void vw::Cache::validate( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
-  if( line == m_first_valid ) return;
-  if( line == m_last_valid ) m_last_valid = line->m_prev;
-  if( line == m_first_invalid ) m_first_invalid = line->m_next;
-  if( line->m_next ) line->m_next->m_prev = line->m_prev;
-  if( line->m_prev ) line->m_prev->m_next = line->m_next;
+  // If the input line is already most valid, done!
+  if( line == m_first_valid ) 
+    return;
+  // This is the last line, we need to retreat the last valid pointer by one.
+  if( line == m_last_valid ) 
+    m_last_valid = line->m_prev;
+  // If this is the first in the invalid list, we need to advance the first invalid pointer by one.
+  if( line == m_first_invalid ) 
+    m_first_invalid = line->m_next;
+  // Adjust the elements before and after the input element to restore the linked list
+  //  with the current element removed. TODO: Make this a function?
+  if( line->m_next ) 
+    line->m_next->m_prev = line->m_prev;
+  if( line->m_prev ) 
+    line->m_prev->m_next = line->m_next;
+  // Make whatever is now first valid come after the input line
   line->m_next = m_first_valid;
-  line->m_prev = 0;
-  if( m_first_valid ) m_first_valid->m_prev = line;
+  line->m_prev = 0; // The new line is first, nothing before it!
+  
+  // Update first valid pointer to point to the new object
+  if( m_first_valid ) 
+    m_first_valid->m_prev = line;
   m_first_valid = line;
-  if( ! m_last_valid ) m_last_valid = line;
+  
+  // Handle case where this is the first valid element to be validated
+  if( ! m_last_valid ) 
+    m_last_valid = line;
 }
 
-// Move the cache line to the top of the invalid list.
+
 void vw::Cache::invalidate( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
+  // Update first and last pointers if they point to the line
   if( line == m_first_valid ) m_first_valid = line->m_next;
-  if( line == m_last_valid ) m_last_valid = line->m_prev;
+  if( line == m_last_valid  ) m_last_valid  = line->m_prev;
+  // Extract the line from its current location in the linked list
   if( line->m_next ) line->m_next->m_prev = line->m_prev;
   if( line->m_prev ) line->m_prev->m_next = line->m_next;
+  // Set the line to the first place in the list
   line->m_next = m_first_invalid;
   line->m_prev = 0;
   if( m_first_invalid ) m_first_invalid->m_prev = line;
   m_first_invalid = line;
 }
 
-// Remove the cache line from the cache lists.
+
 void vw::Cache::remove( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
-  if( line == m_first_valid ) m_first_valid = line->m_next;
-  if( line == m_last_valid ) m_last_valid = line->m_prev;
+  // Update list pointers if they pointed to the line
+  if( line == m_first_valid   ) m_first_valid   = line->m_next;
+  if( line == m_last_valid    ) m_last_valid    = line->m_prev;
   if( line == m_first_invalid ) m_first_invalid = line->m_next;
+  // Extract the line from its current location in the linked list
   if( line->m_next ) line->m_next->m_prev = line->m_prev;
   if( line->m_prev ) line->m_prev->m_next = line->m_next;
   line->m_next = line->m_prev = 0;
 }
 
-// Move the cache line to the bottom of the valid list.
+
 void vw::Cache::deprioritize( CacheLineBase *line ) {
   RecursiveMutex::Lock cache_lock(m_line_mgmt_mutex);
-  if( line == m_last_valid ) return;
+  // Already the last item, done!
+  if( line == m_last_valid  ) return;
+  // Update the first valid pointer if needed
   if( line == m_first_valid ) m_first_valid = line->m_next;
+  // Extract the line from its current location in the linked list
   if( line->m_next ) line->m_next->m_prev = line->m_prev;
   if( line->m_prev ) line->m_prev->m_next = line->m_next;
+  // Set the line to the last place in the list
   line->m_prev = m_last_valid;
   line->m_next = 0;
   m_last_valid->m_next = line;
   m_last_valid = line;
 }
 
-// Statistics request methods
-vw::uint64 vw::Cache::hits() {
-  Mutex::ReadLock cache_lock( m_stats_mutex );
-  return m_hits;
-}
 
-vw::uint64 vw::Cache::misses() {
-  Mutex::ReadLock cache_lock( m_stats_mutex );
-  return m_misses;
-}
-
-vw::uint64 vw::Cache::evictions() {
-  Mutex::ReadLock cache_lock( m_stats_mutex );
-  return m_evictions;
-}
-
-void vw::Cache::clear_stats() {
-  Mutex::WriteLock cache_lock( m_stats_mutex );
-  m_hits = m_misses = m_evictions = 0;
-}
