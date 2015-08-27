@@ -46,7 +46,7 @@ endif
 # Command-line tools based on the Cartography module
 if MAKE_MODULE_CARTOGRAPHY
 # Converts a DEM to a simple shaded-relief map
-hillshade_SOURCES = hillshade.cc
+hillshade_SOURCES = hillshade.cc hillshade.h
 hillshade_LDADD = @PKG_CARTOGRAPHY_LIBS@ $(COMMON_LIBS)
 # Converts a DEM to a simple color map
 colormap_SOURCES = colormap.cc

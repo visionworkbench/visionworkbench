@@ -26,20 +26,7 @@
 #undef NDEBUG
 #endif
 
-#include <vw/Core/System.h>
-#include <vw/Core/Log.h>
-#include <vw/Core/FundamentalTypes.h>
-#include <vw/Math/EulerAngles.h>
-#include <vw/Image/Algorithms.h>
-#include <vw/Image/ImageViewRef.h>
-#include <vw/Image/Filter.h>
-#include <vw/Image/PixelMask.h>
-#include <vw/Image/MaskViews.h>
-#include <vw/Image/PerPixelAccessorViews.h>
-#include <vw/FileIO/DiskImageView.h>
-#include <vw/FileIO/DiskImageResource.h>
-#include <vw/Cartography/GeoReference.h>
-#include <vw/tools/Common.h>
+#include <vw/tools/hillshade.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -60,75 +47,6 @@ struct Options {
   double nodata_value;
   double blur_sigma;
 };
-
-// ----------------------------------------------------------------------------
-
-template <class PixelT>
-void do_hillshade(Options& opt) {
-
-  cartography::GeoReference georef;
-  cartography::read_georeference(georef, opt.input_file_name);
-
-  // Select the pixel scale.
-  float u_scale, v_scale;
-  if (opt.scale == 0) {
-    if (georef.is_projected()) {
-      u_scale = georef.transform()(0,0);
-      v_scale = georef.transform()(1,1);
-    } else {
-      double meters_per_degree = 2*M_PI*georef.datum().semi_major_axis()/360.0;
-      u_scale = georef.transform()(0,0) * meters_per_degree;
-      v_scale = georef.transform()(1,1) * meters_per_degree;
-    }
-  } else {
-    u_scale = opt.scale;
-    v_scale = -opt.scale;
-  }
-
-  // Set the direction of the light source.
-  Vector3f light_0(1,0,0);
-  Vector3f light = vw::math::euler_to_rotation_matrix(opt.elevation*M_PI/180, opt.azimuth*M_PI/180, 0, "yzx") * light_0;
-
-  // Compute the surface normals
-  vw_out() << "Loading: " << opt.input_file_name << ".\n";
-  DiskImageView<PixelT > disk_dem_file(opt.input_file_name);
-
-  ImageViewRef<PixelMask<PixelT > > dem;
-  boost::scoped_ptr<SrcImageResource> disk_dem_rsrc(DiskImageResource::open(opt.input_file_name));
-  if ( !std::isnan(opt.nodata_value) ) {
-    vw_out() << "\t--> Masking pixel value: " << opt.nodata_value << ".\n";
-    dem = create_mask(disk_dem_file, opt.nodata_value);
-  } else if ( disk_dem_rsrc->has_nodata_read() ) {
-    opt.nodata_value = disk_dem_rsrc->nodata_read();
-    vw_out() << "\t--> Extracted nodata value from file: "
-             << opt.nodata_value << ".\n";
-    dem = create_mask(disk_dem_file, opt.nodata_value);
-  } else {
-    dem = pixel_cast<PixelMask<PixelT > >(disk_dem_file);
-  }
-
-  if ( !std::isnan(opt.blur_sigma) ) {
-    vw_out() << "\t--> Blurring pixel with gaussian kernal.  Sigma = "
-             << opt.blur_sigma << "\n";
-    dem = gaussian_filter(dem, opt.blur_sigma);
-  }
-
-  // The final result is the dot product of the light source with the normals
-  ImageViewRef<PixelMask<PixelGray<uint8> > > shaded_image =
-    channel_cast_rescale<uint8>(clamp(dot_prod(compute_normals(dem, u_scale, v_scale), light)));
-
-  // Save the result
-  vw_out() << "Writing shaded relief image: " << opt.output_file_name << "\n";
-
-  boost::scoped_ptr<DiskImageResource> r(DiskImageResource::create(opt.output_file_name,
-                                                                   shaded_image.format()));
-  if ( r->has_block_write() )
-    r->set_block_write_size( Vector2i( vw_settings().default_tile_size(),
-                                       vw_settings().default_tile_size() ) );
-  write_georeference( *r, georef );
-  block_write_image( *r, shaded_image,
-                     TerminalProgressCallback( "tools.hillshade", "Writing:") );
-}
 
 void handle_arguments( int argc, char *argv[], Options& opt ) {
   po::options_description desc("Description: Outputs image of a DEM lighted as specified\n\nUsage: hillshade [options] <input file> \n\nOptions");
@@ -170,27 +88,16 @@ int main( int argc, char *argv[] ) {
   Options opt;
   try {
     handle_arguments( argc, argv, opt );
+    do_multitype_hillshade(opt.input_file_name,
+                           opt.output_file_name,
+                           opt.azimuth, opt.elevation, opt.scale,
+                           opt.nodata_value, opt.blur_sigma);
 
-    ImageFormat fmt = tools::image_format(opt.input_file_name);
-
-    switch(fmt.pixel_format) {
-    case VW_PIXEL_GRAY:
-    case VW_PIXEL_GRAYA:
-      switch (fmt.channel_type) {
-      case VW_CHANNEL_UINT8:  do_hillshade<PixelGray<uint8>  >( opt ); break;
-      case VW_CHANNEL_INT16:  do_hillshade<PixelGray<int16>  >( opt ); break;
-      case VW_CHANNEL_UINT16: do_hillshade<PixelGray<uint16> >( opt ); break;
-      default:                do_hillshade<PixelGray<float>  >( opt ); break;
-      }
-      break;
-    default:
-      vw_throw( ArgumentErr() << "Unsupported pixel format. The DEM image must have only one channel." );
-    }
   } catch ( const ArgumentErr& e ) {
     vw_out() << e.what() << std::endl;
     return 1;
   } catch ( const Exception& e ) {
-    std::cerr << "Error: " << e.what() << std::endl;
+    vw_out() << e.what() << std::endl;
     return 1;
   }
 
