@@ -23,7 +23,7 @@
 # For simplicity, these example applications depend on exceptions
 if ENABLE_EXCEPTIONS
 
-include_HEADERS = Common.h
+include_HEADERS = Common.h hillshade.h
 libvwTools_la_SOURCES = Common.cc
 libvwTools_la_LIBADD = @PKG_TOOLS_LIBS@
 libvwTools_la_LDFLAGS = @VW_LDFLAGS@ $(LIBTOOL_LIB_FLAGS)
