@@ -45,6 +45,7 @@ namespace po = boost::program_options;
 #include <vw/FileIO/DiskImageView.h>
 #include <vw/Cartography/GeoReference.h>
 #include <vw/tools/Common.h>
+#include <vw/FileIO/FileUtils.h>
 
 using namespace vw;
 
@@ -274,6 +275,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string()+"_CMAP.tif";
   opt.draw_legend = vm.count("legend");
+
+  create_out_dir(opt.output_file_name);
 }
 
 int main( int argc, char *argv[] ) {

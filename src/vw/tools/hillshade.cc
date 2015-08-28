@@ -27,6 +27,7 @@
 #endif
 
 #include <vw/tools/hillshade.h>
+#include <vw/FileIO/FileUtils.h>
 
 #include <boost/program_options.hpp>
 #include <boost/filesystem/path.hpp>
@@ -81,6 +82,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
   if ( opt.output_file_name.empty() )
     opt.output_file_name =
       fs::path(opt.input_file_name).replace_extension().string() + "_HILLSHADE.tif";
+
+  create_out_dir(opt.output_file_name);
 }
 
 int main( int argc, char *argv[] ) {

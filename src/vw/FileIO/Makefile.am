@@ -64,6 +64,7 @@ include_HEADERS = \
   KML.h \
   ScanlineIO.h \
   TemporaryFile.h \
+  FileUtils.h \
   $(gdal_headers) \
   $(hdf_headers) \
   $(jpeg_headers) \
@@ -79,6 +80,7 @@ libvwFileIO_la_SOURCES = \
   MemoryImageResource.cc \
   ScanlineIO.cc \
   TemporaryFile.cc \
+  FileUtils.cc \
   $(gdal_sources) \
   $(hdf_sources) \
   $(jpeg_sources) \
