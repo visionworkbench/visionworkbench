@@ -57,6 +57,18 @@ namespace impl {
     else return int32(val+0.5f);
   }
 
+  // Make _round() resolve unambiguously to a no-op if the input type
+  // is integral, in which case the float and double variants are
+  // equally valid.
+  inline int8   _round( int8 v )   { return v; }
+  inline uint8  _round( uint8 v )  { return v; }
+  inline int16  _round( int16 v )  { return v; }
+  inline uint16 _round( uint16 v ) { return v; }
+  inline int32  _round( int32 v )  { return v; }
+  inline uint32 _round( uint32 v ) { return v; }
+  inline int64  _round( int64 v )  { return v; }
+  inline uint64 _round( uint64 v ) { return v; }
+
   /// A special inlinable implementation of floor()
   /// for the common case of double->int32.
   inline int32 _floor( double val ) {
