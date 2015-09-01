@@ -170,21 +170,20 @@ namespace ip {
     /// pixel's interest measure should be fully rasterized. Later operations
     /// (thresholding, orientation assignment, etc.) require at most support
     /// regions around the interest points.
-    typedef SrcT source_type;
+    typedef          SrcT             source_type;
     typedef typename SrcT::pixel_type pixel_type;
 
     typedef typename InterestOperatorTraits<SrcT, InterestT>::rasterize_type rasterize_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::gradient_type gradient_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type mag_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type ori_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type interest_type;
-    typedef typename InterestOperatorTraits<SrcT, InterestT>::integral_type integral_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::gradient_type  gradient_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::mag_type       mag_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::ori_type       ori_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::interest_type  interest_type;
+    typedef typename InterestOperatorTraits<SrcT, InterestT>::integral_type  integral_type;
 
     static const int peak_type = InterestPeakType<InterestT>::peak_type;
 
     /// Constructor which sets the source image and creates the processed views.
-    /// This is a generic constructor that assumes the requires grad
-    /// x/y.
+    /// This is a generic constructor that assumes the requires grad x/y.
     template <class ViewT>
     ImageInterestData(ImageViewBase<ViewT> const& img) :
       m_src(img.impl()),

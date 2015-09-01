@@ -16,10 +16,11 @@
 // __END_LICENSE__
 
 
-// IntegralImage.h
-//
-// Provides support for algorithms that evaluate with Integral Images
-// such as SURF
+/// IntegralImage.h
+///
+/// Provides support for algorithms that evaluate with Integral Images
+/// such as SURF.  Contains a function to create an integral image, and
+/// multiple functions to perform operations on them.
 #ifndef __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 #define __VW_INTERESTPOINT_INTEGRALIMAGE_H__
 
@@ -27,10 +28,14 @@
 #include <vw/Core/FundamentalTypes.h>
 #include <vw/Image/ImageView.h>
 
+// TODO: Change the function names to meet the standard convention!
+
 namespace vw {
 namespace ip {
 
-  /// Creates Integral Image
+  /// Function to create an integral image of an input image.
+  /// - Despite the caps, this is a function and IntegralImage is not a type!
+  /// - An integral image can be used to quickly find regional sums using the function below.
   template <class ViewT>
   inline ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type>
   IntegralImage( ImageViewBase<ViewT> const& source ) {
@@ -81,16 +86,14 @@ namespace ip {
     }
 
     return integral;
-  }
+  } // End IntegralImage function
 
-  /// Integral Block Evaluation
-  ///
-  /// This is for summing an area of pixels described by integral
+  /// Using an integral image, compute the summed value of a region in the original image.
   template <class PixelT>
   inline PixelT
   IntegralBlock( ImageView<PixelT> const& integral,
-                 Vector2i const& top_left,
-                 Vector2i const& bottom_right ) {
+                 Vector2i          const& top_left,
+                 Vector2i          const& bottom_right ) {
     VW_DEBUG_ASSERT(top_left.x() < integral.cols(),
                     vw::ArgumentErr() << "x0 out of bounds. "<< integral.cols() <<" : "
                     << top_left << bottom_right << "\n");
@@ -134,7 +137,7 @@ namespace ip {
   XSecondDerivative( ImageView<PixelT> const& integral,
                      int const& x, int const& y,
                      unsigned const& filter_size ) {
-    unsigned lobe = filter_size / 3;
+    unsigned lobe      = filter_size / 3;
     unsigned half_lobe = (unsigned) floor( float(lobe) / 2.0 );
     PixelT derivative;
 
@@ -348,7 +351,7 @@ namespace ip {
 
     float response;
     float half_size = size / 2.0;
-    float top = float(y) - half_size;
+    float top  = float(y) - half_size;
     float left = float(x) - half_size;
 
     response = -integral.impl()(left, top);
@@ -386,7 +389,7 @@ namespace ip {
 
     float response;
     float half_size = size / 2.0;
-    float top = float(y) - half_size;
+    float top  = float(y) - half_size;
     float left = float(x) - half_size;
 
     response = -integral.impl()(left, top);

@@ -62,8 +62,7 @@ void weighted_histogram(ImageViewBase<ViewT1> const& val_image,
 /// resize method.  Note that for Gaussian filtering of images, the
 /// separable method is preferred with two 1D kernels.
 /// The kernel size may be specified; if it is not then the default
-/// value of zero indicates the kernel size should be computed from
-/// sigma.
+/// value of zero indicates the kernel size should be computed from sigma.
 template <class KernelT>
 int make_gaussian_kernel_2d( KernelT& kernel, float sigma, int usewidth=0 ) {
   std::vector<float> kernel_1d;
@@ -86,21 +85,20 @@ void weighted_magnitude(ImageViewBase<ViewT1>& weight,
                         int x, int y, float sigma, int usewidth=0) {
   ImageView<float> kernel;
   make_gaussian_kernel_2d(kernel, sigma, usewidth);
-  int width = kernel.rows();
+  int width     = kernel.rows();
   int halfwidth = (width - 1) / 2;
 
   weight = crop(mag_image, x - halfwidth, y - halfwidth, width,
                 width) * kernel;
 }
 
-/// Adds a sample to the orientation histogram using linear
-/// interpolation.
+/// Adds a sample to the orientation histogram using linear interpolation.
 inline
 void orientation_interpolate(std::vector<float>& histo,
                              unsigned n_bins, float ori, float mag) {
   float bin_size = (float)(2 * M_PI / n_bins);
-  float ratio = (ori - bin_size) / bin_size;
-  int n = (int)floor((ori + M_PI) / bin_size);
+  float ratio    = (ori - bin_size) / bin_size;
+  int   n        = (int)floor((ori + M_PI) / bin_size);
   histo[n] += ((float)1 - ratio) * mag;
   histo[(n+1) % n_bins] += ratio * mag;
 }
@@ -113,7 +111,7 @@ void orientation_histogram(ImageViewBase<ViewT1> const& ori_image,
                            float sigma, unsigned n_bins) {
   ImageView<float> weight;
   weighted_magnitude(weight, mag_image, x, y, sigma);
-  int width = weight.rows();
+  int width     = weight.rows();
   int halfwidth = (width - 1) / 2;
   histo.resize(n_bins);
   std::fill(histo.begin(),histo.end(),0.0);

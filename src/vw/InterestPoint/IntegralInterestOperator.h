@@ -37,6 +37,9 @@
 namespace vw {
 namespace ip {
 
+
+// TODO: Should this move to InterestOperator.h?
+
   /// Functions adapted from the source code of the OBALoG
   /// Detector. OBALoG is release under the 'new' BSD License below.
   /*
@@ -64,9 +67,9 @@ namespace ip {
   class OBALoGInterestOperator {
 
     // Predefined functions
-    static const double SCALE_LOG_SIGMA[10];     // For reference
-    static const int SCALE_BOX_WIDTH[10][6];
-    static const int SCALE_BOX_HEIGHT[10][6];
+    static const double SCALE_LOG_SIGMA [10];     // For reference
+    static const int    SCALE_BOX_WIDTH [10][6];
+    static const int    SCALE_BOX_HEIGHT[10][6];
     static const double SCALE_BOX_WEIGHT[10][6];
 
     double m_threshold;
@@ -88,8 +91,7 @@ namespace ip {
       vw_throw( NoImplErr() << "OBALoG Box Filter creation on the fly has not been implemented\n" );
     }
 
-    // A integer scale will invoke the standard OBALoG with
-    // precomputed box filters.
+    // A integer scale will invoke the standard OBALoG with precomputed box filters.
     template <class DataT>
     inline void operator() (DataT& data, int scale = 0 ) const {
       // 1.) Assemble Filter
@@ -158,6 +160,8 @@ namespace ip {
 
   // Type traits for OBALoG Interest
   template <> struct InterestPeakType <OBALoGInterestOperator> { static const int peak_type = IP_MAX; };
+
+
 
 }} // end vw::ip
 

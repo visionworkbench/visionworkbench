@@ -16,6 +16,8 @@
 // __END_LICENSE__
 
 
+// TODO: Move this class to another folder!
+
 /// \file MatrixIO.h
 ///
 /// Functions for reading and writing matrices to files
@@ -33,9 +35,9 @@
 
 namespace vw {
 
-  // Write a matrix object to disk as an image file.  This function
-  // is particularly useful if you write the matrix as an OpenEXR
-  // image file; this retains the maximal amount of information.
+  /// Write a matrix object to disk as an image file.  This function
+  /// is particularly useful if you write the matrix as an OpenEXR
+  /// image file; this retains the maximal amount of information.
   template <class T>
   void write_matrix( const std::string &filename, vw::Matrix<T> &out_matrix ) {
 
@@ -54,9 +56,9 @@ namespace vw {
   }
 
 
-  // Read a matrix object from an image file on disk.  This function
-  // is particularly useful if the matrix was saved as an OpenEXR
-  // image file; this retains the maximal amount of information.
+  /// Read a matrix object from an image file on disk.  This function
+  /// is particularly useful if the matrix was saved as an OpenEXR
+  /// image file; this retains the maximal amount of information.
   template <class T>
   void read_matrix( vw::Matrix<T>& in_matrix, const std::string &filename ) {
 

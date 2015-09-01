@@ -23,7 +23,7 @@
 if MAKE_MODULE_CORE
 
 include_HEADERS = \
-  Cache.h \
+  Cache.h Cache.tcc \
   CompoundTypes.h \
   Condition.h \
   ConfigParser.h \

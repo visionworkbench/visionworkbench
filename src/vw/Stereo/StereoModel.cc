@@ -114,16 +114,19 @@ Vector3 StereoModel::operator()(vector<Vector2> const& pixVec,
       
       Vector2 pix = pixVec[p];
       if (pix != pix || // i.e., NaN
-          pix == camera::CameraModel::invalid_pixel() ) continue;
+          pix == camera::CameraModel::invalid_pixel() ) 
+        continue;
       
       camDirs.push_back(m_cameras[p]->pixel_to_vector(pix));
       camCtrs.push_back(m_cameras[p]->camera_center(pix));
     }
 
     // Not enough valid rays
-    if (camDirs.size() < 2) return Vector3();
+    if (camDirs.size() < 2) 
+      return Vector3();
 
-    if (are_nearly_parallel(m_least_squares, camDirs)) return Vector3();
+    if (are_nearly_parallel(m_least_squares, camDirs)) 
+      return Vector3();
 
     // Determine range by triangulation
     Vector3 result = triangulate_point(camDirs, camCtrs, errorVec);
