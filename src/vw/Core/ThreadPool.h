@@ -39,20 +39,29 @@ namespace vw {
   // ----------------------  --------------  ---------------------------
   // ----------------------       Task       ---------------------------
   // ----------------------  --------------  ---------------------------
+
+  /// Keep track of whether task is finished. WorkQueue is responsible
+  /// for calling "signal_finished" after task is finished
+  /// - The thread pool classes only operate on things derived from the Task class.
   class Task {
-    Mutex m_task_mutex;
-    Condition m_finished_event;
+    Mutex         m_task_mutex;
+    Condition     m_finished_event;
     volatile bool m_finished;
 
   public:
-    Task();
-    virtual ~Task();
+    Task() : m_finished(false) {}
+    virtual ~Task() {}
+
+    /// Do the work!  All Task derived classes must implement this.
     virtual void operator()() = 0;
 
-    // Keep track of whether task is finished. WorkQueue is responsible
-    // for calling "signal_finished" after task is finished
+    /// Thread-safe check of the is_finished variable
     bool is_finished();
+
+    /// Wait forever until m_finished_event is notified and m_finished is true
     void join();
+
+    /// Set m_finished and notify m_finished_event
     void signal_finished();
   };
 
@@ -60,31 +69,34 @@ namespace vw {
   // ----------------------  Task Generator  ---------------------------
   // ----------------------  --------------  ---------------------------
 
-  // Work Queue Base Class
+  /// Work Queue Base Class - This is really a thread pool!
   class WorkQueue {
-
-    // The worker thread class is the Task object that is spun out to
-    // do the actual work of the WorkQueue.  When a worker thread
-    // finishes its task it notifies the threadpool, which farms out
-    // the next task to the worker thread.
+  private:
+    /// A helper class created by WorkQueue that executes tasks. When a worker 
+    /// thread finishes its task it notifies the threadpool, which farms out
+    /// the next task to the worker thread.
     class WorkerThread {
-      WorkQueue &m_queue;
-      boost::shared_ptr<Task> m_task;
-      int m_thread_id;
-      bool &m_should_die;
+      WorkQueue               &m_queue;
+      boost::shared_ptr<Task>  m_task;
+      int                      m_thread_id;
+      bool                    &m_should_die;
     public:
-      WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task,
-                   int thread_id, bool &should_die);
-      ~WorkerThread();
+      WorkerThread(WorkQueue& queue, // Parent queue object
+                   boost::shared_ptr<Task> initial_task, // First task to execute
+                   int thread_id,     // ID assigned to this thread
+                   bool &should_die); // Stop after this task?
+      ~WorkerThread() {}
       void operator()();
-    };
+    }; // End class WorkerThread
 
-    int m_active_workers, m_max_workers;
-    Mutex m_queue_mutex;
-    std::vector<boost::shared_ptr<Thread> > m_running_threads;
-    std::list<int> m_available_thread_ids;
-    Condition m_joined_event;
-    bool m_should_die;
+  private: // Variables
+    int            m_active_workers, ///< Number of active worker threads.
+                   m_max_workers;    ///< Max number of worker threads.
+    Mutex          m_queue_mutex;    ///< Mutex for getting task assignments etc.
+    std::vector<boost::shared_ptr<Thread> > m_running_threads; ///< Thread handles
+    std::list<int> m_available_thread_ids; 
+    Condition      m_joined_event;
+    bool           m_should_die;
 
     // This is called whenever a worker thread finishes its task. If
     // there are more tasks available, the worker is given more work.
@@ -103,9 +115,12 @@ namespace vw {
     // *************************************************************
     void worker_thread_complete(int worker_id);
 
-  public:
+  public: // Functions
+
     WorkQueue(int num_threads = vw_settings().default_num_threads() );
     virtual ~WorkQueue();
+
+    //TODO: Should all of these be public?
 
     /// Return a shared pointer to the next task.  If no tasks are
     /// available, return an empty shared pointer.
@@ -122,8 +137,7 @@ namespace vw {
     /// given time using this threadpool.
     int max_threads();
 
-    /// Return the max number threads that can run concurrently at any
-    /// given time using this threadpool.
+    /// Return the number of currently active threads.
     int active_threads();
 
     // Join all currently running threads and wait for the task pool
@@ -150,13 +164,14 @@ namespace vw {
     virtual boost::shared_ptr<Task> get_next_task();
   };
 
+
   /// A simple ordered work queue.  Tasks are each given an "index"
   /// and they are processed in order starting with the task at index
   /// 0.  The idle() method returns true unless the task with the next
   /// expected index is present in the work queue.
   class OrderedWorkQueue : public WorkQueue {
     std::map<int, boost::shared_ptr<Task> > m_queued_tasks;
-    int m_next_index;
+    int   m_next_index;
     Mutex m_mutex;
   public:
 

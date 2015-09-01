@@ -35,6 +35,8 @@
 namespace vw {
 namespace ip {
 
+  /// Base class for interest point description generator classes.
+  /// - Use these classes to generate descriptions of detected interest points.
   template <class ImplT>
   class DescriptorGeneratorBase {
 
@@ -70,74 +72,6 @@ namespace ip {
 
   }; // End class DescriptorGeneratorBase
 
-  template <class ViewT, class DescriptorT>
-  class InterestPointDescriptionTask : public Task, private boost::noncopyable {
-    ViewT m_view;
-    DescriptorT& m_descriptor;
-    int m_id, m_max_id;
-    typename InterestPointList::iterator m_start, m_stop;
-
-  public:
-    InterestPointDescriptionTask( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                                  int id, int max_id,
-                                  typename InterestPointList::iterator start,
-                                  typename InterestPointList::iterator stop ) :
-      m_view( view.impl() ), m_descriptor( descriptor ), m_id( id ),
-      m_max_id( max_id ), m_start(start), m_stop( stop ) {}
-
-    virtual ~InterestPointDescriptionTask(){}
-
-    void operator()();
-  }; // End class InterestPointDescriptionTask
-
-  struct IsInBBox {
-    BBox2i m_bbox;
-
-    IsInBBox( BBox2i const& bbox ) : m_bbox( bbox ) {}
-    bool operator()( InterestPoint const& ip ) {
-      return m_bbox.contains( Vector2i( ip.x, ip.y ) );
-    }
-  };
-
-  // There is a lot of memory allocation created on task generation. I
-  // couldn't figure it out in a reasonable time frame. Thus now we
-  // generate tasks on demand which should lower the instantaneous
-  // memory requirement.
-  template <class ViewT, class DescriptorT>
-  class InterestDescriptionQueue : public WorkQueue {
-    ViewT         m_view;
-    DescriptorT & m_descriptor;
-    std::vector<BBox2i> m_bboxes;
-    std::vector<typename InterestPointList::iterator> m_section_start, m_section_stop;
-    Mutex  m_mutex;
-    size_t m_index;
-
-    typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
-
-  public:
-
-    InterestDescriptionQueue( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                              std::vector<BBox2i> const& bboxes,
-                              std::vector<typename InterestPointList::iterator> const& section_start,
-                              std::vector<typename InterestPointList::iterator> const& section_stop ) :
-      m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
-      m_section_start(section_start), m_section_stop(section_stop), m_index(0)  {
-      this->notify();
-    }
-
-    size_t size() {
-      return m_bboxes.size();
-    }
-
-    virtual boost::shared_ptr<Task> get_next_task();
-  }; // End class InterestDescriptionQueue
-
-  /// This function implements multithreaded interest point
-  /// description. Threads are spun off to process the image in 1024 x
-  /// 1024 pixel block plus some padding.
-  template <class ViewT, class DescriptorT>
-  void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
-                                 InterestPointList& list );
 
   /// A basic example descriptor class. The descriptor for an interest
   /// point is simply the pixel values in the support region around
@@ -192,6 +126,82 @@ namespace ip {
     int support_size() { return 42; }
     int descriptor_size() { return 180; }
   };
+
+
+  //---------------------------------------------------------------------------------
+  // The remaining declarations are for a thread pool based description processor.
+
+  template <class ViewT, class DescriptorT>
+  class InterestPointDescriptionTask : public Task, private boost::noncopyable {
+    ViewT        m_view;         ///< Source image
+    DescriptorT& m_descriptor;   ///< Description class instance
+    int          m_id, m_max_id;
+    typename InterestPointList::iterator m_start, m_stop;
+
+  public:
+    InterestPointDescriptionTask( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                                  int id, int max_id,
+                                  typename InterestPointList::iterator start,
+                                  typename InterestPointList::iterator stop ) :
+      m_view( view.impl() ), m_descriptor( descriptor ), m_id( id ),
+      m_max_id( max_id ), m_start(start), m_stop( stop ) {}
+
+    virtual ~InterestPointDescriptionTask(){}
+
+    void operator()();
+  }; // End class InterestPointDescriptionTask
+
+  struct IsInBBox {
+    BBox2i m_bbox;
+
+    IsInBBox( BBox2i const& bbox ) : m_bbox( bbox ) {}
+    bool operator()( InterestPoint const& ip ) {
+      return m_bbox.contains( Vector2i( ip.x, ip.y ) );
+    }
+  };
+
+  /// Thread pool class for parallel processing of interest point descriptions.
+  // There is a lot of memory allocation created on task generation. I
+  // couldn't figure it out in a reasonable time frame. Thus now we
+  // generate tasks on demand which should lower the instantaneous
+  // memory requirement.
+  template <class ViewT, class DescriptorT>
+  class InterestDescriptionQueue : public WorkQueue {
+    ViewT                 m_view;
+    DescriptorT         & m_descriptor;
+    std::vector<BBox2i>   m_bboxes;
+    std::vector<typename InterestPointList::iterator> m_section_start, m_section_stop;
+    Mutex  m_mutex;
+    size_t m_index;
+
+    typedef InterestPointDescriptionTask<ViewT, DescriptorT> task_type;
+
+  public:
+
+    InterestDescriptionQueue( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                              std::vector<BBox2i> const& bboxes,
+                              std::vector<typename InterestPointList::iterator> const& section_start,
+                              std::vector<typename InterestPointList::iterator> const& section_stop ) :
+      m_view(view.impl()), m_descriptor(descriptor), m_bboxes(bboxes),
+      m_section_start(section_start), m_section_stop(section_stop), m_index(0)  {
+      this->notify();
+    }
+
+    size_t size() {
+      return m_bboxes.size();
+    }
+
+    virtual boost::shared_ptr<Task> get_next_task();
+  }; // End class InterestDescriptionQueue
+
+  /// This function implements multithreaded interest point
+  /// description. Threads are spun off to process the image in 1024 x
+  /// 1024 pixel block plus some padding.
+  template <class ViewT, class DescriptorT>
+  void describe_interest_points( ImageViewBase<ViewT> const& view, DescriptorT& descriptor,
+                                 InterestPointList& list );
+
+
 
 // TODO: Seperate the definitions!
 

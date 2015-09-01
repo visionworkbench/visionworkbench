@@ -28,6 +28,7 @@ namespace vw {
   //                            CONDITION
   // --------------------------------------------------------------
 
+  /// Wrapper around the boost::condition class
   class Condition : private boost::condition,
                     private boost::noncopyable
   {
@@ -36,25 +37,29 @@ namespace vw {
     // construct/copy/destruct
     inline Condition() : boost::condition() {}
 
-    // notification
+    /// Unblock (notify) a single thread blocking waiting for the condition.
     void notify_one() {
       boost::condition::notify_one();
     }
 
+    /// Unblocks (notifys) all threads blocking waiting for the condition.
     void notify_all() {
       boost::condition::notify_all();
     }
 
-    // waiting
+    /// Unlock the mutex in the lock, then wait until notified.
+    /// - When notified and woken up, the mutex is re-locked.
     template<typename LockT> void wait(LockT &lock) {
       boost::condition::wait(lock);
     }
 
+    /// Identical to:  while(!pred()){wait(lock);}
     template<typename LockT, typename Pred>
     void wait(LockT &lock, Pred pred) {
       boost::condition::wait(lock,pred);
     }
 
+    /// As wait(), but also wake up if the time expires.
     template<typename LockT>
     bool timed_wait(LockT &lock, unsigned long milliseconds) {
       boost::xtime xt;
@@ -71,6 +76,7 @@ namespace vw {
       return boost::condition::timed_wait(lock, xt);
     }
 
+    /// ?
     template<typename LockT, typename Pred>
     bool timed_wait(LockT &lock, unsigned long milliseconds, Pred pred) {
       boost::xtime xt;

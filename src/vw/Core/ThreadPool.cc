@@ -24,9 +24,9 @@
 
 using namespace vw;
 
-Task::Task() : m_finished(false) {}
+//----------------------------------------------------
+// Task
 
-Task::~Task() {}
 
 bool Task::is_finished() {
   Mutex::Lock lock(m_task_mutex);
@@ -45,16 +45,20 @@ void Task::signal_finished() {
   m_finished_event.notify_all();
 }
 
+//----------------------------------------------------
+// WorkQueue
+
+
 WorkQueue::WorkerThread::WorkerThread(WorkQueue& queue, boost::shared_ptr<Task> initial_task,
                                       int thread_id, bool &should_die) :
   m_queue(queue), m_task(initial_task), m_thread_id(thread_id), m_should_die(should_die) {}
 
-WorkQueue::WorkerThread::~WorkerThread() {}
 
 void WorkQueue::WorkerThread::operator()() {
   do {
     VW_OUT(DebugMessage, "thread") << "ThreadPool: running worker thread "
                                    << m_thread_id << "\n";
+    // Run the task and then signal that it is finished
     (*m_task)();
     m_task->signal_finished();
 
@@ -65,11 +69,13 @@ void WorkQueue::WorkerThread::operator()() {
       Mutex::Lock lock(m_queue.m_queue_mutex);
       m_task = m_queue.get_next_task();
 
-      if (!m_task)
+      if (!m_task) // No more tasks, notify parent queue that we are finished.
         m_queue.worker_thread_complete(m_thread_id);
     }
-  } while ( m_task && !m_should_die );
+  } while ( m_task && !m_should_die ); // Quit if no task or when instructed
 }
+
+
 
 void WorkQueue::worker_thread_complete(int worker_id) {
   m_active_workers--;
@@ -113,16 +119,12 @@ void WorkQueue::notify() {
   }
 }
 
-/// Return the max number threads that can run concurrently at any
-/// given time using this threadpool.
 int WorkQueue::max_threads() {
   // TODO: Can this be atomic?
   Mutex::Lock lock(m_queue_mutex);
   return m_max_workers;
 }
 
-/// Return the max number threads that can run concurrently at any
-/// given time using this threadpool.
 int WorkQueue::active_threads() {
   // TODO: Can this be atomic?
   Mutex::Lock lock(m_queue_mutex);
@@ -149,6 +151,10 @@ void WorkQueue::kill_and_join() {
   this->join_all();
 }
 
+
+//----------------------------------------------------
+// FifoWorkQueue
+
 FifoWorkQueue::FifoWorkQueue(int num_threads) : WorkQueue(num_threads) {}
 
 size_t FifoWorkQueue::size() {
@@ -174,6 +180,9 @@ boost::shared_ptr<Task> FifoWorkQueue::get_next_task() {
   m_queued_tasks.pop_front();
   return task;
 }
+
+//----------------------------------------------------
+// OrderedWorkQueue
 
 OrderedWorkQueue::OrderedWorkQueue(int num_threads) : WorkQueue(num_threads) {
   m_next_index = 0;

@@ -20,6 +20,9 @@
 ///
 /// Built-in classes and functions for performing interest point detection.
 ///
+/// The key function here is detect_interest_points()
+///
+
 #ifndef __VW_INTERESTPOINT_DETECTOR_H__
 #define __VW_INTERESTPOINT_DETECTOR_H__
 
@@ -75,80 +78,6 @@ namespace ip {
     InterestPointList operator() (vw::ImageViewBase<ViewT> const& image,
                                   const int32 /*max_interestpoint_image_dimension*/ = 0);
   };
-
-  /// This task class is used to insure that interest points are
-  /// written to their list in a repeatable order that is not effected
-  /// by the order in which the detection threads start and finish.
-  class InterestPointWriteTask : public Task, private boost::noncopyable {
-    InterestPointList  m_points;
-    InterestPointList& m_global_points;
-
-  public:
-    InterestPointWriteTask( InterestPointList  local_points,
-                            InterestPointList& global_points ) :
-      m_points(local_points), m_global_points(global_points) {}
-
-    virtual ~InterestPointWriteTask(){}
-    virtual void operator() () {
-      m_global_points.splice( m_global_points.end(), m_points );
-    }
-  };
-
-  template <class ViewT, class DetectorT>
-  class InterestPointDetectionTask : public Task, private boost::noncopyable {
-
-    ViewT      m_view;
-    DetectorT& m_detector;
-    BBox2i     m_bbox;
-    int        m_id, m_max_id;
-    InterestPointList& m_global_points;
-    OrderedWorkQueue & m_write_queue;
-
-  public:
-    InterestPointDetectionTask(ImageViewBase<ViewT> const& view, 
-                               DetectorT& detector, BBox2i const& bbox, int id, int max_id,
-                               InterestPointList& global_list, OrderedWorkQueue& write_queue) :
-      m_view(view.impl()), m_detector(detector), m_bbox(bbox), m_id(id), m_max_id(max_id),
-      m_global_points(global_list), m_write_queue(write_queue) {}
-
-    virtual ~InterestPointDetectionTask(){}
-
-    void operator()();
-
-    InterestPointList interest_point_list() { return m_global_points; }
-  };
-
-  /// There is a lot of memory allocation created on task generation. I
-  /// couldn't figure it out in a reasonable time frame. Thus now we
-  /// generate tasks on demand which should lower the instantaneous
-  /// memory requirement.
-  template <class ViewT, class DetectorT>
-  class InterestDetectionQueue : public WorkQueue {
-    ViewT               m_view;
-    DetectorT         & m_detector;
-    OrderedWorkQueue  & m_write_queue;
-    InterestPointList & m_ip_list;
-    std::vector<BBox2i> m_bboxes;
-    Mutex               m_mutex;
-    size_t              m_index;
-
-    typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
-
-  public:
-
-    InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
-                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
-                            int tile_size );
-
-    size_t size() { return m_bboxes.size(); }
-
-    virtual boost::shared_ptr<Task> get_next_task();
-  };
-
-  /// This free function implements a multithreaded interest point
-  /// detector.  Threads are spun off to process the image in 1024x1024 pixel blocks.
-  template <class ViewT, class DetectorT>
-  InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, DetectorT& detector);
 
   /// Get the orientation of the point at (i0,j0,k0).  This is done by
   /// computing a gaussian weighted average orientations in a region
@@ -226,10 +155,12 @@ namespace ip {
     /// Setting max_points = 0 will disable interest point culling.
     /// Otherwies, the max_points most "interesting" points are returned.
     ScaledInterestPointDetector(int max_points = 1000)
-      : m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES), m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
+      : m_interest(InterestT()), m_scales(IP_DEFAULT_SCALES), 
+        m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     ScaledInterestPointDetector(InterestT const& interest, int max_points = 1000)
-      : m_interest(interest), m_scales(IP_DEFAULT_SCALES), m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
+      : m_interest(interest), m_scales(IP_DEFAULT_SCALES), 
+        m_octaves(IP_DEFAULT_OCTAVES), m_max_points(max_points) {}
 
     ScaledInterestPointDetector(InterestT const& interest, int scales, int octaves, int max_points = 1000)
       : m_interest(interest), m_scales(scales), m_octaves(octaves), m_max_points(max_points) {}
@@ -277,7 +208,94 @@ namespace ip {
 
 
 
+  // -----------------------------------------------------------------------------
+  // The next set of classes are for performing IP detection with thread pools.
+  // TODO: Maybe they should be moved to another file.
 
+  /// This task class is used to insure that interest points are
+  /// written to their list in a repeatable order that is not effected
+  /// by the order in which the detection threads start and finish.
+  class InterestPointWriteTask : public Task, private boost::noncopyable {
+    InterestPointList  m_points;
+    InterestPointList& m_global_points;
+
+  public:
+    InterestPointWriteTask( InterestPointList  local_points,
+                            InterestPointList& global_points ) :
+      m_points(local_points), m_global_points(global_points) {}
+
+    virtual ~InterestPointWriteTask(){}
+
+    virtual void operator() () {
+      m_global_points.splice( m_global_points.end(), m_points );
+    }
+  };
+
+  /// IP task wrapper for use with the InterestDetectionQueue thread pool class.
+  /// - After IPs are found, they are passed to an InterestPointWriteTask object.
+  template <class ViewT, class DetectorT>
+  class InterestPointDetectionTask : public Task, private boost::noncopyable {
+
+    ViewT              m_view;          ///< Source image
+    DetectorT        & m_detector;      ///< Interest point detection class instance (TODO: const?)
+    BBox2i             m_bbox;          ///< Region of the source image to check for points
+    int                m_id, m_max_id;
+    InterestPointList& m_global_points;
+    OrderedWorkQueue & m_write_queue;   
+
+  public:
+    InterestPointDetectionTask(ImageViewBase<ViewT> const& view, 
+                               DetectorT& detector, BBox2i const& bbox, int id, int max_id,
+                               InterestPointList& global_list, OrderedWorkQueue& write_queue) :
+      m_view(view.impl()), m_detector(detector), m_bbox(bbox), m_id(id), m_max_id(max_id),
+      m_global_points(global_list), m_write_queue(write_queue) {}
+
+    virtual ~InterestPointDetectionTask(){}
+
+    /// Find the IPs, then pass to an InterestPointWriteTask instance.
+    void operator()();
+
+    InterestPointList interest_point_list() { return m_global_points; }
+  };
+
+  /// A thread pool class for performing interest point detection.
+  /// - There is a lot of memory allocation created on task generation. I
+  ///   couldn't figure it out in a reasonable time frame. Thus now we
+  ///   generate tasks on demand which should lower the instantaneous
+  ///   memory requirement.
+  template <class ViewT, class DetectorT>
+  class InterestDetectionQueue : public WorkQueue {
+    ViewT               m_view;
+    DetectorT         & m_detector;
+    OrderedWorkQueue  & m_write_queue;
+    InterestPointList & m_ip_list;
+    std::vector<BBox2i> m_bboxes;
+    Mutex               m_mutex;
+    size_t              m_index;
+
+    typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
+
+  public:
+
+    InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
+                            OrderedWorkQueue& write_queue, InterestPointList& ip_list,
+                            int tile_size );
+
+    size_t size() { return m_bboxes.size(); }
+
+    virtual boost::shared_ptr<Task> get_next_task();
+  };
+
+  // End thread pool class declarations.
+  // -----------------------------------------------------------------------------
+
+
+
+  /// This function implements a multithreaded interest point detector using
+  /// the passed-in detector object.  
+  /// - Threads are spun off to process the image in 1024x1024 pixel blocks.
+  template <class ViewT, class DetectorT>
+  InterestPointList detect_interest_points(ImageViewBase<ViewT> const& view, DetectorT& detector);
 
 
 
@@ -317,10 +335,14 @@ InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<Vie
 
 template <class ViewT, class DetectorT>
 void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
+
   vw_out(InfoMessage, "interest_point") << "Locating interest points in block "
-                                        << m_id + 1 << "/" << m_max_id << "   [ " << m_bbox << " ]\n";
-  InterestPointList new_ip_list =
-    m_detector(crop(m_view.impl(), m_bbox),0);
+                                        << m_id + 1 << "/" << m_max_id 
+                                        << "   [ " << m_bbox << " ]\n";
+
+  // Use the m_detector object to find a set of image points in the cropped section of the image.
+  InterestPointList new_ip_list = m_detector(crop(m_view.impl(), m_bbox),0);
+
   for (InterestPointList::iterator pt = new_ip_list.begin(); pt != new_ip_list.end(); ++pt) {
     (*pt).x +=  m_bbox.min().x();
     (*pt).ix += m_bbox.min().x();
@@ -328,9 +350,9 @@ void InterestPointDetectionTask<ViewT, DetectorT>::operator()() {
     (*pt).iy += m_bbox.min().y();
   }
 
-  // Append these interest points to the master list owned by the
-  // detect_interest_points() function.
-  boost::shared_ptr<Task> write_task( new InterestPointWriteTask( new_ip_list, m_global_points ) );
+  // Append these interest points to the master list 
+  // owned by the detect_interest_points() function.
+  boost::shared_ptr<Task> write_task( new InterestPointWriteTask(new_ip_list, m_global_points) );
   m_write_queue.add_task( write_task, m_id );
 
   vw_out(InfoMessage, "interest_point") << "Finished block " << m_id + 1 << "/" << m_max_id << std::endl;
@@ -345,8 +367,9 @@ InterestDetectionQueue<ViewT, DetectorT>::
 InterestDetectionQueue( ImageViewBase<ViewT> const& view, DetectorT& detector,
                         OrderedWorkQueue& write_queue, InterestPointList& ip_list,
                         int tile_size ) :
-  m_view(view.impl()), m_detector(detector), m_write_queue(write_queue), m_ip_list(ip_list),
-  m_index(0) {
+     m_view(view.impl()), m_detector(detector), 
+     m_write_queue(write_queue), m_ip_list(ip_list),
+     m_index(0) {
   m_bboxes = image_blocks( m_view, tile_size, tile_size );
   this->notify();
 }
@@ -360,7 +383,8 @@ InterestDetectionQueue<ViewT, DetectorT>::get_next_task() {
     return boost::shared_ptr<Task>();
 
   m_index++;
-  return boost::shared_ptr<Task>( new task_type( m_view, m_detector, m_bboxes[m_index-1], m_index-1,
+  return boost::shared_ptr<Task>( new task_type( m_view, m_detector, 
+                                                 m_bboxes[m_index-1], m_index-1,
                                                  m_bboxes.size(), m_ip_list, m_write_queue ) );
 }
 
@@ -372,18 +396,20 @@ template <class ViewT, class DetectorT>
 InterestPointList detect_interest_points (ImageViewBase<ViewT> const& view, DetectorT& detector) {
   typedef InterestPointDetectionTask<ViewT, DetectorT> task_type;
 
-  VW_OUT(DebugMessage, "interest_point") << "Running MT interest point detector.  Input image: [ "
+  VW_OUT(DebugMessage, "interest_point") << "Running multi-threaded interest point detector.  Input image: [ "
                                          << view.impl().cols() << " x " << view.impl().rows() << " ]\n";
 
-  // Process the image in at least 1024x1024 pixel blocks.
+  // Process the image in no less than 1024x1024 size pixel blocks.
   int tile_size = vw_settings().default_tile_size();
-  if (tile_size < 1024) tile_size = 1024;
+  if (tile_size < 1024) 
+    tile_size = 1024;
 
-  InterestPointList ip_list;
+  // Create an ordered thread pool with one thread.  
   OrderedWorkQueue write_queue(1); // Used to insure that interest
                                    // points are written in a
                                    // specific order and not by the
                                    // random way threads finish.
+  InterestPointList ip_list;
   InterestDetectionQueue<ViewT, DetectorT>
     detect_queue( view, detector, write_queue, ip_list, tile_size );
   VW_OUT(DebugMessage, "interest_point") << "Waiting for threads to terminate.\n";
