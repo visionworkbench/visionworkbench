@@ -94,10 +94,6 @@ tools_subdirs = tools
 tools_headers = tools.h
 endif
 
-if MAKE_MODULE_GUI
-gui_subdirs = gui
-endif
-
 if MAKE_MODULE_PYTHON
 python_subdirs = Python
 endif
@@ -137,7 +133,6 @@ SUBDIRS = \
   $(geometry_subdirs) \
   $(plate_subdirs) \
   $(bundleadjustment_subdirs) \
-  $(gui_subdirs) \
   $(python_subdirs) \
   $(tools_subdirs)
 
