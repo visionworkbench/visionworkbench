@@ -192,7 +192,7 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 # distribution options
 ##################################################
 
-AX_ARG_WITH(dist-remove-modules, [Python Geometry GPU gui Plate], [mk am-set], [remove certain modules from the distribution])
+AX_ARG_WITH(dist-remove-modules, [Python Geometry GPU Plate], [mk am-set], [remove certain modules from the distribution])
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.
@@ -457,7 +457,6 @@ AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
         [AC_MSG_WARN([You have neither rabbitmq_c nor zeromq. Plate network support will be disabled.])])])])
 
 AX_MODULE(TOOLS,            [src/vw/tools],            [],                         yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE(GUI,              [src/vw/gui],              [],                          no, [VW], [QT BOOST_PROGRAM_OPTIONS], [PLATE])
 AX_MODULE_PYTHON(           [src/vw/Python], [no])
 
 if test $host_vendor = apple; then
@@ -483,7 +482,6 @@ AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY" = "ye
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_GUI,              [test "$MAKE_MODULE_GUI" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU" = "yes"])
 
@@ -524,7 +522,6 @@ AC_CONFIG_FILES([                       \
   src/test/Makefile                     \
   src/vw/Makefile                       \
   src/vw/tools/Makefile                 \
-  src/vw/gui/Makefile                   \
   src/vw/Plate/Makefile                 \
   src/vw/Plate/tests/Makefile           \
   src/vw/Plate/google/Makefile          \
