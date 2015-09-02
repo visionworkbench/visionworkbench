@@ -147,14 +147,10 @@ namespace cartography {
     /// For a given bbox in point, provide the lonlat bounding box.
     virtual BBox2  point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsamples = 100) const;
 
-    // TODO: Probably should implement point_to_lonlat_bbox and
-    // lonlat_to_point_bbox for completeness sake, but right now they're
-    // not needed for anything
-
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
     template <class ViewT>
-    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const VW_DEPRECATED;
+    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const;
 
     /// Return the box that bounds the area represented by the
     /// geotransform for the dimensions of the given image.
@@ -162,9 +158,9 @@ namespace cartography {
     /// long path or the short path from the left longitude to the
     /// right longitude.
     ///
-    /// Assumption: that the projection is continuous.
+    /// The assumption here is that the projection is continuous.
     template <class ViewT>
-    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const VW_DEPRECATED;
+    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const;
 
   };
 
