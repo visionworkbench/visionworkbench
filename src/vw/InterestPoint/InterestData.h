@@ -37,8 +37,8 @@ namespace ip {
 
   /// A class for storing information about an interest point.
   struct InterestPoint {
-    typedef vw::Vector<float> descriptor_type;
-    typedef descriptor_type::iterator iterator;
+    typedef vw::Vector<float>               descriptor_type;
+    typedef descriptor_type::iterator       iterator;
     typedef descriptor_type::const_iterator const_iterator;
 
     InterestPoint() {}
@@ -54,8 +54,7 @@ namespace ip {
 
     /// Scale of point.  This may come from the pyramid level, from
     /// interpolating the interest function between levels, or from some
-    /// other scale detector like the Laplace scale used by Mikolajczyk
-    /// & Schmid
+    /// other scale detector like the Laplace scale used by Mikolajczyk & Schmid
     float scale;
 
     /// Integer location (unnormalized), mainly for internal use.

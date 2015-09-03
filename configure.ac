@@ -375,8 +375,10 @@ AC_PATH_TOOL( PROTOC, [protoc], [no], [$PKG_PATHS_PROTOBUF/bin$PATH_SEPARATOR$PA
 if test x"$PROTOC" = "xno" && test x"$HAVE_PKG_PROTOBUF" = "xyes"; then
   AC_MSG_ERROR([cannot find protoc used by protobuf])
 fi
+
+#Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <relative lib path>, <required-functions>, <optional-deps>])
 AX_PKG(LIBKML,   [BOOST_THREAD BOOST Z], [-lkmlengine -lkmldom -lkmlbase -lminizip], [kml/engine/kmz_file.h])
-AX_PKG(OPENCV,     [], [-lcxcore],   [opencv/cxcore.h])
+AX_PKG(OPENCV,     [PNG JPEG GEOTIFF], [-lopencv_core -lopencv_imgproc -lopencv_features2d -lopencv_flann -lopencv_highgui],   [opencv2/opencv.hpp ])
 AX_PKG(FLANN,      [], [-lflann_cpp],[flann/flann.hpp])
 
 old_CXXFLAGS="$CXXFLAGS"
@@ -400,32 +402,32 @@ LDFLAGS="$old_LDFLAGS"
 
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
-AM_CONDITIONAL(HAVE_PKG_LAPACK, [test "$HAVE_PKG_LAPACK" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_PNG, [test "$HAVE_PKG_PNG" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_JPEG, [test "$HAVE_PKG_JPEG" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_TIFF, [test "$HAVE_PKG_TIFF" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_OPENEXR, [test "$HAVE_PKG_OPENEXR" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_HDF, [test "$HAVE_PKG_HDF" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_GDAL, [test "$HAVE_PKG_GDAL" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_CAIROMM, [test "$HAVE_PKG_CAIROMM" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_LAPACK,     [test "$HAVE_PKG_LAPACK"     = "yes"])
+AM_CONDITIONAL(HAVE_PKG_PNG,        [test "$HAVE_PKG_PNG"        = "yes"])
+AM_CONDITIONAL(HAVE_PKG_JPEG,       [test "$HAVE_PKG_JPEG"       = "yes"])
+AM_CONDITIONAL(HAVE_PKG_TIFF,       [test "$HAVE_PKG_TIFF"       = "yes"])
+AM_CONDITIONAL(HAVE_PKG_OPENEXR,    [test "$HAVE_PKG_OPENEXR"    = "yes"])
+AM_CONDITIONAL(HAVE_PKG_HDF,        [test "$HAVE_PKG_HDF"        = "yes"])
+AM_CONDITIONAL(HAVE_PKG_GDAL,       [test "$HAVE_PKG_GDAL"       = "yes"])
+AM_CONDITIONAL(HAVE_PKG_CAIROMM,    [test "$HAVE_PKG_CAIROMM"    = "yes"])
 AM_CONDITIONAL(HAVE_PKG_RABBITMQ_C, [test "$HAVE_PKG_RABBITMQ_C" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_ZEROMQ, [test "$HAVE_PKG_ZEROMQ" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_PROTOBUF, [test "$HAVE_PKG_PROTOBUF" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_LIBKML, [test "$HAVE_PKG_LIBKML" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_OPENCV, [test "$HAVE_PKG_OPENCV" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_FLANN, [test "$HAVE_PKG_FLANN" = "yes"])
-AM_CONDITIONAL(HAVE_PYTHON, [test "$HAVE_PYTHON" = "yes"])
+AM_CONDITIONAL(HAVE_PKG_ZEROMQ,     [test "$HAVE_PKG_ZEROMQ"     = "yes"])
+AM_CONDITIONAL(HAVE_PKG_PROTOBUF,   [test "$HAVE_PKG_PROTOBUF"   = "yes"])
+AM_CONDITIONAL(HAVE_PKG_LIBKML,     [test "$HAVE_PKG_LIBKML"     = "yes"])
+AM_CONDITIONAL(HAVE_PKG_OPENCV,     [test "$HAVE_PKG_OPENCV"     = "yes"])
+AM_CONDITIONAL(HAVE_PKG_FLANN,      [test "$HAVE_PKG_FLANN"      = "yes"])
+AM_CONDITIONAL(HAVE_PYTHON,         [test "$HAVE_PYTHON"         = "yes"])
 
 
 ##################################################
 # module definitions
 ##################################################
 
-AX_MODULE(CORE,          [src/vw/Core],          [libvwCore.la],          yes, [],      [BOOST BOOST_PROGRAM_OPTIONS THREADS M], [PTHREADS])
-AX_MODULE(MATH,          [src/vw/Math],          [libvwMath.la],          yes, [CORE],  [BOOST_GRAPH],                           [LAPACK FLANN])
-AX_MODULE(IMAGE,         [src/vw/Image],         [libvwImage.la],         yes, [MATH],  [],                                      [OPENCV])
-AX_MODULE(FILEIO,        [src/vw/FileIO],        [libvwFileIO.la],        yes, [IMAGE], [BOOST_FILESYSTEM],                      [Z PNG JPEG TIFF OPENEXR HDF GDAL])
-AX_MODULE(VW,            [src/vw],               [libvw.la],              yes, [],      [IMAGE MATH CORE],                       [FILEIO])
+AX_MODULE(CORE,   [src/vw/Core],   [libvwCore.la],   yes, [],      [BOOST BOOST_PROGRAM_OPTIONS THREADS M], [PTHREADS])
+AX_MODULE(MATH,   [src/vw/Math],   [libvwMath.la],   yes, [CORE],  [BOOST_GRAPH],                           [LAPACK FLANN])
+AX_MODULE(IMAGE,  [src/vw/Image],  [libvwImage.la],  yes, [MATH],  [],                                      [OPENCV])
+AX_MODULE(FILEIO, [src/vw/FileIO], [libvwFileIO.la], yes, [IMAGE], [BOOST_FILESYSTEM],                      [Z PNG JPEG TIFF OPENEXR HDF GDAL])
+AX_MODULE(VW,     [src/vw],        [libvw.la],       yes, [],      [IMAGE MATH CORE],                       [FILEIO])
 
 if test "${MAKE_MODULE_VW}" != "yes"; then
   AC_MSG_ERROR([cannot build the Vision Workbench core modules!])
@@ -456,34 +458,40 @@ AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
       [AS_IF([test x"$HAVE_PKG_ZEROMQ" != "xyes"],
         [AC_MSG_WARN([You have neither rabbitmq_c nor zeromq. Plate network support will be disabled.])])])])
 
-AX_MODULE(TOOLS,            [src/vw/tools],            [],                         yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
-AX_MODULE_PYTHON(           [src/vw/Python], [no])
+AX_MODULE(TOOLS,   [src/vw/tools],  [],     yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
+AX_MODULE_PYTHON(  [src/vw/Python], [no])
 
 if test $host_vendor = apple; then
-  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL],               [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL],      [CG])
 else
-  AX_MODULE(GPU,         [src/vw/GPU],           [libvwGPU.la],           no,  [VW],        [GL GLEW],          [CG])
+  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLEW], [CG])
 fi
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
-AM_CONDITIONAL(MAKE_MODULE_CORE,             [test "$MAKE_MODULE_CORE" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_MATH,             [test "$MAKE_MODULE_MATH" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_IMAGE,            [test "$MAKE_MODULE_IMAGE" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_CORE,             [test "$MAKE_MODULE_CORE"   = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_MATH,             [test "$MAKE_MODULE_MATH"   = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_IMAGE,            [test "$MAKE_MODULE_IMAGE"  = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_FILEIO,           [test "$MAKE_MODULE_FILEIO" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_VW,               [test "$MAKE_MODULE_VW" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_VW,               [test "$MAKE_MODULE_VW"     = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_CAMERA,           [test "$MAKE_MODULE_CAMERA" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_MOSAIC,           [test "$MAKE_MODULE_MOSAIC" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_INTERESTPOINT,    [test "$MAKE_MODULE_INTERESTPOINT" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY,      [test "$MAKE_MODULE_CARTOGRAPHY" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_HDR,              [test "$MAKE_MODULE_HDR" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_STEREO,           [test "$MAKE_MODULE_STEREO" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_CARTOGRAPHY,      [test "$MAKE_MODULE_CARTOGRAPHY"   = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_HDR,              [test "$MAKE_MODULE_HDR"           = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_STEREO,           [test "$MAKE_MODULE_STEREO"        = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY"      = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
+<<<<<<< HEAD
 AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS" = "yes"])
+=======
+AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE"  = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS"  = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_GUI,              [test "$MAKE_MODULE_GUI"    = "yes"])
+>>>>>>> Tested OpenCV dependent IP Detector
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU" = "yes"])
+AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU"    = "yes"])
 
 
 ##################################################

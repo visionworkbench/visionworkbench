@@ -115,10 +115,10 @@ static void write_debug_image( std::string const& out_file_name,
     // Circling point
     for (float a = 0; a < 6; a+=.392 ) {
       float a_d = a + .392;
-      Vector2i start( int(2*point->scale*cos(a)+point->x),
-                      int(2*point->scale*sin(a)+point->y) );
-      Vector2i end( int(2*point->scale*cos(a_d)+point->x),
-                    int(2*point->scale*sin(a_d)+point->y) );
+      Vector2i start( int(2*point->scale*cos(a  )+point->x),
+                      int(2*point->scale*sin(a  )+point->y) );
+      Vector2i end(   int(2*point->scale*cos(a_d)+point->x),
+                      int(2*point->scale*sin(a_d)+point->y) );
       draw_line( oimage, color, start, end );
     }
   }
@@ -133,34 +133,41 @@ static void write_debug_image( std::string const& out_file_name,
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
   std::string interest_operator, descriptor_generator;
-  float ip_gain;
+  float  ip_gain;
   uint32 max_points;
-  int tile_size, num_threads;
+  int    tile_size, num_threads;
   ImageView<double> integral;
-  bool no_orientation;
+  bool   no_orientation;
 
-  const float IDEAL_LOG_THRESHOLD = .03;
+  const float IDEAL_LOG_THRESHOLD    = .03;
   const float IDEAL_OBALOG_THRESHOLD = .07;
   const float IDEAL_HARRIS_THRESHOLD = 1.2e-5;
 
   po::options_description general_options("Options");
   general_options.add_options()
     ("help,h", "Display this help message")
-    ("num-threads", po::value(&num_threads)->default_value(0), "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
-    ("tile-size,t", po::value(&tile_size), "Specify the tile size for processing interest points. (Useful when working with large images).")
-    ("lowe,l", "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
-    ("normalize", "Normalize the input, use for images that have non standard values such as ISIS cube files.")
+    ("num-threads", po::value(&num_threads)->default_value(0), 
+          "Set the number of threads for interest point detection.  Setting the num_threads to zero causes ipfind to use the visionworkbench default number of threads.")
+    ("tile-size,t", po::value(&tile_size), 
+          "Specify the tile size for processing interest points. (Useful when working with large images).")
+    ("lowe,l",        "Save the interest points in an ASCII data format that is compatible with the Lowe-SIFT toolchain.")
+    ("normalize",     "Normalize the input, use for images that have non standard values such as ISIS cube files.")
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
-    ("interest-operator", po::value(&interest_operator)->default_value("OBALoG"), "Choose an interest point metric from [LoG, Harris, OBALoG]")
-    ("gain,g", po::value(&ip_gain)->default_value(1.0), "Increasing this number will increase the gain at which interest points are detected.")
-    ("max-points", po::value(&max_points)->default_value(0), "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
-    ("single-scale", "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
+    ("interest-operator", po::value(&interest_operator)->default_value("OBALoG"), 
+          "Choose an interest point metric from [LoG, Harris, OBALoG, Brisk, Orb]")
+    ("gain,g", po::value(&ip_gain)->default_value(1.0), 
+          "Increasing this number will increase the gain at which interest points are detected.")
+    ("max-points", po::value(&max_points)->default_value(0), 
+          "Set the maximum number of interest points you want returned.  The most \"interesting\" points are selected.")
+    ("single-scale", 
+          "Turn off scale-invariant interest point detection.  This option only searches for interest points in the first octave of the scale space.")
     ("no-orientation", po::bool_switch(&no_orientation), "Shutoff rotational invariance")
 
     // Descriptor generator options
-    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
+    ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), 
+          "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -208,10 +215,12 @@ int main(int argc, char** argv) {
   boost::to_lower( descriptor_generator );
   // Determine if interest_operator is legitimate
   if ( !( interest_operator == "harris" ||
-          interest_operator == "log" ||
-          interest_operator == "obalog" ) ) {
+          interest_operator == "log"    ||
+          interest_operator == "obalog" || 
+          interest_operator == "brisk"  ||
+          interest_operator == "orb") ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-             << ". Options are : [ Harris, LoG, OBALoG ]\n";
+             << ". Options are : [ Harris, LoG, OBALoG, Brisk, Orb ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -231,7 +240,7 @@ int main(int argc, char** argv) {
     std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
     boost::scoped_ptr<DiskImageResource> image_rsrc( DiskImageResource::open( input_file_names[i] ) );
     DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
-    ImageViewRef<PixelGray<float> > image = raw_image;
+    ImageViewRef<PixelGray<float> >  image = raw_image;
     if ( vm.count("normalize") && image_rsrc->has_nodata_read() )
       image = apply_mask(normalize(create_mask(raw_image,image_rsrc->nodata_read())));
     else if ( vm.count("normalize") )
@@ -244,10 +253,9 @@ int main(int argc, char** argv) {
 
     // The max points sent to IP Detector class is applied to each
     // tile of an image. In order to curb memory use we'll set the max
-    // size for each tile smaller (proportional to the number of
-    // tiles).
+    // size for each tile smaller (proportional to the number of tiles).
     int number_tiles = (image.cols()/vw_settings().default_tile_size()+1) *
-      (image.rows()/vw_settings().default_tile_size()+1);
+                       (image.rows()/vw_settings().default_tile_size()+1);
     uint32 tile_max_points = uint32(float(max_points)/float(number_tiles))*2; // A little over shoot
     // incase the tile is empty
     if ( max_points == 0 ) tile_max_points = 0; // No culling
@@ -259,12 +267,10 @@ int main(int argc, char** argv) {
       // Harris threshold is inversely proportional to gain.
       HarrisInterestOperator interest_operator(IDEAL_HARRIS_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator,
-                                                                     tile_max_points);
+        ScaledInterestPointDetector<HarrisInterestOperator> detector(interest_operator, tile_max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<HarrisInterestOperator> detector(interest_operator,
-                                                               tile_max_points);
+        InterestPointDetector<HarrisInterestOperator> detector(interest_operator, tile_max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "log") {
@@ -273,21 +279,33 @@ int main(int argc, char** argv) {
       // LoG threshold is inversely proportional to gain..
       LogInterestOperator interest_operator(IDEAL_LOG_THRESHOLD/ip_gain);
       if (!vm.count("single-scale")) {
-        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator,
-                                                                  tile_max_points);
+        ScaledInterestPointDetector<LogInterestOperator> detector(interest_operator, tile_max_points);
         ip = detect_interest_points(image, detector);
       } else {
-        InterestPointDetector<LogInterestOperator> detector(interest_operator,
-                                                            tile_max_points);
+        InterestPointDetector<LogInterestOperator> detector(interest_operator, tile_max_points);
         ip = detect_interest_points(image, detector);
       }
     } else if ( interest_operator == "obalog") {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
-      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator,
-                                                                      tile_max_points );
+      IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, tile_max_points );
+      ip = detect_interest_points(image, detector);
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+    } else if ( interest_operator == "brisk") {
+      //
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK);
+      ip = detect_interest_points(image, detector);
+    } else if ( interest_operator == "orb") {
+      //
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB);
       ip = detect_interest_points(image, detector);
     }
+#else // End OpenCV section
+    } else {
+      vw_out() << "Error: Cannot use ORB or BRISK if not compiled with OpenCV!" << std::endl;
+      exit(0); 
+    }
+#endif
 
     // Removing Interest Points on nodata or within 1/px
     if ( image_rsrc->has_nodata_read() ) {
@@ -296,25 +314,23 @@ int main(int argc, char** argv) {
       BBox2i bound = bounding_box( image_mask );
       bound.contract(1);
       int before_size = ip.size();
-      for ( InterestPointList::iterator point = ip.begin();
-            point != ip.end(); ++point ) {
+      for ( InterestPointList::iterator point = ip.begin(); point != ip.end(); ++point ) {
 
         // To Avoid out of index issues
-        if ( !bound.contains( Vector2i(point->ix,
-                                       point->iy ))) {
+        if ( !bound.contains( Vector2i(point->ix, point->iy ))) {
           point = ip.erase(point);
           point--;
           continue;
         }
 
-        if ( !image_mask(point->ix,point->iy).valid() ||
+        if ( !image_mask(point->ix,  point->iy  ).valid() ||
              !image_mask(point->ix+1,point->iy+1).valid() ||
-             !image_mask(point->ix+1,point->iy).valid() ||
+             !image_mask(point->ix+1,point->iy  ).valid() ||
              !image_mask(point->ix+1,point->iy-1).valid() ||
-             !image_mask(point->ix,point->iy+1).valid() ||
-             !image_mask(point->ix,point->iy-1).valid() ||
+             !image_mask(point->ix,  point->iy+1).valid() ||
+             !image_mask(point->ix,  point->iy-1).valid() ||
              !image_mask(point->ix-1,point->iy+1).valid() ||
-             !image_mask(point->ix-1,point->iy).valid() ||
+             !image_mask(point->ix-1,point->iy  ).valid() ||
              !image_mask(point->ix-1,point->iy-1).valid() ) {
           point = ip.erase(point);
           point--;
@@ -356,8 +372,7 @@ int main(int argc, char** argv) {
       describe_interest_points( image, descriptor, ip );
     }
 
-    // If ASCII output was requested, write it out.  Otherwise stick
-    // with binary output.
+    // If ASCII output was requested, write it out.  Otherwise stick with binary output.
     if (vm.count("lowe"))
       write_lowe_ascii_ip_file(file_prefix + ".key", ip);
     else

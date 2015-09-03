@@ -58,20 +58,20 @@ namespace vw {
 
     /// \cond INTERNAL
     // Methods to access the derived type
-    inline ImplT& impl() { return static_cast<ImplT&>(*this); }
+    inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
     /// \endcond
 
     /// An STL-compatible iterator type.
-    typedef PixelIterator<ImplT> iterator;
+    typedef PixelIterator<      ImplT> iterator;
     typedef PixelIterator<const ImplT> const_iterator;
 
     /// Returns an iterator pointing to the first pixel in the image.
-    iterator begin() { return iterator(impl(),0,0,0); }
+          iterator begin()       { return       iterator(impl(),0,0,0); }
     const_iterator begin() const { return const_iterator(impl(),0,0,0); }
 
     /// Returns an iterator pointing one past the last pixel in the image.
-    iterator end() { return iterator(impl(),0,0,impl().planes()); }
+          iterator end()       { return       iterator(impl(),0,0,impl().planes()); }
     const_iterator end() const { return const_iterator(impl(),0,0,impl().planes()); }
 
     /// Returns the number of channels in the image's pixel type.
@@ -86,11 +86,11 @@ namespace vw {
     /// Returns an ImageFormat object describing the image format.
     ImageFormat format() const {
       ImageFormat format;
-      format.cols = impl().cols();
-      format.rows = impl().rows();
-      format.planes = impl().planes();
-      format.pixel_format = pixel_format();
-      format.channel_type = channel_type();
+      format.cols          = impl().cols();
+      format.rows          = impl().rows();
+      format.planes        = impl().planes();
+      format.pixel_format  = pixel_format();
+      format.channel_type  = channel_type();
       format.premultiplied = true;
       return format;
     }
@@ -262,8 +262,8 @@ namespace vw {
   /// subsampled.
   template <class SrcT, class DestT>
   inline void rasterize( SrcT const& src, DestT const& dest, BBox2i bbox ) {
-    typedef typename DestT::pixel_type DestPixelT;
-    typedef typename SrcT::pixel_accessor SrcAccT;
+    typedef typename DestT::pixel_type     DestPixelT;
+    typedef typename SrcT::pixel_accessor  SrcAccT;
     typedef typename DestT::pixel_accessor DestAccT;
     VW_ASSERT( int(dest.cols())==bbox.width() && int(dest.rows())==bbox.height() && dest.planes()==src.planes(),
                ArgumentErr() << "rasterize: Source and destination must have same dimensions." );

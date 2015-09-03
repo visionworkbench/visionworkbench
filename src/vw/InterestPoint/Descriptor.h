@@ -75,8 +75,7 @@ namespace ip {
 
   /// A basic example descriptor class. The descriptor for an interest
   /// point is simply the pixel values in the support region around
-  /// the point. It is normalized to provide some tolerance to changes
-  /// in illumination.
+  /// the point. It is normalized to provide some tolerance to changes in illumination.
   struct PatchDescriptorGenerator : public DescriptorGeneratorBase<PatchDescriptorGenerator> {
 
     template <class ViewT, class IterT>
@@ -111,8 +110,7 @@ namespace ip {
   };
 
   // A Simple Scaled Gradient descriptor that reduces the number of elements
-  // used in the descriptor and is hopefully more robust against
-  // illumination changes.
+  // used in the descriptor and is hopefully more robust against illumination changes.
   struct SGradDescriptorGenerator : public DescriptorGeneratorBase<SGradDescriptorGenerator> {
 
     static const uint32 box_strt[5];
@@ -163,8 +161,7 @@ namespace ip {
   /// Thread pool class for parallel processing of interest point descriptions.
   // There is a lot of memory allocation created on task generation. I
   // couldn't figure it out in a reasonable time frame. Thus now we
-  // generate tasks on demand which should lower the instantaneous
-  // memory requirement.
+  // generate tasks on demand which should lower the instantaneous memory requirement.
   template <class ViewT, class DescriptorT>
   class InterestDescriptionQueue : public WorkQueue {
     ViewT                 m_view;
@@ -229,8 +226,7 @@ void DescriptorGeneratorBase<ImplT>::operator() ( ImageViewBase<ViewT> const& im
       get_support(*i, pixel_cast<PixelGray<float> >(channel_cast_rescale<float>(image.impl())));
 
     // Next, we pass the support region and the interest point to
-    // the descriptor generator ( compute_descriptor() ) supplied
-    // by the subclass.
+    // the descriptor generator ( compute_descriptor() ) supplied by the subclass.
     i->descriptor.set_size( impl().descriptor_size() );
     impl().compute_descriptor( support, i->begin(), i->end() );
   }

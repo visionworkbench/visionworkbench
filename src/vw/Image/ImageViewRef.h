@@ -126,8 +126,8 @@ namespace vw {
 
     virtual ~ImageViewRefBase() {}
 
-    virtual int32 cols() const = 0;
-    virtual int32 rows() const = 0;
+    virtual int32 cols  () const = 0;
+    virtual int32 rows  () const = 0;
     virtual int32 planes() const = 0;
     virtual pixel_type operator()( int32 i, int32 j, int32 p ) const = 0;
     virtual pixel_type operator()( double i, double j, int32 p ) const = 0;

@@ -21,7 +21,7 @@
 #undef  __INSIDE_VW_IMAGE_IMAGERESOURCEIMPL_H__
 
 #include <vw/Core/Debugging.h>
-#include <opencv/cxcore.h>
+#include <opencv2/opencv.hpp>
 
 namespace {
   cv::Rect makeRect(const vw::BBox2i& bbox) {

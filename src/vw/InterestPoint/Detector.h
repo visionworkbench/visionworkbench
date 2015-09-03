@@ -40,6 +40,12 @@
 #include <vw/InterestPoint/WeightedHistogram.h>
 #include <vw/InterestPoint/ImageOctaveHistory.h>
 
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+//#include "opencv2/core/core.hpp"
+//#include "opencv2/features2d/features2d.hpp"
+#include <opencv2/opencv.hpp>
+#endif
+
 namespace vw {
 namespace ip {
 
@@ -54,14 +60,15 @@ namespace ip {
   ///    template <class ViewT>
   ///    InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
   ///
+  /// This class is CRTP in order to get around the inability to have a 
+  ///  template <class ViewT> virtual function.
+  ///
   template <class ImplT>
   struct InterestDetectorBase {
 
-    /// \cond INTERNAL
     // Methods to access the derived type
     inline ImplT      & impl()       { return static_cast<ImplT      &>(*this); }
     inline ImplT const& impl() const { return static_cast<ImplT const&>(*this); }
-    /// \endcond
 
     /// Find the interest points in an image using the provided detector.
     ///
@@ -95,6 +102,10 @@ namespace ip {
 
   /// This class performs interest point detection on a source image
   /// without using scale space methods.
+  /// - The input class here is an "interest" operator that returns an image with pixels
+  ///   scored according to some interest metric.
+  /// - After the interest image is generated, a set of fixed functions extract local maxima to
+  ///   obtain the output interest points.
   template <class InterestT>
   class InterestPointDetector : public InterestDetectorBase<InterestPointDetector<InterestT> > {
   public:
@@ -207,6 +218,103 @@ namespace ip {
 
 
 
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+
+  // TODO: Make an OpenCV interface file for this stuff
+
+  enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0, 
+                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1};
+
+  /// Struct to convert a basic type to a single channel OpenCV type
+  template <typename T> struct GetOpenCvPixelType                 { static const int type=CV_8UC1; };
+  template <>           struct GetOpenCvPixelType<short         > { static const int type=CV_16SC1; };
+  template <>           struct GetOpenCvPixelType<unsigned short> { static const int type=CV_16UC1; };
+  template <>           struct GetOpenCvPixelType<int           > { static const int type=CV_32SC1; };
+  template <>           struct GetOpenCvPixelType<float         > { static const int type=CV_32FC1; };
+  template <>           struct GetOpenCvPixelType<double        > { static const int type=CV_64FC1; };
+
+  template <class ViewT, class PixelT>
+  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelT> &image_buffer) {
+
+    // Rasterize the input image to the buffer image
+    image_buffer = input_image.impl();
+
+    // Figure out the image buffer parameters
+    int     cv_data_type = GetOpenCvPixelType<typename ViewT::pixel_type>::type;
+    void*   raw_data_ptr = reinterpret_cast<void*>(image_buffer.data());
+    size_t  pixel_size   = sizeof(typename ViewT::pixel_type);
+    size_t  step_size    = image_buffer.cols() * pixel_size;
+
+    // Create an OpenCV wrapper for the buffer image
+    cv::Mat cv_image(image_buffer.rows(), image_buffer.cols(), 
+                     cv_data_type, raw_data_ptr, step_size);
+    return cv_image;
+  }
+
+  // TODO: Accept a limit on the number of interest points!
+
+  /// Interest point detector build using OpenCV functions
+  class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
+  public:
+
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) 
+      : m_detector_type(detector_type)
+    {
+    }
+
+    /// Detect interest points in the source image.
+    template <class ViewT>
+    InterestPointList process_image(ImageViewBase<ViewT> const& image) const
+    {
+
+      // Raster the input image into an OpenCV compatible format
+      // - This is only valid for single channel data.
+      typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
+      //typedef ImageView<typename ViewT::pixel_type> ImageT;
+      ImageT buffer_image;
+      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+
+      // Instantiate the feature detector
+      cv::Ptr<cv::FeatureDetector> detector;
+      switch (m_detector_type)
+      {
+        //case OPENCV_IP_DETECTOR_TYPE_BRISK: detector = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
+        //case OPENCV_IP_DETECTOR_TYPE_ORB:   detector = cv::ORB::create();    break;
+        case OPENCV_IP_DETECTOR_TYPE_BRISK: detector = cv::Feature2D::create("ORB"  );  break;
+        case OPENCV_IP_DETECTOR_TYPE_ORB:   detector = cv::Feature2D::create("BRISK");  break;
+        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+      }; 
+
+      // Detect features
+      std::vector<cv::KeyPoint> keypoints;
+      detector->detect(cv_image, keypoints); // Basemap
+
+      // Convert back to our output format
+      // TODO: How many features do we need to fill in?
+      InterestPointList ip_list;     
+      for (size_t i=0; i<keypoints.size(); ++i) {
+        InterestPoint ip;
+        ip.x  = keypoints[i].pt.x;
+        ip.y  = keypoints[i].pt.y;
+        ip.ix = round(ip.x);
+        ip.iy = round(ip.y);
+        ip.octave      = keypoints[i].octave;
+        ip.scale       = keypoints[i].size;
+        ip.orientation = keypoints[i].angle;
+        ip_list.push_back(ip);
+      }
+      return ip_list;
+    }
+  
+  private:
+    OpenCvIpDetectorType m_detector_type;
+
+  };
+
+
+#endif
+
+
 
   // -----------------------------------------------------------------------------
   // The next set of classes are for performing IP detection with thread pools.
@@ -314,7 +422,7 @@ namespace ip {
 template <class ImplT>
 template <class ViewT>
 InterestPointList InterestDetectorBase<ImplT>::operator() (vw::ImageViewBase<ViewT> const& image,
-                              const int32 /*max_interestpoint_image_dimension*/) {
+                                                           const int32 /*max_interestpoint_image_dimension*/) {
 
   InterestPointList interest_points;
   vw_out(DebugMessage, "interest_point") << "Finding interest points in block: [ " << image.impl().cols() << " x " << image.impl().rows() << " ]\n";
