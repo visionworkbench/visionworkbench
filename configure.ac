@@ -482,14 +482,8 @@ AM_CONDITIONAL(MAKE_MODULE_HDR,              [test "$MAKE_MODULE_HDR"           
 AM_CONDITIONAL(MAKE_MODULE_STEREO,           [test "$MAKE_MODULE_STEREO"        = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY"      = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
-<<<<<<< HEAD
-AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS" = "yes"])
-=======
 AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE"  = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS"  = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_GUI,              [test "$MAKE_MODULE_GUI"    = "yes"])
->>>>>>> Tested OpenCV dependent IP Detector
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU"    = "yes"])
 

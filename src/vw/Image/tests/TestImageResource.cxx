@@ -29,7 +29,8 @@
 #include <test/Helpers.h>
 
 #if defined(VW_HAVE_PKG_OPENCV) && (VW_HAVE_PKG_OPENCV==1)
-# include <opencv/cxcore.h>
+#include <opencv2/opencv.hpp>
+#include <vw/Image/ImageResourceImpl.h>
 #endif
 
 #include <boost/iostreams/device/array.hpp>
@@ -428,7 +429,7 @@ ImageResourceOpenCVTest::out_px_t ImageResourceOpenCVTest::actual_data[ImageReso
 TEST_F(ImageResourceOpenCVTest, OpenCv_Read_Cont) {
   mat_t m;
   make_matrix<in_px_t>(input_data, m);
-  rir_t r(new ImageResourceOpenCV(m));
+  ImageResourceOpenCVTest::rir_t r(new ImageResourceOpenCV(m));
   ImageBuffer buf = buffer(WRITE);
 
   ASSERT_NO_THROW(r->read(buf, box(buf)));
@@ -440,7 +441,7 @@ TEST_F(ImageResourceOpenCVTest, OpenCv_Read_Discont) {
   make_matrix<in_px_t>(input_data, m);
   make_discontinuous(m);
 
-  rir_t r(new ImageResourceOpenCV(m));
+  ImageResourceOpenCVTest::rir_t r(new ImageResourceOpenCV(m));
   ImageBuffer buf = buffer(WRITE);
 
   ASSERT_NO_THROW(r->read(buf, box(buf)));
@@ -450,7 +451,7 @@ TEST_F(ImageResourceOpenCVTest, OpenCv_Read_Discont) {
 TEST_F(ImageResourceOpenCVTest, OpenCv_Write_Cont) {
   mat_t m;
   make_matrix<out_px_t>(actual_data, m);
-  wir_t r(new ImageResourceOpenCV(m));
+  ImageResourceOpenCVTest::wir_t r(new ImageResourceOpenCV(m));
   ImageBuffer buf = buffer(READ);
 
   ASSERT_NO_THROW(r->write(buf, box(buf)));
@@ -462,7 +463,7 @@ TEST_F(ImageResourceOpenCVTest, OpenCv_Write_Discont) {
   make_matrix<out_px_t>(actual_data, m);
   make_discontinuous(m);
 
-  wir_t r(new ImageResourceOpenCV(m));
+  ImageResourceOpenCVTest::wir_t r(new ImageResourceOpenCV(m));
   ImageBuffer buf = buffer(READ);
 
   ASSERT_NO_THROW(r->write(buf, box(buf)));
