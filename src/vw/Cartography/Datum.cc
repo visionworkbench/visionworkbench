@@ -47,7 +47,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   std::string up_name = boost::to_upper_copy(name);
 
   m_meridian_offset = 0;
-  if (up_name == "WGS84" || up_name == "WGS_1984") {
+  if (up_name == "WGS84" || up_name == "WGS_1984" ||  up_name == "EARTH") {
     m_name            = "WGS_1984";
     m_spheroid_name   = "WGS 84";
     m_semi_major_axis = 6378137.0;
@@ -85,7 +85,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (up_name == "D_MOON") {
+  if (up_name == "D_MOON" || up_name == "MOON") {
     m_name            = "D_MOON";
     m_spheroid_name   = "MOON";
     m_meridian_name   = "Reference Meridian";
@@ -95,13 +95,23 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  if (up_name == "D_MARS") {
+  if (up_name == "D_MARS" || up_name == "MARS") {
     m_name            = "D_MARS";
     m_spheroid_name   = "MARS";
     m_meridian_name   = "Reference Meridian";
     m_semi_major_axis = m_semi_minor_axis = 3396190;
     m_meridian_offset = 0.0;
     m_proj_str        = "+a=3396190 +b=3396190";
+    return;
+  }
+
+  if (up_name == "MOLA") {
+    m_name            = "D_MARS";
+    m_spheroid_name   = "MARS";
+    m_meridian_name   = "Reference Meridian";
+    m_semi_major_axis = m_semi_minor_axis = 3396000;
+    m_meridian_offset = 0.0;
+    m_proj_str        = "+a=3396000 +b=3396000";
     return;
   }
 
