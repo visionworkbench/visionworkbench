@@ -35,15 +35,15 @@
 /// Compute a Gaussian kernel.  The default size is seven times sigma
 /// rounded down to the nearest odd integer, or 3, whichever is larger.
 template <class KernelT>
-void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, int32 size )
+void vw::generate_gaussian_kernel(std::vector<KernelT>& kernel, double sigma, int32 size)
 {
-  if( sigma == 0 ) {
+  if (sigma == 0) {
     kernel.clear();
     return;
   }
-  if( size == 0 ) 
+  if (size == 0)
     size = vw::compute_kernel_size(sigma);
-  kernel.resize( size );
+  kernel.resize(size);
 
   int32 center = size / 2;
   double sum = 0.0, tap;
@@ -89,29 +89,29 @@ void vw::generate_gaussian_kernel( std::vector<KernelT>& kernel, double sigma, i
 // operators; just pick the one you want.  This should get reworked
 // if we ever want to properly support integer arithmetic.
 template <class KernelT>
-void vw::generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, int32 size )
+void vw::generate_derivative_kernel(std::vector<KernelT>& kernel, int32 deriv, int32 size)
 {
   // Disable filter for zeroth derivative
-  if( deriv == 0 ) {
+  if (deriv == 0) {
     kernel.clear();
     return;
   }
 
   // Check and configure kernel size
   int32 minsize = deriv + (deriv%2) + 1;
-  if( size == 0 ) size = minsize;
-  else if( size < minsize ) vw_throw( ArgumentErr() << "Derivative kernel too small for requested differentiation operator!" );
-  else if( size%2 == 0 ) vw_throw( ArgumentErr() << "Kernel must have odd dimensions!" );
-  kernel.resize( size );
+  if (size == 0) size = minsize;
+  else if (size < minsize) vw_throw(ArgumentErr() << "Derivative kernel too small for requested differentiation operator!");
+  else if (size%2 == 0) vw_throw(ArgumentErr() << "Kernel must have odd dimensions!");
+  kernel.resize(size);
 
   // Test for most common cases
-  if( deriv==1 && size==3 ) {
+  if (deriv==1 && size==3) {
     kernel[0] = 0.5;
     kernel[1] = 0.0;
     kernel[2] = -0.5;
     return;
   }
-  if( deriv==2 && size==3 ) {
+  if (deriv==2 && size==3) {
     kernel[0] = 1.0;
     kernel[1] = -2.0;
     kernel[2] = 1.0;
@@ -121,10 +121,10 @@ void vw::generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, 
   // Compute the size-th order polynomial matrix
   Matrix<KernelT> pmat(size,size);
   int32 half_size = size/2;
-  for( int32 j=0; j<size; ++j ) {
+  for (int32 j=0; j<size; ++j) {
     int32 x = half_size - j;
     KernelT term = 1;
-    for( int32 i=0; i<size; ++i ) {
+    for (int32 i=0; i<size; ++i) {
       pmat(i,j) = term;
       term *= x;
       term /= i+1;
@@ -134,44 +134,44 @@ void vw::generate_derivative_kernel( std::vector<KernelT>& kernel, int32 deriv, 
   Vector<KernelT> dsel(size);
   dsel[deriv] = 1.0;
   Vector<KernelT> kv = inverse(pmat)*dsel;
-  for( int32 i=0; i<size; ++i )
+  for (int32 i=0; i<size; ++i)
     kernel[i] = kv[i];
 }
 
 
 // Compute a two-dimensional Gaussian derivative kernel.
 template <class KernelT>
-void vw::generate_gaussian_derivative_kernel( ImageView<KernelT>& kernel, double sigma1, int32 deriv1, double sigma2, int32 deriv2, double angle, int32 size ) {
-  kernel.set_size( size, size, 1 );
+void vw::generate_gaussian_derivative_kernel(ImageView<KernelT>& kernel, double sigma1, int32 deriv1, double sigma2, int32 deriv2, double angle, int32 size) {
+  kernel.set_size(size, size, 1);
   double ca=vw::cos(angle), sa=vw::sin(angle), half=size/2;
   double scalar = 2*M_PI*sigma1*sigma2*vw::pow(-sigma1*sigma1,deriv1)*vw::pow(-sigma2*sigma2,deriv2);
   double sum = 0;
-  for( int32 i=0; i<size; ++i ) {
-    for( int32 j=0; j<size; ++j ) {
+  for (int32 i=0; i<size; ++i) {
+    for (int32 j=0; j<size; ++j) {
       double x=ca*(i-half)+sa*(j-half);
       double y=-sa*(i-half)+ca*(j-half);
       kernel(i,j) = vw::exp(-x*x/(2*sigma1*sigma1)) * vw::exp(-y*y/(2*sigma2*sigma2)) / scalar;
-      if( deriv1==1 ) kernel(i,j) *= x;
-      else if( deriv1==2 ) kernel(i,j) *= (x*x-sigma1*sigma1);
-      if( deriv2==1 ) kernel(i,j) *= y;
-      else if( deriv2==2 ) kernel(i,j) *= (y*y-sigma2*sigma2);
+      if (deriv1==1) kernel(i,j) *= x;
+      else if (deriv1==2) kernel(i,j) *= (x*x-sigma1*sigma1);
+      if (deriv2==1) kernel(i,j) *= y;
+      else if (deriv2==2) kernel(i,j) *= (y*y-sigma2*sigma2);
       sum += kernel(i,j);
     }
   }
-  if( deriv1==0 && deriv2==0 ) kernel /= sum;
+  if (deriv1==0 && deriv2==0) kernel /= sum;
   else kernel -= sum/(size*size);
 }
 
 
 // Compute a two-dimensional Laplacian of Gaussian kernel.
 template <class KernelT>
-void vw::generate_laplacian_of_gaussian_kernel( ImageView<KernelT>& kernel, double sigma, int32 size ) {
-  kernel.set_size( size, size, 1 );
+void vw::generate_laplacian_of_gaussian_kernel(ImageView<KernelT>& kernel, double sigma, int32 size) {
+  kernel.set_size(size, size, 1);
   double half=size/2;
   double scalar = 2*M_PI*sigma*sigma*sigma*sigma*sigma*sigma;
   double sum = 0;
-  for( int32 i=0; i<size; ++i ) {
-    for( int32 j=0; j<size; ++j ) {
+  for (int32 i=0; i<size; ++i) {
+    for (int32 j=0; j<size; ++j) {
       double x=i-half, y=j-half;
       kernel(i,j) = vw::exp(-(x*x+y*y)/(2*sigma*sigma)) * (x*x+y*y-2*sigma*sigma) / scalar;
       sum += kernel(i,j);
