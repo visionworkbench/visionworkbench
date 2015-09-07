@@ -115,7 +115,7 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
     return;
   }
 
-  vw::vw_throw( vw::InputErr() << "Unknown datum string \"" << name << "\"!");
+  vw::vw_throw( vw::InputErr() << "Unknown datum: " << name << ".");
 }
 
 void vw::cartography::Datum::set_semi_major_axis(double val) {
