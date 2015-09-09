@@ -47,7 +47,9 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   std::string up_name = boost::to_upper_copy(name);
 
   m_meridian_offset = 0;
-  if (up_name == "WGS84" || up_name == "WGS_1984" ||  up_name == "EARTH") {
+  if (up_name == "WGS84"    || up_name == "WGS_1984" ||
+      up_name == "WGS 1984" || upname == "WGS1984"   ||
+      upname == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
     m_name            = "WGS_1984";
     m_spheroid_name   = "WGS 84";
     m_semi_major_axis = 6378137.0;
@@ -336,11 +338,14 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
 }
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
-  os << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
-     << "  Semi-major: " << datum.semi_major_axis()
-     << "  Semi-minor: " << datum.semi_minor_axis()
-     << "  Meridian: "   << datum.meridian_name()
-     << "  at "          << datum.meridian_offset();
+  std::ostringstream oss; // To use custom precision
+  oss.precision(16);
+  oss << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
+      << "  Semi-major: " << datum.semi_major_axis()
+      << "  Semi-minor: " << datum.semi_minor_axis()
+      << "  Meridian: "   << datum.meridian_name()
+      << "  at "          << datum.meridian_offset();
+  os << oss.str();
   return os;
 }
 
