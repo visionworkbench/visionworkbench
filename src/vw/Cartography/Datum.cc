@@ -48,8 +48,8 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
 
   m_meridian_offset = 0;
   if (up_name == "WGS84"    || up_name == "WGS_1984" ||
-      up_name == "WGS 1984" || upname == "WGS1984"   ||
-      upname == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
+      up_name == "WGS 1984" || up_name == "WGS1984"   ||
+      up_name == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
     m_name            = "WGS_1984";
     m_spheroid_name   = "WGS 84";
     m_semi_major_axis = 6378137.0;
