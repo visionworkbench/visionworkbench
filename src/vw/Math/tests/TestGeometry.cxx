@@ -181,6 +181,45 @@ TEST(Geometry, SimilarityFittingFunctorN) {
   EXPECT_MATRIX_NEAR( S, SimilarityFittingFunctorN<3>()(p1,p2), 1e-14 );
 }
 
+TEST(Geometry, TranslationScaleFittingFunctorN) {
+
+  static double A_data[] = {
+    0.0153, 0.9318, 0.2345, 1,
+    0.6721, 0.6813, 0.1234, 1,
+    0.3046, 0.6822, 0.6543, 1,
+    0.8600, 0.7468, 0.1652, 1,
+    0.5252, 0.8381, 0.5089, 1,
+    0.7095, 0.1897, 0.2258, 1,
+    0.6979, 0.8537, 0.0461, 1,
+    0.4186, 0.2026, 0.1419, 1,
+    0.8318, 0.4289, 0.6408, 1,
+    0.3475, 0.3354, 0.2868, 1,
+    0.7025, 0.2123, 0.2339, 1,
+    0.4944, 0.9446, 0.1233, 1,
+    0.7193, 0.6551, 0.3655, 1,
+    0.5491, 0.4076, 0.1014, 1 };
+  vw::MatrixProxy<double,14,4> A(A_data);
+
+  double sx = 2.23, sy = 3.3, sz = 5.2;
+  double dx = 5.6, dy = 8.3, dz = 2.1;
+  Matrix4x4 S;
+  S.set_identity();
+  S(0, 0) = sx;
+  S(1, 1) = sy;
+  S(2, 2) = sz;
+  select_col(S, 3) = Vector4(dx, dy, dz, 1);
+
+  vw::Matrix<double> B = transpose(S*transpose(A));
+  std::vector<Vector4> p1, p2;
+  for (unsigned i = 0; i < A.rows(); ++i) {
+    p1.push_back(select_row(A,i));
+    p2.push_back(select_row(B,i));
+  }
+
+  EXPECT_MATRIX_NEAR( S, TranslationScaleFittingFunctorN<3>()(p1,p2), 1e-14 );
+}
+
+
 TEST(Geometry, TranslationRotationFittingFunctorN) {
 
   static double A_data[] = {
@@ -382,5 +421,3 @@ TEST(Geometry, TranslationFittingFunctorN) {
   // similarity.
   EXPECT_MATRIX_NEAR( S, TranslationFittingFunctorN<3>()(p1,p2), 1.8e-15 );
 }
-
-

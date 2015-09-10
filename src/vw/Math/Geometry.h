@@ -333,7 +333,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = scale_factor*R;
-      for (size_t i = 0; i < result.rows(); ++i) {
+      for (size_t i = 0; i < translation.size(); ++i) {
         result(i,dim) = translation(i);
       }
       result(dim,dim) = 1;
@@ -342,6 +342,74 @@ namespace math {
   };
 
   typedef SimilarityFittingFunctorN<2> SimilarityFittingFunctor;
+
+  /// This fitting functor attempts to find a translation and scale transformation
+  /// (each coordinate has its own scale factor).
+  template <size_t dim>
+  struct TranslationScaleFittingFunctorN {
+    typedef vw::Matrix<double,dim+1,dim+1> result_type;
+
+    /// A translation and scale transformation requires 2 pairs of data points to make a fit.
+    template <class ContainerT>
+    size_t min_elements_needed_for_fit(ContainerT const& /*example*/) const { return 2; }
+
+    /// This function can match points in any container that supports
+    /// the size() and operator[] methods.  The container is usually a
+    /// vw::Vector<>, but you could substitute other classes here as
+    /// well.
+    template <class ContainerT>
+    vw::Matrix<double> operator() (std::vector<ContainerT> const& p1,
+                                   std::vector<ContainerT> const& p2,
+                                   vw::Matrix<double> const& /*seed_input*/ = vw::Matrix<double>() ) const {
+
+      // check consistency
+      VW_ASSERT( p1.size() == p2.size(),
+                 vw::ArgumentErr() << "Cannot compute translation and scale transformation. p1 and p2 are not the same size." );
+      VW_ASSERT( !p1.empty() && p1.size() >= min_elements_needed_for_fit(p1[0]),
+                 vw::ArgumentErr() << "Cannot compute translation and scale transformation. Insufficient data.\n");
+
+      // Compute the center of mass of each collection of points.
+      MeanFunctor m(true);
+      ContainerT mean1 = m(p1);
+      ContainerT mean2 = m(p2);
+
+      // Compute the scale factor between the points
+      Vector<double, dim> scale = 0.0;
+      for (size_t d = 0; d < dim; d++) {
+        double dist1 = 0.0, dist2 = 0.0;
+        for (size_t i = 0; i < p1.size(); ++i) {
+          dist1 += std::abs(p1[i][d]-mean1[d]);
+          dist2 += std::abs(p2[i][d]-mean2[d]);
+        }
+        dist1 /= p1.size();
+        dist2 /= p2.size();
+        if (dist1 != 0)
+          scale[d] = dist2/dist1;
+        else
+          scale[d] = 1.0; // Can't find the scale, assume it is 1.
+      }
+
+      // Compute the translation
+      Vector<double, dim> translation = 0.0;
+      for (size_t d = 0; d < dim; d++) {
+        translation[d] = mean2[d] - scale[d]*mean1[d];
+      }
+
+      // Assemble the matrix of the transform
+      Matrix<double> result(dim+1,dim+1);
+      result.set_identity();
+      for (size_t d = 0; d < dim; d++) {
+        result(d, d) = scale[d];
+      }
+      for (size_t d = 0; d < translation.size(); ++d) {
+        result(d,dim) = translation(d);
+      }
+      result(dim,dim) = 1.0;
+      return result;
+    }
+  };
+
+  typedef TranslationScaleFittingFunctorN<2> TranslationScaleFittingFunctor;
 
   /// This fitting functor attempts to find a translation and rotation transformation
   template <size_t dim>
@@ -394,7 +462,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       submatrix(result,0,0,dim,dim) = R;
-      for (size_t i = 0; i < result.rows(); ++i) {
+      for (size_t i = 0; i < translation.size(); ++i) {
         result(i,dim) = translation(i);
       }
       result(dim,dim) = 1;
@@ -437,7 +505,7 @@ namespace math {
 
       Matrix<double> result(dim+1,dim+1);
       result.set_identity();
-      for (size_t i = 0; i < dim; ++i) {
+      for (size_t i = 0; i < translation.size(); ++i) {
         result(i,dim) = translation(i);
       }
       return result;
