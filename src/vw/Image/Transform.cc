@@ -16,10 +16,12 @@
 // __END_LICENSE__
 
 
-/// Filter.cc
+/// Transform.cc
 ///
-/// Instantiations of certain filter kernel functions.
 ///
+// ImageView classes for transforming the domain of an image
+// (image warping).
+
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
 #pragma warning(disable:4267)
