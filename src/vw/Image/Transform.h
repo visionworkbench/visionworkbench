@@ -343,6 +343,10 @@ namespace vw {
     }
   };
 
+  // Helper functions to pull and push a matrix to an affine transform
+  Matrix3x3 affine2mat(AffineTransform const& transform);
+  AffineTransform mat2affine(Matrix3x3 const& T);
+
   // Rotate image transform functor
   class RotateTransform : public AffineTransform {
   public:

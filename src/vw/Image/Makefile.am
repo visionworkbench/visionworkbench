@@ -65,6 +65,7 @@ libvwImage_la_SOURCES = \
   ImageResource.cc \
   ImageResourceStream.cc \
   Interpolation.cc \
+  Transform.cc \
   PixelTypeInfo.cc
 
 libvwImage_la_LIBADD = @MODULE_IMAGE_LIBS@
