@@ -41,9 +41,9 @@
 #include <vw/InterestPoint/ImageOctaveHistory.h>
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-//#include "opencv2/core/core.hpp"
-//#include "opencv2/features2d/features2d.hpp"
-#include <opencv2/opencv.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+//#include <opencv2/opencv.hpp>
 #endif
 
 namespace vw {
@@ -218,12 +218,12 @@ namespace ip {
 
 
 
-#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-
   // TODO: Make an OpenCV interface file for this stuff
 
   enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0, 
                              OPENCV_IP_DETECTOR_TYPE_ORB   = 1};
+
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
   /// Struct to convert a basic type to a single channel OpenCV type
   template <typename T> struct GetOpenCvPixelType                 { static const int type=CV_8UC1; };
@@ -257,15 +257,21 @@ namespace ip {
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
 
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) 
-      : m_detector_type(detector_type)
-    {
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) {
+      // Instantiate the feature detector
+      switch (detector_type)
+      {
+        //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
+        //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector = cv::ORB::create();    break;
+        case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector = cv::Feature2D::create("ORB"  );  break;
+        case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector = cv::Feature2D::create("BRISK");  break;
+        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+      }; 
     }
 
     /// Detect interest points in the source image.
     template <class ViewT>
-    InterestPointList process_image(ImageViewBase<ViewT> const& image) const
-    {
+    InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
 
       // Raster the input image into an OpenCV compatible format
       // - This is only valid for single channel data.
@@ -274,20 +280,9 @@ namespace ip {
       ImageT buffer_image;
       cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
 
-      // Instantiate the feature detector
-      cv::Ptr<cv::FeatureDetector> detector;
-      switch (m_detector_type)
-      {
-        //case OPENCV_IP_DETECTOR_TYPE_BRISK: detector = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
-        //case OPENCV_IP_DETECTOR_TYPE_ORB:   detector = cv::ORB::create();    break;
-        case OPENCV_IP_DETECTOR_TYPE_BRISK: detector = cv::Feature2D::create("ORB"  );  break;
-        case OPENCV_IP_DETECTOR_TYPE_ORB:   detector = cv::Feature2D::create("BRISK");  break;
-        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-      }; 
-
       // Detect features
       std::vector<cv::KeyPoint> keypoints;
-      detector->detect(cv_image, keypoints); // Basemap
+      m_detector->detect(cv_image, keypoints); // Basemap
 
       // Convert back to our output format
       // TODO: How many features do we need to fill in?
@@ -298,7 +293,9 @@ namespace ip {
         ip.y  = keypoints[i].pt.y;
         ip.ix = round(ip.x);
         ip.iy = round(ip.y);
+        ip.interest    = keypoints[i].response;        
         ip.octave      = keypoints[i].octave;
+        ip.scale_lvl   = keypoints[i].octave;
         ip.scale       = keypoints[i].size;
         ip.orientation = keypoints[i].angle;
         ip_list.push_back(ip);
@@ -307,12 +304,28 @@ namespace ip {
     }
   
   private:
-    OpenCvIpDetectorType m_detector_type;
+    cv::Ptr<cv::FeatureDetector> m_detector;
+  }; // End class OpenCvInterestPointDetector
+#else
+  // If OpenCV is not defined, make a dummy version of this that just fails.
 
-  };
+  /// Interest point detector build using OpenCV functions
+  class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
+  public:
 
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) {
+      vw_throw( ArgumentErr() << "Can't use OpenCV IP detection functions if VW is not built with OpenCV!\n");
+    }
 
-#endif
+    /// Detect interest points in the source image.
+    template <class ViewT>
+    InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
+      vw_throw( ArgumentErr() << "Can't use OpenCV IP detection functions if VW is not built with OpenCV!\n");
+      return InterestPointList();
+    }
+  }; // End class OpenCvInterestPointDetector
+
+#endif // End case with no OpenCV installed
 
 
 

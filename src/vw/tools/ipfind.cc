@@ -76,8 +76,7 @@ static void write_debug_image( std::string const& out_file_name,
 
   vw_out(InfoMessage,"interest_point") << "\t > Gathering statistics:\n";
   float min = 1e30, max = -1e30;
-  for ( InterestPointList::const_iterator point = ip.begin();
-        point != ip.end(); ++point ) {
+  for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
     if ( point->interest > max )
       max = point->interest;
     if ( point->interest < min )
@@ -95,8 +94,7 @@ static void write_debug_image( std::string const& out_file_name,
     oimage = pixel_cast_rescale<PixelRGB<uint8> >(normalize(DiskImageView<PixelGray<float> >( *irsrc )) * 0.5);
   }
 
-  for ( InterestPointList::const_iterator point = ip.begin();
-        point != ip.end(); ++point ) {
+  for ( InterestPointList::const_iterator point = ip.begin(); point != ip.end(); ++point ) {
     float norm_i = (point->interest - min)/diff;
     PixelRGB<uint8> color(0,0,0);
     if ( norm_i < .5 ) {
@@ -112,7 +110,7 @@ static void write_debug_image( std::string const& out_file_name,
     // Marking point w/ Dot
     oimage(point->ix,point->iy) = color;
 
-    // Circling point
+    // Circling point based on the scale
     for (float a = 0; a < 6; a+=.392 ) {
       float a_d = a + .392;
       Vector2i start( int(2*point->scale*cos(a  )+point->x),
@@ -155,8 +153,8 @@ int main(int argc, char** argv) {
     ("debug-image,d", "Write out debug images.")
 
     // Interest point detector options
-    ("interest-operator", po::value(&interest_operator)->default_value("OBALoG"), 
-          "Choose an interest point metric from [LoG, Harris, OBALoG, Brisk, Orb]")
+    ("interest-operator", po::value(&interest_operator)->default_value("IAGD"), 
+          "Choose an interest point metric from [IAGD (ASP default), LoG, Harris, OBALoG, Brisk, Orb]")
     ("gain,g", po::value(&ip_gain)->default_value(1.0), 
           "Increasing this number will increase the gain at which interest points are detected.")
     ("max-points", po::value(&max_points)->default_value(0), 
@@ -167,7 +165,7 @@ int main(int argc, char** argv) {
 
     // Descriptor generator options
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), 
-          "Choose a descriptor generator from [patch,pca,sgrad,sgrad2]");
+          "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -214,13 +212,14 @@ int main(int argc, char** argv) {
   boost::to_lower( interest_operator );
   boost::to_lower( descriptor_generator );
   // Determine if interest_operator is legitimate
-  if ( !( interest_operator == "harris" ||
+  if ( !( interest_operator == "iagd"   ||
+          interest_operator == "harris" ||
           interest_operator == "log"    ||
           interest_operator == "obalog" || 
           interest_operator == "brisk"  ||
           interest_operator == "orb") ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-             << ". Options are : [ Harris, LoG, OBALoG, Brisk, Orb ]\n";
+             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Brisk, Orb ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -289,6 +288,10 @@ int main(int argc, char** argv) {
       // OBALoG threshold is inversely proportional to gain ..
       OBALoGInterestOperator interest_operator(IDEAL_OBALOG_THRESHOLD/ip_gain);
       IntegralInterestPointDetector<OBALoGInterestOperator> detector( interest_operator, tile_max_points );
+      ip = detect_interest_points(image, detector);
+    } else if ( interest_operator == "iagd") {
+      // This is the default ASP implementation
+      IntegralAutoGainDetector detector( tile_max_points );
       ip = detect_interest_points(image, detector);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if ( interest_operator == "brisk") {
