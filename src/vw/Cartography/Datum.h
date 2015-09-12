@@ -62,7 +62,7 @@ namespace cartography {
     }
 
     /// Constructs a well-known datum by name.
-    /// - Supported names: WGS84, WGS72, NAD83, NAD27, D_MOON, D_MARS
+    /// - Supported names: WGS84, WGS72, NAD83, NAD27, D_MOON, D_MARS, MOLA.
     Datum( std::string const& name ) {
       set_well_known_datum( name );
     }
@@ -75,7 +75,10 @@ namespace cartography {
           double             semi_minor_axis,
           double             meridian_offset);
 
-    /// Options include: WGS84, WGS72, NAD27, or NAD83.
+    // A wrapper around the GDAL tool for extracting the datum information
+    void set_datum_from_proj(std::string const& proj_str);
+
+    /// See Datum(name)
     void set_well_known_datum(std::string const& name);
 
     // Basic accessors

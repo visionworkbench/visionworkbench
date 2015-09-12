@@ -19,7 +19,10 @@
 #include <boost/algorithm/string.hpp>
 #include <vw/Cartography/Datum.h>
 #include <vw/Math/Functions.h>
-
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+#include <ogr_spatialref.h>
+#include <cpl_string.h>
+#endif
 
 vw::cartography::Datum::Datum(std::string const& name,
                               std::string const& spheroid_name,
@@ -40,50 +43,72 @@ vw::cartography::Datum::Datum(std::string const& name,
   m_proj_str = strm.str();
 }
 
+
+// A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
+void vw::cartography::Datum::set_datum_from_proj( std::string const& proj_str ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  OGRSpatialReference gdal_spatial_ref;
+  if (gdal_spatial_ref.SetFromUserInput( proj_str.c_str() ))
+    vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
+
+  const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
+  if (datum_name) { this->name() = datum_name; }
+
+  const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
+  if (spheroid_name) { this->spheroid_name() = spheroid_name; }
+
+  const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
+  if (meridian_name) { this->meridian_name() = meridian_name;}
+
+  OGRErr e1, e2;
+  double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
+  double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
+  if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) {
+    this->set_semi_major_axis(semi_major);
+    this->set_semi_minor_axis(semi_minor);
+  }
+  this->meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
+
+  char* proj4_str_tmp;
+  gdal_spatial_ref.exportToProj4(&proj4_str_tmp);
+
+  this->proj4_str() = proj4_str_tmp;
+  CPLFree( proj4_str_tmp );
+#else
+  vw_throw( NoImplErr() << "Cannot set the datum without GDAL support. Please rebuild VW with GDAL." );
+#endif
+
+}
+
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_meridian_name = "Greenwich";
   m_geocentric = false;
+  m_meridian_offset = 0.0;
 
   std::string up_name = boost::to_upper_copy(name);
 
-  m_meridian_offset = 0;
   if (up_name == "WGS84"    || up_name == "WGS_1984" ||
       up_name == "WGS 1984" || up_name == "WGS1984"   ||
       up_name == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
-    m_name            = "WGS_1984";
-    m_spheroid_name   = "WGS 84";
-    m_semi_major_axis = 6378137.0;
-    m_semi_minor_axis = 6356752.31424518;
-    m_proj_str        = "+ellps=WGS84 +datum=WGS84";
+    set_datum_from_proj("+proj=longlat +datum=WGS84 +no_defs");
     return;
   }
 
   if (up_name == "WGS72" || up_name == "WGS_1972") {
-    m_name            = "WGS_1972";
-    m_spheroid_name   = "WGS 72";
-    m_semi_major_axis = 6378135.0;
-    m_semi_minor_axis = 6356750.5;
-    m_proj_str        = "+ellps=WGS72 +towgs84=0,0,4.5,0,0,0.554,0.2263";
+    set_datum_from_proj("+proj=longlat +datum=WGS72 +no_defs");
     return;
   }
 
   if (up_name == "NAD83" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
-    m_name            = "North_American_Datum_1983";
-    m_spheroid_name   = "GRS 1980";
-    m_semi_major_axis = 6378137;
-    m_semi_minor_axis = 6356752.31414036;
-    m_proj_str        = "+ellps=GRS80 +datum=NAD83";
+    set_datum_from_proj("+proj=longlat +datum=NAD83 +no_defs");
     return;
   }
 
   if (up_name == "NAD27" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1927"))) {
-    m_name            = "North_American_Datum_1927";
-    m_spheroid_name   = "Clarke 1866";
-    m_semi_major_axis = 6378206.4;
-    m_semi_minor_axis = 6356583.8;
-    m_proj_str        = "+ellps=clrk66 +datum=NAD27";
+    set_datum_from_proj("+proj=longlat +datum=NAD27 +no_defs");
     return;
   }
 
@@ -339,7 +364,7 @@ vw::Vector3 vw::cartography::Datum::cartesian_to_geodetic( vw::Vector3 const& xy
 
 std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Datum const& datum ) {
   std::ostringstream oss; // To use custom precision
-  oss.precision(16);
+  oss.precision(17);
   oss << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
       << "  Semi-major: " << datum.semi_major_axis()
       << "  Semi-minor: " << datum.semi_minor_axis()
