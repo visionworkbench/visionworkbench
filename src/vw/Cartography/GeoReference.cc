@@ -374,6 +374,10 @@ namespace cartography {
     OGRSpatialReference gdal_spatial_ref;
     gdal_spatial_ref.importFromWkt(wkt_ptr);
 
+    // Create the datum. We will modify it later on.
+    Datum datum;
+    datum.set_datum_from_spatial_ref(gdal_spatial_ref);
+
     // Read projection information out of the file
     char* proj_str_tmp;
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
@@ -431,22 +435,6 @@ namespace cartography {
     if (utm_zone)
       set_UTM(utm_zone, utm_north);
 
-    // Read in the datum information
-    Datum datum;
-    const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
-    if (datum_name) { datum.name() = datum_name; }
-    const char* spheroid_name = gdal_spatial_ref.GetAttrValue("SPHEROID");
-    if (spheroid_name) { datum.spheroid_name() = spheroid_name; }
-    const char* meridian_name = gdal_spatial_ref.GetAttrValue("PRIMEM");
-    if (meridian_name) { datum.meridian_name() = meridian_name; }
-    OGRErr e1, e2;
-    double semi_major = gdal_spatial_ref.GetSemiMajor(&e1);
-    double semi_minor = gdal_spatial_ref.GetSemiMinor(&e2);
-    if (e1 != OGRERR_FAILURE && e2 != OGRERR_FAILURE) {
-      datum.set_semi_major_axis(semi_major);
-      datum.set_semi_minor_axis(semi_minor);
-    }
-    datum.meridian_offset() = gdal_spatial_ref.GetPrimeMeridian();
     // Set the proj4 string for datum.
     std::stringstream datum_proj4_ss;
     BOOST_FOREACH( std::string const& element, datum_strings )

@@ -45,13 +45,9 @@ vw::cartography::Datum::Datum(std::string const& name,
 
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
-void vw::cartography::Datum::set_datum_from_proj( std::string const& proj_str ) {
+void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const&gdal_spatial_ref) {
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
-  OGRSpatialReference gdal_spatial_ref;
-  if (gdal_spatial_ref.SetFromUserInput( proj_str.c_str() ))
-    vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
-
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");
   if (datum_name) { this->name() = datum_name; }
 
@@ -81,6 +77,21 @@ void vw::cartography::Datum::set_datum_from_proj( std::string const& proj_str ) 
 
 }
 
+// A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
+void vw::cartography::Datum::set_datum_from_proj_str( std::string const& proj_str ) {
+
+#if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
+  OGRSpatialReference gdal_spatial_ref;
+  if (gdal_spatial_ref.SetFromUserInput( proj_str.c_str() ))
+    vw_throw( ArgumentErr() << "Failed to parse: \"" << proj_str << "\"." );
+
+  set_datum_from_spatial_ref(gdal_spatial_ref);
+#else
+  vw_throw( NoImplErr() << "Cannot set the datum without GDAL support. Please rebuild VW with GDAL." );
+#endif
+
+}
+
 void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_meridian_name = "Greenwich";
   m_geocentric = false;
@@ -91,24 +102,24 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   if (up_name == "WGS84"    || up_name == "WGS_1984" ||
       up_name == "WGS 1984" || up_name == "WGS1984"   ||
       up_name == "WORLD GEODETIC SYSTEM 1984" || up_name == "EARTH") {
-    set_datum_from_proj("+proj=longlat +datum=WGS84 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +datum=WGS84 +no_defs");
     return;
   }
 
   if (up_name == "WGS72" || up_name == "WGS_1972") {
-    set_datum_from_proj("+proj=longlat +datum=WGS72 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +datum=WGS72 +no_defs");
     return;
   }
 
   if (up_name == "NAD83" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1983"))) {
-    set_datum_from_proj("+proj=longlat +datum=NAD83 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +datum=NAD83 +no_defs");
     return;
   }
 
   if (up_name == "NAD27" ||
       up_name == boost::to_upper_copy(std::string("North_American_Datum_1927"))) {
-    set_datum_from_proj("+proj=longlat +datum=NAD27 +no_defs");
+    set_datum_from_proj_str("+proj=longlat +datum=NAD27 +no_defs");
     return;
   }
 

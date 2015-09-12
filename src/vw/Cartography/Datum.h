@@ -32,6 +32,8 @@
 // issues involved in global coordinate systems, see:
 // http://www.posc.org/Epicentre.2_2/DataModel/ExamplesofUsage/eu_cs.html
 
+class OGRSpatialReference;
+
 namespace vw {
 namespace cartography {
 
@@ -76,7 +78,9 @@ namespace cartography {
           double             meridian_offset);
 
     // A wrapper around the GDAL tool for extracting the datum information
-    void set_datum_from_proj(std::string const& proj_str);
+    void set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref);
+
+    void set_datum_from_proj_str(std::string const& proj_str);
 
     /// See Datum(name)
     void set_well_known_datum(std::string const& name);
