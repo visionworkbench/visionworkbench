@@ -42,7 +42,7 @@ namespace cartography {
     Vector2 src_orgin = src_georef.pixel_to_lonlat(Vector2(0, 0));
     Vector2 dst_orgin = dst_georef.pixel_to_lonlat(Vector2(0, 0));
     m_offset = Vector2( 360.0*round( (dst_orgin[0] - src_orgin[0])/360.0 ), 0.0 );
-    
+
     const std::string src_datum = m_src_georef.datum().proj4_str();
     const std::string dst_datum = m_dst_georef.datum().proj4_str();
 
@@ -55,6 +55,13 @@ namespace cartography {
       m_skip_map_projection = true;
     else
       m_skip_map_projection = false;
+
+    // Bugfix: If both projections are lon-lat, and the offset is 360 degrees,
+    // don't skip map-projection, as have to correct for the offset.
+    if (m_src_georef.proj4_str().find("+proj=longlat") != std::string::npos &&
+        m_offset != Vector2()) {
+      m_skip_map_projection = false;
+    }
 
     // This optimizes the case where the two datums are the same,
     // and thus we don't need to call proj to convert between them
