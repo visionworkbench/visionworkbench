@@ -377,8 +377,8 @@ std::ostream& vw::cartography::operator<<( std::ostream& os, vw::cartography::Da
   std::ostringstream oss; // To use custom precision
   oss.precision(17);
   oss << "Geodetic Datum --> Name: " << datum.name() << "  Spheroid: " << datum.spheroid_name()
-      << "  Semi-major: " << datum.semi_major_axis()
-      << "  Semi-minor: " << datum.semi_minor_axis()
+      << "  Semi-major axis: " << datum.semi_major_axis()
+      << "  Semi-minor axis: " << datum.semi_minor_axis()
       << "  Meridian: "   << datum.meridian_name()
       << "  at "          << datum.meridian_offset();
   os << oss.str();
