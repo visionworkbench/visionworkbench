@@ -121,12 +121,18 @@ namespace ip {
     return filename;
   }
 
+
   std::string match_filename(std::string const& out_prefix,
                              std::string const& input_file1,
                              std::string const& input_file2){
-    return out_prefix + "-" +
-      strip_path(out_prefix, input_file1) + "__" +
-      strip_path(out_prefix, input_file2) + ".match";
+
+    // filenames longer than this must be chopped, as too long names
+    // cause problems later with boost.
+    int max_len = 40;
+    std::string name1 = strip_path(out_prefix, input_file1).substr(0, max_len);
+    std::string name2 = strip_path(out_prefix, input_file2).substr(0, max_len);
+
+    return out_prefix + "-" + name1 + "__" + name2 + ".match";
   }
 
   void ip_filenames(std::string const& out_prefix,
