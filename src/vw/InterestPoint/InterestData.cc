@@ -165,9 +165,8 @@ namespace ip {
     }
     return result;
   }
-
-  // You are highly discouraged in using this as all descriptor
-  // information is lost.
+/*
+  // You are highly discouraged in using this as all descriptor information is lost.
   std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3> const& veclist) {
     std::vector<InterestPoint> result(veclist.size());
     for (size_t i=0; i < veclist.size(); ++i) {
@@ -176,7 +175,7 @@ namespace ip {
     }
     return result;
   }
-
+*/
   /// Helpful functors
   void remove_descriptor( InterestPoint & ip ) { ip.descriptor.set_size(0); }
 

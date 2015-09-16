@@ -299,9 +299,9 @@ fi
 AC_DEFINE_UNQUOTED(HAS_BIGTIFF, [$has_bigtiff], [Define to 1 if VW has BigTIFF support])
 AC_MSG_RESULT([$VW_HAS_BIGTIFF])
 
-AX_PKG(PROJ4, [M], [-lproj], [proj_api.h])
-AX_PKG(GEOTIFF, [PROJ4 JPEG], [-lgeotiff -ltiff])
-AX_PKG(GDAL, [GEOTIFF], [-lgdal], [gdal.h])
+AX_PKG(PROJ4,   [M],          [-lproj],          [proj_api.h])
+AX_PKG(GEOTIFF, [PROJ4 JPEG], [-lgeotiff -ltiff] )
+AX_PKG(GDAL,    [GEOTIFF],    [-lgdal],          [gdal.h])
 
 # GDAL requires tiff support, but it can be internal or external.
 PKG_CHECK_FUNCTION(GDAL, [TIFFScanlineSize], [External_LibTIFF])
@@ -379,7 +379,7 @@ fi
 #Usage: AX_PKG(<name>, <dependencies>, <libraries>, <headers>[, <relative include path>, <relative lib path>, <required-functions>, <optional-deps>])
 AX_PKG(LIBKML,   [BOOST_THREAD BOOST Z], [-lkmlengine -lkmldom -lkmlbase -lminizip], [kml/engine/kmz_file.h])
 # We don't build all the components in BinaryBuilder, so only include certain headers.
-AX_PKG(OPENCV,     [], [-lopencv_core -lopencv_imgproc -lopencv_features2d -lopencv_flann],  [ opencv2/core/core_c.h opencv2/core/core.hpp  opencv2/imgproc/imgproc_c.h opencv2/imgproc/imgproc.hpp opencv2/features2d/features2d.hpp opencv2/objdetect/objdetect.hpp opencv2/calib3d/calib3d.hpp ])
+AX_PKG(OPENCV,     [], [-lopencv_core -lopencv_imgproc -lopencv_features2d -lopencv_flann],  [ opencv2/core/core_c.h opencv2/core/core.hpp  opencv2/imgproc/imgproc_c.h opencv2/imgproc/imgproc.hpp opencv2/features2d/features2d.hpp opencv2/objdetect/objdetect.hpp opencv2/calib3d/calib3d.hpp opencv2/nonfree/nonfree.hpp opencv2/nonfree/features2d.hpp ])
 AX_PKG(FLANN,      [], [-lflann_cpp],[flann/flann.hpp])
 
 old_CXXFLAGS="$CXXFLAGS"

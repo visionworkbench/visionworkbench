@@ -165,7 +165,7 @@ int main(int argc, char** argv) {
 
     // Descriptor generator options
     ("descriptor-generator", po::value(&descriptor_generator)->default_value("sgrad"), 
-          "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2]");
+          "Choose a descriptor generator from [patch, pca, sgrad (ASP default), sgrad2, brisk, orb]");
 
   po::options_description hidden_options("");
   hidden_options.add_options()
@@ -223,12 +223,14 @@ int main(int argc, char** argv) {
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
-  if ( !( descriptor_generator == "patch" ||
-          descriptor_generator == "pca"   ||
-          descriptor_generator == "sgrad" ||
-          descriptor_generator == "sgrad2" ) ) {
+  if ( !( descriptor_generator == "patch"  ||
+          descriptor_generator == "pca"    ||
+          descriptor_generator == "sgrad"  ||
+          descriptor_generator == "sgrad2" ||
+          descriptor_generator == "brisk"  ||
+          descriptor_generator == "orb"    ) ) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
-             << ". Options are : [ Patch, PCA, SGrad, SGrad2 ]\n";
+             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Brisk, Orb ]\n";
     exit(0);
   }
 
@@ -257,8 +259,10 @@ int main(int argc, char** argv) {
                        (image.rows()/vw_settings().default_tile_size()+1);
     uint32 tile_max_points = uint32(float(max_points)/float(number_tiles))*2; // A little over shoot
     // incase the tile is empty
-    if ( max_points == 0 ) tile_max_points = 0; // No culling
-    else if ( tile_max_points < 50 ) tile_max_points = 50;
+    if ( max_points == 0 ) 
+      tile_max_points = 0; // No culling
+    else if ( tile_max_points < 50 ) 
+      tile_max_points = 50;
 
     // Detecting Interest Points
     InterestPointList ip;
@@ -373,7 +377,22 @@ int main(int argc, char** argv) {
     } else if (descriptor_generator == "sgrad2") {
       SGrad2DescriptorGenerator descriptor;
       describe_interest_points( image, descriptor, ip );
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+    } else if (descriptor_generator == "brisk") {
+      OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_BRISK);
+      describe_interest_points( image, descriptor, ip );
+    } else if (descriptor_generator == "orb") {
+      OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_ORB);
+      describe_interest_points( image, descriptor, ip );
     }
+#else
+    } else if ((descriptor_generator == "brisk") ||  (descriptor_generator == "orb")) {
+      vw_out() << "Error: Cannot use ORB or BRISK if not compiled with OpenCV!" << std::endl;
+      exit(0); 
+    }
+#endif
+
+
 
     // If ASCII output was requested, write it out.  Otherwise stick with binary output.
     if (vm.count("lowe"))

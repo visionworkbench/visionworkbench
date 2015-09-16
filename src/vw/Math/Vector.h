@@ -84,41 +84,19 @@ namespace math {
 
   /// A CRTP base class for vectors and vector expressions.
   /// Provides a mechanism for restricting function arguments to
-  /// vectors, and provides the various arithmetic assignment
-  /// operators.
+  /// vectors, and provides the various arithmetic assignment operators.
   template <class VectorT>
   struct VectorBase {
 
-    /// Returns the derived implementation type.
-    VectorT& impl() { return *static_cast<VectorT*>(this); }
-
-    /// Returns the derived implementation type.
+    // Returns the derived implementation type.
+    VectorT      & impl()       { return *static_cast<VectorT      *>(this); }
     VectorT const& impl() const { return *static_cast<VectorT const*>(this); }
 
-    /// Sum-assignment operator
-    template <class T>
-    VectorT& operator+=( T const& v ) {
-      return impl() = impl() + v;
-    }
-
-    /// Difference-assignment operator
-    template <class T>
-    VectorT& operator-=( T const& v ) {
-      return impl() = impl() - v;
-    }
-
-    /// Product-assignment operator
-    template <class T>
-    VectorT& operator*=( T s ) {
-      return impl() = impl() * s;
-    }
-
-    /// Quotient-assignment operator
-    template <class T>
-    VectorT& operator/=( T s ) {
-      return impl() = impl() / s;
-    }
-
+    // Arithmetic operators
+    template <class T> VectorT& operator+=( T const& v ) { return impl() = impl() + v; }
+    template <class T> VectorT& operator-=( T const& v ) { return impl() = impl() - v; }
+    template <class T> VectorT& operator*=( T        s ) { return impl() = impl() * s; } // TODO: Why not const input?
+    template <class T> VectorT& operator/=( T        s ) { return impl() = impl() / s; }
   };
 
 
@@ -148,8 +126,7 @@ namespace math {
 
 
   /// This helper class allows overriding the basic vector assignment
-  /// operations in specific cases for efficiency, using template
-  /// specialization.
+  /// operations in specific cases for efficiency, using template specialization.
   template <class DstVecT, class SrcVecT>
   struct VectorAssignImpl {
     static void assign( DstVecT& dst, SrcVecT const& src ) {
@@ -158,8 +135,7 @@ namespace math {
   };
 
   /// This helper class allows overriding the basic vector clearing
-  /// operation in specific cases for efficiency, using template
-  /// specialization.
+  /// operation in specific cases for efficiency, using template specialization.
   template <class VectorT>
   struct VectorClearImpl {
     static void clear( VectorT& vec ) {
@@ -230,10 +206,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef typename core_type::iterator iterator;
+    typedef typename core_type::iterator             iterator;
     typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a vector of zeroes.
@@ -328,45 +304,23 @@ namespace math {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot change size of fixed-size Vector." );
     }
 
-    reference_type operator()( size_t i ) { return core_[i]; }
+          reference_type operator()( size_t i )       { return core_[i]; }
     const_reference_type operator()( size_t i ) const { return core_[i]; }
-    reference_type operator[]( size_t i ) { return core_[i]; }
+          reference_type operator[]( size_t i )       { return core_[i]; }
     const_reference_type operator[]( size_t i ) const { return core_[i]; }
 
-    reference_type x() {
-      BOOST_STATIC_ASSERT( SizeN >= 1 );
-      return core_[0];
-    }
 
-    const_reference_type x() const {
-      BOOST_STATIC_ASSERT( SizeN >= 1 );
-      return core_[0];
-    }
+          reference_type x()       { BOOST_STATIC_ASSERT( SizeN >= 1 ); return core_[0]; }
+    const_reference_type x() const { BOOST_STATIC_ASSERT( SizeN >= 1 ); return core_[0]; }
+          reference_type y()       { BOOST_STATIC_ASSERT( SizeN >= 2 ); return core_[1]; }
+    const_reference_type y() const { BOOST_STATIC_ASSERT( SizeN >= 2 ); return core_[1]; }
+          reference_type z()       { BOOST_STATIC_ASSERT( SizeN >= 3 ); return core_[2]; }
+    const_reference_type z() const { BOOST_STATIC_ASSERT( SizeN >= 3 ); return core_[2]; }
 
-    reference_type y() {
-      BOOST_STATIC_ASSERT( SizeN >= 2 );
-      return core_[1];
-    }
-
-    const_reference_type y() const {
-      BOOST_STATIC_ASSERT( SizeN >= 2 );
-      return core_[1];
-    }
-
-    reference_type z() {
-      BOOST_STATIC_ASSERT( SizeN >= 3 );
-      return core_[2];
-    }
-
-    const_reference_type z() const {
-      BOOST_STATIC_ASSERT( SizeN >= 3 );
-      return core_[2];
-    }
-
-    iterator begin() { return core_.begin(); }
+          iterator begin()       { return core_.begin(); }
     const_iterator begin() const { return core_.begin(); }
-    iterator end() { return core_.end(); }
-    const_iterator end() const { return core_.end(); }
+          iterator end  ()       { return core_.end();   }
+    const_iterator end  () const { return core_.end();   }
 
   };
 
@@ -444,10 +398,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef typename core_type::iterator iterator;
+    typedef typename core_type::iterator             iterator;
     typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a vector with zero size.
@@ -508,15 +462,15 @@ namespace math {
       core_.resize(new_size, preserve);
     }
 
-    reference_type operator()( size_t i ) { return core_[i]; }
+          reference_type operator()( size_t i )       { return core_[i]; }
     const_reference_type operator()( size_t i ) const { return core_[i]; }
-    reference_type operator[]( size_t i ) { return core_[i]; }
+          reference_type operator[]( size_t i )       { return core_[i]; }
     const_reference_type operator[]( size_t i ) const { return core_[i]; }
 
-    iterator begin() { return core_.begin(); }
+          iterator begin()       { return core_.begin(); }
     const_iterator begin() const { return core_.begin(); }
-    iterator end() { return core_.end(); }
-    const_iterator end() const { return core_.end(); }
+          iterator end  ()       { return core_.end(); }
+    const_iterator end  () const { return core_.end(); }
 
   };
 
@@ -580,45 +534,22 @@ namespace math {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
     }
 
-    reference_type       operator()( size_t i )       { return m_ptr[i]; }
+          reference_type operator()( size_t i )       { return m_ptr[i]; }
     const_reference_type operator()( size_t i ) const { return m_ptr[i]; }
-    reference_type       operator[]( size_t i )       { return m_ptr[i]; }
+          reference_type operator[]( size_t i )       { return m_ptr[i]; }
     const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
 
-    reference_type x() {
-      BOOST_STATIC_ASSERT( SizeN >= 1 );
-      return m_ptr[0];
-    }
+          reference_type x()       { BOOST_STATIC_ASSERT( SizeN >= 1 ); return m_ptr[0]; }
+    const_reference_type x() const { BOOST_STATIC_ASSERT( SizeN >= 1 ); return m_ptr[0]; }
+          reference_type y()       { BOOST_STATIC_ASSERT( SizeN >= 2 ); return m_ptr[1]; }
+    const_reference_type y() const { BOOST_STATIC_ASSERT( SizeN >= 2 ); return m_ptr[1]; }
+          reference_type z()       { BOOST_STATIC_ASSERT( SizeN >= 3 ); return m_ptr[2]; }
+    const_reference_type z() const { BOOST_STATIC_ASSERT( SizeN >= 3 ); return m_ptr[2]; }
 
-    const_reference_type x() const {
-      BOOST_STATIC_ASSERT( SizeN >= 1 );
-      return m_ptr[0];
-    }
-
-    reference_type y() {
-      BOOST_STATIC_ASSERT( SizeN >= 2 );
-      return m_ptr[1];
-    }
-
-    const_reference_type y() const {
-      BOOST_STATIC_ASSERT( SizeN >= 2 );
-      return m_ptr[1];
-    }
-
-    reference_type z() {
-      BOOST_STATIC_ASSERT( SizeN >= 3 );
-      return m_ptr[2];
-    }
-
-    const_reference_type z() const {
-      BOOST_STATIC_ASSERT( SizeN >= 3 );
-      return m_ptr[2];
-    }
-
-    iterator begin() { return m_ptr; }
+          iterator begin()       { return m_ptr; }
     const_iterator begin() const { return m_ptr; }
-    iterator end() { return m_ptr + size(); }
-    const_iterator end() const { return m_ptr + size(); }
+          iterator end  ()       { return m_ptr + size(); }
+    const_iterator end  () const { return m_ptr + size(); }
 
   };
 
@@ -642,10 +573,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
+    typedef ElemT      *       iterator;
     typedef const ElemT* const_iterator;
 
     /// Constructs a vector with zero size.
@@ -687,15 +618,15 @@ namespace math {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
     }
 
-    reference_type operator()( size_t i ) { return m_ptr[i]; }
+          reference_type operator()( size_t i )       { return m_ptr[i]; }
     const_reference_type operator()( size_t i ) const { return m_ptr[i]; }
-    reference_type operator[]( size_t i ) { return m_ptr[i]; }
+          reference_type operator[]( size_t i )       { return m_ptr[i]; }
     const_reference_type operator[]( size_t i ) const { return m_ptr[i]; }
 
-    iterator begin() { return m_ptr; }
+          iterator begin()       { return m_ptr; }
     const_iterator begin() const { return m_ptr; }
-    iterator end() { return m_ptr + size(); }
-    const_iterator end() const { return m_ptr + size(); }
+          iterator end  ()       { return m_ptr + size(); }
+    const_iterator end  () const { return m_ptr + size(); }
 
   };
 
@@ -753,22 +684,22 @@ namespace math {
       return *this;
     }
 
-    VectorT& child() { return m_vector; }
+    VectorT      & child()       { return m_vector; }
     VectorT const& child() const { return m_vector; }
 
     size_t size() const {
       return m_vector.size();
     }
 
-    reference_type operator()( size_t i ) { return child()(i); }
+          reference_type operator()( size_t i )       { return child()(i); }
     const_reference_type operator()( size_t i ) const { return child()(i); }
-    reference_type operator[]( size_t i ) { return child()[i]; }
+          reference_type operator[]( size_t i )       { return child()[i]; }
     const_reference_type operator[]( size_t i ) const { return child()[i]; }
 
-    iterator begin() { return child().begin(); }
+          iterator begin()       { return child().begin(); }
     const_iterator begin() const { return child().begin(); }
-    iterator end() { return child().end(); }
-    const_iterator end() const { return child().end(); }
+          iterator end  ()       { return child().end(); }
+    const_iterator end  () const { return child().end(); }
 
   };
 
@@ -846,20 +777,20 @@ namespace math {
       return *this;
     }
 
-    VectorT& child() { return m_vector; }
+    VectorT      & child()       { return m_vector; }
     VectorT const& child() const { return m_vector; }
 
     size_t size() const { return m_size; }
 
-    reference_type operator()( size_t i ) { return child()(m_pos+i); }
+          reference_type operator()( size_t i )       { return child()(m_pos+i); }
     const_reference_type operator()( size_t i ) const { return child()(m_pos+i); }
-    reference_type operator[]( size_t i ) { return child()(m_pos+i); }
+          reference_type operator[]( size_t i )       { return child()(m_pos+i); }
     const_reference_type operator[]( size_t i ) const { return child()(m_pos+i); }
 
-    iterator begin() { return child().begin() + m_pos; }
+          iterator begin()       { return child().begin() + m_pos; }
     const_iterator begin() const { return child().begin() + m_pos; }
-    iterator end() { return child().begin() + m_pos + m_size; }
-    const_iterator end() const { return child().begin() + m_pos + m_size; }
+          iterator end  ()       { return child().begin() + m_pos + m_size; }
+    const_iterator end  () const { return child().begin() + m_pos + m_size; }
 
   };
 
@@ -926,7 +857,7 @@ namespace math {
     const_reference_type operator[]( size_t i ) const { return func(child()(i)); }
 
     iterator begin() const { return iterator(child().begin(),func); }
-    iterator end() const { return iterator(child().end(),func); }
+    iterator end  () const { return iterator(child().end(),  func); }
   };
 
   template <class VectorT, class FuncT>
@@ -949,7 +880,7 @@ namespace math {
   public:
     typedef typename boost::result_of<FuncT(typename Vector1T::value_type, typename Vector2T::value_type)>::type value_type;
 
-    typedef value_type reference_type;
+    typedef value_type       reference_type;
     typedef value_type const_reference_type;
 
     class iterator : public boost::iterator_facade<iterator,
@@ -993,7 +924,7 @@ namespace math {
 
     typedef iterator const_iterator;
     iterator begin() const { return iterator(child1().begin(),child2().begin(),func); }
-    iterator end() const { return iterator(child1().end(),child2().end(),func); }
+    iterator end  () const { return iterator(child1().end(),child2().end(),func); }
   };
 
   template <class Vector1T, class Vector2T, class FuncT>

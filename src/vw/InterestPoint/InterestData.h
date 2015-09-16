@@ -24,6 +24,7 @@
 #define __INTEREST_DATA_H__
 
 #include <vw/Math/Vector.h>
+#include <vw/Math/Matrix.h>
 #include <vw/Math/Functors.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/InterestPoint/InterestTraits.h>
@@ -31,6 +32,11 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+#include "opencv2/core/core.hpp"
+#include "opencv2/features2d/features2d.hpp"
+#endif
 
 namespace vw {
 namespace ip {
@@ -96,7 +102,40 @@ namespace ip {
       return (other.interest < interest);
     }
 
-  };
+#if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+
+    // TODO: Move the definitions to the cc file!
+
+    /// Copy IP information from an OpenCV KeyPoint object.
+    void setFromCvKeypoint(cv::KeyPoint const& cvKey) {
+      x  = cvKey.pt.x;
+      y  = cvKey.pt.y;
+      ix = round(x);
+      iy = round(y);
+      interest    = cvKey.response;
+      octave      = cvKey.octave;
+      scale_lvl   = cvKey.octave;
+      scale       = cvKey.size;
+      orientation = cvKey.angle;
+    }
+
+    /// Create an OpenCV KeyPoint object from this IP.
+    cv::KeyPoint makeOpenCvKeypoint() const {
+      cv::KeyPoint cvKey;
+      cvKey.pt.x     = x;
+      cvKey.pt.y     = y;
+      cvKey.response = interest;
+      cvKey.octave   = octave;
+      cvKey.size     = scale;
+      cvKey.angle    = orientation;
+      return cvKey;
+    }
+
+#endif
+  }; // End class InterestPoint
+
+
+
 
   inline bool InterestPointLessThan (InterestPoint P1, InterestPoint P2){
     if (P1.x           < P2.x           ) return true; if (P1.x           > P2.x           ) return false;
@@ -114,10 +153,9 @@ namespace ip {
   typedef std::list<InterestPoint> InterestPointList;
 
   // Utility function converts from a list of interest points to a
-  // vector of interest point locations.  (Useful when preping data
-  // far RANSAC...)
+  // vector of interest point locations.  (Useful when preping data for RANSAC...)
   std::vector<Vector3      > iplist_to_vectorlist(std::vector<InterestPoint> const& iplist);
-  std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3      > const& veclist);
+  //std::vector<InterestPoint> vectorlist_to_iplist(std::vector<Vector3      > const& veclist); // Avoid using, info is lost!
 
   // Routines for reading & writing interest point data files
   void write_lowe_ascii_ip_file(std::string ip_file, InterestPointList ip);
@@ -143,6 +181,26 @@ namespace ip {
 
   /// Helpful functors
   void remove_descriptor( InterestPoint & ip );
+
+  
+  /// Convert a an InterestPointList into a dense matrix of IP descriptors, one per row.
+  template <class LIST_T, typename T>
+  void ip_list_to_matrix(LIST_T const& ip_list, math::Matrix<T> &ip_matrix) {
+
+    // Construct a plain matrix
+    const size_t num_points        = ip_list.size();
+    const size_t descriptor_length = ip_list.begin()->size();
+    ip_matrix.set_size( num_points, descriptor_length );
+
+    // Copy the descriptors to the output matrix one row at a time
+    typename LIST_T::const_iterator ip_iter;
+    size_t matrix_row = 0;
+    for (ip_iter=ip_list.begin(); ip_iter != ip_list.end(); ++ip_iter) {
+      std::copy( ip_iter->begin(), ip_iter->end(), ip_matrix[matrix_row].begin() );
+      ++matrix_row;
+    }
+  }
+
 
   /// ImageInterestData
   ///

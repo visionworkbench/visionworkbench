@@ -27,12 +27,51 @@ namespace fs = boost::filesystem;
 namespace vw {
 namespace ip {
 
+//==================================================================================
+// IP descriptor distance metrics
+
   float
   L2NormMetric::operator()( InterestPoint const& ip1, InterestPoint const& ip2,
                             float maxdist ) const {
     float dist = 0.0;
     for (size_t i = 0; i < ip1.descriptor.size(); i++) {
       dist += (ip1.descriptor[i] - ip2.descriptor[i])*(ip1.descriptor[i] - ip2.descriptor[i]);
+      if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
+    }
+    return dist;
+  }
+
+
+  /// Simple, unoptimized code for computing the hamming distance of two bytes.
+  size_t hamming_helper(unsigned char a, unsigned char b) {
+      int dist = 0;
+      unsigned char val = a ^ b; // XOR
+
+      // Count the number of bits set
+      while (val != 0) {
+          // A bit is set, so increment the count and clear the bit
+          dist++;
+          val &= val - 1;
+      }
+      return dist; // Return the number of differing bits
+  }
+
+  // This is a very slow Hamming distance implementation which can be replaced if needed.
+  float HammingMetric::operator()( InterestPoint const& ip1, 
+                                   InterestPoint const& ip2,
+                                   float maxdist ) const {
+    float dist = 0.0;
+    for (size_t i = 0; i < ip1.descriptor.size(); i++) {
+      // Cast the two elements to bytes which they should have originally ben
+      unsigned char desc1 = static_cast<unsigned char>(ip1.descriptor[i]);
+      unsigned char desc2 = static_cast<unsigned char>(ip2.descriptor[i]);
+
+      // Compute the hamming distance between just these two bytes
+      size_t dist_int = hamming_helper(desc1, desc2);
+
+      // Accumulate the floating point distance
+      dist += static_cast<float>(dist_int);
+
       if (dist > maxdist) break;  // abort calculation if distance exceeds upper bound
     }
     return dist;
@@ -49,6 +88,9 @@ namespace ip {
     }
     return dist;
   }
+
+//==================================================================================
+// Constraints
 
   bool ScaleOrientationConstraint::operator()( InterestPoint const& baseline_ip,
                                                InterestPoint const& test_ip ) const {
@@ -78,6 +120,9 @@ namespace ip {
     // Otherwise...
     return false;
   }
+
+
+//==================================================================================
 
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2) {

@@ -37,10 +37,10 @@ TEST(FLANNTree, boundsLimiting) {
     locations(i, 1) = 1000 - i*i;
   }
 
-  math::FLANNTree<float> tree(locations);
+  math::FLANNTree<float> tree(locations, FLANN_DistType_L2);
   printf("---------\n");
-  Vector<int>   indices;
-  Vector<float> distance;
+  Vector<int>    indices;
+  Vector<double> distance;
   tree.knn_search(select_row(locations, 9),
                   indices, distance, 11); // Request 11 points
   EXPECT_EQ(indices.size(), 11); // Returned the requested number of points

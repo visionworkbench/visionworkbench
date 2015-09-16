@@ -29,43 +29,62 @@
 namespace vw {
 namespace math {
 
+  enum FLANN_DistType {FLANN_DistType_Unsupported, 
+                       FLANN_DistType_L2, 
+                       FLANN_DistType_Hamming};
+
+
   /// FLANN = FLANN is a library for performing fast approximate nearest
   ///         neighbor searches in high dimensional spaces.
-
-  /// This provides only access to L2 distance metric in the FLANN
-  /// tree. We would need to make new objects for each distance metric
-  /// if we want to avoid having the FLANN header show up
-  /// everywhere. (Their header has lots of warnings).
-  template <class FloatT>
+  /// - Currently supports T = float, double, or unsigned char.
+  /// - Make sure that the input features match the requested distance type.
+  /// - Currently the real types support L2 and unsigned char supports Hamming.
+  template <class T>
   class FLANNTree : boost::noncopyable {
+
+  private:
+
     void* m_index_ptr;
-    Matrix<FloatT> m_features_cast; // The index makes pointers to this object. So we copy it.
+    FLANN_DistType m_dist_type;
+    Matrix<T> m_features_cast; // The index makes pointers to this object. So we copy it.
 
     /// Returns the number of results found (usually knn)
-    size_t knn_search_help( void* data_ptr, size_t rows, size_t cols,
-                            Vector<int   >& indices,
-                            Vector<FloatT>& dists,
-                            size_t knn );
+    size_t knn_search_help( void* data_ptr, size_t rows, size_t cols, // Values we are looking for
+                            Vector<int   >& indices,  // Index of each result
+                            Vector<double>& dists,    // Distance of each result
+                            size_t knn );             // Number of results to return
 
+    /// Make a FLANN index wrapping a matrix of feature data
     void construct_index( void* data_ptr, size_t rows, size_t cols );
 
-  public:
+  public: // Functions
+
+    /// Simple constructor.  Call load_match_data() before calling knn_search()!
+    FLANNTree() 
+      : m_index_ptr(NULL), m_dist_type(FLANN_DistType_Unsupported) {}
+
+    /// Destructor
+    ~FLANNTree();
+
+    /// Load the matrix of feature data to match to and set the match distance type.
+    /// - It is up to the user to make sure that the features matrix matches the distance type being used!
+    /// - Hamming distance can take any data type but just compares the bits of the input data.
     template <class MatrixT>
-    FLANNTree( MatrixBase<MatrixT> const& features ) : m_index_ptr(NULL), m_features_cast( features ) {
+    void load_match_data( MatrixBase<MatrixT> const& features,  FLANN_DistType dist_type) {
+      m_dist_type     = dist_type;
+      m_features_cast = features;
       construct_index( (void*)&m_features_cast(0,0), m_features_cast.rows(), m_features_cast.cols() );
     }
-
-    ~FLANNTree();
 
     /// Multiple query access via VW's Matrix
     template <class MatrixT>
     size_t knn_search( MatrixBase<MatrixT> const& query,  // Values we are looking for
                        Vector<int   >& indices,           // Index of each result
-                       Vector<FloatT>& dists,             // Distance of each result
+                       Vector<double>& dists,             // Distance of each result
                        size_t knn ) {                     // Number of results to return
 
       // Convert query to our type
-      Matrix<FloatT> query_cast = query.impl();
+      Matrix<T> query_cast = query.impl();
       return knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
                               indices, dists, knn );
     }
@@ -74,16 +93,17 @@ namespace math {
     template <class VectorT>
     size_t knn_search( VectorBase<VectorT> const& query, // Values we are looking for
                        Vector<int   >& indices,          // Index of each result
-                       Vector<FloatT>& dists,            // Distance of each result
+                       Vector<double>& dists,            // Distance of each result
                        size_t knn ) {                    // Number of results to return
 
       // Convert query to our type
-      Vector<FloatT> query_cast = query.impl();
+      Vector<T> query_cast = query.impl();
       return knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
     }
 
     size_t size1() const;
     size_t size2() const;
+
   };
 
 }} // end namespace vw::math

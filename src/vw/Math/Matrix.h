@@ -301,10 +301,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef typename core_type::iterator iterator;
+    typedef typename core_type::iterator             iterator;
     typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a matrix of zeroes.
@@ -475,10 +475,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef typename core_type::iterator iterator;
+    typedef typename core_type::iterator             iterator;
     typedef typename core_type::const_iterator const_iterator;
 
     /// Constructs a matrix with zero size.
@@ -616,10 +616,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
+    typedef ElemT      *       iterator;
     typedef ElemT const* const_iterator;
 
     /// Constructs a matrix proxy
@@ -731,10 +731,10 @@ namespace math {
   public:
     typedef ElemT value_type;
 
-    typedef ElemT& reference_type;
+    typedef ElemT      &       reference_type;
     typedef ElemT const& const_reference_type;
 
-    typedef ElemT* iterator;
+    typedef ElemT      *       iterator;
     typedef ElemT const* const_iterator;
 
     /// Constructs a matrix with zero size.
@@ -858,10 +858,10 @@ namespace math {
   public:
     typedef typename MatrixT::value_type value_type;
 
-    typedef typename MatrixT::reference_type reference_type;
+    typedef typename MatrixT::reference_type             reference_type;
     typedef typename MatrixT::const_reference_type const_reference_type;
 
-    typedef IndexingMatrixIterator<MatrixTranspose<MatrixT> > iterator;
+    typedef IndexingMatrixIterator<      MatrixTranspose<MatrixT> >       iterator;
     typedef IndexingMatrixIterator<const MatrixTranspose<MatrixT> > const_iterator;
 
     /// Constructs a matrix transpose.
@@ -928,10 +928,10 @@ namespace math {
       return child()(col,row);
     }
 
-    iterator begin() { return iterator(*this,0,0); }
-    const_iterator begin() const { return const_iterator(*this,0,0); }
-    iterator end() { return iterator(*this,rows(),0); }
-    const_iterator end() const { return const_iterator(*this,rows(),0); }
+          iterator begin()       { return       iterator(*this, 0,    0); }
+    const_iterator begin() const { return const_iterator(*this, 0,    0); }
+          iterator end  ()       { return       iterator(*this,rows(),0); }
+    const_iterator end  () const { return const_iterator(*this,rows(),0); }
   };
 
   /// Matrix transpose.
@@ -1018,22 +1018,22 @@ namespace math {
       return *this;
     }
 
-    MatrixT& child() { return m; }
+    MatrixT      & child()       { return m; }
     MatrixT const& child() const { return m; }
 
     size_t size() const {
       return child().cols();
     }
 
-    reference_type operator()( size_t i ) { return child()(row,i); }
+          reference_type operator()( size_t i )       { return child()(row,i); }
     const_reference_type operator()( size_t i ) const { return child()(row,i); }
-    reference_type operator[]( size_t i ) { return child()(row,i); }
+          reference_type operator[]( size_t i )       { return child()(row,i); }
     const_reference_type operator[]( size_t i ) const { return child()(row,i); }
 
-    iterator begin() { return child().begin() + row*child().cols(); }
+          iterator begin()       { return child().begin() + row*child().cols(); }
     const_iterator begin() const { return child().begin() + row*child().cols(); }
-    iterator end() { return child().begin() + (row+1)*child().cols(); }
-    const_iterator end() const { return child().begin() + (row+1)*child().cols(); }
+          iterator end  ()       { return child().begin() + (row+1)*child().cols(); }
+    const_iterator end  () const { return child().begin() + (row+1)*child().cols(); }
   };
 
   template <class MatrixT>

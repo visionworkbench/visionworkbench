@@ -43,7 +43,6 @@
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 #include "opencv2/core/core.hpp"
 #include "opencv2/features2d/features2d.hpp"
-//#include <opencv2/opencv.hpp>
 #endif
 
 namespace vw {
@@ -233,8 +232,9 @@ namespace ip {
   template <>           struct GetOpenCvPixelType<float         > { static const int type=CV_32FC1; };
   template <>           struct GetOpenCvPixelType<double        > { static const int type=CV_64FC1; };
 
+  /// Get an OpenCV wrapper, rasterizing the VW image to a provided buffer.
   template <class ViewT, class PixelT>
-  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelT> &image_buffer) {
+  cv::Mat get_safe_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelT> &image_buffer) {
 
     // Rasterize the input image to the buffer image
     image_buffer = input_image.impl();
@@ -250,6 +250,26 @@ namespace ip {
                      cv_data_type, raw_data_ptr, step_size);
     return cv_image;
   }
+
+  /// Get an OpenCV wrapper to a known-safe plain old VW image buffer.
+  template <class PixelT>
+  boost::shared_ptr<const cv::Mat> get_opencv_wrapper(ImageView<PixelT> const& input_image) {
+
+    // Figure out the image buffer parameters
+    typedef typename ImageView<PixelT>::pixel_type pixel_type;
+    int         cv_data_type = GetOpenCvPixelType<pixel_type>::type;
+    const void* raw_data_ptr = reinterpret_cast<const void*>(input_image.data());
+    size_t      pixel_size   = sizeof(pixel_type);
+    size_t      step_size    = input_image.cols() * pixel_size;
+
+    // Create an OpenCV wrapper for the buffer image
+    boost::shared_ptr<const cv::Mat> cv_image(new cv::Mat(input_image.rows(), input_image.cols(), 
+                                                          cv_data_type, 
+                                                          const_cast<void*>(raw_data_ptr), 
+                                                          step_size));
+    return cv_image;
+  }
+
 
   // TODO: Accept a limit on the number of interest points!
 
@@ -276,28 +296,18 @@ namespace ip {
       // Raster the input image into an OpenCV compatible format
       // - This is only valid for single channel data.
       typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
-      //typedef ImageView<typename ViewT::pixel_type> ImageT;
       ImageT buffer_image;
-      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+      cv::Mat cv_image = get_safe_opencv_wrapper(image, buffer_image);
 
       // Detect features
       std::vector<cv::KeyPoint> keypoints;
       m_detector->detect(cv_image, keypoints); // Basemap
 
       // Convert back to our output format
-      // TODO: How many features do we need to fill in?
       InterestPointList ip_list;     
       for (size_t i=0; i<keypoints.size(); ++i) {
         InterestPoint ip;
-        ip.x  = keypoints[i].pt.x;
-        ip.y  = keypoints[i].pt.y;
-        ip.ix = round(ip.x);
-        ip.iy = round(ip.y);
-        ip.interest    = keypoints[i].response;        
-        ip.octave      = keypoints[i].octave;
-        ip.scale_lvl   = keypoints[i].octave;
-        ip.scale       = keypoints[i].size;
-        ip.orientation = keypoints[i].angle;
+        ip.setFromCvKeypoint(keypoints[i]);
         ip_list.push_back(ip);
       }
       return ip_list;
