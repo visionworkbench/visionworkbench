@@ -194,8 +194,7 @@ namespace vw {
   /// Renormalize the values in an image to fall within the range
   /// [min,max), where min and max are determined by the ChannelRange
   /// type trait and are generally equal to 0.0 and 1.0 for floating
-  /// point types and 0 and the largest positve value for integral
-  /// types.
+  /// point types and 0 and the largest positve value for integral types.
   template <class ImageT>
   UnaryPerPixelView<ImageT, UnaryCompoundFunctor<ChannelNormalizeFunctor<typename ImageT::pixel_type>, typename ImageT::pixel_type> >
   inline normalize( ImageViewBase<ImageT> const& image ) {

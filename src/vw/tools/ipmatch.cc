@@ -138,7 +138,7 @@ int main(int argc, char** argv) {
   general_options.add_options()
     ("help,h",              "Display this help message")
     ("matcher-threshold,t", po::value(&matcher_threshold)->default_value(0.6), 
-                            "Threshold for the interest point matcher.")
+                            "Threshold for the seperation between closest and next closest interest points.")
     ("non-kdtree",          "Use an implementation of the interest matcher that is not reliant on a KDTree algorithm")
     ("distance-metric,m", po::value(&distance_metric_in)->default_value("L2"), 
                             "Distance metric to use.  Choose one of: [L2 (default), Hamming].")
@@ -230,16 +230,29 @@ int main(int argc, char** argv) {
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } else {
+
+        std::cout << "IP1 --> \n";
+        for (size_t i=0; i<ip1.size(); ++i) {
+          std::cout << ip1[i].to_string() << "\n";  
+          ip1[i].polarity = false; // HACK
+          ip2[i].polarity = false;
+        }
+
         // Run interest point matcher that does not use KDTree algorithm.
         if (distance_metric == "l2") {
           InterestPointMatcherSimple<L2NormMetric, NullConstraint> matcher(matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
+          matcher(ip1, ip2, matched_ip1, matched_ip2/*, TerminalProgressCallback( "tools.ipmatch","Matching:")*/);
         }
         if (distance_metric == "hamming") {
           InterestPointMatcherSimple<HammingMetric, NullConstraint> matcher(matcher_threshold);
+          //return 0;
+          //std::cout << ip1[0].polarity << "\n";
+          //std::cout << ip2[0].polarity << "\n";
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } // End non-KDTree case
+
+      vw_out() << "Found " << matched_ip1.size() << " putative matches before duplicate removal.\n";
 
       remove_duplicates(matched_ip1, matched_ip2);
       vw_out() << "Found " << matched_ip1.size() << " putative matches.\n";

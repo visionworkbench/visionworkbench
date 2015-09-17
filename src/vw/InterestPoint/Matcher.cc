@@ -62,7 +62,7 @@ namespace ip {
                                    float maxdist ) const {
     float dist = 0.0;
     for (size_t i = 0; i < ip1.descriptor.size(); i++) {
-      // Cast the two elements to bytes which they should have originally ben
+      // Cast the two elements to bytes which they should have originally been
       unsigned char desc1 = static_cast<unsigned char>(ip1.descriptor[i]);
       unsigned char desc2 = static_cast<unsigned char>(ip2.descriptor[i]);
 

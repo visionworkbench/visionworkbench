@@ -32,6 +32,7 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <sstream>
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 #include "opencv2/core/core.hpp"
@@ -102,6 +103,18 @@ namespace ip {
       return (other.interest < interest);
     }
 
+    /// Generates a human readable string
+    std::string to_string() const {
+      std::stringstream s;
+      s << "IP: ("<<x<<","<<y<<")  scale: "<<scale<<"  orientation: "<<orientation<<"  interest: "<<interest<<
+           "  polarity: "<<polarity<<"  octave: "<<octave<<"  scale_lvl: "<<scale_lvl<<"\n";
+      s << "  descriptor: ";
+      for (size_t i=0; i<descriptor.size(); ++i)
+        s << descriptor[i] << "  ";
+      s << std::endl;
+      return s.str();
+    }
+
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
     // TODO: Move the definitions to the cc file!
@@ -117,6 +130,7 @@ namespace ip {
       scale_lvl   = cvKey.octave;
       scale       = cvKey.size;
       orientation = cvKey.angle;
+      polarity    = false;
     }
 
     /// Create an OpenCV KeyPoint object from this IP.

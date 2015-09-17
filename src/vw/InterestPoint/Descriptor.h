@@ -145,101 +145,72 @@ namespace ip {
   /// - For now just uses ORB, but there are other options.
   struct OpenCVDescriptorGenerator : public DescriptorGeneratorBase<OpenCVDescriptorGenerator> {
 
+    bool m_passthrough;
     OpenCvIpDetectorType m_detector_type; ///< Specifies the OpenCV detector type to use
 
     cv::Ptr<cv::DescriptorExtractor> m_extractor; ///< Description extractor object
 
     /// The detector type is specified in the constructor
-    OpenCVDescriptorGenerator(OpenCvIpDetectorType detector_type=OPENCV_IP_DETECTOR_TYPE_ORB) 
-        : m_detector_type(detector_type) {
+    /// - If passthrough is set to true, this functor will do nothing!
+    ///   This can be useful if you know the descriptors have already been generated.
+    OpenCVDescriptorGenerator(OpenCvIpDetectorType detector_type=OPENCV_IP_DETECTOR_TYPE_ORB,
+                              bool passthrough = false) 
+        : m_passthrough(passthrough), m_detector_type(detector_type) {
+      cv::initModule_nonfree();
+      // Set up the OpenCV descriptor object
+      
+      // TODO: Add dummy option where this class does nothing because descriptors are already present!
 
-  // Set up the OpenCV descriptor object
-  
-  switch (m_detector_type)
-  {
-    //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
-    //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::ORB::create();    break;
-    case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::DescriptorExtractor::create("ORB"  );  break;
-    case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::DescriptorExtractor::create("BRISK");  break;
-    default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-  }; 
-}
+      switch (m_detector_type)
+      {
+        //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
+        //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::ORB::create();    break;
+        case OPENCV_IP_DETECTOR_TYPE_BRISK: m_extractor = cv::DescriptorExtractor::create("BRISK");  break;
+        case OPENCV_IP_DETECTOR_TYPE_ORB:   m_extractor = cv::DescriptorExtractor::create("ORB"  );  break;
+        case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_extractor = cv::DescriptorExtractor::create("SIFT" );  break;
+        case OPENCV_IP_DETECTOR_TYPE_SURF:  m_extractor = cv::DescriptorExtractor::create("SURF" );  break;
+        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+      }; 
+    }
 
     /// Overload that takes the list of IP's as two iterators.
     /// - For the OpenCV class we need to override this function do describe all the 
     ///    ip's in one call.
     template <class ViewT, class IterT>
     void operator() ( ImageViewBase<ViewT> const& image,
-                      IterT start, IterT end )
-{
+                      IterT start, IterT end ) {
+      // Timing
+      Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
+      if (m_passthrough)
+        return;
 
-  // Timing
-  Timer total("\tTotal elapsed time", DebugMessage, "interest_point");
+      // Count the number of IPs
+      size_t num_ips = 0;
+      for (InterestPointList::iterator i = start; i != end; ++i)
+        ++num_ips;
 
-  // Count the number of IPs
-  size_t num_ips = 0;
-  for (InterestPointList::iterator i = start; i != end; ++i)
-    ++num_ips;
+      // Loop through input IP's and convert to the OpenCV IP structure
+      std::vector<cv::KeyPoint> cvIpList;
+      cvIpList.reserve(num_ips);
+      for (InterestPointList::iterator i = start; i != end; ++i)
+        cvIpList.push_back(i->makeOpenCvKeypoint());
 
-  // Loop through input IP's and convert to the OpenCV IP structure
-  std::vector<cv::KeyPoint> cvIpList;
-  cvIpList.reserve(num_ips);
-  for (InterestPointList::iterator i = start; i != end; ++i)
-    cvIpList.push_back(i->makeOpenCvKeypoint());
+      // Convert the image into a plain uint8 image buffer wrapped by OpenCV
+      ImageView<PixelGray<vw::uint8> > buffer_image;
+      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
 
-  // Get an OpenCV wrapper of the input image
-  // - We use the unsafe version because the input is a plain buffer from InterestPointDescriptionTask::()
-  boost::shared_ptr<const cv::Mat> cv_image = get_opencv_wrapper(image.impl());
-  //cv::Mat cv_image = get_opencv_wrapper(image);
+      // Call the OpenCV function to describe all of the points
+      cv::Mat cvDescriptors;
+      m_extractor->compute(cv_image, cvIpList, cvDescriptors);
+      size_t descriptor_length = cvDescriptors.cols;
+      if (static_cast<size_t>(cvDescriptors.rows) != num_ips)
+        vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
 
-  // Call the OpenCV function to describe all of the points
-  cv::Mat cvDescriptors;
-  m_extractor->compute(*cv_image, cvIpList, cvDescriptors);
-  size_t descriptor_length = cvDescriptors.cols;
-  if (cvDescriptors.rows != num_ips)
-    vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
-
-  // Copy the data to the output iterator
-  // - Each IP needs the descriptor (a vector of floats) updated
-  size_t ip_index = 0;
-  for (InterestPointList::iterator i = start; i != end; ++i) {
-    // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
-    // The workaround is to convert each element to a float here, and then convert back to
-    //   the correct type when matching is performed.
-
-    // TODO: Make sure all descriptor types work here!
-    i->descriptor.set_size(descriptor_length);
-    for (size_t d=0; d<descriptor_length; ++d)
-      i->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
-    ++ip_index;
-  }
-
-}
-
-/* TODO: Where to find these values?
-    // This function does not need to be defined since we rewrote operator()
-    //template <class ViewT, class IterT>
-    //void compute_descriptor(ImageViewBase<ViewT> const& support,
-    //                        IterT first, IterT last) const;
-
-    // If the OpenCV parameters are changed from the default, these numbers also need to change.
-    int support_size() { 
-      switch (m_detector_type)
-      {
-        case OPENCV_IP_DETECTOR_TYPE_BRISK: return 0;
-        case OPENCV_IP_DETECTOR_TYPE_ORB:   return 0;
-        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-      }; 
+      // Copy the data to the output iterator
+      // - Each IP needs the descriptor (a vector of floats) updated
+      copy_opencv_descriptor_matrix(start, end, cvDescriptors, m_detector_type);
     }
-    int descriptor_size() { 
-      switch (m_detector_type)
-      {
-        case OPENCV_IP_DETECTOR_TYPE_BRISK: return 0;
-        case OPENCV_IP_DETECTOR_TYPE_ORB:   return 0;
-        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
-      }; 
-    }
-*/
+
   }; // End class OpenCVDescriptorGenerator
 #endif
 

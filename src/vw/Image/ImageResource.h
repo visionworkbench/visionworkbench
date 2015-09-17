@@ -42,10 +42,12 @@ namespace vw {
   /// Describes the format of an image, i.e. its dimensions, pixel
   /// structure, and channel type.
   struct ImageFormat {
-    uint32 cols, rows, planes;
+    uint32          cols, 
+                    rows, 
+                    planes;
     PixelFormatEnum pixel_format;
     ChannelTypeEnum channel_type;
-    bool premultiplied;
+    bool            premultiplied;
 
     ImageFormat()
       : cols(0), rows(0), planes(0),
@@ -78,7 +80,18 @@ namespace vw {
     size_t rstride()   const {return cstride() * cols;}
     size_t pstride()   const {return rstride() * rows;}
     size_t byte_size() const {return pstride() * planes;}
-  };
+  }; // End class ImageFormat
+
+  /// Dumps an ImageFormat to a std::ostream
+  inline std::ostream& operator<<( std::ostream& os, ImageFormat const& f ) {
+
+    os << "ImageFormat rows: " << f.rows << "  cols: " << f.cols
+       << "  planes: " << f.planes << "  pixel_format: " << f.pixel_format
+       << "  channel_type: " << f.channel_type
+       << "  premultiplied: " << f.premultiplied;
+    return os;
+  }
+
 
   // A read-only image resource
   class SrcImageResource {

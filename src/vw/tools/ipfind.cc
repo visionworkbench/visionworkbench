@@ -124,9 +124,12 @@ static void write_debug_image( std::string const& out_file_name,
   boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create(out_file_name,
                                                                        oimage.format() ) );
   vw_out(InfoMessage,"interest_point") << "\t > Writing out image:\n";
-  block_write_image( *rsrc, oimage,
+  write_image( *rsrc, oimage,
                      TerminalProgressCallback( "tools.ipfind","\t : ") );
 }
+
+
+
 
 int main(int argc, char** argv) {
   std::vector<std::string> input_file_names;
@@ -217,9 +220,11 @@ int main(int argc, char** argv) {
           interest_operator == "log"    ||
           interest_operator == "obalog" || 
           interest_operator == "brisk"  ||
-          interest_operator == "orb") ) {
+          interest_operator == "orb"    ||
+          interest_operator == "sift"   ||
+          interest_operator == "surf"     ) ) {
     vw_out() << "Unknown interest operator: " << interest_operator
-             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Brisk, Orb ]\n";
+             << ". Options are : [ IAGD, Harris, LoG, OBALoG, Brisk, Orb, Sift, Surf ]\n";
     exit(0);
   }
   // Determine if descriptor_generator is legitimate
@@ -228,9 +233,11 @@ int main(int argc, char** argv) {
           descriptor_generator == "sgrad"  ||
           descriptor_generator == "sgrad2" ||
           descriptor_generator == "brisk"  ||
-          descriptor_generator == "orb"    ) ) {
+          descriptor_generator == "orb"    ||
+          descriptor_generator == "sift"    ||
+          descriptor_generator == "surf"    ) ) {
     vw_out() << "Unkown descriptor generator: " << descriptor_generator
-             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Brisk, Orb ]\n";
+             << ". Options are : [ Patch, PCA, SGrad, SGrad2, Brisk, Orb, Sift, Surf ]\n";
     exit(0);
   }
 
@@ -239,9 +246,12 @@ int main(int argc, char** argv) {
 
     vw_out() << "Finding interest points in \"" << input_file_names[i] << "\".\n";
     std::string file_prefix = fs::path(input_file_names[i]).replace_extension().string();
+
+    // Get reference to the file and convert to floating point
     boost::scoped_ptr<DiskImageResource> image_rsrc( DiskImageResource::open( input_file_names[i] ) );
     DiskImageView<PixelGray<float> > raw_image( *image_rsrc );
     ImageViewRef<PixelGray<float> >  image = raw_image;
+
     if ( vm.count("normalize") && image_rsrc->has_nodata_read() )
       image = apply_mask(normalize(create_mask(raw_image,image_rsrc->nodata_read())));
     else if ( vm.count("normalize") )
@@ -263,6 +273,10 @@ int main(int argc, char** argv) {
       tile_max_points = 0; // No culling
     else if ( tile_max_points < 50 ) 
       tile_max_points = 50;
+
+    std::cout << "IP finder: " << interest_operator << std::endl;
+
+    const bool describeInDetect = true;
 
     // Detecting Interest Points
     InterestPointList ip;
@@ -298,21 +312,99 @@ int main(int argc, char** argv) {
       IntegralAutoGainDetector detector( tile_max_points );
       ip = detect_interest_points(image, detector);
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+
+      // TODO: Does the float input image work with OpenCV?
+
     } else if ( interest_operator == "brisk") {
-      //
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_BRISK, describeInDetect, tile_max_points);
       ip = detect_interest_points(image, detector);
     } else if ( interest_operator == "orb") {
-      //
-      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB);
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_ORB, describeInDetect, tile_max_points);
+      ip = detect_interest_points(image, detector);
+    } else if ( interest_operator == "sift") {
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SIFT, describeInDetect, tile_max_points);
+      ip = detect_interest_points(image, detector);
+/*
+      ImageView<PixelGray<unsigned char> >  buffer_image;
+      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+      boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump8.tif",
+                                                                           buffer_image.format() ) );
+      write_image( *rsrc, buffer_image);
+
+  std::cout << "dump80 format = " << image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump80.tif",
+                                                                       image.format() ) );
+  write_image( *rsrc2, image);
+
+      cv::initModule_nonfree();
+      cv::SIFT m_detector(1000);
+
+
+      // Detect features
+      std::vector<cv::KeyPoint> keypoints;
+      cv::Mat cvDescriptors;
+      //m_detector.detect(cv_image, keypoints);
+      m_detector(cv_image, cv::Mat(), keypoints, cvDescriptors);
+
+      std::cout << "Detected " << keypoints.size() << " raw keypoints!\n";
+
+      // Convert back to our output format
+      ip.clear();
+      for (size_t i=0; i<keypoints.size(); ++i) {
+        InterestPoint thisIp;
+        thisIp.setFromCvKeypoint(keypoints[i]);
+        ip.push_back(thisIp);
+      }
+
+      size_t descriptor_length = cvDescriptors.cols;
+      std::cout << "Descriptor length = " << descriptor_length << std::endl;
+      if (static_cast<size_t>(cvDescriptors.rows) != ip.size())
+        vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
+
+      // Copy the data to the output iterator
+      // - Each IP needs the descriptor (a vector of floats) updated
+      size_t ip_index = 0;
+      for (InterestPointList::iterator iter = ip.begin(); iter != ip.end(); ++iter) {
+        // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
+        // The workaround is to convert each element to a float here, and then convert back to
+        //   the correct type when matching is performed.
+
+        // TODO: Make sure all descriptor types work here!
+        iter->descriptor.set_size(descriptor_length);
+        for (size_t d=0; d<descriptor_length; ++d)
+          iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
+        ++ip_index;
+      }
+*/
+
+    } else if ( interest_operator == "surf") {
+      OpenCvInterestPointDetector detector(OPENCV_IP_DETECTOR_TYPE_SURF, describeInDetect, tile_max_points);
       ip = detect_interest_points(image, detector);
     }
 #else // End OpenCV section
     } else {
-      vw_out() << "Error: Cannot use ORB or BRISK if not compiled with OpenCV!" << std::endl;
+      vw_out() << "Error: Cannot use ORB, BRISK, SIFT, or SURF if not compiled with OpenCV!" << std::endl;
       exit(0); 
     }
 #endif
+
+    std::cout << "Detected " << ip.size() << " raw keypoints!\n";
+/*
+{
+  ImageView<PixelGray<unsigned char> > buffer_image;
+  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+  std::cout << "dump format = " << buffer_image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump1.tif",
+                                                                       buffer_image.format() ) );
+  write_image( *rsrc, buffer_image);
+
+  std::cout << "dump90 format = " << image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump10.tif",
+                                                                       image.format() ) );
+  write_image( *rsrc2, image);
+  printf("Wrote dump image\n");
+}
+*/
 
     // Removing Interest Points on nodata or within 1/px
     if ( image_rsrc->has_nodata_read() ) {
@@ -345,10 +437,26 @@ int main(int argc, char** argv) {
         }
       }
       vw_out(InfoMessage,"interest_point") << "Removed " << before_size-ip.size() << " points close to nodata.\n";
-    }
+    } // End clearing IP's near nodata
 
     vw_out() << "\t Found " << ip.size() << " points.\n";
 
+/*
+{
+  ImageView<PixelGray<unsigned char> > buffer_image;
+  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+  std::cout << "dump format = " << buffer_image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump2.tif",
+                                                                       buffer_image.format() ) );
+  write_image( *rsrc, buffer_image);
+
+  std::cout << "dump90 format = " << image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump20.tif",
+                                                                       image.format() ) );
+  write_image( *rsrc2, image);
+  printf("Wrote dump image\n");
+}
+*/
     // Additional Culling for the entire image
     if ( max_points > 0  && ip.size() > max_points ) {
       ip.sort();
@@ -362,7 +470,22 @@ int main(int argc, char** argv) {
         i.orientation = 0;
       }
     }
+/*
+{
+  ImageView<PixelGray<unsigned char> > buffer_image;
+  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+  std::cout << "dump format = " << buffer_image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump3.tif",
+                                                                       buffer_image.format() ) );
+  write_image( *rsrc, buffer_image);
 
+  std::cout << "dump90 format = " << image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump30.tif",
+                                                                       image.format() ) );
+  write_image( *rsrc2, image);
+  printf("Wrote dump image\n");
+}
+*/
     // Generate descriptors for interest points.
     vw_out(InfoMessage) << "\tRunning " << descriptor_generator << " descriptor generator.\n";
     if (descriptor_generator == "patch") {
@@ -379,11 +502,78 @@ int main(int argc, char** argv) {
       describe_interest_points( image, descriptor, ip );
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
     } else if (descriptor_generator == "brisk") {
-      OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_BRISK);
-      describe_interest_points( image, descriptor, ip );
+      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_BRISK);
+      //describe_interest_points( image, descriptor, ip );
     } else if (descriptor_generator == "orb") {
-      OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_ORB);
-      describe_interest_points( image, descriptor, ip );
+      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_ORB);
+      //describe_interest_points( image, descriptor, ip );
+
+/*
+  // Convert the image into a plain uint8 image buffer wrapped by OpenCV
+  ImageView<PixelGray<unsigned char> > buffer_image;
+  cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+  std::cout << "dump format = " << buffer_image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump9.tif",
+                                                                       buffer_image.format() ) );
+  write_image( *rsrc, buffer_image);
+
+  std::cout << "dump90 format = " << image.format() << std::endl;
+  boost::scoped_ptr<DiskImageResource> rsrc2( DiskImageResource::create("/home/smcmich1/data/ip_testing/dump90.tif",
+                                                                       image.format() ) );
+  write_image( *rsrc2, image);
+  printf("Wrote dump image\n");
+
+return 0;
+//    cv::initModule_nonfree();
+    cv::ORB extractor;
+
+  // Count the number of IPs
+  size_t num_ips = 0;
+  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i)
+    ++num_ips;
+
+  // Loop through input IP's and convert to the OpenCV IP structure
+  std::vector<cv::KeyPoint> cvIpList;
+  cvIpList.reserve(num_ips);
+  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i)
+    cvIpList.push_back(i->makeOpenCvKeypoint());
+
+
+
+  // Call the OpenCV function to describe all of the points
+  cv::Mat cvDescriptors;
+  extractor.compute(cv_image, cvIpList, cvDescriptors);
+  size_t descriptor_length = cvDescriptors.cols;
+  if (static_cast<size_t>(cvDescriptors.rows) != num_ips)
+    vw_throw( LogicErr() << "OpenCV Did not return the same number of IPs!\n"); // TODO: Handle this case!
+
+  printf("Converting descriptions...\n");
+
+  // Copy the data to the output iterator
+  // - Each IP needs the descriptor (a vector of floats) updated
+  size_t ip_index = 0;
+  for (InterestPointList::iterator i = ip.begin(); i != ip.end(); ++i) {
+    // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
+    // The workaround is to convert each element to a float here, and then convert back to
+    //   the correct type when matching is performed.
+
+    // TODO: Make sure all descriptor types work here!
+    i->descriptor.set_size(descriptor_length);
+    for (size_t d=0; d<descriptor_length; ++d)
+      i->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
+    ++ip_index;
+  }
+*/
+
+
+
+
+    } else if (descriptor_generator == "sift") {
+      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_SIFT);
+      //describe_interest_points( image, descriptor, ip );
+    } else if (descriptor_generator == "surf") {
+      //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_SURF);
+      //describe_interest_points( image, descriptor, ip );
     }
 #else
     } else if ((descriptor_generator == "brisk") ||  (descriptor_generator == "orb")) {
@@ -392,7 +582,13 @@ int main(int argc, char** argv) {
     }
 #endif
 
-
+    int limit = 100;
+    for (InterestPointList::const_iterator iter=ip.begin(); iter!=ip.end(); ++iter) {
+      std::cout << iter->to_string() << "\n";  
+      --limit;
+      if (limit <= 0)
+        break;
+    }
 
     // If ASCII output was requested, write it out.  Otherwise stick with binary output.
     if (vm.count("lowe"))
@@ -405,7 +601,7 @@ int main(int argc, char** argv) {
       write_debug_image( file_prefix + "_debug.jpg",
                          input_file_names[i],
                          ip );
-  }
+  } // End loop through input files
 
   return 0;
 }

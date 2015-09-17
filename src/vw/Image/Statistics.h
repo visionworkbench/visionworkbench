@@ -422,6 +422,73 @@ namespace vw {
     return;
   }
 
+
+  /// Find the min and max values in an image
+  /// - TODO: Why are there two methods for doing this?
+  template <class ViewT>
+  void find_image_min_max( const ImageViewBase<ViewT> &view, double &min_val, double &max_val){
+
+    max_val = -std::numeric_limits<double>::max();
+    min_val = -max_val;
+    for (int row = 0; row < view.impl().rows(); row++){
+      for (int col = 0; col < view.impl().cols(); col++){
+        if ( !is_valid(view.impl()(col, row)) ) 
+          continue;
+        double val = view.impl()(col, row);
+        if (val < min_val) min_val = val;
+        if (val > max_val) max_val = val;
+      }
+    }
+  }
+
+  /// Overload that takes precomputed min and max values
+  template <class ViewT>
+  void histogram( const ImageViewBase<ViewT> &view, int num_bins, double min_val, double max_val,
+                  std::vector<double> &hist){
+    
+    VW_ASSERT(num_bins > 0, ArgumentErr() << "histogram: number of input bins must be positive");
+    
+    if (max_val == min_val) max_val = min_val + 1.0;
+      
+    hist.assign(num_bins, 0.0);
+    for (int row = 0; row < view.impl().rows(); row++){
+      for (int col = 0; col < view.impl().cols(); col++){
+        if ( !is_valid(view.impl()(col, row)) ) continue;
+        double val = view.impl()(col, row);
+        int bin = (int)round( (num_bins - 1) * ( (val - min_val)/(max_val - min_val) ) );
+        hist[bin]++;
+      }
+    }
+
+    return;
+  }
+
+  /// Returns the histogram bin index corresponding to the specified percentile
+  inline size_t get_histogram_percentile(std::vector<double> const& hist, double percentile) {
+  
+    // Verify the input percentile is in the legal range
+    if ((percentile < 0) || (percentile > 1.0)) {
+      vw_throw(ArgumentErr() << "get_histogram_percentile: illegal percentile request: " << percentile << "\n");
+    }
+
+    // Get the total pixel count
+    const size_t num_bins = hist.size();
+    double num_pixels = 0;
+    for (size_t i=0; i<num_bins; ++i)
+      num_pixels += hist[i];
+
+    // Now go through and find the requested percentile
+    double running_percentile = 0;
+    for (size_t i=0; i<num_bins; ++i) {
+      double this_percent = hist[i] / num_pixels;
+      running_percentile += this_percent;
+      //std::cout << "p - " << running_percentile << std::endl;
+      if (running_percentile >= percentile)
+        return i;
+    }
+    vw_throw(LogicErr() << "get_histogram_percentile: Illegal histogram encountered!");
+  }
+
   // Find the optimal Otsu threshold for splitting a gray scale image
   // into black and white pixels.
   // Reference: http://www.labbookpages.co.uk/software/imgProc/otsuThreshold.html

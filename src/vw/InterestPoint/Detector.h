@@ -43,6 +43,8 @@
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 #include "opencv2/core/core.hpp"
 #include "opencv2/features2d/features2d.hpp"
+#include "opencv2/nonfree/features2d.hpp"
+#include "opencv2/nonfree/nonfree.hpp"
 #endif
 
 namespace vw {
@@ -217,10 +219,51 @@ namespace ip {
 
 
 
+
+
+
+  //TODO: Move this function!
+  /// Converts a single channel image into a uint8 image with percentile based intensity scaling.
+  template <class ViewT>
+  void percentile_scale_convert(ImageViewBase<ViewT> const& input_image, 
+                                ImageView<PixelGray<vw::uint8> > &output_image,
+                                double low_percentile=0.02, double high_percentile=0.98,
+                                int num_bins=256) {
+
+    // First get the min and max values
+    double min_val, max_val;
+    find_image_min_max(input_image, min_val, max_val);
+
+    // Compute the input image histogram
+    std::vector<double> hist;
+    histogram(input_image, num_bins, min_val, max_val, hist); 
+
+    // Find the bins at the input percentiles
+    size_t low_bin  = get_histogram_percentile(hist, low_percentile );
+    size_t high_bin = get_histogram_percentile(hist, high_percentile);
+
+    // Find the input values that correspond to the bin indices
+    double bin_width = (max_val - min_val) / (static_cast<double>(num_bins - 1));
+    double low_value  = (low_bin +1) * bin_width + min_val;
+    double high_value = (high_bin+1) * bin_width + min_val;
+
+    //std::cout << "low  bin = " << low_bin << std::endl;
+    //std::cout << "high bin = " << high_bin << std::endl;
+    //std::cout << "low  value = " << low_value << std::endl;
+    //std::cout << "high value = " << high_value << std::endl;
+
+    // Scale the image using the computed values and convert to uint8
+    output_image = pixel_cast<vw::uint8>(normalize( clamp(input_image, low_value, high_value), 
+                                                    low_value, high_value, 0.0, 255.0 ));
+  }
+
+
   // TODO: Make an OpenCV interface file for this stuff
 
   enum OpenCvIpDetectorType {OPENCV_IP_DETECTOR_TYPE_BRISK = 0, 
-                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1};
+                             OPENCV_IP_DETECTOR_TYPE_ORB   = 1,
+                             OPENCV_IP_DETECTOR_TYPE_SIFT  = 2,
+                             OPENCV_IP_DETECTOR_TYPE_SURF  = 3};
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
 
@@ -233,16 +276,23 @@ namespace ip {
   template <>           struct GetOpenCvPixelType<double        > { static const int type=CV_64FC1; };
 
   /// Get an OpenCV wrapper, rasterizing the VW image to a provided buffer.
-  template <class ViewT, class PixelT>
-  cv::Mat get_safe_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelT> &image_buffer) {
+  template <class ViewT>
+  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &image_buffer) {
 
-    // Rasterize the input image to the buffer image
-    image_buffer = input_image.impl();
-
+    // Convert the input image to uint8 with 2%-98% intensity scaling.
+    percentile_scale_convert(input_image, image_buffer, 0.02, 0.98);
+/*
+    float inMin, inMax;
+    unsigned char outMin, outMax;
+    min_max_channel_values(input_image,  inMin,  inMax);
+    min_max_channel_values(image_buffer, outMin, outMax);
+    std::cout << "Input pixel range = "  << inMin << " to "<< inMax << std::endl;
+    std::cout << "Output pixel range = " << int(outMin) << " to "<< int(outMax) << std::endl;
+*/
     // Figure out the image buffer parameters
-    int     cv_data_type = GetOpenCvPixelType<typename ViewT::pixel_type>::type;
+    int     cv_data_type = GetOpenCvPixelType<vw::uint8>::type;
     void*   raw_data_ptr = reinterpret_cast<void*>(image_buffer.data());
-    size_t  pixel_size   = sizeof(typename ViewT::pixel_type);
+    size_t  pixel_size   = sizeof(vw::uint8);
     size_t  step_size    = image_buffer.cols() * pixel_size;
 
     // Create an OpenCV wrapper for the buffer image
@@ -251,70 +301,134 @@ namespace ip {
     return cv_image;
   }
 
-  /// Get an OpenCV wrapper to a known-safe plain old VW image buffer.
-  template <class PixelT>
-  boost::shared_ptr<const cv::Mat> get_opencv_wrapper(ImageView<PixelT> const& input_image) {
+  template <class LIST_ITER>
+  void copy_opencv_descriptor_matrix(LIST_ITER begin, LIST_ITER end, 
+                                     cv::Mat const& cvDescriptors, OpenCvIpDetectorType detector_type) {
 
-    // Figure out the image buffer parameters
-    typedef typename ImageView<PixelT>::pixel_type pixel_type;
-    int         cv_data_type = GetOpenCvPixelType<pixel_type>::type;
-    const void* raw_data_ptr = reinterpret_cast<const void*>(input_image.data());
-    size_t      pixel_size   = sizeof(pixel_type);
-    size_t      step_size    = input_image.cols() * pixel_size;
+    size_t num_ip_descriptors = cvDescriptors.rows;
+    size_t descriptor_length  = cvDescriptors.cols;
+    // Copy the data to the output iterator
+    // - Each IP needs the descriptor (a vector of floats) updated
+    size_t ip_index = 0;
+    for (LIST_ITER iter = begin; iter != end; ++iter) {
 
-    // Create an OpenCV wrapper for the buffer image
-    boost::shared_ptr<const cv::Mat> cv_image(new cv::Mat(input_image.rows(), input_image.cols(), 
-                                                          cv_data_type, 
-                                                          const_cast<void*>(raw_data_ptr), 
-                                                          step_size));
-    return cv_image;
+      if (ip_index == num_ip_descriptors)
+        vw_throw( LogicErr() << "copy_opencv_descriptor_matrix: IP sizes do not match!\n");
+
+      // OpenCV descriptors can be of varying types, but InterstPoint only stores floats.
+      // The workaround is to convert each element to a float here, and then convert back to
+      //   the correct type when matching is performed.
+
+      // TODO: Make sure all descriptor types work here!
+      iter->descriptor.set_size(descriptor_length);
+      switch (detector_type)
+      {
+        case OPENCV_IP_DETECTOR_TYPE_BRISK: 
+        case OPENCV_IP_DETECTOR_TYPE_ORB:   
+          for (size_t d=0; d<descriptor_length; ++d)
+            iter->descriptor[d] = static_cast<float>(cvDescriptors.at<unsigned char>(ip_index, d));
+          break;
+        case OPENCV_IP_DETECTOR_TYPE_SIFT:
+          for (size_t d=0; d<descriptor_length; ++d)
+            iter->descriptor[d] = static_cast<float>(cvDescriptors.at<float>(ip_index, d))/512.0f;
+          break;
+        case OPENCV_IP_DETECTOR_TYPE_SURF:  
+          for (size_t d=0; d<descriptor_length; ++d)
+            iter->descriptor[d] = cvDescriptors.at<float>(ip_index, d); // TODO: May be incorrect!
+          break;
+        default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+      }; 
+      ++ip_index;
+    }
   }
 
 
-  // TODO: Accept a limit on the number of interest points!
+  // TODO: Add point limit or other options for all detectors
 
   /// Interest point detector build using OpenCV functions
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
 
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) {
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK,
+                                bool add_descriptions=false, int max_points = 1000)
+      : m_detector_type(detector_type), m_add_descriptions(add_descriptions) {     
+
+      cv::initModule_nonfree();
       // Instantiate the feature detector
       switch (detector_type)
       {
         //case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector = cv::BRISK::create();  break; // OpenCV v3.0 syntax for when we update
         //case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector = cv::ORB::create();    break;
-        case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector = cv::Feature2D::create("ORB"  );  break;
-        case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector = cv::Feature2D::create("BRISK");  break;
+        case OPENCV_IP_DETECTOR_TYPE_BRISK:  
+          vw_throw( NoImplErr() << "OpenCV BRISK option is not supported yet!\n");
+          m_detector_brisk = cv::Ptr<cv::BRISK>(new cv::BRISK());  break;
+        case OPENCV_IP_DETECTOR_TYPE_ORB:    m_detector_orb   = cv::Ptr<cv::ORB  >(new cv::ORB(max_points) );  break;
+        case OPENCV_IP_DETECTOR_TYPE_SIFT:   m_detector_sift  = cv::Ptr<cv::SIFT >(new cv::SIFT(max_points));  break;
+        case OPENCV_IP_DETECTOR_TYPE_SURF:   
+          vw_throw( NoImplErr() << "OpenCV SURF option is not supported yet!\n");
+          m_detector_surf  = cv::Ptr<cv::SURF >(new cv::SURF());  break;
         default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
       }; 
+      //if (!m_detector) vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector failed to initialize!\n");
     }
 
     /// Detect interest points in the source image.
     template <class ViewT>
     InterestPointList process_image(ImageViewBase<ViewT> const& image) const {
 
-      // Raster the input image into an OpenCV compatible format
-      // - This is only valid for single channel data.
-      typedef ImageView<typename PixelChannelType<typename ViewT::pixel_type>::type> ImageT;
-      ImageT buffer_image;
-      cv::Mat cv_image = get_safe_opencv_wrapper(image, buffer_image);
+      //if (!m_detector)
+      //    vw_throw( LogicErr() << "OpenCvInterestPointDetector: detector is not initialized!\n");
+
+      // Convert the image into a plain uint8 image buffer wrapped by OpenCV
+      ImageView<PixelGray<vw::uint8> > buffer_image;
+      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
 
       // Detect features
       std::vector<cv::KeyPoint> keypoints;
-      m_detector->detect(cv_image, keypoints); // Basemap
+      cv::Mat cvDescriptors;
+
+      if (m_add_descriptions) {
+        switch (m_detector_type)
+        {
+          case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->operator()(cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+          case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->operator()  (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+          case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+          case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->operator() (cv_image, cv::Mat(), keypoints, cvDescriptors); break;
+          default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+        }; 
+      } else { // Don't add descriptions
+        switch (m_detector_type)
+        {
+          case OPENCV_IP_DETECTOR_TYPE_BRISK: m_detector_brisk->detect(cv_image, keypoints); break;
+          case OPENCV_IP_DETECTOR_TYPE_ORB:   m_detector_orb->detect(cv_image, keypoints);   break;
+          case OPENCV_IP_DETECTOR_TYPE_SIFT:  m_detector_sift->detect(cv_image, keypoints);  break;
+          case OPENCV_IP_DETECTOR_TYPE_SURF:  m_detector_surf->detect(cv_image, keypoints);  break;
+          default: vw_throw( ArgumentErr() << "Unrecognized OpenCV detector type!\n");
+        }; 
+      }
 
       // Convert back to our output format
-      InterestPointList ip_list;     
+      InterestPointList ip_list;
       for (size_t i=0; i<keypoints.size(); ++i) {
         InterestPoint ip;
         ip.setFromCvKeypoint(keypoints[i]);
         ip_list.push_back(ip);
       }
+
+      if (m_add_descriptions)
+        copy_opencv_descriptor_matrix(ip_list.begin(), ip_list.end(), cvDescriptors, m_detector_type);
+
       return ip_list;
     }
   
   private:
-    cv::Ptr<cv::FeatureDetector> m_detector;
+    OpenCvIpDetectorType m_detector_type;
+    bool                 m_add_descriptions;
+    cv::Ptr<cv::BRISK> m_detector_brisk;
+    cv::Ptr<cv::ORB  > m_detector_orb;
+    cv::Ptr<cv::SIFT > m_detector_sift;
+    cv::Ptr<cv::SURF > m_detector_surf;
+
   }; // End class OpenCvInterestPointDetector
 #else
   // If OpenCV is not defined, make a dummy version of this that just fails.

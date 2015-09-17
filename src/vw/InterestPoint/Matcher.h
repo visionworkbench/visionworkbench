@@ -324,6 +324,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
   // - TODO: Should have a better way of selecting the data type!
   const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
   if (use_uchar_FLANN) {
+    vw_out() << "Using UCHAR FLANNTree\n";
     ip_list_to_matrix(ip2, ip2_matrix_uchar);
     kd_uchar.load_match_data( ip2_matrix_uchar, MetricT::flann_type );
   }else {
@@ -464,6 +465,8 @@ void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& 
       }
 
     }
+
+    vw_out() << "Best 2 distances: " << first_pick <<", " << second_pick <<"\n";
 
     // Checking to see if the match is strong enough
     if ( first_pick > m_threshold * second_pick )
