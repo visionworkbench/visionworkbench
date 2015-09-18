@@ -501,6 +501,8 @@ int main(int argc, char** argv) {
       SGrad2DescriptorGenerator descriptor;
       describe_interest_points( image, descriptor, ip );
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
+    // Nothing happens here because we compute the descriptors at the same time we detect IPs.
+
     } else if (descriptor_generator == "brisk") {
       //OpenCVDescriptorGenerator descriptor(OPENCV_IP_DETECTOR_TYPE_BRISK);
       //describe_interest_points( image, descriptor, ip );

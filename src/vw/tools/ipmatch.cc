@@ -218,6 +218,13 @@ int main(int argc, char** argv) {
 
       std::vector<InterestPoint> matched_ip1, matched_ip2;
 
+      //std::cout << "IP1 --> \n";
+      for (size_t k=0; k<ip1.size(); ++k) {
+      //  std::cout << ip1[i].to_string() << "\n";  
+        ip1[j].polarity = false; // HACK
+        ip2[j].polarity = false;
+      }
+
       vw_out() << "Using distance metric: " << distance_metric_in << std::endl;
       if ( !vm.count("non-kdtree") ) {
         // Run interest point matcher that uses KDTree algorithm.
@@ -230,24 +237,13 @@ int main(int argc, char** argv) {
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } else {
-
-        std::cout << "IP1 --> \n";
-        for (size_t i=0; i<ip1.size(); ++i) {
-          std::cout << ip1[i].to_string() << "\n";  
-          ip1[i].polarity = false; // HACK
-          ip2[i].polarity = false;
-        }
-
         // Run interest point matcher that does not use KDTree algorithm.
         if (distance_metric == "l2") {
           InterestPointMatcherSimple<L2NormMetric, NullConstraint> matcher(matcher_threshold);
-          matcher(ip1, ip2, matched_ip1, matched_ip2/*, TerminalProgressCallback( "tools.ipmatch","Matching:")*/);
+          matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
         if (distance_metric == "hamming") {
           InterestPointMatcherSimple<HammingMetric, NullConstraint> matcher(matcher_threshold);
-          //return 0;
-          //std::cout << ip1[0].polarity << "\n";
-          //std::cout << ip2[0].polarity << "\n";
           matcher(ip1, ip2, matched_ip1, matched_ip2, TerminalProgressCallback( "tools.ipmatch","Matching:"));
         }
       } // End non-KDTree case

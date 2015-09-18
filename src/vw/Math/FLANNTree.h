@@ -21,6 +21,7 @@
 
 #include <vw/Math/Vector.h>
 #include <vw/Math/Matrix.h>
+#include <vw/Core/Log.h>
 
 #include <stddef.h>
 
@@ -44,6 +45,7 @@ namespace math {
 
   private:
 
+    size_t m_num_features_loaded;
     void* m_index_ptr;
     FLANN_DistType m_dist_type;
     Matrix<T> m_features_cast; // The index makes pointers to this object. So we copy it.
@@ -61,7 +63,7 @@ namespace math {
 
     /// Simple constructor.  Call load_match_data() before calling knn_search()!
     FLANNTree() 
-      : m_index_ptr(NULL), m_dist_type(FLANN_DistType_Unsupported) {}
+      : m_num_features_loaded(0), m_index_ptr(NULL), m_dist_type(FLANN_DistType_Unsupported) {}
 
     /// Destructor
     ~FLANNTree();
@@ -71,9 +73,12 @@ namespace math {
     /// - Hamming distance can take any data type but just compares the bits of the input data.
     template <class MatrixT>
     void load_match_data( MatrixBase<MatrixT> const& features,  FLANN_DistType dist_type) {
-      m_dist_type     = dist_type;
-      m_features_cast = features;
+      m_dist_type           = dist_type;
+      m_features_cast       = features;
+      m_num_features_loaded = m_features_cast.rows();
       construct_index( (void*)&m_features_cast(0,0), m_features_cast.rows(), m_features_cast.cols() );
+
+      vw_out() << "Loading " << m_features_cast.rows() << " FLANN targets of size " << m_features_cast.cols() << "\n";
     }
 
     /// Multiple query access via VW's Matrix
@@ -85,8 +90,14 @@ namespace math {
 
       // Convert query to our type
       Matrix<T> query_cast = query.impl();
-      return knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
-                              indices, dists, knn );
+      knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
+                       indices, dists, knn );
+      // Count the number of valid indices obtained
+      size_t num_found = 0;
+      for (size_t i=0; i<indices.size(); ++i)
+        if ( (indices[i] >= 0) && (indices[i] < static_cast<int>(m_num_features_loaded)) )
+          ++num_found;
+      return num_found;
     }
 
     /// Single query access via ASP's Matrix
@@ -98,7 +109,14 @@ namespace math {
 
       // Convert query to our type
       Vector<T> query_cast = query.impl();
-      return knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
+      knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
+
+      // Count the number of valid indices obtained
+      size_t num_found = 0;
+      for (size_t i=0; i<indices.size(); ++i)
+        if ( (indices[i] >= 0) && (indices[i] < static_cast<int>(m_num_features_loaded)) )
+          ++num_found;
+      return num_found;
     }
 
     size_t size1() const;

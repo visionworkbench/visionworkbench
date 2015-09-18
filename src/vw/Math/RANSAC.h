@@ -213,8 +213,11 @@ namespace math {
           vw_out() << e.what() << "\n";
           if (!m_reduce_min_num_output_inliers_if_no_fit) 
             break;
-          vw_out() << "Attempting RANSAC with " << m_min_num_output_inliers << " number of output inliers.\n";
           reduce_min_num_output_inliers();
+          if (m_min_num_output_inliers < 2) // Can't possibly compute a transform with 1 or 0 samples!
+            break;
+          vw_out() << "Attempting RANSAC with " << m_min_num_output_inliers << " number of output inliers.\n";
+          
         }
       }
 

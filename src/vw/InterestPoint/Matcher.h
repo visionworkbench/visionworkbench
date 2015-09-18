@@ -224,8 +224,7 @@ namespace ip {
   typedef InterestPointMatcher< L2NormMetric, ScaleOrientationConstraint > ConstraintedMatcher;
 
   /// Matching doesn't constraint a point to being matched to only one
-  /// other point. Here's a way to remove duplicates and have only
-  /// pairwise points.
+  /// other point. Here's a way to remove duplicates and have only pairwise points.
   void remove_duplicates(std::vector<InterestPoint>& ip1,
                          std::vector<InterestPoint>& ip2);
 
@@ -328,6 +327,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
     ip_list_to_matrix(ip2, ip2_matrix_uchar);
     kd_uchar.load_match_data( ip2_matrix_uchar, MetricT::flann_type );
   }else {
+    vw_out() << "Using FLOAT FLANNTree\n";
     ip_list_to_matrix(ip2, ip2_matrix_float);
     kd_float.load_match_data( ip2_matrix_float,  MetricT::flann_type );
   }
@@ -344,32 +344,47 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
       vw_throw( Aborted() << "Aborted by ProgressCallback" );
     progress_callback.report_incremental_progress(inc_amt);
 
-    std::vector<InterestPoint> nearest_records(KNN);
-    if (use_uchar_FLANN)
-      kd_uchar.knn_search( ip.descriptor, indices, distances, KNN );
-    else // Use float
-      kd_float.knn_search( ip.descriptor, indices, distances, KNN );
-
-    // Copy the two nearest matches
-    typename ListT::const_iterator iterator = ip2.begin();
-    std::advance( iterator, indices[0] );
-    nearest_records[0] = *iterator;
-    iterator = ip2.begin();
-    std::advance( iterator, indices[1] );
-    nearest_records[1] = *iterator;
-
-    // Check the user constraint on the record
-    if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
-      double dist0 = m_distance_metric(nearest_records[0], ip);
-      double dist1 = m_distance_metric(nearest_records[1], ip);
-
-      // As a final check, make sure the nearest record is significantly closer than the next one.
-      if (dist0 < m_threshold * dist1) {
-        index_list.push_back( indices[0] );
-      } else {
-        index_list.push_back( (size_t)(-1) ); // Last value of size_t
-      }
+    size_t num_matches_found = 0;
+    if (use_uchar_FLANN) {
+      // Convert the descriptor to unsigned chars, then call FLANN
+      vw::Vector<unsigned char> uchar_descriptor(ip.descriptor.size());
+      for (size_t i=0; i<ip.descriptor.size(); ++i)
+        uchar_descriptor[i] = static_cast<unsigned char>(ip.descriptor[i]);
+      num_matches_found = kd_uchar.knn_search( uchar_descriptor, indices, distances, KNN );
     }
+    else // Use float
+      num_matches_found = kd_float.knn_search( ip.descriptor, indices, distances, KNN );
+
+    vw_out() << "KNN matches "<< num_matches_found <<": indices = " << indices << ",    distances = " << distances << std::endl;
+
+    if (num_matches_found < KNN) {
+      // If we did not get two nearest neighbors, return no match for this point.
+      vw_out() << "Bad descriptor = " << ip.descriptor << std::endl;
+      index_list.push_back( (size_t)(-1) ); // Last value of size_t
+    } else {
+
+      // Copy the two nearest matches
+      std::vector<InterestPoint> nearest_records(KNN);
+      typename ListT::const_iterator iterator = ip2.begin();
+      std::advance( iterator, indices[0] );
+      nearest_records[0] = *iterator;
+      iterator = ip2.begin();
+      std::advance( iterator, indices[1] );
+      nearest_records[1] = *iterator;
+
+      // Check the user constraint on the record
+      if ( check_constraint<ConstraintT>( nearest_records[0], ip ) ) {
+        double dist0 = m_distance_metric(nearest_records[0], ip);
+        double dist1 = m_distance_metric(nearest_records[1], ip);
+
+        // As a final check, make sure the nearest record is significantly closer than the next one.
+        if (dist0 < m_threshold * dist1) {
+          index_list.push_back( indices[0] );
+        } else {
+          index_list.push_back( (size_t)(-1) ); // Last value of size_t
+        }
+      } // End check constraint
+    } // End both valid case
   }
 } // End InterestPointMatcher::operator()
 
@@ -393,6 +408,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
 
   // Now convert from the index output to the pairs output
 
+  // Loop through ip1 and index_list
   std::list<size_t>::const_iterator index_list_iter = index_list.begin();
   BOOST_FOREACH( InterestPoint ip, ip1 ) {
 
@@ -407,6 +423,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
       matched_ip1.push_back(ip);
       matched_ip2.push_back(*ip2_iter);
     }
+    ++index_list_iter;
   } // End loop through ip1
 
 }
@@ -466,12 +483,12 @@ void InterestPointMatcherSimple<MetricT, ConstraintT>::operator()( ListT const& 
 
     }
 
-    vw_out() << "Best 2 distances: " << first_pick <<", " << second_pick <<"\n";
+    //vw_out() << "Best 2 distances: " << first_pick <<", " << second_pick <<"\n";
 
     // Checking to see if the match is strong enough
     if ( first_pick > m_threshold * second_pick )
       match_index[i] = -1;
-  }
+  } // End double loop through IPs
 
   progress_callback.report_finished();
 

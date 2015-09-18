@@ -206,7 +206,6 @@ namespace ip {
     const size_t descriptor_length = ip_list.begin()->size();
     ip_matrix.set_size( num_points, descriptor_length );
 
-    // Copy the descriptors to the output matrix one row at a time
     typename LIST_T::const_iterator ip_iter;
     size_t matrix_row = 0;
     for (ip_iter=ip_list.begin(); ip_iter != ip_list.end(); ++ip_iter) {

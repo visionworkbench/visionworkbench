@@ -75,6 +75,7 @@ namespace math {
 
     flann::Matrix<float> query_mat ( (float*)data_ptr, rows, cols ); // Wrap query data
     flann::Matrix<int  > indice_mat( &indices[0], 1, knn );          // Wrap index vector
+
     if (m_dist_type == FLANN_DistType_L2) {
 
       // Allocate a temporary float distance matrix
@@ -85,9 +86,8 @@ namespace math {
 
       // Copy the distances to the output matrix, then delete the temporary matrix
       for (size_t i=0; i<dists.size(); ++i)
-        dists[i] = static_cast<double>(dists_mat[i][0]);
+        dists[i] = static_cast<double>(dists_mat[0][i]);
       delete[] dists_mat.ptr();
-
 
       return knn;
     }
@@ -250,7 +250,7 @@ template <>
                                                            flann::SearchParams(128) );
       // Copy the distances to the output matrix, then delete the temporary matrix
       for (size_t i=0; i<dists.size(); ++i)
-        dists[i] = static_cast<double>(dists_mat[i][0]);
+        dists[i] = static_cast<double>(dists_mat[0][i]);
       delete[] dists_mat.ptr();
       return knn;
     }
@@ -264,11 +264,11 @@ template <>
   void FLANNTree<unsigned char>::construct_index( void* data_ptr, size_t rows, size_t cols ) {
     if ( m_index_ptr != NULL )
       vw_throw( IOErr() << "FLANNTree: Void ptr is not null, this is unexpected." );
-    const int NUM_TREES = 4;
     switch(m_dist_type) {
     case FLANN_DistType_Hamming:
       m_index_ptr = new flann::Index<flann::Hamming<unsigned char> >( flann::Matrix<unsigned char>( (unsigned char*)data_ptr, rows, cols ),
-                                                          flann::KDTreeIndexParams(NUM_TREES),
+                                                          flann::LshIndexParams(), // This method does not match everything!
+                                                          //flann::HierarchicalClusteringIndexParams(), // This matches everything, but poorly!
                                                           flann::Hamming<unsigned char>() );
       cast_index_ptr_HAMM_u(this->m_index_ptr)->buildIndex();
       return;
