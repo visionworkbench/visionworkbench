@@ -277,10 +277,19 @@ namespace ip {
 
   /// Get an OpenCV wrapper, rasterizing the VW image to a provided buffer.
   template <class ViewT>
-  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image, ImageView<PixelGray<vw::uint8> > &image_buffer) {
+  cv::Mat get_opencv_wrapper(ImageViewBase<ViewT> const& input_image, 
+                             ImageView<PixelGray<vw::uint8> > &image_buffer,
+                             bool normalize = true) {
 
-    // Convert the input image to uint8 with 2%-98% intensity scaling.
-    percentile_scale_convert(input_image, image_buffer, 0.02, 0.98);
+    if (normalize) // Convert the input image to uint8 with 2%-98% intensity scaling.
+      percentile_scale_convert(input_image, image_buffer, 0.02, 0.98);
+    else { 
+      // Convert to uint8 using the default ranges for the input data type
+      double standard_min = ChannelRange<typename ViewT::pixel_type>::min();
+      double standard_max = ChannelRange<typename ViewT::pixel_type>::max();
+      image_buffer = pixel_cast_rescale<vw::uint8>(clamp(input_image, standard_min, standard_max));
+    }
+
 /*
     float inMin, inMax;
     unsigned char outMin, outMax;
@@ -350,8 +359,9 @@ namespace ip {
   public:
 
     OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK,
+                                bool normalize=true,
                                 bool add_descriptions=false, int max_points = 1000)
-      : m_detector_type(detector_type), m_add_descriptions(add_descriptions) {     
+      : m_detector_type(detector_type), m_add_descriptions(add_descriptions), m_normalize(normalize) {     
 
       cv::initModule_nonfree();
       // Instantiate the feature detector
@@ -381,7 +391,7 @@ namespace ip {
 
       // Convert the image into a plain uint8 image buffer wrapped by OpenCV
       ImageView<PixelGray<vw::uint8> > buffer_image;
-      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image);
+      cv::Mat cv_image = get_opencv_wrapper(image, buffer_image, m_normalize);
 
       // Detect features
       std::vector<cv::KeyPoint> keypoints;
@@ -424,6 +434,7 @@ namespace ip {
   private:
     OpenCvIpDetectorType m_detector_type;
     bool                 m_add_descriptions;
+    bool                 m_normalize;
     cv::Ptr<cv::BRISK> m_detector_brisk;
     cv::Ptr<cv::ORB  > m_detector_orb;
     cv::Ptr<cv::SIFT > m_detector_sift;

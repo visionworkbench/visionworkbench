@@ -466,6 +466,8 @@ namespace vw {
     // CDF (Cumulative Distribution Function) Accumulator
     // Actually it's an approximation. It allows for a more memory efficient
     // calculation of any quantile. Probably most importantly the median.
+    // - Use the quantile() function buried way down below to obtain percentile
+    //   values of the image, useful for intensity stretching of images.
     //
     // Taken from Numerical Recipes (3rd E) pg 435
     template <class ValT>
@@ -490,8 +492,7 @@ namespace vw {
       }
 
       // PDF differentiation. Requires an output vector that is qual
-      // in length to the CDF but doesn't touch index 0 or the last
-      // element.
+      // in length to the CDF but doesn't touch index 0 or the last element.
       void pdf_differentiation( std::vector<double> const& quantile,
                                 std::vector<double> const& cdf,
                                 std::vector<double> & output_pdf ) {
@@ -758,11 +759,12 @@ namespace vw {
       }
 
       // Predefine functions
-      ValT median() const { return quantile(0.5); }
+      ValT median        () const { return quantile(0.5 ); }
       ValT first_quartile() const { return quantile(0.25); }
       ValT third_quartile() const { return quantile(0.75); }
+
       ValT approximate_mean( float const& stepping = 0.1 ) const {
-        ValT mean = 0;
+        ValT   mean = 0;
         size_t count = 0;
         for ( float i = stepping; i < 1+stepping; i+=stepping ) {
           count++;

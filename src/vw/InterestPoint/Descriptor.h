@@ -36,8 +36,6 @@
 namespace vw {
 namespace ip {
 
-  // TODO: Can this be de-templatized?
-
   /// Base class for interest point description generator classes.
   /// - Use these classes to generate descriptions of detected interest points.
   template <class ImplT>
@@ -142,7 +140,8 @@ namespace ip {
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
   /// Wrapper for OpenCV description generator.
-  /// - For now just uses ORB, but there are other options.
+  /// - Maybe delete this class since OpenCV works better generating the descriptors at the 
+  ///   same time as detection is performed.
   struct OpenCVDescriptorGenerator : public DescriptorGeneratorBase<OpenCVDescriptorGenerator> {
 
     bool m_passthrough;
@@ -158,8 +157,6 @@ namespace ip {
         : m_passthrough(passthrough), m_detector_type(detector_type) {
       cv::initModule_nonfree();
       // Set up the OpenCV descriptor object
-      
-      // TODO: Add dummy option where this class does nothing because descriptors are already present!
 
       switch (m_detector_type)
       {

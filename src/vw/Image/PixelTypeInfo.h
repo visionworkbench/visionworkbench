@@ -114,17 +114,20 @@ namespace vw {
   };
 
   // Channel range helper for complex types
-  template <class T> struct ChannelRangeHelper<std::complex<T>,false> : public ChannelRangeHelper<T,boost::integer_traits<T>::is_integer> {};
+  template <class T> struct ChannelRangeHelper<std::complex<T>,false> : 
+            public ChannelRangeHelper<T,boost::integer_traits<T>::is_integer> {};
 
   /// A channel range computation class.  This class is templatized on
-  /// the pixel type and provides to static functions, max() and min(),
+  /// the pixel type and provides two static functions, max() and min(),
   /// that return the top and bottom of the standard range of the
   /// underlying channel type.  That is, max() corresponds to 1.0 in
   /// the floating-point world and min() corresponds to 0.0.  The value
   /// of min() is generally zero, *not* some negative number.  If you
   /// really just want to know the range of values you can store in a
   /// given type, use std::numeric_limits instead.
-  template <class T> struct ChannelRange : public ChannelRangeHelper<typename CompoundChannelType<T>::type, boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
+  template <class T> struct ChannelRange : 
+          public ChannelRangeHelper<typename CompoundChannelType<T>::type, 
+                                     boost::integer_traits<typename CompoundChannelType<T>::type>::is_integer> {};
 
 
   // *******************************************************************

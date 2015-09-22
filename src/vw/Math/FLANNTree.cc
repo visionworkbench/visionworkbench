@@ -80,16 +80,15 @@ namespace math {
 
       // Allocate a temporary float distance matrix
       flann::Matrix<float> dists_mat ( new float[dists.size()], 1, dists.size() );
-      cast_index_ptr_L2_f(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
-                                                         dists_mat, knn, 
-                                                         flann::SearchParams(128) );
+      int num_found = cast_index_ptr_L2_f(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
+                                                                         dists_mat, knn, 
+                                                                         flann::SearchParams(128) );
 
       // Copy the distances to the output matrix, then delete the temporary matrix
       for (size_t i=0; i<dists.size(); ++i)
         dists[i] = static_cast<double>(dists_mat[0][i]);
       delete[] dists_mat.ptr();
-
-      return knn;
+      return num_found;
     }
 
     vw_throw( IOErr() << "FLANNTree: Illegal distance type passed in." );
@@ -166,10 +165,10 @@ template <>
     if (m_dist_type == FLANN_DistType_L2) {
 
       flann::Matrix<double  > dists_mat ( &dists[0], 1, dists.size() ); // Wrap distance vector
-      cast_index_ptr_L2_d(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
-                                                         dists_mat, knn, 
-                                                         flann::SearchParams(128) );
-      return knn;
+      int num_found = cast_index_ptr_L2_d(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
+                                                                         dists_mat, knn, 
+                                                                         flann::SearchParams(128) );
+      return num_found;
     }
     vw_throw( IOErr() << "FLANNTree: Illegal distance type passed in." );
     return 0;
@@ -244,15 +243,18 @@ template <>
     flann::Matrix<int> indice_mat( &indices[0], 1, knn );          // Wrap index vector
     if (m_dist_type == FLANN_DistType_Hamming) {
       // Allocate a temporary uint32 distance matrix
-      flann::Matrix<unsigned int> dists_mat ( new unsigned int[dists.size()], 1, dists.size() );
-      cast_index_ptr_HAMM_u(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
-                                                           dists_mat, knn, 
-                                                           flann::SearchParams(128) );
+      flann::Matrix<unsigned int> dists_mat ( new unsigned int[knn], 1, knn );
+      flann::SearchParams params;
+      params.checks = 256; // Search more leaves
+      params.cores  =   1; // Use only one core
+      int num_found = cast_index_ptr_HAMM_u(this->m_index_ptr)->knnSearch( query_mat, indice_mat, 
+                                                                           dists_mat, knn, 
+                                                                           params );
       // Copy the distances to the output matrix, then delete the temporary matrix
       for (size_t i=0; i<dists.size(); ++i)
         dists[i] = static_cast<double>(dists_mat[0][i]);
       delete[] dists_mat.ptr();
-      return knn;
+      return num_found;
     }
 
     vw_throw( IOErr() << "FLANNTree: Illegal distance type passed in." );

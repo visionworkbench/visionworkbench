@@ -78,7 +78,8 @@ namespace math {
       m_num_features_loaded = m_features_cast.rows();
       construct_index( (void*)&m_features_cast(0,0), m_features_cast.rows(), m_features_cast.cols() );
 
-      vw_out() << "Loading " << m_features_cast.rows() << " FLANN targets of size " << m_features_cast.cols() << "\n";
+      //vw_out() << "Loading " << m_features_cast.rows() << " FLANN targets of size " 
+      //         << m_features_cast.cols() << "\n";
     }
 
     /// Multiple query access via VW's Matrix
@@ -90,11 +91,11 @@ namespace math {
 
       // Convert query to our type
       Matrix<T> query_cast = query.impl();
-      knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
-                       indices, dists, knn );
-      // Count the number of valid indices obtained
+      int flann_found = knn_search_help( (void*)&query_cast(0,0), query_cast.rows(), query_cast.cols(),
+                                         indices, dists, knn );
+      // Double check the number of valid indices found
       size_t num_found = 0;
-      for (size_t i=0; i<indices.size(); ++i)
+      for (int i=0; i<flann_found; ++i)
         if ( (indices[i] >= 0) && (indices[i] < static_cast<int>(m_num_features_loaded)) )
           ++num_found;
       return num_found;
@@ -109,11 +110,11 @@ namespace math {
 
       // Convert query to our type
       Vector<T> query_cast = query.impl();
-      knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
+      int flann_found = knn_search_help( (void*)&query_cast[0], 1, query_cast.size(), indices, dists, knn );
 
       // Count the number of valid indices obtained
       size_t num_found = 0;
-      for (size_t i=0; i<indices.size(); ++i)
+      for (int i=0; i<flann_found; ++i)
         if ( (indices[i] >= 0) && (indices[i] < static_cast<int>(m_num_features_loaded)) )
           ++num_found;
       return num_found;

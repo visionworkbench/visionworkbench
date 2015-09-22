@@ -320,7 +320,6 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
   Matrix<unsigned char> ip2_matrix_uchar;
 
   // Pack the IP descriptors into a matrix and feed it to the chosen FLANNTree object
-  // - TODO: Should have a better way of selecting the data type!
   const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
   if (use_uchar_FLANN) {
     vw_out() << "Using UCHAR FLANNTree\n";

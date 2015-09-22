@@ -116,7 +116,6 @@ namespace ip {
     }
 
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
-
     // TODO: Move the definitions to the cc file!
 
     /// Copy IP information from an OpenCV KeyPoint object.

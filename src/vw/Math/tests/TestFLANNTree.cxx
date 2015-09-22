@@ -37,7 +37,8 @@ TEST(FLANNTree, boundsLimiting) {
     locations(i, 1) = 1000 - i*i;
   }
 
-  math::FLANNTree<float> tree(locations, FLANN_DistType_L2);
+  math::FLANNTree<float> tree;
+  tree.load_match_data(locations, FLANN_DistType_L2);
   printf("---------\n");
   Vector<int>    indices;
   Vector<double> distance;
