@@ -354,7 +354,7 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
     else // Use float
       num_matches_found = kd_float.knn_search( ip.descriptor, indices, distances, KNN );
 
-    vw_out() << "KNN matches "<< num_matches_found <<": indices = " << indices << ",    distances = " << distances << std::endl;
+    //vw_out() << "KNN matches "<< num_matches_found <<": indices = " << indices << ",    distances = " << distances << std::endl;
 
     if (num_matches_found < KNN) {
       // If we did not get two nearest neighbors, return no match for this point.
