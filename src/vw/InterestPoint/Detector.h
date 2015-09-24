@@ -447,10 +447,13 @@ namespace ip {
   /// Interest point detector build using OpenCV functions
   class OpenCvInterestPointDetector : public InterestDetectorBase<OpenCvInterestPointDetector> {
   public:
-
-    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK) {
+    OpenCvInterestPointDetector(OpenCvIpDetectorType detector_type = OPENCV_IP_DETECTOR_TYPE_BRISK,
+                                bool normalize=true,
+                                bool add_descriptions=false, int max_points = 1000){
       vw_throw( ArgumentErr() << "Can't use OpenCV IP detection functions if VW is not built with OpenCV!\n");
     }
+
+
 
     /// Detect interest points in the source image.
     template <class ViewT>
