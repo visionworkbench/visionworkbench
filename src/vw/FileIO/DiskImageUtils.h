@@ -26,9 +26,9 @@
 
 namespace vw {
 
-  // Write a vector object to disk as an image file.  This function
-  // is particularly useful if you write the vector as an OpenEXR
-  // image file; this retains the maximal amount of information.
+  /// Write a vector object to disk as an image file.  This function
+  /// is particularly useful if you write the vector as an OpenEXR
+  /// image file; this retains the maximal amount of information.
   template <class T>
   void write_vector( const std::string &filename, vw::Vector<T> &out_vector ) {
 
@@ -44,9 +44,9 @@ namespace vw {
     write_image(filename, out_image);
   }
 
-  // Read a vector object from an image file on disk.  This function
-  // is particularly useful if the vector was saved as an OpenEXR
-  // image file; this retains the maximal amount of information.
+  /// Read a vector object from an image file on disk.  This function
+  /// is particularly useful if the vector was saved as an OpenEXR
+  /// image file; this retains the maximal amount of information.
   template <class T>
   void read_vector( vw::Vector<T>& in_vector, const std::string &filename ) {
 
@@ -66,7 +66,7 @@ namespace vw {
     in_vector = result;
   }
 
-  // Find how many channels/bands are in a given image
+  /// Find how many channels/bands are in a given image
   inline int get_num_channels(std::string filename){
     boost::scoped_ptr<vw::SrcImageResource> src(vw::DiskImageResource::open(filename));
     return src->channels()*src->planes();
@@ -82,8 +82,8 @@ namespace vw {
     }
   };
 
-  // Function that extracts the first m channels starting at channel k
-  // of an image with n channels. Must have m and n as templated arguments.
+  /// Function that extracts the first m channels starting at channel k
+  /// of an image with n channels. Must have m and n as templated arguments.
   template <int m, int n, class T>
   vw::UnaryPerPixelView<vw::DiskImageView< vw::Vector<T, n> >,
                         SelectChannels<m, n, T> >
@@ -93,8 +93,8 @@ namespace vw {
       SelectChannels<m, n, T> >( image.impl(), SelectChannels<m, n, T>(k) );
   }
   
-  // Function that extracts the first m channels starting at channel k
-  // of an image with n channels. Must have m and n as templated arguments.
+  /// Function that extracts the first m channels starting at channel k
+  /// of an image with n channels. Must have m and n as templated arguments.
   template <int m, int n, class T>
   vw::UnaryPerPixelView<vw::ImageViewRef< vw::Vector<T, n> >,
                         SelectChannels<m, n, T> >
@@ -104,8 +104,8 @@ namespace vw {
       SelectChannels<m, n, T> >( image.impl(), SelectChannels<m, n, T>(k) );
   }
 
-  // Read m channels from an image starting with channel k. Must
-  // have m as a templated argument.
+  /// Read m channels from an image starting with channel k. Must
+  /// have m as a templated argument.
   template<int m, class T>
   vw::ImageViewRef< vw::Vector<T, m> > read_channels(std::string const& filename,
                                                      int k){

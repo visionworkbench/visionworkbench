@@ -119,7 +119,7 @@ namespace vw {
     DiskImageResource( std::string const& filename ) : m_filename(filename), m_rescale(default_rescale) {}
     ImageFormat m_format;
     std::string m_filename;
-    bool m_rescale;
+    bool        m_rescale;
     static bool default_rescale;
   };
 

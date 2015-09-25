@@ -24,13 +24,19 @@
 
 namespace vw {
 namespace mosaic {
+
   class QuadTreeGenerator;
 
+  /// ???
   class QuadTreeConfig {
   public:
     virtual ~QuadTreeConfig() {}
+    /// 
     virtual void configure( QuadTreeGenerator& qtree ) const = 0;
+    /// 
     virtual cartography::GeoReference output_georef(uint32 xresolution, uint32 yresolution = 0) = 0;
+    
+    /// Creates a new QuadTreeConfig object of the specified type
     static boost::shared_ptr<QuadTreeConfig> make(const std::string& type);
   };
 

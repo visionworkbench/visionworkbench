@@ -76,8 +76,8 @@ namespace vw {
 
     ~DiskImageView() {}
 
-    int32 cols  () const { return m_impl.cols  (); }
-    int32 rows  () const { return m_impl.rows  (); }
+    int32 cols  () const { return m_impl.cols();   }
+    int32 rows  () const { return m_impl.rows();   }
     int32 planes() const { return m_impl.planes(); }
 
     pixel_accessor origin() const { return m_impl.origin(); }
@@ -114,8 +114,7 @@ namespace vw {
   /// This is an assignable image view that stores the assigned data
   /// to a temporary file on disk, and then provides a cached
   /// interface (a la DiskImageView) to that data.  The temporary file
-  /// persists until this object and all copies of this object are
-  /// destroyed.
+  /// persists until this object and all copies of this object are destroyed.
   template <class PixelT>
   class DiskCacheImageView : public ImageViewBase< DiskCacheImageView<PixelT> > {
   private:
@@ -156,8 +155,8 @@ namespace vw {
       this->initialize(view.impl(), progress_callback);
     }
 
-    inline int32 cols  () const { return m_handle->view().cols  (); }
-    inline int32 rows  () const { return m_handle->view().rows  (); }
+    inline int32 cols  () const { return m_handle->view().cols();   }
+    inline int32 rows  () const { return m_handle->view().rows();   }
     inline int32 planes() const { return m_handle->view().planes(); }
 
     inline pixel_accessor origin() const { return m_handle->view().origin(); }

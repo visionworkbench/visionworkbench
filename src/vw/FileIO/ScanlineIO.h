@@ -31,7 +31,7 @@ class ScanlineBackend {
   protected:
     // The subclass constructor must initialize these
     ImageFormat m_fmt;
-    size_t m_cstride;
+    size_t      m_cstride;
 
     // attach a data source/sink
     virtual void bind() = 0;

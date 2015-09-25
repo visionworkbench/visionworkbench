@@ -45,6 +45,7 @@ namespace mosaic {
 
   // This feature, or something like it, should be implemented better and
   // moved somewhere into the Image module.
+  /// ???
   template <class PixelT>
   ImageView<PixelT> box_subsample( ImageView<PixelT> const& image, Vector2i const& scale ) {
     std::vector<double> xkernel(scale.x()), ykernel(scale.y());
@@ -57,7 +58,8 @@ namespace mosaic {
     rasterize( subsample( separable_convolution_filter( image, xkernel, ykernel, scale.x()-1, scale.y()-1 ), scale.x(), scale.y() ), result );
     return result;
   }
-
+  
+  /// A class that generates filesystem-based quadtrees of large images.
   class QuadTreeGenerator {
   public:
     struct TileInfo {
@@ -65,11 +67,16 @@ namespace mosaic {
       BBox2i image_bbox, region_bbox;
     };
 
-    typedef boost::function<std::string(QuadTreeGenerator const&, std::string const&)> image_path_func_type;
-    typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> branch_func_type;
-    typedef boost::function<boost::shared_ptr<DstImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> tile_resource_func_type;
-    typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> metadata_func_type;
-    typedef boost::function<bool(BBox2i const&)> sparse_image_check_type;
+    typedef boost::function<std::string(QuadTreeGenerator const&, std::string const&)> 
+        image_path_func_type;
+    typedef boost::function<std::vector<std::pair<std::string,BBox2i> >(QuadTreeGenerator const&, std::string const&, BBox2i const&)> 
+        branch_func_type;
+    typedef boost::function<boost::shared_ptr<DstImageResource>(QuadTreeGenerator const&, TileInfo const&, ImageFormat const&)> 
+        tile_resource_func_type;
+    typedef boost::function<void(QuadTreeGenerator const&, TileInfo const&)> 
+        metadata_func_type;
+    typedef boost::function<bool(BBox2i const&)> 
+        sparse_image_check_type;
 
     class ProcessorBase {
     protected:
@@ -111,7 +118,7 @@ namespace mosaic {
       m_crop_bbox = bbox;
     }
 
-    // Compuute number of tree levels required with a downsample factor of 2
+    // Compute number of tree levels required with a downsample factor of 2
     int32 get_tree_levels() const {
       int32 maxdim      = (std::max)( m_dimensions.x(), m_dimensions.y() ); // Get largest dimension
       int32 tree_levels = 1 + int32( ceil( log( maxdim/(double)(m_tile_size) ) / log(2.0) ) );

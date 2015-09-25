@@ -113,12 +113,12 @@ class ImageResourceStream : public ImageResource, public SrcImageResourceStream,
       : SrcImageResourceStream(stream, fmt), DstImageResourceStream(stream, fmt) {};
 
     // If m_fmt.complete() is false, these will throw.
-    virtual int32 cols() const                   {return SrcImageResourceStream::cols();}
-    virtual int32 rows() const                   {return SrcImageResourceStream::rows();}
-    virtual int32 planes() const                 {return SrcImageResourceStream::planes();}
+    virtual int32 cols  () const                 {return SrcImageResourceStream::cols  ();      }
+    virtual int32 rows  () const                 {return SrcImageResourceStream::rows  ();      }
+    virtual int32 planes() const                 {return SrcImageResourceStream::planes();      }
     virtual PixelFormatEnum pixel_format() const {return SrcImageResourceStream::pixel_format();}
     virtual ChannelTypeEnum channel_type() const {return SrcImageResourceStream::channel_type();}
-    virtual ImageFormat format() const {return SrcImageResourceStream::format();}
+    virtual ImageFormat     format      () const {return SrcImageResourceStream::format();      }
 
     // Read the stream and write to the given buffer.
     // If m_fmt is complete, data will be vw::converted to dest. Otherwise, raw

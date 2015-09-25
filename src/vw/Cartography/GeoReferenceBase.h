@@ -30,8 +30,7 @@ namespace cartography {
 
   // Define a specific exception for proj to throw.  It's derived from
   // ArgumentErr both because that's what used to be thrown here, and also
-  // because basically every error proj.4 returns is due to some variety of bad
-  // input.
+  // because basically every error proj.4 returns is due to some variety of bad input.
   VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
 
   /// The georeference class contains the mapping from image
@@ -66,8 +65,7 @@ namespace cartography {
     /// left hand pixel.  If you choose the PixelAsArea option for
     /// this flag, the GeoTransform class will automatically adjust
     /// your affine transform by (0.5,0.5) to bring the coordinate
-    /// system in line with the Vision Workbench internal
-    /// representation.
+    /// system in line with the Vision Workbench internal representation.
     ///
     /// The default pixel interpretation for GeoReference is PixelAsArea
     enum PixelInterpretation { PixelAsArea = 0, PixelAsPoint = 1 };

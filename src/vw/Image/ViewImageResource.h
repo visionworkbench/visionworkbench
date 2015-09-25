@@ -19,8 +19,7 @@
 /// \file ViewImageResource.h
 ///
 /// This ImageResource can wrap any vision workbench image view so
-/// that it can be presented as an ImageResource to other
-/// subsystems.
+/// that it can be presented as an ImageResource to other subsystems.
 ///
 #ifndef __VW_IMAGE_VIEW_IMAGERESOURCE_H__
 #define __VW_IMAGE_VIEW_IMAGERESOURCE_H__
@@ -62,10 +61,10 @@ namespace vw {
 
     virtual ImageFormat format() const { return m_view.format(); }
 
-    virtual bool has_block_write() const  {return false;}
+    virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read() const   {return false;}
-    virtual bool has_nodata_read() const  {return false;}
+    virtual bool has_block_read  () const {return false;}
+    virtual bool has_nodata_read () const {return false;}
 
     /// Read the image resource at the given location into the given buffer.
     virtual void read( ImageBuffer const& buf, BBox2i const& bbox ) const {
@@ -105,10 +104,10 @@ namespace vw {
       return m_rsrc->read(buf, bbox);
     }
 
-    virtual bool has_block_write() const  {return false;}
+    virtual bool has_block_write () const {return false;}
     virtual bool has_nodata_write() const {return false;}
-    virtual bool has_block_read() const   {return true;}
-    virtual bool has_nodata_read() const  {return false;}
+    virtual bool has_block_read  () const {return true;}
+    virtual bool has_nodata_read () const {return false;}
 
     /// Returns the optimal block size/alignment for partial reads
     virtual Vector2i block_read_size() const { return m_block_size; }

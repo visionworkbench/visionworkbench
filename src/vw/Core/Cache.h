@@ -175,8 +175,8 @@ namespace vw {
       /// Destructor - release the Cacheline object
       ~Handle();
       
-      boost::shared_ptr<value_type> operator->() const; ///< Get pointer to the Cacheline's value
-      value_type const&             operator* () const; ///< Get const ref to Cacheline's value
+      boost::shared_ptr<value_type> operator->() const; ///< Get pointer   to the Cacheline's value
+      value_type const&             operator* () const; ///< Get const ref to the Cacheline's value
       
       // TODO: Can we delete this?
       /// Define conversion to the underlying data type

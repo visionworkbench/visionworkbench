@@ -20,13 +20,9 @@
 ///
 /// A read-only view of a general image resource.
 ///
-/// This class no longer caches blocks.  That functionality has been
-/// factored out to BlockRasterizeView.
-///
 #ifndef __VW_IMAGE_IMAGERESOURCEVIEW_H__
 #define __VW_IMAGE_IMAGERESOURCEVIEW_H__
 
-#include <vw/Core/Cache.h>
 #include <vw/Core/Thread.h>
 #include <vw/Image/ImageViewBase.h>
 #include <vw/Image/Manipulation.h>
@@ -54,8 +50,7 @@ namespace vw {
     }
 
     /// Constructs an ImageResourceView of the given resource.  Takes
-    /// ownership of the resource object (i.e. deletes it when it's
-    /// done using it).
+    /// ownership of the resource object (i.e. deletes it when it's done using it).
     ImageResourceView( SrcImageResource *resource )
       : m_rsrc( resource ), m_planes( m_rsrc->planes() ), m_rsrc_mutex( new Mutex )
     {
@@ -64,14 +59,10 @@ namespace vw {
 
     ~ImageResourceView() {}
 
-    /// Returns the number of columns in the image.
-    inline int32 cols() const { return m_rsrc->cols(); }
-
-    /// Returns the number of rows in the image.
-    inline int32 rows() const { return m_rsrc->rows(); }
-
-    /// Returns the number of planes in the image.
-    inline int32 planes() const { return m_planes; }
+    // Size queries
+    inline int32 cols  () const { return m_rsrc->cols(); }
+    inline int32 rows  () const { return m_rsrc->rows(); }
+    inline int32 planes() const { return m_planes;       }
 
     /// Returns the pixel at the given position in the given plane.
     result_type operator()( int32 x, int32 y, int32 plane=0 ) const {
@@ -106,8 +97,7 @@ namespace vw {
   private:
     void initialize() {
       // If the user has requested a multi-channel pixel type, but the
-      // file is a multi-plane, scalar-pixel file, we force a single-plane
-      // interpretation.
+      // file is a multi-plane, scalar-pixel file, we force a single-plane interpretation.
       if (PixelNumChannels<PixelT>::value > 1 && m_rsrc->pixel_format() == VW_PIXEL_SCALAR) {
         m_planes = 1;
       }

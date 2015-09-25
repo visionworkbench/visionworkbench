@@ -46,17 +46,17 @@ namespace vw {
 
     BlockRasterizeView( ImageT const& image, Vector2i const& block_size,
                         int num_threads = 0, Cache *cache = NULL )
-      : m_child( new ImageT(image) ),
-        m_block_size( block_size ),
+      : m_child      ( new ImageT(image) ),
+        m_block_size ( block_size ),
         m_num_threads( num_threads ),
-        m_cache_ptr( cache ),
+        m_cache_ptr  ( cache ),
         m_block_table_size( 0 )
     {
       initialize();
     }
 
-    inline int32 cols() const { return m_child->cols(); }
-    inline int32 rows() const { return m_child->rows(); }
+    inline int32 cols  () const { return m_child->cols();   }
+    inline int32 rows  () const { return m_child->rows();   }
     inline int32 planes() const { return m_child->planes(); }
     inline pixel_accessor origin() const { return pixel_accessor( *this, 0, 0, 0 ); }
 
@@ -65,6 +65,7 @@ namespace vw {
       VW_OUT(VerboseDebugMessage, "image") << "ImageResourceView rasterizing pixel (" << x << "," << y << "," << p << ")" << std::endl;
 #endif
       if ( m_cache_ptr ) {
+        // Note that requesting a value from a handle forces that data to be generated.
         // Early-out optimization for single-block resources
         if( m_block_table_size == 1 ) {
           const Cache::Handle<BlockGenerator>& handle = m_block_table[0];
@@ -72,16 +73,19 @@ namespace vw {
           handle.release();
           return result;
         }
-        int32 ix = x/m_block_size.x(), iy = y/m_block_size.y();
+        int32 ix = x/m_block_size.x(), // Get the block index
+              iy = y/m_block_size.y();
         const Cache::Handle<BlockGenerator>& handle = block(ix,iy);
-        result_type result = handle->operator()( x-ix*m_block_size.x(), y - iy*m_block_size.y(), p );
-        handle.release();
+                                    // Convert from global indices to indices within a block
+        result_type result = handle->operator()( x - ix*m_block_size.x(), 
+                                                 y - iy*m_block_size.y(), p );
+        handle.release(); // Let the Cache know we are finished with this block of data.
         return result;
       }
       else return (*m_child)(x,y,p);
     }
 
-    ImageT& child() { return *m_child; }
+    ImageT      & child()       { return *m_child; }
     ImageT const& child() const { return *m_child; }
 
     typedef CropView<ImageView<pixel_type> > prerasterize_type;
@@ -99,13 +103,12 @@ namespace vw {
   private:
     // These function objects are spawned to rasterize the child image.
     // One functor is created per child thread, and they are called
-    // in succession with bounding boxes that are each contained
-    // within one block.
+    // in succession with bounding boxes that are each contained within one block.
     template <class DestT>
     class RasterizeFunctor {
       BlockRasterizeView const& m_view;
       DestT const& m_dest;
-      Vector2i m_offset;
+      Vector2i     m_offset;
     public:
       RasterizeFunctor( BlockRasterizeView const& view, DestT const& dest, Vector2i const& offset )
         : m_view(view), m_dest(dest), m_offset(offset) {}
@@ -114,46 +117,54 @@ namespace vw {
         VW_OUT(VerboseDebugMessage, "image") << "BlockRasterizeView::RasterizeFunctor( " << bbox << " )" << std::endl;
 #endif
         if( m_view.m_cache_ptr ) {
-          int32 ix=bbox.min().x()/m_view.m_block_size.x(), iy=bbox.min().y()/m_view.m_block_size.y();
+          int32 ix=bbox.min().x()/m_view.m_block_size.x(), // Compute the block
+                iy=bbox.min().y()/m_view.m_block_size.y();
 #if VW_DEBUG_LEVEL > 1
-          int32 maxix=(bbox.max().x()-1)/m_view.m_block_size.x(), maxiy=(bbox.max().y()-1)/m_view.m_block_size.y();
+          int32 maxix=(bbox.max().x()-1)/m_view.m_block_size.x(), 
+                maxiy=(bbox.max().y()-1)/m_view.m_block_size.y();
           if( maxix != ix || maxiy != iy ) {
             vw_throw(LogicErr() << "BlockRasterizeView::RasterizeFunctor: bbox spans more than one cache block!");
           }
 #endif
           const Cache::Handle<BlockGenerator>& handle = m_view.block(ix,iy);
-          handle->rasterize( crop( m_dest, bbox-m_offset ), bbox-Vector2i(ix*m_view.m_block_size.x(),iy*m_view.m_block_size.y()) );
+          handle->rasterize( crop( m_dest, bbox-m_offset ), bbox-Vector2i(ix*m_view.m_block_size.x(),
+                                                                          iy*m_view.m_block_size.y()) );
           handle.release();
         }
         else m_view.child().rasterize( crop( m_dest, bbox-m_offset ), bbox );
       }
-    };
+    }; // End class RasterizeFunctor
 
     // Allows RasterizeFunctor to access cache-related members.
     template <class DestT> friend class RasterizeFunctor;
 
-    // These objects rasterize a full block of image data to be
-    // stored in the cache.
+    /// These objects rasterize a full block of image data to be stored in the cache.
+    /// - This is the class that is used by the Cache class to generate nearly all images
+    ///   loaded by vision workbench!
     class BlockGenerator {
-      boost::shared_ptr<ImageT> m_child;
-      BBox2i m_bbox;
+      boost::shared_ptr<ImageT> m_child; ///< Source image view.
+      BBox2i m_bbox; ///< ROI of the source image.
     public:
-      typedef ImageView<pixel_type> value_type;
+      typedef ImageView<pixel_type> value_type; ///< A plain image view 
 
+      /// Set this object up to represent a region of an image view.
       BlockGenerator( boost::shared_ptr<ImageT> const& child, BBox2i const& bbox )
         : m_child( child ), m_bbox( bbox ) {}
 
+      /// Return the size in bytes that the rasterized object occupies.
       size_t size() const {
         return m_bbox.width() * m_bbox.height() * m_child->planes() * sizeof(pixel_type);
       }
 
+      /// Rasterize this object into memory from whatever its source is.
       boost::shared_ptr<value_type > generate() const {
         boost::shared_ptr<value_type > ptr( new value_type( m_bbox.width(), m_bbox.height(), m_child->planes() ) );
         m_child->rasterize( *ptr, m_bbox );
         return ptr;
       }
-    };
+    }; // End class BlockGenerator
 
+    /// Fill up m_block_table with a set of BlockGenerator objects.
     void initialize() {
       if( m_block_size.x() <= 0 || m_block_size.y() <= 0 ) {
         const int32 default_blocksize = 2*1024*1024; // 2 megabytes
@@ -167,21 +178,25 @@ namespace vw {
         m_block_size = Vector2i( cols(), block_rows );
       }
       if( m_cache_ptr ) {
-        m_table_width = (cols()-1) / m_block_size.x() + 1;
+        // Compute the 
+        m_table_width  = (cols()-1) / m_block_size.x() + 1;
         m_table_height = (rows()-1) / m_block_size.y() + 1;
         m_block_table_size = m_table_height * m_table_width;
         m_block_table.reset( new Cache::Handle<BlockGenerator>[ m_block_table_size ] );
         BBox2i view_bbox(0,0,cols(),rows());
+        // Iterate through the block positions and insert a generator object for each block
+        // into m_block_table.
         for( int32 iy=0; iy<m_table_height; ++iy ) {
           for( int32 ix=0; ix<m_table_width; ++ix ) {
             BBox2i bbox( ix*m_block_size.x(), iy*m_block_size.y(), m_block_size.x(), m_block_size.y() );
             bbox.crop( view_bbox );
             block(ix,iy) = m_cache_ptr->insert( BlockGenerator( m_child, bbox ) );
           }
-        }
-      }
-    }
+        } // End loop through the blocks
+      } // End cache case
+    } // End initialize()
 
+    /// Fetch the block generator for the requested block (const ref)
     const Cache::Handle<BlockGenerator>& block( int ix, int iy ) const {
       if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
         vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix
@@ -189,6 +204,7 @@ namespace vw {
       return m_block_table[ix+iy*m_table_width];
     }
 
+    /// Fetch the block generator for the requested block
     Cache::Handle<BlockGenerator>& block( int ix, int iy )  {
       if( ix<0 || ix>=m_table_width || iy<0 || iy>=m_table_height )
         vw_throw( ArgumentErr() << "BlockRasterizeView: Block indices out of bounds, (" << ix
@@ -200,25 +216,31 @@ namespace vw {
     // the BlockRasterizeView, since the BlockGenerators point to it.
     boost::shared_ptr<ImageT> m_child;
     Vector2i m_block_size;
-    int32 m_num_threads;
-    Cache *m_cache_ptr;
-    int m_table_width, m_table_height;
-    size_t m_block_table_size;
+    int32    m_num_threads;
+    Cache   *m_cache_ptr;
+    int      m_table_width, m_table_height;
+    size_t   m_block_table_size;
     boost::shared_array<Cache::Handle<BlockGenerator> > m_block_table;
   };
 
+  /// Create a BlockRasterizeView with no caching.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads = 0 ) {
+  inline BlockRasterizeView<ImageT> block_rasterize( ImageViewBase<ImageT> const& image, 
+                                                     Vector2i const& block_size, int num_threads = 0 ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads );
   }
 
+  /// Create a BlockRasterizeView using the vw system Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads = 0 ) {
+  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, 
+                                                 Vector2i const& block_size, int num_threads = 0 ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &vw_system_cache() );
   }
 
+  /// Create a BlockRasterizeView using the provided Cache object.
   template <class ImageT>
-  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, Vector2i const& block_size, int num_threads, Cache& cache ) {
+  inline BlockRasterizeView<ImageT> block_cache( ImageViewBase<ImageT> const& image, 
+                                                 Vector2i const& block_size, int num_threads, Cache& cache ) {
     return BlockRasterizeView<ImageT>( image.impl(), block_size, num_threads, &cache );
   }
 

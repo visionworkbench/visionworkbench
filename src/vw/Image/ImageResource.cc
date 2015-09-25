@@ -381,30 +381,30 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
     }
     // We support conversions between user specified generic pixel
     // types and the pixel types with an identical number of channels.
-    if ( ( src.format.pixel_format == VW_PIXEL_SCALAR_MASKED && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
-         ( dst.format.pixel_format == VW_PIXEL_SCALAR_MASKED && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
-         ( src.format.pixel_format == VW_PIXEL_GRAY_MASKED && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
-         ( dst.format.pixel_format == VW_PIXEL_GRAY_MASKED && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
-         ( src.format.pixel_format == VW_PIXEL_RGB_MASKED && dst.format.pixel_format == VW_PIXEL_RGBA ) ||
-         ( dst.format.pixel_format == VW_PIXEL_RGB_MASKED && src.format.pixel_format == VW_PIXEL_RGBA ) ||
-         ( src.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && dst.format.pixel_format == VW_PIXEL_GRAY ) ||
-         ( dst.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && src.format.pixel_format == VW_PIXEL_GRAY ) ||
+    if ( ( src.format.pixel_format == VW_PIXEL_SCALAR_MASKED     && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( dst.format.pixel_format == VW_PIXEL_SCALAR_MASKED     && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( src.format.pixel_format == VW_PIXEL_GRAY_MASKED       && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GRAY_MASKED       && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
+         ( src.format.pixel_format == VW_PIXEL_RGB_MASKED        && dst.format.pixel_format == VW_PIXEL_RGBA  ) ||
+         ( dst.format.pixel_format == VW_PIXEL_RGB_MASKED        && src.format.pixel_format == VW_PIXEL_RGBA  ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && dst.format.pixel_format == VW_PIXEL_GRAY  ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_1_CHANNEL && src.format.pixel_format == VW_PIXEL_GRAY  ) ||
          ( src.format.pixel_format == VW_PIXEL_GENERIC_2_CHANNEL && dst.format.pixel_format == VW_PIXEL_GRAYA ) ||
          ( dst.format.pixel_format == VW_PIXEL_GENERIC_2_CHANNEL && src.format.pixel_format == VW_PIXEL_GRAYA ) ||
-         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGB ) ||
-         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_RGB ) ||
-         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_XYZ ) ||
-         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_XYZ ) ||
-         ( src.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGBA ) ||
-         ( dst.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && src.format.pixel_format == VW_PIXEL_RGBA ) ) {
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGB   ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_RGB   ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && dst.format.pixel_format == VW_PIXEL_XYZ   ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_3_CHANNEL && src.format.pixel_format == VW_PIXEL_XYZ   ) ||
+         ( src.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && dst.format.pixel_format == VW_PIXEL_RGBA  ) ||
+         ( dst.format.pixel_format == VW_PIXEL_GENERIC_4_CHANNEL && src.format.pixel_format == VW_PIXEL_RGBA  ) ) {
       // Do nothing, these combinations are ok to convert.
     }
     // Other than that, we only support conversion between the core pixel formats
     else if( ( src.format.pixel_format!=VW_PIXEL_GRAY && src.format.pixel_format!=VW_PIXEL_GRAYA &&
-               src.format.pixel_format!=VW_PIXEL_RGB && src.format.pixel_format!=VW_PIXEL_RGBA &&
+               src.format.pixel_format!=VW_PIXEL_RGB  && src.format.pixel_format!=VW_PIXEL_RGBA  &&
                src.format.pixel_format!=VW_PIXEL_XYZ) ||
              ( dst.format.pixel_format!=VW_PIXEL_GRAY && dst.format.pixel_format!=VW_PIXEL_GRAYA &&
-               dst.format.pixel_format!=VW_PIXEL_RGB && dst.format.pixel_format!=VW_PIXEL_RGBA &&
+               dst.format.pixel_format!=VW_PIXEL_RGB  && dst.format.pixel_format!=VW_PIXEL_RGBA  &&
                dst.format.pixel_format!=VW_PIXEL_XYZ) ) {
       vw_throw( ArgumentErr() << "Source and destination buffers have incompatible pixel formats ("
                 << pixel_format_name(src.format.pixel_format) << " vs. " << pixel_format_name(dst.format.pixel_format) << ")." );
@@ -428,19 +428,19 @@ void vw::convert( ImageBuffer const& dst, ImageBuffer const& src, bool rescale )
     premultiply_dst   = (src_alpha && dst_alpha && !srcf.premultiplied && dstf.premultiplied);
   }
 
-  bool triplicate = src_channels<3 && dst_channels>=3;
-  bool average = src_channels >=3 && dst_channels<3;
-  bool add_alpha = src_channels%2==1 && dst_channels%2==0;
+  bool triplicate = src_channels<3    && dst_channels>=3;
+  bool average    = src_channels >=3  && dst_channels<3;
+  bool add_alpha  = src_channels%2==1 && dst_channels%2==0;
   bool copy_alpha = src_channels!=dst_channels && src_channels%2==0 && dst_channels%2==0;
 
   channel_convert_func conv_func = rescale
     ? channel_convert_rescale_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type))
     : channel_convert_map->operator[](std::make_pair(src.format.channel_type,dst.format.channel_type));
-  channel_set_max_func max_func = channel_set_max_map->operator[](dst.format.channel_type);
-  channel_average_func avg_func = channel_average_map->operator[](dst.format.channel_type);
+  channel_set_max_func       max_func               = channel_set_max_map->operator[](dst.format.channel_type);
+  channel_average_func       avg_func               = channel_average_map->operator[](dst.format.channel_type);
   channel_unpremultiply_func unpremultiply_src_func = channel_unpremultiply_map->operator[](src.format.channel_type);
-  channel_premultiply_func premultiply_src_func = channel_premultiply_map->operator[](src.format.channel_type);
-  channel_premultiply_func premultiply_dst_func = channel_premultiply_map->operator[](dst.format.channel_type);
+  channel_premultiply_func   premultiply_src_func   = channel_premultiply_map->operator[](src.format.channel_type);
+  channel_premultiply_func   premultiply_dst_func   = channel_premultiply_map->operator[](dst.format.channel_type);
   if( !conv_func || !max_func || !avg_func || !unpremultiply_src_func || !premultiply_dst_func || !premultiply_src_func )
     vw_throw( NoImplErr() << "Unsupported channel type combination in convert (" << src.format.channel_type << ", " << dst.format.channel_type << ")!" );
 

@@ -29,7 +29,6 @@ include_HEADERS = \
   BlockProcessor.h \
   BlockRasterize.h \
   Convolution.h \
-  EdgeExtend.h \
   EdgeExtension.h \
   Filter.h \
   Filter.tcc \
