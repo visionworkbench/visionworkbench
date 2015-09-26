@@ -29,7 +29,7 @@ using namespace vw::test;
 
 TEST( GeoReference, Core) {
   GeoReference georef;
-  georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+  georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   georef.set_well_known_geogcs("WGS84");
 
   Matrix3x3 affine;
@@ -51,7 +51,7 @@ TEST( GeoReference, Core) {
 
 TEST( GeoReference, BasicGeographic ) {
   GeoReference georef;
-  georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+  georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   georef.set_well_known_geogcs("WGS84");
 
   // Start with some basic test of a geographic (unprojected)
@@ -112,7 +112,7 @@ TEST( GeoReference, AffineTransform ) {
 TEST( GeoReference, BasicProjections ) {
   // Set up a spherical datum for testing purposes.
   GeoReference georef;
-  georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+  georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
 
   Datum d = georef.datum();
   d.set_well_known_datum("D_MOON");
@@ -306,7 +306,7 @@ TEST( GeoReference, IOLoop ) {
 
 TEST(GeoReference, BoundingBoxNoProj) {
   GeoReference georef;
-  georef.set_pixel_interpretation(GeoReferenceBase::PixelAsPoint);
+  georef.set_pixel_interpretation(GeoReference::PixelAsPoint);
   georef.set_well_known_geogcs("WGS84");
 
   Matrix3x3 affine;
@@ -344,7 +344,7 @@ TEST(GeoReference, BoundingBox) {
   affine(2,2) = 1;
   affine(0,2) = 30;   // 30 deg east
   affine(1,2) = -35;  // 35 deg south
-  GeoReference georef(Datum("WGS84"), affine, GeoReferenceBase::PixelAsPoint);
+  GeoReference georef(Datum("WGS84"), affine, GeoReference::PixelAsPoint);
   georef.set_equirectangular(0.0, 0.0, 1.0, 0.0, 0.0);
 
   BBox2i pixel_bbox(400, 300, 200, 100);

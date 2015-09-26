@@ -19,7 +19,10 @@
 #ifndef __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 #define __VW_CARTOGRAPHY_PROJGEOREFERENCE_H__
 
-#include <vw/Cartography/GeoReferenceBase.h>
+#include <vw/Image/ImageViewBase.h>
+#include <vw/Image/Algorithms.h>
+#include <vw/Cartography/Datum.h>
+//#include <vw/Cartography/GeoReferenceBase.h>
 #include <vw/FileIO/DiskImageResource.h>
 #include <vw/Core/Exception.h>
 
@@ -32,6 +35,13 @@
 
 namespace vw {
 namespace cartography {
+
+
+  // Define a specific exception for proj to throw.  It's derived from
+  // ArgumentErr both because that's what used to be thrown here, and also
+  // because basically every error proj.4 returns is due to some variety of bad input.
+  VW_DEFINE_EXCEPTION(ProjectionErr, ArgumentErr);
+
 
   // Here is some machinery to keep track of an initialized proj.4
   // projection context using a smart pointer.
@@ -61,10 +71,47 @@ namespace cartography {
     int error_no() const;
   };
 
-  /// The georeference class contains the mapping from image coordinates
-  /// (u,v) to geospatial coordinates (typically lat/lon, or possibly
-  /// meters in a UTM grid cell, etc.)
-  class GeoReference : public GeoReferenceBase {
+  /// The georeference class contains the mapping from image
+  /// coordinates (u,v) to geospatial coordinates (typically lat/lon,
+  /// or possibly meters in a UTM grid cell, etc.).  It must also
+  /// encode how to translate between this coordinate system and the
+  /// "Geographic" coordinate system (lat,lon)
+  class GeoReference{
+  
+  public:
+    /// The affine transform converts from pixel space to geographic
+    /// or projected space and vice versa.  Most often, this process
+    /// entails interpolating based on floating point pixel
+    /// coordinates in the image.  However, images are discrete
+    /// samples of pixel space, so you must adopt a convention
+    /// regarding how floating point pixel coordinates in your
+    /// georeferenced image are to be interpreted.
+    ///
+    /// You have one of two choices: If you assume PixelAsArea, the
+    /// upper left hand corner of the top left pixel is considered as
+    /// the origin (0,0), and the center of the top left pixel is
+    /// (0.5, 0.5).  This assumption is common when dealing with
+    /// satellite imagery or maps.
+    ///
+    /// On the other hand, if you assume the PixelAsPoint, then the
+    /// center of the upper left hand pixel is the origin (0,0), and
+    /// the top left corner of that pixel is at (-0.5,-0.5) in pixel
+    /// coordinates.  This mode is common when working with elevation
+    /// data, etc.
+    ///
+    /// Note: The Vision Workbench *always* interprets floating point
+    /// pixel location (0,0) as being at the _center_ of the upper
+    /// left hand pixel.  If you choose the PixelAsArea option for
+    /// this flag, the GeoTransform class will automatically adjust
+    /// your affine transform by (0.5,0.5) to bring the coordinate
+    /// system in line with the Vision Workbench internal representation.
+    ///
+    /// The default pixel interpretation for GeoReference is PixelAsArea
+    enum PixelInterpretation { PixelAsArea = 0, PixelAsPoint = 1 };
+
+  private:  
+    PixelInterpretation m_pixel_interpretation;
+    Datum m_datum;
     Matrix<double,3,3> m_transform, m_inv_transform, m_shifted_transform, m_inv_shifted_transform;
     std::string m_proj_projection_str, m_gml_str;
     ProjContext m_proj_context;
@@ -91,6 +138,9 @@ namespace cartography {
     /// identity matrix.
     GeoReference(Datum const& datum);
 
+    /// Takes a geodetic datum and pixel interpretation
+    GeoReference(Datum const& datum, PixelInterpretation pixel_interpretation);
+
     /// Takes a geodetic datum and an affine transformation matrix
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform);
 
@@ -99,10 +149,15 @@ namespace cartography {
     GeoReference(Datum const& datum, Matrix<double,3,3> const& transform, PixelInterpretation pixel_interpretation);
 
     /// Destructor.
-    virtual ~GeoReference() {}
+    ~GeoReference() {}
 
     void set_transform(Matrix<double,3,3> transform);
-    virtual void set_datum(Datum const& datum);
+    void set_datum(Datum const& datum);
+
+    PixelInterpretation pixel_interpretation() const { return m_pixel_interpretation; }
+    void set_pixel_interpretation(PixelInterpretation const& p) { m_pixel_interpretation = p; }
+
+    Datum const& datum() const { return m_datum; }
 
           std::string  proj4_str() const;
     const std::string  gml_str  () const { return m_gml_str; }
@@ -163,48 +218,83 @@ namespace cartography {
 
     /// For a given pixel coordinate, compute the position of that
     /// pixel in this georeferenced space.
-    virtual Vector2 pixel_to_point(Vector2 pix) const;
+    Vector2 pixel_to_point(Vector2 pix) const;
 
     /// For a given location 'loc' in projected space, compute the
     /// corresponding pixel coordinates in the image.
-    virtual Vector2 point_to_pixel(Vector2 loc) const;
+    Vector2 point_to_pixel(Vector2 loc) const;
 
     /// For a point in the projected space, compute the position of
     /// that point in unprojected (Geographic) coordinates (lat,lon).
-    virtual Vector2 point_to_lonlat(Vector2 loc) const;
+    Vector2 point_to_lonlat(Vector2 loc) const;
 
     /// Given a position in geographic coordinates (lat,lon), compute
     /// the location in the projected coordinate system.
-    virtual Vector2 lonlat_to_point(Vector2 lon_lat) const;
+    Vector2 lonlat_to_point(Vector2 lon_lat) const;
 
     /// For a bbox in pixel coordinates, find what that bbox covers in lonlat
-    virtual BBox2 pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const {
-      if (!m_is_projected) {
-        return pixel_to_point_bbox(pixel_bbox);
-      }
-      return GeoReferenceBase::pixel_to_lonlat_bbox(pixel_bbox);
-    }
+    BBox2 pixel_to_lonlat_bbox(BBox2i const& pixel_bbox) const;
 
     /// For a bbox in lonlat, find the bbox in pixel coordinates
-    virtual BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const {
-      if (!m_is_projected) {
-        return point_to_pixel_bbox(lonlat_bbox);
-      }
-      return GeoReferenceBase::lonlat_to_pixel_bbox(lonlat_bbox, nsamples);
+    BBox2i lonlat_to_pixel_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
+    
+    /// For a given lonlat, provide it's point bbox
+    BBox2  lonlat_to_point_bbox(BBox2 const& lonlat_bbox, size_t nsamples = 100) const;
+
+    /// For a given bbox in point, provide the lonlat bounding box.
+    BBox2  point_to_lonlat_bbox(BBox2 const& point_bbox, size_t nsamples = 100) const;
+    
+    /// For a given pixel coordinate, compute the position of that
+    /// pixel in Geographic coordinates (lat,lon).
+    Vector2 pixel_to_lonlat(Vector2 pix) const {
+      return point_to_lonlat(pixel_to_point(pix));
     }
+
+    /// Given a position in geographic coordinates (lat,lon), compute
+    /// the location in pixel coordinates in this image that
+    /// corresponds to the given geographic coordinates.
+    Vector2 lonlat_to_pixel(Vector2 lat_lon) const {
+      return point_to_pixel(lonlat_to_point(lat_lon));
+    }
+
+    /// For a given pixel bbox, return the corresponding bbox in projected space
+    BBox2  pixel_to_point_bbox(BBox2i const& pixel_bbox) const;
+
+    /// For a bbox in projected space, return the corresponding bbox in
+    /// pixels on the image
+    BBox2i point_to_pixel_bbox(BBox2 const& point_bbox) const;
+
+    
+    /// Return the box that bounds the area represented by the
+    /// geotransform for the dimensions of the given image.
+    template <class ViewT>
+    BBox2 bounding_box(ImageViewBase<ViewT> const& view) const;
+
+    /// Return the box that bounds the area represented by the
+    /// geotransform for the dimensions of the given image.
+    /// Note that this doesn't tell you whether the image takes the
+    /// long path or the short path from the left longitude to the
+    /// right longitude.
+    ///
+    /// The assumption here is that the projection is continuous.
+    template <class ViewT>
+    BBox2 lonlat_bounding_box(ImageViewBase<ViewT> const& view) const;
+    
   };
 
-  inline std::ostream& operator<<(std::ostream& os, const GeoReference& georef) {
-    os << "-- Proj.4 Geospatial Reference Object --\n";
-    os << "\tTransform  : " << georef.transform() << "\n";
-    os << "\t" << georef.datum() << "\n";
-    os << "\tProj.4 String: " << georef.proj4_str() << "\n";
-    os << "\tPixel Interpretation: ";
-    if (georef.pixel_interpretation() == GeoReference::PixelAsArea)
-      os << "pixel as area\n";
-    else if (georef.pixel_interpretation() == GeoReference::PixelAsPoint)
-      os << "pixel as point\n";
-    return os;
+  /// Format a GeoReference to a text stream
+  std::ostream& operator<<(std::ostream& os, const GeoReference& georef);
+
+  /// Get point coordinate bounding box of an image
+  template <class ViewT>
+  BBox2 GeoReference::bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_point_bbox(vw::bounding_box(view.impl()));
+  }
+
+  /// Get lonlat coordinate bounding box of an image
+  template <class ViewT>
+  BBox2 GeoReference::lonlat_bounding_box(ImageViewBase<ViewT> const& view) const {
+    return pixel_to_lonlat_bbox(vw::bounding_box(view.impl()));
   }
 
   //
