@@ -223,8 +223,8 @@ void handle_arguments( int argc, char *argv[], Options& opt ) {
                       "Specify a shaded relief image (grayscale) to apply to the colorized image.")
     ("output-file,o", po::value(&opt.output_file_name),
                       "Specify the output file.")
-    ("colormap-style",po::value(&opt.colormap_style)->default_value("jet"),
-                      "Specify the colormap style. Options: jet (default), binary-red-blue, or the name of a file having the colormap, similar to the file used by gdaldem.")
+    ("colormap-style",po::value(&opt.colormap_style)->default_value("binary-red-blue"),
+                      "Specify the colormap style. Options: binary-red-blue (default), jet, or the name of a file having the colormap, similar to the file used by gdaldem.")
     ("nodata-value",  po::value(&opt.nodata_value)->default_value(std::numeric_limits<float>::max()),
                       "Remap the DEM default value to the min altitude value.")
     ("min",           po::value(&opt.min_val)->default_value(0),
