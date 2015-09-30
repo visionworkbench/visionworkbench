@@ -25,15 +25,22 @@
 // Boost
 #include <boost/algorithm/string.hpp>
 
-/// \file GeoReferenceResourceGDAL.h Functions to read/write a \ref vw::cartography::GeoReference from GDAL.
+/// \file GeoReferenceResourceGDAL.h
+/// Functions to read/write a \ref vw::cartography::GeoReference from
+/// GDAL.
 
 namespace vw {
 namespace cartography {
 
   bool read_gdal_georeference( GeoReference& georef, DiskImageResourceGDAL const& resource );
   void write_gdal_georeference( DiskImageResourceGDAL& resource, GeoReference const& georef );
+
+  // Read an arbitrary name = value pair from the geoheader.
   bool read_gdal_string( DiskImageResourceGDAL const& resource, std::string const& str_name,
                          std::string & str_val );
+
+
+  // Write an arbitrary name = value pair in the geoheader.
   void write_gdal_string( DiskImageResourceGDAL& resource, std::string const& str_name,
                           std::string const& str_val );
 

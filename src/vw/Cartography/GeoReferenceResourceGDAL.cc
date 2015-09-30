@@ -149,6 +149,7 @@ namespace cartography {
       dataset->SetMetadataItem(GDALMD_AREA_OR_POINT, GDALMD_AOP_POINT);
   }
 
+  // Read an arbitrary name = value pair from the geoheader.
   bool read_gdal_string( DiskImageResourceGDAL const& resource,
                          std::string const& str_name,
                          std::string & str_val ) {
@@ -172,6 +173,7 @@ namespace cartography {
     return false;
   }
 
+  // Write an arbitrary name = value pair in the geoheader.
   void write_gdal_string( DiskImageResourceGDAL& resource,
                           std::string const& str_name,
                           std::string const& str_val ) {

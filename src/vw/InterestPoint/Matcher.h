@@ -322,11 +322,9 @@ void InterestPointMatcher<MetricT, ConstraintT>::operator()( ListT const& ip1, L
   // Pack the IP descriptors into a matrix and feed it to the chosen FLANNTree object
   const bool use_uchar_FLANN = (MetricT::flann_type == math::FLANN_DistType_Hamming);
   if (use_uchar_FLANN) {
-    vw_out() << "Using UCHAR FLANNTree\n";
     ip_list_to_matrix(ip2, ip2_matrix_uchar);
     kd_uchar.load_match_data( ip2_matrix_uchar, MetricT::flann_type );
   }else {
-    vw_out() << "Using FLOAT FLANNTree\n";
     ip_list_to_matrix(ip2, ip2_matrix_float);
     kd_float.load_match_data( ip2_matrix_float,  MetricT::flann_type );
   }
