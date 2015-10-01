@@ -122,16 +122,16 @@ namespace ba {
       // For each param dimension, add epsilon and re-evaluate h() to
       // get numerical derivative w.r.t. that parameter
       for ( size_t n=0; n < PointParamsN; ++n ){
-        Vector<double, PointParamsN> b_i_prime = point_i;
+        Vector<double, PointParamsN> point_i_prime = point_i;
 
         // Variable step size, depending on parameter value
         double epsilon = 1e-7 + fabs(point_i(n)*1e-7);
-        b_i_prime(n) += epsilon;
+        point_i_prime(n) += epsilon;
 
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
         try {
-          Vector2 hi = impl()(i,j,cam_j,b_i_prime);
+          Vector2 hi = impl()(i,j,cam_j,point_i_prime);
           select_col(J,n) = (hi-h0)/epsilon;
         } catch (const camera::PointToPixelErr& e) {
           select_col(J,n) = Vector2();

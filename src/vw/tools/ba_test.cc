@@ -571,7 +571,7 @@ class BundleAdjustmentModel : public ba::ModelBase<BundleAdjustmentModel, 6, 3> 
   // measures (and the constructor for the new model would have to do the same
   // -- that might be a pain).
   std::vector<camera_vector_t> m_cam_vec; // camera parameter adjustments
-  std::vector<point_vector_t>  b; // point coordinates
+  std::vector<point_vector_t>  m_point_vec; // point coordinates
   std::vector<camera_vector_t> m_cam_target_vec;
   std::vector<point_vector_t>  m_point_target_vec;
   int m_num_pixel_observations;
@@ -593,7 +593,7 @@ public:
     m_cameras(cameras),
     m_network(network),
     m_cam_vec(cameras.size()),
-    b(network->size()),
+    m_point_vec(network->size()),
     m_cam_target_vec(cameras.size()),
     m_point_target_vec(network->size()),
     m_camera_position_sigma(camera_position_sigma),
@@ -622,10 +622,10 @@ public:
       m_cam_vec[j]         = camera_vector_t();
     }
 
-    // b and m_point_target_vec start off with the initial positions of the 3d points
+    // m_point_vec and m_point_target_vec start off with the initial positions of the 3d points
     for (unsigned i = 0; i < network->size(); ++i) {
       m_point_target_vec[i] = point_vector_t((*m_network)[i].position());
-      b[i]         = point_vector_t((*m_network)[i].position());
+      m_point_vec[i]         = point_vector_t((*m_network)[i].position());
     }
   }
 /* }}} */
@@ -636,13 +636,13 @@ public:
   camera_vector_t cam_target(int j)    const { return m_cam_target_vec[j]; }
   void set_cam_params(int j, camera_vector_t const& cam_j) { m_cam_vec[j] = cam_j; }
 
-  point_vector_t point_params(int i) const { return b[i]; }
+  point_vector_t point_params(int i) const { return m_point_vec[i]; }
   point_vector_t point_target(int i)    const { return m_point_target_vec[i]; }
-  void set_point_params(int i, point_vector_t const& point_i) { b[i] = point_i; }
+  void set_point_params(int i, point_vector_t const& point_i) { m_point_vec[i] = point_i; }
 
   CameraVector cameras() { return m_cameras; }
   unsigned num_cameras() const { return m_cam_vec.size(); }
-  unsigned num_points()  const { return b.size(); }
+  unsigned num_points()  const { return m_point_vec.size(); }
   unsigned num_pixel_observations() const { return m_num_pixel_observations; }
 /* }}} */
 
@@ -688,7 +688,7 @@ public:
 /* {{{ operator() overload */
 
   // Given the 'cam_j' vector (camera model parameters) for the j'th
-  // image, and the 'b' vector (3D point location) for the i'th
+  // image, and the 'm_point_vec' vector (3D point location) for the i'th
   // point, return the location of point_i on imager j in pixel
   // coordinates.
   Vector2 operator() ( unsigned /*i*/, unsigned j, camera_vector_t const& cam_j, point_vector_t const& point_i ) const {
@@ -732,7 +732,7 @@ public:
     for (unsigned i = 0; i < m_network->size(); ++i)
       for(unsigned m = 0; m < (*m_network)[i].size(); ++m) {
         int camera_idx = (*m_network)[i][m].image_id();
-        Vector2 pixel_error = (*m_network)[i][m].position() - (*this)(i, camera_idx, m_cam_vec[camera_idx],b[i]);
+        Vector2 pixel_error = (*m_network)[i][m].position() - (*this)(i, camera_idx, m_cam_vec[camera_idx],m_point_vec[i]);
         pix_errors.push_back(norm_2(pixel_error));
       }
   }
@@ -771,7 +771,7 @@ public:
     gcp_errors.clear();
     for (unsigned i=0; i < this->num_points(); ++i) {
       if ((*m_network)[i].type() == ControlPoint::GroundControlPoint)
-        gcp_errors.push_back(norm_2(m_point_target_vec[i] - b[i]));
+        gcp_errors.push_back(norm_2(m_point_target_vec[i] - m_point_vec[i]));
     }
   }
 /* }}} */
@@ -803,8 +803,8 @@ public:
 /* {{{ write_points_append */
   void write_points_append(fs::path const& filename, fs::path const& dir) {
     fs::ofstream ostr(dir / filename, std::ios::app);
-    for (unsigned i = 0; i < b.size(); ++i)
-      ostr << i << "\t" << b[i][0] << "\t" << b[i][1] << "\t" << b[i][2] << endl;
+    for (unsigned i = 0; i < m_point_vec.size(); ++i)
+      ostr << i << "\t" << m_point_vec[i][0] << "\t" << m_point_vec[i][1] << "\t" << m_point_vec[i][2] << endl;
   }
 /* }}} write_points_append */
 
