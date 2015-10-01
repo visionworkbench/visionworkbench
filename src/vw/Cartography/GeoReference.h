@@ -156,6 +156,9 @@ namespace cartography {
     // Loads the datum and projection information from the given
     // string in WKT ("Well-Known Text") format.
     void set_wkt(std::string const& wkt);
+
+    // Get the wkt string from the georef. It only has projection and datum information.
+    std::string get_wkt() const;
 #endif
 
     /// For a given pixel coordinate, compute the position of that

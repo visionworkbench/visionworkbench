@@ -446,6 +446,36 @@ namespace cartography {
     datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
     set_datum(datum);
   }
+
+  // Get the wkt string from the georef. It only has projection and datum information.
+  std::string GeoReference::get_wkt() const {
+
+    OGRSpatialReference gdal_spatial_ref;
+    Datum const& datum = this->datum();
+    gdal_spatial_ref.importFromProj4(this->proj4_str().c_str());
+
+    // For perfect spheres, we set the inverse flattening to
+    // zero. This is making us compliant with OpenGIS Implementation
+    // Specification: CTS 12.3.10.2. In short, we are not allowed to
+    // write infinity as most tools, like ArcGIS, can't read that.
+
+    gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
+                                datum.name().c_str(),
+                                datum.spheroid_name().c_str(),
+                                datum.semi_major_axis(),
+                                datum.semi_major_axis() == datum.semi_minor_axis() ?
+                                0 : datum.inverse_flattening(),
+                                datum.meridian_name().c_str(),
+                                datum.meridian_offset() );
+
+    char* wkt_str_tmp;
+    gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
+    std::string wkt_str = wkt_str_tmp;
+    OGRFree(wkt_str_tmp);
+
+    return wkt_str;
+  }
+
 #endif // VW_HAVE_PKG_GDAL
 
   /// For a given pixel coordinate, compute the position of that

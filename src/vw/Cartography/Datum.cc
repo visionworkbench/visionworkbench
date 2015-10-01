@@ -45,7 +45,7 @@ vw::cartography::Datum::Datum(std::string const& name,
 
 
 // A wrapper around the GDAL/OGR API for setting the datum. Works for Earth datums.
-void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const&gdal_spatial_ref) {
+void vw::cartography::Datum::set_datum_from_spatial_ref(OGRSpatialReference const& gdal_spatial_ref) {
 
 #if defined(VW_HAVE_PKG_GDAL) && VW_HAVE_PKG_GDAL==1
   const char* datum_name = gdal_spatial_ref.GetAttrValue("DATUM");

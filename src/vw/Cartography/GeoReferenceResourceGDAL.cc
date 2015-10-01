@@ -114,31 +114,7 @@ namespace cartography {
     // without a string of Well Known Text (WKT), so we must conjure
     // up an OGRSpatialReference here and use it to convert from
     // proj.4 to WKT.
-    //
-    // However, we first set the datum parameters in the
-    // ORGSpatialReference object directly.
-    //
-    // For perfect spheres, we set the inverse flattening to
-    // zero. This is making us compliant with OpenGIS Implementation
-    // Specification: CTS 12.3.10.2. In short, we are not allowed to
-    // write infinity as most tools, like ArcGIS, can't read that.
-    OGRSpatialReference gdal_spatial_ref;
-    Datum const& datum = georef.datum();
-    gdal_spatial_ref.importFromProj4(georef.proj4_str().c_str());
-    gdal_spatial_ref.SetGeogCS( "Geographic Coordinate System",
-                                datum.name().c_str(),
-                                datum.spheroid_name().c_str(),
-                                datum.semi_major_axis(),
-                                datum.semi_major_axis() == datum.semi_minor_axis() ?
-                                0 : datum.inverse_flattening(),
-                                datum.meridian_name().c_str(),
-                                datum.meridian_offset() );
-
-    char* wkt_str_tmp;
-    gdal_spatial_ref.exportToWkt(&wkt_str_tmp);
-    std::string wkt_str = wkt_str_tmp;
-    OGRFree(wkt_str_tmp);
-
+    std::string wkt_str = georef.get_wkt();
     dataset->SetProjection( wkt_str.c_str() );
 
     // Set the pixel interpretation for the image.  See the comments
