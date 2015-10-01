@@ -164,20 +164,20 @@ namespace ba {
         for (unsigned m = 0; m < (*(this->m_control_net))[i].size(); ++m) {
           int camera_idx = (*(this->m_control_net))[i][m].image_id();
 
-          Matrix<double> J_a = this->m_model.A_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this-> m_model.B_parameters(i));
-          Matrix<double> J_b = this->m_model.B_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this->m_model.B_parameters(i));
+          Matrix<double> J_a = this->m_model.cam_jacobian(i,camera_idx,
+                                                        this->m_model.cam_params(camera_idx),
+                                                        this-> m_model.point_params(i));
+          Matrix<double> J_b = this->m_model.point_jacobian(i,camera_idx,
+                                                        this->m_model.cam_params(camera_idx),
+                                                        this->m_model.point_params(i));
 
           // Apply robust cost function weighting and populate the error vector
           Vector2 unweighted_error;
           try {
             unweighted_error = (*(this->m_control_net))[i][m].dominant() -
               this->m_model(i, camera_idx,
-                            this->m_model.A_parameters(camera_idx),
-                            this->m_model.B_parameters(i));
+                            this->m_model.cam_params(camera_idx),
+                            this->m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {}
           // Fill in the entries of the sigma matrix with the uncertainty of the observations.
           Matrix2x2 inverse_cov;
@@ -222,9 +222,9 @@ namespace ba {
           Matrix<double> id( num_cam_params, num_cam_params );
           id.set_identity();
 
-          Vector<double> unweighted_error = this->m_model.A_target(j)-this->m_model.A_parameters(j);
+          Vector<double> unweighted_error = this->m_model.cam_target(j)-this->m_model.cam_params(j);
 
-          double S_weight = transpose(unweighted_error) * (this->m_model.A_inverse_covariance(j)) * unweighted_error;
+          double S_weight = transpose(unweighted_error) * (this->m_model.cam_inverse_covariance(j)) * unweighted_error;
           double mu_weight = (t_df + t_dim_cam)/(t_df + S_weight);
 
           robust_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
@@ -244,7 +244,7 @@ namespace ba {
           submatrix(sigma,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params, num_cam_params) = this->m_model.A_inverse_covariance(j);
+                    num_cam_params, num_cam_params) = this->m_model.cam_inverse_covariance(j);
 
           // add the initial constraints on the regular quadratic scale
         }
@@ -257,9 +257,9 @@ namespace ba {
             Matrix<double> id(num_pt_params,num_pt_params);
             id.set_identity();
 
-            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
+            Vector<double> unweighted_error = this->m_model.point_target(i)-this->m_model.point_params(i);
             // Here the J is modified exactly as J was
-            double S_weight = transpose(unweighted_error) * this->m_model.B_inverse_covariance(i) * unweighted_error;
+            double S_weight = transpose(unweighted_error) * this->m_model.point_inverse_covariance(i) * unweighted_error;
             double mu_weight = (t_df + t_dim_pt)/(t_df + S_weight);
 
             robust_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
@@ -277,7 +277,7 @@ namespace ba {
             submatrix(sigma,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params + idx*num_pt_params,
-                      num_pt_params, num_pt_params) = this->m_model.B_inverse_covariance(i);
+                      num_pt_params, num_pt_params) = this->m_model.point_inverse_covariance(i);
 
              ++idx;
           }
@@ -340,8 +340,8 @@ namespace ba {
           try {
             unweighted_error = (*(this->m_control_net))[i][m].dominant() -
               this->m_model(i, camera_idx,
-                            this->m_model.A_parameters(camera_idx)-cam_delta,
-                            this-> m_model.B_parameters(i)-pt_delta);
+                            this->m_model.cam_params(camera_idx)-cam_delta,
+                            this-> m_model.point_params(i)-pt_delta);
           } catch (const camera::PointToPixelErr& e) {}
           Matrix2x2 inverse_cov = submatrix(sigma, 2*idx, 2*idx, 2, 2);
 
@@ -359,9 +359,9 @@ namespace ba {
         for (unsigned j=0; j < num_cameras; ++j) {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
 
-          Vector<double> unweighted_error = this->m_model.A_target(j)- (this->m_model.A_parameters(j) - cam_delta);
+          Vector<double> unweighted_error = this->m_model.cam_target(j)- (this->m_model.cam_params(j) - cam_delta);
 
-          double S_weight = transpose(unweighted_error) * this->m_model.A_inverse_covariance(j) * unweighted_error;
+          double S_weight = transpose(unweighted_error) * this->m_model.cam_inverse_covariance(j) * unweighted_error;
 
            new_objective += 0.5*(t_df + t_dim_cam)*log(1 + S_weight/t_df);
         }
@@ -373,9 +373,9 @@ namespace ba {
           if ((*(this->m_control_net))[i].type() == ControlPoint::GroundControlPoint) {
             Vector<double> pt_delta = subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params);
 
-            Vector<double> unweighted_error = this->m_model.B_target(i)-(this->m_model.B_parameters(i) - pt_delta);
+            Vector<double> unweighted_error = this->m_model.point_target(i)-(this->m_model.point_params(i) - pt_delta);
 
-            double S_weight = transpose(unweighted_error)*this->m_model.B_inverse_covariance(i)*unweighted_error;
+            double S_weight = transpose(unweighted_error)*this->m_model.point_inverse_covariance(i)*unweighted_error;
 
             new_objective += 0.5*(t_df + t_dim_pt)*log(1 + S_weight/t_df);
 
@@ -394,9 +394,9 @@ namespace ba {
       if ( R > 0 ) {
 
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
-          this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) - subvector(delta, num_cam_params*j, num_cam_params));
+          this->m_model.set_cam_params(j, this->m_model.cam_params(j) - subvector(delta, num_cam_params*j, num_cam_params));
         for (unsigned i=0; i<this->m_model.num_points(); ++i)
-          this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
+          this->m_model.set_point_params(i, this->m_model.point_params(i) - subvector(delta, num_cam_params*num_cameras + num_pt_params*i, num_pt_params));
 
 
         if (this->m_control==0){

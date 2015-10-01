@@ -156,20 +156,20 @@ namespace ba {
           size_t i = measure->m_point_id;
 
           matrix_2_camera A =
-            this->m_model.A_jacobian( i, j,
-                                      this->m_model.A_parameters(j),
-                                      this->m_model.B_parameters(i) );
+            this->m_model.cam_jacobian( i, j,
+                                      this->m_model.cam_params(j),
+                                      this->m_model.point_params(i) );
           matrix_2_point B =
-            this->m_model.B_jacobian( i, j,
-                                      this->m_model.A_parameters(j),
-                                      this->m_model.B_parameters(i) );
+            this->m_model.point_jacobian( i, j,
+                                      this->m_model.cam_params(j),
+                                      this->m_model.point_params(i) );
 
           // Apply robust cost function weighting
           Vector2 error;
           try {
             error = measure->m_location -
-              this->m_model(i,j,this->m_model.A_parameters(j),
-                            this->m_model.B_parameters(i) );
+              this->m_model(i,j,this->m_model.cam_params(j),
+                            this->m_model.point_params(i) );
           } catch (const camera::PointToPixelErr& e) {}
 
           if ( error != Vector2() ) {
@@ -200,9 +200,9 @@ namespace ba {
       if ( this->m_use_camera_constraint )
         for ( size_t j = 0; j < U.size(); ++j ) {
           matrix_camera_camera inverse_cov =
-            this->m_model.A_inverse_covariance(j);
+            this->m_model.cam_inverse_covariance(j);
           U[j] += inverse_cov;
-          vector_camera eps_a = this->m_model.A_target(j)-this->m_model.A_parameters(j);
+          vector_camera eps_a = this->m_model.cam_target(j)-this->m_model.cam_params(j);
           error_total += .5  * transpose(eps_a) * inverse_cov * eps_a;
           epsilon_a[j] += inverse_cov * eps_a;
         }
@@ -214,9 +214,9 @@ namespace ba {
         for ( size_t i = 0; i < V.size(); ++i )
           if ((*this->m_control_net)[i].type() == ControlPoint::GroundControlPoint) {
             matrix_point_point inverse_cov;
-            inverse_cov = this->m_model.B_inverse_covariance(i);
+            inverse_cov = this->m_model.point_inverse_covariance(i);
             V[i] += inverse_cov;
-            vector_point eps_b = this->m_model.B_target(i)-this->m_model.B_parameters(i);
+            vector_point eps_b = this->m_model.point_target(i)-this->m_model.point_params(i);
             error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
             epsilon_b[i] += inverse_cov * eps_b;
           }
@@ -430,9 +430,9 @@ namespace ba {
         for ( crn_iter fiter = m_crn[j].begin();
               fiter != m_crn[j].end(); fiter++ ) {
           // Compute error vector
-          vector_camera new_a = this->m_model.A_parameters(j) +
+          vector_camera new_a = this->m_model.cam_params(j) +
             subvector( delta_a, num_cam_params*j, num_cam_params );
-          vector_point new_b = this->m_model.B_parameters((**fiter).m_point_id) +
+          vector_point new_b = this->m_model.point_params((**fiter).m_point_id) +
             subvector( delta_b, num_pt_params*(**fiter).m_point_id, num_pt_params );
 
           // Apply robust cost function weighting
@@ -459,12 +459,12 @@ namespace ba {
       if ( this->m_use_camera_constraint )
         for (size_t j = 0; j < U.size(); ++j) {
 
-          vector_camera new_a = this->m_model.A_parameters(j) +
+          vector_camera new_a = this->m_model.cam_params(j) +
             subvector(delta_a, num_cam_params*j, num_cam_params);
-          vector_camera eps_a = this->m_model.A_target(j)-new_a;
+          vector_camera eps_a = this->m_model.cam_target(j)-new_a;
 
           matrix_camera_camera inverse_cov;
-          inverse_cov = this->m_model.A_inverse_covariance(j);
+          inverse_cov = this->m_model.cam_inverse_covariance(j);
           new_error_total += .5 * transpose(eps_a) * inverse_cov * eps_a;
         }
 
@@ -474,11 +474,11 @@ namespace ba {
           if ( (*this->m_control_net)[i].type() ==
                ControlPoint::GroundControlPoint) {
 
-            vector_point new_b = this->m_model.B_parameters(i) +
+            vector_point new_b = this->m_model.point_params(i) +
               subvector( delta_b, num_pt_params*i, num_pt_params );
-            vector_point eps_b = this->m_model.B_target(i)-new_b;
+            vector_point eps_b = this->m_model.point_target(i)-new_b;
             matrix_point_point inverse_cov;
-            inverse_cov = this->m_model.B_inverse_covariance(i);
+            inverse_cov = this->m_model.point_inverse_covariance(i);
             new_error_total += .5 * transpose(eps_b) * inverse_cov * eps_b;
           }
       time.reset();
@@ -501,10 +501,10 @@ namespace ba {
 
         time.reset(new Timer("Setting Parameters",DebugMessage,"ba"));
         for (size_t j = 0; j < this->m_model.num_cameras(); ++j)
-          this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) +
+          this->m_model.set_cam_params(j, this->m_model.cam_params(j) +
                                          subvector(delta_a, num_cam_params*j,num_cam_params));
         for (size_t i = 0; i < this->m_model.num_points(); ++i)
-          this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) +
+          this->m_model.set_point_params(i, this->m_model.point_params(i) +
                                          subvector(delta_b, num_pt_params*i,num_pt_params));
         time.reset();
 

@@ -286,8 +286,8 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = cmeasure->dominant() -
-              m_model(i, camera_idx,m_model.A_parameters(camera_idx),
-                      m_model.B_parameters(i));
+              m_model(i, camera_idx,m_model.cam_params(camera_idx),
+                      m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {
             vw_out(WarningMessage,"ba") << "Unable to calculate starting error for point";
           }
@@ -305,7 +305,7 @@ namespace ba {
         for (unsigned j=0; j < num_cameras; ++j)
           subvector(epsilon,
                     2*m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = m_model.A_target(j)-m_model.A_parameters(j);
+                    num_cam_params) = m_model.cam_target(j)-m_model.cam_params(j);
 
       // .. and the position of the 3D points to epsilon ...
       if (m_use_gcp_constraint) {
@@ -316,7 +316,7 @@ namespace ba {
         for (unsigned i = 0; i < m_model.num_points(); ++i )
           if ( (*m_control_net)[i].type() == ControlPoint::GroundControlPoint ) {
             subvector( epsilon, idx, num_pt_params) =
-              m_model.B_target(i)-m_model.B_parameters(i);
+              m_model.point_target(i)-m_model.point_params(i);
             idx += num_pt_params;
           }
       }

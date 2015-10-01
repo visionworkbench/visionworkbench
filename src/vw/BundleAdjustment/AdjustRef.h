@@ -148,12 +148,12 @@ namespace ba {
              ++m) {  // Iterate over control measures
           int camera_idx = (*(this->m_control_net))[i][m].image_id();
 
-          Matrix<double> J_a = this->m_model.A_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this->m_model.B_parameters(i));
-          Matrix<double> J_b = this->m_model.B_jacobian(i,camera_idx,
-                                                        this->m_model.A_parameters(camera_idx),
-                                                        this->m_model.B_parameters(i));
+          Matrix<double> J_a = this->m_model.cam_jacobian(i,camera_idx,
+                                                        this->m_model.cam_params(camera_idx),
+                                                        this->m_model.point_params(i));
+          Matrix<double> J_b = this->m_model.point_jacobian(i,camera_idx,
+                                                        this->m_model.cam_params(camera_idx),
+                                                        this->m_model.point_params(i));
 
           // Populate the Jacobian Matrix
           submatrix(J, 2*idx, num_cam_params*camera_idx, 2, num_cam_params) = J_a;
@@ -164,8 +164,8 @@ namespace ba {
           try {
             unweighted_error = (*(this->m_control_net))[i][m].dominant() -
               this->m_model(i, camera_idx,
-                            this->m_model.A_parameters(camera_idx),
-                            this->m_model.B_parameters(i));
+                            this->m_model.cam_params(camera_idx),
+                            this->m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
@@ -202,15 +202,15 @@ namespace ba {
                     j*num_cam_params,
                     num_cam_params,
                     num_cam_params) = id;
-          Vector<double> unweighted_error = this->m_model.A_target(j) -
-            this->m_model.A_parameters(j);
+          Vector<double> unweighted_error = this->m_model.cam_target(j) -
+            this->m_model.cam_params(j);
           subvector(error,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     num_cam_params) = unweighted_error;
           submatrix(sigma,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params, num_cam_params) = this->m_model.A_inverse_covariance(j);
+                    num_cam_params, num_cam_params) = this->m_model.cam_inverse_covariance(j);
         }
 
       // ... and the position of the 3D points to J and error ...
@@ -225,7 +225,7 @@ namespace ba {
                       num_cameras*num_cam_params + idx*num_pt_params,
                       num_pt_params,
                       num_pt_params) = id;
-            Vector<double> unweighted_error = this->m_model.B_target(i)-this->m_model.B_parameters(i);
+            Vector<double> unweighted_error = this->m_model.point_target(i)-this->m_model.point_params(i);
             subvector(error,
                       2*this->m_model.num_pixel_observations() +
                       num_cameras*num_cam_params + idx*num_pt_params,
@@ -235,7 +235,7 @@ namespace ba {
                       num_cameras*num_cam_params + idx*num_pt_params,
                       2*this->m_model.num_pixel_observations() +
                       num_cameras*num_cam_params + idx*num_pt_params,
-                      num_pt_params, num_pt_params) = this->m_model.B_inverse_covariance(i);
+                      num_pt_params, num_pt_params) = this->m_model.point_inverse_covariance(i);
             ++idx;
           }
         }
@@ -285,9 +285,9 @@ namespace ba {
 
       double nsq_x = 0;
       for ( unsigned j=0; j<this->m_model.num_cameras(); ++j )
-        nsq_x += norm_2( this->m_model.A_parameters(j) );
+        nsq_x += norm_2( this->m_model.cam_params(j) );
       for ( unsigned i=0; i<this->m_model.num_points(); ++i )
-        nsq_x += norm_2( this->m_model.B_parameters(i) );
+        nsq_x += norm_2( this->m_model.point_params(i) );
 
       // --- EVALUATE POTENTIAL UPDATE STEP ---
       Vector<double> new_error(num_observations);                  // Error vector
@@ -305,8 +305,8 @@ namespace ba {
           try {
             unweighted_error = (*this->m_control_net)[i][m].dominant() -
               this->m_model(i, camera_idx,
-                            this->m_model.A_parameters(camera_idx)-cam_delta,
-                            this->m_model.B_parameters(i)-pt_delta);
+                            this->m_model.cam_params(camera_idx)-cam_delta,
+                            this->m_model.point_params(i)-pt_delta);
           } catch (const camera::PointToPixelErr& e) {}
           double mag = norm_2(unweighted_error);
           double weight = sqrt(this->m_robust_cost_func(mag)) / mag;
@@ -322,8 +322,8 @@ namespace ba {
           Vector<double> cam_delta = subvector(delta, num_cam_params*j, num_cam_params);
           subvector(new_error,
                     2*this->m_model.num_pixel_observations() + j*num_cam_params,
-                    num_cam_params) = this->m_model.A_target(j)-
-            (this->m_model.A_parameters(j)-cam_delta);
+                    num_cam_params) = this->m_model.cam_target(j)-
+            (this->m_model.cam_params(j)-cam_delta);
         }
 
       // ... and the position of the 3D points to J and error ...
@@ -336,8 +336,8 @@ namespace ba {
             subvector(new_error,
                       2*this->m_model.num_pixel_observations() + num_cameras*num_cam_params +
                       idx*num_pt_params,
-                      num_pt_params) = this->m_model.B_target(i)-
-              (this->m_model.B_parameters(i)-pt_delta);
+                      num_pt_params) = this->m_model.point_target(i)-
+              (this->m_model.point_params(i)-pt_delta);
             ++idx;
           }
         }
@@ -356,10 +356,10 @@ namespace ba {
       if (R > 0) {
 
         for (unsigned j=0; j<this->m_model.num_cameras(); ++j)
-          this->m_model.set_A_parameters(j, this->m_model.A_parameters(j) -
+          this->m_model.set_cam_params(j, this->m_model.cam_params(j) -
                                          subvector(delta, num_cam_params*j, num_cam_params));
         for (unsigned i=0; i<this->m_model.num_points(); ++i)
-          this->m_model.set_B_parameters(i, this->m_model.B_parameters(i) -
+          this->m_model.set_point_params(i, this->m_model.point_params(i) -
                                          subvector(delta, num_cam_params*num_cameras + num_pt_params*i,
                                                    num_pt_params));
 
