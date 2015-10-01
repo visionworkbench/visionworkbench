@@ -42,8 +42,8 @@ class TestBAModel : public ba::ModelBase< TestBAModel, 6, 3 > {
 
   std::vector< boost::shared_ptr<PinholeModel> > m_cameras;
   boost::shared_ptr<ControlNetwork> m_cnet;
-  std::vector<camera_vector_t> m_cam_vec, cam_target_vec;
-  std::vector<point_vector_t> b, point_target_vec;
+  std::vector<camera_vector_t> m_cam_vec, m_cam_target_vec;
+  std::vector<point_vector_t> m_point_vec, m_point_target_vec;
   size_t m_num_pixel_observations;
 
 public:
@@ -56,20 +56,20 @@ public:
     for (size_t i = 0; i < network->size(); ++i)
       m_num_pixel_observations += (*network)[i].size();
 
-    // Setting up the A vectors
+    // Setting up the camera vectors
     m_cam_vec.resize( m_cameras.size() );
-    cam_target_vec.resize( m_cam_vec.size() );
+    m_cam_target_vec.resize( m_cam_vec.size() );
     for ( size_t j = 0; j < m_cameras.size(); j++ ) {
       m_cam_vec[j] = camera_vector_t();
-      cam_target_vec[j] = m_cam_vec[j];
+      m_cam_target_vec[j] = m_cam_vec[j];
     }
 
-    // Setting up the B vectors
-    b.resize( m_cnet->size() );
-    point_target_vec.resize( b.size() );
+    // Setting up the point vectors
+    m_point_vec.resize( m_cnet->size() );
+    m_point_target_vec.resize( m_point_vec.size() );
     for ( size_t i = 0; i < m_cnet->size(); i++ ) {
-      b[i] = (*m_cnet)[i].position();
-      point_target_vec[i] = b[i];
+      m_point_vec[i] = (*m_cnet)[i].position();
+      m_point_target_vec[i] = m_point_vec[i];
     }
 
   }
@@ -102,14 +102,14 @@ public:
   }
 
   size_t num_cameras() const { return m_cam_vec.size(); }
-  size_t num_points() const { return b.size(); }
+  size_t num_points() const { return m_point_vec.size(); }
   camera_vector_t cam_params( size_t j ) const { return m_cam_vec[j]; }
-  point_vector_t point_params( size_t i ) const { return b[i]; }
-  camera_vector_t cam_target( size_t j ) const { return cam_target_vec[j]; }
-  point_vector_t point_target( size_t i ) const { return point_target_vec[i]; }
+  point_vector_t point_params( size_t i ) const { return m_point_vec[i]; }
+  camera_vector_t cam_target( size_t j ) const { return m_cam_target_vec[j]; }
+  point_vector_t point_target( size_t i ) const { return m_point_target_vec[i]; }
   size_t num_pixel_observations() const { return m_num_pixel_observations; }
   void set_cam_params(size_t j, camera_vector_t const& cam_j) { m_cam_vec[j] = cam_j; }
-  void set_point_params(size_t i, point_vector_t const& point_i) { b[i] = point_i; }
+  void set_point_params(size_t i, point_vector_t const& point_i) { m_point_vec[i] = point_i; }
 
   boost::shared_ptr<ControlNetwork> control_network(void) {
     return m_cnet; }

@@ -572,8 +572,8 @@ class BundleAdjustmentModel : public ba::ModelBase<BundleAdjustmentModel, 6, 3> 
   // -- that might be a pain).
   std::vector<camera_vector_t> m_cam_vec; // camera parameter adjustments
   std::vector<point_vector_t>  b; // point coordinates
-  std::vector<camera_vector_t> cam_target_vec;
-  std::vector<point_vector_t>  point_target_vec;
+  std::vector<camera_vector_t> m_cam_target_vec;
+  std::vector<point_vector_t>  m_point_target_vec;
   int m_num_pixel_observations;
 
   double m_camera_position_sigma;
@@ -594,8 +594,8 @@ public:
     m_network(network),
     m_cam_vec(cameras.size()),
     b(network->size()),
-    cam_target_vec(cameras.size()),
-    point_target_vec(network->size()),
+    m_cam_target_vec(cameras.size()),
+    m_point_target_vec(network->size()),
     m_camera_position_sigma(camera_position_sigma),
     m_camera_pose_sigma(camera_pose_sigma),
     m_gcp_sigma(gcp_sigma)
@@ -616,15 +616,15 @@ public:
     for (unsigned i = 0; i < network->size(); ++i)
       m_num_pixel_observations += (*network)[i].size();
 
-    // m_cam_vec and cam_target_vec start off with every element all zeros.
+    // m_cam_vec and m_cam_target_vec start off with every element all zeros.
     for (unsigned j = 0; j < m_cameras.size(); ++j) {
-      cam_target_vec[j] = camera_vector_t();
+      m_cam_target_vec[j] = camera_vector_t();
       m_cam_vec[j]         = camera_vector_t();
     }
 
-    // b and point_target_vec start off with the initial positions of the 3d points
+    // b and m_point_target_vec start off with the initial positions of the 3d points
     for (unsigned i = 0; i < network->size(); ++i) {
-      point_target_vec[i] = point_vector_t((*m_network)[i].position());
+      m_point_target_vec[i] = point_vector_t((*m_network)[i].position());
       b[i]         = point_vector_t((*m_network)[i].position());
     }
   }
@@ -633,11 +633,11 @@ public:
 /* {{{ camera, point and pixel accessors */
   // Return a reference to the camera and point parameters.
   camera_vector_t cam_params(int j) const { return m_cam_vec[j]; }
-  camera_vector_t cam_target(int j)    const { return cam_target_vec[j]; }
+  camera_vector_t cam_target(int j)    const { return m_cam_target_vec[j]; }
   void set_cam_params(int j, camera_vector_t const& cam_j) { m_cam_vec[j] = cam_j; }
 
   point_vector_t point_params(int i) const { return b[i]; }
-  point_vector_t point_target(int i)    const { return point_target_vec[i]; }
+  point_vector_t point_target(int i)    const { return m_point_target_vec[i]; }
   void set_point_params(int i, point_vector_t const& point_i) { b[i] = point_i; }
 
   CameraVector cameras() { return m_cameras; }
@@ -741,7 +741,7 @@ public:
   void camera_position_errors( std::vector<double>& camera_position_errors ) {
     camera_position_errors.clear();
     for (unsigned j=0; j < this->num_cameras(); ++j) {
-      Vector3 position_initial = subvector(cam_target_vec[j],0,3);
+      Vector3 position_initial = subvector(m_cam_target_vec[j],0,3);
       Vector3 position_now = subvector(m_cam_vec[j],0,3);
       camera_position_errors.push_back(norm_2(position_initial-position_now));
     }
@@ -752,7 +752,7 @@ public:
   void camera_pose_errors( std::vector<double>& camera_pose_errors ) {
     camera_pose_errors.clear();
     for (unsigned j=0; j < this->num_cameras(); ++j) {
-      Vector3 pi = subvector(cam_target_vec[j],3,3);
+      Vector3 pi = subvector(m_cam_target_vec[j],3,3);
       Vector3 pn = subvector(m_cam_vec[j],3,3);
       Quaternion<double> pose_initial = vw::math::euler_to_quaternion(pi[0],pi[1],pi[2],"xyz");
       Quaternion<double> pose_now = vw::math::euler_to_quaternion(pn[0],pn[1],pn[2],"xyz");
@@ -771,7 +771,7 @@ public:
     gcp_errors.clear();
     for (unsigned i=0; i < this->num_points(); ++i) {
       if ((*m_network)[i].type() == ControlPoint::GroundControlPoint)
-        gcp_errors.push_back(norm_2(point_target_vec[i] - b[i]));
+        gcp_errors.push_back(norm_2(m_point_target_vec[i] - b[i]));
     }
   }
 /* }}} */
