@@ -570,7 +570,7 @@ class BundleAdjustmentModel : public ba::ModelBase<BundleAdjustmentModel, 6, 3> 
   // Then writing out the final world points would skip points with < 2
   // measures (and the constructor for the new model would have to do the same
   // -- that might be a pain).
-  std::vector<camera_vector_t> a; // camera parameter adjustments
+  std::vector<camera_vector_t> m_cam_vec; // camera parameter adjustments
   std::vector<point_vector_t>  b; // point coordinates
   std::vector<camera_vector_t> cam_target_vec;
   std::vector<point_vector_t>  point_target_vec;
@@ -592,7 +592,7 @@ public:
                         double const gcp_sigma) :
     m_cameras(cameras),
     m_network(network),
-    a(cameras.size()),
+    m_cam_vec(cameras.size()),
     b(network->size()),
     cam_target_vec(cameras.size()),
     point_target_vec(network->size()),
@@ -616,10 +616,10 @@ public:
     for (unsigned i = 0; i < network->size(); ++i)
       m_num_pixel_observations += (*network)[i].size();
 
-    // a and cam_target_vec start off with every element all zeros.
+    // m_cam_vec and cam_target_vec start off with every element all zeros.
     for (unsigned j = 0; j < m_cameras.size(); ++j) {
       cam_target_vec[j] = camera_vector_t();
-      a[j]         = camera_vector_t();
+      m_cam_vec[j]         = camera_vector_t();
     }
 
     // b and point_target_vec start off with the initial positions of the 3d points
@@ -632,16 +632,16 @@ public:
 
 /* {{{ camera, point and pixel accessors */
   // Return a reference to the camera and point parameters.
-  camera_vector_t cam_params(int j) const { return a[j]; }
+  camera_vector_t cam_params(int j) const { return m_cam_vec[j]; }
   camera_vector_t cam_target(int j)    const { return cam_target_vec[j]; }
-  void set_cam_params(int j, camera_vector_t const& cam_j) { a[j] = cam_j; }
+  void set_cam_params(int j, camera_vector_t const& cam_j) { m_cam_vec[j] = cam_j; }
 
   point_vector_t point_params(int i) const { return b[i]; }
   point_vector_t point_target(int i)    const { return point_target_vec[i]; }
   void set_point_params(int i, point_vector_t const& point_i) { b[i] = point_i; }
 
   CameraVector cameras() { return m_cameras; }
-  unsigned num_cameras() const { return a.size(); }
+  unsigned num_cameras() const { return m_cam_vec.size(); }
   unsigned num_points()  const { return b.size(); }
   unsigned num_pixel_observations() const { return m_num_pixel_observations; }
 /* }}} */
@@ -657,7 +657,7 @@ public:
   }
 /* }}} */
 
-/* {{{ A and B inverse covariance */
+/* {{{ camera and point inverse covariance */
   // Return the covariance of the camera parameters for camera j.
   inline Matrix<double,camera_params_n,camera_params_n>
   cam_inverse_covariance ( unsigned /*j*/ ) const
@@ -687,7 +687,7 @@ public:
 
 /* {{{ operator() overload */
 
-  // Given the 'a' vector (camera model parameters) for the j'th
+  // Given the 'cam_j' vector (camera model parameters) for the j'th
   // image, and the 'b' vector (3D point location) for the i'th
   // point, return the location of point_i on imager j in pixel
   // coordinates.
@@ -704,8 +704,8 @@ public:
 
 /* {{{ write_adjustment */
   void write_adjustment(int j, std::string const& filename) const {
-    Vector3 position_correction = subvector(a[j],0,3);
-    Vector3 p = subvector(a[j],3,3);
+    Vector3 position_correction = subvector(m_cam_vec[j],0,3);
+    Vector3 p = subvector(m_cam_vec[j],3,3);
     Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2], "xyz");
     write_adjustments(filename, position_correction, pose_correction);
   }
@@ -715,8 +715,8 @@ public:
   CameraVector adjusted_cameras() const {
     CameraVector result(m_cameras.size());
     for (unsigned j = 0; j < result.size(); ++j) {
-      Vector3 position_correction = subvector(a[j],0,3);
-      Vector3 p = subvector(a[j],3,3);
+      Vector3 position_correction = subvector(m_cam_vec[j],0,3);
+      Vector3 p = subvector(m_cam_vec[j],3,3);
       Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2], "xyz");
       result[j] = boost::shared_ptr<camera::CameraModel>(
           new AdjustedCameraModel( m_cameras[j], position_correction, pose_correction ) );
@@ -732,7 +732,7 @@ public:
     for (unsigned i = 0; i < m_network->size(); ++i)
       for(unsigned m = 0; m < (*m_network)[i].size(); ++m) {
         int camera_idx = (*m_network)[i][m].image_id();
-        Vector2 pixel_error = (*m_network)[i][m].position() - (*this)(i, camera_idx, a[camera_idx],b[i]);
+        Vector2 pixel_error = (*m_network)[i][m].position() - (*this)(i, camera_idx, m_cam_vec[camera_idx],b[i]);
         pix_errors.push_back(norm_2(pixel_error));
       }
   }
@@ -742,7 +742,7 @@ public:
     camera_position_errors.clear();
     for (unsigned j=0; j < this->num_cameras(); ++j) {
       Vector3 position_initial = subvector(cam_target_vec[j],0,3);
-      Vector3 position_now = subvector(a[j],0,3);
+      Vector3 position_now = subvector(m_cam_vec[j],0,3);
       camera_position_errors.push_back(norm_2(position_initial-position_now));
     }
   }
@@ -753,7 +753,7 @@ public:
     camera_pose_errors.clear();
     for (unsigned j=0; j < this->num_cameras(); ++j) {
       Vector3 pi = subvector(cam_target_vec[j],3,3);
-      Vector3 pn = subvector(a[j],3,3);
+      Vector3 pn = subvector(m_cam_vec[j],3,3);
       Quaternion<double> pose_initial = vw::math::euler_to_quaternion(pi[0],pi[1],pi[2],"xyz");
       Quaternion<double> pose_now = vw::math::euler_to_quaternion(pn[0],pn[1],pn[2],"xyz");
 
@@ -780,9 +780,9 @@ public:
   void write_adjusted_cameras_append(fs::path const& filename, fs::path const &dir) {
     fs::ofstream ostr(dir / filename,std::ios::app);
 
-    for (unsigned j=0; j < a.size();++j) {
-      Vector3 position_correction = subvector(a[j],0,3);
-      //Vector3 p = subvector(a[j],3,3);
+    for (unsigned j=0; j < m_cam_vec.size();++j) {
+      Vector3 position_correction = subvector(m_cam_vec[j],0,3);
+      //Vector3 p = subvector(m_cam_vec[j],3,3);
       //Quaternion<double> pose_correction = vw::math::euler_to_quaternion(p[0], p[1], p[2],"xyz");
 
       camera::CAHVORModel cam;
