@@ -378,6 +378,12 @@ namespace cartography {
     Datum datum;
     datum.set_datum_from_spatial_ref(gdal_spatial_ref);
 
+    // Set the datum in the georef. Until now the georef may have been
+    // completely invalid, so we need to do this step now to avoid
+    // problems later on.  We'll keep on tweaking things and set the
+    // datum again later one more time.
+    this->set_datum(datum);
+
     // Read projection information out of the file
     char* proj_str_tmp;
     gdal_spatial_ref.exportToProj4(&proj_str_tmp);
@@ -444,6 +450,8 @@ namespace cartography {
     if ( boost::trim_copy(datum_proj4_ss.str()) == "" )
       datum_proj4_ss << datum.proj4_str();
     datum.proj4_str() = boost::trim_copy(datum_proj4_ss.str());
+
+    // Setting the fully processed datum
     set_datum(datum);
   }
 
