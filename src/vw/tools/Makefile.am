@@ -163,21 +163,6 @@ gpu_correlate_SOURCES = gpu_correlate.cc
 gpu_correlate_LDADD = @PKG_GPU_LIBS@ $(COMMON_LIBS)
 endif
 
-# Bundle adjustment test programs
-if MAKE_MODULE_CAMERA
-if MAKE_MODULE_STEREO
-if MAKE_MODULE_INTERESTPOINT
-if MAKE_MODULE_BUNDLEADJUSTMENT
-batest_progs = ba_test make_ba_test_data
-ba_test_SOURCES = ba_test.cc
-ba_test_LDADD = @PKG_BUNDLEADJUSTMENT_LIBS@ $(COMMON_LIBS)
-make_ba_test_data_SOURCES = make_ba_test_data.cc
-make_ba_test_data_LDADD = @PKG_BUNDLEADJUSTMENT_LIBS@ $(COMMON_LIBS)
-endif
-endif
-endif
-endif
-
 # Contour generation program
 if HAVE_PKG_CAIROMM
 contourgen_progs = contourgen
@@ -197,8 +182,7 @@ bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
                $(contourgen_progs)
 
-noinst_PROGRAMS      = $(doc_generate_progs) $(batest_progs)
-dist_noinst_SCRIPTS  = ba_unit_test run_ba_tests
+noinst_PROGRAMS      = $(doc_generate_progs)
 
 endif
 
@@ -208,8 +192,6 @@ endif
 
 AM_CPPFLAGS = @VW_CPPFLAGS@
 AM_LDFLAGS = @VW_LDFLAGS@
-
-EXTRA_DIST = run_ba_tests_lib ba_test.cfg.example ba_test_plan.txt.example
 
 includedir = $(prefix)/include/vw/tools
 
