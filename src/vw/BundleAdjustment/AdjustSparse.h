@@ -168,7 +168,7 @@ namespace ba {
           Vector2 error;
           try {
             error = measure->m_location -
-              this->m_model(i,j,this->m_model.cam_params(j),
+              this->m_model.cam_pixel(i,j,this->m_model.cam_params(j),
                             this->m_model.point_params(i) );
           } catch (const camera::PointToPixelErr& e) {}
 
@@ -439,7 +439,7 @@ namespace ba {
           Vector2 error;
           try {
             error = (**fiter).m_location -
-              this->m_model((**fiter).m_point_id,j,new_a,new_b);
+              this->m_model.cam_pixel((**fiter).m_point_id,j,new_a,new_b);
           } catch (const camera::PointToPixelErr& e) {}
           double mag = norm_2( error );
           double weight = sqrt( this->m_robust_cost_func(mag)) / mag;

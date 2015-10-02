@@ -264,7 +264,7 @@ namespace ba {
           BOOST_FOREACH( ControlMeasure const& cm, cp ) {
             try{
               image_cdf(m_model.image_compare(cm.position(),
-                                              m_model(cp_index,cm.image_id(),
+                                              m_model.cam_pixel(cp_index,cm.image_id(),
                                                       m_model.cam_params(cm.image_id()),
                                                       m_model.point_params(cp_index))));
             } catch(const camera::PointToPixelErr& e) {

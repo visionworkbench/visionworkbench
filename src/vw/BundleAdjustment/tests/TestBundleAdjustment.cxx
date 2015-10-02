@@ -77,9 +77,9 @@ public:
   // -- REQUIRED STUFF ---------------------------------------
 
   // Access to the cameras
-  Vector2 operator() ( size_t /*i*/, size_t j,
-                       camera_vector_t const& cam_j,
-                       point_vector_t const& point_i ) const {
+  Vector2 cam_pixel(size_t /*i*/, size_t j,
+		    camera_vector_t const& cam_j,
+		    point_vector_t const& point_i ) const {
     // Quaternions are the last half of this equation
     AdjustedCameraModel cam( m_cameras[j],
                              subvector(cam_j,0,3),

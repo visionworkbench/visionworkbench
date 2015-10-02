@@ -286,7 +286,7 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = cmeasure->dominant() -
-              m_model(i, camera_idx,m_model.cam_params(camera_idx),
+              m_model.cam_pixel(i, camera_idx,m_model.cam_params(camera_idx),
                       m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {
             vw_out(WarningMessage,"ba") << "Unable to calculate starting error for point";

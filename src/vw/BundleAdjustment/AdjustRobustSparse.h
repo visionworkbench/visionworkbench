@@ -172,7 +172,7 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = (**fiter).m_location -
-              this->m_model(i,j,this->m_model.cam_params(j),
+              this->m_model.cam_pixel(i,j,this->m_model.cam_params(j),
                             this->m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {}
 
@@ -448,7 +448,7 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = (**fiter).m_location -
-              this->m_model(i,j,new_a,new_b);
+              this->m_model.cam_pixel(i,j,new_a,new_b);
           } catch (const camera::PointToPixelErr& e) {}
 
           Matrix2x2 inverse_cov;

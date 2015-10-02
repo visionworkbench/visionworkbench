@@ -55,10 +55,10 @@ namespace ba {
     /// \endcond
 
     // Required access to camera
-    Vector2 operator() ( size_t i, size_t j,
+    Vector2 cam_pixel ( size_t i, size_t j,
                          Vector<double,camera_params_n> const& cam_j,
                          Vector<double,point_params_n> const& point_i ) {
-      return impl()(i,j,cam_j,point_i);
+      return impl().cam_pixel(i,j,cam_j,point_i);
     }
 
     // Approximate the jacobian for small variations in the cam_j
@@ -73,7 +73,7 @@ namespace ba {
       Vector2 h0;
       try {
         // Get nominal function value
-        h0 = impl()(i,j,cam_j,point_i);
+        h0 = impl().cam_pixel(i,j,cam_j,point_i);
       } catch (const camera::PointToPixelErr& e) {
         // Unable to project this point into the camera, so abort!
         return J;
@@ -91,7 +91,7 @@ namespace ba {
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
         try {
-          Vector2 hi = impl()(i,j,cam_j_prime, point_i);
+          Vector2 hi = impl().cam_pixel(i,j,cam_j_prime, point_i);
           select_col(J,n) = (hi-h0)/epsilon;
         } catch (const camera::PointToPixelErr& e) {
           select_col(J,n) = Vector2();
@@ -113,7 +113,7 @@ namespace ba {
       Vector2 h0;
       try {
         // Get nominal function value
-        h0 = impl()(i,j,cam_j, point_i);
+        h0 = impl().cam_pixel(i,j,cam_j, point_i);
       } catch (const camera::PointToPixelErr& e) {
         // Unable to project this point into the camera so abort!
         return J;
@@ -131,7 +131,7 @@ namespace ba {
         // Evaluate function with this step and compute the derivative
         // w.r.t. parameter i
         try {
-          Vector2 hi = impl()(i,j,cam_j,point_i_prime);
+          Vector2 hi = impl().cam_pixel(i,j,cam_j,point_i_prime);
           select_col(J,n) = (hi-h0)/epsilon;
         } catch (const camera::PointToPixelErr& e) {
           select_col(J,n) = Vector2();

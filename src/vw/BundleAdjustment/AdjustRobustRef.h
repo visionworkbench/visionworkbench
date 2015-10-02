@@ -175,7 +175,7 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = (*(this->m_control_net))[i][m].dominant() -
-              this->m_model(i, camera_idx,
+              this->m_model.cam_pixel(i, camera_idx,
                             this->m_model.cam_params(camera_idx),
                             this->m_model.point_params(i));
           } catch (const camera::PointToPixelErr& e) {}
@@ -339,7 +339,7 @@ namespace ba {
           Vector2 unweighted_error;
           try {
             unweighted_error = (*(this->m_control_net))[i][m].dominant() -
-              this->m_model(i, camera_idx,
+              this->m_model.cam_pixel(i, camera_idx,
                             this->m_model.cam_params(camera_idx)-cam_delta,
                             this-> m_model.point_params(i)-pt_delta);
           } catch (const camera::PointToPixelErr& e) {}
