@@ -143,6 +143,22 @@ namespace math {
     }
   };
 
+  /// Set all elements in a Vector to a value, but also safe for some other types.
+  /// - For VectorBase derived types, this calls the set_all function.
+  /// - For all other types, this just tries a regular assignment operation.
+  /// - If more types need to be suppported more boost wizardry will be required.
+  template <class VectorT>
+  typename boost::enable_if<typename boost::is_base_of<VectorBase<VectorT>,VectorT>::type, void>::type
+  set_all( VectorT &vec, typename VectorT::value_type val ) {
+    vec.set_all(val);
+  }
+  // Handle other types
+  template <class ElemT1, class ElemT2>
+  typename boost::disable_if<typename boost::is_base_of<VectorBase<ElemT1>,ElemT1>::type, void>::type
+  set_all( ElemT1 &val1, ElemT2 val2 ) {
+    val1 = val2;
+  }
+
   // *******************************************************************
   // class IndexingVectorIterator<VectorT>
   // A general purpose vector iterator type.
@@ -217,39 +233,34 @@ namespace math {
       VectorClearImpl<Vector>::clear(*this);
     }
 
-    /// Constructs a vector whose first element is as given.
+    /// Constructor for size 1 vectors
     Vector( ElemT e1 ) {
-      BOOST_STATIC_ASSERT( SizeN >= 1 );
+      BOOST_STATIC_ASSERT( SizeN == 1 );
       (*this)[0] = e1;
-      for( size_t i=1; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
-    /// Constructs a vector whose first two elements are as given.
+    /// Constructor for size 2 vectors
     Vector( ElemT e1, ElemT e2 ) {
-      BOOST_STATIC_ASSERT( SizeN >= 2 );
-      core_[0] = e1; core_[1] = e2;
-      for( size_t i=2; i<SizeN; ++i ) (*this)[i] = ElemT();
+      BOOST_STATIC_ASSERT( SizeN == 2 );
+      (*this)[0] = e1; (*this)[1] = e2;
     }
 
-    /// Constructs a vector whose first three elements are as given.
+    /// Constructor for size 3 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3 ) {
-      BOOST_STATIC_ASSERT( SizeN >= 3 );
+      BOOST_STATIC_ASSERT( SizeN == 3 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3;
-      for( size_t i=3; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
-    /// Constructs a vector whose first four elements are as given.
+    /// Constructor for size 4 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4 ) {
-      BOOST_STATIC_ASSERT( SizeN >= 4 );
+      BOOST_STATIC_ASSERT( SizeN == 4 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4;
-      for( size_t i=4; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
-    /// Constructs a vector whose first five elements are as given.
+    /// Constructor for size 5 vectors
     Vector( ElemT e1, ElemT e2, ElemT e3, ElemT e4, ElemT e5 ) {
-      BOOST_STATIC_ASSERT( SizeN >= 5 );
+      BOOST_STATIC_ASSERT( SizeN == 5 );
       (*this)[0] = e1; (*this)[1] = e2; (*this)[2] = e3; (*this)[3] = e4; (*this)[4] = e5;
-      for( size_t i=5; i<SizeN; ++i ) (*this)[i] = ElemT();
     }
 
     /// Constructs a vector from given densely-packed data.  This
@@ -302,6 +313,14 @@ namespace math {
     /// Change the size of the vector. Elements in memory are preserved when specified.
     void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot change size of fixed-size Vector." );
+    }
+
+    /// Set all vector elements to a single value
+    /// - If we care in the future, we could speed this up using a helper
+    ///   implementation struct similar to VectorAssignImpl
+    void set_all( ElemT val ) {
+      for (size_t i=0; i<SizeN; ++i)
+        core_[i] = val;
     }
 
           reference_type operator()( size_t i )       { return core_[i]; }
@@ -462,6 +481,12 @@ namespace math {
       core_.resize(new_size, preserve);
     }
 
+    /// Set all vector elements to a single value
+    void set_all( ElemT val ) {
+      for (size_t i=0; i<core_.size(); ++i)
+        core_[i] = val;
+    }
+
           reference_type operator()( size_t i )       { return core_[i]; }
     const_reference_type operator()( size_t i ) const { return core_[i]; }
           reference_type operator[]( size_t i )       { return core_[i]; }
@@ -532,6 +557,11 @@ namespace math {
     /// Change the size of the vector. Elements in memory are preserved when specified.
     void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
+    }
+
+    void set_all( ElemT val ) {
+      for (size_t i=0; i<SizeN; ++i)
+        m_ptr[i] = val;
     }
 
           reference_type operator()( size_t i )       { return m_ptr[i]; }
@@ -616,6 +646,11 @@ namespace math {
     /// Change the size of the vector. Elements in memory are preserved when specified.
     void set_size( size_t new_size, bool /*preserve*/ = false ) {
       VW_ASSERT( new_size==size(), ArgumentErr() << "Cannot resize a vector proxy." );
+    }
+
+    void set_all( ElemT val ) {
+      for (size_t i=0; i<m_size; ++i)
+        m_ptr[i] = val;
     }
 
           reference_type operator()( size_t i )       { return m_ptr[i]; }
@@ -777,10 +812,16 @@ namespace math {
       return *this;
     }
 
+
     VectorT      & child()       { return m_vector; }
     VectorT const& child() const { return m_vector; }
 
     size_t size() const { return m_size; }
+
+    void set_all( value_type val ) {
+      for (size_t i=0; i<m_size; ++i)
+        this->operator()(i) = val;
+    }
 
           reference_type operator()( size_t i )       { return child()(m_pos+i); }
     const_reference_type operator()( size_t i ) const { return child()(m_pos+i); }
@@ -1580,6 +1621,7 @@ namespace math {
   using math::Vector;
   using math::VectorBase;
   using math::VectorProxy;
+  using math::set_all;
   typedef Vector<float64,2> Vector2;
   typedef Vector<float64,3> Vector3;
   typedef Vector<float64,4> Vector4;

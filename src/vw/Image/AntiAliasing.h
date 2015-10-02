@@ -33,18 +33,18 @@ namespace vw {
   // accessing disk too often.
   template <class ImageT>
   class CacheTileAwareView : public vw::ImageViewBase< CacheTileAwareView<ImageT> > {
-    ImageT m_child;
+    ImageT       m_child;
     vw::Vector2i m_tile_size;
 
   public:
-    typedef typename ImageT::pixel_type pixel_type;
-    typedef typename ImageT::result_type result_type;
+    typedef typename ImageT::pixel_type     pixel_type;
+    typedef typename ImageT::result_type    result_type;
     typedef typename ImageT::pixel_accessor pixel_accessor;
 
     CacheTileAwareView( ImageT const& image, vw::Vector2i tile_size ) : m_child( image ), m_tile_size( tile_size ) {}
 
-    inline vw::int32 cols() const { return m_child.cols(); }
-    inline vw::int32 rows() const { return m_child.rows(); }
+    inline vw::int32 cols  () const { return m_child.cols  (); }
+    inline vw::int32 rows  () const { return m_child.rows  (); }
     inline vw::int32 planes() const { return m_child.planes(); }
 
     inline pixel_accessor origin() const { return m_child.origin(); }
@@ -87,7 +87,7 @@ namespace vw {
   // processing in the in the event of a great reduction.
   template <class ImageT>
   class WeightedSummationView : public vw::ImageViewBase<WeightedSummationView<ImageT> > {
-    ImageT m_image;
+    ImageT    m_image;
     vw::int32 m_reduce_amt;
 
   public:
@@ -98,8 +98,8 @@ namespace vw {
     WeightedSummationView( ImageT const& image, vw::int32 reduce_amt ) : m_image(image), m_reduce_amt(reduce_amt) {}
 
     // Standard info
-    inline vw::int32 cols() const { return m_image.cols(); }
-    inline vw::int32 rows() const { return m_image.rows(); }
+    inline vw::int32 cols  () const { return m_image.cols  (); }
+    inline vw::int32 rows  () const { return m_image.rows  (); }
     inline vw::int32 planes() const { return m_image.planes(); }
     inline pixel_accessor origin() const { return pixel_accessor( *this ); }
 
@@ -125,8 +125,8 @@ namespace vw {
 
       typedef typename SumType<unmasked_type, unmasked_type >::type sum_type;
       typedef typename ImageView<pixel_type>::pixel_accessor IPA;
-      typedef typename ImageView<sum_type>::pixel_accessor WPA;
-      typedef typename ImageView<int32>::pixel_accessor CPA;
+      typedef typename ImageView<sum_type>::pixel_accessor   WPA;
+      typedef typename ImageView<int32>::pixel_accessor      CPA;
 
       BBox2i child_bbox = bbox;
       child_bbox.max() += Vector2i( m_reduce_amt - 1,
@@ -147,7 +147,8 @@ namespace vw {
           WPA wcol = wrow;
           CPA ccol = crow;
 
-          sum_type sum = 0.0;
+          sum_type sum;
+          set_all(sum, 0);
           validate( sum ); // redundant
 
           int32 count = 0;
@@ -201,7 +202,8 @@ namespace vw {
           CPA crow_lookahead = ccol;
           IPA orow = ocol;
 
-          sum_type sum = 0.0;
+          sum_type sum;
+          set_all(sum, 0);
           validate( sum ); // redundant
 
           int32 count = 0;
@@ -270,7 +272,8 @@ namespace vw {
       typedef typename SumType<typename PixelAccessorT::pixel_type,
                                typename PixelAccessorT::pixel_type >::type sum_type;
 
-      sum_type sum = 0.0;
+      sum_type sum;
+      set_all(sum, 0);
       validate( sum ); // redundant
 
       int32 count = 0;

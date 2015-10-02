@@ -1155,7 +1155,7 @@ namespace stereo {
       int32 ci = i << 1; int32 cj = j << 1;
       typedef typename AccumulatorType<typename PixelChannelType<result_type>::type>::type cnt_type;
       typedef typename CompoundChannelCast<result_type, cnt_type>::type bff_type;
-      bff_type buffer = 0;
+      bff_type buffer;
       cnt_type count = 0;
       if ( is_valid( m_child(ci,cj,p) ) ) {
         count+=10; buffer += 10*bff_type(m_child(ci,cj,p));

@@ -56,10 +56,9 @@ protected:
 
     starting_disp.set_size(IMAGE_SIZE,IMAGE_SIZE);
     for ( int32 i = 0; i < IMAGE_SIZE ; i++ ) {
-      int32 disparity =
-        boost::numeric_cast<int32>(stretch * i + translation - i);
+      int32 disparity = boost::numeric_cast<int32>(stretch * i + translation - i);
       for ( int32 j = 0; j < IMAGE_SIZE; j++ )
-        starting_disp(i,j) = disparity;
+        starting_disp(i,j) = Vector2f(disparity, 0);
     }
   }
 

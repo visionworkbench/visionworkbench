@@ -50,13 +50,12 @@ namespace vw {
     typedef typename CompoundChannelType<ChildT>::type channel_type;
 
   private:
-    ChildT m_child;
+    ChildT       m_child;
     channel_type m_valid;
 
   public:
 
-    // Default constructor (zero value).  Pixel is not valid by
-    // default.
+    // Default constructor (zero value).  Pixel is not valid by default.
     PixelMask() {
       m_child = ChildT();
       m_valid = ChannelRange<channel_type>::min();
@@ -118,7 +117,7 @@ namespace vw {
     }
 
     /// Returns the child pixel type
-    ChildT & child() { return m_child; }
+    ChildT      & child()       { return m_child; }
     ChildT const& child() const { return m_child; }
 
     /// Automatic down-cast to the raw channel value in numeric
@@ -630,20 +629,24 @@ namespace vw {
 
   // ******************************************************************
   // Special Quotient Safe Functors for Pixel Mask types
+  /// result = arg1 / arg2, if arg2==0 then result = 0.
   struct ArgArgMaskedSafeQuotientFunctor : BinaryReturnTemplateType<QuotientType> {
     template <class Arg1T, class Arg2T>
     inline typename QuotientType<PixelMask<Arg1T>, PixelMask<Arg2T> >::type
     operator()( PixelMask<Arg1T> const& arg1, PixelMask<Arg2T> const& arg2 ) const {
-      if ( arg2.child() == Arg2T() ) {
-        if ( is_valid(arg1) && is_valid(arg2) )
-          return typename QuotientType<PixelMask<Arg1T>,PixelMask<Arg2T> >::type(0); // Valid
-        else
-          return typename QuotientType<PixelMask<Arg1T>,PixelMask<Arg2T> >::type();
+      if ( arg2.child() == Arg2T() ) { // If arg2 == 0
+        if ( is_valid(arg1) && is_valid(arg2) ) { // If both inputs are valid
+          typename QuotientType<PixelMask<Arg1T>,PixelMask<Arg2T> >::type temp;
+          temp.validate();
+          return temp; // Valid
+        } else
+          return typename QuotientType<PixelMask<Arg1T>,PixelMask<Arg2T> >::type(); // Invalid
       }
       else return ( arg1 / arg2 );
     }
   };
 
+  /// result = val / arg, if arg==0 then result = 0.
   template <class ValT>
   struct ValArgMaskedSafeQuotientFunctor : UnaryReturnBinaryTemplateBind1st<QuotientType,ValT> {
   private:
@@ -654,25 +657,29 @@ namespace vw {
     template <class ArgT>
     inline typename QuotientType<ValT, PixelMask<ArgT> >::type
     operator()( PixelMask<ArgT> const& arg ) const {
-      if ( arg.child()==ArgT() ) {
-        if ( is_valid(arg) && is_valid(m_val) )
-          return typename QuotientType<ValT,PixelMask<ArgT> >::type(0);
-        else
-          return typename QuotientType<ValT,PixelMask<ArgT> >::type();
+      if ( arg.child()==ArgT() ) { // if arg == 0
+        if ( is_valid(arg) && is_valid(m_val) ) { // If both inputs are valid
+          typename QuotientType<ValT,PixelMask<ArgT> >::type temp;
+          validate(temp);
+          return temp;
+        } else
+          return typename QuotientType<ValT,PixelMask<ArgT> >::type(); // Invalid
       }
       else return (m_val / arg);
     }
   };
 
+  /// arg1 = arg1 / arg2, if arg2==0 then arg1 = 0.
   struct ArgArgInPlaceMaskedSafeQuotientFunctor : BinaryReturn1stType {
     template <class Arg1T, class Arg2T>
-    inline PixelMask<Arg1T>& operator()( PixelMask<Arg1T>& arg1,
+    inline PixelMask<Arg1T>& operator()( PixelMask<Arg1T>      & arg1,
                                          PixelMask<Arg2T> const& arg2 ) const {
       if ( arg2.child()==Arg2T() ) {
-        if ( is_valid(arg1) && is_valid(arg2) )
-          return arg1=PixelMask<Arg1T>(0);
+        if ( is_valid(arg1) && is_valid(arg2) ) // Inputs are both valid
+          // Return zero -> Need to pass in a zero pixel, the default PixelMask constructor sets invalid
+          return arg1=PixelMask<Arg1T>(Arg1T());
         else
-          return arg1=PixelMask<Arg1T>();
+          return arg1=PixelMask<Arg1T>(); // Inputs are invalid, return invalid
       } else
         return arg1=(PixelMask<Arg1T>)(arg1/arg2);
     }

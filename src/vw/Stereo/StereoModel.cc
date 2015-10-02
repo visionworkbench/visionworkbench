@@ -214,8 +214,6 @@ Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
 
   // For two rays, this will give the same result as the code above,
   // but it is a bit slower.
-
-  // To do: Try to see if using Eigen speeds things up.
     
   // Based on:
   // Optimal Ray Intersection For Computing 3D Points
@@ -224,7 +222,7 @@ Vector3 StereoModel::triangulate_point(vector<Vector3> const& camDirs,
   // http://www.soi.city.ac.uk/~sbbh653/publications/opray.pdf
 
   Matrix<double,3,3> M(0.0);
-  Vector3 R(0.0);
+  Vector3 R;
   for (int t = 0; t < num_cams; t++){
     Vector3 D = camDirs[t], C = camCtrs[t];
     double a = D[0], b = D[1], c = D[2], x = C[0], y = C[1], z = C[2];

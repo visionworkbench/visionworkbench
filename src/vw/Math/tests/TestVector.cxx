@@ -54,6 +54,13 @@ TEST(Vector, Static) {
   EXPECT_EQ( 8, v3(2) );
   EXPECT_EQ( 9, v3(3) );
 
+  // set_all
+  v3.set_all(6);
+  EXPECT_EQ( 6, v3(0) );
+  EXPECT_EQ( 6, v3(1) );
+  EXPECT_EQ( 6, v3(2) );
+  EXPECT_EQ( 6, v3(3) );
+
   // set_size()
   EXPECT_THROW(v.set_size(3), ArgumentErr);
   ASSERT_NO_THROW(v.set_size(4));
@@ -62,6 +69,14 @@ TEST(Vector, Static) {
   EXPECT_EQ(&(*(v.begin())),&(v(0)));
   EXPECT_EQ(&(*(v.begin()+1)),&(v(1)));
   EXPECT_EQ(v.end(),v.begin()+4);
+}
+
+TEST(Vector, Static_Construction) {
+
+  size_t value = 0;
+  Vector3 v(value, value, value); // Should not compile
+  Vector2 v2(0, 0);
+  //Vector3 v3(v2); // Should not compile
 }
 
 TEST(Vector, Dynamic) {
@@ -87,6 +102,12 @@ TEST(Vector, Dynamic) {
   EXPECT_EQ( 6, v(0) );
   EXPECT_EQ( 7, v(1) );
   EXPECT_EQ( 8, v(2) );
+
+  // set_all
+  v.set_all(6);
+  EXPECT_EQ( 6, v(0) );
+  EXPECT_EQ( 6, v(1) );
+  EXPECT_EQ( 6, v(2) );
 
   EXPECT_EQ(&(*(v.begin())),&(v(0)));
   EXPECT_EQ(&(*(v.begin()+1)),&(v(1)));
@@ -301,6 +322,22 @@ TEST(Vector, Ceil) {
   Vector3 o = ceil(v);
 
   EXPECT_VECTOR_EQ( o, Vector3(2,26,-13) );
+}
+
+// Make sure that the set_all function works on basic types
+TEST(Vector, set_all) {
+
+  Vector2 v2(1, 2);
+  set_all(v2, 3);
+  EXPECT_VECTOR_EQ( v2, Vector2(3,3) );
+  
+  Vector<float> v4(4);
+  set_all(v4, 3);
+  EXPECT_VECTOR_EQ( v4, Vector4(3,3,3,3) );
+  
+  double d=4;
+  set_all(d, 3.0);
+  EXPECT_EQ(d, 3);
 }
 
 TEST(Vector, IndexingIterator) {

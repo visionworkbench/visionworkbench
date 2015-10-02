@@ -374,7 +374,7 @@ namespace math {
       ContainerT mean2 = m(p2);
 
       // Compute the scale factor between the points
-      Vector<double, dim> scale = 0.0;
+      Vector<double, dim> scale;
       for (size_t d = 0; d < dim; d++) {
         double dist1 = 0.0, dist2 = 0.0;
         for (size_t i = 0; i < p1.size(); ++i) {
@@ -390,7 +390,7 @@ namespace math {
       }
 
       // Compute the translation
-      Vector<double, dim> translation = 0.0;
+      Vector<double, dim> translation;
       for (size_t d = 0; d < dim; d++) {
         translation[d] = mean2[d] - scale[d]*mean1[d];
       }
