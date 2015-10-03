@@ -35,6 +35,9 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
                                          Vector3 const& translation, Quat const& rotation,
                                          Vector2 const& pixel_offset, double scale) :
   m_camera(camera_model),
+  m_translation(translation),
+  m_rotation(rotation),
+  m_rotation_inverse(inverse(rotation)),
   // Set as the rotation center the old camera center for pixel (0,0).
   // It is important to note that for linescan cameras, each line has
   // its own camera center. It is not a problem that we use a single
@@ -43,8 +46,6 @@ AdjustedCameraModel::AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_m
   // middle of the image, if we know the image size. But the current
   // choice should be just as good.
   m_rotation_center(m_camera->camera_center(Vector2(0, 0))),
-  m_translation(translation),
-  m_rotation(rotation), m_rotation_inverse(inverse(rotation)),
   m_pixel_offset(pixel_offset),
   m_scale(scale) {}
 
@@ -107,6 +108,9 @@ void AdjustedCameraModel::read(std::string const& filename) {
   Vector3 pos;
   Vector2 pixel_offset;
   double scale = 1.0;
+
+  // Start with a blank model, and try to read data into it
+  *this = AdjustedCameraModel(m_camera);
 
   std::ifstream istr(filename.c_str());
   if (istr >> pos[0] >> pos[1] >> pos[2])

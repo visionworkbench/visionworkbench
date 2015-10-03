@@ -109,12 +109,22 @@ namespace camera {
   /// center, camera translation, and in pixel space, pixel offset
   /// and pixel scale.
 
+  // The adjusted camera is obtained by applying to the unadjusted
+  // camera the rigid transform:
+  //   m_rotation*( P - m_rotation_center ) + m_rotation_center + m_translation
+  // Here, P is in the world coordinate system. P is a point on the
+  // unadjusted camera, and it becomes after the transform a point on
+  // the adjusted camera.
   class AdjustedCameraModel : public CameraModel {
 
     boost::shared_ptr<CameraModel> m_camera;
     Vector3 m_translation;
     Quat m_rotation;
     Quat m_rotation_inverse;
+
+    // apply the rotations in respect to this point.
+    Vector3 m_rotation_center;
+
     // This offset is used when the images are cropped.
     // Adding the offset to a pixel converts from the cropped
     // image pixels to original camera pixels.
@@ -126,8 +136,6 @@ namespace camera {
     // original camera pixels.
     double m_scale;
 
-    // apply the rotations in respect to this point.
-    Vector3 m_rotation_center;
 
   public:
     AdjustedCameraModel(boost::shared_ptr<CameraModel> camera_model,
