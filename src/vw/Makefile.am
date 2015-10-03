@@ -60,11 +60,6 @@ cartography_subdirs = Cartography
 cartography_headers = Cartography.h
 endif
 
-if MAKE_MODULE_GPU
-gpu_subdirs = GPU
-gpu_headers = GPU.h
-endif
-
 if MAKE_MODULE_INTERESTPOINT
 interestpoint_subdirs = InterestPoint
 interestpoint_headers = InterestPoint.h
@@ -80,9 +75,6 @@ geometry_subdirs = Geometry
 geometry_headers = Geometry.h
 endif
 
-if MAKE_MODULE_PLATE
-plate_subdirs = Plate
-endif
 
 if MAKE_MODULE_BUNDLEADJUSTMENT
 bundleadjustment_subdirs = BundleAdjustment
@@ -107,7 +99,6 @@ include_HEADERS = \
   $(mosaic_headers) \
   $(stereo_headers) \
   $(cartography_headers) \
-  $(gpu_headers) \
   $(interestpoint_headers) \
   $(hdr_headers) \
   $(geometry_headers) \
@@ -127,11 +118,9 @@ SUBDIRS = \
   $(stereo_subdirs) \
   $(cartography_subdirs) \
   $(mosaic_subdirs) \
-  $(gpu_subdirs) \
   $(interestpoint_subdirs) \
   $(hdr_subdirs) \
   $(geometry_subdirs) \
-  $(plate_subdirs) \
   $(bundleadjustment_subdirs) \
   $(python_subdirs) \
   $(tools_subdirs)

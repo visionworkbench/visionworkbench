@@ -137,8 +137,8 @@ if test "$APXS" != "false"; then
 
   AC_SUBST(APXS_CFLAGS)
   AC_SUBST(APXS_LDFLAGS)
-  fi
-AM_CONDITIONAL(MAKE_MODPLATE, [test "$APXS" != "false"])
+fi
+
 
 
 ##################################################
@@ -192,7 +192,7 @@ AM_CONDITIONAL(ENABLE_TEST_COVERAGE, [test x"$ENABLE_TEST_COVERAGE" = x"yes"])
 # distribution options
 ##################################################
 
-AX_ARG_WITH(dist-remove-modules, [Python Geometry GPU Plate], [mk am-set], [remove certain modules from the distribution])
+AX_ARG_WITH(dist-remove-modules, [Python Geometry], [mk am-set], [remove certain modules from the distribution])
 
 # These need to be here because automake-1.6 is dumb and does not properly
 # process AM_CONDITIONALs unless the first argument is a simple string.
@@ -453,20 +453,10 @@ AX_MODULE(HDR,              [src/vw/HDR],              [libvwHDR.la],           
 AX_MODULE(STEREO,           [src/vw/Stereo],           [libvwStereo.la],           yes, [CAMERA VW])
 AX_MODULE(GEOMETRY,         [src/vw/Geometry],         [libvwGeometry.la],         yes, [VW])
 AX_MODULE(BUNDLEADJUSTMENT, [src/vw/BundleAdjustment], [libvwBundleAdjustment.la], yes, [CAMERA CARTOGRAPHY INTERESTPOINT STEREO VW])
-AX_MODULE(PLATE,            [src/vw/Plate],            [libvwPlate.la],             no, [CARTOGRAPHY VW], [PROTOBUF GDAL BOOST_FILESYSTEM BOOST_REGEX BOOST_IOSTREAMS BOOST_PROGRAM_OPTIONS THREADS], [RABBITMQ_C ZEROMQ LIBKML])
-AS_IF([test x"$MAKE_MODULE_PLATE" = "xyes"],
-  [AS_IF([test x"$HAVE_PKG_RABBITMQ_C" != "xyes"],
-      [AS_IF([test x"$HAVE_PKG_ZEROMQ" != "xyes"],
-        [AC_MSG_WARN([You have neither rabbitmq_c nor zeromq. Plate network support will be disabled.])])])])
 
 AX_MODULE(TOOLS,   [src/vw/tools],  [],     yes, [VW], [BOOST_FILESYSTEM BOOST_PROGRAM_OPTIONS THREADS])
 AX_MODULE_PYTHON(  [src/vw/Python], [no])
 
-if test $host_vendor = apple; then
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL],      [CG])
-else
-  AX_MODULE(GPU, [src/vw/GPU], [libvwGPU.la], no, [VW], [GL GLEW], [CG])
-fi
 
 # These are here (instead of inside the MODULE macro where they belong)
 # for backwards compatability with older versions of automake.
@@ -483,10 +473,8 @@ AM_CONDITIONAL(MAKE_MODULE_HDR,              [test "$MAKE_MODULE_HDR"           
 AM_CONDITIONAL(MAKE_MODULE_STEREO,           [test "$MAKE_MODULE_STEREO"        = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_GEOMETRY,         [test "$MAKE_MODULE_GEOMETRY"      = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_BUNDLEADJUSTMENT, [test "$MAKE_MODULE_BUNDLEADJUSTMENT" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_PLATE,            [test "$MAKE_MODULE_PLATE"  = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_TOOLS,            [test "$MAKE_MODULE_TOOLS"  = "yes"])
 AM_CONDITIONAL(MAKE_MODULE_PYTHON,           [test "$MAKE_MODULE_PYTHON" = "yes"])
-AM_CONDITIONAL(MAKE_MODULE_GPU,              [test "$MAKE_MODULE_GPU"    = "yes"])
 
 
 ##################################################
@@ -525,10 +513,6 @@ AC_CONFIG_FILES([                       \
   src/test/Makefile                     \
   src/vw/Makefile                       \
   src/vw/tools/Makefile                 \
-  src/vw/Plate/Makefile                 \
-  src/vw/Plate/tests/Makefile           \
-  src/vw/Plate/google/Makefile          \
-  src/vw/Plate/google/sparsehash/Makefile \
   src/vw/Core/Makefile                  \
   src/vw/Core/tests/Makefile            \
   src/vw/Math/Makefile                  \
@@ -547,8 +531,6 @@ AC_CONFIG_FILES([                       \
   src/vw/HDR/tests/Makefile             \
   src/vw/Stereo/Makefile                \
   src/vw/Stereo/tests/Makefile          \
-  src/vw/GPU/Makefile                   \
-  src/vw/GPU/tests/Makefile             \
   src/vw/Geometry/Makefile              \
   src/vw/Geometry/tests/Makefile        \
   src/vw/InterestPoint/Makefile         \

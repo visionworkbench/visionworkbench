@@ -155,14 +155,6 @@ correlate_LDADD = @PKG_STEREO_LIBS@ @PKG_INTERESTPOINT_LIBS@ $(COMMON_LIBS)
 endif
 endif
 
-# Command-line tools based on the GPU module
-if MAKE_MODULE_GPU
-gpu_progs = gpu_correlate
-# A GPU-based version of the Stereo correlator
-gpu_correlate_SOURCES = gpu_correlate.cc
-gpu_correlate_LDADD = @PKG_GPU_LIBS@ $(COMMON_LIBS)
-endif
-
 # Contour generation program
 if HAVE_PKG_CAIROMM
 contourgen_progs = contourgen
@@ -179,7 +171,7 @@ endif
 
 bin_PROGRAMS = $(camera_progs) $(cartography_progs) $(hdr_progs) \
                $(interestpoint_progs) $(mosaic_progs)            \
-               $(cart_mos_progs) $(stereo_progs) $(gpu_progs)    \
+               $(cart_mos_progs) $(stereo_progs)     \
                $(contourgen_progs)
 
 noinst_PROGRAMS      = $(doc_generate_progs)
