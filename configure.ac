@@ -29,7 +29,6 @@ m4_pattern_allow([^PKG_PATHS_[A-Z_]+$])
 m4_pattern_allow([^PKG_BOOST_INCDIR$])
 m4_pattern_allow([^PKG_BOOST_LIBDIR$])
 m4_pattern_allow([^PKG_VW_LIBS_TEMP$])
-m4_pattern_allow([^PKG_ARBITRARY_QT_NEEDED_HEADERS$])
 
 ##################################################
 # A few starting bits
@@ -152,7 +151,6 @@ AX_ARG_ENABLE(bounds-check,  no,  [am-yes cpp-bool], [enable image bounds checki
 AX_ARG_ENABLE(test-coverage, no,  [am-yes],          [turn on code coverage analysis tools])
 AX_ARG_ENABLE(config-file,   yes, [cpp-bool],        [~/.vwrc support])
 AX_ARG_ENABLE(strict-aliasing, no, [none],           [allow strict aliasing (dangerous)])
-AX_ARG_ENABLE(qt-qmake,      yes, [none],            [Allow qmake detection of QT])
 
 
 ##################################################
@@ -316,60 +314,11 @@ if test x"$HAVE_PKG_GDAL" = "xyes"; then
   VW_HAS_BIGTIFF="$GDAL_HAS_BIGTIFF"
 fi
 
-if test "$HAVE_PKG_QT" = no; then
-    ENABLE_QT_QMAKE=no
-fi
-
-if test "$ENABLE_QT_QMAKE" = no; then
-  AX_GROUP_PKG([QT_QMAKE])
-else
-  # Qt with AutoTroll.
-  AT_WITH_QT([+gui +sql +opengl +network], [], [], [HAVE_PKG_QT_QMAKE="no:missing QT"], [])
-
-  if test x"$HAVE_PKG_QT_QMAKE" != x"no:missing QT"; then
-      AT_REQUIRE_QT_VERSION([4.0], [HAVE_PKG_QT_QMAKE="no:wrong QT version"], [])
-  fi
-
-  # We seed QT_QMAKE's cppflags and libs with the ones qmake figured out
-  PKG_QT_QMAKE_CPPFLAGS="$PKG_QT_QMAKE_CPPFLAGS `strip_arg -I. $QT_CPPFLAGS`"
-  AX_PKG(QT_QMAKE, [], [$QT_LIBS], [QVector])
-fi
-
-AX_PKG_ONE_OF(QT,
-    ARBITRARY_QT,
-     [if test -z "$QT_ARBITRARY_MODULES" -a -z "$HAVE_PKG_ARBITRARY_MODULES"; then
-        HAVE_PKG_ARBITRARY_QT="no:Set \$QT_ARBITRARY_MODULES"
-      else
-        for module in $QT_ARBITRARY_MODULES; do
-          PKG_ARBITRARY_QT_NEEDED_HEADERS="$PKG_ARBITRARY_QT_NEEDED_HEADERS ${module}"
-        done
-        PKG_ARBITRARY_QT_CPPFLAGS="$PKG_ARBITRARY_QT_CPPFLAGS -DQT_SHARED"
-        AX_PKG(ARBITRARY_QT, [], [-lQtCore], [$PKG_ARBITRARY_QT_NEEDED_HEADERS])
-      fi],
-    APPLE_QMAKE_QT, [AX_PKG_APPLE(QMAKE_QT, [GL QT_QMAKE], [])],
-    LINUX_QMAKE_QT,
-     [AX_PKG(QT_QMAKE_OPENGL, [QT_QMAKE], [], [QtOpenGL])
-      AX_PKG(QT_QMAKE_GUI,    [QT_QMAKE], [], [QLabel])
-      AX_PKG(QT_QMAKE_SQL,    [QT_QMAKE], [], [QtSql])
-      AX_PKG(QT_QMAKE_NETWORK,    [QT_QMAKE], [], [QtNetwork])
-      AX_GROUP_PKG(LINUX_QMAKE_QT, [QT_QMAKE QT_QMAKE_GUI QT_QMAKE_OPENGL QT_QMAKE_SQL QT_QMAKE_NETWORK])],
-    GUESS_QT,
-     [PKG_QT_GUESS_BASE_CPPFLAGS="$PKG_QT_GUESS_BASE_CPPFLAGS -DQT_SHARED"
-      AX_PKG(QT_GUESS_BASE,   [],                           [],           [QtCore/qstring.h])
-      AX_PKG(QT_GUESS_CORE,   [QT_GUESS_BASE],              [-lQtCore],   [QtCore],   [QtCore])
-      AX_PKG(QT_GUESS_GUI,    [QT_GUESS_CORE],              [-lQtGui],    [QtGui],    [QtGui])
-      AX_PKG(QT_GUESS_SQL,    [QT_GUESS_CORE],              [-lQtSql],    [QtSql],    [QtSql])
-      AX_PKG(QT_GUESS_NETWORK,[QT_GUESS_CORE],              [-lQtNetwork],[QtNetwork],[QtNetwork])
-      AX_PKG(QT_GUESS_OPENGL, [QT_GUESS_CORE QT_GUESS_GUI], [-lQtOpenGL], [QtOpenGL], [QtOpenGL])
-      AX_GROUP_PKG(GUESS_QT,  [QT_GUESS_BASE QT_GUESS_CORE QT_GUESS_GUI QT_GUESS_SQL QT_GUESS_NETWORK QT_GUESS_OPENGL])])
-
 PKG_CHECK_MODULES([CAIROMM], [cairomm-1.0], [
   PKG_CAIROMM_CPPFLAGS="$PKG_CAIROMM_CPPFLAGS $CAIROMM_CFLAGS"
   ], [HAVE_PKG_CAIROMM="no:$CAIROMM_PKG_ERRORS"])
 AX_PKG(CAIROMM, [], [$CAIROMM_LIBS], [cairomm/cairomm.h])
 
-AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])
-AX_PKG(ZEROMQ,     [], [-lzmq],      [zmq.hpp])
 AX_PKG(PROTOBUF, [PTHREADS], [-lprotobuf], [google/protobuf/stubs/common.h])
 AC_PATH_TOOL( PROTOC, [protoc], [no], [$PKG_PATHS_PROTOBUF/bin$PATH_SEPARATOR$PATH])
 if test x"$PROTOC" = "xno" && test x"$HAVE_PKG_PROTOBUF" = "xyes"; then
@@ -382,25 +331,6 @@ AX_PKG(LIBKML,   [BOOST_THREAD BOOST Z], [-lkmlengine -lkmldom -lkmlbase -lminiz
 AX_PKG(OPENCV,     [], [-lopencv_core -lopencv_imgproc -lopencv_features2d -lopencv_flann -lopencv_nonfree],  [ opencv2/core/core_c.h opencv2/core/core.hpp  opencv2/imgproc/imgproc_c.h opencv2/imgproc/imgproc.hpp opencv2/features2d/features2d.hpp opencv2/objdetect/objdetect.hpp opencv2/calib3d/calib3d.hpp opencv2/nonfree/nonfree.hpp opencv2/nonfree/features2d.hpp ])
 AX_PKG(FLANN,      [], [-lflann_cpp],[flann/flann.hpp])
 
-old_CXXFLAGS="$CXXFLAGS"
-old_LDFLAGS="$LDFLAGS"
-CXXFLAGS="$CXXFLAGS $PKG_RABBITMQ_C_CPPFLAGS"
-LDFLAGS="$LDFLAGS $PKG_RABBITMQ_C_LIBS"
-if test x"$HAVE_PKG_RABBITMQ_C" = "xyes"; then
-  AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
-    #include <stdlib.h>
-    #include <stdint.h>
-    #include <amqp.h>
-  ]], [[
-    amqp_rpc_reply_t x;
-    x.library_error;
-  ]])], [], [
-    HAVE_PKG_RABBITMQ_C="no:current version is too old"
-    AX_PKG(RABBITMQ_C, [], [-lrabbitmq], [stdlib.h stdint.h amqp.h])])
-fi
-CXXFLAGS="$old_CXXFLAGS"
-LDFLAGS="$old_LDFLAGS"
-
 # These are here (instead of inside the PKG macro where they belong)
 # for backwards compatability with older versions of automake.
 AM_CONDITIONAL(HAVE_PKG_LAPACK,     [test "$HAVE_PKG_LAPACK"     = "yes"])
@@ -411,8 +341,6 @@ AM_CONDITIONAL(HAVE_PKG_OPENEXR,    [test "$HAVE_PKG_OPENEXR"    = "yes"])
 AM_CONDITIONAL(HAVE_PKG_HDF,        [test "$HAVE_PKG_HDF"        = "yes"])
 AM_CONDITIONAL(HAVE_PKG_GDAL,       [test "$HAVE_PKG_GDAL"       = "yes"])
 AM_CONDITIONAL(HAVE_PKG_CAIROMM,    [test "$HAVE_PKG_CAIROMM"    = "yes"])
-AM_CONDITIONAL(HAVE_PKG_RABBITMQ_C, [test "$HAVE_PKG_RABBITMQ_C" = "yes"])
-AM_CONDITIONAL(HAVE_PKG_ZEROMQ,     [test "$HAVE_PKG_ZEROMQ"     = "yes"])
 AM_CONDITIONAL(HAVE_PKG_PROTOBUF,   [test "$HAVE_PKG_PROTOBUF"   = "yes"])
 AM_CONDITIONAL(HAVE_PKG_LIBKML,     [test "$HAVE_PKG_LIBKML"     = "yes"])
 AM_CONDITIONAL(HAVE_PKG_OPENCV,     [test "$HAVE_PKG_OPENCV"     = "yes"])
