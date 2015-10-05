@@ -97,6 +97,14 @@ void vw::cartography::Datum::set_well_known_datum( std::string const& name ) {
   m_geocentric = false;
   m_meridian_offset = 0.0;
 
+  // These numbers will be over-written later. However, we must
+  // still initialize them, otherwise when the set_semi_major_axis()
+  // function is invoked later it will result in un-initialized
+  // variables (since that function sets the semi-major axis but
+  // assumes the semi-minor axis is already set).
+  m_semi_major_axis =  6378137;
+  m_semi_minor_axis = 6356752.3142;
+
   std::string up_name = boost::to_upper_copy(name);
 
   if (up_name == "WGS84"    || up_name == "WGS_1984" ||
