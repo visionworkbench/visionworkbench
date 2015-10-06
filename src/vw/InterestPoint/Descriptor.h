@@ -137,7 +137,7 @@ namespace ip {
 
 
 
-
+/* Probably don't need this, just get OpenCV descriptions when the IP's are found.
 #if defined(VW_HAVE_PKG_OPENCV) && VW_HAVE_PKG_OPENCV == 1
   /// Wrapper for OpenCV description generator.
   /// - Maybe delete this class since OpenCV works better generating the descriptors at the 
@@ -210,7 +210,7 @@ namespace ip {
 
   }; // End class OpenCVDescriptorGenerator
 #endif
-
+*/
 
 
   //---------------------------------------------------------------------------------
