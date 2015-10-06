@@ -141,7 +141,6 @@ TYPED_TEST( MaskedPixelMath, Difference ) {
   // Test Operations
   typedef typename TestFixture::MPx MPx;
   typedef typename TestFixture::Px Px;
-  typedef typename TestFixture::ChT ChT;
   MPx F = this->Av - this->Bv;
   EXPECT_TRUE( is_valid(F) );
   EXPECT_VW_EQ( construct<Px>(50), F.child() );
@@ -203,7 +202,6 @@ TYPED_TEST( MaskedPixelMath, Product ) {
   // Test Operations
   typedef typename TestFixture::MPx MPx;
   typedef typename TestFixture::Px Px;
-  typedef typename TestFixture::ChT ChT;
   MPx F = this->Av * this->Bv;
   EXPECT_TRUE( is_valid(F) );
   EXPECT_VW_EQ( construct<Px>(200), F.child() );
@@ -265,7 +263,6 @@ TYPED_TEST( MaskedPixelMath, Quotient ) {
   // Test Operations
   typedef typename TestFixture::MPx MPx;
   typedef typename TestFixture::Px Px;
-  typedef typename TestFixture::ChT ChT;
   MPx F = this->Av / this->Bv;
   EXPECT_TRUE( is_valid(F) );
   EXPECT_VW_EQ( construct<Px>(50), F.child() );
@@ -379,47 +376,4 @@ TEST( MaskedPixelMath, PixelMaskInterpolation ) {
   EXPECT_FALSE( is_valid( interp_test(0.5,0.5) ) );
   EXPECT_FALSE( is_valid( interp_test(0.5,0) ) );
   EXPECT_FALSE( is_valid( interp_test(0,0.5) ) );
-}
-
-TEST( MaskedPixelMath, MixedTypes ) {
-  typedef PixelRGB<float> CPx;
-  typedef PixelMask<CPx> MCPx;
-  typedef PixelMask<float> MSx;
-
-  // This is not possible in the current frame work
-  //
-  // We could allow these kind of operations in the future, but
-  // it negates the reason for apply_mask and create_mask. It
-  // would also cause a lot of boiler plating code.
-
-  /*
-  {
-    CPx a(1, 2, 4);
-    MSx b(3);
-    MSx i;
-    // Compound + MScalar
-    CPx c = a + b;
-    EXPECT_PIXEL_EQ( c, CPx(4,5,7) );
-    c = a + i;
-    EXPECT_PIXEL_EQ( c, CPx(1,2,4) );
-    // MScalar + Compound
-    c = b + a;
-    EXPECT_PIXEL_EQ( c, CPx(4,5,7) );
-    c = i + a;
-    EXPECT_PIXEL_EQ( c, CPx(1,2,4) );
-    // Compound += MScalar
-    c += b;
-    EXPECT_PIXEL_EQ( c, CPx(4,5,7) );
-    c += i;
-    EXPECT_PIXEL_EQ( c, CPx(4,5,7) );
-  }
-  */
-  // MCompound + Scalar
-  // Scalar + MCompound
-  // MCompound += Scalar
-  // MScalar + Scalar
-  // Scalar + MScalar
-  // MScalar += Scalar
-  // Scalar += MScalar
-
 }
